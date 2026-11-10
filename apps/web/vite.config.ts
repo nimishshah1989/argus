@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3001',
+      // 127.0.0.1 (an IP) so a proxied Host resolves the default tenant (see tenant.ts);
+      // "localhost" carries no tenant slug and the server would 404 "Unknown company".
+      '/api': 'http://127.0.0.1:3001',
     },
   },
 });
