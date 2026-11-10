@@ -28,6 +28,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Chromium (PDF renderer)
+        run: pnpm exec playwright install --with-deps chromium
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -149,6 +149,10 @@ function browserRoots(): string[] {
   const roots: string[] = [];
   const fromEnv = process.env.PLAYWRIGHT_BROWSERS_PATH;
   if (fromEnv && fromEnv !== '0') roots.push(fromEnv);
+  // Playwright's own default cache, where `playwright install chromium` puts the browser
+  // (CI installs it there; macOS dev machines and Linux runners use different dirs).
+  roots.push(join(homedir(), '.cache', 'ms-playwright'));
+  roots.push(join(homedir(), 'Library', 'Caches', 'ms-playwright'));
   let dir = process.cwd();
   for (let level = 0; level < 4; level += 1) {
     roots.push(join(dir, '.tools', 'ms-playwright'));
