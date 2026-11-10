@@ -6,7 +6,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 | Milestone                            | Tickets | Done | In progress |
 | ------------------------------------ | ------- | ---- | ----------- |
-| M0 Foundation and walking skeleton   | 8       | 6    | 0           |
+| M0 Foundation and walking skeleton   | 8       | 7    | 0           |
 | M1a Ticket core                      | 5       | 0    | 0           |
 | M1b Parity complete and soft cutover | 7       | 0    | 0           |
 | M2 Accountability                    | 5       | 0    | 0           |
@@ -15,7 +15,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** `M0-0.8` (walking skeleton, runs locally). `M0-0.1`–`M0-0.6` are done. `M0-0.7` infrastructure is authored but `blocked-external` on the AWS account/domain/secrets (N7). The Settings UI lands with the web scaffold in M0-0.8.
+**Frontier now:** the M0 gate (staging deploy + restore drill), blocked on AWS (N7). `M0-0.1`–`M0-0.6` and `M0-0.8` are done; `M0-0.7` is authored but `blocked-external`. The walking skeleton runs locally; M1a starts once the gate is met.
 
 ## M0 Foundation and walking skeleton
 
@@ -72,7 +72,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** gate-manual
 - **Depends on:** 0.4, 0.5, 0.6, 0.7
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** gate-manual: Nimish raises a ticket from his phone and sees it on the Open list
 
 ## M1a Ticket core

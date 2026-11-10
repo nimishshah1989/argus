@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Walking skeleton (M0-0.8): Vite + React web app (login, floor, desk), minimal ticket raise and open list. Runs locally; 37 tests.
+
 - Infrastructure (M0-0.7, authored): Terraform for ap-south-1, Docker Compose + Caddy, server image, deploy/rollback script, restore runbook and deploy workflow. Apply is blocked on AWS credentials.
 
 - Cosmos seed (M0-0.6): `seed:cosmos` loads tenant zero from the discovery files with a committed seed report. 2 integration tests.
@@ -25,6 +27,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Walking skeleton (M0-0.8): Vite + React web app (login, floor, desk), minimal ticket raise and open list. Runs locally; 37 tests.
 
 - Infrastructure (M0-0.7, authored): Terraform for ap-south-1, Docker Compose + Caddy, server image, deploy/rollback script, restore runbook and deploy workflow. Apply is blocked on AWS credentials.
 

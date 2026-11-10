@@ -16,9 +16,10 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Pino                             | logging             | MIT              |
 | Drizzle ORM                      | database            | Apache-2.0       |
 | pg (node-postgres)               | database driver     | MIT              |
-| React, React DOM                 | web                 | MIT              |
+| React, react-dom                 | web                 | MIT              |
 | Vite                             | web build           | MIT              |
 | React Router                     | web routing         | MIT              |
+| react-router-dom                 | web routing         | MIT              |
 | TanStack Query, TanStack Table   | web data/table      | MIT              |
 | Tailwind CSS                     | web styles          | MIT              |
 | shadcn/ui (copied components)    | web UI              | MIT              |

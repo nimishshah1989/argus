@@ -41,6 +41,11 @@ Session: 1 — foundation, no product code
 - **Authored.** Terraform (VPC/EC2/RDS/S3/IAM/OIDC/Secrets/Budgets), Docker Compose + Caddy, server Dockerfile, esbuild bundle, deploy/rollback script, restore runbook, deploy workflow. `terraform fmt` clean; `pnpm verify` green.
 - **Blocked-external:** `terraform apply`, restore drill execution and staging deploy need the AWS account, domain and GitHub secrets (N7).
 
+## M0-0.8 walking skeleton
+
+- **Done locally.** Vite + React web app (login, floor report, desk open list), minimal `POST /tickets` (raise with `BD-` refs and duplicate detection) and `GET /state`. 37 tests total; `pnpm verify` green; web builds.
+- **Gate-manual/external:** staging deploy of the skeleton under `cosmos.staging.<domain>` and the restore drill are blocked on AWS (N7).
+
 ## In progress
 
 - Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.

@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc --noEmit && tsx scripts/build-server.ts",
+    "build": "tsc --noEmit && pnpm build:server && pnpm build:web",
     "parity": "tsx tools/check-parity.ts",
     "size": "tsx tools/check-size.ts",
     "deps": "tsx tools/check-deps.ts",
@@ -25,7 +25,8 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm audit:lean",
     "test:e2e": "playwright test --pass-with-no-tests",
     "seed:cosmos": "tsx scripts/seed-cosmos.ts",
-    "build:server": "tsx scripts/build-server.ts"
+    "build:server": "tsx scripts/build-server.ts",
+    "build:web": "pnpm --filter @argus/web build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

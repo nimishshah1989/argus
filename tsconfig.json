@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
@@ -14,8 +14,10 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@argus/db": ["./packages/db/src/index.ts"],
-      "@argus/shared": ["./packages/shared/src/index.ts"]
-    }
+      "@argus/shared": ["./packages/shared/src/index.ts"],
+      "@argus/domain": ["./packages/domain/src/index.ts"]
+    },
+    "jsx": "react-jsx"
   },
   "include": [
     "playwright.config.ts",
