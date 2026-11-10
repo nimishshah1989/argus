@@ -52,7 +52,7 @@ Session: 1 — foundation, no product code
 
 ## In progress
 
-- M1a-3 state machine (`transition()` for every command in §2).: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
+- M1a-3b: join/leave/correct/restore/upgrade-kind/late-report/record-past-breakdown; then M1a-4 tickets API.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
 - Auth spike (ADR 0003) pending.
 - Figure strategy spike (`handsOn: lead | union`) pending.
 

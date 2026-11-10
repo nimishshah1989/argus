@@ -1,0 +1,37 @@
+import type { Figures, Kind, Status } from './types.js';
+
+export interface Ticket {
+  id: string;
+  ref: string;
+  kind: Kind;
+  status: Status;
+  machineId: string | null;
+  problem: string;
+  reportedAt: Date;
+  raisedLoginId: string;
+  reportedByPersonId: string | null;
+  selfStarted: boolean;
+  startedAt: Date | null;
+  leadPersonId: string | null;
+  segmentStartedAt: Date | null;
+  handedOver: boolean;
+  handoverSince: Date | null;
+  transferToPersonId: string | null;
+  transferToShift: string | null;
+  transfers: number;
+  waitReason: string | null;
+  waitSince: Date | null;
+  assignedToPersonId: string | null;
+  machineRunningAt: Date | null;
+  machineStoppedAt: Date | null;
+  closedAt: Date | null;
+  closedByPersonId: string | null;
+  closeKind: 'report' | 'no_report' | 'done' | null;
+  closeNote: string | null;
+  taskReason: string | null;
+  taskExpectedOn: string | null;
+  taskDownMin: number | null;
+  kindUpgradedAt: Date | null;
+  lastEventSeq: number;
+  figures: Figures | null;
+}
