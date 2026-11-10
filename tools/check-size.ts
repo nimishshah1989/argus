@@ -29,7 +29,7 @@ function allowed(path: string): boolean {
 }
 
 function main(): void {
-  const files = ['apps', 'packages'].flatMap(sourceFiles);
+  const files = ['apps', 'packages', 'tools'].flatMap(sourceFiles);
   const rows = files.map((path) => ({ path, lines: lineCount(path) }));
   const hard = rows.filter((row) => row.lines > HARD && !allowed(row.path));
   const warn = rows.filter((row) => row.lines > WARN && row.lines <= HARD);
