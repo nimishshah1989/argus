@@ -10,6 +10,7 @@ import type { AppConfig } from './config.js';
 import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
+import { listTickets } from './ticket-list.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -375,6 +376,7 @@ async function detail(pool: Pool, request: FastifyRequest, reply: FastifyReply):
 export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   app.post('/api/v1/tickets', (request, reply) => raise(pool, request, reply));
+  app.get('/api/v1/tickets', (request, reply) => listTickets(pool, request, reply));
   app.get('/api/v1/state', (request, reply) => state(pool, request, reply));
   app.get('/api/v1/tickets/:id', (request, reply) => detail(pool, request, reply));
   for (const action of Object.keys(COMMAND_SCHEMAS) as tm.CommandAction[]) {

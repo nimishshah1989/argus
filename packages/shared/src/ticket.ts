@@ -137,3 +137,34 @@ export const upgradeKindSchema = z.object({
   personId: z.string().uuid().optional(),
 });
 export type UpgradeKindBody = z.infer<typeof upgradeKindSchema>;
+
+const TICKET_STATUSES: readonly string[] = ['open', 'working', 'waiting', 'closed', 'cancelled'];
+const TICKET_KINDS: readonly string[] = ['stopped', 'support', 'general'];
+
+function csvOk(raw: string | undefined, allowed: readonly string[]): boolean {
+  if (raw === undefined) return true;
+  const parts = raw.split(',').filter(Boolean);
+  return parts.length > 0 && parts.every((part) => allowed.includes(part));
+}
+
+export const listTicketsQuerySchema = z
+  .object({
+    status: z.string().optional(),
+    kind: z.string().optional(),
+    machineId: z.string().uuid().optional(),
+    personId: z.string().uuid().optional(),
+    raisedBy: z.string().uuid().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    cursor: z.string().optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+  })
+  .superRefine((value, ctx) => {
+    if (!csvOk(value.status, TICKET_STATUSES)) {
+      ctx.addIssue({ code: 'custom', message: 'Unknown status', path: ['status'] });
+    }
+    if (!csvOk(value.kind, TICKET_KINDS)) {
+      ctx.addIssue({ code: 'custom', message: 'Unknown kind', path: ['kind'] });
+    }
+  });
+export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

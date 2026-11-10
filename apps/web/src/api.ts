@@ -260,6 +260,42 @@ export function getTicket(id: string): Promise<TicketDetail> {
   return api<TicketDetail>(`/api/v1/tickets/${id}`);
 }
 
+export interface TicketListQuery {
+  status?: TicketStatus[];
+  kind?: RaiseKind[];
+  machineId?: string;
+  personId?: string;
+  raisedBy?: string;
+  from?: string;
+  to?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface TicketPage {
+  items: Ticket[];
+  nextCursor: string | null;
+}
+
+/** `GET /tickets` (M1a-5c): cursor-paginated; status/kind serialise as comma-separated subsets. */
+export function listTickets(query: TicketListQuery = {}): Promise<TicketPage> {
+  const params = new URLSearchParams();
+  const set = (key: string, value: string | undefined) => {
+    if (value) params.set(key, value);
+  };
+  set('status', query.status?.join(','));
+  set('kind', query.kind?.join(','));
+  set('machineId', query.machineId);
+  set('personId', query.personId);
+  set('raisedBy', query.raisedBy);
+  set('from', query.from);
+  set('to', query.to);
+  set('cursor', query.cursor);
+  set('limit', query.limit == null ? undefined : String(query.limit));
+  const search = params.toString();
+  return api<TicketPage>(`/api/v1/tickets${search ? `?${search}` : ''}`);
+}
+
 export function getMe(): Promise<{ user: Me }> {
   return api<{ user: Me }>('/api/v1/auth/me');
 }

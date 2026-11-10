@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ApiError, getConfig, raiseTicket, type RaiseKind } from '../api.js';
+import {
+  ApiError,
+  getConfig,
+  getMe,
+  listTickets,
+  raiseTicket,
+  type Machine,
+  type RaiseKind,
+} from '../api.js';
+import { errorMessage, machineLabel } from '../components/format.js';
+import { TicketCard } from '../components/TicketCard.js';
 import { Chip } from './floor/Chip.js';
 import { MachinePicker } from './floor/MachinePicker.js';
 
@@ -12,6 +22,47 @@ const SITUATIONS: { kind: RaiseKind; label: string }[] = [
 ];
 
 const inputClass = 'min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
+
+function MyComplaints({ machines }: { machines: Machine[] }) {
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const personId = me.data?.user.actingPersonId;
+  const complaints = useQuery({
+    queryKey: ['tickets', 'raised', personId],
+    queryFn: () => listTickets({ raisedBy: personId, limit: 50 }),
+    enabled: Boolean(personId),
+    staleTime: 0,
+  });
+  const tickets = complaints.data?.items ?? [];
+  const now = new Date().toISOString();
+  return (
+    <section className="mt-10">
+      <h2 className="text-sm font-medium text-neutral-600">My complaints</h2>
+      {me.isLoading || complaints.isLoading ? (
+        <p className="mt-2 text-neutral-500">Loading…</p>
+      ) : complaints.error ? (
+        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
+          {errorMessage(complaints.error)}
+        </p>
+      ) : tickets.length === 0 ? (
+        <p className="mt-2 text-neutral-500">You have not reported anything yet.</p>
+      ) : (
+        <ul className="mt-3 grid gap-3">
+          {tickets.map((ticket) => (
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
+              now={now}
+              machineCode={machineLabel(ticket, machines)}
+              quick={null}
+              pending={false}
+              onQuick={() => undefined}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 export function Floor() {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
@@ -106,15 +157,15 @@ export function Floor() {
       <nav className="mb-6 flex gap-2">
         <Link
           to="/floor"
-          className="rounded-lg bg-neutral-200 px-4 py-2 font-medium text-neutral-900"
+          className="inline-flex min-h-13 items-center rounded-lg bg-neutral-200 px-4 font-medium text-neutral-900"
         >
           Report
         </Link>
         <Link
           to="/desk"
-          className="rounded-lg px-4 py-2 font-medium text-neutral-600 hover:bg-neutral-200"
+          className="inline-flex min-h-13 items-center rounded-lg px-4 font-medium text-neutral-600 hover:bg-neutral-200"
         >
-          Open
+          Desk
         </Link>
       </nav>
 
@@ -224,6 +275,8 @@ export function Floor() {
           {report.isPending ? 'Sending…' : 'Send'}
         </button>
       </form>
+
+      <MyComplaints machines={cfg?.machines ?? []} />
     </main>
   );
 }
