@@ -22,7 +22,7 @@ Session: 1 — foundation, no product code
 
 ## M0-0.3 schema
 
-- **Done.** 26 tables (25 tenant tables), forced RLS, composite `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`. Testcontainers suite: 11 schema/isolation + 2 wrapper tests, plus 4 parity tests = 17 total; two tenants see only their own rows; unset tenant returns zero; cross-tenant FK rejected; expired/revoked/disabled tokens and tampered audit rows rejected. PR #5 merged; schema-review fixes in PR #7; CI green.
+- **Done.** 26 tables (25 tenant tables), forced RLS, composite `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`. Testcontainers suite: 11 schema/isolation + 2 wrapper tests, plus 4 parity tests = 17 total; two tenants see only their own rows; unset tenant returns zero; cross-tenant FK rejected; expired/revoked/disabled tokens and tampered audit rows rejected. PR #5 merged; schema-review fixes merged in PR #7; CI green.
 
 ## In progress
 
