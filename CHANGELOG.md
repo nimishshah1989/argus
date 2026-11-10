@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Domain figures engine (M1a-1): exact response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair and per-person minutes with overrides. 8 tests.
+
 - Walking skeleton (M0-0.8): Vite + React web app (login, floor, desk), minimal ticket raise and open list. Runs locally; 37 tests.
 
 - Infrastructure (M0-0.7, authored): Terraform for ap-south-1, Docker Compose + Caddy, server image, deploy/rollback script, restore runbook and deploy workflow. Apply is blocked on AWS credentials.
@@ -27,6 +29,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Domain figures engine (M1a-1): exact response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair and per-person minutes with overrides. 8 tests.
 
 - Walking skeleton (M0-0.8): Vite + React web app (login, floor, desk), minimal ticket raise and open list. Runs locally; 37 tests.
 

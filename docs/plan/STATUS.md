@@ -46,9 +46,13 @@ Session: 1 — foundation, no product code
 - **Done locally.** Vite + React web app (login, floor report, desk open list), minimal `POST /tickets` (raise with `BD-` refs and duplicate detection) and `GET /state`. 37 tests total; `pnpm verify` green; web builds.
 - **Gate-manual/external:** staging deploy of the skeleton under `cosmos.staging.<domain>` and the restore drill are blocked on AWS (N7).
 
+## M1a-1 figures
+
+- **Done.** `packages/domain` figure engine (`figures()`): response, hands-on union, waiting/vendor, handover, downtime (with 1-minute close floor), follow-up, repair and per-person minutes, overrides last. 8 tests; 45 total.
+
 ## In progress
 
-- Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
+- M1a-2 permissions (the §3 matrix as pure functions).: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
 - Auth spike (ADR 0003) pending.
 - Figure strategy spike (`handsOn: lead | union`) pending.
 
