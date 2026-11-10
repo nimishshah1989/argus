@@ -5,6 +5,7 @@ export type ErrorCode =
   | 'conflict'
   | 'validation'
   | 'rate_limited'
+  | 'not_configured'
   | 'internal';
 
 export interface ErrorBody {
