@@ -27,7 +27,7 @@ export function Login() {
 
   return (
     <main>
-      <h1>Argus</h1>
+      <h1>Uptimo</h1>
       <form onSubmit={submit}>
         <input
           autoFocus

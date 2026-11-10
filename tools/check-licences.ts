@@ -25,7 +25,7 @@ function main(): void {
   const bad: string[] = [];
   let count = 0;
   for (const [name, entries] of Object.entries(data)) {
-    if (name.startsWith('argus@') || name.startsWith('@argus/')) continue;
+    if (name.startsWith('uptimo@') || name.startsWith('@uptimo/')) continue;
     for (const entry of entries) {
       const licence = typeof entry === 'string' ? entry : (entry.license ?? 'UNKNOWN');
       count += 1;

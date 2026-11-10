@@ -6,8 +6,8 @@ import {
   listUpsertSchema,
   settingsPutSchema,
   translationSchema,
-} from '@argus/shared';
-import { withTenant } from '@argus/db';
+} from '@uptimo/shared';
+import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
 import { fingerprint, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';

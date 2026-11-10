@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Pool } from 'pg';
-import { withTenant } from '@argus/db';
+import { withTenant } from '@uptimo/db';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;

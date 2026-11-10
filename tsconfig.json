@@ -13,9 +13,9 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@argus/db": ["./packages/db/src/index.ts"],
-      "@argus/shared": ["./packages/shared/src/index.ts"],
-      "@argus/domain": ["./packages/domain/src/index.ts"]
+      "@uptimo/db": ["./packages/db/src/index.ts"],
+      "@uptimo/shared": ["./packages/shared/src/index.ts"],
+      "@uptimo/domain": ["./packages/domain/src/index.ts"]
     },
     "jsx": "react-jsx"
   },

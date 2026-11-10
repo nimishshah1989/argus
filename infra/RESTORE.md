@@ -6,10 +6,10 @@ A backup you have not restored is a hope. This drill runs in M0 and quarterly.
 
 ```bash
 aws rds restore-db-instance-to-point-in-time \
-  --source-db-instance-identifier argus-postgres \
-  --target-db-instance-identifier argus-postgres-restore \
+  --source-db-instance-identifier uptimo-postgres \
+  --target-db-instance-identifier uptimo-postgres-restore \
   --use-latest-restorable-time \
-  --db-subnet-group-name argus-db-subnet \
+  --db-subnet-group-name uptimo-db-subnet \
   --vpc-security-group-ids sg-XXXX
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "argus",
+  "name": "uptimo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -26,7 +26,7 @@
     "test:e2e": "playwright test --pass-with-no-tests",
     "seed:cosmos": "tsx scripts/seed-cosmos.ts",
     "build:server": "tsx scripts/build-server.ts",
-    "build:web": "pnpm --filter @argus/web build"
+    "build:web": "pnpm --filter @uptimo/web build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

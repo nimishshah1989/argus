@@ -1,6 +1,6 @@
 import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
-import { apiError } from '@argus/shared';
+import { apiError } from '@uptimo/shared';
 import { registerAuth } from './auth.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';

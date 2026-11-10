@@ -7,7 +7,7 @@ const domainPath = fileURLToPath(new URL('./packages/domain/src/index.ts', impor
 
 export default defineConfig({
   resolve: {
-    alias: { '@argus/db': dbPath, '@argus/shared': sharedPath, '@argus/domain': domainPath },
+    alias: { '@uptimo/db': dbPath, '@uptimo/shared': sharedPath, '@uptimo/domain': domainPath },
   },
   test: {
     include: ['tools/**/*.test.ts', 'packages/**/*.test.ts', 'apps/**/*.test.ts'],

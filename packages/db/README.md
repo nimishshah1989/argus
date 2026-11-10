@@ -1,4 +1,4 @@
-# @argus/db
+# @uptimo/db
 
 Schema v1 and migrations. Plain SQL, not an ORM migration dialect: RLS policies and the
 `app_router` functions live next to the tables.

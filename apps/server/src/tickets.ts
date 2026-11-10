@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
-import { apiError, raiseTicketSchema } from '@argus/shared';
-import { nextRef } from '@argus/domain';
-import { withTenant } from '@argus/db';
+import { apiError, raiseTicketSchema } from '@uptimo/shared';
+import { nextRef } from '@uptimo/domain';
+import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
 import type { AppConfig } from './config.js';
 

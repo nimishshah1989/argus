@@ -1,5 +1,5 @@
 {
-  "name": "@argus/domain",
+  "name": "@uptimo/domain",
   "version": "0.0.0",
   "private": true,
   "type": "module"

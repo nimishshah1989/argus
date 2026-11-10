@@ -31,7 +31,7 @@ function main(): void {
     for (const name of Object.keys(pkg.dependencies ?? {})) deps.add(name);
   }
   const missing = [...deps].filter(
-    (name) => !name.startsWith('@argus/') && !listed.has(name.toLowerCase()),
+    (name) => !name.startsWith('@uptimo/') && !listed.has(name.toLowerCase()),
   );
   console.log(`deps: ${deps.size} runtime dependencies`);
   for (const name of missing) {

@@ -4,9 +4,9 @@ set -euo pipefail
 
 ACTION="${1:-}"
 TAG="${2:-}"
-IMAGE="ghcr.io/nimishshah1989/argus-server"
+IMAGE="ghcr.io/nimishshah1989/uptimo-server"
 REMOTE_HOST="${REMOTE_HOST:-}"
-REMOTE_DIR="${REMOTE_DIR:-/opt/argus}"
+REMOTE_DIR="${REMOTE_DIR:-/opt/uptimo}"
 
 usage() { echo "usage: deploy.sh staging | production <tag> | rollback <tag>"; exit 1; }
 
