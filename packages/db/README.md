@@ -5,11 +5,32 @@ Schema v1 and migrations. Plain SQL, not an ORM migration dialect: RLS policies 
 
 - `migrations/0001_schema_v1.sql` — 26 tables (25 tenant tables), forced RLS, composite
   `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`.
+- `migrations/0002_app_api_role.sql` — the `app_api` login role (member of `app_user`,
+  no `BYPASSRLS`), which the server uses so RLS is actually enforced.
 - `test/seed.sql` — one row per tenant in every tenant table.
 - `test/isolation.test.ts` — Testcontainers Postgres 16; starts a container, applies the
   migration and seed, then proves the isolation, roles, functions and constraints.
 - `src/tenant.ts` — `withTenant(pool, tenantId, run)`: one transaction, `app.tenant_id`
-  set transaction-locally, `MissingTenantError` if it is absent.
+  set transaction-locally, `MissingTenantError` if it is absent, and a one-time warning if
+  the connection role bypasses RLS.
+
+## Roles and connection credentials
+
+| Role         | Login | Bypass RLS | Purpose                                                           |
+| ------------ | ----- | ---------- | ----------------------------------------------------------------- |
+| `app_api`    | yes*  | no         | the server and API runtime (least privilege, RLS enforced)        |
+| `app_user`   | no    | no         | the shared table/function grants that `app_api` inherits          |
+| `app_router` | no    | yes        | SECURITY DEFINER `tenant_by_slug` / `auth_lookup` / `tenant_info` |
+| owner        | yes   | yes        | migrations only                                                   |
+
+\* `app_api` is created `NOLOGIN` in the migration; the deployment layer
+(`ALTER ROLE app_api LOGIN PASSWORD '…'`, from SSM/Terraform — follow-up) turns on login.
+Never commit a password.
+
+The server must connect as `app_api` (via `DATABASE_URL`). The owner/superuser credential is
+reserved for migrations (`MIGRATION_DATABASE_URL`) and must not be exposed to the app.
+`withTenant` warns once if the connection is a superuser/BYPASSRLS role, which would silently
+skip RLS.
 
 ```bash
 pnpm test          # includes packages/db/test/isolation.test.ts (Docker required)

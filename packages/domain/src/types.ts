@@ -23,6 +23,12 @@ export type EventType =
   | 'report'
   | 'upgrade_kind';
 
+export interface EditChange {
+  field: string;
+  from: unknown;
+  to: unknown;
+}
+
 export interface TicketEvent {
   type: EventType;
   at: Date;
@@ -30,6 +36,8 @@ export interface TicketEvent {
   isVendor?: boolean;
   /** The status a ticket had before a `cancel`; `restore` uses it to pick the resume status. */
   status?: RestorableStatus;
+  /** Per-field old→new values recorded by a `correct` (`edit`) event. */
+  changes?: EditChange[];
 }
 
 export interface WorkSegment {
@@ -39,9 +47,12 @@ export interface WorkSegment {
   endedAt?: Date;
 }
 
+export type OverridableFigure =
+  'responseMin' | 'activeMin' | 'waitMin' | 'downtimeMin' | 'repairMin';
+
 export interface FigureOverrides {
-  activeMin?: number;
-  waitMin?: number;
+  handsOnOverrideMin?: number;
+  waitingOverrideMin?: number;
   downtimeMin?: number;
   responseMin?: number;
   repairMin?: number;
@@ -70,6 +81,7 @@ export interface Figures {
   followMin: number | null;
   repairMin: number;
   perPerson: Record<string, number>;
+  overridden?: OverridableFigure[];
 }
 
 export interface ActorContext {

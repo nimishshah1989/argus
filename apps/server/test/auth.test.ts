@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { hash } from '@node-rs/argon2';
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { startTestDb, type TestDb } from './harness.js';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 type InjectResponse = Awaited<ReturnType<App['inject']>>;
@@ -17,8 +16,8 @@ const LOGIN_A = '10000000-0000-0000-0000-000000000003';
 const LOGIN_B = '20000000-0000-0000-0000-000000000003';
 const PASSWORD = 'correct-horse-battery';
 
-let container: StartedPostgreSqlContainer;
-let pool: Pool;
+let db: TestDb;
+let admin: Pool;
 let app: Awaited<ReturnType<typeof buildApp>>;
 
 function post(
@@ -50,29 +49,23 @@ function get(url: string, host: string, authorization?: string): Promise<InjectR
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  pool = new Pool({ connectionString: container.getConnectionUri(), max: 1 });
-  await pool.query(
-    readFileSync(
-      new URL('../../../packages/db/migrations/0001_schema_v1.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  db = await startTestDb();
+  admin = db.admin;
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2, // Argon2id
     memoryCost: 19456,
     timeCost: 2,
     parallelism: 1,
   });
-  await pool.query(
+  await admin.query(
     "INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos'), ($2, 'plant-two', 'Plant Two')",
     [A, B],
   );
-  await pool.query(
+  await admin.query(
     "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $3, 'Asha', 'maintenance', 'Technician'), ($2, $4, 'Bina', 'maintenance', 'Technician')",
     [PERSON_A, PERSON_B, A, B],
   );
-  await pool.query(
+  await admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
      VALUES ($1, $3, $5, $6, $7, $8, false), ($2, $4, NULL, $9, $7, $10, true)`,
     [
@@ -88,13 +81,12 @@ beforeAll(async () => {
       'operator',
     ],
   );
-  app = await buildApp({ pool, logger: false, rateLimitMax: 100000 });
+  app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
 }, 120_000);
 
 afterAll(async () => {
   await app.close();
-  await pool.end();
-  await container.stop();
+  await db.stop();
 });
 
 describe('auth', () => {
@@ -224,12 +216,12 @@ describe('auth', () => {
     });
     const token = login.json().token as string;
     const before = (
-      await pool.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
+      await admin.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
     ).rows[0].expires_at as Date;
     await get('/api/v1/auth/me', 'cosmos.localhost', token);
     await get('/api/v1/auth/me', 'cosmos.localhost', token);
     const after = (
-      await pool.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
+      await admin.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
     ).rows[0].expires_at as Date;
     expect(after.getTime()).toBeGreaterThan(before.getTime());
   });

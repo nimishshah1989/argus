@@ -1,9 +1,7 @@
 import type { CrewMember, RestorableStatus, WorkSegment } from '../types.js';
-import { canCancel, canClose, canCorrect, canWork } from '../permissions.js';
+import { canCancel, canClose, canWork } from '../permissions.js';
 import { apply, assertWorking, clampAt, closeSegments, TransitionError } from './helpers.js';
 import type { Command, TransitionInput, TransitionResult } from './types.js';
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function start(
   input: TransitionInput,
@@ -306,57 +304,6 @@ export function lateReport(
   return apply(input, {
     ticket: { closeKind: 'report' },
     event: { type: 'report' },
-    at,
-    segments: input.segments,
-  });
-}
-
-export function restore(
-  input: TransitionInput,
-  command: Extract<Command, { type: 'restore' }>,
-): TransitionResult {
-  if (input.ticket.status !== 'cancelled')
-    throw new TransitionError('Only a cancelled ticket can be restored');
-  const cancel = [...input.events].reverse().find((event) => event.type === 'cancel');
-  if (cancel && input.ctx.now.getTime() - cancel.at.getTime() > SEVEN_DAYS_MS) {
-    throw new TransitionError('Can only restore within 7 days');
-  }
-  const toStatus: RestorableStatus = cancel?.status ?? command.toStatus ?? 'open';
-  const at = clampAt(input.ctx.now, input);
-  const lead = input.ticket.leadPersonId;
-  const segments =
-    toStatus === 'working' && lead
-      ? [...input.segments, { personId: lead, role: 'lead' as const, startedAt: at }]
-      : input.segments;
-  return apply(input, {
-    ticket: {
-      status: toStatus,
-      segmentStartedAt: at,
-      waitSince: toStatus === 'waiting' ? at : null,
-    },
-    event: { type: 'restore', reason: command.reason },
-    at,
-    segments,
-  });
-}
-
-export function correct(
-  input: TransitionInput,
-  command: Extract<Command, { type: 'correct' }>,
-): TransitionResult {
-  if (
-    !canCorrect({
-      role: input.ctx.role,
-      loginId: input.ctx.loginId,
-      personId: input.ctx.personId,
-      shared: input.ctx.shared,
-    })
-  )
-    throw new TransitionError('Not allowed');
-  const at = clampAt(input.ctx.now, input);
-  return apply(input, {
-    ticket: { ...command.changes },
-    event: { type: 'edit', reason: command.reason },
     at,
     segments: input.segments,
   });

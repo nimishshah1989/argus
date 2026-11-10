@@ -101,10 +101,18 @@ describe('figures', () => {
     expect(result.followMin).toBe(20);
   });
 
-  it('applies overrides last', () => {
-    const result = figures({ ...base, overrides: { responseMin: 7, waitMin: 9 } });
+  it('applies overrides last and flags them', () => {
+    const result = figures({ ...base, overrides: { responseMin: 7, waitingOverrideMin: 9 } });
     expect(result.responseMin).toBe(7);
     expect(result.waitMin).toBe(9);
+    expect(result.overridden).toEqual(expect.arrayContaining(['responseMin', 'waitMin']));
+  });
+
+  it('applies the hands-on override and flags it', () => {
+    const result = figures({ ...base, overrides: { handsOnOverrideMin: 99 } });
+    expect(result.activeMin).toBe(99);
+    expect(result.overridden).toContain('activeMin');
+    expect(result.overridden).not.toContain('waitMin');
   });
 
   it('stops the downtime clock at cancel', () => {
