@@ -4,45 +4,36 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Live (merged on main)
 
-- **UPTIMO** (renamed, #19). M0-0.7 gate fixes (#20) and EIP-only run (#22): SSM deploy, 2-AZ RDS, EIP, S3, IAM/OIDC, Secrets Manager, budget. Terraform `domain` is optional; Caddy HTTP `:80`; a bare-IP Host resolves the default tenant. **Not applied.**
-- M0 foundation: schema+RLS, auth, settings/config, Cosmos seed, walking skeleton.
-- M1a domain core + **tickets API (#23)**: full commands, `FOR UPDATE` row locks, `Idempotency-Key` replay, figures, `/state`, `/tickets/{id}`. 20 integration tests.
-- **M1a-5a floor (#26)**: Tailwind v4 + TanStack Query + typed API client; three-tap report.
-- **M1a-5b desk (#27)**: Open board (counts, team-now, three kind lists), ticket detail (facts, figures, timeline, people), state-dependent actions.
-- **M1a-5c lists (#29)**: `GET /tickets` (filterable, cursor-paginated, µs-precise cursor); desk Open/Mine/Team tabs; floor My complaints. 91 tests total.
-- **M1a-5d web polish (#31)**: `.tsx` function/complexity/depth/param budgets now enforced; Floor/MachinePicker/ActionForm/TicketDetail split into small components; desk nits (Update on handed-over open, vendor/handover/follow-up minutes).
-- **E2E harness (#33)**: `pnpm test:e2e` boots the real stack (Postgres Testcontainer → migrate → seed → API → Vite) and drives the floor raise + the full desk lifecycle, Open/Mine/Team and My complaints; also fixed the dev proxy Host and raised the vitest timeout for Testcontainers.
-- **Breakdown report form (#35, AC3a)**: close-with-report / late report accept a validated breakdown report, stored with its done/supported people and returned on `/tickets/:id`; desk gets the pre-filled form and a report card.
-- **Live board + kiosk (#36, AC4)**: `/desk/board` reads config+state into segment/group tiles, counts, filters, work footer; `?kiosk=1` hides nav; 30s refresh.
-- **Breakdown PDF (#37, AC3b)**: `GET /tickets/:id/pdf` renders an A4 report (platform-v1 QR, embedded Gujarati system fonts) via headless Chromium, stores a `file` row through an S3-shaped local adapter. CI installs Chromium.
-- **Flaky-raise fix (#38)**: concurrent same-`Idempotency-Key` raises replay the committed result instead of a spurious 409.
-- Repo is still `argus` on GitHub (rename + OIDC `github_repo` var pending).
+- **M0 foundation**: schema v1 + `app_api` RLS role (#5/#7/#42), auth (#9), settings/config (#11), Cosmos seed (#12), walking skeleton (#14). Terraform is authored and validated (#13/#20/#22) — **not applied**.
+- **M1a ticket core**: domain figures/permissions/state (#15–#18), tickets API (#23), floor (#26), desk (#27), lists (#29), polish (#31), e2e harness (#33).
+- **M1b shipped early**: breakdown report form (#35), live board + kiosk (#36), breakdown PDF (#37), WhatsApp share text + PWA shell (#40).
+- **Core-issue fixes**: C1 RLS on the request path (#42), C2/M1/M2 clocks (#41), C3/M3 corrections (#43), M4 idempotency binding (#44), duplicate-raise race (#38).
+- Verification: `pnpm verify` green (143 tests); `pnpm test:e2e` green (8 tests on the real stack).
 
 ## In flight
 
-- Nothing.
+- `process-fixes`: M8 e2e in CI, M10 migration immutability, M6 parity backfill + parity-update guard, M7 status docs/PR template. Not merged yet.
 
 ## Next
 
-- **AC5** — M1b web push + offline outbox (service worker, 409 drafts) + WhatsApp share text (SPEC 1.8/1.9).
-- Then **M1b remaining**: PWA manifests/install (1.9), import (1.10, external), Gujarati strings (1.11, external), cutover (1.12).
-- **Follow-ups**: implement `GET /files/{id}` (the PDF is stored but not yet streamed); cache PDFs (each GET re-renders); bundle Noto Sans Gujarati in the deploy image; split `api.ts` types; add the board's cancelled-24h tile status; floor cancel-own + desk join/leave E2E steps; wire Playwright into CI.
-- Re-run `terraform validate/plan` before `apply` (terraform not installed locally).
+- **AC5b/AC5c**: offline outbox with 409 drafts, web push.
+- M1b parity gaps: day-report PDF, needs-report list, floor cancel-own, desk join/leave actions, account sheet, admin correct/restore faces, Views 1–7 completion.
+- Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.
+- M2 SLA/escalation, then M4 analytics (needs Bhavin's platform file + Excel export).
 
 ## Known deferrals (see slice plans)
 
-- `recordPastBreakdown`, breakdown-report rows + child tasks on close, PDF jobs, `correct` activeMin/waitMin overrides, the `/state` extra buckets, acknowledge/handback (M2), i18n/Gujarati and the board kiosk (M1b).
+- Past-breakdown form/overrides, child tasks on close, PDF jobs, `/state` extra buckets, acknowledge/handback (M2), i18n/Gujarati, board cancelled-24h tile, `GET /files/{id}` streaming + PDF cache, Noto Sans Gujarati in the image.
 
 ## Models
 
-- The Bedrock plugin (`@deepseek-ai/dsh-llm-pi-ai`, 40+ providers) is installed and active, and `~/.dsh/profiles/desktop/cordis.patch.yml` configures `amazon-bedrock` with `apiKeyEnv: AMAZON_BEDROCK_API_KEY` (valid; credential stored). It is **blocked only by the session's model-selection policy** ("not allowed for this Session"): add the provider + model IDs in GUI **Settings → Models**. Suggested: `anthropic.claude-fable-5-1` (architecture), `anthropic.claude-sonnet-5-5` (review), `anthropic.claude-haiku-5-5` (build).
+- The Bedrock plugin is installed and configured; it is blocked only by the session model-selection policy (add providers in Settings → Models). The M9 key check is Nimish's.
 
 ## Blocked / questions for Nimish
 
-- Domain: **uptimo.in** recommended (registration pending).
-- Raise AWS monthly spend $50 → $150; confirm management-root MFA.
-- After apply: set GitHub secrets `AWS_ROLE_ARN`; bootstrap `/opt/uptimo`; then rename GitHub repo `argus → uptimo` + OIDC var.
-- Bhavin export/Worker (M1b gate); shifts; legacy code aliases.
+- Domain: **uptimo.in** registration; raise AWS spend limit; confirm management-root MFA.
+- After apply: GitHub secrets `AWS_ROLE_ARN`; bootstrap `/opt/uptimo`; rename the GitHub repo `argus → uptimo`.
+- Bhavin export/Worker (M1b gate); shifts; legacy code aliases; Sarvam keys + consented Gujarati notes; legacy PDF corpus; Excel export.
 
 ## Parallel rule
 

@@ -30,6 +30,23 @@ describe('parity ledger', () => {
     expect(validateParity(broken)).toContain('v3.test.02: waived without a reason');
   });
 
+  it('rejects an external row with no reason', () => {
+    const broken: ParityFile = {
+      version: 1,
+      rows: [
+        {
+          id: 'v3.test.03',
+          feature: 'x',
+          disposition: 'keep',
+          milestone: 'M1',
+          status: 'external',
+          evidence: [],
+        },
+      ],
+    };
+    expect(validateParity(broken)).toContain('v3.test.03: external without a reason');
+  });
+
   it('rejects a done row with no evidence', () => {
     const broken: ParityFile = {
       version: 1,

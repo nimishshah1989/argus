@@ -1,56 +1,101 @@
-# Status — session 1
+# Status — 11 November 2026
 
-Date: 10 November 2026
-Session: 1 — foundation, no product code
+Branch: `process-fixes` (M6/M7/M8/M10 process fixes; not yet merged). Last merged PR on `main`: #44.
+This file says what is built and tested, not what is planned; the plan is `docs/plan/backlog.md`.
 
-## Done
+## Merged on main (#1–#44)
 
-- Repo private and restructured: `docs/spec` live, `docs/discovery` frozen, `apps/`, `packages/`, `infra/` ready.
-- Workflow resolved: `docs/WORKFLOW.md`, `docs/SKILLS.md`.
-- ADRs: 0001 stack, 0002 hosting/outside services, 0003 auth (proposed, spike pending), 0004 commercial layer deferred.
-- `docs/spec/parity.yaml`: 79 rows, stable ids, 78 todo / 1 waived; validator + test.
-- `docs/plan/backlog.md`: 34 spec tickets + 4 design tickets, dependencies, verification; `NEEDS.md`; this file.
-- `docs/spec/QUESTIONS.md` (21 conflicts), `docs/spec/DIFFERENCES.md` (18 deliberate departures).
-- `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, size/dependency/shortcut/PR-size checks.
-- Root scaffold: pnpm workspace, strict TypeScript, ESLint (size/complexity rules), Prettier, Vitest, Playwright/Testcontainers packages, CI (checks + gitleaks), `THIRD_PARTY.md`, `.env.example`.
-- `pnpm verify` green: format, lint, typecheck, 4 tests, build, parity (79 rows), licences, migrations, lean audit.
-- PR #1 merged after CI (checks + gitleaks) and a fresh-context review PASS. A waived parity row now needs a reason.
+**M0 foundation**
 
-## Auth spike
+- Schema v1 (#5, #7): 26 tables, forced RLS, composite `(tenant_id, id)` foreign keys,
+  `tenant_by_slug` / `auth_lookup`, and migration `0002_app_api_role.sql` for the least-privilege
+  API role (#42). Isolation suite proves every tenant table hides other tenants.
+- Auth (#9): host tenancy, login/logout/me/change-password, Argon2id, opaque bearer tokens hashed
+  at rest, 30-day sliding sessions, shared logins with an acting person, public `/brand`.
+- Settings/config (#11): `/config` with fingerprint and `?fp=` delta, `/settings`, list CRUD,
+  missing-translations list. Cosmos seed (#12): 192 machines, 14 people, codes, shifts, glossary.
+- Walking skeleton (#14): login, floor raise, desk open list on the real API.
+- Infrastructure authored and validated (Terraform 32 resources, Compose, image, deploy/rollback)
+  (#13, #20, #22) — **not applied** (blocked on domain and AWS credentials).
 
-- **Done.** Hand-rolled sessions vs better-auth on Postgres 16. Hand-rolled: RLS 1/1, shared acting person, 30-day sliding, 132 lines including schema/test. better-auth: sign-up/sign-in/Argon2id/30-day work, but the session `tenantId` is null after sign-in and the model is email-first with 4 core tables; rejected. ADR 0003 accepted; `SPEC.md` and `THIRD_PARTY.md` updated.
+**M1a ticket core**
 
-## M0-0.3 schema
+- Domain: figures (#15), permissions (#16), state machine (#17) and the full command set (#18).
+- Tickets API (#23): every command, `FOR UPDATE` row locks, idempotency, `/state`,
+  `/tickets/{id}`, figures recomputed and persisted.
+- Floor face (#26) and desk face (#27): three-tap raise, Open board, detail with facts/figures/
+  timeline/people, state-dependent actions.
+- Ticket lists (#29): filterable, cursor-paginated `GET /tickets`; desk Mine/Team tabs; floor
+  My complaints. Web polish (#31).
+- E2E harness (#33): `pnpm test:e2e` boots a Postgres Testcontainer, migrates + seeds, starts the
+  API and Vite, and drives the floor raise and the full desk lifecycle on desktop and phone.
 
-- **Done.** 26 tables (25 tenant tables), forced RLS, composite `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`. Testcontainers suite: 11 schema/isolation + 2 wrapper tests, plus 4 parity tests = 17 total; two tenants see only their own rows; unset tenant returns zero; cross-tenant FK rejected; expired/revoked/disabled tokens and tampered audit rows rejected. PR #5 merged; schema-review fixes merged in PR #7; CI green.
+**M1b slices shipped early**
 
-## M0-0.4 auth
+- Breakdown report form and storage (#35); live board + kiosk (#36); server-rendered breakdown PDF
+  with QR and stored file (#37); WhatsApp short/full share text + installable PWA shell (#40).
 
-- **Done.** Fastify auth: host tenancy, login/logout/me/change-password, Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared-login acting person, `/brand`. 8 integration tests against Testcontainers; 25 tests total. PR #9 merged; CI green.
+**Core-issue fixes**
 
-## M0-0.5 settings
+- C1 (#42): the server connects as `app_api`, RLS is enforced on the real request path and
+  `withTenant` fails fast without a tenant.
+- C2/M1/M2 (#41): self-start status, cancel stops the clocks, restore resumes waiting.
+- C3/M3 (#43): correction audit with from/to, 7-day window, time invariants, overrides; past
+  breakdowns no longer invent hands-on time.
+- M4 (#44): idempotency bound to command + login + request hash, 24h expiry.
+- #38: duplicate-machine raise race replays the committed result.
 
-- **Done.** Settings API: `/config` with fingerprint and `?fp=` delta; `/settings` read/write; lists upsert/delete; missing translations + set. 6 integration tests; 31 tests total. The Settings React UI is deferred to the web scaffold in M0-0.8.
+**Process fixes (this branch)**
 
-## M0-0.6 seed
+- M8: `pnpm test:e2e` runs in the CI `checks` job after `pnpm test`.
+- M10: `pnpm migrations:immutable` + `tools/check-migration-immutability.ts` fail a PR that
+  modifies, deletes or renames an existing migration; documented in `packages/db/README.md`.
+- M6: parity ledger backfilled and guarded (`pnpm parity:update`; `apps/`/`packages/` changes must
+  touch `docs/spec/parity.yaml` or carry the `no-parity` label with a reason).
+- M7: this file, `README.md`, `HANDOFF.md` and `CHANGELOG.md` refreshed; PR template added.
 
-- **Done.** `seed:cosmos` loads 192 machines (CNC 125, Conventional 16, Process 17, Utility 30, DG 3, Robot 1), 14 people, 19 active + 3 inactive codes, 2 shifts, 144 glossary terms. Idempotent; seed report committed at `docs/plan/seed-report.md`. 2 integration tests; 33 tests total.
+## Verification today
 
-## M0-0.7 infrastructure
+- `pnpm verify` green: prettier, ESLint, strict TypeScript, **143 vitest tests**, server + web
+  build, parity schema, licences, migration checks, lean audit.
+- `pnpm test:e2e` green locally: 4 tests × 2 projects = **8 Playwright tests** (floor raise, desk
+  lifecycle, live board/kiosk), on the real stack.
+- CI `checks`: format, lint, typecheck, vitest, Playwright e2e, build, parity, parity:update (PR),
+  licences, migrations:check, migrations:immutable (PR), lean audit, PR size. `secrets`: gitleaks.
+- Terraform is validated but unapplied; there is no staging deployment yet.
 
-- **Authored and fixed for the external gate.** Terraform (VPC with two RDS AZs, EC2, RDS, S3, IAM/OIDC, Secrets Manager, EIP, Route 53 zone + `cosmos`/`cosmos.staging` records, no duplicate budget), SSM-based deploy (no public SSH), Docker Compose + Caddy, server image, deploy/rollback, restore runbook.
-- `terraform init` + `validate` + `plan` green: **32 resources to create**, state in `argus-tfstate-118167167649`.
-- **Blocked-external:** apply needs the registered domain and GitHub secrets (deploy-role ARN after apply); `terraform apply` is not run yet.
+## Parity — `docs/spec/parity.yaml` (79 rows)
 
-## M0-0.8 walking skeleton
+| Status      | Count | Meaning                                                                       |
+| ----------- | ----- | ----------------------------------------------------------------------------- |
+| done        | 12    | v3 behaviour fully covered, each with test/PR evidence                        |
+| in-progress | 34    | part of the row ships; listed gaps remain                                     |
+| todo        | 29    | not built (tasks, account sheet, day-report PDF, push, offline, M4 analytics) |
+| external    | 3     | blocked on outside input (Sarvam voice, legacy PDF import, Excel import)      |
+| waived      | 1     | dropped v3 screen (dead code)                                                 |
 
-- **Done locally.** Vite + React app (login, floor report, desk open list), minimal `POST /tickets` and `GET /state`. 37 tests.
+Every `done` row names a test or PR. The 34 `in-progress` rows are the honest gap between
+"ticket core shipped" and "Bhavin's whole app is covered"; close them before the cutover.
 
-## M1a domain core
+## Next
 
-- **Done:** figures (8 tests), permissions (6), state machine core + remaining commands (12). 57 tests total.
-- **Next:** M1a-4 tickets API (row locks, idempotency), then M1a-5 floor/desk.
+- **AC5b/AC5c**: offline outbox with 409 drafts; web push and acting-person re-subscribe.
+- Finish the M1b parity gaps: day-report PDF, needs-report list, floor cancel-own, desk join/leave
+  actions, account sheet, admin correct/restore faces, Views 1–7 completion.
+- **M1b import/cutover**: Bhavin's export and Worker (external), Gujarati strings (external),
+  cutover runbook.
+- **M2**: severity/SLA timers, escalation ladder, production handback.
+- **M4**: answer key and analytics (needs Bhavin's current platform file and Excel export).
 
-## Blocked / questions
+## Blocked / needs Nimish or Bhavin
 
-Domain registration (uptimo.in recommended), raise AWS spend limit to $150, confirm management-account root MFA, Bhavin's export/Worker, shifts, code aliases.
+- Domain registration (`uptimo.in`), AWS spend limit, and `terraform apply` (domain, GitHub secrets).
+- Bhavin's export/Worker source; the current analytics platform file and Excel export.
+- Voice provider keys (Sarvam) and a consented Gujarati voice corpus.
+- PDF import corpus (legacy breakdown PDFs) for the transition importer.
+
+## Known follow-ups (tracked in code comments / HANDOFF)
+
+- `GET /files/{id}` does not stream the stored PDF yet; each `/pdf` GET re-renders.
+- Bundle Noto Sans Gujarati in the deploy image; split `apps/web/src/api.ts` types.
+- Board cancelled-24h tile; floor cancel-own and desk join/leave E2E steps.

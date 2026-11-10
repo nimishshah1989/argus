@@ -1,4 +1,4 @@
-import { readFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { ChildProcess } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -26,7 +26,9 @@ import { assertPortFree, killPid, removeContainer, spawnLogged, waitForHttp } fr
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const STATE_DIR = resolve(ROOT, 'test-results/e2e');
 const STATE_FILE = join(STATE_DIR, 'stack.json');
-const MIGRATION = resolve(ROOT, 'packages/db/migrations/0001_schema_v1.sql');
+const MIGRATIONS = resolve(ROOT, 'packages/db/migrations');
+const APP_API_USER = 'app_api';
+const APP_API_PASSWORD = 'app-api-e2e-password';
 const TSX_CLI = resolve(ROOT, 'node_modules/tsx/dist/cli.mjs');
 const VITE_CLI = resolve(ROOT, 'apps/web/node_modules/vite/bin/vite.js');
 const API_LOG = join(STATE_DIR, 'api.log');
@@ -63,21 +65,40 @@ function hashPassword(): Promise<string> {
   });
 }
 
-async function startDatabase(): Promise<StartedPostgreSqlContainer> {
+interface Database {
+  container: StartedPostgreSqlContainer;
+  /** The app_api connection URL the server runs as, so RLS is exercised on the real path (C1). */
+  appUrl: string;
+}
+
+function migrationFiles(): string[] {
+  return readdirSync(MIGRATIONS)
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
+}
+
+async function startDatabase(): Promise<Database> {
   const container = await new PostgreSqlContainer('postgres:16-alpine')
     .withStartupTimeout(180_000)
     .start();
   const pool = new Pool({ connectionString: container.getConnectionUri(), max: 2 });
   try {
-    await pool.query(readFileSync(MIGRATION, 'utf8'));
+    for (const file of migrationFiles()) {
+      await pool.query(readFileSync(join(MIGRATIONS, file), 'utf8'));
+    }
+    await pool.query(`ALTER ROLE ${APP_API_USER} LOGIN PASSWORD '${APP_API_PASSWORD}'`);
     const passwordHash = await hashPassword();
     for (const statement of seedStatements(passwordHash)) {
       await pool.query(statement.text, statement.values);
     }
+  } catch (error) {
+    await container.stop().catch(() => undefined);
+    throw error;
   } finally {
     await pool.end();
   }
-  return container;
+  const appUrl = `postgresql://${APP_API_USER}:${APP_API_PASSWORD}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`;
+  return { container, appUrl };
 }
 
 function startApi(databaseUrl: string): ChildProcess {
@@ -120,20 +141,20 @@ export async function startStack(): Promise<StackHandles> {
   await stopStackFromState();
   for (const port of [API_PORT, WEB_PORT]) await assertPortFree(port);
   mkdirSync(STATE_DIR, { recursive: true });
-  const container = await startDatabase();
+  const database = await startDatabase();
   let api: ChildProcess | undefined;
   let web: ChildProcess | undefined;
   try {
-    api = startApi(container.getConnectionUri());
+    api = startApi(database.appUrl);
     await waitForHttp(`${API_URL}/api/v1/health`, api, API_LOG);
     web = startWeb();
     await waitForHttp(`${WEB_URL}/`, web, WEB_LOG);
     await waitForHttp(`${WEB_URL}/api/v1/health`, web, WEB_LOG);
-    return { container, api, web };
+    return { container: database.container, api, web };
   } catch (error) {
     if (web) await killPid(web.pid ?? 0);
     if (api) await killPid(api.pid ?? 0);
-    await container.stop().catch(() => undefined);
+    await database.container.stop().catch(() => undefined);
     throw error;
   }
 }

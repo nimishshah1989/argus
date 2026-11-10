@@ -7,15 +7,15 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | Milestone                            | Tickets | Done | In progress |
 | ------------------------------------ | ------- | ---- | ----------- |
 | M0 Foundation and walking skeleton   | 8       | 7    | 0           |
-| M1a Ticket core                      | 5       | 0    | 0           |
-| M1b Parity complete and soft cutover | 7       | 0    | 0           |
+| M1a Ticket core                      | 5       | 2    | 3           |
+| M1b Parity complete and soft cutover | 7       | 1    | 3           |
 | M2 Accountability                    | 5       | 0    | 0           |
 | M3 WhatsApp and voice                | 3       | 0    | 0           |
 | M4a Analytics parity                 | 3       | 0    | 0           |
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** the M0 gate (staging deploy + restore drill), blocked on AWS (N7). `M0-0.1`–`M0-0.6` and `M0-0.8` are done; `M0-0.7` is authored but `blocked-external`. The walking skeleton runs locally; M1a starts once the gate is met.
+**Frontier now:** M1a is merged on main (see `docs/plan/STATUS.md`); the M1b remainder — offline outbox, push, day-report PDF, import, Gujarati, cutover — is next. The M0 staging gate (`M0-0.7`) is authored but `blocked-external` on AWS and the domain.
 
 ## M0 Foundation and walking skeleton
 
@@ -81,35 +81,35 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** 0.3
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: a test per transition and per figure definition; property test that cached figures equal recomputed ones; the v3 rules in INVENTORY.md sections 3 and 14 each have a named test
 
 ### M1a-1.2 — Tickets API: every command with idempotency keys and row locks; state, ticket detail, lists with cursor pagination; day-report data
 
 - **Verification:** auto
 - **Depends on:** 1.1
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: contract tests; concurrency test (two starts) and replay test
 
 ### M1a-1.3 — Floor face: machine search and groups, situation, problem with quick chips, work request, sent screen, My complaints, cancel own un-started, pending production persons
 
 - **Verification:** auto
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: Playwright raise, see ticket number, cancel
 
 ### M1a-1.4 — Desk face: Open (three lists, counts strip, team now), ticket card with state-dependent actions, ticket detail with timeline and people, Mine, Team, account sheet
 
 - **Verification:** auto
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: Playwright drives one ticket through start, update, pause, resume, join, leave, transfer, pick up, running again, stopped again, close with report
 
 ### M1a-1.5 — Follow-up tasks: leave at close, Tasks list, follow-up boxes, machine-stopped minutes on done; cancel, restore, correct (including machine and kind)
 
 - **Verification:** auto
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: tests for pending, overdue, done; correction writes old and new values
 
 ## M1b Parity complete and soft cutover
@@ -118,28 +118,28 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: PDF text extraction checks fields; a rendered-page image test proves Gujarati glyphs with the bundled fonts
 
 ### M1b-1.7 — Live board and kiosk route
 
 - **Verification:** auto
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: tiles and counts match a fixture's Open lists
 
 ### M1b-1.8 — Web push with the acting-person re-subscribe rule; WhatsApp share text (short and full)
 
 - **Verification:** auto + gate-manual
 - **Depends on:** 1.2
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: push payload contract test. gate-manual: a push received on Android and on an installed iOS PWA
 
 ### M1b-1.9 — PWA: two manifests, service worker, cached state and config, offline outbox with idempotency keys and 409 drafts, update banner
 
 - **Verification:** auto
 - **Depends on:** 1.2, 1.3, 1.4
-- **Status:** todo
+- **Status:** in-progress
 - **Acceptance:** auto: Playwright offline test closes a ticket offline and replays it; a replay onto a closed ticket produces a draft
 
 ### M1b-1.10 — Import of Bhavin's live tickets: the export format is defined in `docs/spec/import/bhavin-export.schema.json` (one JSON object per ticket with events, crew, reports); alias file for free-text names; figures recomputed and compared with his stored values, overrides created where admin edits explain a difference; reference counters set to the imported maximum; `import:undo`

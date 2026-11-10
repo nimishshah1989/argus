@@ -32,6 +32,19 @@ reserved for migrations (`MIGRATION_DATABASE_URL`) and must not be exposed to th
 `withTenant` warns once if the connection is a superuser/BYPASSRLS role, which would silently
 skip RLS.
 
+## Migration rules
+
+- **A merged migration file is immutable.** Once a migration is on `main` it may not be
+  modified, deleted or renamed; a schema fix is a new numbered file. `pnpm migrations:immutable`
+  enforces this on pull requests by diffing `origin/main...HEAD` (a new file is fine; it skips
+  when there is no diff base).
+- Every new tenant table goes in a new migration with its `tenant_id`, RLS enable/force and
+  policy in the same file; the generic isolation test picks it up.
+- Keep `pnpm migrations:check` green (no destructive statement without a
+  `-- destructive-approved` note and a backup step).
+
 ```bash
-pnpm test          # includes packages/db/test/isolation.test.ts (Docker required)
+pnpm test                    # includes packages/db/test/isolation.test.ts (Docker required)
+pnpm migrations:check        # destructive-statement guard
+pnpm migrations:immutable    # PR-only: no existing migration file is changed
 ```

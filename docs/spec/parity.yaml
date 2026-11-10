@@ -1,639 +1,954 @@
-# Parity ledger — generated from docs/spec/PARITY.md on 2026-11-10.
+# Parity ledger — backfilled on 2026-11-11 for the M0–M1a slices and the C1–C3/M1–M4 fixes.
 # One row per parity feature. Do not hand-edit ids; update PARITY.md and regenerate.
-# status: todo | in-progress | done | waived. A done row must name at least one test or PR in evidence.
+# status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
+# A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
 version: 1
 expected_rows: 79
 rows:
-  - id: 'v3.signin.01'
-    feature: 'Username and password; 30-day sliding session; "Show password"; last username remembered'
+  - id: v3.signin.01
+    feature: Username and password; 30-day sliding session; "Show password"; last username remembered
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.02'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #9'
+      - 'apps/server/test/auth.test.ts :: signs a personal login in and returns the user on /me'
+      - 'apps/server/test/auth.test.ts :: slides the session forward on use'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.02
     feature: 'Five roles: report, maint, supervisor, admin, board; role decides the screens'
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.03'
-    feature: 'Personal login records its name; shared phone asks who is acting (team select on desk, free-text name plus role chip on floor)'
+    milestone: M0
+    milestones:
+      - M0
+    status: done
+    evidence:
+      - 'PR #9'
+      - 'PR #16'
+      - 'packages/domain/test/permissions.test.ts :: lets every role except board raise'
+      - 'packages/domain/test/permissions.test.ts :: scopes settings to head/admin and people to
+        admin only'
+      - 'apps/server/test/tickets.test.ts :: enforces command permissions by role and crew'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.03
+    feature: Personal login records its name; shared phone asks who is acting (team select on desk,
+      free-text name plus role chip on floor)
     disposition: improve
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.04'
-    feature: 'Change password (min 6); other phones signed out'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #9'
+      - 'apps/server/test/auth.test.ts :: requires and records the acting person on a shared phone'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.04
+    feature: Change password (min 6); other phones signed out
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.05'
-    feature: 'Any 401 signs the phone out with a message'
+    milestone: M0
+    milestones:
+      - M0
+    status: done
+    evidence:
+      - 'PR #9'
+      - 'apps/server/test/auth.test.ts :: changes the password, keeps the current session and
+        revokes the others'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.05
+    feature: Any 401 signs the phone out with a message
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.06'
-    feature: 'Company id and API address from the link or the page, saved on the phone'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #26'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.06
+    feature: Company id and API address from the link or the page, saved on the phone
     disposition: replace
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.signin.07'
+    milestone: M0
+    milestones:
+      - M0
+    status: done
+    evidence:
+      - 'PR #9'
+      - 'apps/server/test/tenant.test.ts :: returns the subdomain for a dotted host'
+      - 'apps/server/test/tenant.test.ts :: resolves a bare IP to the default tenant'
+      - 'apps/server/test/auth.test.ts :: trusts the token, not the host, after login'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.signin.07
     feature: '`/api/brand` public with company and logo'
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Sign-in, roles, identity'
-  - id: 'v3.reporting.01'
-    feature: 'Step 1 machine: search ignoring spaces and dashes, ranked exact, ends-with, contains; recent machines (last 5, 3 shown); segment sections with group tiles and counts; hint text per group'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #9'
+      - 'apps/server/test/auth.test.ts :: resolves the tenant from the host for /brand'
+    source: PARITY.md §v3 / Sign-in, roles, identity
+  - id: v3.reporting.01
+    feature: 'Step 1 machine: search ignoring spaces and dashes, ranked exact, ends-with, contains;
+      recent machines (last 5, 3 shown); segment sections with group tiles and counts; hint text per
+      group'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.02'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #26'
+      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
+        reference'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.02
     feature: '"Already reported. Tap to view the ticket." on a machine with an open ticket'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.03'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'apps/server/test/tickets.test.ts :: rejects a duplicate open ticket on the same machine'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.03
     feature: 'Step 2 situation: Machine has stopped (downtime starts) or Running, needs support'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.04'
-    feature: 'Step 3 problem: textarea, quick chips (six defaults, configurable), mic "Speak in Gujarati", who is reporting (name and role)'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #23'
+      - 'apps/server/test/tickets.test.ts :: raises a stopped ticket with a BD ref and lists it in
+        /state'
+      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
+        reference'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.04
+    feature: 'Step 3 problem: textarea, quick chips (six defaults, configurable), mic "Speak in
+      Gujarati", who is reporting (name and role)'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.05'
-    feature: 'Pending-task warning on a machine that already has a task'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #26'
+      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
+        reference'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.05
+    feature: Pending-task warning on a machine that already has a task
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.06'
-    feature: 'Other work (not a machine): where (locations, cells, free text), type of work (eight defaults, configurable), what is needed, urgent'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.06
+    feature: 'Other work (not a machine): where (locations, cells, free text), type of work (eight
+      defaults, configurable), what is needed, urgent'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.07'
-    feature: 'Maintenance raising a ticket can say "I am starting work on it now"'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'apps/server/test/tickets.test.ts :: raises a general task without a machine and requires
+        location and workType'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.07
+    feature: Maintenance raising a ticket can say "I am starting work on it now"
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.08'
-    feature: 'Duplicate on send returns the existing ticket'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #41'
+      - 'packages/domain/test/state.test.ts :: raises an open ticket and optionally starts it'
+      - 'packages/domain/test/state.test.ts :: rejects a second start on a self-started or
+        already-led ticket'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.08
+    feature: Duplicate on send returns the existing ticket
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.09'
-    feature: 'Sent screen: ticket number, WhatsApp share, cancel own, report another, see my complaints, see live'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'PR #38'
+      - 'apps/server/test/tickets-commands.test.ts :: replays a raise idempotently and returns the
+        same ref'
+      - 'apps/server/test/tickets.test.ts :: rejects a duplicate open ticket on the same machine'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.09
+    feature:
+      'Sent screen: ticket number, WhatsApp share, cancel own, report another, see my complaints,
+      see live'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.10'
-    feature: 'Deep link `?m=VC-17` pre-selects a machine'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #26'
+      - 'PR #40'
+      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
+        reference'
+      - 'packages/shared/test/share.test.ts :: shows the ref, status, machine and problem'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.10
+    feature: Deep link `?m=VC-17` pre-selects a machine
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1', 'M3']
+    milestone: M1
+    milestones:
+      - M1
+      - M3
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.reporting.11'
-    feature: 'Gujarati dictation in Chrome; translate via relay, on-device, or public Google; the person checks the English'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.reporting.11
+    feature:
+      Gujarati dictation in Chrome; translate via relay, on-device, or public Google; the person
+      checks the English
     disposition: replace
-    milestone: 'M3'
-    milestones: ['M3']
-    status: todo
+    milestone: M3
+    milestones:
+      - M3
+    status: external
+    external_reason:
+      Sarvam transcription provider, its keys and a consented Gujarati voice corpus are
+      external inputs (NEEDS.md); M3 scope.
     evidence: []
-    source: 'PARITY.md §v3 / Reporting (floor and desk)'
-  - id: 'v3.actions.01'
-    feature: 'Start work, back-dated in 5-minute steps to the report or transfer time, with response preview'
+    source: PARITY.md §v3 / Reporting (floor and desk)
+  - id: v3.actions.01
+    feature: Start work, back-dated in 5-minute steps to the report or transfer time, with response preview
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.02'
-    feature: 'Pick up transferred work (time counted from the transfer)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
+        figures at every step'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.02
+    feature: Pick up transferred work (time counted from the transfer)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.03'
-    feature: 'Post update with text, spare, expected date'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #17'
+      - 'packages/domain/test/state.test.ts :: transfers a working ticket back to open with a
+        handover'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.03
+    feature: Post update with text, spare, expected date
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.04'
-    feature: 'Pause: six reasons, note, expected back, assign to; repair stops, downtime continues (feature flag)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
+        figures at every step'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.04
+    feature: 'Pause: six reasons, note, expected back, assign to; repair stops, downtime continues
+      (feature flag)'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.05'
-    feature: 'Resume; second tap if assigned to someone else'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #15'
+      - 'PR #23'
+      - 'packages/domain/test/figures.test.ts :: computes waiting and vendor subset'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.05
+    feature: Resume; second tap if assigned to someone else
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.06'
-    feature: 'Transfer with handover note and optional target or next shift; ticket back to open as handed over'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #17'
+      - 'packages/domain/test/state.test.ts :: resumes a waiting ticket with a new lead segment'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.06
+    feature: Transfer with handover note and optional target or next shift; ticket back to open as
+      handed over
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.07'
-    feature: 'Join as primary or support; add a person (lead); per-person time, job time not doubled'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #17'
+      - 'packages/domain/test/state.test.ts :: transfers a working ticket back to open with a
+        handover'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.07
+    feature: Join as primary or support; add a person (lead); per-person time, job time not doubled
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.08'
-    feature: 'Leave with reason; primary takes over if the lead leaves'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
+      - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
+        figures at every step'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.08
+    feature: Leave with reason; primary takes over if the lead leaves
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.09'
-    feature: 'Machine running again (downtime stops, amber, ticket open); machine stopped again (clock restarts)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
+      - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
+        figures at every step'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.09
+    feature:
+      Machine running again (downtime stops, amber, ticket open); machine stopped again (clock
+      restarts)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.10'
-    feature: 'Write report and close (pre-screen with times, finish time adjust, pending task)'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #17'
+      - 'PR #36'
+      - 'packages/domain/test/state.test.ts :: marks a stopped machine running and then stopped'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.10
+    feature: Write report and close (pre-screen with times, finish time adjust, pending task)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.11'
-    feature: 'Close without report (reason) with 7-day "needs report" list and late report'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #35'
+      - 'PR #37'
+      - 'apps/server/test/ticket-report.test.ts :: stores one report with people and returns it from
+        detail'
+      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
+        from the report'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.11
+    feature: Close without report (reason) with 7-day "needs report" list and late report
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.12'
-    feature: 'Mark done for work requests and tasks; machine-stopped minutes for a task'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #23'
+      - 'PR #35'
+      - 'apps/server/test/tickets-commands.test.ts :: files a late report on a no-report close'
+      - 'apps/server/test/ticket-report.test.ts :: stores a late report and flips closeKind to
+        report'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.12
+    feature: Mark done for work requests and tasks; machine-stopped minutes for a task
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.13'
-    feature: 'Cancel with reason (desk any; floor own un-started)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #18'
+      - 'packages/domain/test/state.test.ts :: closes a working ticket as the lead and cancels an
+        own open ticket'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.13
+    feature: Cancel with reason (desk any; floor own un-started)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.14'
-    feature: 'Admin restore within 7 days'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #16'
+      - 'PR #23'
+      - 'packages/domain/test/permissions.test.ts :: lets an operator cancel only their own
+        un-started ticket'
+      - 'apps/server/test/tickets-commands.test.ts :: lets an operator cancel their own
+        not-yet-started ticket'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.14
+    feature: Admin restore within 7 days
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.15'
-    feature: 'Admin correction: reported, started, closed times, started by, closed by, work and waiting minutes, problem; reason; arithmetic warnings; history entry'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #41'
+      - 'packages/domain/test/state.test.ts :: restores to the previous status recorded on cancel,
+        ignoring a conflicting toStatus'
+      - 'packages/domain/test/state.test.ts :: rejects a restore more than 7 days after the cancel'
+      - 'apps/server/test/tickets-commands.test.ts :: restores a cancelled ticket to its previous
+        status'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.15
+    feature:
+      'Admin correction: reported, started, closed times, started by, closed by, work and waiting
+      minutes, problem; reason; arithmetic warnings; history entry'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.16'
-    feature: 'Report only (PDF without a ticket)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #43'
+      - 'packages/domain/test/state.test.ts :: lets an admin correct a ticket and records from/to'
+      - 'packages/domain/test/state.test.ts :: rejects a non-admin correction'
+      - 'packages/domain/test/state.test.ts :: rejects a correction more than 7 days after close'
+      - 'apps/server/test/tickets-commands.test.ts :: corrects a ticket as admin'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.16
+    feature: Report only (PDF without a ticket)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.17'
-    feature: 'Pending tasks: left at close with reason and expected date; Tasks tab; follow-up boxes pending, in progress, overdue, done'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.17
+    feature: 'Pending tasks: left at close with reason and expected date; Tasks tab; follow-up boxes
+      pending, in progress, overdue, done'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.actions.18'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.actions.18
     feature: 'Who may close: lead, a primary, supervisor, admin; shared phone anyone'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Ticket actions (desk)'
-  - id: 'v3.views.01'
-    feature: 'Open: counts strip (Down, Waiting, Support, Running OK), Team now, tabs Breakdowns, Tasks, Work; sorting rules; "Closed without a report" block'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #16'
+      - 'packages/domain/test/permissions.test.ts :: lets a technician close only as lead, primary
+        or on a shared login'
+      - 'apps/server/test/tickets.test.ts :: enforces command permissions by role and crew'
+    source: PARITY.md §v3 / Ticket actions (desk)
+  - id: v3.views.01
+    feature:
+      'Open: counts strip (Down, Waiting, Support, Running OK), Team now, tabs Breakdowns, Tasks,
+      Work; sorting rules; "Closed without a report" block'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.02'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #27'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.02
     feature: 'Ticket card: type line, problem, reported by and when, elapsed, actions by state, WhatsApp'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.03'
-    feature: 'Ticket detail sheet: facts, full history, people and minutes, follow-up, WhatsApp full text, admin edit'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #27'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.03
+    feature: 'Ticket detail sheet: facts, full history, people and minutes, follow-up, WhatsApp full
+      text, admin edit'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.04'
-    feature: 'Mine: in-progress for me (or everyone on a shared phone), waiting assigned to me, closed 30 days, day report'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #27'
+      - 'PR #31'
+      - 'PR #35'
+      - 'PR #40'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.04
+    feature:
+      'Mine: in-progress for me (or everyone on a shared phone), waiting assigned to me, closed
+      30 days, day report'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.05'
-    feature: 'Team: working now by person, waiting, not started, cancelled 24 hours, closed 30 days with monthly totals per person (primary and support split)'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #29'
+      - 'apps/server/test/tickets-list.test.ts :: filters by personId as lead and as crew'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.05
+    feature:
+      'Team: working now by person, waiting, not started, cancelled 24 hours, closed 30 days with
+      monthly totals per person (primary and support split)'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.06'
-    feature: 'Live board: tiles by segment and group, counts, filter chips, search, work-request footer, tap for machine sheet'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #27'
+      - 'PR #29'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.06
+    feature:
+      'Live board: tiles by segment and group, counts, filter chips, search, work-request footer,
+      tap for machine sheet'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.07'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #36'
+      - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.07
     feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1', 'M2']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.08'
+    milestone: M1
+    milestones:
+      - M1
+      - M2
+    status: in-progress
+    evidence:
+      - 'PR #29'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.08
     feature: 'Account sheet: name, role, change password, alerts, team guide, update now, app version'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.views.09'
+    source: PARITY.md §v3 / Views
+  - id: v3.views.09
     feature: '"Ticket closed" stats screen'
     disposition: drop
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: waived
-    waiver_reason: 'Dead code in v3; never routed (INVENTORY §2)'
+    waiver_reason: Dead code in v3; never routed (INVENTORY §2)
     evidence: []
-    source: 'PARITY.md §v3 / Views'
-  - id: 'v3.reports.01'
-    feature: 'Breakdown report form: machine, date, shift, problem, observed by, corrective action, done by and supported by chips, downtime, category, response, repair, code, spare, signature, handover name; validation messages'
+    source: PARITY.md §v3 / Views
+  - id: v3.reports.01
+    feature:
+      'Breakdown report form: machine, date, shift, problem, observed by, corrective action, done
+      by and supported by chips, downtime, category, response, repair, code, spare, signature,
+      handover name; validation messages'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reports and PDFs'
-  - id: 'v3.reports.02'
-    feature: 'Breakdown PDF: title, QR for the platform, fields, ticket facts block, timeline page, signature, file name `Breakdown_<machine>_<date>.pdf`'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #35'
+      - 'apps/server/test/ticket-report.test.ts :: stores one report with people and returns it from
+        detail'
+      - 'apps/server/test/ticket-report.test.ts :: applies defaults when report fields are omitted'
+      - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+    source: PARITY.md §v3 / Reports and PDFs
+  - id: v3.reports.02
+    feature: 'Breakdown PDF: title, QR for the platform, fields, ticket facts block, timeline page,
+      signature, file name `Breakdown_<machine>_<date>.pdf`'
     disposition: improve
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reports and PDFs'
-  - id: 'v3.reports.03'
-    feature: 'Day report PDF: person or team, day or shift, stats boxes, jobs table, per-person totals, pending at end; share or save'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #37'
+      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
+        from the report'
+      - 'apps/server/test/ticket-pdf.test.ts :: builds the v1 QR payload and embeds the QR in the
+        template'
+    source: PARITY.md §v3 / Reports and PDFs
+  - id: v3.reports.03
+    feature:
+      'Day report PDF: person or team, day or shift, stats boxes, jobs table, per-person totals,
+      pending at end; share or save'
     disposition: improve
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Reports and PDFs'
-  - id: 'v3.reports.04'
-    feature: 'PDF never uploaded, only its name'
+    source: PARITY.md §v3 / Reports and PDFs
+  - id: v3.reports.04
+    feature: PDF never uploaded, only its name
     disposition: replace
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Reports and PDFs'
-  - id: 'v3.alerts.01'
-    feature: 'Web push: new breakdown (maintenance), complaint fixed (floor); iOS install guidance; test alert; re-subscribe when the acting name changes'
+    milestone: M1
+    milestones:
+      - M1
+    status: done
+    evidence:
+      - 'PR #37'
+      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
+        from the report'
+    source: PARITY.md §v3 / Reports and PDFs
+  - id: v3.alerts.01
+    feature:
+      'Web push: new breakdown (maintenance), complaint fixed (floor); iOS install guidance; test
+      alert; re-subscribe when the acting name changes'
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.02'
-    feature: 'WhatsApp share button with short status text and full history text (3,500-character cap)'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.02
+    feature: WhatsApp share button with short status text and full history text (3,500-character cap)
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1', 'M3']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.03'
-    feature: '30-second refresh when visible, refresh on focus, server clock skew, soft re-render that never interrupts typing'
+    milestone: M1
+    milestones:
+      - M1
+      - M3
+    status: in-progress
+    evidence:
+      - 'PR #40'
+      - 'packages/shared/test/share.test.ts :: shows the ref, status, machine and problem'
+      - 'packages/shared/test/share.test.ts :: adds reported/started times, figures and the tenant
+        name'
+      - 'packages/shared/test/share.test.ts :: carries the whole share text encoded'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.03
+    feature:
+      30-second refresh when visible, refresh on focus, server clock skew, soft re-render that
+      never interrupts typing
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.04'
-    feature: 'Cached state and config for offline reading; offline queue for closes replayed with the chosen time'
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #26'
+      - 'PR #36'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.04
+    feature: Cached state and config for offline reading; offline queue for closes replayed with the
+      chosen time
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.05'
-    feature: 'Update banner when a new build is deployed; "Update now" clears caches'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.05
+    feature: Update banner when a new build is deployed; "Update now" clears caches
     disposition: keep
-    milestone: 'M1'
-    milestones: ['M1']
+    milestone: M1
+    milestones:
+      - M1
     status: todo
     evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.06'
-    feature: 'Config fingerprint check; settings pushed from the desktop platform'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.06
+    feature: Config fingerprint check; settings pushed from the desktop platform
     disposition: replace
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.07'
-    feature: 'Feature flags `general`, `pause`; lists for wait reasons, work types, quick problems, reporters; segments, groups, group names, show and group-by per segment; shift times; team shifts; glossary; language'
+    milestone: M0
+    milestones:
+      - M0
+    status: done
+    evidence:
+      - 'PR #11'
+      - 'apps/server/test/settings.test.ts :: returns same:true for an unchanged fingerprint and
+        changes it after an edit'
+      - 'apps/server/test/settings.test.ts :: returns the full config with a fingerprint and lists
+        the missing translations'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.07
+    feature: Feature flags `general`, `pause`; lists for wait reasons, work types, quick problems,
+      reporters; segments, groups, group names, show and group-by per segment; shift times; team
+      shifts; glossary; language
     disposition: keep
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'v3.alerts.08'
-    feature: 'Utility machines hidden by a hard-coded regex when no groups are configured'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #11'
+      - 'PR #12'
+      - 'apps/server/test/settings.test.ts :: returns the full config with a fingerprint and lists
+        the missing translations'
+      - 'apps/server/test/settings.test.ts :: updates features through /settings and reflects them
+        in /config'
+      - 'packages/db/test/cosmos-seed.test.ts :: loads shifts and glossary and is idempotent'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.08
+    feature: Utility machines hidden by a hard-coded regex when no groups are configured
     disposition: replace
-    milestone: 'M0'
-    milestones: ['M0']
-    status: todo
-    evidence: []
-    source: 'PARITY.md §v3 / Alerts, offline, platform'
-  - id: 'analytics.registers.01'
-    feature: 'Dashboard: KPI tiles, bubble chart, register summaries, mixed all-years and latest-year figures'
+    milestone: M0
+    milestones:
+      - M0
+    status: in-progress
+    evidence:
+      - 'PR #5'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: analytics.registers.01
+    feature:
+      'Dashboard: KPI tiles, bubble chart, register summaries, mixed all-years and latest-year
+      figures'
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.registers.02'
-    feature: 'CNC machines register with controller split and make split; Robots; Conventional, Process, Utilities; DG sets with kVA'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.registers.02
+    feature:
+      CNC machines register with controller split and make split; Robots; Conventional, Process,
+      Utilities; DG sets with kVA
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.registers.03'
-    feature: 'Machine form, move-cell form, cell change log with export and edit'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.registers.03
+    feature: Machine form, move-cell form, cell change log with export and edit
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.registers.04'
-    feature: 'Footprint (A7) packing, expansion timeline, age analysis (A8) and age drill'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.registers.04
+    feature: Footprint (A7) packing, expansion timeline, age analysis (A8) and age drill
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.registers.05'
-    feature: 'Settings page: company, hours per day and days per year, cost per hour, thresholds, team, codes, categories; settings sync preview'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.registers.05
+    feature:
+      'Settings page: company, hours per day and days per year, cost per hour, thresholds, team,
+      codes, categories; settings sync preview'
     disposition: replace
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.registers.06'
-    feature: 'Data Checklist page (what is missing or inconsistent)'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.registers.06
+    feature: Data Checklist page (what is missing or inconsistent)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Registers and master data'
-  - id: 'analytics.breakdown.01'
-    feature: 'Breakdown log with filters; breakdown form; downtime conversions; classification rules including NO DT (repaired outside production hours, zero lost hours)'
+    source: PARITY.md §analytics / Registers and master data
+  - id: analytics.breakdown.01
+    feature: Breakdown log with filters; breakdown form; downtime conversions; classification rules
+      including NO DT (repaired outside production hours, zero lost hours)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.02'
-    feature: 'PDF import of the breakdown report via QR (preview, apply)'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.02
+    feature: PDF import of the breakdown report via QR (preview, apply)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
-    status: todo
+    milestone: M4
+    milestones:
+      - M4
+    status: external
+    external_reason: Needs Bhavin's legacy PDF corpus to verify the QR import during the transition;
+      unnecessary once tickets create reports (M4).
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.03'
-    feature: 'A1 BD percent and PM split; A2 by category and cell with detail; A3 MTTR and MTBF with machine table; A4 manpower; A5 energy heatmap; heat-grid components'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.03
+    feature: A1 BD percent and PM split; A2 by category and cell with detail; A3 MTTR and MTBF with
+      machine table; A4 manpower; A5 energy heatmap; heat-grid components
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.04'
-    feature: 'A6 Why-Why root-cause analysis with candidate selection'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.04
+    feature: A6 Why-Why root-cause analysis with candidate selection
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.05'
-    feature: 'A9 Bottleneck analysis with scoring, downtime forecast for planning, Laplace trend test, repeat faults'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.05
+    feature:
+      A9 Bottleneck analysis with scoring, downtime forecast for planning, Laplace trend test,
+      repeat faults
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.06'
-    feature: 'A10 Problem analysis with charts; table sorting'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.06
+    feature: A10 Problem analysis with charts; table sorting
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.07'
-    feature: 'Drill-down system (any figure to its rows)'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.07
+    feature: Drill-down system (any figure to its rows)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.08'
-    feature: 'Compare machines with age-adjusted health score; Team Focus; Money Matters (cost per hour, turnover impact)'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.08
+    feature:
+      Compare machines with age-adjusted health score; Team Focus; Money Matters (cost per hour,
+      turnover impact)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.09'
-    feature: 'Fix Finder ranking (similar past fixes)'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.09
+    feature: Fix Finder ranking (similar past fixes)
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.10'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.10
     feature: "Action Center: rule-based nudges (13 alert types in the inventory's count)"
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.11'
-    feature: 'Monthly and annual maintenance reports with PDF export'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.11
+    feature: Monthly and annual maintenance reports with PDF export
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.breakdown.12'
-    feature: 'Excel import and export of the whole data set'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.breakdown.12
+    feature: Excel import and export of the whole data set
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
-    status: todo
+    milestone: M4
+    milestones:
+      - M4
+    status: external
+    external_reason: Bhavin's Excel export is the import source and defines the mapping (NEEDS.md); M4/M5.
     evidence: []
-    source: 'PARITY.md §analytics / Breakdown history and analysis'
-  - id: 'analytics.forecasting.01'
-    feature: 'Machine rate pooled with category rate (180-day prior, an empirical-Bayes idea); repeat entries merged into episodes'
+    source: PARITY.md §analytics / Breakdown history and analysis
+  - id: analytics.forecasting.01
+    feature: Machine rate pooled with category rate (180-day prior, an empirical-Bayes idea); repeat
+      entries merged into episodes
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)'
-  - id: 'analytics.forecasting.02'
-    feature: '2,000-run Monte Carlo (seeded `mulberry32`) for 80 percent and 90 percent plan-for hours; risk bands Hot, Likely, Watch, Stable'
+    source: PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)
+  - id: analytics.forecasting.02
+    feature:
+      2,000-run Monte Carlo (seeded `mulberry32`) for 80 percent and 90 percent plan-for hours;
+      risk bands Hot, Likely, Watch, Stable
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)'
-  - id: 'analytics.forecasting.03'
-    feature: 'Forecast Lab backtest'
+    source: PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)
+  - id: analytics.forecasting.03
+    feature: Forecast Lab backtest
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)'
-  - id: 'analytics.forecasting.04'
-    feature: 'Per-machine fits shown only above about 5 to 8 failures; class figure below'
+    source: PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)
+  - id: analytics.forecasting.04
+    feature: Per-machine fits shown only above about 5 to 8 failures; class figure below
     disposition: keep
-    milestone: 'M4'
-    milestones: ['M4']
+    milestone: M4
+    milestones:
+      - M4
     status: todo
     evidence: []
-    source: 'PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)'
+    source: PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)
