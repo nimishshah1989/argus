@@ -29,3 +29,14 @@ tmp/
 
 # Local tool downloads
 .tools/
+
+# Local pnpm store
+.pnpm-store/
+
+# Local terraform values
+infra/terraform/terraform.tfvars
+
+# Terraform local artifacts
+.terraform/
+*.tfstate
+*.tfstate.*
