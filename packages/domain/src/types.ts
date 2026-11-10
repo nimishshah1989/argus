@@ -68,3 +68,23 @@ export interface Figures {
   repairMin: number;
   perPerson: Record<string, number>;
 }
+
+export interface ActorContext {
+  role: Role;
+  loginId: string;
+  personId: string | null;
+  shared: boolean;
+}
+
+export interface CrewMember {
+  personId: string;
+  role: 'primary' | 'support';
+}
+
+export interface TicketContext {
+  raisedLoginId: string;
+  leadPersonId: string | null;
+  startedAt: Date | null;
+  status: Status;
+  crew: CrewMember[];
+}
