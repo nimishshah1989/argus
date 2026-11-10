@@ -41,12 +41,6 @@ interface RaiseTx {
   body: Record<string, unknown>;
 }
 
-function idempotencyKey(headers: FastifyRequest['headers']): string | null {
-  const value = headers['idempotency-key'];
-  const key = Array.isArray(value) ? value[0] : value;
-  return key && key.trim() ? key.trim() : null;
-}
-
 async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
@@ -82,8 +76,12 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
   };
 }
 
-async function executeCommand(client: PoolClient, tx: tm.Tx): Promise<Outcome> {
-  const existing = await idem.getIdempotent(client, tx.tenantId, tx.key);
+async function executeCommand(
+  client: PoolClient,
+  tx: tm.Tx,
+  binding: idem.IdempotencyBinding,
+): Promise<Outcome> {
+  const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
   const acting = await resolveActingPerson(client, tx);
   if ('status' in acting) return acting;
@@ -104,25 +102,25 @@ async function executeCommand(client: PoolClient, tx: tm.Tx): Promise<Outcome> {
     status: 200,
     body: { ticket: tm.ticketProjection(result.ticket, loaded.extras) },
   };
-  await idem.storeIdempotent(client, tx.tenantId, tx.key, { command: tx.action, result: outcome });
+  await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
 }
 
 async function runOutcome(
   pool: Pool,
-  tenantId: string,
-  key: string,
+  binding: idem.IdempotencyBinding,
   run: (client: PoolClient) => Promise<Outcome>,
 ): Promise<Outcome> {
   try {
-    return await withTenant(pool, tenantId, run);
+    return await withTenant(pool, binding.tenantId, run);
   } catch (error) {
     if (error instanceof report.ReportValidationError) {
       return { status: 422, body: shared.apiError('validation', 'Invalid report', error.field) };
     }
+    if (error instanceof idem.IdempotencyKeyReusedError) return idem.reusedKeyOutcome();
     if (!idem.isUniqueViolation(error)) throw error;
-    const stored = await withTenant(pool, tenantId, (client) =>
-      idem.getIdempotent(client, tenantId, key),
+    const stored = await withTenant(pool, binding.tenantId, (client) =>
+      idem.getIdempotent(client, binding),
     );
     return stored ?? { status: 500, body: shared.apiError('internal', 'Internal error') };
   }
@@ -136,7 +134,7 @@ async function runCommand(
 ): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const key = idempotencyKey(request.headers);
+  const key = idem.idempotencyKey(request.headers);
   if (!key) {
     reply
       .code(422)
@@ -149,6 +147,7 @@ async function runCommand(
     reply.code(422).send(shared.apiError('validation', 'Invalid request', field || undefined));
     return;
   }
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [action, parsed.data]);
   const tx: tm.Tx = {
     tenantId: ctx.tenantId,
     ticketId: (request.params as { id: string }).id,
@@ -158,9 +157,7 @@ async function runCommand(
     auth: ctx,
     actingPersonId: null,
   };
-  const outcome = await runOutcome(pool, tx.tenantId, tx.key, (client) =>
-    executeCommand(client, tx),
-  );
+  const outcome = await runOutcome(pool, binding, (client) => executeCommand(client, tx, binding));
   reply.code(outcome.status).send(outcome.body);
 }
 
@@ -246,14 +243,18 @@ function raiseExtras(
   };
 }
 
-async function executeRaise(client: PoolClient, tx: RaiseTx): Promise<Outcome> {
-  const existing = await idem.getIdempotent(client, tx.tenantId, tx.key);
+async function executeRaise(
+  client: PoolClient,
+  tx: RaiseTx,
+  binding: idem.IdempotencyBinding,
+): Promise<Outcome> {
+  const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
   const machine = await validateMachine(client, tx);
   if ('status' in machine) {
     // A concurrent same-key raise may have committed between our idempotency check and this
     // duplicate-machine probe; replay its stored result instead of failing on the duplicate.
-    return (await idem.getIdempotent(client, tx.tenantId, tx.key)) ?? machine;
+    return (await idem.getIdempotent(client, binding)) ?? machine;
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
@@ -281,14 +282,14 @@ async function executeRaise(client: PoolClient, tx: RaiseTx): Promise<Outcome> {
     status: 201,
     body: { ticket: tm.ticketProjection(raised.ticket, extras) },
   };
-  await idem.storeIdempotent(client, tx.tenantId, tx.key, { command: 'raise', result: outcome });
+  await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;
 }
 
 async function raise(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const key = idempotencyKey(request.headers);
+  const key = idem.idempotencyKey(request.headers);
   if (!key) {
     reply
       .code(422)
@@ -301,13 +302,14 @@ async function raise(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
     reply.code(422).send(shared.apiError('validation', 'Invalid ticket', field || undefined));
     return;
   }
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, ['raise', parsed.data]);
   const tx: RaiseTx = {
     tenantId: ctx.tenantId,
     key,
     auth: ctx,
     body: parsed.data as Record<string, unknown>,
   };
-  const outcome = await runOutcome(pool, ctx.tenantId, key, (client) => executeRaise(client, tx));
+  const outcome = await runOutcome(pool, binding, (client) => executeRaise(client, tx, binding));
   reply.code(outcome.status).send(outcome.body);
 }
 

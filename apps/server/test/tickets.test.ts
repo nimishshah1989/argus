@@ -125,6 +125,15 @@ beforeAll(async () => {
       'utf8',
     ),
   );
+  await pool.query(
+    readFileSync(
+      new URL(
+        '../../../packages/db/migrations/0003_command_idempotency_binding.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2, // Argon2id
     memoryCost: 19456,
