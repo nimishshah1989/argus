@@ -10,14 +10,14 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 ## In flight
 
 - Build-readiness review: `docs/discovery/review/04-build-readiness-review.md`.
-- Working agreement: `docs/BUILD-PROTOCOL.md`; review ladder: `docs/REVIEW-MECHANISMS.md`; goal/graph and parallel policy: `docs/ORCHESTRATION.md`.
+- Working agreement: `docs/BUILD-PROTOCOL.md`; review ladder: `docs/REVIEW-MECHANISMS.md`; goal/graph and parallel policy: `docs/ORCHESTRATION.md`; frontend strategy: `docs/FRONTEND-STRATEGY.md`.
 
 ## Next
 
 1. Session 1 (no product code): `docs/WORKFLOW.md`, `docs/SKILLS.md`, ADR 0001–0003, `docs/spec/parity.yaml`, `docs/plan/backlog.md`, `NEEDS.md`, `QUESTIONS.md`, `DIFFERENCES.md`, CI, `docs/TESTING.md`.
 2. Four one-week spikes: auth (better-auth vs custom), RLS + generic isolation test, `handsOn: lead|union` figures, two PWA manifests.
 3. M0: schema v1 + `seed:cosmos` + seed/data-quality report; brand/login/config; floor raise → desk Open on local Docker Compose.
-4. Frontend: design audit, role journeys, design tokens + component library, clickable prototypes, then screens in vertical slices. Arrange 3–5 operator/technician usability sessions at Cosmos.
+4. Frontend: design audit, role journeys, design tokens + component library, clickable prototypes, usability tests, then screens in vertical slices. Arrange 3–5 operator/technician sessions at Cosmos.
 
 ## Decided
 
