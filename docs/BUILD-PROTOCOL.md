@@ -249,7 +249,7 @@ The repo is the source of truth: issues for the backlog, one PR per slice, Actio
 
 1. **Start:** read `HANDOFF`, the ticket, its spec section, its parity rows, and the ADRs it touches. Do not trust memory of the chat.
 2. **Work one slice.** If it does not fit, split the slice — never the context.
-3. **At about two-thirds of the context window:** stop, write the handoff, and continue in a fresh session. The `handoff` skill exists for this.
+3. **At 50–70% of the context window:** stop, write the handoff, and continue in a fresh session. Never wait for 90–99%: compaction at that point loses detail and costs more. The `handoff` skill exists for this.
 4. **End:** update handoff, log, parity, changelog, and any question/difference. The next session must be able to start from the repo alone.
 5. **Subagents get constructed briefs**, not the whole conversation: the slice plan, the files, the tests, the checklist. The reviewer gets the diff, the plan and the CI result, not the author’s reasoning.
 6. **The model may forget; the repo may not.**

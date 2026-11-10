@@ -1,6 +1,6 @@
 # Orchestration: goal loop, graph loop and parallel development
 
-Short answer: **both, at different levels.** A goal loop at the milestone level; a graph (DAG) at the slice level; parallel workers only where the graph has independent branches. **LangGraph is not the right tool for the build itself** — it is a framework for stateful LLM applications, not a project manager. It becomes a candidate for the product’s M6 AI layer, behind an adapter, when there is a multi-step agent with checkpoints and human approvals. The build’s durable graph is the repo, the backlog, git and CI.
+Short answer: **both, at different levels.** A goal loop at the milestone level; a graph (DAG) at the slice level; parallel workers only where the graph has independent branches. **LangGraph is not the right tool for the build itself** — it is a framework for stateful LLM applications, not a project manager. It becomes a candidate for the product’s M6 AI layer, behind an adapter, when there is a multi-step agent with checkpoints and human approvals. The build’s durable graph is the repo, the backlog, git and CI. Context is budgeted at 50–70%: hand off early, never at 99%.
 
 ## 1. Goal loop vs graph loop
 
