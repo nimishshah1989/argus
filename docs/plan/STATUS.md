@@ -13,7 +13,8 @@ Session: 1 — foundation, no product code
 - `docs/spec/QUESTIONS.md` (21 conflicts), `docs/spec/DIFFERENCES.md` (18 deliberate departures).
 - `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, size/dependency/shortcut/PR-size checks.
 - Root scaffold: pnpm workspace, strict TypeScript, ESLint (size/complexity rules), Prettier, Vitest, Playwright/Testcontainers packages, CI (checks + gitleaks), `THIRD_PARTY.md`, `.env.example`.
-- `pnpm verify` green: format, lint, typecheck, 3 tests, build, parity (79 rows), licences, migrations, lean audit.
+- `pnpm verify` green: format, lint, typecheck, 4 tests, build, parity (79 rows), licences, migrations, lean audit.
+- PR #1 merged after CI (checks + gitleaks) and a fresh-context review PASS. A waived parity row now needs a reason.
 
 ## In progress
 
