@@ -12,6 +12,10 @@ Under 50 lines. Read first, rewrite at session end.
 - **M1a-5c lists (#29)**: `GET /tickets` (filterable, cursor-paginated, µs-precise cursor); desk Open/Mine/Team tabs; floor My complaints. 91 tests total.
 - **M1a-5d web polish (#31)**: `.tsx` function/complexity/depth/param budgets now enforced; Floor/MachinePicker/ActionForm/TicketDetail split into small components; desk nits (Update on handed-over open, vendor/handover/follow-up minutes).
 - **E2E harness (#33)**: `pnpm test:e2e` boots the real stack (Postgres Testcontainer → migrate → seed → API → Vite) and drives the floor raise + the full desk lifecycle, Open/Mine/Team and My complaints; also fixed the dev proxy Host and raised the vitest timeout for Testcontainers.
+- **Breakdown report form (#35, AC3a)**: close-with-report / late report accept a validated breakdown report, stored with its done/supported people and returned on `/tickets/:id`; desk gets the pre-filled form and a report card.
+- **Live board + kiosk (#36, AC4)**: `/desk/board` reads config+state into segment/group tiles, counts, filters, work footer; `?kiosk=1` hides nav; 30s refresh.
+- **Breakdown PDF (#37, AC3b)**: `GET /tickets/:id/pdf` renders an A4 report (platform-v1 QR, embedded Gujarati system fonts) via headless Chromium, stores a `file` row through an S3-shaped local adapter. CI installs Chromium.
+- **Flaky-raise fix (#38)**: concurrent same-`Idempotency-Key` raises replay the committed result instead of a spurious 409.
 - Repo is still `argus` on GitHub (rename + OIDC `github_repo` var pending).
 
 ## In flight
@@ -20,10 +24,9 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- **AC3** — M1b breakdown report form + server-rendered PDF (SPEC 1.6).
-- **AC4** — M1b live board + kiosk route + PWA manifests (SPEC 1.7/1.9).
-- **AC5** — M1b web push + offline outbox + WhatsApp share text (SPEC 1.8/1.9).
-- **E2E follow-ups**: add the floor "cancel own un-started" and desk join/leave steps (SPEC 1.3/1.4 `auto`); wire Playwright browser install into CI (E2E is not yet in `verify`).
+- **AC5** — M1b web push + offline outbox (service worker, 409 drafts) + WhatsApp share text (SPEC 1.8/1.9).
+- Then **M1b remaining**: PWA manifests/install (1.9), import (1.10, external), Gujarati strings (1.11, external), cutover (1.12).
+- **Follow-ups**: implement `GET /files/{id}` (the PDF is stored but not yet streamed); cache PDFs (each GET re-renders); bundle Noto Sans Gujarati in the deploy image; split `api.ts` types; add the board's cancelled-24h tile status; floor cancel-own + desk join/leave E2E steps; wire Playwright into CI.
 - Re-run `terraform validate/plan` before `apply` (terraform not installed locally).
 
 ## Known deferrals (see slice plans)
