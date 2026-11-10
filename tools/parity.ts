@@ -11,6 +11,7 @@ export interface ParityRow {
   milestone: string;
   milestones?: string[];
   status: Status;
+  waiver_reason?: string;
   evidence: string[];
   source?: string;
 }
@@ -41,6 +42,8 @@ function rowErrors(row: ParityRow, seen: Set<string>): string[] {
   if (!/^M[0-6][ab]?$/.test(row.milestone)) errors.push(`${row.id}: bad milestone`);
   if (row.status === 'done' && !row.evidence?.length)
     errors.push(`${row.id}: done without evidence`);
+  if (row.status === 'waived' && !row.waiver_reason?.trim())
+    errors.push(`${row.id}: waived without a reason`);
   return errors;
 }
 

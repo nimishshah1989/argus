@@ -362,6 +362,7 @@ rows:
     milestone: 'M1'
     milestones: ['M1']
     status: waived
+    waiver_reason: 'Dead code in v3; never routed (INVENTORY §2)'
     evidence: []
     source: 'PARITY.md §v3 / Views'
   - id: 'v3.reports.01'
