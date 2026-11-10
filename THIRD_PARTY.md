@@ -57,6 +57,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | PostgreSQL                              | database               | PostgreSQL License |
 | LocalStack (community) or s3rver        | local S3               | Apache-2.0 / MIT   |
 | Ubuntu 24.04 LTS or Amazon Linux 2023   | server OS              | free               |
+| Ponytail skill (adapted)                | coding discipline      | MIT                |
 
 ## Outside services (not code)
 
