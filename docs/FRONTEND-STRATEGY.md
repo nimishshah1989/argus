@@ -4,15 +4,15 @@ The goal is not a prettier version of Bhavin’s page. It is a **role-first prod
 
 ## 1. What Bhavin got right, and what we change
 
-| Bhavin’s v3 | Keep | Change |
-| --- | --- | --- |
-| Three-tap report, machine search that ignores dashes, quick problem chips, voice | Yes — this is the floor’s muscle memory | Bigger targets, clearer states, offline-safe, Gujarati/Hindi throughout |
-| One dense page per role, bottom tabs | The role split is right | A real information architecture: Today, Open, Mine, Team, Live, Analytics, Settings; one job per screen |
-| Status colours (stopped red, working blue, support amber, transferred violet, waiting orange) | Yes — people already read them | Add text and icons, never colour alone; consistent tokens; accessible contrast |
-| Ticket timeline, people and minutes, follow-up box | Yes — this is the accountability record | A clearer detail sheet/page with a state-dependent action bar, not a wall of buttons |
-| PDFs built on the phone, English only | The form fields and the QR transition | Server-rendered PDFs with Gujarati, stored, shareable |
-| 30-second refresh, cached state, offline queue | Yes | Visible offline state, a “needs attention” queue for 409s, no silent drops |
-| Management uses a separate desktop HTML | The analytics content is strong | One product: management gets a Today page, scorecard, drill-down and exports inside the same app |
+| Bhavin’s v3                                                                                   | Keep                                    | Change                                                                                                  |
+| --------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Three-tap report, machine search that ignores dashes, quick problem chips, voice              | Yes — this is the floor’s muscle memory | Bigger targets, clearer states, offline-safe, Gujarati/Hindi throughout                                 |
+| One dense page per role, bottom tabs                                                          | The role split is right                 | A real information architecture: Today, Open, Mine, Team, Live, Analytics, Settings; one job per screen |
+| Status colours (stopped red, working blue, support amber, transferred violet, waiting orange) | Yes — people already read them          | Add text and icons, never colour alone; consistent tokens; accessible contrast                          |
+| Ticket timeline, people and minutes, follow-up box                                            | Yes — this is the accountability record | A clearer detail sheet/page with a state-dependent action bar, not a wall of buttons                    |
+| PDFs built on the phone, English only                                                         | The form fields and the QR transition   | Server-rendered PDFs with Gujarati, stored, shareable                                                   |
+| 30-second refresh, cached state, offline queue                                                | Yes                                     | Visible offline state, a “needs attention” queue for 409s, no silent drops                              |
+| Management uses a separate desktop HTML                                                       | The analytics content is strong         | One product: management gets a Today page, scorecard, drill-down and exports inside the same app        |
 
 ## 2. Seven rules
 
@@ -26,13 +26,13 @@ The goal is not a prettier version of Bhavin’s page. It is a **role-first prod
 
 ## 3. The faces
 
-| Face | Who | Device | Home | Top tasks | Design character |
-| --- | --- | --- | --- | --- | --- |
-| **Floor** `/floor` | operators, setters, shared cell phones | low-end Android, installed PWA | “Report a problem” | Report stopped/support; speak; see my complaints; confirm a fix (M2) | Very large type and targets, one column, low density, high contrast, minimal chrome |
-| **Desk** `/desk` | technicians, supervisors, maintenance head, admin | phone, tablet | Open (Breakdowns, Tasks, Work) | Start/pick up, pause/resume, transfer, update, close, join, mine, team, live | Thumb-friendly cards, state-dependent action bar, search, filters, detail sheet |
-| **Board** `/desk/board?kiosk=1` | a TV or tablet on the wall | TV, kiosk | Live status | See what is down, who is on it, how long; tap a tile | Full-screen, no navigation, huge tiles, colour + label + elapsed, auto-refresh, 60 fps |
-| **Management** `/app` | head, plant head, admin | desktop, tablet | Today | KPI exceptions, drill-down, machines, PM, reports, scorecard | Calm dashboard, five numbers, trends, tables with export, date range, money gated by role |
-| **Settings** `/app/settings` | admin, head | desktop | Setup checklist | People, machines, lists, shifts, SLA, WhatsApp, imports, audit | Form-heavy but calm; searchable lists; inline edit; “what changed” audit |
+| Face                            | Who                                               | Device                         | Home                           | Top tasks                                                                    | Design character                                                                          |
+| ------------------------------- | ------------------------------------------------- | ------------------------------ | ------------------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Floor** `/floor`              | operators, setters, shared cell phones            | low-end Android, installed PWA | “Report a problem”             | Report stopped/support; speak; see my complaints; confirm a fix (M2)         | Very large type and targets, one column, low density, high contrast, minimal chrome       |
+| **Desk** `/desk`                | technicians, supervisors, maintenance head, admin | phone, tablet                  | Open (Breakdowns, Tasks, Work) | Start/pick up, pause/resume, transfer, update, close, join, mine, team, live | Thumb-friendly cards, state-dependent action bar, search, filters, detail sheet           |
+| **Board** `/desk/board?kiosk=1` | a TV or tablet on the wall                        | TV, kiosk                      | Live status                    | See what is down, who is on it, how long; tap a tile                         | Full-screen, no navigation, huge tiles, colour + label + elapsed, auto-refresh, 60 fps    |
+| **Management** `/app`           | head, plant head, admin                           | desktop, tablet                | Today                          | KPI exceptions, drill-down, machines, PM, reports, scorecard                 | Calm dashboard, five numbers, trends, tables with export, date range, money gated by role |
+| **Settings** `/app/settings`    | admin, head                                       | desktop                        | Setup checklist                | People, machines, lists, shifts, SLA, WhatsApp, imports, audit               | Form-heavy but calm; searchable lists; inline edit; “what changed” audit                  |
 
 The board is a route in the desk build, opened in kiosk mode; analytics and settings are desktop routes in the same app. Two installable manifests: **Report** (floor) and **Maintenance** (desk). One service worker.
 
@@ -67,15 +67,15 @@ Board:        tiles by segment/cell ──► machine sheet
 
 **Tokens, not one-off styles.** A small set of colours, type sizes, spacing, radii, shadows and motion, used everywhere. Components are copied from shadcn/ui and built on Radix primitives (accessible by default), with Tailwind tokens.
 
-| Token group | Rules |
-| --- | --- |
-| Colour | One accent for actions (deep teal or blue); neutral greys for surfaces; status: stopped red, working blue, support/follow-up amber, transferred violet, waiting orange, running neutral. Status also has a label and an icon; colour is never the only signal. Contrast WCAG AA. |
-| Type | System UI stack for Latin; Noto Sans Gujarati/Devanagari for consistent Indic rendering; scale 12/14/16/20/24/32; floor body 18–26 px; numerals tabular for times and KPIs. |
-| Spacing | 4/8/12/16/24/32/48; generous on the floor, denser on management but never cramped. |
-| Targets | Floor and desk buttons at least 52 px tall; 8 px minimum gap; thumb-zone primary actions. |
-| Radius / elevation | 8–16 px radii; one subtle shadow scale; no glassmorphism, no gradient decoration. |
-| Motion | 150–250 ms, purposeful (sheet open, state change, count change); respects `prefers-reduced-motion`; no animation that hides a state change. |
-| Density | Floor low; desk medium; management higher but with a maximum row height and a “comfortable” toggle later. |
+| Token group        | Rules                                                                                                                                                                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Colour             | One accent for actions (deep teal or blue); neutral greys for surfaces; status: stopped red, working blue, support/follow-up amber, transferred violet, waiting orange, running neutral. Status also has a label and an icon; colour is never the only signal. Contrast WCAG AA. |
+| Type               | System UI stack for Latin; Noto Sans Gujarati/Devanagari for consistent Indic rendering; scale 12/14/16/20/24/32; floor body 18–26 px; numerals tabular for times and KPIs.                                                                                                      |
+| Spacing            | 4/8/12/16/24/32/48; generous on the floor, denser on management but never cramped.                                                                                                                                                                                               |
+| Targets            | Floor and desk buttons at least 52 px tall; 8 px minimum gap; thumb-zone primary actions.                                                                                                                                                                                        |
+| Radius / elevation | 8–16 px radii; one subtle shadow scale; no glassmorphism, no gradient decoration.                                                                                                                                                                                                |
+| Motion             | 150–250 ms, purposeful (sheet open, state change, count change); respects `prefers-reduced-motion`; no animation that hides a state change.                                                                                                                                      |
+| Density            | Floor low; desk medium; management higher but with a maximum row height and a “comfortable” toggle later.                                                                                                                                                                        |
 
 **Components:** button, icon button, input, select, combobox, search, textarea, checkbox, radio, switch, chip, badge, status pill, card, list row, avatar, tabs, segmented control, bottom sheet, dialog, drawer, toast, inline alert, empty state, skeleton, pagination, data table, KPI tile, trend, progress, calendar, timeline, file upload, signature pad, QR, chart wrapper, confirm dialog, error boundary, offline banner.
 
@@ -109,18 +109,18 @@ Searchable lists, inline edit with a “what changed” audit, validation, previ
 
 ## 7. The quality bar, measured
 
-| Dimension | Bar |
-| --- | --- |
-| Report a breakdown | 3 taps, under 30 seconds on a low-end Android, including the problem text |
-| Find a ticket | Under 10 seconds from Open or search |
-| Close with report | Under 2 minutes, with validation that explains the fix |
-| Task success | 90%+ in usability tests, per role |
-| Accessibility | WCAG AA; axe clean; keyboard and screen-reader paths for desk/management; 52 px targets on floor |
-| Performance | Open/Live under 2 seconds on a low-end Android over 3G; `/state` under 300 ms for 500 machines; board at 60 fps; route-level code splitting; lazy charts |
-| Offline | Read cache works; the four offline writes queue and replay; a 409 becomes a visible draft, never a silent drop |
-| Languages | Full Gujarati and English in M1; no clipped text at 320 px; transliterated search works |
-| Visual | Every screen has empty, loading, error, offline and success states; no lorem ipsum; no missing icons; no colour-only meaning |
-| Consistency | One button hierarchy, one status vocabulary, one chart palette, one spacing scale |
+| Dimension          | Bar                                                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Report a breakdown | 3 taps, under 30 seconds on a low-end Android, including the problem text                                                                                |
+| Find a ticket      | Under 10 seconds from Open or search                                                                                                                     |
+| Close with report  | Under 2 minutes, with validation that explains the fix                                                                                                   |
+| Task success       | 90%+ in usability tests, per role                                                                                                                        |
+| Accessibility      | WCAG AA; axe clean; keyboard and screen-reader paths for desk/management; 52 px targets on floor                                                         |
+| Performance        | Open/Live under 2 seconds on a low-end Android over 3G; `/state` under 300 ms for 500 machines; board at 60 fps; route-level code splitting; lazy charts |
+| Offline            | Read cache works; the four offline writes queue and replay; a 409 becomes a visible draft, never a silent drop                                           |
+| Languages          | Full Gujarati and English in M1; no clipped text at 320 px; transliterated search works                                                                  |
+| Visual             | Every screen has empty, loading, error, offline and success states; no lorem ipsum; no missing icons; no colour-only meaning                             |
+| Consistency        | One button hierarchy, one status vocabulary, one chart palette, one spacing scale                                                                        |
 
 ## 8. How we get there
 
@@ -147,25 +147,25 @@ Tailwind + shadcn/ui + Radix primitives + Lucide icons; TanStack Query/Table; EC
 
 ## 11. Risks and how we handle them
 
-| Risk | Handling |
-| --- | --- |
-| Over-designing a tool people use in a hurry | Floor-first: fewer elements, larger targets, test with operators, not designers |
-| Desktop thinking on a phone | Every screen is designed at 360 px first; desktop is the enhancement |
-| Gujarati/Hindi text overflow | Pseudo-locale and long-string tests; no fixed-width labels; Noto fonts bundled |
-| Low-end devices and 3G | Bundle budget, code splitting, lazy charts, cached shell, real-device test |
-| Too many features at once | One role, one job per slice; parity first, polish after |
-| No access to real users | Arrange 3–5 sessions at Cosmos; if not possible, use Bhavin and two friendly operators, and label the evidence as synthetic |
-| Inconsistent screens | Tokens and components, design review, visual regression; no one-off styles |
-| The founder cannot judge code, but can judge the product | You test the task, not the implementation; the gate report gives you ten steps |
+| Risk                                                     | Handling                                                                                                                    |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Over-designing a tool people use in a hurry              | Floor-first: fewer elements, larger targets, test with operators, not designers                                             |
+| Desktop thinking on a phone                              | Every screen is designed at 360 px first; desktop is the enhancement                                                        |
+| Gujarati/Hindi text overflow                             | Pseudo-locale and long-string tests; no fixed-width labels; Noto fonts bundled                                              |
+| Low-end devices and 3G                                   | Bundle budget, code splitting, lazy charts, cached shell, real-device test                                                  |
+| Too many features at once                                | One role, one job per slice; parity first, polish after                                                                     |
+| No access to real users                                  | Arrange 3–5 sessions at Cosmos; if not possible, use Bhavin and two friendly operators, and label the evidence as synthetic |
+| Inconsistent screens                                     | Tokens and components, design review, visual regression; no one-off styles                                                  |
+| The founder cannot judge code, but can judge the product | You test the task, not the implementation; the gate report gives you ten steps                                              |
 
 ## 12. First design sprint (after M0)
 
-| Day | Work |
-| --- | --- |
-| 1 | Audit v3 screens and flows; write role journeys; agree the five numbers for Today |
-| 2 | Wireframe floor and desk; clickable prototype; design tokens v0 |
-| 3 | Usability test 2–3 operators/technicians; fix the flow |
-| 4 | Component library v0 (button, input, card, status pill, sheet, list row, timeline, KPI tile) |
-| 5 | Floor and desk screen specs; design review; hand-off to the build slices |
+| Day | Work                                                                                         |
+| --- | -------------------------------------------------------------------------------------------- |
+| 1   | Audit v3 screens and flows; write role journeys; agree the five numbers for Today            |
+| 2   | Wireframe floor and desk; clickable prototype; design tokens v0                              |
+| 3   | Usability test 2–3 operators/technicians; fix the flow                                       |
+| 4   | Component library v0 (button, input, card, status pill, sheet, list row, timeline, KPI tile) |
+| 5   | Floor and desk screen specs; design review; hand-off to the build slices                     |
 
 The output is not a beautiful mockup. It is a tested flow, a token set, a component library and a screen spec that the build can implement without guessing.

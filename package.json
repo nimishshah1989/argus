@@ -1,0 +1,42 @@
+{
+  "name": "argus",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit",
+    "parity": "tsx tools/check-parity.ts",
+    "size": "tsx tools/check-size.ts",
+    "deps": "tsx tools/check-deps.ts",
+    "shortcuts": "tsx tools/check-shortcuts.ts",
+    "pr:size": "tsx tools/check-pr-size.ts",
+    "migrations:check": "tsx tools/check-migrations.ts",
+    "licences": "tsx tools/check-licences.ts",
+    "audit:lean": "pnpm size && pnpm deps && pnpm shortcuts",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm audit:lean",
+    "test:e2e": "playwright test --pass-with-no-tests"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "@testcontainers/postgresql": "^12.2.1",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1"
+  }
+}
