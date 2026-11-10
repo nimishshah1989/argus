@@ -110,7 +110,7 @@ phones / WhatsApp / QR
 
 ## 5. The tables
 
-**About 25 tables in v1, roughly 55 by M4.** Not 200. The design rule is: **events are the truth; the ticket row is a fast cache; `work_segment` is the only interval table.** Stopped periods, pauses and handover waits are derived from event pairs, not stored four times.
+**About 26 tables in v1, roughly 55 by M4.** Not 200. The design rule is: **events are the truth; the ticket row is a fast cache; `work_segment` is the only interval table.** Stopped periods, pauses and handover waits are derived from event pairs, not stored four times.
 
 ### v1 — M0/M1 (about 25)
 

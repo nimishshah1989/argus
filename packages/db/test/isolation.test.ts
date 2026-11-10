@@ -171,5 +171,60 @@ describe('schema v1 isolation', () => {
         [A, '20000000-0000-0000-0000-00000000000e'],
       ),
     ).rejects.toThrow(/foreign key/);
+    await expect(
+      db.query(
+        "INSERT INTO breakdown_report_person (tenant_id, report_id, person_id, role) VALUES ($1, $2, $3, 'done')",
+        [A, '10000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000002'],
+      ),
+    ).rejects.toThrow(/foreign key/);
+  });
+
+  it('keeps the audit log append-only for the app role', async () => {
+    await setTenant(A);
+    await expect(
+      db.query("UPDATE audit_log SET action = 'tamper' WHERE tenant_id = $1", [A]),
+    ).rejects.toThrow(/permission denied/);
+    await expect(db.query('DELETE FROM audit_log WHERE tenant_id = $1', [A])).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('rejects a report or logo file from another tenant', async () => {
+    await setTenant(A);
+    await expect(
+      db.query('UPDATE breakdown_report SET signature_file_id = $1 WHERE id = $2', [
+        '20000000-0000-0000-0000-000000000013',
+        '10000000-0000-0000-0000-000000000012',
+      ]),
+    ).rejects.toThrow(/foreign key/);
+    await db.query('RESET ROLE');
+    try {
+      await expect(
+        db.query('UPDATE tenant SET logo_file_id = $1 WHERE id = $2', [
+          '20000000-0000-0000-0000-000000000013',
+          A,
+        ]),
+      ).rejects.toThrow(/logo file must belong/);
+    } finally {
+      await db.query('SET ROLE app_user');
+    }
+  });
+
+  it('scopes push endpoints to the tenant', async () => {
+    await setTenant(B);
+    await db.query(
+      "INSERT INTO push_subscription (id, tenant_id, login_id, acting_person_id, endpoint) VALUES ($1, $2, $3, $4, 'https://push.example/a')",
+      [
+        randomUUID(),
+        B,
+        '20000000-0000-0000-0000-000000000003',
+        '20000000-0000-0000-0000-000000000002',
+      ],
+    );
+    expect(await count('push_subscription')).toBe(2);
+    await db.query(
+      "DELETE FROM push_subscription WHERE endpoint = 'https://push.example/a' AND tenant_id = $1",
+      [B],
+    );
   });
 });

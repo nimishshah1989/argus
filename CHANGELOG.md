@@ -18,9 +18,11 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
-- Schema v1: 25 tables, forced RLS, composite tenant foreign keys, `app_router` functions, `withTenant()` and a two-tenant Testcontainers isolation suite (14 tests).
+- Schema v1: 26 tables, forced RLS, composite tenant foreign keys, `app_router` functions, `withTenant()` and a two-tenant Testcontainers isolation suite (17 tests).
 
 ### Changed
+
+- Schema review fixes: normalised report people, tenant-scoped push endpoints, restrict person deletion, append-only audit log, hot-path indexes and a non-negative downtime check.
 
 - Auth: hand-rolled sessions chosen by the M0 spike (ADR 0003); better-auth removed from the spec and `THIRD_PARTY.md`.
 
