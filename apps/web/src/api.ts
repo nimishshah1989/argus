@@ -72,6 +72,15 @@ export interface Person {
   phone: string | null;
 }
 
+export interface Shift {
+  id: string;
+  code: string;
+  name: string;
+  starts_at: string;
+  ends_at: string;
+  crosses_midnight: boolean;
+}
+
 export interface Config {
   features: Record<string, boolean>;
   language: string;
@@ -81,6 +90,7 @@ export interface Config {
   groups: Group[];
   machines: Machine[];
   people: Person[];
+  shifts: Shift[];
 }
 
 export interface Figures {
@@ -97,6 +107,50 @@ export interface Figures {
 }
 
 export type CloseKind = 'report' | 'no_report' | 'done';
+
+export type BreakdownCategory = 'E' | 'M' | 'E/M' | 'PM';
+
+/** The breakdown report body from docs/slices/M1a-report.md; the server defaults omitted fields. */
+export interface BreakdownReportBody {
+  problem?: string;
+  observedBy?: string;
+  correctiveAction?: string;
+  doneByPersonIds?: string[];
+  supportedByPersonIds?: string[];
+  downtimeMin?: number;
+  responseMin?: number;
+  repairMin?: number;
+  breakdownCategory?: BreakdownCategory;
+  maintCode?: string;
+  spareUsed?: string;
+  rootCause?: string;
+  handoverName?: string;
+  date?: string;
+  shiftCode?: string;
+}
+
+/** The stored report on ticket detail (server `StoredReport` in ticket-report.ts). */
+export interface BreakdownReport {
+  id: string;
+  ticketId: string | null;
+  machineId: string;
+  date: string;
+  shiftCode: string;
+  problem: string;
+  observedBy: string | null;
+  correctiveAction: string | null;
+  downtimeMin: number;
+  responseMin: number | null;
+  repairMin: number | null;
+  breakdownCategory: string | null;
+  maintCode: string | null;
+  spareUsed: string | null;
+  rootCause: string | null;
+  handoverName: string | null;
+  submittedByPersonId: string | null;
+  submittedAt: string;
+  people: { personId: string; role: 'done' | 'supported' }[];
+}
 
 export interface MachineSnapshot {
   code?: string | null;
@@ -163,6 +217,7 @@ export interface TicketDetail {
   people: TicketPerson[];
   tasks: unknown[];
   intervals: TicketInterval[];
+  report: BreakdownReport | null;
 }
 
 export interface Me {
@@ -305,7 +360,13 @@ export type PersonCommandBody = { personId: string };
 export type PauseCommandBody = { personId: string; reasonCode: string; note?: string };
 export type UpdateCommandBody = { personId: string; text: string };
 export type TransferCommandBody = { personId: string; note: string; toPersonId?: string };
-export type CloseCommandBody = { personId: string; kind: CloseKind; note?: string };
+export type CloseCommandBody = {
+  personId: string;
+  kind: CloseKind;
+  note?: string;
+  report?: BreakdownReportBody;
+};
+export type ReportCommandBody = { personId: string; report: BreakdownReportBody };
 export type CancelCommandBody = { personId: string; reason: string };
 export type CommandBody =
   | PersonCommandBody
@@ -313,6 +374,7 @@ export type CommandBody =
   | UpdateCommandBody
   | TransferCommandBody
   | CloseCommandBody
+  | ReportCommandBody
   | CancelCommandBody;
 
 export function command(
