@@ -6,7 +6,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 | Milestone                            | Tickets | Done | In progress |
 | ------------------------------------ | ------- | ---- | ----------- |
-| M0 Foundation and walking skeleton   | 8       | 1    | 1           |
+| M0 Foundation and walking skeleton   | 8       | 3    | 0           |
 | M1a Ticket core                      | 5       | 0    | 0           |
 | M1b Parity complete and soft cutover | 7       | 0    | 0           |
 | M2 Accountability                    | 5       | 0    | 0           |
@@ -15,7 +15,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** `M0-0.1` (scaffold, in progress), then `M0-0.3` (schema v1 + RLS), `M0-0.4` (auth), `M0-0.5` (settings), `M0-0.6` (seed), `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton).
+**Frontier now:** `M0-0.4` (auth), `M0-0.5` (settings), `M0-0.6` (seed), `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.3` are done.
 
 ## M0 Foundation and walking skeleton
 
@@ -23,7 +23,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** —
-- **Status:** in-progress
+- **Status:** done
 - **Acceptance:** auto: `pnpm test` green on the empty repo; CI runs on every pull request
 
 ### M0-0.2 — `docs/adr/0001-stack.md`, `docs/adr/0002-outside-services.md`, `CLAUDE.md`, `docs/plan/backlog.md`, `docs/plan/STATUS.md`, `docs/plan/NEEDS.md`, `docs/spec/parity.yaml` generated from PARITY.md
@@ -33,11 +33,11 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 - **Status:** done
 - **Acceptance:** auto: parity.yaml validates and its row count equals the checklist's rows; gate-manual: Nimish reads the two decision records
 
-### M0-0.3 — Schema v1 migrations with RLS: tenant, person, login, session (better-auth tables), machine, segment, machine\_group, machine\_move, list\_item, shift, setting, glossary\_term, ticket, ticket\_event, crew\_member, work\_segment, breakdown\_report, file, push\_subscription, audit\_log, import\_batch, ref\_counter; `app_router` role and its functions
+### M0-0.3 — Schema v1 migrations with RLS: tenant, person, login, session (our tables), machine, segment, machine\_group, machine\_move, list\_item, shift, setting, glossary\_term, ticket, ticket\_event, crew\_member, work\_segment, breakdown\_report, file, push\_subscription, audit\_log, import\_batch, ref\_counter; `app_router` role and its functions
 
 - **Verification:** auto
 - **Depends on:** 0.1
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: generic isolation test passes for every table; dev assertion fires on a query without tenant
 
 ### M0-0.4 — Auth: tenant from host, login, logout, me, change password, 30-day sliding bearer sessions, shared logins with acting person; `/brand` by host

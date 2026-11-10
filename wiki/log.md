@@ -4,3 +4,4 @@
 2026-11-10 — Repo made private, restructured (docs/spec live; docs/discovery frozen), and initial commit pushed (364e899). Added BUILD-PROTOCOL, REVIEW-MECHANISMS, ORCHESTRATION and ADR 0004 (commercial layer deferred). No product code yet.
 2026-11-10 — Session 1: workflow/skills, ADRs, 79-row parity ledger, 38-ticket backlog, needs/questions/differences, lean/Ponytail mechanism, scaffold and CI. pnpm verify green. No product code. Next: auth spike, then M0-0.3 schema + RLS.
 2026-11-10 — Auth spike: hand-rolled sessions chosen (RLS 1/1, shared acting person, 30-day sliding); better-auth rejected (session tenant null, schema/RLS/shared-phone mismatch). ADR 0003 final; SPEC and THIRD_PARTY updated. No product code yet.
+2026-11-10 — M0-0.3: schema v1, forced RLS on 24 tenant tables, composite tenant FKs, app_router tenant_by_slug/auth_lookup, Testcontainers two-tenant isolation suite (8 tests, 12 total). No API code yet.
