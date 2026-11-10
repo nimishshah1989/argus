@@ -1,0 +1,57 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Image tag to deploy (default staging)'
+        required: false
+        default: 'staging'
+  push:
+    tags: ['v*']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:server
+      - name: Build image
+        run: |
+          TAG="${GITHUB_REF_NAME:-staging}"
+          docker build -f infra/server.Dockerfile -t ghcr.io/nimishshah1989/argus-server:"${TAG}" .
+          echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          docker push ghcr.io/nimishshah1989/argus-server:"${TAG}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: image
+    if: ${{ secrets.AWS_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Deploy over SSH
+        env:
+          HOST: ${{ secrets.REMOTE_HOST }}
+          KEY: ${{ secrets.REMOTE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh -o StrictHostKeyChecking=no "$HOST" "cd /opt/argus && docker compose pull && docker compose up -d server caddy"

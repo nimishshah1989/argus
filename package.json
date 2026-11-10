@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc --noEmit",
+    "build": "tsc --noEmit && tsx scripts/build-server.ts",
     "parity": "tsx tools/check-parity.ts",
     "size": "tsx tools/check-size.ts",
     "deps": "tsx tools/check-deps.ts",
@@ -24,7 +24,8 @@
     "audit:lean": "pnpm size && pnpm deps && pnpm shortcuts",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm audit:lean",
     "test:e2e": "playwright test --pass-with-no-tests",
-    "seed:cosmos": "tsx scripts/seed-cosmos.ts"
+    "seed:cosmos": "tsx scripts/seed-cosmos.ts",
+    "build:server": "tsx scripts/build-server.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -32,6 +33,7 @@
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "pg": "^8.23.1",
