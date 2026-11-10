@@ -18,6 +18,11 @@ const MACHINE_CORRECT = '10000000-0000-0000-0000-000000000013'; // VC-8, correct
 const MACHINE_UPGRADE = '10000000-0000-0000-0000-000000000014'; // VC-9, upgrade-kind
 const MACHINE_REPORT = '10000000-0000-0000-0000-000000000015'; // VC-10, late report
 const MACHINE_OP_CANCEL = '10000000-0000-0000-0000-000000000016'; // VC-11, operator cancel
+const MACHINE_RACE_1 = '10000000-0000-0000-0000-000000000017'; // race rounds
+const MACHINE_RACE_2 = '10000000-0000-0000-0000-000000000018';
+const MACHINE_RACE_3 = '10000000-0000-0000-0000-000000000019';
+const MACHINE_RACE_4 = '10000000-0000-0000-0000-00000000001a';
+const MACHINE_RACE_5 = '10000000-0000-0000-0000-00000000001b';
 const ASHA = '10000000-0000-0000-0000-000000000009';
 const BINA = '10000000-0000-0000-0000-00000000000a';
 const OPERATOR = '10000000-0000-0000-0000-00000000000b';
@@ -134,17 +139,22 @@ beforeAll(async () => {
   );
   await pool.query(
     `INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES
-     ($1, $12, 'VC-1', $13, 'VMC', 'Cell-1'),
-     ($2, $12, 'VC-2', $13, 'VMC', 'Cell-1'),
-     ($3, $12, 'VC-3', $13, 'VMC', 'Cell-2'),
-     ($4, $12, 'VC-4', $13, 'VMC', 'Cell-2'),
-     ($5, $12, 'VC-5', $13, 'HMC', 'Cell-3'),
-     ($6, $12, 'VC-6', $13, 'HMC', 'Cell-3'),
-     ($7, $12, 'VC-7', $13, 'VMC', 'Cell-1'),
-     ($8, $12, 'VC-8', $13, 'VMC', 'Cell-1'),
-     ($9, $12, 'VC-9', $13, 'VMC', 'Cell-2'),
-     ($10, $12, 'VC-10', $13, 'HMC', 'Cell-2'),
-     ($11, $12, 'VC-11', $13, 'HMC', 'Cell-3')`,
+     ($1, $17, 'VC-1', $18, 'VMC', 'Cell-1'),
+     ($2, $17, 'VC-2', $18, 'VMC', 'Cell-1'),
+     ($3, $17, 'VC-3', $18, 'VMC', 'Cell-2'),
+     ($4, $17, 'VC-4', $18, 'VMC', 'Cell-2'),
+     ($5, $17, 'VC-5', $18, 'HMC', 'Cell-3'),
+     ($6, $17, 'VC-6', $18, 'HMC', 'Cell-3'),
+     ($7, $17, 'VC-7', $18, 'VMC', 'Cell-1'),
+     ($8, $17, 'VC-8', $18, 'VMC', 'Cell-1'),
+     ($9, $17, 'VC-9', $18, 'VMC', 'Cell-2'),
+     ($10, $17, 'VC-10', $18, 'HMC', 'Cell-2'),
+     ($11, $17, 'VC-11', $18, 'HMC', 'Cell-3'),
+     ($12, $17, 'VC-12', $18, 'VMC', 'Cell-1'),
+     ($13, $17, 'VC-13', $18, 'VMC', 'Cell-1'),
+     ($14, $17, 'VC-14', $18, 'HMC', 'Cell-2'),
+     ($15, $17, 'VC-15', $18, 'VMC', 'Cell-2'),
+     ($16, $17, 'VC-16', $18, 'HMC', 'Cell-3')`,
     [
       MACHINE_HP,
       MACHINE_CONFLICT,
@@ -157,6 +167,11 @@ beforeAll(async () => {
       MACHINE_UPGRADE,
       MACHINE_REPORT,
       MACHINE_OP_CANCEL,
+      MACHINE_RACE_1,
+      MACHINE_RACE_2,
+      MACHINE_RACE_3,
+      MACHINE_RACE_4,
+      MACHINE_RACE_5,
       TENANT,
       SEGMENT,
     ],
@@ -390,22 +405,31 @@ describe('ticket commands', () => {
     expect(statuses).toEqual([200, 409]);
   });
 
-  it('deduplicates two concurrent raises with one key', async () => {
-    const key = 'conc-raise-same';
-    const payload = { machineId: MACHINE_CONC_RAISE, problem: 'Overload' };
-    const [a, b] = await Promise.all([
-      post('/api/v1/tickets', ashaToken, payload, { idem: key }),
-      post('/api/v1/tickets', ashaToken, payload, { idem: key }),
-    ]);
-    expect(a.statusCode).toBe(201);
-    expect(b.statusCode).toBe(201);
-    expect(a.json().ticket.ref).toBe(b.json().ticket.ref);
+  it('deduplicates concurrent raises with one key across rounds', async () => {
+    const raceMachines = [
+      MACHINE_RACE_1,
+      MACHINE_RACE_2,
+      MACHINE_RACE_3,
+      MACHINE_RACE_4,
+      MACHINE_RACE_5,
+    ];
+    for (const machineId of raceMachines) {
+      const key = `conc-raise-${machineId.slice(-4)}`;
+      const payload = { machineId, problem: 'Overload race' };
+      const [a, b] = await Promise.all([
+        post('/api/v1/tickets', ashaToken, payload, { idem: key }),
+        post('/api/v1/tickets', ashaToken, payload, { idem: key }),
+      ]);
+      expect(a.statusCode).toBe(201);
+      expect(b.statusCode).toBe(201);
+      expect(a.json().ticket.ref).toBe(b.json().ticket.ref);
 
-    const state = await get('/api/v1/state', ashaToken);
-    const open = state
-      .json()
-      .open.filter((t: { machineId: string }) => t.machineId === MACHINE_CONC_RAISE);
-    expect(open).toHaveLength(1);
+      const state = await get('/api/v1/state', ashaToken);
+      const open = state
+        .json()
+        .open.filter((t: { machineId: string }) => t.machineId === machineId);
+      expect(open).toHaveLength(1);
+    }
   });
 
   it('cancels a working ticket and removes it from /state', async () => {
