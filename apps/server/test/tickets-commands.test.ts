@@ -13,6 +13,11 @@ const MACHINE_IDEM = '10000000-0000-0000-0000-000000000005'; // VC-3, command re
 const MACHINE_IDEM_RAISE = '10000000-0000-0000-0000-000000000006'; // VC-4, raise replay
 const MACHINE_CONC_START = '10000000-0000-0000-0000-000000000007'; // VC-5, concurrent start
 const MACHINE_CONC_RAISE = '10000000-0000-0000-0000-000000000008'; // VC-6, concurrent raise
+const MACHINE_CANCEL = '10000000-0000-0000-0000-000000000012'; // VC-7, cancel + restore
+const MACHINE_CORRECT = '10000000-0000-0000-0000-000000000013'; // VC-8, correct
+const MACHINE_UPGRADE = '10000000-0000-0000-0000-000000000014'; // VC-9, upgrade-kind
+const MACHINE_REPORT = '10000000-0000-0000-0000-000000000015'; // VC-10, late report
+const MACHINE_OP_CANCEL = '10000000-0000-0000-0000-000000000016'; // VC-11, operator cancel
 const ASHA = '10000000-0000-0000-0000-000000000009';
 const BINA = '10000000-0000-0000-0000-00000000000a';
 const OPERATOR = '10000000-0000-0000-0000-00000000000b';
@@ -32,6 +37,9 @@ let pool: Pool;
 let app: App;
 let ashaToken = '';
 let binaToken = '';
+let adminToken = '';
+let opToken = '';
+let cancelledTicketId = '';
 
 let keyCounter = 0;
 function nextKey(): string {
@@ -126,12 +134,17 @@ beforeAll(async () => {
   );
   await pool.query(
     `INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES
-     ($1, $7, 'VC-1', $8, 'VMC', 'Cell-1'),
-     ($2, $7, 'VC-2', $8, 'VMC', 'Cell-1'),
-     ($3, $7, 'VC-3', $8, 'VMC', 'Cell-2'),
-     ($4, $7, 'VC-4', $8, 'VMC', 'Cell-2'),
-     ($5, $7, 'VC-5', $8, 'HMC', 'Cell-3'),
-     ($6, $7, 'VC-6', $8, 'HMC', 'Cell-3')`,
+     ($1, $12, 'VC-1', $13, 'VMC', 'Cell-1'),
+     ($2, $12, 'VC-2', $13, 'VMC', 'Cell-1'),
+     ($3, $12, 'VC-3', $13, 'VMC', 'Cell-2'),
+     ($4, $12, 'VC-4', $13, 'VMC', 'Cell-2'),
+     ($5, $12, 'VC-5', $13, 'HMC', 'Cell-3'),
+     ($6, $12, 'VC-6', $13, 'HMC', 'Cell-3'),
+     ($7, $12, 'VC-7', $13, 'VMC', 'Cell-1'),
+     ($8, $12, 'VC-8', $13, 'VMC', 'Cell-1'),
+     ($9, $12, 'VC-9', $13, 'VMC', 'Cell-2'),
+     ($10, $12, 'VC-10', $13, 'HMC', 'Cell-2'),
+     ($11, $12, 'VC-11', $13, 'HMC', 'Cell-3')`,
     [
       MACHINE_HP,
       MACHINE_CONFLICT,
@@ -139,6 +152,11 @@ beforeAll(async () => {
       MACHINE_IDEM_RAISE,
       MACHINE_CONC_START,
       MACHINE_CONC_RAISE,
+      MACHINE_CANCEL,
+      MACHINE_CORRECT,
+      MACHINE_UPGRADE,
+      MACHINE_REPORT,
+      MACHINE_OP_CANCEL,
       TENANT,
       SEGMENT,
     ],
@@ -180,6 +198,8 @@ beforeAll(async () => {
   app = await buildApp({ pool, logger: false, rateLimitMax: 100000 });
   ashaToken = await login('asha');
   binaToken = await login('bina');
+  adminToken = await login('admin');
+  opToken = await login('op');
 }, 120_000);
 
 afterAll(async () => {
@@ -386,5 +406,115 @@ describe('ticket commands', () => {
       .json()
       .open.filter((t: { machineId: string }) => t.machineId === MACHINE_CONC_RAISE);
     expect(open).toHaveLength(1);
+  });
+
+  it('cancels a working ticket and removes it from /state', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      machineId: MACHINE_CANCEL,
+      problem: 'Unsafe to run',
+    });
+    expect(raised.statusCode).toBe(201);
+    const id = ticketOf(raised).id as string;
+    cancelledTicketId = id;
+    const start = await post(`/api/v1/tickets/${id}/start`, ashaToken, { personId: ASHA });
+    expect(start.statusCode).toBe(200);
+
+    const cancel = await post(`/api/v1/tickets/${id}/cancel`, ashaToken, {
+      personId: ASHA,
+      reason: 'Duplicate job',
+    });
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.json().ticket.status).toBe('cancelled');
+    expectFigures(cancel.json().ticket);
+
+    const state = await get('/api/v1/state', ashaToken);
+    expect(state.json().open.some((t: { id: string }) => t.id === id)).toBe(false);
+  });
+
+  it('restores a cancelled ticket to its previous status', async () => {
+    expect(cancelledTicketId).toBeTruthy();
+    const restore = await post(`/api/v1/tickets/${cancelledTicketId}/restore`, adminToken, {
+      personId: ADMIN_PERSON,
+      reason: 'Wrong cancel',
+    });
+    expect(restore.statusCode).toBe(200);
+    expect(restore.json().ticket.status).toBe('working');
+    expectFigures(restore.json().ticket);
+  });
+
+  it('corrects a ticket as admin', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      machineId: MACHINE_CORRECT,
+      problem: 'Wrong problem text',
+    });
+    expect(raised.statusCode).toBe(201);
+    const id = ticketOf(raised).id as string;
+
+    const correct = await post(`/api/v1/tickets/${id}/correct`, adminToken, {
+      reason: 'Typo',
+      changes: { problem: 'Corrected problem text' },
+    });
+    expect(correct.statusCode).toBe(200);
+    expect(correct.json().ticket.problem).toBe('Corrected problem text');
+    expectFigures(correct.json().ticket);
+  });
+
+  it('upgrades a support ticket to stopped', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      kind: 'support',
+      machineId: MACHINE_UPGRADE,
+      problem: 'Noisy bearing',
+    });
+    expect(raised.statusCode).toBe(201);
+    expect(raised.json().ticket.kind).toBe('support');
+    const id = ticketOf(raised).id as string;
+
+    const upgrade = await post(`/api/v1/tickets/${id}/upgrade-kind`, ashaToken, {
+      personId: ASHA,
+    });
+    expect(upgrade.statusCode).toBe(200);
+    expect(upgrade.json().ticket.kind).toBe('stopped');
+    expectFigures(upgrade.json().ticket);
+  });
+
+  it('files a late report on a no-report close', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      machineId: MACHINE_REPORT,
+      problem: 'Fan noise',
+    });
+    expect(raised.statusCode).toBe(201);
+    const id = ticketOf(raised).id as string;
+    const start = await post(`/api/v1/tickets/${id}/start`, ashaToken, { personId: ASHA });
+    expect(start.statusCode).toBe(200);
+    const closed = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'no_report',
+    });
+    expect(closed.statusCode).toBe(200);
+    expect(closed.json().ticket.closeKind).toBe('no_report');
+
+    const report = await post(`/api/v1/tickets/${id}/report`, ashaToken, {
+      personId: ASHA,
+      report: {},
+    });
+    expect(report.statusCode).toBe(200);
+    expect(report.json().ticket.closeKind).toBe('report');
+    expectFigures(report.json().ticket);
+  });
+
+  it('lets an operator cancel their own not-yet-started ticket', async () => {
+    const raised = await post('/api/v1/tickets', opToken, {
+      machineId: MACHINE_OP_CANCEL,
+      problem: 'Raised by mistake',
+    });
+    expect(raised.statusCode).toBe(201);
+    const id = ticketOf(raised).id as string;
+
+    const cancel = await post(`/api/v1/tickets/${id}/cancel`, opToken, {
+      personId: OPERATOR,
+      reason: 'Wrong machine',
+    });
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.json().ticket.status).toBe('cancelled');
   });
 });

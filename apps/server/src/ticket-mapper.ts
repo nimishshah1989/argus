@@ -227,6 +227,7 @@ export function mapTransitionError(error: TransitionError): Outcome {
 }
 
 const WORK_GATED = new Set<CommandAction>([
+  'leave',
   'pause',
   'resume',
   'transfer',
