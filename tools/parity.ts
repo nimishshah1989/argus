@@ -32,19 +32,33 @@ export function loadParity(path = 'docs/spec/parity.yaml'): ParityFile {
   return file;
 }
 
-function rowErrors(row: ParityRow, seen: Set<string>): string[] {
+function identityErrors(row: ParityRow, seen: Set<string>): string[] {
   const errors: string[] = [];
   if (!ID.test(row.id)) errors.push(`${row.id}: invalid id`);
   if (seen.has(row.id)) errors.push(`${row.id}: duplicate id`);
+  return errors;
+}
+
+function fieldErrors(row: ParityRow): string[] {
+  const errors: string[] = [];
   if (!row.feature?.trim()) errors.push(`${row.id}: empty feature`);
   if (!DISPOSITIONS.includes(row.disposition)) errors.push(`${row.id}: bad disposition`);
   if (!STATUSES.includes(row.status)) errors.push(`${row.id}: bad status`);
   if (!/^M[0-6][ab]?$/.test(row.milestone)) errors.push(`${row.id}: bad milestone`);
+  return errors;
+}
+
+function evidenceErrors(row: ParityRow): string[] {
+  const errors: string[] = [];
   if (row.status === 'done' && !row.evidence?.length)
     errors.push(`${row.id}: done without evidence`);
   if (row.status === 'waived' && !row.waiver_reason?.trim())
     errors.push(`${row.id}: waived without a reason`);
   return errors;
+}
+
+function rowErrors(row: ParityRow, seen: Set<string>): string[] {
+  return [...identityErrors(row, seen), ...fieldErrors(row), ...evidenceErrors(row)];
 }
 
 export function validateParity(file: ParityFile): string[] {
