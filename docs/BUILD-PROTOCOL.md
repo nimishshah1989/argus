@@ -205,7 +205,7 @@ The current load is 15 users, 192 machines, about 250 tickets a month, 1,158 his
 | Layer           | Pick                                                                                                                                    | Licence                    |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | Server / schema | Fastify, Zod, Drizzle ORM, pg-boss, Pino                                                                                                | MIT / Apache-2.0           |
-| Auth            | hand-rolled sessions, or better-auth if the spike wins                                                                                  | MIT                        |
+| Auth            | hand-rolled sessions (ADR 0003): Argon2id, opaque token hashed at rest, 30-day sliding                                                  | MIT                        |
 | Web             | Vite, React, React Router, TanStack Query/Table, Tailwind, shadcn/ui, ECharts, FullCalendar, vis-timeline, react-grid-layout            | MIT / Apache-2.0           |
 | PWA / offline   | vite-plugin-pwa, Workbox, idb, web-push                                                                                                 | MIT / MPL-2.0              |
 | PDF / QR        | Playwright, Noto fonts, node-qrcode, zxing-wasm                                                                                         | Apache-2.0 / OFL / MIT     |
