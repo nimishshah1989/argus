@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { hash } from '@node-rs/argon2';
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { startTestDb, type TestDb } from './harness.js';
 
 const A = '10000000-0000-0000-0000-000000000001';
 const ADMIN_PERSON = '10000000-0000-0000-0000-000000000021';
@@ -17,8 +16,8 @@ const PASSWORD = 'correct-horse-battery';
 type App = Awaited<ReturnType<typeof buildApp>>;
 type Res = Awaited<ReturnType<App['inject']>>;
 
-let container: StartedPostgreSqlContainer;
-let pool: Pool;
+let db: TestDb;
+let admin: Pool;
 let app: App;
 
 function req(
@@ -40,45 +39,38 @@ function req(
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  pool = new Pool({ connectionString: container.getConnectionUri(), max: 1 });
-  await pool.query(
-    readFileSync(
-      new URL('../../../packages/db/migrations/0001_schema_v1.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  db = await startTestDb();
+  admin = db.admin;
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2,
     memoryCost: 19456,
     timeCost: 2,
     parallelism: 1,
   });
-  await pool.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [A]);
-  await pool.query(
+  await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [A]);
+  await admin.query(
     "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $3, 'Admin', 'maintenance', 'Head'), ($2, $3, 'Tech', 'maintenance', 'Technician')",
     [ADMIN_PERSON, TECH_PERSON, A],
   );
-  await pool.query(
+  await admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
      VALUES ($1, $3, $5, 'admin', $7, 'admin', false), ($2, $4, $6, 'tech', $7, 'technician', false)`,
     [ADMIN_LOGIN, TECH_LOGIN, A, A, ADMIN_PERSON, TECH_PERSON, passwordHash],
   );
-  await pool.query(
+  await admin.query(
     "INSERT INTO list_item (id, tenant_id, list, code, label, label_gu, sort, active) VALUES ($1, $3, 'wait_reason', 'spare', 'Waiting for spare', NULL, 0, true), ($2, $3, 'wait_reason', 'vendor', 'Sent to vendor', 'વેન્ડર', 1, true)",
     [ITEM_SPARE, ITEM_VENDOR, A],
   );
-  await pool.query(
+  await admin.query(
     'INSERT INTO setting (tenant_id, key, value) VALUES ($1, \'features\', \'{"general": true, "pause": true}\')',
     [A],
   );
-  app = await buildApp({ pool, logger: false, rateLimitMax: 100000 });
+  app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
 }, 120_000);
 
 afterAll(async () => {
   await app.close();
-  await pool.end();
-  await container.stop();
+  await db.stop();
 });
 
 async function loginAs(username: string): Promise<string> {
