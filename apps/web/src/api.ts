@@ -63,6 +63,15 @@ export interface ListItem {
   active: boolean;
 }
 
+export interface Person {
+  id: string;
+  name: string;
+  team: string;
+  title: string | null;
+  active: boolean;
+  phone: string | null;
+}
+
 export interface Config {
   features: Record<string, boolean>;
   language: string;
@@ -71,6 +80,7 @@ export interface Config {
   segments: Segment[];
   groups: Group[];
   machines: Machine[];
+  people: Person[];
 }
 
 export interface Figures {
@@ -86,17 +96,34 @@ export interface Figures {
   perPerson: Record<string, number>;
 }
 
+export type CloseKind = 'report' | 'no_report' | 'done';
+
+export interface MachineSnapshot {
+  code?: string | null;
+  category?: string | null;
+  cell?: string | null;
+}
+
 export interface Ticket {
   id: string;
   ref: string;
   kind: RaiseKind;
   status: TicketStatus;
   machineId: string | null;
+  machineSnapshot: MachineSnapshot | null;
   problem: string;
   reportedAt: string;
   location: string | null;
   workType: string | null;
   urgent: boolean;
+  handedOver: boolean;
+  startedAt: string | null;
+  leadPersonId: string | null;
+  waitReason: string | null;
+  machineRunningAt: string | null;
+  closedAt: string | null;
+  closeKind: CloseKind | null;
+  closeNote: string | null;
   figures: Figures | null;
 }
 
@@ -105,12 +132,47 @@ export interface State {
   now: string;
 }
 
+export interface TicketEvent {
+  seq: number;
+  type: string;
+  at: string;
+  text: string | null;
+  reason: string | null;
+  isVendor: boolean;
+  actingPersonId: string | null;
+  loginId: string | null;
+}
+
+export interface TicketPerson {
+  personId: string;
+  role: string;
+  leftAt: string | null;
+  leftReason: string | null;
+}
+
+export interface TicketInterval {
+  personId: string;
+  role: string;
+  startedAt: string;
+  endedAt: string | null;
+}
+
 export interface TicketDetail {
   ticket: Ticket;
-  events: { seq: number; type: string; at: string; text: string | null }[];
-  people: { personId: string; role: string; leftAt: string | null }[];
+  events: TicketEvent[];
+  people: TicketPerson[];
   tasks: unknown[];
-  intervals: { personId: string; role: string; startedAt: string; endedAt: string | null }[];
+  intervals: TicketInterval[];
+}
+
+export interface Me {
+  id: string;
+  username: string;
+  name: string;
+  title: string | null;
+  role: string;
+  shared: boolean;
+  actingPersonId: string;
 }
 
 export interface RaiseTicketBody {
@@ -198,10 +260,29 @@ export function getTicket(id: string): Promise<TicketDetail> {
   return api<TicketDetail>(`/api/v1/tickets/${id}`);
 }
 
+export function getMe(): Promise<{ user: Me }> {
+  return api<{ user: Me }>('/api/v1/auth/me');
+}
+
+/** The action bodies the desk sends; each command from DOMAIN.md §4. */
+export type PersonCommandBody = { personId: string };
+export type PauseCommandBody = { personId: string; reasonCode: string; note?: string };
+export type UpdateCommandBody = { personId: string; text: string };
+export type TransferCommandBody = { personId: string; note: string; toPersonId?: string };
+export type CloseCommandBody = { personId: string; kind: CloseKind; note?: string };
+export type CancelCommandBody = { personId: string; reason: string };
+export type CommandBody =
+  | PersonCommandBody
+  | PauseCommandBody
+  | UpdateCommandBody
+  | TransferCommandBody
+  | CloseCommandBody
+  | CancelCommandBody;
+
 export function command(
   ticketId: string,
   action: CommandAction,
-  body: Record<string, unknown>,
+  body: CommandBody,
 ): Promise<{ ticket: Ticket }> {
   return api<{ ticket: Ticket }>(`/api/v1/tickets/${ticketId}/${action}`, {
     method: 'POST',
