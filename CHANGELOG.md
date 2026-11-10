@@ -7,13 +7,19 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- Web push (AC5c, #48): VAPID push subscribe/unsubscribe/key/test endpoints, a custom service
+  worker with a push handler and tap-to-open, and the acting-person re-subscribe rule with a desk
+  toggle.
+- Offline outbox (AC5b, #47): closes and late reports made offline are queued in IndexedDB with
+  their Idempotency-Key and chosen time, replayed in order on reconnect, and a `409` becomes a
+  visible draft; reads fall back to the cached state/config with an offline banner.
 - Process checks (M6/M7/M8/M10): Playwright e2e runs in the CI `checks` job; migration
   immutability and parity-update guards fail a PR that edits an existing migration or changes
-  `apps/`/`packages/` without the ledger; the parity ledger is backfilled (12 done, 34
+  `apps/`/`packages/` without the ledger; the parity ledger is backfilled (13 done, 35
   in-progress, 3 external of 79); STATUS, README, HANDOFF and the PR template match the code.
 - WhatsApp share text + PWA install/shell (AC5a, #40): one pure short/full share text with
   `wa.me` buttons on the sent screen and ticket detail; two installable manifests, icons and a
-  service-worker app-shell precache (offline outbox and push remain M1b).
+  service-worker app-shell precache.
 - Breakdown PDF (AC3b, #37): `GET /tickets/{id}/pdf` renders an A4 breakdown report (platform-v1
   QR, embedded Gujarati fonts) via headless Chromium and stores it as a `file` row.
 - Live board and kiosk (AC4, #36): `/desk/board` tiles every machine by segment and group with
