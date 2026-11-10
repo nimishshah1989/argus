@@ -33,7 +33,11 @@ export function Floor() {
   const valid = isGeneral
     ? Boolean(location.trim() && workType.trim() && problem.trim())
     : Boolean(machineId && problem.trim());
-  const error = report.error instanceof ApiError ? report.error : null;
+  const errorMessage = report.error
+    ? report.error instanceof ApiError
+      ? report.error.message
+      : 'Could not send, try again'
+    : null;
 
   function selectSegment(id: string) {
     setSegmentId(id);
@@ -206,9 +210,9 @@ export function Floor() {
           />
         </section>
 
-        {error && (
+        {errorMessage && (
           <p role="alert" className="rounded-xl bg-stopped/10 p-4 text-stopped">
-            {error.message}
+            {errorMessage}
           </p>
         )}
 

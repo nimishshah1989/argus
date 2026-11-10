@@ -23,18 +23,28 @@ export function Desk() {
   }, []);
 
   return (
-    <main>
-      <div className="tabs">
-        <Link to="/floor">Report</Link>
-        <Link to="/desk">Open</Link>
-      </div>
-      <h1>Open tickets</h1>
-      {tickets.length === 0 && <p>Nothing open.</p>}
+    <main className="mx-auto w-full max-w-xl px-4 py-6">
+      <nav className="mb-6 flex gap-2">
+        <Link
+          to="/floor"
+          className="rounded-lg px-4 py-2 font-medium text-neutral-600 hover:bg-neutral-200"
+        >
+          Report
+        </Link>
+        <Link
+          to="/desk"
+          className="rounded-lg bg-neutral-200 px-4 py-2 font-medium text-neutral-900"
+        >
+          Open
+        </Link>
+      </nav>
+      <h1 className="text-2xl font-semibold">Open tickets</h1>
+      {tickets.length === 0 && <p className="mt-4 text-neutral-500">Nothing open.</p>}
       {tickets.map((ticket) => (
-        <div className="card" key={ticket.id}>
-          <strong>{ticket.ref}</strong>
-          <p>{ticket.problem}</p>
-          <small>{ticket.reported_at}</small>
+        <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-4" key={ticket.id}>
+          <strong className="text-base">{ticket.ref}</strong>
+          <p className="mt-1">{ticket.problem}</p>
+          <small className="text-neutral-500">{ticket.reported_at}</small>
         </div>
       ))}
     </main>
