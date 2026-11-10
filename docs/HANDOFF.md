@@ -4,7 +4,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## Live
 
-- Session 1 complete: foundation only, no product code. Repo is private, restructured, CI configured, `pnpm verify` green locally.
+- Session 1 merged (#1): foundation only, no product code. Repo is private, restructured, CI green on PR #1 and main, `pnpm verify` green locally.
 - 79 parity rows in `docs/spec/parity.yaml`; 34 spec tickets + 4 design tickets in `docs/plan/backlog.md`; 21 questions and 18 differences recorded.
 - Anti-bloat mechanism live: `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, file/function/dependency/PR-size/shortcut checks.
 - `M0-0.2` done; `M0-0.1` in progress (CI not yet observed on a PR; Playwright/Testcontainers config lands with M0-0.3).
@@ -15,11 +15,10 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## Next
 
-1. Push session 1; watch the first CI run (checks + gitleaks).
-2. Auth spike: hand-rolled sessions vs better-auth; record ADR 0003 final; delete the loser.
-3. M0-0.3: schema v1 + RLS + generic isolation test + `app_router` functions.
-4. M0-0.4 auth; M0-0.5 settings; M0-0.6 seed + data-quality report; M0-0.7 infrastructure; M0-0.8 walking skeleton.
-5. Design track D0.1 (audit/role journeys) can run in parallel; it touches no schema files.
+1. Auth spike: hand-rolled sessions vs better-auth; record ADR 0003 final; delete the loser.
+2. M0-0.3: schema v1 + RLS + generic isolation test + `app_router` functions.
+3. M0-0.4 auth; M0-0.5 settings; M0-0.6 seed + data-quality report; M0-0.7 infrastructure; M0-0.8 walking skeleton.
+4. Design track D0.1 (audit/role journeys) can run in parallel; it touches no schema files.
 
 ## Decided
 
