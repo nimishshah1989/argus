@@ -40,7 +40,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Workbox                                                  | service worker      | MIT              |
 | idb                                                      | offline outbox      | ISC              |
 | web-push                                                 | push                | MPL-2.0          |
-| node-qrcode                                              | QR generation       | MIT              |
+| qrcode (node-qrcode)                                     | QR generation       | MIT              |
 | zxing-wasm + barcode-detector                            | QR scanning         | MIT              |
 | Vitest                                                   | tests               | MIT              |
 | Testcontainers                                           | database tests      | MIT              |

@@ -84,4 +84,8 @@ export interface AppConfig {
   pool: Pool;
   logger?: boolean;
   rateLimitMax?: number;
+  /** Local storage root for rendered files; S3 replaces this adapter later. */
+  filesDir?: string;
+  /** Chromium binary for PDF rendering; defaults to CHROMIUM_PATH or the E2E browsers. */
+  chromiumPath?: string;
 }
