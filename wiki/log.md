@@ -14,3 +14,4 @@
 2026-11-10 — M0-0.8: walking skeleton (Vite React web app, login, floor report, desk open list; minimal raise + /state). 37 tests. M0 gate (staging deploy + restore) blocked on AWS (N7); M1a next.
 2026-11-10 — M1a-1: domain figures engine (response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair, per-person, overrides). 8 tests. Next M1a-2 permissions.
 2026-11-10 — M1a-2: domain permissions matrix as pure functions. 6 tests; 45 total. Next M1a-3 state machine.
+2026-11-10 — M1a-3: domain state machine core (raise/start/pause/resume/transfer/update/running/stopped/close/cancel). 8 tests; 53 total. Next M1a-3b remaining commands, then the API.
