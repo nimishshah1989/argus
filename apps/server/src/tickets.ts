@@ -250,7 +250,11 @@ async function executeRaise(client: PoolClient, tx: RaiseTx): Promise<Outcome> {
   const existing = await idem.getIdempotent(client, tx.tenantId, tx.key);
   if (existing) return existing;
   const machine = await validateMachine(client, tx);
-  if ('status' in machine) return machine;
+  if ('status' in machine) {
+    // A concurrent same-key raise may have committed between our idempotency check and this
+    // duplicate-machine probe; replay its stored result instead of failing on the duplicate.
+    return (await idem.getIdempotent(client, tx.tenantId, tx.key)) ?? machine;
+  }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
 
