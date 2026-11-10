@@ -302,7 +302,7 @@ CREATE TABLE crew_member (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
   ticket_id uuid NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
-  person_id uuid NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  person_id uuid NOT NULL REFERENCES person(id) ON DELETE RESTRICT,
   role text NOT NULL CHECK (role IN ('primary', 'support')),
   joined_at timestamptz NOT NULL DEFAULT now(),
   left_at timestamptz,
@@ -315,7 +315,7 @@ CREATE TABLE work_segment (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
   ticket_id uuid NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
-  person_id uuid NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  person_id uuid NOT NULL REFERENCES person(id) ON DELETE RESTRICT,
   role text NOT NULL CHECK (role IN ('lead', 'primary', 'support')),
   started_at timestamptz NOT NULL,
   ended_at timestamptz,
@@ -324,6 +324,8 @@ CREATE TABLE work_segment (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX work_segment_ticket_idx ON work_segment (tenant_id, ticket_id, started_at);
+CREATE INDEX crew_member_ticket_idx ON crew_member (tenant_id, ticket_id);
+CREATE INDEX machine_move_machine_idx ON machine_move (tenant_id, machine_id, effective_from);
 
 CREATE TABLE breakdown_report (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -335,9 +337,7 @@ CREATE TABLE breakdown_report (
   problem text NOT NULL,
   observed_by text,
   corrective_action text,
-  done_by uuid[] NOT NULL DEFAULT '{}',
-  supported_by uuid[] NOT NULL DEFAULT '{}',
-  downtime_min integer NOT NULL DEFAULT 0,
+  downtime_min integer NOT NULL DEFAULT 0 CHECK (downtime_min >= 0),
   response_min integer,
   repair_min integer,
   breakdown_category text,
@@ -354,6 +354,19 @@ CREATE TABLE breakdown_report (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX breakdown_report_machine_date_idx ON breakdown_report (tenant_id, machine_id, date);
+CREATE INDEX breakdown_report_date_idx ON breakdown_report (tenant_id, date);
+
+CREATE TABLE breakdown_report_person (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
+  report_id uuid NOT NULL REFERENCES breakdown_report(id) ON DELETE CASCADE,
+  person_id uuid NOT NULL REFERENCES person(id) ON DELETE RESTRICT,
+  role text NOT NULL CHECK (role IN ('done', 'supported')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX breakdown_report_person_report_idx ON breakdown_report_person (tenant_id, report_id);
 
 CREATE TABLE file (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -367,7 +380,8 @@ CREATE TABLE file (
   uploaded_by uuid REFERENCES person(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, s3_key)
+  UNIQUE (tenant_id, s3_key),
+  UNIQUE (tenant_id, id)
 );
 
 CREATE TABLE push_subscription (
@@ -375,12 +389,13 @@ CREATE TABLE push_subscription (
   tenant_id uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
   login_id uuid NOT NULL REFERENCES login(id) ON DELETE CASCADE,
   acting_person_id uuid REFERENCES person(id) ON DELETE SET NULL,
-  endpoint text NOT NULL UNIQUE,
+  endpoint text NOT NULL,
   keys jsonb NOT NULL DEFAULT '{}',
   role text,
   last_ok_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, endpoint)
 );
 
 CREATE TABLE audit_log (
@@ -456,6 +471,7 @@ ALTER TABLE machine_group ADD CONSTRAINT machine_group_tenant_id_unique UNIQUE (
 ALTER TABLE machine ADD CONSTRAINT machine_tenant_id_unique UNIQUE (tenant_id, id);
 ALTER TABLE ticket ADD CONSTRAINT ticket_tenant_id_unique UNIQUE (tenant_id, id);
 ALTER TABLE import_batch ADD CONSTRAINT import_batch_tenant_id_unique UNIQUE (tenant_id, id);
+ALTER TABLE breakdown_report ADD CONSTRAINT breakdown_report_tenant_id_unique UNIQUE (tenant_id, id);
 
 ALTER TABLE login ADD CONSTRAINT login_person_tenant_fk FOREIGN KEY (tenant_id, person_id) REFERENCES person (tenant_id, id);
 ALTER TABLE session ADD CONSTRAINT session_login_tenant_fk FOREIGN KEY (tenant_id, login_id) REFERENCES login (tenant_id, id);
@@ -483,6 +499,10 @@ ALTER TABLE work_segment ADD CONSTRAINT work_person_tenant_fk FOREIGN KEY (tenan
 ALTER TABLE breakdown_report ADD CONSTRAINT report_ticket_tenant_fk FOREIGN KEY (tenant_id, ticket_id) REFERENCES ticket (tenant_id, id);
 ALTER TABLE breakdown_report ADD CONSTRAINT report_machine_tenant_fk FOREIGN KEY (tenant_id, machine_id) REFERENCES machine (tenant_id, id);
 ALTER TABLE breakdown_report ADD CONSTRAINT report_submitter_tenant_fk FOREIGN KEY (tenant_id, submitted_by_person_id) REFERENCES person (tenant_id, id);
+ALTER TABLE breakdown_report ADD CONSTRAINT report_signature_file_tenant_fk FOREIGN KEY (tenant_id, signature_file_id) REFERENCES file (tenant_id, id);
+ALTER TABLE breakdown_report ADD CONSTRAINT report_pdf_file_tenant_fk FOREIGN KEY (tenant_id, pdf_file_id) REFERENCES file (tenant_id, id);
+ALTER TABLE breakdown_report_person ADD CONSTRAINT report_person_report_tenant_fk FOREIGN KEY (tenant_id, report_id) REFERENCES breakdown_report (tenant_id, id);
+ALTER TABLE breakdown_report_person ADD CONSTRAINT report_person_person_tenant_fk FOREIGN KEY (tenant_id, person_id) REFERENCES person (tenant_id, id);
 ALTER TABLE file ADD CONSTRAINT file_ticket_tenant_fk FOREIGN KEY (tenant_id, ticket_id) REFERENCES ticket (tenant_id, id);
 ALTER TABLE file ADD CONSTRAINT file_uploader_tenant_fk FOREIGN KEY (tenant_id, uploaded_by) REFERENCES person (tenant_id, id);
 ALTER TABLE push_subscription ADD CONSTRAINT push_login_tenant_fk FOREIGN KEY (tenant_id, login_id) REFERENCES login (tenant_id, id);
@@ -498,7 +518,7 @@ BEGIN
   FOR t IN SELECT unnest(ARRAY[
     'person', 'login', 'session', 'platform_access', 'segment', 'machine_group',
     'machine', 'machine_move', 'list_item', 'shift', 'setting', 'glossary_term',
-    'ticket', 'ticket_event', 'crew_member', 'work_segment', 'breakdown_report',
+    'ticket', 'ticket_event', 'crew_member', 'work_segment', 'breakdown_report', 'breakdown_report_person',
     'file', 'push_subscription', 'audit_log', 'import_batch', 'import_row',
     'ref_counter', 'command_idempotency'
   ])
@@ -514,6 +534,7 @@ END $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
 REVOKE ALL ON tenant FROM app_user;
+REVOKE UPDATE, DELETE ON audit_log FROM app_user;
 GRANT SELECT ON tenant, person, login, session TO app_router;
 
 CREATE FUNCTION tenant_by_slug(p_slug text)
@@ -538,6 +559,18 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
     AND s.expires_at > now()
     AND l.disabled_at IS NULL;
 $$;
+
+CREATE FUNCTION check_tenant_logo_file() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.logo_file_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM file f WHERE f.id = NEW.logo_file_id AND f.tenant_id = NEW.id
+  ) THEN
+    RAISE EXCEPTION 'logo file must belong to the tenant';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER tenant_logo_file_check BEFORE INSERT OR UPDATE OF logo_file_id ON tenant
+  FOR EACH ROW EXECUTE FUNCTION check_tenant_logo_file();
 
 ALTER FUNCTION tenant_by_slug(text) OWNER TO app_router;
 ALTER FUNCTION auth_lookup(text) OWNER TO app_router;
