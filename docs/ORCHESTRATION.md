@@ -4,14 +4,14 @@ Short answer: **both, at different levels.** A goal loop at the milestone level;
 
 ## 1. Goal loop vs graph loop
 
-| | Goal loop | Graph loop |
-| --- | --- | --- |
-| Shape | Objective → plan → act → observe → verify → reflect → update → repeat | Nodes and edges with explicit state, branches, retries and checkpoints |
-| Best for | Ambiguous, evolving work; a long milestone; “keep going until the gate” | Repeatable pipelines, many dependencies, parallel branches, resumability, auditability |
-| Risk | Drift, scope creep, “busy but not done” | A rigid graph that goes stale when the plan changes; orchestration overhead |
-| Use here | **Milestones**: M0 → M6, with a gate and a go/no-go | **Slices**: intake → plan → red → green → verify → review → merge → record; **audits**: fan-out over many files/screens |
+|          | Goal loop                                                               | Graph loop                                                                                                              |
+| -------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Shape    | Objective → plan → act → observe → verify → reflect → update → repeat   | Nodes and edges with explicit state, branches, retries and checkpoints                                                  |
+| Best for | Ambiguous, evolving work; a long milestone; “keep going until the gate” | Repeatable pipelines, many dependencies, parallel branches, resumability, auditability                                  |
+| Risk     | Drift, scope creep, “busy but not done”                                 | A rigid graph that goes stale when the plan changes; orchestration overhead                                             |
+| Use here | **Milestones**: M0 → M6, with a gate and a go/no-go                     | **Slices**: intake → plan → red → green → verify → review → merge → record; **audits**: fan-out over many files/screens |
 
-**The hybrid:** the goal loop decides *what* and *why*; the graph decides *how* and *in what order*; the gate decides *whether to continue*. Neither replaces judgment.
+**The hybrid:** the goal loop decides _what_ and _why_; the graph decides _how_ and _in what order_; the gate decides _whether to continue_. Neither replaces judgment.
 
 ## 2. The three layers
 
@@ -86,14 +86,14 @@ The fan-out is only allowed when the branches do not write the same files and th
 
 **Start sequential, then widen.** The bottleneck is review and integration, not typing. More agents on a shared schema produces conflicts, not speed.
 
-| Phase | Parallel workers | What may run in parallel | What must stay serial |
-| --- | --- | --- | --- |
-| Foundation (M0) | 1 + reviewer | Docs, ADRs, CI, a spike | Schema, auth, tenancy, migrations, contracts |
-| M1a ticket core | 2–3 | Domain state machine, API contract tests, floor UI against mocks, desk UI against mocks | The schema, the `transition()` signature, the figure definitions |
-| M1b parity/cutover | 3–4 | PDF template, live board, offline outbox, import fixture, Gujarati strings | The import reconciliation, the cutover runbook |
-| M2/M3 | 3–4 | SLA engine, escalation rules, handback UI, WhatsApp adapter, voice adapter | Timer semantics, webhook routing, consent model |
-| M4a/M4b | 4–6 | Independent analytics screens/formulas, PM calendar, failure codes, fixtures | The engine interface, the answer-key format, the KPI definitions |
-| Audits/tests/docs | 5–8 | Security audit, accessibility audit, dependency audit, screen-by-screen review, test-coverage audit | Any code change that comes out of the audit |
+| Phase              | Parallel workers | What may run in parallel                                                                            | What must stay serial                                            |
+| ------------------ | ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Foundation (M0)    | 1 + reviewer     | Docs, ADRs, CI, a spike                                                                             | Schema, auth, tenancy, migrations, contracts                     |
+| M1a ticket core    | 2–3              | Domain state machine, API contract tests, floor UI against mocks, desk UI against mocks             | The schema, the `transition()` signature, the figure definitions |
+| M1b parity/cutover | 3–4              | PDF template, live board, offline outbox, import fixture, Gujarati strings                          | The import reconciliation, the cutover runbook                   |
+| M2/M3              | 3–4              | SLA engine, escalation rules, handback UI, WhatsApp adapter, voice adapter                          | Timer semantics, webhook routing, consent model                  |
+| M4a/M4b            | 4–6              | Independent analytics screens/formulas, PM calendar, failure codes, fixtures                        | The engine interface, the answer-key format, the KPI definitions |
+| Audits/tests/docs  | 5–8              | Security audit, accessibility audit, dependency audit, screen-by-screen review, test-coverage audit | Any code change that comes out of the audit                      |
 
 **Rules for parallel work:**
 
@@ -119,16 +119,16 @@ In this build the orchestrator is the lead agent (me). It is not a separate prod
 
 **DSH tools it uses:**
 
-| Tool | Use |
-| --- | --- |
-| `todo_write` | The session’s task list; visible progress |
-| `subagent` | A fresh-context worker or reviewer with a constructed brief; `cwd` for a worktree |
-| `subagent_fork` | Only when a task genuinely needs this conversation’s context; not for independent review |
-| `workflow` | A scripted fan-out over many independent items (audits, screens, fixtures) with phases and structured results |
-| `create_goal` / `update_goal` | A persisted milestone objective; complete only when the gate is met |
-| `handoff` | Compact the session into a document at the context limit |
-| `bash`, `read`, `write`, `edit` | The actual work: code, tests, git, CI, Docker |
-| `web_fetch` / `web_search` | Current library docs and facts, never from memory |
+| Tool                            | Use                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `todo_write`                    | The session’s task list; visible progress                                                                     |
+| `subagent`                      | A fresh-context worker or reviewer with a constructed brief; `cwd` for a worktree                             |
+| `subagent_fork`                 | Only when a task genuinely needs this conversation’s context; not for independent review                      |
+| `workflow`                      | A scripted fan-out over many independent items (audits, screens, fixtures) with phases and structured results |
+| `create_goal` / `update_goal`   | A persisted milestone objective; complete only when the gate is met                                           |
+| `handoff`                       | Compact the session into a document at the context limit                                                      |
+| `bash`, `read`, `write`, `edit` | The actual work: code, tests, git, CI, Docker                                                                 |
+| `web_fetch` / `web_search`      | Current library docs and facts, never from memory                                                             |
 
 **What the orchestrator does not do:** run ten agents on the same schema, let a worker mark its own review as PASS, merge a red PR, or claim a milestone without a gate report.
 

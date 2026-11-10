@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+docs/discovery
+pnpm-lock.yaml
+.claude/skills
+.claude/agents
+.claude/harness
+
+# Canonical product docs are kept in their authored layout.
+docs/spec/SPEC.md
+docs/spec/DOMAIN.md
+docs/spec/PARITY.md

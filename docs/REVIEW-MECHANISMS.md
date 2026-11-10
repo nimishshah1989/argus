@@ -14,30 +14,31 @@ Every claim about the product is backed by an artifact: a plan, a test, a CI run
 
 ## 2. Risk tiers: how much review a change gets
 
-| Tier | Examples | Required reviews |
-| --- | --- | --- |
-| **R0 — docs and copy** | README, a label, a comment, a non-behavioural doc | Self-check, link check; no reviewer required |
-| **R1 — UI only** | A screen, a component, a layout, a chart | Plan (light), tests, code review, design/accessibility review |
-| **R2 — domain or API** | A ticket command, a figure, a permission, an endpoint, a job | Plan review, tests (unit + integration), code review, contract review, concurrency/idempotency where relevant |
-| **R3 — schema, auth, tenancy, money, cutover** | A migration, RLS, login/session, import, SLA money figures, production cutover | Plan review + architecture review + schema review + code review + security review + human sign-off |
+| Tier                                           | Examples                                                                       | Required reviews                                                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| **R0 — docs and copy**                         | README, a label, a comment, a non-behavioural doc                              | Self-check, link check; no reviewer required                                                                  |
+| **R1 — UI only**                               | A screen, a component, a layout, a chart                                       | Plan (light), tests, code review, design/accessibility review                                                 |
+| **R2 — domain or API**                         | A ticket command, a figure, a permission, an endpoint, a job                   | Plan review, tests (unit + integration), code review, contract review, concurrency/idempotency where relevant |
+| **R3 — schema, auth, tenancy, money, cutover** | A migration, RLS, login/session, import, SLA money figures, production cutover | Plan review + architecture review + schema review + code review + security review + human sign-off            |
 
 A PR that mixes tiers is split. The highest tier in the diff decides the review.
 
 ## 3. The review ladder
 
-| # | Review | Who | Checklist | Evidence | When |
-| --- | --- | --- | --- | --- | --- |
-| 1 | **Plan review** | `plan-reviewer` (fresh context) | Every file, interface, field and test named; Given/When/Then tests that fail first; vertical; own interface; regression risk | `docs/slices/<ticket>.md` | Before code |
-| 2 | **Architecture review** | `architecture-reviewer` (fresh context) | Modular monolith unless reasoned; one interface per module; no cross-module DB access; versioned contracts; single source of truth; failure and idempotency at boundaries; observability; security; simplest stack; traceability | `docs/adr/`, module map | Any new module or boundary change |
-| 3 | **Schema review** | `schema-reviewer` (fresh context) | Tables match the data map; normalised; keys/constraints/indexes for known queries; personal and child data minimised and scoped; reversible migrations, no silent loss; audit fields; every slice covered | migration + `docs/spec/DOMAIN.md` | Any table, column, key, index or migration |
-| 4 | **Test review** | CI + `code-reviewer` | Tests came first; no test deleted, skipped or weakened; the new test fails without the code; domain branch coverage 100% | CI run + commit order | Every PR |
-| 5 | **Code review** | `code-reviewer` (fresh context) | Matches the plan exactly; nothing extra; boundaries; errors handled at boundaries; no secrets or real data; data safety; whole suite green | PR diff + plan + CI | Every PR |
-| 6 | **Security review** | Human (before cutover and plant two) + checklist | RLS forced and tested; `app_router` narrow; session/token handling; webhook signature; rate limits; CSP; secrets; file upload; PDF escaping; dependency audit | threat model + test output | R3, then before cutover, then before a new tenant |
-| 7 | **Design review** | `impeccable` + `docs/DESIGN.md` + design checklist | Role and task obvious; one primary action; type/spacing/colour tokens; empty/loading/error/offline states; 52 px targets; WCAG AA; Gujarati/Hindi text; low-end phone | screenshots + axe + Playwright | Every user-facing screen |
-| 8 | **Data and parity review** | Data reviewer + `parity.yaml` | Import reconciliation; answer-key fixtures; every “keep” row has a test; deliberate differences logged | reconciliation report, fixtures, parity counts | M1b, M4a, each gate |
-| 9 | **Operational review** | Lead + checklist | Deploy and rollback work; migrations expand/contract; restore drill executed; `/health`; failed-jobs page; alarms; cost caps; backups | staging run + drill log | M0, M1b, each gate |
-| 10 | **Gate review** | Nimish + lead | Scope done/not done; parity counts; test counts; ten steps to try; risks; go/no-go | `docs/plan/gates/M<n>.md` | End of a milestone |
-| 11 | **Post-merge** | CI + staging smoke + monitoring | Deploy green; smoke test; error rate; timer lag; rollback ready | staging URL + logs | Every merge |
+| #   | Review                     | Who                                                | Checklist                                                                                                                                                                                                                        | Evidence                                         | When                                              |
+| --- | -------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------- |
+| 1   | **Plan review**            | `plan-reviewer` (fresh context)                    | Every file, interface, field and test named; Given/When/Then tests that fail first; vertical; own interface; regression risk                                                                                                     | `docs/slices/<ticket>.md`                        | Before code                                       |
+| 2   | **Architecture review**    | `architecture-reviewer` (fresh context)            | Modular monolith unless reasoned; one interface per module; no cross-module DB access; versioned contracts; single source of truth; failure and idempotency at boundaries; observability; security; simplest stack; traceability | `docs/adr/`, module map                          | Any new module or boundary change                 |
+| 3   | **Schema review**          | `schema-reviewer` (fresh context)                  | Tables match the data map; normalised; keys/constraints/indexes for known queries; personal and child data minimised and scoped; reversible migrations, no silent loss; audit fields; every slice covered                        | migration + `docs/spec/DOMAIN.md`                | Any table, column, key, index or migration        |
+| 4   | **Test review**            | CI + `code-reviewer`                               | Tests came first; no test deleted, skipped or weakened; the new test fails without the code; domain branch coverage 100%                                                                                                         | CI run + commit order                            | Every PR                                          |
+| 5   | **Code review**            | `code-reviewer` (fresh context)                    | Matches the plan exactly; nothing extra; boundaries; errors handled at boundaries; no secrets or real data; data safety; whole suite green                                                                                       | PR diff + plan + CI                              | Every PR                                          |
+| 5b  | **Lean review**            | `code-reviewer` + `docs/LEAN.md`                   | Smallest complete change; nothing to delete; no one-use abstraction; no new dependency without an ADR; file/function budgets; shortcut ledger                                                                                    | Size report, dependency diff, review notes       | Every PR                                          |
+| 6   | **Security review**        | Human (before cutover and plant two) + checklist   | RLS forced and tested; `app_router` narrow; session/token handling; webhook signature; rate limits; CSP; secrets; file upload; PDF escaping; dependency audit                                                                    | threat model + test output                       | R3, then before cutover, then before a new tenant |
+| 7   | **Design review**          | `impeccable` + `docs/DESIGN.md` + design checklist | Role and task obvious; one primary action; type/spacing/colour tokens; empty/loading/error/offline states; 52 px targets; WCAG AA; Gujarati/Hindi text; low-end phone                                                            | screenshots + axe + Playwright                   | Every user-facing screen                          |
+| 8   | **Data and parity review** | Data reviewer + `parity.yaml`                      | Import reconciliation; answer-key fixtures; every “keep” row has a test; deliberate differences logged                                                                                                                           | reconciliation report, fixtures, parity counts   | M1b, M4a, each gate                               |
+| 9   | **Operational review**     | Lead + checklist                                   | Deploy and rollback work; migrations expand/contract; restore drill executed; `/health`; failed-jobs page; alarms; cost caps; backups                                                                                            | staging run + drill log                          | M0, M1b, each gate                                |
+| 10  | **Gate review**            | Nimish + lead + human senior engineer (M1b/M5)     | Scope done/not done; parity counts; test counts; lean audit; quality scorecard; ten steps to try; risks; go/no-go                                                                                                                | `docs/plan/gates/M<n>.md`, `docs/QUALITY-BAR.md` | End of a milestone                                |
+| 11  | **Post-merge**             | CI + staging smoke + monitoring                    | Deploy green; smoke test; error rate; timer lag; rollback ready                                                                                                                                                                  | staging URL + logs                               | Every merge                                       |
 
 ## 4. Architecture review, concretely
 
@@ -68,42 +69,43 @@ The fixed checklist (from `.claude/agents/architecture-reviewer.md`):
 
 Each backend capability has a named proof, not a claim.
 
-| Capability | Proof |
-| --- | --- |
-| Ticket state machine | One test per command per role; property test that cached figures equal recomputed; a concurrency test for two starts and a replay test for a close |
-| Figures (response, hands-on, repair, waiting, vendor, handover, downtime, follow-up, per-person) | Golden tests from the exact definitions in `DOMAIN.md` §5; a fixture per edge case; reconciliation against Bhavin’s stored values on import |
-| Permissions | The permissions matrix is the test table; every cell server-checked |
-| RLS and tenancy | The generic isolation test on every table, two tenants, zero cross-reads; a dev assertion when `app.tenant_id` is unset |
-| Idempotency | Every command with an `Idempotency-Key`; a replay returns the first result; a create-idempotency table for `raise` |
-| SLA timers and escalation | Fake-clock tests for every timer path; missed ack → L2, missed restore → L3, critical still down → L4; repeat caps |
-| Jobs and retries | Provider contract tests; dead-letter table; a failed-jobs page; a timer-lag alarm |
-| PDFs | Text extraction for Gujarati fields; a page-1 pixel snapshot; a font test; a render timeout test |
-| WhatsApp | Recorded webhook payload contracts; signature verification; 24-hour window state; template registry; media copied before the URL expires |
-| Imports | A fake export fixture; idempotent by Bhavin’s ticket id; reconciliation report; `import:undo` |
-| Analytics engine | Answer-key fixtures from the platform; deterministic seed; every fixture number matches exactly; a backtest score |
-| Backups and restore | A restore drill executed in M0 and quarterly; the output committed |
-| Performance | `/state` under 300 ms for a 500-machine plant; Open and Live under 2 seconds on a low-end Android over 3G; a synthetic load test before M5 |
-| Cost rails | Per-channel caps as settings with tests; a billing alarm; a cap-hit pauses the queue and tells the admin |
+| Capability                                                                                       | Proof                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ticket state machine                                                                             | One test per command per role; property test that cached figures equal recomputed; a concurrency test for two starts and a replay test for a close |
+| Figures (response, hands-on, repair, waiting, vendor, handover, downtime, follow-up, per-person) | Golden tests from the exact definitions in `DOMAIN.md` §5; a fixture per edge case; reconciliation against Bhavin’s stored values on import        |
+| Permissions                                                                                      | The permissions matrix is the test table; every cell server-checked                                                                                |
+| RLS and tenancy                                                                                  | The generic isolation test on every table, two tenants, zero cross-reads; a dev assertion when `app.tenant_id` is unset                            |
+| Idempotency                                                                                      | Every command with an `Idempotency-Key`; a replay returns the first result; a create-idempotency table for `raise`                                 |
+| SLA timers and escalation                                                                        | Fake-clock tests for every timer path; missed ack → L2, missed restore → L3, critical still down → L4; repeat caps                                 |
+| Jobs and retries                                                                                 | Provider contract tests; dead-letter table; a failed-jobs page; a timer-lag alarm                                                                  |
+| PDFs                                                                                             | Text extraction for Gujarati fields; a page-1 pixel snapshot; a font test; a render timeout test                                                   |
+| WhatsApp                                                                                         | Recorded webhook payload contracts; signature verification; 24-hour window state; template registry; media copied before the URL expires           |
+| Imports                                                                                          | A fake export fixture; idempotent by Bhavin’s ticket id; reconciliation report; `import:undo`                                                      |
+| Analytics engine                                                                                 | Answer-key fixtures from the platform; deterministic seed; every fixture number matches exactly; a backtest score                                  |
+| Backups and restore                                                                              | A restore drill executed in M0 and quarterly; the output committed                                                                                 |
+| Performance                                                                                      | `/state` under 300 ms for a 500-machine plant; Open and Live under 2 seconds on a low-end Android over 3G; a synthetic load test before M5         |
+| Cost rails                                                                                       | Per-channel caps as settings with tests; a billing alarm; a cap-hit pauses the queue and tells the admin                                           |
 
 ## 6. Automated gates (every PR)
 
-| Gate | Tool | Fails when |
-| --- | --- | --- |
-| Format / lint | Prettier, ESLint (including the no-literal-strings rule) | Any violation |
-| Types | `tsc --noEmit` strict | Any error |
-| Unit and domain | Vitest | Any failure; domain coverage below 100% |
-| Database and isolation | Testcontainers Postgres | Any migration or isolation failure |
-| API contracts | Vitest + Zod | A handler disagrees with its schema |
-| End-to-end | Playwright (phone and desktop profiles) | Any flow failure |
-| Accessibility | axe in Playwright | Any serious/critical violation |
-| Visual | Playwright screenshots | A component or screen changes without a reviewed baseline |
-| PDF | Text extraction + pixel snapshot | Missing glyph or changed layout |
-| Offline | Playwright `context.setOffline(true)` | A queued close does not replay or a 409 is dropped |
-| Migration check | Custom script | A destructive migration without an expand/contract plan |
-| Licence | `license-checker` allowlist | A non-permissive dependency |
-| Secrets | `gitleaks` or equivalent | A key, token or real personal data in the diff |
-| Parity | `parity.yaml` check | A `done` row has no test, or an unknown id is referenced |
-| Build and bundle | Vite build + size budget | The build fails or the bundle exceeds its budget |
+| Gate                   | Tool                                                                                               | Fails when                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Format / lint          | Prettier, ESLint (including the no-literal-strings rule)                                           | Any violation                                                                                             |
+| Types                  | `tsc --noEmit` strict                                                                              | Any error                                                                                                 |
+| Unit and domain        | Vitest                                                                                             | Any failure; domain coverage below 100%                                                                   |
+| Database and isolation | Testcontainers Postgres                                                                            | Any migration or isolation failure                                                                        |
+| API contracts          | Vitest + Zod                                                                                       | A handler disagrees with its schema                                                                       |
+| End-to-end             | Playwright (phone and desktop profiles)                                                            | Any flow failure                                                                                          |
+| Accessibility          | axe in Playwright                                                                                  | Any serious/critical violation                                                                            |
+| Visual                 | Playwright screenshots                                                                             | A component or screen changes without a reviewed baseline                                                 |
+| PDF                    | Text extraction + pixel snapshot                                                                   | Missing glyph or changed layout                                                                           |
+| Offline                | Playwright `context.setOffline(true)`                                                              | A queued close does not replay or a 409 is dropped                                                        |
+| Migration check        | Custom script                                                                                      | A destructive migration without an expand/contract plan                                                   |
+| Licence                | `license-checker` allowlist                                                                        | A non-permissive dependency                                                                               |
+| Secrets                | `gitleaks` or equivalent                                                                           | A key, token or real personal data in the diff                                                            |
+| Parity                 | `parity.yaml` check                                                                                | A `done` row has no test, or an unknown id is referenced                                                  |
+| Lean budgets           | `tools/check-size.ts`, `tools/check-deps.ts`, `tools/check-pr-size.ts`, `tools/check-shortcuts.ts` | A file/function over budget, a new dependency without an ADR, a huge PR, or a shortcut outside the ledger |
+| Build and bundle       | Vite build + size budget                                                                           | The build fails or the bundle exceeds its budget                                                          |
 
 ## 7. Reviewer independence and the DeepSeek caveat
 
@@ -123,7 +125,7 @@ Each backend capability has a named proof, not a claim.
 - Security findings closed vs open.
 - Cost per milestone (tokens and infrastructure).
 
-A milestone gate reports these numbers. “It looks good” is not a metric.
+A milestone gate reports these numbers and the senior-engineer scorecard (`docs/QUALITY-BAR.md`). “It looks good” is not a metric.
 
 ## 9. What Nimish is asked to review
 

@@ -27,26 +27,26 @@ No NAT Gateway, no Application Load Balancer, no ECS/EKS, no CloudFront initiall
 
 Ranges are **approximate, on-demand, ap-south-1, and must be verified on the AWS Pricing Calculator** before the M0 gate. They are deliberately conservative.
 
-| Piece | Choice | Why | Approx / month |
-| --- | --- | --- | --- |
-| Compute (production) | EC2 **t4g.medium** (2 vCPU, 4 GB, Graviton) | One box runs Caddy, the server and the job queue; 4 GB is the minimum for Chromium PDFs | $25–35 |
-| Compute (staging) | EC2 **t4g.small** (2 vCPU, 2 GB) | Staging is low traffic; no PDF load most days | $12–18 |
-| Database (production) | RDS **db.t4g.micro**, 20 GB gp3, 7-day automated backups | Managed backups, PITR, patching; the one thing not worth self-hosting | $15–20 |
-| Database (staging) | Postgres 16 in Docker on the staging EC2, or a second database on the production RDS | Disposable; saves the second RDS | $0–15 |
-| Files | S3 Standard, versioning, lifecycle (voice notes 90 days) | Pennies at pilot volume | $1–3 |
-| Email | SES | Transactional only; starts in sandbox | <$1 |
-| DNS | Route 53 hosted zone + health check | AWS-only; free health-check alerting via SNS email | $1 |
-| Logs / alarms | CloudWatch, 7-day retention, a few alarms | Enough for a pilot; no paid APM | $2–5 |
-| Secrets | Secrets Manager (production) / SSM Parameter Store (staging) | Secrets Manager is $0.40/secret and gives rotation/audit; SSM standard is free and fine for staging | $0–3 |
-| Container registry | GitHub Container Registry | Free for this size; avoids ECR | $0 |
-| CI | GitHub Actions (Linux) | Within the free minutes for a private repo of this size | $0 |
-| TLS | Caddy + Let's Encrypt | Free, automatic | $0 |
-| Uptime | Route 53 health check → SNS email | AWS-only, no external monitor needed | <$1 |
-| **Subtotal** | | | **≈ $55–85 for both environments** |
-| Domain | Registrar | Needed for the app, SES and Meta | ~$10–15 / year |
-| WhatsApp | Meta Cloud API | Per utility message; caps enforced | variable |
-| Speech | Sarvam | Per minute; daily cap | variable |
-| **Total** | | | **≈ $60–95 / month before credits** |
+| Piece                 | Choice                                                                               | Why                                                                                                 | Approx / month                      |
+| --------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Compute (production)  | EC2 **t4g.medium** (2 vCPU, 4 GB, Graviton)                                          | One box runs Caddy, the server and the job queue; 4 GB is the minimum for Chromium PDFs             | $25–35                              |
+| Compute (staging)     | EC2 **t4g.small** (2 vCPU, 2 GB)                                                     | Staging is low traffic; no PDF load most days                                                       | $12–18                              |
+| Database (production) | RDS **db.t4g.micro**, 20 GB gp3, 7-day automated backups                             | Managed backups, PITR, patching; the one thing not worth self-hosting                               | $15–20                              |
+| Database (staging)    | Postgres 16 in Docker on the staging EC2, or a second database on the production RDS | Disposable; saves the second RDS                                                                    | $0–15                               |
+| Files                 | S3 Standard, versioning, lifecycle (voice notes 90 days)                             | Pennies at pilot volume                                                                             | $1–3                                |
+| Email                 | SES                                                                                  | Transactional only; starts in sandbox                                                               | <$1                                 |
+| DNS                   | Route 53 hosted zone + health check                                                  | AWS-only; free health-check alerting via SNS email                                                  | $1                                  |
+| Logs / alarms         | CloudWatch, 7-day retention, a few alarms                                            | Enough for a pilot; no paid APM                                                                     | $2–5                                |
+| Secrets               | Secrets Manager (production) / SSM Parameter Store (staging)                         | Secrets Manager is $0.40/secret and gives rotation/audit; SSM standard is free and fine for staging | $0–3                                |
+| Container registry    | GitHub Container Registry                                                            | Free for this size; avoids ECR                                                                      | $0                                  |
+| CI                    | GitHub Actions (Linux)                                                               | Within the free minutes for a private repo of this size                                             | $0                                  |
+| TLS                   | Caddy + Let's Encrypt                                                                | Free, automatic                                                                                     | $0                                  |
+| Uptime                | Route 53 health check → SNS email                                                    | AWS-only, no external monitor needed                                                                | <$1                                 |
+| **Subtotal**          |                                                                                      |                                                                                                     | **≈ $55–85 for both environments**  |
+| Domain                | Registrar                                                                            | Needed for the app, SES and Meta                                                                    | ~$10–15 / year                      |
+| WhatsApp              | Meta Cloud API                                                                       | Per utility message; caps enforced                                                                  | variable                            |
+| Speech                | Sarvam                                                                               | Per minute; daily cap                                                                               | variable                            |
+| **Total**             |                                                                                      |                                                                                                     | **≈ $60–95 / month before credits** |
 
 That is below the spec’s $110–150 estimate because we removed NAT, ALB, a second RDS in staging, paid observability and paid auth. If you run **one environment only** until cutover, it is roughly **$50–70/month**.
 
@@ -56,50 +56,50 @@ That is below the spec’s $110–150 estimate because we removed NAT, ALB, a se
 
 ## 3. What we deliberately do not buy
 
-| Not used | Why | What we use instead |
-| --- | --- | --- |
-| Supabase | Managed Postgres + auth + storage + functions we do not need; per-seat auth and vendor lock-in; our RLS and schema are ours | RDS Postgres + our own sessions + S3 |
-| Vercel / Netlify | The web app is static; one more vendor and bill | Caddy on the same EC2 |
-| Auth0 / Clerk / Firebase Auth | Per-user pricing for 15–250 users; our shared-phone model is custom | Hand-rolled sessions or better-auth |
-| Redis / ElastiCache | pg-boss keeps the queue in Postgres | pg-boss |
-| NAT Gateway | ~$32/month before traffic; unnecessary with a public subnet for EC2 and a private subnet for RDS | Internet Gateway + security groups + S3 gateway endpoint |
-| Application Load Balancer | One EC2; Caddy terminates TLS and proxies | Caddy |
-| ECS / EKS / Fargate | Orchestration for a handful of containers | Docker Compose |
-| CloudFront | Adds a vendor and a bill; Caddy serves static files close to the plant | Caddy; add CloudFront only if traffic or geography demands it |
-| Datadog / New Relic / paid APM | Cost with no reader at this scale | CloudWatch + JSON logs + health checks |
-| Paid BI / dashboards | The analytics engine is ours | Postgres + ECharts |
-| Paid PDF / document service | Chromium shapes Indic scripts correctly | Playwright |
-| Paid feature flags | One small settings table | `setting` |
-| Paid import / CSV tooling | SheetJS CE + PapaParse + Fuse | open source |
-| Paid queue / scheduler | pg-boss | open source |
-| Paid forms / admin UI | shadcn/ui + react-hook-form + Zod | open source |
+| Not used                       | Why                                                                                                                         | What we use instead                                           |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Supabase                       | Managed Postgres + auth + storage + functions we do not need; per-seat auth and vendor lock-in; our RLS and schema are ours | RDS Postgres + our own sessions + S3                          |
+| Vercel / Netlify               | The web app is static; one more vendor and bill                                                                             | Caddy on the same EC2                                         |
+| Auth0 / Clerk / Firebase Auth  | Per-user pricing for 15–250 users; our shared-phone model is custom                                                         | Hand-rolled sessions or better-auth                           |
+| Redis / ElastiCache            | pg-boss keeps the queue in Postgres                                                                                         | pg-boss                                                       |
+| NAT Gateway                    | ~$32/month before traffic; unnecessary with a public subnet for EC2 and a private subnet for RDS                            | Internet Gateway + security groups + S3 gateway endpoint      |
+| Application Load Balancer      | One EC2; Caddy terminates TLS and proxies                                                                                   | Caddy                                                         |
+| ECS / EKS / Fargate            | Orchestration for a handful of containers                                                                                   | Docker Compose                                                |
+| CloudFront                     | Adds a vendor and a bill; Caddy serves static files close to the plant                                                      | Caddy; add CloudFront only if traffic or geography demands it |
+| Datadog / New Relic / paid APM | Cost with no reader at this scale                                                                                           | CloudWatch + JSON logs + health checks                        |
+| Paid BI / dashboards           | The analytics engine is ours                                                                                                | Postgres + ECharts                                            |
+| Paid PDF / document service    | Chromium shapes Indic scripts correctly                                                                                     | Playwright                                                    |
+| Paid feature flags             | One small settings table                                                                                                    | `setting`                                                     |
+| Paid import / CSV tooling      | SheetJS CE + PapaParse + Fuse                                                                                               | open source                                                   |
+| Paid queue / scheduler         | pg-boss                                                                                                                     | open source                                                   |
+| Paid forms / admin UI          | shadcn/ui + react-hook-form + Zod                                                                                           | open source                                                   |
 
 ## 4. The open-source stack
 
-| Layer | Open source | Licence |
-| --- | --- | --- |
-| OS | Ubuntu 24.04 LTS or Amazon Linux 2023 | free |
-| Runtime | Node 24 LTS, pnpm | MIT / free |
-| Server | Fastify, Zod, pg-boss, Pino | MIT / Apache-2.0 |
-| Database | PostgreSQL 16/17, Drizzle ORM | PostgreSQL / Apache-2.0 |
-| Web | Vite, React, TanStack Query/Table, Tailwind, shadcn/ui, Radix, Lucide, ECharts, FullCalendar, vis-timeline | MIT / Apache-2.0 |
-| PWA / offline | vite-plugin-pwa, Workbox, idb, web-push | MIT / MPL-2.0 |
-| PDF | Playwright, Chromium, Noto Sans Gujarati/Devanagari | Apache-2.0 / OFL |
-| Import | SheetJS CE 0.20 (pinned from cdn.sheetjs.com), PapaParse, Fuse.js | Apache-2.0 / MIT |
-| Auth | our sessions, or better-auth | MIT |
-| Tests | Vitest, Testcontainers, Playwright, axe | MIT / Apache-2.0 |
-| Infra | Terraform, Docker Compose, Caddy, MinIO (local) | MPL-2.0 / Apache-2.0 / MIT |
-| CI / registry | GitHub Actions, GHCR | free tier |
+| Layer         | Open source                                                                                                | Licence                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------- |
+| OS            | Ubuntu 24.04 LTS or Amazon Linux 2023                                                                      | free                       |
+| Runtime       | Node 24 LTS, pnpm                                                                                          | MIT / free                 |
+| Server        | Fastify, Zod, pg-boss, Pino                                                                                | MIT / Apache-2.0           |
+| Database      | PostgreSQL 16/17, Drizzle ORM                                                                              | PostgreSQL / Apache-2.0    |
+| Web           | Vite, React, TanStack Query/Table, Tailwind, shadcn/ui, Radix, Lucide, ECharts, FullCalendar, vis-timeline | MIT / Apache-2.0           |
+| PWA / offline | vite-plugin-pwa, Workbox, idb, web-push                                                                    | MIT / MPL-2.0              |
+| PDF           | Playwright, Chromium, Noto Sans Gujarati/Devanagari                                                        | Apache-2.0 / OFL           |
+| Import        | SheetJS CE 0.20 (pinned from cdn.sheetjs.com), PapaParse, Fuse.js                                          | Apache-2.0 / MIT           |
+| Auth          | our sessions, or better-auth                                                                               | MIT                        |
+| Tests         | Vitest, Testcontainers, Playwright, axe                                                                    | MIT / Apache-2.0           |
+| Infra         | Terraform, Docker Compose, Caddy, LocalStack or s3rver (local S3, permissive)                              | MPL-2.0 / Apache-2.0 / MIT |
+| CI / registry | GitHub Actions, GHCR                                                                                       | free tier                  |
 
 **The discipline:** every dependency is a maintenance and security surface. We choose a small, boring, permissively licensed set; one tool per job; no duplicate frameworks; no AGPL/GPL code. `THIRD_PARTY.md` lists every dependency with its licence and is checked in CI. “Free” is not the only criterion — a free tool that duplicates another, or is unmaintained, costs more than it saves.
 
 ## 5. Environments
 
-| Environment | Where | Database | Purpose |
-| --- | --- | --- | --- |
-| Local | Docker Compose on the Mac: Postgres 16, MinIO, server, web | container | Development and tests; no cloud cost |
-| Staging | EC2 t4g.small + Caddy + Docker Compose; `cosmos.staging.<domain>` | Postgres container (or a separate database on RDS) | Every merge to `main` deploys here; you test here |
-| Production | EC2 t4g.medium + Caddy + Docker Compose; `cosmos.<domain>` | RDS db.t4g.micro | Only a tagged release after a gate; deploys 05:00–08:00 IST |
+| Environment | Where                                                                     | Database                                           | Purpose                                                     |
+| ----------- | ------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------- |
+| Local       | Docker Compose on the Mac: Postgres 16, LocalStack or s3rver, server, web | container                                          | Development and tests; no cloud cost                        |
+| Staging     | EC2 t4g.small + Caddy + Docker Compose; `cosmos.staging.<domain>`         | Postgres container (or a separate database on RDS) | Every merge to `main` deploys here; you test here           |
+| Production  | EC2 t4g.medium + Caddy + Docker Compose; `cosmos.<domain>`                | RDS db.t4g.micro                                   | Only a tagged release after a gate; deploys 05:00–08:00 IST |
 
 Production and staging never share a database or a secret. Staging holds a seeded copy or synthetic data; real Cosmos data is only used if you explicitly approve it and access is restricted.
 
@@ -119,16 +119,16 @@ Production and staging never share a database or a secret. Staging holds a seede
 
 ## 7. Setup checklist (you create, I wire)
 
-| # | Item | Notes |
-| --- | --- | --- |
-| 1 | AWS account, ap-south-1, MFA, root not used for daily work | Enable Budgets and a billing alarm immediately |
-| 2 | IAM role for GitHub Actions (OIDC) | No access keys; trust only this repo |
-| 3 | Domain + Route 53 hosted zone | `cosmos.<domain>`, `cosmos.staging.<domain>` |
-| 4 | SES identity + production access | Starts in sandbox; request when email goes live |
-| 5 | S3 bucket names / Terraform state bucket | Versioning, block public access, encryption |
-| 6 | Secrets Manager secret (production) / SSM parameters (staging) | DB password, session secret, VAPID keys, WhatsApp/Sarvam later |
-| 7 | Meta developer app + test number; Sarvam key | Needed at M3, not M0 |
-| 8 | Local: Docker Desktop running, Terraform installed | Docker is installed but not running; Terraform is missing |
+| #   | Item                                                           | Notes                                                          |
+| --- | -------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | AWS account, ap-south-1, MFA, root not used for daily work     | Enable Budgets and a billing alarm immediately                 |
+| 2   | IAM role for GitHub Actions (OIDC)                             | No access keys; trust only this repo                           |
+| 3   | Domain + Route 53 hosted zone                                  | `cosmos.<domain>`, `cosmos.staging.<domain>`                   |
+| 4   | SES identity + production access                               | Starts in sandbox; request when email goes live                |
+| 5   | S3 bucket names / Terraform state bucket                       | Versioning, block public access, encryption                    |
+| 6   | Secrets Manager secret (production) / SSM parameters (staging) | DB password, session secret, VAPID keys, WhatsApp/Sarvam later |
+| 7   | Meta developer app + test number; Sarvam key                   | Needed at M3, not M0                                           |
+| 8   | Local: Docker Desktop running, Terraform installed             | Docker is installed but not running; Terraform is missing      |
 
 I write the Terraform, Compose, Caddyfile, deploy/rollback scripts and the runbooks. You create the account, the domain and the payment method.
 
