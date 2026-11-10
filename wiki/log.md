@@ -12,3 +12,4 @@
 2026-11-10 — M0-0.6: Cosmos seed (192 machines by segment, 14 people, 19 active codes, glossary); seed report committed. 2 integration tests; 33 total. Next M0-0.7 infrastructure.
 2026-11-10 — M0-0.7: infrastructure authored (Terraform, Compose, Dockerfile, deploy/rollback, restore runbook, deploy workflow). Blocked-external on AWS (N7). Next unblocked: M0-0.8 walking skeleton.
 2026-11-10 — M0-0.8: walking skeleton (Vite React web app, login, floor report, desk open list; minimal raise + /state). 37 tests. M0 gate (staging deploy + restore) blocked on AWS (N7); M1a next.
+2026-11-10 — M1a-1: domain figures engine (response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair, per-person, overrides). 8 tests. Next M1a-2 permissions.

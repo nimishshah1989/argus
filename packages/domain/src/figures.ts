@@ -1,0 +1,145 @@
+import type { FigureInput, Figures, TicketEvent } from './types.js';
+
+function wholeMin(a: Date, b: Date): number {
+  return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 60000));
+}
+
+function sortedEvents(events: TicketEvent[]): TicketEvent[] {
+  return [...events].sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+function unionMinutes(intervals: Array<[Date, Date]>): number {
+  const ordered = intervals
+    .filter(([start, end]) => end.getTime() > start.getTime())
+    .sort((a, b) => a[0].getTime() - b[0].getTime());
+  let total = 0;
+  let curStart: Date | null = null;
+  let curEnd: Date | null = null;
+  for (const [start, end] of ordered) {
+    if (curEnd === null || start.getTime() > curEnd.getTime()) {
+      if (curEnd !== null) total += wholeMin(curStart as Date, curEnd);
+      curStart = start;
+      curEnd = end;
+    } else if (end.getTime() > curEnd.getTime()) {
+      curEnd = end;
+    }
+  }
+  if (curEnd !== null) total += wholeMin(curStart as Date, curEnd);
+  return total;
+}
+
+function downtimeAcc(input: FigureInput, until: Date): number {
+  if (input.kind !== 'stopped') return 0;
+  let acc = 0;
+  let downStart = input.kindUpgradedAt ?? input.reportedAt;
+  let isDown = true;
+  for (const event of sortedEvents(input.events)) {
+    if (event.type === 'running' && isDown) {
+      acc += wholeMin(downStart, event.at);
+      isDown = false;
+    } else if (event.type === 'stopped' && !isDown) {
+      downStart = event.at;
+      isDown = true;
+    } else if (event.type === 'upgrade_kind') {
+      downStart = event.at;
+      isDown = true;
+    }
+  }
+  if (isDown) acc += wholeMin(downStart, until);
+  return acc;
+}
+
+function responseMin(input: FigureInput, events: TicketEvent[]): number | null {
+  const firstStart = events.find((event) => event.type === 'start' || event.type === 'pickup');
+  if (input.selfStarted || !firstStart) return null;
+  return wholeMin(input.reportedAt, firstStart.at);
+}
+
+function activeAndRepair(input: FigureInput) {
+  const closedAt = input.closedAt;
+  const active = unionMinutes(
+    input.segments.map((segment) => [segment.startedAt, segment.endedAt ?? input.now]),
+  );
+  const repair = closedAt
+    ? unionMinutes(
+        input.segments.map((segment) => [segment.startedAt, segment.endedAt ?? closedAt]),
+      )
+    : active;
+  return { activeMin: active, repairMin: repair };
+}
+
+function waitingMinutes(events: TicketEvent[], now: Date) {
+  let waitMin = 0;
+  let vendorMin = 0;
+  let pauseAt: Date | null = null;
+  let pauseIsVendor = false;
+  const close = (at: Date) => {
+    if (!pauseAt) return;
+    const minutes = wholeMin(pauseAt, at);
+    waitMin += minutes;
+    if (pauseIsVendor) vendorMin += minutes;
+    pauseAt = null;
+  };
+  for (const event of events) {
+    if (event.type === 'pause') {
+      pauseAt = event.at;
+      pauseIsVendor = Boolean(event.isVendor);
+    } else if (event.type === 'resume' || event.type === 'close' || event.type === 'cancel') {
+      close(event.at);
+    }
+  }
+  close(now);
+  return { waitMin, vendorMin };
+}
+
+function handoverAndFollow(events: TicketEvent[], now: Date, closedAt?: Date) {
+  let handoverWaitMin = 0;
+  let handoverAt: Date | null = null;
+  let lastRunningAt: Date | null = null;
+  for (const event of events) {
+    if (event.type === 'transfer') handoverAt = event.at;
+    if (event.type === 'pickup' && handoverAt) {
+      handoverWaitMin += wholeMin(handoverAt, event.at);
+      handoverAt = null;
+    }
+    if (event.type === 'running') lastRunningAt = event.at;
+  }
+  if (handoverAt) handoverWaitMin += wholeMin(handoverAt, now);
+  const followMin = closedAt && lastRunningAt ? wholeMin(lastRunningAt, closedAt) : null;
+  return { handoverWaitMin, followMin };
+}
+
+function perPerson(input: FigureInput): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const segment of input.segments) {
+    const minutes = wholeMin(segment.startedAt, segment.endedAt ?? input.now);
+    result[segment.personId] = (result[segment.personId] ?? 0) + minutes;
+  }
+  return result;
+}
+
+export function figures(input: FigureInput): Figures {
+  const events = sortedEvents(input.events);
+  const overrides = input.overrides ?? {};
+  const { activeMin, repairMin } = activeAndRepair(input);
+  const { waitMin, vendorMin } = waitingMinutes(events, input.now);
+  const { handoverWaitMin, followMin } = handoverAndFollow(events, input.now, input.closedAt);
+  const downAccMin = downtimeAcc(input, input.now);
+  const downtimeMin =
+    input.kind === 'stopped' && input.closedAt
+      ? Math.max(1, downtimeAcc(input, input.closedAt))
+      : null;
+
+  return {
+    responseMin: overrides.responseMin ?? responseMin(input, events),
+    activeMin: overrides.activeMin ?? activeMin,
+    waitMin: overrides.waitMin ?? waitMin,
+    vendorMin,
+    handoverWaitMin,
+    downAccMin,
+    downtimeMin: overrides.downtimeMin ?? downtimeMin,
+    followMin,
+    repairMin: overrides.repairMin ?? repairMin,
+    perPerson: perPerson(input),
+  };
+}
