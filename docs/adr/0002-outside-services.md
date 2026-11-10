@@ -14,7 +14,7 @@ The pilot is one plant, about 15 users, 192 machines and 250 tickets a month. Da
 - One EC2 per environment (Graviton t4g), Docker Compose, Caddy for TLS and static files.
 - Production database: RDS Postgres db.t4g.micro with automated backups and PITR. Staging: Postgres in Docker (or a separate database on RDS).
 - S3 for files and backups with versioning and lifecycle; SES for transactional email.
-- SSM Parameter Store for secrets; CloudWatch for logs and alarms; Route 53 for DNS and health checks; GitHub Actions + GHCR for CI and images.
+- Secrets Manager for production secrets (SSM Parameter Store for staging); CloudWatch for logs and alarms; Route 53 for DNS and health checks; GitHub Actions + GHCR for CI and images.
 - No NAT Gateway, ALB, ECS/EKS, CloudFront, ElastiCache or Lambda in the pilot.
 - Outside services only where there is no good local substitute: Meta WhatsApp Cloud API (M3), Sarvam speech-to-text (M3), browser push services (M1). An error tracker is optional; CloudWatch logs are the pilot default. Any LLM provider for M6 needs its own decision record.
 - Open-source dependencies only under MIT, Apache-2.0, BSD, ISC, MPL-2.0 or OFL; no AGPL/GPL code; `THIRD_PARTY.md` is checked in CI.

@@ -37,7 +37,7 @@ Ranges are **approximate, on-demand, ap-south-1, and must be verified on the AWS
 | Email | SES | Transactional only; starts in sandbox | <$1 |
 | DNS | Route 53 hosted zone + health check | AWS-only; free health-check alerting via SNS email | $1 |
 | Logs / alarms | CloudWatch, 7-day retention, a few alarms | Enough for a pilot; no paid APM | $2–5 |
-| Secrets | SSM Parameter Store SecureString | Free standard parameters; Secrets Manager is $0.40/secret if we want rotation later | $0–3 |
+| Secrets | Secrets Manager (production) / SSM Parameter Store (staging) | Secrets Manager is $0.40/secret and gives rotation/audit; SSM standard is free and fine for staging | $0–3 |
 | Container registry | GitHub Container Registry | Free for this size; avoids ECR | $0 |
 | CI | GitHub Actions (Linux) | Within the free minutes for a private repo of this size | $0 |
 | TLS | Caddy + Let's Encrypt | Free, automatic | $0 |
@@ -111,7 +111,7 @@ Production and staging never share a database or a secret. Staging holds a seede
 - **RDS private**, no public endpoint; security group allows the EC2 only.
 - **No NAT Gateway.** EC2 in a public subnet with an Elastic IP and a tight security group; RDS in a private subnet; S3 gateway endpoint (free).
 - **TLS everywhere** via Caddy/Let’s Encrypt; HSTS; no http.
-- **Secrets** in SSM Parameter Store SecureString (or Secrets Manager later), never in git; IAM least privilege; GitHub OIDC, no long-lived AWS keys.
+- **Secrets** in Secrets Manager (production) or SSM Parameter Store SecureString (staging), never in git; IAM least privilege; GitHub OIDC, no long-lived AWS keys.
 - **Encryption at rest** on RDS and S3; versioning on S3; lifecycle for voice notes.
 - **Backups and restore**: RDS PITR, weekly dump, S3 versioning, a restore drill executed in M0 and quarterly. A backup you have not restored is a hope.
 - **Cost guardrails**: AWS Budgets alarm at ₹30,000 (or lower), per-channel caps for WhatsApp/Sarvam, CloudWatch log retention 7 days, S3 lifecycle, no idle resources, one environment until cutover if needed.
@@ -126,7 +126,7 @@ Production and staging never share a database or a secret. Staging holds a seede
 | 3 | Domain + Route 53 hosted zone | `cosmos.<domain>`, `cosmos.staging.<domain>` |
 | 4 | SES identity + production access | Starts in sandbox; request when email goes live |
 | 5 | S3 bucket names / Terraform state bucket | Versioning, block public access, encryption |
-| 6 | SSM parameters for secrets | DB password, session secret, VAPID keys, WhatsApp/Sarvam later |
+| 6 | Secrets Manager secret (production) / SSM parameters (staging) | DB password, session secret, VAPID keys, WhatsApp/Sarvam later |
 | 7 | Meta developer app + test number; Sarvam key | Needed at M3, not M0 |
 | 8 | Local: Docker Desktop running, Terraform installed | Docker is installed but not running; Terraform is missing |
 
