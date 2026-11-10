@@ -6,6 +6,12 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Breakdown PDF (AC3b): `GET /tickets/{id}/pdf` renders an A4 breakdown report (platform-v1 QR, embedded Gujarati fonts) via headless Chromium and stores it as a `file` row.
+
+- Live board and kiosk (AC4): `/desk/board` tiles every machine by segment and group with live status, counts, filters and a work-request footer; `?kiosk=1` for a wall screen, 30s refresh.
+
+- Breakdown report form (AC3a): close-with-report / late report capture the full report (category, maintenance code, spare, root cause, handover, done/supported people) with server defaults and show it on the ticket.
+
 - End-to-end harness (M1a-e2e): `pnpm test:e2e` boots the real stack (Postgres Testcontainer, migrated + seeded, API + Vite) and drives the floor raise and the full desk ticket lifecycle through a browser on desktop and phone; dev proxy Host and vitest timeouts fixed.
 
 - Web polish (M1a-5d): React `.tsx` files now obey the same function/complexity/depth/param budgets as `.ts` (enforced by ESLint); Floor/MachinePicker/ActionForm/TicketDetail split into small components; handed-over open tickets can be updated and the figures panel shows vendor, handover and follow-up minutes.

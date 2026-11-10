@@ -33,16 +33,26 @@ function downtimeAcc(input: FigureInput, until: Date): number {
   let acc = 0;
   let downStart = input.kindUpgradedAt ?? input.reportedAt;
   let isDown = true;
+  let downAtCancel = false;
+  const closeDown = (at: Date) => {
+    if (!isDown) return;
+    acc += wholeMin(downStart, at);
+    isDown = false;
+  };
+  const openDown = (at: Date) => {
+    downStart = at;
+    isDown = true;
+  };
   for (const event of sortedEvents(input.events)) {
-    if (event.type === 'running' && isDown) {
-      acc += wholeMin(downStart, event.at);
-      isDown = false;
-    } else if (event.type === 'stopped' && !isDown) {
-      downStart = event.at;
-      isDown = true;
-    } else if (event.type === 'upgrade_kind') {
-      downStart = event.at;
-      isDown = true;
+    if (event.type === 'running') closeDown(event.at);
+    else if (event.type === 'stopped' && !isDown) openDown(event.at);
+    else if (event.type === 'upgrade_kind') openDown(event.at);
+    else if (event.type === 'cancel') {
+      downAtCancel = isDown;
+      closeDown(event.at);
+    } else if (event.type === 'restore' && downAtCancel) {
+      openDown(event.at);
+      downAtCancel = false;
     }
   }
   if (isDown) acc += wholeMin(downStart, until);
@@ -73,6 +83,8 @@ function waitingMinutes(events: TicketEvent[], now: Date) {
   let vendorMin = 0;
   let pauseAt: Date | null = null;
   let pauseIsVendor = false;
+  let waitingAtCancel = false;
+  let vendorAtCancel = false;
   const close = (at: Date) => {
     if (!pauseAt) return;
     const minutes = wholeMin(pauseAt, at);
@@ -84,8 +96,16 @@ function waitingMinutes(events: TicketEvent[], now: Date) {
     if (event.type === 'pause') {
       pauseAt = event.at;
       pauseIsVendor = Boolean(event.isVendor);
-    } else if (event.type === 'resume' || event.type === 'close' || event.type === 'cancel') {
+    } else if (event.type === 'resume' || event.type === 'close') {
       close(event.at);
+    } else if (event.type === 'cancel') {
+      waitingAtCancel = pauseAt !== null;
+      vendorAtCancel = pauseIsVendor;
+      close(event.at);
+    } else if (event.type === 'restore' && waitingAtCancel) {
+      pauseAt = event.at;
+      pauseIsVendor = vendorAtCancel;
+      waitingAtCancel = false;
     }
   }
   close(now);
@@ -95,12 +115,23 @@ function waitingMinutes(events: TicketEvent[], now: Date) {
 function handoverAndFollow(events: TicketEvent[], now: Date, closedAt?: Date) {
   let handoverWaitMin = 0;
   let handoverAt: Date | null = null;
+  let handoverAtCancel = false;
   let lastRunningAt: Date | null = null;
+  const closeHandover = (at: Date) => {
+    if (!handoverAt) return;
+    handoverWaitMin += wholeMin(handoverAt, at);
+    handoverAt = null;
+  };
   for (const event of events) {
     if (event.type === 'transfer') handoverAt = event.at;
-    if (event.type === 'pickup' && handoverAt) {
-      handoverWaitMin += wholeMin(handoverAt, event.at);
-      handoverAt = null;
+    if (event.type === 'pickup') closeHandover(event.at);
+    if (event.type === 'cancel') {
+      handoverAtCancel = handoverAt !== null;
+      closeHandover(event.at);
+    }
+    if (event.type === 'restore' && handoverAtCancel) {
+      handoverAt = event.at;
+      handoverAtCancel = false;
     }
     if (event.type === 'running') lastRunningAt = event.at;
   }

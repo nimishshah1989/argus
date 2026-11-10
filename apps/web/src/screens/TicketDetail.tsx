@@ -16,6 +16,7 @@ import {
 } from '../api.js';
 import { canWork, useTicketCommand } from '../components/actions.js';
 import { ReportPanel } from '../components/ReportForm.js';
+import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { Timeline } from '../components/Timeline.js';
@@ -219,6 +220,9 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           error={error}
         />
       )}
+      <div className="mt-3">
+        <ShareButton ticket={ticket} config={config} mode="full" />
+      </div>
       <Facts ticket={ticket} config={config} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
       <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
