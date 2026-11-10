@@ -1,0 +1,68 @@
+{
+  "_what": "Every skill Athena v3 ships, pinned to a reviewed upstream commit. Ten in total.",
+  "skills": {
+    "office-hours": {
+      "source": "https://github.com/garrytan/gstack",
+      "path": "office-hours",
+      "sha": "297f50c7e1d46aab1404f5f2e8a9584af76ad6b2",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Six forcing questions, premise challenge, alternatives, design doc; no code. Codex second opinion and mockups need gstack's runtime (absent in the cloud; off on the Mac). Output feeds the Scope form."
+    },
+    "grill-with-docs": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/grill-with-docs",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Runs grilling plus domain-modeling: rounds of numbered questions with recommended answers, then glossary and decisions. No network."
+    },
+    "grilling": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/productivity/grilling",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Dependency of grill-with-docs: asks the open questions in rounds until understanding is shared. No network."
+    },
+    "domain-modeling": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/domain-modeling",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Keeps a glossary and sparse decision records during design talks. No network. Decisions go to docs/decisions/ under Athena."
+    },
+    "to-spec": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/to-spec",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Turns the conversation into a PRD-style issue. It labels ready-for-agent; under Athena it files a Scope-form draft for Nimish, never scope-locked (guard refuses it)."
+    },
+    "to-tickets": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/to-tickets",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Cuts a plan into thin vertical slices in blocker order, publishes after approval. Under Athena: GitHub issues, Scope form, spec-ID titles, never scope-locked."
+    },
+    "tdd": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/tdd",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). One test, then the code that passes it; no horizontal test batches; mocks only at boundaries. Unattended, the seams come from the locked proofs. No network."
+    },
+    "subagent-driven-development": {
+      "source": "https://github.com/obra/superpowers",
+      "path": "skills/subagent-driven-development",
+      "sha": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Fresh implementer and reviewer per task. Harness copy of v7.0.0, superpowers: prefixes removed; Athena's block rule beats its 'rulings, not stalls'.",
+      "v3_change": "Athena note replaced by the v3 note (code-reviewer, slice plan, determinism rule)."
+    },
+    "diagnosing-bugs": {
+      "source": "https://github.com/mattpocock/skills",
+      "path": "skills/engineering/diagnosing-bugs",
+      "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "reviewed": "read end to end 7 Nov 2026 (ATH-10). Build a red feedback loop first, then hypotheses, tagged logs, regression test, cleanup. Redacts secrets. Local script template only."
+    },
+    "impeccable": {
+      "source": "https://github.com/pbakaus/impeccable",
+      "path": ".claude/skills/impeccable",
+      "sha": "cf7ea4a8fe56f3e186e9ffaca3124937e36e6430",
+      "version": "4.8.1",
+      "licence": "Apache-2.0",
+      "reviewed": "9 Nov 2026 (v3). Chosen over nextlevelbuilder/ui-ux-pro-max-skill (MIT, also active): impeccable's Operate/Read modes are about precision and restraint, which fits the Apple principles in docs/DESIGN.md; ui-ux-pro-max is a large style catalogue driven by Python scripts. Pinned SKILL.md and reference/ only: scripts/ is left out because its launcher downloads an unpinned binary on first run; the skill documents a launcher-unavailable path, which a v3 note points to."
+    }
+  }
+}

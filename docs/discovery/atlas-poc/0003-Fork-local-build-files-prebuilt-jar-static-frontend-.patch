@@ -1,0 +1,38 @@
+From 89d90832126bd43b2dfcc173f26dc84a5da699fb Mon Sep 17 00:00:00 2001
+From: Nimish Shah <nimish.shah1989@gmail.com>
+Date: Wed, 28 Oct 2026 02:13:52 +0000
+Subject: [PATCH 3/3] Fork: local build files (prebuilt jar + static frontend)
+ and compose override
+
+---
+ docker-compose.override.yml | 1 +
+ frontend/Dockerfile.local   | 5 +++++
+ 2 files changed, 6 insertions(+)
+ create mode 100644 frontend/Dockerfile.local
+
+diff --git a/docker-compose.override.yml b/docker-compose.override.yml
+index e22a6b5..fded131 100644
+--- a/docker-compose.override.yml
++++ b/docker-compose.override.yml
+@@ -6,6 +6,7 @@ services:
+       dockerfile: Dockerfile.local
+     environment:
+       ALL_FEATURES_ENABLED: ${ALL_FEATURES_ENABLED:-true}
++      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+     ports:
+       - "8080:8080"
+   frontend:
+diff --git a/frontend/Dockerfile.local b/frontend/Dockerfile.local
+new file mode 100644
+index 0000000..7b6f88e
+--- /dev/null
++++ b/frontend/Dockerfile.local
+@@ -0,0 +1,5 @@
++FROM nginx:1.27.0-alpine
++COPY build /usr/share/nginx/html
++COPY nginx-custom.conf /etc/nginx/conf.d/default.conf
++EXPOSE 3000
++CMD ["nginx", "-g", "daemon off;"]
+-- 
+2.43.0
+

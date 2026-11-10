@@ -1,0 +1,79 @@
+From f7648a480fd87a4e8a8b23c285906dce2d26bf87 Mon Sep 17 00:00:00 2001
+From: Nimish Shah <nimish.shah1989@gmail.com>
+Date: Wed, 28 Oct 2026 02:02:32 +0000
+Subject: [PATCH 1/3] Fork: enable all features under AGPL; add fork notice
+
+---
+ NOTICE-FORK.md                                | 14 +++++++++++++
+ .../com/grash/service/LicenseService.java     | 20 +++++++++++++++++++
+ api/src/main/resources/application.yml        |  1 +
+ 3 files changed, 35 insertions(+)
+ create mode 100644 NOTICE-FORK.md
+
+diff --git a/NOTICE-FORK.md b/NOTICE-FORK.md
+new file mode 100644
+index 0000000..1be87c3
+--- /dev/null
++++ b/NOTICE-FORK.md
+@@ -0,0 +1,14 @@
++# Maintenance OS fork of Atlas CMMS
++
++This repository is a modified version of Atlas CMMS (https://github.com/Grashjs/cmms),
++copyright Intelloop LLC, licensed under the GNU Affero General Public License v3 (see LICENSE).
++We use it under the AGPLv3 option of its dual licence, not under the commercial licence.
++
++As required by AGPLv3 section 5(a), modifications are listed here with dates:
++
++- 2026-10-28: `api/src/main/java/com/grash/service/LicenseService.java` and `api/src/main/resources/application.yml`:
++  added `ALL_FEATURES_ENABLED` (default true). When true, all licence entitlements are granted
++  without a licence key.
++
++Source for every deployed version of this fork is offered to all users of the service
++(AGPLv3 section 13). "Atlas CMMS" is a name of Intelloop LLC and is not used for this product.
+diff --git a/api/src/main/java/com/grash/service/LicenseService.java b/api/src/main/java/com/grash/service/LicenseService.java
+index 3d36f78..a04ffdd 100644
+--- a/api/src/main/java/com/grash/service/LicenseService.java
++++ b/api/src/main/java/com/grash/service/LicenseService.java
+@@ -53,7 +53,27 @@ public class LicenseService {
+     private volatile Set<String> cachedEntitlements = new HashSet<>();
+     private volatile long lastCheckedTime = 0;
+ 
++    // Maintenance OS fork (AGPLv3 modification, see NOTICE-FORK.md):
++    // when ALL_FEATURES_ENABLED=true every entitlement is granted without a licence key.
++    @Value("${all-features-enabled:true}")
++    private boolean allFeaturesEnabled;
++
++    private LicensingState allFeaturesState() {
++        Set<String> all = new HashSet<>();
++        for (LicenseEntitlement e : LicenseEntitlement.values()) all.add(e.toString());
++        return LicensingState.builder()
++                .hasLicense(true)
++                .valid(true)
++                .planName("Maintenance OS")
++                .entitlements(all)
++                .usersCount(Integer.MAX_VALUE)
++                .build();
++    }
++
+     public synchronized LicensingState getLicensingState() {
++        if (allFeaturesEnabled) {
++            return allFeaturesState();
++        }
+         if (isCacheValid()) {
+             return buildLicensingStateFromCache();
+         }
+diff --git a/api/src/main/resources/application.yml b/api/src/main/resources/application.yml
+index a70ca9e..8a1b95a 100644
+--- a/api/src/main/resources/application.yml
++++ b/api/src/main/resources/application.yml
+@@ -167,6 +167,7 @@ oauth2:
+   client-id: ${OAUTH2_CLIENT_ID:}
+   client-secret: ${OAUTH2_CLIENT_SECRET:}
+ license-key: ${LICENSE_KEY:}
++all-features-enabled: ${ALL_FEATURES_ENABLED:true}
+ license-fingerprint-required: ${LICENSE_FINGERPRINT_REQUIRED:false}
+ license-file-path: ${LICENSE_FILE_PATH:}
+ white-labeling:
+-- 
+2.43.0
+

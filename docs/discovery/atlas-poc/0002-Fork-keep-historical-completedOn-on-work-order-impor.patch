@@ -1,0 +1,86 @@
+From 46358f90878eba8f1c4243f36189fb7ea44d8781 Mon Sep 17 00:00:00 2001
+From: Nimish Shah <nimish.shah1989@gmail.com>
+Date: Wed, 28 Oct 2026 02:08:11 +0000
+Subject: [PATCH 2/3] Fork: keep historical completedOn on work-order import
+
+---
+ .gitignore                                        |  2 +-
+ NOTICE-FORK.md                                    |  3 +++
+ api/Dockerfile.local                              |  5 +++++
+ .../java/com/grash/service/WorkOrderService.java  |  3 ++-
+ docker-compose.override.yml                       | 15 +++++++++++++++
+ 5 files changed, 26 insertions(+), 2 deletions(-)
+ create mode 100644 api/Dockerfile.local
+ create mode 100644 docker-compose.override.yml
+
+diff --git a/.gitignore b/.gitignore
+index fddd9d9..a37e290 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,4 +7,4 @@ atlas_backups
+ docker-compose-dev.yml
+ logo
+ *.lic
+-docker-compose-minio.yml
+\ No newline at end of file
++docker-compose-minio.ymlapi/dist/
+diff --git a/NOTICE-FORK.md b/NOTICE-FORK.md
+index 1be87c3..906fc64 100644
+--- a/NOTICE-FORK.md
++++ b/NOTICE-FORK.md
+@@ -12,3 +12,6 @@ As required by AGPLv3 section 5(a), modifications are listed here with dates:
+ 
+ Source for every deployed version of this fork is offered to all users of the service
+ (AGPLv3 section 13). "Atlas CMMS" is a name of Intelloop LLC and is not used for this product.
++
++- 2026-10-28: `api/src/main/java/com/grash/service/WorkOrderService.java`: work-order import keeps the
++  completion date given in the import file instead of stamping the import time (needed to migrate history).
+diff --git a/api/Dockerfile.local b/api/Dockerfile.local
+new file mode 100644
+index 0000000..761f1a9
+--- /dev/null
++++ b/api/Dockerfile.local
+@@ -0,0 +1,5 @@
++FROM eclipse-temurin:17-jre
++WORKDIR /app
++COPY dist/app.jar my-spring-boot-app.jar
++EXPOSE 8080
++CMD ["sh", "-c", "java --add-opens=java.base/java.lang=ALL-UNNAMED $JAVA_OPTS -jar /app/my-spring-boot-app.jar"]
+diff --git a/api/src/main/java/com/grash/service/WorkOrderService.java b/api/src/main/java/com/grash/service/WorkOrderService.java
+index 5601758..205dd15 100644
+--- a/api/src/main/java/com/grash/service/WorkOrderService.java
++++ b/api/src/main/java/com/grash/service/WorkOrderService.java
+@@ -563,7 +563,8 @@ public class WorkOrderService {
+         Optional<User> optionalCompletedBy = userService.findByEmailAndCompany(dto.getCompletedByEmail(),
+                 company.getId());
+         optionalCompletedBy.ifPresent(workOrder::setCompletedBy);
+-        workOrder.setCompletedOn(dto.getCompletedOn() == null ? null : Helper.addSeconds(new Date(), 60 * 10));
++        // Maintenance OS fork: keep the historical completion date from the import file
++        workOrder.setCompletedOn(dto.getCompletedOn() == null ? null : Helper.getDateFromExcelDate(dto.getCompletedOn()));
+         workOrder.setArchived(Helper.getBooleanFromString(dto.getArchived()));
+         workOrder.setStatus(Status.getStatusFromString(dto.getStatus()));
+         workOrder.setFeedback(dto.getFeedback());
+diff --git a/docker-compose.override.yml b/docker-compose.override.yml
+new file mode 100644
+index 0000000..e22a6b5
+--- /dev/null
++++ b/docker-compose.override.yml
+@@ -0,0 +1,15 @@
++services:
++  api:
++    image: maintenance-os/api:dev
++    build:
++      context: ./api
++      dockerfile: Dockerfile.local
++    environment:
++      ALL_FEATURES_ENABLED: ${ALL_FEATURES_ENABLED:-true}
++    ports:
++      - "8080:8080"
++  frontend:
++    image: maintenance-os/frontend:dev
++    build:
++      context: ./frontend
++      dockerfile: Dockerfile.local
+-- 
+2.43.0
+

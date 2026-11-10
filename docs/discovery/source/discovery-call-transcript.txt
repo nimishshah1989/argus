@@ -1,0 +1,1634 @@
+Maintenance Platform — System Architecture and Productization Strategy
+
+Transcript:
+Speaker 1:
+Aama kai etlu badhu evu chhe nahi etle tane samjay j jase. 
+
+Nimish Shah:
+Ene samjay nahi yaar aa chhe ne ke bau kaam aave chhe aa pachhi aagal kai pan hoy ne. Ek be minute try karva de. Koi pan reference ke kaik joitu hoy ne koi nani detail ke kaik miss miss thay ne. 
+
+Speaker 1:
+E to aama lakhelu j chhe badhu. Etle aama mare kai samjavani jarur nathi aa to hu tane khali hamna batai dau chhu pachhi tu joish etle samjai jase. Pan e karvu chhe e hu tane samjavu. 
+
+Nimish Shah:
+Ha. 
+
+Speaker 1:
+Thik chhe chal. Aa to badhu tu ekvar joje. Aapi dau chhu ahiya machine ni badhi details chhe etle plant ma je bi machines hoy ne e you can aa badhu dashboard par tane batave chhe. Etle badhu click thai shake chhe ke tu click kar etle category wise ne make wise ne e badhana bifurcation. Nahi aa 
+
+Nimish Shah:
+machines add kevi rite kai rite aana par 
+
+Speaker 1:
+aa batao. Etle ahiya CNC machines chhe ne ahiya to aa ahiya j ne you can add a machine. 
+
+Nimish Shah:
+Achha to te manually add karavi chhe. 
+
+Speaker 1:
+Ha ha etle manually bi add kari shake chhe ka to tu Excel thi bulk upload bi karai shake. 
+
+Nimish Shah:
+Okay perfect thik chhe. 
+
+Speaker 1:
+Okay. Etle koi bi first time hoy to ahiya me export to Excel ane restore point file bev option aapya chhe. Etle e format ma pelo bhari dese. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+To bulk upload bi thai jase. 
+
+Nimish Shah:
+Ane aama hu tane bas puchhto jau taaki khabar padti jaay. Atyare suppose atyare je pan companies chhe je aa badhu use karti hase systems e majorly kai companies no use karti hoy taaki aapne ahi pan khyal aave ke generally suppose sap karta hoy. 
+
+Speaker 1:
+Badhi companies use kare ahiya par aa document number jove chhe ne. 
+
+Nimish Shah:
+Ha. 
+
+Speaker 1:
+Aa etle je bi company ISO certified hase ne. 
+
+Nimish Shah:
+Ha. 
+
+Speaker 1:
+Ene aa maintain karvo j pade. 
+
+Nimish Shah:
+Ha. 
+
+Speaker 1:
+Okay. 
+
+Nimish Shah:
+Ha. 
+
+Speaker 1:
+E aa aa to master list of machinery chhe. Aa to koi bi company e maintain karvu pade je na kartu hoy e company lala company j chale chhe. 
+
+Nimish Shah:
+Na na samjhi gayo. Hu kau chhu ke je companies aa kare chhe atyare e loko kayo software use karta hoy chhe. 
+
+Speaker 1:
+E loko mostly badha bi bau time sudhi Excel ma j rakhta hata. 
+
+Nimish Shah:
+Achha okay 
+
+Speaker 1:
+okay. Am mostly badhanu Excel ma j hoy. 
+
+Nimish Shah:
+Samjhi 
+
+Speaker 1:
+gayo. Okay. Etle Excel ma kevu hoy ahiya tu jove chhe ne to aavi rite lakhelu hoy bhai aa aa same Excel tane aavu dekhay. Machine ID segment make model. Evirite Excel lakhelu hoy. 
+
+Nimish Shah:
+Thik chhe samjhi gayo. Okay so there are a set of machines. You can upload the machine and. 
+
+Speaker 1:
+Ane tu check click karish to tane machine ni badhi details bi ahiya dekha. 
+
+Nimish Shah:
+Details padi jaay. So aa badhi chijo harek machine nu badha pase available hoy. 
+
+Speaker 1:
+Ha etle aa atyare aa platform banayu chhe e maintenance nu banayu chhe etle maintenance na respect ma bi master list of machines usually maintenance vada maintain karta hoy. Karan ke etlaj machines e loko e service bi karvana aave ne. Etle e ma aavu bifurcation thodu extra chhe ke bhai make wise su chhe controller split su chhe. 
+
+Nimish Shah:
+Ha e badhu aavi jaay ekvar all data. Thodu extra 
+
+Speaker 1:
+chhe. 
+
+Speaker 1:
+raw data ek lai jaayega. koi extra tane ahinya joi shake chhe. Pachhi aa ek feature chhe which is very helpful. aa ahinya tya vadhare chhe. Ghani companies ma ochhu hotu hoy pan helpful bahu chhe. Kem? Aa chhe ne it is creating a log of machines if we are shifting machines internally. 
+
+Nimish Shah:
+Hmm. Je be areas ma machine tame 434 location ma thi 381 ma lai gaya. 
+
+Speaker 1:
+Hmm. Ane eno internally ek factory ni andar bi aapde micro factories jeva cell usually badhi companies define karelu hoy. 
+
+Nimish Shah:
+Barabar. 
+
+Speaker 1:
+Ane ahinya cell number apyo chhe pan ghani companies ma cell na naam hoy. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Okay. Assembly area or XYZ area, product area. To ye bi ek nanu naam hoy. To ye enu cell nu naam hoy ne location is the plant location. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. To aa feature kem important chhe? Atiyar sudhi issue shu thato to ke jetla time sudhi breakdown record karyo hoy e to karyo. Pan have maani le cell change kari nakhyo ke me location j change kari nakhyo ne. To e machine no badho data pachhi nava location wise bi transfer thai javvo joiye. 
+
+Nimish Shah:
+Samjai gayu. Have ema ek question chhe ke je aa koi pan location shifting je hoy, have suppose there is a new company. To aama I'm just trying to understand that when you give a software to a new company, what all are the setup elements? Right? 
+
+Speaker 1:
+Haan. 
+
+Nimish Shah:
+To setup elements one is the reporter. 
+
+Speaker 1:
+First we'll refer to setup. 
+
+Nimish Shah:
+Haan tu ek vaar e dekhaadi de. 
+
+Speaker 1:
+Okay. 
+
+Nimish Shah:
+Haan. 
+
+Speaker 1:
+Okay. Etle pehla ahinya thi chalu kariye ke what we have kept first is ke production hours per day a company will define. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+And how many working days a year company will define. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Aana basis par badha calculations thashe. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Preventive maintenance karshe to preventive maintenance ni frequency ketli chhe? Hmm. Ketlu chhe? Tolerance is basically let's say you ask for a PM on today. Etle te 28th 20th October nakhi chhe. Em jaruri nathi ke 20th October e production pase machine free hoy. 
+
+Nimish Shah:
+PM no full form shu aama? PM thi. Preventive 
+
+Speaker 1:
+maintenance. 
+
+Nimish Shah:
+Acha, etle so ek frequency par machines maintain thavi joiye, maintenance thavu joiye pan suppose e occupied hoy machine e vakhte to shu? Ha. 
+
+Speaker 1:
+Ha. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Etle frequency two etle tu gaadi le to varas ma be vaar tran vaar service karave ne? 
+
+Nimish Shah:
+Barabar. 
+
+Speaker 1:
+Irrespective of breakdown. Evu machine ma bi e bahu important chhe. To aa be ni frequency etle varas ma be vaar machine PM thai. Ane je date hu nakhish ne preventive maintenance ni eno plus or minus 15 days ma hu preventive karu ne to vaandho nathi. 
+
+Nimish Shah:
+Preventive frequency je chhe e atiyare tu ek by default lagaadi rahyo chhe ke e machine wise alag alag thavi joiye? 
+
+Speaker 1:
+Na na etle CNC usually be etle hoy ke CNC ma so every company decides their own frequency. Machine tool builder be recommend kare. 
+
+Nimish Shah:
+Na na samjhi gayo hu mara bhai. Hu tane ek, see aapde ek generic product pan banavi rahya chhe ne. So if I were to let's say make some enhancement on this from a backend, again that's where like 
+
+Nimish Shah:
+So if if I were to let's just say make some enhancement on this from a backend again that's where like backend comes into play. Ke preventive maintenance as a frequency a company has an option to directly set it at a company level. Ke jitli company ni machines che ema badha ma ek frequency lagi jase. But there should be a functionality for you to give a frequency even for a machine, a specific machine or a category of machines. 
+
+Speaker 1:
+Correct. 
+
+Nimish Shah:
+Right. 
+
+Speaker 1:
+Etle aa aa feature atyare ahinya nakhyo che. There is there is a possibility ke aa hu machine na ola ma bi nakhi shaku chu description ma. 
+
+Nimish Shah:
+Right, e setting badha ne koi ne pan koi pan ahinya pan jo hu setting karto hu ne to I should have Theek che, samjhi gayo, chalo aage. 
+
+Speaker 1:
+Samjhi gayo ho, etle e to machine level e jyare entry karta hoi ye ne aapde machine log tyare aapde aa setting tya bi nakhi shakiye che. 
+
+Nimish Shah:
+Haan barabar. 
+
+Speaker 1:
+Etle e hu change kari shaku chu. Hu aama j change kari daish evu hase to. 
+
+Nimish Shah:
+Ha theek che, vaando nai, to ha, but carry on. 
+
+Speaker 1:
+Pachi aa ek energy parameter che. Aa hu tane haman samjavu chu ke aa shu ganyoo che. Pachi Y-Y analysis karine Y-Y analysis bi ek evu section che ke single machine ma koi breakdown thayo, single breakdown, if it is exceeding 12 hours, to enu tamare Y-Y bharvanu che. 
+
+Nimish Shah:
+Etle aa kon kartoo hoy? Have suppose I just want to also understand ane jo e to aage cover karvano hoy to aapde aage kariye. 
+
+Speaker 1:
+Aage aavse. 
+
+Nimish Shah:
+Ke aa badhi cheez nu koik ekle company ma ek ek jan responsible hoy, right? To enu 
+
+Speaker 1:
+Ek ek jan nai, maintenance responsible hoy. Aa no. Aa document che, etle aa Y-Y analysis is derived from Toyota. 
+
+Nimish Shah:
+Ha ha I get it. I'm just saying ki see finally I'm presuming the intent for you is to also build an accountability engine here, right? 
+
+Speaker 1:
+Correct, correct. 
+
+Nimish Shah:
+So if I have to have a maintenance maybe there is a world in which there are set of people. So aaje ek task attribute thai jaye ke bhai aa Y-Y machine no downtime thiyo 12 kalak automatically ek task create thai jaye ke Bhavin Shah ye aano Y-Y analysis ek divas ma aapvano che, something like that. 
+
+Speaker 1:
+Ha ha ha. Ha ame kariye che atyare bi. Pan atya sudhi manually karta ta. 
+
+Nimish Shah:
+Samjhi gayo. Pan again this Y-Y analysis nu je setting che threshold this is at a company level, this is not at a machine level, right? 
+
+Speaker 1:
+No, this is etle this is at a machine level. Single machine, single breakdown, e koi bi machine ma 12 kalak thi vadhaare aavyo to. Etle for example mari paase 33 machine. 
+
+Nimish Shah:
+Mara bhai hu tane khali as a setting puchu chu ke this 12 hours je che it applies at an organization, at a factory level, right? Like any machine in the factory if it breaks down for more than 12 hours, this is essential. Ha, 
+
+Speaker 1:
+any, any. 
+
+Nimish Shah:
+Machine segments che. Aama aama ek second, aama evu kaik hoi shake ke atyare je te 12 kalak lakh yu che, right? This is for a certain category of machines. Can there be a possibility ke bau critical machines hoy e be kalak pan jo padi gai niche to pan ena to evu so aam aano pan configurability hovi joiye, right? 
+
+Nimish Shah:
+to pan ena to evu so aanu pan configurability hovi joie right? 
+
+Speaker 1:
+Correct correct. Evu bi kari shakai chhe. Ke critical machine ma threshold ochhu hovu joie. 
+
+Nimish Shah:
+Nai nai, see hovu joie. I am just hu shu samjhu chhu ne bhavin, karan ke mane aano context no hoy. So I am just trying to say ke kai kai chijo aaje je configurability hoy pan system ni e kaya kaya level par aapde aapvani chhe ni shu granularity hovi joie. Ek vaar configuration ni granularity define karo ne to tame ena pachhi uparna koi pan level par apply kari shako. 
+
+Speaker 1:
+Correct. Theek chhe. Evu threshold tane samjavu chhu, pan amna tu evu samj ne company level e chhe aa. 
+
+Nimish Shah:
+Ha theek chhe theek chhe. Bau vadare technical nai thato ne to mane khabar nai pade. 
+
+Speaker 1:
+Have machine segment chhe for example atyare amaro aa je banyu chhe e CNC machine shop mate banyu chhe. Pan kadach aa kaale koi production line valo vaparvano chhe. Okay. To eni mate machine segments alag thai jashe. 
+
+Nimish Shah:
+Right. 
+
+Speaker 1:
+Etle e ahinya ena machine segment define karse. Eni andar e eni categories define karse. 
+
+Nimish Shah:
+Right. 
+
+Speaker 1:
+Ane aa shift chhe, tamara factory na locations chhe. If you have multiple locations. 
+
+Nimish Shah:
+So now tell me this, whenever building this for Cosmos Enjutech, right? All this entire setup and this tens and fifties of machines that you have, did you upload Excel which then the system fetched all this information ke te aa kai etle manually jai jaine aa configure karyu chhe aama add? 
+
+Speaker 1:
+Me atyare aa pehlu jyare me hu to aa me thi banavu chhu. Etle starting ma mara badha master points je Excel ma hata ne amara ISO na e badha me ek ek karine chadhavya aama ane pachhi me category wise ene badha define karavya ke future ma bhul na thai koi na thi. 
+
+Nimish Shah:
+Nai barabar chhe. Have maro aama question shu hato ke see suppose aaje tu jyare aa koi ne product vechto hase suppose right? Ane mari mari factory chhe. Tara karta 5x moti factory chhe mari. Okay. Now if there are a set of documents that can be set of machinery documents, ek machine level har company pase enu documentation hoy ke aa ISO or there's something which someone can just upload and the system fetches everything that it can and they just have to approve. No one has to start building this by themselves. Obviously there is a functionality ke system ek by default capture karine aa badhi tari jetli aa aa badhu te. 
+
+Speaker 1:
+Bhutri tari vaat etle eni mate hu tane kau chhu ke e aapde jyare koi bi company ne aapsu ne tyare we will give them a format but koi bi company mate e standard nai re. Atyare aa hu Excel ene aapi daish pan aa dummy Excel hase. Blank hase. We will tell them ke tamara je ISO standard documents chhe ema thi khali aama paste karine amne aapi do. 
+
+Nimish Shah:
+Ane hu tane ej kau chhu puchhu chhu e ke aaje ISO suppose any factory aaje automobile factory chhe ke tara parts ni chhe ke je pan chhe suppose right? 
+
+Nimish Shah:
+suppose, right? You know that any factory which applies to a certain ISO standard will have this set of information in this format. 
+
+Speaker 1:
+It will not have exactly this format. No no, forget the 
+
+Nimish Shah:
+format. Forget the Excel format, that's what I'm saying. 
+
+Speaker 1:
+Haan. 
+
+Nimish Shah:
+As long as even there are 10 documents, let's just say for this system to work we need 100 fields per machine. 
+
+Speaker 1:
+Hmm. 
+
+Nimish Shah:
+Let's just say, right? Now one way is ki you provide 100 columns like this as a sample CSV to a company and say ke bhai tamaro master data mane aa format ma kari aapo. 
+
+Speaker 1:
+Hmm. 
+
+Nimish Shah:
+Theek che? Then they provide us the format, we try and set it up, if there are issues then we go back to them blah blah blah, okay? 
+
+Speaker 1:
+Hmm. 
+
+Nimish Shah:
+The other method is the fact that you tell me ke bhai tu koipan factory lai le ne aa je 100 data point che ne e generally aa paanch ke chha documents ma available hoy. Ek machinery ni invoice hoy ke ISO na certificates hoy ke yearly kai pan I don't know, right? Hve if there are those standard set of documents, in whatever format they are, I can we can create a system where as long as the is giving me access to those drive or to those documents, the entire configuration of the system is what the system does. A person is not doing. So then the maintenance team or the person is only going and approving badhu joye che ke je je system e fetch karyu badhu barabar che ne jo kai koipan category sub-category barabar no lagti hoy they can obviously go and do the manual changes. 
+
+Speaker 1:
+Chal. Hve e e tane e try karvu hoy ne to mari paase atyare live example che hu tane aapu chu. Okay. Aapde e we can try that. Pan point is ke chal aa aa ek to bau clear che ke master list of machinery ane aa badhu to tane tu read karai shake che agar tane company aape to. Pan hu tane kau problem shu thato to, why I have this. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+For example, aa master list ma to koi issue nathi pan amara chhokrao shu karta ta khabar che Excel ma. Aa tane date dekhay che? 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Ghana ma che ne date ni formats are standardized na. 
+
+Nimish Shah:
+Hmm hmm. 
+
+Speaker 1:
+Pachhi power nakhe ne to ghana ma kilowatt hoy ghana ma KVA hoy. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Pachhi. 
+
+Nimish Shah:
+Samjai gayu. 
+
+Speaker 1:
+Location che ne to koik 841 oblique A lakhe koik 841 dash A lakhe. 
+
+Nimish Shah:
+Hmm. Barabar che. 
+
+Speaker 1:
+Etle I I was getting tired of that. Length ane width che ne 4500 2500 evu lakhi nakhe. 
+
+Nimish Shah:
+Hmm samjai gayu. 
+
+Speaker 1:
+Pachhi koik ma be ni vachche space alag hoy. Hve hu shu analysis run karu? 
+
+Nimish Shah:
+Na na barabar che I get it ke e-e ka-would definitely hovu joye and what I'm saying is maybe thodu aagad nu phase one right? It's just ke koipan aaje company onboard thaay aapdi saathe the amount of resistance should be as minimal as possible. 
+
+Speaker 1:
+Agreed. Etle e-e ma I will give support pan maro challenge shu hato why we want to define this is ke pella je ne me aa sheet banavi ane me ahinya mari category define kari didhi aa badhu ahinya j define kari didhu. Ana thi thaay che shu ke jyare koi hve mari team ma koi machine add karva jaay che ne. 
+
+Speaker 1:
+they are not making those basic mistakes that they used to make. hove ahiya ene control naakhvanu che model naakhvanu che pan year of purchase che ne e bau clear aavse. e to ahiya thi standard format ma j date aavse. 
+
+Nimish Shah:
+eni barabar che mara bhai aa to jyare aa to jyare tu ahiya kare che tyare. hu tane ej kau chu ke aaje su thay ne ke aaje tu koi pan company ne ek fresh excel aape ane tu e loko ne instructions pan aape. have e pan company ma tara jeva tara je chokrao che eva koi lala chokrava template bharse. 
+
+Speaker 1:
+company ma aavaj che. 
+
+Nimish Shah:
+ha to e jagya ae je mistake tu aaje system ma add machine karish to I can have all the validation suppose right. pan aaje excel ma tu koi ne pan 150 200 machine nu aakhu bharvanu kehse. to ema e error aavana j che etle pachi jyare e excel tu upload karse suppose to system will say there are this 15 rows which cannot be accepted. pachi tu e company pase jase ane kehse ke bhai aa 15 ro. So I'm just that's what the thought process was. But theek che there is an input mechanism right now it's excel we can have some alternate. 
+
+Speaker 1:
+ane tu je ke che ne e hu already kari chukyo chu karan ke me aa me thi banavanu chalu karyu ne to starting na data agar tu jove ne mara breakdown na end kya data checklist rakhi j che. na to badha lala khata j hata. to me che ne bhai ketli ketli entry o nathi. Chadi to gai che. chadi log chadi gayo system e vanchi bi lidho. pan to bi aa juna ma banava aa badha data entry valid nathi. tu joish ne aa log ma to aatla badha log to me j update karavda eva. to data andar aavi gayo to. barabar che etle koi bi company mane aavi rite aapse to mari pase bi software vagar juni excel hati e me ek var chadaavi to didhi pachi samaj padi ke aatla badha data nathi aapra standard settings pramane. Okay to pachi ene sam ene read karai karai ne me thoda to me jaate match karya. Etle e badha data dhime dhime match thaya etle pachi company ae su karvu padse ene checklist mali jase pan checklist karya pachi aavi rite ahiya tool ma jai jai ne e loko ne jetlo data nakhvo hase etlo e loko they have to go. Etle ahiya j jai ne me option bi aapi didho che ke bhai ahiya j jai ne aa nathi to e data karo. Etle tu je ke che e 100% aapde kari shakiye che pan standardize karvu bi etluj important che karan ke naitar to aa loko bau lala khata chalave che ahiya par. 
+
+Nimish Shah:
+Ha ma to hu tane in fact ultu j ej kau chu ej kau chu ke aaje standardization je che every field in your system can have a certain protocol. 
+
+Speaker 1:
+Correct correct correct. So I agree etle tu je ke che e sachi j vaat che ke aapde standardize agar data koi company mane aape in whichever form pan form will remain the same. Let's say I will ask them ke mane list of machines and utilities aapi do tamaru. 
+
+Nimish Shah:
+Right. 
+
+Speaker 1:
+Etle Nimish Shah ne aapi didhu have Nimish Shah ene ketlu easily process karine mane onboard kari shake che. E maru product che. ketlu sari rite thai shake eno koi j vaandho nathi. 
+
+Nimish Shah:
+Barabar. 
+
+Speaker 1:
+Karan ke aa atyare aa ek CNC machine shop che kale mani le hu foundry industry ne pakdu chu to foundry industry ni machinery ne categories alag hase. 
+
+Speaker 1:
+color aase barabar che barabar che to ema bhi aapdi system help kari ne evu kahi deti hoy ke tu aane aatli category ma divide kar aane aatla segments ma divide kar to ane pachi pela company wala approve kare to valid go ke ahya team members bhi listed che amara 
+
+Nimish Shah:
+saras theek che 
+
+Speaker 1:
+okay pachi ahya harek maintenance ni je category nu breakdown hoy ne eno ek short code apyo che 
+
+Nimish Shah:
+okay 
+
+Speaker 1:
+okay etle for example E hoy E kare to electrical electronics no problem hato SP lakhe to spindle no problem hato a just it's a tag to breakdown hmm okay a kya aave che hu tane kau chu pachi pan a basically ahya settings che aavi rite a ek breakdown log che ahya taro CNC ne conventional a badha machines che ne a ahya upload thai gaya basically list of machines and utilities aave ne ema tare a category wise badha ahya upload thai gaya 
+
+Nimish Shah:
+samjhayu 
+
+Speaker 1:
+okay okay have main jya aapdo data capture thay che a khali ne khali a ek major a j form che jya aapdo data input aave che which is the breakdown log 
+
+Nimish Shah:
+ke har machine ketli vaar kyare kyare ketla time mate breakdown thayo 
+
+Speaker 1:
+okay have ahya aapde kaam karvanu che je mari future ma atle haman aagad na updates mate atyar mate I have a solution hu tane workflow samjavu let us say VC 18 ma a breakdown hatu log to thai gayu pan a breakdown originate thayo originate kevi rite thayu hase to je machine no operator hase te samajh padi hase ke mane problem aayo che 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+atyare amari je process evu che ke amara badha cell na individual WhatsApp group che jya complaint aave 
+
+Nimish Shah:
+badha cell na okay ke ek je factory ni andar na aapna micro factories che ena individual che ane ema koi pan koi je operator che maintenance wala group che 
+
+Speaker 1:
+barabar etle jya thi bhi problem aave ne a group ma a operator WhatsApp message nakhe 
+
+Nimish Shah:
+samjhayu 
+
+Speaker 1:
+ane kai machine par alarm hoy to eno image bhi nakhe 
+
+Nimish Shah:
+samjhayu 
+
+Speaker 1:
+okay atyare a WhatsApp par complaint aai gai evu mani le have amaru kaam chalu thay have maro manus jose a message ane je a cell ma hase he will go on the machine to start the complaint 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+ane a complaint par kaam chalu karse whatever he has done 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+eni pachi je ne me atyare a since this is not on server what I have done is I have given them a this thing a tool on the mobile 
+
+Nimish Shah:
+hmm samjhayu barabar etle e pachi badhu record karto hase ke hu aa machine par aayo 
+
+Speaker 1:
+aena mobile ma aavu ek tool khul se 
+
+Nimish Shah:
+perfect 
+
+Speaker 1:
+okay have a me gai kale j update karyu che a thodu kaji karvu padse aama aama je ne he will select machine 
+
+Nimish Shah:
+he will select the cell pela ane cell na niche ni machine choose karse e 
+
+Speaker 1:
+no he will select the machine ID directly for example it was GRD 7 to cell aavi jase samjhayu because GRD 7 is already mapped into whichever cell it is 
+
+Nimish Shah:
+theek che 
+
+Speaker 1:
+GID7 is already mapped into whichever send it is. 
+
+Nimish Shah:
+Theek theek 
+
+Speaker 1:
+theek. Okay. To shift track se, ame gait kal me aa ek update karyu, speak in Gujarati. Atyar sudhi aa option notu. Kai loko bichara English ma jevu boli sakta hata, evu lagta hata. Okay, pan ave mane samaj padi ke aa mobile ma che ne aane aa HTDS, HTPS karvu padse, naitar Google allow nathi kartu mic. 
+
+Nimish Shah:
+Ha barabar che, e na kare. 
+
+Speaker 1:
+Mara aama chale che. Etle ave aa me speak in Gujarati nu option aapyu. Whatever the problem description was, he will upload the corrective action. He will select observed by. To kone observe karelo aa problem? Pachi amari team ma je team members nakhela che ne, emathi kone aa attend karyo? 
+
+Nimish Shah:
+Nai nai, ek second, hu samjyo nai. Maintenance team wado jene operator hato, ene complaint lock kari. 
+
+Speaker 1:
+Correct. 
+
+Nimish Shah:
+Hu mari pase complaint poichi. Have hu maintenance team no hu ek member chu. Etle hu supervision karva gayo e jagya. Me machine select kari, mane aavyu. Have me ema description nakhvu ke bhai exactly problem su che? To have e problem, acha, je maintenance wado je aa jaay che, e pote solve na kare problem? 
+
+Speaker 1:
+Ej karse. 
+
+Nimish Shah:
+Acha, to ene problem description nakhvu ane observed by, acha, e potanu naam, acha, okay, okay. 
+
+Speaker 1:
+Na na, observed by aa che ne, aa form nimish maro manas bane che, etle maintenance team wado. 
+
+Nimish Shah:
+Barabar. To observed by kon che? 
+
+Speaker 1:
+Observed by machine no operator ae aa problem observed karelo che. 
+
+Nimish Shah:
+Acha, okay, eno eno che, pan e to, acha theek che, aa flow aa rit no che, etle pan ideally jyare proper system banavsu tyare aa jarur nai hoy. 
+
+Speaker 1:
+Ha. 
+
+Nimish Shah:
+Karan ke e to operator nu je aakhu ek, hu samjyo, basically mara dimag ma ej aave ke atyare je tu aa kari rahyo che ne, just imagine ke aapdo ek WhatsApp setup che, okay? Ek number che ek company no. 
+
+Speaker 1:
+Ha. 
+
+Nimish Shah:
+Barabar. Aaj maru WhatsApp par etle ja, karan ke badha ni mate easy thai jaay, barabar. Have je operator che, eni machine breakdown thai. Ek common number che aakha company mate, eno koi groups nathi. Theek che, etle e simple tya jaine ke breakdown reported or something like that, right? Ek menu option aave. E menu option ma jaay, etle breakdown reported, small issue che, e pan menu hoy. E chooses the machinery, okay? And submit complaint. Have je em complaint submit kare, case lock thai gayo system ma. Tara maintenance team pase aavi gayo. Have je maintenance team wado jaay che ne, e paachu enu pan WhatsApp flow ma ej aavse. Theek che? Correct. Pachi ema jyare e click karse ne ke bhai ha hu, to jetli existing complaints hase ne, jetla machinery ni etli j list ene same dekhasse. Hm. Samjhanu tu? Etle G845 ma aa problem aavyo hato, etle ola ae lock karyo, to pachi only for the issues that have come will be shown. Have aa loko ae G845 ane choose karyu, ane pachi je tu form ma karave che, ene tya WhatsApp par e voice note record kari, theek che? Observed by jarur nathi, karan ke system ma to khabar padi ke G845 bhavin saheb ae complaint lock kareli. 
+
+Speaker 1:
+Ha, hu tane aa no j workflow samjavu chu. Atyare hu pehla su karu chu ne, e hu tane samjavu chu ne, pachi su karvu che aapde, e hu tane kau. 
+
+Speaker 1:
+aavu jo ne pachi su karvu che aapde e hu tane kau atyare aavu che time pass hmm bhai this is also important aa tane aa maru WhatsApp group che hmm hmm barabar che atyar sudhi aavu badhu time pass karta hata problem aave 
+
+Nimish Shah:
+hmm hmm samjhi gayo 
+
+Speaker 1:
+amara chokrao aavu khali working okay karine lakhi nakhe 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+barabar che su karyu su nai have raatvado kaik kare savare khabar na pade 
+
+Nimish Shah:
+samjai 
+
+Speaker 1:
+gayo have ena aavu form aapelu che 
+
+Nimish Shah:
+barabar 
+
+Speaker 1:
+have tu working okay to lakhi nakh vandho nathi hmm but apart from that what he will do is he will write the problem description 
+
+Nimish Shah:
+ane ene su che 
+
+Speaker 1:
+ena ena operatore complaint kari ti ena setare kari ti kone kari ti e select karse he will write down what he has done as a corrective action pachi e ahinya potanu naam details nakhse ke team ma kone kaam karyu 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+agar koi bijo manas bi involved hato to enu bi naam aavse 
+
+Nimish Shah:
+barabar 
+
+Speaker 1:
+agar ene koik no support levo padyo to enu bi naam aavse 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+okay pachi ketli vaar machine bandh rahyu e ahinya nakhse 
+
+Nimish Shah:
+saras samjai gayo 
+
+Speaker 1:
+have category electrical problem hato mechanical problem hato he will select this ke bau upar hata 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+ne this is where that tag will come in 
+
+Nimish Shah:
+hmm je type of problem hato e 
+
+Speaker 1:
+ha to e ahinya e tag select karse agar spare use che to spare ahinya jene machine pachu aapse ne jene complaint kari ti 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+eni ahinya sign le enu naam lakhse ane he will generate a PDF 
+
+Nimish Shah:
+very nice good 
+
+Speaker 1:
+okay to e PDF che ne amne roj have why this has become important is have amne roj ahinya tu jois ne to mari team have roj aavi rite PDF j moklase 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+so this is are nahi sorry ha aa aavi rite tane PDF bani ne aavi jay 
+
+Nimish Shah:
+amazing very nice ane aa QR code je che to e tamare e reference che eno unique code aavi gayo etle kyare pan aagar jata e ne to e digitally khuli jay 
+
+Speaker 1:
+barabar etle aa maru ek formal document bani gayu secondly mane khabar pade che ke raat na kaya manase su kaam karyu che 
+
+Nimish Shah:
+yes yes na na aa perfect che samjai gayo 
+
+Speaker 1:
+okay have aa PDF ame save karvana chalu kari didha etle mare tya savare team ma che ne je manas aa system he can now select import from PDF operate kare che ne e ahinya 
+
+Nimish Shah:
+hmm 
+
+Speaker 1:
+ane aa TC 31 no ek breakdown che to I will select this 
+
+Nimish Shah:
+e aa su kaam kariye che aapde savar no manas su karva jay che exactly 
+
+Speaker 1:
+aa atyare bev che ne bev 
+
+Nimish Shah:
+acha bev alag system che etle samjai gayo sorry sorry 
+
+Speaker 1:
+bev tool ane aa they are not communicating with each other because it's not on the server 
+
+Nimish Shah:
+samjhi gayo samjhi gayo got it got it 
+
+Speaker 1:
+okay to atyare savare mara ame loko aa badhu joi laiye ane savare ek chokro je aa jove che he will just import this entry 
+
+Nimish Shah:
+hmm samjhi gayo 
+
+Speaker 1:
+to aa entry aavi gai 
+
+Nimish Shah:
+ke aa changes khale aa machine ma aa badhu thayu 
+
+Speaker 1:
+ha etle ene ene ahinya manual lock karvani jarur nathi 
+
+Nimish Shah:
+barabar che system identify kari 
+
+Speaker 1:
+jetlu pela e bharelu etlu ene ahinya aavi gayu have che ne problem su thato to etle ajibhi ek challenge ej che ke these guys are not not very good with English you understand 
+
+Nimish Shah:
+hmm hmm 
+
+Speaker 1:
+understand 
+
+Nimish Shah:
+hm hm 
+
+Speaker 1:
+etle tu joish ne geometry no spelling jo shu lakhya hm hm okay etle me pelu Gujarati wado option apyu etle aa import to kari deshe pan ek chokro je besadyo che enu kaamaj e che ke joanu ane elokone pachi puchi bi levanu ke exactly shu karelu ne thodu detail description lakhvanu 
+
+Nimish Shah:
+barabar che etlu thodu bau manual hoi sake 
+
+Speaker 1:
+haan okay etle etlu ahinya tane aa import taru form thai jay che have aama mare karvu shu che which will complete the full cycle of this platform is properised on the machine 
+
+Nimish Shah:
+hm hm 
+
+Speaker 1:
+correct either we use WhatsApp we use a complaint logging app 
+
+Nimish Shah:
+hm 
+
+Speaker 1:
+that app has all the machines listed here 
+
+Nimish Shah:
+correct 
+
+Speaker 1:
+user will just select ke machine ma problem kyo machine no problem che machine select karshe he will write a brief description shu problem che or if he is seeing any alarm ane eni niche ek option aavshe ke machine stop thai gayu che ke machine running che pan problem che why this is important is there are some problems which let's say air leak thai che minor 
+
+Nimish Shah:
+samjhi gayo downtime ma enu calculation change thai jay 
+
+Speaker 1:
+but machine running che machine chalva de pan ene support joishe to bi aa vastu ni 
+
+Nimish Shah:
+barabar che 
+
+Speaker 1:
+okay to aavu ek form banshe e operator e raise kari didhu okay a mara platform par or on a app if when we build amara platform par e ticket raise thai jay okay amari team na members e tickets jove ane either if I am the production manager maintenance manager I can assign that complaint or senior supervisor or technician can assign that complaint or anybody who is free can just claim the complaint 
+
+Nimish Shah:
+samjhi gayo 
+
+Speaker 1:
+to e complaint claim karshe ne tya thi e machine par jaine kaam chalu karshe ane pachi this our tool je me tane batayu e close karshe ne tyare e forms close karta pachi e form bharshe 
+
+Nimish Shah:
+tu kahe che ke aavi ek simple workflow system atyare koi factory exist nathi karti 
+
+Speaker 1:
+aari simple workflow che che but ena challenges shu che ne e hu tane batavu chu they are very rigid why because most of them have not spent the real time on the field 
+
+Nimish Shah:
+barabar 
+
+Speaker 1:
+they have been making softwares but je actual field challenges che ne e nathi samjhi shakya 
+
+Nimish Shah:
+nikhil hu tane ek 30 second overview lau chu okay jetlu hu atyar sudhi samjhano as a completely non-technical person who has not even seen a factory properly this tool has a first module is of the setup right the setup is essentially a bunch of data points that we get for every machine it majorly includes the location of the machine the kind of work it does the power requirements and all the input characteristics of the machine 
+
+Nimish Shah:
+the power requirements and all the input characteristics of the machine. Right? That is the setup part. 
+
+Speaker 1:
+Hmm. 
+
+Nimish Shah:
+Then there are a bunch of people. Right? There are a bunch of operators who are operating the machines. Some junior, senior operators, so that mapping is there. Right? And maybe I-I mean that's something you can we can uh foundationaly banai sake ke generally setups kai ritna hoy. And then there is a maintenance team which has a so every organization has these two major part, right? Factory operators, factory maintenance maintenance people. Hmm. Now there is a simple workflow where if there is any issue that happens in a machine, the operator has a system of identifying that issue and putting it out. Not identifying the issue, the operator simply says that this machine is having a certain kind of an issue. The issue might be of a nature that the operator is able to identify or is not able to identify. The machine can be either operational or non-operational. Right? A ticket gets generated. If the machine is non-operational, it becomes a critical ticket, an L3, L4 ticket. If a machine is operational, it becomes an L1, L2 ticket. So like an ITIL platform, there is a system of allocation. Either a supervisor can allocate or someone who is free can claim the ticket. Once the ticket is claimed, the person goes there, fixes the issue, identifies the issue, fills up a certain form. If if he's not able to obviously solve the issue, the ticket remains open, the status remains open, right? And he gives it to a senior engineer or something like that. Anyways, whatever the flow gets closed, the ticket gets closed, the PDF gets generated, it gets saved in the system and any post analytics on that PDF with regards to records and types of issues and blah blah blah, a report gets generated daily, weekly, monthly, goes to different parts of management. 
+
+Speaker 1:
+Correct. Aa je me future upgrades ma me je lakhelu ne haman me tane je haman je aa brief karyu ne evuj chhe. Ke I want to link it into a dashboard. Okay? Complaint allocation to engineers and turn around time should be a measurement. 
+
+Nimish Shah:
+Barabar. Ha e pachi je badhu j aavi jaay che, badhu j aavi jaay che ema tane. 
+
+Speaker 1:
+Haan. Okay? Ane on the dashboard I want a real-time machine status. 
+
+Nimish Shah:
+Barabar che. What is this real-time machine status? Ke je pan machine operational che, operational che, je yellow red je pan che e che. Samjai gayu. 
+
+Speaker 1:
+Etle operational in the sense ke down, ekdaun koiye register karyu so that some person who raised the ticket said the machine has stopped, okay? Hit ma to e laal dekhaavu joiye. 
+
+Nimish Shah:
+Got it, got it. Yes, yes, perfect. Have mane khali ek aa ma ek doubt che ke je ola je chhe aapde je factory ma gayela, etle je nanikdi factory aapda office ni bahar jevu joto to. Have je e badha machines hoy ema ena shu keval PLC's ke je eno operator ek unit hoy ne? Hmm 
+
+Speaker 1:
+hmm. 
+
+Nimish Shah:
+Smart systems hoy, PLC's. Right? And then these machines have QR codes also, which I'm presuming have like all the information, right? 
+
+Speaker 1:
+Haan. 
+
+Nimish Shah:
+To aavi systems jyare PLC's hoy, this PLC's would be interacting with the core system? 
+
+Speaker 1:
+Ha ha. 
+
+Nimish Shah:
+To enu kai kaam ma aagal jata evo flow kharo ke aa je PLC's ni system je hoy e aapda dashboard sathe integrate thaay? 
+
+Speaker 1:
+e already machine tool are fanok mitsubishi eva software che je aape che ane amari factory ma bi evu che. Already lageli che. 4.0 vadu major pote cosmose banavelu che veche che. To problem is aa badhi systems che ne they are linked to input. For example, if you say the machine is sitting idle. Machine is sitting idle but for maintenance that machine is not under breakdown. It can be idle for multiple reasons. Samjay che? 
+
+Nimish Shah:
+Hu samjavu chu. Mane ek aama doubt e ritno hato ke let's just say there is an there is a software as you're saying, right? So basically any machine, theek che, je machine idle che ne, that machine is working because there are certain characteristics of that machine that are running properly, right? Power supply in barabar che, je pan che, some parameters say that the machine is proper. So maro khali aama clarification be part no che. There are set of machines which are analog machines, right? Je ma dhad dhad badhu machine mechanical kaam che. Right? E machine mate aa rit nu ek process ekdam sensible che. Then there will be set of machines even within the same factory which will be in this kind of automated stuff, right? The data of which in real time is getting to a certain platform, a console, right? Now that console based on the real time data of that machine is also able to define whether there are any functional issues happening within the machine or not. So there is like a proactive maintenance flag which is I'm sure most of the system should have. 
+
+Speaker 1:
+No, there is a chathu hai. E nathi. E e e hu kau chu ke controller che ne can generate a alarm up to certain level. But not all breakdowns are coming into the controller or registering as a breakdown. For example, tu koi vastu je cut kari, but machine badhu perfect chalyu. But te je tolerances aapela ne, e tolerances ma cut na thai. To eno matlab e kaik mechanical wear and tear thayu che. Okay? E CNC controller ne nathi samat padti. 
+
+Nimish Shah:
+Barabar che. 
+
+Speaker 1:
+Okay, to ena karane breakdown to hatuj. Karan ke mare jaine machine check karvu padyu, geometry check kari, amne khabar padi ke chal kaik vastu ma ball screw for example ma play aavi gayo che. To ena karane ame ball screw refurbish karyo, badhu karyu. You know all the process controller never generated a single alarm. 
+
+Nimish Shah:
+Okay, fair enough. So I am just saying this system right now is expensive in its own way. 
+
+Speaker 1:
+Correct. 
+
+Nimish Shah:
+As and this is a question. As a certain future state, do you also expect that there can be an integration to this kind of a system which captures certain real time data, right? 
+
+Speaker 1:
+Yes. Yes. E already che. Aapde kari bi shakiye che. 
+
+Nimish Shah:
+Ha, to pachi che ne etle shu che ke aapde aama shu che ke this is a completely human dependent process, right? 
+
+Speaker 1:
+Ha ha. 
+
+Nimish Shah:
+All we are essentially not all we are, I mean it's an important part because you run the factory, but we are essentially trying to do a very human driven tracking of the workflow and just systematize information and putting it out as a ticketing platform. Theek che? This is not at all very different than how I would build a Uber support system. No, agree. Right? To maro aama question che ke aanu jo system also add on ek non human dependent pan hoy je ma proactive issue aave to pachi system automatically ek ticket create kari le che. 
+
+Speaker 1:
+na pan nevi samaje ne hu tane have real world example samjavu. aa automation karvano vandho nathi evu to already ame bi vapariye che pan e vapariya pachi bi aaj ni tarikh ma e koi software check karva bi nathi jatu karan ke ema etla badha parameters par alag alag function par data aave che. First of all e data tu koi rite logically sense j na kari sake. Etle machine ma system alarm aayo to breakdown ghade che e system. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Ena sivay ene nathi khabar padti ke e system machine genuinely breakdown hatu ke nahi. To first of all you cannot trust the data. Second, the challenge ane why they are building this whole channel is the foremost problem for any company. Aa khali amari vaat nathi karto badha ni vaat karu chu. Maintenance and production department almost in all companies are always at each other's blame game. 
+
+Nimish Shah:
+Barabar che. 
+
+Speaker 1:
+Kevi rite e production vada nu kai job nai bane ne to evu kahe che ke machine ma problem che. 
+
+Nimish Shah:
+Samjai gayu. Okay. 
+
+Speaker 1:
+Machine maintenance valo evu kahe che ke me attend kari lidhu che mara hisab thi geometry barabar che. Production vala barabar job nathi banavta. Emno bijo problem, cooling no problem che, falano problem che, dimko problem che. Okay. Have kaik var evu bi thay kaik var nahi ghani var ke ek var job na banyo ne to kevu statement aave ke ame to maintenance vala ne mahina thi kahiye che e loko check nathi karta. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. Have human intervention bau important che. Fer. Why? Ame loko aa WhatsApp groups ane aa ticketing platform aa PDF reports etle generate karya ke mane che ne beu baju thi accountability joiye che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+To e WhatsApp group banavya pachi hu badha production head ne hu strongly besadi ane me kidhu ke a problem will only be a problem if it is logged on the WhatsApp. 
+
+Nimish Shah:
+Barabar. 
+
+Speaker 1:
+Okay. Mari same machine thokai jase ne. 
+
+Nimish Shah:
+To pan e problem nai gano. 
+
+Speaker 1:
+WhatsApp par report nai karyu hoy ne to hu ene nai ganu. 
+
+Nimish Shah:
+Samjai gayu samjai gayu I get it. Compliance ane system no je ek simple ek simple system no respect pan jo kare to ghana tamara problem solve thai jase if the baseline. 
+
+Speaker 1:
+Ha. Etle ama amari upar che ne pehla to amari team members par bau blame aavta ta ke saheb me to aane mahina thi kidhu che haji kai jova nathi aavta. Okay. Pan te mahina thi kidhu to e ek var boli didhu hase pachi taru kaam chaltu tu etle tu follow up leva na aayo. Ema pelo bi bhuli gayo. 
+
+Nimish Shah:
+Barabar che. 
+
+Speaker 1:
+Okay. Ane ghani var evu thay amara team vada bhuli jata ta. 
+
+Nimish Shah:
+Na na samjai gayu I get the nature of the problem. Ane I think this is. 
+
+Speaker 1:
+In this way I am getting from the both sides ke mari pase ticket open nathi ne to eno matlab mari mate nathi bhale mari same machine aag lagi jay. Hmm. Che ne this is not just my problem. Now this is a very general problem in all the companies that you go. 
+
+Nimish Shah:
+Fair enough. 
+
+Speaker 1:
+company ma aa motto problem che. E-e how much you try to get into the controller side of it. We have the most state of art controller, diagnostics, Cosmos vada no je tie-up che Taiwan sathe. We have a extremely good state of art. Etle e harek vastu je change che ne controller e badhij vastu record kare che. But still it is not liable. Why? Operator field par aine evu boli gayo ke saheb aama geometry nathi aavti. Have geometry check karva mate koi sensor j nathi. Pati gayu. Tara diagnostics badha tyaj pati gaya. Etle ultimately shu aavyu? Human intervention j aavyu. So I want a system which makes first human intervention without any ambiguity. Etle atyare hu tane aa future plan ni je batau chu ne aa laal mane tyarej dekhau joiye jyaare maanse kidhu ke aa laal che. 
+
+Nimish Shah:
+Samjai gayu, samjai gayu. Have mane ke tara overall aama ek be questions che. Ha. To je kai atyar sudhi nu ahya sudhi nu samjai gayu, nahi to hu ek ek aa mane aapse aapse joi j badhu. Aam aama je mechanism of ticketing ane je aakhu che information recording, there are two ways to think about it, right? One is like a system, second is WhatsApp or a combination of two. Right? Atyare just help me with the most dreamy state of this product for you. Ek khali vision aapi de ke aa no sau thi dreamy state. 
+
+Speaker 1:
+Puchu chu ke which one do you think easy way? I WhatsApp or 
+
+Nimish Shah:
+No, so see the kind of the kind of system, sorry, the kind of system that you are envisaging, we need a proper ticketing system, right? WhatsApp ma aatlu badhu ke koi ha, the way I am thinking about it is the fact that the ticketing system still remains a ticketing system, but the notification mechanism becomes a WhatsApp driven stuff. 
+
+Speaker 1:
+Ha, agree. 
+
+Nimish Shah:
+Etle for example, 
+
+Speaker 1:
+Biju badhu batai ja pachhi hu tane kau ke kaale me je pelu aa demo joyu ne je te banayu che. Aa, jo instinct vadu. Ema how I feel I can incorporate that into this. E hu tane pachhi I'll tell you. Pan ek vaar tu khali aatlu pela joi le ke ahya sudhi nu you are clear, right? What what we have discussed. 
+
+Nimish Shah:
+Yeah, yeah, yeah, very much so. 
+
+Speaker 1:
+Same have preventive maintenance nu calendar che. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Okay, ahya badha PM che, you can drag and drop while planning the PM. Ane you can do this. For the preventive maintenance also, every category of machine there is a system which is defined. Ke kevi rite PM karvanu, enu e MTBF aape, to e amari paase aakho process eno hoy. 
+
+Nimish Shah:
+Don't. 
+
+Speaker 1:
+Ha, jo for example, agar hu double column machining center, DCMC je category che, enu PM karu chu ne to aatli aatli vastu checklist che. Aa defined che. 
+
+Speaker 1:
+okay. Evi rite VMC nu aa che. PM na report je che ne category wise system ma kai didha che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. Etle e turning center select karse ne to e rite enu checklist aavi j jase. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. E enu badhu nakse. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+And he will do a report generate. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Same way ej ahya PM calendar ma aavi he can upload that PM report. To e ahya PM report. 
+
+Nimish Shah:
+Bhi pan e to ene to tyaj bharyu ne? 
+
+Speaker 1:
+Ha. 
+
+Nimish Shah:
+To e bharyu to pachi ama ene pacho ahya aavine upload shu kaam karvanu? To e task ene bharyo to e to automatically aa machine nu jyare ene maintenance karyu. 
+
+Speaker 1:
+E atyare nathi linked etle. Ha ha 
+
+Nimish Shah:
+okay. Ha okay. 
+
+Speaker 1:
+Atyare link nathi etle. 
+
+Nimish Shah:
+Pachi etle eni badhi value store thai jase enu preventive maintenance nu. 
+
+Speaker 1:
+Yes. For example aa VC6 ahya ene done karyo tya thi upload karyo to evu mani le. To ahya VC6 thai gayu. 
+
+Nimish Shah:
+Barabar che. 
+
+Speaker 1:
+Okay. To ahya ej report locked thai gayo. Ahya ena badha measurements ne badha aai gaya. 
+
+Nimish Shah:
+So ek simple scene che. Every machine has a preventive maintenance schedule. It can be every month, every three months, every six months, custom date, etcetera. Based on the 
+
+Speaker 1:
+frequency that he entered in setting. 
+
+Nimish Shah:
+Yeah. And then every machine based on the type has a checklist. And that checklist gets filled by whoever is doing the preventive maintenance, similar logging happens. Kone karyu, kyare karyu, shu checklist bhari ane e machine na against e structured data ma store thai jay ke historically aapde badhu joi saksu. 
+
+Speaker 1:
+Correct. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Ane aama maru plan nu me ek option aapelu spread the load nu option aapelu ke I aatla badha machines can be spread with minimal load in the calendar. 
+
+Nimish Shah:
+To aama koi evu koi kai logic vapryu che? Koi back end kaik evu che spread the load nu ke? 
+
+Speaker 1:
+Ha etle e tane guide ma dekhashe ahya lakhelu che. Guide ma che ne je aakhyu karyu che ne e badhu ahya noted che etle tane jyare tu check kare tyare ahya joi le. Done 
+
+Nimish Shah:
+done. 
+
+Speaker 1:
+So aa PM thai gayu. Have aa aatlu che ne je haman aapde joyu ne aatlu kare che ne etlu kadach etle kadach aatlu aapva vada softwares che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Not in the way that we have done it pan che basics. Ke aatlu tame login ne badhu kari shako cho. Ane ena par thi je basic metrics aavshe ne breakdown percentage, ketla che, available hours ketla che, cell wise bifurcation ketlu che. Aa basic basic vastu badhi male che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+How we are different now. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. To MTTR, MTBF aa standard maintenance ni terminology che okay aa badhaj reporting karta hoy. Are me MTTR, MTBF che ne usually badha plant wise ne badha leta hata. What we have done is we have also divided that into age wise brackets. To mari pase juna machine ketla che, ena thi ju nava ketla che, ena thi nava ketla che, ena thi nava ketla che. Ena basis par bhi we have given metrics so that we can have good judgement ke juna machine nu shu karvanu. 
+
+Speaker 1:
+Team management team no performance aava lagyu karan ke form ma badha pot potana naam lakhi rahya che. To agar ko ne ketla breakdown handle karya su karyu and feel free aama tane kai bhi metric sara lage that we can present to tu keje ke aavu kari shakiye. 
+
+Nimish Shah:
+Ha ek var hu aakho thought aapis karan ke see this is the major issue I won't say an issue right but a challenge about most companies ke whenever people build dashboards ne they build dashboards thinking ke aaje badhu j aapi daiye right. And which should be the case also but how do we make it more functional in a way ke ja ja je pan flags che je critical issues che e eni mede flag pan thata re real time based on the data is something we'll think about. 
+
+Speaker 1:
+Okay haan etle e bhi aavu j chhu haan energy heat map che karan ke aapde KVA nakhiye che to badha shop floor cell wise mini locations wise badhana energy heat map bhi ahinya aai gaya. 
+
+Nimish Shah:
+To aano energy heat map matlab this is something versus something right. 
+
+Speaker 1:
+No how much power that load is that cell is consuming. 
+
+Nimish Shah:
+Nahi to e data kya thi aave che ke ketlo power consume kare. 
+
+Speaker 1:
+Jyare tu machine nakhe che ne. 
+
+Nimish Shah:
+Acha e to khali acha okay etle to e cell ma basically it's just the sum of the total power consumption of that machine. 
+
+Speaker 1:
+Haan. 
+
+Nimish Shah:
+Nahi etle mane bas aa puchvu che aama Bhaven ke atyar sudhi che ne aapde badhu machine no input data nakhi rahya che right. Pan je ek factory no settings data che ke maani le ek cell ma aatli space che ke ek cell ma je power connection no load che e aatlo che ke something around ke aatla cell ma machine move thai gaya koiye dhyan na aapyu pan e 550 no load hato ne ema already 520 na machines besela che so that utilization is towards something like that. So e data aapde atyar sudhi kai nakhe che ke tu pachi dekhade che ke factory na settings data input su che. 
+
+Speaker 1:
+Haan etle e factory level e hu ahinya nakhish ke bhai maro factory no sanction load aatlo che. Etle 434 445 aa actually aakhi ek factory che. Aa tran dekhai che. Okay to maro sanction load atyare aatlo che factory no against that running load aatlo che to mane flag kar. 
+
+Nimish Shah:
+Na to e sanction load aapde koi jagya e nakhyo input ma. 
+
+Speaker 1:
+Nathi atyare nathi nakhyo e mara dhyan ma j e hu nakhvano chhu. Have pan aama je ne Nimish problem su che tu aa connected KVA jove che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Aa connected KVA che ne aatlo load koi divas na hoy etle me settings ma ek number batavelo utility factor. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Uhh kya gayu haan efficiency factor ahinya aapde nakhyo chhe. 
+
+Nimish Shah:
+Etle jetlo load hoy enu 80% is the capacity em ne. 
+
+Speaker 1:
+Enu 20% j use thay che. 
+
+Nimish Shah:
+But how is this an input I didn't understand. 
+
+Speaker 1:
+Na na aa je ne amaro CNC machine hoy ne to 20 25 KVA nu hoy ne ideally I am going to shift this to a machine level data pan atyare ahinya padyo che pan hu jyare CNC machine lau ne tyare every CNC machine based on the application in any factory it's never going to run full load. Etle 25 KVA nu hoy ne to usually 25 KVA koi divas na vapray. E nu 15% j power consume kare. 
+
+Speaker 1:
+okay okay 15 to 20% maximum jaay. In case instantaneous it goes up to 30. Kaaran ke badhaaj functions with motors koi divas ek saathe na chale. Hm. Okay. Etle a-a-any maate aa bau important che ke ahinya naakhe. Pan have aa number che ne hu harek machine ma naakhu chu. Kaaran ke not all machines g-ghana je controller vagar na che, e aa number nai gane. Hm. Ema kadach 80% load chale. Hm. T-to e machine jyare add karu ne tyare e setting ma aavi jashe. To enathi aakha factory no real load khabar padshe. Ane factory na setting data ma aapde e naakshu ke transformer tamaru ketla KVA nu che. 
+
+Nimish Shah:
+Ha itle ek che khali tari maate additional task aama hu pan choice study karish slot sathe ne badhu ke basically aama badhi cheej nu ek finally it's a factory space right? To aapde ek machine driven settings che ane pachi ema ekaj space driven settings pan hoi sake. Where a factory is also space driven 
+
+Speaker 1:
+space driven pan hoi sake. Etle me footprint analysis bi karyu che. Ahinya. Pan aa space driven che ne to be very honest uh it's not going to make a lot of sense for any factory. 
+
+Nimish Shah:
+Nai nai tu samjho ne. Hu khali eklu kau chu ke ek che machine settings which we are uploading as a machine driven data. Theek che. Atyare jetlu tara dashboard par che e machine driven. I am saying maybe there is a module where in some when you are setting up this for someone even for your own setup you have a certain factory settings also which has this certain set of value there can be certain cell level specifications, square footage, power etc or it can just be a one setting at a factory level. But there needs to be a factory setting module as well which compares stuff here and then does whatever it's supposed to. 
+
+Speaker 1:
+Ha e e naakhi devanu. It's a very good idea ke aapde factory nu settings ma main aapde transformer naakhiye etle mane khabar pade ke mari paase 1000 KVA no j power che. Hm. Ane tara machine level data tyaaj accept thava laage to tane khabar pade ke aa data vadh to jaay che. Hm. Have ahinya tara aa aa badha features che ne aa ahinya thi have je che this is where we start differentiating. Hm hm. Okay. To ahinya have tu bi vicharje shu kari shakie. Aanathi actually production ne samjh padi rahi che ke maru bottle necks kya che. Hm hm. Okay. To aa risk profile che ke upar je machines che ne e e machines che je amari paase sauthi ochha che in their category. Hm. Okay. Neeche che sauthi vadhare che. Ane je aam dur jaay che ne that means e machines etlu unavailable rahe che. To upar vada dur jase ne that is a bottleneck and critical. 
+
+Nimish Shah:
+Hm. Eklo eni paase spare time ochho che. 
+
+Speaker 1:
+Ha kaaran ke e fasaase ne to enu aagad ni impact aavshe ane enu biju koi substitute j nathi atyare factory ma. 
+
+Nimish Shah:
+Theek che, samji gayo. There can be more creative ways of thinking. 
+
+Speaker 1:
+Etle ena be-basis par ene atyare aa category identify karine critical ane high mane define karine aapi didhu. 
+
+Speaker 1:
+good good have a simulation what if the machine goes down for this outage hours. to mari koi capacity this can be the impact. have a a model and the model calculation forecast lab with the model that we are using a guide review this feel free to new model cover. a forecast for planning every month we are going to give to planning department. what it is saying that November 2026 routine down time 185 hours expected. and you you have to plan for 436 hours. a machine breakdown. 
+
+Nimish Shah:
+machine breakdown. 
+
+Speaker 1:
+machine breakdown. DCMC2 has a expected breakdown of 2.24. 
+
+Nimish Shah:
+numbers broad logic data. 
+
+Speaker 1:
+broad logic ranking history basis document. short breakdown long breakdown complete combine model what we are doing is each machine in its own category rank best near the average. baseline best result out of five months four times it has to that data. 
+
+Nimish Shah:
+best fit model. 2026 data. 
+
+Speaker 1:
+2026 data. data coming that data coming to the same point starting company data. can my some read it data. problem is problem is problem. 
+
+Nimish Shah:
+point historical data then you don't need all this thing right you just need maybe three or four different fields at least if the name of the machinery and the cause of the issue even with certain free text is written right data 2026 data five years data and if the system is made smart enough or if there is some human in the loop to at least standardize something system is able to ingest the data all this I will give you 
+
+Nimish Shah:
+abe tari pase jo paanch varsh no data hoy and if the system is made smart enough or if there is some human in the loop to at least standardize something, the system is able to ingest the data all this 
+
+Speaker 1:
+I will give you, I put it yaar, tu check karje what you can do with that. Ane probably jetlo data aavse ne etlu system vadare rich ane model bahu strong thase. 
+
+Nimish Shah:
+haan etlej kau chu. jo ek varas na data ma aatlu understanding che. ane have aama theek che tu finish kar pachi hu kau. 
+
+Speaker 1:
+haan. matlab ena bases par aa statistical chances ene aapi didha che to hu ahya thi I can just download this excel and send it to planning. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Have ena bases par maintenance ae su karvanu? Amare su karvanu ke upar vaalu na thay. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. To ene ahya ena bi aapi didhu che ke bhai aa aa verdict joilo ahya bahu frequent aa badha verdicts che. First you start focusing on this. These are the faults that are coming back vare vare. Etle aa four times in 20 days, aa three days in a row. To aa badha faults na aava joie, aa badha tame pela check karo. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. Etle ahya aa data ahya thi generate thay che. Tu je hmana upar bolyo ne ke mare karvanu su? Etle ahya me aa badha analysis thi action center banelu che. Have ahya rules and limits nakhela che. Aa rules and limits tu check karje kevi rite che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Ena bases par che ne jevo pelo roj tyare manual pelo breakdown log nakhe che. Etle pelo report manually update kare che. Pan jyare aapi system full proof aakhi thai jase end to end tyare to real time j data update thavano che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Correct? To ae rules and limits thi ahya mane direct action center ma notice chalu thai jase. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+So to have mane khabar pade che ke VC 19 chha chha vaar breakdown che 30 divas ma. Eno matlab je bi kaam karyu che ene barabar nathi karyu. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+To ahya eno breakdown details aavse. Ke kone su karyu che etle hu aa loko ne j pakdu. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Okay. Pachi aa same vastu. Evi rite j koi bi machine be divas consecutive bandh rese to ae bi mane dekhaava lagse. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+So now je pela thodu bi pela lapse thata ta ke joyu jase karyu jase ke senior ne samajh noti padti ae badhu have ahya tart khabar padse. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Etle tame immediately jetlu resolve karva jaso ne etlu vadare saaru ke third time breakdown nahi aave. 
+
+Nimish Shah:
+Have mane ek vaat keh ahya ke this is a potential potentiality of what are showing. Right? Ke aa badhu thai sake che to tame aa mahina ma aa karo. Now how does this link to a ticketing system? Let's just say if this is the set of stuff, generally in a factory what will happen? Will there be a maintenance supervisor who will say ke na na aa je je system ae identify karya che ne chijo aa barabar che je te acknowledge karyu. And the moment you click say let's just say acknowledge, again a ticket gets created in the ticketing system. because we need one central portal from which every task etle 
+
+Nimish Shah:
+because we need one central portal from which every task that is the 
+
+Speaker 1:
+Nimish aa je raw chhe. Na na hu tane hu tane 
+
+Nimish Shah:
+puchhu chhu hu tane 
+
+Speaker 1:
+tu 
+
+Nimish Shah:
+jem kehto jaay chhe to mane understanding hase to joi barabar product banse. 
+
+Speaker 1:
+Theek chhe. Aama bhi aapan what we can do is acknowledge ni jagya ae assign. 
+
+Nimish Shah:
+Ha etle aa kon kare chhe? Etle aa generally aavu aa ek view banyu. Now this view is aa maintenance head karse. Right? So now this view is for the next one month, three months, six months. It can be for different time periods also. 
+
+Speaker 1:
+Na na. Aa to chhe ne aa je action center chhe ne Nimish aa to immediate view chhe. Aa to resolve karvanu j chhe. Je inforce no view chhe ne ae bhi aapan jeetla atyare metrics decide karya ne ema ae ne ahinya have team focus aapyu chhe. Ke bhai aatla chhe ne problem aana karanne tamara maximum breakdowns thaya chhe. To start with G6 ane ahinya me assign karelu chhe. Ke aa kone assign karva. 
+
+Nimish Shah:
+Theek chhe. Tare chhe ne ek aama additional piece of information tu mane koi voice note ma mokli aapje ke tu mane ek document banavi ne aapje. I think karan ke see even for me this is too much information to digest also, right? Ane aa tu pan atyare jyare dekhade chhe ne to the major I won't say challenge but one of the finer points that we can work together is ke aa chijonu thodu simplified views kai rite bani sake, right? Ha ha. Information je chhe ae badhi information amuk detailing ma jyare click kariye tyare aapan stock level par joiye chhe to ek saath badhu nathi dekhadta aapan, right? It gets on to that drill down format. To aama ek UI UX no pan ek khasoo moto element aavse. Ha ha. Ke enu kai rite thay. And the major one major hand off that you have to very clearly define is ke je tem kidhu ke ek maintenance head ek vaar assign kare ne and the moment he clicks on assign it it gets created as a proper task, right? 
+
+Speaker 1:
+Correct. 
+
+Nimish Shah:
+So the whole system then works in that way because the moment he assigns to bhavin, ae bhavin na on my task create thai gayo, eni ticket create thai gai, right? Eni upar thi enu calendar generate thai, right? So ema koi pan jaat nu jo understaffing, overstaffing thay chhe ke tu as a supervisor acknowledge karto gayo ke aa next tran divas ma aa ne Nimish ne j karvanu, Nimish ne j karvanu, Nimish ne j karvanu. You won't realize that but all these things should come, right? The system should should say ke bhai aa ne overload karo chho ya this won't happen something like that. 
+
+Speaker 1:
+Ha ha ha. 
+
+Nimish Shah:
+So ae bhi ek atyare challenge j chhe. Ha so basically manpower logging nathi thai rahyo. Right? So it's see this is a have tu jyare flow chhe to it's a complete flow, right? From a system log of identifying the issue to forecasting where the issues can be to assigning the issues to a set of people to the people solving the issues and recording in the system and then that feedback loop complete completely happening, right? So it's a scheduler plus a ticketing system plus a workflow management plus a machine forecasting system in itself. 
+
+Nimish Shah:
+to aa badha j elements aama che. 
+
+Speaker 1:
+Ane aama haji maru aagad e che ke how do we for example atyare aatlo data nakhyo to aatlu samajh padyu. Have okay. Aa badha problem aaya but we also have to show ke aa aatlu aatlu kaam karyu ne system aatlu recommend karyu aatlu aatlu kaam karyu to genuine improvement aavyo ke nahi. Haan. e ek measurement 
+
+Nimish Shah:
+kevi rite 
+
+Speaker 1:
+karvanu. 
+
+Nimish Shah:
+E 
+
+Speaker 1:
+haji mein nathi vicharyu. 
+
+Nimish Shah:
+Maro e j ek thought hato ke atyar sudhi aa ek system che so there needs to be a feedback looping, right? Haan. Ane e feedback looping ne j define karvanu che aapde. Ke tame jyare aatlu preventive maintenance karo cho, right? Ane tame aatlu forecasted maintenance karo cho based on certain historical set of things, atyare je suppose ek machine no issue aavyo ke continuous paanch divas issue aavyo, have e ena upar solve karine e next month ketlu improve thyu? Ena pachina month ketlu improve thyu? So there can be certain views and understanding around that as well, right? Ek vaar parent data aavi jaay ne ek certain format ma pachi thatu rahe. Anyway. 
+
+Speaker 1:
+Etle aa aa badha je features haman nimish mein tane bataya ne aa badha nathi. 
+
+Nimish Shah:
+Hm. 
+
+Speaker 1:
+Koini paase. Etle aa badha kyathi aave che? Ahinya ek problem analysis karine system je ma che ne ene badhi j complaints vaanchi. 
+
+Nimish Shah:
+Hm. 
+
+Speaker 1:
+Okay ane hu tane dekhaadu aatlo issue che. Aa keyword jo amara kevi rite ene read karya che. 
+
+Nimish Shah:
+Hm hm. 
+
+Speaker 1:
+Ahinya jo. Spelling jo. 
+
+Nimish Shah:
+Hm hm. 
+
+Speaker 1:
+Badha ne. 
+
+Nimish Shah:
+Hm hm. 
+
+Speaker 1:
+Accident no jo. 
+
+Nimish Shah:
+Hm hm. 
+
+Speaker 1:
+Etle aa mara system ma je entries thai che. 
+
+Nimish Shah:
+Hm. Amazing. Fazi analysis saru karyu. 
+
+Speaker 1:
+To enathi ene aa system na problems identify karine ene group banaine mane kidha ke maximum group of problems are coming in this category. 
+
+Nimish Shah:
+Nice. 
+
+Speaker 1:
+To tu eni upar dhyan aap. 
+
+Nimish Shah:
+Saras saras. Tara to mane management vala to. 
+
+Speaker 1:
+But tu derive karya pachi mein su karyu ke ena parthi mein team focus j banavyu. Mane mari team member ne analysis nathi samajh padti. Mari team member ne evu samajh pade che ke mare saheb su karvanu che mane kai de. Etle e ahinya click kare che to ene samajh padi gai ke bhai tu aatlu kar. Next month pehla tu aatlu check kari leje. 
+
+Nimish Shah:
+Hm. Nai saras che aa perfect che. Aavu j hovu joiye. 
+
+Speaker 1:
+Okay. Aatla problem che ne you have to fix for. Aatla machines ma overall or replacement. Basically machine j overall karo ka to ene replace karo. Ena decisions lo. Pairs bhi we will keep on enriching once we enter into the system. 
+
+Nimish Shah:
+Okay. 
+
+Speaker 1:
+Have ahinya aana basis par ek ahinya mein fix finder bhi banavel. For example aa standard problems jetla dekhay che ne aa etla ene maximum aa vaanchya hase. Etle for example mara company ma spindle problem che. To maro manas ahinya jyare bhi aapdi paase app hase ne he can also type spindle problem. 
+
+Nimish Shah:
+Hm. Ane ene khabar padi jaay. So similar cases 
+
+Speaker 1:
+joine ene top five categories top five resolutions last je hata ne. 
+
+Speaker 1:
+ne e bhi ahiya kai pida. 
+
+Nimish Shah:
+Very nice. 
+
+Speaker 1:
+E aani bahar kai hoy j na sake. 
+
+Nimish Shah:
+Saras. 
+
+Speaker 1:
+Ane eni niche aa history bhi aakhi aavi gai. Ke bhai su karelu. 
+
+Nimish Shah:
+Hm. Theek che. 
+
+Speaker 1:
+Etle mari j history ma thi I am getting much more data. It's getting more and more refined. Saras. Aa ek management mate important che cost cost of product throughput or output lost. Because of the downtime. 
+
+Nimish Shah:
+Samjhi gayo. This can be a good measure ke tamaro maintenance ketlu saru kaam kare che to aa number otho thavo joiye. 
+
+Speaker 1:
+Ha. Etle aa number nano thavo joiye. Aatlu ame atyare amara karane loss che. Aa ek feature che where you can compare two machine. Of the same category. So it's giving a health score to each machine. Saras. Te nu ranking bhi che kevi rite enu ranking ne weightage karyu che e ahiya lakhelu j che. E guide ma bhi che. Ane aa enu health checkup che. Just in case management wants to decide ke yaar aa machine rakhu ke nai rakhu to they can set it up against a benchmark it stands. You can see ke bhai eni category average pramane su. So aa ek future ma one is this dashboard. Second is I am going to add machine details in much more depth ke specifications bhi hu machine na nakhvano chu badha. Ane controller ni detailed info bhi nakhvano chu. What it will help me is 150 machines it will help me list common spares. 
+
+Nimish Shah:
+Hm hm. 
+
+Speaker 1:
+So mara critical spare nu list bhi random koi number nai lage. It will be backed by data ke tamari factory ma aatla aatla spares che tame aatlu to spare rakhi j shako cho. Badha data par thi monthly report is generating now automatically. 
+
+Nimish Shah:
+Theek che. 
+
+Speaker 1:
+Okay ane annual building annual chale che. Etle atyare nimish aatlu che. 
+
+Nimish Shah:
+Bahu che bhai. Pause le. 
+
+Speaker 1:
+Kevu lage che? 
+
+Nimish Shah:
+Bhai great che aa to hu e j vichar karu chu ke koi management vadu aa jo tu hoy to e to ekdam j ena aava aava software aa detailing ma aatlu scheduling ne aakhu end to end stack tame vecho to to ane to gandpan thai sake. Like I am this product is easily like a 10,000 rupees a month product if not less. 
+
+Speaker 1:
+Ha etle coming back to the instinct te mane aapdi vaat thai. Etle what instinct par che ne nimish aa fix finder ne badhu tu joves che ne. 
+
+Nimish Shah:
+Hm. 
+
+Speaker 1:
+This can become a instinct feature samjay che? 
+
+Nimish Shah:
+Hm. E joine par e thoduk mane haje have che ne actually thoduk have digest karva de. 
+
+Speaker 1:
+Tu vichar aaram thi. 
+
+Nimish Shah:
+Ghana badhu thai sake e pachhi aavsu aapde e level par aavsu tyare. Pan jo tane etlu kahu chu etlu mane confidence che aa system joine ke this is not a small build if you are thinking of it as a software. Ha ha. To aa nu proper stack develop karvo pade aapne ane thoduk expensive stack develop karvo pade je rit na tara future enhancements possibilities integrations je che ane aa proper multi-tenant system bane. See because tari pase atyare tu ek company nu badhu kartu hoy tara company nu to tari pase badhu j hoy. Right? Pan 
+
+Nimish Shah:
+ane aa proper multi-tenant system bane. See because taari paase atyare tu ek company nu badhu karto hoy taara company nu to taari paase badhu j hoy. Right? Pan aaje tu ek navi company ne on-board kare to kai rit nu enu aakhu on-boarding module bane, enu aakhu setup ane te je future nu pan te je karyu che e scoping aapde karay e rite. Etle aama aapadne proper ek super base no database aapde levano pehla. Right? Aapde ek Amazon nu server levu chhu EC2 server ek simple. Theek che? Ane pachi majorly at least CRM systems che, ticketing systems che, e je pan che ne atyare e ghana badha ena open source GitHubs che. So that I will figure out ke which is that right system. Karan ke aama proper badhanu logins, credentials, badhu j thase. Right? And everything should link properly. Tyaare j e ek system sacrosanct banse. Karan ke aagal jata aanu badhu integrations karan ke tu have pehla to te start karyu tyare machines par j hatu. Pan have e machines thi humans, humans thi performance, performance thi e loko nu future, future thi company nu future, badhu j aama ek system j in a way circular kare che aakhu. Right? So let this stay with me for a day or two. 
+
+Speaker 1:
+Theek che. Ha to main aaram thi vicharo to. 
+
+Nimish Shah:
+Ane pachi haji tu aama jetlu su su kari sake ema to see limit na hoy. Right? Ek vaar aatlu badhu data aavano chalu thai jaye etle limit na hoy. Tu you keep playing with the system. Atyare hu Yash ni pan beyond sathe e rit j karu chhu ke bhai tu taari rite develop kar. Don't stop. Right? But the place at which you come ke have maari ek aa stable system bani gai che. Right? That that point in time let's productize it properly. Karan ke aa je pan ame thodu thodu thodu banavto gayo ne e maari thodi understanding e rite vadhti gai ke bhai jyare back-end barabar hoy che ne tyare j badhi barabar chijo chale che. Jo tame back-end barabar na vichar karyo structure na karyu to aa badhi j chijo ek scalable way ma fatvati fatvanu start thai. Dashboards and all will be pre-defined. Eni lakh su hase? Ema ketli modularity aapde build karvani che? Access levels different hova joiye. This much of information should not be shown to everyone. So everyone will have a different level of access of information. To ekla user profiles banse. Etle you will have to help me understand generally su hierarchies hoy ke ketlu open rakhvanu. Right? Che you can come and define ke bhai mara factory ma khaali aatla j DN levels j che. Koi bija moti factory hoy to may be ema tran level define thai. Etle those kind of variations that happen from factory to factory, from setup to setup, from size to size, you will have to help me understand those things. Right? To j aapde ek enu back-end e rit nu define kari saksu. To but this is very exciting. Aama commercially kai rit nu tame etle su aanu price points ane aavu software bane to su che? 
+
+Speaker 1:
+Etle atyare che ne usually mara competitors ne che ne they are charging somewhere around 8500 per month or per user. 
+
+Nimish Shah:
+What is a per user level etle su hoy aama? 
+
+Speaker 1:
+etle maintenance team mari paanch janani hoy to paanch user to joiyye. Kem? Kaaranke hu jene assign karva vaado hav ne, e badha users. 
+
+Nimish Shah:
+Hmm. Aa toh bau khaasu monghu kehvaay. 
+
+Speaker 1:
+Ha ane je complaint raise kare che ne, e badha free hoy. 
+
+Nimish Shah:
+Operators free hoy, samjhi gayo. 
+
+Speaker 1:
+Oh customers are basically free, pan je etle ek che keep karine. 
+
+Nimish Shah:
+Oh matau. Tyaare che ne mane thoda company national globally pan hajo aana koi. 
+
+Speaker 1:
+Ha local and global. Ame ek vaapariye bi che. Je amne na mane na paadi didhi ke have tu renew na kar to. 
+
+Nimish Shah:
+Ha theek che etle eva naam mane mokli deje amuk systems na. 
+
+Speaker 1:
+Innoment karine ek che. 
+
+Nimish Shah:
+Hmm. 
+
+Speaker 1:
+Innoment I N N O M A I N T. 
+
+Nimish Shah:
+Aavi koi companies je che ena koi na pan logins che aapdi paase? Ha jo 
+
+Speaker 1:
+ne aa rahyu. 
+
+Nimish Shah:
+Ha ha etle aana login. Na na etle login credentials che aapdi paase aana? 
+
+Speaker 1:
+Ha mari paase hase. Hu pahele check kari lau jo made toh tane kau chu. Etle aa tu you can go and see pan aa aana karta mara analytics ane mari flexibility is way stronger. 
+
+Nimish Shah:
+Nahi nahi fer shu hoy ne bhavin generally aa badhi companies nu je je loko ae backend architecture karyu hoy ne e bau j strong hoy. So jo aapdi paase aavi che na credentials made ne jo aapde andar ghusi shakiye ne toh e loko nu ek overall je setup nu structure hoy ane hoy ne e aapde thoduk samjhi shakiye vadare. 
+
+Speaker 1:
+Ha ha. Etle jo aa ek leader je che ne atyare global leader kau chu ho. E aa che. 
+
+Nimish Shah:
+Okay. Ane aanu che aapdi paase toh pachi? 
+
+Speaker 1:
+Na aanu nai hoy aa toh aa free trial ichu li che ne tu try kari shake che. Tu take a free trial. Maro pati. 
+
+Nimish Shah:
+Nahi pan tu mara ke mane samjaay nai ne aa pan aavi system nu aapde have suppose tamne aavu free trial koi tamara system mate karvanu free trial koi factory joye ne free trial e loko ne aapvanu. 
+
+Speaker 1:
+Nahi nahi free trial etle tu khaali as a user tu login karine check kari shake che badha features. 
+
+Nimish Shah:
+Achcha. Okay. Theek che let me try this. 
+
+Speaker 1:
+Okay. Aa nu tu pricing joish ne toh it's starting at $24. 
+
+Nimish Shah:
+Fuck. Pan essential khaali simple. 
+
+Speaker 1:
+Ha. 24 
+
+Nimish Shah:
+dollars. 
+
+Speaker 1:
+Etle hu tane kau chu nimish aa che ne actually ma this has a demand and this is a very niche category. Pan mare pricing wise mane atyare kau ne toh have next year thi che ne evu che ke ISO also has made it mandatory ke all your records need to be digital. How you can make your workflow digital. Toh atyare che ne maintenance is one category in all industries which is actually you know evu kehvaay ne ke aa che aa theek che. Etle sauthi bottom of the food chain ganay. Toh e loko che ne badhi industry ma ajji bi tu jo ne toh ghana badha loko ajji bi manual excel ma j padya che. I want to get into these industries ke tame vaapro. Ane etlu analytics aapu chu ne ke tame you 
+
+Speaker 1:
+mane ek two analytics aapu chhu ne ke tame you don't need to apply your brains. Savine tamne shu karvanu chhe ne e tamne system kehse. Kaaran ke maintenance field bhi evu chhe ne where there is not a lot of talent. Bahut saara loko chhe ne e nikali nikali ne bijje jata rahya. 
+
+Nimish Shah:
+Samjayu common chhe. Nahi to tu shu kehva mange chhe? Etle pricing no shu taro thought shu chhe aama? 
+
+Speaker 1:
+Atyare maro pricing no thought chhe ke I want to offer this suit at 25 to somewhere between 25 to 30,000 a year. Where I will allow them to use five users. 
+
+Nimish Shah:
+Productive karva hoy to pachhi user user par shu kaame limit rakhvani? Ek flat pricing rakhvani and khali ema be levels rakhvana chhe analytics chhe because the number of users does not add anything to you. Correct. The point is the analytics that you are showing that should be tiered. So for someone to have the whole fucking full stack, so there can be just two simple levels to start with it. Ane aa to hu khali e rite puchhto to ke ane overall ek shu price point understanding chhe baki to e to tane vadare badhi vaat pade. Ha 
+
+Speaker 1:
+etle aa mane koi par bane pachhi tu atyare hu 25 aim to hu mare price karvu chhe 49999. Okay, and early boy I might start with a 50% discount. Evi rite. But the price remains 49999. Hmm. Okay. So I feel ke even 50,000 a year for the the kind of analytics that is coming out and the effort that is getting reduced. Kaaran ke aa to me 
+
+Nimish Shah:
+Na na no doubt j chhe. Doubt j nathi. Tame jyare 60 60 65 lakh nu dekhado chho to tamara level scale par atyare chhe to ajji pan moti factories ma to aa badha loss karta ho. Tyare e moti factories su ketla hoy to tyare tame karodo nu jyare value dekha 40 50,000 rupiya to kai j nathi. 
+
+Speaker 1:
+Kai j nathi. But e 40 50 it means down time no bi nathi saval. What I am trying to tell you is aaje data ne badho tu Excel ma maintain karva jaay ne ane aa tare aamthi aam faravanu hoy ne the amount of hours that are put you are putting in. Maintenance ma chhe ne koi data entry no maanas nathi. E maintenance no engineer ke technician hase. Have technician to PC par nathi besto. Engineer ek PC par betho ne khali aatla data analyze karva bese ane divas na tran kalak bagade ne that means you have lost the opportunity for him to look who in the field and do some productive work. To mari ne sauthi motto challenge atyar sudhi aaj aavto to ke sala mara engineer chhe ne koi ga data mange chhe, koi ga data mange chhe, koi ga data mange chhe. Maro engineer jene me kaam karva lidho chhe ene computer paraj malo. To ene pachhi hu computer par kem besva dau? Ane mane market ma technical maanso malta nathi. 
+
+Nimish Shah:
+Theek chhe samjhayu. 
+
+Speaker 1:
+Etle hu aaje koik ne 50,000 ni salary aapu chhu mahina ni e ardho time e computer paraj. Na respect ma hu khali jov ne to aatlu kaam e ochhu karato hoy ne to e mara ek sa bahut aagad pade chhe. 
+
+Speaker 1:
+a real problem actually ma a che. And second major USP is still production and maintenance ni accountability. That is the biggest USP. I know this for a fact. Ke nobody can say ke me aane aavu kidhu tu. Etle a workflow bauj important che. 
+
+Nimish Shah:
+Theek che bro. Maru che ne aavaj japad se. Maru char aagadu video point che. Aam tu mane mokli aap. A badhu mokal mane thodu. Hu badhu jovu. Pachi aapde besiye aanu par kai rite kaam kari sakay. 
+
+Speaker 1:
+Overview thi tane laage che ne ke aa kaam nu to hase agar. 
+
+Nimish Shah:
+Kaam nu nai value insane che. Honestly hu to e vichar karu chu ke aane jo karan ke mara dimag ma to e j che ke aa fakhat production grade software che. Right. Etle atyare hu aatlu digest karine e ek badhu thought jovu chu. Kai rite aakhanu banavanu thase. Ek lu clear chu ke aa koi wipe coding product nathi. Aa je te banavyu che aa be factory ma pan nai chalse. 100%. Right. To aapde aaje tu em etle we have to think about it in a fact ke aaje tu ke ke bro maru che ne vision che ke atyare hu kaam kari rahyu chu mara factory ma use karine aanu hu thoduk fine tuning karish next be tran weeks. But let's just say aaje aapde 28th October time s betha che. To aapde ek timeline par kaam kariye aanu par. 
+
+Speaker 1:
+Ha ha. Right. Ane hu che ne chot hu tane aa moklu chu. Tu ek vaar shanti thi jo. You take your time. Take your sweet time. One week, one and a half week. Aapde pachi next week paachu connect kariye. Ane pachi decide kariye tu su suggest kare che. 
+
+Nimish Shah:
+Done. 
+
+Speaker 1:
+Tya sudhi hu maru je ramat masti karu chu ne hu chalu rakhu chu. 
+
+Nimish Shah:
+Theek che. 
+
+Speaker 1:
+Okay. 
+
+Nimish Shah:
+Okay chal. 
+
+Speaker 1:
+Okay 
+
+Nimish Shah:
+chal.
+
+Created by Neo AI
+https://neosapien.xyz
