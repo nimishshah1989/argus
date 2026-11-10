@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Settings (M0-0.5): `/config` with fingerprint and `?fp=` delta, `/settings`, list CRUD with flags, missing-translations list and translation upsert. 6 integration tests.
+
 - Auth (M0-0.4): Fastify `login/logout/me/change-password` and `/brand`, Argon2id, opaque bearer token hashed at rest, 30-day sliding sessions, shared-login acting person. 8 integration tests.
 
 - Repository bootstrap: discovery pack under `docs/discovery/`, live spec under `docs/spec/`, build layout under `apps/`, `packages/`, `infra/`.
@@ -19,6 +21,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Settings (M0-0.5): `/config` with fingerprint and `?fp=` delta, `/settings`, list CRUD with flags, missing-translations list and translation upsert. 6 integration tests.
 
 - Auth (M0-0.4): Fastify `login/logout/me/change-password` and `/brand`, Argon2id, opaque bearer token hashed at rest, 30-day sliding sessions, shared-login acting person. 8 integration tests.
 
