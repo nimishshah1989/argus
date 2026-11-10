@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Ticket lists (M1a-5c): `GET /api/v1/tickets` — filterable by status/kind/machine/person/reporter/date, cursor-paginated with microsecond-precise keyset; desk Open/Mine/Team tabs and a floor My complaints list. 8 integration tests.
+
 - Desk face (M1a-5b): Open board (counts strip, team-now, Breakdowns/Tasks/Work lists), ticket detail with facts, live figures, timeline and people, and the state-dependent action set (start/pick up, pause, resume, update, transfer, machine running/stopped, close, cancel) — every action idempotent.
 
 - Floor face (M1a-5a): Tailwind design system + TanStack Query, a typed API client with per-request Idempotency-Key, and a three-tap report (machine search and segment/group chips, situation, problem with quick chips, work request, confirmation).
