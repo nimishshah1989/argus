@@ -112,28 +112,105 @@ function trimmed(values: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
 }
 
+function noteOf(values: Record<string, string>): { note?: string } {
+  return values.note ? { note: values.note } : {};
+}
+
+type BodyBuilder = (personId: string, values: Record<string, string>) => CommandBody | null;
+
+const BODY_BUILDERS: Partial<Record<CommandAction, BodyBuilder>> = {
+  pause: (personId, values) =>
+    values.reasonCode ? { personId, reasonCode: values.reasonCode, ...noteOf(values) } : null,
+  update: (personId, values) => (values.text ? { personId, text: values.text } : null),
+  transfer: (personId, values) => {
+    if (!values.note) return null;
+    const target = values.toPersonId ? { toPersonId: values.toPersonId } : {};
+    return { personId, note: values.note, ...target };
+  },
+  close: (personId, values) => {
+    if (!values.kind) return null;
+    if (values.kind === 'no_report' && !values.note) return null;
+    return { personId, kind: values.kind as CloseKind, ...noteOf(values) };
+  },
+  cancel: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
+};
+
 function buildBody(
   action: CommandAction,
   personId: string,
   values: Record<string, string>,
 ): CommandBody | null {
-  const note = values.note ? { note: values.note } : {};
-  if (action === 'pause') {
-    return values.reasonCode ? { personId, reasonCode: values.reasonCode, ...note } : null;
-  }
-  if (action === 'update') return values.text ? { personId, text: values.text } : null;
-  if (action === 'transfer') {
-    if (!values.note) return null;
-    const target = values.toPersonId ? { toPersonId: values.toPersonId } : {};
-    return { personId, note: values.note, ...target };
-  }
-  if (action === 'close') {
-    if (!values.kind) return null;
-    if (values.kind === 'no_report' && !values.note) return null;
-    return { personId, kind: values.kind as CloseKind, ...note };
-  }
-  if (action === 'cancel') return values.reason ? { personId, reason: values.reason } : null;
-  return null;
+  return BODY_BUILDERS[action]?.(personId, values) ?? null;
+}
+
+interface FieldsProps {
+  fields: FieldSpec[];
+  values: Record<string, string>;
+  onChange: (name: string, value: string) => void;
+}
+
+function FormFields({ fields, values, onChange }: FieldsProps) {
+  return (
+    <div className="mt-3 space-y-3">
+      {fields.map((field) => (
+        <label key={field.name} className="block">
+          <span className="text-sm font-medium text-neutral-600">
+            {field.label}
+            {field.required ? <span aria-hidden="true"> *</span> : null}
+          </span>
+          {field.type === 'select' ? (
+            <select
+              value={values[field.name] ?? ''}
+              onChange={(event) => onChange(field.name, event.target.value)}
+              className={inputClass}
+            >
+              <option value="">Choose…</option>
+              {(field.options ?? []).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <textarea
+              value={values[field.name] ?? ''}
+              onChange={(event) => onChange(field.name, event.target.value)}
+              className={`${inputClass} min-h-24 py-3`}
+            />
+          )}
+          {field.hint && <span className="mt-1 block text-xs text-neutral-500">{field.hint}</span>}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+interface ActionsProps {
+  pending: boolean;
+  disabled: boolean;
+  submitLabel: string;
+  onDone: () => void;
+}
+
+function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
+  return (
+    <div className="mt-4 flex gap-2">
+      <button
+        type="button"
+        onClick={onDone}
+        className="min-h-13 flex-1 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+      >
+        Back
+      </button>
+      <button
+        type="submit"
+        disabled={disabled || pending}
+        className="min-h-13 flex-1 rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
+      >
+        {pending ? 'Saving…' : submitLabel}
+      </button>
+    </div>
+  );
 }
 
 interface Props {
@@ -168,55 +245,13 @@ export function ActionForm({ action, personId, kind, config, pending, onRun, onD
       className="mt-4 rounded-xl bg-neutral-50 p-4"
     >
       <h3 className="text-base font-semibold">{TITLES[action]}</h3>
-      <div className="mt-3 space-y-3">
-        {fields.map((field) => (
-          <label key={field.name} className="block">
-            <span className="text-sm font-medium text-neutral-600">
-              {field.label}
-              {field.required ? <span aria-hidden="true"> *</span> : null}
-            </span>
-            {field.type === 'select' ? (
-              <select
-                value={values[field.name] ?? ''}
-                onChange={(event) => update(field.name, event.target.value)}
-                className={inputClass}
-              >
-                <option value="">Choose…</option>
-                {(field.options ?? []).map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <textarea
-                value={values[field.name] ?? ''}
-                onChange={(event) => update(field.name, event.target.value)}
-                className={`${inputClass} min-h-24 py-3`}
-              />
-            )}
-            {field.hint && (
-              <span className="mt-1 block text-xs text-neutral-500">{field.hint}</span>
-            )}
-          </label>
-        ))}
-      </div>
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={onDone}
-          className="min-h-13 flex-1 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
-        >
-          Back
-        </button>
-        <button
-          type="submit"
-          disabled={!body || pending}
-          className="min-h-13 flex-1 rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
-        >
-          {pending ? 'Saving…' : SUBMITS[action]}
-        </button>
-      </div>
+      <FormFields fields={fields} values={values} onChange={update} />
+      <FormActions
+        pending={pending}
+        disabled={!body}
+        submitLabel={SUBMITS[action] ?? action}
+        onDone={onDone}
+      />
     </form>
   );
 }

@@ -50,38 +50,39 @@ function intervalMinutes(interval: TicketInterval): number {
   return Math.max(0, Math.floor((end - new Date(interval.startedAt).getTime()) / 60000));
 }
 
-function Facts({ ticket, config }: { ticket: Ticket; config?: Config }) {
+interface Fact {
+  label: string;
+  value: string;
+  wide?: boolean;
+}
+
+function fact(label: string, value: string | null | undefined, wide = false): Fact[] {
+  return value ? [{ label, value, ...(wide ? { wide } : {}) }] : [];
+}
+
+function factRows(ticket: Ticket, config?: Config): Fact[] {
   const machine =
     ticket.kind === 'general' ? 'Work request' : machineLabel(ticket, config?.machines ?? []);
-  const rows: { label: string; value: string; wide?: boolean }[] = [
+  const lead = (config?.people ?? []).find((person) => person.id === ticket.leadPersonId);
+  const time = (iso: string | null) => (iso ? formatDateTime(iso, config?.timeZone) : null);
+  return [
     { label: 'Machine', value: machine },
     { label: 'Reported', value: formatDateTime(ticket.reportedAt, config?.timeZone) },
+    ...fact('Lead', lead?.name),
+    ...fact('Location', ticket.location),
+    ...fact('Work type', ticket.workType),
+    ...fact('Started', time(ticket.startedAt)),
+    ...fact('Machine running since', time(ticket.machineRunningAt)),
+    ...fact('Pause reason', ticket.waitReason ? waitLabel(ticket.waitReason, config) : null),
+    ...fact('Handover', ticket.handedOver ? 'Waiting for pickup' : null),
+    ...fact('Closed', time(ticket.closedAt)),
+    ...fact('Closed as', ticket.closeKind ? CLOSE_LABELS[ticket.closeKind] : null),
+    ...fact('Close note', ticket.closeNote, true),
   ];
-  const lead = (config?.people ?? []).find((person) => person.id === ticket.leadPersonId);
-  if (lead) rows.push({ label: 'Lead', value: lead.name });
-  if (ticket.location) rows.push({ label: 'Location', value: ticket.location });
-  if (ticket.workType) rows.push({ label: 'Work type', value: ticket.workType });
-  if (ticket.startedAt) {
-    rows.push({ label: 'Started', value: formatDateTime(ticket.startedAt, config?.timeZone) });
-  }
-  if (ticket.machineRunningAt) {
-    rows.push({
-      label: 'Machine running since',
-      value: formatDateTime(ticket.machineRunningAt, config?.timeZone),
-    });
-  }
-  if (ticket.waitReason) {
-    rows.push({ label: 'Pause reason', value: waitLabel(ticket.waitReason, config) });
-  }
-  if (ticket.handedOver) rows.push({ label: 'Handover', value: 'Waiting for pickup' });
-  if (ticket.closedAt) {
-    rows.push({ label: 'Closed', value: formatDateTime(ticket.closedAt, config?.timeZone) });
-  }
-  if (ticket.closeKind) rows.push({ label: 'Closed as', value: CLOSE_LABELS[ticket.closeKind] });
-  if (ticket.closeNote) {
-    rows.push({ label: 'Close note', value: ticket.closeNote, wide: true });
-  }
+}
 
+function Facts({ ticket, config }: { ticket: Ticket; config?: Config }) {
+  const rows = factRows(ticket, config);
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
       <h2 className="text-sm font-medium text-neutral-600">Facts</h2>

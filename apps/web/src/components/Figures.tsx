@@ -14,7 +14,16 @@ export function Figures({ figures, kind, names }: Props) {
     { label: 'Response', value: formatMinutes(figures.responseMin) },
     { label: 'Hands-on', value: formatMinutes(figures.activeMin) },
     { label: 'Waiting', value: formatMinutes(figures.waitMin) },
+    ...(figures.vendorMin > 0
+      ? [{ label: 'Vendor wait', value: formatMinutes(figures.vendorMin) }]
+      : []),
+    ...(figures.handoverWaitMin > 0
+      ? [{ label: 'Handover wait', value: formatMinutes(figures.handoverWaitMin) }]
+      : []),
     ...(downtime === null ? [] : [{ label: 'Downtime', value: formatMinutes(downtime) }]),
+    ...(figures.followMin === null
+      ? []
+      : [{ label: 'Follow-up', value: formatMinutes(figures.followMin) }]),
     { label: 'Repair', value: formatMinutes(figures.repairMin) },
   ];
   const people = Object.entries(figures.perPerson).sort(([, a], [, b]) => b - a);

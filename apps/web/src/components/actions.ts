@@ -24,7 +24,11 @@ export function legalActions(ticket: Ticket): ActionSpec[] {
   const machineRunning = Boolean(ticket.machineRunningAt);
   const canMarkRunning = ticket.kind === 'stopped';
   if (ticket.status === 'open') {
-    return [spec('start', ticket.handedOver ? 'Pick up' : 'Start', true), spec('cancel', 'Cancel')];
+    return [
+      spec('start', ticket.handedOver ? 'Pick up' : 'Start', true),
+      ...(ticket.handedOver ? [spec('update', 'Update')] : []),
+      spec('cancel', 'Cancel'),
+    ];
   }
   if (ticket.status === 'working') {
     return [

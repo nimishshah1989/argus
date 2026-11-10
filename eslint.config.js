@@ -28,6 +28,16 @@ export default tseslint.config(
     },
   },
   {
+    files: ['**/*.tsx'],
+    rules: {
+      'max-lines-per-function': ['error', { max: 60, skipBlankLines: true, skipComments: true }],
+      complexity: ['error', 12],
+      'max-depth': ['error', 4],
+      'max-params': ['error', 4],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
     files: ['**/*.test.ts'],
     rules: {
       'max-lines': 'off',
