@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { raiseTicket, transition, TransitionError } from '../src/state.js';
-import type { ActorContext, TicketEvent, WorkSegment } from '../src/types.js';
+import type { ActorContext, CrewMember, TicketEvent, WorkSegment } from '../src/types.js';
 import type { Ticket } from '../src/ticket.js';
 
 const t = (iso: string) => new Date(iso);
@@ -53,12 +53,13 @@ function run(
   ticket: Ticket,
   command: Parameters<typeof transition>[0]['command'],
   actor = ctx('technician'),
-  extra: { segments?: WorkSegment[]; events?: TicketEvent[] } = {},
+  extra: { segments?: WorkSegment[]; events?: TicketEvent[]; crew?: CrewMember[] } = {},
 ) {
   return transition({
     ticket,
     events: extra.events ?? [],
     segments: extra.segments ?? [],
+    crew: extra.crew ?? [],
     command,
     ctx: actor,
   });
@@ -173,5 +174,61 @@ describe('state machine', () => {
       ctx('operator'),
     );
     expect(cancelled.ticket.status).toBe('cancelled');
+  });
+});
+
+describe('remaining commands', () => {
+  it('joins a working ticket and leaves it', () => {
+    const working = base({
+      status: 'working',
+      leadPersonId: 'person-1',
+      startedAt: t('2026-01-01T10:00:00Z'),
+    });
+    const joined = run(
+      working,
+      { type: 'join', personId: 'person-2', role: 'support' },
+      ctx('technician', 'person-2'),
+    );
+    expect(joined.crew).toHaveLength(1);
+    expect(joined.segments).toHaveLength(1);
+    const left = run(
+      joined.ticket,
+      { type: 'leave', personId: 'person-2', reason: 'Done' },
+      ctx('technician', 'person-2'),
+      { segments: joined.segments, crew: joined.crew },
+    );
+    expect(left.crew[0]?.leftAt).toEqual(now);
+  });
+
+  it('upgrades a support ticket to stopped', () => {
+    const support = base({ kind: 'support', status: 'working' });
+    const result = run(support, { type: 'upgradeKind', personId: 'person-1' });
+    expect(result.ticket.kind).toBe('stopped');
+    expect(result.ticket.kindUpgradedAt).toEqual(now);
+  });
+
+  it('adds a late report and restores a cancelled ticket', () => {
+    const closedNoReport = base({ status: 'closed', closeKind: 'no_report' });
+    const late = run(closedNoReport, { type: 'lateReport', personId: 'person-1' });
+    expect(late.ticket.closeKind).toBe('report');
+
+    const cancelled = base({ status: 'cancelled', leadPersonId: 'person-1' });
+    const restored = run(
+      cancelled,
+      { type: 'restore', personId: 'person-1', reason: 'By mistake', toStatus: 'working' },
+      ctx('admin'),
+    );
+    expect(restored.ticket.status).toBe('working');
+    expect(restored.segments).toHaveLength(1);
+  });
+
+  it('lets an admin correct a ticket', () => {
+    const result = run(
+      base(),
+      { type: 'correct', personId: 'person-1', reason: 'Fix', changes: { problem: 'New problem' } },
+      ctx('admin'),
+    );
+    expect(result.ticket.problem).toBe('New problem');
+    expect(result.events.at(-1)?.type).toBe('edit');
   });
 });

@@ -12,7 +12,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## In flight
 
-- Nothing running. The walking skeleton (M0-0.8) is done and runs locally: `pnpm dev` (server) + `pnpm --filter @argus/web dev`. The M0 gate (staging deploy + restore drill) is blocked on AWS (N7); M1a starts after the gate.
+- Nothing running. The walking skeleton (M0-0.8) is done and runs locally: `pnpm dev` (server) + `pnpm --filter @argus/web dev`. The M0 gate (staging deploy + restore drill) is now blocked only on the domain, deploy-role ARN and secret values — the AWS account exists as of 2026-11-10 (N7 partial). M1a work is in progress on branches.
 
 ## Next
 
@@ -39,4 +39,5 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 - Bhavin’s ticket export + Worker source (M1b hard gate); current platform HTML + Excel (M4a); PM tool (M4b).
 - Consented phone numbers + voice notes (M3); Gujarati translations (M1b).
-- AWS account/domain/secrets; Meta app/number/templates; Sarvam key.
+- AWS account ✅ 118167167649, ap-south-1, tfstate bucket `argus-tfstate-118167167649`, USD 150/mo budget (2026-11-10); domain, deploy-role ARN and secret values open.
+- Meta app ✅ `argus` 1182419981139130 under Jhaveri Instinct, WhatsApp test number ✅ +1 555-673-5318 (WABA 1457316929703027); system-user token and templates open. Sarvam key open.

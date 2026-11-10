@@ -79,6 +79,8 @@ export interface ActorContext {
 export interface CrewMember {
   personId: string;
   role: 'primary' | 'support';
+  leftAt?: Date;
+  leftReason?: string;
 }
 
 export interface TicketContext {
