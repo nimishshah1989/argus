@@ -8,22 +8,25 @@ Under 50 lines. Read first, rewrite at session end.
 - **M1a ticket core**: domain figures/permissions/state (#15–#18), tickets API (#23), floor (#26), desk (#27), lists (#29), polish (#31), e2e harness (#33).
 - **M1b shipped early**: breakdown report form (#35), live board + kiosk (#36), breakdown PDF (#37), WhatsApp share text + PWA shell (#40).
 - **Core-issue fixes**: C1 RLS on the request path (#42), C2/M1/M2 clocks (#41), C3/M3 corrections (#43), M4 idempotency binding (#44), duplicate-raise race (#38).
+- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (12 done / 34 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
 - Verification: `pnpm verify` green (143 tests); `pnpm test:e2e` green (8 tests on the real stack).
 
 ## In flight
 
-- `process-fixes`: M8 e2e in CI, M10 migration immutability, M6 parity backfill + parity-update guard, M7 status docs/PR template. Not merged yet.
+- Nothing.
 
 ## Next
 
+- **M5 (i18n)** — the big remaining review item: add an i18n layer (en + a `gu` placeholder catalogue), extract the UI strings, and turn on a no-literal-string lint rule.
 - **AC5b/AC5c**: offline outbox with 409 drafts, web push.
 - M1b parity gaps: day-report PDF, needs-report list, floor cancel-own, desk join/leave actions, account sheet, admin correct/restore faces, Views 1–7 completion.
 - Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.
 - M2 SLA/escalation, then M4 analytics (needs Bhavin's platform file + Excel export).
+- **P1** (trim the process harness) needs Nimish's go-ahead; **M9** (verify/remove the Bedrock plugin, rotate the key) is Nimish's action.
 
 ## Known deferrals (see slice plans)
 
-- Past-breakdown form/overrides, child tasks on close, PDF jobs, `/state` extra buckets, acknowledge/handback (M2), i18n/Gujarati, board cancelled-24h tile, `GET /files/{id}` streaming + PDF cache, Noto Sans Gujarati in the image.
+- Past-breakdown form/overrides (the domain now records overrides; the server must persist them to the `overrides` jsonb), child tasks on close, PDF jobs, `/state` extra buckets, acknowledge/handback (M2), i18n/Gujarati, board cancelled-24h tile, `GET /files/{id}` streaming + PDF cache, Noto Sans Gujarati in the image, `ticket-pdf.test.ts` onto the shared harness, `ShareButton` deep import → workspace dep, route-scoped web manifest.
 
 ## Models
 
