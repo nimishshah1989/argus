@@ -19,3 +19,4 @@
 2026-11-10 — M1a-3b: remaining commands (join/leave/upgrade-kind/late-report/restore/correct/record-past-breakdown). 12 state tests; 57 total. Next M1a-4 tickets API.
 2026-11-10 — M0-0.7 gate fixes (SSM deploy, two-AZ RDS subnet group, EIP+Route53, S3 backend lock, single budget). terraform validate/plan green: 32 resources. PR #19 rename merged; main 6b7bd99. Next: apply after domain/secrets, then M1a-4 API.
 2026-11-10 — Session close: handoff rewritten for a fresh parallel session (lead + worker teammates). M0-0.7 gate fixes and rename merged. Next session: M1a-4 API in parallel.
+2026-11-10 — M1a-4 tickets API merged (#23): full command endpoints over transition() with FOR UPDATE row locks, Idempotency-Key replay, figures persistence, /state, /tickets/{id}. 20 integration tests; 83 total. EIP-only run merged (#22): optional Terraform domain, Caddy HTTP :80, bare-IP→default tenant. Next: M1a-5 floor and desk.
