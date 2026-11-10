@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Web polish (M1a-5d): React `.tsx` files now obey the same function/complexity/depth/param budgets as `.ts` (enforced by ESLint); Floor/MachinePicker/ActionForm/TicketDetail split into small components; handed-over open tickets can be updated and the figures panel shows vendor, handover and follow-up minutes.
+
 - Ticket lists (M1a-5c): `GET /api/v1/tickets` — filterable by status/kind/machine/person/reporter/date, cursor-paginated with microsecond-precise keyset; desk Open/Mine/Team tabs and a floor My complaints list. 8 integration tests.
 
 - Desk face (M1a-5b): Open board (counts strip, team-now, Breakdowns/Tasks/Work lists), ticket detail with facts, live figures, timeline and people, and the state-dependent action set (start/pick up, pause, resume, update, transfer, machine running/stopped, close, cancel) — every action idempotent.

@@ -10,6 +10,7 @@ Under 50 lines. Read first, rewrite at session end.
 - **M1a-5a floor (#26)**: Tailwind v4 + TanStack Query + typed API client; three-tap report.
 - **M1a-5b desk (#27)**: Open board (counts, team-now, three kind lists), ticket detail (facts, figures, timeline, people), state-dependent actions.
 - **M1a-5c lists (#29)**: `GET /tickets` (filterable, cursor-paginated, µs-precise cursor); desk Open/Mine/Team tabs; floor My complaints. 91 tests total.
+- **M1a-5d web polish (#31)**: `.tsx` function/complexity/depth/param budgets now enforced; Floor/MachinePicker/ActionForm/TicketDetail split into small components; desk nits (Update on handed-over open, vendor/handover/follow-up minutes).
 - Repo is still `argus` on GitHub (rename + OIDC `github_repo` var pending).
 
 ## In flight
@@ -19,7 +20,6 @@ Under 50 lines. Read first, rewrite at session end.
 ## Next
 
 - **Playwright E2E harness** (server + seed + browser) for the floor→desk flows (SPEC 1.3/1.4); `test:e2e` is wired but there is no harness yet.
-- **Small follow-ups**: split `apps/web/src/screens/Floor.tsx`'s single ~199-line function into `screens/floor/*`; add `**/*.tsx` to the ESLint `max-lines-per-function` rule (it covers `.ts` only today); desk nits (`update` on handed-over open tickets, show vendor/handover/follow-up minutes, share the work-role set).
 - Then **M1b** (SPEC 1.6–1.12): report form + PDFs, live board, push, offline outbox, Gujarati strings, Bhavin's import, cutover.
 - Re-run `terraform validate/plan` before `apply` (terraform not installed locally).
 
@@ -29,7 +29,7 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Models
 
-- Bedrock is configured in `~/.dsh/profiles/desktop/cordis.patch.yml` (`amazon-bedrock`, `apiKeyEnv: AMAZON_BEDROCK_API_KEY`) but the running harness loads providers at startup — **restart the app**, then check `list_subagent_models` and wire model-per-task routing (strong model for plan/review, cheap model for build).
+- Bedrock is configured in `~/.dsh/profiles/desktop/cordis.patch.yml` (`amazon-bedrock`, `apiKeyEnv: AMAZON_BEDROCK_API_KEY`). It loads only at harness startup — **restarting the app should make its models appear**; then check `list_subagent_models` and wire model-per-task routing (strong model for plan/review, cheap model for build).
 
 ## Blocked / questions for Nimish
 
