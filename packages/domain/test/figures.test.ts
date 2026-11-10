@@ -106,4 +106,49 @@ describe('figures', () => {
     expect(result.responseMin).toBe(7);
     expect(result.waitMin).toBe(9);
   });
+
+  it('stops the downtime clock at cancel', () => {
+    const result = figures({
+      ...base,
+      reportedAt: t('2026-01-01T09:00:00Z'),
+      events: [event('cancel', '2026-01-01T09:30:00Z')],
+      now: t('2026-01-01T14:00:00Z'),
+    });
+    // 09:00 -> 09:30, then the cancelled gap counts in nothing.
+    expect(result.downAccMin).toBe(30);
+  });
+
+  it('resumes the downtime clock at restore when it was down at cancel', () => {
+    const result = figures({
+      ...base,
+      reportedAt: t('2026-01-01T09:00:00Z'),
+      events: [event('cancel', '2026-01-01T09:30:00Z'), event('restore', '2026-01-01T10:00:00Z')],
+      now: t('2026-01-01T11:00:00Z'),
+    });
+    // 09:00 -> 09:30 (30) + 10:00 -> 11:00 (60); the cancelled gap counts in nothing.
+    expect(result.downAccMin).toBe(90);
+  });
+
+  it('stops the handover wait at cancel', () => {
+    const result = figures({
+      ...base,
+      events: [event('transfer', '2026-01-01T11:00:00Z'), event('cancel', '2026-01-01T11:30:00Z')],
+      now: t('2026-01-01T14:00:00Z'),
+    });
+    expect(result.handoverWaitMin).toBe(30);
+  });
+
+  it('reopens the wait clock at restore so waits sum across a cancel', () => {
+    const result = figures({
+      ...base,
+      events: [
+        event('pause', '2026-01-01T10:00:00Z'),
+        event('cancel', '2026-01-01T10:10:00Z'),
+        event('restore', '2026-01-01T10:10:00Z'),
+      ],
+      now: t('2026-01-01T10:40:00Z'),
+    });
+    // 10:00 -> 10:10 (10) + 10:10 -> 10:40 (30).
+    expect(result.waitMin).toBe(40);
+  });
 });

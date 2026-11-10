@@ -1,4 +1,5 @@
 export type Status = 'open' | 'working' | 'waiting' | 'closed' | 'cancelled';
+export type RestorableStatus = 'open' | 'working' | 'waiting';
 export type Kind = 'stopped' | 'support' | 'general';
 export type Role =
   'operator' | 'technician' | 'supervisor' | 'head' | 'plant_head' | 'admin' | 'board';
@@ -27,6 +28,8 @@ export interface TicketEvent {
   at: Date;
   reason?: string;
   isVendor?: boolean;
+  /** The status a ticket had before a `cancel`; `restore` uses it to pick the resume status. */
+  status?: RestorableStatus;
 }
 
 export interface WorkSegment {

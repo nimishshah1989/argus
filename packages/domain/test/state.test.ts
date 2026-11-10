@@ -93,9 +93,11 @@ describe('state machine', () => {
       selfStarted: true,
       startNow: true,
     });
+    expect(self.ticket.status).toBe('working');
     expect(self.ticket.startedAt).toEqual(now);
     expect(self.events.map((e) => e.type)).toEqual(['down', 'start']);
     expect(self.segments).toHaveLength(1);
+    expect(self.segments[0]?.endedAt).toBeUndefined();
   });
 
   it('starts an open ticket and opens a lead segment', () => {
@@ -104,6 +106,38 @@ describe('state machine', () => {
     expect(result.ticket.leadPersonId).toBe('person-1');
     expect(result.events.at(-1)?.type).toBe('start');
     expect(result.segments).toHaveLength(1);
+  });
+
+  it('rejects a second start on a self-started or already-led ticket', () => {
+    const self = raiseTicket({
+      id: 't-3',
+      ref: 'BD-0003',
+      kind: 'stopped',
+      machineId: 'm-1',
+      problem: 'Z',
+      reportedAt: now,
+      raisedLoginId: 'login-1',
+      reportedByPersonId: 'person-1',
+      selfStarted: true,
+      startNow: true,
+    });
+    expect(() =>
+      transition({
+        ticket: self.ticket,
+        events: self.events,
+        segments: self.segments,
+        crew: [],
+        command: { type: 'start', personId: 'person-1' },
+        ctx: ctx('technician'),
+      }),
+    ).toThrow(TransitionError);
+
+    const openLead = { personId: 'person-1', role: 'lead' as const, startedAt: now };
+    expect(() =>
+      run(base(), { type: 'start', personId: 'person-1' }, ctx('technician'), {
+        segments: [openLead],
+      }),
+    ).toThrow(TransitionError);
   });
 
   it('rejects starting a non-open ticket', () => {
@@ -212,14 +246,67 @@ describe('remaining commands', () => {
     const late = run(closedNoReport, { type: 'lateReport', personId: 'person-1' });
     expect(late.ticket.closeKind).toBe('report');
 
-    const cancelled = base({ status: 'cancelled', leadPersonId: 'person-1' });
+    const working = base({
+      status: 'working',
+      leadPersonId: 'person-1',
+      startedAt: t('2026-01-01T10:00:00Z'),
+    });
+    const cancelled = run(
+      working,
+      { type: 'cancel', personId: 'person-1', reason: 'By mistake' },
+      ctx('technician'),
+    );
     const restored = run(
-      cancelled,
+      cancelled.ticket,
       { type: 'restore', personId: 'person-1', reason: 'By mistake', toStatus: 'working' },
       ctx('admin'),
+      { events: cancelled.events, segments: cancelled.segments },
     );
     expect(restored.ticket.status).toBe('working');
     expect(restored.segments).toHaveLength(1);
+  });
+
+  it('restores to the previous status recorded on cancel, ignoring a conflicting toStatus', () => {
+    const waiting = base({
+      status: 'waiting',
+      waitReason: 'Waiting for spare',
+      waitSince: t('2026-01-01T11:00:00Z'),
+    });
+    const cancelled = run(
+      waiting,
+      { type: 'cancel', personId: 'person-1', reason: 'Mistake' },
+      ctx('technician'),
+    );
+    expect(cancelled.events.at(-1)?.status).toBe('waiting');
+
+    const restored = run(
+      cancelled.ticket,
+      { type: 'restore', personId: 'person-1', reason: 'Undo', toStatus: 'working' },
+      ctx('admin'),
+      { events: cancelled.events, segments: cancelled.segments },
+    );
+    expect(restored.ticket.status).toBe('waiting');
+    expect(restored.ticket.waitSince).toEqual(now);
+  });
+
+  it('rejects a restore more than 7 days after the cancel', () => {
+    const working = base({
+      status: 'working',
+      leadPersonId: 'person-1',
+      startedAt: t('2026-01-01T10:00:00Z'),
+    });
+    const cancelled = run(
+      working,
+      { type: 'cancel', personId: 'person-1', reason: 'Mistake' },
+      ctx('technician'),
+    );
+    const later = { ...ctx('admin'), now: t('2026-01-09T12:00:00Z') };
+    expect(() =>
+      run(cancelled.ticket, { type: 'restore', personId: 'person-1', reason: 'Undo' }, later, {
+        events: cancelled.events,
+        segments: cancelled.segments,
+      }),
+    ).toThrow(TransitionError);
   });
 
   it('lets an admin correct a ticket', () => {

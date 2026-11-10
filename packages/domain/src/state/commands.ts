@@ -1,13 +1,18 @@
-import type { CrewMember, WorkSegment } from '../types.js';
+import type { CrewMember, RestorableStatus, WorkSegment } from '../types.js';
 import { canCancel, canClose, canCorrect, canWork } from '../permissions.js';
 import { apply, assertWorking, clampAt, closeSegments, TransitionError } from './helpers.js';
 import type { Command, TransitionInput, TransitionResult } from './types.js';
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function start(
   input: TransitionInput,
   command: Extract<Command, { type: 'start' }>,
 ): TransitionResult {
   if (input.ticket.status !== 'open') throw new TransitionError('Can only start an open ticket');
+  if (input.segments.some((segment) => segment.role === 'lead' && !segment.endedAt)) {
+    throw new TransitionError('Ticket already has an open lead segment');
+  }
   if (
     !canWork({
       role: input.ctx.role,
@@ -206,7 +211,11 @@ export function cancel(
   const at = clampAt(input.ctx.now, input);
   return apply(input, {
     ticket: { status: 'cancelled' as const },
-    event: { type: 'cancel', reason: command.reason },
+    event: {
+      type: 'cancel',
+      reason: command.reason,
+      status: input.ticket.status as RestorableStatus,
+    },
     at,
     segments: closeSegments(input.segments, at),
   });
@@ -308,17 +317,22 @@ export function restore(
 ): TransitionResult {
   if (input.ticket.status !== 'cancelled')
     throw new TransitionError('Only a cancelled ticket can be restored');
+  const cancel = [...input.events].reverse().find((event) => event.type === 'cancel');
+  if (cancel && input.ctx.now.getTime() - cancel.at.getTime() > SEVEN_DAYS_MS) {
+    throw new TransitionError('Can only restore within 7 days');
+  }
+  const toStatus: RestorableStatus = cancel?.status ?? command.toStatus ?? 'open';
   const at = clampAt(input.ctx.now, input);
   const lead = input.ticket.leadPersonId;
   const segments =
-    command.toStatus === 'working' && lead
+    toStatus === 'working' && lead
       ? [...input.segments, { personId: lead, role: 'lead' as const, startedAt: at }]
       : input.segments;
   return apply(input, {
     ticket: {
-      status: command.toStatus,
+      status: toStatus,
       segmentStartedAt: at,
-      waitSince: command.toStatus === 'waiting' ? at : null,
+      waitSince: toStatus === 'waiting' ? at : null,
     },
     event: { type: 'restore', reason: command.reason },
     at,
