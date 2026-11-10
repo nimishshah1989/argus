@@ -26,3 +26,6 @@ test-results/
 blob-report/
 tmp/
 *.log
+
+# Local tool downloads
+.tools/

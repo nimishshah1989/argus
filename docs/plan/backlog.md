@@ -6,7 +6,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 | Milestone                            | Tickets | Done | In progress |
 | ------------------------------------ | ------- | ---- | ----------- |
-| M0 Foundation and walking skeleton   | 8       | 5    | 0           |
+| M0 Foundation and walking skeleton   | 8       | 6    | 0           |
 | M1a Ticket core                      | 5       | 0    | 0           |
 | M1b Parity complete and soft cutover | 7       | 0    | 0           |
 | M2 Accountability                    | 5       | 0    | 0           |
@@ -15,7 +15,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** `M0-0.6` (seed), `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.5` are done. The Settings UI lands with the web scaffold in M0-0.8.
+**Frontier now:** `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.6` are done. The Settings UI lands with the web scaffold in M0-0.8.
 
 ## M0 Foundation and walking skeleton
 
@@ -58,7 +58,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** 0.3
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: counts match the sources (192 machines by segment, 14 people, 19 codes); seed report committed
 
 ### M0-0.7 — Infrastructure: Terraform for RDS, S3 with versioning, IAM, Secrets Manager, EC2; Docker Compose with Caddy and the server; `deploy:staging`, `deploy:production`, `deploy:rollback`; expand-and-contract migration check in CI; restore drill executed and logged; billing alarm; `.env.example`

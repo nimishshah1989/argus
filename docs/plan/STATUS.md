@@ -32,6 +32,10 @@ Session: 1 — foundation, no product code
 
 - **Done.** Settings API: `/config` with fingerprint and `?fp=` delta; `/settings` read/write; lists upsert/delete; missing translations + set. 6 integration tests; 31 tests total. The Settings React UI is deferred to the web scaffold in M0-0.8.
 
+## M0-0.6 seed
+
+- **Done.** `seed:cosmos` loads 192 machines (CNC 125, Conventional 16, Process 17, Utility 30, DG 3, Robot 1), 14 people, 19 active + 3 inactive codes, 2 shifts, 144 glossary terms. Idempotent; seed report committed at `docs/plan/seed-report.md`. 2 integration tests; 33 tests total.
+
 ## In progress
 
 - Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.

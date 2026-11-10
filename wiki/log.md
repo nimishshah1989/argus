@@ -9,3 +9,4 @@
 2026-11-10 — Schema review fixes: report people normalised to breakdown_report_person; tenant-scoped push endpoints; person delete restricted; audit append-only; hot-path indexes; non-negative downtime. 17 tests. Branch m0/0.3a-schema-fixes.
 2026-11-10 — M0-0.4: Fastify auth (host tenancy, login/logout/me/password, Argon2id, sliding sessions, shared acting person, /brand). 8 integration tests; 25 total. Next M0-0.5 settings.
 2026-11-10 — M0-0.5: settings/config API (fingerprint, lists, features, translations). 6 integration tests; 31 total. Settings UI deferred to the web scaffold in M0-0.8.
+2026-11-10 — M0-0.6: Cosmos seed (192 machines by segment, 14 people, 19 active codes, glossary); seed report committed. 2 integration tests; 33 total. Next M0-0.7 infrastructure.
