@@ -6,6 +6,10 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Desk face (M1a-5b): Open board (counts strip, team-now, Breakdowns/Tasks/Work lists), ticket detail with facts, live figures, timeline and people, and the state-dependent action set (start/pick up, pause, resume, update, transfer, machine running/stopped, close, cancel) — every action idempotent.
+
+- Floor face (M1a-5a): Tailwind design system + TanStack Query, a typed API client with per-request Idempotency-Key, and a three-tap report (machine search and segment/group chips, situation, problem with quick chips, work request, confirmation).
+
 - Tickets API (M1a-4): full command endpoints (raise, start/join/leave, pause/resume, transfer, update, machine-running/stopped, close, late report, cancel/restore, correct, upgrade-kind) over the domain state machine, plus `GET /state` and `GET /tickets/{id}`. `FOR UPDATE` row locks, `Idempotency-Key` replay, figures recomputed and persisted. 20 integration tests; 83 total.
 
 - Infrastructure (M1a-4, EIP-only): run without a domain — optional Terraform `domain` (skips Route 53 when empty), Caddy defaults to HTTP `:80` (no Let's Encrypt), and a bare-IP Host resolves the default tenant.
