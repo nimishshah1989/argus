@@ -6,6 +6,10 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Tickets API (M1a-4): full command endpoints (raise, start/join/leave, pause/resume, transfer, update, machine-running/stopped, close, late report, cancel/restore, correct, upgrade-kind) over the domain state machine, plus `GET /state` and `GET /tickets/{id}`. `FOR UPDATE` row locks, `Idempotency-Key` replay, figures recomputed and persisted. 20 integration tests; 83 total.
+
+- Infrastructure (M1a-4, EIP-only): run without a domain — optional Terraform `domain` (skips Route 53 when empty), Caddy defaults to HTTP `:80` (no Let's Encrypt), and a bare-IP Host resolves the default tenant.
+
 - State machine complete (M1a-3b): join, leave, upgrade-kind, late-report, restore, correct, record-past-breakdown. 12 state tests; 57 total.
 
 - Domain state machine (M1a-3): raise, start, pause, resume, transfer, update, running/stopped, close, cancel as pure transitions with time clamping and permission gates. 8 tests.

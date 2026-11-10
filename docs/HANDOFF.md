@@ -4,23 +4,24 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Live (merged on main)
 
-- **UPTIMO** (renamed, #19). M0-0.7 gate fixes merged (#20): SSM deploy, 2-AZ RDS subnet group, EIP + Route 53 (`cosmos.<domain>`, `cosmos.staging.<domain>`), real S3 backend, single account budget. `terraform init/validate/plan` green — 32 resources, **not applied**.
-- M0 foundation code done (0.1–0.8): schema+RLS, auth, settings/config, Cosmos seed, walking skeleton (runs locally: `pnpm dev` server + `pnpm --filter @uptimo/web dev`).
-- M1a domain core done: figures, permissions, full state machine (57 tests). Next: **M1a-4 tickets API**.
+- **UPTIMO** (renamed, #19). M0-0.7 gate fixes (#20) and EIP-only run (#22): SSM deploy, 2-AZ RDS, EIP, S3, IAM/OIDC, Secrets Manager, budget. Terraform `domain` is now optional — empty skips Route 53; Caddy defaults to HTTP `:80`; a bare-IP Host resolves the default tenant. **Not applied.**
+- M0 foundation: schema+RLS, auth, settings/config, Cosmos seed, walking skeleton.
+- M1a domain core: figures, permissions, full state machine (57 tests).
+- **M1a-4 tickets API (#23)**: full command endpoints (raise, start/join/leave, pause/resume, transfer, update, machine-running/stopped, close, report, cancel/restore, correct, upgrade-kind) + `GET /state` and `GET /tickets/{id}`, over `transition()`. `FOR UPDATE` row locks, `Idempotency-Key` replay, figures recomputed/persisted. 20 integration tests; 83 total.
 - Repo is still `argus` on GitHub (rename + OIDC `github_repo` var pending).
 
 ## In flight
 
 - Nothing.
 
-## Next (new session, run PARALLEL)
+## Next
 
-1. Read this file and `docs/slices/M1a-4.md`.
-2. Spawn worker teammates with disjoint write scopes:
-   - **api worker** — `apps/server/src/tickets.ts` full commands, `FOR UPDATE` row locks, `Idempotency-Key` replay, `/state`, `/tickets/{id}`; fix the `pg` client-reuse warning in `config.ts`.
-   - **test worker** — integration tests for every command, replay, and row-lock concurrency.
-   - **reviewer** — fresh-context review of each PR against the plan.
-3. Merge on green, then M1a-5 floor/desk.
+- **M1a-5 floor and desk** — the real faces on top of the API (write `docs/slices/M1a-5.md` first).
+- Re-run `terraform validate/plan` before `apply` (terraform not installed on this machine; the optional-`domain` HCL change is unverified there).
+
+## Known deferrals (M1a-4 out of scope, see the slice plan)
+
+- `recordPastBreakdown`, breakdown-report rows + child tasks on close, PDF jobs, `correct` activeMin/waitMin overrides, the `/state` extra buckets, acknowledge/handback (M2).
 
 ## Blocked / questions for Nimish
 
