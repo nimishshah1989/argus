@@ -106,6 +106,9 @@ async function closeWithReport(page: Page): Promise<void> {
   await form.getByLabel('How are you closing?').selectOption('report');
   await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
   await expect(form).toBeHidden();
+  // AC3a: closing "with report" now opens the breakdown report form first.
+  await expect(page.getByRole('heading', { name: 'Close with breakdown report' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close with report', exact: true }).click();
   await expectStatus(page, 'Closed');
   await expect(page.getByText('Closed as')).toBeVisible();
   await expect(page.getByText('With report', { exact: true })).toBeVisible();

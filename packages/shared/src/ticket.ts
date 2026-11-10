@@ -91,17 +91,40 @@ export const machineStoppedSchema = z.object({
 });
 export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
 
+export const breakdownReportSchema = z.object({
+  problem: z.string().min(1).max(2000).optional(),
+  observedBy: z.string().max(200).optional(),
+  correctiveAction: z.string().max(4000).optional(),
+  doneByPersonIds: z.array(z.string().uuid()).optional(),
+  supportedByPersonIds: z.array(z.string().uuid()).optional(),
+  downtimeMin: z.number().int().min(0).optional(),
+  responseMin: z.number().int().min(0).optional(),
+  repairMin: z.number().int().min(0).optional(),
+  breakdownCategory: z.enum(['E', 'M', 'E/M', 'PM']).optional(),
+  maintCode: z.string().max(60).optional(),
+  spareUsed: z.string().max(200).optional(),
+  rootCause: z.string().max(2000).optional(),
+  handoverName: z.string().max(120).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  shiftCode: z.string().max(60).optional(),
+});
+export type BreakdownReportBody = z.infer<typeof breakdownReportSchema>;
+
 export const closeTicketSchema = z.object({
   personId: z.string().uuid(),
   kind: z.enum(['report', 'no_report', 'done']),
   at: iso.optional(),
   note: z.string().max(2000).optional(),
+  report: breakdownReportSchema.optional(),
 });
 export type CloseTicketBody = z.infer<typeof closeTicketSchema>;
 
 export const reportTicketSchema = z.object({
   personId: z.string().uuid(),
-  report: z.unknown(),
+  report: breakdownReportSchema,
 });
 export type ReportTicketBody = z.infer<typeof reportTicketSchema>;
 

@@ -11,6 +11,7 @@ import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
 import { listTickets } from './ticket-list.js';
+import * as report from './ticket-report.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -97,6 +98,7 @@ async function executeCommand(client: PoolClient, tx: tm.Tx): Promise<Outcome> {
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
   await sql.persistResult(client, tx, loaded, result);
+  await report.storeReportForTransition(client, tx, result);
 
   const outcome: Outcome = {
     status: 200,
@@ -115,6 +117,9 @@ async function runOutcome(
   try {
     return await withTenant(pool, tenantId, run);
   } catch (error) {
+    if (error instanceof report.ReportValidationError) {
+      return { status: 422, body: shared.apiError('validation', 'Invalid report', error.field) };
+    }
     if (!idem.isUniqueViolation(error)) throw error;
     const stored = await withTenant(pool, tenantId, (client) =>
       idem.getIdempotent(client, tenantId, key),
@@ -364,6 +369,7 @@ async function detail(pool: Pool, request: FastifyRequest, reply: FastifyReply):
         startedAt: segment.startedAt,
         endedAt: segment.endedAt ?? null,
       })),
+      report: await report.loadReport(client, ticketId),
     };
   });
   if (!payload) {

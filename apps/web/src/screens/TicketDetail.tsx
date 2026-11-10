@@ -4,6 +4,7 @@ import {
   getConfig,
   getMe,
   getTicket,
+  type BreakdownReport,
   type CommandAction,
   type CommandBody,
   type Config,
@@ -14,7 +15,7 @@ import {
   type TicketPerson,
 } from '../api.js';
 import { canWork, useTicketCommand } from '../components/actions.js';
-import { ActionBar } from '../components/ActionBar.js';
+import { ReportPanel } from '../components/ReportForm.js';
 import { Figures } from '../components/Figures.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { Timeline } from '../components/Timeline.js';
@@ -81,19 +82,59 @@ function factRows(ticket: Ticket, config?: Config): Fact[] {
   ];
 }
 
+function FactList({ rows }: { rows: Fact[] }) {
+  return (
+    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+      {rows.map((row) => (
+        <div key={row.label} className={row.wide ? 'col-span-2' : undefined}>
+          <dt className="text-xs text-neutral-500">{row.label}</dt>
+          <dd className="mt-0.5 text-base">{row.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function Facts({ ticket, config }: { ticket: Ticket; config?: Config }) {
-  const rows = factRows(ticket, config);
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
       <h2 className="text-sm font-medium text-neutral-600">Facts</h2>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-        {rows.map((row) => (
-          <div key={row.label} className={row.wide ? 'col-span-2' : undefined}>
-            <dt className="text-xs text-neutral-500">{row.label}</dt>
-            <dd className="mt-0.5 text-base">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <FactList rows={factRows(ticket, config)} />
+    </section>
+  );
+}
+
+function personList(ids: string[] | undefined, names: Record<string, string>): string | null {
+  if (!ids || ids.length === 0) return null;
+  return ids.map((id) => names[id] ?? 'Team member').join(', ');
+}
+
+function reportPeople(report: BreakdownReport, role: 'done' | 'supported'): string[] {
+  return report.people.filter((person) => person.role === role).map((person) => person.personId);
+}
+
+function ReportCard({ report, names }: { report: BreakdownReport; names: Record<string, string> }) {
+  const rows = [
+    ...fact('Problem', report.problem, true),
+    ...fact('Observed by', report.observedBy),
+    ...fact('Corrective action', report.correctiveAction, true),
+    ...fact('Done by', personList(reportPeople(report, 'done'), names)),
+    ...fact('Supported by', personList(reportPeople(report, 'supported'), names)),
+    ...fact('Downtime', formatMinutes(report.downtimeMin)),
+    ...fact('Response', report.responseMin == null ? null : formatMinutes(report.responseMin)),
+    ...fact('Repair', report.repairMin == null ? null : formatMinutes(report.repairMin)),
+    ...fact('Category', report.breakdownCategory),
+    ...fact('Maintenance code', report.maintCode),
+    ...fact('Spare used', report.spareUsed),
+    ...fact('Root cause', report.rootCause, true),
+    ...fact('Handover to', report.handoverName),
+    ...fact('Date', report.date),
+    ...fact('Shift', report.shiftCode),
+  ];
+  return (
+    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-medium text-neutral-600">Breakdown report</h2>
+      <FactList rows={rows} />
     </section>
   );
 }
@@ -167,17 +208,19 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         <p className="mt-2 text-base text-neutral-900">{ticket.problem}</p>
         <p className="mt-1 text-sm text-neutral-500">Reported {elapsedLabel(ticket.reportedAt)}</p>
       </header>
-      {config && personId && canWork(me?.role) && (
-        <ActionBar
+      {config && personId && (
+        <ReportPanel
           ticket={ticket}
           config={config}
           personId={personId}
-          error={error}
+          canEdit={canWork(me?.role)}
+          command={(action, body) => run(ticket.id, action, body)}
           pending={pending}
-          onRun={(action, body) => run(ticket.id, action, body)}
+          error={error}
         />
       )}
       <Facts ticket={ticket} config={config} />
+      {detail.report && <ReportCard report={detail.report} names={names} />}
       <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
       <Timeline
         events={events}
