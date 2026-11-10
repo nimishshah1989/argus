@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
 export type Disposition = 'keep' | 'improve' | 'replace' | 'drop';
-export type Status = 'todo' | 'in-progress' | 'done' | 'waived';
+export type Status = 'todo' | 'in-progress' | 'done' | 'waived' | 'external';
 
 export interface ParityRow {
   id: string;
@@ -12,6 +12,7 @@ export interface ParityRow {
   milestones?: string[];
   status: Status;
   waiver_reason?: string;
+  external_reason?: string;
   evidence: string[];
   source?: string;
 }
@@ -23,7 +24,7 @@ export interface ParityFile {
 }
 
 const DISPOSITIONS: Disposition[] = ['keep', 'improve', 'replace', 'drop'];
-const STATUSES: Status[] = ['todo', 'in-progress', 'done', 'waived'];
+const STATUSES: Status[] = ['todo', 'in-progress', 'done', 'waived', 'external'];
 const ID = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;
 
 export function loadParity(path = 'docs/spec/parity.yaml'): ParityFile {
@@ -54,6 +55,8 @@ function evidenceErrors(row: ParityRow): string[] {
     errors.push(`${row.id}: done without evidence`);
   if (row.status === 'waived' && !row.waiver_reason?.trim())
     errors.push(`${row.id}: waived without a reason`);
+  if (row.status === 'external' && !row.external_reason?.trim())
+    errors.push(`${row.id}: external without a reason`);
   return errors;
 }
 

@@ -24,16 +24,24 @@ A maintenance operating system for Indian factories: a breakdown is reported in 
 
 ## Status
 
-Session 1 foundation is complete: workflow, skills, ADRs, 79-row parity ledger, 38-ticket backlog, questions/differences, the lean mechanism, root tooling and CI. No product code yet. `pnpm verify` is green locally. Next is the auth spike, then M0-0.3 schema v1 with RLS. See [docs/HANDOFF.md](docs/HANDOFF.md) and [docs/plan/STATUS.md](docs/plan/STATUS.md).
+The M0 foundation and the M1a ticket core are merged: schema v1 with forced RLS and a
+least-privilege API role, auth, settings/config, the Cosmos seed, the pure domain (figures,
+permissions, state machine), the full ticket command API with idempotency, the floor and desk
+faces, ticket lists, and a real-stack Playwright harness. The breakdown report form + PDF, live
+board/kiosk, WhatsApp share text and an installable PWA shell are also merged; the C1–C3/M1–M4
+core-issue fixes are in. `pnpm verify` (143 tests) and `pnpm test:e2e` are green, and CI runs both.
+The M1b remainder (offline outbox, push, day-report PDF, import, Gujarati strings, cutover) and
+M2–M4 are next. Parity stands at 12 done / 34 in-progress / 29 todo / 3 external / 1 waived of 79
+rows — see [docs/plan/STATUS.md](docs/plan/STATUS.md) and [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Layout
 
 ```
-apps/web            Vite + React PWA: floor, desk, board, analytics, settings
-apps/server         Fastify API + pg-boss jobs (ROLE=api|worker|all)
+apps/web            Vite + React PWA: floor, desk, ticket detail, live board
+apps/server         Fastify API: auth, settings/config, tickets, reports, PDF
 packages/domain     state machine, figures, severity, SLA maths, permissions (pure, tested)
-packages/db         Drizzle schema, SQL migrations with RLS, seeds, imports, isolation test
-packages/shared     Zod schemas, settings schema, i18n messages, constants
+packages/db         plain-SQL migrations with forced RLS, `withTenant()`, Cosmos seed, isolation test
+packages/shared     Zod schemas, settings schema, share text, constants
 packages/engine     analytics port (from M4); python/ sidecar beside it
 docs/spec           live SPEC, DOMAIN, PARITY, parity.yaml, QUESTIONS, DIFFERENCES
 docs/plan           backlog, NEEDS, STATUS, gates/M0.md ...

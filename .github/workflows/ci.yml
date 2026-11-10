@@ -34,10 +34,17 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm test:e2e
       - run: pnpm build
       - run: pnpm parity
+      - run: pnpm parity:update
+        if: github.event_name == 'pull_request'
+        env:
+          PARITY_ALLOW_SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'no-parity') && '1' || '' }}
       - run: pnpm licences
       - run: pnpm migrations:check
+      - run: pnpm migrations:immutable
+        if: github.event_name == 'pull_request'
       - run: pnpm audit:lean
       - run: pnpm pr:size
         if: github.event_name == 'pull_request'
