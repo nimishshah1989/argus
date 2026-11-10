@@ -18,7 +18,9 @@ services:
       - '80:80'
       - '443:443'
     environment:
-      SITE_ADDRESS: ${SITE_ADDRESS}
+      # No domain yet: default to :80 (plain HTTP, no Let's Encrypt). Set
+      # SITE_ADDRESS=cosmos.<domain> once a domain is registered for automatic HTTPS.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

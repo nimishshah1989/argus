@@ -30,7 +30,8 @@ variable "app" {
 }
 
 variable "domain" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "db_name" {
@@ -307,11 +308,13 @@ resource "aws_eip" "server" {
 }
 
 resource "aws_route53_zone" "main" {
-  name = var.domain
+  count = var.domain == "" ? 0 : 1
+  name  = var.domain
 }
 
 resource "aws_route53_record" "app" {
-  zone_id = aws_route53_zone.main.zone_id
+  count   = var.domain == "" ? 0 : 1
+  zone_id = aws_route53_zone.main[0].zone_id
   name    = "cosmos.${var.domain}"
   type    = "A"
   ttl     = 60
@@ -319,7 +322,8 @@ resource "aws_route53_record" "app" {
 }
 
 resource "aws_route53_record" "staging" {
-  zone_id = aws_route53_zone.main.zone_id
+  count   = var.domain == "" ? 0 : 1
+  zone_id = aws_route53_zone.main[0].zone_id
   name    = "cosmos.staging.${var.domain}"
   type    = "A"
   ttl     = 60
@@ -374,5 +378,5 @@ output "db_endpoint" { value = aws_db_instance.postgres.endpoint }
 output "files_bucket" { value = aws_s3_bucket.files.id }
 output "server_public_ip" { value = aws_eip.server.public_ip }
 output "server_instance_id" { value = aws_instance.server.id }
-output "dns_name" { value = "cosmos.${var.domain}" }
+output "dns_name" { value = var.domain == "" ? aws_eip.server.public_ip : "cosmos.${var.domain}" }
 output "deploy_role_arn" { value = aws_iam_role.deploy.arn }
