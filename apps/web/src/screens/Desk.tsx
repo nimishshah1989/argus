@@ -16,6 +16,7 @@ import { canWork, quickAction, useTicketCommand } from '../components/actions.js
 import { errorMessage, machineLabel } from '../components/format.js';
 import { TicketCard } from '../components/TicketCard.js';
 import { Drafts } from '../components/Drafts.js';
+import { NotificationsToggle } from '../components/NotificationsToggle.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 
 type Tab = 'open' | 'mine' | 'team';
@@ -265,6 +266,7 @@ export function Desk() {
 
       <h1 className="text-2xl font-semibold">Tickets</h1>
       <OfflineBanner />
+      <NotificationsToggle />
       <Drafts />
       <Tabs tab={tab} onChange={setTab} />
 

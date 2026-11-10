@@ -5,6 +5,7 @@ import { registerAuth } from './auth.js';
 import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
+import { registerPush } from './push.js';
 import type { AppConfig } from './config.js';
 
 export async function buildApp(config: AppConfig) {
@@ -15,6 +16,7 @@ export async function buildApp(config: AppConfig) {
   registerSettings(app, config);
   registerTickets(app, config);
   registerReports(app, config);
+  registerPush(app, config);
   app.setErrorHandler((error, _request, reply) => {
     const statusCode = (error as { statusCode?: number }).statusCode;
     if (statusCode === 429) {

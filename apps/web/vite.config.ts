@@ -8,15 +8,16 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // The custom service worker (src/sw.ts) owns precache + navigation fallback + push.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       injectRegister: false,
+      registerType: 'autoUpdate',
       manifest: false,
-      workbox: {
+      injectManifest: {
+        rollupFormat: 'iife',
         globPatterns: ['**/*.{js,css,html,png,webmanifest}'],
-        navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api\//],
-        skipWaiting: true,
-        clientsClaim: true,
       },
     }),
   ],
