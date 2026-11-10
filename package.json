@@ -23,7 +23,8 @@
     "licences": "tsx tools/check-licences.ts",
     "audit:lean": "pnpm size && pnpm deps && pnpm shortcuts",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm audit:lean",
-    "test:e2e": "playwright test --pass-with-no-tests"
+    "test:e2e": "playwright test --pass-with-no-tests",
+    "seed:cosmos": "tsx scripts/seed-cosmos.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -33,6 +34,7 @@
     "@types/pg": "^8.23.1",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
+    "pg": "^8.23.1",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",

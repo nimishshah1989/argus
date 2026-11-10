@@ -4,7 +4,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## Live
 
-- Session 1 merged (#1), auth spike merged (#4), schema/RLS merged (#5, #7), auth merged (#9). Repo private, CI green, `pnpm verify` green locally; 31 tests.
+- Session 1 merged (#1), auth spike merged (#4), schema/RLS merged (#5, #7), auth merged (#9). Repo private, CI green, `pnpm verify` green locally; 33 tests.
 - Auth spike done: **hand-rolled sessions chosen** (ADR 0003 accepted); better-auth rejected. Evidence in `docs/plan/spikes/auth.md`.
 - 79 parity rows in `docs/spec/parity.yaml`; 34 spec tickets + 4 design tickets in `docs/plan/backlog.md`; 21 questions and 18 differences recorded.
 - Anti-bloat mechanism live: `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, file/function/dependency/PR-size/shortcut checks.
@@ -12,7 +12,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## In flight
 
-- Nothing running. Next is M0-0.6 Cosmos seed. The Settings UI lands with the web scaffold in M0-0.8; the figure strategy spike remains before M1b.
+- Nothing running. Next is M0-0.7 infrastructure. The Settings UI lands with the web scaffold in M0-0.8; the figure strategy spike remains before M1b.
 
 ## Next
 
