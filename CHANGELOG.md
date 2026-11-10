@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Domain permissions (M1a-2): the §3 matrix as pure functions (raise, cancel, work, close, late report, restore, correct, day report, live board, money, analytics, settings). 6 tests.
+
 - Domain figures engine (M1a-1): exact response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair and per-person minutes with overrides. 8 tests.
 
 - Walking skeleton (M0-0.8): Vite + React web app (login, floor, desk), minimal ticket raise and open list. Runs locally; 37 tests.
@@ -29,6 +31,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Domain permissions (M1a-2): the §3 matrix as pure functions (raise, cancel, work, close, late report, restore, correct, day report, live board, money, analytics, settings). 6 tests.
 
 - Domain figures engine (M1a-1): exact response, hands-on union, waiting/vendor, handover, downtime, follow-up, repair and per-person minutes with overrides. 8 tests.
 
