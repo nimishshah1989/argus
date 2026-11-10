@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Segment } from '../../api.js';
 
 interface Props {
@@ -7,10 +8,12 @@ interface Props {
 }
 
 export function SegmentFilter({ segments, value, onChange }: Props) {
+  const { t } = useTranslation();
   if (segments.length === 0) return null;
+  const items = [{ id: 'all', name: t('board.all') }, ...segments];
   return (
-    <div role="group" aria-label="Filter by segment" className="mt-4 flex flex-wrap gap-2">
-      {[{ id: 'all', name: 'All' }, ...segments].map((segment) => {
+    <div role="group" aria-label={t('board.filter.aria')} className="mt-4 flex flex-wrap gap-2">
+      {items.map((segment) => {
         const selected = segment.id === value;
         return (
           <button

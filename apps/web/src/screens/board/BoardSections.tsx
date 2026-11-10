@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import type { SegmentSection } from './data.js';
 import { Tile } from './Tile.js';
 
 export function BoardSections({ sections, large }: { sections: SegmentSection[]; large: boolean }) {
+  const { t } = useTranslation();
   if (sections.length === 0) {
-    return <p className="mt-6 text-neutral-500">No machines configured.</p>;
+    return <p className="mt-6 text-neutral-500">{t('board.noMachines')}</p>;
   }
   return (
     <div className="mt-6 space-y-8">

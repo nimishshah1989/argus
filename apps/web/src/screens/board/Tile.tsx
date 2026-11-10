@@ -1,12 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import type { Ticket } from '../../api.js';
 import { tileStatus, type Tile as TileData, type TileStatus } from './data.js';
-
-const LABELS: Record<TileStatus, string> = {
-  idle: 'Idle',
-  open: 'Open',
-  working: 'In progress',
-  waiting: 'Waiting',
-};
 
 const TONES: Record<TileStatus, string> = {
   idle: 'bg-running/10 text-running',
@@ -23,7 +17,14 @@ function tone(ticket: Ticket | null, status: TileStatus): string {
 }
 
 export function Tile({ tile, large }: { tile: TileData; large: boolean }) {
+  const { t } = useTranslation();
   const status = tileStatus(tile.ticket);
+  const labels: Record<TileStatus, string> = {
+    idle: t('tile.idle'),
+    open: t('tile.open'),
+    working: t('tile.working'),
+    waiting: t('tile.waiting'),
+  };
   return (
     <li data-testid="tile" className="rounded-2xl bg-white p-3 shadow-sm">
       <p className={`font-semibold tracking-tight ${large ? 'text-2xl' : 'text-lg'}`}>
@@ -35,7 +36,7 @@ export function Tile({ tile, large }: { tile: TileData; large: boolean }) {
         } ${tone(tile.ticket, status)}`}
       >
         <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
-        {LABELS[status]}
+        {labels[status]}
       </p>
       {tile.ticket && (
         <p className={`mt-1 text-neutral-500 ${large ? 'text-sm' : 'text-xs'}`}>

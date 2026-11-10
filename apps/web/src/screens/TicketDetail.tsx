@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   getConfig,
   getMe,
@@ -30,16 +32,16 @@ import {
   peopleNames,
 } from '../components/format.js';
 
-const CLOSE_LABELS = {
-  report: 'With report',
-  no_report: 'Without report',
-  done: 'Done',
+const CLOSE_LABEL_KEYS = {
+  report: 'close.report',
+  no_report: 'close.noReport',
+  done: 'close.done',
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  lead: 'Lead',
-  primary: 'Primary',
-  support: 'Support',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  lead: 'role.lead',
+  primary: 'role.primary',
+  support: 'role.support',
 };
 
 function waitLabel(code: string, config?: Config): string {
@@ -62,24 +64,35 @@ function fact(label: string, value: string | null | undefined, wide = false): Fa
   return value ? [{ label, value, ...(wide ? { wide } : {}) }] : [];
 }
 
-function factRows(ticket: Ticket, config?: Config): Fact[] {
+function factRows(t: TFunction, ticket: Ticket, config?: Config): Fact[] {
   const machine =
-    ticket.kind === 'general' ? 'Work request' : machineLabel(ticket, config?.machines ?? []);
+    ticket.kind === 'general'
+      ? t('floor.workRequest')
+      : machineLabel(ticket, config?.machines ?? []);
   const lead = (config?.people ?? []).find((person) => person.id === ticket.leadPersonId);
   const time = (iso: string | null) => (iso ? formatDateTime(iso, config?.timeZone) : null);
   return [
-    { label: 'Machine', value: machine },
-    { label: 'Reported', value: formatDateTime(ticket.reportedAt, config?.timeZone) },
-    ...fact('Lead', lead?.name),
-    ...fact('Location', ticket.location),
-    ...fact('Work type', ticket.workType),
-    ...fact('Started', time(ticket.startedAt)),
-    ...fact('Machine running since', time(ticket.machineRunningAt)),
-    ...fact('Pause reason', ticket.waitReason ? waitLabel(ticket.waitReason, config) : null),
-    ...fact('Handover', ticket.handedOver ? 'Waiting for pickup' : null),
-    ...fact('Closed', time(ticket.closedAt)),
-    ...fact('Closed as', ticket.closeKind ? CLOSE_LABELS[ticket.closeKind] : null),
-    ...fact('Close note', ticket.closeNote, true),
+    { label: t('ticket.fact.machine'), value: machine },
+    {
+      label: t('ticket.fact.reported'),
+      value: formatDateTime(ticket.reportedAt, config?.timeZone),
+    },
+    ...fact(t('ticket.fact.lead'), lead?.name),
+    ...fact(t('ticket.fact.location'), ticket.location),
+    ...fact(t('ticket.fact.workType'), ticket.workType),
+    ...fact(t('ticket.fact.started'), time(ticket.startedAt)),
+    ...fact(t('ticket.fact.machineRunning'), time(ticket.machineRunningAt)),
+    ...fact(
+      t('ticket.fact.pauseReason'),
+      ticket.waitReason ? waitLabel(ticket.waitReason, config) : null,
+    ),
+    ...fact(t('ticket.fact.handover'), ticket.handedOver ? t('ticket.fact.waitingPickup') : null),
+    ...fact(t('ticket.fact.closed'), time(ticket.closedAt)),
+    ...fact(
+      t('ticket.fact.closedAs'),
+      ticket.closeKind ? t(CLOSE_LABEL_KEYS[ticket.closeKind]) : null,
+    ),
+    ...fact(t('ticket.fact.closeNote'), ticket.closeNote, true),
   ];
 }
 
@@ -97,17 +110,22 @@ function FactList({ rows }: { rows: Fact[] }) {
 }
 
 function Facts({ ticket, config }: { ticket: Ticket; config?: Config }) {
+  const { t } = useTranslation();
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">Facts</h2>
-      <FactList rows={factRows(ticket, config)} />
+      <h2 className="text-sm font-medium text-neutral-600">{t('ticket.facts')}</h2>
+      <FactList rows={factRows(t, ticket, config)} />
     </section>
   );
 }
 
-function personList(ids: string[] | undefined, names: Record<string, string>): string | null {
+function personList(
+  ids: string[] | undefined,
+  names: Record<string, string>,
+  t: TFunction,
+): string | null {
   if (!ids || ids.length === 0) return null;
-  return ids.map((id) => names[id] ?? 'Team member').join(', ');
+  return ids.map((id) => names[id] ?? t('common.teamMember')).join(', ');
 }
 
 function reportPeople(report: BreakdownReport, role: 'done' | 'supported'): string[] {
@@ -115,26 +133,30 @@ function reportPeople(report: BreakdownReport, role: 'done' | 'supported'): stri
 }
 
 function ReportCard({ report, names }: { report: BreakdownReport; names: Record<string, string> }) {
+  const { t } = useTranslation();
   const rows = [
-    ...fact('Problem', report.problem, true),
-    ...fact('Observed by', report.observedBy),
-    ...fact('Corrective action', report.correctiveAction, true),
-    ...fact('Done by', personList(reportPeople(report, 'done'), names)),
-    ...fact('Supported by', personList(reportPeople(report, 'supported'), names)),
-    ...fact('Downtime', formatMinutes(report.downtimeMin)),
-    ...fact('Response', report.responseMin == null ? null : formatMinutes(report.responseMin)),
-    ...fact('Repair', report.repairMin == null ? null : formatMinutes(report.repairMin)),
-    ...fact('Category', report.breakdownCategory),
-    ...fact('Maintenance code', report.maintCode),
-    ...fact('Spare used', report.spareUsed),
-    ...fact('Root cause', report.rootCause, true),
-    ...fact('Handover to', report.handoverName),
-    ...fact('Date', report.date),
-    ...fact('Shift', report.shiftCode),
+    ...fact(t('report.problem'), report.problem, true),
+    ...fact(t('report.observedBy'), report.observedBy),
+    ...fact(t('report.correctiveAction'), report.correctiveAction, true),
+    ...fact(t('report.doneBy'), personList(reportPeople(report, 'done'), names, t)),
+    ...fact(t('report.supportedBy'), personList(reportPeople(report, 'supported'), names, t)),
+    ...fact(t('report.downtime'), formatMinutes(report.downtimeMin)),
+    ...fact(
+      t('report.response'),
+      report.responseMin == null ? null : formatMinutes(report.responseMin),
+    ),
+    ...fact(t('report.repair'), report.repairMin == null ? null : formatMinutes(report.repairMin)),
+    ...fact(t('report.category'), report.breakdownCategory),
+    ...fact(t('report.maintenanceCode'), report.maintCode),
+    ...fact(t('report.spareUsed'), report.spareUsed),
+    ...fact(t('report.rootCause'), report.rootCause, true),
+    ...fact(t('report.handoverTo'), report.handoverName),
+    ...fact(t('report.date'), report.date),
+    ...fact(t('report.shift'), report.shiftCode),
   ];
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">Breakdown report</h2>
+      <h2 className="text-sm font-medium text-neutral-600">{t('report.title')}</h2>
       <FactList rows={rows} />
     </section>
   );
@@ -148,31 +170,34 @@ interface PeopleProps {
 }
 
 function PeopleSection({ people, intervals, names, timeZone }: PeopleProps) {
+  const { t } = useTranslation();
   const byPerson = new Map<string, TicketInterval[]>();
   for (const interval of intervals) {
     byPerson.set(interval.personId, [...(byPerson.get(interval.personId) ?? []), interval]);
   }
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">People</h2>
+      <h2 className="text-sm font-medium text-neutral-600">{t('ticket.people')}</h2>
       {people.length === 0 ? (
-        <p className="mt-2 text-neutral-500">Nobody has joined yet.</p>
+        <p className="mt-2 text-neutral-500">{t('ticket.peopleEmpty')}</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {people.map((member) => (
             <li key={member.personId}>
               <p className="text-base">
-                <span className="font-medium">{names[member.personId] ?? 'Team member'}</span>
+                <span className="font-medium">
+                  {names[member.personId] ?? t('common.teamMember')}
+                </span>
                 <span className="text-neutral-600">
                   {' '}
-                  · {ROLE_LABELS[member.role] ?? member.role}
+                  · {t(ROLE_LABEL_KEYS[member.role] ?? member.role)}
                 </span>
-                {member.leftAt && <span className="text-neutral-500"> · left</span>}
+                {member.leftAt && <span className="text-neutral-500"> · {t('ticket.left')}</span>}
               </p>
               {(byPerson.get(member.personId) ?? []).map((interval) => (
                 <p key={interval.startedAt} className="text-sm text-neutral-600">
                   {formatTime(interval.startedAt, timeZone)}–
-                  {interval.endedAt ? formatTime(interval.endedAt, timeZone) : 'now'} ·{' '}
+                  {interval.endedAt ? formatTime(interval.endedAt, timeZone) : t('ticket.now')} ·{' '}
                   {formatMinutes(intervalMinutes(interval))}
                 </p>
               ))}
@@ -194,6 +219,7 @@ interface ViewProps {
 }
 
 function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
+  const { t } = useTranslation();
   const { ticket, events, people, intervals } = detail;
   const names = peopleNames(config?.people);
   const reasonLabels: Record<string, string> = {};
@@ -207,7 +233,9 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           <StatusBadge status={ticket.status} />
         </div>
         <p className="mt-2 text-base text-neutral-900">{ticket.problem}</p>
-        <p className="mt-1 text-sm text-neutral-500">Reported {elapsedLabel(ticket.reportedAt)}</p>
+        <p className="mt-1 text-sm text-neutral-500">
+          {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt) })}
+        </p>
       </header>
       {config && personId && (
         <ReportPanel
@@ -243,6 +271,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
 }
 
 export function TicketDetail() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const detail = useQuery({
     queryKey: ['ticket', id],
@@ -256,7 +285,7 @@ export function TicketDetail() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">
       <Link to="/desk" className="inline-flex min-h-13 items-center font-medium text-accent">
-        ← Open tickets
+        {t('ticket.back')}
       </Link>
       {detail.data ? (
         <TicketView
@@ -272,7 +301,7 @@ export function TicketDetail() {
           {errorMessage(detail.error)}
         </p>
       ) : (
-        <p className="mt-6 text-neutral-500">Loading…</p>
+        <p className="mt-6 text-neutral-500">{t('common.loading')}</p>
       )}
     </main>
   );

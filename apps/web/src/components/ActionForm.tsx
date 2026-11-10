@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { CloseKind, CommandAction, CommandBody, Config, RaiseKind } from '../api.js';
 
 interface FieldSpec {
@@ -13,32 +15,16 @@ interface FieldSpec {
 const inputClass =
   'mt-2 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
 
-const TITLES: Record<string, string> = {
-  pause: 'Pause the ticket',
-  update: 'Log an update',
-  transfer: 'Hand over the ticket',
-  close: 'Close the ticket',
-  cancel: 'Cancel the ticket',
-};
-
-const SUBMITS: Record<string, string> = {
-  pause: 'Pause',
-  update: 'Save update',
-  transfer: 'Transfer',
-  close: 'Close ticket',
-  cancel: 'Cancel ticket',
-};
-
-const CLOSE_OPTIONS: Record<RaiseKind, { value: string; label: string }[]> = {
+const CLOSE_OPTION_KEYS: Record<RaiseKind, { value: string; key: string }[]> = {
   stopped: [
-    { value: 'report', label: 'With report' },
-    { value: 'no_report', label: 'Without report' },
+    { value: 'report', key: 'close.report' },
+    { value: 'no_report', key: 'close.noReport' },
   ],
   support: [
-    { value: 'report', label: 'With report' },
-    { value: 'no_report', label: 'Without report' },
+    { value: 'report', key: 'close.report' },
+    { value: 'no_report', key: 'close.noReport' },
   ],
-  general: [{ value: 'done', label: 'Done' }],
+  general: [{ value: 'done', key: 'close.done' }],
 };
 
 function listOptions(config: Config, list: string): { value: string; label: string }[] {
@@ -53,33 +39,36 @@ function peopleOptions(config: Config, personId: string): { value: string; label
     .map((person) => ({ value: person.id, label: person.name }));
 }
 
-function fieldsFor(
-  action: CommandAction,
-  kind: RaiseKind,
-  config: Config,
-  personId: string,
-): FieldSpec[] {
+interface FieldDeps {
+  action: CommandAction;
+  kind: RaiseKind;
+  config: Config;
+  personId: string;
+}
+
+function fieldsFor(t: TFunction, deps: FieldDeps): FieldSpec[] {
+  const { action, kind, config, personId } = deps;
   if (action === 'pause') {
     return [
       {
         name: 'reasonCode',
-        label: 'Waiting for',
+        label: t('action.waitingFor'),
         type: 'select',
         required: true,
         options: listOptions(config, 'wait_reason'),
       },
-      { name: 'note', label: 'Note', type: 'textarea' },
+      { name: 'note', label: t('action.note'), type: 'textarea' },
     ];
   }
   if (action === 'update') {
-    return [{ name: 'text', label: 'What has changed?', type: 'textarea', required: true }];
+    return [{ name: 'text', label: t('action.whatChanged'), type: 'textarea', required: true }];
   }
   if (action === 'transfer') {
     return [
-      { name: 'note', label: 'Handover note', type: 'textarea', required: true },
+      { name: 'note', label: t('action.handoverNote'), type: 'textarea', required: true },
       {
         name: 'toPersonId',
-        label: 'Hand to',
+        label: t('action.handTo'),
         type: 'select',
         options: peopleOptions(config, personId),
       },
@@ -89,21 +78,16 @@ function fieldsFor(
     return [
       {
         name: 'kind',
-        label: 'How are you closing?',
+        label: t('action.howClosing'),
         type: 'select',
         required: true,
-        options: CLOSE_OPTIONS[kind],
+        options: CLOSE_OPTION_KEYS[kind].map((option) => ({ ...option, label: t(option.key) })),
       },
-      {
-        name: 'note',
-        label: 'Note',
-        type: 'textarea',
-        hint: 'Required when closing without a report.',
-      },
+      { name: 'note', label: t('action.note'), type: 'textarea', hint: t('action.noteRequired') },
     ];
   }
   if (action === 'cancel') {
-    return [{ name: 'reason', label: 'Why cancel?', type: 'textarea', required: true }];
+    return [{ name: 'reason', label: t('action.whyCancel'), type: 'textarea', required: true }];
   }
   return [];
 }
@@ -150,6 +134,7 @@ interface FieldsProps {
 }
 
 function FormFields({ fields, values, onChange }: FieldsProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-3 space-y-3">
       {fields.map((field) => (
@@ -164,7 +149,7 @@ function FormFields({ fields, values, onChange }: FieldsProps) {
               onChange={(event) => onChange(field.name, event.target.value)}
               className={inputClass}
             >
-              <option value="">Choose…</option>
+              <option value="">{t('common.choose')}</option>
               {(field.options ?? []).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -193,6 +178,7 @@ interface ActionsProps {
 }
 
 function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-4 flex gap-2">
       <button
@@ -200,14 +186,14 @@ function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
         onClick={onDone}
         className="min-h-13 flex-1 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
       >
-        Back
+        {t('common.back')}
       </button>
       <button
         type="submit"
         disabled={disabled || pending}
         className="min-h-13 flex-1 rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
       >
-        {pending ? 'Saving…' : submitLabel}
+        {pending ? t('common.saving') : submitLabel}
       </button>
     </div>
   );
@@ -223,10 +209,29 @@ interface Props {
   onDone: () => void;
 }
 
+const TITLE_KEYS: Record<string, string> = {
+  pause: 'action.pause.title',
+  update: 'action.update.title',
+  transfer: 'action.transfer.title',
+  close: 'action.close.title',
+  cancel: 'action.cancel.title',
+};
+
+const SUBMIT_KEYS: Record<string, string> = {
+  pause: 'action.pause.submit',
+  update: 'action.update.submit',
+  transfer: 'action.transfer.submit',
+  close: 'action.close.submit',
+  cancel: 'action.cancel.submit',
+};
+
 export function ActionForm({ action, personId, kind, config, pending, onRun, onDone }: Props) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, string>>({});
-  const fields = fieldsFor(action, kind, config, personId);
+  const fields = fieldsFor(t, { action, kind, config, personId });
   const body = buildBody(action, personId, trimmed(values));
+  const title = t(TITLE_KEYS[action] ?? action);
+  const submitLabel = t(SUBMIT_KEYS[action] ?? action);
 
   function update(name: string, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
@@ -239,19 +244,10 @@ export function ActionForm({ action, personId, kind, config, pending, onRun, onD
   }
 
   return (
-    <form
-      onSubmit={submit}
-      aria-label={TITLES[action]}
-      className="mt-4 rounded-xl bg-neutral-50 p-4"
-    >
-      <h3 className="text-base font-semibold">{TITLES[action]}</h3>
+    <form onSubmit={submit} aria-label={title} className="mt-4 rounded-xl bg-neutral-50 p-4">
+      <h3 className="text-base font-semibold">{title}</h3>
       <FormFields fields={fields} values={values} onChange={update} />
-      <FormActions
-        pending={pending}
-        disabled={!body}
-        submitLabel={SUBMITS[action] ?? action}
-        onDone={onDone}
-      />
+      <FormActions pending={pending} disabled={!body} submitLabel={submitLabel} onDone={onDone} />
     </form>
   );
 }

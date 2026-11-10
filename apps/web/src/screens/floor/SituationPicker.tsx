@@ -1,10 +1,5 @@
+import { useTranslation } from 'react-i18next';
 import type { RaiseKind } from '../../api.js';
-
-const SITUATIONS: { kind: RaiseKind; label: string }[] = [
-  { kind: 'stopped', label: 'Stopped' },
-  { kind: 'support', label: 'Support' },
-  { kind: 'general', label: 'Work request' },
-];
 
 export function SituationPicker({
   kind,
@@ -13,11 +8,17 @@ export function SituationPicker({
   kind: RaiseKind;
   onChange: (kind: RaiseKind) => void;
 }) {
+  const { t } = useTranslation();
+  const situations: { kind: RaiseKind; label: string }[] = [
+    { kind: 'stopped', label: t('floor.stopped') },
+    { kind: 'support', label: t('floor.support') },
+    { kind: 'general', label: t('floor.workRequest') },
+  ];
   return (
     <section>
-      <h2 className="text-sm font-medium text-neutral-600">What is happening?</h2>
+      <h2 className="text-sm font-medium text-neutral-600">{t('floor.what')}</h2>
       <div className="mt-2 grid grid-cols-3 gap-2">
-        {SITUATIONS.map((situation) => {
+        {situations.map((situation) => {
           const selected = kind === situation.kind;
           return (
             <button

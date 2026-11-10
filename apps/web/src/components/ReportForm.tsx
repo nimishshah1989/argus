@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { ActionBar } from './ActionBar.js';
 import {
@@ -31,59 +32,65 @@ function ReportButtons({
   pending: boolean;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-2">
       <button type="button" onClick={onDone} className={secondaryButton}>
-        Back
+        {t('common.back')}
       </button>
       <button type="submit" disabled={pending} className={primaryButton}>
-        {pending ? 'Saving…' : mode === 'late' ? 'File report' : 'Close with report'}
+        {pending
+          ? t('common.saving')
+          : mode === 'late'
+            ? t('report.fileReport')
+            : t('report.closeWithReport')}
       </button>
     </div>
   );
 }
 
 function DetailsSection({ values, update }: ReportValuesProps) {
+  const { t } = useTranslation();
   return (
-    <Section title="What happened">
+    <Section title={t('report.whatHappened')}>
       <Field
         id="report-problem"
-        label="Problem"
+        label={t('report.problem')}
         value={values.problem}
         onChange={(problem) => update({ problem })}
         multiline
       />
       <Field
         id="report-observed"
-        label="Observed by"
+        label={t('report.observedBy')}
         value={values.observedBy}
         onChange={(observedBy) => update({ observedBy })}
-        placeholder="Name or role"
+        placeholder={t('report.observedPlaceholder')}
       />
       <Field
         id="report-corrective"
-        label="Corrective action"
+        label={t('report.correctiveAction')}
         value={values.correctiveAction}
         onChange={(correctiveAction) => update({ correctiveAction })}
         multiline
       />
       <Field
         id="report-downtime"
-        label="Downtime (min)"
+        label={t('report.downtimeMin')}
         value={values.downtimeMin}
         onChange={(downtimeMin) => update({ downtimeMin })}
         type="number"
       />
       <Field
         id="report-response"
-        label="Response (min)"
+        label={t('report.responseMin')}
         value={values.responseMin}
         onChange={(responseMin) => update({ responseMin })}
         type="number"
       />
       <Field
         id="report-repair"
-        label="Repair (min)"
+        label={t('report.repairMin')}
         value={values.repairMin}
         onChange={(repairMin) => update({ repairMin })}
         type="number"
@@ -93,11 +100,12 @@ function DetailsSection({ values, update }: ReportValuesProps) {
 }
 
 function PeopleSection({ values, update, config }: ReportValuesProps & { config: Config }) {
+  const { t } = useTranslation();
   const people = activePeople(config.people);
   return (
-    <Section title="Who did the work">
+    <Section title={t('report.whoDidWork')}>
       <PeoplePicker
-        legend="Done by"
+        legend={t('report.doneBy')}
         people={people}
         selected={values.doneByPersonIds}
         onToggle={(personId) =>
@@ -105,7 +113,7 @@ function PeopleSection({ values, update, config }: ReportValuesProps & { config:
         }
       />
       <PeoplePicker
-        legend="Supported by"
+        legend={t('report.supportedBy')}
         people={people}
         selected={values.supportedByPersonIds}
         onToggle={(personId) =>
@@ -117,38 +125,41 @@ function PeopleSection({ values, update, config }: ReportValuesProps & { config:
 }
 
 function ClassificationSection({ values, update, config }: ReportValuesProps & { config: Config }) {
+  const { t } = useTranslation();
+  const categoryOptions = listOptions(config, 'breakdown_category');
+  const maintOptions = listOptions(config, 'maint_code');
   return (
-    <Section title="Classification">
+    <Section title={t('report.classification')}>
       <SelectField
         id="report-category"
-        label="Breakdown category"
+        label={t('report.breakdownCategory')}
         value={values.breakdownCategory}
-        options={listOptions(config, 'breakdown_category')}
+        options={categoryOptions}
         onChange={(breakdownCategory) => update({ breakdownCategory })}
       />
       <SelectField
         id="report-maint"
-        label="Maintenance code"
+        label={t('report.maintenanceCode')}
         value={values.maintCode}
-        options={listOptions(config, 'maint_code')}
+        options={maintOptions}
         onChange={(maintCode) => update({ maintCode })}
       />
       <Field
         id="report-spare"
-        label="Spare used"
+        label={t('report.spareUsed')}
         value={values.spareUsed}
         onChange={(spareUsed) => update({ spareUsed })}
       />
       <Field
         id="report-root"
-        label="Root cause"
+        label={t('report.rootCause')}
         value={values.rootCause}
         onChange={(rootCause) => update({ rootCause })}
         multiline
       />
       <Field
         id="report-handover"
-        label="Handover to"
+        label={t('report.handoverTo')}
         value={values.handoverName}
         onChange={(handoverName) => update({ handoverName })}
       />
@@ -177,6 +188,7 @@ function ReportForm({
   command,
   onDone,
 }: FormProps) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<ReportValues>(() => initialReportValues(ticket, config));
 
   function update(patch: Partial<ReportValues>) {
@@ -196,11 +208,11 @@ function ReportForm({
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
       <h2 className="text-base font-semibold">
-        {mode === 'late' ? 'Fill breakdown report' : 'Close with breakdown report'}
+        {mode === 'late' ? t('report.fill') : t('report.closeWith')}
       </h2>
       <form
         onSubmit={submit}
-        aria-label={mode === 'late' ? 'Fill breakdown report' : 'Close with breakdown report'}
+        aria-label={mode === 'late' ? t('report.fill') : t('report.closeWith')}
         className="mt-4 space-y-6"
       >
         <DetailsSection values={values} update={update} />
@@ -272,9 +284,13 @@ export function ReportPanel({
     ticket.closeKind === 'no_report' &&
     ticket.kind !== 'general';
 
+  function openLate() {
+    setMode('late');
+  }
+
   return (
     <>
-      {canFileLate && <FillReport onOpen={() => setMode('late')} />}
+      {canFileLate && <FillReport onOpen={openLate} />}
       {canEdit && (
         <ActionBar
           ticket={ticket}

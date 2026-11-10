@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { getMe } from '../api.js';
 import {
   disablePush,
@@ -12,8 +14,15 @@ import {
 const buttonClass =
   'min-h-13 shrink-0 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-50';
 
+function statusText(t: TFunction, state: PushState, note: string): string {
+  if (state === 'on') return t('notifications.on');
+  if (state === 'denied') return note || t('notifications.blocked');
+  return note || t('notifications.prompt');
+}
+
 /** The account-area control: shows the push state and lets the person enable or disable it. */
 export function NotificationsToggle() {
+  const { t } = useTranslation();
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const personId = me.data?.user.actingPersonId;
   const [state, setState] = useState<PushState>('loading');
@@ -47,9 +56,9 @@ export function NotificationsToggle() {
       if (result === 'subscribed') setState('on');
       if (result === 'denied') {
         setState('denied');
-        setNote('Notifications are blocked on this phone.');
+        setNote(t('notifications.blocked'));
       }
-      if (result === 'unavailable') setNote('Notifications are not available on this server.');
+      if (result === 'unavailable') setNote(t('notifications.unavailable'));
       if (result === 'unsupported') setState('unsupported');
     }
     setBusy(false);
@@ -57,23 +66,22 @@ export function NotificationsToggle() {
 
   if (state === 'loading' || state === 'unsupported') return null;
 
-  const status =
-    state === 'on'
-      ? 'Notifications are on for this phone.'
-      : state === 'denied'
-        ? note || 'Notifications are blocked on this phone.'
-        : note || 'Get an alert when tickets change.';
+  const status = statusText(t, state, note);
 
   return (
     <section
-      aria-label="Notifications"
+      aria-label={t('notifications.aria')}
       data-testid="notifications-toggle"
       className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-sm"
     >
       <p className="text-sm text-neutral-600">{status}</p>
       {state !== 'denied' && (
         <button type="button" onClick={() => void toggle()} disabled={busy} className={buttonClass}>
-          {busy ? 'Saving…' : state === 'on' ? 'Turn off' : 'Enable'}
+          {busy
+            ? t('common.saving')
+            : state === 'on'
+              ? t('notifications.turnOff')
+              : t('notifications.enable')}
         </button>
       )}
     </section>
