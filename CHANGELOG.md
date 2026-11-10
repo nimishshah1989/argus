@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- State machine complete (M1a-3b): join, leave, upgrade-kind, late-report, restore, correct, record-past-breakdown. 12 state tests; 57 total.
+
 - Domain state machine (M1a-3): raise, start, pause, resume, transfer, update, running/stopped, close, cancel as pure transitions with time clamping and permission gates. 8 tests.
 
 - Domain permissions (M1a-2): the §3 matrix as pure functions (raise, cancel, work, close, late report, restore, correct, day report, live board, money, analytics, settings). 6 tests.
@@ -33,6 +35,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- State machine complete (M1a-3b): join, leave, upgrade-kind, late-report, restore, correct, record-past-breakdown. 12 state tests; 57 total.
 
 - Domain state machine (M1a-3): raise, start, pause, resume, transfer, update, running/stopped, close, cancel as pure transitions with time clamping and permission gates. 8 tests.
 
