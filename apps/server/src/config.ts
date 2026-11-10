@@ -48,7 +48,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
       'SELECT id, segment_id, code, name, sort, hidden FROM machine_group ORDER BY sort, code',
     );
     const machines = await client.query(
-      'SELECT id, code, category, cell, segment_id, criticality FROM machine ORDER BY code',
+      'SELECT id, code, category, cell, segment_id, group_id, criticality FROM machine ORDER BY code',
     );
     const people = await client.query(
       'SELECT id, name, team, title, active, phone FROM person ORDER BY name',

@@ -12,6 +12,147 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+export type RaiseKind = 'stopped' | 'support' | 'general';
+
+export type TicketStatus = 'open' | 'working' | 'waiting' | 'closed' | 'cancelled';
+
+export type CommandAction =
+  | 'start'
+  | 'join'
+  | 'leave'
+  | 'pause'
+  | 'resume'
+  | 'transfer'
+  | 'update'
+  | 'machine-running'
+  | 'machine-stopped'
+  | 'close'
+  | 'report'
+  | 'cancel'
+  | 'restore'
+  | 'correct'
+  | 'upgrade-kind';
+
+export interface Machine {
+  id: string;
+  code: string;
+  category: string | null;
+  cell: string | null;
+  segment_id: string | null;
+  group_id: string | null;
+  criticality: string | null;
+}
+
+export interface Segment {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface Group {
+  id: string;
+  segment_id: string;
+  code: string;
+  name: string;
+}
+
+export interface ListItem {
+  id: string;
+  code: string;
+  label: string;
+  active: boolean;
+}
+
+export interface Config {
+  features: Record<string, boolean>;
+  language: string;
+  timeZone: string;
+  lists: Record<string, ListItem[]>;
+  segments: Segment[];
+  groups: Group[];
+  machines: Machine[];
+}
+
+export interface Figures {
+  responseMin: number | null;
+  activeMin: number;
+  waitMin: number;
+  vendorMin: number;
+  handoverWaitMin: number;
+  downAccMin: number;
+  downtimeMin: number | null;
+  followMin: number | null;
+  repairMin: number;
+  perPerson: Record<string, number>;
+}
+
+export interface Ticket {
+  id: string;
+  ref: string;
+  kind: RaiseKind;
+  status: TicketStatus;
+  machineId: string | null;
+  problem: string;
+  reportedAt: string;
+  location: string | null;
+  workType: string | null;
+  urgent: boolean;
+  figures: Figures | null;
+}
+
+export interface State {
+  open: Ticket[];
+  now: string;
+}
+
+export interface TicketDetail {
+  ticket: Ticket;
+  events: { seq: number; type: string; at: string; text: string | null }[];
+  people: { personId: string; role: string; leftAt: string | null }[];
+  tasks: unknown[];
+  intervals: { personId: string; role: string; startedAt: string; endedAt: string | null }[];
+}
+
+export interface RaiseTicketBody {
+  kind: RaiseKind;
+  machineId?: string;
+  location?: string;
+  workType?: string;
+  urgent?: boolean;
+  problem: string;
+}
+
+/** A server `{error:{code,message,field}}` body surfaced to the screen. */
+export class ApiError extends Error {
+  code: string;
+  field?: string;
+
+  constructor(code: string, message: string, field?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.field = field;
+  }
+}
+
+async function parseError(res: Response): Promise<ApiError> {
+  try {
+    const body = (await res.json()) as {
+      error?: { code?: string; message?: string; field?: string };
+    };
+    if (body?.error) {
+      return new ApiError(
+        body.error.code ?? 'internal',
+        body.error.message ?? 'Request failed',
+        body.error.field,
+      );
+    }
+  } catch {
+    // Non-JSON error body; fall through to a generic message.
+  }
+  return new ApiError('internal', `Request failed: ${res.status}`);
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set('Content-Type', 'application/json');
@@ -21,8 +162,44 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401) {
     clearToken();
     window.location.assign('/login');
-    throw new Error('unauthorized');
+    throw new ApiError('unauthenticated', 'unauthorized');
   }
-  if (!res.ok) throw new Error(`request failed: ${res.status}`);
+  if (!res.ok) throw await parseError(res);
   return res.json() as Promise<T>;
+}
+
+function idempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
+export function getConfig(): Promise<Config> {
+  return api<Config>('/api/v1/config');
+}
+
+export function raiseTicket(body: RaiseTicketBody): Promise<{ ticket: Ticket }> {
+  return api<{ ticket: Ticket }>('/api/v1/tickets', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey() },
+    body: JSON.stringify(body),
+  });
+}
+
+export function getState(): Promise<State> {
+  return api<State>('/api/v1/state');
+}
+
+export function getTicket(id: string): Promise<TicketDetail> {
+  return api<TicketDetail>(`/api/v1/tickets/${id}`);
+}
+
+export function command(
+  ticketId: string,
+  action: CommandAction,
+  body: Record<string, unknown>,
+): Promise<{ ticket: Ticket }> {
+  return api<{ ticket: Ticket }>(`/api/v1/tickets/${ticketId}/${action}`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey() },
+    body: JSON.stringify(body),
+  });
 }

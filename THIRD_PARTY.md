@@ -6,47 +6,47 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 
 ## Product libraries (planned; versions pinned at install)
 
-| Dependency                       | Layer               | Licence          |
-| -------------------------------- | ------------------- | ---------------- |
-| Fastify                          | server              | MIT              |
-| @fastify/rate-limit              | rate limiting       | MIT              |
-| @node-rs/argon2                  | password hashing    | MIT              |
-| Zod                              | shared schemas      | MIT              |
-| pg-boss                          | jobs                | MIT              |
-| Pino                             | logging             | MIT              |
-| Drizzle ORM                      | database            | Apache-2.0       |
-| pg (node-postgres)               | database driver     | MIT              |
-| React, react-dom                 | web                 | MIT              |
-| Vite                             | web build           | MIT              |
-| React Router                     | web routing         | MIT              |
-| react-router-dom                 | web routing         | MIT              |
-| TanStack Query, TanStack Table   | web data/table      | MIT              |
-| Tailwind CSS                     | web styles          | MIT              |
-| shadcn/ui (copied components)    | web UI              | MIT              |
-| Radix UI primitives              | web accessibility   | MIT              |
-| Lucide                           | icons               | ISC              |
-| Apache ECharts                   | charts              | Apache-2.0       |
-| FullCalendar standard plugins    | PM calendar         | MIT              |
-| vis-timeline                     | resource timeline   | Apache-2.0 / MIT |
-| react-grid-layout                | dashboard layout    | MIT              |
-| Playwright                       | E2E and PDF         | Apache-2.0       |
-| Noto Sans Gujarati / Devanagari  | PDF/UI fonts        | OFL-1.1          |
-| whatsapp-api-js                  | WhatsApp adapter    | MIT              |
-| fastify-raw-body                 | webhook signature   | MIT              |
-| SheetJS Community Edition 0.20.x | import              | Apache-2.0       |
-| PapaParse                        | CSV                 | MIT              |
-| Fuse.js                          | fuzzy matching      | Apache-2.0       |
-| vite-plugin-pwa                  | PWA                 | MIT              |
-| Workbox                          | service worker      | MIT              |
-| idb                              | offline outbox      | ISC              |
-| web-push                         | push                | MPL-2.0          |
-| node-qrcode                      | QR generation       | MIT              |
-| zxing-wasm + barcode-detector    | QR scanning         | MIT              |
-| Vitest                           | tests               | MIT              |
-| Testcontainers                   | database tests      | MIT              |
-| axe-core                         | accessibility tests | MPL-2.0          |
-| fast-check                       | property tests      | MIT              |
-| pdf-parse                        | PDF text tests      | MIT              |
+| Dependency                                               | Layer               | Licence          |
+| -------------------------------------------------------- | ------------------- | ---------------- |
+| Fastify                                                  | server              | MIT              |
+| @fastify/rate-limit                                      | rate limiting       | MIT              |
+| @node-rs/argon2                                          | password hashing    | MIT              |
+| Zod                                                      | shared schemas      | MIT              |
+| pg-boss                                                  | jobs                | MIT              |
+| Pino                                                     | logging             | MIT              |
+| Drizzle ORM                                              | database            | Apache-2.0       |
+| pg (node-postgres)                                       | database driver     | MIT              |
+| React, react-dom                                         | web                 | MIT              |
+| Vite                                                     | web build           | MIT              |
+| React Router                                             | web routing         | MIT              |
+| react-router-dom                                         | web routing         | MIT              |
+| TanStack Query (`@tanstack/react-query`), TanStack Table | web data/table      | MIT              |
+| Tailwind CSS                                             | web styles          | MIT              |
+| shadcn/ui (copied components)                            | web UI              | MIT              |
+| Radix UI primitives                                      | web accessibility   | MIT              |
+| Lucide                                                   | icons               | ISC              |
+| Apache ECharts                                           | charts              | Apache-2.0       |
+| FullCalendar standard plugins                            | PM calendar         | MIT              |
+| vis-timeline                                             | resource timeline   | Apache-2.0 / MIT |
+| react-grid-layout                                        | dashboard layout    | MIT              |
+| Playwright                                               | E2E and PDF         | Apache-2.0       |
+| Noto Sans Gujarati / Devanagari                          | PDF/UI fonts        | OFL-1.1          |
+| whatsapp-api-js                                          | WhatsApp adapter    | MIT              |
+| fastify-raw-body                                         | webhook signature   | MIT              |
+| SheetJS Community Edition 0.20.x                         | import              | Apache-2.0       |
+| PapaParse                                                | CSV                 | MIT              |
+| Fuse.js                                                  | fuzzy matching      | Apache-2.0       |
+| vite-plugin-pwa                                          | PWA                 | MIT              |
+| Workbox                                                  | service worker      | MIT              |
+| idb                                                      | offline outbox      | ISC              |
+| web-push                                                 | push                | MPL-2.0          |
+| node-qrcode                                              | QR generation       | MIT              |
+| zxing-wasm + barcode-detector                            | QR scanning         | MIT              |
+| Vitest                                                   | tests               | MIT              |
+| Testcontainers                                           | database tests      | MIT              |
+| axe-core                                                 | accessibility tests | MPL-2.0          |
+| fast-check                                               | property tests      | MIT              |
+| pdf-parse                                                | PDF text tests      | MIT              |
 
 ## Tools and infrastructure (not shipped as code)
 
