@@ -1,3 +1,5 @@
+# No domain yet: SITE_ADDRESS defaults to :80, so Caddy serves plain HTTP and skips
+# Let's Encrypt. Once a domain exists, set SITE_ADDRESS=cosmos.<domain> for automatic HTTPS.
 {
   email ops@example.com
 }
