@@ -8,8 +8,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **M1a ticket core**: domain figures/permissions/state (#15–#18), tickets API (#23), floor (#26), desk (#27), lists (#29), polish (#31), e2e harness (#33).
 - **M1b shipped early**: breakdown report form (#35), live board + kiosk (#36), breakdown PDF (#37), WhatsApp share text + PWA shell (#40), **offline outbox with cached reads + 409 drafts (#47)**, **web push with the acting-person re-subscribe rule (#48)**.
 - **Core-issue fixes**: C1 RLS on the request path (#42), C2/M1/M2 clocks (#41), C3/M3 corrections (#43), M4 idempotency binding (#44), duplicate-raise race (#38).
+- **i18n layer (M5, #50)**: i18next + react-i18next, a 202-key `en` catalogue and a `gu` placeholder (falls back to English), every web `.tsx` string extracted, and the `i18next/no-literal-string` lint rule enforced for web `.tsx`.
 - **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (13 done / 35 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (161 tests / 24 files); `pnpm test:e2e` green (12 tests on the real stack).
+- Verification: `pnpm verify` green (163 tests / 25 files); `pnpm test:e2e` green (12 tests on the real stack).
 
 ## In flight
 
@@ -17,8 +18,8 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- **M5 (i18n)** — the big remaining review item: add an i18n layer (en + a `gu` placeholder catalogue), extract the UI strings, and turn on a no-literal-string lint rule.
 - M1b parity gaps: day-report PDF, needs-report list, floor cancel-own, desk join/leave actions, account sheet, admin correct/restore faces, Views 1–7 completion.
+- **i18n follow-ups**: move the remaining rendered copy out of `.ts` files to keys (`components/actions.ts` action labels, `components/format.ts` units/elapsed, `screens/board/data.ts` tile statuses); then real Gujarati translations (external, SPEC 1.11).
 - Wire web push to ticket events (M2 escalation) and make `sendPush` tenant-aware; iOS install guidance.
 - Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.
 - M2 SLA/escalation, then M4 analytics (needs Bhavin's platform file + Excel export).
