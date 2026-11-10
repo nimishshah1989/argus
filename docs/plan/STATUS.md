@@ -24,6 +24,10 @@ Session: 1 — foundation, no product code
 
 - **Done.** 26 tables (25 tenant tables), forced RLS, composite `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`. Testcontainers suite: 11 schema/isolation + 2 wrapper tests, plus 4 parity tests = 17 total; two tenants see only their own rows; unset tenant returns zero; cross-tenant FK rejected; expired/revoked/disabled tokens and tampered audit rows rejected. PR #5 merged; schema-review fixes merged in PR #7; CI green.
 
+## M0-0.4 auth
+
+- **Done.** Fastify auth: host tenancy, login/logout/me/change-password, Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared-login acting person, `/brand`. 8 integration tests against Testcontainers; 25 tests total.
+
 ## In progress
 
 - Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.

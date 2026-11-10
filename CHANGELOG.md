@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Auth (M0-0.4): Fastify `login/logout/me/change-password` and `/brand`, Argon2id, opaque bearer token hashed at rest, 30-day sliding sessions, shared-login acting person. 8 integration tests.
+
 - Repository bootstrap: discovery pack under `docs/discovery/`, live spec under `docs/spec/`, build layout under `apps/`, `packages/`, `infra/`.
 - `docs/BUILD-PROTOCOL.md`, `docs/WORKFLOW.md`, `docs/SKILLS.md`, `docs/REVIEW-MECHANISMS.md`, `docs/ORCHESTRATION.md`, `docs/FRONTEND-STRATEGY.md`, `docs/INFRASTRUCTURE.md`, `docs/TESTING.md`.
 - ADRs 0001 (stack), 0002 (hosting and outside services), 0003 (auth, proposed), 0004 (commercial layer deferred).
@@ -17,6 +19,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Auth (M0-0.4): Fastify `login/logout/me/change-password` and `/brand`, Argon2id, opaque bearer token hashed at rest, 30-day sliding sessions, shared-login acting person. 8 integration tests.
 
 - Schema v1: 26 tables, forced RLS, composite tenant foreign keys, `app_router` functions, `withTenant()` and a two-tenant Testcontainers isolation suite (17 tests).
 

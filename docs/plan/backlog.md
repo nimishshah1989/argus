@@ -6,7 +6,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 | Milestone                            | Tickets | Done | In progress |
 | ------------------------------------ | ------- | ---- | ----------- |
-| M0 Foundation and walking skeleton   | 8       | 3    | 0           |
+| M0 Foundation and walking skeleton   | 8       | 4    | 0           |
 | M1a Ticket core                      | 5       | 0    | 0           |
 | M1b Parity complete and soft cutover | 7       | 0    | 0           |
 | M2 Accountability                    | 5       | 0    | 0           |
@@ -15,7 +15,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** `M0-0.4` (auth), `M0-0.5` (settings), `M0-0.6` (seed), `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.3` are done.
+**Frontier now:** `M0-0.5` (settings), `M0-0.6` (seed), `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.4` are done.
 
 ## M0 Foundation and walking skeleton
 
@@ -44,7 +44,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** 0.3
-- **Status:** todo
+- **Status:** done
 - **Acceptance:** auto: contract tests; end-to-end sign-in on two tenants on staging
 
 ### M0-0.5 — Settings API and the first Settings screens: lists with flags, people and logins, machines, shifts, features; translation screen with the untranslated list
