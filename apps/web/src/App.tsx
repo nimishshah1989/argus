@@ -9,6 +9,8 @@ export function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/floor" element={<Floor />} />
       <Route path="/desk" element={<Desk />} />
+      {/* Placeholder until M1a-5b introduces the TicketDetail screen. */}
+      <Route path="/desk/:id" element={<Desk />} />
       <Route path="*" element={<Navigate to="/floor" replace />} />
     </Routes>
   );
