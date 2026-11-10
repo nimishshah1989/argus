@@ -22,6 +22,8 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | react-router-dom                                         | web routing         | MIT              |
 | TanStack Query (`@tanstack/react-query`), TanStack Table | web data/table      | MIT              |
 | Tailwind CSS                                             | web styles          | MIT              |
+| i18next                                                  | web i18n            | MIT              |
+| react-i18next                                            | web i18n            | MIT              |
 | shadcn/ui (copied components)                            | web UI              | MIT              |
 | Radix UI primitives                                      | web accessibility   | MIT              |
 | Lucide                                                   | icons               | ISC              |
@@ -53,6 +55,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Tool                                    | Use                    | Licence            |
 | --------------------------------------- | ---------------------- | ------------------ |
 | TypeScript, ESLint, Prettier, tsx, yaml | build/dev              | MIT / ISC          |
+| eslint-plugin-i18next                   | lint                   | MIT                |
 | Terraform                               | infrastructure as code | MPL-2.0            |
 | Caddy                                   | TLS and static files   | Apache-2.0         |
 | Docker / Docker Compose                 | packaging              | Apache-2.0         |

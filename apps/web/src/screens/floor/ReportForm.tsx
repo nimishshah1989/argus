@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   ApiError,
   raiseTicket,
@@ -39,29 +40,30 @@ const EMPTY_REPORT: ReportValues = {
 type Update = (patch: Partial<ReportValues>) => void;
 
 function GeneralFields({ values, update }: { values: ReportValues; update: Update }) {
+  const { t } = useTranslation();
   return (
     <section className="space-y-4">
       <div>
         <label htmlFor="location" className="text-sm font-medium text-neutral-600">
-          Where?
+          {t('floor.where')}
         </label>
         <input
           id="location"
           value={values.location}
           onChange={(event) => update({ location: event.target.value })}
-          placeholder="Machine area or cell"
+          placeholder={t('floor.wherePlaceholder')}
           className={`mt-2 ${inputClass}`}
         />
       </div>
       <div>
         <label htmlFor="workType" className="text-sm font-medium text-neutral-600">
-          What kind of work?
+          {t('floor.workType')}
         </label>
         <input
           id="workType"
           value={values.workType}
           onChange={(event) => update({ workType: event.target.value })}
-          placeholder="e.g. Clean, move, repair"
+          placeholder={t('floor.workTypePlaceholder')}
           className={`mt-2 ${inputClass}`}
         />
       </div>
@@ -77,10 +79,11 @@ interface ProblemProps {
 }
 
 function ProblemField({ problem, isGeneral, quickProblems, onChange }: ProblemProps) {
+  const { t } = useTranslation();
   return (
     <section>
       <label htmlFor="problem" className="text-sm font-medium text-neutral-600">
-        What is wrong?
+        {t('floor.problem')}
       </label>
       {!isGeneral && quickProblems.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -95,7 +98,7 @@ function ProblemField({ problem, isGeneral, quickProblems, onChange }: ProblemPr
         id="problem"
         value={problem}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Describe the problem"
+        placeholder={t('floor.problemPlaceholder')}
         className="mt-2 min-h-24 w-full rounded-xl border border-neutral-300 bg-white p-4 text-base"
       />
     </section>
@@ -103,6 +106,7 @@ function ProblemField({ problem, isGeneral, quickProblems, onChange }: ProblemPr
 }
 
 function useReportForm(config: Config | undefined, onSent: (ref: string) => void) {
+  const { t } = useTranslation();
   const report = useMutation({ mutationFn: raiseTicket });
   const [values, setValues] = useState<ReportValues>(EMPTY_REPORT);
   const isGeneral = values.kind === 'general';
@@ -113,7 +117,7 @@ function useReportForm(config: Config | undefined, onSent: (ref: string) => void
   const error = report.error
     ? report.error instanceof ApiError
       ? report.error.message
-      : 'Could not send, try again'
+      : t('floor.sendError')
     : null;
 
   function update(patch: Partial<ReportValues>) {
@@ -147,6 +151,7 @@ function useReportForm(config: Config | undefined, onSent: (ref: string) => void
 }
 
 export function ReportForm({ config, onSent }: { config?: Config; onSent: (ref: string) => void }) {
+  const { t } = useTranslation();
   const form = useReportForm(config, onSent);
   const { values } = form;
   return (
@@ -188,7 +193,7 @@ export function ReportForm({ config, onSent }: { config?: Config; onSent: (ref: 
         disabled={!form.valid || form.pending}
         className="min-h-14 w-full rounded-xl bg-accent px-4 text-lg font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
       >
-        {form.pending ? 'Sending…' : 'Send'}
+        {form.pending ? t('common.sending') : t('common.send')}
       </button>
     </form>
   );

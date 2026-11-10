@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App.js';
+import { applyConfigLanguage } from './i18n/index.js';
 import { replayOutbox } from './offline/replay.js';
 import './style.css';
 
@@ -33,6 +34,7 @@ function replayAndRefresh(): void {
 
 void replayAndRefresh();
 window.addEventListener('online', replayAndRefresh);
+applyConfigLanguage();
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>

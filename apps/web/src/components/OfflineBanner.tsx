@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { queueLength } from '../offline/outbox.js';
 
 const POLL_MS = 3_000;
@@ -9,6 +10,7 @@ const POLL_MS = 3_000;
  * refreshes on `online`/`offline` events and a light poll.
  */
 export function OfflineBanner() {
+  const { t } = useTranslation();
   const [online, setOnline] = useState(navigator.onLine);
   const [queued, setQueued] = useState(0);
 
@@ -48,7 +50,7 @@ export function OfflineBanner() {
 
   if (online && queued === 0) return null;
 
-  const message = online ? `${queued} queued, reconnecting…` : 'Offline — closes will be queued';
+  const message = online ? t('offline.queued', { count: queued }) : t('offline.banner');
 
   return (
     <div

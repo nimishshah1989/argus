@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { CommandAction, Ticket } from '../api.js';
 import type { ActionSpec } from './actions.js';
 import { elapsedLabel } from './format.js';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }: Props) {
+  const { t } = useTranslation();
   return (
     <li className="rounded-2xl bg-white p-4 shadow-sm">
       <Link to={`/desk/${ticket.id}`} className="block rounded-lg">
@@ -24,7 +26,7 @@ export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }
         <p className="mt-1 text-sm font-medium text-neutral-600">{machineCode}</p>
         <p className="mt-2 line-clamp-2 text-base text-neutral-900">{ticket.problem}</p>
         <p className="mt-2 text-sm text-neutral-500">
-          Reported {elapsedLabel(ticket.reportedAt, now)}
+          {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt, now) })}
         </p>
       </Link>
       {quick && (

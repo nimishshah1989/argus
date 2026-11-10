@@ -39,6 +39,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-i18next": "^6.1.5",
     "pg": "^8.23.1",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",

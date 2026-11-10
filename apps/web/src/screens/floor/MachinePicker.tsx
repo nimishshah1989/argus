@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Group, Machine, Segment } from '../../api.js';
 import { Chip } from './Chip.js';
 
 function normalize(value: string): string {
   return value.toLowerCase().replace(/[\s-]/g, '');
 }
+
+const SELECTED_TONE = 'border-accent bg-accent text-white';
+const ROW_TONE = 'border-neutral-300 bg-white text-neutral-900';
 
 function filterMachines(
   machines: Machine[],
@@ -31,14 +35,13 @@ interface RowsProps {
 }
 
 function MachineRows({ machines, machineId, onMachine }: RowsProps) {
-  if (machines.length === 0) return <p className="text-neutral-500">No machines match.</p>;
+  const { t } = useTranslation();
+  if (machines.length === 0) return <p className="text-neutral-500">{t('floor.noMachines')}</p>;
   return (
     <ul className="grid gap-2">
       {machines.map((machine) => {
         const selected = machine.id === machineId;
-        const tone = selected
-          ? 'border-accent bg-accent text-white'
-          : 'border-neutral-300 bg-white text-neutral-900';
+        const tone = selected ? SELECTED_TONE : ROW_TONE;
         return (
           <li key={machine.id}>
             <button
@@ -67,12 +70,13 @@ interface ChipsProps {
 }
 
 function PickerChips({ segments, groups, segmentId, groupId, onSegment, onGroup }: ChipsProps) {
+  const { t } = useTranslation();
   return (
     <>
       {segments.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <Chip active={!segmentId} onClick={() => onSegment('')}>
-            All
+            {t('floor.all')}
           </Chip>
           {segments.map((segment) => (
             <Chip
@@ -125,6 +129,7 @@ export function MachinePicker({
   machineId,
   onMachine,
 }: Props) {
+  const { t } = useTranslation();
   const hasGroups = machines.some((machine) => machine.group_id != null);
   const segmentGroups = useMemo(
     () => groups.filter((group) => !segmentId || group.segment_id === segmentId),
@@ -137,13 +142,13 @@ export function MachinePicker({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-medium text-neutral-600">Which machine?</h2>
+      <h2 className="text-sm font-medium text-neutral-600">{t('floor.whichMachine')}</h2>
       <input
         type="search"
         value={search}
         onChange={(event) => onSearch(event.target.value)}
-        placeholder="Search by code or cell"
-        aria-label="Search machines"
+        placeholder={t('floor.searchPlaceholder')}
+        aria-label={t('floor.searchLabel')}
         className="min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base"
       />
       <PickerChips

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { getConfig, getState, type Config, type Ticket } from '../api.js';
 import { errorMessage, formatTime } from '../components/format.js';
 import { BoardSections } from './board/BoardSections.js';
@@ -13,13 +14,14 @@ const REFETCH_MS = 30_000;
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
 function BoardNav() {
+  const { t } = useTranslation();
   return (
     <nav className="mb-6 flex gap-2">
       <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
-        Report
+        {t('nav.report')}
       </Link>
       <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
-        Desk
+        {t('nav.desk')}
       </Link>
     </nav>
   );
@@ -34,14 +36,15 @@ function BoardHeader({
   now?: string;
   timeZone?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <header>
       <h1 className={kiosk ? 'text-4xl font-semibold tracking-tight' : 'text-2xl font-semibold'}>
-        Live board
+        {t('board.title')}
       </h1>
       {now && (
         <p className={`mt-1 text-neutral-500 ${kiosk ? 'text-lg' : 'text-sm'}`}>
-          Updated {formatTime(now, timeZone)}
+          {t('board.updated', { time: formatTime(now, timeZone) })}
         </p>
       )}
     </header>
@@ -59,7 +62,8 @@ interface ContentProps {
 }
 
 function BoardContent({ kiosk, open, config, filter, onFilter, loading, error }: ContentProps) {
-  if (loading) return <p className="mt-6 text-neutral-500">Loading…</p>;
+  const { t } = useTranslation();
+  if (loading) return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
   if (error) {
     return (
       <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">

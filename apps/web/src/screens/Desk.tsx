@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   getConfig,
   getMe,
@@ -21,26 +22,38 @@ import { OfflineBanner } from '../components/OfflineBanner.js';
 
 type Tab = 'open' | 'mine' | 'team';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'open', label: 'Open' },
-  { id: 'mine', label: 'Mine' },
-  { id: 'team', label: 'Team' },
-];
-
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
-const GROUPS = [
-  { kind: 'stopped' as const, title: 'Breakdowns', empty: 'No breakdowns.' },
-  { kind: 'general' as const, title: 'Tasks', empty: 'No tasks.' },
-  { kind: 'support' as const, title: 'Work', empty: 'No work requests.' },
-];
+function DeskNav() {
+  const { t } = useTranslation();
+  return (
+    <nav className="mb-6 flex gap-2">
+      <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
+        {t('nav.report')}
+      </Link>
+      <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
+        {t('nav.desk')}
+      </Link>
+    </nav>
+  );
+}
 
 function Counts({ open }: { open: Ticket[] }) {
+  const { t } = useTranslation();
   const counts = [
-    { label: 'Open', value: open.length },
-    { label: 'Stopped', value: open.filter((ticket) => ticket.kind === 'stopped').length },
-    { label: 'Support', value: open.filter((ticket) => ticket.kind === 'support').length },
-    { label: 'General', value: open.filter((ticket) => ticket.kind === 'general').length },
+    { label: t('desk.count.open'), value: open.length },
+    {
+      label: t('desk.count.stopped'),
+      value: open.filter((ticket) => ticket.kind === 'stopped').length,
+    },
+    {
+      label: t('desk.count.support'),
+      value: open.filter((ticket) => ticket.kind === 'support').length,
+    },
+    {
+      label: t('desk.count.general'),
+      value: open.filter((ticket) => ticket.kind === 'general').length,
+    },
   ];
   return (
     <dl className="mt-4 grid grid-cols-4 gap-2">
@@ -55,6 +68,7 @@ function Counts({ open }: { open: Ticket[] }) {
 }
 
 function TeamNow({ open, people }: { open: Ticket[]; people: Person[] | undefined }) {
+  const { t } = useTranslation();
   const leads = new Map<string, string>();
   for (const ticket of open) {
     if (ticket.status !== 'working' || !ticket.leadPersonId) continue;
@@ -62,11 +76,11 @@ function TeamNow({ open, people }: { open: Ticket[]; people: Person[] | undefine
     if (name) leads.set(ticket.leadPersonId, name);
   }
   return (
-    <section aria-label="Team now" className="mt-6">
-      <h2 className="text-sm font-medium text-neutral-600">Team now</h2>
+    <section aria-label={t('desk.teamNow')} className="mt-6">
+      <h2 className="text-sm font-medium text-neutral-600">{t('desk.teamNow')}</h2>
       {leads.size === 0 ? (
         <p className="mt-2 text-neutral-500">
-          {people ? 'Nobody is working right now.' : 'Loading…'}
+          {people ? t('desk.teamNowEmpty') : t('common.loading')}
         </p>
       ) : (
         <ul className="mt-2 flex flex-wrap gap-2">
@@ -82,13 +96,19 @@ function TeamNow({ open, people }: { open: Ticket[]; people: Person[] | undefine
 }
 
 function Tabs({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
+  const { t } = useTranslation();
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'open', label: t('desk.tab.open') },
+    { id: 'mine', label: t('desk.tab.mine') },
+    { id: 'team', label: t('desk.tab.team') },
+  ];
   return (
     <div
       role="group"
-      aria-label="Ticket lists"
+      aria-label={t('desk.ticketLists')}
       className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-neutral-200 p-1"
     >
-      {TABS.map((item) => {
+      {tabs.map((item) => {
         const selected = item.id === tab;
         return (
           <button
@@ -167,8 +187,10 @@ interface BoardProps {
 }
 
 function Board({ state, people, machines, canQuick, pending, onQuick }: BoardProps) {
+  const { t } = useTranslation();
   const open = state.data?.open ?? [];
-  if (state.isLoading && !state.data) return <p className="mt-6 text-neutral-500">Loading…</p>;
+  if (state.isLoading && !state.data)
+    return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
   if (state.error) {
     return (
       <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
@@ -176,12 +198,21 @@ function Board({ state, people, machines, canQuick, pending, onQuick }: BoardPro
       </p>
     );
   }
+  const groups = [
+    {
+      kind: 'stopped' as const,
+      title: t('desk.group.breakdowns'),
+      empty: t('desk.empty.breakdowns'),
+    },
+    { kind: 'general' as const, title: t('desk.group.tasks'), empty: t('desk.empty.tasks') },
+    { kind: 'support' as const, title: t('desk.group.work'), empty: t('desk.empty.work') },
+  ];
   return (
     <>
       <Counts open={open} />
       <TeamNow open={open} people={people} />
       <div className="mt-6 space-y-6">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <TicketList
             key={group.kind}
             title={group.title}
@@ -208,7 +239,8 @@ interface MineProps {
 }
 
 function MinePanel({ tickets, machines, now, isLoading, error }: MineProps) {
-  if (isLoading) return <p className="mt-6 text-neutral-500">Loading…</p>;
+  const { t } = useTranslation();
+  if (isLoading) return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
   if (error) {
     return (
       <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
@@ -219,8 +251,8 @@ function MinePanel({ tickets, machines, now, isLoading, error }: MineProps) {
   return (
     <div className="mt-6">
       <TicketList
-        title="My tickets"
-        empty="Nothing assigned to you."
+        title={t('desk.mineTitle')}
+        empty={t('desk.mineEmpty')}
         tickets={tickets}
         machines={machines}
         now={now}
@@ -233,6 +265,7 @@ function MinePanel({ tickets, machines, now, isLoading, error }: MineProps) {
 }
 
 export function Desk() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('open');
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
@@ -255,16 +288,9 @@ export function Desk() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">
-      <nav className="mb-6 flex gap-2">
-        <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
-          Report
-        </Link>
-        <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
-          Desk
-        </Link>
-      </nav>
+      <DeskNav />
 
-      <h1 className="text-2xl font-semibold">Tickets</h1>
+      <h1 className="text-2xl font-semibold">{t('desk.title')}</h1>
       <OfflineBanner />
       <NotificationsToggle />
       <Drafts />

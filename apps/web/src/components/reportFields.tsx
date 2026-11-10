@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   BreakdownCategory,
   BreakdownReportBody,
@@ -207,6 +208,7 @@ interface SelectProps {
 }
 
 export function SelectField({ id, label, value, options, onChange }: SelectProps) {
+  const { t } = useTranslation();
   return (
     <label htmlFor={id} className="block">
       <span className={labelClass}>{label}</span>
@@ -216,7 +218,7 @@ export function SelectField({ id, label, value, options, onChange }: SelectProps
         onChange={(event) => onChange(event.target.value)}
         className={inputClass}
       >
-        <option value="">Choose…</option>
+        <option value="">{t('common.choose')}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -228,36 +230,36 @@ export function SelectField({ id, label, value, options, onChange }: SelectProps
 }
 
 export function FillReport({ onOpen }: { onOpen: () => void }) {
+  const { t } = useTranslation();
   return (
     <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">Breakdown report</h2>
-      <p className="mt-2 text-sm text-neutral-600">
-        This ticket was closed without a report. File it now to complete the record.
-      </p>
+      <h2 className="text-sm font-medium text-neutral-600">{t('report.title')}</h2>
+      <p className="mt-2 text-sm text-neutral-600">{t('report.fillPrompt')}</p>
       <button
         type="button"
         onClick={onOpen}
         className="mt-3 min-h-13 w-full rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90"
       >
-        Fill report
+        {t('report.fillButton')}
       </button>
     </section>
   );
 }
 
 export function ContextSection({ values, update, config }: ReportValuesProps & { config: Config }) {
+  const { t } = useTranslation();
   return (
-    <Section title="When">
+    <Section title={t('report.when')}>
       <Field
         id="report-date"
-        label="Date"
+        label={t('report.date')}
         value={values.date}
         onChange={(date) => update({ date })}
         type="date"
       />
       <SelectField
         id="report-shift"
-        label="Shift"
+        label={t('report.shift')}
         value={values.shiftCode}
         options={shiftOptions(config.shifts)}
         onChange={(shiftCode) => update({ shiftCode })}

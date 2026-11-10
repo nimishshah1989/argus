@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { legalActions } from './actions.js';
 import { ActionForm } from './ActionForm.js';
@@ -16,6 +17,7 @@ interface Props {
 
 /** Only the actions legal from this status (DOMAIN.md §2); one of them is primary. */
 export function ActionBar({ ticket, config, personId, error, pending, onRun }: Props) {
+  const { t } = useTranslation();
   const [openForm, setOpenForm] = useState<CommandAction | null>(null);
   const actions = legalActions(ticket);
   if (actions.length === 0) return null;
@@ -29,8 +31,8 @@ export function ActionBar({ ticket, config, personId, error, pending, onRun }: P
   }
 
   return (
-    <section aria-label="Actions" className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">Actions</h2>
+    <section aria-label={t('action.aria')} className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
+      <h2 className="text-sm font-medium text-neutral-600">{t('action.aria')}</h2>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {actions.map((item) => (
           <button
