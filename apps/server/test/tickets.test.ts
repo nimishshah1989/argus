@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { hash } from '@node-rs/argon2';
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { startTestDb, type TestDb } from './harness.js';
 
 // Cosmos tenant and its people/logins/machines.
 const TENANT = '10000000-0000-0000-0000-000000000001';
@@ -29,8 +28,8 @@ const PASSWORD = 'correct-horse-battery';
 type App = Awaited<ReturnType<typeof buildApp>>;
 type Res = Awaited<ReturnType<App['inject']>>;
 
-let container: StartedPostgreSqlContainer;
-let pool: Pool;
+let db: TestDb;
+let admin: Pool;
 let app: App;
 let ashaToken = '';
 let binaToken = '';
@@ -117,26 +116,22 @@ function ticketOf(res: Res): TicketBody {
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  pool = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
-  await pool.query(
-    readFileSync(
-      new URL('../../../packages/db/migrations/0001_schema_v1.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  db = await startTestDb();
+  admin = db.admin;
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2, // Argon2id
     memoryCost: 19456,
     timeCost: 2,
     parallelism: 1,
   });
-  await pool.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [TENANT]);
-  await pool.query(
+  await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [
+    TENANT,
+  ]);
+  await admin.query(
     "INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, 'CNC', 'CNC', 0)",
     [SEGMENT, TENANT],
   );
-  await pool.query(
+  await admin.query(
     `INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES
      ($1, $5, 'VC-1', $6, 'VMC', 'Cell-1'),
      ($2, $5, 'VC-2', $6, 'VMC', 'Cell-1'),
@@ -144,7 +139,7 @@ beforeAll(async () => {
      ($4, $5, 'VC-4', $6, 'VMC', 'Cell-2')`,
     [MACHINE, MACHINE_PERM, MACHINE_GET, MACHINE_KEY, TENANT, SEGMENT],
   );
-  await pool.query(
+  await admin.query(
     `INSERT INTO person (id, tenant_id, name, team, title) VALUES
      ($1, $5, 'Asha', 'maintenance', 'Technician'),
      ($2, $5, 'Bina', 'maintenance', 'Technician'),
@@ -152,7 +147,7 @@ beforeAll(async () => {
      ($4, $5, 'Admin', 'maintenance', 'Head')`,
     [ASHA, BINA, OPERATOR, ADMIN_PERSON, TENANT],
   );
-  await pool.query(
+  await admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared) VALUES
      ($1, $10, $5, 'asha', $11, 'technician', false),
      ($2, $10, $6, 'bina', $11, 'technician', false),
@@ -173,20 +168,20 @@ beforeAll(async () => {
       passwordHash,
     ],
   );
-  await pool.query(
+  await admin.query(
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 150)",
     [TENANT],
   );
   // Second tenant with one ticket, used only to assert cross-tenant 404.
-  await pool.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'plant-two', 'Plant Two')", [
+  await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'plant-two', 'Plant Two')", [
     TENANT_2,
   ]);
-  await pool.query(
+  await admin.query(
     "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-9999', 'stopped', 'open', 'Other tenant', now())",
     [TICKET_2, TENANT_2],
   );
 
-  app = await buildApp({ pool, logger: false, rateLimitMax: 100000 });
+  app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
   ashaToken = await login('asha');
   binaToken = await login('bina');
   opToken = await login('op');
@@ -194,8 +189,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
-  await pool.end();
-  await container.stop();
+  await db.stop();
 });
 
 describe('tickets', () => {
