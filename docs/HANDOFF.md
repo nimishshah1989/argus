@@ -16,7 +16,10 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- **M1a-5 floor and desk** — the real faces on top of the API (write `docs/slices/M1a-5.md` first).
+- **M1a-5 floor and desk** — plan written in `docs/slices/M1a-5.md`. Build in order:
+  1. **M1a-5a** — scaffold (Tailwind + TanStack Query + typed api client, first commit), then the Floor face (SPEC 1.3).
+  2. **M1a-5b** — Desk face (SPEC 1.4): Open board, ticket detail, state-dependent actions.
+  3. **M1a-5c** (follow-up) — `GET /tickets` list endpoint + Mine/Team/My-complaints.
 - Re-run `terraform validate/plan` before `apply` (terraform not installed on this machine; the optional-`domain` HCL change is unverified there).
 
 ## Known deferrals (M1a-4 out of scope, see the slice plan)
