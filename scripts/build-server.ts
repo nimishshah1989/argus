@@ -9,8 +9,8 @@ await build({
   outfile: 'apps/server/dist/server.mjs',
   external: ['@node-rs/argon2'],
   alias: {
-    '@argus/db': './packages/db/src/index.ts',
-    '@argus/shared': './packages/shared/src/index.ts',
+    '@uptimo/db': './packages/db/src/index.ts',
+    '@uptimo/shared': './packages/shared/src/index.ts',
   },
   sourcemap: true,
   logLevel: 'info',

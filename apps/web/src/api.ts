@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'argus_token';
+const TOKEN_KEY = 'uptimo_token';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

@@ -1,5 +1,5 @@
 {
-  "name": "@argus/shared",
+  "name": "@uptimo/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",

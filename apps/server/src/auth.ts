@@ -1,8 +1,8 @@
 import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
-import { apiError, changePasswordSchema, loginSchema } from '@argus/shared';
-import { withTenant } from '@argus/db';
+import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
+import { withTenant } from '@uptimo/db';
 import { bearerToken, hashToken, newToken } from './session.js';
 import { resolveTenant, tenantSlugFromHost } from './tenant.js';
 import type { AppConfig } from './config.js';

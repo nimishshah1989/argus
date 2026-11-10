@@ -56,18 +56,18 @@ importers:
 
   apps/server:
     dependencies:
-      '@argus/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@argus/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@fastify/rate-limit':
         specifier: ^10.3.0
         version: 10.3.0
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2
+      '@uptimo/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@uptimo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       fastify:
         specifier: ^5.6.2
         version: 5.12.8

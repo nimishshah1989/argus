@@ -7,7 +7,7 @@ terraform {
   }
   # State goes to S3 once the account exists (use_lockfile avoids a DynamoDB table):
   # backend "s3" {
-  #   bucket         = "argus-terraform-state"
+  #   bucket         = "uptimo-tfstate-118167167649"
   #   key            = "terraform.tfstate"
   #   region         = "ap-south-1"
   #   encrypt        = true
@@ -22,7 +22,7 @@ variable "region" {
 
 variable "app" {
   type    = string
-  default = "argus"
+  default = "uptimo"
 }
 
 variable "domain" {
@@ -31,12 +31,12 @@ variable "domain" {
 
 variable "db_name" {
   type    = string
-  default = "argus"
+  default = "uptimo"
 }
 
 variable "db_username" {
   type    = string
-  default = "argus"
+  default = "uptimo"
 }
 
 variable "instance_type" {
@@ -51,7 +51,7 @@ variable "github_org" {
 
 variable "github_repo" {
   type    = string
-  default = "argus"
+  default = "uptimo"
 }
 
 variable "billing_email" {
@@ -278,7 +278,7 @@ resource "aws_instance" "server" {
     set -e
     dnf install -y docker
     systemctl enable --now docker
-    mkdir -p /opt/argus
+    mkdir -p /opt/uptimo
     usermod -aG docker ec2-user
   EOT
   tags                   = { Name = "${var.app}-server" }

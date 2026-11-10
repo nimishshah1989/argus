@@ -1,4 +1,4 @@
-# Argus — Maintenance OS
+# Uptimo — Maintenance OS
 
 A maintenance operating system for Indian factories: a breakdown is reported in three taps or a voice note, becomes a ticket with a named owner, two clocks and an escalation path, is closed with a coded report and signed off by production, and feeds analytics that forecast the next breakdown.
 
