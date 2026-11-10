@@ -20,9 +20,13 @@ Session: 1 — foundation, no product code
 
 - **Done.** Hand-rolled sessions vs better-auth on Postgres 16. Hand-rolled: RLS 1/1, shared acting person, 30-day sliding, 132 lines including schema/test. better-auth: sign-up/sign-in/Argon2id/30-day work, but the session `tenantId` is null after sign-in and the model is email-first with 4 core tables; rejected. ADR 0003 accepted; `SPEC.md` and `THIRD_PARTY.md` updated.
 
+## M0-0.3 schema
+
+- **Done.** 25 tables (24 tenant tables), forced RLS, composite `(tenant_id, id)` foreign keys, `tenant_by_slug` and `auth_lookup`. Testcontainers suite: 8 isolation + 2 wrapper tests, 14 total; two tenants see only their own rows; unset tenant returns zero; cross-tenant FK rejected; disabled/expired/revoked tokens rejected. PR pending.
+
 ## In progress
 
-- M0-0.1 scaffold: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
+- Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
 - Auth spike (ADR 0003) pending.
 - Figure strategy spike (`handsOn: lead | union`) pending.
 

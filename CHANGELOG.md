@@ -16,6 +16,10 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Anti-bloat mechanism: Ponytail skill (MIT, adapted), `docs/LEAN.md`, `docs/QUALITY-BAR.md`, file/function/dependency/PR-size/shortcut checks.
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
+### Added
+
+- Schema v1: 25 tables, forced RLS, composite tenant foreign keys, `app_router` functions, `withTenant()` and a two-tenant Testcontainers isolation suite (14 tests).
+
 ### Changed
 
 - Auth: hand-rolled sessions chosen by the M0 spike (ADR 0003); better-auth removed from the spec and `THIRD_PARTY.md`.
