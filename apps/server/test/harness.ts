@@ -1,6 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
+
+const MIGRATIONS = new URL('../../../packages/db/migrations/', import.meta.url);
+
+/** Every migration file, in filename order (so new migrations are applied automatically). */
+function migrationFiles(): string[] {
+  return readdirSync(MIGRATIONS)
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
+}
 
 /** Test-only credential for the `app_api` login role (set via ALTER ROLE after migration). */
 export const APP_API_PASSWORD = 'app-api-test-password';
@@ -22,10 +31,8 @@ export interface TestDb {
 export async function startTestDb(): Promise<TestDb> {
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
   const admin = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
-  for (const file of ['0001_schema_v1.sql', '0002_app_api_role.sql']) {
-    await admin.query(
-      readFileSync(new URL(`../../../packages/db/migrations/${file}`, import.meta.url), 'utf8'),
-    );
+  for (const file of migrationFiles()) {
+    await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
   }
   await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
   const app = new Pool({
