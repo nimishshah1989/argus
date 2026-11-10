@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { raiseTicket, transition, TransitionError } from '../src/state.js';
+import { raiseTicket, recordPastBreakdown, transition, TransitionError } from '../src/state.js';
+import { figures } from '../src/figures.js';
 import type { ActorContext, CrewMember, TicketEvent, WorkSegment } from '../src/types.js';
 import type { Ticket } from '../src/ticket.js';
 
@@ -309,13 +310,90 @@ describe('remaining commands', () => {
     ).toThrow(TransitionError);
   });
 
-  it('lets an admin correct a ticket', () => {
+  it('lets an admin correct a ticket and records from/to', () => {
     const result = run(
       base(),
       { type: 'correct', personId: 'person-1', reason: 'Fix', changes: { problem: 'New problem' } },
       ctx('admin'),
     );
     expect(result.ticket.problem).toBe('New problem');
-    expect(result.events.at(-1)?.type).toBe('edit');
+    expect(result.events.at(-1)).toMatchObject({
+      type: 'edit',
+      changes: [{ field: 'problem', from: 'Spindle alarm', to: 'New problem' }],
+    });
+  });
+
+  it('rejects a non-admin correction', () => {
+    expect(() =>
+      run(
+        base(),
+        { type: 'correct', personId: 'person-1', reason: 'Fix', changes: { problem: 'X' } },
+        ctx('technician'),
+      ),
+    ).toThrow(TransitionError);
+  });
+
+  it('rejects a correction more than 7 days after close', () => {
+    const closed = base({
+      status: 'closed',
+      closeKind: 'report',
+      closedAt: t('2025-12-24T12:00:00Z'),
+    });
+    expect(() =>
+      run(
+        closed,
+        { type: 'correct', personId: 'person-1', reason: 'Fix', changes: { problem: 'X' } },
+        ctx('admin'),
+      ),
+    ).toThrow(TransitionError);
+  });
+
+  it('rejects a correction that puts closedAt before startedAt', () => {
+    const working = base({
+      status: 'working',
+      reportedAt: t('2026-01-01T09:00:00Z'),
+      startedAt: t('2026-01-01T10:00:00Z'),
+      leadPersonId: 'person-1',
+    });
+    expect(() =>
+      run(
+        working,
+        {
+          type: 'correct',
+          personId: 'person-1',
+          reason: 'Fix',
+          changes: { closedAt: t('2026-01-01T09:30:00Z') },
+        },
+        ctx('admin'),
+      ),
+    ).toThrow(TransitionError);
+  });
+
+  it('records a past breakdown without inventing hands-on time', () => {
+    const past = recordPastBreakdown({
+      id: 't-past',
+      ref: 'BD-9000',
+      kind: 'stopped',
+      machineId: 'm-1',
+      problem: 'Old breakdown',
+      reportedAt: t('2026-01-01T09:00:00Z'),
+      closedAt: t('2026-01-01T10:00:00Z'),
+      raisedLoginId: 'login-1',
+      reportedByPersonId: 'person-1',
+      closedByPersonId: 'person-1',
+    });
+    expect(past.segments).toHaveLength(0);
+    expect(past.ticket.startedAt).toBeNull();
+    expect(past.ticket.leadPersonId).toBeNull();
+    const f = figures({
+      reportedAt: past.ticket.reportedAt,
+      kind: 'stopped',
+      selfStarted: false,
+      events: past.events,
+      segments: past.segments,
+      now: t('2026-01-01T10:00:00Z'),
+      closedAt: past.ticket.closedAt ?? undefined,
+    });
+    expect(f.activeMin).toBe(0);
   });
 });

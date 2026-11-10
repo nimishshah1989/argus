@@ -39,6 +39,8 @@ export interface CorrectChanges {
   kind?: 'stopped' | 'support' | 'general';
   leadPersonId?: string | null;
   closedByPersonId?: string | null;
+  handsOnOverrideMin?: number;
+  waitingOverrideMin?: number;
 }
 
 export interface TransitionInput {
