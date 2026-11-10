@@ -9,6 +9,8 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Dependency                       | Layer               | Licence          |
 | -------------------------------- | ------------------- | ---------------- |
 | Fastify                          | server              | MIT              |
+| @fastify/rate-limit              | rate limiting       | MIT              |
+| @node-rs/argon2                  | password hashing    | MIT              |
 | Zod                              | shared schemas      | MIT              |
 | pg-boss                          | jobs                | MIT              |
 | Pino                             | logging             | MIT              |

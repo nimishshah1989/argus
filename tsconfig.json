@@ -11,7 +11,11 @@
     "types": ["node"],
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@argus/db": ["./packages/db/src/index.ts"],
+      "@argus/shared": ["./packages/shared/src/index.ts"]
+    }
   },
   "include": [
     "playwright.config.ts",
