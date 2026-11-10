@@ -10,6 +10,7 @@ A maintenance operating system for Indian factories: a breakdown is reported in 
 | [docs/REVIEW-MECHANISMS.md](docs/REVIEW-MECHANISMS.md) | The review ladder, risk tiers, proof for every backend capability, and CI gates |
 | [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md) | Goal loop, graph loop, parallel workers and the orchestrator |
 | [docs/FRONTEND-STRATEGY.md](docs/FRONTEND-STRATEGY.md) | The role-first frontend, design system, screens, quality bar and design process |
+| [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) | AWS-only, low-cost infrastructure: services, monthly cost, open-source stack, no Supabase/NAT/ALB |
 | [docs/spec/SPEC.md](docs/spec/SPEC.md) | The build specification: stack, product, milestones, architecture, data, non-functional requirements |
 | [docs/spec/DOMAIN.md](docs/spec/DOMAIN.md) | Entities, ticket state machine, permissions, API contract, exact figure definitions |
 | [docs/spec/PARITY.md](docs/spec/PARITY.md) | Everything Bhavin's two tools do, and our stance on each row |

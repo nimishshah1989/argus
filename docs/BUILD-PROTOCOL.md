@@ -1,7 +1,7 @@
 # Build protocol — how this product gets built
 
 Written 10 November 2026 for Nimish (product owner) and the build agent (engineering lead).
-This is the working agreement. The detailed review ladder is in `docs/REVIEW-MECHANISMS.md`; the goal/graph orchestration and parallel policy is in `docs/ORCHESTRATION.md`. If this file conflicts with `CLAUDE.md` or the harness, the precedence is:
+This is the working agreement. The detailed review ladder is in `docs/REVIEW-MECHANISMS.md`; the goal/graph orchestration and parallel policy is in `docs/ORCHESTRATION.md`; the low-cost AWS shape is in `docs/INFRASTRUCTURE.md`. If this file conflicts with `CLAUDE.md` or the harness, the precedence is:
 direct instruction → `CLAUDE.md` → `.claude/harness/CLAUDE.md` → this file → individual skill defaults.
 
 ---
@@ -97,7 +97,7 @@ phones / WhatsApp / QR
 | Charts / tables | ECharts, TanStack Table | One chart system, one table system |
 | PDFs | Playwright + Chromium + Noto Gujarati/Devanagari | The only reliable way to shape Indic scripts |
 | Files | S3 with versioning | PDFs, photos, voice notes, imports, backups |
-| Hosting | AWS Mumbai (ap-south-1), EC2 + Docker Compose + Caddy, RDS, Secrets Manager | Data stays in India; one-command deploy and rollback |
+| Hosting | AWS Mumbai (ap-south-1), EC2 + Docker Compose + Caddy, RDS, S3, SES, SSM, CloudWatch | Data stays in India; one-command deploy and rollback; no Supabase, no Vercel, no NAT, no ALB — see `docs/INFRASTRUCTURE.md` |
 | Tenancy | Shared schema + `tenant_id` + row-level security | Lowest cost and effort at this scale; database-per-tenant is a later enterprise option |
 | Analytics | `packages/engine`, legacy profile first, Python sidecar only when needed | Reproduce Bhavin’s numbers exactly, then improve |
 
@@ -336,7 +336,7 @@ If only some arrive tomorrow: the export + Worker unblock the import; the platfo
 
 Do not buy the production WhatsApp number or start AWS production until the M1b gate. Staging first. Every credential goes into Secrets Manager or `.env.local`, never into a file that can be committed.
 
-**Costs to expect:** roughly USD 110–150 a month for two AWS environments, plus WhatsApp per-message and Sarvam per-minute fees; a billing alarm at ₹30,000. The caps are settings with tests, not good intentions.
+**Costs to expect:** roughly USD 60–95 a month for two AWS environments (production RDS, staging self-hosted or a second database), plus WhatsApp per-message and Sarvam per-minute fees; a billing alarm at ₹30,000. No Supabase, no Vercel, no Redis, no NAT, no ALB, no paid APM. The caps are settings with tests, not good intentions. The full cost model is in `docs/INFRASTRUCTURE.md`.
 
 ---
 

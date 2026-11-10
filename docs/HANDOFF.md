@@ -10,7 +10,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 ## In flight
 
 - Build-readiness review: `docs/discovery/review/04-build-readiness-review.md`.
-- Working agreement: `docs/BUILD-PROTOCOL.md`; review ladder: `docs/REVIEW-MECHANISMS.md`; goal/graph and parallel policy: `docs/ORCHESTRATION.md`; frontend strategy: `docs/FRONTEND-STRATEGY.md`.
+- Working agreement: `docs/BUILD-PROTOCOL.md`; review ladder: `docs/REVIEW-MECHANISMS.md`; goal/graph and parallel policy: `docs/ORCHESTRATION.md`; frontend strategy: `docs/FRONTEND-STRATEGY.md`; infrastructure: `docs/INFRASTRUCTURE.md`.
 
 ## Next
 
@@ -23,6 +23,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 - Commercial shape: managed pilot for Cosmos; billing, self-serve signup, plan enforcement and invoices are **deferred to after M6** (ADR 0004). Tenant setup is manual until then.
 - Stack: own TypeScript monorepo per `docs/spec/SPEC.md` §0/§5; no Atlas fork, no Next.js, no microservices.
+- Infrastructure: AWS Mumbai only; no Supabase, no Vercel, no Redis, no NAT/ALB/ECS; RDS Postgres for production, one Graviton EC2 per environment; ~$60–95/month for both environments (`docs/INFRASTRUCTURE.md`, ADR 0002).
 - v1 schema: `tenant_id` only, no `plant` and no settings scopes until M5.
 - Auth: one design; the M0 spike chooses hand-rolled sessions or better-auth, recorded as ADR 0003.
 - Figures: `handsOn: lead|union` strategy; Bhavin's Worker source required before freezing.
