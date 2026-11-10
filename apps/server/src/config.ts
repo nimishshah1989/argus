@@ -36,28 +36,28 @@ function listItem(row: Record<string, unknown>) {
 
 export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPayload> {
   return withTenant(pool, tenantId, async (client) => {
-    const [lists, segments, groups, machines, people, shifts, settings, tenant] = await Promise.all(
-      [
-        client.query(
-          'SELECT id, list, code, label, label_gu, label_hi, sort, active, is_vendor, pauses_sla, tag FROM list_item ORDER BY list, sort, code',
-        ),
-        client.query(
-          'SELECT id, code, name, sort, show_on_board, group_by FROM segment ORDER BY sort, code',
-        ),
-        client.query(
-          'SELECT id, segment_id, code, name, sort, hidden FROM machine_group ORDER BY sort, code',
-        ),
-        client.query(
-          'SELECT id, code, category, cell, segment_id, criticality FROM machine ORDER BY code',
-        ),
-        client.query('SELECT id, name, team, title, active, phone FROM person ORDER BY name'),
-        client.query(
-          'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
-        ),
-        client.query('SELECT key, value FROM setting'),
-        client.query('SELECT * FROM tenant_info($1)', [tenantId]),
-      ],
+    // Sequential queries: a single pg client cannot run concurrent queries
+    // ("Calling client.query() when the client is already executing a query").
+    const lists = await client.query(
+      'SELECT id, list, code, label, label_gu, label_hi, sort, active, is_vendor, pauses_sla, tag FROM list_item ORDER BY list, sort, code',
     );
+    const segments = await client.query(
+      'SELECT id, code, name, sort, show_on_board, group_by FROM segment ORDER BY sort, code',
+    );
+    const groups = await client.query(
+      'SELECT id, segment_id, code, name, sort, hidden FROM machine_group ORDER BY sort, code',
+    );
+    const machines = await client.query(
+      'SELECT id, code, category, cell, segment_id, criticality FROM machine ORDER BY code',
+    );
+    const people = await client.query(
+      'SELECT id, name, team, title, active, phone FROM person ORDER BY name',
+    );
+    const shifts = await client.query(
+      'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
+    );
+    const settings = await client.query('SELECT key, value FROM setting');
+    const tenant = await client.query('SELECT * FROM tenant_info($1)', [tenantId]);
     const byList: Record<string, unknown[]> = {};
     for (const row of lists.rows) {
       (byList[row.list as string] ??= []).push(listItem(row as Record<string, unknown>));
