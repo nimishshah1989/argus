@@ -4,27 +4,27 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## Live
 
-- Session 1 merged (#1): foundation only, no product code. Repo is private, restructured, CI green on PR #1 and main, `pnpm verify` green locally.
+- Session 1 merged (#1), then the auth spike. No product code yet. Repo private, CI green, `pnpm verify` green locally.
+- Auth spike done: **hand-rolled sessions chosen** (ADR 0003 accepted); better-auth rejected. Evidence in `docs/plan/spikes/auth.md`.
 - 79 parity rows in `docs/spec/parity.yaml`; 34 spec tickets + 4 design tickets in `docs/plan/backlog.md`; 21 questions and 18 differences recorded.
 - Anti-bloat mechanism live: `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, file/function/dependency/PR-size/shortcut checks.
 - `M0-0.2` done; `M0-0.1` in progress (CI not yet observed on a PR; Playwright/Testcontainers config lands with M0-0.3).
 
 ## In flight
 
-- Nothing running. Next is the auth spike (ADR 0003), the figure strategy spike, and M0-0.3 schema v1 + RLS.
+- Nothing running. Next is M0-0.3 schema v1 + RLS, then M0-0.4 auth implementation. The figure strategy spike remains before M1b.
 
 ## Next
 
-1. Auth spike: hand-rolled sessions vs better-auth; record ADR 0003 final; delete the loser.
-2. M0-0.3: schema v1 + RLS + generic isolation test + `app_router` functions.
-3. M0-0.4 auth; M0-0.5 settings; M0-0.6 seed + data-quality report; M0-0.7 infrastructure; M0-0.8 walking skeleton.
-4. Design track D0.1 (audit/role journeys) can run in parallel; it touches no schema files.
+1. M0-0.3: schema v1 + RLS + generic isolation test + `app_router` functions (`tenant_by_slug`, `auth_lookup`).
+2. M0-0.4 auth using ADR 0003; M0-0.5 settings; M0-0.6 seed + data-quality report; M0-0.7 infrastructure; M0-0.8 walking skeleton.
+3. Design track D0.1 (audit/role journeys) can run in parallel; it touches no schema files.
 
 ## Decided
 
 - Commercial: managed pilot; billing/self-serve deferred to after M6 (ADR 0004).
 - Infrastructure: AWS-only, no Supabase/Vercel/Redis/NAT/ALB; RDS production, one Graviton EC2 per environment; ~$60–95/month both environments (ADR 0002, `docs/INFRASTRUCTURE.md`).
-- Auth: one design; hand-rolled is the default unless the spike proves better-auth (ADR 0003).
+- Auth: **hand-rolled sessions final** (ADR 0003): Argon2id, opaque token hashed at rest, 30-day sliding, shared phones, per-device revoke; better-auth rejected.
 - v1 schema: `tenant_id` only; no `plant`/settings scopes until M5.
 - Figures: `handsOn: lead | union` strategy; Bhavin’s Worker source required before freezing.
 - Lean: 400-line file, 60-line function, complexity 12, no new runtime dependency without an ADR; 9/10 quality scorecard at M1b/M5.

@@ -18,6 +18,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Changed
 
+- Auth: hand-rolled sessions chosen by the M0 spike (ADR 0003); better-auth removed from the spec and `THIRD_PARTY.md`.
+
 - Commercial shape: managed pilot first; billing and self-serve deferred to after M6.
 - Hosting: AWS-only, low-cost; no Supabase, Vercel, Redis, NAT, ALB, ECS or paid APM.
 - Secrets: Secrets Manager in production, SSM Parameter Store in staging.
