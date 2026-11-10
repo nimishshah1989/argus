@@ -1,4 +1,10 @@
-import type { ActorContext, CrewMember, TicketEvent, WorkSegment } from '../types.js';
+import type {
+  ActorContext,
+  CrewMember,
+  RestorableStatus,
+  TicketEvent,
+  WorkSegment,
+} from '../types.js';
 import type { Ticket } from '../ticket.js';
 
 export type Command =
@@ -21,7 +27,7 @@ export type Command =
   | { type: 'leave'; personId: string; reason: string }
   | { type: 'upgradeKind'; personId: string }
   | { type: 'lateReport'; personId: string }
-  | { type: 'restore'; personId: string; reason: string; toStatus: 'open' | 'working' | 'waiting' }
+  | { type: 'restore'; personId: string; reason: string; toStatus?: RestorableStatus }
   | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges };
 
 export interface CorrectChanges {

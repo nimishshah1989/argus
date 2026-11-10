@@ -57,25 +57,23 @@ export function raiseTicket(input: RaiseInput): {
   let seq = 0;
   const events: TicketEvent[] = [{ type: 'down', at: input.reportedAt }];
   const segments: WorkSegment[] = [];
+  const person = input.startNow ? (input.startByPersonId ?? input.reportedByPersonId) : null;
   let startedAt: Date | null = null;
   let leadPersonId: string | null = null;
   let segmentStartedAt: Date | null = null;
-  if (input.startNow) {
-    const person = input.startByPersonId ?? input.reportedByPersonId;
-    if (person) {
-      seq += 1;
-      events.push({ type: 'start', at: input.reportedAt });
-      segments.push({ personId: person, role: 'lead', startedAt: input.reportedAt });
-      startedAt = input.reportedAt;
-      leadPersonId = person;
-      segmentStartedAt = input.reportedAt;
-    }
+  if (person) {
+    seq += 1;
+    events.push({ type: 'start', at: input.reportedAt });
+    segments.push({ personId: person, role: 'lead', startedAt: input.reportedAt });
+    startedAt = input.reportedAt;
+    leadPersonId = person;
+    segmentStartedAt = input.reportedAt;
   }
   const ticket: Ticket = {
     id: input.id,
     ref: input.ref,
     kind: input.kind,
-    status: 'open',
+    status: person ? 'working' : 'open',
     machineId: input.machineId,
     problem: input.problem,
     reportedAt: input.reportedAt,
