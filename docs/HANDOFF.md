@@ -1,43 +1,34 @@
 # Where things stand
 
-Under 50 lines. Rewrite the top part at the end of every session: live, in flight, next, blocked.
+Under 50 lines. Read first, rewrite at session end.
 
-## Live
+## Live (merged on main)
 
-- Session 1 merged (#1), auth spike merged (#4), schema/RLS merged (#5, #7), auth merged (#9). Repo private, CI green, `pnpm verify` green locally; 37 tests.
-- Auth spike done: **hand-rolled sessions chosen** (ADR 0003 accepted); better-auth rejected. Evidence in `docs/plan/spikes/auth.md`.
-- 79 parity rows in `docs/spec/parity.yaml`; 34 spec tickets + 4 design tickets in `docs/plan/backlog.md`; 21 questions and 18 differences recorded.
-- Anti-bloat mechanism live: `docs/LEAN.md`, `docs/QUALITY-BAR.md`, `.claude/skills/ponytail/`, file/function/dependency/PR-size/shortcut checks.
-- `M0-0.1`, `M0-0.2` and `M0-0.3` are done; the first Testcontainers suite and CI are both green.
+- **UPTIMO** (renamed, #19). M0-0.7 gate fixes merged (#20): SSM deploy, 2-AZ RDS subnet group, EIP + Route 53 (`cosmos.<domain>`, `cosmos.staging.<domain>`), real S3 backend, single account budget. `terraform init/validate/plan` green — 32 resources, **not applied**.
+- M0 foundation code done (0.1–0.8): schema+RLS, auth, settings/config, Cosmos seed, walking skeleton (runs locally: `pnpm dev` server + `pnpm --filter @uptimo/web dev`).
+- M1a domain core done: figures, permissions, full state machine (57 tests). Next: **M1a-4 tickets API**.
+- Repo is still `argus` on GitHub (rename + OIDC `github_repo` var pending).
 
 ## In flight
 
-- Nothing running. The walking skeleton (M0-0.8) is done and runs locally: `pnpm dev` (server) + `pnpm --filter @argus/web dev`. The M0 gate (staging deploy + restore drill) is now blocked only on the domain, deploy-role ARN and secret values — the AWS account exists as of 2026-11-10 (N7 partial). M1a work is in progress on branches.
+- Nothing.
 
-## Next
+## Next (new session, run PARALLEL)
 
-1. M0-0.5 settings; M0-0.6 seed + data-quality report; M0-0.7 infrastructure; M0-0.8 walking skeleton.
-2. Design track D0.1 (audit/role journeys) can run in parallel; it touches no schema files.
-
-## Decided
-
-- Commercial: managed pilot; billing/self-serve deferred to after M6 (ADR 0004).
-- Infrastructure: AWS-only, no Supabase/Vercel/Redis/NAT/ALB; RDS production, one Graviton EC2 per environment; ~$60–95/month both environments (ADR 0002, `docs/INFRASTRUCTURE.md`).
-- Auth: **hand-rolled sessions final** (ADR 0003): Argon2id, opaque token hashed at rest, 30-day sliding, shared phones, per-device revoke; better-auth rejected.
-- v1 schema: `tenant_id` only; no `plant`/settings scopes until M5.
-- Figures: `handsOn: lead | union` strategy; Bhavin’s Worker source required before freezing.
-- Lean: 400-line file, 60-line function, complexity 12, no new runtime dependency without an ADR; 9/10 quality scorecard at M1b/M5.
+1. Read this file and `docs/slices/M1a-4.md`.
+2. Spawn worker teammates with disjoint write scopes:
+   - **api worker** — `apps/server/src/tickets.ts` full commands, `FOR UPDATE` row locks, `Idempotency-Key` replay, `/state`, `/tickets/{id}`; fix the `pg` client-reuse warning in `config.ts`.
+   - **test worker** — integration tests for every command, replay, and row-lock concurrency.
+   - **reviewer** — fresh-context review of each PR against the plan.
+3. Merge on green, then M1a-5 floor/desk.
 
 ## Blocked / questions for Nimish
 
-- Shifts: two windows (08:00–18:30, 18:29–05:00) or three shifts?
-- Legacy codes: `MEC → M`, `NI/INT/FS/PP/UTI → MIS` (or inactive) — Bhavin to confirm.
-- Data use/consent for staging/fixtures and phone/voice data.
-- Product/repo name (Argus or Maintenance OS) and the human security reviewer.
+- Domain: **uptimo.in** recommended (registration pending).
+- Raise AWS monthly spend $50 → $150; confirm management-root MFA.
+- After apply: set GitHub secrets `AWS_ROLE_ARN`; bootstrap `/opt/uptimo`; then rename GitHub repo `argus → uptimo` + OIDC var.
+- Bhavin export/Worker (M1b gate); shifts; legacy code aliases.
 
-## External inputs still missing
+## Parallel rule
 
-- Bhavin’s ticket export + Worker source (M1b hard gate); current platform HTML + Excel (M4a); PM tool (M4b).
-- Consented phone numbers + voice notes (M3); Gujarati translations (M1b).
-- AWS account ✅ 118167167649, ap-south-1, tfstate bucket `argus-tfstate-118167167649`, USD 150/mo budget (2026-11-10); domain, deploy-role ARN and secret values open.
-- Meta app ✅ `argus` 1182419981139130 under Jhaveri Instinct, WhatsApp test number ✅ +1 555-673-5318 (WABA 1457316929703027); system-user token and templates open. Sarvam key open.
+One orchestrator session. Children get fresh contexts and disjoint files; contract-first; never two writers on one file.
