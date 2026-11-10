@@ -1,3 +1,7 @@
+import type { BreakdownReportBody } from '../../../packages/shared/src/ticket.js';
+import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
+import { enqueue, isQueueable } from './offline/outbox.js';
+
 const TOKEN_KEY = 'uptimo_token';
 
 export function getToken(): string | null {
@@ -110,24 +114,7 @@ export type CloseKind = 'report' | 'no_report' | 'done';
 
 export type BreakdownCategory = 'E' | 'M' | 'E/M' | 'PM';
 
-/** The breakdown report body from docs/slices/M1a-report.md; the server defaults omitted fields. */
-export interface BreakdownReportBody {
-  problem?: string;
-  observedBy?: string;
-  correctiveAction?: string;
-  doneByPersonIds?: string[];
-  supportedByPersonIds?: string[];
-  downtimeMin?: number;
-  responseMin?: number;
-  repairMin?: number;
-  breakdownCategory?: BreakdownCategory;
-  maintCode?: string;
-  spareUsed?: string;
-  rootCause?: string;
-  handoverName?: string;
-  date?: string;
-  shiftCode?: string;
-}
+export type { BreakdownReportBody };
 
 /** The stored report on ticket detail (server `StoredReport` in ticket-report.ts). */
 export interface BreakdownReport {
@@ -147,15 +134,7 @@ export interface BreakdownReport {
   spareUsed: string | null;
   rootCause: string | null;
   handoverName: string | null;
-  submittedByPersonId: string | null;
-  submittedAt: string;
   people: { personId: string; role: 'done' | 'supported' }[];
-}
-
-export interface MachineSnapshot {
-  code?: string | null;
-  category?: string | null;
-  cell?: string | null;
 }
 
 export interface Ticket {
@@ -164,7 +143,7 @@ export interface Ticket {
   kind: RaiseKind;
   status: TicketStatus;
   machineId: string | null;
-  machineSnapshot: MachineSnapshot | null;
+  machineSnapshot: { code?: string | null; category?: string | null; cell?: string | null } | null;
   problem: string;
   reportedAt: string;
   location: string | null;
@@ -285,6 +264,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** True when the phone has no connection (the UI can show the offline marker). */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && !navigator.onLine;
+}
+
 function idempotencyKey(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   // Plain-HTTP contexts lack randomUUID; build a v4 UUID from getRandomValues.
@@ -296,7 +280,13 @@ function idempotencyKey(): string {
 }
 
 export function getConfig(): Promise<Config> {
-  return api<Config>('/api/v1/config');
+  return cacheFirst({
+    cached: readConfig(),
+    offline: isOffline(),
+    load: () => api<Config>('/api/v1/config'),
+    save: saveConfig,
+    isHttpError: (error) => error instanceof ApiError,
+  });
 }
 
 export function raiseTicket(body: RaiseTicketBody): Promise<{ ticket: Ticket }> {
@@ -308,7 +298,13 @@ export function raiseTicket(body: RaiseTicketBody): Promise<{ ticket: Ticket }> 
 }
 
 export function getState(): Promise<State> {
-  return api<State>('/api/v1/state');
+  return cacheFirst({
+    cached: readState(),
+    offline: isOffline(),
+    load: () => api<State>('/api/v1/state'),
+    save: saveState,
+    isHttpError: (error) => error instanceof ApiError,
+  });
 }
 
 export function getTicket(id: string): Promise<TicketDetail> {
@@ -335,18 +331,10 @@ export interface TicketPage {
 /** `GET /tickets` (M1a-5c): cursor-paginated; status/kind serialise as comma-separated subsets. */
 export function listTickets(query: TicketListQuery = {}): Promise<TicketPage> {
   const params = new URLSearchParams();
-  const set = (key: string, value: string | undefined) => {
-    if (value) params.set(key, value);
-  };
-  set('status', query.status?.join(','));
-  set('kind', query.kind?.join(','));
-  set('machineId', query.machineId);
-  set('personId', query.personId);
-  set('raisedBy', query.raisedBy);
-  set('from', query.from);
-  set('to', query.to);
-  set('cursor', query.cursor);
-  set('limit', query.limit == null ? undefined : String(query.limit));
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === '') continue;
+    params.set(key, Array.isArray(value) ? value.join(',') : String(value));
+  }
   const search = params.toString();
   return api<TicketPage>(`/api/v1/tickets${search ? `?${search}` : ''}`);
 }
@@ -356,35 +344,50 @@ export function getMe(): Promise<{ user: Me }> {
 }
 
 /** The action bodies the desk sends; each command from DOMAIN.md §4. */
-export type PersonCommandBody = { personId: string };
-export type PauseCommandBody = { personId: string; reasonCode: string; note?: string };
-export type UpdateCommandBody = { personId: string; text: string };
-export type TransferCommandBody = { personId: string; note: string; toPersonId?: string };
-export type CloseCommandBody = {
-  personId: string;
-  kind: CloseKind;
-  note?: string;
-  report?: BreakdownReportBody;
-};
-export type ReportCommandBody = { personId: string; report: BreakdownReportBody };
-export type CancelCommandBody = { personId: string; reason: string };
 export type CommandBody =
-  | PersonCommandBody
-  | PauseCommandBody
-  | UpdateCommandBody
-  | TransferCommandBody
-  | CloseCommandBody
-  | ReportCommandBody
-  | CancelCommandBody;
+  | { personId: string }
+  | { personId: string; reasonCode: string; note?: string }
+  | { personId: string; text: string }
+  | { personId: string; note: string; toPersonId?: string }
+  | { personId: string; kind: CloseKind; note?: string; report?: BreakdownReportBody }
+  | { personId: string; report: BreakdownReportBody }
+  | { personId: string; reason: string };
 
-export function command(
+export type CommandResult = { ticket: Ticket } | { queued: true; id: string };
+
+/** The raw command POST with a caller-supplied key (the outbox replays with the stored one). */
+export function sendCommand(
   ticketId: string,
   action: CommandAction,
-  body: CommandBody,
+  body: object,
+  key: string,
 ): Promise<{ ticket: Ticket }> {
   return api<{ ticket: Ticket }>(`/api/v1/tickets/${ticketId}/${action}`, {
     method: 'POST',
-    headers: { 'Idempotency-Key': idempotencyKey() },
+    headers: { 'Idempotency-Key': key },
     body: JSON.stringify(body),
   });
+}
+
+/**
+ * Runs one command. Offline, the four offline-writable commands go to the outbox with a fresh
+ * Idempotency-Key and resolve as `{ queued: true }`; everything else needs a connection.
+ */
+export async function command(
+  ticketId: string,
+  action: CommandAction,
+  body: CommandBody,
+): Promise<CommandResult> {
+  const key = idempotencyKey();
+  if (isOffline() && isQueueable(action)) {
+    const entry = await enqueue({
+      action,
+      ticketId,
+      body,
+      idempotencyKey: key,
+      at: new Date().toISOString(),
+    });
+    return { queued: true, id: entry.id };
+  }
+  return sendCommand(ticketId, action, body, key);
 }
