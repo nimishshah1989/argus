@@ -1,4 +1,4 @@
-import type { FigureInput, Figures, TicketEvent } from './types.js';
+import type { FigureInput, Figures, OverridableFigure, TicketEvent } from './types.js';
 
 function wholeMin(a: Date, b: Date): number {
   return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 60000));
@@ -149,6 +149,16 @@ function perPerson(input: FigureInput): Record<string, number> {
   return result;
 }
 
+function applyOverride<T>(
+  overridden: OverridableFigure[],
+  key: OverridableFigure,
+  override: T | undefined,
+  computed: T,
+): T {
+  if (override !== undefined) overridden.push(key);
+  return override ?? computed;
+}
+
 export function figures(input: FigureInput): Figures {
   const events = sortedEvents(input.events);
   const overrides = input.overrides ?? {};
@@ -161,16 +171,29 @@ export function figures(input: FigureInput): Figures {
       ? Math.max(1, downtimeAcc(input, input.closedAt))
       : null;
 
+  const overridden: OverridableFigure[] = [];
+  const response = applyOverride(
+    overridden,
+    'responseMin',
+    overrides.responseMin,
+    responseMin(input, events),
+  );
+  const active = applyOverride(overridden, 'activeMin', overrides.handsOnOverrideMin, activeMin);
+  const waiting = applyOverride(overridden, 'waitMin', overrides.waitingOverrideMin, waitMin);
+  const downtime = applyOverride(overridden, 'downtimeMin', overrides.downtimeMin, downtimeMin);
+  const repair = applyOverride(overridden, 'repairMin', overrides.repairMin, repairMin);
+
   return {
-    responseMin: overrides.responseMin ?? responseMin(input, events),
-    activeMin: overrides.activeMin ?? activeMin,
-    waitMin: overrides.waitMin ?? waitMin,
+    responseMin: response,
+    activeMin: active,
+    waitMin: waiting,
     vendorMin,
     handoverWaitMin,
     downAccMin,
-    downtimeMin: overrides.downtimeMin ?? downtimeMin,
+    downtimeMin: downtime,
     followMin,
-    repairMin: overrides.repairMin ?? repairMin,
+    repairMin: repair,
     perPerson: perPerson(input),
+    overridden,
   };
 }
