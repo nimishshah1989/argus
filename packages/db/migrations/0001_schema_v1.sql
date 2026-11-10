@@ -572,6 +572,16 @@ END $$;
 CREATE TRIGGER tenant_logo_file_check BEFORE INSERT OR UPDATE OF logo_file_id ON tenant
   FOR EACH ROW EXECUTE FUNCTION check_tenant_logo_file();
 
+CREATE FUNCTION tenant_info(p_tenant_id uuid)
+RETURNS TABLE (name text, language text, time_zone text, plan text, status text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT t.name, t.language, t.time_zone, t.plan, t.status FROM tenant t WHERE t.id = p_tenant_id;
+$$;
+
+ALTER FUNCTION tenant_info(uuid) OWNER TO app_router;
+REVOKE ALL ON FUNCTION tenant_info(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION tenant_info(uuid) TO app_user;
+
 ALTER FUNCTION tenant_by_slug(text) OWNER TO app_router;
 ALTER FUNCTION auth_lookup(text) OWNER TO app_router;
 REVOKE ALL ON FUNCTION tenant_by_slug(text) FROM PUBLIC;

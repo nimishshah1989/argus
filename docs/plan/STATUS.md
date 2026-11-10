@@ -28,6 +28,10 @@ Session: 1 — foundation, no product code
 
 - **Done.** Fastify auth: host tenancy, login/logout/me/change-password, Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared-login acting person, `/brand`. 8 integration tests against Testcontainers; 25 tests total. PR #9 merged; CI green.
 
+## M0-0.5 settings
+
+- **Done.** Settings API: `/config` with fingerprint and `?fp=` delta; `/settings` read/write; lists upsert/delete; missing translations + set. 6 integration tests; 31 tests total. The Settings React UI is deferred to the web scaffold in M0-0.8.
+
 ## In progress
 
 - Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.

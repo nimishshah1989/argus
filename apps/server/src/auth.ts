@@ -38,7 +38,7 @@ function userFrom(ctx: AuthContext) {
   };
 }
 
-async function requireAuth(
+export async function requireAuth(
   pool: Pool,
   request: FastifyRequest,
   reply: FastifyReply,
