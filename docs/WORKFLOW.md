@@ -76,6 +76,32 @@ The plan-reviewer checklist is in `.claude/agents/plan-reviewer.md`. The “file
 
 **End:** update `HANDOFF` (live/in flight/next/blocked), `parity.yaml`, `CHANGELOG.md`, `wiki/log.md`, and any question/difference. If the context is two-thirds full, stop earlier and write the handoff; the next session must start from the repo alone.
 
+## 7a. Context budget and token discipline
+
+Context is a budget, not a bin. The goal is to leave room for thinking, not to fill the window.
+
+| State  | Trigger                                    | Action                                                                                                      |
+| ------ | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Green  | under 50%                                  | Normal work.                                                                                                |
+| Yellow | 50–70%                                     | Finish the current step, write the handoff, and start fresh before new work.                                |
+| Red    | over 70%, or a slice/milestone is complete | Stop. Write the handoff. No new work in this session.                                                       |
+| Never  | 90–99%                                     | Not a plan. Waiting for 99% means compaction at the worst moment, lost detail and a more expensive session. |
+
+A handoff costs a few hundred tokens; a lost context costs a re-read of the repo and a wrong turn. The handoff is `docs/HANDOFF.md` (under 50 lines), `docs/plan/STATUS.md` and `wiki/log.md`; the next session reads only those, the ticket, its spec section, its parity rows and the ADRs it touches.
+
+Do not wait for a UI indicator. If the slice is done, or the conversation has become a long back-and-forth, hand off.
+
+### Token discipline
+
+- Read the named section, not the whole spec. Use `read` with offset/limit and `grep`; never dump a whole file into chat.
+- Read `docs/discovery/` only when a fact is needed; it is reference, not a briefing.
+- Run the smallest relevant test during the loop; run the full `pnpm verify` once at the end.
+- Use a subagent for fresh-context review or genuinely independent work, not for a one-line edit. Close finished agents; do not leave duplicate checks running.
+- Prefer `edit` over `write`; do not reformat or rewrite a file that did not change.
+- No speculative code, options, abstractions or docs. The smallest complete change wins (`docs/LEAN.md`).
+- If a decision is reversible, make it and record it; do not spend tokens asking.
+- Keep the final report short: what changed, what is proven, what is next.
+
 ## 8. When the spec is wrong
 
 Write the conflict and your proposed resolution in `docs/spec/QUESTIONS.md` and proceed — unless the change alters stored data, money or an outside account; then mark the ticket `blocked-external` and ask Nimish. Never guess silently.
