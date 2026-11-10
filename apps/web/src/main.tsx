@@ -11,6 +11,11 @@ const queryClient = new QueryClient({
   },
 });
 
+if (import.meta.env.PROD) {
+  // Precache the app shell (AC5a); no offline write queue yet (AC5b).
+  navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+}
+
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
