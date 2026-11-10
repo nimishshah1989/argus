@@ -1,0 +1,193 @@
+import type { Figures } from '@uptimo/domain';
+import type { StoredReport } from './ticket-report.js';
+
+export interface ReportPdfInput {
+  tenant: { name: string; language: string; timeZone: string };
+  ticket: {
+    id: string;
+    ref: string;
+    kind: string;
+    status: string;
+    problem: string;
+    reportedAt: Date;
+    closedAt: Date | null;
+    figures: Figures;
+    machine: { code: string | null; category: string | null; cell: string | null };
+  };
+  report: StoredReport;
+  people: { done: string[]; supported: string[] };
+  qr: { svg: string };
+  generatedAt: Date;
+}
+
+function esc(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function field(label: string, value: string | number | null | undefined): string {
+  const shown = value === null || value === undefined || value === '' ? '—' : String(value);
+  return `<div class="field"><div class="label">${esc(label)}</div><div class="value">${esc(shown)}</div></div>`;
+}
+
+function minutes(value: number | null): string {
+  return value === null ? '—' : `${value} min`;
+}
+
+function formatDateTime(value: Date | null, timeZone: string): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(value);
+}
+
+function formatIsoDate(value: string): string {
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}-${month}-${year}` : value;
+}
+
+function typeLabel(kind: string): string {
+  if (kind === 'support') return 'Running, needs support';
+  if (kind === 'general') return 'General work';
+  return 'Machine stopped';
+}
+
+function cellLabel(cell: string | null): string | null {
+  if (!cell) return null;
+  return /^cell[\s-]/i.test(cell) ? cell : `Cell ${cell}`;
+}
+
+function machineLabel(ticket: ReportPdfInput['ticket']): string {
+  const meta = [ticket.machine.category, cellLabel(ticket.machine.cell)].filter(Boolean).join(', ');
+  if (!ticket.machine.code) return '—';
+  return meta ? `${ticket.machine.code} (${meta})` : ticket.machine.code;
+}
+
+function header(input: ReportPdfInput): string {
+  return `<header>
+    <div class="masthead">
+      <div class="company">${esc(input.tenant.name)}</div>
+      <h1>Breakdown report</h1>
+      <div class="ticket">Ticket <strong>${esc(input.ticket.ref)}</strong> · ${esc(
+        typeLabel(input.ticket.kind),
+      )}</div>
+    </div>
+    <figure class="qr">${input.qr.svg}<figcaption>Scan to import into the platform</figcaption></figure>
+  </header>`;
+}
+
+function ticketFacts(input: ReportPdfInput): string {
+  const ticket = input.ticket;
+  const rows = [
+    field('Machine', machineLabel(ticket)),
+    field('Status', ticket.status),
+    field('Reported', formatDateTime(ticket.reportedAt, input.tenant.timeZone)),
+    field('Closed', formatDateTime(ticket.closedAt, input.tenant.timeZone)),
+  ];
+  return `<section class="panel"><h2>Ticket</h2><div class="grid">${rows.join('')}</div></section>`;
+}
+
+function reportFacts(input: ReportPdfInput): string {
+  const report = input.report;
+  const facts = [
+    field('Date', formatIsoDate(report.date)),
+    field('Shift', report.shiftCode),
+    field('Downtime', minutes(report.downtimeMin)),
+    field('Response', minutes(report.responseMin)),
+    field('Repair', minutes(report.repairMin)),
+    field('Category', report.breakdownCategory),
+    field('Maintenance code', report.maintCode),
+    field('Spare used', report.spareUsed),
+    field('Observed by', report.observedBy),
+    field('Handover to', report.handoverName),
+  ];
+  const text = [
+    field('Problem', report.problem),
+    field('Corrective action', report.correctiveAction),
+    field('Root cause', report.rootCause),
+  ];
+  const people = [
+    field('Done by', input.people.done.join(', ')),
+    field('Supported by', input.people.supported.join(', ')),
+  ];
+  return `<section class="panel"><h2>Breakdown report</h2><div class="grid">${facts.join(
+    '',
+  )}</div>${text.join('')}<div class="grid">${people.join('')}</div></section>`;
+}
+
+function figureFacts(input: ReportPdfInput): string {
+  const figures = input.ticket.figures;
+  const facts = [
+    field('Response', minutes(figures.responseMin)),
+    field('Active', minutes(figures.activeMin)),
+    field('Waiting', minutes(figures.waitMin)),
+    field('Downtime', minutes(figures.downtimeMin)),
+    field('Vendor wait', minutes(figures.vendorMin)),
+    field('Follow-up', minutes(figures.followMin)),
+  ];
+  return `<section class="panel"><h2>Ticket figures</h2><div class="grid">${facts.join('')}</div></section>`;
+}
+
+function footer(input: ReportPdfInput): string {
+  const generated = formatDateTime(input.generatedAt, input.tenant.timeZone);
+  return `<footer>Generated by UPTIMO on ${esc(generated)} · Ticket ${esc(
+    input.ticket.ref,
+  )}</footer>`;
+}
+
+const STYLES = `
+@page { size: A4; margin: 12mm; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: #16181d;
+  font-family: 'Noto Sans Gujarati', 'Kohinoor Gujarati', 'Gujarati Sangam MN',
+    'Gujarati MT', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+header { display: flex; justify-content: space-between; gap: 8mm; border-bottom: 1px solid #d8dbe0; padding-bottom: 4mm; }
+.masthead { max-width: 140mm; }
+.company { font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; }
+h1 { font-size: 20pt; margin: 1mm 0 2mm; }
+.ticket { font-size: 10pt; color: #374151; }
+.qr { margin: 0; width: 30mm; text-align: center; }
+.qr svg { width: 26mm; height: 26mm; }
+.qr figcaption { font-size: 6.5pt; color: #8b909a; margin-top: 1mm; }
+.panel { margin-top: 5mm; }
+h2 { font-size: 9pt; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; margin: 0 0 2mm; border-bottom: 1px solid #e5e7eb; padding-bottom: 1mm; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm 6mm; }
+.field { margin-bottom: 3mm; }
+.label { font-size: 7.5pt; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; }
+.value { font-size: 10.5pt; white-space: pre-wrap; overflow-wrap: anywhere; }
+footer { margin-top: 8mm; border-top: 1px solid #e5e7eb; padding-top: 2mm; font-size: 8pt; color: #8b909a; }
+`;
+
+/** The server-rendered report sheet: ticket facts, the stored report fields and the QR. */
+export function renderReportHtml(input: ReportPdfInput): string {
+  return `<!doctype html>
+<html lang="${esc(input.tenant.language)}">
+<head>
+  <meta charset="utf-8" />
+  <title>Breakdown report ${esc(input.ticket.ref)}</title>
+  <style>${STYLES}</style>
+</head>
+<body>
+${header(input)}
+${ticketFacts(input)}
+${reportFacts(input)}
+${figureFacts(input)}
+${footer(input)}
+</body>
+</html>`;
+}

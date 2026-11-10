@@ -2,6 +2,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { apiError } from '@uptimo/shared';
 import { registerAuth } from './auth.js';
+import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
 import type { AppConfig } from './config.js';
@@ -13,6 +14,7 @@ export async function buildApp(config: AppConfig) {
   registerAuth(app, config);
   registerSettings(app, config);
   registerTickets(app, config);
+  registerReports(app, config);
   app.setErrorHandler((error, _request, reply) => {
     const statusCode = (error as { statusCode?: number }).statusCode;
     if (statusCode === 429) {
