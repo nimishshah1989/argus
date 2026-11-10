@@ -6,10 +6,11 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/**',
-      'dist/**',
-      'coverage/**',
+      '**/dist/**',
+      '**/coverage/**',
       'docs/discovery/**',
       '.claude/**',
+      '.tools/**',
       'pnpm-lock.yaml',
     ],
   },

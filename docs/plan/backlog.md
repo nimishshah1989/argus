@@ -15,7 +15,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M4b The loop                         | 3       | 0    | 0           |
 | Design (enabling)                    | 4       | 0    | 0           |
 
-**Frontier now:** `M0-0.7` (infrastructure), `M0-0.8` (walking skeleton). `M0-0.1`–`M0-0.6` are done. The Settings UI lands with the web scaffold in M0-0.8.
+**Frontier now:** `M0-0.8` (walking skeleton, runs locally). `M0-0.1`–`M0-0.6` are done. `M0-0.7` infrastructure is authored but `blocked-external` on the AWS account/domain/secrets (N7). The Settings UI lands with the web scaffold in M0-0.8.
 
 ## M0 Foundation and walking skeleton
 
@@ -65,7 +65,7 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto + external
 - **Depends on:** 0.1
-- **Status:** todo
+- **Status:** blocked-external
 - **Acceptance:** auto: deploy and rollback run from CI against staging; migration check fails a destructive migration. external: AWS account, domain, GitHub secrets from Nimish
 
 ### M0-0.8 — Walking skeleton: floor screen raises a stopped ticket on one machine; desk Open list shows it; both deployed on staging under `cosmos.staging.<domain>`

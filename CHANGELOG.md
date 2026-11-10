@@ -6,6 +6,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 
 ### Added
 
+- Infrastructure (M0-0.7, authored): Terraform for ap-south-1, Docker Compose + Caddy, server image, deploy/rollback script, restore runbook and deploy workflow. Apply is blocked on AWS credentials.
+
 - Cosmos seed (M0-0.6): `seed:cosmos` loads tenant zero from the discovery files with a committed seed report. 2 integration tests.
 
 - Settings (M0-0.5): `/config` with fingerprint and `?fp=` delta, `/settings`, list CRUD with flags, missing-translations list and translation upsert. 6 integration tests.
@@ -23,6 +25,8 @@ All notable changes to this product. Format: Keep a Changelog. The build is pre-
 - Session 1 verification: `pnpm verify` green (format, lint, typecheck, 3 tests, build, parity, licences, migrations, lean audit).
 
 ### Added
+
+- Infrastructure (M0-0.7, authored): Terraform for ap-south-1, Docker Compose + Caddy, server image, deploy/rollback script, restore runbook and deploy workflow. Apply is blocked on AWS credentials.
 
 - Cosmos seed (M0-0.6): `seed:cosmos` loads tenant zero from the discovery files with a committed seed report. 2 integration tests.
 

@@ -36,6 +36,11 @@ Session: 1 — foundation, no product code
 
 - **Done.** `seed:cosmos` loads 192 machines (CNC 125, Conventional 16, Process 17, Utility 30, DG 3, Robot 1), 14 people, 19 active + 3 inactive codes, 2 shifts, 144 glossary terms. Idempotent; seed report committed at `docs/plan/seed-report.md`. 2 integration tests; 33 tests total.
 
+## M0-0.7 infrastructure
+
+- **Authored.** Terraform (VPC/EC2/RDS/S3/IAM/OIDC/Secrets/Budgets), Docker Compose + Caddy, server Dockerfile, esbuild bundle, deploy/rollback script, restore runbook, deploy workflow. `terraform fmt` clean; `pnpm verify` green.
+- **Blocked-external:** `terraform apply`, restore drill execution and staging deploy need the AWS account, domain and GitHub secrets (N7).
+
 ## In progress
 
 - Nothing running.: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.

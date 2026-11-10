@@ -1,0 +1,13 @@
+node_modules
+.git
+.DS_Store
+.freebuff
+.tools
+dist
+coverage
+apps/server/dist
+apps/web/dist
+docs/discovery
+playwright-report
+test-results
+tmp

@@ -10,3 +10,4 @@
 2026-11-10 — M0-0.4: Fastify auth (host tenancy, login/logout/me/password, Argon2id, sliding sessions, shared acting person, /brand). 8 integration tests; 25 total. Next M0-0.5 settings.
 2026-11-10 — M0-0.5: settings/config API (fingerprint, lists, features, translations). 6 integration tests; 31 total. Settings UI deferred to the web scaffold in M0-0.8.
 2026-11-10 — M0-0.6: Cosmos seed (192 machines by segment, 14 people, 19 active codes, glossary); seed report committed. 2 integration tests; 33 total. Next M0-0.7 infrastructure.
+2026-11-10 — M0-0.7: infrastructure authored (Terraform, Compose, Dockerfile, deploy/rollback, restore runbook, deploy workflow). Blocked-external on AWS (N7). Next unblocked: M0-0.8 walking skeleton.

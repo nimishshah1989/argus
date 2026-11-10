@@ -12,7 +12,7 @@ Under 50 lines. Rewrite the top part at the end of every session: live, in fligh
 
 ## In flight
 
-- Nothing running. Next is M0-0.7 infrastructure. The Settings UI lands with the web scaffold in M0-0.8; the figure strategy spike remains before M1b.
+- Nothing running. M0-0.7 infrastructure is authored but blocked-external on AWS (N7). Next unblocked is M0-0.8 walking skeleton (local). The Settings UI lands there; the figure strategy spike remains before M1b.
 
 ## Next
 
