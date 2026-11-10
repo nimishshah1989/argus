@@ -22,13 +22,15 @@ function encodeCursor(updatedAt: string, id: string): string {
   return Buffer.from(`${updatedAt}|${id}`, 'utf8').toString('base64url');
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function decodeCursor(cursor: string | undefined): { updatedAt: string; id: string } | null {
   if (!cursor) return null;
   const raw = Buffer.from(cursor, 'base64url').toString('utf8');
   const sep = raw.indexOf('|');
   const updatedAt = sep < 0 ? '' : raw.slice(0, sep);
   const id = sep < 0 ? '' : raw.slice(sep + 1);
-  if (!updatedAt || !id || Number.isNaN(Date.parse(updatedAt))) {
+  if (!updatedAt || !UUID_RE.test(id) || Number.isNaN(Date.parse(updatedAt))) {
     throw new Error('invalid cursor');
   }
   return { updatedAt, id };
@@ -70,7 +72,7 @@ async function queryList(
     );
   }
 
-  const text = `SELECT ${sql.TICKET_COLUMNS}, updated_at FROM ticket WHERE ${where.join(
+  const text = `SELECT ${sql.TICKET_COLUMNS}, updated_at::text AS updated_at_cursor FROM ticket WHERE ${where.join(
     ' AND ',
   )} ORDER BY updated_at DESC, id DESC LIMIT ${place(filters.limit + 1)}`;
   const rows = (await client.query(text, params)).rows;
@@ -84,10 +86,7 @@ async function queryList(
   let nextCursor: string | null = null;
   if (rows.length > filters.limit) {
     const last = page[page.length - 1] as Record<string, unknown>;
-    nextCursor = encodeCursor(
-      new Date(last.updated_at as string | Date).toISOString(),
-      last.id as string,
-    );
+    nextCursor = encodeCursor(last.updated_at_cursor as string, last.id as string);
   }
   return { items, nextCursor };
 }

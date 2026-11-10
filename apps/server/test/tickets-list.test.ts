@@ -27,6 +27,8 @@ const T_C = '30000000-0000-0000-0000-000000000003';
 const T_D = '30000000-0000-0000-0000-000000000004';
 const T_E = '30000000-0000-0000-0000-000000000005';
 const T_F = '30000000-0000-0000-0000-000000000006';
+const T_G = '30000000-0000-0000-0000-000000000007';
+const T_H = '30000000-0000-0000-0000-000000000008';
 const T_OTHER = '40000000-0000-0000-0000-000000000001';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -204,6 +206,24 @@ beforeAll(async () => {
     reportedAt: '2026-11-06T00:00:00Z',
     updatedAt: '2026-11-06T00:00:00Z',
   });
+  await seedTicket({
+    id: T_G,
+    ref: 'LIST-G',
+    kind: 'general',
+    status: 'closed',
+    machineId: null,
+    reportedAt: '2026-11-08T00:00:00Z',
+    updatedAt: '2026-11-08T00:00:00.000400Z',
+  });
+  await seedTicket({
+    id: T_H,
+    ref: 'LIST-H',
+    kind: 'general',
+    status: 'closed',
+    machineId: null,
+    reportedAt: '2026-11-08T00:00:00Z',
+    updatedAt: '2026-11-08T00:00:00.000900Z',
+  });
   await pool.query(
     `INSERT INTO crew_member (id, tenant_id, ticket_id, person_id, role, joined_at)
      VALUES ($1, $2, $3, $4, 'support', now())`,
@@ -231,7 +251,7 @@ describe('ticket list', () => {
     const list1 = await get('/api/v1/tickets?limit=200', ashaToken);
     expect(list1.statusCode).toBe(200);
     const ids1 = list1.json().items.map((t: { id: string }) => t.id);
-    expect(ids1).toHaveLength(6);
+    expect(ids1).toHaveLength(8);
     expect(ids1).not.toContain(T_OTHER);
 
     const list2 = await get('/api/v1/tickets?limit=200', otherToken);
@@ -252,9 +272,41 @@ describe('ticket list', () => {
       if (!body.nextCursor) break;
       cursor = body.nextCursor as string;
     }
-    expect(seen).toEqual(['LIST-F', 'LIST-E', 'LIST-D', 'LIST-C', 'LIST-B', 'LIST-A']);
-    expect(new Set(seen).size).toBe(6);
-    expect(pages).toBe(3);
+    expect(seen).toEqual([
+      'LIST-H',
+      'LIST-G',
+      'LIST-F',
+      'LIST-E',
+      'LIST-D',
+      'LIST-C',
+      'LIST-B',
+      'LIST-A',
+    ]);
+    expect(new Set(seen).size).toBe(8);
+    expect(pages).toBe(4);
+  });
+
+  it('keeps sub-millisecond precision across a cursor boundary', async () => {
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const url = `/api/v1/tickets?status=closed&kind=general&limit=1${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const res = await get(url, ashaToken);
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      seen.push(...body.items.map((t: { ref: string }) => t.ref));
+      if (!body.nextCursor) break;
+      cursor = body.nextCursor as string;
+    }
+    expect(seen).toEqual(['LIST-H', 'LIST-G']);
+  });
+
+  it('rejects a tampered cursor with a non-UUID id', async () => {
+    const bad = Buffer.from('2026-11-06T00:00:00Z|not-a-uuid', 'utf8').toString('base64url');
+    const res = await get(`/api/v1/tickets?cursor=${encodeURIComponent(bad)}`, ashaToken);
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.code).toBe('validation');
+    expect(res.json().error.field).toBe('cursor');
   });
 
   it('filters by status (including comma-separated) and kind', async () => {
