@@ -26,7 +26,7 @@ Session: 1 — foundation, no product code
 
 ## M0-0.4 auth
 
-- **Done.** Fastify auth: host tenancy, login/logout/me/change-password, Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared-login acting person, `/brand`. 8 integration tests against Testcontainers; 25 tests total.
+- **Done.** Fastify auth: host tenancy, login/logout/me/change-password, Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared-login acting person, `/brand`. 8 integration tests against Testcontainers; 25 tests total. PR #9 merged; CI green.
 
 ## In progress
 
