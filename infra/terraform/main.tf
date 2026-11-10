@@ -4,15 +4,19 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0"
+    }
   }
-  # State goes to S3 once the account exists (use_lockfile avoids a DynamoDB table):
-  # backend "s3" {
-  #   bucket         = "uptimo-tfstate-118167167649"
-  #   key            = "terraform.tfstate"
-  #   region         = "ap-south-1"
-  #   encrypt        = true
-  #   use_lockfile   = true
-  # }
+  # State bucket created by the setup session. Rename to uptimo-* post-launch.
+  backend "s3" {
+    bucket       = "argus-tfstate-118167167649"
+    key          = "terraform.tfstate"
+    region       = "ap-south-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
 variable "region" {
@@ -101,6 +105,13 @@ resource "aws_subnet" "private" {
   tags              = { Name = "${var.app}-private" }
 }
 
+resource "aws_subnet" "private_second" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.cidr, 8, 3)
+  availability_zone = local.az_a
+  tags              = { Name = "${var.app}-private-second" }
+}
+
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -167,7 +178,7 @@ resource "random_password" "db" {
 
 resource "aws_db_subnet_group" "main" {
   name       = "${var.app}-db-subnet"
-  subnet_ids = [aws_subnet.private.id]
+  subnet_ids = [aws_subnet.private.id, aws_subnet.private_second.id]
 }
 
 resource "aws_db_instance" "postgres" {
@@ -248,6 +259,11 @@ resource "aws_iam_role" "server" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "server_ssm" {
+  role       = aws_iam_role.server.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_role_policy" "server" {
   role = aws_iam_role.server.id
   name = "${var.app}-server"
@@ -282,6 +298,32 @@ resource "aws_instance" "server" {
     usermod -aG docker ec2-user
   EOT
   tags                   = { Name = "${var.app}-server" }
+}
+
+resource "aws_eip" "server" {
+  instance = aws_instance.server.id
+  domain   = "vpc"
+  tags     = { Name = "${var.app}-eip" }
+}
+
+resource "aws_route53_zone" "main" {
+  name = var.domain
+}
+
+resource "aws_route53_record" "app" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "cosmos.${var.domain}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.server.public_ip]
+}
+
+resource "aws_route53_record" "staging" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "cosmos.staging.${var.domain}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.server.public_ip]
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -325,24 +367,12 @@ resource "aws_secretsmanager_secret" "app" {
   name = "${var.app}/prod"
 }
 
-resource "aws_budgets_budget" "monthly" {
-  name              = "${var.app}-monthly"
-  budget_type       = "COST"
-  limit_amount      = "30000"
-  limit_unit        = "INR"
-  time_unit         = "MONTHLY"
-  time_period_start = "2026-01-01_00:00"
-  time_period_end   = "2036-01-01_00:00"
-  notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 80
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "ACTUAL"
-    subscriber_email_addresses = var.billing_email == "" ? [] : [var.billing_email]
-  }
-}
+# Budget lives in the account (argus-monthly-cost, USD 150); Terraform must not
+# create a second one. See the setup note.
 
 output "db_endpoint" { value = aws_db_instance.postgres.endpoint }
 output "files_bucket" { value = aws_s3_bucket.files.id }
-output "server_public_ip" { value = aws_instance.server.public_ip }
+output "server_public_ip" { value = aws_eip.server.public_ip }
+output "server_instance_id" { value = aws_instance.server.id }
+output "dns_name" { value = "cosmos.${var.domain}" }
 output "deploy_role_arn" { value = aws_iam_role.deploy.arn }

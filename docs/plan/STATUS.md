@@ -38,31 +38,19 @@ Session: 1 — foundation, no product code
 
 ## M0-0.7 infrastructure
 
-- **Authored.** Terraform (VPC/EC2/RDS/S3/IAM/OIDC/Secrets/Budgets), Docker Compose + Caddy, server Dockerfile, esbuild bundle, deploy/rollback script, restore runbook, deploy workflow. `terraform fmt` clean; `pnpm verify` green.
-- **Blocked-external:** `terraform apply`, restore drill execution and staging deploy need the AWS account, domain and GitHub secrets (N7).
+- **Authored and fixed for the external gate.** Terraform (VPC with two RDS AZs, EC2, RDS, S3, IAM/OIDC, Secrets Manager, EIP, Route 53 zone + `cosmos`/`cosmos.staging` records, no duplicate budget), SSM-based deploy (no public SSH), Docker Compose + Caddy, server image, deploy/rollback, restore runbook.
+- `terraform init` + `validate` + `plan` green: **32 resources to create**, state in `argus-tfstate-118167167649`.
+- **Blocked-external:** apply needs the registered domain and GitHub secrets (deploy-role ARN after apply); `terraform apply` is not run yet.
 
 ## M0-0.8 walking skeleton
 
-- **Done locally.** Vite + React web app (login, floor report, desk open list), minimal `POST /tickets` (raise with `BD-` refs and duplicate detection) and `GET /state`. 37 tests total; `pnpm verify` green; web builds.
-- **Gate-manual/external:** staging deploy of the skeleton under `cosmos.staging.<domain>` and the restore drill are blocked on AWS (N7).
+- **Done locally.** Vite + React app (login, floor report, desk open list), minimal `POST /tickets` and `GET /state`. 37 tests.
 
-## M1a-1 figures
+## M1a domain core
 
-- **Done.** `packages/domain` figure engine (`figures()`): response, hands-on union, waiting/vendor, handover, downtime (with 1-minute close floor), follow-up, repair and per-person minutes, overrides last. 8 tests; 45 total.
-
-## In progress
-
-- M1a-4 tickets API (wire the domain into Fastify with row locks and idempotency).: CI not yet observed on a pull request; Playwright/Testcontainers config and first database test land with M0-0.3.
-- Auth spike (ADR 0003) pending.
-- Figure strategy spike (`handsOn: lead | union`) pending.
-
-## Next
-
-1. Push session 1; watch the first CI run.
-2. M0-0.3 schema v1 + RLS + generic isolation test (after the auth spike decision).
-3. M0-0.4 auth; M0-0.5 settings; M0-0.6 seed + data-quality report.
-4. Design track D0.1 (audit/role journeys) can start in parallel; no shared files with schema.
+- **Done:** figures (8 tests), permissions (6), state machine core + remaining commands (12). 57 tests total.
+- **Next:** M1a-4 tickets API (row locks, idempotency), then M1a-5 floor/desk.
 
 ## Blocked / questions
 
-See `docs/HANDOFF.md` and `docs/plan/NEEDS.md`: shifts, legacy code aliases, data use/consent, name/security reviewer, Bhavin’s export/Worker, AWS/domain/secrets.
+Domain registration (uptimo.in recommended), raise AWS spend limit to $150, confirm management-account root MFA, Bhavin's export/Worker, shifts, code aliases.
