@@ -1,10 +1,139 @@
 import { z } from 'zod';
 
-export const raiseTicketSchema = z.object({
-  machineId: z.string().uuid(),
-  problem: z.string().min(1).max(2000),
-  kind: z.enum(['stopped', 'support']).default('stopped'),
-  reportedByPersonId: z.string().uuid().optional(),
-  startNow: z.boolean().optional(),
-});
+// ISO timestamps are coerced to Date so the parsed body matches the domain Command types.
+const iso = z.coerce.date();
+
+export const raiseTicketSchema = z
+  .object({
+    kind: z.enum(['stopped', 'support', 'general']).default('stopped'),
+    machineId: z.string().uuid().optional(),
+    location: z.string().max(200).optional(),
+    workType: z.string().max(60).optional(),
+    urgent: z.boolean().optional(),
+    problem: z.string().min(1).max(2000),
+    problemLang: z.string().max(2000).optional(),
+    reportedByPersonId: z.string().uuid().optional(),
+    reportedByRole: z.string().max(60).optional(),
+    startNow: z.boolean().optional(),
+    startByPersonId: z.string().uuid().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.kind === 'general') {
+      if (!value.location) {
+        ctx.addIssue({ code: 'custom', path: ['location'], message: 'Location is required' });
+      }
+      if (!value.workType) {
+        ctx.addIssue({ code: 'custom', path: ['workType'], message: 'Work type is required' });
+      }
+    } else if (!value.machineId) {
+      ctx.addIssue({ code: 'custom', path: ['machineId'], message: 'Machine is required' });
+    }
+  });
 export type RaiseTicketBody = z.infer<typeof raiseTicketSchema>;
+
+export const startTicketSchema = z.object({
+  personId: z.string().uuid(),
+  at: iso.optional(),
+});
+export type StartTicketBody = z.infer<typeof startTicketSchema>;
+
+export const joinTicketSchema = z.object({
+  personId: z.string().uuid(),
+  role: z.enum(['primary', 'support']),
+});
+export type JoinTicketBody = z.infer<typeof joinTicketSchema>;
+
+export const leaveTicketSchema = z.object({
+  personId: z.string().uuid(),
+  reason: z.string().min(1).max(500),
+});
+export type LeaveTicketBody = z.infer<typeof leaveTicketSchema>;
+
+export const pauseTicketSchema = z.object({
+  personId: z.string().uuid(),
+  reasonCode: z.string().min(1).max(60),
+  note: z.string().max(2000).optional(),
+  expectedBackOn: z.string().optional(),
+  assignToPersonId: z.string().uuid().optional(),
+});
+export type PauseTicketBody = z.infer<typeof pauseTicketSchema>;
+
+export const resumeTicketSchema = z.object({
+  personId: z.string().uuid(),
+  note: z.string().max(2000).optional(),
+});
+export type ResumeTicketBody = z.infer<typeof resumeTicketSchema>;
+
+export const transferTicketSchema = z.object({
+  personId: z.string().uuid(),
+  toPersonId: z.string().uuid().optional(),
+  toShift: z.string().max(60).optional(),
+  note: z.string().min(1).max(2000),
+});
+export type TransferTicketBody = z.infer<typeof transferTicketSchema>;
+
+export const updateTicketSchema = z.object({
+  personId: z.string().uuid(),
+  text: z.string().min(1).max(2000),
+  spare: z.string().max(200).optional(),
+  expectedOn: z.string().optional(),
+});
+export type UpdateTicketBody = z.infer<typeof updateTicketSchema>;
+
+export const machineRunningSchema = z.object({
+  personId: z.string().uuid(),
+  at: iso.optional(),
+});
+export type MachineRunningBody = z.infer<typeof machineRunningSchema>;
+
+export const machineStoppedSchema = z.object({
+  personId: z.string().uuid(),
+});
+export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
+
+export const closeTicketSchema = z.object({
+  personId: z.string().uuid(),
+  kind: z.enum(['report', 'no_report', 'done']),
+  at: iso.optional(),
+  note: z.string().max(2000).optional(),
+});
+export type CloseTicketBody = z.infer<typeof closeTicketSchema>;
+
+export const reportTicketSchema = z.object({
+  personId: z.string().uuid(),
+  report: z.unknown(),
+});
+export type ReportTicketBody = z.infer<typeof reportTicketSchema>;
+
+export const cancelTicketSchema = z.object({
+  personId: z.string().uuid(),
+  reason: z.string().min(1).max(500),
+});
+export type CancelTicketBody = z.infer<typeof cancelTicketSchema>;
+
+export const restoreTicketSchema = z.object({
+  personId: z.string().uuid(),
+  reason: z.string().min(1).max(500),
+});
+export type RestoreTicketBody = z.infer<typeof restoreTicketSchema>;
+
+export const correctTicketSchema = z.object({
+  reason: z.string().min(1).max(500),
+  changes: z.object({
+    reportedAt: iso.optional(),
+    startedAt: iso.optional(),
+    closedAt: iso.optional(),
+    problem: z.string().min(1).max(2000).optional(),
+    machineId: z.string().uuid().nullable().optional(),
+    kind: z.enum(['stopped', 'support', 'general']).optional(),
+    leadPersonId: z.string().uuid().nullable().optional(),
+    closedByPersonId: z.string().uuid().nullable().optional(),
+  }),
+});
+export type CorrectTicketBody = z.infer<typeof correctTicketSchema>;
+
+// The domain exposes upgradeKind; the acting person is the session's person, not the body.
+export const upgradeKindSchema = z.object({
+  personId: z.string().uuid().optional(),
+});
+export type UpgradeKindBody = z.infer<typeof upgradeKindSchema>;
