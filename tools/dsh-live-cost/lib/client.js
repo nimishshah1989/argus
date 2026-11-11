@@ -10,6 +10,18 @@ window.__ModuleLoader__.load({
         cacheRead: 0.2,
         cacheWrite: 5,
       }),
+      "zai.glm-5": Object.freeze({
+        input: 1,
+        output: 3.2,
+        cacheRead: 0,
+        cacheWrite: 0,
+      }),
+      "global.zai.glm-5.3": Object.freeze({
+        input: 1.68,
+        output: 5.28,
+        cacheRead: 0.312,
+        cacheWrite: 2.1,
+      }),
     });
     const CATEGORIES = Object.freeze([
       { key: "input", tokenKey: "uncachedInputTokens" },
@@ -25,6 +37,11 @@ window.__ModuleLoader__.load({
     });
     const INR = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" });
     const NUMBER = new Intl.NumberFormat("en-US");
+    function rateSummary() {
+      return Object.entries(RATES).map(([id, rate]) =>
+        `${id}: input $${rate.input} · output $${rate.output} · cache read $${rate.cacheRead} · cache write $${rate.cacheWrite}`,
+      ).join("; ");
+    }
     const CSS = `
 .argus-live-cost{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width,760px);margin:0 auto 6px;padding:10px 12px;border:1px solid #99f6e4;border-radius:10px;background:#fff;color:#134e4a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:12px;line-height:1.45;box-shadow:0 2px 8px #134e4a12}
 .argus-live-cost__header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.argus-live-cost__title{margin:0;font-size:13px;font-weight:650}.argus-live-cost__total{text-align:right;font-variant-numeric:tabular-nums}.argus-live-cost__usd{display:block;color:#0f766e;font-size:20px;font-weight:700;line-height:1.2}.argus-live-cost__inr{color:#476664}
@@ -299,7 +316,7 @@ window.__ModuleLoader__.load({
         `Priced subtotal only; unpriced: ${report.unpricedModels.join(", ")}. Unknown cost is excluded.`),
       h(SessionBreakdown, { sessions: report.sessions }),
       h("p", { className: "argus-live-cost__source" },
-        "Sources: Harness tokenUsage + model projections. Built-in rates per 1M for global.moonshotai.kimi-k3.1: input $4 · output $20 · cache read $0.20 · cache write $5."),
+        `Sources: Harness tokenUsage + model projections. Built-in rates per 1M: ${rateSummary()}.`),
       h("p", { className: "argus-live-cost__disclaimer" },
         "Estimate, not an AWS bill. Provider invoices may differ."));
     }

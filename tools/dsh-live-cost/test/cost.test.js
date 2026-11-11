@@ -205,6 +205,24 @@ test("keeps an unknown lastUsed model unpriced", () => {
   assert.deepEqual(report.unpricedModels, ["vendor.unknown-last-used"]);
 });
 
+test("prices GLM-5.3 with cached categories and older GLM-5", () => {
+  const usage = {
+    uncachedInputTokens: 1_000_000,
+    outputTokens: 1_000_000,
+    cacheReadTokens: 1_000_000,
+    cacheWriteTokens: 1_000_000,
+  };
+  const report = api.aggregateCost([
+    { id: "lead", name: "Lead", model: "global.zai.glm-5.3", usage },
+    { id: "older", name: "Older", model: "zai.glm-5", usage },
+  ]);
+
+  assert.equal(report.totalUsd, 13.572);
+  assert.equal(report.sessions[0].cost, 9.372);
+  assert.equal(report.sessions[1].cost, 4.2);
+  assert.deepEqual(report.unpricedModels, []);
+});
+
 test("renders a missing session as unavailable rather than inventing usage", () => {
   const report = api.collectCostReport("missing", {
     binding: () => undefined,
