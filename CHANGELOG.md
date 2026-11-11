@@ -13,6 +13,7 @@ locally and in CI, but there is no staging or production deployment yet.
 ### Added
 
 - Exact cancel time (#64): migration 0004 adds `cancelled_at`; cancel sets it and restore clears it; the desk's cancelled-24h window uses it exactly.
+- Exact per-person minutes (#66): the ticket list carries `figures.perPerson` from one grouped query, so the Team primary/support split is exact.
 - Desk Views (#62): Team (working now by person, waiting, not started, cancelled 24h, closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, day-report download).
 - Account sheet + admin faces (#58): a header sheet (person, title, role, acting person, sign out) and an admin panel on the ticket detail to restore a cancelled ticket or correct its facts, each with a reason.
 - Day report PDF (#56): `GET /reports/day.pdf` renders a per-person day report (clipped work minutes, day total, pending-at-end) by day or shift, stored in the file store; role-gated, technicians own-only.
