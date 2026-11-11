@@ -2,6 +2,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
+import { z } from 'zod';
 import type { Figures } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
@@ -9,12 +10,15 @@ import { requireAuth } from './auth.js';
 import type { AppConfig } from './config.js';
 import {
   createLocalFileStore,
+  dayReportObjectKey,
   insertFileRow,
   pdfObjectKey,
   type ObjectStore,
 } from './file-store.js';
 import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
+import { loadDayReport, type DayReportData } from './day-report.js';
+import { renderDayReportHtml } from './day-report-template.js';
 import { loadReport, type StoredReport } from './ticket-report.js';
 import { figuresFromRow } from './ticket-mapper.js';
 
@@ -202,6 +206,79 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
   reply.send(await renderTicketPdf(deps, auth.tenantId, context));
 }
 
+function isCalendarDate(value: string): boolean {
+  const [year = 0, month = 0, day = 0] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+const dayReportQuerySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isCalendarDate),
+  personId: z.union([z.literal('me'), z.string().uuid()]).optional(),
+  shift: z.enum(['day', 'night']).default('day'),
+});
+
+function dayReportFileName(data: DayReportData): string {
+  const who = data.person.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'person';
+  return `Day_report_${who}_${data.date}_${data.shift}.pdf`;
+}
+
+/** `GET /reports/day.pdf` — the caller's (or a chosen person's) day, rendered to PDF. */
+async function sendDayPdf(
+  deps: PdfDeps,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const auth = await requireAuth(deps.pool, request, reply);
+  if (!auth) return;
+  const parsed = dayReportQuerySchema.safeParse(request.query ?? {});
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path.join('.');
+    reply.code(422).send(apiError('validation', 'Invalid day report query', field || undefined));
+    return;
+  }
+  const requested = parsed.data.personId;
+  const personId = !requested || requested === 'me' ? auth.personId : requested;
+  if (!personId) {
+    reply.code(422).send(apiError('validation', 'No acting person for "me"', 'personId'));
+    return;
+  }
+  const data = await withTenant(deps.pool, auth.tenantId, (client) =>
+    loadDayReport(client, {
+      tenantId: auth.tenantId,
+      personId,
+      date: parsed.data.date,
+      shift: parsed.data.shift,
+    }),
+  );
+  if (!data) {
+    reply.code(404).send(apiError('not_found', 'Unknown person', 'personId'));
+    return;
+  }
+  const bytes = await renderPdf(renderDayReportHtml(data), deps.chromiumPath);
+  const key = dayReportObjectKey(auth.tenantId, data.date, data.shift);
+  await deps.store.put(key, bytes);
+  const fileId = await withTenant(deps.pool, auth.tenantId, (client) =>
+    insertFileRow(client, {
+      tenantId: auth.tenantId,
+      ticketId: null,
+      key,
+      mime: PDF_MIME,
+      bytes,
+    }),
+  );
+  reply
+    .type(PDF_MIME)
+    .header('content-disposition', `inline; filename="${dayReportFileName(data)}"`)
+    .header('x-file-id', fileId)
+    .send(bytes);
+}
+
 export function registerReports(app: FastifyInstance, config: AppConfig): void {
   const deps: PdfDeps = {
     pool: config.pool,
@@ -209,4 +286,5 @@ export function registerReports(app: FastifyInstance, config: AppConfig): void {
     chromiumPath: config.chromiumPath,
   };
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
+  app.get('/api/v1/reports/day.pdf', (request, reply) => sendDayPdf(deps, request, reply));
 }

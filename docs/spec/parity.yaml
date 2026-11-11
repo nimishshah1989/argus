@@ -631,8 +631,13 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'PR #56'
+      - 'apps/server/test/day-report.test.ts :: lists every ticket the person touched with their
+        own clipped minutes'
+      - 'apps/server/test/day-report.test.ts :: returns a stored application/pdf for the caller
+        day'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name
