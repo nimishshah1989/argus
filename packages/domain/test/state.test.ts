@@ -235,6 +235,26 @@ describe('remaining commands', () => {
     expect(left.crew[0]?.leftAt).toEqual(now);
   });
 
+  it('gates leave to workers', () => {
+    const crew: CrewMember[] = [{ personId: 'person-2', role: 'support' }];
+    expect(() =>
+      run(
+        base({ status: 'working', leadPersonId: 'person-1' }),
+        { type: 'leave', personId: 'person-2', reason: 'Done' },
+        ctx('operator', 'person-2'),
+        { crew },
+      ),
+    ).toThrow(TransitionError);
+
+    const left = run(
+      base({ status: 'working', leadPersonId: 'person-1' }),
+      { type: 'leave', personId: 'person-2', reason: 'Done' },
+      ctx('technician', 'person-2'),
+      { crew },
+    );
+    expect(left.crew[0]?.leftAt).toEqual(now);
+  });
+
   it('upgrades a support ticket to stopped', () => {
     const support = base({ kind: 'support', status: 'working' });
     const result = run(support, { type: 'upgradeKind', personId: 'person-1' });

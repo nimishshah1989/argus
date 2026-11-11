@@ -225,6 +225,7 @@ export const en = {
   'account.aria': 'Account',
   'account.role': 'Role',
   'account.actingAs': 'Acting as',
+  'account.login': 'Login',
   'account.signOut': 'Sign out',
   'account.role.operator': 'Operator',
   'account.role.technician': 'Technician',

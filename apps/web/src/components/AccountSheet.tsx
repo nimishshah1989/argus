@@ -40,7 +40,7 @@ export function AccountSheet() {
         aria-label={t('account.aria')}
         className="inline-flex min-h-13 max-w-40 items-center truncate rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
       >
-        {user.name}
+        {user.shared ? user.username : user.name}
       </button>
       {open && (
         <section
@@ -54,6 +54,12 @@ export function AccountSheet() {
               <span className="text-neutral-500">{t('account.role')}</span>
               <span className="font-medium">{t(ROLE_KEYS[user.role] ?? user.role)}</span>
             </p>
+            {user.shared && (
+              <p className={detailRow}>
+                <span className="text-neutral-500">{t('account.login')}</span>
+                <span className="font-medium">{user.username}</span>
+              </p>
+            )}
             <p className={detailRow}>
               <span className="text-neutral-500">{t('account.actingAs')}</span>
               <span className="font-medium">{user.name}</span>
