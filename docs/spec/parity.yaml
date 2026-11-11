@@ -412,6 +412,8 @@ rows:
     evidence:
       - 'PR #16'
       - 'PR #23'
+      - 'PR #64'
+      - 'packages/domain/test/state.test.ts :: records the exact cancel time'
       - 'packages/domain/test/permissions.test.ts :: lets an operator cancel only their own
         un-started ticket'
       - 'apps/server/test/tickets-commands.test.ts :: lets an operator cancel their own
