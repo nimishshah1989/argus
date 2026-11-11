@@ -12,6 +12,7 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- Desk Views (#62): Team (working now by person, waiting, not started, cancelled 24h, closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, day-report download).
 - Account sheet + admin faces (#58): a header sheet (person, title, role, acting person, sign out) and an admin panel on the ticket detail to restore a cancelled ticket or correct its facts, each with a reason.
 - Day report PDF (#56): `GET /reports/day.pdf` renders a per-person day report (clipped work minutes, day total, pending-at-end) by day or shift, stored in the file store; role-gated, technicians own-only.
 - Needs-report list (#54): a breakdown closed without a report appears on a 7-day needs-report list on the desk, scoped to the acting person (management sees all); the late report clears it.
