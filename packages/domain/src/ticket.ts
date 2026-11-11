@@ -28,6 +28,7 @@ export interface Ticket {
   closedByPersonId: string | null;
   closeKind: 'report' | 'no_report' | 'done' | null;
   closeNote: string | null;
+  cancelledAt?: Date;
   taskReason: string | null;
   taskExpectedOn: string | null;
   taskDownMin: number | null;

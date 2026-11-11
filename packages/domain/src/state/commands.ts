@@ -208,7 +208,7 @@ export function cancel(
   }
   const at = clampAt(input.ctx.now, input);
   return apply(input, {
-    ticket: { status: 'cancelled' as const },
+    ticket: { status: 'cancelled' as const, cancelledAt: at },
     event: {
       type: 'cancel',
       reason: command.reason,

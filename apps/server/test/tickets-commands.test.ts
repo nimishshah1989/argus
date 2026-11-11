@@ -443,7 +443,11 @@ describe('ticket commands', () => {
     });
     expect(cancel.statusCode).toBe(200);
     expect(cancel.json().ticket.status).toBe('cancelled');
+    expect(cancel.json().ticket.cancelledAt).toBeTruthy();
     expectFigures(cancel.json().ticket);
+
+    const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
+    expect(detail.json().ticket.cancelledAt).toBeTruthy();
 
     const state = await get('/api/v1/state', ashaToken);
     expect(state.json().open.some((t: { id: string }) => t.id === id)).toBe(false);
@@ -457,7 +461,11 @@ describe('ticket commands', () => {
     });
     expect(restore.statusCode).toBe(200);
     expect(restore.json().ticket.status).toBe('working');
+    expect(restore.json().ticket.cancelledAt).toBeUndefined();
     expectFigures(restore.json().ticket);
+
+    const detail = await get(`/api/v1/tickets/${cancelledTicketId}`, ashaToken);
+    expect(detail.json().ticket.cancelledAt).toBeUndefined();
   });
 
   it('corrects a ticket as admin', async () => {

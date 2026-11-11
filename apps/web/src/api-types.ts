@@ -142,6 +142,7 @@ export interface Ticket {
   waitReason: string | null;
   machineRunningAt: string | null;
   closedAt: string | null;
+  cancelledAt?: string;
   closeKind: CloseKind | null;
   closeNote: string | null;
   figures: Figures | null;

@@ -91,6 +91,7 @@ export function restore(
       status: toStatus,
       segmentStartedAt: at,
       waitSince: toStatus === 'waiting' ? at : null,
+      cancelledAt: undefined,
     },
     event: { type: 'restore', reason: command.reason },
     at,

@@ -209,6 +209,7 @@ describe('state machine', () => {
       ctx('operator'),
     );
     expect(cancelled.ticket.status).toBe('cancelled');
+    expect(cancelled.ticket.cancelledAt).toEqual(now);
   });
 });
 
@@ -277,6 +278,7 @@ describe('remaining commands', () => {
       { type: 'cancel', personId: 'person-1', reason: 'By mistake' },
       ctx('technician'),
     );
+    expect(cancelled.ticket.cancelledAt).toEqual(now);
     const restored = run(
       cancelled.ticket,
       { type: 'restore', personId: 'person-1', reason: 'By mistake', toStatus: 'working' },
@@ -284,6 +286,7 @@ describe('remaining commands', () => {
       { events: cancelled.events, segments: cancelled.segments },
     );
     expect(restored.ticket.status).toBe('working');
+    expect(restored.ticket.cancelledAt).toBeUndefined();
     expect(restored.segments).toHaveLength(1);
   });
 

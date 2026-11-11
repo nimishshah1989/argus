@@ -12,11 +12,12 @@ function toMs(now: string | number): number {
 }
 
 /**
- * Cancelled tickets carry no cancelled-at field, so use the best timestamp there is:
- * closedAt (a correct/restore can close one), else startedAt, else reportedAt.
+ * The best timestamp a ticket carries: the exact `cancelledAt` for cancellations, else
+ * closedAt, else startedAt, else reportedAt. The chain after `cancelledAt` only serves
+ * pre-migration rows (cancelled before the column existed).
  */
 export function ticketTime(ticket: Ticket): number {
-  const iso = ticket.closedAt ?? ticket.startedAt ?? ticket.reportedAt;
+  const iso = ticket.cancelledAt ?? ticket.closedAt ?? ticket.startedAt ?? ticket.reportedAt;
   return new Date(iso).getTime();
 }
 
