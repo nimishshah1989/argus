@@ -72,10 +72,10 @@ must be present as `null` when absent.
 | ----------------------------- | --------: | --------------------------------------------------------------- |
 | CLI file bytes                | 5,242,880 | File `stat`, checked before JSON parsing or DB work by the CLI. |
 | Canonical raw ticket bytes    |   262,144 | UTF-8 bytes of canonical raw JSON.                              |
-| Canonical event payload bytes |    65,536 | UTF-8 bytes of the individual raw payload.                      |
+| Canonical event payload bytes |     8,192 | UTF-8 bytes of the individual raw payload.                      |
 | Whole JSON depth              |        16 | Root is 1; each property/array-element level adds 1.            |
 | Event payload depth           |         8 | Same root/level rule.                                           |
-| Edit changes                  |        32 | Per edit event, plus unique-field validation.                   |
+| Edit changes                  |        10 | Per edit event, plus unique-field validation.                   |
 | Reports                       |         1 | Per ticket.                                                     |
 | Report people                 |       128 | Separately for `doneBy` and `supportedBy`.                      |
 
@@ -123,7 +123,7 @@ arbitrary records—and are checked recursively for byte size, depth, NUL, and f
 | `close`                                                         | `{kind: "report" \| "no_report" \| "done"}`                                                        | Actor nonnull; `text` is the close note.                          |
 | `cancel`                                                        | `{previousStatus: "open" \| "working" \| "waiting"}`                                               | Actor and nonnull reason in `text`.                               |
 | `report`                                                        | `{}`                                                                                               | Actor nonnull; `text` must be null.                               |
-| `edit`                                                          | `{changes: change[]}`                                                                              | Actor and nonnull reason in `text`; at most 32 changes.           |
+| `edit`                                                          | `{changes: change[]}`                                                                              | Actor and nonnull reason in `text`; at most 10 changes.           |
 
 An edit change is exactly `{field, from, to}`, and a field occurs at most once in one edit.
 
@@ -163,9 +163,10 @@ A report has exactly these fields:
 | `doneBy`      | string[]                    | `supportedBy`       | string[]                    |
 | `submittedAt` | timestamp                   | `submittedBy`       | string                      |
 
-`doneBy` and `supportedBy` each have unique normalized names and are disjoint. Ordinary reports may
-explicitly use null response/repair; past breakdowns may not. No report field is inferred from the
-current clock, close time, a shift named `A`, `observedBy`, or zero.
+`doneBy` and `supportedBy` are independently capped at 128 entries each, have unique normalized
+names within each array, and are disjoint. One report can therefore insert at most 256 report-person
+rows. Ordinary reports may explicitly use null response/repair; past breakdowns may not. No report
+field is inferred from the current clock, close time, a shift named `A`, `observedBy`, or zero.
 
 ## 7. Stored figures and raw identity
 
@@ -213,15 +214,15 @@ example is not a sample of, or a migration path for, a real export.
       "crew": [
         {
           "joinedAt": "2026-11-01T10:05:00Z",
-          "leftAt": "2026-11-01T11:00:00Z",
-          "leftReason": "close",
+          "leftAt": null,
+          "leftReason": null,
           "person": "SYNTH-LEAD",
           "role": "lead"
         },
         {
           "joinedAt": "2026-11-01T10:30:00Z",
-          "leftAt": "2026-11-01T11:00:00Z",
-          "leftReason": "close",
+          "leftAt": null,
+          "leftReason": null,
           "person": "Bina",
           "role": "support"
         }
@@ -259,7 +260,7 @@ example is not a sample of, or a migration path for, a real export.
       ],
       "kind": "stopped",
       "legacyId": "synthetic-legacy-0100",
-      "location": null,
+      "location": "Cell-1",
       "machineCode": "SYNTH-MACHINE",
       "parentRef": null,
       "problem": "Synthetic spindle alarm",
@@ -268,7 +269,7 @@ example is not a sample of, or a migration path for, a real export.
       "reportedByPerson": "SYNTH-LEAD",
       "reports": [
         {
-          "breakdownCategory": "M",
+          "breakdownCategory": "E",
           "correctiveAction": "Synthetic spindle reset",
           "date": "2026-11-01",
           "doneBy": ["SYNTH-LEAD"],
@@ -276,7 +277,7 @@ example is not a sample of, or a migration path for, a real export.
           "handoverName": null,
           "kind": "breakdown",
           "maintCode": "SYNTH-MAINT",
-          "observedBy": "Asha",
+          "observedBy": "Engineer",
           "problem": "Synthetic spindle alarm",
           "repairMin": 55,
           "responseMin": 5,
@@ -341,7 +342,7 @@ example is not a sample of, or a migration path for, a real export.
         "vendorMin": 0,
         "waitMin": 0
       },
-      "workType": null
+      "workType": "breakdown"
     }
   ]
 }

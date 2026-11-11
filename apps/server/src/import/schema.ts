@@ -217,8 +217,8 @@ const reportSchema = z
     spareUsed: free.nullable(),
     rootCause: free.nullable(),
     handoverName: free.nullable(),
-    doneBy: z.array(short).max(IMPORT_LIMITS.reportPeople),
-    supportedBy: z.array(short).max(IMPORT_LIMITS.reportPeople),
+    doneBy: z.array(short).max(IMPORT_LIMITS.reportPeoplePerRole),
+    supportedBy: z.array(short).max(IMPORT_LIMITS.reportPeoplePerRole),
     submittedAt: timestamp,
     submittedBy: short,
   })
@@ -362,7 +362,7 @@ export function parseTicket(raw: unknown): BhavinTicket {
       {
         code: z.ZodIssueCode.custom,
         path: [],
-        message: 'Raw ticket exceeds 262144 canonical bytes',
+        message: `raw_ticket_bytes: raw ticket exceeds ${IMPORT_LIMITS.rawTicketBytes} canonical bytes`,
       },
     ]);
   }

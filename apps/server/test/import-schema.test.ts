@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeOrdinaryTicket, makeSyntheticExport, syntheticSource } from './import-fixture.js';
+import { startTestDb } from './harness.js';
 
 const loadSchema = () => import('../src/import/schema.js');
 
@@ -49,24 +50,77 @@ function minimalEvent() {
 
 function updateEvent(text: string) {
   return {
-    at: '2026-11-01T10:06:00Z',
-    by: 'A',
+    at: '2026-11-01T11:00:00Z',
+    by: 'Asha',
     payload: { expectedBackAt: null, spare: null },
     text,
     type: 'update',
   };
 }
 
+function editEvent(payload: unknown) {
+  return {
+    at: '2026-11-01T11:01:00Z',
+    by: 'Asha',
+    payload,
+    text: 'Synthetic correction',
+    type: 'edit',
+  };
+}
+
+function ticketWithEdit(payload: unknown, problem = 'Synthetic spindle alarm') {
+  const raw = makeOrdinaryTicket({ problem });
+  return { ...raw, events: [...raw.events, editEvent(payload)] };
+}
+
+function allEditChanges() {
+  return [
+    { field: 'reportedAt', from: '2026-11-01T10:00:00Z', to: '2026-11-01T10:01:00Z' },
+    { field: 'startedAt', from: null, to: '2026-11-01T10:05:00Z' },
+    { field: 'closedAt', from: null, to: '2026-11-01T11:00:00Z' },
+    { field: 'problem', from: 'old', to: 'new' },
+    { field: 'machineCode', from: null, to: 'M-1' },
+    { field: 'kind', from: 'support', to: 'stopped' },
+    { field: 'leadPerson', from: null, to: 'Asha' },
+    { field: 'closedByPerson', from: null, to: 'Asha' },
+    { field: 'handsOnOverrideMin', from: null, to: 55 },
+    { field: 'waitingOverrideMin', from: null, to: 0 },
+  ];
+}
+
 function rawTicketAtBytes(target: number) {
-  const events: ReturnType<typeof updateEvent>[] = [];
-  const padded = updateEvent('x'.repeat(3_800));
-  const size = (rows: unknown[], problem = 'Synthetic spindle alarm') =>
-    Buffer.byteLength(JSON.stringify(makeOrdinaryTicket({ events: rows, problem })));
-  while (size([...events, padded]) <= target) events.push(padded);
-  const remaining = target - size(events);
-  const problem = 'x'.repeat('Synthetic spindle alarm'.length + remaining);
-  expect(problem.length).toBeLessThanOrEqual(4_096);
-  const raw = makeOrdinaryTicket({ events, problem });
+  const base = makeOrdinaryTicket();
+  const working = makeOrdinaryTicket({
+    crew: base.crew.map((member) => ({ ...member, leftAt: null, leftReason: null })),
+    events: base.events.slice(0, 3),
+    reports: [],
+    segments: base.segments.map((segment) => ({ ...segment, endedAt: null, endReason: null })),
+    state: {
+      ...base.state,
+      closeKind: null,
+      closeNote: null,
+      closedAt: null,
+      closedByPerson: null,
+    },
+    status: 'working',
+  });
+  const updates: ReturnType<typeof updateEvent>[] = [];
+  const size = (rows: unknown[]) =>
+    Buffer.byteLength(JSON.stringify({ ...working, events: [...working.events, ...rows] }));
+  while (size([...updates, updateEvent('u'.repeat(4_096))]) <= target) {
+    updates.push(updateEvent('u'.repeat(4_096)));
+  }
+  const final = updateEvent('u'.repeat(2_000));
+  const rows = [...updates, final];
+  const difference = target - size(rows);
+  if (difference > 0) final.text = `${final.text}${'u'.repeat(difference)}`;
+  if (difference < 0) {
+    const previous = updates.at(-1)!;
+    previous.text = 'u'.repeat(previous.text.length + difference);
+  }
+  for (const event of rows) expect(event.text.length).toBeGreaterThan(0);
+  for (const event of rows) expect(event.text.length).toBeLessThanOrEqual(4_096);
+  const raw = { ...working, events: [...working.events, ...rows] };
   expect(Buffer.byteLength(JSON.stringify(raw))).toBe(target);
   return raw;
 }
@@ -302,17 +356,28 @@ describe('synthetic import schema', () => {
 
   it('T07 enforces exact canonical raw-ticket and event-payload byte caps', async () => {
     const schema = await loadSchema();
-    expect(schema.parseTicket(rawTicketAtBytes(262_144))).toBeDefined();
-    expectFailureAt(() => schema.parseTicket(rawTicketAtBytes(262_145)), '262144');
-    const payloadGuard = (await import('../src/import/event-schema.js')).assertEventPayload;
+    const exactPayload = {
+      changes: [{ field: 'problem', from: 'f'.repeat(4_070), to: 't'.repeat(4_071) }],
+    };
+    const overPayload = {
+      changes: [{ field: 'problem', from: 'f'.repeat(4_070), to: 't'.repeat(4_072) }],
+    };
+    expect(exactPayload.changes[0]?.from.length).toBe(4_070);
+    expect(exactPayload.changes[0]?.to.length).toBe(4_071);
+    expect(overPayload.changes[0]?.to.length).toBe(4_072);
+    expect(Buffer.byteLength(schema.canonicalJson(exactPayload))).toBe(8_192);
+    expect(Buffer.byteLength(schema.canonicalJson(overPayload))).toBe(8_193);
+    expect(schema.parseTicket(ticketWithEdit(exactPayload, 't'.repeat(4_071)))).toBeDefined();
+    const payloadError = captureError(() =>
+      schema.parseTicket(ticketWithEdit(overPayload, 't'.repeat(4_072))),
+    );
+    const payloadIssues = JSON.stringify((payloadError as { issues?: unknown }).issues);
+    expect(payloadIssues).toContain('payload_bytes');
+    expect(payloadIssues).toContain('"events",4,"payload"');
+    expect(payloadIssues).not.toContain('string_length');
 
-    const overhead = Buffer.byteLength(schema.canonicalJson({ value: '' }));
-    const exact = { value: 'x'.repeat(65_536 - overhead) };
-    expect(Buffer.byteLength(schema.canonicalJson(exact))).toBe(65_536);
-    expect(() => payloadGuard(exact)).not.toThrow();
-    const oversized = { value: `${exact.value}x` };
-    expect(Buffer.byteLength(schema.canonicalJson(oversized))).toBe(65_537);
-    expectFailureAt(() => payloadGuard(oversized), '65536');
+    expect(schema.parseTicket(rawTicketAtBytes(262_144))).toBeDefined();
+    expectFailureAt(() => schema.parseTicket(rawTicketAtBytes(262_145)), 'raw_ticket_bytes');
   });
 
   it('T08 enforces exact collection and alias caps with collection paths', async () => {
@@ -382,9 +447,26 @@ describe('synthetic import schema', () => {
       );
     }
 
-    const payloadGuard = (await import('../src/import/event-schema.js')).assertEventPayload;
-    expect(() => payloadGuard({ changes: Array(32).fill({}) })).not.toThrow();
-    expectFailureAt(() => payloadGuard({ changes: Array(33).fill({}) }), 'changes');
+    const combinedReport = {
+      ...raw.reports[0],
+      doneBy: Array.from({ length: 128 }, (_, index) => `Done ${index}`),
+      supportedBy: Array.from({ length: 128 }, (_, index) => `Supported ${index}`),
+    };
+    expect(schema.parseTicket({ ...raw, reports: [combinedReport] })).toBeDefined();
+
+    const changes = allEditChanges();
+    expect(changes).toHaveLength(10);
+    expect(schema.parseTicket(ticketWithEdit({ changes }))).toBeDefined();
+    const capError = captureError(() =>
+      schema.parseTicket(ticketWithEdit({ changes: [...changes, changes[0]] })),
+    );
+    const capIssues = JSON.stringify((capError as { issues?: unknown }).issues);
+    expect(capIssues).toContain('array_cap');
+    expect(capIssues).not.toContain('duplicate_field');
+    expectFailureAt(
+      () => schema.parseTicket(ticketWithEdit({ changes: [changes[0], changes[0]] })),
+      'duplicate_field',
+    );
 
     for (const kind of ['machines', 'people', 'maintenanceCodes'] as const) {
       const entries = Array.from({ length: 512 }, (_, index) => [
@@ -423,9 +505,24 @@ describe('synthetic import schema', () => {
 
     expect(() => schema.assertSafeJson(nestedAtDepth(16))).not.toThrow();
     expect(() => schema.assertSafeJson(nestedAtDepth(17))).toThrow(/depth|16/i);
-    const payloadGuard = (await import('../src/import/event-schema.js')).assertEventPayload;
-    expect(() => payloadGuard(nestedAtDepth(8))).not.toThrow();
-    expect(() => payloadGuard(nestedAtDepth(9))).toThrow(/depth|8/i);
+    const depthEight = captureError(() =>
+      schema.parseTicket({
+        ...makeOrdinaryTicket(),
+        events: [{ ...updateEvent('note'), payload: nestedAtDepth(8) }],
+      }),
+    );
+    expect(JSON.stringify((depthEight as { issues?: unknown }).issues)).not.toContain(
+      'payload_depth',
+    );
+    expect(JSON.stringify((depthEight as { issues?: unknown }).issues)).toContain('child');
+    expectFailureAt(
+      () =>
+        schema.parseTicket({
+          ...makeOrdinaryTicket(),
+          events: [{ ...updateEvent('note'), payload: nestedAtDepth(9) }],
+        }),
+      'payload_depth',
+    );
   });
 
   it('T10 enforces ref boundaries, kind prefixes, past breakdowns, and parent refs', async () => {
@@ -440,8 +537,8 @@ describe('synthetic import schema', () => {
         ref,
         parentRef,
         machineCode: null,
-        location: 'Synthetic cell',
-        workType: 'synthetic-work',
+        location: 'Cell-1',
+        workType: 'breakdown',
         reports: [],
       });
     for (const ref of ['WR-1', 'WR-2147483646'])
@@ -552,4 +649,90 @@ describe('synthetic import schema', () => {
       '{"a":{"c":3,"d":2},"arr":[{"a":2,"z":1}],"b":1}',
     );
   });
+
+  it('fixture base preserves join provenance and leaves crew without leave events', () => {
+    const raw = makeOrdinaryTicket();
+    expect(raw.events.map((event) => event.type)).toEqual(['down', 'start', 'join', 'close']);
+    expect(raw.crew.map((member) => [member.leftAt, member.leftReason])).toEqual([
+      [null, null],
+      [null, null],
+    ]);
+    expect(raw.segments.map((segment) => [segment.endedAt, segment.endReason])).toEqual([
+      ['2026-11-01T11:00:00Z', 'close'],
+      ['2026-11-01T11:00:00Z', 'close'],
+    ]);
+    expect(raw.state.machineRunningAt).toBeNull();
+    expect(raw.state.machineStoppedAt).toBeNull();
+    expect(raw.location).toBe('Cell-1');
+    expect(raw.workType).toBe('breakdown');
+    expect(raw.reports[0]).toMatchObject({ breakdownCategory: 'E', observedBy: 'Engineer' });
+  });
+
+  it('fixture builds every complete reconciliation reference map', async () => {
+    const fixture = await import('./import-fixture.js');
+    expect(fixture.makeReconcileReferences).toBeTypeOf('function');
+    const refs = fixture.makeReconcileReferences();
+    expect(refs.timeZone).toBe('UTC');
+    expect(refs.machine).toEqual({
+      id: fixture.syntheticIds.machine,
+      code: 'M-1',
+      category: 'CNC',
+      cell: 'Cell-1',
+    });
+    expect(refs.workTypes.get('BREAKDOWN')).toEqual({ code: 'breakdown' });
+    expect(refs.locations.get('CELL-1')).toEqual({ code: 'Cell-1' });
+    expect(refs.waitReasons.get('SPARE')).toEqual({
+      code: 'spare',
+      isVendor: true,
+      pausesSla: true,
+    });
+    expect(refs.breakdownCategories.get('E')).toEqual({ code: 'E' });
+    expect(refs.observedBy.get('ENGINEER')).toEqual({ code: 'Engineer' });
+    expect(refs.maintenanceCodes.get('M')).toEqual({ code: 'M' });
+    expect(refs.shifts.get('1')).toEqual({
+      code: '1',
+      startsAt: '08:00',
+      endsAt: '18:30',
+      crossesMidnight: false,
+    });
+    expect(refs.shifts.get('2')).toEqual({
+      code: '2',
+      startsAt: '18:30',
+      endsAt: '08:00',
+      crossesMidnight: true,
+    });
+    expect(refs.people.get('synth-lead')).toBe(fixture.syntheticIds.asha);
+    expect(refs.people.get('asha')).toBe(fixture.syntheticIds.asha);
+    expect(refs.people.get('bina')).toBe(fixture.syntheticIds.bina);
+    expect(refs.pendingPersons.size).toBe(0);
+  });
+
+  it('fixture seeder succeeds against disposable Postgres', async () => {
+    const db = await startTestDb();
+    try {
+      const fixture = await import('./import-fixture.js');
+      await fixture.seedSyntheticTenant(db.admin);
+      const counts = (
+        await db.admin.query(
+          `SELECT
+             (SELECT count(*) FROM tenant WHERE id = $1)::int AS tenants,
+             (SELECT count(*) FROM machine WHERE tenant_id = $1)::int AS machines,
+             (SELECT count(*) FROM person WHERE tenant_id = $1)::int AS people,
+             (SELECT count(*) FROM list_item WHERE tenant_id = $1)::int AS "listItems",
+             (SELECT count(*) FROM shift WHERE tenant_id = $1)::int AS shifts`,
+          [fixture.syntheticIds.tenant],
+        )
+      ).rows[0];
+      expect(counts).toMatchObject({ tenants: 1, machines: 1, people: 3, listItems: 6, shifts: 2 });
+      const wait = (
+        await db.admin.query(
+          "SELECT code, is_vendor, pauses_sla FROM list_item WHERE tenant_id = $1 AND list = 'wait_reason'",
+          [fixture.syntheticIds.tenant],
+        )
+      ).rows[0];
+      expect(wait).toEqual({ code: 'spare', is_vendor: true, pauses_sla: true });
+    } finally {
+      await db.stop();
+    }
+  }, 120_000);
 });

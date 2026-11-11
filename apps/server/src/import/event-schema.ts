@@ -93,15 +93,19 @@ const editChange = z.discriminatedUnion('field', [
   change('waitingOverrideMin', minute.nullable(), minute),
 ]);
 const editPayload = z
-  .object({ changes: z.array(editChange).max(IMPORT_LIMITS.editChanges) })
+  .object({ changes: z.array(editChange) })
   .strict()
   .superRefine((payload, context) => {
+    if (payload.changes.length > IMPORT_LIMITS.editChanges) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['changes'], message: 'array_cap' });
+      return;
+    }
     const fields = payload.changes.map((item) => item.field);
     if (new Set(fields).size !== fields.length) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['changes'],
-        message: 'Duplicate edit field',
+        message: 'duplicate_field',
       });
     }
   });
@@ -117,20 +121,16 @@ function jsonDepth(value: unknown): number {
   return deepest + 1;
 }
 
-/** The raw-payload guard is also the direct exact-bound test seam. */
-export function assertEventPayload(payload: unknown): void {
+function assertEventPayload(payload: unknown): void {
   assertSafeJson(payload);
-  if (jsonDepth(payload) > IMPORT_LIMITS.payloadDepth)
-    throw new Error('Event payload depth exceeds 8');
+  if (jsonDepth(payload) > IMPORT_LIMITS.payloadDepth) {
+    throw new Error(`payload_depth: event payload depth exceeds ${IMPORT_LIMITS.payloadDepth}`);
+  }
   const bytes = Buffer.byteLength(canonicalJson(payload));
   if (bytes > IMPORT_LIMITS.eventPayloadBytes) {
-    throw new Error('Event payload exceeds 65536 canonical bytes');
-  }
-  if (payload !== null && typeof payload === 'object' && !Array.isArray(payload)) {
-    const changes = (payload as { changes?: unknown }).changes;
-    if (Array.isArray(changes) && changes.length > IMPORT_LIMITS.editChanges) {
-      throw new Error('Event payload changes exceeds 32 entries');
-    }
+    throw new Error(
+      `payload_bytes: event payload exceeds ${IMPORT_LIMITS.eventPayloadBytes} canonical bytes`,
+    );
   }
 }
 
