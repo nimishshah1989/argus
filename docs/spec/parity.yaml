@@ -532,10 +532,12 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #29'
+      - 'PR #62'
       - 'apps/server/test/tickets-list.test.ts :: filters by personId as lead and as crew'
+      - 'apps/web/src/screens/desk/views.test.ts :: dayReportHref'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Views
   - id: v3.views.05
@@ -546,10 +548,14 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #27'
       - 'PR #29'
+      - 'PR #62'
+      - 'apps/web/src/screens/desk/views.test.ts :: groups working tickets by lead person with
+        minutes'
+      - 'apps/web/src/screens/desk/views.test.ts :: monthlyTotals'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Views
   - id: v3.views.06
