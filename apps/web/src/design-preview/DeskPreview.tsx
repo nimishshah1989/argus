@@ -6,105 +6,103 @@ import {
   BarChart3,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
-  Clock3,
   ListTree,
   MoreHorizontal,
   Pause,
   Play,
-  UserRound,
   Users,
 } from 'lucide-react';
-import { Button, Card, StatusPair } from './components.js';
+import {
+  Button,
+  Card,
+  StatusPair,
+  countStyle,
+  disclosure,
+  disclosureSummary,
+  mutedText,
+} from './components.js';
 import { previewPersonName, previewTickets, type PreviewTicket, type PreviewWork } from './data.js';
+
+const ui = {
+  card: 'grid min-h-[52px] w-full min-w-0 gap-3 rounded-[18px] border border-[var(--line)] bg-white p-4 text-left text-[var(--ink)] shadow-sm transition-colors duration-200 hover:border-[#a8a8b0] motion-reduce:transition-none',
+  top: 'flex items-center justify-between gap-3',
+  heading: 'mb-3 flex items-center gap-2 text-[15px]',
+  insights: 'space-y-4 px-3.5 pb-4 pt-1 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0',
+  figures: 'm-0 grid grid-cols-3 gap-2',
+  figure: 'min-w-0 rounded-xl bg-[var(--neutral)] p-3',
+  back: '-ml-3 -mt-2 justify-self-start text-[var(--teal)] lg:hidden',
+  action: 'w-full sm:w-auto sm:min-w-[180px]',
+  secondary: 'bg-[var(--neutral)] text-sm',
+};
 
 interface TicketCardProps {
   ticket: PreviewTicket;
   selected: boolean;
   onOpen: () => void;
 }
-
 function TicketCard({ ticket, selected, onOpen }: TicketCardProps) {
   return (
-    <button aria-pressed={selected} className="preview-ticket-card" onClick={onOpen} type="button">
-      <span className="preview-ticket-card__top">
-        <strong>{ticket.ref}</strong>
-        <span>{ticket.machineCode}</span>
-        <ChevronRight aria-hidden="true" size={19} strokeWidth={1.8} />
+    <button
+      aria-pressed={selected}
+      className={`${ui.card} ${selected ? 'border-[var(--teal)] ring-1 ring-[var(--teal)]' : ''}`}
+      onClick={onOpen}
+      type="button"
+    >
+      <span className={ui.top}>
+        <strong>
+          {ticket.ref} · {ticket.machineCode}
+        </strong>
+        <ChevronRight aria-hidden="true" size={19} />
       </span>
-      <span className="preview-ticket-card__problem">{ticket.problem}</span>
+      <span className="break-words font-semibold">{ticket.problem}</span>
       <StatusPair condition={ticket.condition} work={ticket.work} />
-      <span className="preview-ticket-card__meta">
-        <Clock3 aria-hidden="true" size={16} /> Reported {ticket.reportedAt}
-      </span>
     </button>
   );
 }
 
-function TicketTimeline({ ticket }: { ticket: PreviewTicket }) {
+function figure(label: string, value: string) {
   return (
-    <section aria-labelledby="preview-timeline-heading">
-      <h3 id="preview-timeline-heading">
-        <ListTree aria-hidden="true" size={18} /> Timeline
-      </h3>
-      <ol className="preview-timeline">
-        {ticket.timeline.map((item) => (
-          <li key={item.id}>
-            <time>{item.time}</time>
-            <p>{item.text}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <div className={ui.figure}>
+      <dt className={mutedText}>{label}</dt>
+      <dd className="m-0 font-bold">{value}</dd>
+    </div>
   );
 }
 
 function TicketInsights({ ticket }: { ticket: PreviewTicket }) {
   return (
-    <details className="preview-disclosure preview-ticket-insights">
-      <summary>
+    <details className={disclosure}>
+      <summary className={disclosureSummary}>
         <ListTree aria-hidden="true" size={19} />
         Timeline, people &amp; figures
         <ChevronDown aria-hidden="true" size={18} />
       </summary>
-      <div className="preview-disclosure-body preview-insight-grid">
-        <TicketTimeline ticket={ticket} />
-        <section aria-labelledby="preview-people-heading">
-          <h3 id="preview-people-heading">
+      <div className={ui.insights}>
+        <section aria-label="Timeline">
+          <h3 className={ui.heading}>
+            <ListTree aria-hidden="true" size={18} /> Timeline
+          </h3>
+          <ol className="m-0 grid list-none gap-3.5 p-0 text-sm">
+            {ticket.timeline.map((item) => (
+              <li key={item.time}>{`${item.time} · ${item.text}`}</li>
+            ))}
+          </ol>
+        </section>
+        <section aria-label="People">
+          <h3 className={ui.heading}>
             <Users aria-hidden="true" size={18} /> People
           </h3>
-          <ul className="preview-people-list">
-            <li>
-              <UserRound aria-hidden="true" size={18} />
-              <span>
-                <strong>{previewPersonName(ticket.lead)}</strong>Lead
-              </span>
-            </li>
-            <li>
-              <UserRound aria-hidden="true" size={18} />
-              <span>
-                <strong>{previewPersonName(ticket.support)}</strong>Support
-              </span>
-            </li>
-          </ul>
+          <p className="text-sm">{`Lead · ${previewPersonName(ticket.lead)}`}</p>
+          <p className="mt-2 text-sm">{`Support · ${previewPersonName(ticket.support)}`}</p>
         </section>
-        <section aria-labelledby="preview-figures-heading">
-          <h3 id="preview-figures-heading">
+        <section aria-label="Figures">
+          <h3 className={ui.heading}>
             <BarChart3 aria-hidden="true" size={18} /> Figures
           </h3>
-          <dl className="preview-figures">
-            <div>
-              <dt>Downtime</dt>
-              <dd>{ticket.downtimeMinutes} min</dd>
-            </div>
-            <div>
-              <dt>Active work</dt>
-              <dd>{ticket.activeMinutes} min</dd>
-            </div>
-            <div>
-              <dt>Updates</dt>
-              <dd>{ticket.timeline.length}</dd>
-            </div>
+          <dl className={ui.figures}>
+            {figure('Downtime', `${ticket.downtimeMinutes} min`)}
+            {figure('Active work', `${ticket.activeMinutes} min`)}
+            {figure('Updates', String(ticket.timeline.length))}
           </dl>
         </section>
       </div>
@@ -112,60 +110,51 @@ function TicketInsights({ ticket }: { ticket: PreviewTicket }) {
   );
 }
 
-interface WorkingTicketProps {
+interface WorkingProps {
   ticket: PreviewTicket;
   onWork: (work: PreviewWork) => void;
   onBack: () => void;
 }
-
-function WorkingTicket({ ticket, onWork, onBack }: WorkingTicketProps) {
+function WorkingTicket({ ticket, onWork, onBack }: WorkingProps) {
   return (
-    <Card className="preview-working-ticket">
-      <Button className="preview-back" icon={ArrowLeft} onClick={onBack} variant="quiet">
+    <Card className="grid gap-4">
+      <Button className={ui.back} icon={ArrowLeft} onClick={onBack} variant="quiet">
         Back to open
       </Button>
-      <div className="preview-working-ticket__header">
+      <div className="flex flex-wrap items-start justify-between gap-3.5">
         <div>
-          <p className="preview-ticket-ref">{ticket.ref}</p>
-          <h2>{ticket.machineCode}</h2>
-          <p>{ticket.problem}</p>
+          <h2>
+            {ticket.machineCode} · {ticket.ref}
+          </h2>
+          <p className="text-[var(--muted)]">{ticket.problem}</p>
         </div>
         <StatusPair condition={ticket.condition} work={ticket.work} />
       </div>
-      <p className="preview-report-meta">
-        Reported {ticket.reportedAt} by {previewPersonName(ticket.reportedBy)}
-      </p>
-      {ticket.work === 'Not started' ? (
+      {ticket.work !== 'In progress' ? (
         <Button
-          className="preview-primary-action"
+          className={ui.action}
           icon={Play}
           onClick={() => onWork('In progress')}
           variant="primary"
         >
-          Start
+          {ticket.work === 'Waiting' ? 'Resume' : 'Start'}
         </Button>
       ) : null}
-      {ticket.work === 'Waiting' ? (
-        <Button
-          className="preview-primary-action"
-          icon={Play}
-          onClick={() => onWork('In progress')}
-          variant="primary"
-        >
-          Resume
-        </Button>
-      ) : null}
-      <details className="preview-disclosure preview-more-actions">
-        <summary>
+      <details className={disclosure}>
+        <summary className={disclosureSummary}>
           <MoreHorizontal aria-hidden="true" size={20} />
           More actions
           <ChevronDown aria-hidden="true" size={18} />
         </summary>
-        <div className="preview-disclosure-body preview-secondary-actions">
-          <Button icon={Pause} onClick={() => onWork('Waiting')}>
+        <div className="grid grid-cols-2 gap-3 px-3.5 pb-4 pt-1">
+          <Button className={ui.secondary} icon={Pause} onClick={() => onWork('Waiting')}>
             Pause
           </Button>
-          <Button icon={ArrowLeftRight} onClick={() => onWork('Not started')}>
+          <Button
+            className={ui.secondary}
+            icon={ArrowLeftRight}
+            onClick={() => onWork('Not started')}
+          >
             Transfer
           </Button>
         </div>
@@ -179,27 +168,19 @@ export function DeskPreview() {
   const [tickets, setTickets] = useState(previewTickets);
   const [selectedRef, setSelectedRef] = useState<string>();
   const selected = tickets.find((ticket) => ticket.ref === selectedRef);
-
   function updateWork(work: PreviewWork) {
     setTickets((current) =>
       current.map((ticket) => (ticket.ref === selectedRef ? { ...ticket, work } : ticket)),
     );
   }
-
   return (
-    <div className={`preview-desk ${selected ? 'preview-desk--selected' : ''}`}>
-      <section className="preview-open-list" aria-labelledby="preview-open-heading">
-        <div className="preview-section-heading">
-          <div>
-            <p className="preview-eyebrow">WORK QUEUE</p>
-            <h2 id="preview-open-heading">Open</h2>
-          </div>
-          <span className="preview-count">{tickets.length}</span>
+    <div className={`preview-desk min-w-0 ${selected ? 'preview-desk--selected' : ''}`}>
+      <section className="min-w-0" aria-labelledby="preview-open-heading">
+        <div className="flex items-center justify-between gap-3.5">
+          <h2 id="preview-open-heading">Open</h2>
+          <span className={countStyle}>{tickets.length}</span>
         </div>
-        <p className="preview-section-intro">
-          Choose a ticket to see the work, not just the alarm.
-        </p>
-        <div className="preview-ticket-list">
+        <div className="mt-5 grid gap-3">
           {tickets.map((ticket) => (
             <TicketCard
               key={ticket.ref}
@@ -210,20 +191,14 @@ export function DeskPreview() {
           ))}
         </div>
       </section>
-      <section className="preview-ticket-detail" aria-label="Working ticket">
+      <section className="preview-ticket-detail min-w-0" aria-label="Working ticket">
         {selected ? (
           <WorkingTicket
             ticket={selected}
             onWork={updateWork}
             onBack={() => setSelectedRef(undefined)}
           />
-        ) : (
-          <Card className="preview-empty-detail">
-            <ClipboardList aria-hidden="true" size={32} strokeWidth={1.5} />
-            <h2>Select a ticket</h2>
-            <p>Open a synthetic ticket to preview its actions and details.</p>
-          </Card>
-        )}
+        ) : null}
       </section>
     </div>
   );

@@ -1,17 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- Disposable English-only design review. */
 import { useState, type FormEvent } from 'react';
-import {
-  CheckCircle2,
-  ChevronDown,
-  CircleStop,
-  Factory,
-  Inbox,
-  LifeBuoy,
-  MapPin,
-  RotateCcw,
-  Send,
-} from 'lucide-react';
-import { Button, Card, Field, IconLabel, StatusPair } from './components.js';
+import { CheckCircle2, CircleStop, Factory, Inbox, LifeBuoy, RotateCcw, Send } from 'lucide-react';
+import { Button, Card, Field, countStyle, fieldInput, mutedText } from './components.js';
 import {
   previewMachines,
   previewPeople,
@@ -21,64 +11,68 @@ import {
   type PreviewSituation,
 } from './data.js';
 
+const ui = {
+  heading: 'mb-[18px] flex items-center gap-2.5 text-lg font-semibold',
+  choice: 'min-h-[64px] border-[var(--line)] bg-white',
+  quick: 'bg-[var(--neutral)] text-sm',
+  action: 'w-full sm:w-auto sm:min-w-[180px]',
+};
+const tones = {
+  Stopped: 'border-[var(--red)] bg-[var(--red-soft)] text-[var(--red)]',
+  Support: 'border-[var(--amber)] bg-[var(--amber-soft)] text-[var(--amber)]',
+};
 function StepHeading({ number, title }: { number: number; title: string }) {
   return (
-    <h2 className="preview-step-heading">
-      <span aria-hidden="true">{number}</span>
-      {title}
+    <h2 className={ui.heading}>
+      {number} · {title}
     </h2>
   );
 }
 
-interface MachineStepProps {
-  query: string;
+interface MachineProps {
   machine?: PreviewMachine;
-  matches: PreviewMachine[];
-  onQuery: (value: string) => void;
   onSelect: (machine: PreviewMachine) => void;
   onChange: () => void;
 }
-
-function MachineStep({ query, machine, matches, onQuery, onSelect, onChange }: MachineStepProps) {
+function MachineStep({ machine, onSelect, onChange }: MachineProps) {
+  const [query, setQuery] = useState('');
+  const matches = previewMachines.filter((item) =>
+    `${item.code} ${item.name}`.toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
-    <Card className="preview-step">
+    <Card>
       <StepHeading number={1} title="Choose a machine" />
       {machine ? (
-        <div className="preview-selected-machine">
-          <Factory aria-hidden="true" size={24} strokeWidth={1.7} />
-          <div>
-            <strong>{machine.code}</strong>
-            <p>{machine.name}</p>
-            <IconLabel icon={MapPin}>{machine.location}</IconLabel>
-          </div>
+        <div className="flex items-center gap-3.5">
+          <p className="min-w-0 flex-1">
+            <strong>{machine.code}</strong> · {machine.name} · {machine.location}
+          </p>
           <Button onClick={onChange} variant="quiet">
             Change
           </Button>
         </div>
       ) : (
         <>
-          <Field id="machine-search" label="Search machines" hint="Search by code or machine name.">
+          <Field id="machine-search" label="Search machines">
             <input
-              aria-describedby="machine-search-hint"
-              autoComplete="off"
+              className={fieldInput}
               id="machine-search"
-              onChange={(event) => onQuery(event.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Try VC-17"
               type="search"
-              value={query}
             />
           </Field>
           {query.trim() ? (
-            <ul className="preview-machine-results" aria-label="Matching machines">
+            <div className="mt-3 grid gap-2">
               {matches.map((match) => (
-                <li key={match.id}>
-                  <Button icon={Factory} onClick={() => onSelect(match)} variant="quiet">
-                    {`${match.code} — ${match.name} · ${match.location}`}
-                  </Button>
-                </li>
+                <Button
+                  className="w-full justify-start text-left"
+                  icon={Factory}
+                  key={match.id}
+                  onClick={() => onSelect(match)}
+                >{`${match.code} — ${match.name} · ${match.location}`}</Button>
               ))}
-              {matches.length === 0 ? <li>No synthetic machines match that search.</li> : null}
-            </ul>
+            </div>
           ) : null}
         </>
       )}
@@ -86,123 +80,74 @@ function MachineStep({ query, machine, matches, onQuery, onSelect, onChange }: M
   );
 }
 
-interface SituationStepProps {
-  value: PreviewSituation | null;
-  onChange: (value: PreviewSituation) => void;
-}
-
-function SituationStep({ value, onChange }: SituationStepProps) {
+function DetailsStep() {
+  const [situation, setSituation] = useState<PreviewSituation | null>(null);
+  const [problem, setProblem] = useState('');
   return (
-    <Card className="preview-step">
-      <StepHeading number={2} title="What is happening?" />
-      <div className="preview-choice-grid">
-        <Button
-          aria-pressed={value === 'Stopped'}
-          className="preview-choice preview-choice--stopped"
-          icon={CircleStop}
-          onClick={() => onChange('Stopped')}
-          variant="quiet"
-        >
-          Stopped
-        </Button>
-        <Button
-          aria-pressed={value === 'Support'}
-          className="preview-choice preview-choice--support"
-          icon={LifeBuoy}
-          onClick={() => onChange('Support')}
-          variant="quiet"
-        >
-          Support
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-interface ProblemStepProps {
-  problem: string;
-  onProblem: (value: string) => void;
-}
-
-function ProblemStep({ problem, onProblem }: ProblemStepProps) {
-  return (
-    <Card className="preview-step">
-      <StepHeading number={3} title="Describe the problem" />
-      <div className="preview-quick-problems" aria-label="Quick-select a problem">
-        {previewProblems.map((item) => (
-          <Button key={item} onClick={() => onProblem(item)} variant="quiet">
-            {item}
+    <>
+      <Card>
+        <StepHeading number={2} title="What is happening?" />
+        <div className="grid grid-cols-2 gap-3">
+          {(['Stopped', 'Support'] as const).map((option) => (
+            <Button
+              aria-pressed={situation === option}
+              className={`${ui.choice} ${situation === option ? tones[option] : ''}`}
+              icon={option === 'Stopped' ? CircleStop : LifeBuoy}
+              key={option}
+              onClick={() => setSituation(option)}
+            >
+              {option}
+            </Button>
+          ))}
+        </div>
+      </Card>
+      {situation ? (
+        <Card>
+          <StepHeading number={3} title="Describe the problem" />
+          <div className="mb-4 flex flex-wrap gap-2" aria-label="Quick-select a problem">
+            {previewProblems.map((item) => (
+              <Button className={ui.quick} key={item} onClick={() => setProblem(item)}>
+                {item}
+              </Button>
+            ))}
+          </div>
+          <Field id="problem" label="What is wrong?">
+            <textarea
+              className={`${fieldInput} min-h-[120px] resize-y`}
+              id="problem"
+              onChange={(event) => setProblem(event.target.value)}
+              placeholder="Add a short, useful description"
+              value={problem}
+            />
+          </Field>
+          <Button
+            className={ui.action}
+            disabled={!problem.trim()}
+            icon={Send}
+            type="submit"
+            variant="primary"
+          >
+            Send
           </Button>
-        ))}
-      </div>
-      <Field id="problem" label="What is wrong?">
-        <textarea
-          id="problem"
-          onChange={(event) => onProblem(event.target.value)}
-          placeholder="Add a short, useful description"
-          rows={4}
-          value={problem}
-        />
-      </Field>
-      <Button
-        className="preview-primary-action"
-        disabled={!problem.trim()}
-        icon={Send}
-        type="submit"
-        variant="primary"
-      >
-        Send
-      </Button>
-    </Card>
+        </Card>
+      ) : null}
+    </>
   );
 }
 
-interface SentConfirmationProps {
-  machine: PreviewMachine;
-  problem: string;
-  onReset: () => void;
-}
-
-function SentConfirmation({ machine, problem, onReset }: SentConfirmationProps) {
-  return (
-    <Card className="preview-confirmation">
-      <div role="status">
-        <CheckCircle2 className="preview-success-icon" aria-hidden="true" size={36} />
-        <p className="preview-eyebrow">REPORTED</p>
-        <h2>BD-0150</h2>
-        <dl className="preview-confirmation-facts">
-          <div>
-            <dt>Machine</dt>
-            <dd>{machine.code}</dd>
-          </div>
-          <div>
-            <dt>Problem</dt>
-            <dd>{problem}</dd>
-          </div>
-        </dl>
-        <p className="preview-muted">This confirmation is fake. Nothing was sent or saved.</p>
-        <Button icon={RotateCcw} onClick={onReset} variant="primary">
-          Report another
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-interface MyComplaintsProps {
+interface ComplaintsProps {
   actingPerson: string;
   onPerson: (id: string) => void;
 }
-
-function MyComplaints({ actingPerson, onPerson }: MyComplaintsProps) {
+function MyComplaints({ actingPerson, onPerson }: ComplaintsProps) {
   const complaints = previewTickets.filter((ticket) => ticket.reportedBy === actingPerson);
   return (
-    <Card className="preview-complaints">
+    <Card className="mt-5 grid gap-4">
       <Field id="acting-person" label="Acting person">
         <select
+          className={fieldInput}
           id="acting-person"
           onChange={(event) => onPerson(event.target.value)}
-          value={actingPerson}
         >
           {previewPeople.map((person) => (
             <option key={person.id} value={person.id}>
@@ -211,79 +156,62 @@ function MyComplaints({ actingPerson, onPerson }: MyComplaintsProps) {
           ))}
         </select>
       </Field>
-      <details className="preview-disclosure">
-        <summary>
+      <section aria-label="My complaints">
+        <h2 className={ui.heading}>
           <Inbox aria-hidden="true" size={19} />
-          My complaints
-          <span className="preview-count">{complaints.length}</span>
-          <ChevronDown aria-hidden="true" size={18} />
-        </summary>
-        <div className="preview-disclosure-body">
-          {complaints.map((ticket) => (
-            <div className="preview-complaint" key={ticket.ref}>
-              <div>
-                <strong>{ticket.ref}</strong>
-                <span>{ticket.machineCode}</span>
-              </div>
-              <p>{ticket.problem}</p>
-              <StatusPair condition={ticket.condition} work={ticket.work} />
-            </div>
-          ))}
-          {complaints.length === 0 ? <p>No reports for this synthetic person.</p> : null}
-        </div>
-      </details>
+          My complaints<span className={countStyle}>{complaints.length}</span>
+        </h2>
+        {complaints.map((ticket) => (
+          <p
+            className="border-t border-[var(--line)] py-3.5"
+            key={ticket.ref}
+          >{`${ticket.ref} · ${ticket.machineCode} — ${ticket.problem}`}</p>
+        ))}
+        {complaints.length === 0 ? (
+          <p className={mutedText}>No reports for this synthetic person.</p>
+        ) : null}
+      </section>
     </Card>
   );
 }
 
 export function FloorPreview() {
-  const [query, setQuery] = useState('');
   const [machine, setMachine] = useState<PreviewMachine>();
-  const [situation, setSituation] = useState<PreviewSituation | null>(null);
-  const [problem, setProblem] = useState('');
   const [actingPerson, setActingPerson] = useState('avery');
   const [sent, setSent] = useState(false);
-  const matches = previewMachines.filter((item) =>
-    `${item.code} ${item.name}`.toLowerCase().includes(query.trim().toLowerCase()),
-  );
-
-  function selectMachine(selected: PreviewMachine) {
-    setMachine(selected);
-    setQuery(selected.code);
-    setSituation(null);
-    setProblem('');
-  }
-
   function resetReport() {
     setMachine(undefined);
-    setQuery('');
-    setSituation(null);
-    setProblem('');
     setSent(false);
   }
-
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (machine && situation && problem.trim()) setSent(true);
+    if (machine) setSent(true);
   }
-
   return (
-    <div className="preview-floor">
-      <form onSubmit={submit}>
-        {sent && machine && situation ? (
-          <SentConfirmation machine={machine} problem={problem} onReset={resetReport} />
+    <div className="mx-auto max-w-[840px]">
+      <form className="grid gap-4" onSubmit={submit}>
+        {sent ? (
+          <Card className="text-center">
+            <div role="status">
+              <CheckCircle2 className="mb-3 text-[var(--green)]" aria-hidden="true" size={36} />
+              <h2 className="text-5xl font-semibold tracking-[-0.04em]">BD-0150</h2>
+              <p className={`${mutedText} mb-5 mt-4`}>
+                This confirmation is fake. Nothing was sent or saved.
+              </p>
+              <Button icon={RotateCcw} onClick={resetReport} variant="primary">
+                Report another
+              </Button>
+            </div>
+          </Card>
         ) : (
           <>
             <MachineStep
-              query={query}
+              key={machine?.id ?? 'search'}
               machine={machine}
-              matches={matches}
-              onQuery={setQuery}
-              onSelect={selectMachine}
+              onSelect={setMachine}
               onChange={resetReport}
             />
-            {machine ? <SituationStep value={situation} onChange={setSituation} /> : null}
-            {machine && situation ? <ProblemStep problem={problem} onProblem={setProblem} /> : null}
+            {machine ? <DetailsStep /> : null}
           </>
         )}
       </form>

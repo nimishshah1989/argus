@@ -26,6 +26,11 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(fits).toBe(true);
 }
 
+async function captureEvidence(page: Page, path: string, capture: boolean): Promise<void> {
+  if (!capture) return;
+  await page.screenshot({ path, fullPage: true });
+}
+
 async function captureFloor(width: number, page: Page, capture: boolean): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/design-preview');
@@ -43,12 +48,7 @@ async function captureFloor(width: number, page: Page, capture: boolean): Promis
   await expect(page.getByText('BD-0150', { exact: true })).toBeVisible();
   await expectTargetSize(page.getByRole('button', { name: 'Report another', exact: true }));
   await expectNoHorizontalOverflow(page);
-  if (capture) {
-    await page.screenshot({
-      path: `docs/design/evidence/preview/floor-${width}.png`,
-      fullPage: true,
-    });
-  }
+  await captureEvidence(page, `docs/design/evidence/preview/floor-${width}.png`, capture);
 }
 
 async function captureDesk(width: number, page: Page, capture: boolean): Promise<void> {
@@ -76,16 +76,11 @@ async function captureDesk(width: number, page: Page, capture: boolean): Promise
   const details = page.getByText('Timeline, people & figures', { exact: true });
   await details.focus();
   await details.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Timeline', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'People', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Figures', exact: true })).toBeVisible();
-  await expectNoHorizontalOverflow(page);
-  if (capture) {
-    await page.screenshot({
-      path: `docs/design/evidence/preview/desk-${width}.png`,
-      fullPage: true,
-    });
+  for (const name of ['Timeline', 'People', 'Figures']) {
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   }
+  await expectNoHorizontalOverflow(page);
+  await captureEvidence(page, `docs/design/evidence/preview/desk-${width}.png`, capture);
 }
 
 test('Floor sends a synthetic VC-17 stop without an API request', async ({ page }, testInfo) => {

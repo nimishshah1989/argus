@@ -12,12 +12,14 @@ Floor progressively reveals machine, situation and problem before a fake `BD-015
 
 Every person, machine and ticket is synthetic. State lasts only in memory; no action is saved and no API request is needed.
 
-## Review verdict — placeholder
+## Review verdict
 
-- [ ] Approve
+`visualApproval: baseline-approved` — Nimish approved the clean white baseline, buttons and icons on 11 November 2026.
+
+- [x] Approve — scoped to that baseline only
 - [ ] Change
 - [ ] No-go
 
-**Nimish's notes:** _Pending review._
+**Expansion requirement:** as the design system grows, use colour more functionally rather than decoratively, including ticket criticality, machine nature/type, classification tags and better tag representation. The controlled tag vocabulary is a separate design-system task; no ad-hoc tags belong in this throwaway preview.
 
-If approved, absorb the agreed primitives into D0.2. Otherwise change or delete this throwaway route; do not merge it as production UI.
+The agent model could not read the generated PNGs directly. Nimish's baseline approval came from the lead-presented live preview/images, not an agent vision claim. If approved for D0.2, absorb the agreed primitives there; otherwise change or delete this route. Do not merge it as production UI.

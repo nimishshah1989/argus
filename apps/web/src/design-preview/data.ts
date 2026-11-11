@@ -2,25 +2,8 @@ export type PreviewCondition = 'Stopped' | 'Running';
 export type PreviewWork = 'Not started' | 'In progress' | 'Waiting';
 export type PreviewSituation = 'Stopped' | 'Support';
 
-export interface PreviewPerson {
-  id: string;
-  name: string;
-  role: string;
-}
-
-export interface PreviewMachine {
-  id: string;
-  code: string;
-  name: string;
-  location: string;
-}
-
-export interface PreviewTimelineItem {
-  id: string;
-  time: string;
-  text: string;
-}
-
+export type PreviewPerson = { id: string; name: string };
+export type PreviewMachine = { id: string; code: string; name: string; location: string };
 export interface PreviewTicket {
   ref: string;
   machineCode: string;
@@ -30,26 +13,21 @@ export interface PreviewTicket {
   reportedBy: string;
   lead: string;
   support: string;
-  reportedAt: string;
   downtimeMinutes: number;
   activeMinutes: number;
-  timeline: PreviewTimelineItem[];
+  timeline: { time: string; text: string }[];
 }
 
 export const previewPeople: PreviewPerson[] = [
-  { id: 'avery', name: 'Avery Example', role: 'Technician' },
-  { id: 'blair', name: 'Blair Sample', role: 'Technician' },
-  { id: 'casey', name: 'Casey Demo', role: 'Shift lead' },
+  { id: 'avery', name: 'Avery Example' },
+  { id: 'blair', name: 'Blair Sample' },
+  { id: 'casey', name: 'Casey Demo' },
 ];
-
 export const previewMachines: PreviewMachine[] = [
   { id: 'vc-17', code: 'VC-17', name: 'Vertical machining centre', location: 'Demo cell A' },
   { id: 'vc-04', code: 'VC-04', name: 'Vertical machining centre', location: 'Demo cell B' },
-  { id: 'mx-08', code: 'MX-08', name: 'CNC lathe', location: 'Demo cell C' },
 ];
-
 export const previewProblems = ['Spindle alarm', 'Coolant leak', 'Unexpected vibration'];
-
 export const previewTickets: PreviewTicket[] = [
   {
     ref: 'BD-0148',
@@ -60,13 +38,9 @@ export const previewTickets: PreviewTicket[] = [
     reportedBy: 'avery',
     lead: 'blair',
     support: 'casey',
-    reportedAt: '09:42',
     downtimeMinutes: 38,
     activeMinutes: 0,
-    timeline: [
-      { id: '0148-1', time: '09:42', text: 'Avery Example reported a spindle alarm.' },
-      { id: '0148-2', time: '09:45', text: 'Blair Sample was assigned as lead.' },
-    ],
+    timeline: [{ time: '09:42', text: 'Avery Example reported a spindle alarm.' }],
   },
   {
     ref: 'BD-0149',
@@ -77,30 +51,9 @@ export const previewTickets: PreviewTicket[] = [
     reportedBy: 'avery',
     lead: 'casey',
     support: 'blair',
-    reportedAt: '09:18',
     downtimeMinutes: 0,
     activeMinutes: 12,
-    timeline: [
-      { id: '0149-1', time: '09:18', text: 'Avery Example requested support.' },
-      { id: '0149-2', time: '09:31', text: 'Work paused while waiting for a tool.' },
-    ],
-  },
-  {
-    ref: 'BD-0147',
-    machineCode: 'MX-08',
-    problem: 'Coolant level check',
-    condition: 'Running',
-    work: 'In progress',
-    reportedBy: 'blair',
-    lead: 'blair',
-    support: 'casey',
-    reportedAt: '08:56',
-    downtimeMinutes: 0,
-    activeMinutes: 24,
-    timeline: [
-      { id: '0147-1', time: '08:56', text: 'Blair Sample reported a low coolant level.' },
-      { id: '0147-2', time: '09:02', text: 'Work started with Casey Demo supporting.' },
-    ],
+    timeline: [{ time: '09:18', text: 'Avery Example requested support.' }],
   },
 ];
 

@@ -1,64 +1,55 @@
 /* eslint-disable i18next/no-literal-string -- Disposable English-only design review. */
 import { useState } from 'react';
-import { ClipboardList, Factory, Info, Wrench } from 'lucide-react';
+import { ClipboardList, Info, Wrench } from 'lucide-react';
 import { Button, IconLabel } from './components.js';
 import { DeskPreview } from './DeskPreview.js';
 import { FloorPreview } from './FloorPreview.js';
 import './preview.css';
 
-type PreviewView = 'floor' | 'desk';
+const shell = 'mx-auto w-[calc(100%_-_32px)] max-w-[1248px] sm:w-[calc(100%_-_64px)]';
+const activeView = 'border-[var(--line)] bg-white text-[var(--teal)] shadow-sm';
+const ui = {
+  skip: 'fixed left-2 top-2 z-10 -translate-y-[160%] rounded-xl bg-[var(--teal)] px-[18px] py-3.5 text-white focus:translate-y-0',
+  banner:
+    'flex min-h-[52px] items-center justify-center gap-2 border-b border-[#cee5e2] bg-[var(--teal-soft)] px-4 py-3 text-center text-sm font-semibold text-[#075753]',
+  nav: 'mt-6 grid max-w-[420px] grid-cols-2 gap-1 rounded-2xl bg-[var(--neutral)] p-1',
+  title: 'mt-8 text-4xl font-semibold leading-[1.1] tracking-[-0.045em] md:text-5xl',
+};
+const targets = ['floor', 'desk'] as const;
 
 export function DesignPreview() {
-  const [view, setView] = useState<PreviewView>('floor');
-  const floorActive = view === 'floor';
+  const [view, setView] = useState<'floor' | 'desk'>('floor');
   return (
     <div className="design-preview">
-      <a className="preview-skip-link" href="#preview-main">
+      <a className={ui.skip} href="#preview-main">
         Skip to preview content
       </a>
-      <div className="preview-banner" role="note">
-        <Info aria-hidden="true" size={19} strokeWidth={1.8} />
-        <span>Design preview — no actions saved</span>
+      <div className={ui.banner} role="note">
+        <IconLabel icon={Info}>Design preview — no actions saved</IconLabel>
       </div>
-      <header className="preview-header">
-        <div className="preview-brand-row">
-          <IconLabel className="preview-brand" icon={Factory}>
-            uptimo
-          </IconLabel>
-          <span className="preview-review-label">D0 design study</span>
-        </div>
-        <nav className="preview-view-switch" aria-label="Preview views">
-          <Button
-            aria-pressed={floorActive}
-            icon={Wrench}
-            onClick={() => setView('floor')}
-            variant="quiet"
-          >
-            Floor
-          </Button>
-          <Button
-            aria-pressed={!floorActive}
-            icon={ClipboardList}
-            onClick={() => setView('desk')}
-            variant="quiet"
-          >
-            Desk
-          </Button>
+      <header className={`${shell} py-6 pb-8 sm:pt-8`}>
+        <nav className={ui.nav} aria-label="Preview views">
+          {targets.map((target) => (
+            <Button
+              aria-pressed={view === target}
+              className={view === target ? activeView : ''}
+              icon={target === 'floor' ? Wrench : ClipboardList}
+              key={target}
+              onClick={() => setView(target)}
+              variant="quiet"
+            >
+              {target === 'floor' ? 'Floor' : 'Desk'}
+            </Button>
+          ))}
         </nav>
-        <div className="preview-heading">
-          <p className="preview-eyebrow">{floorActive ? 'FLOOR' : 'DESK'}</p>
-          <h1>{floorActive ? 'Report a problem' : 'Open tickets'}</h1>
-          <p>
-            {floorActive
-              ? 'From machine to sent report in three clear steps.'
-              : 'Machine condition and work progress, together at a glance.'}
-          </p>
-        </div>
+        <h1 className={ui.title}>{view === 'floor' ? 'Report a problem' : 'Open tickets'}</h1>
       </header>
-      <main className="preview-main" id="preview-main" tabIndex={-1}>
-        {floorActive ? <FloorPreview /> : <DeskPreview />}
+      <main className={`${shell} pb-12`} id="preview-main" tabIndex={-1}>
+        {view === 'floor' ? <FloorPreview /> : <DeskPreview />}
       </main>
-      <footer className="preview-footer">
+      <footer
+        className={`${shell} border-t border-[var(--line)] py-6 pb-10 text-[13px] text-[var(--muted)]`}
+      >
         All people, machines and tickets on this page are synthetic.
       </footer>
     </div>
