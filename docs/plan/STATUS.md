@@ -1,29 +1,65 @@
 # Status — 11 November 2026
 
-Short session log only. Merged product state and external blockers live in `docs/HANDOFF.md`; planned work lives in `docs/plan/backlog.md`. Regenerate parity counts with `pnpm parity` rather than copying them into a durable snapshot.
+Branch: `import-integration` (synthetic importer integration). This file separates merged main from
+in-flight work; the plan and review gates are in `docs/plan/backlog.md` and `docs/slices/M1b-import.md`.
 
-## D0.1 session — `design-d01`
+## Merged on main
 
-- Produced the Impeccable-marked `PRODUCT.md`, current-truth/inventory audit, seven role journeys, prototype decisions, usability script, and authoritative DESIGN/FRONTEND-STRATEGY/SPEC updates.
-- Recorded Q24/D19 and the 80-row parity ledger. My complaints acting-person filtering remains `in-progress`; offline new stopped/support is `v3.alerts.09`, `todo`, M1. General/other-work requires a connection.
-- Added the isolated one-Chromium baseline config and two ordered tests. Capture produced nine fake-data PNGs and ignored candidate entries. The standalone verifier then went RED specifically for the absent final manifest while all PNGs existed.
-- Wrote `baseline-manifest.json` at source `fada63d18b41762fefe0cfefa1bb90d0beb0091c`, with `visualApproval: false`. Complete no-capture baseline: **2/2 passed**, zero skipped and no skip/fixme/only.
-- Regular `pnpm exec playwright test --retries=0`: **16/16 passed**. `pnpm verify`: **29 files / 211 tests passed**, plus format, lint, typecheck, builds, licences, migrations and lean checks.
-- `pnpm parity`: **80 rows** and valid. `pnpm parity:update`: no problems; it is a diff guard, not a generator.
+**M0 foundation**
 
-## Generated parity snapshot
+- Schema v1 with forced RLS, composite tenant foreign keys, `app_router` functions and least-privilege
+  `app_api`; generic tenant isolation tests. Auth, host tenancy, settings/config and Cosmos master seed.
+- Walking skeleton and authored (unapplied) Terraform infrastructure.
 
-| Status      |  Count |
-| ----------- | -----: |
-| done        |     16 |
-| in-progress |     33 |
-| todo        |     27 |
-| external    |      3 |
-| waived      |      1 |
-| **Total**   | **80** |
+**M1a ticket core**
 
-## Evidence limitation and gate
+- Domain figures, permissions and state machine; tickets API with row locks, idempotency and figures;
+  floor and desk faces, lists and the real Postgres/API/browser E2E harness.
 
-This builder called `read_image` for all nine PNGs after the required RED, but every call failed because `global.moonshotai.kimi-k3.1` does not declare image input. PNG signatures, IHDR dimensions, routes, machine/ref/state and manifest contents pass automatically; blank/wrong-font assessment and agent visual inspection are **not claimed**. Independent image-capable review is pending.
+**M1b slices shipped early**
 
-D0.1 remains `in-progress` for gate-manual review. There is no production reskin, offline new-raise implementation, usability-session result, visual approval, staging deployment, PR or merge. D0.2/D0.3 remain isolated review work; production migration requires Nimish's later explicit D0.3 alignment.
+- Breakdown report form/storage/PDF, Live board/kiosk, WhatsApp share text, PWA shell, offline outbox,
+  web push, needs-report list, day-report PDF, account/admin faces and Desk Views.
+- Exact cancel timestamp and exact per-person minutes in ticket lists.
+- Request-path RLS, clock corrections, correction audit/overrides, idempotency binding and duplicate-raise fix.
+- CI E2E, migration immutability, parity-update and lean checks.
+
+## In flight: synthetic importer only
+
+The integration branch implements the reviewed synthetic contract `argus.synthetic-bhavin/v1` and rejects
+all real or other sources before opening a batch. It does not implement N1 compatibility or cutover.
+
+- Strict parsing, separate aliases, canonical identity, dependency-checked parent graphs and bounded inputs.
+- Tenant-scoped reference loading, canonical work type/location codes, pending-person provenance and reports.
+- Original zero-based event persistence, domain figure reconciliation/overrides, counters and completion fingerprints.
+- Per-row raw/ticket savepoints, persisted fatal failure, recoverable row errors and honest batch statistics.
+- Fail-closed `app_api` CLI, production confirmation, terminal-batch undo with provenance/later-work/outside-ref
+  refusal, report-first deletion, preserved raw rows/people/counters/finished_at, and before/after audit.
+- Full verification passes: `pnpm verify` (380 tests / 38 files), Playwright E2E 16/16, build, parity,
+  licences, migrations and lean checks. Independent R3 review and GitHub CI remain before merge.
+
+## Parity — `docs/spec/parity.yaml` (80 rows)
+
+| Status      | Count | Meaning                                |
+| ----------- | ----: | -------------------------------------- |
+| done        |    16 | behavior covered with test/PR evidence |
+| in-progress |    34 | partial behavior; listed gaps remain   |
+| todo        |    26 | not built                              |
+| external    |     3 | blocked on outside input               |
+| waived      |     1 | intentionally dropped dead screen      |
+
+`v3.import.01` remains `in-progress`, cites synthetic test evidence only, and records that real N1 export/
+Worker schema/compatibility and cutover remain external. PARITY.md is the source; `tools/sync-parity.ts`
+regenerates and `pnpm parity` validates the row and generated count.
+
+## Next
+
+- Commit the remaining integration/artifact increment.
+- Obtain independent R3 review and green GitHub CI before merge; human security sign-off before real cutover.
+- Real N1 export/Worker, N12 aliases and cutover runbook remain external.
+- Day-report follow-ups, shared-login E2E, real Gujarati strings, then M2 SLA/escalation and M4 analytics.
+
+## Blocked / external inputs
+
+- N1 Bhavin live export and Worker source; N11 real shifts; N12 legacy code aliases; N5 Gujarati strings.
+- Terraform remains unapplied; staging/production execution is not part of this branch.

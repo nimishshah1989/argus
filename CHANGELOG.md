@@ -12,7 +12,11 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
-- D0.1 design/evidence contract: Impeccable-marked PRODUCT, current-truth v3/all-four-inventory map, seven role journeys, prototype decisions, planned usability scripts, the white/deep-teal/two-axis direction, Q24/D19 and an 80-row parity ledger. Added isolated baseline tests plus nine fake-data current-truth PNGs and an unapproved manifest. Baseline 2/2, regular E2E 16/16 and `pnpm verify` (211 tests) pass. No production reskin or offline new-raise implementation; agent image inspection is pending because this model cannot read images.
+- Synthetic-only M1b importer correction: strict `argus.synthetic-bhavin/v1` parsing and aliases,
+  canonical identity/parent graphs, row savepoints and fatal batch records, domain figure reconciliation,
+  counters, zero-based events, pending/report persistence, and fingerprinted `app_api` undo with real CLI,
+  integration and post-import command tests. Real N1 schema/compatibility and cutover remain external;
+  no migration, dependency, frontend or production-execution claim is made.
 - Exact cancel time (#64): migration 0004 adds `cancelled_at`; cancel sets it and restore clears it; the desk's cancelled-24h window uses it exactly.
 - Exact per-person minutes (#66): the ticket list carries `figures.perPerson` from one grouped query, so the Team primary/support split is exact.
 - Desk Views (#62): Team (working now by person, waiting, not started, cancelled 24h, closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, day-report download).
@@ -116,6 +120,5 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Not yet
 
-- No staging deploy, offline new-raise queue, import, analytics, real Gujarati translation or
-  Nimish D0.3 visual alignment. Existing web push, the four close/report offline writes,
-  day-report PDF and the i18n layer are not withdrawn by this note.
+- No staging deploy, no web push, no offline outbox, no day-report PDF, no import, no i18n, no
+  analytics.

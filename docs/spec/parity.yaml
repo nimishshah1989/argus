@@ -1,4 +1,4 @@
-# Parity ledger — backfilled on 2026-11-11 for the M0–M1a slices and the C1–C3/M1–M4 fixes.
+# Parity ledger — generated from PARITY.md.
 # One row per parity feature. Do not hand-edit ids; update PARITY.md and regenerate.
 # status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
 # A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
@@ -321,13 +321,11 @@ rows:
       - 'PR #23'
       - 'PR #52'
       - 'PR #66'
-      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
-        projection'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list projection'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
-      - 'apps/web/src/components/actions.test.ts :: offers join only when the person is off the
-        crew'
+      - 'apps/web/src/components/actions.test.ts :: offers join only when the person is off the crew'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.08
     feature: Leave with reason; primary takes over if the lead leaves
@@ -340,13 +338,11 @@ rows:
       - 'PR #23'
       - 'PR #52'
       - 'PR #66'
-      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
-        projection'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list projection'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
-      - 'apps/web/src/components/actions.test.ts :: offers leave only when the person is on the
-        crew'
+      - 'apps/web/src/components/actions.test.ts :: offers leave only when the person is on the crew'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.09
     feature:
@@ -562,8 +558,7 @@ rows:
       - 'PR #29'
       - 'PR #62'
       - 'PR #66'
-      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
-        projection'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list projection'
       - 'apps/web/src/screens/desk/views.test.ts :: groups working tickets by lead person with
         minutes'
       - 'apps/web/src/screens/desk/views.test.ts :: monthlyTotals'
@@ -583,8 +578,8 @@ rows:
       - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
-    feature: 'My complaints (floor): acting-person open/fixed/cancelled history and cancel; no device-wide history or report-only Desk link pending'
-    disposition: improve
+    feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
+    disposition: keep
     milestone: M1
     milestones:
       - M1
@@ -656,10 +651,9 @@ rows:
     status: in-progress
     evidence:
       - 'PR #56'
-      - 'apps/server/test/day-report.test.ts :: lists every ticket the person touched with their
-        own clipped minutes'
-      - 'apps/server/test/day-report.test.ts :: returns a stored application/pdf for the caller
-        day'
+      - 'apps/server/test/day-report.test.ts :: lists every ticket the person touched with their own
+        clipped minutes'
+      - 'apps/server/test/day-report.test.ts :: returns a stored application/pdf for the caller day'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name
@@ -684,7 +678,7 @@ rows:
     status: in-progress
     evidence:
       - 'PR #48'
-      - 'apps/server/test/push.test.ts'
+      - apps/server/test/push.test.ts
       - 'apps/web/src/push.test.ts :: needsRebind'
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.02
@@ -726,7 +720,7 @@ rows:
     evidence:
       - 'PR #47'
       - 'apps/web/e2e/offline.spec.ts :: queues an offline close and replays it to Closed'
-      - 'apps/web/src/offline/replay.test.ts'
+      - apps/web/src/offline/replay.test.ts
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.05
     feature: Update banner when a new build is deployed; "Update now" clears caches
@@ -779,16 +773,27 @@ rows:
     evidence:
       - 'PR #5'
     source: PARITY.md §v3 / Alerts, offline, platform
-  - id: v3.alerts.09
-    feature: Offline new stopped/support reports queue with visible pending, stable client idempotency reused on every replay, duplicate-open resolution and needs-attention behavior; general/other-work requires a connection
-    disposition: improve
+  - id: v3.import.01
+    feature:
+      Import Bhavin's live ticket store JSON with events, crew, reports, reviewed aliases, figure
+      reconciliation, reference counters, and reversible undo
+    disposition: keep
     milestone: M1
     milestones:
       - M1
-    status: todo
+    status: in-progress
     evidence:
-      - docs/design/PROTOTYPE-DECISIONS.md
-    source: PARITY.md §v3 / Alerts, offline, platform
+      - 'apps/server/test/import-cli.test.ts :: T13 imports as app_api and reports exact ticket and
+        completion data'
+      - 'apps/server/test/import-integration.test.ts :: T44 persists fatal batch state without
+        partial work'
+      - 'apps/server/test/import-commands.test.ts :: T46 runs
+        start/update/running/stopped/pause/resume/cancel/restore with sequential events'
+      - 'apps/server/test/import-undo.test.ts :: T25 undoes an empty failed batch once and ignores
+        stale skipped rows'
+    source: PARITY.md §v3 / Import and cutover; SPEC 1.10 / NEEDS N1
+    external_reason: Real N1 export/Worker schema/compatibility and cutover remain external; only
+      argus.synthetic-bhavin/v1 is accepted.
   - id: analytics.registers.01
     feature:
       'Dashboard: KPI tiles, bubble chart, register summaries, mixed all-years and latest-year
