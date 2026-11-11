@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { createPool } from '../db.js';
 import { resolveTenant } from '../tenant.js';
-import { importBhavin, undoImport } from './bhavin.js';
+import { IMPORT_LIMITS } from './json.js';
 import {
   CliUsageError,
   assertAppApiRole,
@@ -10,16 +10,14 @@ import {
   type CliCommand,
 } from './security.js';
 
-const MAX_FILE_BYTES = 5_242_880;
-
 function printUsage(): void {
   console.error('usage: import:bhavin <file.json> --tenant <slug> [--production-confirm]');
   console.error('       import:undo <batchId> --tenant <slug> [--production-confirm]');
 }
 
 function readImportFile(command: Extract<CliCommand, { mode: 'import' }>): unknown {
-  if (statSync(command.file).size > MAX_FILE_BYTES) {
-    throw new Error(`Import file exceeds ${MAX_FILE_BYTES} bytes`);
+  if (statSync(command.file).size > IMPORT_LIMITS.fileBytes) {
+    throw new Error(`Import file exceeds ${IMPORT_LIMITS.fileBytes} bytes`);
   }
   try {
     return JSON.parse(readFileSync(command.file, 'utf8')) as unknown;
@@ -47,6 +45,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     await assertAppApiRole(pool);
     const tenant = await resolveTenant(pool, command.tenantSlug);
     if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
+    const { importBhavin, undoImport } = await import('./bhavin.js');
     if (command.mode === 'undo') {
       const result = await undoImport(pool, tenant.id, command.batchId);
       console.log(JSON.stringify({ batchId: command.batchId, deleted: result.deleted }));

@@ -201,16 +201,6 @@ beforeAll(async () => {
   db = await startTestDb();
 }, 120_000);
 
-beforeEach(async () => {
-  batchNumber = 0;
-  await db.admin.query('DELETE FROM tenant');
-  await seedSyntheticTenant(db.admin);
-  await db.admin.query(
-    "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 101), ($1, 'WR', 8)",
-    [syntheticIds.tenant],
-  );
-});
-
 afterAll(async () => {
   await db.stop();
 });
@@ -226,6 +216,16 @@ describe('completion fingerprints', () => {
 });
 
 describe('undoImport terminal behavior and safety (T21–T25)', () => {
+  beforeEach(async () => {
+    batchNumber = 0;
+    await db.admin.query('DELETE FROM tenant');
+    await seedSyntheticTenant(db.admin);
+    await db.admin.query(
+      "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 101), ($1, 'WR', 8)",
+      [syntheticIds.tenant],
+    );
+  });
+
   it.each([
     { status: 'done' as const, entryType: 'ordinary' as const },
     { status: 'failed' as const, entryType: 'pastBreakdown' as const },
@@ -482,6 +482,11 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     async (column) => {
       const seeded = await seedBatch();
       const fileId = randomUUID();
+      await db.admin.query(
+        `INSERT INTO file (id, tenant_id, kind, s3_key, mime, bytes, sha256)
+         VALUES ($1, $2, 'signature', $3, 'image/png', 1, $4)`,
+        [fileId, syntheticIds.tenant, `synthetic-report-${column}`, '0'.repeat(64)],
+      );
       await db.admin.query(`UPDATE breakdown_report SET ${column} = $1 WHERE ticket_id = $2`, [
         fileId,
         seeded.ticketId,

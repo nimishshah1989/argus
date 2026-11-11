@@ -34,7 +34,7 @@ const BATCH_ID = '10000000-0000-0000-0000-000000000001';
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
 function runPnpm(args: string[], overrides: NodeJS.ProcessEnv = {}) {
-  const env = { ...process.env, APP_ENV: 'production', ...overrides };
+  const env: NodeJS.ProcessEnv = { ...process.env, APP_ENV: 'production', ...overrides };
   if (!('DATABASE_URL' in overrides)) delete env.DATABASE_URL;
   return spawnSync('pnpm', ['--silent', ...args], {
     cwd: ROOT,
@@ -211,7 +211,7 @@ interface CommandOptions {
   productionConfirm?: boolean;
 }
 
-describe.sequential('real CLI import and undo (T13–T20)', () => {
+describe('real CLI import and undo (T13–T20)', () => {
   let db: TestDb;
   let filesDir: string;
   let fileNumber = 0;
@@ -282,8 +282,9 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
   beforeEach(async () => {
     await db.admin.query('DELETE FROM tenant');
     await seedSyntheticTenant(db.admin);
+    await db.admin.query("UPDATE tenant SET slug = 'cosmos' WHERE id = $1", [syntheticIds.tenant]);
     await db.admin.query(
-      "UPDATE tenant SET slug = 'cosmos' WHERE id = $1; INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 100), ($1, 'WR', 1)",
+      "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 100), ($1, 'WR', 1)",
       [syntheticIds.tenant],
     );
   });
@@ -402,11 +403,13 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     );
     expect(wrongSource.status).not.toBe(0);
     expect(wrongSource.stdout).toBe('');
+    expect(wrongSource.stderr).toMatch(/source|contract/i);
     expect(await batchCount()).toBe(0);
 
     const oversized = runImport(await inputFile(Buffer.alloc(5_242_881, 32)));
     expect(oversized.status).not.toBe(0);
     expect(oversized.stdout).toBe('');
+    expect(oversized.stderr).toMatch(/5242880|bytes/i);
     expect(await batchCount()).toBe(0);
 
     const valid = Buffer.from(JSON.stringify(makeSyntheticExport([])));
@@ -449,17 +452,21 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     const otherTenant = randomUUID();
     const otherBatch = randomUUID();
     await db.admin.query(
-      `INSERT INTO tenant (id, slug, name) VALUES ($1, 'plant-two', 'Synthetic Other');
-       INSERT INTO import_batch (id, tenant_id, source, status, started_at, finished_at, stats)
-       VALUES ($2, $1, 'bhavin', 'done', now(), now(), $3)`,
+      "INSERT INTO tenant (id, slug, name) VALUES ($1, 'plant-two', 'Synthetic Other')",
+      [otherTenant],
+    );
+    await db.admin.query(
+      `INSERT INTO import_batch (id, tenant_id, source, status, started_at, finished_at, stats)
+       VALUES ($1, $2, 'bhavin', 'done', now(), now(), $3)`,
       [
-        otherTenant,
         otherBatch,
+        otherTenant,
         JSON.stringify({ contract: syntheticSource, completion: emptyCompletionFingerprint() }),
       ],
     );
     const crossTenant = runUndo(otherBatch);
     expect(crossTenant.status).not.toBe(0);
+    expect(crossTenant.stderr).toMatch(/not found/i);
     const untouched = await db.admin.query('SELECT status FROM import_batch WHERE id = $1', [
       otherBatch,
     ]);
@@ -469,20 +476,27 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     const seedBatch = randomUUID();
     await db.admin.query(
       `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic pre-existing', now());
-       INSERT INTO import_batch (id, tenant_id, source, status, started_at, finished_at)
-       VALUES ($3, $2, 'seed', 'done', now(), now());
-       INSERT INTO import_row (tenant_id, batch_id, row_number, source_ref, status, payload, ticket_id)
-       VALUES ($2, $3, 1, 'synthetic-seed', 'imported', $4, $1)`,
+       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic pre-existing', now())`,
+      [ticketId, syntheticIds.tenant],
+    );
+    await db.admin.query(
+      `INSERT INTO import_batch (id, tenant_id, source, status, started_at, finished_at)
+       VALUES ($1, $2, 'seed', 'done', now(), now())`,
+      [seedBatch, syntheticIds.tenant],
+    );
+    await db.admin.query(
+      `INSERT INTO import_row (tenant_id, batch_id, row_number, source_ref, status, payload, ticket_id)
+       VALUES ($1, $2, 1, 'synthetic-seed', 'imported', $3, $4)`,
       [
-        ticketId,
         syntheticIds.tenant,
         seedBatch,
         JSON.stringify({ format: 'argus.import-raw/v1', raw: makeOrdinaryTicket() }),
+        ticketId,
       ],
     );
     const wrongSource = runUndo(seedBatch);
     expect(wrongSource.status).not.toBe(0);
+    expect(wrongSource.stderr).toMatch(/not found|source/i);
     const preserved = await db.admin.query(
       'SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1 AND id = $2',
       [syntheticIds.tenant, ticketId],
@@ -503,10 +517,13 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     const token = 'synthetic-cli-session';
     await db.admin.query(
       `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role)
-       VALUES ($1, $2, $3, 'synthetic-cli', 'unused', 'technician');
-       INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at)
-       VALUES ($4, $2, $1, $5, now() + interval '1 hour')`,
-      [loginId, syntheticIds.tenant, syntheticIds.asha, sessionId, hashToken(token)],
+       VALUES ($1, $2, $3, 'synthetic-cli', 'unused', 'technician')`,
+      [loginId, syntheticIds.tenant, syntheticIds.asha],
+    );
+    await db.admin.query(
+      `INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4, now() + interval '1 hour')`,
+      [sessionId, syntheticIds.tenant, loginId, hashToken(token)],
     );
     const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
     try {
@@ -526,6 +543,7 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     }
     const refused = runUndo(batchId);
     expect(refused.status).not.toBe(0);
+    expect(refused.stderr).toMatch(/fingerprint|mismatch|later work/i);
     const state = await db.admin.query(
       `SELECT b.status, count(t.id)::int AS tickets,
         (SELECT count(*)::int FROM ticket_event WHERE tenant_id = $1 AND ticket_id = $2) AS events,
@@ -563,6 +581,7 @@ describe.sequential('real CLI import and undo (T13–T20)', () => {
     expect(JSON.parse(first.stdout)).toEqual({ batchId, deleted: 1 });
     const repeat = runUndo(batchId);
     expect(repeat.status).not.toBe(0);
+    expect(repeat.stderr).toMatch(/undone|status/i);
 
     const after = await db.admin.query(
       `SELECT b.status, b.finished_at, ir.payload, ir.source_ref, ir.status AS row_status,
