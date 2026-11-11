@@ -146,6 +146,7 @@ export interface Ticket {
   machineSnapshot: { code?: string | null; category?: string | null; cell?: string | null } | null;
   problem: string;
   reportedAt: string;
+  reportedByPersonId: string | null;
   location: string | null;
   workType: string | null;
   urgent: boolean;
@@ -351,7 +352,8 @@ export type CommandBody =
   | { personId: string; note: string; toPersonId?: string }
   | { personId: string; kind: CloseKind; note?: string; report?: BreakdownReportBody }
   | { personId: string; report: BreakdownReportBody }
-  | { personId: string; reason: string };
+  | { personId: string; reason: string }
+  | { personId: string; role: 'primary' | 'support' };
 
 export type CommandResult = { ticket: Ticket } | { queued: true; id: string };
 

@@ -8,6 +8,12 @@ export interface ActionSpec {
   primary?: boolean;
 }
 
+/** What the action model needs beyond the ticket: the acting person and the ticket's crew. */
+export interface ActionContext {
+  personId?: string | null;
+  crew?: string[];
+}
+
 const WORK_ROLES = new Set(['technician', 'supervisor', 'head', 'admin']);
 
 /** Work actions are technician and above (DOMAIN.md §3); the server still checks every one. */
@@ -15,18 +21,43 @@ export function canWork(role: string | undefined): boolean {
   return role !== undefined && WORK_ROLES.has(role);
 }
 
+/** The acting person is on the ticket when they are the lead or an active crew member. */
+function isOnCrew(ticket: Ticket, context: ActionContext): boolean {
+  const personId = context.personId;
+  if (!personId) return false;
+  if (ticket.leadPersonId === personId) return true;
+  return (context.crew ?? []).includes(personId);
+}
+
+/** join/leave: whoever is not on the crew may join; whoever is may leave (DOMAIN.md §2). */
+function crewActions(ticket: Ticket, context: ActionContext): ActionSpec[] {
+  if (!context.personId) return [];
+  if (!['open', 'working', 'waiting'].includes(ticket.status)) return [];
+  if (isOnCrew(ticket, context)) return [spec('leave', 'Leave')];
+  return [spec('join', 'Add me as support')];
+}
+
+/** A person may cancel their own ticket only while it is open and nobody has started it. */
+export function canCancelOwn(ticket: Ticket, personId: string | null | undefined): boolean {
+  if (!personId) return false;
+  return (
+    ticket.reportedByPersonId === personId && ticket.status === 'open' && ticket.startedAt === null
+  );
+}
+
 function spec(action: CommandAction, label: string, primary = false): ActionSpec {
   return { action, label, primary };
 }
 
 /** The actions legal from the ticket's status in DOMAIN.md §2. */
-export function legalActions(ticket: Ticket): ActionSpec[] {
+export function legalActions(ticket: Ticket, context: ActionContext = {}): ActionSpec[] {
   const machineRunning = Boolean(ticket.machineRunningAt);
   const canMarkRunning = ticket.kind === 'stopped';
   if (ticket.status === 'open') {
     return [
       spec('start', ticket.handedOver ? 'Pick up' : 'Start', true),
       ...(ticket.handedOver ? [spec('update', 'Update')] : []),
+      ...crewActions(ticket, context),
       spec('cancel', 'Cancel'),
     ];
   }
@@ -37,7 +68,9 @@ export function legalActions(ticket: Ticket): ActionSpec[] {
       spec('transfer', 'Transfer'),
       ...(canMarkRunning ? [spec('machine-running', 'Machine running')] : []),
       ...(machineRunning ? [spec('machine-stopped', 'Machine stopped')] : []),
+      ...crewActions(ticket, context),
       spec('close', 'Close'),
+      spec('cancel', 'Cancel'),
     ];
   }
   if (ticket.status === 'waiting') {
@@ -46,6 +79,7 @@ export function legalActions(ticket: Ticket): ActionSpec[] {
       spec('update', 'Update'),
       ...(canMarkRunning ? [spec('machine-running', 'Machine running')] : []),
       ...(machineRunning ? [spec('machine-stopped', 'Machine stopped')] : []),
+      ...crewActions(ticket, context),
       spec('cancel', 'Cancel'),
     ];
   }
@@ -82,6 +116,8 @@ export function useTicketCommand() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['state'] }),
       queryClient.invalidateQueries({ queryKey: ['ticket'] }),
+      // Personal lists (floor My complaints, desk Mine) show the moved ticket too.
+      queryClient.invalidateQueries({ queryKey: ['tickets'] }),
     ]);
     return true;
   }

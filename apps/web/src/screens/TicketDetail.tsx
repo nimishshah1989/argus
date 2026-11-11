@@ -225,6 +225,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
   const reasonLabels: Record<string, string> = {};
   for (const item of config?.lists.wait_reason ?? []) reasonLabels[item.code] = item.label;
   const personId = me?.actingPersonId;
+  const crew = people.filter((member) => !member.leftAt).map((member) => member.personId);
   return (
     <>
       <header className="mt-2">
@@ -242,6 +243,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           ticket={ticket}
           config={config}
           personId={personId}
+          crew={crew}
           canEdit={canWork(me?.role)}
           command={(action, body) => run(ticket.id, action, body)}
           pending={pending}

@@ -4,22 +4,31 @@ import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { legalActions } from './actions.js';
 import { ActionForm } from './ActionForm.js';
 
-const FORM_ACTIONS = new Set<CommandAction>(['pause', 'update', 'transfer', 'close', 'cancel']);
+const FORM_ACTIONS = new Set<CommandAction>([
+  'pause',
+  'update',
+  'transfer',
+  'close',
+  'cancel',
+  'join',
+  'leave',
+]);
 
 interface Props {
   ticket: Ticket;
   config: Config;
   personId: string;
+  crew: string[];
   error: string | null;
   pending: boolean;
   onRun: (action: CommandAction, body: CommandBody) => Promise<boolean>;
 }
 
 /** Only the actions legal from this status (DOMAIN.md §2); one of them is primary. */
-export function ActionBar({ ticket, config, personId, error, pending, onRun }: Props) {
+export function ActionBar({ ticket, config, personId, crew, error, pending, onRun }: Props) {
   const { t } = useTranslation();
   const [openForm, setOpenForm] = useState<CommandAction | null>(null);
-  const actions = legalActions(ticket);
+  const actions = legalActions(ticket, { personId, crew });
   if (actions.length === 0) return null;
 
   function choose(action: CommandAction) {

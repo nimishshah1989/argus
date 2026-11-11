@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
+import { expect, test, type Browser, type Page } from '@playwright/test';
+import { WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
 
 /** The status pill lives in the ticket header, next to the ref. */
 async function expectStatus(page: Page, label: string): Promise<void> {
@@ -28,6 +28,37 @@ async function startWorking(page: Page): Promise<void> {
 }
 
 /** Mine and Team only matter while the ticket is open/working, so check them mid-flight. */
+/**
+ * A second technician adds themselves to the ticket as support, then leaves it, in their own
+ * browser context. The lifecycle continues on the first page afterwards.
+ */
+async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<void> {
+  const context = await browser.newContext({ baseURL: WEB_URL });
+  try {
+    const other = await context.newPage();
+    await signIn(other, 'bina');
+    await other.goto('/desk');
+    await other.getByRole('link', { name: new RegExp(ref) }).click();
+    await expect(other.getByRole('heading', { name: ref })).toBeVisible();
+    await other.getByRole('button', { name: 'Add me as support', exact: true }).click();
+    const joinForm = other.getByRole('form', { name: 'Add me as crew' });
+    await expect(joinForm.getByLabel('Role')).toHaveValue('support');
+    await joinForm.getByRole('button', { name: 'Join', exact: true }).click();
+    await expect(joinForm).toBeHidden();
+    await expect(other.getByRole('button', { name: 'Leave', exact: true })).toBeVisible();
+    await other.getByRole('button', { name: 'Leave', exact: true }).click();
+    const leaveForm = other.getByRole('form', { name: 'Leave the ticket' });
+    await leaveForm.getByLabel('Why are you leaving?').fill('Support work done');
+    await leaveForm.getByRole('button', { name: 'Leave', exact: true }).click();
+    await expect(leaveForm).toBeHidden();
+    await expect(
+      other.getByRole('button', { name: 'Add me as support', exact: true }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+}
+
 async function checkDeskTabs(page: Page, ref: string): Promise<void> {
   const refLink = page.getByRole('link', { name: new RegExp(ref) });
   await page.getByRole('link', { name: /Open tickets/ }).click();
@@ -121,7 +152,7 @@ async function checkFloorComplaints(page: Page, ref: string): Promise<void> {
 }
 
 /** SPEC 1.4: the desk opens the floor ticket and drives every lifecycle step. */
-test('drives a ticket through the desk lifecycle', async ({ page }, testInfo) => {
+test('drives a ticket through the desk lifecycle', async ({ page, browser }, testInfo) => {
   const machine = machineFor('desk', testInfo.project.name);
   const token = await apiLogin('asha');
   const ticket = await raiseTicketViaApi(token, machine.id, `Spindle alarm on ${machine.code}`);
@@ -130,6 +161,7 @@ test('drives a ticket through the desk lifecycle', async ({ page }, testInfo) =>
   await expectOpenBoard(page, ticket.ref);
   await openTicket(page, ticket.ref);
   await startWorking(page);
+  await joinAndLeaveAsSupport(browser, ticket.ref);
   await checkDeskTabs(page, ticket.ref);
   await logUpdate(page);
   await pauseTicket(page);

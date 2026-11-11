@@ -1,12 +1,56 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getMe, listTickets, type Machine } from '../../api.js';
+import {
+  getConfig,
+  getMe,
+  listTickets,
+  type CommandAction,
+  type Config,
+  type Machine,
+  type Ticket,
+} from '../../api.js';
+import { canCancelOwn, useTicketCommand } from '../../components/actions.js';
+import { ActionForm } from '../../components/ActionForm.js';
 import { errorMessage, machineLabel } from '../../components/format.js';
 import { TicketCard } from '../../components/TicketCard.js';
+
+const CANCEL_ACTION: CommandAction = 'cancel';
+
+interface CancelProps {
+  ticket: Ticket;
+  config: Config;
+  personId: string;
+  onDone: () => void;
+}
+
+/** The reason form for the caller's own not-started ticket; the server checks the rule too. */
+export function CancelOwnForm({ ticket, config, personId, onDone }: CancelProps) {
+  const { run, error, pending } = useTicketCommand();
+  return (
+    <div className="mt-2 text-left">
+      <ActionForm
+        action={CANCEL_ACTION}
+        personId={personId}
+        kind={ticket.kind}
+        config={config}
+        pending={pending}
+        onRun={(action, body) => run(ticket.id, action, body)}
+        onDone={onDone}
+      />
+      {error && (
+        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function MyComplaints({ machines }: { machines: Machine[] }) {
   const { t } = useTranslation();
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const personId = me.data?.user.actingPersonId;
   const complaints = useQuery({
     queryKey: ['tickets', 'raised', personId],
@@ -14,6 +58,7 @@ export function MyComplaints({ machines }: { machines: Machine[] }) {
     enabled: Boolean(personId),
     staleTime: 0,
   });
+  const [cancelTicket, setCancelTicket] = useState<Ticket | null>(null);
   const tickets = complaints.data?.items ?? [];
   const now = new Date().toISOString();
   return (
@@ -35,12 +80,24 @@ export function MyComplaints({ machines }: { machines: Machine[] }) {
               ticket={ticket}
               now={now}
               machineCode={machineLabel(ticket, machines)}
-              quick={null}
+              quick={
+                canCancelOwn(ticket, personId)
+                  ? { action: CANCEL_ACTION, label: t('action.cancel') }
+                  : null
+              }
               pending={false}
-              onQuick={() => undefined}
+              onQuick={() => setCancelTicket(ticket)}
             />
           ))}
         </ul>
+      )}
+      {cancelTicket && config.data && personId && (
+        <CancelOwnForm
+          ticket={cancelTicket}
+          config={config.data}
+          personId={personId}
+          onDone={() => setCancelTicket(null)}
+        />
       )}
     </section>
   );

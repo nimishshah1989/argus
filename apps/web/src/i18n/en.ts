@@ -101,11 +101,15 @@ export const en = {
   'close.done': 'Done',
 
   // action form
+  'action.join.title': 'Add me as crew',
+  'action.leave.title': 'Leave the ticket',
   'action.pause.title': 'Pause the ticket',
   'action.update.title': 'Log an update',
   'action.transfer.title': 'Hand over the ticket',
   'action.close.title': 'Close the ticket',
   'action.cancel.title': 'Cancel the ticket',
+  'action.join.submit': 'Join',
+  'action.leave.submit': 'Leave',
   'action.pause.submit': 'Pause',
   'action.update.submit': 'Save update',
   'action.transfer.submit': 'Transfer',
@@ -119,6 +123,11 @@ export const en = {
   'action.howClosing': 'How are you closing?',
   'action.noteRequired': 'Required when closing without a report.',
   'action.whyCancel': 'Why cancel?',
+  'action.leaveReason': 'Why are you leaving?',
+  'action.role': 'Role',
+  'action.rolePrimary': 'Primary',
+  'action.roleSupport': 'Support',
+  'action.cancel': 'Cancel',
   'action.aria': 'Actions',
 
   // breakdown report form

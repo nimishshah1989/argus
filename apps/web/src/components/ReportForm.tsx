@@ -234,6 +234,7 @@ interface PanelProps {
   ticket: Ticket;
   config: Config;
   personId: string;
+  crew: string[];
   canEdit: boolean;
   command: (action: CommandAction, body: CommandBody) => Promise<boolean>;
   pending: boolean;
@@ -248,6 +249,7 @@ export function ReportPanel({
   ticket,
   config,
   personId,
+  crew,
   canEdit,
   command,
   pending,
@@ -296,6 +298,7 @@ export function ReportPanel({
           ticket={ticket}
           config={config}
           personId={personId}
+          crew={crew}
           error={error}
           pending={pending}
           onRun={handleAction}
