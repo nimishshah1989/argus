@@ -14,6 +14,7 @@ The implementation contract and acceptance evidence are in `docs/slices/M2-2.1-s
 - M1b import (#69/#70): safe synthetic-only contract, reconciliation, security checks and undo.
 - M2 configurable tags (#71): relational `ticket_tag`, forced RLS/cascade, tenant catalogue,
   `canWork`/idempotency/row-locked writes, actor-labelled history and accessible browser states.
+- M1b gate evidence: 380 Vitest tests, 16 Playwright tests, full verification and R3 review.
 - Process: CI E2E, migration immutability, parity-update and lean checks.
 
 ## In flight: M2-2.1 severity matrix
@@ -44,7 +45,7 @@ The implementation contract and acceptance evidence are in `docs/slices/M2-2.1-s
 
 ## Next
 
-1. Commit the merge resolution, open the labelled PR and require green GitHub CI.
+1. Require green GitHub CI and merge the severity PR.
 2. Continue with M2-2.2 SLA timers on their separate branch after the severity PR merges.
 3. Real N1 compatibility/cutover requires the external schema and human security sign-off.
 
