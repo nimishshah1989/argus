@@ -194,6 +194,20 @@ export function figuresFromRow(row: Record<string, unknown>): Figures {
   };
 }
 
+/** Mirrors the domain figures() perPerson rule: whole minutes per segment, summed per person. */
+export function perPersonFromSegments(
+  segments: Array<{ personId: string; startedAt: Date; endedAt: Date | null }>,
+  now: Date,
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const segment of segments) {
+    const end = segment.endedAt ?? now;
+    const minutes = Math.max(0, Math.floor((end.getTime() - segment.startedAt.getTime()) / 60000));
+    result[segment.personId] = (result[segment.personId] ?? 0) + minutes;
+  }
+  return result;
+}
+
 export function recomputeFigures(
   ticket: Ticket,
   events: TicketEvent[],

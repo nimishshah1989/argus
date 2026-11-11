@@ -359,6 +359,28 @@ describe('ticket list', () => {
     ]);
   });
 
+  it('populates figures.perPerson on the list, matching the detail', async () => {
+    await admin.query(
+      `INSERT INTO work_segment (tenant_id, ticket_id, person_id, role, started_at, ended_at) VALUES
+       ($1, $2, $3, 'lead', '2026-11-06T10:00:00Z', '2026-11-06T11:00:00Z'),
+       ($1, $2, $4, 'support', '2026-11-06T10:30:00Z', '2026-11-06T11:00:00Z')`,
+      [TENANT, T_F, ASHA, BINA],
+    );
+
+    const list = await get('/api/v1/tickets?limit=200', ashaToken);
+    const ticket = list.json().items.find((t: { id: string }) => t.id === T_F);
+    expect(ticket.figures.perPerson).toEqual({ [ASHA]: 60, [BINA]: 30 });
+
+    const detail = await get(`/api/v1/tickets/${T_F}`, ashaToken);
+    expect(detail.json().ticket.figures.perPerson).toEqual({ [ASHA]: 60, [BINA]: 30 });
+  });
+
+  it('leaves figures.perPerson empty for a ticket without segments', async () => {
+    const list = await get('/api/v1/tickets?limit=200', ashaToken);
+    const ticket = list.json().items.find((t: { id: string }) => t.id === T_A);
+    expect(ticket.figures.perPerson).toEqual({});
+  });
+
   it('requires authentication', async () => {
     const res = await get('/api/v1/tickets');
     expect(res.statusCode).toBe(401);

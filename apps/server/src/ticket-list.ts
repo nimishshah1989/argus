@@ -40,10 +40,47 @@ function csv(raw: string | undefined): string[] | null {
   return raw ? raw.split(',').filter(Boolean) : null;
 }
 
-export function projectTicket(row: Record<string, unknown>): Record<string, unknown> {
+export function projectTicket(
+  row: Record<string, unknown>,
+  perPerson?: Record<string, number>,
+): Record<string, unknown> {
   const ticket = tm.rowToTicket(row);
-  ticket.figures = tm.figuresFromRow(row);
+  const figures = tm.figuresFromRow(row);
+  if (perPerson) figures.perPerson = perPerson;
+  ticket.figures = figures;
   return tm.ticketProjection(ticket, tm.rowExtras(row));
+}
+
+async function loadPerPerson(
+  client: PoolClient,
+  tenantId: string,
+  ticketIds: string[],
+  now: Date,
+): Promise<Record<string, Record<string, number>>> {
+  if (ticketIds.length === 0) return {};
+  const rows = (
+    await client.query(
+      'SELECT ticket_id, person_id, started_at, ended_at FROM work_segment WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])',
+      [tenantId, ticketIds],
+    )
+  ).rows;
+  const byTicket: Record<
+    string,
+    Array<{ personId: string; startedAt: Date; endedAt: Date | null }>
+  > = {};
+  for (const row of rows) {
+    const id = row.ticket_id as string;
+    (byTicket[id] ??= []).push({
+      personId: row.person_id as string,
+      startedAt: new Date(row.started_at as string | number | Date),
+      endedAt: row.ended_at ? new Date(row.ended_at as string | number | Date) : null,
+    });
+  }
+  const result: Record<string, Record<string, number>> = {};
+  for (const [id, segments] of Object.entries(byTicket)) {
+    result[id] = tm.perPersonFromSegments(segments, now);
+  }
+  return result;
 }
 
 async function queryList(
@@ -84,7 +121,15 @@ async function queryList(
   const rows = (await client.query(text, params)).rows;
 
   const page = rows.slice(0, filters.limit);
-  const items = page.map((row) => projectTicket(row as Record<string, unknown>));
+  const perPerson = await loadPerPerson(
+    client,
+    tenantId,
+    page.map((row) => row.id as string),
+    new Date(),
+  );
+  const items = page.map((row) =>
+    projectTicket(row as Record<string, unknown>, perPerson[row.id as string]),
+  );
   let nextCursor: string | null = null;
   if (rows.length > filters.limit) {
     const last = page[page.length - 1] as Record<string, unknown>;
