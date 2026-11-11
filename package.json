@@ -28,7 +28,8 @@
     "test:e2e": "playwright test",
     "seed:cosmos": "tsx scripts/seed-cosmos.ts",
     "build:server": "tsx scripts/build-server.ts",
-    "build:web": "pnpm --filter @uptimo/web build"
+    "build:web": "pnpm --filter @uptimo/web build",
+    "preview:design": "pnpm --filter @uptimo/web dev --host 127.0.0.1 --port 4173"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

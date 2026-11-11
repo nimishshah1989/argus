@@ -1,0 +1,398 @@
+@reference 'tailwindcss';
+
+.design-preview {
+  --teal: #00615c;
+  --teal-soft: #edf7f6;
+  --ink: #1d1d1f;
+  --muted: #5c5c61;
+  --line: #dedee3;
+  --neutral: #f5f5f7;
+  --red: #b42318;
+  --red-soft: #fff1f0;
+  --amber: #824a00;
+  --amber-soft: #fff6df;
+  --green: #147548;
+  --green-soft: #edf9f1;
+  @apply min-h-[100dvh] bg-white text-[var(--ink)] antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.design-preview *,
+.design-preview *::before,
+.design-preview *::after {
+  @apply box-border;
+}
+.design-preview h1,
+.design-preview h2,
+.design-preview h3,
+.design-preview p {
+  @apply m-0;
+}
+.design-preview button,
+.design-preview input,
+.design-preview select,
+.design-preview textarea {
+  @apply font-[inherit];
+}
+.design-preview button,
+.design-preview summary,
+.design-preview select {
+  @apply cursor-pointer touch-manipulation;
+}
+.design-preview button:disabled {
+  @apply cursor-not-allowed opacity-45;
+}
+.design-preview :focus-visible {
+  outline: 3px solid #007c76;
+  outline-offset: 3px;
+}
+
+.preview-skip-link {
+  @apply fixed left-2 top-2 z-10 -translate-y-[160%] rounded-xl bg-[var(--teal)] px-[18px] py-3.5 text-white focus:translate-y-0;
+}
+.preview-banner {
+  @apply flex min-h-[52px] items-center justify-center gap-2 border-b border-[#cee5e2] bg-[var(--teal-soft)] px-4 py-3 text-center text-sm font-semibold text-[#075753];
+}
+.preview-header,
+.preview-main,
+.preview-footer {
+  @apply mx-auto w-[calc(100%_-_32px)] max-w-[1248px] sm:w-[calc(100%_-_64px)];
+}
+.preview-header {
+  @apply py-6 pb-8 sm:pt-8;
+}
+.preview-brand-row,
+.preview-brand,
+.preview-icon-label,
+.preview-section-heading,
+.preview-complaint > div,
+.preview-working-ticket__header,
+.preview-ticket-card__meta,
+.preview-insight-grid h3,
+.preview-people-list li {
+  @apply flex items-center gap-2;
+}
+.preview-brand-row,
+.preview-section-heading,
+.preview-complaint > div,
+.preview-working-ticket__header {
+  @apply flex-wrap justify-between gap-3.5;
+}
+.preview-brand {
+  @apply gap-2 text-xl font-bold;
+}
+.preview-review-label {
+  @apply rounded-full border border-[var(--line)] px-2.5 py-1 text-xs font-semibold text-[var(--muted)];
+}
+
+.preview-view-switch {
+  @apply mt-6 grid max-w-[420px] grid-cols-2 gap-1 rounded-2xl bg-[var(--neutral)] p-1;
+}
+.preview-view-switch .preview-button[aria-pressed='true'] {
+  @apply border-[var(--line)] bg-white text-[var(--teal)] shadow-sm;
+}
+.preview-heading {
+  @apply mt-8 max-w-[720px];
+}
+.preview-eyebrow {
+  @apply text-xs font-bold tracking-[0.12em] text-[var(--muted)];
+}
+.preview-heading h1 {
+  @apply mt-1.5 text-4xl font-semibold leading-[1.1] tracking-[-0.045em] md:text-5xl;
+}
+.preview-heading > p:last-child,
+.preview-section-intro {
+  @apply mt-2.5 text-[var(--muted)];
+}
+.preview-main {
+  @apply pb-12;
+}
+.preview-footer {
+  @apply border-t border-[var(--line)] py-6 pb-10 text-[13px] text-[var(--muted)];
+}
+
+.preview-card,
+.preview-ticket-card {
+  @apply min-w-0 rounded-[20px] border border-[var(--line)] bg-white shadow-sm;
+}
+.preview-card {
+  @apply p-5 sm:p-7;
+}
+.preview-button,
+.preview-ticket-card {
+  @apply min-h-[52px] min-w-[52px] text-[var(--ink)] transition-colors duration-200 motion-reduce:transition-none;
+}
+.preview-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] border border-[var(--line)] bg-white px-[18px] py-3 font-semibold leading-tight hover:bg-[var(--neutral)];
+}
+.preview-button svg,
+.preview-icon-label svg,
+.preview-status-pair svg {
+  @apply shrink-0;
+}
+.preview-button--primary {
+  @apply border-[var(--teal)] bg-[var(--teal)] text-white hover:bg-[#004b48];
+}
+.preview-button--quiet {
+  @apply border-transparent bg-transparent hover:bg-[var(--neutral)];
+}
+.preview-primary-action {
+  @apply w-full sm:w-auto sm:min-w-[180px];
+}
+.preview-status-pair {
+  @apply inline-flex w-fit max-w-full items-center gap-2 rounded-full px-2.5 py-1.5 text-[13px] font-bold;
+}
+.preview-status-pair--stopped {
+  @apply bg-[var(--red-soft)] text-[var(--red)];
+}
+.preview-status-pair--waiting {
+  @apply bg-[var(--amber-soft)] text-[var(--amber)];
+}
+.preview-status-pair--running {
+  @apply bg-[var(--green-soft)] text-[var(--green)];
+}
+
+.preview-field > * + *,
+.preview-floor form > * + *,
+.preview-complaints > * + *,
+.preview-working-ticket > * + *,
+.preview-insight-grid > * + * {
+  @apply mt-4;
+}
+.preview-field > * + * {
+  @apply mt-2;
+}
+.preview-field label,
+.preview-step-heading,
+.preview-ticket-card__problem {
+  @apply break-words font-semibold;
+}
+.preview-field > p,
+.preview-selected-machine p,
+.preview-selected-machine .preview-icon-label,
+.preview-complaint p,
+.preview-ticket-card__top > span,
+.preview-ticket-card__meta,
+.preview-report-meta,
+.preview-working-ticket__header p:last-child,
+.preview-timeline time,
+.preview-people-list span,
+.preview-figures dt,
+.preview-empty-detail p,
+.preview-muted {
+  @apply text-[var(--muted)];
+}
+.preview-field > p,
+.preview-selected-machine p,
+.preview-selected-machine .preview-icon-label,
+.preview-ticket-card__meta,
+.preview-report-meta,
+.preview-timeline time,
+.preview-people-list span,
+.preview-figures dt,
+.preview-muted {
+  @apply text-[13px];
+}
+.preview-field input,
+.preview-field select,
+.preview-field textarea {
+  @apply min-h-[52px] w-full min-w-0 rounded-xl border border-[#c9c9cf] bg-white px-3.5 py-3 text-base text-[var(--ink)];
+}
+.preview-field textarea {
+  @apply min-h-[120px] resize-y;
+}
+
+.preview-floor {
+  @apply mx-auto max-w-[840px];
+}
+.preview-floor > * + * {
+  @apply mt-5;
+}
+.preview-step-heading {
+  @apply mb-[18px] flex items-center gap-2.5 text-lg;
+}
+.preview-step-heading > span {
+  @apply grid size-7 place-items-center rounded-full bg-[var(--neutral)] text-[13px] text-[var(--muted)];
+}
+.preview-selected-machine {
+  @apply flex items-center gap-3.5;
+}
+.preview-selected-machine > div {
+  @apply min-w-0 flex-1;
+}
+.preview-brand svg,
+.preview-selected-machine > svg,
+.preview-insight-grid h3 svg,
+.preview-empty-detail svg {
+  @apply text-[var(--teal)];
+}
+.preview-machine-results,
+.preview-timeline,
+.preview-people-list {
+  @apply m-0 list-none p-0 text-sm;
+}
+.preview-machine-results {
+  @apply mt-3 grid gap-2;
+}
+.preview-machine-results .preview-button {
+  @apply w-full justify-start text-left;
+}
+.preview-choice-grid,
+.preview-secondary-actions {
+  @apply grid grid-cols-2 gap-3;
+}
+.preview-choice {
+  @apply min-h-[64px] border-[var(--line)] bg-white;
+}
+.preview-choice--stopped svg {
+  @apply text-[var(--red)];
+}
+.preview-choice--support svg {
+  @apply text-[var(--amber)];
+}
+.preview-choice--stopped[aria-pressed='true'] {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+}
+.preview-choice--support[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.preview-quick-problems {
+  @apply mb-4 flex flex-wrap gap-2;
+}
+.preview-quick-problems .preview-button,
+.preview-secondary-actions .preview-button {
+  @apply bg-[var(--neutral)] text-sm;
+}
+
+.preview-confirmation {
+  @apply p-6 text-center sm:p-12;
+}
+.preview-success-icon {
+  @apply mb-3 text-[var(--green)];
+}
+.preview-confirmation h2 {
+  @apply text-5xl font-semibold tracking-[-0.04em];
+}
+.preview-confirmation-facts {
+  @apply my-6 grid gap-3 rounded-[14px] bg-[var(--neutral)] p-4 text-left;
+}
+.preview-confirmation-facts > div {
+  @apply grid grid-cols-[80px_minmax(0,1fr)] gap-3;
+}
+.preview-confirmation-facts dd {
+  @apply m-0 break-words font-semibold;
+}
+.preview-muted {
+  @apply mb-5;
+}
+
+.preview-disclosure {
+  @apply overflow-hidden rounded-[14px] border border-[var(--line)] bg-white;
+}
+.preview-disclosure summary {
+  @apply flex min-h-[52px] cursor-pointer list-none items-center gap-2.5 px-3.5 py-3 font-semibold;
+}
+.preview-disclosure summary::-webkit-details-marker {
+  @apply hidden;
+}
+.preview-disclosure summary svg:last-child {
+  @apply ml-auto transition-transform duration-200 motion-reduce:transition-none;
+}
+.preview-disclosure[open] summary svg:last-child {
+  @apply rotate-180;
+}
+.preview-disclosure-body {
+  @apply px-3.5 pb-4 pt-1;
+}
+.preview-count {
+  @apply inline-grid min-h-7 min-w-7 place-items-center rounded-full bg-[var(--neutral)] px-2 py-0.5 text-[13px] font-semibold text-[var(--muted)];
+}
+.preview-disclosure summary .preview-count {
+  @apply ml-auto;
+}
+.preview-disclosure summary .preview-count + svg {
+  @apply ml-0;
+}
+.preview-complaint {
+  @apply border-t border-[var(--line)] py-3.5;
+}
+.preview-complaint p {
+  @apply mb-2.5 mt-1;
+}
+
+.preview-desk,
+.preview-open-list,
+.preview-ticket-detail {
+  @apply min-w-0;
+}
+.preview-desk {
+  @apply lg:grid lg:grid-cols-[minmax(300px,0.78fr)_minmax(0,1.22fr)] lg:items-start lg:gap-7;
+}
+.preview-ticket-list {
+  @apply mt-5 grid gap-3;
+}
+.preview-ticket-card {
+  @apply grid w-full gap-3 rounded-[18px] p-4 text-left hover:border-[#a8a8b0];
+}
+.preview-ticket-card[aria-pressed='true'] {
+  @apply border-[var(--teal)] ring-1 ring-[var(--teal)];
+}
+.preview-ticket-card__top {
+  @apply grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3;
+}
+.preview-ticket-detail {
+  @apply hidden lg:block;
+}
+.preview-desk--selected .preview-open-list {
+  @apply hidden lg:block;
+}
+.preview-desk--selected .preview-ticket-detail {
+  @apply block;
+}
+.preview-back {
+  @apply -ml-3 -mt-2 justify-self-start text-[var(--teal)] lg:hidden;
+}
+.preview-working-ticket__header {
+  @apply items-start;
+}
+.preview-ticket-ref {
+  @apply text-[13px] font-bold tracking-[0.06em] text-[var(--muted)];
+}
+.preview-insight-grid {
+  @apply lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-6;
+}
+.preview-insight-grid > * + * {
+  @apply lg:mt-0;
+}
+.preview-insight-grid > section:first-child {
+  @apply lg:row-span-2;
+}
+.preview-insight-grid h3 {
+  @apply mb-3 text-[15px];
+}
+.preview-timeline li {
+  @apply grid grid-cols-[44px_minmax(0,1fr)] gap-3;
+}
+.preview-timeline li + li,
+.preview-people-list li + li {
+  @apply mt-3.5;
+}
+.preview-people-list strong {
+  @apply block text-[var(--ink)];
+}
+.preview-figures {
+  @apply m-0 grid grid-cols-3 gap-2;
+}
+.preview-figures > div {
+  @apply min-w-0 rounded-xl bg-[var(--neutral)] p-3;
+}
+.preview-figures dd {
+  @apply m-0 mt-1 text-lg font-bold tabular-nums;
+}
+.preview-empty-detail {
+  @apply text-center lg:grid lg:min-h-[320px] lg:place-content-center;
+}

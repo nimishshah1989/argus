@@ -26,7 +26,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | react-i18next                                            | web i18n            | MIT              |
 | shadcn/ui (copied components)                            | web UI              | MIT              |
 | Radix UI primitives                                      | web accessibility   | MIT              |
-| Lucide                                                   | icons               | ISC              |
+| Lucide (`lucide-react`)                                  | icons               | ISC              |
 | Apache ECharts                                           | charts              | Apache-2.0       |
 | FullCalendar standard plugins                            | PM calendar         | MIT              |
 | vis-timeline                                             | resource timeline   | Apache-2.0 / MIT |
