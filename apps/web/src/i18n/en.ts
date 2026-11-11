@@ -105,6 +105,12 @@ export const en = {
   'settings.saveMatrix': 'Save matrix',
   'settings.saved': 'Saved',
   'settings.saveFailed': 'Could not save. Please try again.',
+  'settings.loading': 'Loading settings…',
+  'settings.loadFailed': 'Could not load settings. Please try again.',
+  'settings.forbiddenTitle': 'No settings access',
+  'settings.forbiddenHelp':
+    'Ask an admin or head to change machine criticality or the severity matrix.',
+  'settings.offline': 'Offline: Settings is read-only. Reconnect to make changes.',
   'ticket.fact.lead': 'Lead',
   'ticket.fact.location': 'Location',
   'ticket.fact.workType': 'Work type',

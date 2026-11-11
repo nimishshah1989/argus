@@ -4,11 +4,14 @@ import {
   apiError,
   isListName,
   listUpsertSchema,
+  machineCriticalitySchema,
   settingsPutSchema,
   severityMatrixSchema,
   translationSchema,
 } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
+import { computeSeverity } from '@uptimo/domain';
+import { loadSeverityMatrix } from './ticket/severity.js';
 import { requireAuth } from './auth.js';
 import { fingerprint, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
@@ -175,20 +178,39 @@ async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply:
   if (!ctx) return;
   if (!canWrite(ctx.role)) return forbidden(reply);
   const { id } = request.params as { id: string };
-  const body = request.body as { criticality?: string | null };
-  const criticality = body.criticality ?? null;
-  if (criticality !== null && !['A', 'B', 'C'].includes(criticality)) {
+  const parsed = machineCriticalitySchema.safeParse(request.body);
+  if (!parsed.success) {
     reply
       .code(422)
       .send(apiError('validation', 'Criticality must be A, B, C or null', 'criticality'));
     return;
   }
-  const updated = await withTenant(pool, ctx.tenantId, (client) =>
-    client.query(
+  const { criticality } = parsed.data;
+  const updated = await withTenant(pool, ctx.tenantId, async (client) => {
+    const machine = await client.query(
       'UPDATE machine SET criticality = $2, updated_at = now() WHERE id = $1 RETURNING id',
       [id, criticality],
-    ),
-  );
+    );
+    if (machine.rowCount === 0) return machine;
+    // Severity follows current criticality; report-time snapshots stay unchanged.
+    const matrix = await loadSeverityMatrix(client, ctx.tenantId);
+    const tickets = await client.query(
+      'SELECT id, kind, urgent FROM ticket WHERE tenant_id = $1 AND machine_id = $2 FOR UPDATE',
+      [ctx.tenantId, id],
+    );
+    if (tickets.rows.length > 0) {
+      const severities = tickets.rows.map((ticket) =>
+        computeSeverity(matrix, criticality, ticket.kind, ticket.urgent === true),
+      );
+      await client.query(
+        `UPDATE ticket AS t SET severity = v.severity
+         FROM UNNEST($1::uuid[], $2::text[]) AS v(id, severity)
+         WHERE t.id = v.id AND t.tenant_id = $3`,
+        [tickets.rows.map((ticket) => ticket.id), severities, ctx.tenantId],
+      );
+    }
+    return machine;
+  });
   if (updated.rowCount === 0) {
     reply.code(404).send(apiError('not_found', 'Unknown machine', 'id'));
     return;

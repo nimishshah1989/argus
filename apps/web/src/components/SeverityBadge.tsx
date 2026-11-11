@@ -2,7 +2,7 @@ const TONES: Record<string, string> = {
   S1: 'bg-red-100 text-red-800',
   S2: 'bg-orange-100 text-orange-800',
   S3: 'bg-amber-100 text-amber-800',
-  S4: 'bg-neutral-200 text-neutral-600',
+  S4: 'bg-neutral-200 text-neutral-700',
 };
 
 /**

@@ -116,13 +116,13 @@ async function seed(): Promise<void> {
     [LOGIN_ASHA, TENANT, ASHA, passwordHash, LOGIN_OP, OP, LOGIN_SUP, SUP],
   );
   await db.admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at) VALUES
-       ($1, $7, 'BD-1', 'stopped', 'closed', $8, 'Spindle noise', $11, $10, $12),
-       ($2, $7, 'BD-2', 'stopped', 'closed', $9, 'Coolant leak',  $13, $10, $14),
-       ($3, $7, 'BD-3', 'stopped', 'open',   $8, 'Axis alarm',    $15, $10, null),
-       ($4, $7, 'BD-4', 'support', 'open',   $9, 'Program check', $16, $10, null),
-       ($5, $7, 'BD-5', 'stopped', 'closed', $9, 'Tool change',   $17, $10, $18),
-       ($6, $7, 'BD-6', 'stopped', 'closed', $8, 'Reported only', $19, $10, $20)`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at, severity) VALUES
+       ($1, $7, 'BD-1', 'stopped', 'closed', $8, 'Spindle noise', $11, $10, $12, 'S3'),
+       ($2, $7, 'BD-2', 'stopped', 'closed', $9, 'Coolant leak',  $13, $10, $14, 'S3'),
+       ($3, $7, 'BD-3', 'stopped', 'open',   $8, 'Axis alarm',    $15, $10, null, 'S3'),
+       ($4, $7, 'BD-4', 'support', 'open',   $9, 'Program check', $16, $10, null, 'S4'),
+       ($5, $7, 'BD-5', 'stopped', 'closed', $9, 'Tool change',   $17, $10, $18, 'S3'),
+       ($6, $7, 'BD-6', 'stopped', 'closed', $8, 'Reported only', $19, $10, $20, 'S3')`,
     [
       T1,
       T2,

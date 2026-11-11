@@ -63,8 +63,8 @@ async function seedBatch(options: SeedOptions = {}) {
 
   if (options.withSkipped || options.staleSkipped) {
     await admin.query(
-      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic skipped', '2026-10-01T10:00:00Z')`,
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity)
+       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic skipped', '2026-10-01T10:00:00Z', 'S3')`,
       [preexistingId, tenantId],
     );
     await admin.query(
@@ -81,12 +81,12 @@ async function seedBatch(options: SeedOptions = {}) {
          reported_by_person_id, raised_channel, started_at, lead_person_id, segment_started_at,
          machine_stopped_at, closed_at, closed_by_person_id, close_kind, close_note,
          last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min,
-         down_acc_min, downtime_min, follow_min, repair_min, overrides
+         down_acc_min, downtime_min, follow_min, repair_min, overrides, severity
        ) VALUES (
          $1, $2, $7, 'stopped', 'closed', $3, $4, 'Synthetic spindle alarm',
          '2026-11-01T10:00:00Z', $5, $6, '2026-11-01T10:05:00Z', $5,
          '2026-11-01T10:05:00Z', '2026-11-01T10:00:00Z', '2026-11-01T11:00:00Z',
-         $5, 'report', 'Synthetic repair complete', 3, 5, 55, 0, 0, 0, 60, 60, NULL, 55, '{}'
+         $5, 'report', 'Synthetic repair complete', 3, 5, 55, 0, 0, 0, 60, 60, NULL, 55, '{}', 'S3'
        )`,
       [
         ticketId,

@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
@@ -12,7 +11,12 @@ import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
 import { listNeedReport, listTickets, projectTicket } from './ticket-list.js';
 import * as report from './ticket-report.js';
-import { buildRaiseExtras, loadSeverityMatrix, refreshSeverity } from './ticket/severity.js';
+import {
+  buildRaiseExtras,
+  buildRaised,
+  loadSeverityMatrix,
+  refreshSeverity,
+} from './ticket/severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -171,7 +175,7 @@ async function validateMachine(
   if (!tx.body.machineId) return { snapshot: {}, criticality: null };
   const machine = (
     await client.query(
-      'SELECT id, code, category, cell, criticality FROM machine WHERE id = $1 AND tenant_id = $2',
+      'SELECT id, code, category, cell, criticality FROM machine WHERE id = $1 AND tenant_id = $2 FOR SHARE',
       [tx.body.machineId, tx.tenantId],
     )
   ).rows[0];
@@ -209,26 +213,6 @@ async function validateRaisePeople(
   return { reportedByPersonId };
 }
 
-function buildRaised(ref: string, tx: RaiseTx, reportedByPersonId: string | null, now: Date) {
-  const startNow = (tx.body.startNow as boolean | undefined) ?? false;
-  const selfStarted = Boolean(
-    startNow && ((tx.body.startByPersonId as string) || reportedByPersonId),
-  );
-  return domain.raiseTicket({
-    id: randomUUID(),
-    ref,
-    kind: tx.body.kind as domain.Ticket['kind'],
-    machineId: (tx.body.machineId as string | undefined) ?? null,
-    problem: tx.body.problem as string,
-    reportedAt: now,
-    raisedLoginId: tx.auth.loginId,
-    reportedByPersonId,
-    selfStarted,
-    startNow,
-    startByPersonId: tx.body.startByPersonId as string | undefined,
-  });
-}
-
 async function executeRaise(
   client: PoolClient,
   tx: RaiseTx,
@@ -247,13 +231,21 @@ async function executeRaise(
 
   const ref = await sql.allocateRef(client, tx.tenantId);
   const now = new Date();
-  const raised = buildRaised(ref, tx, people.reportedByPersonId, now);
+  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
+  const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
+  const raised = buildRaised({
+    ref,
+    body: tx.body,
+    loginId: tx.auth.loginId,
+    reportedByPersonId: people.reportedByPersonId,
+    now,
+    criticality: machine.criticality as domain.Criticality | null,
+    severityMatrix,
+  });
   raised.ticket.figures = tm.recomputeFigures(raised.ticket, raised.events, raised.segments, {
     overrides: {},
     now,
   });
-  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
-  const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
   const extras = buildRaiseExtras(
     machine.snapshot,
     tx.body,

@@ -353,8 +353,8 @@ describe('synthetic importer integration', () => {
 
   it('T45 advances both counters from every existing ref and never lowers on undo', async () => {
     await db.admin.query(
-      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-       VALUES ($1, $2, 'BD-0999', 'stopped', 'closed', 'Higher existing', '2026-10-01T10:00:00Z')`,
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity)
+       VALUES ($1, $2, 'BD-0999', 'stopped', 'closed', 'Higher existing', '2026-10-01T10:00:00Z', 'S3')`,
       [randomUUID(), syntheticIds.tenant],
     );
     const general = generalTicket({ ref: 'WR-0100', legacyId: 'general-high' });
@@ -375,10 +375,23 @@ describe('synthetic importer integration', () => {
     ]);
   });
 
+  it('T46 derives severity and the criticality snapshot for imported tickets', async () => {
+    await db.admin.query("UPDATE machine SET criticality = 'A' WHERE id = $1", [
+      syntheticIds.machine,
+    ]);
+    const { stats } = await importBhavin(db.app, syntheticIds.tenant, makeSyntheticExport());
+    expect(stats).toMatchObject({ imported: 1, status: 'done' });
+    const row = await db.admin.query(
+      'SELECT severity, criticality_snapshot FROM ticket WHERE tenant_id = $1',
+      [syntheticIds.tenant],
+    );
+    expect(row.rows[0]).toEqual({ severity: 'S1', criticality_snapshot: 'A' });
+  });
+
   it('T45 fails closed on counter exhaustion', async () => {
     await db.admin.query(
-      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-       VALUES ($1, $2, 'BD-2147483647', 'stopped', 'closed', 'Exhausted', '2026-10-01T10:00:00Z')`,
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity)
+       VALUES ($1, $2, 'BD-2147483647', 'stopped', 'closed', 'Exhausted', '2026-10-01T10:00:00Z', 'S3')`,
       [randomUUID(), syntheticIds.tenant],
     );
     await expect(

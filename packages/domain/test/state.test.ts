@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { raiseTicket, recordPastBreakdown, transition, TransitionError } from '../src/state.js';
 import { figures } from '../src/figures.js';
+import { defaultSeverityMatrix } from '../src/severity.js';
 import type { ActorContext, CrewMember, TicketEvent, WorkSegment } from '../src/types.js';
 import type { Ticket } from '../src/ticket.js';
 
@@ -45,7 +46,7 @@ function base(over: Partial<Ticket> = {}): Ticket {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: 0,
-    severity: null,
+    severity: 'S3',
     criticalitySnapshot: null,
     figures: null,
     ...over,
@@ -101,6 +102,33 @@ describe('state machine', () => {
     expect(self.events.map((e) => e.type)).toEqual(['down', 'start']);
     expect(self.segments).toHaveLength(1);
     expect(self.segments[0]?.endedAt).toBeUndefined();
+  });
+
+  it('derives general and urgent severities with default and custom matrices', () => {
+    const input = {
+      id: 't-general',
+      ref: 'WR-0001',
+      kind: 'general' as const,
+      machineId: null,
+      problem: 'General work',
+      reportedAt: now,
+      raisedLoginId: 'login-1',
+      reportedByPersonId: 'person-1',
+      selfStarted: false,
+      startNow: false,
+    };
+
+    const general = raiseTicket(input);
+    const urgent = raiseTicket({ ...input, urgent: true });
+    const custom = raiseTicket({
+      ...input,
+      urgent: true,
+      severityMatrix: { ...defaultSeverityMatrix, urgentWorkRequest: 'S1' },
+    });
+
+    expect(general.ticket).toMatchObject({ severity: 'S4', criticalitySnapshot: null });
+    expect(urgent.ticket).toMatchObject({ severity: 'S3', criticalitySnapshot: null });
+    expect(custom.ticket.severity).toBe('S1');
   });
 
   it('starts an open ticket and opens a lead segment', () => {
@@ -420,5 +448,31 @@ describe('remaining commands', () => {
       closedAt: past.ticket.closedAt ?? undefined,
     });
     expect(f.activeMin).toBe(0);
+  });
+
+  it('derives past-breakdown severity from machine criticality and matrix', () => {
+    const past = recordPastBreakdown({
+      id: 't-past-severity',
+      ref: 'BD-9001',
+      kind: 'stopped',
+      machineId: 'm-critical',
+      machineCriticality: 'A',
+      severityMatrix: {
+        ...defaultSeverityMatrix,
+        default: {
+          ...defaultSeverityMatrix.default,
+          A: { stopped: 'S2', support: 'S1' },
+        },
+      },
+      problem: 'Old breakdown',
+      reportedAt: t('2026-01-01T09:00:00Z'),
+      closedAt: t('2026-01-01T10:00:00Z'),
+      raisedLoginId: 'login-1',
+      reportedByPersonId: 'person-1',
+      closedByPersonId: 'person-1',
+    });
+
+    expect(past.ticket.severity).toBe('S2');
+    expect(past.ticket.criticalitySnapshot).toBe('A');
   });
 });

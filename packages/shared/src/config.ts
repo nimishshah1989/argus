@@ -54,6 +54,11 @@ export type ListUpsertBody = z.infer<typeof listUpsertSchema>;
 export const settingsPutSchema = z.object({ value: z.unknown() });
 export type SettingsPutBody = z.infer<typeof settingsPutSchema>;
 
+export const machineCriticalitySchema = z
+  .object({ criticality: criticalitySchema.nullable() })
+  .strict();
+export type MachineCriticalityBody = z.infer<typeof machineCriticalitySchema>;
+
 export const translationSchema = z.object({
   labelGu: z.string().max(200).optional(),
   labelHi: z.string().max(200).optional(),

@@ -1,6 +1,7 @@
-import type { TicketEvent, WorkSegment } from './types.js';
+import type { Criticality, SeverityMatrix, TicketEvent, WorkSegment } from './types.js';
 import type { Ticket } from './ticket.js';
 import * as commands from './state/commands.js';
+import { deriveSeverity } from './severity.js';
 import * as corrections from './state/corrections.js';
 import type { Command, TransitionInput, TransitionResult } from './state/types.js';
 
@@ -42,6 +43,9 @@ export interface RaiseInput {
   ref: string;
   kind: 'stopped' | 'support' | 'general';
   machineId: string | null;
+  machineCriticality?: Criticality | null;
+  severityMatrix?: SeverityMatrix;
+  urgent?: boolean;
   problem: string;
   reportedAt: Date;
   raisedLoginId: string;
@@ -71,6 +75,7 @@ export function raiseTicket(input: RaiseInput): {
     leadPersonId = person;
     segmentStartedAt = input.reportedAt;
   }
+  const criticalitySnapshot = input.machineCriticality ?? null;
   const ticket: Ticket = {
     id: input.id,
     ref: input.ref,
@@ -104,8 +109,8 @@ export function raiseTicket(input: RaiseInput): {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: seq,
-    severity: null,
-    criticalitySnapshot: null,
+    severity: deriveSeverity(input),
+    criticalitySnapshot,
     figures: null,
   };
   return { ticket, events, segments };

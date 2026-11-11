@@ -85,9 +85,9 @@ beforeAll(async () => {
     );
   }
   await admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES
-     ($1, $3, 'BD-0001', 'stopped', 'open', 'Spindle alarm', now()),
-     ($2, $4, 'BD-0001', 'stopped', 'open', 'Coolant leak', now())`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES
+     ($1, $3, 'BD-0001', 'stopped', 'open', 'Spindle alarm', now(), 'S3'),
+     ($2, $4, 'BD-0001', 'stopped', 'open', 'Coolant leak', now(), 'S3')`,
     [A_TICKET, B_TICKET, A, B],
   );
   await admin.query(
@@ -422,7 +422,7 @@ describe('ticket tag cascade', () => {
     const token = await login();
     const temporary = '10000000-0000-0000-0000-000000000099';
     await admin.query(
-      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-0099', 'stopped', 'open', 'Temporary', now())",
+      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES ($1, $2, 'BD-0099', 'stopped', 'open', 'Temporary', now(), 'S3')",
       [temporary, A],
     );
     const added = await req(

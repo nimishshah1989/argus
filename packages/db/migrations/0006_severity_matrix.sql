@@ -1,5 +1,5 @@
--- Migration 0006: add CHECK constraints for severity columns and default matrix
--- This is an expand-only migration; no existing data is altered.
+-- Migration 0006: add CHECK constraints, default matrix, and legacy severity backfill
+-- Expand-only: missing values are populated; explicit severity/snapshots are preserved.
 
 BEGIN;
 
@@ -25,6 +25,35 @@ WHERE NOT EXISTS (
   SELECT 1 FROM setting WHERE setting.tenant_id = tenant.id AND key = 'severity_matrix'
 );
 
--- 3. RLS policies already exist for 'setting' table (from 0001); no change needed.
+-- 3. Backfill pre-M2 tickets using the default matrix and the machine's current
+-- criticality (the best available report-time snapshot for legacy rows).
+UPDATE ticket AS t
+SET
+  severity = COALESCE(t.severity, CASE
+    WHEN t.kind = 'general' THEN CASE WHEN t.urgent THEN 'S3' ELSE 'S4' END
+    WHEN m.criticality = 'A' THEN CASE WHEN t.kind = 'stopped' THEN 'S1' ELSE 'S2' END
+    WHEN m.criticality = 'B' THEN CASE WHEN t.kind = 'stopped' THEN 'S2' ELSE 'S3' END
+    ELSE CASE WHEN t.kind = 'stopped' THEN 'S3' ELSE 'S4' END
+  END),
+  criticality_snapshot = COALESCE(t.criticality_snapshot, m.criticality)
+FROM machine AS m
+WHERE t.machine_id = m.id
+  AND t.tenant_id = m.tenant_id
+  AND (t.severity IS NULL OR t.criticality_snapshot IS NULL);
+
+-- General requests and machine-less rows use the same fallback as computeSeverity.
+UPDATE ticket
+SET severity = CASE
+  WHEN kind = 'general' THEN CASE WHEN urgent THEN 'S3' ELSE 'S4' END
+  WHEN kind = 'stopped' THEN 'S3'
+  ELSE 'S4'
+END
+WHERE severity IS NULL;
+
+-- 4. Every ticket now has derived severity; snapshots remain nullable for
+-- general requests and machines whose criticality is unknown.
+ALTER TABLE ticket ALTER COLUMN severity SET NOT NULL;
+
+-- 5. RLS policies already exist for 'setting' table (from 0001); no change needed.
 
 COMMIT;

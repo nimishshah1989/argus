@@ -28,20 +28,21 @@ in-flight work; the plan and review gates are in `docs/plan/backlog.md` and `doc
 
 Branch `severity-matrix-implementation` (worktree `severity-matrix-implementation`).
 
-- `packages/domain/src/severity.ts`: pure `computeSeverity` + `defaultSeverityMatrix` per DOMAIN.md
-  §Severity; full unit coverage. No severity tags — the M2 tag boundary is unchanged.
-- Migration `0006_severity_matrix.sql`: CHECK constraints on `ticket.severity` / `criticality_snapshot`
-  and per-tenant default matrix seed.
-- Raise derives severity from the machine criticality snapshot; `correct` and `upgrade-kind`
-  recalculate it (`apps/server/src/ticket/severity.ts`).
-- Settings API: `PUT /api/v1/settings/severity_matrix` (validated), `PUT /api/v1/machines/:id/criticality`;
-  `/api/v1/config` serves the matrix and machine criticality.
-- Web: severity badge on ticket cards, severity fact on detail, new `/desk/settings` screen
-  (admin/head) for machine criticality and the matrix grid.
-- Evidence: `apps/server/test/ticket-severity.test.ts` (8 cases incl. correction recalc),
-  `packages/domain/test/severity.test.ts` (10 cases), `apps/server/test/settings.test.ts`
-  (5 new settings cases). Slice plan: `docs/slices/M2-2.1-severity-matrix.md`.
-- Remaining: independent review; timeline and real-data import stay separate slices.
+- Pure `deriveSeverity` covers criticality × kind and general/urgent; `Ticket.severity` is non-null.
+  No severity tags — the M2 tag boundary is unchanged.
+- Migration 0006 backs up/backfills legacy rows, seeds per-tenant matrices, enforces CHECK values,
+  then makes severity NOT NULL. The slice documents the required pre-deploy dump/restore step.
+- Raise and importer derive severity. Correct, upgrade-kind and machine-criticality changes
+  recalculate while preserving report-time snapshots; raise/update serialization is covered.
+- Settings API validates matrix and criticality bodies (admin/head); `/config` is the only web source.
+- Web: severity on cards/detail and `/desk/settings` with loading, role gate, offline read-only,
+  WCAG contrast, 52px targets and accessible status messages.
+- Evidence: 13 severity API cases, 13 settings cases, 47 domain tests, migration backup/constraint
+  tests, importer T46, 8 focused browser scenarios. Independent DB + UI reviews PASS.
+- Slice plan/evidence: `docs/slices/M2-2.1-severity-matrix.md`.
+- Verification: `pnpm verify` green (43 files / 423 tests), full Playwright 26/26; independent
+  backend, DB/security and UI reviews all PASS.
+- Remaining: commit the closeout; timeline and real-data import stay separate slices.
 
 ## In flight: synthetic importer only
 

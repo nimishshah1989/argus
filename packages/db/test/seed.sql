@@ -51,9 +51,9 @@ INSERT INTO glossary_term (id, tenant_id, source, english, direction) VALUES
   ('10000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-000000000001', 'bering', 'bearing', 'gu-Latn'),
   ('20000000-0000-0000-0000-00000000000d', '20000000-0000-0000-0000-000000000001', 'bering', 'bearing', 'gu-Latn');
 
-INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, reported_by_person_id, raised_login_id, raised_channel, last_event_seq) VALUES
-  ('10000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-000000000001', 'BD-0001', 'stopped', 'open', '10000000-0000-0000-0000-000000000008', 'Spindle alarm', now(), '10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', 'floor', 1),
-  ('20000000-0000-0000-0000-00000000000e', '20000000-0000-0000-0000-000000000001', 'BD-0001', 'stopped', 'open', '20000000-0000-0000-0000-000000000008', 'Coolant leak', now(), '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'floor', 1);
+INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, reported_by_person_id, raised_login_id, raised_channel, severity, last_event_seq) VALUES
+  ('10000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-000000000001', 'BD-0001', 'stopped', 'open', '10000000-0000-0000-0000-000000000008', 'Spindle alarm', now(), '10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', 'floor', 'S1', 1),
+  ('20000000-0000-0000-0000-00000000000e', '20000000-0000-0000-0000-000000000001', 'BD-0001', 'stopped', 'open', '20000000-0000-0000-0000-000000000008', 'Coolant leak', now(), '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'floor', 'S2', 1);
 
 INSERT INTO ticket_event (id, tenant_id, ticket_id, seq, type, idempotency_key, login_id, acting_person_id, text) VALUES
   ('10000000-0000-0000-0000-00000000000f', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000e', 1, 'down', 'seed-a', '10000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'Reported'),

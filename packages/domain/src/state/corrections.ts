@@ -1,6 +1,14 @@
-import type { EditChange, RestorableStatus, TicketEvent, WorkSegment } from '../types.js';
+import type {
+  Criticality,
+  EditChange,
+  RestorableStatus,
+  SeverityMatrix,
+  TicketEvent,
+  WorkSegment,
+} from '../types.js';
 import type { Ticket } from '../ticket.js';
 import { canCorrect } from '../permissions.js';
+import { deriveSeverity } from '../severity.js';
 import { apply, clampAt, TransitionError } from './helpers.js';
 import type { Command, TransitionInput, TransitionResult } from './types.js';
 
@@ -11,6 +19,9 @@ export interface PastBreakdownInput {
   ref: string;
   kind: 'stopped' | 'support' | 'general';
   machineId: string | null;
+  machineCriticality?: Criticality | null;
+  severityMatrix?: SeverityMatrix;
+  urgent?: boolean;
   problem: string;
   reportedAt: Date;
   closedAt: Date;
@@ -24,6 +35,7 @@ export function recordPastBreakdown(input: PastBreakdownInput): {
   events: TicketEvent[];
   segments: WorkSegment[];
 } {
+  const criticalitySnapshot = input.machineCriticality ?? null;
   const ticket: Ticket = {
     id: input.id,
     ref: input.ref,
@@ -57,8 +69,8 @@ export function recordPastBreakdown(input: PastBreakdownInput): {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: 2,
-    severity: null,
-    criticalitySnapshot: null,
+    severity: deriveSeverity(input),
+    criticalitySnapshot,
     figures: null,
   };
   return {

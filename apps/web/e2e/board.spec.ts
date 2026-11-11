@@ -6,9 +6,9 @@ interface OpenTicket {
   ref: string;
 }
 
-/** VC-5/VC-6 are the spare machines no other spec raises on, one per project. */
+/** VC-7/VC-8 are board-only machines; tags and Settings use different fixtures. */
 function boardMachine(projectName: string) {
-  const machine = MACHINES[projectName === 'phone' ? 5 : 4];
+  const machine = MACHINES[projectName === 'phone' ? 7 : 6];
   if (!machine) throw new Error(`No board machine fixture for ${projectName}`);
   return machine;
 }

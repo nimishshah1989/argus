@@ -70,8 +70,8 @@ async function seedTicket(opts: {
   updatedAt: string;
 }): Promise<void> {
   await admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, reported_by_person_id, lead_person_id, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, reported_by_person_id, lead_person_id, updated_at, severity)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       opts.id,
       TENANT,
@@ -84,6 +84,7 @@ async function seedTicket(opts: {
       opts.reportedBy ?? null,
       opts.lead ?? null,
       opts.updatedAt,
+      opts.kind === 'stopped' ? 'S3' : 'S4',
     ],
   );
 }
@@ -225,8 +226,8 @@ beforeAll(async () => {
     ['30000000-0000-0000-0000-00000000000a', TENANT, T_F, BINA],
   );
   await admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, updated_at)
-     VALUES ($1, $2, 'OTHER', 'stopped', 'open', 'Other tenant', '2026-11-07T00:00:00Z', '2026-11-07T00:00:00Z')`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, updated_at, severity)
+     VALUES ($1, $2, 'OTHER', 'stopped', 'open', 'Other tenant', '2026-11-07T00:00:00Z', '2026-11-07T00:00:00Z', 'S3')`,
     [T_OTHER, TENANT_2],
   );
 

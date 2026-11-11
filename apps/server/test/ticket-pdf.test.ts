@@ -220,7 +220,7 @@ beforeAll(async () => {
     [LOGIN_2, TENANT_2, PERSON_2, passwordHash],
   );
   await pool.query(
-    "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-9999', 'stopped', 'open', 'Other tenant', now())",
+    "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES ($1, $2, 'BD-9999', 'stopped', 'open', 'Other tenant', now(), 'S3')",
     [TICKET_2, TENANT_2],
   );
 

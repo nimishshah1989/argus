@@ -4,22 +4,23 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## RESUME HERE
 
-**State**: branch `severity-matrix-implementation` (worktree of the same name) implements **M2-2.1 severity matrix**.
+**State**: branch `severity-matrix-implementation` implements **M2-2.1 severity matrix** end to end.
 
-- `packages/domain/src/severity.ts`: pure `computeSeverity` (criticality A/B/C × kind stopped/support,
-  general uses urgent flag), `defaultSeverityMatrix` per DOMAIN.md §Severity. Full unit coverage.
-- DB: migration `0006_severity_matrix.sql` — CHECK constraints on `ticket.severity` /
-  `ticket.criticality_snapshot` (columns existed from v1) and seeds the default matrix setting per tenant.
-- Server: raise derives severity from the machine criticality snapshot at report time
-  (`apps/server/src/tickets.ts` `raiseExtras` + `apps/server/src/ticket/severity.ts`);
-  `correct` (machine/kind change) and `upgrade-kind` recalculate it in `persistResult`.
-- Settings API: `PUT /api/v1/settings/severity_matrix` (validated), `PUT /api/v1/machines/:id/criticality`.
-  `/api/v1/config` serves `severityMatrix` and machine criticality.
-- Web: severity badge on ticket cards, severity fact on detail, `/desk/settings` screen
-  (admin/head) edits machine criticality and the matrix grid.
+- Domain `deriveSeverity` covers criticality × kind and general/urgent; `Ticket.severity` is non-null.
+- Migration 0006 backs up/backfills legacy rows, seeds per-tenant matrices, enforces CHECK values,
+  then makes severity NOT NULL; snapshot stays nullable for general/unknown criticality.
+- Raise and importer both derive severity. Correct, upgrade-kind and machine-criticality changes
+  recalculate while preserving the report-time snapshot. Raise/criticality updates serialize.
+- Settings API validates matrix and criticality bodies (admin/head). `/config` is the only web source.
+- Web: severity on cards/detail plus `/desk/settings`; loading, role gate, offline read-only,
+  WCAG text contrast, 52px targets and accessible status messages.
+- Evidence: 13 severity API cases, 13 settings cases, 47 domain tests, migration backup/constraint
+  tests, importer T46, 8 focused browser scenarios; independent DB + UI reviews PASS.
 - Severity is **not** modelled through `ticket_tag`; the M2 tag boundary is unchanged.
 
-- **Next**: green `pnpm verify`, then independent review. Timeline and real-data import stay separate slices.
+- **Verification**: `pnpm verify` green (43 files / 423 tests), full Playwright 26/26; independent
+  backend, DB/security and UI reviews all PASS.
+- **Next**: commit the closeout. Timeline and real-data import stay separate slices.
 
 ## Live on main
 

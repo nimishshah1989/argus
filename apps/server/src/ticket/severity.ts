@@ -4,15 +4,18 @@
  * Loads the tenant severity matrix from `setting` (falling back to the domain
  * default) and recalculates severity when a correction changes machine or kind.
  */
+import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import {
   computeSeverity,
   defaultSeverityMatrix,
+  raiseTicket,
   type Criticality,
+  type Severity,
   type SeverityMatrix,
+  type Ticket,
 } from '@uptimo/domain';
 import { severityMatrixSchema } from '@uptimo/shared';
-import type { Ticket } from '@uptimo/domain';
 import type { LoadedCtx, TicketExtras, Tx } from '../ticket-mapper.js';
 
 /** Build raise extras, deriving severity from the machine criticality snapshot. */
@@ -38,6 +41,37 @@ export function buildRaiseExtras(
     severity: computeSeverity(matrix, criticality, kind, urgent),
     criticalitySnapshot: criticality,
   };
+}
+
+/** Build a raised domain ticket with its severity context attached. */
+export function buildRaised(input: {
+  ref: string;
+  body: Record<string, unknown>;
+  loginId: string;
+  reportedByPersonId: string | null;
+  now: Date;
+  criticality: Criticality | null;
+  severityMatrix: SeverityMatrix;
+}) {
+  const { ref, body, loginId, reportedByPersonId, now, criticality, severityMatrix } = input;
+  const startNow = (body.startNow as boolean | undefined) ?? false;
+  const selfStarted = Boolean(startNow && ((body.startByPersonId as string) || reportedByPersonId));
+  return raiseTicket({
+    id: randomUUID(),
+    ref,
+    kind: body.kind as Ticket['kind'],
+    machineId: (body.machineId as string | undefined) ?? null,
+    machineCriticality: criticality,
+    severityMatrix,
+    urgent: (body.urgent as boolean | undefined) ?? false,
+    problem: body.problem as string,
+    reportedAt: now,
+    raisedLoginId: loginId,
+    reportedByPersonId,
+    selfStarted,
+    startNow,
+    startByPersonId: body.startByPersonId as string | undefined,
+  });
 }
 
 /** Load the tenant severity matrix from settings, or the domain default. */
@@ -83,7 +117,7 @@ export interface RecalculateInput {
 export async function recalculateSeverity(
   client: PoolClient,
   input: RecalculateInput,
-): Promise<{ severity: string; criticalitySnapshot: string | null }> {
+): Promise<{ severity: Severity; criticalitySnapshot: Criticality | null }> {
   const matrix = await loadSeverityMatrix(client, input.tenantId);
   const criticality = await machineCriticality(client, input.tenantId, input.machineId);
   return {
@@ -105,16 +139,14 @@ export async function refreshSeverity(
   if (tx.action !== 'correct' && tx.action !== 'upgrade-kind') return;
   const changes = (tx.body.changes ?? {}) as Record<string, unknown>;
   if (tx.action === 'correct' && !('machineId' in changes) && !('kind' in changes)) return;
-  const { severity, criticalitySnapshot } = await recalculateSeverity(client, {
+  const { severity } = await recalculateSeverity(client, {
     tenantId: tx.tenantId,
     machineId: ticket.machineId,
     kind: ticket.kind,
     urgent: loaded.row.urgent === true,
   });
+  // Severity follows the corrected machine/kind; the report-time criticality
+  // snapshot is immutable and remains the value loaded from the original row.
   ticket.severity = severity;
-  ticket.criticalitySnapshot = criticalitySnapshot;
-  // Keep extras in sync: the response projects {...ticket, ...extras}, so a stale
-  // extras.severity would mask the recalculated ticket value.
   loaded.extras.severity = severity;
-  loaded.extras.criticalitySnapshot = criticalitySnapshot;
 }

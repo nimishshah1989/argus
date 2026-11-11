@@ -8,6 +8,7 @@ import type {
   Config,
   Me,
   RaiseTicketBody,
+  SeverityMatrix,
   State,
   Ticket,
   TicketDetail,
@@ -203,18 +204,8 @@ export function removeTicketTag(ticketId: string, tagId: string): Promise<TagLis
 }
 
 // M2-2.1 severity matrix settings.
-export interface SeverityMatrix {
-  default: Record<'A' | 'B' | 'C', Record<'stopped' | 'support', string>>;
-  workRequest: string;
-  urgentWorkRequest: string;
-}
-
-export function getSettings(): Promise<Array<{ key: string; value: unknown }>> {
-  return api<Array<{ key: string; value: unknown }>>('/api/v1/settings');
-}
-
-export function putSetting(key: string, value: unknown): Promise<{ ok: boolean }> {
-  return api<{ ok: boolean }>(`/api/v1/settings/${key}`, {
+export function putSeverityMatrix(value: SeverityMatrix): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/api/v1/settings/severity_matrix', {
     method: 'PUT',
     body: JSON.stringify({ value }),
   });

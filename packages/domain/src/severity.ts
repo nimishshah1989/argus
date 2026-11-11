@@ -10,18 +10,10 @@
  * @module
  */
 
-export type Criticality = 'A' | 'B' | 'C';
-export type Severity = 'S1' | 'S2' | 'S3' | 'S4';
-export type TicketKind = 'stopped' | 'support' | 'general';
+import type { Criticality, Severity, SeverityMatrix } from './types.js';
 
-export interface SeverityMatrix {
-  /** Default mapping: criticality → kind → severity */
-  default: Record<Criticality, Record<'stopped' | 'support', Severity>>;
-  /** Severity for non‑urgent general work requests */
-  workRequest: Severity;
-  /** Severity for urgent general work requests */
-  urgentWorkRequest: Severity;
-}
+export type { Criticality, Severity, SeverityMatrix } from './types.js';
+export type TicketKind = 'stopped' | 'support' | 'general';
 
 /** Default matrix from `docs/spec/DOMAIN.md` §Severity */
 export const defaultSeverityMatrix: SeverityMatrix = {
@@ -62,4 +54,19 @@ export function computeSeverity(
   }
 
   return matrix.default[machineCriticality][kind];
+}
+
+/** Derive severity from creation inputs, applying the shared defaults. */
+export function deriveSeverity(input: {
+  kind: TicketKind;
+  machineCriticality?: Criticality | null;
+  severityMatrix?: SeverityMatrix;
+  urgent?: boolean;
+}): Severity {
+  return computeSeverity(
+    input.severityMatrix ?? defaultSeverityMatrix,
+    input.machineCriticality ?? null,
+    input.kind,
+    input.urgent ?? false,
+  );
 }

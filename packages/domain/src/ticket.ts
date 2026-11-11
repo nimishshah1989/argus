@@ -1,4 +1,4 @@
-import type { Figures, Kind, Status } from './types.js';
+import type { Criticality, Figures, Kind, Severity, Status } from './types.js';
 
 export interface Ticket {
   id: string;
@@ -35,6 +35,6 @@ export interface Ticket {
   kindUpgradedAt: Date | null;
   lastEventSeq: number;
   figures: Figures | null;
-  severity: string | null;
-  criticalitySnapshot: string | null;
+  severity: Severity;
+  criticalitySnapshot: Criticality | null;
 }

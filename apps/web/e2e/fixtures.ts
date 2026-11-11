@@ -39,6 +39,8 @@ export const MACHINES: MachineFixture[] = [
   { id: '10000000-0000-0000-0000-000000000006', code: 'VC-4', category: 'HMC', cell: 'Cell-2' },
   { id: '10000000-0000-0000-0000-000000000007', code: 'VC-5', category: 'VMC', cell: 'Cell-3' },
   { id: '10000000-0000-0000-0000-000000000008', code: 'VC-6', category: 'HMC', cell: 'Cell-3' },
+  { id: '10000000-0000-0000-0000-000000000013', code: 'VC-7', category: 'VMC', cell: 'Cell-4' },
+  { id: '10000000-0000-0000-0000-000000000014', code: 'VC-8', category: 'HMC', cell: 'Cell-4' },
 ];
 
 const PEOPLE = [

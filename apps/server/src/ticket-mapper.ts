@@ -68,8 +68,8 @@ export interface TicketExtras {
   parentId: string | null;
   expectedBackAt: Date | null;
   waitingSpare: string | null;
-  severity: string | null;
-  criticalitySnapshot: string | null;
+  severity: Ticket['severity'] | null;
+  criticalitySnapshot: Ticket['criticalitySnapshot'];
 }
 
 /** Raise-only ticket columns the domain does not model. */
@@ -80,8 +80,8 @@ export interface RaiseExtras {
   urgent: boolean;
   problemLang: string | null;
   reportedByRole: string | null;
-  severity: string | null;
-  criticalitySnapshot: string | null;
+  severity: Ticket['severity'] | null;
+  criticalitySnapshot: Ticket['criticalitySnapshot'];
 }
 
 export interface PersistEventsOptions {
@@ -164,8 +164,8 @@ export function rowToTicket(row: Record<string, unknown>): Ticket {
     taskDownMin: num(row.task_down_min),
     kindUpgradedAt: toDate(row.kind_upgraded_at),
     lastEventSeq: row.last_event_seq as number,
-    severity: str(row.severity),
-    criticalitySnapshot: str(row.criticality_snapshot),
+    severity: row.severity as Ticket['severity'],
+    criticalitySnapshot: str(row.criticality_snapshot) as Ticket['criticalitySnapshot'],
     figures: null,
   };
 }
@@ -182,8 +182,8 @@ export function rowExtras(row: Record<string, unknown>): TicketExtras {
     parentId: str(row.parent_id),
     expectedBackAt: toDate(row.expected_back_at),
     waitingSpare: str(row.waiting_spare),
-    severity: str(row.severity),
-    criticalitySnapshot: str(row.criticality_snapshot),
+    severity: str(row.severity) as Ticket['severity'] | null,
+    criticalitySnapshot: str(row.criticality_snapshot) as Ticket['criticalitySnapshot'],
   };
 }
 
