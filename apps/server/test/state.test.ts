@@ -197,4 +197,16 @@ describe('state needReport', () => {
     expect(ashaIds.length).toBeGreaterThan(0);
     expect(binaIds).toEqual([]);
   });
+
+  it('shows a no-report ticket to its lead even when another person closed it', async () => {
+    const leadTicket = '10000000-0000-0000-0000-000000000011';
+    await db.admin.query(
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, closed_at, close_kind, lead_person_id, closed_by_person_id)
+       VALUES ($1, $2, 'NEED-LEAD', 'stopped', 'closed', 'Lead', now() - interval '1 day', now() - interval '1 day', 'no_report', $3, $4)`,
+      [leadTicket, TENANT, ASHA, BINA],
+    );
+    const state = await get('/api/v1/state', ashaToken);
+    const refs = state.json().needReport.map((t: { id: string }) => t.id);
+    expect(refs).toContain(leadTicket);
+  });
 });

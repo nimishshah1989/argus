@@ -3,20 +3,13 @@ import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { ActionBar } from './ActionBar.js';
 import {
-  activePeople,
   buildReportBody,
   ContextSection,
-  Field,
   initialReportValues,
-  listOptions,
   FillReport,
-  PeoplePicker,
   type ReportValues,
-  type ReportValuesProps,
-  Section,
-  SelectField,
-  togglePerson,
 } from './reportFields.js';
+import { ClassificationSection, DetailsSection, PeopleSection } from './ReportSections.js';
 
 const secondaryButton =
   'min-h-13 flex-1 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100';
@@ -46,124 +39,6 @@ function ReportButtons({
             : t('report.closeWithReport')}
       </button>
     </div>
-  );
-}
-
-function DetailsSection({ values, update }: ReportValuesProps) {
-  const { t } = useTranslation();
-  return (
-    <Section title={t('report.whatHappened')}>
-      <Field
-        id="report-problem"
-        label={t('report.problem')}
-        value={values.problem}
-        onChange={(problem) => update({ problem })}
-        multiline
-      />
-      <Field
-        id="report-observed"
-        label={t('report.observedBy')}
-        value={values.observedBy}
-        onChange={(observedBy) => update({ observedBy })}
-        placeholder={t('report.observedPlaceholder')}
-      />
-      <Field
-        id="report-corrective"
-        label={t('report.correctiveAction')}
-        value={values.correctiveAction}
-        onChange={(correctiveAction) => update({ correctiveAction })}
-        multiline
-      />
-      <Field
-        id="report-downtime"
-        label={t('report.downtimeMin')}
-        value={values.downtimeMin}
-        onChange={(downtimeMin) => update({ downtimeMin })}
-        type="number"
-      />
-      <Field
-        id="report-response"
-        label={t('report.responseMin')}
-        value={values.responseMin}
-        onChange={(responseMin) => update({ responseMin })}
-        type="number"
-      />
-      <Field
-        id="report-repair"
-        label={t('report.repairMin')}
-        value={values.repairMin}
-        onChange={(repairMin) => update({ repairMin })}
-        type="number"
-      />
-    </Section>
-  );
-}
-
-function PeopleSection({ values, update, config }: ReportValuesProps & { config: Config }) {
-  const { t } = useTranslation();
-  const people = activePeople(config.people);
-  return (
-    <Section title={t('report.whoDidWork')}>
-      <PeoplePicker
-        legend={t('report.doneBy')}
-        people={people}
-        selected={values.doneByPersonIds}
-        onToggle={(personId) =>
-          update({ doneByPersonIds: togglePerson(values.doneByPersonIds, personId) })
-        }
-      />
-      <PeoplePicker
-        legend={t('report.supportedBy')}
-        people={people}
-        selected={values.supportedByPersonIds}
-        onToggle={(personId) =>
-          update({ supportedByPersonIds: togglePerson(values.supportedByPersonIds, personId) })
-        }
-      />
-    </Section>
-  );
-}
-
-function ClassificationSection({ values, update, config }: ReportValuesProps & { config: Config }) {
-  const { t } = useTranslation();
-  const categoryOptions = listOptions(config, 'breakdown_category');
-  const maintOptions = listOptions(config, 'maint_code');
-  return (
-    <Section title={t('report.classification')}>
-      <SelectField
-        id="report-category"
-        label={t('report.breakdownCategory')}
-        value={values.breakdownCategory}
-        options={categoryOptions}
-        onChange={(breakdownCategory) => update({ breakdownCategory })}
-      />
-      <SelectField
-        id="report-maint"
-        label={t('report.maintenanceCode')}
-        value={values.maintCode}
-        options={maintOptions}
-        onChange={(maintCode) => update({ maintCode })}
-      />
-      <Field
-        id="report-spare"
-        label={t('report.spareUsed')}
-        value={values.spareUsed}
-        onChange={(spareUsed) => update({ spareUsed })}
-      />
-      <Field
-        id="report-root"
-        label={t('report.rootCause')}
-        value={values.rootCause}
-        onChange={(rootCause) => update({ rootCause })}
-        multiline
-      />
-      <Field
-        id="report-handover"
-        label={t('report.handoverTo')}
-        value={values.handoverName}
-        onChange={(handoverName) => update({ handoverName })}
-      />
-    </Section>
   );
 }
 

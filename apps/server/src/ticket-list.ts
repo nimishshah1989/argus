@@ -148,7 +148,7 @@ export async function listNeedReport(
     if (!seesAll && actingPersonId) {
       params.push(actingPersonId);
       where +=
-        ' AND (closed_by_person_id = $2 OR EXISTS (SELECT 1 FROM crew_member cm WHERE cm.ticket_id = ticket.id AND cm.person_id = $2 AND cm.left_at IS NULL))';
+        ' AND (closed_by_person_id = $2 OR lead_person_id = $2 OR EXISTS (SELECT 1 FROM crew_member cm WHERE cm.ticket_id = ticket.id AND cm.person_id = $2 AND cm.left_at IS NULL))';
     }
     const rows = (
       await client.query(

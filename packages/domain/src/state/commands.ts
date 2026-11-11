@@ -252,6 +252,15 @@ export function leave(
   input: TransitionInput,
   command: Extract<Command, { type: 'leave' }>,
 ): TransitionResult {
+  if (
+    !canWork({
+      role: input.ctx.role,
+      loginId: input.ctx.loginId,
+      personId: input.ctx.personId,
+      shared: input.ctx.shared,
+    })
+  )
+    throw new TransitionError('Not allowed');
   if (!input.crew.some((member) => member.personId === command.personId && !member.leftAt))
     throw new TransitionError('Not on this ticket');
   const at = clampAt(input.ctx.now, input);
