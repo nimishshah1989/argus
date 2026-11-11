@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -19,6 +19,7 @@ const TENANT_TABLES = [
   'glossary_term',
   'ticket',
   'ticket_event',
+  'ticket_tag',
   'crew_member',
   'work_segment',
   'breakdown_report',
@@ -50,9 +51,12 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:16-alpine').start();
   db = new Client({ connectionString: container.getConnectionUri() });
   await db.connect();
-  await db.query(
-    readFileSync(new URL('../migrations/0001_schema_v1.sql', import.meta.url), 'utf8'),
-  );
+  const migrations = new URL('../migrations/', import.meta.url);
+  for (const file of readdirSync(migrations)
+    .filter((name) => name.endsWith('.sql'))
+    .sort()) {
+    await db.query(readFileSync(new URL(file, migrations), 'utf8'));
+  }
   await db.query(readFileSync(new URL('./seed.sql', import.meta.url), 'utf8'));
   await db.query('SET ROLE app_user');
 }, 120_000);
@@ -161,8 +165,8 @@ describe('schema v1 isolation', () => {
     ).rejects.toThrow(/duplicate key/);
     await expect(
       db.query(
-        "INSERT INTO command_idempotency (tenant_id, key, command) VALUES ($1, 'seed-a', 'raise')",
-        [A],
+        "INSERT INTO command_idempotency (tenant_id, login_id, key, command, request_hash) VALUES ($1, $2, 'seed-a', 'raise', 'seed-a')",
+        [A, '10000000-0000-0000-0000-000000000003'],
       ),
     ).rejects.toThrow(/duplicate key/);
     await expect(
@@ -177,6 +181,56 @@ describe('schema v1 isolation', () => {
         [A, '10000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000002'],
       ),
     ).rejects.toThrow(/foreign key/);
+  });
+
+  it('preserves a tag assignment when its login and person are deleted', async () => {
+    const tenant = '30000000-0000-0000-0000-000000000001';
+    const person = '30000000-0000-0000-0000-000000000002';
+    const login = '30000000-0000-0000-0000-000000000003';
+    const ticket = '30000000-0000-0000-0000-00000000000e';
+    const item = '30000000-0000-0000-0000-00000000000a';
+    await db.query('RESET ROLE');
+    await db.query(
+      "INSERT INTO tenant (id, slug, name) VALUES ($1, 'actor-delete', 'Actor Delete')",
+      [tenant],
+    );
+    await db.query("INSERT INTO person (id, tenant_id, name) VALUES ($1, $2, 'Actor')", [
+      person,
+      tenant,
+    ]);
+    await db.query(
+      "INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, $3, 'actor', 'hash', 'technician', false)",
+      [login, tenant, person],
+    );
+    await db.query(
+      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-0001', 'stopped', 'open', 'Actor test', now())",
+      [ticket, tenant],
+    );
+    await db.query(
+      "INSERT INTO list_item (id, tenant_id, list, code, label) VALUES ($1, $2, 'maint_code', 'M', 'Mechanical')",
+      [item, tenant],
+    );
+    await db.query(
+      `INSERT INTO ticket_tag (tenant_id, ticket_id, item_id, applied_by_login_id, applied_by_person_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [tenant, ticket, item, login, person],
+    );
+    await db.query('SET ROLE app_user');
+    await setTenant(tenant);
+
+    await db.query('DELETE FROM login WHERE id = $1', [login]);
+    let assignment = (await db.query('SELECT * FROM ticket_tag WHERE tenant_id = $1', [tenant]))
+      .rows[0];
+    expect(assignment.applied_by_login_id).toBeNull();
+    expect(assignment.applied_by_person_id).toBe(person);
+
+    await db.query('DELETE FROM person WHERE id = $1', [person]);
+    assignment = (await db.query('SELECT * FROM ticket_tag WHERE tenant_id = $1', [tenant]))
+      .rows[0];
+    expect(assignment.applied_by_login_id).toBeNull();
+    expect(assignment.applied_by_person_id).toBeNull();
+    expect(assignment.ticket_id).toBe(ticket);
+    expect(assignment.item_id).toBe(item);
   });
 
   it('keeps the audit log append-only for the app role', async () => {

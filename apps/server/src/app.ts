@@ -6,6 +6,7 @@ import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
 import { registerPush } from './push.js';
+import { registerTags } from './tags.js';
 import type { AppConfig } from './config.js';
 
 export async function buildApp(config: AppConfig) {
@@ -17,10 +18,16 @@ export async function buildApp(config: AppConfig) {
   registerTickets(app, config);
   registerReports(app, config);
   registerPush(app, config);
+  registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
     const statusCode = (error as { statusCode?: number }).statusCode;
     if (statusCode === 429) {
       reply.code(429).send(apiError('rate_limited', 'Too many requests'));
+      return;
+    }
+    if (statusCode !== undefined && statusCode >= 400 && statusCode < 500) {
+      const message = error instanceof Error ? error.message : 'Invalid request';
+      reply.code(statusCode).send(apiError('validation', message));
       return;
     }
     app.log.error(error);

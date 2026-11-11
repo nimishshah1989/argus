@@ -116,6 +116,9 @@ const LISTS = [
   { list: 'wait_reason', code: 'vendor', label: 'Vendor service', sort: 1, isVendor: true },
   { list: 'quick_problem', code: 'spindle', label: 'Spindle alarm', sort: 0, isVendor: false },
   { list: 'quick_problem', code: 'belt', label: 'Belt slipping', sort: 1, isVendor: false },
+  { list: 'breakdown_category', code: 'E', label: 'Electrical', sort: 0, isVendor: false },
+  { list: 'maint_code', code: 'M', label: 'Mechanical', sort: 0, isVendor: false },
+  { list: 'work_type', code: 'preventive', label: 'Preventive', sort: 0, isVendor: false },
 ] as const;
 
 export interface SeedStatement {
@@ -204,7 +207,7 @@ export async function apiLogin(username: string): Promise<string> {
 /** Raises a stopped ticket through the real API, so the desk spec does not depend on the floor form. */
 export async function raiseTicketViaApi(
   token: string,
-  machineId: string,
+  machineId: string | null,
   problem: string,
 ): Promise<RaisedTicket> {
   const body = await apiJson<{ ticket: RaisedTicket }>('/api/v1/tickets', {
@@ -214,7 +217,11 @@ export async function raiseTicketViaApi(
       authorization: `Bearer ${token}`,
       'idempotency-key': randomUUID(),
     },
-    body: JSON.stringify({ machineId, problem }),
+    body: JSON.stringify(
+      machineId
+        ? { machineId, problem }
+        : { kind: 'general', location: 'Workshop', workType: 'Tag test', problem },
+    ),
   });
   return body.ticket;
 }

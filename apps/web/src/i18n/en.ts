@@ -204,6 +204,8 @@ export const en = {
   'timeline.edit': 'Edited',
   'timeline.task': 'Task created',
   'timeline.acknowledge': 'Acknowledged',
+  'timeline.tagAdd': 'Tag added',
+  'timeline.tagRemove': 'Tag removed',
 
   // figures
   'figures.title': 'Figures',
@@ -296,4 +298,13 @@ export const en = {
   'tile.open': 'Open',
   'tile.working': 'In progress',
   'tile.waiting': 'Waiting',
+
+  // controlled ticket tags
+  'tags.title': 'Tags',
+  'tags.none': 'No tags yet.',
+  'tags.loading': 'Loading tags…',
+  'tags.noOptions': 'No active tags are configured.',
+  'tags.category.breakdown_category': 'Breakdown category',
+  'tags.category.maint_code': 'Maintenance code',
+  'tags.category.work_type': 'Work type',
 };

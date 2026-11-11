@@ -12,6 +12,10 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- Configurable ticket tags: technicians and above can apply/remove active tenant `list_item` values on
+  ticket detail. Assignments use tenant-RLS relational persistence with cascade cleanup, exact replay,
+  row-locked concurrent writes and actor-labelled timeline events; a real browser flow covers the
+  empty-ticket add/reload/remove path. Manual severity tags are excluded pending the M2 matrix slice.
 - Synthetic-only M1b importer correction: strict `argus.synthetic-bhavin/v1` parsing and aliases,
   canonical identity/parent graphs, row savepoints and fatal batch records, domain figure reconciliation,
   counters, zero-based events, pending/report persistence, and fingerprinted `app_api` undo with real CLI,
