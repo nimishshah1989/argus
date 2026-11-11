@@ -16,8 +16,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **Quality-bar paydown (#60)**: `api.ts` 398→178 (+`api-types` 239), `Desk` 331→97 (+`desk/Board` 236), `TicketDetail` 312→189 (+`TicketFacts` 129), `ReportForm` 309→184 (+`ReportSections` 134); account sheet shows the login on a shared phone; domain `leave` gained its `canWork` guard; needs-report also matches the ticket lead.
 - **Desk Views (#62)**: Team (Working now by person, Waiting, Not started, Cancelled 24h, Closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, **day-report download**); pure `views.ts` aggregation + 8 unit tests.
 - **Exact cancel time (#64)**: migration 0004 `cancelled_at`; the domain sets it on cancel and clears it on restore; the desk's 24h window now uses it (fallback only for pre-migration rows); the PDF test suite now applies all migrations.
+- **Exact per-person minutes (#66)**: the `/tickets` list carries `figures.perPerson` from one grouped `work_segment` query (no N+1), so the Team monthly primary/support split is exact.
 - **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (16 done / 33 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (209 tests / 29 files, 4 migrations); `pnpm test:e2e` green (16 tests on the real stack).
+- Verification: `pnpm verify` green (211 tests / 29 files, 4 migrations); `pnpm test:e2e` green (16 tests on the real stack).
 
 ## In flight
 
@@ -25,7 +26,6 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- **List-projection follow-up**: `figures.perPerson` in the `/tickets` list projection (a heavier aggregate; the documented lead-`activeMin` fallback stays until then).
 - Day-report follow-ups: the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
 - Shared-login e2e for the account sheet (needs the shared-login person picker in the fixture).
 - **Split the over-budget screens**: done (#60) — re-check after future slices.
