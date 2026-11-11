@@ -112,3 +112,16 @@ execute this build DAG. Reconsider a concrete navigation or viewing tool separat
 After every child report or task transition: inspect evidence, update the board, integrate only green
 reviewed work, refresh this map when the graph changes, and update handoff/log at session end. Never
 claim a milestone from activity; only its written gate and required human answer close it.
+
+## Token efficiency
+
+Baseline across 17 sessions on 11 November: **$50.60 estimated** — 2,830,980 uncached input,
+727,594 output, 123,619,549 cached reads, zero cache writes, at K3.1 Global rates. The target is less
+repeated input, not disabling cheaper cache reads.
+
+- Construct short briefs; no fresh child for trivial work and no nested agents.
+- Read named sections with grep + bounded reads. Hand off file paths/SHAs, never pasted plans or diffs.
+- Batch related findings; one scoped re-review, not repeated whole-branch review rounds.
+- Use scripts for mechanical checks/cost aggregation and early handoffs instead of expanding sessions.
+- Keep user updates short and plain. Compare token/cost per comparable slice against this baseline and
+  record the evidence here; do not claim savings from fewer agents or a different cache metric alone.
