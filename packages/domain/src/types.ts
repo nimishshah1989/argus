@@ -21,7 +21,9 @@ export type EventType =
   | 'restore'
   | 'edit'
   | 'report'
-  | 'upgrade_kind';
+  | 'upgrade_kind'
+  | 'tag_add'
+  | 'tag_remove';
 
 export interface EditChange {
   field: string;

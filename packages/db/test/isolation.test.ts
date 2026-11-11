@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -19,6 +19,7 @@ const TENANT_TABLES = [
   'glossary_term',
   'ticket',
   'ticket_event',
+  'ticket_tag',
   'crew_member',
   'work_segment',
   'breakdown_report',
@@ -50,9 +51,12 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:16-alpine').start();
   db = new Client({ connectionString: container.getConnectionUri() });
   await db.connect();
-  await db.query(
-    readFileSync(new URL('../migrations/0001_schema_v1.sql', import.meta.url), 'utf8'),
-  );
+  const migrations = new URL('../migrations/', import.meta.url);
+  for (const file of readdirSync(migrations)
+    .filter((name) => name.endsWith('.sql'))
+    .sort()) {
+    await db.query(readFileSync(new URL(file, migrations), 'utf8'));
+  }
   await db.query(readFileSync(new URL('./seed.sql', import.meta.url), 'utf8'));
   await db.query('SET ROLE app_user');
 }, 120_000);
@@ -161,8 +165,8 @@ describe('schema v1 isolation', () => {
     ).rejects.toThrow(/duplicate key/);
     await expect(
       db.query(
-        "INSERT INTO command_idempotency (tenant_id, key, command) VALUES ($1, 'seed-a', 'raise')",
-        [A],
+        "INSERT INTO command_idempotency (tenant_id, login_id, key, command, request_hash) VALUES ($1, $2, 'seed-a', 'raise', 'seed-a')",
+        [A, '10000000-0000-0000-0000-000000000003'],
       ),
     ).rejects.toThrow(/duplicate key/);
     await expect(

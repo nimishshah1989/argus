@@ -116,6 +116,9 @@ const LISTS = [
   { list: 'wait_reason', code: 'vendor', label: 'Vendor service', sort: 1, isVendor: true },
   { list: 'quick_problem', code: 'spindle', label: 'Spindle alarm', sort: 0, isVendor: false },
   { list: 'quick_problem', code: 'belt', label: 'Belt slipping', sort: 1, isVendor: false },
+  { list: 'breakdown_category', code: 'E', label: 'Electrical', sort: 0, isVendor: false },
+  { list: 'maint_code', code: 'M', label: 'Mechanical', sort: 0, isVendor: false },
+  { list: 'work_type', code: 'preventive', label: 'Preventive', sort: 0, isVendor: false },
 ] as const;
 
 export interface SeedStatement {
@@ -167,8 +170,9 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
 }
 
 /** One machine per spec per project so both projects can run in parallel. */
-export function machineFor(suite: 'floor' | 'desk', projectName: string): MachineFixture {
-  const index = (suite === 'floor' ? 0 : 2) + (projectName === 'phone' ? 1 : 0);
+export function machineFor(suite: 'floor' | 'desk' | 'tags', projectName: string): MachineFixture {
+  const index =
+    (suite === 'floor' ? 0 : suite === 'desk' ? 2 : 4) + (projectName === 'phone' ? 1 : 0);
   const machine = MACHINES[index];
   if (!machine) throw new Error(`No machine fixture for ${suite}/${projectName}`);
   return machine;

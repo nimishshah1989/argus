@@ -1,5 +1,6 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { enqueue, isQueueable } from './offline/outbox.js';
+import type { TagDefinition, TagList } from '../../../packages/shared/src/tags.js';
 import type {
   CommandAction,
   CommandBody,
@@ -62,7 +63,7 @@ async function parseError(res: Response): Promise<ApiError> {
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  headers.set('Content-Type', 'application/json');
+  if (init?.body !== undefined) headers.set('Content-Type', 'application/json');
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
@@ -176,3 +177,27 @@ export async function command(
 
 /** Re-exported so existing `from '../api.js'` type imports keep working after the split. */
 export type * from './api-types.js';
+export type { TagDefinition, TagList } from '../../../packages/shared/src/tags.js';
+
+export function getTagCatalogue(): Promise<{ tags: TagDefinition[] }> {
+  return api<{ tags: TagDefinition[] }>('/api/v1/tags');
+}
+
+export function getTicketTags(ticketId: string): Promise<TagList> {
+  return api<TagList>(`/api/v1/tickets/${ticketId}/tags`);
+}
+
+export function addTicketTag(ticketId: string, tagId: string): Promise<TagList> {
+  return api<TagList>(`/api/v1/tickets/${ticketId}/tags`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey() },
+    body: JSON.stringify({ tagId }),
+  });
+}
+
+export function removeTicketTag(ticketId: string, tagId: string): Promise<TagList> {
+  return api<TagList>(`/api/v1/tickets/${ticketId}/tags/${tagId}`, {
+    method: 'DELETE',
+    headers: { 'Idempotency-Key': idempotencyKey() },
+  });
+}
