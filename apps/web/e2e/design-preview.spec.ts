@@ -27,10 +27,8 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function captureEvidence(page: Page, path: string, capture: boolean): Promise<void> {
-  if (!capture) return;
-  await page.screenshot({ path, fullPage: true });
+  if (capture) await page.screenshot({ path, fullPage: true });
 }
-
 async function captureFloor(width: number, page: Page, capture: boolean): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/design-preview');
@@ -39,7 +37,6 @@ async function captureFloor(width: number, page: Page, capture: boolean): Promis
   await page.getByRole('button', { name: /^VC-17/ }).click();
   await page.getByRole('button', { name: 'Stopped', exact: true }).click();
   await page.getByLabel('What is wrong?').fill('Spindle alarm');
-
   const send = page.getByRole('button', { name: 'Send', exact: true });
   await expect(send).toBeEnabled();
   await expectTargetSize(send);
@@ -57,28 +54,33 @@ async function captureDesk(width: number, page: Page, capture: boolean): Promise
   await page.getByRole('button', { name: 'Desk', exact: true }).click();
   await expect(page.getByText('Stopped · Not started', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: /^BD-0148/ }).click();
+  const openList = page.getByRole('region', { name: 'Open', exact: true });
+  const detail = page.getByRole('region', { name: 'Working ticket' });
+  if (width === 360) {
+    await expect.soft(openList).toBeHidden();
+  } else {
+    await expect.soft(openList).toBeVisible();
+  }
+  await expect.soft(detail).toBeVisible();
 
   const start = page.getByRole('button', { name: 'Start', exact: true });
   await expectTargetSize(start);
   await expectKeyboardFocus(start);
   await start.click();
-  await expect(
-    page
-      .getByRole('region', { name: 'Working ticket' })
-      .getByText('Stopped · In progress', { exact: true }),
-  ).toBeVisible();
-
+  await expect(detail.getByText('Stopped · In progress', { exact: true })).toBeVisible();
   const moreActions = page.getByText('More actions', { exact: true });
+  const moreDetails = moreActions.locator('..');
+  await expect.soft(moreDetails).toHaveClass(/preview-disclosure/);
   await moreActions.focus();
   await moreActions.press('Enter');
+  await expect(moreDetails).toHaveAttribute('open', '');
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Transfer', exact: true })).toBeVisible();
   const details = page.getByText('Timeline, people & figures', { exact: true });
   await details.focus();
   await details.press('Enter');
-  for (const name of ['Timeline', 'People', 'Figures']) {
+  for (const name of ['Timeline', 'People', 'Figures'])
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
-  }
   await expectNoHorizontalOverflow(page);
   await captureEvidence(page, `docs/design/evidence/preview/desk-${width}.png`, capture);
 }
@@ -93,9 +95,7 @@ test('Floor sends a synthetic VC-17 stop without an API request', async ({ page 
   expect(apiRequests).toEqual([]);
 });
 
-test('Desk starts a synthetic stop and exposes actions and details by keyboard', async ({
-  page,
-}, testInfo) => {
+test('Desk starts a stop and exposes details by keyboard', async ({ page }, testInfo) => {
   const capture = testInfo.project.name === 'chromium';
   for (const width of VIEWPORTS) await captureDesk(width, page, capture);
 });

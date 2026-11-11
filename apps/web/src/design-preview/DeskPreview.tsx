@@ -175,7 +175,7 @@ export function DeskPreview() {
   }
   return (
     <div className={`preview-desk min-w-0 ${selected ? 'preview-desk--selected' : ''}`}>
-      <section className="min-w-0" aria-labelledby="preview-open-heading">
+      <section className="preview-open-list min-w-0" aria-labelledby="preview-open-heading">
         <div className="flex items-center justify-between gap-3.5">
           <h2 id="preview-open-heading">Open</h2>
           <span className={countStyle}>{tickets.length}</span>

@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { CircleCheck, CircleStop, Clock3, type LucideIcon } from 'lucide-react';
 import type { PreviewCondition, PreviewWork } from './data.js';
 
-export const disclosure = 'overflow-hidden rounded-[14px] border border-[var(--line)] bg-white';
+export const disclosure = 'preview-disclosure rounded-[14px] border border-[var(--line)] bg-white';
 export const disclosureSummary =
   'flex min-h-[52px] cursor-pointer list-none items-center gap-2.5 px-3.5 py-3 font-semibold';
 export const mutedText = 'text-[13px] text-[var(--muted)]';
