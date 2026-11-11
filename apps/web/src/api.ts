@@ -163,6 +163,7 @@ export interface Ticket {
 
 export interface State {
   open: Ticket[];
+  needReport: Ticket[];
   now: string;
 }
 

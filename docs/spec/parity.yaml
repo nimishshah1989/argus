@@ -379,13 +379,16 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #23'
       - 'PR #35'
+      - 'PR #54'
+      - 'apps/server/test/state.test.ts :: lists a no-report close in needReport'
       - 'apps/server/test/tickets-commands.test.ts :: files a late report on a no-report close'
       - 'apps/server/test/ticket-report.test.ts :: stores a late report and flips closeKind to
         report'
+      - 'apps/web/e2e/desk.spec.ts :: files the late report for a needs-report close'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.12
     feature: Mark done for work requests and tasks; machine-stopped minutes for a task

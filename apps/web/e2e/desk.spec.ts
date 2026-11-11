@@ -1,6 +1,9 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
 
+// Both desk tests use the suite's machine for this project, so they run in order.
+test.describe.configure({ mode: 'serial' });
+
 /** The status pill lives in the ticket header, next to the ref. */
 async function expectStatus(page: Page, label: string): Promise<void> {
   await expect(page.locator('header').getByText(label, { exact: true })).toBeVisible();
@@ -145,6 +148,17 @@ async function closeWithReport(page: Page): Promise<void> {
   await expect(page.getByText('With report', { exact: true })).toBeVisible();
 }
 
+async function closeWithoutReport(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Close the ticket' });
+  await form.getByLabel('How are you closing?').selectOption('no_report');
+  // The Close form requires a reason for a without-report close.
+  await form.getByLabel('Note').fill('Closed without the report');
+  await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
+  await expect(form).toBeHidden();
+  await expectStatus(page, 'Closed');
+}
+
 async function checkFloorComplaints(page: Page, ref: string): Promise<void> {
   await page.goto('/floor');
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
@@ -172,4 +186,36 @@ test('drives a ticket through the desk lifecycle', async ({ page, browser }, tes
   await markMachineStopped(page);
   await closeWithReport(page);
   await checkFloorComplaints(page, ticket.ref);
+});
+
+/** SPEC 1.6: a no-report close sits on the desk until the late report is filed. */
+test('keeps a no-report close on Needs report until the report is filed', async ({
+  page,
+}, testInfo) => {
+  const machine = machineFor('desk', testInfo.project.name);
+  const token = await apiLogin('asha');
+  const ticket = await raiseTicketViaApi(token, machine.id, `Coolant leak on ${machine.code}`);
+
+  await signIn(page, 'asha');
+  await page.goto('/desk');
+  await page.getByRole('link', { name: new RegExp(ticket.ref) }).click();
+  await expect(page.getByRole('heading', { name: ticket.ref })).toBeVisible();
+  await startWorking(page);
+  await closeWithoutReport(page);
+
+  await page.goto('/desk');
+  const needsReport = page.getByRole('region', { name: 'Needs report' });
+  await expect(needsReport).toBeVisible();
+  const row = needsReport.getByRole('link', { name: new RegExp(ticket.ref) });
+  await expect(row).toBeVisible();
+  await row.click();
+
+  await expect(page.getByRole('button', { name: 'Fill report', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Fill report', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'File report', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'File report', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Fill report', exact: true })).toHaveCount(0);
+
+  await page.goto('/desk');
+  await expect(page.getByRole('region', { name: 'Needs report' })).toHaveCount(0);
 });
