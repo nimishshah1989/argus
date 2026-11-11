@@ -29,13 +29,18 @@ export function pdfObjectKey(tenantId: string, ticketId: string): string {
   return `${tenantId}/pdf/${ticketId}/${randomUUID()}.pdf`;
 }
 
+/** Day reports are tenant-scoped, not tied to a ticket. */
+export function dayReportObjectKey(tenantId: string, date: string, shift: string): string {
+  return `${tenantId}/reports/day-${date}-${shift}-${randomUUID()}.pdf`;
+}
+
 export function sha256(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
 export interface NewFile {
   tenantId: string;
-  ticketId: string;
+  ticketId: string | null;
   key: string;
   mime: string;
   bytes: Buffer;
