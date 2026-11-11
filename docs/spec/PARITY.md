@@ -67,7 +67,7 @@ Source: the full page source (`app.js` 1,654 lines, `ref.js`, `voice.js`, build 
 | Mine: in-progress for me (or everyone on a shared phone), waiting assigned to me, closed 30 days, day report | Keep; Mine badge counts crew too (today it does not) | M1 |
 | Team: working now by person, waiting, not started, cancelled 24 hours, closed 30 days with monthly totals per person (primary and support split) | Keep | M1 |
 | Live board: tiles by segment and group, counts, filter chips, search, work-request footer, tap for machine sheet | Keep | M1 |
-| My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel | Keep; add confirm or dispute (M2) | M1, M2 |
+| My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel | Improve: acting-person scope via `raisedBy=<actingPersonId>` exists; no device-wide history and no Desk link for report-only users are prototype-only/pending; add confirm or dispute (M2) | M1, M2 |
 | Account sheet: name, role, change password, alerts, team guide, update now, app version | Keep | M1 |
 | "Ticket closed" stats screen | Drop: dead code, never reached | — |
 
@@ -92,6 +92,7 @@ Source: the full page source (`app.js` 1,654 lines, `ref.js`, `voice.js`, build 
 | Config fingerprint check; settings pushed from the desktop platform | Replace: settings screens in our app; fingerprint kept for cache invalidation | M0 |
 | Feature flags `general`, `pause`; lists for wait reasons, work types, quick problems, reporters; segments, groups, group names, show and group-by per segment; shift times; team shifts; glossary; language | Keep all as configuration | M0 |
 | Utility machines hidden by a hard-coded regex when no groups are configured | Replace: hidden flag on the group | M0 |
+| Offline new stopped/support reports | Improve: queued with visible pending; persist and reuse the client idempotency key on every replay; resolve duplicate-open to the existing ticket; unresolved failure stays visible as needs-attention. General/other-work requires a connection. M1 todo, not implemented | M1 |
 
 **Not carried (with reason):** public Google Translate fallback (data leaves the platform); API base and company id from URL parameters (phishing risk); free-text names (replaced by people); client-only role checks (server checks); 24-hour day-report window (shift length instead).
 
