@@ -2,6 +2,31 @@
 
 Under 50 lines. Read first, rewrite at session end.
 
+## RESUME HERE (new session, on Bedrock)
+
+**State**: `main` is clean at #67 (67 PRs merged). One branch is in flight and **fully green**:
+
+- `m1b-import` — **M1b importer (SPEC 1.10)** `pnpm import:bhavin <file.json> --tenant <slug>` +
+  `import:undo <batch>`: opens an `import_batch`, one `import_row` per ticket, zod per row,
+  idempotent on `(tenant, ref)` (duplicate → skipped), machine-code alias map (MEC→M, NI/INT/FS/PP/
+  UTI→MIS, ELE/HYD/ROT→inactive), persons resolved by name (unknown → pending `production`), events/
+  crew/segments/breakdown_report inserts, deferred parent link, reconciliation stats, undo.
+  - **Verified**: `pnpm verify` green (214 tests / 30 files, 4 migrations), `pnpm test:e2e` green
+    (16), `pnpm build` green, `pnpm size` green. Uncommitted at handoff — commit + push it first.
+  - **Next**: run the reviewer on it (`docs/slices/M1b-import.md`), fix anything, open a PR,
+    squash-merge on green, then memory for #68.
+
+**Switch to Bedrock**: the profile default is already `amazon-bedrock / qwen.qwen3-coder-480b-a35b-v1:0`
+(`~/.dsh/profiles/desktop/cordis.patch.yml`). A **new session** starts on it and stays there; the
+model chip mid-conversation works for a quick single turn but has bounced back to DeepSeek in this
+session. If the Bedrock key is wrong/absent, the chip falls back — check Settings → Models and that
+`AMAZON_BEDROCK_API_KEY` is set (in the sandbox it may need `danger-full-access`).
+
+**Then** (small buildable items only): the day-report team variant (and constrain `plant_head` to
+their team), WhatsApp delivery of the day report, `getShellTitles`/`.ts` copy extraction for real
+Gujarati, the shared-login account-sheet E2E. Everything else needs the external inputs (NEEDS.md
+N1/N11/N12/N5) or is M2–M5.
+
 ## Live (merged on main)
 
 - **M0 foundation**: schema v1 + `app_api` RLS role (#5/#7/#42), auth (#9), settings/config (#11), Cosmos seed (#12), walking skeleton (#14). Terraform is authored and validated (#13/#20/#22) — **not applied**.
@@ -17,12 +42,13 @@ Under 50 lines. Read first, rewrite at session end.
 - **Desk Views (#62)**: Team (Working now by person, Waiting, Not started, Cancelled 24h, Closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, **day-report download**); pure `views.ts` aggregation + 8 unit tests.
 - **Exact cancel time (#64)**: migration 0004 `cancelled_at`; the domain sets it on cancel and clears it on restore; the desk's 24h window now uses it (fallback only for pre-migration rows); the PDF test suite now applies all migrations.
 - **Exact per-person minutes (#66)**: the `/tickets` list carries `figures.perPerson` from one grouped `work_segment` query (no N+1), so the Team monthly primary/support split is exact.
+- **Panel reset (#68, in flight on `m1b-import`)**: see RESUME HERE above.
 - **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (16 done / 33 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (211 tests / 29 files, 4 migrations); `pnpm test:e2e` green (16 tests on the real stack).
+- Verification: `pnpm verify` green (214 tests / 30 files, 4 migrations); `pnpm test:e2e` green (16 tests on the real stack).
 
 ## In flight
 
-- Nothing.
+- Branch `m1b-import` (M1b importer) — verified, uncommitted at the DeepSeek→Bedrock handoff. Commit + push, review, merge.
 
 ## Next
 

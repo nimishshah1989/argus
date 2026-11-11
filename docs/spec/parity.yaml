@@ -3,7 +3,7 @@
 # status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
 # A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
 version: 1
-expected_rows: 79
+expected_rows: 80
 rows:
   - id: v3.signin.01
     feature: Username and password; 30-day sliding session; "Show password"; last username remembered
@@ -779,6 +779,19 @@ rows:
     evidence:
       - 'PR #5'
     source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.import.01
+    feature: Import Bhavin's legacy ticket export (JSON) with reconciliation and undo
+    disposition: keep
+    milestone: M1
+    milestones:
+      - M1
+    status: in-progress
+    evidence:
+      - 'PR #68'
+      - 'apps/server/test/import.test.ts :: imports a full ticket with events, crew, segments
+        and a report; skips a duplicate ref; errors a malformed row without aborting; undo
+        removes the batch'
+    source: SPEC 1.10 / NEEDS N1
   - id: analytics.registers.01
     feature:
       'Dashboard: KPI tiles, bubble chart, register summaries, mixed all-years and latest-year
