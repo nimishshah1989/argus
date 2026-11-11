@@ -14,8 +14,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **Day report PDF (#56)**: `GET /reports/day.pdf?date=&personId=&shift=day|night` renders a per-person day report (clipped minutes, day total, pending-at-end), stored through the same file store; role-gated (`canDayReport`) and technicians see only their own day.
 - **Account sheet + admin faces (#58)**: a header account sheet (name/title/role, acting person, sign out) and an admin panel on the ticket detail — Restore a cancelled ticket and Correct a ticket's facts, each with a reason.
 - **Quality-bar paydown (#60)**: `api.ts` 398→178 (+`api-types` 239), `Desk` 331→97 (+`desk/Board` 236), `TicketDetail` 312→189 (+`TicketFacts` 129), `ReportForm` 309→184 (+`ReportSections` 134); account sheet shows the login on a shared phone; domain `leave` gained its `canWork` guard; needs-report also matches the ticket lead.
-- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (14 done / 35 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (197 tests / 28 files); `pnpm test:e2e` green (16 tests on the real stack).
+- **Desk Views (#62)**: Team (Working now by person, Waiting, Not started, Cancelled 24h, Closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, **day-report download**); pure `views.ts` aggregation + 8 unit tests.
+- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (16 done / 33 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
+- Verification: `pnpm verify` green (205 tests / 29 files); `pnpm test:e2e` green (16 tests on the real stack).
 
 ## In flight
 
@@ -23,8 +24,8 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- M1b parity gaps: Views 1–7 completion (the desk lists beyond Open/Mine/Team).
-- Day-report follow-ups: the web download button, the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
+- **List-projection follow-ups (#62)**: add `cancelledAt` and `figures.perPerson` to the `/tickets` list projection so the Team/Mine windows and the primary/support split are exact rather than client-side approximations.
+- Day-report follow-ups: the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
 - Shared-login e2e for the account sheet (needs the shared-login person picker in the fixture).
 - **Split the over-budget screens**: done (#60) — re-check after future slices.
 - Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap) — **done in #60**.
