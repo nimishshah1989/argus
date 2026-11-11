@@ -44,3 +44,25 @@ No migration, dependency, frontend change, production execution, or real compati
 ## Parallel rule
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
+
+---
+
+## M1b Gate Record — 2026-11-11
+
+**SHA:** 1b4a06d (main)
+
+**Milestone:** M1b — safe synthetic importer with strict schema and undo
+
+**Evidence:**
+- R3 adversarial review: PASS
+- 380/380 Vitest tests
+- 16/16 Playwright E2E
+- Full typecheck, lint, format, parity, licences, migrations, lean pass
+
+**Key deliveries:**
+- `apps/server/src/import/` — contract, security, undo, reconciliation modules
+- `docs/slices/M1b-import.md` — 51-test plan and execution record
+- No unsafe ae17369 behaviors
+- size:large documented and approved
+
+**Next gate:** M2 preparation begins. Awaiting real Bhavin N1/N12 inputs for cutover authorization.

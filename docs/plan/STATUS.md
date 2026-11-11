@@ -63,3 +63,15 @@ regenerates and `pnpm parity` validates the row and generated count.
 
 - N1 Bhavin live export and Worker source; N11 real shifts; N12 legacy code aliases; N5 Gujarati strings.
 - Terraform remains unapplied; staging/production execution is not part of this branch.
+
+## 2026-11-11 — M1b complete
+
+- Importer integration merged to main (PR #70)
+- Design-audit merged (PR #68)
+- Preview baseline merged
+- Live cost panel installed
+- Task-18 severity stub complete
+- Task-17 tags design complete
+- Task-19 history stub planned
+
+M2 preparation ready. Awaiting real Bhavin inputs.
