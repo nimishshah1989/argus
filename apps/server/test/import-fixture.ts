@@ -32,15 +32,15 @@ const ordinaryTicket = {
   crew: [
     {
       joinedAt: '2026-11-01T10:05:00Z',
-      leftAt: '2026-11-01T11:00:00Z',
-      leftReason: 'close',
+      leftAt: null,
+      leftReason: null,
       person: 'SYNTH-LEAD',
       role: 'lead',
     },
     {
       joinedAt: '2026-11-01T10:30:00Z',
-      leftAt: '2026-11-01T11:00:00Z',
-      leftReason: 'close',
+      leftAt: null,
+      leftReason: null,
       person: 'Bina',
       role: 'support',
     },
@@ -66,7 +66,7 @@ const ordinaryTicket = {
   ],
   kind: 'stopped',
   legacyId: 'synthetic-legacy-0100',
-  location: null,
+  location: 'Cell-1',
   machineCode: 'SYNTH-MACHINE',
   parentRef: null,
   problem: 'Synthetic spindle alarm',
@@ -75,7 +75,7 @@ const ordinaryTicket = {
   reportedByPerson: 'SYNTH-LEAD',
   reports: [
     {
-      breakdownCategory: 'M',
+      breakdownCategory: 'E',
       correctiveAction: 'Synthetic spindle reset',
       date: '2026-11-01',
       doneBy: ['SYNTH-LEAD'],
@@ -83,7 +83,7 @@ const ordinaryTicket = {
       handoverName: null,
       kind: 'breakdown',
       maintCode: 'SYNTH-MAINT',
-      observedBy: 'Asha',
+      observedBy: 'Engineer',
       problem: 'Synthetic spindle alarm',
       repairMin: 55,
       responseMin: 5,
@@ -138,7 +138,7 @@ const ordinaryTicket = {
   },
   status: 'closed',
   storedFigures: makeStoredFigures(),
-  workType: null,
+  workType: 'breakdown',
 };
 export function makeOrdinaryTicket<T extends Record<string, unknown> = Record<string, never>>(
   overrides?: T,
@@ -161,31 +161,64 @@ export function makeSyntheticExport(
   return { aliases, source: syntheticSource, tickets };
 }
 
+/** Complete synthetic reference data; keys match normalizeKey/normalizeCode lookups. */
+export function makeReconcileReferences() {
+  return {
+    timeZone: 'UTC',
+    machine: { id: syntheticIds.machine, code: 'M-1', category: 'CNC', cell: 'Cell-1' },
+    people: new Map([
+      ['synth-lead', syntheticIds.asha],
+      ['asha', syntheticIds.asha],
+      ['bina', syntheticIds.bina],
+    ]),
+    workTypes: new Map([['BREAKDOWN', { code: 'breakdown' }]]),
+    locations: new Map([['CELL-1', { code: 'Cell-1' }]]),
+    waitReasons: new Map([['SPARE', { code: 'spare', isVendor: true, pausesSla: true }]]),
+    breakdownCategories: new Map([['E', { code: 'E' }]]),
+    observedBy: new Map([['ENGINEER', { code: 'Engineer' }]]),
+    maintenanceCodes: new Map([['M', { code: 'M' }]]),
+    shifts: new Map([
+      ['1', { code: '1', startsAt: '08:00', endsAt: '18:30', crossesMidnight: false }],
+      ['2', { code: '2', startsAt: '18:30', endsAt: '08:00', crossesMidnight: true }],
+    ]),
+    pendingPersons: new Map<string, { personId: string; name: string; createdByImport: true }>(),
+  };
+}
+
 /** Seeds only invented configuration and people into a disposable test database. */
 export async function seedSyntheticTenant(pool: Pool): Promise<void> {
   const ids = syntheticIds;
   await pool.query(
-    `INSERT INTO tenant (id, slug, name, time_zone)
-       VALUES ($1, 'synthetic', 'Synthetic Import Tenant', 'UTC');
-     INSERT INTO machine (id, tenant_id, code, category, cell)
-       VALUES ($2, $1, 'M-1', 'Synthetic category', 'Synthetic cell');
-     INSERT INTO person (id, tenant_id, name, team, kind) VALUES
-       ($3, $1, 'Asha', 'maintenance', 'staff'),
-       ($4, $1, 'Bina', 'maintenance', 'staff'),
-       ($5, $1, 'Synthetic Vendor', 'vendor', 'vendor');
-     INSERT INTO list_item (tenant_id, list, code, label, is_vendor)
-       SELECT $1, v.list, v.code, v.label, v.is_vendor FROM (VALUES
-         ('maint_code', 'M', 'Synthetic maintenance', false),
-         ('breakdown_category', 'M', 'Synthetic category', false),
-         ('observed_by', 'Asha', 'Synthetic observer', false),
-         ('work_type', 'synthetic-work', 'Synthetic work', false),
-         ('location', 'Synthetic cell', 'Synthetic location', false),
-         ('wait_reason', 'synthetic-wait', 'Synthetic wait', false),
-         ('wait_reason', 'synthetic-vendor', 'Synthetic vendor wait', true)
-       ) AS v(list, code, label, is_vendor);
-     INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight) VALUES
+    "INSERT INTO tenant (id, slug, name, time_zone) VALUES ($1, 'synthetic', 'Synthetic Import Tenant', 'UTC')",
+    [ids.tenant],
+  );
+  await pool.query(
+    "INSERT INTO machine (id, tenant_id, code, category, cell) VALUES ($1, $2, 'M-1', 'CNC', 'Cell-1')",
+    [ids.machine, ids.tenant],
+  );
+  await pool.query(
+    `INSERT INTO person (id, tenant_id, name, team, kind) VALUES
+       ($1, $4, 'Asha', 'maintenance', 'staff'),
+       ($2, $4, 'Bina', 'maintenance', 'staff'),
+       ($3, $4, 'Synthetic Vendor', 'vendor', 'vendor')`,
+    [ids.asha, ids.bina, ids.vendor, ids.tenant],
+  );
+  await pool.query(
+    `INSERT INTO list_item (tenant_id, list, code, label, is_vendor, pauses_sla)
+       SELECT $1, v.list, v.code, v.label, v.is_vendor, v.pauses_sla FROM (VALUES
+         ('maint_code', 'M', 'Synthetic maintenance', false, false),
+         ('breakdown_category', 'E', 'Synthetic category', false, false),
+         ('observed_by', 'Engineer', 'Synthetic observer', false, false),
+         ('work_type', 'breakdown', 'Synthetic work', false, false),
+         ('location', 'Cell-1', 'Synthetic location', false, false),
+         ('wait_reason', 'spare', 'Synthetic spare wait', true, true)
+       ) AS v(list, code, label, is_vendor, pauses_sla)`,
+    [ids.tenant],
+  );
+  await pool.query(
+    `INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight) VALUES
        ($1, '1', 'Synthetic shift 1', '08:00', '18:30', false),
-       ($1, '2', 'Synthetic shift 2', '18:30', '08:00', true);`,
-    [ids.tenant, ids.machine, ids.asha, ids.bina, ids.vendor],
+       ($1, '2', 'Synthetic shift 2', '18:30', '08:00', true)`,
+    [ids.tenant],
   );
 }
