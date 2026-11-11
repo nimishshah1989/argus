@@ -10,8 +10,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **Core-issue fixes**: C1 RLS on the request path (#42), C2/M1/M2 clocks (#41), C3/M3 corrections (#43), M4 idempotency binding (#44), duplicate-raise race (#38).
 - **i18n layer (M5, #50)**: i18next + react-i18next, a 202-key `en` catalogue and a `gu` placeholder (falls back to English), every web `.tsx` string extracted, and the `i18next/no-literal-string` lint rule enforced for web `.tsx`.
 - **M1b actions (#52)**: desk Join/Leave (crew-aware, the lead counts as crew) and Cancel from working; floor Cancel-own for the caller's not-started ticket; 11 action unit tests + a join→leave desk E2E step.
-- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (13 done / 35 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (174 tests / 26 files); `pnpm test:e2e` green (12 tests on the real stack).
+- **Needs-report list (#54)**: `GET /state` gains `needReport` (closed no-report, last 7 days, acting-person scoped; management sees the tenant list); the desk shows a hidden-when-empty "Needs report" segment, cleared by filing the late report.
+- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (14 done / 34 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
+- Verification: `pnpm verify` green (179 tests / 27 files); `pnpm test:e2e` green (14 tests on the real stack).
 
 ## In flight
 
@@ -19,9 +20,10 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- M1b parity gaps: day-report PDF, needs-report list, account sheet, admin correct/restore faces, Views 1–7 completion.
-- **Split the two over-budget screens**: `TicketDetail.tsx` (310) and `ReportForm.tsx` (309) — pre-existing from the i18n migration.
+- M1b parity gaps: day-report PDF, account sheet, admin correct/restore faces, Views 1–7 completion.
+- **Split the over-budget screens**: `TicketDetail.tsx` (310), `ReportForm.tsx` (309), `Desk.tsx` (327) — pre-existing from the i18n migration.
 - Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap).
+- Needs-report scope is "closer OR active crew"; optionally also include the lead (reviewer note).
 - **i18n follow-ups**: move the remaining rendered copy out of `.ts` files to keys (`components/actions.ts` action labels, `components/format.ts` units/elapsed, `screens/board/data.ts` tile statuses); then real Gujarati translations (external, SPEC 1.11).
 - Wire web push to ticket events (M2 escalation) and make `sendPush` tenant-aware; iOS install guidance.
 - Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.
