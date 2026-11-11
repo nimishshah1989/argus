@@ -364,8 +364,8 @@ test("shows native session details, sources, and the estimate disclaimer", () =>
   assert.match(text, /Per-session breakdown · 3 included/);
   assert.match(text, /Usage unavailable for 2 sessions/);
   assert.match(text, /Cost unavailable/);
-  assert.match(text, /unpriced: vendor\.unknown/);
+  assert.match(text, /Unpriced: vendor\.unknown/);
   assert.match(text, /₹90\/USD/);
-  assert.match(text, /Harness tokenUsage \+ model projections/);
-  assert.match(text, /Estimate, not an AWS bill/);
+  assert.match(text, /Rates per 1M:/);
+  assert.match(text, /Estimate only/);
 });

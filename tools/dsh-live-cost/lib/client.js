@@ -43,11 +43,28 @@ window.__ModuleLoader__.load({
       ).join("; ");
     }
     const CSS = `
-.argus-live-cost{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width,760px);margin:0 auto 6px;padding:10px 12px;border:1px solid #99f6e4;border-radius:10px;background:#fff;color:#134e4a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:12px;line-height:1.45;box-shadow:0 2px 8px #134e4a12}
-.argus-live-cost__header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.argus-live-cost__title{margin:0;font-size:13px;font-weight:650}.argus-live-cost__total{text-align:right;font-variant-numeric:tabular-nums}.argus-live-cost__usd{display:block;color:#0f766e;font-size:20px;font-weight:700;line-height:1.2}.argus-live-cost__inr{color:#476664}
-.argus-live-cost__categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}.argus-live-cost__category{min-width:0;padding:6px;border-radius:6px;background:#f0fdfa}.argus-live-cost__category span{display:block;overflow-wrap:anywhere}.argus-live-cost__category span:first-child{font-weight:600}.argus-live-cost__figures{font-variant-numeric:tabular-nums}
-.argus-live-cost__details{border-top:1px solid #ccfbf1}.argus-live-cost__summary{display:flex;align-items:center;min-height:44px;cursor:pointer;font-weight:600}.argus-live-cost__summary:focus-visible{outline:2px solid #0f766e;outline-offset:2px;border-radius:3px}.argus-live-cost__sessions{margin:0;padding:0;list-style:none}.argus-live-cost__session{padding:6px 0;border-top:1px solid #f0fdfa;overflow-wrap:anywhere}.argus-live-cost__session-name{font-weight:600}.argus-live-cost__meta{color:#476664}.argus-live-cost__note{margin:6px 0 0;font-weight:600}.argus-live-cost__source{margin:6px 0 0;color:#476664}.argus-live-cost__disclaimer{margin:4px 0 0;font-weight:600}
-@media(max-width:520px){.argus-live-cost__categories{grid-template-columns:repeat(2,minmax(0,1fr))}.argus-live-cost__total{text-align:left}}
+.argus-live-cost{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width,760px);margin:0 auto 6px;padding:8px 12px;border:1px solid #99f6e4;border-radius:8px;background:#fff;color:#134e4a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:11px;line-height:1.4;box-shadow:0 1px 3px #134e4a08}
+.argus-live-cost__bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap}
+.argus-live-cost__title{margin:0;font-size:11px;font-weight:600;white-space:nowrap}
+.argus-live-cost__total{display:flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}
+.argus-live-cost__usd{color:#0f766e;font-size:14px;font-weight:700}
+.argus-live-cost__inr{color:#476664;font-size:11px}
+.argus-live-cost__details{border-top:1px solid #ccfbf1;margin-top:6px;max-height:120px;overflow-y:auto}
+.argus-live-cost__summary{display:flex;align-items:center;min-height:32px;cursor:pointer;font-weight:600;font-size:11px;color:#0f766e}
+.argus-live-cost__summary:focus-visible{outline:2px solid #0f766e;outline-offset:2px;border-radius:3px}
+.argus-live-cost__categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:6px 0}
+.argus-live-cost__category{min-width:0;padding:4px;border-radius:4px;background:#f0fdfa}
+.argus-live-cost__category span{display:block;overflow-wrap:anywhere;font-size:10px}
+.argus-live-cost__category span:first-child{font-weight:600}
+.argus-live-cost__figures{font-variant-numeric:tabular-nums}
+.argus-live-cost__sessions{margin:0;padding:0;list-style:none;font-size:10px}
+.argus-live-cost__session{padding:4px 0;border-top:1px solid #f0fdfa;overflow-wrap:anywhere}
+.argus-live-cost__session-name{font-weight:600}
+.argus-live-cost__meta{color:#476664}
+.argus-live-cost__note{margin:4px 0 0;font-weight:600;font-size:10px}
+.argus-live-cost__source{margin:4px 0 0;color:#476664;font-size:10px}
+.argus-live-cost__disclaimer{margin:2px 0 0;font-weight:600;font-size:10px}
+@media(max-width:480px){.argus-live-cost__categories{grid-template-columns:repeat(2,minmax(0,1fr))}.argus-live-cost__total{flex-wrap:wrap}}
 `;
     if (typeof document !== "undefined" && !document.querySelector("style[data-argus-live-cost]")) {
       const style = document.createElement("style");
@@ -299,26 +316,24 @@ window.__ModuleLoader__.load({
       return h("section", {
         className: "argus-live-cost", "aria-label": "Live estimated model cost",
       },
-      h("div", { className: "argus-live-cost__header" },
-        h("div", null,
-          h("h2", { className: "argus-live-cost__title" }, "Live model cost"),
-          h("span", null, `${report.sessions.length} sessions · updated ${new Date(report.updatedAt).toLocaleTimeString()}`)),
+      h("div", { className: "argus-live-cost__bar" },
+        h("h2", { className: "argus-live-cost__title" },
+          `Live cost · ${report.sessions.length} sessions`),
         h("div", { className: "argus-live-cost__total" },
-          h("span", null, hasPartial ? "Estimated available total" : "Estimated total"),
           h("span", { className: "argus-live-cost__usd" }, USD.format(report.totalUsd)),
           h("span", { className: "argus-live-cost__inr" },
-            `${INR.format(report.totalInr)} illustrative · ₹90/USD`))),
-      h("div", { className: "argus-live-cost__categories" },
-        report.categories.map((category) => h(Category, { category, key: category.key }))),
-      unavailable > 0 && h("p", { className: "argus-live-cost__note" },
-        `Usage unavailable for ${unavailable} session${unavailable === 1 ? "" : "s"}; shown total is partial.`),
-      hasUnpriced && h("p", { className: "argus-live-cost__note" },
-        `Priced subtotal only; unpriced: ${report.unpricedModels.join(", ")}. Unknown cost is excluded.`),
-      h(SessionBreakdown, { sessions: report.sessions }),
-      h("p", { className: "argus-live-cost__source" },
-        `Sources: Harness tokenUsage + model projections. Built-in rates per 1M: ${rateSummary()}.`),
-      h("p", { className: "argus-live-cost__disclaimer" },
-        "Estimate, not an AWS bill. Provider invoices may differ."));
+            `${INR.format(report.totalInr)} (₹90/USD)`))),
+      h("details", { className: "argus-live-cost__details" },
+        h("summary", { className: "argus-live-cost__summary" }, "Details"),
+        h("div", { className: "argus-live-cost__categories" },
+          report.categories.map((category) => h(Category, { category, key: category.key }))),
+        unavailable > 0 && h("p", { className: "argus-live-cost__note" },
+          `Usage unavailable for ${unavailable} session${unavailable === 1 ? "" : "s"}.`),
+        hasUnpriced && h("p", { className: "argus-live-cost__note" },
+          `Unpriced: ${report.unpricedModels.join(", ")}.`),
+        h(SessionBreakdown, { sessions: report.sessions }),
+        h("p", { className: "argus-live-cost__source" },
+          `Rates per 1M: ${rateSummary()}. Estimate only.`)));
     }
 
     const inject = ["slots", "sessions"];
