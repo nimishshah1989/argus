@@ -72,14 +72,32 @@ async function checkDeskTabs(page: Page, ref: string): Promise<void> {
   await expect(refLink).toBeVisible();
 
   await page.getByRole('button', { name: 'Mine', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'My tickets' })).toBeVisible();
-  await expect(refLink).toBeVisible();
+  await expect(page.getByRole('region', { name: 'In progress' })).toContainText(ref);
+  const dayReport = page.getByRole('link', { name: 'Day report', exact: true });
+  await expect(dayReport).toBeVisible();
+  await expect(dayReport).toHaveAttribute(
+    'href',
+    /\/api\/v1\/reports\/day\.pdf\?date=\d{4}-\d{2}-\d{2}/,
+  );
 
   await page.getByRole('button', { name: 'Team', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Team now' })).toContainText('Asha');
+  await expect(page.getByRole('region', { name: 'Working now' })).toContainText('Asha');
+  await expect(page.getByRole('region', { name: 'Waiting' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Not started' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Cancelled, last 24 hours' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Closed, last 30 days' })).toBeVisible();
 
   await refLink.click();
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
+}
+
+/** The closed-with-report ticket sits in the Team tab's 30-day window. */
+async function checkTeamClosed(page: Page, ref: string): Promise<void> {
+  await page.goto('/desk');
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  const closed = page.getByRole('region', { name: 'Closed, last 30 days' });
+  await expect(closed).toBeVisible();
+  await expect(closed.getByRole('link', { name: new RegExp(ref) })).toBeVisible();
 }
 
 async function logUpdate(page: Page): Promise<void> {
@@ -185,6 +203,7 @@ test('drives a ticket through the desk lifecycle', async ({ page, browser }, tes
   await markMachineRunning(page);
   await markMachineStopped(page);
   await closeWithReport(page);
+  await checkTeamClosed(page, ticket.ref);
   await checkFloorComplaints(page, ticket.ref);
 });
 

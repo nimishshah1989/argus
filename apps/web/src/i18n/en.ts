@@ -45,6 +45,14 @@ export const en = {
   'desk.mineTitle': 'My tickets',
   'desk.mineEmpty': 'Nothing assigned to you.',
   'desk.needsReport': 'Needs report',
+  'desk.view.workingNow': 'Working now',
+  'desk.view.notStarted': 'Not started',
+  'desk.view.cancelled24h': 'Cancelled, last 24 hours',
+  'desk.view.closed30d': 'Closed, last 30 days',
+  'desk.view.monthly': 'Monthly totals per person',
+  'desk.view.none': 'Nothing here.',
+  'desk.mine.dayReport': 'Day report',
+  'desk.mine.dayReportError': 'Could not download the day report.',
 
   // floor
   'floor.title': 'Report a problem',

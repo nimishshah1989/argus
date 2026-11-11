@@ -2,20 +2,15 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import {
-  getConfig,
-  getMe,
-  getState,
-  listTickets,
-  type CommandAction,
-  type Ticket,
-} from '../api.js';
+import { getConfig, getMe, getState, type CommandAction, type Ticket } from '../api.js';
 import { canWork, useTicketCommand } from '../components/actions.js';
 import { AccountSheet } from '../components/AccountSheet.js';
 import { Drafts } from '../components/Drafts.js';
 import { NotificationsToggle } from '../components/NotificationsToggle.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
-import { Board, MinePanel, Tabs, type Tab } from './desk/Board.js';
+import { Board, Tabs, type Tab } from './desk/Board.js';
+import { MinePanel } from './desk/MinePanel.js';
+import { TeamPanel } from './desk/TeamPanel.js';
 
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
@@ -40,12 +35,6 @@ export function Desk() {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const personId = me.data?.user.actingPersonId;
-  const mine = useQuery({
-    queryKey: ['tickets', 'mine', personId],
-    queryFn: () => listTickets({ personId, status: ['open', 'working', 'waiting'] }),
-    enabled: tab === 'mine' && Boolean(personId),
-    staleTime: 0,
-  });
   const { run, error, pending } = useTicketCommand();
   const machines = config.data?.machines ?? [];
   const canQuick = canWork(me.data?.user.role);
@@ -75,13 +64,9 @@ export function Desk() {
       )}
 
       {tab === 'mine' ? (
-        <MinePanel
-          tickets={mine.data?.items ?? []}
-          machines={machines}
-          now={new Date().toISOString()}
-          isLoading={me.isLoading || mine.isLoading}
-          error={mine.error}
-        />
+        <MinePanel machines={machines} />
+      ) : tab === 'team' ? (
+        <TeamPanel state={state} config={config.data} machines={machines} />
       ) : (
         <Board
           state={state}
