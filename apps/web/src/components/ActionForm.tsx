@@ -46,8 +46,31 @@ interface FieldDeps {
   personId: string;
 }
 
+function rosterFields(t: TFunction, action: CommandAction): FieldSpec[] | null {
+  if (action === 'join') {
+    return [
+      {
+        name: 'role',
+        label: t('action.role'),
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'primary', label: t('action.rolePrimary') },
+          { value: 'support', label: t('action.roleSupport') },
+        ],
+      },
+    ];
+  }
+  if (action === 'leave') {
+    return [{ name: 'reason', label: t('action.leaveReason'), type: 'textarea', required: true }];
+  }
+  return null;
+}
+
 function fieldsFor(t: TFunction, deps: FieldDeps): FieldSpec[] {
   const { action, kind, config, personId } = deps;
+  const roster = rosterFields(t, action);
+  if (roster) return roster;
   if (action === 'pause') {
     return [
       {
@@ -117,6 +140,9 @@ const BODY_BUILDERS: Partial<Record<CommandAction, BodyBuilder>> = {
     return { personId, kind: values.kind as CloseKind, ...noteOf(values) };
   },
   cancel: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
+  join: (personId, values) =>
+    values.role === 'primary' || values.role === 'support' ? { personId, role: values.role } : null,
+  leave: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
 };
 
 function buildBody(
@@ -210,6 +236,8 @@ interface Props {
 }
 
 const TITLE_KEYS: Record<string, string> = {
+  join: 'action.join.title',
+  leave: 'action.leave.title',
   pause: 'action.pause.title',
   update: 'action.update.title',
   transfer: 'action.transfer.title',
@@ -218,6 +246,8 @@ const TITLE_KEYS: Record<string, string> = {
 };
 
 const SUBMIT_KEYS: Record<string, string> = {
+  join: 'action.join.submit',
+  leave: 'action.leave.submit',
   pause: 'action.pause.submit',
   update: 'action.update.submit',
   transfer: 'action.transfer.submit',
@@ -225,9 +255,14 @@ const SUBMIT_KEYS: Record<string, string> = {
   cancel: 'action.cancel.submit',
 };
 
+/** Join defaults to support; every other form starts empty. */
+function initialValues(action: CommandAction): Record<string, string> {
+  return action === 'join' ? { role: 'support' } : {};
+}
+
 export function ActionForm({ action, personId, kind, config, pending, onRun, onDone }: Props) {
   const { t } = useTranslation();
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(action));
   const fields = fieldsFor(t, { action, kind, config, personId });
   const body = buildBody(action, personId, trimmed(values));
   const title = t(TITLE_KEYS[action] ?? action);

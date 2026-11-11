@@ -1,8 +1,41 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+
 import { getConfig, getMe, listTickets } from '../../api.js';
+import { canCancelOwn } from '../../components/actions.js';
 import { ShareButton } from '../../components/ShareButton.js';
+import { CancelOwnForm } from './MyComplaints.js';
+
+function CancelOwnTicket({
+  ticket,
+  config,
+  personId,
+}: {
+  ticket: Parameters<typeof canCancelOwn>[0];
+  config: Parameters<typeof CancelOwnForm>[0]['config'];
+  personId: string;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return open ? (
+    <CancelOwnForm
+      ticket={ticket}
+      config={config}
+      personId={personId}
+      onDone={() => setOpen(false)}
+    />
+  ) : (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="mt-2 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+    >
+      {t('action.cancel')}
+    </button>
+  );
+}
 
 export function SentConfirmation({
   sentRef,
@@ -22,6 +55,7 @@ export function SentConfirmation({
     staleTime: 0,
   });
   const ticket = raised.data?.items.find((item) => item.ref === sentRef);
+  const canCancel = Boolean(ticket && personId && canCancelOwn(ticket, personId));
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">
@@ -33,6 +67,9 @@ export function SentConfirmation({
           <div className="mt-6">
             <ShareButton ticket={ticket} config={config.data} mode="short" />
           </div>
+        )}
+        {ticket && config.data && personId && canCancel && (
+          <CancelOwnTicket ticket={ticket} config={config.data} personId={personId} />
         )}
         <button
           type="button"

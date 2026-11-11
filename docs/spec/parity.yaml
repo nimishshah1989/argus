@@ -203,6 +203,7 @@ rows:
     evidence:
       - 'PR #26'
       - 'PR #40'
+      - 'PR #52'
       - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
         reference'
       - 'packages/shared/test/share.test.ts :: shows the ref, status, machine and problem'
@@ -318,9 +319,12 @@ rows:
     status: in-progress
     evidence:
       - 'PR #23'
+      - 'PR #52'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
+      - 'apps/web/src/components/actions.test.ts :: offers join only when the person is off the
+        crew'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.08
     feature: Leave with reason; primary takes over if the lead leaves
@@ -331,9 +335,12 @@ rows:
     status: in-progress
     evidence:
       - 'PR #23'
+      - 'PR #52'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
+      - 'apps/web/src/components/actions.test.ts :: offers leave only when the person is on the
+        crew'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.09
     feature:
