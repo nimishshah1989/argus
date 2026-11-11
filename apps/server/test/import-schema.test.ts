@@ -689,6 +689,7 @@ describe('synthetic import schema', () => {
     expect(refs.breakdownCategories.get('E')).toEqual({ code: 'E' });
     expect(refs.observedBy.get('ENGINEER')).toEqual({ code: 'Engineer' });
     expect(refs.maintenanceCodes.get('M')).toEqual({ code: 'M' });
+    expect(refs.maintenanceAliases.get('SYNTH-MAINT')).toBe('M');
     expect(refs.shifts.get('1')).toEqual({
       code: '1',
       startsAt: '08:00',

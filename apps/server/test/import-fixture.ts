@@ -177,6 +177,7 @@ export function makeReconcileReferences() {
     breakdownCategories: new Map([['E', { code: 'E' }]]),
     observedBy: new Map([['ENGINEER', { code: 'Engineer' }]]),
     maintenanceCodes: new Map([['M', { code: 'M' }]]),
+    maintenanceAliases: new Map([['SYNTH-MAINT', 'M']]),
     shifts: new Map([
       ['1', { code: '1', startsAt: '08:00', endsAt: '18:30', crossesMidnight: false }],
       ['2', { code: '2', startsAt: '18:30', endsAt: '08:00', crossesMidnight: true }],
