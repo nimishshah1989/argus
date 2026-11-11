@@ -18,6 +18,10 @@ const M2 = '10000000-0000-0000-0000-000000000004';
 const ASHA = '10000000-0000-0000-0000-000000000005';
 const BINA = '10000000-0000-0000-0000-000000000006';
 const LOGIN_ASHA = '10000000-0000-0000-0000-000000000007';
+const OP = '10000000-0000-0000-0000-00000000000e';
+const LOGIN_OP = '10000000-0000-0000-0000-00000000000f';
+const SUP = '10000000-0000-0000-0000-000000000010';
+const LOGIN_SUP = '10000000-0000-0000-0000-000000000011';
 const T1 = '10000000-0000-0000-0000-000000000008';
 const T2 = '10000000-0000-0000-0000-000000000009';
 const T3 = '10000000-0000-0000-0000-00000000000a';
@@ -48,6 +52,8 @@ let db: TestDb;
 let app: App;
 let filesDir = '';
 let ashaToken = '';
+let opToken = '';
+let supToken = '';
 
 function get(url: string, token?: string): Promise<Res> {
   return app.inject({
@@ -98,13 +104,16 @@ async function seed(): Promise<void> {
   await db.admin.query(
     `INSERT INTO person (id, tenant_id, name, team) VALUES
        ($1, $3, 'Asha', 'maintenance'), ($2, $3, 'Bina', 'maintenance'),
-       ($4, $5, 'Other tech', 'maintenance')`,
-    [ASHA, BINA, TENANT, PERSON_2, TENANT_2],
+       ($4, $5, 'Other tech', 'maintenance'), ($6, $3, 'Omi', 'production'),
+       ($7, $3, 'Sami', 'maintenance')`,
+    [ASHA, BINA, TENANT, PERSON_2, TENANT_2, OP, SUP],
   );
   await db.admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
-     VALUES ($1, $2, $3, 'asha', $4, 'technician', false)`,
-    [LOGIN_ASHA, TENANT, ASHA, passwordHash],
+     VALUES ($1, $2, $3, 'asha', $4, 'technician', false),
+            ($5, $2, $6, 'op', $4, 'operator', false),
+            ($7, $2, $8, 'sup', $4, 'supervisor', false)`,
+    [LOGIN_ASHA, TENANT, ASHA, passwordHash, LOGIN_OP, OP, LOGIN_SUP, SUP],
   );
   await db.admin.query(
     `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at) VALUES
@@ -188,6 +197,8 @@ beforeAll(async () => {
     chromiumPath: chromiumPath ?? undefined,
   });
   ashaToken = await login('asha');
+  opToken = await login('op');
+  supToken = await login('sup');
 }, 120_000);
 
 afterAll(async () => {
@@ -287,15 +298,16 @@ describe('day report PDF endpoint', () => {
   });
 
   it('rejects an unknown person, a foreign tenant person and a bad query', async () => {
+    // A supervisor may pick a person, so the 404 path is reachable (a technician gets 403 above).
     const unknown = await get(
       `/api/v1/reports/day.pdf?date=2026-11-10&personId=${randomUUID()}`,
-      ashaToken,
+      supToken,
     );
     expect(unknown.statusCode).toBe(404);
 
     const otherTenant = await get(
       `/api/v1/reports/day.pdf?date=2026-11-10&personId=${PERSON_2}`,
-      ashaToken,
+      supToken,
     );
     expect(otherTenant.statusCode).toBe(404);
 
@@ -313,5 +325,19 @@ describe('day report PDF endpoint', () => {
   it('requires authentication', async () => {
     const res = await get('/api/v1/reports/day.pdf?date=2026-11-10');
     expect(res.statusCode).toBe(401);
+  });
+
+  it('forbids an operator from receiving a day report', async () => {
+    const res = await get('/api/v1/reports/day.pdf?date=2026-11-10', opToken);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('forbidden');
+  });
+
+  it('lets a technician see only their own day', async () => {
+    const own = await get('/api/v1/reports/day.pdf?date=2026-11-10', ashaToken);
+    expect(own.statusCode).toBe(200);
+    const other = await get(`/api/v1/reports/day.pdf?date=2026-11-10&personId=${BINA}`, ashaToken);
+    expect(other.statusCode).toBe(403);
+    expect(other.json().error.field).toBe('personId');
   });
 });

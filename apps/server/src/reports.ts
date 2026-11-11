@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
 import type { Figures } from '@uptimo/domain';
+import { canDayReport, type ActorContext } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
@@ -228,6 +229,38 @@ function dayReportFileName(data: DayReportData): string {
   return `Day_report_${who}_${data.date}_${data.shift}.pdf`;
 }
 
+/** Role gate + own-only rule for the day report (DOMAIN §3). */
+function resolveDayPerson(
+  auth: { role: string; loginId: string; personId: string | null; shared: boolean },
+  requested: string | undefined,
+):
+  | { ok: true; personId: string }
+  | { ok: false; status: 403 | 422; message: string; field?: string } {
+  const actor: ActorContext = {
+    role: auth.role as ActorContext['role'],
+    loginId: auth.loginId,
+    personId: auth.personId,
+    shared: auth.shared,
+  };
+  if (!canDayReport(actor)) {
+    return { ok: false, status: 403, message: 'Day reports are unavailable for your role' };
+  }
+  const wantsOther = Boolean(requested && requested !== 'me' && requested !== auth.personId);
+  if (auth.role === 'technician' && wantsOther) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'You can only see your own day report',
+      field: 'personId',
+    };
+  }
+  const personId = !requested || requested === 'me' ? auth.personId : requested;
+  if (!personId) {
+    return { ok: false, status: 422, message: 'No acting person for "me"', field: 'personId' };
+  }
+  return { ok: true, personId };
+}
+
 /** `GET /reports/day.pdf` — the caller's (or a chosen person's) day, rendered to PDF. */
 async function sendDayPdf(
   deps: PdfDeps,
@@ -242,16 +275,16 @@ async function sendDayPdf(
     reply.code(422).send(apiError('validation', 'Invalid day report query', field || undefined));
     return;
   }
-  const requested = parsed.data.personId;
-  const personId = !requested || requested === 'me' ? auth.personId : requested;
-  if (!personId) {
-    reply.code(422).send(apiError('validation', 'No acting person for "me"', 'personId'));
+  const resolved = resolveDayPerson(auth, parsed.data.personId);
+  if (!resolved.ok) {
+    const code = resolved.status === 403 ? 'forbidden' : 'validation';
+    reply.code(resolved.status).send(apiError(code, resolved.message, resolved.field));
     return;
   }
   const data = await withTenant(deps.pool, auth.tenantId, (client) =>
     loadDayReport(client, {
       tenantId: auth.tenantId,
-      personId,
+      personId: resolved.personId,
       date: parsed.data.date,
       shift: parsed.data.shift,
     }),
