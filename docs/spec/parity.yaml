@@ -320,6 +320,9 @@ rows:
     evidence:
       - 'PR #23'
       - 'PR #52'
+      - 'PR #66'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
+        projection'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
@@ -336,6 +339,9 @@ rows:
     evidence:
       - 'PR #23'
       - 'PR #52'
+      - 'PR #66'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
+        projection'
       - 'packages/domain/test/state.test.ts :: joins a working ticket and leaves it'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
@@ -555,6 +561,9 @@ rows:
       - 'PR #27'
       - 'PR #29'
       - 'PR #62'
+      - 'PR #66'
+      - 'apps/server/test/tickets-list.test.ts :: carries per-person minutes on the list
+        projection'
       - 'apps/web/src/screens/desk/views.test.ts :: groups working tickets by lead person with
         minutes'
       - 'apps/web/src/screens/desk/views.test.ts :: monthlyTotals'
