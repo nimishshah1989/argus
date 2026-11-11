@@ -1,128 +1,28 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { importBhavin, undoImport } from '../src/import/bhavin.js';
+import {
+  makeOrdinaryTicket,
+  makeSyntheticExport,
+  seedSyntheticTenant,
+  syntheticIds,
+} from './import-fixture.js';
 import { startTestDb, type TestDb } from './harness.js';
-
-const TENANT = '10000000-0000-0000-0000-000000000001';
-const MACHINE = '10000000-0000-0000-0000-000000000002';
-const ASHA = '10000000-0000-0000-0000-000000000003';
-const BINA = '10000000-0000-0000-0000-000000000004';
-const EXISTING_TICKET = '10000000-0000-0000-0000-000000000005';
 
 let db: TestDb;
 
-// Synthetic fixture for the documented Bhavin export format (the real N1 export is pending).
-const FIXTURE = {
-  source: 'bhavin-v3',
-  tickets: [
-    {
-      legacyId: 'leg-dup',
-      ref: 'BD-099', // matches a pre-seeded ticket → skipped
-      kind: 'stopped',
-      status: 'open',
-      machineCode: null,
-      problem: 'Duplicate',
-      reportedAt: '2026-11-01T10:00:00Z',
-      events: [],
-      crew: [],
-      segments: [],
-      reports: [],
-    },
-    {
-      legacyId: 'leg-full',
-      ref: 'BD-100',
-      kind: 'stopped',
-      status: 'closed',
-      machineCode: 'M-1',
-      location: 'Cell-1',
-      workType: 'breakdown',
-      problem: 'Spindle alarm',
-      reportedAt: '2026-11-01T10:00:00Z',
-      reportedByPerson: 'Asha',
-      startedAt: '2026-11-01T10:05:00Z',
-      closedAt: '2026-11-01T11:05:00Z',
-      cancelledAt: null,
-      closeKind: 'report',
-      closeNote: 'Fixed',
-      leadPerson: 'Asha',
-      parentRef: null,
-      events: [
-        { type: 'down', at: '2026-11-01T10:00:00Z', by: 'Asha', text: null, payload: {} },
-        { type: 'start', at: '2026-11-01T10:05:00Z', by: 'Asha', text: null, payload: {} },
-        { type: 'close', at: '2026-11-01T11:05:00Z', by: 'Asha', text: 'Fixed', payload: {} },
-      ],
-      crew: [
-        {
-          person: 'Asha',
-          role: 'lead',
-          joinedAt: '2026-11-01T10:05:00Z',
-          leftAt: null,
-          leftReason: null,
-        },
-        {
-          person: 'Bina',
-          role: 'support',
-          joinedAt: '2026-11-01T10:30:00Z',
-          leftAt: '2026-11-01T11:00:00Z',
-          leftReason: 'done',
-        },
-      ],
-      segments: [
-        {
-          person: 'Asha',
-          role: 'lead',
-          startedAt: '2026-11-01T10:05:00Z',
-          endedAt: '2026-11-01T11:05:00Z',
-          endReason: 'close',
-        },
-        {
-          person: 'Bina',
-          role: 'support',
-          startedAt: '2026-11-01T10:30:00Z',
-          endedAt: '2026-11-01T11:00:00Z',
-          endReason: 'leave',
-        },
-      ],
-      reports: [
-        {
-          kind: 'breakdown',
-          problem: 'Spindle alarm',
-          observedBy: 'Asha',
-          correctiveAction: 'Replaced spindle',
-          downtimeMin: 60,
-          responseMin: 5,
-          repairMin: 55,
-          doneBy: ['Asha'],
-          supportedBy: ['Bina'],
-        },
-      ],
-    },
-    {
-      // malformed: missing the required `problem` → error, batch continues
-      legacyId: 'leg-bad',
-      ref: 'BD-101',
-      kind: 'stopped',
-      status: 'open',
-      reportedAt: '2026-11-02T10:00:00Z',
-    },
-  ],
-};
+const duplicate = makeOrdinaryTicket({ legacyId: 'leg-dup', ref: 'BD-0099' });
+const full = makeOrdinaryTicket({ legacyId: 'leg-full' });
+const malformed = { ...makeOrdinaryTicket({ legacyId: 'leg-bad', ref: 'BD-0101' }), problem: null };
+const FIXTURE = makeSyntheticExport([duplicate, full, malformed]);
 
 beforeAll(async () => {
   db = await startTestDb();
-  await db.admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [
-    TENANT,
-  ]);
+  await seedSyntheticTenant(db.admin);
   await db.admin.query(
-    "INSERT INTO machine (id, tenant_id, code, category, cell) VALUES ($1, $2, 'M-1', 'CNC', 'Cell-1')",
-    [MACHINE, TENANT],
-  );
-  await db.admin.query(
-    "INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, 'Asha', 'maintenance'), ($3, $2, 'Bina', 'maintenance')",
-    [ASHA, TENANT, BINA],
-  );
-  await db.admin.query(
-    "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-099', 'stopped', 'open', 'Existing', now())",
-    [EXISTING_TICKET, TENANT],
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
+     VALUES ($1, $2, 'BD-0099', 'stopped', 'open', 'Synthetic pre-existing', '2026-10-01T10:00:00Z')`,
+    [randomUUID(), syntheticIds.tenant],
   );
 }, 120_000);
 
@@ -134,30 +34,45 @@ describe('bhavin import', () => {
   let firstBatchId = '';
 
   it('imports a full ticket, skips a duplicate, and errors a malformed row', async () => {
-    const { batchId, stats } = await importBhavin(db.app, TENANT, FIXTURE);
+    const { batchId, stats } = await importBhavin(db.app, syntheticIds.tenant, FIXTURE);
     firstBatchId = batchId;
-    expect(stats).toEqual({
+    expect(stats).toMatchObject({
+      status: 'failed',
       tickets: 3,
       imported: 1,
       skipped: 1,
       errored: 1,
-      events: 3,
+      events: 4,
       crew: 2,
       segments: 2,
+      reports: 1,
+      reportPeople: 2,
+      hardMismatches: 0,
     });
 
     const ticketRows = await db.admin.query(
-      'SELECT id, ref FROM ticket WHERE tenant_id = $1 ORDER BY ref',
-      [TENANT],
+      `SELECT id, ref, last_event_seq, response_min, active_min, repair_min, downtime_min,
+        work_type, location, raised_channel
+       FROM ticket WHERE tenant_id = $1 ORDER BY ref`,
+      [syntheticIds.tenant],
     );
-    const imported = ticketRows.rows.find((r: { ref: string }) => r.ref === 'BD-100');
-    expect(imported).toBeTruthy();
-    expect(ticketRows.rows.filter((r: { ref: string }) => r.ref === 'BD-099')).toHaveLength(1);
+    const imported = ticketRows.rows.find((row: { ref: string }) => row.ref === 'BD-0100');
+    expect(imported).toMatchObject({
+      last_event_seq: 3,
+      response_min: 5,
+      active_min: 55,
+      repair_min: 55,
+      downtime_min: 60,
+      work_type: 'breakdown',
+      location: 'Cell-1',
+      raised_channel: 'import',
+    });
+    expect(ticketRows.rows.filter((row: { ref: string }) => row.ref === 'BD-0099')).toHaveLength(1);
 
     const ticketId = (imported as { id: string }).id;
     const count = async (sqlText: string) =>
       (await db.admin.query(sqlText, [ticketId])).rows[0].n as number;
-    expect(await count('SELECT count(*)::int AS n FROM ticket_event WHERE ticket_id = $1')).toBe(3);
+    expect(await count('SELECT count(*)::int AS n FROM ticket_event WHERE ticket_id = $1')).toBe(4);
     expect(await count('SELECT count(*)::int AS n FROM crew_member WHERE ticket_id = $1')).toBe(2);
     expect(await count('SELECT count(*)::int AS n FROM work_segment WHERE ticket_id = $1')).toBe(2);
     expect(
@@ -168,36 +83,59 @@ describe('bhavin import', () => {
         'SELECT count(*)::int AS n FROM breakdown_report_person WHERE report_id IN (SELECT id FROM breakdown_report WHERE ticket_id = $1)',
       ),
     ).toBe(2);
+    const events = await db.admin.query(
+      'SELECT seq, type, acting_person_id, payload FROM ticket_event WHERE ticket_id = $1 ORDER BY seq',
+      [ticketId],
+    );
+    expect(events.rows.map((row: { seq: number }) => row.seq)).toEqual([0, 1, 2, 3]);
+    expect(events.rows.map((row: { type: string }) => row.type)).toEqual([
+      'down',
+      'start',
+      'join',
+      'close',
+    ]);
+    expect(events.rows[2]).toMatchObject({
+      acting_person_id: syntheticIds.bina,
+      payload: { role: 'support' },
+    });
 
     const rows = await db.admin.query(
-      'SELECT row_number, status FROM import_row WHERE batch_id = $1 ORDER BY row_number',
+      'SELECT row_number, status, ticket_id FROM import_row WHERE batch_id = $1 ORDER BY row_number',
       [batchId],
     );
-    expect(rows.rows.map((r: { status: string }) => r.status)).toEqual([
+    expect(rows.rows.map((row: { status: string }) => row.status)).toEqual([
       'skipped',
       'imported',
       'error',
     ]);
+    expect(rows.rows[1].ticket_id).toBe(ticketId);
   });
 
   it('re-running skips the already-imported rows', async () => {
-    const { stats } = await importBhavin(db.app, TENANT, FIXTURE);
+    const { stats } = await importBhavin(db.app, syntheticIds.tenant, FIXTURE);
     expect(stats.imported).toBe(0);
     expect(stats.skipped).toBe(2);
     expect(stats.errored).toBe(1);
   });
 
   it('undo removes the imported tickets', async () => {
-    const { deleted } = await undoImport(db.app, TENANT, firstBatchId);
+    const { deleted } = await undoImport(db.app, syntheticIds.tenant, firstBatchId);
     expect(deleted).toBe(1);
     const remains = await db.admin.query(
-      "SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1 AND ref = 'BD-100'",
-      [TENANT],
+      "SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1 AND ref = 'BD-0100'",
+      [syntheticIds.tenant],
     );
     expect(remains.rows[0].n).toBe(0);
-    const batch = await db.admin.query('SELECT status FROM import_batch WHERE id = $1', [
-      firstBatchId,
-    ]);
+    const batch = await db.admin.query(
+      'SELECT status, finished_at FROM import_batch WHERE id = $1',
+      [firstBatchId],
+    );
     expect(batch.rows[0].status).toBe('undone');
+    const raw = await db.admin.query(
+      'SELECT status, payload FROM import_row WHERE batch_id = $1 AND row_number = 2',
+      [firstBatchId],
+    );
+    expect(raw.rows[0].status).toBe('imported');
+    expect(raw.rows[0].payload.format).toBe('argus.import-raw/v1');
   });
 });

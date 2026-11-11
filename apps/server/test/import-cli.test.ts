@@ -521,9 +521,9 @@ describe('real CLI import and undo (T13–T20)', () => {
       [loginId, syntheticIds.tenant, syntheticIds.asha],
     );
     await db.admin.query(
-      `INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at)
-       VALUES ($1, $2, $3, $4, now() + interval '1 hour')`,
-      [sessionId, syntheticIds.tenant, loginId, hashToken(token)],
+      `INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at, acting_person_id)
+       VALUES ($1, $2, $3, $4, now() + interval '1 hour', $5)`,
+      [sessionId, syntheticIds.tenant, loginId, hashToken(token), syntheticIds.asha],
     );
     const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
     try {
