@@ -154,6 +154,7 @@ export function rowToTicket(row: Record<string, unknown>): Ticket {
     closedByPersonId: str(row.closed_by_person_id),
     closeKind: str(row.close_kind) as Ticket['closeKind'],
     closeNote: str(row.close_note),
+    cancelledAt: toDate(row.cancelled_at) ?? undefined,
     taskReason: str(row.task_reason),
     taskExpectedOn: str(row.task_expected_on),
     taskDownMin: num(row.task_down_min),

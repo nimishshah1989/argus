@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Figures, Ticket } from '../../api.js';
 import {
+  CANCELLED_WINDOW_MS,
   cancelledLast24h,
   closedLast30Days,
   dayReportHref,
@@ -80,6 +81,45 @@ describe('window filtering', () => {
       reportedAt: '2026-11-01T11:00:00.000Z',
     });
     expect(cancelledLast24h([started, reported, stale], NOW)).toEqual([reported, started]);
+  });
+
+  it('prefers an exact cancelledAt over the fallback chain', () => {
+    const exact = ticket({
+      status: 'cancelled',
+      cancelledAt: '2026-11-11T11:00:00.000Z',
+      closedAt: '2026-10-01T09:00:00.000Z',
+      startedAt: '2026-10-01T08:00:00.000Z',
+      reportedAt: '2026-10-01T07:00:00.000Z',
+    });
+    expect(cancelledLast24h([exact], NOW)).toEqual([exact]);
+  });
+
+  it('does not fall through to a fresher fallback when cancelledAt is old', () => {
+    const old = ticket({
+      status: 'cancelled',
+      cancelledAt: '2026-11-01T11:00:00.000Z',
+      closedAt: '2026-11-11T11:30:00.000Z',
+      startedAt: '2026-11-11T11:00:00.000Z',
+      reportedAt: '2026-11-11T10:00:00.000Z',
+    });
+    expect(cancelledLast24h([old], NOW)).toEqual([]);
+  });
+
+  it('falls back to closedAt for a pre-migration cancelled row', () => {
+    const legacy = ticket({ status: 'cancelled', closedAt: '2026-11-11T09:00:00.000Z' });
+    expect(cancelledLast24h([legacy], NOW)).toEqual([legacy]);
+  });
+
+  it('keeps the 24-hour window boundary inclusive to the millisecond', () => {
+    const atBoundary = ticket({
+      status: 'cancelled',
+      cancelledAt: new Date(NOW - CANCELLED_WINDOW_MS).toISOString(),
+    });
+    const justOutside = ticket({
+      status: 'cancelled',
+      cancelledAt: new Date(NOW - CANCELLED_WINDOW_MS - 1).toISOString(),
+    });
+    expect(cancelledLast24h([atBoundary, justOutside], NOW)).toEqual([atBoundary]);
   });
 
   it('keeps closed tickets from the last 30 days only', () => {

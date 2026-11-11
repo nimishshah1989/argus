@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { hash } from '@node-rs/argon2';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
@@ -160,21 +160,14 @@ function qrFixture(): ReportPdfInput {
 beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:16-alpine').start();
   pool = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
-  await pool.query(
-    readFileSync(
-      new URL('../../../packages/db/migrations/0001_schema_v1.sql', import.meta.url),
-      'utf8',
-    ),
-  );
-  await pool.query(
-    readFileSync(
-      new URL(
-        '../../../packages/db/migrations/0003_command_idempotency_binding.sql',
-        import.meta.url,
-      ),
-      'utf8',
-    ),
-  );
+  // Apply every migration in order (the same rule as the shared harness), so a new
+  // migration never silently breaks this suite.
+  const migrations = new URL('../../../packages/db/migrations/', import.meta.url);
+  for (const name of readdirSync(migrations)
+    .filter((file) => file.endsWith('.sql'))
+    .sort()) {
+    await pool.query(readFileSync(new URL(name, migrations), 'utf8'));
+  }
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2,
     memoryCost: 19456,

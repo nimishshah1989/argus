@@ -22,7 +22,7 @@ export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapsh
   raised_login_id, raised_channel, self_started, started_at, lead_person_id, segment_started_at,
   handed_over, handover_since, transfer_to_person_id, transfer_to_shift, transfers, wait_reason,
   wait_since, assigned_to_person_id, expected_back_at, waiting_spare, machine_running_at,
-  machine_stopped_at, closed_at, closed_by_person_id, close_kind, close_note, parent_id,
+  machine_stopped_at, closed_at, closed_by_person_id, close_kind, close_note, cancelled_at, parent_id,
   task_reason, task_expected_on::text AS task_expected_on, task_down_min, kind_upgraded_at,
   last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min, down_acc_min,
   downtime_min, follow_min, repair_min, overrides`;
@@ -38,7 +38,7 @@ const UPDATE_TICKET_SQL = `UPDATE ticket SET
   response_min = $32, active_min = $33, wait_min = $34, vendor_min = $35, handover_wait_min = $36,
   down_acc_min = $37, downtime_min = $38, follow_min = $39, repair_min = $40,
   expected_back_at = COALESCE($41, expected_back_at), waiting_spare = COALESCE($42, waiting_spare),
-  updated_at = now() WHERE id = $43`;
+  cancelled_at = $43, updated_at = now() WHERE id = $44`;
 
 const INSERT_TICKET_SQL = `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id,
   machine_snapshot, location, work_type, urgent, problem, problem_lang, reported_at,
@@ -166,6 +166,7 @@ export async function persistTicket(
     ...ticketValues(ticket),
     expectedBackAt,
     waitingSpare,
+    ticket.cancelledAt ?? null,
     ticket.id,
   ]);
 }
