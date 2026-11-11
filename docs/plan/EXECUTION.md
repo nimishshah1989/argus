@@ -19,13 +19,17 @@ The loop is objective → ready task → child execution → evidence → indepe
 
 ```mermaid
 flowchart TD
-  P[task-5 Approve importer correction plan] --> I[task-1 Correct importer]
+  P[task-5 Approve importer correction plan] --> V[task-10 Input contract]
+  P --> U[task-11 CLI + undo security]
+  P --> C[task-12 Pure domain reconciliation]
+  V --> I[task-1 Integrate + re-review importer]
+  U --> I
+  C --> I
   I --> M[task-6 Review + merge importer]
 
   A[task-2 D0.1 audit + role journeys] --> S[task-3 D0.2 design-system foundation]
-  S --> R[task-3a Freeze component contracts]
-  R --> FP[Floor prototype child]
-  R --> DP[Desk prototype child]
+  S --> FP[task-13 Floor prototype child]
+  S --> DP[task-14 Desk prototype child]
   FP --> D[task-4 Integrate D0.3 prototypes]
   DP --> D
   D --> G{task-7 Nimish design alignment}
@@ -41,12 +45,15 @@ implementation may later fan out, but PRs still enter the merge queue one at a t
 | Node               | Owner                           | Exclusive write scope                                                            |
 | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
 | task-5             | lead + fresh planner child      | `docs/slices/M1b-import.md`                                                      |
-| task-1             | importer implementation child   | `apps/server/src/import/`, `apps/server/test/import.test.ts`                     |
+| task-10            | import-schema child             | `schema.ts`, schema tests and `docs/spec/import/` only                           |
+| task-11            | import-security child           | `cli.ts`, `security.ts`, `undo.ts` and focused tests only                        |
+| task-12            | import-reconciliation child     | new `reconcile.ts` and focused tests only                                        |
+| task-1             | importer integration child      | `bhavin.ts`, `insert.ts`, integration test; child scopes above after they merge  |
 | task-6             | lead + fresh reviewers          | memory files listed on task-6; reviewers are read-only                           |
 | task-2             | lead + fresh design-audit child | `docs/design/`, `docs/slices/D0-design-foundation.md`                            |
 | task-3             | design-system child             | `apps/web/src/design-system/`, `apps/web/src/style.css`, `docs/DESIGN-SYSTEM.md` |
-| task-4 floor child | floor-prototype child           | floor-only prototype and E2E files assigned at contract freeze                   |
-| task-4 desk child  | desk-prototype child            | desk-only prototype and E2E files assigned at contract freeze                    |
+| task-13            | floor-prototype child           | `apps/web/src/prototype/floor/` + Floor prototype E2E only                       |
+| task-14            | desk-prototype child            | `apps/web/src/prototype/desk/` + Desk prototype E2E only                         |
 | task-4 integration | lead                            | prototype shell/routes/shared fixtures and final integration                     |
 | task-7             | Nimish (product gate)           | approval recorded in `docs/design/ALIGNMENT.md`                                  |
 | task-8             | Floor implementation child      | Floor screens + Floor E2E only                                                   |
