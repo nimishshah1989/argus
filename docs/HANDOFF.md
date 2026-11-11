@@ -12,8 +12,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **M1b actions (#52)**: desk Join/Leave (crew-aware, the lead counts as crew) and Cancel from working; floor Cancel-own for the caller's not-started ticket; 11 action unit tests + a join→leave desk E2E step.
 - **Needs-report list (#54)**: `GET /state` gains `needReport` (closed no-report, last 7 days, acting-person scoped; management sees the tenant list); the desk shows a hidden-when-empty "Needs report" segment, cleared by filing the late report.
 - **Day report PDF (#56)**: `GET /reports/day.pdf?date=&personId=&shift=day|night` renders a per-person day report (clipped minutes, day total, pending-at-end), stored through the same file store; role-gated (`canDayReport`) and technicians see only their own day.
+- **Account sheet + admin faces (#58)**: a header account sheet (name/title/role, acting person, sign out) and an admin panel on the ticket detail — Restore a cancelled ticket and Correct a ticket's facts, each with a reason.
 - **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (14 done / 35 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (191 tests / 28 files); `pnpm test:e2e` green (14 tests on the real stack).
+- Verification: `pnpm verify` green (195 tests / 28 files); `pnpm test:e2e` green (16 tests on the real stack).
 
 ## In flight
 
@@ -21,7 +22,8 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Next
 
-- M1b parity gaps: account sheet, admin correct/restore faces, Views 1–7 completion.
+- M1b parity gaps: Views 1–7 completion (the desk lists beyond Open/Mine/Team).
+- Account-sheet follow-up: on a shared login, show the login `username` (the person `name` is the acting person), per the reviewer.
 - Day-report follow-ups: the web download button, the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
 - **Split the over-budget screens**: `TicketDetail.tsx` (310), `ReportForm.tsx` (309), `Desk.tsx` (327) — pre-existing from the i18n migration.
 - Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap).

@@ -7,6 +7,7 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- Account sheet + admin faces (#58): a header sheet (person, title, role, acting person, sign out) and an admin panel on the ticket detail to restore a cancelled ticket or correct its facts, each with a reason.
 - Day report PDF (#56): `GET /reports/day.pdf` renders a per-person day report (clipped work minutes, day total, pending-at-end) by day or shift, stored in the file store; role-gated, technicians own-only.
 - Needs-report list (#54): a breakdown closed without a report appears on a 7-day needs-report list on the desk, scoped to the acting person (management sees all); the late report clears it.
 - M1b actions (#52): desk Join/Leave (crew-aware; the lead counts as crew) and Cancel from working; floor Cancel-own for the caller's own not-started ticket.
