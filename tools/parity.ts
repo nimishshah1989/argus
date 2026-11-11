@@ -33,6 +33,26 @@ export function loadParity(path = 'docs/spec/parity.yaml'): ParityFile {
   return file;
 }
 
+export function parseImportSourceRow(
+  markdown: string,
+): Pick<ParityRow, 'id' | 'feature' | 'disposition' | 'milestone'> {
+  const lines = markdown
+    .split('\n')
+    .filter((line) => line.trimStart().startsWith('| v3.import.01 |'));
+  if (lines.length !== 1)
+    throw new Error('PARITY.md: expected exactly one v3.import.01 source row');
+  const cells = (lines[0] as string)
+    .split('|')
+    .slice(1, -1)
+    .map((cell) => cell.trim());
+  const [id, feature, stance, milestone] = cells;
+  const disposition = stance?.split(/[ ;]/)[0]?.toLowerCase() as Disposition;
+  if (id !== 'v3.import.01' || !feature || !DISPOSITIONS.includes(disposition) || !milestone) {
+    throw new Error('PARITY.md: invalid v3.import.01 source row');
+  }
+  return { id, feature, disposition, milestone };
+}
+
 function identityErrors(row: ParityRow, seen: Set<string>): string[] {
   const errors: string[] = [];
   if (!ID.test(row.id)) errors.push(`${row.id}: invalid id`);
@@ -64,7 +84,27 @@ function rowErrors(row: ParityRow, seen: Set<string>): string[] {
   return [...identityErrors(row, seen), ...fieldErrors(row), ...evidenceErrors(row)];
 }
 
-export function validateParity(file: ParityFile): string[] {
+function sourceErrors(file: ParityFile, markdown: string): string[] {
+  let source: ReturnType<typeof parseImportSourceRow>;
+  try {
+    source = parseImportSourceRow(markdown);
+  } catch (error) {
+    return [(error as Error).message];
+  }
+  const row = file.rows.find((candidate) => candidate.id === source.id);
+  if (!row) return [`${source.id}: missing ledger row for PARITY.md source`];
+  const errors: string[] = [];
+  for (const key of ['feature', 'disposition', 'milestone'] as const) {
+    if (row[key] !== source[key])
+      errors.push(`${source.id}: ${key} does not match PARITY.md source`);
+  }
+  return errors;
+}
+
+export function validateParity(
+  file: ParityFile,
+  markdown = readFileSync('docs/spec/PARITY.md', 'utf8'),
+): string[] {
   const errors: string[] = [];
   if (file.expected_rows !== undefined && file.rows.length !== file.expected_rows) {
     errors.push(`expected ${file.expected_rows} rows, found ${file.rows.length}`);
@@ -74,6 +114,7 @@ export function validateParity(file: ParityFile): string[] {
     errors.push(...rowErrors(row, seen));
     seen.add(row.id);
   }
+  errors.push(...sourceErrors(file, markdown));
   return errors;
 }
 

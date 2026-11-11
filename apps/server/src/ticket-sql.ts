@@ -322,7 +322,7 @@ export async function persistResult(
   await persistTicket(client, result.ticket, commandExtras(tx.action, tx.body));
   await persistEvents(client, tx.tenantId, tx.ticketId, {
     events: newEvents,
-    startSeq: loaded.events.length,
+    startSeq: loaded.ticket.lastEventSeq + 1,
     idempotencyKey: tx.key,
     loginId: tx.auth.loginId,
     actingPersonId: tx.actingPersonId,
@@ -351,7 +351,18 @@ export async function personExists(
   return Boolean(row);
 }
 
+export async function lockRefCounter(
+  client: PoolClient,
+  tenantId: string,
+  prefix: 'BD' | 'WR',
+): Promise<void> {
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+    `ref-counter:${tenantId}:${prefix}`,
+  ]);
+}
+
 export async function allocateRef(client: PoolClient, tenantId: string): Promise<string> {
+  await lockRefCounter(client, tenantId, 'BD');
   const counter = (
     await client.query(
       "SELECT next_value FROM ref_counter WHERE tenant_id = $1 AND prefix = 'BD' FOR UPDATE",
@@ -359,6 +370,7 @@ export async function allocateRef(client: PoolClient, tenantId: string): Promise
     )
   ).rows[0];
   const next = counter ? Number(counter.next_value) : 1;
+  if (next > 2_147_483_646) throw new Error('BD reference counter is exhausted');
   await client.query(
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', $2) ON CONFLICT (tenant_id, prefix) DO UPDATE SET next_value = $2",
     [tenantId, next + 1],
