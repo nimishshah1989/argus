@@ -13,6 +13,10 @@ The milestone goal is the DSH persisted goal `goal-37931532-6766-42d9-8777-93749
 5. Rebuild Floor and Desk from the approved system, then resume the actionable M1b frontier.
 6. Stop at the M1b gate; begin M2 only after the required product-owner go decision.
 
+Nimish approved the clean white preview baseline and requested richer functional colour: criticality,
+machine condition/type and classification tags with a controlled accessible palette, icons and labels.
+This is design information hierarchy, not M2 business logic or decorative colour.
+
 The loop is objective → ready task → child execution → evidence → independent review → integration
 → recorded memory → re-evaluation. A red test/review returns to its owning task, not to the start.
 
@@ -20,9 +24,11 @@ The loop is objective → ready task → child execution → evidence → indepe
 
 ```mermaid
 flowchart TD
+  X[task-16 Live Harness cost panel]
+
   P[task-5 Approve importer correction plan] --> V[task-10 Input contract]
-  P --> U[task-11 CLI + undo security]
-  P --> C[task-12 Pure domain reconciliation]
+  V --> U[task-11 CLI + undo security]
+  V --> C[task-12 Pure domain reconciliation]
   V --> I[task-1 Integrate + re-review importer]
   U --> I
   C --> I
@@ -30,9 +36,11 @@ flowchart TD
 
   V[task-15 Clickable design preview for Nimish] --> S[task-3 D0.2 design-system foundation]
   A[task-2 D0.1 audit + role journeys] --> S
+  S --> T[task-17 Functional criticality + classification tags]
   S --> FP[task-13 Floor prototype child]
   S --> DP[task-14 Desk prototype child]
-  FP --> D[task-4 Integrate D0.3 prototypes]
+  T --> D[task-4 Integrate D0.3 prototypes]
+  FP --> D
   DP --> D
   D --> G{task-7 Nimish design alignment}
   G --> F[task-8 Rebuild production Floor]
@@ -46,6 +54,7 @@ implementation may later fan out, but PRs still enter the merge queue one at a t
 
 | Node               | Owner                           | Exclusive write scope                                                            |
 | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
+| task-16            | cost-plugin child               | `tools/dsh-live-cost/` only; no product writes                                   |
 | task-15            | design-preview child            | isolated `design-preview/` route, its E2E/evidence and ADR 0005                  |
 | task-5             | import-planner child            | `docs/slices/M1b-import.md`                                                      |
 | task-10            | import-schema child             | `schema.ts`, schema tests and `docs/spec/import/` only                           |
@@ -55,6 +64,7 @@ implementation may later fan out, but PRs still enter the merge queue one at a t
 | task-6             | lead + fresh reviewers          | memory files listed on task-6; reviewers are read-only                           |
 | task-2             | lead + fresh design-audit child | `docs/design/`, `docs/slices/D0-design-foundation.md`                            |
 | task-3             | design-system child             | `apps/web/src/design-system/`, `apps/web/src/style.css`, `docs/DESIGN-SYSTEM.md` |
+| task-17            | functional-tag child            | isolated Tag component, tag matrix/tests and `docs/design/TAG-SYSTEM.md`         |
 | task-13            | floor-prototype child           | `apps/web/src/prototype/floor/` + Floor prototype E2E only                       |
 | task-14            | desk-prototype child            | `apps/web/src/prototype/desk/` + Desk prototype E2E only                         |
 | task-4 integration | lead                            | prototype shell/routes/shared fixtures and final integration                     |
