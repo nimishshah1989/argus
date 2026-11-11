@@ -13,8 +13,9 @@ Under 50 lines. Read first, rewrite at session end.
 - **Needs-report list (#54)**: `GET /state` gains `needReport` (closed no-report, last 7 days, acting-person scoped; management sees the tenant list); the desk shows a hidden-when-empty "Needs report" segment, cleared by filing the late report.
 - **Day report PDF (#56)**: `GET /reports/day.pdf?date=&personId=&shift=day|night` renders a per-person day report (clipped minutes, day total, pending-at-end), stored through the same file store; role-gated (`canDayReport`) and technicians see only their own day.
 - **Account sheet + admin faces (#58)**: a header account sheet (name/title/role, acting person, sign out) and an admin panel on the ticket detail — Restore a cancelled ticket and Correct a ticket's facts, each with a reason.
+- **Quality-bar paydown (#60)**: `api.ts` 398→178 (+`api-types` 239), `Desk` 331→97 (+`desk/Board` 236), `TicketDetail` 312→189 (+`TicketFacts` 129), `ReportForm` 309→184 (+`ReportSections` 134); account sheet shows the login on a shared phone; domain `leave` gained its `canWork` guard; needs-report also matches the ticket lead.
 - **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (14 done / 35 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (195 tests / 28 files); `pnpm test:e2e` green (16 tests on the real stack).
+- Verification: `pnpm verify` green (197 tests / 28 files); `pnpm test:e2e` green (16 tests on the real stack).
 
 ## In flight
 
@@ -23,11 +24,11 @@ Under 50 lines. Read first, rewrite at session end.
 ## Next
 
 - M1b parity gaps: Views 1–7 completion (the desk lists beyond Open/Mine/Team).
-- Account-sheet follow-up: on a shared login, show the login `username` (the person `name` is the acting person), per the reviewer.
 - Day-report follow-ups: the web download button, the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
-- **Split the over-budget screens**: `TicketDetail.tsx` (310), `ReportForm.tsx` (309), `Desk.tsx` (327) — pre-existing from the i18n migration.
-- Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap).
-- Needs-report scope is "closer OR active crew"; optionally also include the lead (reviewer note).
+- Shared-login e2e for the account sheet (needs the shared-login person picker in the fixture).
+- **Split the over-budget screens**: done (#60) — re-check after future slices.
+- Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap) — **done in #60**.
+- Needs-report scope is "closer OR active crew"; optionally also include the lead (reviewer note) — **done in #60**.
 - **i18n follow-ups**: move the remaining rendered copy out of `.ts` files to keys (`components/actions.ts` action labels, `components/format.ts` units/elapsed, `screens/board/data.ts` tile statuses); then real Gujarati translations (external, SPEC 1.11).
 - Wire web push to ticket events (M2 escalation) and make `sendPush` tenant-aware; iOS install guidance.
 - Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.

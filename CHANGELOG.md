@@ -5,6 +5,11 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ## Unreleased
 
+### Changed
+
+- Quality-bar paydown (#60): split `api.ts`, `Desk.tsx`, `TicketDetail.tsx` and `ReportForm.tsx` back under budget (new `api-types`, `desk/Board`, `TicketFacts`, `ReportSections`); no behaviour change.
+- Domain `leave` now requires a worker (`canWork`); needs-report also matches the ticket lead; the account sheet shows the login on a shared phone.
+
 ### Added
 
 - Account sheet + admin faces (#58): a header sheet (person, title, role, acting person, sign out) and an admin panel on the ticket detail to restore a cancelled ticket or correct its facts, each with a reason.
