@@ -4,52 +4,37 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## Live (merged on main)
 
-- **M0 foundation**: schema v1 + `app_api` RLS role (#5/#7/#42), auth (#9), settings/config (#11), Cosmos seed (#12), walking skeleton (#14). Terraform is authored and validated (#13/#20/#22) — **not applied**.
-- **M1a ticket core**: domain figures/permissions/state (#15–#18), tickets API (#23), floor (#26), desk (#27), lists (#29), polish (#31), e2e harness (#33).
-- **M1b shipped early**: breakdown report form (#35), live board + kiosk (#36), breakdown PDF (#37), WhatsApp share text + PWA shell (#40), **offline outbox with cached reads + 409 drafts (#47)**, **web push with the acting-person re-subscribe rule (#48)**.
-- **Core-issue fixes**: C1 RLS on the request path (#42), C2/M1/M2 clocks (#41), C3/M3 corrections (#43), M4 idempotency binding (#44), duplicate-raise race (#38).
-- **i18n layer (M5, #50)**: i18next + react-i18next, a 202-key `en` catalogue and a `gu` placeholder (falls back to English), every web `.tsx` string extracted, and the `i18next/no-literal-string` lint rule enforced for web `.tsx`.
-- **M1b actions (#52)**: desk Join/Leave (crew-aware, the lead counts as crew) and Cancel from working; floor Cancel-own for the caller's not-started ticket; 11 action unit tests + a join→leave desk E2E step.
-- **Needs-report list (#54)**: `GET /state` gains `needReport` (closed no-report, last 7 days, acting-person scoped; management sees the tenant list); the desk shows a hidden-when-empty "Needs report" segment, cleared by filing the late report.
-- **Day report PDF (#56)**: `GET /reports/day.pdf?date=&personId=&shift=day|night` renders a per-person day report (clipped minutes, day total, pending-at-end), stored through the same file store; role-gated (`canDayReport`) and technicians see only their own day.
-- **Account sheet + admin faces (#58)**: a header account sheet (name/title/role, acting person, sign out) and an admin panel on the ticket detail — Restore a cancelled ticket and Correct a ticket's facts, each with a reason.
-- **Quality-bar paydown (#60)**: `api.ts` 398→178 (+`api-types` 239), `Desk` 331→97 (+`desk/Board` 236), `TicketDetail` 312→189 (+`TicketFacts` 129), `ReportForm` 309→184 (+`ReportSections` 134); account sheet shows the login on a shared phone; domain `leave` gained its `canWork` guard; needs-report also matches the ticket lead.
-- **Desk Views (#62)**: Team (Working now by person, Waiting, Not started, Cancelled 24h, Closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, **day-report download**); pure `views.ts` aggregation + 8 unit tests.
-- **Exact cancel time (#64)**: migration 0004 `cancelled_at`; the domain sets it on cancel and clears it on restore; the desk's 24h window now uses it (fallback only for pre-migration rows); the PDF test suite now applies all migrations.
-- **Exact per-person minutes (#66)**: the `/tickets` list carries `figures.perPerson` from one grouped `work_segment` query (no N+1), so the Team monthly primary/support split is exact.
-- **Process/CI (#45)**: e2e runs in CI, migration immutability + parity-update guards, parity ledger backfilled (16 done / 33 in-progress / 3 external), STATUS/README/CHANGELOG/backlog/PR template refreshed.
-- Verification: `pnpm verify` green (211 tests / 29 files, 4 migrations); `pnpm test:e2e` green (16 tests on the real stack).
+- **M0 foundation**: schema v1 + `app_api` RLS (#5/#7/#42), auth (#9), settings/config (#11), Cosmos seed (#12), walking skeleton (#14). Terraform is authored/validated (#13/#20/#22), not applied.
+- **M1a ticket core**: domain figures/permissions/state (#15–#18), tickets API (#23), floor (#26), desk (#27), lists (#29), polish (#31), E2E harness (#33).
+- **M1b shipped early**: report form (#35), live board/kiosk (#36), breakdown PDF (#37), WhatsApp share + PWA (#40), four close/report offline writes + cached reads + 409 drafts (#47), web push (#48).
+- **Core fixes**: request-path RLS (#42), clocks (#41), corrections (#43), idempotency binding (#44), duplicate-raise race (#38).
+- **i18n (#50)**: i18next/react-i18next, English catalogue and Gujarati placeholder fallback; real Gujarati remains external.
+- **M1b actions/views**: Join/Leave/Cancel (#52), acting-person needs-report (#54), per-person day PDF (#56), account + admin restore/correct (#58), Team/Mine (#62), exact cancel time (#64), exact per-person list minutes (#66); quality splits (#60).
+- **Process/CI (#45+)**: E2E in CI, migration immutability and parity-update guards. The pre-D0.1 merged baseline was 211 Vitest tests and 16 regular E2E tests.
 
 ## In flight
 
-- Nothing.
+- **D0.1 on local `design-d01`**: PRODUCT, current-truth v3/all-four-inventory map, seven role journeys, prototype decisions, usability script, authoritative visual/status specs, Q24/D19 and 80 parity rows. No PR, merge or staging deployment.
+- Evidence: nine fake-data PNGs + `visualApproval: false` manifest; expected missing-manifest RED, then baseline **2/2 GREEN** without capture, regular E2E **16/16**, `pnpm verify` **211/211**, parity **80 rows**, all with no retries/skips.
+- **Visual limitation:** this builder called `read_image` on every PNG, but the model lacks image input. Structural/route checks are not visual inspection; independent image-capable review and D0.1 gate-manual review remain pending. No visual approval or offline new-raise implementation is claimed.
 
 ## Next
 
-- Day-report follow-ups: the team variant (and constrain `plant_head` to their team then), WhatsApp delivery.
-- Shared-login e2e for the account sheet (needs the shared-login person picker in the fixture).
-- **Split the over-budget screens**: done (#60) — re-check after future slices.
-- Domain `leave` still lacks a `canWork` guard (pre-existing, PR #23 gap) — **done in #60**.
-- Needs-report scope is "closer OR active crew"; optionally also include the lead (reviewer note) — **done in #60**.
-- **i18n follow-ups**: move the remaining rendered copy out of `.ts` files to keys (`components/actions.ts` action labels, `components/format.ts` units/elapsed, `screens/board/data.ts` tile statuses); then real Gujarati translations (external, SPEC 1.11).
-- Wire web push to ticket events (M2 escalation) and make `sendPush` tenant-aware; iOS install guidance.
-- Import/cutover: Bhavin export + Worker (external), Gujarati strings (external), runbook.
-- M2 SLA/escalation, then M4 analytics (needs Bhavin's platform file + Excel export).
-- **P1** (trim the process harness) needs Nimish's go-ahead; **M9** (verify/remove the Bedrock plugin, rotate the key) is Nimish's action.
+- Finish D0.1 gate-manual and independent image review; keep it `in-progress` until then. D0.2/D0.3 are isolated artifacts only; production migration waits for Nimish's explicit D0.3 alignment.
+- Implement Q24 separately in M1: queued stopped/support only, visible pending, persisted/reused client idempotency, duplicate-open resolution and needs-attention; general/other-work stays online-only.
+- Preserve existing acting-person My complaints filtering; prototype/test shared-phone no-device-history and no-Desk-link presentation before marking `v3.views.07` done.
+- M1b: importer/cutover, real Gujarati, team day-report variant and constrained plant-head team view, WhatsApp delivery, update banner and remaining ledger gaps.
+- M2 SLA/escalation/handback, then M4 analytics. P1 harness trim needs Nimish's go-ahead; M9 plugin/key check is Nimish's action.
 
 ## Known deferrals (see slice plans)
 
-- Past-breakdown form/overrides (the domain records overrides; the server must persist them to the `overrides` jsonb), child tasks on close, PDF jobs, `/state` extra buckets, acknowledge/handback (M2), i18n/Gujarati, board cancelled-24h tile, `GET /files/{id}` streaming + PDF cache, Noto Sans Gujarati in the image, `ticket-pdf.test.ts` onto the shared harness, `ShareButton`/`api.ts` deep import → `@uptimo/shared` workspace dep + api type split, route-scoped web manifest, Workbox `precacheAndRoute` if desired.
-
-## Models
-
-- The Bedrock plugin is installed and configured; it is blocked only by the session model-selection policy (add providers in Settings → Models). The M9 key check is Nimish's.
+- Past-breakdown form/overrides persistence, child tasks on close, PDF jobs/cache, `/state` extra buckets, Board cancelled-24h tile, `GET /files/{id}` streaming, Noto in the deploy image, route-scoped manifests and remaining `.ts` copy extraction.
+- No Board/Management/Settings rebuild, role-shell change, real Gujarati translation, offline new-raise queue or copied discovery implementation in D0.1.
 
 ## Blocked / questions for Nimish
 
-- Domain: **uptimo.in** registration; raise AWS spend limit; confirm management-root MFA.
-- After apply: GitHub secrets `AWS_ROLE_ARN`; bootstrap `/opt/uptimo`; rename the GitHub repo `argus → uptimo`.
-- Bhavin export/Worker (M1b gate); shifts; legacy code aliases; Sarvam keys + consented Gujarati notes; legacy PDF corpus; Excel export.
+- Domain `uptimo.in`, AWS spend limit/apply, management-root MFA and GitHub AWS secrets; Terraform remains unapplied.
+- Bhavin export/Worker, current analytics file + Excel, shifts and legacy aliases; Sarvam keys + consented Gujarati notes; legacy PDF corpus.
 
 ## Parallel rule
 

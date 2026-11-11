@@ -4,15 +4,15 @@ The goal is not a prettier version of Bhavin’s page. It is a **role-first prod
 
 ## 1. What Bhavin got right, and what we change
 
-| Bhavin’s v3                                                                                   | Keep                                    | Change                                                                                                  |
-| --------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Three-tap report, machine search that ignores dashes, quick problem chips, voice              | Yes — this is the floor’s muscle memory | Bigger targets, clearer states, offline-safe, Gujarati/Hindi throughout                                 |
-| One dense page per role, bottom tabs                                                          | The role split is right                 | A real information architecture: Today, Open, Mine, Team, Live, Analytics, Settings; one job per screen |
-| Status colours (stopped red, working blue, support amber, transferred violet, waiting orange) | Yes — people already read them          | Add text and icons, never colour alone; consistent tokens; accessible contrast                          |
-| Ticket timeline, people and minutes, follow-up box                                            | Yes — this is the accountability record | A clearer detail sheet/page with a state-dependent action bar, not a wall of buttons                    |
-| PDFs built on the phone, English only                                                         | The form fields and the QR transition   | Server-rendered PDFs with Gujarati, stored, shareable                                                   |
-| 30-second refresh, cached state, offline queue                                                | Yes                                     | Visible offline state, a “needs attention” queue for 409s, no silent drops                              |
-| Management uses a separate desktop HTML                                                       | The analytics content is strong         | One product: management gets a Today page, scorecard, drill-down and exports inside the same app        |
+| Bhavin’s v3                                                                      | Keep                                          | Change                                                                                                                                                           |
+| -------------------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Three-tap report, machine search that ignores dashes, quick problem chips, voice | Yes — this is the floor’s muscle memory       | Bigger targets, clearer states, offline-safe, Gujarati/Hindi throughout                                                                                          |
+| One dense page per role, bottom tabs                                             | The role split is right                       | A real information architecture: Today, Open, Mine, Team, Live, Analytics, Settings; one job per screen                                                          |
+| Status colours and labels                                                        | Keep the learned urgency, not the old palette | Two independent condition/work axes; deep-teal working, red stopped, amber support/waiting/pickup, green running/success; Lucide icon + text, never colour alone |
+| Ticket timeline, people and minutes, follow-up box                               | Yes — this is the accountability record       | A clearer detail sheet/page with a state-dependent action bar, not a wall of buttons                                                                             |
+| PDFs built on the phone, English only                                            | The form fields and the QR transition         | Server-rendered PDFs with Gujarati, stored, shareable                                                                                                            |
+| 30-second refresh, cached state, offline queue                                   | Yes                                           | Visible offline state, a “needs attention” queue for 409s, no silent drops                                                                                       |
+| Management uses a separate desktop HTML                                          | The analytics content is strong               | One product: management gets a Today page, scorecard, drill-down and exports inside the same app                                                                 |
 
 ## 2. Seven rules
 
@@ -67,15 +67,27 @@ Board:        tiles by segment/cell ──► machine sheet
 
 **Tokens, not one-off styles.** A small set of colours, type sizes, spacing, radii, shadows and motion, used everywhere. Components are copied from shadcn/ui and built on Radix primitives (accessible by default), with Tailwind tokens.
 
-| Token group        | Rules                                                                                                                                                                                                                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Colour             | One accent for actions (deep teal or blue); neutral greys for surfaces; status: stopped red, working blue, support/follow-up amber, transferred violet, waiting orange, running neutral. Status also has a label and an icon; colour is never the only signal. Contrast WCAG AA. |
-| Type               | System UI stack for Latin; Noto Sans Gujarati/Devanagari for consistent Indic rendering; scale 12/14/16/20/24/32; floor body 18–26 px; numerals tabular for times and KPIs.                                                                                                      |
-| Spacing            | 4/8/12/16/24/32/48; generous on the floor, denser on management but never cramped.                                                                                                                                                                                               |
-| Targets            | Floor and desk buttons at least 52 px tall; 8 px minimum gap; thumb-zone primary actions.                                                                                                                                                                                        |
-| Radius / elevation | 8–16 px radii; one subtle shadow scale; no glassmorphism, no gradient decoration.                                                                                                                                                                                                |
-| Motion             | 150–250 ms, purposeful (sheet open, state change, count change); respects `prefers-reduced-motion`; no animation that hides a state change.                                                                                                                                      |
-| Density            | Floor low; desk medium; management higher but with a maximum row height and a “comfortable” toggle later.                                                                                                                                                                        |
+| Token group        | Rules                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Colour / surfaces  | Body/canvas and cards white; neutrals only for text, borders and subordinate detail, never a grey application background. One deep-teal accent for action/selection/focus/working; red stopped/destructive; amber support/follow-up/waiting/transferred-for-pickup; green running/success; neutral general/not-started/cancelled/inactive detail. WCAG AA. |
+| Type               | System UI stack for Latin; Noto Sans Gujarati/Devanagari for consistent Indic rendering; scale 12/14/16/20/24/32; floor body 18–26 px; numerals tabular for times and KPIs. No display font in v0.                                                                                                                                                         |
+| Spacing            | 4/8/12/16/24/32/48; generous on the floor, denser on management but never cramped.                                                                                                                                                                                                                                                                         |
+| Targets / icons    | Floor and desk buttons at least 52 px tall; 8 px minimum gap; thumb-zone primary actions. Lucide outline only, 1.75 px stroke/round joins: 16 status, 20 button/list, 24 navigation, 28 Floor choice. Decorative icons hidden from assistive technology; icon-only controls named and 52 px.                                                               |
+| Radius / elevation | 8–16 px radii; borders before shadows; no glassmorphism, gradients, dark variant or competing blue/violet rainbow.                                                                                                                                                                                                                                         |
+| Motion             | 150–250 ms, purposeful (sheet open, state change, count change); respects `prefers-reduced-motion`; no animation that hides a state change.                                                                                                                                                                                                                |
+| Density            | Floor low; desk medium; management higher but with a maximum row height and a “comfortable” toggle later.                                                                                                                                                                                                                                                  |
+
+### Exact two-axis status contract
+
+Condition and work are independent and each gets icon + label. Example: **Stopped · In progress**.
+
+| Axis             | Source fields                                              | Mapping                                                                                                                                                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Condition        | `kind`, `parentId`, `machineRunningAt`, `machineStoppedAt` | `support` → amber LifeBuoy **“Support”**; `general` with parent → amber ClipboardCheck **“Follow-up”**; other general → neutral ClipboardList **“Work request”**; `stopped` → red CircleStop **“Stopped”**, except a later running interval → green CircleCheck **“Running”**              |
+| Running interval | `machineRunningAt` and `machineStoppedAt`                  | running-again only when running exists and is later than stopped (or stopped is null); a running machine does not close the ticket                                                                                                                                                         |
+| Work             | `status`, `handedOver`                                     | closed → green CheckCheck **“Closed”**; cancelled → neutral CircleX **“Cancelled”**; waiting → amber Clock3 **“Waiting”**; working → teal Wrench **“In progress”**; open + handedOver → amber ArrowRightLeft **“Waiting for pickup”**; other open → neutral CircleDashed **“Not started”** |
+
+Transferred remains open with **Waiting for pickup**, not a stored status. Condition and work keep separate icon + text labels on cards, detail and tiles.
 
 **Components:** button, icon button, input, select, combobox, search, textarea, checkbox, radio, switch, chip, badge, status pill, card, list row, avatar, tabs, segmented control, bottom sheet, dialog, drawer, toast, inline alert, empty state, skeleton, pagination, data table, KPI tile, trend, progress, calendar, timeline, file upload, signature pad, QR, chart wrapper, confirm dialog, error boundary, offline banner.
 
@@ -89,15 +101,15 @@ Board:        tiles by segment/cell ──► machine sheet
 2. **What is the situation?** Two huge choices: “Machine has stopped” (downtime starts) and “Running, needs support”.
 3. **What is wrong?** Textarea, six quick chips, mic (“Speak in Gujarati”), who is reporting (from the plant’s people, never free text), send. Pending-task warning if the machine has one.
 
-Then: **Sent** — ticket number, WhatsApp share, “Report another”, “My complaints”. Offline: “Saved on this phone; it will send when you have signal.”
+Then: **Sent** — ticket number, WhatsApp share, “Report another”, “My complaints”. Current production new raises require a connection. In the separate M1 offline-raise todo, stopped/support reports show queued/pending, persist and reuse one client idempotency key, resolve duplicate-open to the existing ticket and keep unresolved failures visible as needs-attention. General/other-work is excluded and requires a connection until separately approved. D0.1 does not claim this queue is implemented.
 
 ### Desk — the queue that tells you what to do
 
-Open shows a counts strip (Down, Waiting, Support, Running OK), then three lists: Breakdowns, Tasks, Work. A card shows machine, problem, elapsed, owner, and the next action. The detail view has a timeline, people and minutes, the follow-up box, the WhatsApp text, and a state-dependent action bar (Start / Pause / Resume / Transfer / Running again / Close). No 15-button wall.
+Open shows condition/work summaries, then three lists: Breakdowns, Tasks, Work. A card shows machine, problem, elapsed, owner, independent condition + work labels, and the next action. The detail view has a timeline, people and minutes, the follow-up box, the WhatsApp text, and a state-dependent action bar (Start / Pause / Resume / Transfer / Running again / Close). No 15-button wall. A running machine stays open and transfer reads **Waiting for pickup**.
 
 ### Board — readable from three metres
 
-Full-screen tiles by segment/cell. Each tile: machine code, status label, elapsed time, owner initials. Counts strip at the top, filter chips, machine search, work-request footer. Tap → machine sheet. No navigation. Auto-refresh; large type; high contrast; no motion except a subtle pulse for a new stop.
+Full-screen tiles by segment/cell. Each tile: machine code, independent condition + work icon/labels, ref, elapsed time and owner. Counts summary at the top, filter chips, machine search, work-request footer. Tap → read-only machine sheet where permitted. Kiosk has no Report/Desk navigation. Auto-refresh with a visible as-of/offline state; large type; high contrast; reduced-motion-safe updates and no colour-only meaning.
 
 ### Management — five numbers, then the evidence
 
@@ -139,8 +151,9 @@ Tailwind + shadcn/ui + Radix primitives + Lucide icons; TanStack Query/Table; EC
 
 ## 10. Governance
 
-- `docs/DESIGN.md` holds the principles (Apple: clarity, deference, depth).
-- `docs/DESIGN-SYSTEM.md` (to be written in session 1) holds the tokens, components and patterns; it is the contract.
+- `docs/DESIGN.md` holds the principles (Apple: clarity, deference, depth) and the authoritative white/deep-teal/two-axis contract.
+- `docs/DESIGN-SYSTEM.md` (D0.2) holds the tokens, components and patterns; D0.3 makes the coherent Floor/Desk direction clickable in isolation.
+- Nimish's explicit D0.3 visual-alignment record is required before production migration. Agent screenshot inspection, current-truth baselines and automated tests are not that approval; Board/Management/Settings and role shells have separate later slices.
 - Every screen has a design review checklist: role, task, primary action, states, accessibility, i18n, performance, real content.
 - A human product designer reviews the floor and desk at M1a and the management face at M4a. A few hours, not a full-time hire. AI can produce a consistent system; human taste and real user observation catch what a model cannot.
 - No screen is “done” because it looks good in a screenshot. It is done when a person in the target role completes the task on a phone, and the tests prove it.

@@ -5,7 +5,7 @@ const file = loadParity();
 
 describe('parity ledger', () => {
   it('has one unique row per parity feature', () => {
-    expect(file.rows).toHaveLength(79);
+    expect(file.rows).toHaveLength(80);
     expect(new Set(file.rows.map((row) => row.id)).size).toBe(file.rows.length);
   });
 

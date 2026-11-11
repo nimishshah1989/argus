@@ -3,7 +3,7 @@
 # status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
 # A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
 version: 1
-expected_rows: 79
+expected_rows: 80
 rows:
   - id: v3.signin.01
     feature: Username and password; 30-day sliding session; "Show password"; last username remembered
@@ -583,8 +583,8 @@ rows:
       - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
-    feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
-    disposition: keep
+    feature: 'My complaints (floor): acting-person open/fixed/cancelled history and cancel; no device-wide history or report-only Desk link pending'
+    disposition: improve
     milestone: M1
     milestones:
       - M1
@@ -778,6 +778,16 @@ rows:
     status: in-progress
     evidence:
       - 'PR #5'
+    source: PARITY.md §v3 / Alerts, offline, platform
+  - id: v3.alerts.09
+    feature: Offline new stopped/support reports queue with visible pending, stable client idempotency reused on every replay, duplicate-open resolution and needs-attention behavior; general/other-work requires a connection
+    disposition: improve
+    milestone: M1
+    milestones:
+      - M1
+    status: todo
+    evidence:
+      - docs/design/PROTOTYPE-DECISIONS.md
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: analytics.registers.01
     feature:

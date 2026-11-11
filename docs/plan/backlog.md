@@ -13,9 +13,9 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 | M3 WhatsApp and voice                | 3       | 0    | 0           |
 | M4a Analytics parity                 | 3       | 0    | 0           |
 | M4b The loop                         | 3       | 0    | 0           |
-| Design (enabling)                    | 4       | 0    | 0           |
+| Design (enabling)                    | 4       | 0    | 1           |
 
-**Frontier now:** M1a is merged on main (see `docs/plan/STATUS.md`); the M1b remainder — offline outbox, push, day-report PDF, import, Gujarati, cutover — is next. The M0 staging gate (`M0-0.7`) is authored but `blocked-external` on AWS and the domain.
+**Frontier now:** M1a and several M1b slices are merged on main (see `docs/HANDOFF.md`). D0.1's documentation and fake-data baseline are `in-progress` pending gate-manual and independent image-capable review; there is no visual approval or offline new-raise implementation. The M1b import, real Gujarati and cutover remain, followed by M2/M4. Offline new stopped/support reports are a separate M1 todo; general/other-work remains online-only. The M0 staging gate (`M0-0.7`) is authored but `blocked-external` on AWS and the domain.
 
 ## M0 Foundation and walking skeleton
 
@@ -275,8 +275,8 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto + gate-manual
 - **Depends on:** 0.1
-- **Status:** todo
-- **Acceptance:** Audit Bhavin v3 and the inventories; one journey per role; the five management numbers. Artifact: docs/design/ROLE-JOURNEYS.md.
+- **Status:** in-progress
+- **Acceptance:** v3/all-four-inventory coverage map, seven role journeys with five first-screen items and the exact two-axis contract, five management outcomes, prototype decisions, usability script and nine fake-data baseline images are written. Baseline 2/2, regular E2E 16/16 and `pnpm verify` (211 tests) pass; manifest `visualApproval: false`. Remains in-progress until gate-manual review; this model could not read images, so independent image-capable inspection and later Nimish D0.3 alignment remain pending. Artifacts: `docs/design/CURRENT-TRUTH.md`, `docs/design/ROLE-JOURNEYS.md`, `docs/design/evidence/d01/baseline-manifest.json`.
 
 ### D0.2 — Design tokens and component library v0
 
