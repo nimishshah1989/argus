@@ -21,6 +21,7 @@ import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { Timeline } from '../components/Timeline.js';
+import { TagsPanel } from '../components/tags/TagsPanel.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -96,6 +97,13 @@ interface ViewProps {
   error: string | null;
 }
 
+function hasReportContext(
+  config: Config | undefined,
+  personId: string | null | undefined,
+): boolean {
+  return Boolean(config && personId);
+}
+
 function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
   const { t } = useTranslation();
   const { ticket, events, people, intervals } = detail;
@@ -116,11 +124,11 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt) })}
         </p>
       </header>
-      {config && personId && (
+      {hasReportContext(config, personId) && (
         <ReportPanel
           ticket={ticket}
-          config={config}
-          personId={personId}
+          config={config!}
+          personId={personId!}
           crew={crew}
           canEdit={canWork(me?.role)}
           command={(action, body) => run(ticket.id, action, body)}
@@ -133,6 +141,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         <ShareButton ticket={ticket} config={config} mode="full" />
       </div>
       <Facts ticket={ticket} config={config} />
+      <TagsPanel ticketId={ticket.id} canEdit={canWork(me?.role)} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
       <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
       <Timeline

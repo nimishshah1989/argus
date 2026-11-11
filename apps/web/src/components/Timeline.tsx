@@ -23,6 +23,8 @@ const LABEL_KEYS: Record<string, string> = {
   edit: 'timeline.edit',
   task: 'timeline.task',
   acknowledge: 'timeline.acknowledge',
+  tag_add: 'timeline.tagAdd',
+  tag_remove: 'timeline.tagRemove',
 };
 
 interface Props {

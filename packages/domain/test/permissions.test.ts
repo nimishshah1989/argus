@@ -38,8 +38,12 @@ describe('permissions', () => {
 
   it('gates work actions to technician and above', () => {
     expect(canWork(actor('technician'))).toBe(true);
+    expect(canWork(actor('supervisor'))).toBe(true);
+    expect(canWork(actor('head'))).toBe(true);
+    expect(canWork(actor('admin'))).toBe(true);
     expect(canWork(actor('operator'))).toBe(false);
     expect(canWork(actor('plant_head'))).toBe(false);
+    expect(canWork(actor('board'))).toBe(false);
   });
 
   it('lets a technician close only as lead, primary or on a shared login', () => {

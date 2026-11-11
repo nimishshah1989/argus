@@ -2,67 +2,51 @@
 
 Under 50 lines. Read first, rewrite at session end.
 
-## RESUME HERE
+## RESUME HERE (M2 configurable tags)
 
-**State**: branch `import-integration` has the corrected **synthetic-only** M1b importer integrated.
-It accepts only `argus.synthetic-bhavin/v1`; real Bhavin/N1 exports are rejected before a batch.
-No migration, dependency, frontend change, production execution, or real compatibility claim is included.
+**State**: `tag-system-planning` is a focused branch from current `main`; the original mixed planning
+branch is preserved as `tag-system-planning-superseded`. The tag implementation and acceptance evidence
+are complete. Independent final review and GitHub CI remain; do not merge until both pass.
 
-- Strict contract/aliases, canonical identity and parent graphs, savepoint row recovery, fatal batch state,
-  domain figures/overrides, counters, original zero-based events, and report/pending-person persistence are integrated.
-- CLI requires `app_api` and staging or explicit production confirmation. Undo checks terminal synthetic batches,
-  provenance, fingerprints, later work and outside references, then deletes reports before tickets and writes audit.
-- Full verification is green: `pnpm verify` (380 tests / 38 files), Playwright 16/16, build, parity,
-  licences, migration and lean checks. The integration implementation commit is `0945ce2`; tests/artifacts follow.
-- **Next**: commit the remaining integration/artifact increment, then obtain independent R3 review and green CI.
-  Do not merge or use this for cutover from this handoff alone.
+- `ticket_tag` replaces the unmerged `setting` prototype: forced tenant RLS, composite tenant FKs,
+  ticket/item cascade, actor/time, and uniqueness.
+- Catalogue values come only from tenant `list_item` rows (`breakdown_category`, `maint_code`,
+  `work_type`). There is no synthetic domain catalogue and no manual severity tagging.
+- Writes enforce `canWork`, exact idempotent replay, one locked transaction, and `tag_add`/`tag_remove`
+  history. Tests cover every role, two tenants, concurrent writers, replay, validation and cascade.
+- Browser coverage includes empty/loading/selected/read-only/error states, inactive removal and axe.
+- Local verification: 397 tests / 40 files, 22 / 22 desktop-phone E2E, build, lint, formatting,
+  migrations, immutability, lean, licences, parity and declared size check all green.
+- The slice and executable acceptance matrix live in `docs/slices/M2-tags.md` with red/green evidence.
+- N12 remains consistently **open** for the older 1,158-row cutover set; no unresolved alias is encoded
+  as a production tag rule. M2-2.1 separately derives S1–S4 from the criticality/state matrix.
 
 ## Live on main
 
-- M0 foundation: schema v1 with forced RLS and `app_api`, auth, settings/config, Cosmos seed, walking skeleton.
-- M1a ticket core: domain state/figures/permissions, tickets API, floor/desk, lists and real E2E harness.
-- M1b shipped early: report form/PDF, live board, PWA/WhatsApp share, offline outbox, web push, needs-report,
-  day-report PDF, account/admin faces, Desk Views, exact cancel time and exact per-person minutes.
-- Core fixes: request-path RLS, clock corrections, correction audit/overrides, idempotency binding and duplicate raise.
-- Process: CI E2E, migration immutability, parity-update guards and lean checks.
+- M0 foundation: forced RLS, `app_api`, auth, settings/config, Cosmos seed and walking skeleton.
+- M1a ticket core: domain state/figures/permissions, ticket API, floor/desk, lists and real E2E harness.
+- M1b: report/PDF, live board, PWA/share, offline outbox, push, needs-report, day report, admin faces,
+  Desk Views, exact cancel time and per-person minutes.
+- M1b import (#69/#70): safe synthetic-only contract, reconciliation, security checks and undo.
+- M1b gate evidence: 380 Vitest tests, 16 Playwright tests, full verification and R3 review.
 
 ## In flight
 
-- `import-integration`: synthetic importer implementation complete; final verification and independent review remain.
-- Real N1 export/Worker schema, reviewed N12 aliases and cutover runbook remain external and are not implemented.
+- `tag-system-planning`: isolated checks green; fresh final review and PR/CI are next.
+- Severity, timeline/history and Bhavin Excel conversion are separate tasks, not part of this branch.
 
 ## Next
 
-- Independent architecture/schema/code/security/test/lean/data reviews for the importer PR, then green GitHub CI.
-- Day-report follow-ups, shared-login E2E, real Gujarati strings, then M2 SLA/escalation and M4 analytics.
+1. Obtain the independent PASS, create the labelled PR and require green GitHub CI.
+2. Merge only after green CI; staging/production execution is not part of this session.
+3. Implement M2-2.1 severity as the specified criticality/state matrix in its own slice.
+4. Real N1 compatibility/cutover remains external and requires human security sign-off.
 
 ## Blocked / external inputs
 
-- N1 Bhavin live export and Worker source; N11 real shifts; N12 legacy aliases; N5 Gujarati strings.
-- Real import/cutover remains blocked on those inputs and human security sign-off, not on synthetic test coverage.
+- N1 real export semantics, N11 real shifts, N12 older-set aliases, N5 Gujarati strings.
+- AWS/domain/GitHub OIDC remain external; Terraform is authored but unapplied.
 
 ## Parallel rule
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
-
----
-
-## M1b Gate Record — 2026-11-11
-
-**SHA:** 1b4a06d (main)
-
-**Milestone:** M1b — safe synthetic importer with strict schema and undo
-
-**Evidence:**
-- R3 adversarial review: PASS
-- 380/380 Vitest tests
-- 16/16 Playwright E2E
-- Full typecheck, lint, format, parity, licences, migrations, lean pass
-
-**Key deliveries:**
-- `apps/server/src/import/` — contract, security, undo, reconciliation modules
-- `docs/slices/M1b-import.md` — 51-test plan and execution record
-- No unsafe ae17369 behaviors
-- size:large documented and approved
-
-**Next gate:** M2 preparation begins. Awaiting real Bhavin N1/N12 inputs for cutover authorization.
