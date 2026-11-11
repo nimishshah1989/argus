@@ -200,37 +200,3 @@ export function Board({ state, people, machines, canQuick, pending, onQuick }: B
     </>
   );
 }
-
-interface MineProps {
-  tickets: Ticket[];
-  machines: Machine[];
-  now: string;
-  isLoading: boolean;
-  error: unknown;
-}
-
-export function MinePanel({ tickets, machines, now, isLoading, error }: MineProps) {
-  const { t } = useTranslation();
-  if (isLoading) return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
-  if (error) {
-    return (
-      <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
-        {errorMessage(error)}
-      </p>
-    );
-  }
-  return (
-    <div className="mt-6">
-      <TicketList
-        title={t('desk.mineTitle')}
-        empty={t('desk.mineEmpty')}
-        tickets={tickets}
-        machines={machines}
-        now={now}
-        canQuick={false}
-        pending={false}
-        onQuick={() => undefined}
-      />
-    </div>
-  );
-}
