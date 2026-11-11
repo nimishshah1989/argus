@@ -78,6 +78,8 @@ window.__ModuleLoader__.load({
 
     function modelIdFrom(values) {
       for (const holder of [values, values?.session, values?.llm]) {
+        const lastUsed = holder?.modelSelection?.lastUsed?.model;
+        if (typeof lastUsed === "string" && lastUsed.trim()) return lastUsed;
         for (const key of ["model", "modelId", "activeModel", "selectedModel"]) {
           const candidate = holder?.[key];
           if (typeof candidate === "string" && candidate.trim()) return candidate;

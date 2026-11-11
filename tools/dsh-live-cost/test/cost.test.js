@@ -157,6 +157,54 @@ test("collects recursive catalog children and tolerates missing child usage", ()
   assert.deepEqual(report.unpricedModels, ["vendor.unconfigured-model"]);
 });
 
+test("prices lastUsed on lead and child projections and reads direct head values", () => {
+  const lastUsed = { provider: "amazon-bedrock", model: MODEL };
+  const sessions = {
+    binding: () => ({
+      session: {
+        getSnapshot: () => ({ modelSelection: { lastUsed } }),
+        projections: {
+          faceOf: (key) => key === "tokenUsage"
+            ? { getSnapshot: () => ({ uncachedInputTokens: 1_000_000 }) }
+            : { values: [{ id: "child", label: "Child from head values" }] },
+        },
+      },
+    }),
+    manager: {
+      projectionValues: (id) => id === "child" ? {
+        modelSelection: { lastUsed },
+        tokenUsage: { totals: { outputTokens: 100_000 } },
+      } : undefined,
+    },
+  };
+
+  const report = api.collectCostReport("lead", sessions);
+  assert.deepEqual(report.sessions.map(({ id, model, priced }) => ({ id, model, priced })), [
+    { id: "lead", model: MODEL, priced: true },
+    { id: "child", model: MODEL, priced: true },
+  ]);
+  assert.equal(report.sessions[1].name, "Child from head values");
+  assert.equal(report.totalUsd, 6);
+  assert.deepEqual(report.unpricedModels, []);
+});
+
+test("keeps an unknown lastUsed model unpriced", () => {
+  const model = api.modelIdFrom({
+    modelSelection: {
+      lastUsed: { provider: "amazon-bedrock", model: "vendor.unknown-last-used" },
+    },
+  });
+  const report = api.aggregateCost([
+    { id: "lead", name: "Lead", model, usage: { uncachedInputTokens: 1_000_000 } },
+  ]);
+
+  assert.equal(model, "vendor.unknown-last-used");
+  assert.equal(report.totalUsd, 0);
+  assert.equal(report.sessions[0].priced, false);
+  assert.equal(report.sessions[0].cost, null);
+  assert.deepEqual(report.unpricedModels, ["vendor.unknown-last-used"]);
+});
+
 test("renders a missing session as unavailable rather than inventing usage", () => {
   const report = api.collectCostReport("missing", {
     binding: () => undefined,
