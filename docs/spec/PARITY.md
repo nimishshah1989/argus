@@ -57,6 +57,12 @@ Source: the full page source (`app.js` 1,654 lines, `ref.js`, `voice.js`, build 
 | Pending tasks: left at close with reason and expected date; Tasks tab; follow-up boxes pending, in progress, overdue, done | Keep | M1 |
 | Who may close: lead, a primary, supervisor, admin; shared phone anyone | Keep, server-side | M1 |
 
+**Import and cutover (SPEC 1.10)**
+
+| ID | Feature today | Ours | Milestone |
+| --- | --- | --- | --- |
+| v3.import.01 | Import Bhavin's live ticket store JSON with events, crew, reports, reviewed aliases, figure reconciliation, reference counters, and reversible undo | Keep | M1 |
+
 **Views**
 
 | Feature today | Ours | Milestone |

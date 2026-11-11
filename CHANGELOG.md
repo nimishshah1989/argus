@@ -12,6 +12,11 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- Synthetic-only M1b importer correction: strict `argus.synthetic-bhavin/v1` parsing and aliases,
+  canonical identity/parent graphs, row savepoints and fatal batch records, domain figure reconciliation,
+  counters, zero-based events, pending/report persistence, and fingerprinted `app_api` undo with real CLI,
+  integration and post-import command tests. Real N1 schema/compatibility and cutover remain external;
+  no migration, dependency, frontend or production-execution claim is made.
 - Exact cancel time (#64): migration 0004 adds `cancelled_at`; cancel sets it and restore clears it; the desk's cancelled-24h window uses it exactly.
 - Exact per-person minutes (#66): the ticket list carries `figures.perPerson` from one grouped query, so the Team primary/support split is exact.
 - Desk Views (#62): Team (working now by person, waiting, not started, cancelled 24h, closed 30 days with monthly per-person totals) and Mine (in-progress, waiting, closed 30 days, day-report download).
