@@ -167,6 +167,16 @@ describe('synthetic importer integration', () => {
     });
   });
 
+  it('T34 uses the supplied tenant timezone for report-shift validation', async () => {
+    const { stats } = await importBhavin(db.app, syntheticIds.tenant, makeSyntheticExport(), {
+      timeZone: 'America/New_York',
+    });
+    expect(stats).toMatchObject({ imported: 0, errored: 1, status: 'failed' });
+    expect(stats.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'report_shift' })]),
+    );
+  });
+
   it('T41 inserts and counts 128 done plus 128 supported past-breakdown people', async () => {
     const ticket = pastTicket({
       reports: [

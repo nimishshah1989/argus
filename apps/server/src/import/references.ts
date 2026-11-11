@@ -195,14 +195,15 @@ export async function loadTicketReferences(
   ctx: ImportCtx,
   ticket: BhavinTicket,
   aliases: AliasConfig,
+  timeZone?: string,
 ): Promise<ReconcileReferences> {
   const machine = await loadMachine(ctx, ticket, aliases);
   const people = await loadPeople(ctx, ticket, aliases);
   const lists = await loadLists(ctx);
   const shifts = await loadShifts(ctx);
-  const zone = await ctx.client.query('SHOW TIME ZONE');
+  const zone = timeZone ?? (await ctx.client.query('SHOW TIME ZONE')).rows[0].TimeZone;
   return {
-    timeZone: zone.rows[0].TimeZone as string,
+    timeZone: zone as string,
     machine,
     ...people,
     ...lists,

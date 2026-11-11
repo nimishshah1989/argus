@@ -26,7 +26,7 @@ import {
 import { lockRefCounter } from '../ticket-sql.js';
 
 type TicketResult = Awaited<ReturnType<typeof importTicket>>;
-type RunCtx = ImportCtx & { aliases: AliasConfig; now: Date };
+type RunCtx = ImportCtx & { aliases: AliasConfig; now: Date; timeZone?: string };
 
 function sourceRef(row: PlannedRow): string | null {
   if (row.ticket) return row.ticket.legacyId;
@@ -203,6 +203,7 @@ async function runRow(
         {
           aliases: ctx.aliases,
           now: ctx.now,
+          timeZone: ctx.timeZone,
         },
       );
       row.existingTicketId = result.ticketId;
@@ -248,12 +249,18 @@ async function runMain(
   pool: Pool,
   tenantId: string,
   batchId: string,
-  input: { parsed: SyntheticExport; aliasSha256: string; now: Date },
+  input: { parsed: SyntheticExport; aliasSha256: string; now: Date; timeZone?: string },
 ): Promise<{ batchId: string; stats: ImportStats }> {
-  const { parsed, aliasSha256, now } = input;
-  const context = { aliasSha256, now };
+  const { parsed, aliasSha256, now, timeZone } = input;
+  const context = { aliasSha256, now, timeZone };
   return withTenant(pool, tenantId, async (client) => {
-    const ctx: RunCtx = { client, tenantId, aliases: parsed.aliases, now: context.now };
+    const ctx: RunCtx = {
+      client,
+      tenantId,
+      aliases: parsed.aliases,
+      now: context.now,
+      timeZone: context.timeZone,
+    };
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`bhavin-import:${tenantId}`]);
     await lockRefCounter(client, tenantId, 'BD');
     await lockRefCounter(client, tenantId, 'WR');
@@ -287,6 +294,7 @@ export async function importBhavin(
   pool: Pool,
   tenantId: string,
   input: unknown,
+  options: { timeZone?: string } = {},
 ): Promise<{ batchId: string; stats: ImportStats }> {
   const parsed = parseSyntheticExport(input);
   const now = new Date();
@@ -297,7 +305,7 @@ export async function importBhavin(
     now,
   });
   try {
-    return await runMain(pool, tenantId, batchId, { parsed, aliasSha256, now });
+    return await runMain(pool, tenantId, batchId, { parsed, aliasSha256, now, ...options });
   } catch (error) {
     try {
       await markBatchFatal(pool, tenantId, batchId, {

@@ -244,7 +244,7 @@ export async function importTicket(
   client: PoolClient,
   tenantId: string,
   ticket: BhavinTicket,
-  context: { aliases: AliasConfig; now: Date },
+  context: { aliases: AliasConfig; now: Date; timeZone?: string },
 ): Promise<{
   ticketId: string;
   events: number;
@@ -258,7 +258,7 @@ export async function importTicket(
   toleratedMismatches: number;
 }> {
   const ctx = { client, tenantId };
-  const refs = await loadTicketReferences(ctx, ticket, context.aliases);
+  const refs = await loadTicketReferences(ctx, ticket, context.aliases, context.timeZone);
   const reconciled = reconcileTicket(ticket, refs, context.now);
   const ticketId = await insertTicketRow(ctx, ticket, refs, reconciled);
   await insertEvents(ctx, ticketId, ticket, refs);

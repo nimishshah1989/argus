@@ -51,7 +51,9 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       console.log(JSON.stringify({ batchId: command.batchId, deleted: result.deleted }));
       return;
     }
-    const { batchId, stats } = await importBhavin(pool, tenant.id, input);
+    const { batchId, stats } = await importBhavin(pool, tenant.id, input, {
+      timeZone: tenant.time_zone,
+    });
     console.log(JSON.stringify({ batchId, stats }));
     if ('status' in stats && stats.status === 'failed') process.exitCode = 1;
   } finally {

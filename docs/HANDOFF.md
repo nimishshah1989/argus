@@ -12,7 +12,7 @@ No migration, dependency, frontend change, production execution, or real compati
   domain figures/overrides, counters, original zero-based events, and report/pending-person persistence are integrated.
 - CLI requires `app_api` and staging or explicit production confirmation. Undo checks terminal synthetic batches,
   provenance, fingerprints, later work and outside references, then deletes reports before tickets and writes audit.
-- Full verification is green: `pnpm verify` (379 tests / 38 files), Playwright 16/16, build, parity,
+- Full verification is green: `pnpm verify` (380 tests / 38 files), Playwright 16/16, build, parity,
   licences, migration and lean checks. The integration implementation commit is `0945ce2`; tests/artifacts follow.
 - **Next**: commit the remaining integration/artifact increment, then obtain independent R3 review and green CI.
   Do not merge or use this for cutover from this handoff alone.

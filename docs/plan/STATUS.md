@@ -35,7 +35,7 @@ all real or other sources before opening a batch. It does not implement N1 compa
 - Per-row raw/ticket savepoints, persisted fatal failure, recoverable row errors and honest batch statistics.
 - Fail-closed `app_api` CLI, production confirmation, terminal-batch undo with provenance/later-work/outside-ref
   refusal, report-first deletion, preserved raw rows/people/counters/finished_at, and before/after audit.
-- Full verification passes: `pnpm verify` (379 tests / 38 files), Playwright E2E 16/16, build, parity,
+- Full verification passes: `pnpm verify` (380 tests / 38 files), Playwright E2E 16/16, build, parity,
   licences, migrations and lean checks. Independent R3 review and GitHub CI remain before merge.
 
 ## Parity — `docs/spec/parity.yaml` (80 rows)
