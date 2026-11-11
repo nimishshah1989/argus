@@ -2,10 +2,7 @@ import type { TagDefinition } from '../../../../../packages/shared/src/tags.js';
 
 export function TagPill({ tag }: { tag: TagDefinition }) {
   return (
-    <span
-      className="inline-flex items-center rounded-full border border-neutral-300 bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700"
-      title={tag.category}
-    >
+    <span className="inline-flex items-center rounded-full border border-neutral-300 bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
       {tag.label}
     </span>
   );

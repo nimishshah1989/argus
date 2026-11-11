@@ -17,6 +17,8 @@ const A_WORK = '10000000-0000-0000-0000-000000000052';
 const A_CATEGORY = '10000000-0000-0000-0000-000000000053';
 const A_INACTIVE = '10000000-0000-0000-0000-000000000054';
 const A_WAIT_REASON = '10000000-0000-0000-0000-000000000055';
+const A_MAINT_SECOND = '10000000-0000-0000-0000-000000000056';
+const A_WORK_SECOND = '10000000-0000-0000-0000-000000000057';
 const B_MAINT = '20000000-0000-0000-0000-000000000051';
 const PASSWORD = 'correct-horse-battery';
 const ROLE_LOGINS = [
@@ -97,8 +99,21 @@ beforeAll(async () => {
      ($3, $6, 'breakdown_category', 'E', 'Electrical', 1, true),
      ($4, $6, 'maint_code', 'OLD', 'Retired', 0, false),
      ($5, $6, 'wait_reason', 'spare', 'Spare part', 1, true),
-     ($7, $8, 'maint_code', 'B-ONLY', 'Plant two only', 1, true)`,
-    [A_MAINT, A_WORK, A_CATEGORY, A_INACTIVE, A_WAIT_REASON, A, B_MAINT, B],
+     ($7, $8, 'maint_code', 'B-ONLY', 'Plant two only', 1, true),
+     ($9, $6, 'maint_code', 'A', 'A code', 2, true),
+     ($10, $6, 'work_type', 'corrective', 'Corrective', 1, true)`,
+    [
+      A_MAINT,
+      A_WORK,
+      A_CATEGORY,
+      A_INACTIVE,
+      A_WAIT_REASON,
+      A,
+      B_MAINT,
+      B,
+      A_MAINT_SECOND,
+      A_WORK_SECOND,
+    ],
   );
   app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
 }, 120_000);
@@ -140,13 +155,18 @@ describe('tag catalogue', () => {
     expect(all.statusCode).toBe(200);
     expect(all.json().tags.map((tag: { id: string }) => tag.id)).toEqual([
       A_CATEGORY,
+      A_MAINT_SECOND,
       A_MAINT,
+      A_WORK_SECOND,
       A_WORK,
     ]);
     expect(all.json().tags.map((tag: { id: string }) => tag.id)).not.toContain(B_MAINT);
 
     const category = await req('GET', '/api/v1/tags/maint_code', tokenA);
-    expect(category.json().tags.map((tag: { id: string }) => tag.id)).toEqual([A_MAINT]);
+    expect(category.json().tags.map((tag: { id: string }) => tag.id)).toEqual([
+      A_MAINT_SECOND,
+      A_MAINT,
+    ]);
     expect((await req('GET', '/api/v1/tags/nope', tokenA)).statusCode).toBe(404);
 
     const tokenB = await login('plant-two.localhost');
@@ -222,6 +242,29 @@ describe('ticket tag validation', () => {
     ];
     for (const response of cases) expect(response.statusCode).toBe(422);
     expect((await admin.query('SELECT count(*)::int AS n FROM ticket_tag')).rows[0].n).toBe(0);
+    expect(
+      (await admin.query("SELECT count(*)::int AS n FROM ticket_event WHERE type LIKE 'tag_%'"))
+        .rows[0].n,
+    ).toBe(0);
+    expect(
+      (
+        await admin.query(
+          "SELECT count(*)::int AS n FROM command_idempotency WHERE command IN ('tag:add', 'tag:remove')",
+        )
+      ).rows[0].n,
+    ).toBe(0);
+  });
+
+  it('returns 404 rather than a database error for malformed ticket ids', async () => {
+    const token = await login();
+    const url = '/api/v1/tickets/not-a-uuid/tags';
+    expect((await req('GET', url, token)).statusCode).toBe(404);
+    expect((await req('POST', url, token, { tagId: A_MAINT }, 'malformed-add')).statusCode).toBe(
+      404,
+    );
+    expect(
+      (await req('DELETE', `${url}/${A_MAINT}`, token, undefined, 'malformed-delete')).statusCode,
+    ).toBe(404);
   });
 });
 
@@ -254,6 +297,13 @@ describe('ticket tag permissions', () => {
         [A, A_TICKET, A_MAINT, A_LOGIN, A_PERSON],
       );
       const token = await login('cosmos.localhost', role);
+      const before = (
+        await admin.query(
+          `SELECT
+             (SELECT count(*) FROM ticket_event WHERE type LIKE 'tag_%')::int AS events,
+             (SELECT count(*) FROM command_idempotency WHERE command IN ('tag:add', 'tag:remove'))::int AS idem`,
+        )
+      ).rows[0];
       const added = await req(
         'POST',
         `/api/v1/tickets/${A_TICKET}/tags`,
@@ -271,6 +321,14 @@ describe('ticket tag permissions', () => {
       );
       expect(removed.statusCode, role).toBe(403);
       expect((await admin.query('SELECT count(*)::int AS n FROM ticket_tag')).rows[0].n).toBe(1);
+      const after = (
+        await admin.query(
+          `SELECT
+             (SELECT count(*) FROM ticket_event WHERE type LIKE 'tag_%')::int AS events,
+             (SELECT count(*) FROM command_idempotency WHERE command IN ('tag:add', 'tag:remove'))::int AS idem`,
+        )
+      ).rows[0];
+      expect(after).toEqual(before);
       await admin.query('DELETE FROM ticket_tag');
     }
   });
@@ -296,6 +354,17 @@ describe('ticket tag replay', () => {
     expect(noOp.statusCode).toBe(200);
     expect(noOp.json().applied).toHaveLength(2);
     expect((await admin.query('SELECT count(*)::int AS n FROM ticket_tag')).rows[0].n).toBe(2);
+    expect(
+      (await admin.query("SELECT count(*)::int AS n FROM ticket_event WHERE type = 'tag_add'"))
+        .rows[0].n,
+    ).toBe(2);
+    expect(
+      (
+        await admin.query(
+          "SELECT count(*)::int AS n FROM command_idempotency WHERE command = 'tag:add'",
+        )
+      ).rows[0].n,
+    ).toBe(3);
   });
 });
 
@@ -322,6 +391,13 @@ describe('ticket tag audit', () => {
       expect(event.actingPersonId).toBe(A_PERSON);
       expect(event.loginId).toBe(A_LOGIN);
       expect(Number.isNaN(Date.parse(event.at))).toBe(false);
+    }
+    const stored = await admin.query(
+      "SELECT payload FROM ticket_event WHERE ticket_id = $1 AND type LIKE 'tag_%' ORDER BY seq",
+      [A_TICKET],
+    );
+    for (const row of stored.rows) {
+      expect(row.payload).toMatchObject({ tagId: A_MAINT, code: 'M', category: 'maint_code' });
     }
   });
 });
@@ -360,6 +436,12 @@ describe('concurrent ticket tag writers', () => {
     for (const response of responses) expect(response.statusCode).toBe(200);
     const current = await req('GET', url, token);
     expect(current.json().applied.map((tag: { tagId: string }) => tag.tagId)).toEqual([A_MAINT]);
+    const events = await admin.query(
+      "SELECT seq, type FROM ticket_event WHERE ticket_id = $1 AND type LIKE 'tag_%' ORDER BY seq",
+      [A_TICKET],
+    );
+    expect(events.rows.map((row) => row.seq)).toEqual([1, 2, 3]);
+    expect(events.rows.map((row) => row.type).sort()).toEqual(['tag_add', 'tag_add', 'tag_remove']);
   });
 
   it('leaves one row and one event for concurrent same-item adds', async () => {

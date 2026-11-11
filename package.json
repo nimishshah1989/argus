@@ -33,6 +33,7 @@
     "build:web": "pnpm --filter @uptimo/web build"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
     "@testcontainers/postgresql": "^12.2.1",

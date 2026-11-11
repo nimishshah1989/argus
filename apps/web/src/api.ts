@@ -203,7 +203,6 @@ export function removeTicketTag(ticketId: string, tagId: string): Promise<TagLis
   });
 }
 
-// M2-2.1 severity matrix settings.
 export function putSeverityMatrix(value: SeverityMatrix): Promise<{ ok: boolean }> {
   return api<{ ok: boolean }>('/api/v1/settings/severity_matrix', {
     method: 'PUT',

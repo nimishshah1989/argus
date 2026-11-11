@@ -210,7 +210,7 @@ export async function apiLogin(username: string): Promise<string> {
 /** Raises a stopped ticket through the real API, so the desk spec does not depend on the floor form. */
 export async function raiseTicketViaApi(
   token: string,
-  machineId: string,
+  machineId: string | null,
   problem: string,
 ): Promise<RaisedTicket> {
   const body = await apiJson<{ ticket: RaisedTicket }>('/api/v1/tickets', {
@@ -220,7 +220,11 @@ export async function raiseTicketViaApi(
       authorization: `Bearer ${token}`,
       'idempotency-key': randomUUID(),
     },
-    body: JSON.stringify({ machineId, problem }),
+    body: JSON.stringify(
+      machineId
+        ? { machineId, problem }
+        : { kind: 'general', location: 'Workshop', workType: 'Tag test', problem },
+    ),
   });
   return body.ticket;
 }

@@ -277,6 +277,38 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     },
   );
 
+  it('T21 cascades ticket tags on undo while preserving the tenant', async () => {
+    const seeded = await seedBatch();
+    const item = await db.admin.query(
+      "SELECT id FROM list_item WHERE tenant_id = $1 AND list = 'maint_code' AND code = 'M'",
+      [syntheticIds.tenant],
+    );
+    await db.admin.query(
+      `INSERT INTO ticket_tag (tenant_id, ticket_id, item_id, applied_by_person_id)
+       VALUES ($1, $2, $3, $4)`,
+      [syntheticIds.tenant, seeded.ticketId, item.rows[0].id, syntheticIds.asha],
+    );
+
+    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).resolves.toEqual({
+      deleted: 1,
+    });
+    expect(
+      (
+        await db.admin.query('SELECT count(*)::int AS n FROM ticket_tag WHERE ticket_id = $1', [
+          seeded.ticketId,
+        ])
+      ).rows[0].n,
+    ).toBe(0);
+    expect((await counts(seeded.ticketId)).ticket).toBe(0);
+    expect(
+      (
+        await db.admin.query('SELECT count(*)::int AS n FROM tenant WHERE id = $1', [
+          syntheticIds.tenant,
+        ])
+      ).rows[0].n,
+    ).toBe(1);
+  });
+
   it('T22 rejects a missing batch without writes', async () => {
     await expect(undoImport(db.app, syntheticIds.tenant, randomUUID())).rejects.toThrow(
       /not found/i,

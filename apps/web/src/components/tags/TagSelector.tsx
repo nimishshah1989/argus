@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { TagDefinition } from '../../../../../packages/shared/src/tags.js';
-import { groupByCategory, isApplied } from './logic.js';
+import { groupByCategory } from './logic.js';
 
 interface Props {
   available: TagDefinition[];
@@ -15,12 +15,12 @@ export function TagSelector({ available, applied, pending, onToggle }: Props) {
     <div className="mt-2 flex flex-col gap-3" data-testid="tag-selector">
       {groupByCategory(available).map((group) => (
         <div key={group.category}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
             {t(`tags.category.${group.category}`)}
           </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {group.tags.map((tag) => {
-              const on = isApplied(applied, tag.id);
+              const on = applied.has(tag.id);
               return (
                 <button
                   key={tag.id}
