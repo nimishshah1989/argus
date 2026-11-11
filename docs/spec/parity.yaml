@@ -426,11 +426,13 @@ rows:
     status: in-progress
     evidence:
       - 'PR #41'
+      - 'PR #58'
       - 'packages/domain/test/state.test.ts :: restores to the previous status recorded on cancel,
         ignoring a conflicting toStatus'
       - 'packages/domain/test/state.test.ts :: rejects a restore more than 7 days after the cancel'
       - 'apps/server/test/tickets-commands.test.ts :: restores a cancelled ticket to its previous
         status'
+      - 'apps/web/e2e/admin.spec.ts :: restores a cancelled ticket as an admin'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.15
     feature:
@@ -443,10 +445,13 @@ rows:
     status: in-progress
     evidence:
       - 'PR #43'
+      - 'PR #58'
       - 'packages/domain/test/state.test.ts :: lets an admin correct a ticket and records from/to'
       - 'packages/domain/test/state.test.ts :: rejects a non-admin correction'
       - 'packages/domain/test/state.test.ts :: rejects a correction more than 7 days after close'
       - 'apps/server/test/tickets-commands.test.ts :: corrects a ticket as admin'
+      - 'apps/web/src/components/actions.test.ts :: buildCorrectChanges'
+      - 'apps/web/e2e/admin.spec.ts :: corrects the problem text as an admin'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.16
     feature: Report only (PDF without a ticket)

@@ -15,6 +15,7 @@ import {
 } from '../api.js';
 import { canWork, quickAction, useTicketCommand } from '../components/actions.js';
 import { errorMessage, machineLabel } from '../components/format.js';
+import { AccountSheet } from '../components/AccountSheet.js';
 import { NeedReportList } from '../components/NeedReportList.js';
 import { TicketCard } from '../components/TicketCard.js';
 import { Drafts } from '../components/Drafts.js';
@@ -292,7 +293,10 @@ export function Desk() {
     <main className="mx-auto w-full max-w-xl px-4 py-6">
       <DeskNav />
 
-      <h1 className="text-2xl font-semibold">{t('desk.title')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{t('desk.title')}</h1>
+        <AccountSheet />
+      </div>
       <OfflineBanner />
       <NotificationsToggle />
       <Drafts />

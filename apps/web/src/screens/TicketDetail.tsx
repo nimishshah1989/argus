@@ -16,6 +16,7 @@ import {
   type TicketInterval,
   type TicketPerson,
 } from '../api.js';
+import { AdminPanel } from '../components/AdminPanel.js';
 import { canWork, useTicketCommand } from '../components/actions.js';
 import { ReportPanel } from '../components/ReportForm.js';
 import { ShareButton } from '../components/ShareButton.js';
@@ -250,6 +251,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           error={error}
         />
       )}
+      <AdminPanel ticket={ticket} config={config} me={me} />
       <div className="mt-3">
         <ShareButton ticket={ticket} config={config} mode="full" />
       </div>
