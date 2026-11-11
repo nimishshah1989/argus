@@ -60,6 +60,12 @@ const PEOPLE = [
     team: 'production',
     title: 'Operator',
   },
+  {
+    id: '10000000-0000-0000-0000-000000000011',
+    name: 'Meera',
+    team: 'maintenance',
+    title: 'Admin',
+  },
 ] as const;
 
 const LOGINS = [
@@ -94,6 +100,14 @@ const LOGINS = [
     role: 'operator',
     shared: true,
     cell: 'Cell-1',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000012',
+    personId: PEOPLE[3].id,
+    username: 'admin',
+    role: 'admin',
+    shared: false,
+    cell: null,
   },
 ] as const;
 

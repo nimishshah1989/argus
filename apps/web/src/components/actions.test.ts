@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Ticket } from '../api.js';
-import { canCancelOwn, legalActions } from './actions.js';
+import { buildCorrectChanges, canCancelOwn, hasCorrectChanges, legalActions } from './actions.js';
 
 function ticket(overrides: Partial<Ticket> = {}): Ticket {
   return {
@@ -102,5 +102,29 @@ describe('canCancelOwn', () => {
     expect(canCancelOwn(ticket(), 'person-2')).toBe(false);
     expect(canCancelOwn(ticket(), null)).toBe(false);
     expect(canCancelOwn(ticket({ reportedByPersonId: null }), 'person-1')).toBe(false);
+  });
+});
+
+describe('buildCorrectChanges', () => {
+  it('keeps only the fields the admin filled, trimmed', () => {
+    expect(
+      buildCorrectChanges({ problem: '  New problem  ', reportedAt: '2026-11-11T10:00' }),
+    ).toEqual({ problem: 'New problem', reportedAt: '2026-11-11T10:00' });
+  });
+
+  it('treats empty and whitespace values as unchanged', () => {
+    expect(buildCorrectChanges({ problem: '   ', reportedAt: '' })).toEqual({});
+    expect(hasCorrectChanges({})).toBe(false);
+  });
+
+  it('keeps a machine and a known kind', () => {
+    expect(buildCorrectChanges({ machineId: 'machine-1', kind: 'support' })).toEqual({
+      machineId: 'machine-1',
+      kind: 'support',
+    });
+  });
+
+  it('ignores an unknown kind', () => {
+    expect(buildCorrectChanges({ kind: 'bogus' })).toEqual({});
   });
 });

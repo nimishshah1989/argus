@@ -191,7 +191,6 @@ export interface TicketInterval {
   startedAt: string;
   endedAt: string | null;
 }
-
 export interface TicketDetail {
   ticket: Ticket;
   events: TicketEvent[];
@@ -200,7 +199,6 @@ export interface TicketDetail {
   intervals: TicketInterval[];
   report: BreakdownReport | null;
 }
-
 export interface Me {
   id: string;
   username: string;
@@ -211,6 +209,9 @@ export interface Me {
   actingPersonId: string;
 }
 
+export type CorrectChanges = Partial<
+  Pick<Ticket, 'reportedAt' | 'startedAt' | 'closedAt' | 'problem' | 'leadPersonId'>
+> & { machineId?: string | null; kind?: RaiseKind; closedByPersonId?: string | null };
 export interface RaiseTicketBody {
   kind: RaiseKind;
   machineId?: string;
@@ -354,7 +355,8 @@ export type CommandBody =
   | { personId: string; kind: CloseKind; note?: string; report?: BreakdownReportBody }
   | { personId: string; report: BreakdownReportBody }
   | { personId: string; reason: string }
-  | { personId: string; role: 'primary' | 'support' };
+  | { personId: string; role: 'primary' | 'support' }
+  | { reason: string; changes: CorrectChanges };
 
 export type CommandResult = { ticket: Ticket } | { queued: true; id: string };
 
