@@ -7,6 +7,7 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- M1b actions (#52): desk Join/Leave (crew-aware; the lead counts as crew) and Cancel from working; floor Cancel-own for the caller's own not-started ticket.
 - i18n layer (M5, #50): i18next + react-i18next with a 202-key English catalogue and a Gujarati placeholder that falls back to English; every web screen's copy extracted to translation keys; `i18next/no-literal-string` enforced so new hard-coded UI text fails CI.
 - Web push (AC5c, #48): VAPID push subscribe/unsubscribe/key/test endpoints, a custom service
   worker with a push handler and tap-to-open, and the acting-person re-subscribe rule with a desk
