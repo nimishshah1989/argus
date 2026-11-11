@@ -130,14 +130,14 @@ export const SYNTHETIC_SOURCE = 'argus.synthetic-bhavin/v1' as const;
 export const IMPORT_LIMITS = {
   fileBytes: 5_242_880,
   rawTicketBytes: 262_144,
-  eventPayloadBytes: 65_536,
+  eventPayloadBytes: 8_192,
   tickets: 2_000,
   events: 2_000,
   crew: 128,
   segments: 2_000,
   reports: 1,
-  reportPeople: 128,
-  editChanges: 32,
+  reportPeoplePerRole: 128,
+  editChanges: 10,
   aliasesPerKind: 512,
   jsonDepth: 16,
   payloadDepth: 8,
@@ -305,7 +305,9 @@ NUL in keys/strings, and depth >16. Dates exist only after parsing and are never
 
 `ImportStats` counters are exact committed outcomes. For nonfatal batches,
 `imported + skipped + errored === tickets`; `events`, `crew`, `segments`, `reports`, and
-`reportPeople` count imported rows only. Warnings do not make a batch failed; any row error or hard
+`reportPeople` count imported rows only. `reportPeople` is the actual combined done+supported insert
+count (0–256 per report), and `pendingPeople === pendingPersons.length` counts only explicit
+created-by-import provenance records. Warnings do not make a batch failed; any row error or hard
 mismatch does. Fatal stats use `imported=skipped=0`, `errored=tickets`, all child counts zero,
 `fatal={message}`, `completion` equal to the empty-batch fingerprint, and null counter values.
 
@@ -537,7 +539,7 @@ export interface ReducedTicket {
   editedAt: Date | null;
   lastEventSeq: number;
 }
-export function reduceTicketState(ticket: BhavinTicket): ReducedTicket;
+export function reduceTicketState(ticket: BhavinTicket, now: Date): ReducedTicket;
 
 // figures.ts
 export interface FigureComputation {
@@ -555,11 +557,38 @@ export function computeTicketFigures(input: {
 }): FigureComputation;
 
 // reconcile.ts
+export interface CodeReference {
+  code: string;
+}
+export interface WaitReasonReference extends CodeReference {
+  isVendor: boolean;
+  pausesSla: boolean;
+}
+export interface ShiftReference extends CodeReference {
+  startsAt: string;
+  endsAt: string;
+  crossesMidnight: boolean;
+}
+export interface PendingPerson {
+  personId: string;
+  name: string;
+  createdByImport: true;
+}
 export interface ReconcileReferences {
   timeZone: string;
   machine: { id: string; code: string; category: string | null; cell: string | null } | null;
-  people: ReadonlyMap<string, string>; // normalizeKey(name) -> resolved UUID; includes every name used
-  shifts: ReadonlyMap<string, { startsAt: string; endsAt: string; crossesMidnight: boolean }>;
+  // Keys are normalizeKey(original source name), including names with a configured alias.
+  people: ReadonlyMap<string, string>;
+  // All code-map keys are normalizeCode(original configured list/shift code); values preserve DB code.
+  workTypes: ReadonlyMap<string, CodeReference>;
+  locations: ReadonlyMap<string, CodeReference>;
+  waitReasons: ReadonlyMap<string, WaitReasonReference>;
+  breakdownCategories: ReadonlyMap<string, CodeReference>;
+  observedBy: ReadonlyMap<string, CodeReference>;
+  maintenanceCodes: ReadonlyMap<string, CodeReference>;
+  shifts: ReadonlyMap<string, ShiftReference>;
+  // Only people actually inserted by this import row, keyed by original normalized source name.
+  pendingPersons: ReadonlyMap<string, PendingPerson>;
 }
 export interface ReconciledReport {
   machineId: string;
@@ -587,7 +616,7 @@ export interface ReconciledTicket {
   crew: ReconciledCrewMember[];
   segments: WorkSegment[];
   reports: ReconciledReport[];
-  pendingPersons: string[];
+  pendingPersons: PendingPerson[];
 }
 export class ReconcileError extends Error {
   readonly issues: ImportIssue[];
@@ -599,11 +628,28 @@ export function reconcileTicket(
 ): ReconciledTicket;
 ```
 
-`now` is passed in, never read from the clock. Pure functions create issues with `rowNumber=0`;
-integration replaces that with the one-based input row when adding issues to batch stats.
-`ReconcileError` is used for state/figure/report errors so the raw row can be
-marked without losing structured issues. No function infers a person, shift, report date, close
-actor, override, or machine not present in the parsed contract/reference map.
+`reconcileTicket(ticket, refs, now)` calls `reduceTicketState(ticket, now)` and then
+`computeTicketFigures({ticket,reduced,segments,reports,now})` with the identical `now` value. No pure
+module reads a clock; `applyImportedEvent` and `applyImportedEdit` receive no hidden time source.
+`reconcileTicket` copies `refs.pendingPersons.values()` in insertion order into
+`ReconciledTicket.pendingPersons`; it never infers pending/created status from `people` IDs. The
+`importTicket` result maps those records to `pendingPersons.map(person => person.name)` for stats,
+while the reconciled records retain `{personId,name,createdByImport:true}` as provenance.
+
+`applyImportedEvent` intentionally returns `@uptimo/domain`'s `TicketEvent`, which has **no** `seq`,
+acting-person ID, or original-payload property. Its `seq` argument is only for timeline validation
+and error context. `ReducedTicket.domainEvents` is input to domain `figures()`, not the DB event
+insert contract. Integration instead iterates the original parsed `ticket.events` by array index:
+that index is the zero-based DB `seq`; `event.at`, `event.text`, and the validated original
+`event.payload` are persisted; `event.by` is resolved through `refs.people` to `acting_person_id`;
+`login_id` and `idempotency_key` remain null. It never reconstructs DB actor/payload/seq from the
+returned domain event. `ReducedTicket.lastEventSeq` is likewise computed from the original parsed
+array length minus one. `applyImportedEdit` follows the same domain-event-only rule.
+
+Pure functions create issues with `rowNumber=0`; integration replaces that with the one-based input
+row when adding issues to batch stats. `ReconcileError` is used for state/figure/report errors so
+the raw row can be marked without losing structured issues. No function infers a person, shift,
+report date, close actor, override, or machine not present in the parsed contract/reference map.
 
 ### 4.4 Integration modules
 
@@ -613,7 +659,7 @@ export function loadTicketReferences(
   ctx: ImportCtx,
   ticket: BhavinTicket,
   aliases: AliasConfig,
-): Promise<{ refs: ReconcileReferences; pendingPersons: string[] }>;
+): Promise<ReconcileReferences>;
 
 // insert.ts
 export function importTicket(
@@ -755,13 +801,46 @@ example, and repeatedly labels it non-N1.
   `downtimeMin`, `followMin`, and report response/repair are nullable where stated; all other stored
   figures are required numbers. No default zero is supplied for a missing report downtime.
 - CLI file bytes >5,242,880 fail before JSON parse or DB work. Canonical raw ticket bytes >262,144
-  and canonical individual event payload bytes >65,536 are row errors. Byte counts are UTF-8
+  and canonical individual event payload bytes >8,192 are row errors. Byte counts are UTF-8
   `Buffer.byteLength`, file bytes come from `stat`, and string caps use JavaScript UTF-16 `.length`.
   Root JSON depth is 1 and each object-property/array-element level adds 1. Whole JSON depth >16 or
   event payload depth >8 is an error. Arrays cap at the constants in §4.1, including one
-  report/ticket and 32 edit changes/event. Tests use each exact cap and cap+1.
+  report/ticket, 10 edit changes/event, and 128 people **per report role**. Tests use each exact cap
+  and cap+1.
 - Event payloads are strict discriminated objects, not arbitrary `z.record`. Their canonical bytes,
   depth, strings, numbers, and NUL are checked recursively. Unknown lookalike override fields fail.
+  The edit parser runs its array-length check before duplicate-field validation: 11 entries fail
+  `array_cap` even though one field necessarily repeats; with <=10 entries, any repeated `field`
+  then fails `duplicate_field`. This is production validation order in `bhavinEventSchema`, with no
+  test-only helper.
+
+The exact event-payload boundary fixture is a valid `edit` payload with one unique problem change:
+
+```ts
+const exactPayload = {
+  changes: [{ field: 'problem', from: 'f'.repeat(4070), to: 't'.repeat(4071) }],
+};
+const overPayload = {
+  changes: [{ field: 'problem', from: 'f'.repeat(4070), to: 't'.repeat(4072) }],
+};
+```
+
+Canonical JSON is `{"changes":[{"field":"problem","from":"<f>","to":"<t>"}]}`; with both strings
+empty it has exactly 51 UTF-8 bytes of object/key/punctuation overhead. Therefore `exactPayload` is
+`51 + 4070 + 4071 = 8192` bytes and `overPayload` is 8193. ASCII makes the byte calculation
+unambiguous; both strings in each version remain <=4096, `problem` is an allowed unique field, and
+there are no padding/unknown properties. Embed each in an otherwise valid edit event (seq 4 after
+base down/start/join/close, `at=2026-11-01T11:01:00Z`, `by='Asha'`,
+`text='Synthetic correction'`), with initial ticket problem `'f'.repeat(4070)` and final state
+problem equal to the payload's `to`. The 8192 version passes; the 8193 version fails
+`payload_bytes` at `events[4].payload`, not
+`string_length`. Raw-ticket byte-bound tests start with an otherwise valid working ticket and add
+valid same-time `update` events whose text is `'u'.repeat(4096)`. Choose the full-event count and,
+if needed, shorten one preceding update so the final update needs 1–4095 padding characters to
+reach exactly 262,144 canonical bytes. Set the final text to that exact padding for the passing
+case and one character longer for 262,145; both remain within every string/collection rule, and the
+larger case fails `raw_ticket_bytes`. The fixture and padding calculation are test-local, not a new
+public helper.
 
 ### 5.3 Event, crew, segment, report, and stored-figure fields
 
@@ -788,7 +867,8 @@ reportedAt from/to are nonnull timestamps; startedAt/closedAt from is timestamp-
 nonnull timestamp; problem from/to are nonnull strings; machineCode/leadPerson/closedByPerson from/
 to are string-or-null; kind from/to are stopped/support/general; handsOn/waiting from is a
 nonnegative integer or null and to is a nonnull nonnegative integer (there is no override-clearing
-in this contract). A field occurs at most once in one edit. `activeMin`, `waitMin`, `responseMin`,
+in this contract). These are exactly 10 allowed fields; each may occur at most once in one edit, so
+10 unique entries are the reachable maximum. `activeMin`, `waitMin`, `responseMin`,
 `repairMin`, `downtimeMin`, `overrides`, and every other lookalike are rejected.
 
 Crew requires `{person,role:'lead'|'primary'|'support',joinedAt,leftAt,leftReason}`; `leftReason`
@@ -811,7 +891,11 @@ submittedAt:timestamp, submittedBy:string
 
 No report field is invented from `now`, close time, shift `A`, observedBy, or zero. Past breakdown
 requires nonnull response and repair because all three report values become explicit overrides.
-`doneBy` and `supportedBy` each have unique normalized names and are disjoint.
+`doneBy` and `supportedBy` are independently capped at 128 entries each, have unique normalized
+names within each array, and are disjoint from each other. Thus one report can insert at most 256
+`breakdown_report_person` rows (128 `done` plus 128 `supported`). `ImportStats.reportPeople` and the
+`insertReports` result count actual combined inserts, `doneByPersonIds.length +
+supportedByPersonIds.length`, not a combined cap or a per-role count.
 
 `storedFigures` is strict and required with exactly the nine fields in §4.1; per-person values are
 derived, never imported. `events`, `crew`, `segments`, and `reports` are all required collections.
@@ -900,7 +984,8 @@ raw envelope/digest is a hard legacy-identity error, never a guessed skip.
 
 ### 7.1 Explicit references and aliases
 
-`references.ts` loads only tenant-scoped active reference rows and builds normalized maps.
+`references.ts` loads tenant-scoped reference rows and returns the complete `ReconcileReferences`;
+no caller constructs a partial map.
 
 - Machine: normalize the supplied code, apply at most one configured machine alias, then require
   exactly one active machine. No recursive alias chase. Unknown/inactive target, inactive direct
@@ -909,21 +994,40 @@ raw envelope/digest is a hard legacy-identity error, never a guessed skip.
   most one person alias. A configured target must be unique and active. Without an alias, query all
   active tenant people and compare `normalizeKey(name)`: one hit reuses it, multiple hits error,
   zero inserts `(team='production',kind='production',active=true,pending=true)` with trimmed,
-  whitespace-collapsed original casing. Inactive-only names are unmatched. Cache by normalized name
-  for the whole row; the tenant import lock prevents duplicate people across concurrent batches.
-- Maintenance code: normalize, apply at most one separate maintenance-code alias, and require an
-  active `list_item(list='maint_code')`. Unknown/inactive codes error; the original raw value stays
-  in the raw envelope. Also require active supplied `work_type`, `location`, `wait_reason`,
-  `breakdown_category`, and `observed_by` list items; pause `isVendor` must equal the wait reason's
-  DB flag. Shift and transfer-to-shift codes must exist in `shift`.
+  whitespace-collapsed original casing. For every original source name, set
+  `people[normalizeKey(sourceName)]=resolvedId`, whether direct or aliased. On each actual insert,
+  also set `pendingPersons[normalizeKey(sourceName)]={personId:resolvedId,name:displayName,
+createdByImport:true}` in first-use order. Reusing an existing pending person does not add this
+  provenance record. Inactive-only names are unmatched; the tenant import lock prevents duplicate
+  people across concurrent batches.
+- Lists and shifts: run `SELECT list,code,is_vendor,pauses_sla FROM list_item WHERE tenant_id=$1
+AND active AND list=ANY($2)` for `work_type`, `location`, `wait_reason`, `breakdown_category`,
+  `observed_by`, and `maint_code`, plus `SELECT code,starts_at,ends_at,crosses_midnight FROM shift
+WHERE tenant_id=$1`. Populate `workTypes`, `locations`, `waitReasons`, `breakdownCategories`,
+  `observedBy`, `maintenanceCodes`, and `shifts` respectively. Every value retains the exact DB
+  `code`; wait values also retain `isVendor` from `is_vendor` and `pausesSla` from `pauses_sla`, and
+  shift values retain the three time fields. A duplicate normalized active code in any map is an
+  error rather than last-write-wins. Shift has no active flag in schema v1. `pausesSla` is reference
+  data only here: it does not change M1 figures or add M2 SLA behavior.
+- Validation/projection: require membership for every nonnull supplied workType/location/waitReason/
+  breakdownCategory/observedBy/shift/transferToShift. Pause `isVendor` must equal the referenced
+  wait reason's flag. For maintenance codes, normalize, apply at most one separate maintenance-code
+  alias, and require the resolved target in `maintenanceCodes`; unknown/inactive codes error and
+  the original remains in the raw envelope. After raw state cross-checks, reference-backed DB
+  projections use the map's exact `.code`: ticket workType/location, reduced waitReason/
+  transferToShift, and report shiftCode/breakdownCategory/observedBy/maintCode. The parsed ticket
+  and parsed event payloads remain unchanged for raw provenance and the original-payload DB rule
+  in §4.3.
 - No report is dropped. A reference failure rolls back the entire ticket savepoint and is an
-  explicit row/reconciliation issue. Pending names are committed only for successful imports and
-  listed in stats.
+  explicit row/reconciliation issue. `ReconciledTicket.pendingPersons` is copied only from the
+  explicit provenance map; pending names are committed and listed in stats only for successful
+  imports.
 
 ### 7.2 Event/state reduction and exact DB mapping
 
-Validate nondecreasing event times in input order; seq is array index `0..n-1`. Every event time and
-non-expected-back interval is <= batch now. Exactly one `down` starts an ordinary timeline. Fold
+`reduceTicketState(ticket, now)` validates nondecreasing event times in input order; seq is array
+index `0..n-1`. Every event time and non-expected-back interval is <= the supplied `now`; this pure
+function never obtains a clock itself. Exactly one `down` starts an ordinary timeline. Fold
 events in seq order and reject a transition illegal in DOMAIN, including pause/resume,
 transfer/pickup, running/stopped pairing, close from waiting, cancel/restore, late report, and edit
 on cancelled tickets. Closed corrections must have `edit.at - closedAt <= 7 days` at edit time.
@@ -934,7 +1038,9 @@ for initial reportedAt, so edit old-values are checked without adding a second i
 
 The fold sets/cross-checks:
 
-- `down`: initial report time/status open. Without an edit, final `reportedAt=down.at`.
+- `down`: initial report time/status open. Without an edit, final `reportedAt=down.at`. Initialize
+  both `machineRunningAt` and `machineStoppedAt` to null; `down.at` is not a stopped event and must
+  never populate `machineStoppedAt`. Only later running/stopped events change these fields.
 - `start`/`pickup`: working; `startedAt`, lead actor, and `segmentStartedAt`; pickup only after
   transfer. Start clears `handedOver` but retains historical handover target/since as runtime does.
   `selfStarted=true` requires first start (not pickup) at report time and matching supplied scalar.
@@ -961,9 +1067,10 @@ The fold sets/cross-checks:
 After the fold, require exact equality with supplied `status` and every `BhavinState` field. Require
 reportedAt <= first start when started, startedAt <= closedAt when both exist, and closedAt no
 earlier than the latest preceding non-edit event. After edits, every business timestamp (including
-reported/started/closed/cancelled, crew, segment, and report submission) must be <= batch now;
-only expectedBackAt may be future. Active open/working/waiting tickets use batch now for figures;
-closed use `closedAt`; cancelled use `cancelledAt`. Open segments are allowed only in final working
+reported/started/closed/cancelled, crew, segment, and report submission) must be <= that same
+supplied `now`; only expectedBackAt may be future. Active open/working/waiting tickets pass the same
+`now` to `computeTicketFigures` for `asOf`; closed use `closedAt`; cancelled use `cancelledAt`. Open
+segments are allowed only in final working
 state and must belong to the current
 lead or a crew member who acted after resume. Closed/cancelled segments end at their terminal event.
 Crew lead maps to DB `primary`; segment roles remain lead/primary/support.
@@ -978,11 +1085,15 @@ segments.
 `insert.ts` persists these exact remaining fields: `machine_snapshot` from the resolved machine;
 `urgent=false`, `problem_lang=null`, `reported_by_role=null`, `raised_login_id=null`;
 `raised_channel` per entry type; parent initially null then linked; task fields null; all nine figure
-caches and `overrides`; `edited_at`; `last_event_seq=events.length-1`. Event rows retain type, seq,
-time, resolved acting person, text and the validated payload (including previousStatus/edit
-changes/isVendor), with `login_id` and `idempotency_key` null. Reports persist supplied local date,
-shift, codes, figures, submittedBy/At, people, and set signature/pdf/approved/QR to null/null/null/
-`{}`. DB `created_at/updated_at` metadata may use database now; no business timestamp may.
+caches and `overrides`; `edited_at`; `last_event_seq=ticket.events.length-1`. For each original
+parsed `ticket.events[index]`, insert `seq=index`, `type=event.type`, `at=event.at`,
+`acting_person_id=refs.people.get(normalizeKey(event.by))` when nonnull, and the original parsed
+`event.text`/`event.payload` (including previousStatus/edit changes/isVendor), with `login_id` and
+`idempotency_key` null. Do not take seq, actor, or payload from `ReducedTicket.domainEvents`; those
+domain objects intentionally omit seq and actor and serve only figure calculation. Reports persist
+supplied local date, canonical reference codes, figures, submittedBy/At, people, and set
+signature/pdf/approved/QR to null/null/null/`{}`. DB `created_at/updated_at` metadata may use
+database now; no business timestamp may.
 
 ### 7.3 Figures and report-local validation
 
@@ -1094,10 +1205,20 @@ Undo runs in one `withTenant` transaction:
 ## 9. Numbered Given/When/Then tests (all red before implementation)
 
 The shared `import-fixture.ts` exports `makeSyntheticExport`, `makeOrdinaryTicket`,
-`makeStoredFigures`, `seedSyntheticTenant`, IDs, and a `syntheticSource` constant. Its base closed
-BD-0100 has down 10:00, start 10:05, close 11:00 on 2026-11-01Z, Asha lead 10:05–11:00 and Bina
-support 10:30–11:00, so exact figures are response 5, active/repair 55, wait/vendor/handover/follow
-0 or null as applicable, downtime/downAcc 60, Asha 55 and Bina 30. It uses invented aliases to M-1,
+`makeStoredFigures`, `makeReconcileReferences`, `seedSyntheticTenant`, IDs, and a `syntheticSource`
+constant. `makeReconcileReferences` returns the complete maps in §4.3: exact active code references
+for workType `breakdown`, location `Cell-1`, category `E`, observed-by `Engineer`, and maintenance
+code `M`; wait reason `spare` with `{code:'spare',isVendor:true,pausesSla:true}`; shifts 1/2 with
+exact DB codes/times; M-1 and Asha/Bina IDs; and an empty `pendingPersons` map. Its base closed
+BD-0100 has four events: down 10:00, start 10:05, Bina join/support 10:30, and close 11:00 on
+2026-11-01Z. Asha's lead segment is 10:05–11:00 and Bina's support segment is 10:30–11:00; Bina's
+crew `joinedAt` and segment start both equal the join event time. Both crew rows have
+`leftAt=leftReason=null` (no leave event is implied); both segments end at 11:00 with
+`endReason='close'`. Exact figures are response 5,
+active/repair 55, wait/vendor/handover/follow 0 or null as applicable, downtime/downAcc 60, Asha 55
+and Bina 30. Initial/final `machineRunningAt` and `machineStoppedAt` are both null because this
+fixture has no running/stopped events; down.at is never used to initialize `machineStoppedAt`, just
+as the real raise state leaves it null. The fixture uses invented aliases to M-1,
 Asha, and M, a report dated 2026-11-01/shift 1/submitted 11:00, and no real data. The DB seeder
 creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shifts 1/2.
 
@@ -1120,11 +1241,18 @@ creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shi
 6. **T06 enums and typed payloads:** Given arbitrary event type, `endReason:'done'`, invalid close/
    crew/segment role, mismatched event payload variant, and edit lookalike `activeMin`, when parsed,
    then each fails before SQL.
-7. **T07 byte bounds:** Given exactly 262,144 and 262,145 canonical raw-ticket bytes and exactly
-   65,536 and 65,537 event-payload bytes, when parsed, then exact caps pass and cap+1 fails.
+7. **T07 byte bounds:** Given the exact valid edit-payload construction in §5.2, when canonicalized
+   and parsed through `parseTicket`, then first assert UTF-8 sizes 8192/8193 and string lengths
+   4070/4071/4072, then the 8192 event/ticket passes and the 8193 variant fails `payload_bytes` at
+   `events[4].payload`, never `string_length`. Given the separately constructed valid repeated-
+   update ticket at exactly 262,144/262,145 raw bytes, then the first passes and second fails
+   `raw_ticket_bytes` with every other rule unchanged.
 8. **T08 collection bounds:** Given exact and +1 limits for tickets, events, crew, segments,
-   reports, report people, edit changes, and each alias map, when parsed, then exact caps pass and
-   every +1 fails with the collection path.
+   reports, each alias map, and separately doneBy/supportedBy, when parsed, then exact caps pass
+   and every +1 fails with the collection path; 128 doneBy plus 128 distinct supportedBy is valid.
+   Given all 10 unique edit fields, when parsed, then the edit passes; given 11 entries, then it
+   fails `array_cap` before `duplicate_field`; given a repeated field within <=10 entries, then it
+   fails `duplicate_field`. All assertions use the production parser, not a test-only helper.
 9. **T09 depth/string bounds:** Given depth 16/17 overall, payload depth 8/9, short strings 256/257,
    free text 4096/4097, legacyId 128/129, when parsed, then the first passes and second fails.
 10. **T10 ref bounds:** Given BD/WR suffixes 1 and 2,147,483,646, zero, 2,147,483,647, negative,
@@ -1185,20 +1313,27 @@ creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shi
 ### task-12 — pure mappings, state, and figures
 
 26. **T26 (`import-reconcile.test.ts`) exact full mapping:** Given the base ticket with resolved
-    references, when reconciled, then every state/cache/event/crew/segment/report/report-person
-    field in §7.2 is exact, events are seq 0,1,2/last 2, close actor is the event actor, and figures/
-    overrides match response 5, active/repair 55, downtime/downAcc 60, Asha 55/Bina 30.
+    references and a fixed explicit `now`, when reconciled, then every state/cache/crew/segment/
+    report/report-person field in §7.2 is exact, Bina's join/crew/segment share 10:30, and both
+    machineRunningAt and machineStoppedAt remain null. Assert `ticket.events.length === 4`,
+    `reduced.domainEvents.length === 4`, no domain event has a `seq` property, and
+    `reduced.lastEventSeq === ticket.events.length - 1 === 3`. Close actor is the event actor and
+    figures/overrides match response 5, active/repair 55, downtime/downAcc 60, Asha 55/Bina 30.
 27. **T26b (`import-state.test.ts`) statuses:** Given valid open-unstarted, working, waiting, closed
-    report/no_report/done, cancelled, restored, and support-upgraded timelines, when reduced, then
-    every final status/scalar agrees; any supplied scalar disagreement is an error.
+    report/no_report/done, cancelled, restored, and support-upgraded timelines and a fixed explicit
+    `now`, when reduced with `reduceTicketState(ticket, now)`, then every final status/scalar agrees;
+    any supplied scalar disagreement is an error. The initial open pair has a down event and
+    `machineStoppedAt=null`, never down.at.
 28. **T27 handover/wait/running:** Given transfers to a person and next shift, pauses with assignee/
-    ETA/vendor, updates with spare/ETA, running/stopped, upgrade, cancel/restore, and close actor
-    different from lead, when reduced, then all handover counts/targets/since, wait fields, running/
-    stopped/upgrade/cancel/close fields and last seq are exact.
-29. **T28 illegal timelines:** Given reversed event times, future event, pause without working,
-    resume without pause, stopped without running, repeated running, close from waiting, bad cancel
-    previousStatus, late report from report close, and edit on cancelled, when reduced, then each
-    fails with its event seq.
+    ETA/vendor, updates with spare/ETA, running/stopped, upgrade, cancel/restore, close actor
+    different from lead, and a fixed explicit `now`, when reduced, then all handover counts/targets/
+    since, wait fields, running/stopped/upgrade/cancel/close fields and last seq are exact.
+29. **T28 illegal timelines:** Given reversed event times, pause without working, resume without
+    pause, stopped without running, repeated running, close from waiting, bad cancel previousStatus,
+    late report from report close, and edit on cancelled, when reduced with a fixed explicit `now`,
+    then each fails with its event seq. Given the same otherwise valid event at `now+1ms`, when
+    reduced with that `now` and a later `now`, then the first fails `future_event` and the second
+    accepts it; expectedBackAt may remain future, and no test relies on the system clock.
 30. **T29 intervals:** Given the base different-person overlap, when figured, then active/repair is
     55 not 85 and per-person remains 55/30; given inverted, zero-length, same-person overlap,
     multiple open, open outside working, wrong endReason, and crew/event contradictions, then each
@@ -1212,15 +1347,19 @@ creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shi
     error outcomes and issue fields match, tolerated remains batch-eligible, hard/null/type fail,
     and no mismatch creates an override.
 33. **T32 past breakdown:** Given a valid down+close past report, when reconciled, then channel is
-    backfill, seqs are 0/1 and last=1, active is 0, response/repair/downtime are report overrides,
-    other fields stay null/zero, and ordinary edit evidence cannot set those three overrides.
+    backfill, there are two domain events without seq properties and `lastEventSeq=1`, active is 0,
+    response/repair/downtime are report overrides, other fields stay null/zero, and ordinary edit
+    evidence cannot set those three overrides. Integration separately persists original indexes 0/1.
 34. **T33 report figures:** Given exact, tolerated one-minute, >1, and null differences between
     report downtime/response/repair and final caches, when reconciled, then the same exact/warning/
     error rules apply to both stored cache and report comparisons with all differences listed.
 35. **T34 local report fields and codes:** Given UTC day, positive/negative offsets, and a crosses-
     midnight shift in reference data, when validated, then supplied date/shift/production date must
-    match exactly; unknown/inactive shift/workType/location/wait/category/observedBy/maint code or a
-    pause isVendor disagreement fails without dropping the report.
+    match exactly. Given every complete code map from `makeReconcileReferences`, when inspected and
+    reconciled, then membership and exact DB code projection work for workTypes/locations/
+    breakdownCategories/observedBy/maintenanceCodes/shifts; waitReasons supplies both
+    `{isVendor:true,pausesSla:true}`, isVendor mismatches fail, pausesSla changes no M1 figure, and
+    unknown/inactive codes fail without dropping the report.
 36. **T35 report people/past constraints:** Given ordinary report people disagreeing with segment
     roles, duplicate/cross-listed names, missing report on close-report, report on active/done, or
     past with live segments/crew/edit, when reconciled, then each fails; valid past report people
@@ -1230,9 +1369,12 @@ creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shi
 
 37. **T36 (existing `import.test.ts` test 1, retained and strengthened):** Given the original full/
     duplicate/malformed three-row scenario migrated only to the strict synthetic source/fields,
-    when imported, then the original imported=1/skipped=1/errored=1, events=3/crew=2/segments=2
-    assertions still pass, the new full stats equal the richer expected object, exact field values/
-    ticket_id/report people/figures are verified, and batch is failed.
+    when imported, then the original imported=1/skipped=1/errored=1 and crew=2/segments=2
+    assertions still pass, while the required Bina join strengthens events to 4. The new full stats
+    equal the richer expected object with `events=4`; DB event seqs are exactly [0,1,2,3],
+    `last_event_seq=3`, `count(*) = last_event_seq + 1`, and each row's acting person/text/payload
+    matches the original parsed event (including Bina's join). Exact ticket_id/report people/figures
+    are verified and the batch is failed.
 38. **T37 (existing test 2, retained):** Given the identical first file, when rerun, then original
     imported=0/skipped=2/errored=1 remains true, no duplicate ticket/person/child exists, and
     canonical skips link the same ticket.
@@ -1251,11 +1393,17 @@ creates a UTC tenant, M-1, Asha/Bina, one vendor, required active lists, and shi
 42. **T41 aliases/report preservation:** Given normalized separate machine/person/maint aliases,
     N12-looking input without an alias, unknown/inactive machines, inactive targets, and a report
     with no ticket machine, when imported, then only configured active mappings resolve, every
-    other case is an explicit row issue, and no report silently disappears.
+    other case is an explicit row issue, and no report silently disappears. Separately given a valid
+    past-breakdown report with 128 distinct doneBy and 128 distinct supportedBy names, when inserted,
+    then exactly 256 breakdown_report_person rows and `stats.reportPeople=256` result (128 per role),
+    proving both the combined maximum and actual combined counting.
 43. **T42 people/vendor/14-vs-15:** Given 14 active known people, one configured vendor-team alias,
     one genuinely unmatched name, and duplicate active normalized names, when imported, then known/
-    vendor aliases reuse their exact rows, only the unmatched name becomes the listed pending 15th
-    production person, and ambiguity errors without creating another person.
+    vendor aliases reuse their exact rows and only the unmatched name becomes the listed pending 15th
+    production person. Assert `refs.pendingPersons` and `ReconciledTicket.pendingPersons` contain
+    exactly `{personId,name,createdByImport:true}` for that inserted person, while reused pending
+    people have no created provenance record; no assertion infers this from the people ID map.
+    Ambiguity errors create no person.
 44. **T43 parents:** Given forward/backward declarations on imported and skipped rows, same-parent
     rerun, a linked import whose parent_id is administratively cleared then rerun, conflict, missing,
     self, two/multi-node cycle, cross-tenant parent, and a new parent whose machine reference fails,
