@@ -6,11 +6,12 @@ The milestone goal is the DSH persisted goal `goal-37931532-6766-42d9-8777-93749
 
 ## Goal loop
 
-1. Finish the M1b importer safely and merge it through review + green CI.
-2. Establish one coherent design language and reusable component foundation.
-3. Let Nimish review clickable Floor and Desk prototypes before production frontend rebuilding.
-4. Rebuild Floor and Desk from the approved system, then resume the actionable M1b frontier.
-5. Stop at the M1b gate; begin M2 only after the required product-owner go decision.
+1. Show Nimish a small clickable Floor/Desk design preview and collect feedback before heavy UI work.
+2. Finish the M1b importer safely and merge it through review + green CI.
+3. Establish one coherent design language and reusable component foundation.
+4. Let Nimish review clickable Floor and Desk prototypes before production frontend rebuilding.
+5. Rebuild Floor and Desk from the approved system, then resume the actionable M1b frontier.
+6. Stop at the M1b gate; begin M2 only after the required product-owner go decision.
 
 The loop is objective → ready task → child execution → evidence → independent review → integration
 → recorded memory → re-evaluation. A red test/review returns to its owning task, not to the start.
@@ -27,7 +28,8 @@ flowchart TD
   C --> I
   I --> M[task-6 Review + merge importer]
 
-  A[task-2 D0.1 audit + role journeys] --> S[task-3 D0.2 design-system foundation]
+  V[task-15 Clickable design preview for Nimish] --> S[task-3 D0.2 design-system foundation]
+  A[task-2 D0.1 audit + role journeys] --> S
   S --> FP[task-13 Floor prototype child]
   S --> DP[task-14 Desk prototype child]
   FP --> D[task-4 Integrate D0.3 prototypes]
@@ -44,7 +46,8 @@ implementation may later fan out, but PRs still enter the merge queue one at a t
 
 | Node               | Owner                           | Exclusive write scope                                                            |
 | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| task-5             | lead + fresh planner child      | `docs/slices/M1b-import.md`                                                      |
+| task-15            | design-preview child            | isolated `design-preview/` route, its E2E/evidence and ADR 0005                  |
+| task-5             | import-planner child            | `docs/slices/M1b-import.md`                                                      |
 | task-10            | import-schema child             | `schema.ts`, schema tests and `docs/spec/import/` only                           |
 | task-11            | import-security child           | `cli.ts`, `security.ts`, `undo.ts` and focused tests only                        |
 | task-12            | import-reconciliation child     | new `reconcile.ts` and focused tests only                                        |
@@ -64,6 +67,9 @@ are lead-owned during each integration window. A child stops rather than editing
 Every implementation task has its own branch/worktree and a fresh read-only reviewer.
 
 ## Merge queue
+
+The task-15 throwaway preview is served locally for Nimish's feedback, not merged as production UI;
+its approved decisions are absorbed into D0.2 or its route is deleted.
 
 1. Importer correction plan is documentation within the existing importer branch.
 2. task-1 + task-6: importer PR; merge only after fresh PASS and green CI.
