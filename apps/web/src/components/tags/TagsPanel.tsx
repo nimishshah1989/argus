@@ -11,6 +11,7 @@ import {
 import { errorMessage } from '../format.js';
 import { TagList as AppliedTagList } from './TagPill.js';
 import { TagSelector } from './TagSelector.js';
+import { mergeAvailableTags } from './logic.js';
 
 function ErrorText({ error }: { error: unknown }) {
   if (!error) return null;
@@ -23,7 +24,7 @@ function ErrorText({ error }: { error: unknown }) {
 
 function AppliedTags({ tags }: { tags: TagDefinition[] }) {
   const { t } = useTranslation();
-  if (tags.length === 0) return <p className="mt-1 text-sm text-neutral-500">{t('tags.none')}</p>;
+  if (tags.length === 0) return <p className="mt-1 text-sm text-neutral-700">{t('tags.none')}</p>;
   return (
     <div className="mt-2">
       <AppliedTagList tags={tags} />
@@ -33,7 +34,6 @@ function AppliedTags({ tags }: { tags: TagDefinition[] }) {
 
 interface EditorProps {
   canEdit: boolean;
-  ready: boolean;
   available: TagDefinition[];
   applied: ReadonlySet<string>;
   pending: boolean;
@@ -45,9 +45,7 @@ function TagEditor(props: EditorProps) {
   const { t } = useTranslation();
   if (!props.canEdit) return null;
   if (props.available.length === 0) {
-    return props.ready ? (
-      <p className="mt-2 text-sm text-neutral-500">{t('tags.noOptions')}</p>
-    ) : null;
+    return <p className="mt-2 text-sm text-neutral-700">{t('tags.noOptions')}</p>;
   }
   return (
     <>
@@ -80,23 +78,31 @@ export function TagsPanel({ ticketId, canEdit }: { ticketId: string; canEdit: bo
     },
   });
   const loadError = catalogue.error ?? ticketTags.error;
+  const loading = catalogue.isPending || ticketTags.isPending;
+  const available =
+    catalogue.data && ticketTags.data
+      ? mergeAvailableTags(catalogue.data.tags, ticketTags.data.tags)
+      : [];
   return (
     <section
       aria-label={t('tags.title')}
       className="mt-3 rounded-md border border-neutral-200 bg-white p-3"
     >
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
         {t('tags.title')}
       </h2>
       {loadError ? (
         <ErrorText error={loadError} />
+      ) : loading ? (
+        <p role="status" className="mt-2 text-sm text-neutral-700">
+          {t('tags.loading')}
+        </p>
       ) : (
         <>
           <AppliedTags tags={ticketTags.data?.tags ?? []} />
           <TagEditor
             canEdit={canEdit}
-            ready={Boolean(catalogue.data)}
-            available={catalogue.data?.tags ?? []}
+            available={available}
             applied={new Set(applied.map((tag) => tag.tagId))}
             pending={saved.isPending}
             error={saved.error}

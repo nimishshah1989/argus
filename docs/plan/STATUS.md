@@ -1,42 +1,31 @@
 # Status — 11 November 2026
 
-Branch: `import-integration` (synthetic importer integration). This file separates merged main from
-in-flight work; the plan and review gates are in `docs/plan/backlog.md` and `docs/slices/M1b-import.md`.
+Branch: `tag-system-planning` (M2 configurable ticket tags). This file separates merged main from
+in-flight work; the implementation contract and actual acceptance output are in `docs/slices/M2-tags.md`.
 
 ## Merged on main
 
-**M0 foundation**
+- M0 foundation: schema v1 with forced RLS, composite tenant foreign keys, `app_router`/`app_api`,
+  tenant isolation tests, auth, settings/config, Cosmos master seed and walking skeleton.
+- M1a ticket core: domain figures, permissions and state machine; ticket API with row locks,
+  idempotency and figures; floor/desk, lists and real browser harness.
+- M1b: reports/PDF, live board, PWA/share, offline outbox, web push, needs-report, day report,
+  admin faces, Desk Views, exact cancel time and per-person minutes.
+- M1b import (#69/#70): safe synthetic-only contract, reconciliation, security checks and undo.
+- Process: CI E2E, migration immutability, parity-update and lean checks.
 
-- Schema v1 with forced RLS, composite tenant foreign keys, `app_router` functions and least-privilege
-  `app_api`; generic tenant isolation tests. Auth, host tenancy, settings/config and Cosmos master seed.
-- Walking skeleton and authored (unapplied) Terraform infrastructure.
+## In flight: configurable ticket tags only
 
-**M1a ticket core**
-
-- Domain figures, permissions and state machine; tickets API with row locks, idempotency and figures;
-  floor and desk faces, lists and the real Postgres/API/browser E2E harness.
-
-**M1b slices shipped early**
-
-- Breakdown report form/storage/PDF, Live board/kiosk, WhatsApp share text, PWA shell, offline outbox,
-  web push, needs-report list, day-report PDF, account/admin faces and Desk Views.
-- Exact cancel timestamp and exact per-person minutes in ticket lists.
-- Request-path RLS, clock corrections, correction audit/overrides, idempotency binding and duplicate-raise fix.
-- CI E2E, migration immutability, parity-update and lean checks.
-
-## In flight: synthetic importer only
-
-The integration branch implements the reviewed synthetic contract `argus.synthetic-bhavin/v1` and rejects
-all real or other sources before opening a batch. It does not implement N1 compatibility or cutover.
-
-- Strict parsing, separate aliases, canonical identity, dependency-checked parent graphs and bounded inputs.
-- Tenant-scoped reference loading, canonical work type/location codes, pending-person provenance and reports.
-- Original zero-based event persistence, domain figure reconciliation/overrides, counters and completion fingerprints.
-- Per-row raw/ticket savepoints, persisted fatal failure, recoverable row errors and honest batch statistics.
-- Fail-closed `app_api` CLI, production confirmation, terminal-batch undo with provenance/later-work/outside-ref
-  refusal, report-first deletion, preserved raw rows/people/counters/finished_at, and before/after audit.
-- Full verification passes: `pnpm verify` (380 tests / 38 files), Playwright E2E 16/16, build, parity,
-  licences, migrations and lean checks. Independent R3 review and GitHub CI remain before merge.
+- `ticket_tag` persistence with forced tenant RLS, composite tenant FKs, cascade lifecycle and actor
+  preservation; per-tenant `list_item` catalogues with no domain fixture or manual severity model.
+- `canWork` authorization, required idempotency keys, exact stored-response replay, ticket row locks,
+  effective `tag_add`/`tag_remove` history and malformed-id handling.
+- Empty/loading/selected/read-only/error browser states, inactive applied removal, and serious/critical
+  axe checks. Browser code does not bundle the server Zod schema.
+- Local isolated verification: **397 tests / 40 files**, **22 / 22 desktop-phone E2E**, production
+  build, lint, formatting, migrations, immutability, lean, licences, parity and declared size check.
+- `size:large` is required for the test-heavy vertical slice; `no-parity` applies because this is a
+  written addition, not an existing parity row. Actual PR labels/CI remain a merge gate.
 
 ## Parity — `docs/spec/parity.yaml` (80 rows)
 
@@ -48,30 +37,15 @@ all real or other sources before opening a batch. It does not implement N1 compa
 | external    |     3 | blocked on outside input               |
 | waived      |     1 | intentionally dropped dead screen      |
 
-`v3.import.01` remains `in-progress`, cites synthetic test evidence only, and records that real N1 export/
-Worker schema/compatibility and cutover remain external. PARITY.md is the source; `tools/sync-parity.ts`
-regenerates and `pnpm parity` validates the row and generated count.
+`v3.import.01` remains `in-progress`; real N1 schema/compatibility and cutover remain external.
 
 ## Next
 
-- Commit the remaining integration/artifact increment.
-- Obtain independent R3 review and green GitHub CI before merge; human security sign-off before real cutover.
-- Real N1 export/Worker, N12 aliases and cutover runbook remain external.
-- Day-report follow-ups, shared-login E2E, real Gujarati strings, then M2 SLA/escalation and M4 analytics.
+1. Fresh independent review of the final commit, then PR labels and green GitHub CI before merge.
+2. M2-2.1 derives S1–S4 from the plant criticality/state matrix in its own slice.
+3. Real N1 compatibility/cutover requires the external schema and human security sign-off.
 
 ## Blocked / external inputs
 
-- N1 Bhavin live export and Worker source; N11 real shifts; N12 legacy code aliases; N5 Gujarati strings.
+- N1 real export semantics, N11 real shifts, N12 older-set aliases, N5 Gujarati strings.
 - Terraform remains unapplied; staging/production execution is not part of this branch.
-
-## 2026-11-11 — M1b complete
-
-- Importer integration merged to main (PR #70)
-- Design-audit merged (PR #68)
-- Preview baseline merged
-- Live cost panel installed
-- Task-18 severity stub complete
-- Task-17 tags design complete
-- Task-19 history stub planned
-
-M2 preparation ready. Awaiting real Bhavin inputs.

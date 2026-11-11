@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { apiError, isTagCategory, tagApplySchema } from '@uptimo/shared';
+import { apiError, isTagCategory, tagApplySchema, ticketIdSchema } from '@uptimo/shared';
 import { canWork, type Role } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
@@ -52,6 +52,15 @@ function keyOrReply(request: FastifyRequest, reply: FastifyReply): string | null
       .send(apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
   }
   return key;
+}
+
+function ticketIdOrReply(id: string | undefined, reply: FastifyReply): string | null {
+  const parsed = ticketIdSchema.safeParse(id);
+  if (!parsed.success) {
+    reply.code(404).send(apiError('not_found', 'Ticket not found'));
+    return null;
+  }
+  return parsed.data;
 }
 
 async function getTicketTags(client: PoolClient, auth: Auth, ticketId: string): Promise<Outcome> {
@@ -151,13 +160,14 @@ async function mutate(
 ): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  const params = request.params as { id: string; tagId?: string };
+  if (!ticketIdOrReply(params.id, reply)) return;
   if (!canWork({ ...ctx, role: ctx.role as Role })) {
     reply.code(403).send(apiError('forbidden', 'You do not have permission to edit ticket tags'));
     return;
   }
   const key = keyOrReply(request, reply);
   if (!key) return;
-  const params = request.params as { id: string; tagId?: string };
   const candidate = {
     tagId: operation === 'add' ? (request.body as { tagId?: unknown } | null)?.tagId : params.tagId,
   };
@@ -188,7 +198,7 @@ export function registerTags(app: FastifyInstance, config: AppConfig): void {
   );
   app.get<{ Params: { id: string } }>('/api/v1/tickets/:id/tags', async (request, reply) => {
     const ctx = await requireAuth(pool, request, reply);
-    if (!ctx) return;
+    if (!ctx || !ticketIdOrReply(request.params.id, reply)) return;
     const outcome = await withTenant(pool, ctx.tenantId, (client) =>
       getTicketTags(client, ctx, request.params.id),
     );

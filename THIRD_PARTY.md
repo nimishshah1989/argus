@@ -47,6 +47,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Vitest                                                   | tests               | MIT              |
 | Testcontainers                                           | database tests      | MIT              |
 | axe-core                                                 | accessibility tests | MPL-2.0          |
+| @axe-core/playwright                                     | accessibility tests | MPL-2.0          |
 | fast-check                                               | property tests      | MIT              |
 | pdf-parse                                                | PDF text tests      | MIT              |
 

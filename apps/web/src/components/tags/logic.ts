@@ -19,6 +19,18 @@ export function groupByCategory(tags: TagDefinition[]): TagGroup[] {
   })).filter((group) => group.tags.length > 0);
 }
 
-export function isApplied(applied: ReadonlySet<string>, tagId: string): boolean {
-  return applied.has(tagId);
+/** Active catalogue plus any applied definition retired from that catalogue. */
+export function mergeAvailableTags(
+  catalogue: TagDefinition[],
+  applied: TagDefinition[],
+): TagDefinition[] {
+  const merged = [...catalogue];
+  const ids = new Set(catalogue.map((tag) => tag.id));
+  for (const tag of applied) {
+    if (!ids.has(tag.id)) {
+      merged.push(tag);
+      ids.add(tag.id);
+    }
+  }
+  return merged;
 }
