@@ -40,6 +40,12 @@ function csv(raw: string | undefined): string[] | null {
   return raw ? raw.split(',').filter(Boolean) : null;
 }
 
+export function projectTicket(row: Record<string, unknown>): Record<string, unknown> {
+  const ticket = tm.rowToTicket(row);
+  ticket.figures = tm.figuresFromRow(row);
+  return tm.ticketProjection(ticket, tm.rowExtras(row));
+}
+
 async function queryList(
   client: PoolClient,
   tenantId: string,
@@ -78,11 +84,7 @@ async function queryList(
   const rows = (await client.query(text, params)).rows;
 
   const page = rows.slice(0, filters.limit);
-  const items = page.map((row) => {
-    const ticket = tm.rowToTicket(row as Record<string, unknown>);
-    ticket.figures = tm.figuresFromRow(row as Record<string, unknown>);
-    return tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>));
-  });
+  const items = page.map((row) => projectTicket(row as Record<string, unknown>));
   let nextCursor: string | null = null;
   if (rows.length > filters.limit) {
     const last = page[page.length - 1] as Record<string, unknown>;
@@ -129,4 +131,31 @@ export async function listTickets(
     queryList(client, ctx.tenantId, filters),
   );
   reply.send(result);
+}
+
+/** Closed `no_report` tickets from the last 7 days, scoped to the acting person (or all for management). */
+export async function listNeedReport(
+  pool: Pool,
+  tenantId: string,
+  actingPersonId: string | null,
+  role: string,
+): Promise<unknown[]> {
+  return withTenant(pool, tenantId, async (client) => {
+    const seesAll = ['supervisor', 'head', 'admin'].includes(role);
+    const params: unknown[] = [tenantId];
+    let where =
+      "tenant_id = $1 AND status = 'closed' AND close_kind = 'no_report' AND closed_at > now() - interval '7 days'";
+    if (!seesAll && actingPersonId) {
+      params.push(actingPersonId);
+      where +=
+        ' AND (closed_by_person_id = $2 OR EXISTS (SELECT 1 FROM crew_member cm WHERE cm.ticket_id = ticket.id AND cm.person_id = $2 AND cm.left_at IS NULL))';
+    }
+    const rows = (
+      await client.query(
+        `SELECT ${sql.TICKET_COLUMNS} FROM ticket WHERE ${where} ORDER BY closed_at DESC`,
+        params,
+      )
+    ).rows;
+    return rows.map((row) => projectTicket(row as Record<string, unknown>));
+  });
 }

@@ -10,7 +10,7 @@ import type { AppConfig } from './config.js';
 import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
-import { listTickets } from './ticket-list.js';
+import { listNeedReport, listTickets, projectTicket } from './ticket-list.js';
 import * as report from './ticket-report.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -316,18 +316,15 @@ async function raise(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
 async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const rows = await withTenant(pool, ctx.tenantId, (client) =>
+  const openRows = await withTenant(pool, ctx.tenantId, (client) =>
     client.query(
       `SELECT ${sql.TICKET_COLUMNS} FROM ticket WHERE tenant_id = $1 AND status IN ('open', 'working', 'waiting') ORDER BY reported_at DESC`,
       [ctx.tenantId],
     ),
   );
-  const open = rows.rows.map((row) => {
-    const ticket = tm.rowToTicket(row as Record<string, unknown>);
-    ticket.figures = tm.figuresFromRow(row as Record<string, unknown>);
-    return tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>));
-  });
-  reply.send({ open, now: new Date().toISOString() });
+  const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
+  const open = openRows.rows.map((row) => projectTicket(row as Record<string, unknown>));
+  reply.send({ open, needReport, now: new Date().toISOString() });
 }
 
 async function detail(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {

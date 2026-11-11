@@ -44,6 +44,7 @@ export const en = {
   'desk.ticketLists': 'Ticket lists',
   'desk.mineTitle': 'My tickets',
   'desk.mineEmpty': 'Nothing assigned to you.',
+  'desk.needsReport': 'Needs report',
 
   // floor
   'floor.title': 'Report a problem',

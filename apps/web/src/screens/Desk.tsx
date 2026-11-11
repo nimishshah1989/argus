@@ -15,6 +15,7 @@ import {
 } from '../api.js';
 import { canWork, quickAction, useTicketCommand } from '../components/actions.js';
 import { errorMessage, machineLabel } from '../components/format.js';
+import { NeedReportList } from '../components/NeedReportList.js';
 import { TicketCard } from '../components/TicketCard.js';
 import { Drafts } from '../components/Drafts.js';
 import { NotificationsToggle } from '../components/NotificationsToggle.js';
@@ -211,6 +212,7 @@ function Board({ state, people, machines, canQuick, pending, onQuick }: BoardPro
     <>
       <Counts open={open} />
       <TeamNow open={open} people={people} />
+      <NeedReportList tickets={state.data?.needReport ?? []} machines={machines} />
       <div className="mt-6 space-y-6">
         {groups.map((group) => (
           <TicketList
