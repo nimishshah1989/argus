@@ -141,3 +141,72 @@ describe('settings and config', () => {
     expect(cfg.statusCode).toBe(401);
   });
 });
+
+describe('M2-2.1 severity matrix settings', () => {
+  const MACHINE = '10000000-0000-0000-0000-000000000041';
+
+  it('rejects an invalid severity matrix', async () => {
+    const token = await loginAs('admin');
+    const put = await req('PUT', '/api/v1/settings/severity_matrix', token, {
+      value: { default: { A: { stopped: 'S9', support: 'S2' } } },
+    });
+    expect(put.statusCode).toBe(422);
+  });
+
+  it('saves a valid severity matrix and serves it in /config', async () => {
+    const token = await loginAs('admin');
+    const matrix = {
+      default: {
+        A: { stopped: 'S1', support: 'S1' },
+        B: { stopped: 'S2', support: 'S2' },
+        C: { stopped: 'S3', support: 'S3' },
+      },
+      workRequest: 'S4',
+      urgentWorkRequest: 'S2',
+    };
+    const put = await req('PUT', '/api/v1/settings/severity_matrix', token, { value: matrix });
+    expect(put.statusCode).toBe(200);
+    const cfg = await req('GET', '/api/v1/config', token);
+    expect(cfg.json().severityMatrix).toEqual(matrix);
+  });
+
+  it('sets machine criticality and serves it in /config', async () => {
+    await admin.query("INSERT INTO machine (id, tenant_id, code) VALUES ($1, $2, 'VC-SET')", [
+      MACHINE,
+      A,
+    ]);
+    const token = await loginAs('admin');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: 'A',
+    });
+    expect(put.statusCode).toBe(200);
+    const cfg = await req('GET', '/api/v1/config', token);
+    const machine = cfg.json().machines.find((row: { id: string }) => row.id === MACHINE);
+    expect(machine.criticality).toBe('A');
+
+    const clear = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: null,
+    });
+    expect(clear.statusCode).toBe(200);
+    const after = await req('GET', '/api/v1/config', token);
+    expect(
+      after.json().machines.find((row: { id: string }) => row.id === MACHINE).criticality,
+    ).toBeNull();
+  });
+
+  it('rejects an invalid criticality value', async () => {
+    const token = await loginAs('admin');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: 'D',
+    });
+    expect(put.statusCode).toBe(422);
+  });
+
+  it('forbids a technician from writing criticality', async () => {
+    const tech = await loginAs('tech');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, tech, {
+      criticality: 'B',
+    });
+    expect(put.statusCode).toBe(403);
+  });
+});

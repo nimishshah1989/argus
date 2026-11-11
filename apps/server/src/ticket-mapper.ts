@@ -68,6 +68,8 @@ export interface TicketExtras {
   parentId: string | null;
   expectedBackAt: Date | null;
   waitingSpare: string | null;
+  severity: string | null;
+  criticalitySnapshot: string | null;
 }
 
 /** Raise-only ticket columns the domain does not model. */
@@ -78,6 +80,8 @@ export interface RaiseExtras {
   urgent: boolean;
   problemLang: string | null;
   reportedByRole: string | null;
+  severity: string | null;
+  criticalitySnapshot: string | null;
 }
 
 export interface PersistEventsOptions {
@@ -160,6 +164,8 @@ export function rowToTicket(row: Record<string, unknown>): Ticket {
     taskDownMin: num(row.task_down_min),
     kindUpgradedAt: toDate(row.kind_upgraded_at),
     lastEventSeq: row.last_event_seq as number,
+    severity: str(row.severity),
+    criticalitySnapshot: str(row.criticality_snapshot),
     figures: null,
   };
 }
@@ -176,6 +182,8 @@ export function rowExtras(row: Record<string, unknown>): TicketExtras {
     parentId: str(row.parent_id),
     expectedBackAt: toDate(row.expected_back_at),
     waitingSpare: str(row.waiting_spare),
+    severity: str(row.severity),
+    criticalitySnapshot: str(row.criticality_snapshot),
   };
 }
 

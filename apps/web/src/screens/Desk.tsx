@@ -14,6 +14,20 @@ import { TeamPanel } from './desk/TeamPanel.js';
 
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
+/** Settings is an admin/head surface; other roles never see the link. */
+function SettingsLink({ role }: { role?: string }) {
+  const { t } = useTranslation();
+  if (role !== 'admin' && role !== 'head') return null;
+  return (
+    <Link
+      to="/desk/settings"
+      className="inline-flex min-h-13 items-center rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+    >
+      {t('settings.title')}
+    </Link>
+  );
+}
+
 function DeskNav() {
   const { t } = useTranslation();
   return (
@@ -50,7 +64,10 @@ export function Desk() {
 
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t('desk.title')}</h1>
-        <AccountSheet />
+        <div className="flex items-center gap-2">
+          <SettingsLink role={me.data?.user.role} />
+          <AccountSheet />
+        </div>
       </div>
       <OfflineBanner />
       <NotificationsToggle />

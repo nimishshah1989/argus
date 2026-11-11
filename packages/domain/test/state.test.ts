@@ -45,6 +45,8 @@ function base(over: Partial<Ticket> = {}): Ticket {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: 0,
+    severity: null,
+    criticalitySnapshot: null,
     figures: null,
     ...over,
   };

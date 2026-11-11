@@ -107,3 +107,12 @@ export interface TicketContext {
   status: Status;
   crew: CrewMember[];
 }
+
+export type Criticality = 'A' | 'B' | 'C';
+export type Severity = 'S1' | 'S2' | 'S3' | 'S4';
+
+export interface SeverityMatrix {
+  default: Record<Criticality, Record<'stopped' | 'support', Severity>>;
+  workRequest: Severity;
+  urgentWorkRequest: Severity;
+}

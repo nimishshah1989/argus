@@ -104,6 +104,8 @@ export function raiseTicket(input: RaiseInput): {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: seq,
+    severity: null,
+    criticalitySnapshot: null,
     figures: null,
   };
   return { ticket, events, segments };

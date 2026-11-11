@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool } from 'pg';
 import { withTenant } from '@uptimo/db';
+import { severityMatrixSchema, type SeverityMatrix } from '@uptimo/shared';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;
@@ -12,6 +13,7 @@ export interface ConfigPayload {
   machines: unknown[];
   people: unknown[];
   shifts: unknown[];
+  severityMatrix: SeverityMatrix;
 }
 
 export function fingerprint(payload: unknown): string {
@@ -66,6 +68,21 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
       general: true,
       pause: true,
     }) as Record<string, boolean>;
+
+    // Load severity matrix - default is built in if missing
+    const severityMatrixRow = settings.rows.find((row) => row.key === 'severity_matrix');
+    const severityMatrix = severityMatrixRow
+      ? severityMatrixSchema.parse(severityMatrixRow.value)
+      : {
+          default: {
+            A: { stopped: 'S1' as const, support: 'S2' as const },
+            B: { stopped: 'S2' as const, support: 'S3' as const },
+            C: { stopped: 'S3' as const, support: 'S4' as const },
+          },
+          workRequest: 'S4' as const,
+          urgentWorkRequest: 'S3' as const,
+        };
+
     return {
       features,
       language: tenant.rows[0].language,
@@ -76,6 +93,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
       machines: machines.rows,
       people: people.rows,
       shifts: shifts.rows,
+      severityMatrix,
     };
   });
 }

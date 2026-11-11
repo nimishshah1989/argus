@@ -5,6 +5,7 @@ import {
   isListName,
   listUpsertSchema,
   settingsPutSchema,
+  severityMatrixSchema,
   translationSchema,
 } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
@@ -52,6 +53,14 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     return;
   }
   const key = (request.params as { key: string }).key;
+  // M2-2.1: validate the severity matrix shape before persisting it.
+  if (key === 'severity_matrix') {
+    const matrix = severityMatrixSchema.safeParse(parsed.data.value);
+    if (!matrix.success) {
+      reply.code(422).send(apiError('validation', 'Invalid severity matrix', 'value'));
+      return;
+    }
+  }
   await withTenant(pool, ctx.tenantId, (client) =>
     client.query(
       'INSERT INTO setting (tenant_id, key, value) VALUES ($1, $2, $3) ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()',
@@ -161,11 +170,40 @@ async function putTranslation(pool: Pool, request: FastifyRequest, reply: Fastif
   reply.send({ ok: true });
 }
 
+async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!canWrite(ctx.role)) return forbidden(reply);
+  const { id } = request.params as { id: string };
+  const body = request.body as { criticality?: string | null };
+  const criticality = body.criticality ?? null;
+  if (criticality !== null && !['A', 'B', 'C'].includes(criticality)) {
+    reply
+      .code(422)
+      .send(apiError('validation', 'Criticality must be A, B, C or null', 'criticality'));
+    return;
+  }
+  const updated = await withTenant(pool, ctx.tenantId, (client) =>
+    client.query(
+      'UPDATE machine SET criticality = $2, updated_at = now() WHERE id = $1 RETURNING id',
+      [id, criticality],
+    ),
+  );
+  if (updated.rowCount === 0) {
+    reply.code(404).send(apiError('not_found', 'Unknown machine', 'id'));
+    return;
+  }
+  reply.send({ ok: true });
+}
+
 export function registerSettings(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   app.get('/api/v1/config', (request, reply) => handleConfig(pool, request, reply));
   app.get('/api/v1/settings', (request, reply) => listSettings(pool, request, reply));
   app.put('/api/v1/settings/:key', (request, reply) => putSetting(pool, request, reply));
+  app.put('/api/v1/machines/:id/criticality', (request, reply) =>
+    putMachineCriticality(pool, request, reply),
+  );
   app.get('/api/v1/lists/:list', (request, reply) => listItems(pool, request, reply));
   app.put('/api/v1/lists/:list/:code', (request, reply) => upsertListItem(pool, request, reply));
   app.delete('/api/v1/lists/:list/:id', (request, reply) => deleteListItem(pool, request, reply));

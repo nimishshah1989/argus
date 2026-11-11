@@ -40,3 +40,6 @@ infra/terraform/terraform.tfvars
 .terraform/
 *.tfstate
 *.tfstate.*
+
+# Graphify knowledge graph output
+graphify-out/

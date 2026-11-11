@@ -145,6 +145,8 @@ export interface Ticket {
   cancelledAt?: string;
   closeKind: CloseKind | null;
   closeNote: string | null;
+  severity: string | null;
+  criticalitySnapshot: string | null;
   figures: Figures | null;
 }
 

@@ -1,6 +1,6 @@
 # Status — 11 November 2026
 
-Branch: `import-integration` (synthetic importer integration). This file separates merged main from
+Branch: `severity-matrix-implementation` (M2-2.1 severity matrix). This file separates merged main from
 in-flight work; the plan and review gates are in `docs/plan/backlog.md` and `docs/slices/M1b-import.md`.
 
 ## Merged on main
@@ -23,6 +23,25 @@ in-flight work; the plan and review gates are in `docs/plan/backlog.md` and `doc
 - Exact cancel timestamp and exact per-person minutes in ticket lists.
 - Request-path RLS, clock corrections, correction audit/overrides, idempotency binding and duplicate-raise fix.
 - CI E2E, migration immutability, parity-update and lean checks.
+
+## In flight: M2-2.1 severity matrix
+
+Branch `severity-matrix-implementation` (worktree `severity-matrix-implementation`).
+
+- `packages/domain/src/severity.ts`: pure `computeSeverity` + `defaultSeverityMatrix` per DOMAIN.md
+  §Severity; full unit coverage. No severity tags — the M2 tag boundary is unchanged.
+- Migration `0006_severity_matrix.sql`: CHECK constraints on `ticket.severity` / `criticality_snapshot`
+  and per-tenant default matrix seed.
+- Raise derives severity from the machine criticality snapshot; `correct` and `upgrade-kind`
+  recalculate it (`apps/server/src/ticket/severity.ts`).
+- Settings API: `PUT /api/v1/settings/severity_matrix` (validated), `PUT /api/v1/machines/:id/criticality`;
+  `/api/v1/config` serves the matrix and machine criticality.
+- Web: severity badge on ticket cards, severity fact on detail, new `/desk/settings` screen
+  (admin/head) for machine criticality and the matrix grid.
+- Evidence: `apps/server/test/ticket-severity.test.ts` (8 cases incl. correction recalc),
+  `packages/domain/test/severity.test.ts` (10 cases), `apps/server/test/settings.test.ts`
+  (5 new settings cases). Slice plan: `docs/slices/M2-2.1-severity-matrix.md`.
+- Remaining: independent review; timeline and real-data import stay separate slices.
 
 ## In flight: synthetic importer only
 

@@ -35,4 +35,6 @@ export interface Ticket {
   kindUpgradedAt: Date | null;
   lastEventSeq: number;
   figures: Figures | null;
+  severity: string | null;
+  criticalitySnapshot: string | null;
 }

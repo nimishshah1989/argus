@@ -24,6 +24,14 @@ function fact(label: string, value: string | null | undefined, wide = false): Fa
   return value ? [{ label, value, ...(wide ? { wide } : {}) }] : [];
 }
 
+/** Severity with the criticality snapshot it was derived from, e.g. "S1 (A)". */
+function severityLabel(ticket: Ticket): string | null {
+  if (!ticket.severity) return null;
+  return ticket.criticalitySnapshot
+    ? `${ticket.severity} (${ticket.criticalitySnapshot})`
+    : ticket.severity;
+}
+
 function factRows(t: TFunction, ticket: Ticket, config?: Config): Fact[] {
   const machine =
     ticket.kind === 'general'
@@ -37,6 +45,7 @@ function factRows(t: TFunction, ticket: Ticket, config?: Config): Fact[] {
       label: t('ticket.fact.reported'),
       value: formatDateTime(ticket.reportedAt, config?.timeZone),
     },
+    ...fact(t('ticket.fact.severity'), severityLabel(ticket)),
     ...fact(t('ticket.fact.lead'), lead?.name),
     ...fact(t('ticket.fact.location'), ticket.location),
     ...fact(t('ticket.fact.workType'), ticket.workType),

@@ -4,18 +4,22 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## RESUME HERE
 
-**State**: branch `import-integration` has the corrected **synthetic-only** M1b importer integrated.
-It accepts only `argus.synthetic-bhavin/v1`; real Bhavin/N1 exports are rejected before a batch.
-No migration, dependency, frontend change, production execution, or real compatibility claim is included.
+**State**: branch `severity-matrix-implementation` (worktree of the same name) implements **M2-2.1 severity matrix**.
 
-- Strict contract/aliases, canonical identity and parent graphs, savepoint row recovery, fatal batch state,
-  domain figures/overrides, counters, original zero-based events, and report/pending-person persistence are integrated.
-- CLI requires `app_api` and staging or explicit production confirmation. Undo checks terminal synthetic batches,
-  provenance, fingerprints, later work and outside references, then deletes reports before tickets and writes audit.
-- Full verification is green: `pnpm verify` (380 tests / 38 files), Playwright 16/16, build, parity,
-  licences, migration and lean checks. The integration implementation commit is `0945ce2`; tests/artifacts follow.
-- **Next**: commit the remaining integration/artifact increment, then obtain independent R3 review and green CI.
-  Do not merge or use this for cutover from this handoff alone.
+- `packages/domain/src/severity.ts`: pure `computeSeverity` (criticality A/B/C × kind stopped/support,
+  general uses urgent flag), `defaultSeverityMatrix` per DOMAIN.md §Severity. Full unit coverage.
+- DB: migration `0006_severity_matrix.sql` — CHECK constraints on `ticket.severity` /
+  `ticket.criticality_snapshot` (columns existed from v1) and seeds the default matrix setting per tenant.
+- Server: raise derives severity from the machine criticality snapshot at report time
+  (`apps/server/src/tickets.ts` `raiseExtras` + `apps/server/src/ticket/severity.ts`);
+  `correct` (machine/kind change) and `upgrade-kind` recalculate it in `persistResult`.
+- Settings API: `PUT /api/v1/settings/severity_matrix` (validated), `PUT /api/v1/machines/:id/criticality`.
+  `/api/v1/config` serves `severityMatrix` and machine criticality.
+- Web: severity badge on ticket cards, severity fact on detail, `/desk/settings` screen
+  (admin/head) edits machine criticality and the matrix grid.
+- Severity is **not** modelled through `ticket_tag`; the M2 tag boundary is unchanged.
+
+- **Next**: green `pnpm verify`, then independent review. Timeline and real-data import stay separate slices.
 
 ## Live on main
 
@@ -54,12 +58,14 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 **Milestone:** M1b — safe synthetic importer with strict schema and undo
 
 **Evidence:**
+
 - R3 adversarial review: PASS
 - 380/380 Vitest tests
 - 16/16 Playwright E2E
 - Full typecheck, lint, format, parity, licences, migrations, lean pass
 
 **Key deliveries:**
+
 - `apps/server/src/import/` — contract, security, undo, reconciliation modules
 - `docs/slices/M1b-import.md` — 51-test plan and execution record
 - No unsafe ae17369 behaviors

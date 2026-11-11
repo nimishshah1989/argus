@@ -24,6 +24,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     closedAt: null,
     closeKind: null,
     closeNote: null,
+    severity: null,
+    criticalitySnapshot: null,
     figures: null,
     ...overrides,
   };

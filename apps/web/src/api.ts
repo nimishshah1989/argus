@@ -201,3 +201,31 @@ export function removeTicketTag(ticketId: string, tagId: string): Promise<TagLis
     headers: { 'Idempotency-Key': idempotencyKey() },
   });
 }
+
+// M2-2.1 severity matrix settings.
+export interface SeverityMatrix {
+  default: Record<'A' | 'B' | 'C', Record<'stopped' | 'support', string>>;
+  workRequest: string;
+  urgentWorkRequest: string;
+}
+
+export function getSettings(): Promise<Array<{ key: string; value: unknown }>> {
+  return api<Array<{ key: string; value: unknown }>>('/api/v1/settings');
+}
+
+export function putSetting(key: string, value: unknown): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(`/api/v1/settings/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value }),
+  });
+}
+
+export function putMachineCriticality(
+  machineId: string,
+  criticality: 'A' | 'B' | 'C' | null,
+): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(`/api/v1/machines/${machineId}/criticality`, {
+    method: 'PUT',
+    body: JSON.stringify({ criticality }),
+  });
+}

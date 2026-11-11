@@ -57,6 +57,8 @@ export function recordPastBreakdown(input: PastBreakdownInput): {
     taskDownMin: null,
     kindUpgradedAt: null,
     lastEventSeq: 2,
+    severity: null,
+    criticalitySnapshot: null,
     figures: null,
   };
   return {
