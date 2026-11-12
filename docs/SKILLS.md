@@ -55,4 +55,4 @@ For `impeccable`, the checklist is `docs/DESIGN.md` plus the screen spec: role, 
 
 ## 5. Model pins and hooks
 
-`model: sonnet` / `model: opus` / `model: fable` do not resolve in DSH. The hooks in `.claude/harness/hooks/` do not fire. The replacement is the protocol: `HANDOFF` at the start and end, `todo_write` for the session, fresh-context `subagent` reviewers, and the repo as the durable memory. If model diversity is required for the maker-checker, the build runs in Claude Code or adds a human reviewer for R3.
+`model: sonnet` / `model: opus` / `model: fable` do not resolve in DSH. The hooks in `.claude/harness/hooks/` do not fire. The replacement is the protocol: `HANDOFF` at the start and end, `todo_write` for the session, fresh-context `subagent` reviewers, and the repo as the durable memory. Model diversity for the maker-checker comes from the hosted free coder writing and DeepSeek Flash reviewing (`docs/ORCHESTRATION.md` §10); R3 still adds a human reviewer.
