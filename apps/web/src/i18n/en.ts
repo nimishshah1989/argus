@@ -85,6 +85,8 @@ export const en = {
   'ticket.facts': 'Facts',
   'ticket.fact.machine': 'Machine',
   'ticket.fact.severity': 'Severity',
+  'ticket.fact.reported': 'Reported',
+  'ticket.fact.lead': 'Lead',
   'ticket.fact.location': 'Location',
   'ticket.fact.workType': 'Work type',
   'ticket.fact.started': 'Started',
@@ -122,6 +124,9 @@ export const en = {
   'role.lead': 'Lead',
   'role.primary': 'Primary',
   'role.support': 'Support',
+  'close.report': 'With report',
+  'close.noReport': 'Without report',
+  'close.done': 'Done',
 
   // action form
   'action.join.title': 'Add me as crew',
