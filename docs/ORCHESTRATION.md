@@ -319,3 +319,26 @@ For R2/R3 work, review each microtask before moving on. For R1, the ticket diff 
 - Probe the route before the first packet: dispatch one word to `openrouter/cohere/north-mini-code:free` and require a response. `list_subagent_models` lists the allowlist, not the live providers, so it alone is a false positive.
 - Use `subagent` with explicit `provider` and `model` for coding. `spawn_teammate` has no model selector, so teammates inherit DeepSeek Flash and are not the coding route. `workflow` may also select a route, but is for fan-out, not for one coder.
 - The goal service and `/goal` command are part of the DSH base profile. The goal is stored outside the repo; the repo remains the memory, so the handoff still records the objective and state.
+
+## 11. Required lessons from M2-2.2 (read at session start)
+
+The SLA timer slice proved that a large vertical feature can hide transaction and deployment failures
+until late. Every future slice must apply these rules:
+
+1. **Infrastructure first, thin slice:** prove one real command through DB/API/queue before business features.
+2. **Smaller vertical slices:** one user-visible flow per PR, each with plan, tests, review and merge.
+3. **Contract checks before code:** DTO mappings, column names, transaction boundaries, queue signatures
+   and state transitions are explicit and tested at boundaries.
+4. **Real integration smoke early:** real Postgres and queue with injected clocks; no wall-clock sleeps.
+5. **Review at thin-slice boundaries:** plan review before code, integration review after each slice,
+   not after the entire feature.
+6. **Deployment-safe migrations:** tracked ledger, atomic migration + record, advisory lock, artifact
+   checks, and fresh/repeat/previous/crash-recovery tests.
+7. **Parallelism only when independent:** disjoint worktrees/files, one E2E stack, no concurrent edits
+   to shared transaction/startup code, and dedicated browser fixtures.
+8. **User-visible checkpoints:** preview every vertical slice instead of waiting for the milestone.
+9. **Handoff early:** repo, slice plans, test output and task state are authoritative, not chat memory.
+   Fresh orchestrator at ~50–70% context with a written handoff.
+
+The objective is not merely “work faster”; it is to fail earlier on smaller seams. The current
+orchestrator session file for applying these rules is `docs/orchestrators/M2-2.2-sla-orchestrator.md`.

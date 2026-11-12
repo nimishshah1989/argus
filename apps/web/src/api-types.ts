@@ -1,4 +1,12 @@
 import type { BreakdownReportBody } from '../../../packages/shared/src/ticket.js';
+import type { SlaPolicy, SlaProjection } from '../../../packages/shared/src/sla.js';
+
+export type {
+  SlaPoliciesUpdate,
+  SlaPolicy,
+  SlaProjection,
+  SlaTimer,
+} from '../../../packages/shared/src/sla.js';
 
 /** The DTOs the web client exchanges with the API; `api.ts` re-exports every one of them. */
 
@@ -58,7 +66,13 @@ export interface ListItem {
   id: string;
   code: string;
   label: string;
+  labelGu: string | null;
+  labelHi: string | null;
+  sort: number;
   active: boolean;
+  isVendor: boolean;
+  pausesSla: boolean;
+  tag: string | null;
 }
 
 export interface Person {
@@ -90,6 +104,7 @@ export interface Config {
   people: Person[];
   shifts: Shift[];
   severityMatrix: SeverityMatrix;
+  slaPolicies: SlaPolicy[];
 }
 
 export interface Figures {
@@ -156,6 +171,9 @@ export interface Ticket {
   closeNote: string | null;
   severity: Severity | null;
   criticalitySnapshot: Criticality | null;
+  slaPolicyId: string | null;
+  /** Optional only so pre-SLA cached responses remain readable. Live APIs always emit it. */
+  sla?: SlaProjection | null;
   figures: Figures | null;
 }
 

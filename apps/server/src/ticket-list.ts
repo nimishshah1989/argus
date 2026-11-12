@@ -1,10 +1,13 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
+import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
 import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
+import { projectTicketSla, withSlaProjections } from './sla-projection.js';
+import * as report from './ticket-report.js';
 
 interface ListFilters {
   statuses: string[] | null;
@@ -127,8 +130,8 @@ async function queryList(
     page.map((row) => row.id as string),
     new Date(),
   );
-  const items = page.map((row) =>
-    projectTicket(row as Record<string, unknown>, perPerson[row.id as string]),
+  const items = await withSlaProjections(client, tenantId, page, (row) =>
+    projectTicket(row, perPerson[row.id as string]),
   );
   let nextCursor: string | null = null;
   if (rows.length > filters.limit) {
@@ -201,6 +204,65 @@ export async function listNeedReport(
         params,
       )
     ).rows;
-    return rows.map((row) => projectTicket(row as Record<string, unknown>));
+    return withSlaProjections(client, tenantId, rows, (row) => projectTicket(row));
   });
+}
+
+export async function detail(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  const ticketId = (request.params as { id: string }).id;
+  const payload = await withTenant(pool, ctx.tenantId, async (client) => {
+    const row = (
+      await client.query(
+        `SELECT ${sql.TICKET_COLUMNS} FROM ticket WHERE id = $1 AND tenant_id = $2`,
+        [ticketId, ctx.tenantId],
+      )
+    ).rows[0];
+    if (!row) return null;
+    const ticket = tm.rowToTicket(row as Record<string, unknown>);
+    const events = await sql.loadEvents(client, ticketId);
+    const segments = await sql.loadSegments(client, ticketId);
+    const crew = await sql.loadCrew(client, ticketId);
+    ticket.figures = tm.recomputeFigures(ticket, events, segments, {
+      overrides: (row.overrides as Record<string, unknown>) ?? {},
+      now: new Date(),
+    });
+    return {
+      ticket: {
+        ...tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
+        sla: await projectTicketSla(client, ctx.tenantId, ticketId, new Date()),
+      },
+      events: events.map((event) => ({
+        seq: event.seq,
+        type: event.type,
+        at: event.at,
+        text: event.text,
+        reason: event.reason ?? null,
+        isVendor: event.isVendor ?? false,
+        actingPersonId: event.actingPersonId,
+        loginId: event.loginId,
+      })),
+      people: crew.map((member: domain.CrewMember) => ({
+        personId: member.personId,
+        role: member.role,
+        leftAt: member.leftAt ?? null,
+        leftReason: member.leftReason ?? null,
+      })),
+      tasks: [],
+      intervals: segments.map((segment: domain.WorkSegment) => ({
+        personId: segment.personId,
+        role: segment.role,
+        startedAt: segment.startedAt,
+        endedAt: segment.endedAt ?? null,
+      })),
+      report: await report.loadReport(client, ticketId),
+    };
+  });
+  if (!payload) reply.code(404).send(apiError('not_found', 'Unknown ticket'));
+  else reply.send(payload);
 }

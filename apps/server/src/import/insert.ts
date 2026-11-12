@@ -81,6 +81,12 @@ function canonical(
   return code;
 }
 
+function pauseSlaFlag(refs: ReconcileReferences, reason: unknown): boolean {
+  const flags = refs.waitReasons.get(normalizeCode(String(reason)));
+  if (!flags) throw new Error(`Unresolved wait reason: ${String(reason)}`);
+  return flags.pausesSla;
+}
+
 function baseValues(ticket: BhavinTicket, refs: ReconcileReferences): unknown[] {
   return [
     ticket.ref,
@@ -195,7 +201,14 @@ async function insertEvents(
         event.at,
         person(refs, event.by),
         event.text,
-        JSON.stringify(event.payload),
+        JSON.stringify(
+          event.type === 'pause'
+            ? {
+                ...event.payload,
+                pausesSla: pauseSlaFlag(refs, event.payload.reason),
+              }
+            : event.payload,
+        ),
       ],
     );
   }

@@ -422,6 +422,30 @@ describe('remaining commands', () => {
     ).toThrow(TransitionError);
   });
 
+  it('rejects future correction times and corrections before the report', () => {
+    const working = base({
+      status: 'working',
+      reportedAt: t('2026-01-01T10:00:00Z'),
+      startedAt: t('2026-01-01T10:30:00Z'),
+      leadPersonId: 'person-1',
+    });
+    const changes = [
+      { startedAt: t('2026-01-01T13:00:00Z') },
+      { closedAt: t('2026-01-01T13:00:00Z') },
+      { reportedAt: t('2026-01-01T13:00:00Z') },
+      { startedAt: t('2026-01-01T09:00:00Z') },
+    ];
+    for (const change of changes) {
+      expect(() =>
+        run(
+          working,
+          { type: 'correct', personId: 'person-1', reason: 'Fix', changes: change },
+          ctx('admin'),
+        ),
+      ).toThrow(TransitionError);
+    }
+  });
+
   it('records a past breakdown without inventing hands-on time', () => {
     const past = recordPastBreakdown({
       id: 't-past',

@@ -5,6 +5,13 @@ const ALLOWED =
 
 type Entry = { license?: string } | string;
 
+function isAllowed(value: string): boolean {
+  return value
+    .replace(/[()]/g, '')
+    .split(/\s+(?:OR|AND)\s+/i)
+    .every((part) => ALLOWED.test(part.trim()));
+}
+
 function main(): void {
   let raw: string;
   try {
@@ -29,7 +36,7 @@ function main(): void {
     for (const entry of entries) {
       const licence = typeof entry === 'string' ? entry : (entry.license ?? 'UNKNOWN');
       count += 1;
-      if (!ALLOWED.test(licence)) bad.push(`${name}: ${licence}`);
+      if (!isAllowed(licence)) bad.push(`${name}: ${licence}`);
     }
   }
   console.log(`licences: ${count} production licence entries, ${bad.length} outside the allowlist`);

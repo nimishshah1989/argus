@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
-import { severityMatrixSchema, type SeverityMatrix } from '@uptimo/shared';
+import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
+import type { PgBoss } from 'pg-boss';
+import type { JobsHandle } from './jobs/index.js';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;
@@ -14,6 +16,24 @@ export interface ConfigPayload {
   people: unknown[];
   shifts: unknown[];
   severityMatrix: SeverityMatrix;
+  slaPolicies: SlaPolicy[];
+}
+
+function slaPolicyDto(row: Record<string, unknown>): SlaPolicy {
+  return {
+    id: row.id as string,
+    severity: row.severity as SlaPolicy['severity'],
+    ackMinutes: row.ack_minutes as number,
+    restoreMinutes: row.restore_minutes as number,
+    businessHoursOnly: row.business_hours_only as boolean,
+  };
+}
+
+async function loadSlaPolicies(client: Pick<PoolClient, 'query'>): Promise<SlaPolicy[]> {
+  const rows = await client.query(
+    'SELECT id, severity, ack_minutes, restore_minutes, business_hours_only FROM sla_policy ORDER BY severity',
+  );
+  return rows.rows.map(slaPolicyDto);
 }
 
 export function fingerprint(payload: unknown): string {
@@ -58,6 +78,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
     const shifts = await client.query(
       'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
     );
+    const slaPolicies = await loadSlaPolicies(client);
     const settings = await client.query('SELECT key, value FROM setting');
     const tenant = await client.query('SELECT * FROM tenant_info($1)', [tenantId]);
     const byList: Record<string, unknown[]> = {};
@@ -94,6 +115,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
       people: people.rows,
       shifts: shifts.rows,
       severityMatrix,
+      slaPolicies,
     };
   });
 }
@@ -106,4 +128,8 @@ export interface AppConfig {
   filesDir?: string;
   /** Chromium binary for PDF rendering; defaults to CHROMIUM_PATH or the E2E browsers. */
   chromiumPath?: string;
+  /** Set by production startup; tests create a producer-only boss lazily. */
+  databaseUrl?: string;
+  jobBoss?: PgBoss;
+  jobsHandle?: JobsHandle;
 }

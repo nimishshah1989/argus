@@ -12,6 +12,10 @@ locally and in CI, but there is no staging or production deployment yet.
 
 ### Added
 
+- M2-2.2 SLA policies and delayed timers: admin/head Settings configure all four severity targets
+  with no invented defaults; acknowledge/restore clocks follow ticket history, historical pause
+  flags and optional shift windows; tenant-isolated pg-boss jobs, reconciliation and ticket timer
+  projections survive restarts, corrections, cancellation/restore and criticality changes.
 - Configurable ticket tags: technicians and above can apply/remove active tenant `list_item` values on
   ticket detail. Assignments use tenant-RLS relational persistence with cascade cleanup, exact replay,
   row-locked concurrent writes and actor-labelled timeline events; a real browser flow covers the

@@ -12,7 +12,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | @fastify/rate-limit                                      | rate limiting       | MIT              |
 | @node-rs/argon2                                          | password hashing    | MIT              |
 | Zod                                                      | shared schemas      | MIT              |
-| pg-boss                                                  | jobs                | MIT              |
+| pg-boss 12.38.2                                          | jobs                | MIT              |
 | Pino                                                     | logging             | MIT              |
 | Drizzle ORM                                              | database            | Apache-2.0       |
 | pg (node-postgres)                                       | database driver     | MIT              |

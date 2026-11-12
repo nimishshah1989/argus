@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
+import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 
 const MIGRATIONS = new URL('../../../packages/db/migrations/', import.meta.url);
 
@@ -34,6 +35,7 @@ export async function startTestDb(): Promise<TestDb> {
   for (const file of migrationFiles()) {
     await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
   }
+  await installJobSchema(admin);
   await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
   const app = new Pool({
     connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`,

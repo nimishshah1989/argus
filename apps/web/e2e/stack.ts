@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
+import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 import {
   API_PORT,
   API_URL,
@@ -86,6 +87,7 @@ async function startDatabase(): Promise<Database> {
     for (const file of migrationFiles()) {
       await pool.query(readFileSync(join(MIGRATIONS, file), 'utf8'));
     }
+    await installJobSchema(pool);
     await pool.query(`ALTER ROLE ${APP_API_USER} LOGIN PASSWORD '${APP_API_PASSWORD}'`);
     const passwordHash = await hashPassword();
     for (const statement of seedStatements(passwordHash)) {
