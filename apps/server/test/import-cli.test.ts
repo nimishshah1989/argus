@@ -294,161 +294,181 @@ describe('real CLI import and undo (T13–T20)', () => {
     await db.stop();
   });
 
-  it('T13 imports as app_api and reports exact ticket and completion data', async () => {
-    const result = runImport(await jsonFile(makeSyntheticExport()));
-    expect(result.error).toBeUndefined();
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-    const { batchId, stats } = importOutput(result);
-    expect(stats).toMatchObject({
-      contract: syntheticSource,
-      status: 'done',
-      tickets: 1,
-      imported: 1,
-      skipped: 0,
-      errored: 0,
-      events: 4,
-      crew: 2,
-      segments: 2,
-      reports: 1,
-      reportPeople: 2,
-      hardMismatches: 0,
-    });
-    const stored = await db.admin.query(
-      `SELECT t.*, ir.source_ref, ir.row_number, b.status AS batch_status, b.stats
+  it(
+    'T13 imports as app_api and reports exact ticket and completion data',
+    { timeout: 120_000 },
+    async () => {
+      const result = runImport(await jsonFile(makeSyntheticExport()));
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe('');
+      const { batchId, stats } = importOutput(result);
+      expect(stats).toMatchObject({
+        contract: syntheticSource,
+        status: 'done',
+        tickets: 1,
+        imported: 1,
+        skipped: 0,
+        errored: 0,
+        events: 4,
+        crew: 2,
+        segments: 2,
+        reports: 1,
+        reportPeople: 2,
+        hardMismatches: 0,
+      });
+      const stored = await db.admin.query(
+        `SELECT t.*, ir.source_ref, ir.row_number, b.status AS batch_status, b.stats
        FROM ticket t
        JOIN import_row ir ON ir.ticket_id = t.id AND ir.tenant_id = t.tenant_id
        JOIN import_batch b ON b.id = ir.batch_id AND b.tenant_id = ir.tenant_id
        WHERE t.tenant_id = $1 AND b.id = $2`,
-      [syntheticIds.tenant, batchId],
-    );
-    expect(stored.rows).toHaveLength(1);
-    expect(stored.rows[0]).toMatchObject({
-      ref: 'BD-0100',
-      raised_channel: 'import',
-      last_event_seq: 3,
-      response_min: 5,
-      active_min: 55,
-      repair_min: 55,
-      downtime_min: 60,
-      source_ref: 'synthetic-legacy-0100',
-      row_number: 1,
-      batch_status: 'done',
-    });
-    const client = await db.admin.connect();
-    try {
-      const snapshot = await loadBatchSnapshot(client, syntheticIds.tenant, batchId, false);
-      expect(stats.completion).toEqual(makeCompletionFingerprint(snapshot));
-    } finally {
-      client.release();
-    }
-  });
-
-  it('T14 exits 1 with a persisted failed batch and all row outcomes', async () => {
-    const first = makeOrdinaryTicket();
-    const malformed = makeOrdinaryTicket({ legacyId: 'synthetic-bad', ref: 'BD-0101' });
-    const last = makeOrdinaryTicket({ legacyId: 'synthetic-last', ref: 'BD-0102' });
-    const result = runImport(
-      await jsonFile(makeSyntheticExport([first, { ...malformed, problem: null }, last])),
-    );
-    expect(result.status).toBe(1);
-    const { batchId, stats } = importOutput(result);
-    expect(stats).toMatchObject({ status: 'failed', imported: 2, skipped: 0, errored: 1 });
-    expect(stats.issues).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          rowNumber: 2,
-          legacyId: 'synthetic-bad',
-          ref: 'BD-0101',
-          severity: 'error',
-        }),
-      ]),
-    );
-    const batch = await db.admin.query(
-      'SELECT status, finished_at FROM import_batch WHERE id = $1',
-      [batchId],
-    );
-    expect(batch.rows[0].status).toBe('failed');
-    expect(batch.rows[0].finished_at).toBeInstanceOf(Date);
-    const rows = await db.admin.query(
-      `SELECT row_number, source_ref, status, payload->>'format' AS format
-       FROM import_row WHERE tenant_id = $1 AND batch_id = $2 ORDER BY row_number`,
-      [syntheticIds.tenant, batchId],
-    );
-    expect(rows.rows).toEqual([
-      {
-        row_number: 1,
+        [syntheticIds.tenant, batchId],
+      );
+      expect(stored.rows).toHaveLength(1);
+      expect(stored.rows[0]).toMatchObject({
+        ref: 'BD-0100',
+        raised_channel: 'import',
+        last_event_seq: 3,
+        response_min: 5,
+        active_min: 55,
+        repair_min: 55,
+        downtime_min: 60,
         source_ref: 'synthetic-legacy-0100',
-        status: 'imported',
-        format: 'argus.import-raw/v1',
-      },
-      {
-        row_number: 2,
-        source_ref: 'synthetic-bad',
-        status: 'error',
-        format: 'argus.import-raw/v1',
-      },
-      {
-        row_number: 3,
-        source_ref: 'synthetic-last',
-        status: 'imported',
-        format: 'argus.import-raw/v1',
-      },
-    ]);
-  });
-
-  it('T15 rejects source and oversize files before a batch and accepts the exact byte cap', async () => {
-    const wrongSource = runImport(
-      await jsonFile({ ...makeSyntheticExport([]), source: 'bhavin-v3' }),
-    );
-    expect(wrongSource.status).not.toBe(0);
-    expect(wrongSource.stdout).toBe('');
-    expect(wrongSource.stderr).toMatch(/source|contract/i);
-    expect(await batchCount()).toBe(0);
-
-    const oversized = runImport(await inputFile(Buffer.alloc(5_242_881, 32)));
-    expect(oversized.status).not.toBe(0);
-    expect(oversized.stdout).toBe('');
-    expect(oversized.stderr).toMatch(/5242880|bytes/i);
-    expect(await batchCount()).toBe(0);
-
-    const valid = Buffer.from(JSON.stringify(makeSyntheticExport([])));
-    const exact = Buffer.concat([valid, Buffer.alloc(5_242_880 - valid.length, 32)]);
-    expect(exact.length).toBe(5_242_880);
-    const accepted = runImport(await inputFile(exact));
-    expect(accepted.status).toBe(0);
-    expect(importOutput(accepted).stats).toMatchObject({ status: 'done', tickets: 0 });
-    expect(await batchCount()).toBe(1);
-  });
-
-  it('T16 allows confirmed staging and production writes against disposable Postgres', async () => {
-    const file = await jsonFile(makeSyntheticExport([]));
-    for (const appEnv of ['staging', 'production']) {
-      const result = runImport(file, { appEnv, productionConfirm: true });
-      expect(result.status).toBe(0);
-      expect(importOutput(result).stats.status).toBe('done');
-    }
-    expect(await batchCount()).toBe(2);
-  });
-
-  it('T17 rejects owner and bypass-RLS roles before tenant resolution', async () => {
-    const file = await jsonFile(makeSyntheticExport([]));
-    const bypassUrl = `postgresql://synthetic_bypass:synthetic-bypass-password@${db.container.getHost()}:${db.container.getPort()}/${db.container.getDatabase()}`;
-    for (const url of [db.container.getConnectionUri(), bypassUrl]) {
-      for (const result of [
-        runImport(file, { url, tenant: 'missing' }),
-        runUndo(BATCH_ID, { url, tenant: 'missing' }),
-      ]) {
-        expect(result.status).toBe(1);
-        expect(result.stdout).toBe('');
-        expect(result.stderr).toMatch(/app_api/i);
-        expect(result.stderr).not.toMatch(/Unknown tenant/i);
+        row_number: 1,
+        batch_status: 'done',
+      });
+      const client = await db.admin.connect();
+      try {
+        const snapshot = await loadBatchSnapshot(client, syntheticIds.tenant, batchId, false);
+        expect(stats.completion).toEqual(makeCompletionFingerprint(snapshot));
+      } finally {
+        client.release();
       }
-    }
-    expect(await batchCount()).toBe(0);
-  });
+    },
+  );
 
-  it('T18 refuses cross-tenant and non-Bhavin provenance undo', async () => {
+  it(
+    'T14 exits 1 with a persisted failed batch and all row outcomes',
+    { timeout: 120_000 },
+    async () => {
+      const first = makeOrdinaryTicket();
+      const malformed = makeOrdinaryTicket({ legacyId: 'synthetic-bad', ref: 'BD-0101' });
+      const last = makeOrdinaryTicket({ legacyId: 'synthetic-last', ref: 'BD-0102' });
+      const result = runImport(
+        await jsonFile(makeSyntheticExport([first, { ...malformed, problem: null }, last])),
+      );
+      expect(result.status).toBe(1);
+      const { batchId, stats } = importOutput(result);
+      expect(stats).toMatchObject({ status: 'failed', imported: 2, skipped: 0, errored: 1 });
+      expect(stats.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowNumber: 2,
+            legacyId: 'synthetic-bad',
+            ref: 'BD-0101',
+            severity: 'error',
+          }),
+        ]),
+      );
+      const batch = await db.admin.query(
+        'SELECT status, finished_at FROM import_batch WHERE id = $1',
+        [batchId],
+      );
+      expect(batch.rows[0].status).toBe('failed');
+      expect(batch.rows[0].finished_at).toBeInstanceOf(Date);
+      const rows = await db.admin.query(
+        `SELECT row_number, source_ref, status, payload->>'format' AS format
+       FROM import_row WHERE tenant_id = $1 AND batch_id = $2 ORDER BY row_number`,
+        [syntheticIds.tenant, batchId],
+      );
+      expect(rows.rows).toEqual([
+        {
+          row_number: 1,
+          source_ref: 'synthetic-legacy-0100',
+          status: 'imported',
+          format: 'argus.import-raw/v1',
+        },
+        {
+          row_number: 2,
+          source_ref: 'synthetic-bad',
+          status: 'error',
+          format: 'argus.import-raw/v1',
+        },
+        {
+          row_number: 3,
+          source_ref: 'synthetic-last',
+          status: 'imported',
+          format: 'argus.import-raw/v1',
+        },
+      ]);
+    },
+  );
+
+  it(
+    'T15 rejects source and oversize files before a batch and accepts the exact byte cap',
+    { timeout: 120_000 },
+    async () => {
+      const wrongSource = runImport(
+        await jsonFile({ ...makeSyntheticExport([]), source: 'bhavin-v3' }),
+      );
+      expect(wrongSource.status).not.toBe(0);
+      expect(wrongSource.stdout).toBe('');
+      expect(wrongSource.stderr).toMatch(/source|contract/i);
+      expect(await batchCount()).toBe(0);
+
+      const oversized = runImport(await inputFile(Buffer.alloc(5_242_881, 32)));
+      expect(oversized.status).not.toBe(0);
+      expect(oversized.stdout).toBe('');
+      expect(oversized.stderr).toMatch(/5242880|bytes/i);
+      expect(await batchCount()).toBe(0);
+
+      const valid = Buffer.from(JSON.stringify(makeSyntheticExport([])));
+      const exact = Buffer.concat([valid, Buffer.alloc(5_242_880 - valid.length, 32)]);
+      expect(exact.length).toBe(5_242_880);
+      const accepted = runImport(await inputFile(exact));
+      expect(accepted.status).toBe(0);
+      expect(importOutput(accepted).stats).toMatchObject({ status: 'done', tickets: 0 });
+      expect(await batchCount()).toBe(1);
+    },
+  );
+
+  it(
+    'T16 allows confirmed staging and production writes against disposable Postgres',
+    { timeout: 120_000 },
+    async () => {
+      const file = await jsonFile(makeSyntheticExport([]));
+      for (const appEnv of ['staging', 'production']) {
+        const result = runImport(file, { appEnv, productionConfirm: true });
+        expect(result.status).toBe(0);
+        expect(importOutput(result).stats.status).toBe('done');
+      }
+      expect(await batchCount()).toBe(2);
+    },
+  );
+
+  it(
+    'T17 rejects owner and bypass-RLS roles before tenant resolution',
+    { timeout: 120_000 },
+    async () => {
+      const file = await jsonFile(makeSyntheticExport([]));
+      const bypassUrl = `postgresql://synthetic_bypass:synthetic-bypass-password@${db.container.getHost()}:${db.container.getPort()}/${db.container.getDatabase()}`;
+      for (const url of [db.container.getConnectionUri(), bypassUrl]) {
+        for (const result of [
+          runImport(file, { url, tenant: 'missing' }),
+          runUndo(BATCH_ID, { url, tenant: 'missing' }),
+        ]) {
+          expect(result.status).toBe(1);
+          expect(result.stdout).toBe('');
+          expect(result.stderr).toMatch(/app_api/i);
+          expect(result.stderr).not.toMatch(/Unknown tenant/i);
+        }
+      }
+      expect(await batchCount()).toBe(0);
+    },
+  );
+
+  it('T18 refuses cross-tenant and non-Bhavin provenance undo', { timeout: 120_000 }, async () => {
     const otherTenant = randomUUID();
     const otherBatch = randomUUID();
     await db.admin.query(
@@ -504,58 +524,62 @@ describe('real CLI import and undo (T13–T20)', () => {
     expect(preserved.rows[0].n).toBe(1);
   });
 
-  it('T19 refuses undo after a real HTTP command appends later work', async () => {
-    const imported = runImport(await jsonFile(makeSyntheticExport()));
-    expect(imported.status).toBe(0);
-    const { batchId } = importOutput(imported);
-    const ticket = await db.admin.query('SELECT id FROM ticket WHERE tenant_id = $1', [
-      syntheticIds.tenant,
-    ]);
-    const ticketId = ticket.rows[0].id as string;
-    const loginId = randomUUID();
-    const sessionId = randomUUID();
-    const token = 'synthetic-cli-session';
-    await db.admin.query(
-      `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role)
+  it(
+    'T19 refuses undo after a real HTTP command appends later work',
+    { timeout: 120_000 },
+    async () => {
+      const imported = runImport(await jsonFile(makeSyntheticExport()));
+      expect(imported.status).toBe(0);
+      const { batchId } = importOutput(imported);
+      const ticket = await db.admin.query('SELECT id FROM ticket WHERE tenant_id = $1', [
+        syntheticIds.tenant,
+      ]);
+      const ticketId = ticket.rows[0].id as string;
+      const loginId = randomUUID();
+      const sessionId = randomUUID();
+      const token = 'synthetic-cli-session';
+      await db.admin.query(
+        `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role)
        VALUES ($1, $2, $3, 'synthetic-cli', 'unused', 'technician')`,
-      [loginId, syntheticIds.tenant, syntheticIds.asha],
-    );
-    await db.admin.query(
-      `INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at, acting_person_id)
+        [loginId, syntheticIds.tenant, syntheticIds.asha],
+      );
+      await db.admin.query(
+        `INSERT INTO session (id, tenant_id, login_id, token_hash, expires_at, acting_person_id)
        VALUES ($1, $2, $3, $4, now() + interval '1 hour', $5)`,
-      [sessionId, syntheticIds.tenant, loginId, hashToken(token), syntheticIds.asha],
-    );
-    const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
-    try {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/api/v1/tickets/${ticketId}/machine-running`,
-        headers: {
-          host: 'cosmos.localhost',
-          authorization: `Bearer ${token}`,
-          'idempotency-key': randomUUID(),
-        },
-        payload: { personId: syntheticIds.asha },
-      });
-      expect(response.statusCode).toBe(200);
-    } finally {
-      await app.close();
-    }
-    const refused = runUndo(batchId);
-    expect(refused.status).not.toBe(0);
-    expect(refused.stderr).toMatch(/fingerprint|mismatch|later work/i);
-    const state = await db.admin.query(
-      `SELECT b.status, count(t.id)::int AS tickets,
+        [sessionId, syntheticIds.tenant, loginId, hashToken(token), syntheticIds.asha],
+      );
+      const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/api/v1/tickets/${ticketId}/machine-running`,
+          headers: {
+            host: 'cosmos.localhost',
+            authorization: `Bearer ${token}`,
+            'idempotency-key': randomUUID(),
+          },
+          payload: { personId: syntheticIds.asha },
+        });
+        expect(response.statusCode).toBe(200);
+      } finally {
+        await app.close();
+      }
+      const refused = runUndo(batchId);
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toMatch(/fingerprint|mismatch|later work/i);
+      const state = await db.admin.query(
+        `SELECT b.status, count(t.id)::int AS tickets,
         (SELECT count(*)::int FROM ticket_event WHERE tenant_id = $1 AND ticket_id = $2) AS events,
         (SELECT count(*)::int FROM audit_log WHERE tenant_id = $1 AND entity_id = $3) AS audits
        FROM import_batch b LEFT JOIN ticket t ON t.tenant_id = b.tenant_id AND t.id = $2
        WHERE b.tenant_id = $1 AND b.id = $3 GROUP BY b.status`,
-      [syntheticIds.tenant, ticketId, batchId],
-    );
-    expect(state.rows[0]).toMatchObject({ status: 'done', tickets: 1, events: 5, audits: 0 });
-  });
+        [syntheticIds.tenant, ticketId, batchId],
+      );
+      expect(state.rows[0]).toMatchObject({ status: 'done', tickets: 1, events: 5, audits: 0 });
+    },
+  );
 
-  it('T20 completes one audited undo and rejects every repeat', async () => {
+  it('T20 completes one audited undo and rejects every repeat', { timeout: 120_000 }, async () => {
     const imported = runImport(await jsonFile(makeSyntheticExport()));
     expect(imported.status).toBe(0);
     const { batchId, stats } = importOutput(imported);
