@@ -107,10 +107,10 @@ Each backend capability has a named proof, not a claim.
 | Lean budgets           | `tools/check-size.ts`, `tools/check-deps.ts`, `tools/check-pr-size.ts`, `tools/check-shortcuts.ts` | A file/function over budget, a new dependency without an ADR, a huge PR, or a shortcut outside the ledger |
 | Build and bundle       | Vite build + size budget                                                                           | The build fails or the bundle exceeds its budget                                                          |
 
-## 7. Reviewer independence and the DeepSeek caveat
+## 7. Reviewer independence and the two-model split
 
 - The reviewer gets a **fresh context**: the plan, the diff, the CI result and the checklist. It does not get the author’s reasoning or the whole conversation.
-- In this DSH session only DeepSeek models are available, so “fresh context” is weaker than a different model family. We compensate with fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review. If exact model diversity is required, the build runs in Claude Code, or we add a human reviewer for R3 changes.
+- The coder is a hosted free model (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`); the reviewer is DeepSeek Flash. They are different model families, so a fresh context is a real independence boundary. It is still not a senior human: fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review remain mandatory for R3.
 - **Adversarial review** is used on R3 and on the analytics port: one pass argues the change is correct, a second pass actively tries to break it (wrong tenant, replayed command, back-dated time, overlapping crew, shift midnight, NO DT, a blank code, a long Gujarati string).
 - **Review of reviewers:** each month a sample of merged PRs is re-reviewed by a fresh reviewer. A false pass becomes a ticket against the checklist, not against the author.
 

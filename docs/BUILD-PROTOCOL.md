@@ -274,7 +274,8 @@ If an alarm fires, the fix is a ticket, not a conversation.
 - The repo’s `.claude` hooks and agents are Claude Code-specific: in DSH they do not fire, and `fable`/`opus`/`sonnet` do not exist. I follow their intent with DSH tools: `bash`, `read`/`write`/`edit`, `subagent` for fresh-context planning/review, `workflow` for large audits, `todo_write` for the session, and the `handoff` skill at the context limit.
 - DSH has workspace-write or danger-full-access file policy; I still do not touch production, and I do not create accounts or change GitHub visibility without your go-ahead.
 - The durable memory is the same repo files. DSH can compact or end a session; the files survive.
-- If the maker–checker separation must use different model families, the build should run in Claude Code, or we accept a weaker independence here and add a human security review. This is a real trade-off, not a detail.
+- Model routing is recorded in `docs/orchestration.yaml` and `docs/ORCHESTRATION.md` §10: DeepSeek Flash plans and reviews; the hosted free coder (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`) writes product code. The maker and checker are different model families, but both are small enough that fixed checklists, tests and human R3 sign-off remain the real gate.
+- The coder route and its credential are machine-local and session-scoped: run the 1-word probe before the first packet, and start a new session after the profile changes. Do not silently fall back to DeepSeek for code.
 
 ---
 
