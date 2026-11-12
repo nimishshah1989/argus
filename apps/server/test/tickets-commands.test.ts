@@ -204,6 +204,10 @@ beforeAll(async () => {
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 150)",
     [TENANT],
   );
+  await admin.query(
+    "INSERT INTO list_item (tenant_id, list, code, label, pauses_sla) VALUES ($1, 'wait_reason', 'spare', 'Spare part', false)",
+    [TENANT],
+  );
 
   app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
   ashaToken = await login('asha');

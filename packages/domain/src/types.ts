@@ -23,7 +23,8 @@ export type EventType =
   | 'report'
   | 'upgrade_kind'
   | 'tag_add'
-  | 'tag_remove';
+  | 'tag_remove'
+  | 'acknowledge';
 
 export interface EditChange {
   field: string;
@@ -36,6 +37,8 @@ export interface TicketEvent {
   at: Date;
   reason?: string;
   isVendor?: boolean;
+  /** Historical SLA behavior of this pause; never read the mutable list flag for old events. */
+  pausesSla?: boolean;
   /** The status a ticket had before a `cancel`; `restore` uses it to pick the resume status. */
   status?: RestorableStatus;
   /** Per-field old→new values recorded by a `correct` (`edit`) event. */

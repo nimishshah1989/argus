@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { buildQrPayload, qrSvg, qrText } from '../src/pdf.js';
 import { renderReportHtml, type ReportPdfInput } from '../src/pdf-template.js';
+import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
 const SEGMENT = '10000000-0000-0000-0000-000000000002';
@@ -168,6 +169,7 @@ beforeAll(async () => {
     .sort()) {
     await pool.query(readFileSync(new URL(name, migrations), 'utf8'));
   }
+  await installJobSchema(pool);
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2,
     memoryCost: 19456,

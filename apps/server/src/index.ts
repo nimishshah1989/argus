@@ -1,9 +1,44 @@
 import { buildApp } from './app.js';
 import { createPool } from './db.js';
+import { startJobs, type JobRole } from './jobs/index.js';
+import { reconcileTicket } from './ticket/sla.js';
+import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
+import type { PgBoss } from 'pg-boss';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required');
 
-const app = await buildApp({ pool: createPool(url), logger: true });
-const port = Number(process.env.PORT ?? 3001);
-await app.listen({ port, host: '0.0.0.0' });
+const pool = createPool(url);
+const role = (process.env.ROLE as JobRole | undefined) ?? 'all';
+const runtime: { boss?: PgBoss } = {};
+const reconcileForJobs: SlaTicketReconciler = (client, tenantId, ticketId, now) =>
+  reconcileTicket(client, { tenantId, ticketId, now, boss: runtime.boss });
+const jobs = await startJobs({
+  connectionString: url,
+  pool,
+  role,
+  reconcileTicket: reconcileForJobs,
+  onBossReady: (boss) => {
+    runtime.boss = boss;
+  },
+});
+
+if (role === 'worker') {
+  console.log('SLA worker started (no HTTP listener)');
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.once(signal, async () => {
+      await jobs.close();
+      process.exit(0);
+    });
+  }
+} else {
+  const app = await buildApp({
+    pool,
+    logger: true,
+    databaseUrl: url,
+    jobBoss: jobs.boss,
+    jobsHandle: jobs,
+  });
+  const port = Number(process.env.PORT ?? 3001);
+  await app.listen({ port, host: '0.0.0.0' });
+}

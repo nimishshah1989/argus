@@ -5,6 +5,7 @@ import type { ActionSpec } from './actions.js';
 import { elapsedLabel } from './format.js';
 import { StatusBadge } from './StatusBadge.js';
 import { SeverityBadge } from './SeverityBadge.js';
+import { SlaTimerSummary } from './SlaTimerSummary.js';
 
 interface Props {
   ticket: Ticket;
@@ -32,6 +33,7 @@ export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }
         <p className="mt-2 text-sm text-neutral-500">
           {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt, now) })}
         </p>
+        <SlaTimerSummary ticket={ticket} />
       </Link>
       {quick && (
         <button

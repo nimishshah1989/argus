@@ -35,4 +35,20 @@ describe('withTenant', () => {
       MissingTenantError,
     );
   });
+
+  it('fails closed when app_api can bypass RLS', async () => {
+    await pool.query("CREATE ROLE app_api LOGIN BYPASSRLS PASSWORD 'unsafe-test-password'");
+    const url = new URL(container.getConnectionUri());
+    url.username = 'app_api';
+    url.password = 'unsafe-test-password';
+    const unsafe = new Pool({ connectionString: url.toString() });
+    try {
+      await expect(withTenant(unsafe, A, async () => undefined)).rejects.toThrow(
+        'app_api must not be a superuser or bypass RLS',
+      );
+    } finally {
+      await unsafe.end();
+      await pool.query('DROP ROLE app_api');
+    }
+  });
 });

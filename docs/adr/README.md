@@ -7,3 +7,4 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0003-auth.md` — hand-rolled sessions or better-auth, decided by the M0 spike
 - `0004-commercial-layer-deferred.md` — billing, self-serve and plan enforcement come after the product
 - `0005-accessibility-test-adapter.md` — dev-only axe Playwright checks for user-facing slices
+- `0006-jobs.md` — pg-boss delayed jobs, one shared instance and the migration ledger

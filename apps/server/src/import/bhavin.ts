@@ -1,5 +1,6 @@
 import { withTenant } from '@uptimo/db';
 import type { Pool } from 'pg';
+import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import {
   emptyImportStats,
@@ -24,6 +25,7 @@ import {
   type SyntheticExport,
 } from './schema.js';
 import { lockRefCounter } from '../ticket-sql.js';
+import { reconcileSlaPolicies } from '../ticket/sla.js';
 
 type TicketResult = Awaited<ReturnType<typeof importTicket>>;
 type RunCtx = ImportCtx & { aliases: AliasConfig; now: Date; timeZone?: string };
@@ -249,9 +251,15 @@ async function runMain(
   pool: Pool,
   tenantId: string,
   batchId: string,
-  input: { parsed: SyntheticExport; aliasSha256: string; now: Date; timeZone?: string },
+  input: {
+    parsed: SyntheticExport;
+    aliasSha256: string;
+    now: Date;
+    timeZone?: string;
+    boss?: PgBoss;
+  },
 ): Promise<{ batchId: string; stats: ImportStats }> {
-  const { parsed, aliasSha256, now, timeZone } = input;
+  const { parsed, aliasSha256, now, timeZone, boss } = input;
   const context = { aliasSha256, now, timeZone };
   return withTenant(pool, tenantId, async (client) => {
     const ctx: RunCtx = {
@@ -273,6 +281,8 @@ async function runMain(
     }
     stats.parentRepairs = await applyParentLinks(ctx, plans);
     stats.refCounters = await advanceRefCounters(ctx, plans);
+    // M2-2.2: reconcile imported live tickets with the tenant's configured SLA policies.
+    await reconcileSlaPolicies(client, tenantId, boss);
     stats.completion = makeCompletionFingerprint(
       await loadBatchSnapshot(client, tenantId, batchId, false),
     );
@@ -294,7 +304,7 @@ export async function importBhavin(
   pool: Pool,
   tenantId: string,
   input: unknown,
-  options: { timeZone?: string } = {},
+  options: { timeZone?: string; boss?: PgBoss } = {},
 ): Promise<{ batchId: string; stats: ImportStats }> {
   const parsed = parseSyntheticExport(input);
   const now = new Date();

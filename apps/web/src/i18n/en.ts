@@ -102,6 +102,24 @@ export const en = {
   'ticket.left': 'left',
   'ticket.now': 'now',
 
+  // SLA timers
+  'sla.title': 'SLA timers',
+  'sla.ack': 'Acknowledge',
+  'sla.restore': 'Restore',
+  'sla.notConfigured': 'SLA not configured.',
+  'sla.unavailable': 'SLA status unavailable in this cached view.',
+  'sla.notApplicable': 'Not applicable',
+  'sla.remaining': '{{time}} left',
+  'sla.overdue': '{{time}} overdue',
+  'sla.paused': 'Paused · {{time}} left',
+  'sla.pausedOverdue': 'Paused · {{time}} overdue',
+  'sla.stoppedLeft': 'Stopped · {{time}} left',
+  'sla.stoppedLate': 'Stopped · {{time}} late',
+  'sla.due': 'Due',
+  'sla.stoppedAt': 'Stopped at',
+  'sla.dueAfterResume': 'Deadline recalculates on resume',
+  'sla.cancelledRestore': 'Ticket cancelled; restore recalculates the clock.',
+
   // roles and close kinds
   'role.lead': 'Lead',
   'role.primary': 'Primary',
@@ -326,6 +344,25 @@ export const en = {
   'settings.forbiddenHelp':
     'Ask an admin or head to change machine criticality or the severity matrix.',
   'settings.offline': 'Offline: Settings is read-only. Reconnect to make changes.',
+  'settings.forbiddenSlaHelp': 'SLA policies and restore-clock wait rules require the same access.',
+  'settings.slaTitle': 'SLA policies',
+  'settings.slaHelp':
+    'Set acknowledge and restore targets for each severity. Business hours use the configured shifts.',
+  'settings.slaEmpty': 'No SLA policies configured. Enter all four targets and save.',
+  'settings.slaUnavailable': 'SLA settings are unavailable in this cached view.',
+  'settings.slaAckMinutes': 'Acknowledge minutes',
+  'settings.slaRestoreMinutes': 'Restore minutes',
+  'settings.slaBusinessHours': 'Business hours only',
+  'settings.slaSave': 'Save SLA policies',
+  'settings.slaSaved': 'SLA policies saved',
+  'settings.slaSaveFailed': 'Could not save SLA policies. Your changes are still here. Try again.',
+  'settings.waitSlaTitle': 'Restore clock pauses',
+  'settings.waitSlaHelp':
+    'Applies to pauses started after this change. Existing pauses keep the rule they started with.',
+  'settings.waitSlaFor': 'Pause restore clock while waiting for {{label}}',
+  'settings.waitSlaEmpty': 'No wait reasons are configured.',
+  'settings.waitSlaSaved': 'Wait rule saved',
+  'settings.waitSlaSaveFailed': 'Could not save the wait rule. Try again.',
 
   // controlled ticket tags
   'tags.title': 'Tags',

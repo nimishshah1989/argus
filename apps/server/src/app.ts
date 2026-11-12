@@ -1,5 +1,6 @@
 import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
+import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
 import { registerAuth } from './auth.js';
 import { registerReports } from './reports.js';
@@ -8,9 +9,27 @@ import { registerTickets } from './tickets.js';
 import { registerPush } from './push.js';
 import { registerTags } from './tags.js';
 import type { AppConfig } from './config.js';
+import { startJobs } from './jobs/index.js';
+import { reconcileTicket } from './ticket/sla.js';
+import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
 
 export async function buildApp(config: AppConfig) {
+  const reconcileForJobs: SlaTicketReconciler = (client, tenantId, ticketId, now) =>
+    reconcileTicket(client, { tenantId, ticketId, now, boss: config.jobBoss });
+  const jobs = config.jobBoss
+    ? { boss: config.jobBoss, close: config.jobsHandle?.close ?? (async () => undefined) }
+    : await startJobs({
+        connectionString: config.databaseUrl ?? config.pool.options.connectionString!,
+        pool: config.pool,
+        role: 'api',
+        reconcileTicket: reconcileForJobs,
+        onBossReady: (boss) => {
+          config.jobBoss = boss;
+        },
+      });
+  config.jobBoss = jobs.boss;
   const app = Fastify({ logger: config.logger ?? false });
+  app.addHook('onClose', async () => jobs.close());
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   app.get('/api/v1/health', async () => ({ status: 'ok' }));
   registerAuth(app, config);
@@ -20,6 +39,10 @@ export async function buildApp(config: AppConfig) {
   registerPush(app, config);
   registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof SlaInputError) {
+      reply.code(422).send(apiError('validation', error.message, error.code));
+      return;
+    }
     const statusCode = (error as { statusCode?: number }).statusCode;
     if (statusCode === 429) {
       reply.code(429).send(apiError('rate_limited', 'Too many requests'));

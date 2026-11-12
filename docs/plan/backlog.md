@@ -176,8 +176,8 @@ Status: `todo`, `in-progress`, `done`, `blocked-external`, `waived`. A ticket is
 
 - **Verification:** auto
 - **Depends on:** 2.1
-- **Status:** todo
-- **Acceptance:** auto: fake-clock tests for every timer path
+- **Status:** in-progress
+- **Acceptance:** auto: fake-clock tests for every timer path; `pnpm verify` 504/504 and Playwright 38/38 pass on `sla-timers`; PR/CI and merge remain
 
 ### M2-2.3 — Escalation rules, ladder L1 to L4 and vendor, roster, escalation events, acknowledge; push notifications
 

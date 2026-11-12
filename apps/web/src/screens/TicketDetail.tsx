@@ -20,6 +20,8 @@ import { ReportPanel } from '../components/ReportForm.js';
 import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
 import { StatusBadge } from '../components/StatusBadge.js';
+import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
+import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
 import { TagsPanel } from '../components/tags/TagsPanel.js';
 import {
@@ -124,6 +126,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
           {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt) })}
         </p>
       </header>
+      <SlaTimerSummary ticket={ticket} detailed config={config} />
       {hasReportContext(config, personId) && (
         <ReportPanel
           ticket={ticket}
@@ -177,6 +180,7 @@ export function TicketDetail() {
       <Link to="/desk" className="inline-flex min-h-13 items-center font-medium text-accent">
         {t('ticket.back')}
       </Link>
+      <OfflineBanner />
       {detail.data ? (
         <TicketView
           detail={detail.data}

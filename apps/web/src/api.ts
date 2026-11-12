@@ -6,9 +6,11 @@ import type {
   CommandBody,
   CommandResult,
   Config,
+  ListItem,
   Me,
   RaiseTicketBody,
   SeverityMatrix,
+  SlaPoliciesUpdate,
   State,
   Ticket,
   TicketDetail,
@@ -217,5 +219,29 @@ export function putMachineCriticality(
   return api<{ ok: boolean }>(`/api/v1/machines/${machineId}/criticality`, {
     method: 'PUT',
     body: JSON.stringify({ criticality }),
+  });
+}
+
+export function putSlaPolicies(body: SlaPoliciesUpdate): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/api/v1/settings/sla-policies', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/** Sends every editable field; null translations/tags stay omitted because the PUT schema is optional. */
+export function putWaitReason(item: ListItem): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(`/api/v1/lists/wait_reason/${encodeURIComponent(item.code)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      label: item.label,
+      labelGu: item.labelGu ?? undefined,
+      labelHi: item.labelHi ?? undefined,
+      sort: item.sort,
+      active: item.active,
+      isVendor: item.isVendor,
+      pausesSla: item.pausesSla,
+      tag: item.tag ?? undefined,
+    }),
   });
 }

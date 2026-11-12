@@ -1,8 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { Client } from 'pg';
+import { Client, Pool } from 'pg';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { installJobSchema } from '../src/install-jobs.js';
 
 const TENANT_TABLES = [
   'person',
@@ -30,6 +31,8 @@ const TENANT_TABLES = [
   'import_row',
   'ref_counter',
   'command_idempotency',
+  'sla_policy',
+  'sla_timer',
 ];
 
 const A = '10000000-0000-0000-0000-000000000001';
@@ -57,6 +60,9 @@ beforeAll(async () => {
     .sort()) {
     await db.query(readFileSync(new URL(file, migrations), 'utf8'));
   }
+  const installerPool = new Pool({ connectionString: container.getConnectionUri(), max: 1 });
+  await installJobSchema(installerPool);
+  await installerPool.end();
   await db.query(readFileSync(new URL('./seed.sql', import.meta.url), 'utf8'));
   await db.query('SET ROLE app_user');
 }, 120_000);
@@ -117,6 +123,21 @@ describe('schema v1 isolation', () => {
 
   it('does not let app_user read tenant directly', async () => {
     await expect(db.query('SELECT * FROM tenant')).rejects.toThrow(/permission denied/);
+  });
+
+  it('discovers policy tenants narrowly and grants queue access to app_api', async () => {
+    await setTenant();
+    const tenants = await db.query('SELECT * FROM tenants_with_sla_policies() ORDER BY tenant_id');
+    expect(tenants.rows).toEqual([{ tenant_id: A }, { tenant_id: B }]);
+    const grants = await db.query(
+      `SELECT
+         has_schema_privilege('app_api', 'pgboss', 'USAGE') AS schema_usage,
+         has_table_privilege('app_api', 'pgboss.version', 'SELECT') AS version_select,
+         has_table_privilege('app_api', 'pgboss.version', 'INSERT') AS version_insert`,
+    );
+    expect(grants.rows).toEqual([
+      { schema_usage: true, version_select: true, version_insert: true },
+    ]);
   });
 
   it('resolves the tenant by slug and the session token across tenants', async () => {

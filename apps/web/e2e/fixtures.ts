@@ -31,7 +31,7 @@ export interface MachineFixture {
   cell: string;
 }
 
-/** VC-1..VC-4 carry the specs (one machine each per project), VC-5/VC-6 are spares. */
+/** Machine ownership by suite: floor, desk, tags/Settings, board, then SLA. */
 export const MACHINES: MachineFixture[] = [
   { id: '10000000-0000-0000-0000-000000000003', code: 'VC-1', category: 'VMC', cell: 'Cell-1' },
   { id: '10000000-0000-0000-0000-000000000004', code: 'VC-2', category: 'VMC', cell: 'Cell-1' },
@@ -41,6 +41,8 @@ export const MACHINES: MachineFixture[] = [
   { id: '10000000-0000-0000-0000-000000000008', code: 'VC-6', category: 'HMC', cell: 'Cell-3' },
   { id: '10000000-0000-0000-0000-000000000013', code: 'VC-7', category: 'VMC', cell: 'Cell-4' },
   { id: '10000000-0000-0000-0000-000000000014', code: 'VC-8', category: 'HMC', cell: 'Cell-4' },
+  { id: '10000000-0000-0000-0000-000000000016', code: 'VC-9', category: 'VMC', cell: 'Cell-5' },
+  { id: '10000000-0000-0000-0000-000000000017', code: 'VC-10', category: 'HMC', cell: 'Cell-5' },
 ];
 
 const PEOPLE = [
@@ -138,6 +140,10 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
     {
       text: 'INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, $3, $4, 0)',
       values: [SEGMENT.id, TENANT.id, SEGMENT.code, SEGMENT.name],
+    },
+    {
+      text: "INSERT INTO shift (id, tenant_id, code, name, starts_at, ends_at) VALUES ($1, $2, 'e2e', 'E2E business hours', '00:00', '23:59')",
+      values: ['10000000-0000-0000-0000-000000000015', TENANT.id],
     },
     ...MACHINES.map((machine) => ({
       text: 'INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6)',

@@ -1,5 +1,8 @@
 import { readFileSync, statSync } from 'node:fs';
 import { createPool } from '../db.js';
+import { startJobs } from '../jobs/index.js';
+import { reconcileTicket } from '../ticket/sla.js';
+import type { PgBoss } from 'pg-boss';
 import { resolveTenant } from '../tenant.js';
 import { IMPORT_LIMITS } from './json.js';
 import {
@@ -41,8 +44,20 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
   const pool = createPool(url);
+  let jobs: Awaited<ReturnType<typeof startJobs>> | undefined;
+  const runtime: { boss?: PgBoss } = {};
   try {
     await assertAppApiRole(pool);
+    jobs = await startJobs({
+      connectionString: url,
+      pool,
+      role: 'api',
+      reconcileTicket: (client, tenantId, ticketId, now) =>
+        reconcileTicket(client, { tenantId, ticketId, now, boss: runtime.boss }),
+      onBossReady: (boss) => {
+        runtime.boss = boss;
+      },
+    });
     const tenant = await resolveTenant(pool, command.tenantSlug);
     if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
     const { importBhavin, undoImport } = await import('./bhavin.js');
@@ -53,10 +68,12 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     }
     const { batchId, stats } = await importBhavin(pool, tenant.id, input, {
       timeZone: tenant.time_zone,
+      boss: runtime.boss,
     });
     console.log(JSON.stringify({ batchId, stats }));
     if ('status' in stats && stats.status === 'failed') process.exitCode = 1;
   } finally {
+    await jobs?.close();
     await pool.end();
   }
 }

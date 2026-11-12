@@ -17,6 +17,7 @@ import {
   MatrixSection,
   SettingsHeader,
 } from '../components/SettingsSections.js';
+import { SlaSettingsSections } from '../components/SlaSettingsSections.js';
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(!isOffline());
@@ -162,6 +163,7 @@ function SettingsPanels({
         onField={draft.patchMatrix}
         onSave={onSave}
       />
+      <SlaSettingsSections online={online} />
     </>
   );
 }
@@ -190,6 +192,7 @@ function SettingsBody({
       <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold">{t('settings.forbiddenTitle')}</h2>
         <p className="mt-2 text-neutral-600">{t('settings.forbiddenHelp')}</p>
+        <p className="mt-2 text-neutral-600">{t('settings.forbiddenSlaHelp')}</p>
       </section>
     );
   }

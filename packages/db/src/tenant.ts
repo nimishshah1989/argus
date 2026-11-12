@@ -7,31 +7,25 @@ export class MissingTenantError extends Error {
   }
 }
 
-let rlsChecked = false;
+const rlsChecks = new WeakMap<Pool, Promise<void>>();
 
-/**
- * One-time, best-effort guard: the server must connect as `app_api` (a role that is a
- * member of `app_user` with no BYPASSRLS). If the connection is a superuser or BYPASSRLS
- * role, row-level security is silently skipped, so warn loudly instead of failing (a local
- * dev convenience). Production connects as `app_api`, where this check stays quiet.
- */
-async function warnIfBypassingRls(pool: Pool): Promise<void> {
-  if (rlsChecked) return;
-  rlsChecked = true;
+/** Check each pool once; production's app_api role must never bypass tenant RLS. */
+async function checkRlsRole(pool: Pool): Promise<void> {
   const client = await pool.connect();
   try {
     const row = (
       await client.query(
-        'SELECT rolsuper OR rolbypassrls AS bypasses FROM pg_roles WHERE rolname = current_user',
+        'SELECT current_user AS name, rolsuper OR rolbypassrls AS bypasses FROM pg_roles WHERE rolname = current_user',
       )
     ).rows[0];
+    if (row?.bypasses && row.name === 'app_api') {
+      throw new Error('withTenant: app_api must not be a superuser or bypass RLS');
+    }
     if (row?.bypasses) {
       console.warn(
         'withTenant: connected as a role that bypasses RLS; connect as app_api for tenant isolation',
       );
     }
-  } catch {
-    // role check is advisory; never fail a request because of it
   } finally {
     client.release();
   }
@@ -47,7 +41,12 @@ export async function withTenant<T>(
   run: (client: PoolClient) => Promise<T>,
 ): Promise<T> {
   if (!tenantId) throw new MissingTenantError();
-  await warnIfBypassingRls(pool);
+  let roleCheck = rlsChecks.get(pool);
+  if (!roleCheck) {
+    roleCheck = checkRlsRole(pool);
+    rlsChecks.set(pool, roleCheck);
+  }
+  await roleCheck;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

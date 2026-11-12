@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { SlaInputError } from '@uptimo/domain';
 import {
   nextRef,
   type CrewMember,
@@ -10,7 +11,6 @@ import {
 import {
   commandExtras,
   recomputeFigures,
-  type LoadedEvent,
   type LoadedCtx,
   type PersistEventsOptions,
   type RaiseExtras,
@@ -24,7 +24,7 @@ export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapsh
   wait_since, assigned_to_person_id, expected_back_at, waiting_spare, machine_running_at,
   machine_stopped_at, closed_at, closed_by_person_id, close_kind, close_note, cancelled_at, parent_id,
   task_reason, task_expected_on::text AS task_expected_on, task_down_min, severity, criticality_snapshot,
-  kind_upgraded_at, last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min,
+  sla_policy_id, kind_upgraded_at, last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min,
   down_acc_min, downtime_min, follow_min, repair_min, overrides`;
 
 const UPDATE_TICKET_SQL = `UPDATE ticket SET
@@ -38,16 +38,16 @@ const UPDATE_TICKET_SQL = `UPDATE ticket SET
   kind_upgraded_at = $32, last_event_seq = $33, response_min = $34, active_min = $35, wait_min = $36,
   vendor_min = $37, handover_wait_min = $38, down_acc_min = $39, downtime_min = $40, follow_min = $41,
   repair_min = $42, expected_back_at = COALESCE($43, expected_back_at), waiting_spare = COALESCE($44, waiting_spare),
-  cancelled_at = $45, updated_at = now() WHERE id = $46`;
+  cancelled_at = $45, sla_policy_id = $46, updated_at = now() WHERE id = $47`;
 
 const INSERT_TICKET_SQL = `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id,
   machine_snapshot, location, work_type, urgent, problem, problem_lang, reported_at,
   reported_by_person_id, reported_by_role, raised_login_id, self_started, started_at,
-  lead_person_id, segment_started_at, severity, criticality_snapshot, last_event_seq,
+  lead_person_id, segment_started_at, severity, criticality_snapshot, sla_policy_id, last_event_seq,
   response_min, active_min, wait_min, vendor_min, handover_wait_min, down_acc_min,
   downtime_min, follow_min, repair_min)
   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
-    $25,$26,$27,$28,$29,$30,$31,$32) RETURNING id`;
+    $25,$26,$27,$28,$29,$30,$31,$32,$33) RETURNING id`;
 
 function ticketValues(ticket: Ticket): unknown[] {
   const f = ticket.figures as Figures;
@@ -109,27 +109,7 @@ export async function loadTicketRow(
   return (result.rows[0] as Record<string, unknown> | undefined) ?? null;
 }
 
-export async function loadEvents(client: PoolClient, ticketId: string): Promise<LoadedEvent[]> {
-  const result = await client.query(
-    `SELECT seq, type, at, login_id, acting_person_id, text, payload
-       FROM ticket_event WHERE ticket_id = $1 ORDER BY seq`,
-    [ticketId],
-  );
-  return result.rows.map((row) => {
-    const payload = (row.payload ?? {}) as Record<string, unknown>;
-    return {
-      type: row.type as TicketEvent['type'],
-      at: new Date(row.at as string | number | Date),
-      reason: (payload.reason as string | undefined) ?? (row.text as string | undefined),
-      isVendor: payload.isVendor as boolean | undefined,
-      seq: row.seq as number,
-      loginId: row.login_id as string | null,
-      actingPersonId: row.acting_person_id as string | null,
-      text: row.text as string | null,
-      payload,
-    };
-  });
-}
+export { loadEvents, reviveCorrection } from './ticket/events.js';
 
 export async function loadSegments(client: PoolClient, ticketId: string): Promise<WorkSegment[]> {
   const result = await client.query(
@@ -170,6 +150,7 @@ export async function persistTicket(
     expectedBackAt,
     waitingSpare,
     ticket.cancelledAt ?? null,
+    ticket.slaPolicyId ?? null,
     ticket.id,
   ]);
 }
@@ -204,6 +185,7 @@ export async function insertTicket(
     ticket.segmentStartedAt,
     extras.severity,
     extras.criticalitySnapshot,
+    ticket.slaPolicyId ?? null,
     ticket.lastEventSeq,
     f.responseMin,
     f.activeMin,
@@ -244,6 +226,7 @@ export async function persistEvents(
         JSON.stringify({
           reason: event.reason ?? null,
           isVendor: event.isVendor ?? false,
+          pausesSla: event.pausesSla,
           ...payload,
         }),
       ],
@@ -317,7 +300,9 @@ export async function persistResult(
 ): Promise<void> {
   if (tx.action === 'pause') {
     const last = result.events[result.events.length - 1] as TicketEvent;
-    last.isVendor = await waitReasonIsVendor(client, tx.body.reasonCode as string, tx.tenantId);
+    const flags = await waitReasonSlaFlags(client, tx.body.reasonCode as string, tx.tenantId);
+    last.isVendor = flags.isVendor;
+    last.pausesSla = flags.pausesSla;
   }
   result.ticket.figures = recomputeFigures(result.ticket, result.events, result.segments, {
     overrides: (loaded.row.overrides as Record<string, unknown>) ?? {},
@@ -383,16 +368,17 @@ export async function allocateRef(client: PoolClient, tenantId: string): Promise
   return nextRef('BD', next);
 }
 
-export async function waitReasonIsVendor(
+export async function waitReasonSlaFlags(
   client: PoolClient,
   reasonCode: string,
   tenantId: string,
-): Promise<boolean> {
+): Promise<{ isVendor: boolean; pausesSla: boolean }> {
   const row = (
     await client.query(
-      "SELECT is_vendor FROM list_item WHERE tenant_id = $1 AND list = 'wait_reason' AND code = $2",
+      "SELECT is_vendor, pauses_sla FROM list_item WHERE tenant_id = $1 AND list = 'wait_reason' AND code = $2",
       [tenantId, reasonCode],
     )
   ).rows[0];
-  return Boolean(row?.is_vendor);
+  if (!row) throw new SlaInputError('missing_pause_flag', `Unknown wait reason: ${reasonCode}`);
+  return { isVendor: row.is_vendor === true, pausesSla: row.pauses_sla === true };
 }

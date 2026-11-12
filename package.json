@@ -28,6 +28,7 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm orchestration:check && pnpm audit:lean",
     "test:e2e": "playwright test",
     "seed:cosmos": "tsx scripts/seed-cosmos.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "import:bhavin": "tsx tools/import-bhavin.ts",
     "import:undo": "tsx tools/import-bhavin.ts undo",
     "build:server": "tsx scripts/build-server.ts",

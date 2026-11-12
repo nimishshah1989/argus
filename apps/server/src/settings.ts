@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
+import type { PgBoss } from 'pg-boss';
 import {
   apiError,
   isListName,
@@ -7,11 +8,14 @@ import {
   machineCriticalitySchema,
   settingsPutSchema,
   severityMatrixSchema,
+  slaPoliciesUpdateSchema,
   translationSchema,
 } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { computeSeverity } from '@uptimo/domain';
 import { loadSeverityMatrix } from './ticket/severity.js';
+import { reconcileSlaPolicies } from './ticket/sla.js';
+import { lockRefCounter } from './ticket-sql.js';
 import { requireAuth } from './auth.js';
 import { fingerprint, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
@@ -173,7 +177,127 @@ async function putTranslation(pool: Pool, request: FastifyRequest, reply: Fastif
   reply.send({ ok: true });
 }
 
-async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+function unchangedPolicies(
+  before: Record<string, unknown>[],
+  policies: Array<{
+    severity: string;
+    ackMinutes: number;
+    restoreMinutes: number;
+    businessHoursOnly: boolean;
+  }>,
+): boolean {
+  return (
+    before.length === 4 &&
+    before.every((row, index) => {
+      const policy = policies[index];
+      return (
+        policy &&
+        row.severity === policy.severity &&
+        row.ack_minutes === policy.ackMinutes &&
+        row.restore_minutes === policy.restoreMinutes &&
+        row.business_hours_only === policy.businessHoursOnly
+      );
+    })
+  );
+}
+
+async function upsertSlaPolicies(
+  client: Pick<PoolClient, 'query'>,
+  input: {
+    tenantId: string;
+    loginId: string;
+    before: Record<string, unknown>[];
+    policies: Array<{
+      severity: string;
+      ackMinutes: number;
+      restoreMinutes: number;
+      businessHoursOnly: boolean;
+    }>;
+  },
+): Promise<void> {
+  const { tenantId, loginId, before, policies } = input;
+  for (const policy of policies) {
+    await client.query(
+      `INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes, business_hours_only)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (tenant_id, severity) DO UPDATE SET
+         ack_minutes = EXCLUDED.ack_minutes,
+         restore_minutes = EXCLUDED.restore_minutes,
+         business_hours_only = EXCLUDED.business_hours_only,
+         updated_at = now()`,
+      [
+        tenantId,
+        policy.severity,
+        policy.ackMinutes,
+        policy.restoreMinutes,
+        policy.businessHoursOnly,
+      ],
+    );
+  }
+  await client.query(
+    'INSERT INTO audit_log (tenant_id, login_id, action, entity, before, after) VALUES ($1, $2, $3, $4, $5, $6)',
+    [
+      tenantId,
+      loginId,
+      'sla_policy.update',
+      'sla_policy',
+      JSON.stringify(before),
+      JSON.stringify(policies),
+    ],
+  );
+}
+
+async function putSlaPolicies(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  boss?: PgBoss,
+) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!canWrite(ctx.role)) return forbidden(reply);
+  const parsed = slaPoliciesUpdateSchema.safeParse(request.body);
+  if (!parsed.success) {
+    reply.code(422).send(apiError('validation', 'Expected all four valid SLA policies'));
+    return;
+  }
+  const policies = parsed.data.policies;
+  await withTenant(pool, ctx.tenantId, async (client) => {
+    await lockRefCounter(client, ctx.tenantId, 'BD');
+    if (policies.some((policy) => policy.businessHoursOnly)) {
+      const shifts = await client.query('SELECT 1 FROM shift LIMIT 1');
+      if (shifts.rowCount === 0) {
+        reply
+          .code(422)
+          .send(apiError('validation', 'Business hours require shift windows', 'policies'));
+        return;
+      }
+    }
+    const before = await client.query(
+      'SELECT severity, ack_minutes, restore_minutes, business_hours_only FROM sla_policy ORDER BY severity',
+    );
+    const unchanged = unchangedPolicies(before.rows, policies);
+    if (unchanged) {
+      reply.send({ ok: true });
+      return;
+    }
+    await upsertSlaPolicies(client, {
+      tenantId: ctx.tenantId,
+      loginId: ctx.loginId,
+      before: before.rows,
+      policies,
+    });
+    await reconcileSlaPolicies(client, ctx.tenantId, boss);
+  });
+  if (!reply.sent) reply.send({ ok: true });
+}
+
+async function putMachineCriticality(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  boss?: PgBoss,
+) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   if (!canWrite(ctx.role)) return forbidden(reply);
@@ -187,6 +311,7 @@ async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply:
   }
   const { criticality } = parsed.data;
   const updated = await withTenant(pool, ctx.tenantId, async (client) => {
+    await lockRefCounter(client, ctx.tenantId, 'BD');
     const machine = await client.query(
       'UPDATE machine SET criticality = $2, updated_at = now() WHERE id = $1 RETURNING id',
       [id, criticality],
@@ -195,7 +320,7 @@ async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply:
     // Severity follows current criticality; report-time snapshots stay unchanged.
     const matrix = await loadSeverityMatrix(client, ctx.tenantId);
     const tickets = await client.query(
-      'SELECT id, kind, urgent FROM ticket WHERE tenant_id = $1 AND machine_id = $2 FOR UPDATE',
+      'SELECT id, kind, urgent FROM ticket WHERE tenant_id = $1 AND machine_id = $2 ORDER BY id FOR UPDATE',
       [ctx.tenantId, id],
     );
     if (tickets.rows.length > 0) {
@@ -209,6 +334,7 @@ async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply:
         [tickets.rows.map((ticket) => ticket.id), severities, ctx.tenantId],
       );
     }
+    await reconcileSlaPolicies(client, ctx.tenantId, boss);
     return machine;
   });
   if (updated.rowCount === 0) {
@@ -222,9 +348,12 @@ export function registerSettings(app: FastifyInstance, config: AppConfig): void 
   const { pool } = config;
   app.get('/api/v1/config', (request, reply) => handleConfig(pool, request, reply));
   app.get('/api/v1/settings', (request, reply) => listSettings(pool, request, reply));
+  app.put('/api/v1/settings/sla-policies', (request, reply) =>
+    putSlaPolicies(pool, request, reply, config.jobBoss),
+  );
   app.put('/api/v1/settings/:key', (request, reply) => putSetting(pool, request, reply));
   app.put('/api/v1/machines/:id/criticality', (request, reply) =>
-    putMachineCriticality(pool, request, reply),
+    putMachineCriticality(pool, request, reply, config.jobBoss),
   );
   app.get('/api/v1/lists/:list', (request, reply) => listItems(pool, request, reply));
   app.put('/api/v1/lists/:list/:code', (request, reply) => upsertListItem(pool, request, reply));

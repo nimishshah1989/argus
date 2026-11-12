@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
+import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import * as shared from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
@@ -9,7 +10,7 @@ import type { AppConfig } from './config.js';
 import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
-import { listNeedReport, listTickets, projectTicket } from './ticket-list.js';
+import { detail, listNeedReport, listTickets, projectTicket } from './ticket-list.js';
 import * as report from './ticket-report.js';
 import {
   buildRaiseExtras,
@@ -17,6 +18,8 @@ import {
   loadSeverityMatrix,
   refreshSeverity,
 } from './ticket/severity.js';
+import { projectTicketSla, withSlaProjections } from './sla-projection.js';
+import { reconcileTicket } from './ticket/sla.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -85,6 +88,7 @@ async function executeCommand(
   client: PoolClient,
   tx: tm.Tx,
   binding: idem.IdempotencyBinding,
+  boss?: PgBoss,
 ): Promise<Outcome> {
   const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
@@ -104,10 +108,17 @@ async function executeCommand(
   await refreshSeverity(client, tx, loaded, result.ticket);
   await sql.persistResult(client, tx, loaded, result);
   await report.storeReportForTransition(client, tx, result);
+  const slaPolicyId = await reconcileTicket(client, {
+    tenantId: tx.tenantId,
+    ticketId: tx.ticketId,
+    now: new Date(),
+    boss,
+  });
+  const sla = await projectTicketSla(client, tx.tenantId, tx.ticketId, new Date());
 
   const outcome: Outcome = {
     status: 200,
-    body: { ticket: tm.ticketProjection(result.ticket, loaded.extras) },
+    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), slaPolicyId, sla } },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
@@ -134,11 +145,12 @@ async function runOutcome(
 }
 
 async function runCommand(
-  pool: Pool,
+  config: AppConfig,
   request: FastifyRequest,
   reply: FastifyReply,
   action: tm.CommandAction,
 ): Promise<void> {
+  const { pool } = config;
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
@@ -164,7 +176,9 @@ async function runCommand(
     auth: ctx,
     actingPersonId: null,
   };
-  const outcome = await runOutcome(pool, binding, (client) => executeCommand(client, tx, binding));
+  const outcome = await runOutcome(pool, binding, (client) =>
+    executeCommand(client, tx, binding, config.jobBoss),
+  );
   reply.code(outcome.status).send(outcome.body);
 }
 
@@ -172,6 +186,7 @@ async function validateMachine(
   client: PoolClient,
   tx: RaiseTx,
 ): Promise<{ snapshot: Record<string, unknown>; criticality: string | null } | Outcome> {
+  await sql.lockRefCounter(client, tx.tenantId, 'BD');
   if (!tx.body.machineId) return { snapshot: {}, criticality: null };
   const machine = (
     await client.query(
@@ -217,6 +232,7 @@ async function executeRaise(
   client: PoolClient,
   tx: RaiseTx,
   binding: idem.IdempotencyBinding,
+  boss?: PgBoss,
 ): Promise<Outcome> {
   const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
@@ -228,7 +244,6 @@ async function executeRaise(
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
-
   const ref = await sql.allocateRef(client, tx.tenantId);
   const now = new Date();
   // M2-2.1: load the tenant severity matrix (falls back to the domain default).
@@ -262,16 +277,28 @@ async function executeRaise(
     textFor: () => tx.body.problem as string,
   });
   await sql.persistSegments(client, tx.tenantId, raised.ticket.id, raised.segments);
+  const slaPolicyId = await reconcileTicket(client, {
+    tenantId: tx.tenantId,
+    ticketId: raised.ticket.id,
+    now,
+    boss,
+  });
+  const sla = await projectTicketSla(client, tx.tenantId, raised.ticket.id, now);
 
   const outcome: Outcome = {
     status: 201,
-    body: { ticket: tm.ticketProjection(raised.ticket, extras) },
+    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), slaPolicyId, sla } },
   };
   await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;
 }
 
-async function raise(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
+async function raise(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  boss?: PgBoss,
+): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
@@ -294,7 +321,9 @@ async function raise(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
     auth: ctx,
     body: parsed.data as Record<string, unknown>,
   };
-  const outcome = await runOutcome(pool, binding, (client) => executeRaise(client, tx, binding));
+  const outcome = await runOutcome(pool, binding, (client) =>
+    executeRaise(client, tx, binding, boss),
+  );
   reply.code(outcome.status).send(outcome.body);
 }
 
@@ -308,74 +337,21 @@ async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
     ),
   );
   const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
-  const open = openRows.rows.map((row) => projectTicket(row as Record<string, unknown>));
+  const open = await withTenant(pool, ctx.tenantId, (client) =>
+    withSlaProjections(client, ctx.tenantId, openRows.rows, (row) => projectTicket(row)),
+  );
   reply.send({ open, needReport, now: new Date().toISOString() });
-}
-
-async function detail(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const ctx = await requireAuth(pool, request, reply);
-  if (!ctx) return;
-  const ticketId = (request.params as { id: string }).id;
-  const payload = await withTenant(pool, ctx.tenantId, async (client) => {
-    const row = (
-      await client.query(
-        `SELECT ${sql.TICKET_COLUMNS} FROM ticket WHERE id = $1 AND tenant_id = $2`,
-        [ticketId, ctx.tenantId],
-      )
-    ).rows[0];
-    if (!row) return null;
-    const ticket = tm.rowToTicket(row as Record<string, unknown>);
-    const events = await sql.loadEvents(client, ticketId);
-    const segments = await sql.loadSegments(client, ticketId);
-    const crew = await sql.loadCrew(client, ticketId);
-    ticket.figures = tm.recomputeFigures(ticket, events, segments, {
-      overrides: (row.overrides as Record<string, unknown>) ?? {},
-      now: new Date(),
-    });
-    return {
-      ticket: tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
-      events: events.map((event) => ({
-        seq: event.seq,
-        type: event.type,
-        at: event.at,
-        text: event.text,
-        reason: event.reason ?? null,
-        isVendor: event.isVendor ?? false,
-        actingPersonId: event.actingPersonId,
-        loginId: event.loginId,
-      })),
-      people: crew.map((member: domain.CrewMember) => ({
-        personId: member.personId,
-        role: member.role,
-        leftAt: member.leftAt ?? null,
-        leftReason: member.leftReason ?? null,
-      })),
-      tasks: [],
-      intervals: segments.map((segment: domain.WorkSegment) => ({
-        personId: segment.personId,
-        role: segment.role,
-        startedAt: segment.startedAt,
-        endedAt: segment.endedAt ?? null,
-      })),
-      report: await report.loadReport(client, ticketId),
-    };
-  });
-  if (!payload) {
-    reply.code(404).send(shared.apiError('not_found', 'Unknown ticket'));
-    return;
-  }
-  reply.send(payload);
 }
 
 export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
-  app.post('/api/v1/tickets', (request, reply) => raise(pool, request, reply));
+  app.post('/api/v1/tickets', (request, reply) => raise(pool, request, reply, config.jobBoss));
   app.get('/api/v1/tickets', (request, reply) => listTickets(pool, request, reply));
   app.get('/api/v1/state', (request, reply) => state(pool, request, reply));
   app.get('/api/v1/tickets/:id', (request, reply) => detail(pool, request, reply));
   for (const action of Object.keys(COMMAND_SCHEMAS) as tm.CommandAction[]) {
     app.post(`/api/v1/tickets/:id/${action}`, (request, reply) =>
-      runCommand(pool, request, reply, action),
+      runCommand(config, request, reply, action),
     );
   }
 }

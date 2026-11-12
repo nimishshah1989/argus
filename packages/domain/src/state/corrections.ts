@@ -21,6 +21,7 @@ export interface PastBreakdownInput {
   machineId: string | null;
   machineCriticality?: Criticality | null;
   severityMatrix?: SeverityMatrix;
+  slaPolicyId?: string | null;
   urgent?: boolean;
   problem: string;
   reportedAt: Date;
@@ -71,6 +72,7 @@ export function recordPastBreakdown(input: PastBreakdownInput): {
     lastEventSeq: 2,
     severity: deriveSeverity(input),
     criticalitySnapshot,
+    slaPolicyId: input.slaPolicyId ?? null,
     figures: null,
   };
   return {
@@ -129,6 +131,18 @@ function recordEdit<K extends keyof Ticket>(
   result.patch[field] = value;
 }
 
+function assertCorrectionTimeline(ticket: Ticket, at: Date): void {
+  if ([ticket.reportedAt, ticket.startedAt, ticket.closedAt].some((value) => value && value > at)) {
+    throw new TransitionError('Correction times cannot be in the future');
+  }
+  if (ticket.startedAt && ticket.startedAt < ticket.reportedAt)
+    throw new TransitionError('Start time cannot precede the report time');
+  if (ticket.closedAt && ticket.closedAt < ticket.reportedAt)
+    throw new TransitionError('Closed time cannot precede the report time');
+  if (ticket.startedAt && ticket.closedAt && ticket.closedAt < ticket.startedAt)
+    throw new TransitionError('Closed time cannot precede the start time');
+}
+
 export function correct(
   input: TransitionInput,
   command: Extract<Command, { type: 'correct' }>,
@@ -169,13 +183,13 @@ export function correct(
   }
 
   const merged: Ticket = { ...input.ticket, ...result.patch };
-  if (merged.startedAt && merged.closedAt && merged.closedAt < merged.startedAt)
-    throw new TransitionError('Closed time cannot precede the start time');
+  const at = clampAt(input.ctx.now, input);
+  assertCorrectionTimeline(merged, at);
 
   return apply(input, {
     ticket: result.patch,
     event: { type: 'edit', reason: command.reason, changes: result.edits },
-    at: clampAt(input.ctx.now, input),
+    at,
     segments: input.segments,
   });
 }
