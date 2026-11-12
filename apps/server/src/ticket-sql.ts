@@ -23,9 +23,9 @@ export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapsh
   handed_over, handover_since, transfer_to_person_id, transfer_to_shift, transfers, wait_reason,
   wait_since, assigned_to_person_id, expected_back_at, waiting_spare, machine_running_at,
   machine_stopped_at, closed_at, closed_by_person_id, close_kind, close_note, cancelled_at, parent_id,
-  task_reason, task_expected_on::text AS task_expected_on, task_down_min, kind_upgraded_at,
-  last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min, down_acc_min,
-  downtime_min, follow_min, repair_min, overrides`;
+  task_reason, task_expected_on::text AS task_expected_on, task_down_min, severity, criticality_snapshot,
+  kind_upgraded_at, last_event_seq, response_min, active_min, wait_min, vendor_min, handover_wait_min,
+  down_acc_min, downtime_min, follow_min, repair_min, overrides`;
 
 const UPDATE_TICKET_SQL = `UPDATE ticket SET
   ref = $1, kind = $2, status = $3, machine_id = $4, problem = $5, reported_at = $6,
@@ -33,20 +33,21 @@ const UPDATE_TICKET_SQL = `UPDATE ticket SET
   lead_person_id = $11, segment_started_at = $12, handed_over = $13, handover_since = $14,
   transfer_to_person_id = $15, transfer_to_shift = $16, transfers = $17, wait_reason = $18,
   wait_since = $19, assigned_to_person_id = $20, machine_running_at = $21, machine_stopped_at = $22,
-  closed_at = $23, closed_by_person_id = $24, close_kind = $25, close_note = $26, task_reason = $27,
-  task_expected_on = $28, task_down_min = $29, kind_upgraded_at = $30, last_event_seq = $31,
-  response_min = $32, active_min = $33, wait_min = $34, vendor_min = $35, handover_wait_min = $36,
-  down_acc_min = $37, downtime_min = $38, follow_min = $39, repair_min = $40,
-  expected_back_at = COALESCE($41, expected_back_at), waiting_spare = COALESCE($42, waiting_spare),
-  cancelled_at = $43, updated_at = now() WHERE id = $44`;
+  closed_at = $23, closed_by_person_id = $24, close_kind = $25, close_note = $26,
+  task_reason = $27, task_expected_on = $28, task_down_min = $29, severity = $30, criticality_snapshot = $31,
+  kind_upgraded_at = $32, last_event_seq = $33, response_min = $34, active_min = $35, wait_min = $36,
+  vendor_min = $37, handover_wait_min = $38, down_acc_min = $39, downtime_min = $40, follow_min = $41,
+  repair_min = $42, expected_back_at = COALESCE($43, expected_back_at), waiting_spare = COALESCE($44, waiting_spare),
+  cancelled_at = $45, updated_at = now() WHERE id = $46`;
 
 const INSERT_TICKET_SQL = `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id,
   machine_snapshot, location, work_type, urgent, problem, problem_lang, reported_at,
   reported_by_person_id, reported_by_role, raised_login_id, self_started, started_at,
-  lead_person_id, segment_started_at, last_event_seq, response_min, active_min, wait_min,
-  vendor_min, handover_wait_min, down_acc_min, downtime_min, follow_min, repair_min)
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,
-    $24,$25,$26,$27,$28,$29,$30) RETURNING id`;
+  lead_person_id, segment_started_at, severity, criticality_snapshot, last_event_seq,
+  response_min, active_min, wait_min, vendor_min, handover_wait_min, down_acc_min,
+  downtime_min, follow_min, repair_min)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
+    $25,$26,$27,$28,$29,$30,$31,$32) RETURNING id`;
 
 function ticketValues(ticket: Ticket): unknown[] {
   const f = ticket.figures as Figures;
@@ -80,6 +81,8 @@ function ticketValues(ticket: Ticket): unknown[] {
     ticket.taskReason,
     ticket.taskExpectedOn,
     ticket.taskDownMin,
+    ticket.severity,
+    ticket.criticalitySnapshot,
     ticket.kindUpgradedAt,
     ticket.lastEventSeq,
     f.responseMin,
@@ -199,6 +202,8 @@ export async function insertTicket(
     ticket.startedAt,
     ticket.leadPersonId,
     ticket.segmentStartedAt,
+    extras.severity,
+    extras.criticalitySnapshot,
     ticket.lastEventSeq,
     f.responseMin,
     f.activeMin,

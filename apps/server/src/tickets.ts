@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
@@ -12,6 +11,12 @@ import * as sql from './ticket-sql.js';
 import * as idem from './ticket-idempotency.js';
 import { listNeedReport, listTickets, projectTicket } from './ticket-list.js';
 import * as report from './ticket-report.js';
+import {
+  buildRaiseExtras,
+  buildRaised,
+  loadSeverityMatrix,
+  refreshSeverity,
+} from './ticket/severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -95,6 +100,8 @@ async function executeCommand(
   const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
+  // M2-2.1: a correction or kind upgrade may change the derived severity.
+  await refreshSeverity(client, tx, loaded, result.ticket);
   await sql.persistResult(client, tx, loaded, result);
   await report.storeReportForTransition(client, tx, result);
 
@@ -164,11 +171,11 @@ async function runCommand(
 async function validateMachine(
   client: PoolClient,
   tx: RaiseTx,
-): Promise<{ snapshot: Record<string, unknown> } | Outcome> {
-  if (!tx.body.machineId) return { snapshot: {} };
+): Promise<{ snapshot: Record<string, unknown>; criticality: string | null } | Outcome> {
+  if (!tx.body.machineId) return { snapshot: {}, criticality: null };
   const machine = (
     await client.query(
-      'SELECT id, code, category, cell FROM machine WHERE id = $1 AND tenant_id = $2',
+      'SELECT id, code, category, cell, criticality FROM machine WHERE id = $1 AND tenant_id = $2 FOR SHARE',
       [tx.body.machineId, tx.tenantId],
     )
   ).rows[0];
@@ -182,7 +189,8 @@ async function validateMachine(
   ).rows[0];
   if (duplicate)
     return { status: 409, body: shared.apiError('conflict', 'Already reported', 'machineId') };
-  return { snapshot: { code: machine.code, category: machine.category, cell: machine.cell } };
+  const { code, category, cell, criticality } = machine;
+  return { snapshot: { code, category, cell, criticality }, criticality };
 }
 
 async function validateRaisePeople(
@@ -205,44 +213,6 @@ async function validateRaisePeople(
   return { reportedByPersonId };
 }
 
-function buildRaised(ref: string, tx: RaiseTx, reportedByPersonId: string | null, now: Date) {
-  const startNow = (tx.body.startNow as boolean | undefined) ?? false;
-  const selfStarted = Boolean(
-    startNow && ((tx.body.startByPersonId as string) || reportedByPersonId),
-  );
-  return domain.raiseTicket({
-    id: randomUUID(),
-    ref,
-    kind: tx.body.kind as domain.Ticket['kind'],
-    machineId: (tx.body.machineId as string | undefined) ?? null,
-    problem: tx.body.problem as string,
-    reportedAt: now,
-    raisedLoginId: tx.auth.loginId,
-    reportedByPersonId,
-    selfStarted,
-    startNow,
-    startByPersonId: tx.body.startByPersonId as string | undefined,
-  });
-}
-
-function raiseExtras(
-  snapshot: Record<string, unknown>,
-  body: Record<string, unknown>,
-): tm.TicketExtras {
-  return {
-    machineSnapshot: snapshot,
-    location: (body.location as string | undefined) ?? null,
-    workType: (body.workType as string | undefined) ?? null,
-    urgent: (body.urgent as boolean | undefined) ?? false,
-    problemLang: (body.problemLang as string | undefined) ?? null,
-    reportedByRole: (body.reportedByRole as string | undefined) ?? null,
-    raisedChannel: 'floor',
-    parentId: null,
-    expectedBackAt: null,
-    waitingSpare: null,
-  };
-}
-
 async function executeRaise(
   client: PoolClient,
   tx: RaiseTx,
@@ -261,12 +231,27 @@ async function executeRaise(
 
   const ref = await sql.allocateRef(client, tx.tenantId);
   const now = new Date();
-  const raised = buildRaised(ref, tx, people.reportedByPersonId, now);
+  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
+  const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
+  const raised = buildRaised({
+    ref,
+    body: tx.body,
+    loginId: tx.auth.loginId,
+    reportedByPersonId: people.reportedByPersonId,
+    now,
+    criticality: machine.criticality as domain.Criticality | null,
+    severityMatrix,
+  });
   raised.ticket.figures = tm.recomputeFigures(raised.ticket, raised.events, raised.segments, {
     overrides: {},
     now,
   });
-  const extras = raiseExtras(machine.snapshot, tx.body);
+  const extras = buildRaiseExtras(
+    machine.snapshot,
+    tx.body,
+    machine.criticality as domain.Criticality | null,
+    severityMatrix,
+  );
   await sql.insertTicket(client, tx.tenantId, raised.ticket, extras);
   await sql.persistEvents(client, tx.tenantId, raised.ticket.id, {
     events: raised.events,

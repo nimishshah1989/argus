@@ -16,9 +16,9 @@ beforeAll(async () => {
     [A, B],
   );
   await db.admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES
-     ($1, $2, 'BD-A', 'stopped', 'open', 'Tenant A', now()),
-     ($3, $4, 'BD-B', 'stopped', 'open', 'Tenant B', now())`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES
+     ($1, $2, 'BD-A', 'stopped', 'open', 'Tenant A', now(), 'S3'),
+     ($3, $4, 'BD-B', 'stopped', 'open', 'Tenant B', now(), 'S3')`,
     [TICKET_A, A, TICKET_B, B],
   );
 }, 120_000);

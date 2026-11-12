@@ -8,6 +8,7 @@ import type {
   Config,
   Me,
   RaiseTicketBody,
+  SeverityMatrix,
   State,
   Ticket,
   TicketDetail,
@@ -199,5 +200,22 @@ export function removeTicketTag(ticketId: string, tagId: string): Promise<TagLis
   return api<TagList>(`/api/v1/tickets/${ticketId}/tags/${tagId}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey() },
+  });
+}
+
+export function putSeverityMatrix(value: SeverityMatrix): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/api/v1/settings/severity_matrix', {
+    method: 'PUT',
+    body: JSON.stringify({ value }),
+  });
+}
+
+export function putMachineCriticality(
+  machineId: string,
+  criticality: 'A' | 'B' | 'C' | null,
+): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(`/api/v1/machines/${machineId}/criticality`, {
+    method: 'PUT',
+    body: JSON.stringify({ criticality }),
   });
 }

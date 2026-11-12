@@ -203,7 +203,7 @@ describe('schema v1 isolation', () => {
       [login, tenant, person],
     );
     await db.query(
-      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at) VALUES ($1, $2, 'BD-0001', 'stopped', 'open', 'Actor test', now())",
+      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES ($1, $2, 'BD-0001', 'stopped', 'open', 'Actor test', now(), 'S3')",
       [ticket, tenant],
     );
     await db.query(

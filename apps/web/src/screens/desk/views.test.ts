@@ -50,6 +50,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     closedAt: '2026-11-10T11:00:00.000Z',
     closeKind: 'report',
     closeNote: null,
+    severity: null,
+    criticalitySnapshot: null,
     figures: null,
     ...overrides,
   };

@@ -20,8 +20,8 @@ beforeAll(async () => {
   db = await startTestDb();
   await seedSyntheticTenant(db.admin);
   await db.admin.query(
-    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-     VALUES ($1, $2, 'BD-0099', 'stopped', 'open', 'Synthetic pre-existing', '2026-10-01T10:00:00Z')`,
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity)
+     VALUES ($1, $2, 'BD-0099', 'stopped', 'open', 'Synthetic pre-existing', '2026-10-01T10:00:00Z', 'S3')`,
     [randomUUID(), syntheticIds.tenant],
   );
 }, 120_000);

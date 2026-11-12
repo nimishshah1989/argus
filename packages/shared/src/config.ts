@@ -13,6 +13,32 @@ export const LIST_NAMES = [
 ] as const;
 export type ListName = (typeof LIST_NAMES)[number];
 
+export const severitySchema = z.enum(['S1', 'S2', 'S3', 'S4']);
+export type Severity = z.infer<typeof severitySchema>;
+
+export const criticalitySchema = z.enum(['A', 'B', 'C']);
+export type Criticality = z.infer<typeof criticalitySchema>;
+
+export const severityMatrixSchema = z.object({
+  default: z.object({
+    A: z.object({
+      stopped: severitySchema,
+      support: severitySchema,
+    }),
+    B: z.object({
+      stopped: severitySchema,
+      support: severitySchema,
+    }),
+    C: z.object({
+      stopped: severitySchema,
+      support: severitySchema,
+    }),
+  }),
+  workRequest: severitySchema,
+  urgentWorkRequest: severitySchema,
+});
+export type SeverityMatrix = z.infer<typeof severityMatrixSchema>;
+
 export const listUpsertSchema = z.object({
   label: z.string().min(1).max(200),
   labelGu: z.string().max(200).optional(),
@@ -27,6 +53,11 @@ export type ListUpsertBody = z.infer<typeof listUpsertSchema>;
 
 export const settingsPutSchema = z.object({ value: z.unknown() });
 export type SettingsPutBody = z.infer<typeof settingsPutSchema>;
+
+export const machineCriticalitySchema = z
+  .object({ criticality: criticalitySchema.nullable() })
+  .strict();
+export type MachineCriticalityBody = z.infer<typeof machineCriticalitySchema>;
 
 export const translationSchema = z.object({
   labelGu: z.string().max(200).optional(),

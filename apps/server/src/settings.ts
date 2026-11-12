@@ -4,10 +4,14 @@ import {
   apiError,
   isListName,
   listUpsertSchema,
+  machineCriticalitySchema,
   settingsPutSchema,
+  severityMatrixSchema,
   translationSchema,
 } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
+import { computeSeverity } from '@uptimo/domain';
+import { loadSeverityMatrix } from './ticket/severity.js';
 import { requireAuth } from './auth.js';
 import { fingerprint, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
@@ -52,6 +56,14 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     return;
   }
   const key = (request.params as { key: string }).key;
+  // M2-2.1: validate the severity matrix shape before persisting it.
+  if (key === 'severity_matrix') {
+    const matrix = severityMatrixSchema.safeParse(parsed.data.value);
+    if (!matrix.success) {
+      reply.code(422).send(apiError('validation', 'Invalid severity matrix', 'value'));
+      return;
+    }
+  }
   await withTenant(pool, ctx.tenantId, (client) =>
     client.query(
       'INSERT INTO setting (tenant_id, key, value) VALUES ($1, $2, $3) ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()',
@@ -161,11 +173,59 @@ async function putTranslation(pool: Pool, request: FastifyRequest, reply: Fastif
   reply.send({ ok: true });
 }
 
+async function putMachineCriticality(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!canWrite(ctx.role)) return forbidden(reply);
+  const { id } = request.params as { id: string };
+  const parsed = machineCriticalitySchema.safeParse(request.body);
+  if (!parsed.success) {
+    reply
+      .code(422)
+      .send(apiError('validation', 'Criticality must be A, B, C or null', 'criticality'));
+    return;
+  }
+  const { criticality } = parsed.data;
+  const updated = await withTenant(pool, ctx.tenantId, async (client) => {
+    const machine = await client.query(
+      'UPDATE machine SET criticality = $2, updated_at = now() WHERE id = $1 RETURNING id',
+      [id, criticality],
+    );
+    if (machine.rowCount === 0) return machine;
+    // Severity follows current criticality; report-time snapshots stay unchanged.
+    const matrix = await loadSeverityMatrix(client, ctx.tenantId);
+    const tickets = await client.query(
+      'SELECT id, kind, urgent FROM ticket WHERE tenant_id = $1 AND machine_id = $2 FOR UPDATE',
+      [ctx.tenantId, id],
+    );
+    if (tickets.rows.length > 0) {
+      const severities = tickets.rows.map((ticket) =>
+        computeSeverity(matrix, criticality, ticket.kind, ticket.urgent === true),
+      );
+      await client.query(
+        `UPDATE ticket AS t SET severity = v.severity
+         FROM UNNEST($1::uuid[], $2::text[]) AS v(id, severity)
+         WHERE t.id = v.id AND t.tenant_id = $3`,
+        [tickets.rows.map((ticket) => ticket.id), severities, ctx.tenantId],
+      );
+    }
+    return machine;
+  });
+  if (updated.rowCount === 0) {
+    reply.code(404).send(apiError('not_found', 'Unknown machine', 'id'));
+    return;
+  }
+  reply.send({ ok: true });
+}
+
 export function registerSettings(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   app.get('/api/v1/config', (request, reply) => handleConfig(pool, request, reply));
   app.get('/api/v1/settings', (request, reply) => listSettings(pool, request, reply));
   app.put('/api/v1/settings/:key', (request, reply) => putSetting(pool, request, reply));
+  app.put('/api/v1/machines/:id/criticality', (request, reply) =>
+    putMachineCriticality(pool, request, reply),
+  );
   app.get('/api/v1/lists/:list', (request, reply) => listItems(pool, request, reply));
   app.put('/api/v1/lists/:list/:code', (request, reply) => upsertListItem(pool, request, reply));
   app.delete('/api/v1/lists/:list/:id', (request, reply) => deleteListItem(pool, request, reply));

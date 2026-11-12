@@ -1,4 +1,6 @@
 import type { PoolClient } from 'pg';
+import { computeSeverity } from '@uptimo/domain';
+import { loadSeverityMatrix } from '../ticket/severity.js';
 import { insertReports } from './insert-reports.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import { reconcileTicket, type ReconcileReferences } from './reconcile.js';
@@ -47,6 +49,8 @@ const TICKET_COLUMNS = [
   'cancelled_at',
   'kind_upgraded_at',
   'last_event_seq',
+  'severity',
+  'criticality_snapshot',
   'response_min',
   'active_min',
   'wait_min',
@@ -153,10 +157,15 @@ async function insertTicketRow(
   const reduced = reconciled.reduced;
   const state = { ...ticket.state, ...reduced.state };
   const projected = { ...ticket, problem: reduced.problem, reportedAt: reduced.reportedAt, state };
+  const criticality = refs.machine?.criticality ?? null;
+  const matrix = await loadSeverityMatrix(ctx.client, ctx.tenantId);
+  const severity = computeSeverity(matrix, criticality, projected.kind, false);
   const values = [
     ctx.tenantId,
     ...baseValues(projected, refs),
     ...stateValues(projected, refs),
+    severity,
+    criticality,
     ...figureValues(reconciled),
   ];
   const placeholders = TICKET_COLUMNS.map((_, index) => `$${index + 1}`).join(',');

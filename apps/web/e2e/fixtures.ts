@@ -39,6 +39,8 @@ export const MACHINES: MachineFixture[] = [
   { id: '10000000-0000-0000-0000-000000000006', code: 'VC-4', category: 'HMC', cell: 'Cell-2' },
   { id: '10000000-0000-0000-0000-000000000007', code: 'VC-5', category: 'VMC', cell: 'Cell-3' },
   { id: '10000000-0000-0000-0000-000000000008', code: 'VC-6', category: 'HMC', cell: 'Cell-3' },
+  { id: '10000000-0000-0000-0000-000000000013', code: 'VC-7', category: 'VMC', cell: 'Cell-4' },
+  { id: '10000000-0000-0000-0000-000000000014', code: 'VC-8', category: 'HMC', cell: 'Cell-4' },
 ];
 
 const PEOPLE = [
@@ -170,8 +172,9 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
 }
 
 /** One machine per spec per project so both projects can run in parallel. */
-export function machineFor(suite: 'floor' | 'desk', projectName: string): MachineFixture {
-  const index = (suite === 'floor' ? 0 : 2) + (projectName === 'phone' ? 1 : 0);
+export function machineFor(suite: 'floor' | 'desk' | 'tags', projectName: string): MachineFixture {
+  const index =
+    (suite === 'floor' ? 0 : suite === 'desk' ? 2 : 4) + (projectName === 'phone' ? 1 : 0);
   const machine = MACHINES[index];
   if (!machine) throw new Error(`No machine fixture for ${suite}/${projectName}`);
   return machine;

@@ -24,7 +24,13 @@ export interface PendingPerson {
 }
 export interface ReconcileReferences {
   timeZone: string;
-  machine: { id: string; code: string; category: string | null; cell: string | null } | null;
+  machine: {
+    id: string;
+    code: string;
+    category: string | null;
+    cell: string | null;
+    criticality: 'A' | 'B' | 'C' | null;
+  } | null;
   people: ReadonlyMap<string, string>;
   workTypes: ReadonlyMap<string, CodeReference>;
   locations: ReadonlyMap<string, CodeReference>;

@@ -165,7 +165,13 @@ export function makeSyntheticExport(
 export function makeReconcileReferences() {
   return {
     timeZone: 'UTC',
-    machine: { id: syntheticIds.machine, code: 'M-1', category: 'CNC', cell: 'Cell-1' },
+    machine: {
+      id: syntheticIds.machine,
+      code: 'M-1',
+      category: 'CNC',
+      cell: 'Cell-1',
+      criticality: null,
+    },
     people: new Map([
       ['synth-lead', syntheticIds.asha],
       ['asha', syntheticIds.asha],

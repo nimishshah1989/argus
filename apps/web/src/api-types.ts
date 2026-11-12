@@ -3,6 +3,14 @@ import type { BreakdownReportBody } from '../../../packages/shared/src/ticket.js
 /** The DTOs the web client exchanges with the API; `api.ts` re-exports every one of them. */
 
 export type RaiseKind = 'stopped' | 'support' | 'general';
+export type Criticality = 'A' | 'B' | 'C';
+export type Severity = 'S1' | 'S2' | 'S3' | 'S4';
+
+export interface SeverityMatrix {
+  default: Record<Criticality, Record<'stopped' | 'support', Severity>>;
+  workRequest: Severity;
+  urgentWorkRequest: Severity;
+}
 
 export type TicketStatus = 'open' | 'working' | 'waiting' | 'closed' | 'cancelled';
 
@@ -30,7 +38,7 @@ export interface Machine {
   cell: string | null;
   segment_id: string | null;
   group_id: string | null;
-  criticality: string | null;
+  criticality: Criticality | null;
 }
 
 export interface Segment {
@@ -81,6 +89,7 @@ export interface Config {
   machines: Machine[];
   people: Person[];
   shifts: Shift[];
+  severityMatrix: SeverityMatrix;
 }
 
 export interface Figures {
@@ -145,6 +154,8 @@ export interface Ticket {
   cancelledAt?: string;
   closeKind: CloseKind | null;
   closeNote: string | null;
+  severity: Severity | null;
+  criticalitySnapshot: Criticality | null;
   figures: Figures | null;
 }
 

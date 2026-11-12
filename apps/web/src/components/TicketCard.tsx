@@ -4,6 +4,7 @@ import type { CommandAction, Ticket } from '../api.js';
 import type { ActionSpec } from './actions.js';
 import { elapsedLabel } from './format.js';
 import { StatusBadge } from './StatusBadge.js';
+import { SeverityBadge } from './SeverityBadge.js';
 
 interface Props {
   ticket: Ticket;
@@ -21,7 +22,10 @@ export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }
       <Link to={`/desk/${ticket.id}`} className="block rounded-lg">
         <div className="flex items-start justify-between gap-3">
           <p className="text-lg font-semibold tracking-tight">{ticket.ref}</p>
-          <StatusBadge status={ticket.status} />
+          <div className="flex items-center gap-1.5">
+            <SeverityBadge severity={ticket.severity} />
+            <StatusBadge status={ticket.status} />
+          </div>
         </div>
         <p className="mt-1 text-sm font-medium text-neutral-600">{machineCode}</p>
         <p className="mt-2 line-clamp-2 text-base text-neutral-900">{ticket.problem}</p>

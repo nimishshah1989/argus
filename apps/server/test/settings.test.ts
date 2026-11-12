@@ -141,3 +141,132 @@ describe('settings and config', () => {
     expect(cfg.statusCode).toBe(401);
   });
 });
+
+describe('M2-2.1 severity matrix settings', () => {
+  const MACHINE = '10000000-0000-0000-0000-000000000041';
+
+  it('rejects an invalid severity matrix', async () => {
+    const token = await loginAs('admin');
+    const put = await req('PUT', '/api/v1/settings/severity_matrix', token, {
+      value: { default: { A: { stopped: 'S9', support: 'S2' } } },
+    });
+    expect(put.statusCode).toBe(422);
+  });
+
+  it('allows admin/head and forbids other roles from writing the matrix', async () => {
+    const matrix = (await req('GET', '/api/v1/config', await loginAs('admin'))).json()
+      .severityMatrix;
+    const roles = ['head', 'operator', 'technician', 'supervisor', 'plant_head', 'board'] as const;
+    for (const [index, role] of roles.entries()) {
+      const personId = `10000000-0000-0000-0000-00000000006${index}`;
+      await admin.query('INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, $4)', [
+        personId,
+        A,
+        `Matrix ${role}`,
+        'maintenance',
+      ]);
+      await admin.query(
+        `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
+         SELECT $1, $2, $3, $4, password_hash, $5, false FROM login WHERE id = $6`,
+        [
+          `10000000-0000-0000-0000-00000000005${index}`,
+          A,
+          personId,
+          `matrix-${role}`,
+          role,
+          ADMIN_LOGIN,
+        ],
+      );
+      const response = await req(
+        'PUT',
+        '/api/v1/settings/severity_matrix',
+        await loginAs(`matrix-${role}`),
+        {
+          value: matrix,
+        },
+      );
+      expect(response.statusCode, role).toBe(role === 'head' ? 200 : 403);
+    }
+  });
+
+  it('saves a valid severity matrix, changes the config fingerprint, and serves it', async () => {
+    const token = await loginAs('admin');
+    const before = (await req('GET', '/api/v1/config', token)).json().fp as string;
+    const matrix = {
+      default: {
+        A: { stopped: 'S1', support: 'S1' },
+        B: { stopped: 'S2', support: 'S2' },
+        C: { stopped: 'S3', support: 'S3' },
+      },
+      workRequest: 'S4',
+      urgentWorkRequest: 'S2',
+    };
+    const put = await req('PUT', '/api/v1/settings/severity_matrix', token, { value: matrix });
+    expect(put.statusCode).toBe(200);
+    const cfg = await req('GET', '/api/v1/config', token);
+    expect(cfg.json().severityMatrix).toEqual(matrix);
+    expect(cfg.json().fp).not.toBe(before);
+  });
+
+  it('sets machine criticality and serves it in /config', async () => {
+    await admin.query("INSERT INTO machine (id, tenant_id, code) VALUES ($1, $2, 'VC-SET')", [
+      MACHINE,
+      A,
+    ]);
+    const token = await loginAs('admin');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: 'A',
+    });
+    expect(put.statusCode).toBe(200);
+    const cfg = await req('GET', '/api/v1/config', token);
+    const machine = cfg.json().machines.find((row: { id: string }) => row.id === MACHINE);
+    expect(machine.criticality).toBe('A');
+
+    const clear = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: null,
+    });
+    expect(clear.statusCode).toBe(200);
+    const after = await req('GET', '/api/v1/config', token);
+    expect(
+      after.json().machines.find((row: { id: string }) => row.id === MACHINE).criticality,
+    ).toBeNull();
+  });
+
+  it('rejects an invalid criticality value', async () => {
+    const token = await loginAs('admin');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, {
+      criticality: 'D',
+    });
+    expect(put.statusCode).toBe(422);
+  });
+
+  it('rejects malformed criticality bodies without clearing the stored value', async () => {
+    await admin.query("UPDATE machine SET criticality = 'A' WHERE id = $1", [MACHINE]);
+    const token = await loginAs('admin');
+    for (const payload of [{}, [], { criticality: 1 }, { criticality: 'D' }]) {
+      const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, token, payload);
+      expect(put.statusCode).toBe(422);
+    }
+    const nullBody = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/machines/${MACHINE}/criticality`,
+      headers: {
+        host: 'cosmos.localhost',
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      payload: 'null',
+    });
+    expect(nullBody.statusCode).toBe(422);
+    const stored = await admin.query('SELECT criticality FROM machine WHERE id = $1', [MACHINE]);
+    expect(stored.rows[0].criticality).toBe('A');
+  });
+
+  it('forbids a technician from writing criticality', async () => {
+    const tech = await loginAs('tech');
+    const put = await req('PUT', `/api/v1/machines/${MACHINE}/criticality`, tech, {
+      criticality: 'B',
+    });
+    expect(put.statusCode).toBe(403);
+  });
+});

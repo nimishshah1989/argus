@@ -678,6 +678,7 @@ describe('synthetic import schema', () => {
       code: 'M-1',
       category: 'CNC',
       cell: 'Cell-1',
+      criticality: null,
     });
     expect(refs.workTypes.get('BREAKDOWN')).toEqual({ code: 'breakdown' });
     expect(refs.locations.get('CELL-1')).toEqual({ code: 'Cell-1' });

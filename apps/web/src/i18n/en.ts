@@ -84,6 +84,7 @@ export const en = {
   'ticket.reportedAgo': 'Reported {{time}}',
   'ticket.facts': 'Facts',
   'ticket.fact.machine': 'Machine',
+  'ticket.fact.severity': 'Severity',
   'ticket.fact.reported': 'Reported',
   'ticket.fact.lead': 'Lead',
   'ticket.fact.location': 'Location',
@@ -298,6 +299,33 @@ export const en = {
   'tile.open': 'Open',
   'tile.working': 'In progress',
   'tile.waiting': 'Waiting',
+
+  // severity settings
+  'settings.title': 'Settings',
+  'settings.back': 'Back to desk',
+  'settings.criticalityTitle': 'Machine criticality',
+  'settings.criticalityHelp':
+    'Criticality drives ticket severity: A machines stop production, C machines are least critical.',
+  'settings.criticalityNone': 'Not set',
+  'settings.criticalityFor': 'Criticality for {{code}}',
+  'settings.matrixTitle': 'Severity matrix',
+  'settings.matrixHelp':
+    'Severity is assigned when a ticket is reported, from the machine criticality and ticket kind. Work requests use the urgent flag instead.',
+  'settings.matrixCriticality': 'Criticality',
+  'settings.matrixStopped': 'Machine stopped',
+  'settings.matrixSupport': 'Support',
+  'settings.matrixCell': '{{criticality}} {{kind}} severity',
+  'settings.matrixWorkRequest': 'Work request',
+  'settings.matrixUrgentWorkRequest': 'Urgent work request',
+  'settings.saveMatrix': 'Save matrix',
+  'settings.saved': 'Saved',
+  'settings.saveFailed': 'Could not save. Please try again.',
+  'settings.loading': 'Loading settings…',
+  'settings.loadFailed': 'Could not load settings. Please try again.',
+  'settings.forbiddenTitle': 'No settings access',
+  'settings.forbiddenHelp':
+    'Ask an admin or head to change machine criticality or the severity matrix.',
+  'settings.offline': 'Offline: Settings is read-only. Reconnect to make changes.',
 
   // controlled ticket tags
   'tags.title': 'Tags',

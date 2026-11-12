@@ -475,8 +475,8 @@ describe('real CLI import and undo (T13–T20)', () => {
     const ticketId = randomUUID();
     const seedBatch = randomUUID();
     await db.admin.query(
-      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at)
-       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic pre-existing', now())`,
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity)
+       VALUES ($1, $2, 'BD-9000', 'stopped', 'open', 'Synthetic pre-existing', now(), 'S3')`,
       [ticketId, syntheticIds.tenant],
     );
     await db.admin.query(

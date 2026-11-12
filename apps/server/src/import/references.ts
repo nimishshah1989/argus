@@ -135,7 +135,7 @@ async function loadMachine(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasC
   const source = normalizeCode(ticket.machineCode);
   const code = aliasesBySource.get(source) ?? source;
   const result = await ctx.client.query(
-    'SELECT id, code, category, cell FROM machine WHERE tenant_id = $1 AND code = $2 AND status = $3',
+    'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2 AND status = $3',
     [ctx.tenantId, code, 'active'],
   );
   if (result.rows.length !== 1) throw new Error(`Unknown or inactive machine: ${code}`);
@@ -144,6 +144,7 @@ async function loadMachine(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasC
     code: string;
     category: string | null;
     cell: string | null;
+    criticality: 'A' | 'B' | 'C' | null;
   };
 }
 
