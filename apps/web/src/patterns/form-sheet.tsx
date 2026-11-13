@@ -23,13 +23,15 @@ export interface FormSheetProps {
   error: string | null;
   /** True closes the sheet and clears the fields. */
   onSubmit: (values: Record<string, string>) => Promise<boolean>;
+  /** First values of the fields; default {}. */
+  initial?: Record<string, string>;
 }
 
 /** A sheet with labelled inputs; required fields only, no schema (the server is the validator). */
 export function FormSheet(p: FormSheetProps) {
   const { t } = useTranslation();
   const online = useOnline();
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(p.initial ?? {});
   const notice = offlineNotice(online, p.offlineAllowed);
   const missing = p.fields.some((f) => f.required && (values[f.name] ?? '').trim() === '');
 
