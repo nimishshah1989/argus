@@ -35,37 +35,45 @@ function invalid(message: string): never {
   throw new CliUsageError(message);
 }
 
+function flagValue(
+  argv: string[],
+  index: number,
+  current: string | undefined,
+  flag: string,
+): string {
+  if (current !== undefined) invalid(`duplicate ${flag}`);
+  const value = argv[index + 1];
+  if (!value || value.startsWith('-')) invalid(`${flag} requires a value`);
+  return value;
+}
+
 function parseTokens(argv: string[], start: number): CliTokens {
-  let target: string | undefined;
-  let tenantSlug: string | undefined;
-  let productionConfirm = false;
-  let operator: string | undefined;
+  const tokens: CliTokens = {
+    target: undefined,
+    tenantSlug: undefined,
+    productionConfirm: false,
+    operator: undefined,
+  };
   for (let index = start; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--tenant') {
-      if (tenantSlug !== undefined) invalid('duplicate --tenant');
-      const value = argv[index + 1];
-      if (!value || value.startsWith('-')) invalid('--tenant requires a slug');
-      tenantSlug = value;
+      tokens.tenantSlug = flagValue(argv, index, tokens.tenantSlug, '--tenant');
       index += 1;
     } else if (arg === '--operator') {
-      if (operator !== undefined) invalid('duplicate --operator');
-      const value = argv[index + 1];
-      if (!value || value.startsWith('-')) invalid('--operator requires a name');
-      operator = value;
+      tokens.operator = flagValue(argv, index, tokens.operator, '--operator');
       index += 1;
     } else if (arg === '--production-confirm') {
-      if (productionConfirm) invalid('duplicate --production-confirm');
-      productionConfirm = true;
+      if (tokens.productionConfirm) invalid('duplicate --production-confirm');
+      tokens.productionConfirm = true;
     } else if (arg?.startsWith('-')) {
       invalid(`unknown flag: ${arg}`);
-    } else if (target !== undefined) {
+    } else if (tokens.target !== undefined) {
       invalid('extra positional argument');
     } else {
-      target = arg;
+      tokens.target = arg;
     }
   }
-  return { target, tenantSlug, productionConfirm, operator };
+  return tokens;
 }
 
 export function parseCliArgs(argv: string[]): CliCommand {
