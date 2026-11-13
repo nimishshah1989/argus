@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
@@ -13,6 +14,7 @@ import {
   revokeSession,
   setPasswordHash,
 } from './repo.js';
+import { createLoginGuard } from './login-guard.js';
 import { hashToken, newToken, requireAuth, tenantSlugFromHost } from './service.js';
 
 const PASSWORD_OPTS = {
@@ -38,7 +40,55 @@ function userFrom(ctx: AuthContext) {
   };
 }
 
-async function login(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+// An unknown or switched-off username still pays for one password check, so the answer takes as long.
+const dummyHash = hashPassword(`not-a-real-password-${randomUUID()}`);
+dummyHash.catch(() => undefined);
+
+async function passwordMatches(
+  row: { password_hash: string; disabled_at: unknown } | undefined,
+  password: string,
+): Promise<boolean> {
+  const matches = await verify(row?.password_hash ?? (await dummyHash), password);
+  return matches && row !== undefined && !row.disabled_at;
+}
+
+interface NewSession {
+  tenantId: string;
+  loginRow: { id: string; role: string; shared: boolean };
+  username: string;
+  device: string | undefined;
+  person: { id: string; name: string; title: string | null };
+}
+
+async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
+  const token = newToken();
+  await insertSession(pool, {
+    tenantId: n.tenantId,
+    loginId: n.loginRow.id,
+    device: n.device,
+    actingPersonId: n.person.id,
+    tokenHash: hashToken(token),
+  });
+  reply.send({
+    token,
+    user: {
+      id: n.loginRow.id,
+      username: n.username,
+      name: n.person.name,
+      title: n.person.title,
+      role: n.loginRow.role,
+      shared: n.loginRow.shared,
+      actingPersonId: n.person.id,
+    },
+  });
+}
+
+async function login(
+  pool: Pool,
+  guard: ReturnType<typeof createLoginGuard>,
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const parsed = loginSchema.safeParse(request.body);
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path.join('.');
@@ -53,13 +103,21 @@ async function login(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   }
   bindLog(request, reply, { tenantId: tenant.id });
   const { username, password, device, actingPersonId } = parsed.data;
+  const wait = guard.take(request.ip, tenant.id, username);
+  if (wait > 0) {
+    reply
+      .code(429)
+      .header('retry-after', wait)
+      .send(apiError('rate_limited', 'Too many sign-in attempts. Try again in a few minutes'));
+    return;
+  }
   const loginRow = await findLogin(pool, tenant.id, username);
-  const passwordOk =
-    loginRow && !loginRow.disabled_at && (await verify(loginRow.password_hash, password));
-  if (!passwordOk) {
+  const passwordOk = await passwordMatches(loginRow, password);
+  if (!loginRow || !passwordOk) {
     reply.code(401).send(apiError('unauthenticated', 'Invalid username or password'));
     return;
   }
+  guard.refund(request.ip, tenant.id, username);
   let acting = loginRow.person_id;
   if (loginRow.shared) {
     if (!actingPersonId) {
@@ -73,25 +131,12 @@ async function login(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
     return;
   }
-  const token = newToken();
-  await insertSession(pool, {
+  await startSession(pool, reply, {
     tenantId: tenant.id,
-    loginId: loginRow.id,
+    loginRow,
+    username,
     device,
-    actingPersonId: person.id,
-    tokenHash: hashToken(token),
-  });
-  reply.send({
-    token,
-    user: {
-      id: loginRow.id,
-      username,
-      name: person.name,
-      title: person.title,
-      role: loginRow.role,
-      shared: loginRow.shared,
-      actingPersonId: person.id,
-    },
+    person,
   });
 }
 
@@ -145,8 +190,9 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
 
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
+  const guard = createLoginGuard();
   app.get('/api/v1/brand', (request, reply) => brand(pool, request, reply));
-  app.post('/api/v1/auth/login', (request, reply) => login(pool, request, reply));
+  app.post('/api/v1/auth/login', (request, reply) => login(pool, guard, request, reply));
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
   app.post('/api/v1/auth/logout', (request, reply) => logout(pool, request, reply));
   app.post('/api/v1/auth/password', (request, reply) => changePassword(pool, request, reply));

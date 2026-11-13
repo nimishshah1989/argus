@@ -237,3 +237,71 @@ describe('auth', () => {
     expect(me.json().user.username).toBe('asha');
   });
 });
+
+describe('login guard', () => {
+  const HOST = 'plant-two.localhost';
+  const attempt = (username: string, password: string, from: string, extra: object = {}) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      remoteAddress: from,
+      headers: { host: HOST, 'content-type': 'application/json' },
+      payload: { username, password, ...extra },
+    });
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+
+  it('takes as long to refuse an unknown username as a wrong password', async () => {
+    const unknown: number[] = [];
+    const wrong: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      let t = performance.now();
+      await attempt(`nobody-${i}`, 'wrong-password', '198.51.100.20');
+      unknown.push(performance.now() - t);
+      t = performance.now();
+      await attempt('cell-phone', 'wrong-password', '198.51.100.20');
+      wrong.push(performance.now() - t);
+    }
+    expect(median(unknown)).toBeGreaterThan(median(wrong) * 0.5);
+  });
+
+  it('stops guessing one username after ten misses, but only for that sender and name', async () => {
+    const from = '198.51.100.21';
+    for (let i = 0; i < 10; i++) {
+      expect((await attempt('cell-phone', `guess-${i}`, from)).statusCode).toBe(401);
+    }
+    const blocked = await attempt('cell-phone', PASSWORD, from, { actingPersonId: PERSON_B });
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json().error.code).toBe('rate_limited');
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+    const otherSender = await attempt('cell-phone', PASSWORD, '198.51.100.22', {
+      actingPersonId: PERSON_B,
+    });
+    expect(otherSender.statusCode).toBe(200);
+    expect((await attempt('nobody-else', 'x', from)).statusCode).toBe(401);
+  });
+
+  it('lets a whole shift sign in on one shared login from one address', async () => {
+    const codes: number[] = [];
+    for (let wave = 0; wave < 8; wave++) {
+      const people = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          attempt('cell-phone', PASSWORD, '198.51.100.23', { actingPersonId: PERSON_B }),
+        ),
+      );
+      codes.push(...people.map((r) => r.statusCode));
+    }
+    expect(codes).toEqual(Array(40).fill(200));
+  });
+
+  it('caps one sender trying many usernames', async () => {
+    const from = '198.51.100.24';
+    let blocked = 0;
+    for (let i = 0; i < 110; i++) {
+      if ((await attempt(`spray-${i}`, 'x', from)).statusCode === 429) blocked++;
+    }
+    expect(blocked).toBeGreaterThan(0);
+    expect(
+      (await attempt('cell-phone', PASSWORD, from, { actingPersonId: PERSON_B })).statusCode,
+    ).toBe(429);
+  });
+});
