@@ -38,7 +38,7 @@ Before writing, read the task and the code it touches — callers, tests, fixtur
 
 ## 3. The lean review (every PR)
 
-Added to `docs/REVIEW-MECHANISMS.md` as part of code review. The reviewer asks:
+Run on every PR as part of `ponytail-review` (D23). The reviewer asks:
 
 - What can be **deleted** from this diff?
 - Is any abstraction, interface, wrapper or option used **only once**?

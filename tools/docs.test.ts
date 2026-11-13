@@ -21,11 +21,11 @@ describe('docs check', () => {
     ['in DSH', 'DSH'],
   ])('flags another process in an instruction file: %s', (line, label) => {
     expect(processErrors([{ path: 'AGENTS.md', text: `intro\n${line}` }])).toEqual([
-      `AGENTS.md:2: names a process other than Athena v3 (${label})`,
+      `AGENTS.md:2: names a process other than pstack (${label})`,
     ]);
   });
 
-  it.each(['the dsh profile', 'Athena v3: Opus plans and reviews, Sonnet builds'])(
+  it.each(['the dsh profile', 'pstack: Opus designs and reviews, Sonnet builds'])(
     'accepts %s',
     (line) => {
       expect(processErrors([{ path: 'AGENTS.md', text: line }])).toEqual([]);
@@ -47,7 +47,7 @@ describe('docs check', () => {
     const errors = (): string[] => processErrors(readDocs(instructionPaths(root), root));
     expect(errors()).toEqual([]);
     writeFileSync(join(root, 'AGENTS.md'), 'clean\nroute to DeepSeek\n');
-    expect(errors()).toEqual(['AGENTS.md:2: names a process other than Athena v3 (DeepSeek)']);
+    expect(errors()).toEqual(['AGENTS.md:2: names a process other than pstack (DeepSeek)']);
     expect(() => readDocs(['docs/nope.md'], root)).toThrow('docs: missing docs/nope.md');
   });
 
