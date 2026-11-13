@@ -15,6 +15,23 @@ function migrationFiles(): string[] {
 /** Test-only credential for the `app_api` login role (set via ALTER ROLE after migration). */
 export const APP_API_PASSWORD = 'app-api-test-password';
 
+/**
+ * A pool whose backend dies with 57P01 ("terminating connection due to administrator command", a
+ * Testcontainer stopping) emits 'error'; with no listener vitest reports "Unhandled Errors" after every
+ * test passed. Returns `begin`: call it when teardown starts. Only 57P01 after that is ignored; anything
+ * else is re-thrown so a real connection failure still surfaces.
+ */
+export function tolerateShutdown(pool: Pool): () => void {
+  let stopping = false;
+  pool.on('error', (error: Error & { code?: string }) => {
+    if (stopping && error.code === '57P01') return;
+    throw error;
+  });
+  return () => {
+    stopping = true;
+  };
+}
+
 export interface TestDb {
   container: StartedPostgreSqlContainer;
   /** Superuser pool: apply migrations, seed, and run direct assertions (bypasses RLS). */
@@ -32,6 +49,7 @@ export interface TestDb {
 export async function startTestDb(): Promise<TestDb> {
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
   const admin = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
+  const beginAdmin = tolerateShutdown(admin);
   for (const file of migrationFiles()) {
     await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
   }
@@ -41,11 +59,14 @@ export async function startTestDb(): Promise<TestDb> {
     connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`,
     max: 5,
   });
+  const beginApp = tolerateShutdown(app);
   return {
     container,
     admin,
     app,
     stop: async () => {
+      beginAdmin();
+      beginApp();
       await admin.end();
       await app.end();
       await container.stop();

@@ -1,0 +1,3 @@
+- A pull request over the size limit, or one that skips the parity ledger, now passes when its description states why in a `Large PR:` or `No parity:` line; no label needed.
+- `pnpm precheck` formats the files you changed and runs the fast CI checks in one command before you push.
+- A finished test run no longer fails with an "Unhandled Errors" message when its test database stops.

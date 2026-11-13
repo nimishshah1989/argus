@@ -54,7 +54,7 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
 
 Work on a branch. Never push to main, never force-push, never `--no-verify`. One ticket per PR, with one
 `changes/<issue>-<slug>.md` fragment. The PR body says what changed for a user, which tests prove it, and how
-to try the preview.
+to try the preview. Run `pnpm precheck` before every push.
 
 ## Memory
 

@@ -1,0 +1,1 @@
+- The AI needs only the Anthropic API key: the model defaults to Claude Sonnet 5.5 and its price is built in.

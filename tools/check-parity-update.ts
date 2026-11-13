@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { prReason } from './pr-reason.js';
 
 /**
  * Parity discipline (M6): a pull request that changes product code under `apps/` or `packages/`
@@ -11,11 +12,16 @@ import { pathToFileURL } from 'node:url';
 const PRODUCT = /^(apps|packages)\//;
 const LEDGER = 'docs/spec/parity.yaml';
 
+/** The ledger rule is skipped by the no-parity label (PARITY_ALLOW_SKIP) or a `No parity: <reason>` body line. */
+export function paritySkipAllowed(env: NodeJS.ProcessEnv): boolean {
+  return Boolean(env.PARITY_ALLOW_SKIP) || prReason(env.PR_BODY, 'No parity') !== null;
+}
+
 export function parityUpdateErrors(files: string[]): string[] {
   const product = files.filter((file) => PRODUCT.test(file));
   if (product.length === 0 || files.includes(LEDGER)) return [];
   return [
-    `${product.length} product file(s) changed but ${LEDGER} did not; update the ledger or add the no-parity label with a reason`,
+    `${product.length} product file(s) changed but ${LEDGER} did not; update the ledger, add the no-parity label, or put a line "No parity: <reason>" (at least 10 characters) in the PR description`,
   ];
 }
 
@@ -32,8 +38,10 @@ function changedFiles(): string[] | null {
 }
 
 function main(): void {
-  if (process.env.PARITY_ALLOW_SKIP) {
-    console.log('parity:update: skipped via the no-parity label; state the reason in the PR');
+  if (paritySkipAllowed(process.env)) {
+    console.log(
+      'parity:update: skipped via the no-parity label or a "No parity:" line in the PR description',
+    );
     return;
   }
   const files = changedFiles();
