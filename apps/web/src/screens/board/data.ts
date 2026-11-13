@@ -8,12 +8,16 @@ export interface Tile {
 export interface GroupSection {
   id: string;
   label: string | null;
+  /** The catch-all group; the screen names it with `board.other`. */
+  other: boolean;
   tiles: Tile[];
 }
 
 export interface SegmentSection {
   id: string;
-  label: string;
+  label: string | null;
+  /** The catch-all section; the screen names it with `board.other`. */
+  other: boolean;
   groups: GroupSection[];
 }
 
@@ -87,7 +91,7 @@ function groupKeys(bucket: Map<string, Tile[]>, configured: string[]): string[] 
 
 function toSection(
   id: string,
-  label: string,
+  label: string | null,
   bucket: Map<string, Tile[]>,
   configured: Group[],
 ): SegmentSection {
@@ -95,12 +99,14 @@ function toSection(
   return {
     id,
     label,
+    other: label === null,
     groups: groupKeys(
       bucket,
       configured.map((group) => group.id),
     ).map((key) => ({
       id: key,
-      label: key === '' ? null : key === 'other' ? 'Other' : (labels.get(key) ?? 'Other'),
+      label: key === '' || key === 'other' ? null : (labels.get(key) ?? null),
+      other: key === 'other',
       tiles: bucket.get(key) ?? [],
     })),
   };
@@ -169,6 +175,6 @@ export function buildSections(
     }
   }
   const other = buckets.get('');
-  if (other) sections.push(toSection('other', 'Other', other, []));
+  if (other) sections.push(toSection('other', null, other, []));
   return sections;
 }
