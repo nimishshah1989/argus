@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 15:36 UTC on branch `claude/orchestrator-ledger`.
-- 6b4fa1e docs: session notes (hook)
-- f4857a1 docs: session notes (hook)
-- 298b06b docs: handoff under 50 lines
+Last session ended 2026-11-13 22:42 UTC on branch `claude/t16-desk-lists`.
+- 0e06ba0 feat(16): a cancel and a restore touch no stretch, as in his app; keep the open downtime tile
+- 8d930ac docs(16): this PR is goal 3 only; the screens wait for the frontend design
+- aea28ad Revert "feat(16): ticket detail shows an imported ticket's stored minutes"
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
