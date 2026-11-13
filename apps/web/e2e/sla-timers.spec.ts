@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { API_URL, MACHINES, apiLogin, signIn } from './fixtures.js';
+import { expect, test } from './test.js';
+import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
 import {
   FUTURE_PAUSE_COPY,
   POLICIES,
@@ -141,7 +141,7 @@ test('gates SLA Settings for technicians without hiding ticket access', async ({
   await page.getByRole('link', { name: 'Back to desk', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tickets', exact: true })).toBeVisible();
 
-  const response = await fetch(`${API_URL}/api/v1/settings/sla-policies`, {
+  const response = await apiFetch('/api/v1/settings/sla-policies', {
     method: 'PUT',
     headers: {
       'content-type': 'application/json',

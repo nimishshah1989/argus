@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { API_URL, apiLogin, raiseTicketViaApi, type MachineFixture } from './fixtures.js';
+import {
+  apiFetch,
+  apiLogin,
+  raiseTicketViaApi,
+  type ApiInit,
+  type MachineFixture,
+} from './fixtures.js';
 import type { ListItem } from '../src/api-types.js';
 
 export const POLICIES = [
@@ -13,8 +19,8 @@ export const POLICIES = [
 export const FUTURE_PAUSE_COPY =
   'Applies to pauses started after this change. Existing pauses keep the rule they started with.';
 
-async function apiJson<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+async function apiJson<T>(token: string, path: string, init: ApiInit = {}): Promise<T> {
+  const response = await apiFetch(path, {
     ...init,
     headers: {
       'content-type': 'application/json',
