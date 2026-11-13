@@ -32,6 +32,7 @@ function row(o: Partial<HistoryRow> = {}): HistoryRow {
 function evidence(o: Partial<Parameters<typeof buildEvidence>[0]> = {}) {
   return buildEvidence({
     problem: 'Spindle jam',
+    reportedAt: new Date('2026-10-10T08:00:00Z'),
     own: [],
     siblings: [],
     siblingCodes: new Map(),
@@ -56,18 +57,20 @@ describe('buildEvidence', () => {
     expect(e.thisMachine[0]).not.toHaveProperty('machine');
   });
 
-  it('merges repeated identical rows of one outage', () => {
+  it('merges adjacent identical rows of one outage, not recurrences', () => {
     const same = { problem: 'Spindle band', action: 'Chalu kiya' };
+    const day = (d: number) => new Date(`2026-10-0${d}T08:00:00Z`);
     const e = evidence({
       own: [
-        row(same),
-        row(same),
-        row(same),
-        row({ ...same, reportedAt: new Date('2026-09-01T08:00:00Z') }),
+        row({ ...same, reportedAt: day(5) }),
+        row({ ...same, reportedAt: day(4) }),
+        row({ ...same, reportedAt: day(3) }),
+        row({ problem: 'Coolant leak', action: 'Hose replaced', reportedAt: day(2) }),
+        row({ ...same, reportedAt: day(1) }),
       ],
     });
-    expect(e.thisMachine).toHaveLength(2);
-    expect(e.coverage.thisMachine).toBe(2);
+    expect(e.thisMachine).toHaveLength(3);
+    expect(e.coverage.thisMachine).toBe(3);
   });
 
   it('leaves out stock notes seen on other models and keeps same-model patterns', () => {
@@ -114,6 +117,16 @@ describe('buildEvidence', () => {
     });
     expect(e.safetyWords).toEqual(['bypass', 'temporary fix', 'jugaad', 'interlock']);
     expect(safetyWords(['Coolant temperature high'])).toEqual([]);
+  });
+
+  it('ignores old notes and a Z-Guard part name, but flags a removed guard', () => {
+    const old = row({ action: 'Wire bypass left', reportedAt: new Date('2026-08-31T08:00:00Z') });
+    expect(evidence({ own: [old] }).safetyWords).toEqual([]);
+    expect(evidence({ problem: 'Z-Guard seat problem' }).safetyWords).toEqual([]);
+    expect(evidence({ problem: 'Z-Guard seat problem, guard removed' }).safetyWords).toEqual([
+      'guard',
+    ]);
+    expect(evidence({ problem: 'guard removed' }).safetyWords).toEqual(['guard']);
   });
 });
 

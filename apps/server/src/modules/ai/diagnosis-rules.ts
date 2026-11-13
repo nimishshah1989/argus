@@ -62,6 +62,7 @@ export type HistoryItem = {
 };
 export interface EvidenceInput {
   problem: string;
+  reportedAt: Date; // when the new ticket was reported
   own: readonly HistoryRow[]; // this machine, newest first
   siblings: readonly HistoryRow[]; // same-model machines, newest first
   siblingCodes: ReadonlyMap<string, string>; // machine id -> code
@@ -95,29 +96,21 @@ const SAFETY: readonly (readonly [string, RegExp])[] = [
   ['burn', /\bburn/i],
   ['shock', /\bshock/i],
   ['interlock', /\binterlock/i],
-  ['guard', /\bguard/i],
+  ['guard', /(?<![a-z]-)\bguard/i],
 ];
 
 export function safetyWords(texts: readonly string[]): string[] {
   return SAFETY.filter(([, re]) => texts.some((t) => re.test(t))).map(([word]) => word);
 }
 
-/** One outage, one row: same machine, UTC day, problem and closing note keep only the first. */
+/** One outage, one row: runs of adjacent rows (newest first) with the same machine, problem and closing note keep the first. */
 function dedupe(rows: readonly HistoryRow[]): HistoryRow[] {
-  const seen = new Set<string>();
-  return rows.filter((r) => {
-    const k = JSON.stringify([
-      r.machineId,
-      r.reportedAt.toISOString().slice(0, 10),
-      normaliseNote(r.problem),
-      normaliseNote(closingNote(r)),
-    ]);
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
+  const sig = (r: HistoryRow): string =>
+    JSON.stringify([r.machineId, normaliseNote(r.problem), normaliseNote(closingNote(r))]);
+  return rows.filter((r, i) => i === 0 || sig(r) !== sig(rows[i - 1]!));
 }
 
+const RECENT_MS = 30 * 24 * 3600 * 1000;
 const clip = (v: string | null): string | undefined => v?.trim().slice(0, 500) || undefined;
 const isText = (v: string | null): v is string => v !== null;
 
@@ -167,7 +160,10 @@ export function buildEvidence(input: EvidenceInput): Evidence {
     },
     safetyWords: safetyWords([
       input.problem,
-      ...ownRows.flatMap((r) => [r.problem, r.closeNote, r.action, r.rootCause]).filter(isText),
+      ...ownRows
+        .filter((r) => input.reportedAt.getTime() - r.reportedAt.getTime() <= RECENT_MS)
+        .flatMap((r) => [r.problem, r.closeNote, r.action, r.rootCause])
+        .filter(isText),
     ]),
   };
 }

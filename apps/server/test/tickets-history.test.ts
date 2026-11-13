@@ -7,6 +7,7 @@ const A = '72000000-0000-4000-8000-00000000000a';
 const B = '72000000-0000-4000-8000-00000000000b';
 const id = (n: number): string => `72000000-0000-4000-8000-0000000002${String(n).padStart(2, '0')}`;
 const [M, S, O, MB] = [id(1), id(2), id(3), id(4)];
+const EXTRA = [5, 6, 7, 8, 9, 10].map(id);
 const BEFORE = new Date('2026-11-13T10:00:00Z');
 
 describe('tickets history reads', () => {
@@ -56,6 +57,10 @@ describe('tickets history reads', () => {
         ($1, $5, 'FM-1'), ($2, $5, 'FM-2'), ($3, $5, 'OT-1'), ($4, $6, 'FM-9')`,
       [M, S, O, MB, A, B],
     );
+    await db.admin.query(
+      `INSERT INTO machine (id, tenant_id, code) SELECT x, $2, 'X-' || x FROM unnest($1::uuid[]) x`,
+      [EXTRA, A],
+    );
   });
 
   afterAll(async () => {
@@ -88,16 +93,20 @@ describe('tickets history reads', () => {
     expect(rows).toEqual([]);
   });
 
-  it('finds closing notes that also appear on machines outside the family', async () => {
+  it('finds stock notes: same note on 3+ machines outside the family on one day', async () => {
     await ticket(A, M, '2026-10-03T08:00:00Z', { actions: ['Coupling ALIGNED'] });
-    await ticket(A, O, '2026-10-03T08:00:00Z', { closeNote: 'coupling aligned' });
+    for (const m of [O, EXTRA[0]!, EXTRA[1]!])
+      await ticket(A, m, '2026-10-03T08:00:00Z', { closeNote: 'coupling aligned' });
     await ticket(A, S, '2026-10-03T08:00:00Z', { actions: ['Belt changed'] });
     await ticket(B, MB, '2026-10-03T08:00:00Z', { actions: ['Bearing replaced'] });
+    for (const [i, m] of EXTRA.entries())
+      await ticket(A, m, `2026-09-0${i + 1}T08:00:00Z`, { actions: ['Change the air pipe'] });
+    await ticket(A, O, '2026-09-08T08:00:00Z', { actions: ['Change the air pipe'] });
     const seen = (notes: string[]) =>
       withTenant(db.app, A, (c) => notesSeenElsewhere(c, A, { notes, outsideMachineIds: [M, S] }));
-    expect(await seen(['coupling aligned', 'belt changed', 'bearing replaced'])).toEqual(
-      new Set(['coupling aligned']),
-    );
+    expect(
+      await seen(['coupling aligned', 'belt changed', 'bearing replaced', 'change the air pipe']),
+    ).toEqual(new Set(['coupling aligned']));
     expect(await seen([])).toEqual(new Set());
   });
 });
