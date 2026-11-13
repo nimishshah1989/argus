@@ -52,10 +52,10 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 06:57 UTC on branch `claude/orchestrator-ledger`.
+Last session ended 2026-11-13 07:01 UTC on branch `claude/orchestrator-ledger`.
+- 422856b docs: fence the hook-written HANDOFF facts from prettier
 - 82922f2 docs(plan): ledger — ticket 01 rulings
 - b21370f docs(plan): ledger — format ruling
-- 6520cc3 docs: format session-end facts for prettier
-Uncommitted files: 1 (first: ocs/HANDOFF.md)
+Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
