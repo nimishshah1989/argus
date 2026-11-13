@@ -6,11 +6,9 @@ A maintenance operating system for Indian factories: a breakdown is reported in 
 
 | Path                                                   | What it is                                                                                           |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| [docs/BUILD-PROTOCOL.md](docs/BUILD-PROTOCOL.md)       | How we build: roles, slicing, reviews, cadence, architecture, tables, tenancy, memory and skills     |
-| [docs/REVIEW-MECHANISMS.md](docs/REVIEW-MECHANISMS.md) | The review ladder, risk tiers, proof for every backend capability, and CI gates                      |
+| [CLAUDE.md](CLAUDE.md)                                 | How we build (pstack): the loop, the rules, who decides, memory                                      |
 | [docs/LEAN.md](docs/LEAN.md)                           | The anti-bloat ladder, hard size/complexity/dependency budgets and lean review                       |
 | [docs/QUALITY-BAR.md](docs/QUALITY-BAR.md)             | The 9/10 senior-engineer scorecard used at M1b/M5 and R3 gates                                       |
-| [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md)         | Goal loop, graph loop, parallel workers and the orchestrator                                         |
 | [docs/FRONTEND-STRATEGY.md](docs/FRONTEND-STRATEGY.md) | The role-first frontend, design system, screens, quality bar and design process                      |
 | [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)       | AWS-only, low-cost infrastructure: services, monthly cost, open-source stack, no Supabase/NAT/ALB    |
 | [docs/spec/SPEC.md](docs/spec/SPEC.md)                 | The build specification: stack, product, milestones, architecture, data, non-functional requirements |

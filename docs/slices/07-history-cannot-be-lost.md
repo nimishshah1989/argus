@@ -5,7 +5,7 @@ Branch `claude/t07-history-cannot-be-lost`. One PR, body contains `Closes #85`.
 
 **The schema is done and reviewed; do not edit it.** `packages/db/migrations/0009_history_cannot_be_lost.sql`,
 `packages/db/migrations/down/0009_history_cannot_be_lost.down.sql`, `docs/slices/07-schema-notes.md` (cited below
-as "notes §n") and D23. Verdict history: schema-reviewer **PASS-with-conditions after 3 rounds** (round 1: ten
+as "notes §n") and D24. Verdict history: schema-reviewer **PASS-with-conditions after 3 rounds** (round 1: ten
 findings, notes §13; round 2: scoped re-check, two findings; round 3: PASS-with-conditions, documentation items
 applied, 13 Nov). If any test below shows the migration itself is wrong, or any statement of 0001–0009 fails as a
 non-superuser owner (test 44), **stop**: that goes back through the architect and the schema-reviewer.
@@ -46,7 +46,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 5. **One migrated-database helper for the package tests.** `packages/db/test/migrated.ts` (new) replaces the
    container/migrations/jobs/seed block of `isolation.test.ts`' `beforeAll` and is used by the two new test files
    and the scripts test (three users). `migration-runner.test.ts` keeps its own per-test containers.
-6. **Operator scripts run on `MIGRATION_DATABASE_URL`** (D23 point 3), loop over `tenant` (no row security) and
+6. **Operator scripts run on `MIGRATION_DATABASE_URL`** (D24 point 3), loop over `tenant` (no row security) and
    use the existing `withTenant` from `packages/db/src/tenant.ts` per tenant, because on RDS the owner sees a FORCE
    table only through its policy (notes §8). `scripts/operator-db.ts` holds the two shared lines (pool, tenant
    list) for the three scripts.
@@ -123,7 +123,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 
 ### Deliberately not touched
 
-The migration files; `docs/ARCHITECTURE.md`, `docs/DATA-MAP.md`, D23, `packages/db/README.md` (done in the schema
+The migration files; `docs/ARCHITECTURE.md`, `docs/DATA-MAP.md`, D24, `packages/db/README.md` (done in the schema
 step); `apps/server/src/seed/cosmos.ts` (`DELETE FROM tenant` as owner still cascades, test 9);
 `apps/server/test/history-guard.test.ts`; `infra/` (§12 question 3); `docs/HANDOFF.md`, `docs/spec/parity.yaml`.
 
@@ -151,7 +151,7 @@ export function finishBatch(
   tx: Db,
   input: { status: string; stats: string; batchId: string; tenantId: string },
 ): Promise<void>;
-/** SELECT import_undo($1, $2) AS deleted — the definer function of D23. */
+/** SELECT import_undo($1, $2) AS deleted — the definer function of D24. */
 export function callImportUndo(tx: Db, batchId: string, operator: string): Promise<number>;
 
 // apps/server/src/modules/imports/batch.ts

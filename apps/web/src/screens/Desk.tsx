@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getConfig, getMe, getState, type CommandAction, type Ticket } from '../api.js';
 import { actorFrom } from '../components/actionSpecs.js';
-import { useTicketCommand } from '../components/useTicketCommand.js';
+import { useCommand } from '../data/index.js';
 import { AccountSheet } from '../components/AccountSheet.js';
 import { Drafts } from '../components/Drafts.js';
 import { NotificationsToggle } from '../components/NotificationsToggle.js';
@@ -50,7 +50,7 @@ export function Desk() {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const personId = me.data?.user.actingPersonId;
-  const { run, error, pending } = useTicketCommand();
+  const { run, error, pending } = useCommand();
   const machines = config.data?.machines ?? [];
   const actor = me.data ? actorFrom(me.data.user) : null;
 

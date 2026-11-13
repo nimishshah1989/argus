@@ -7,7 +7,7 @@ import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
-import type { AppConfig } from '../../kernel/index.js';
+import { ticketPartsAfterWrite, withTicketParts, type AppConfig } from '../../kernel/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
@@ -15,7 +15,6 @@ import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import * as report from './repo/report.js';
 import { openDuplicateId, openTicketRows } from './repo/list.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
-import { projectTicketSla, reconcileTicket, withSlaProjections } from '../accountability/index.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -104,17 +103,16 @@ async function executeCommand(
   await refreshSeverity(client, tx, loaded, result.ticket);
   await sql.persistResult(client, tx, loaded, result);
   await report.storeReportForTransition(client, tx, result);
-  const slaPolicyId = await reconcileTicket(client, {
+  const parts = await ticketPartsAfterWrite(client, {
     tenantId: tx.tenantId,
     ticketId: tx.ticketId,
     now: new Date(),
     boss,
   });
-  const sla = await projectTicketSla(client, tx.tenantId, tx.ticketId, new Date());
 
   const outcome: Outcome = {
     status: 200,
-    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), slaPolicyId, sla } },
+    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), ...parts } },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
@@ -265,16 +263,15 @@ async function executeRaise(
     textFor: () => tx.body.problem as string,
   });
   await sql.persistSegments(client, tx.tenantId, raised.ticket.id, { ...raised, endReason: null });
-  const slaPolicyId = await reconcileTicket(client, {
+  const parts = await ticketPartsAfterWrite(client, {
     tenantId: tx.tenantId,
     ticketId: raised.ticket.id,
     now,
     boss,
   });
-  const sla = await projectTicketSla(client, tx.tenantId, raised.ticket.id, now);
   const outcome: Outcome = {
     status: 201,
-    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), slaPolicyId, sla } },
+    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts } },
   };
   await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;
@@ -322,7 +319,7 @@ async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
   );
   const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
   const open = await withTenant(pool, ctx.tenantId, (client) =>
-    withSlaProjections(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
+    withTicketParts(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
   );
   reply.send({ open, needReport, now: new Date().toISOString() });
 }

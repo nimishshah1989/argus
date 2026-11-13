@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-/** Pool on MIGRATION_DATABASE_URL (D23: operator scripts run as the database owner). */
+/** Pool on MIGRATION_DATABASE_URL (D24: operator scripts run as the database owner). */
 export function operatorPool(): Pool {
   const url = process.env.MIGRATION_DATABASE_URL;
   if (!url) throw new Error('MIGRATION_DATABASE_URL is required');

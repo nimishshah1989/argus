@@ -111,6 +111,41 @@ describe('settings and config', () => {
     ).toBe('Sent to vendor (changed)');
   });
 
+  it('sends people phones only to a login that may manage people, fingerprinted per audience', async () => {
+    await admin.query('UPDATE person SET phone = $1 WHERE id = $2', ['+919999900001', TECH_PERSON]);
+    const headPerson = '10000000-0000-0000-0000-000000000071';
+    await admin.query('INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, $4)', [
+      headPerson,
+      A,
+      'Phones Head',
+      'maintenance',
+    ]);
+    await admin.query(
+      `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
+       SELECT $1, $2, $3, $4, password_hash, $5, false FROM login WHERE id = $6`,
+      ['10000000-0000-0000-0000-000000000072', A, headPerson, 'phones-head', 'head', ADMIN_LOGIN],
+    );
+    const adminRes = await req('GET', '/api/v1/config', await loginAs('admin'));
+    const techToken = await loginAs('tech');
+    const techRes = await req('GET', '/api/v1/config', techToken);
+    const headRes = await req('GET', '/api/v1/config', await loginAs('phones-head'));
+    expect([adminRes.statusCode, techRes.statusCode, headRes.statusCode]).toEqual([200, 200, 200]);
+    const adminBody = adminRes.json();
+    const techBody = techRes.json();
+    for (const p of techBody.people) expect(p).not.toHaveProperty('phone');
+    for (const p of headRes.json().people) expect(p).not.toHaveProperty('phone');
+    for (const p of adminBody.people) expect(p).toHaveProperty('phone');
+    expect(adminBody.people.find((p: { id: string }) => p.id === TECH_PERSON).phone).toBe(
+      '+919999900001',
+    );
+    expect(techBody.fp).not.toBe(adminBody.fp);
+    const crossed = (await req('GET', `/api/v1/config?fp=${adminBody.fp}`, techToken)).json();
+    expect(crossed).not.toHaveProperty('same');
+    for (const p of crossed.people) expect(p).not.toHaveProperty('phone');
+    const own = await req('GET', `/api/v1/config?fp=${techBody.fp}`, techToken);
+    expect(own.json()).toEqual({ same: true, fp: techBody.fp });
+  });
+
   it('only admin or head may write', async () => {
     const tech = await loginAs('tech');
     const denied = await req('PUT', '/api/v1/lists/wait_reason/vendor', tech, { label: 'x' });
@@ -126,6 +161,15 @@ describe('settings and config', () => {
     expect(put.statusCode).toBe(200);
     const cfg = await req('GET', '/api/v1/config', token);
     expect(cfg.json().features.general).toBe(false);
+  });
+
+  it('reads settings and a list in the shared shape', async () => {
+    const token = await loginAs('admin');
+    const settings = await req('GET', '/api/v1/settings', token);
+    expect(settings.statusCode).toBe(200);
+    const list = await req('GET', '/api/v1/lists/wait_reason', token);
+    expect(list.statusCode).toBe(200);
+    expect(list.json().map((row: { code: string }) => row.code)).toEqual(['spare', 'vendor']);
   });
 
   it('fills a missing translation and removes it from the list', async () => {

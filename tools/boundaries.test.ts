@@ -211,13 +211,9 @@ describe('boundaries check', () => {
 
   it('lists the dated call exceptions, so they can only shrink', () => {
     expect(EXCEPTIONS.map((e) => `${e.file} -> ${e.module}`)).toEqual(
-      [
-        'plant/service.ts -> accountability',
-        'tickets/routes.ts -> accountability',
-        'tickets/list.ts -> accountability',
-        'imports/bhavin.ts -> accountability',
-        'imports/cli.ts -> accountability',
-      ].map((row) => `${SRC}/modules/${row}`),
+      ['imports/bhavin.ts -> accountability', 'imports/cli.ts -> accountability'].map(
+        (row) => `${SRC}/modules/${row}`,
+      ),
     );
   });
 
@@ -227,11 +223,11 @@ describe('boundaries check', () => {
 
   it('gives every current table exactly one owner', () => {
     const tables = [
-      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment'.split(
+      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment ai_suggestion'.split(
         ' ',
       ),
     ];
-    expect(tables).toHaveLength(28);
+    expect(tables).toHaveLength(29);
     for (const table of tables)
       expect(
         Object.keys(OWNERS).filter((m) => OWNERS[m]?.includes(table)),

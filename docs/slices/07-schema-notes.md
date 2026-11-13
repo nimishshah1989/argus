@@ -1,6 +1,6 @@
 # Ticket 07 — History cannot be lost: schema design notes
 
-GitHub #85 · Architect draft for the `schema-reviewer`, revised after its first review (§13) · ARCHITECTURE §9 items 21, 24, 25, 27, 31, 33 · D23.
+GitHub #85 · Architect draft for the `schema-reviewer`, revised after its first review (§13) · ARCHITECTURE §9 items 21, 24, 25, 27, 31, 33 · D24.
 Draft files: `packages/db/migrations/0009_history_cannot_be_lost.sql` and
 `packages/db/migrations/down/0009_history_cannot_be_lost.down.sql`. No app code, test or script is written here;
 §9 and §10 say what the slice plan must name.
@@ -14,7 +14,7 @@ what its ledger holds, so either merge order works. Neither file depends on the 
 
 | Part | Change                                                                                                                       |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------- |
-| top  | `SET LOCAL row_security = off`; FORCE lifted on the 13 tables the file reads, rewrites or re-validates (D23 pt 5)            |
+| top  | `SET LOCAL row_security = off`; FORCE lifted on the 13 tables the file reads, rewrites or re-validates (D24 pt 5)            |
 | 1    | Two guards that stop everything: unexported tags; more than one open breakdown on a machine                                  |
 | 2    | `app_router` loses BYPASSRLS where it has it                                                                                 |
 | 3    | `DROP TABLE ticket_tag`                                                                                                      |
@@ -193,7 +193,7 @@ platform_access_guard() RETURNS trigger              -- §6; runs as the caller
 The first four: `LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp`. The first five: owner
 `app_router`, `REVOKE ALL … FROM PUBLIC`, no other grant. Measured: `app_api` gets `permission denied for function`
 on each of the five. Each of the four refuses a NULL or blank `p_operator` and writes it into its audit row.
-Model and rejected alternatives: D23.
+Model and rejected alternatives: D24.
 
 Manifest owners for the slice plan: `import_undo` → imports; `erase_person`, `erase_json_values`,
 `offboard_tenant`, `platform_access_guard` → identity; `audit_purge` → ops.

@@ -125,7 +125,7 @@ export async function lockBatchRow(
   return result.rows[0];
 }
 
-/** SELECT import_undo($1, $2): the definer function of D23; it deletes, marks the batch undone and audits. */
+/** SELECT import_undo($1, $2): the definer function of D24; it deletes, marks the batch undone and audits. */
 export async function callImportUndo(tx: Db, batchId: string, operator: string): Promise<number> {
   const result = await tx.query('SELECT import_undo($1, $2) AS deleted', [batchId, operator]);
   return result.rows[0].deleted as number;

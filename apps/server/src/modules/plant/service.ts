@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool } from 'pg';
-import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
-import { withTenant } from '../../kernel/index.js';
-// Accepted exception: SLA policies belong to accountability; ticket 04 removes this import.
-import { loadSlaPolicies } from '../accountability/index.js';
+import { severityMatrixSchema, type SeverityMatrix } from '@uptimo/shared';
+import { configParts, withTenant } from '../../kernel/index.js';
 import { listPeople, tenantInfo } from '../identity/index.js';
 import { loadPlantRows } from './repo/config.js';
 
@@ -18,7 +16,6 @@ export interface ConfigPayload {
   people: unknown[];
   shifts: unknown[];
   severityMatrix: SeverityMatrix;
-  slaPolicies: SlaPolicy[];
 }
 
 export function fingerprint(payload: unknown): string {
@@ -41,11 +38,13 @@ function listItem(row: Record<string, unknown>) {
   };
 }
 
-export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPayload> {
+export async function loadConfig(
+  pool: Pool,
+  tenantId: string,
+): Promise<ConfigPayload & Record<string, unknown>> {
   return withTenant(pool, tenantId, async (client) => {
     const plant = await loadPlantRows(client);
     const people = await listPeople(client);
-    const slaPolicies = await loadSlaPolicies(client);
     const tenant = await tenantInfo(client, tenantId);
     const byList: Record<string, unknown[]> = {};
     for (const row of plant.lists) {
@@ -81,7 +80,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
       people,
       shifts: plant.shifts,
       severityMatrix,
-      slaPolicies,
+      ...(await configParts(client, tenantId)),
     };
   });
 }

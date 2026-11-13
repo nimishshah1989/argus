@@ -43,6 +43,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'ref_counter',
   ],
   imports: ['import_batch', 'import_row', 'import_undo'],
+  ai: ['ai_suggestion'],
 };
 
 /** Which modules each module may call (through their index.ts). Acyclic, bottom-up. */
@@ -56,6 +57,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   accountability: ['tickets', 'identity', 'plant', 'notifications', 'ops'],
   reports: ['tickets', 'identity', 'plant', 'files'],
   imports: ['tickets', 'identity', 'plant', 'files', 'ops'],
+  ai: ['identity', 'plant'],
 };
 
 /** A call outside CALLS that stays until its ticket removes it; `file` is repo-relative. */
@@ -66,21 +68,6 @@ export interface CallException {
 }
 
 export const EXCEPTIONS: readonly CallException[] = [
-  {
-    file: 'apps/server/src/modules/plant/service.ts',
-    module: 'accountability',
-    until: 'ticket 04: SLA policies leave /config',
-  },
-  {
-    file: 'apps/server/src/modules/tickets/routes.ts',
-    module: 'accountability',
-    until: 'ticket 04: sla reply part',
-  },
-  {
-    file: 'apps/server/src/modules/tickets/list.ts',
-    module: 'accountability',
-    until: 'ticket 04: sla reply part',
-  },
   {
     file: 'apps/server/src/modules/imports/bhavin.ts',
     module: 'accountability',

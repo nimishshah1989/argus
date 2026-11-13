@@ -43,7 +43,7 @@ export interface ActionTicket {
   handedOver: boolean;
   machineRunningAt: Time;
   startedAt: Time;
-  raisedLoginId: string;
+  raisedLoginId: string | null;
   leadPersonId: string | null;
   /** Every crew row, left ones included (`canClose` reads them). */
   crew: ActionCrewMember[];

@@ -103,6 +103,14 @@ describe('logging', () => {
     expect(completed.at(-1)).toMatchObject({ tenantId: TENANT });
   });
 
+  it('redacts prompt, input, output and query fields', () => {
+    lines.length = 0;
+    app.log.info({ prompt: 'a', input: 'b', output: 'c', query: 'd', nested: { prompt: 'e' } });
+    const line = logged()[0] as Line;
+    for (const key of ['prompt', 'input', 'output', 'query']) expect(line[key]).toBe('[redacted]');
+    expect(line.nested).toEqual({ prompt: '[redacted]' });
+  });
+
   it('an unhandled error is logged at level 50 with its request id', async () => {
     lines.length = 0;
     const res = await app.inject({
