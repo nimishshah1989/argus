@@ -3,6 +3,4 @@ export * from './error.js';
 export * from './config.js';
 export * from './ticket.js';
 export * from './share.js';
-export * from './tags.js';
 export * from './sla.js';
-export * from './tag-schema.js';

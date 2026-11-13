@@ -31,6 +31,25 @@ export const raiseTicketSchema = z
   });
 export type RaiseTicketBody = z.infer<typeof raiseTicketSchema>;
 
+export const COMMAND_ACTIONS = [
+  'start',
+  'join',
+  'leave',
+  'pause',
+  'resume',
+  'transfer',
+  'update',
+  'machine-running',
+  'machine-stopped',
+  'close',
+  'report',
+  'cancel',
+  'restore',
+  'correct',
+  'upgrade-kind',
+] as const;
+export type CommandAction = (typeof COMMAND_ACTIONS)[number];
+
 export const startTicketSchema = z.object({
   personId: z.string().uuid(),
   at: iso.optional(),

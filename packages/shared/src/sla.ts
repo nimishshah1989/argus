@@ -13,21 +13,25 @@ export type SlaPolicy = z.infer<typeof slaPolicySchema>;
 export const slaTimerStateSchema = z.enum(['running', 'paused', 'stopped']);
 export type SlaTimerState = z.infer<typeof slaTimerStateSchema>;
 
-export const slaTimerSchema = z.object({
-  id: z.string().min(1),
-  state: slaTimerStateSchema,
-  breached: z.boolean(),
-  dueAt: z.string().datetime({ offset: true }).nullable(),
-  pausedAt: z.string().datetime({ offset: true }).nullable(),
-  stoppedAt: z.string().datetime({ offset: true }).nullable(),
-  remainingMinutes: z.number().int(),
-});
+export const slaTimerSchema = z
+  .object({
+    id: z.string().min(1),
+    state: slaTimerStateSchema,
+    breached: z.boolean(),
+    dueAt: z.string().datetime({ offset: true }).nullable(),
+    pausedAt: z.string().datetime({ offset: true }).nullable(),
+    stoppedAt: z.string().datetime({ offset: true }).nullable(),
+    remainingMinutes: z.number().int(),
+  })
+  .strict();
 export type SlaTimer = z.infer<typeof slaTimerSchema>;
 
-export const slaProjectionSchema = z.object({
-  ack: slaTimerSchema.nullable(),
-  restore: slaTimerSchema.nullable(),
-});
+export const slaProjectionSchema = z
+  .object({
+    ack: slaTimerSchema.nullable(),
+    restore: slaTimerSchema.nullable(),
+  })
+  .strict();
 export type SlaProjection = z.infer<typeof slaProjectionSchema>;
 
 const policyInputSchema = slaPolicySchema.omit({ id: true });

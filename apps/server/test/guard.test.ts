@@ -58,11 +58,14 @@ describe('auth guard', () => {
         'POST /api/v1/tickets',
         'GET /api/v1/reports/day.pdf',
         'GET /api/v1/push/key',
-        'GET /api/v1/tags',
         'HEAD /api/v1/auth/me',
       ]),
     );
     expect(protectedRoutes.length).toBeGreaterThan(0);
+  });
+
+  it('registers no tag route', () => {
+    expect(routeTable(app).filter((r) => r.url.includes('/tags'))).toEqual([]);
   });
 
   it("answers 401 'Your sign-in has ended' for a token with no session", async () => {

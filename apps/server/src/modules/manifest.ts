@@ -64,21 +64,6 @@ export interface CallException {
 
 export const EXCEPTIONS: readonly CallException[] = [
   {
-    file: 'apps/server/src/modules/plant/service.ts',
-    module: 'accountability',
-    until: 'ticket 04: SLA policies leave /config',
-  },
-  {
-    file: 'apps/server/src/modules/tickets/routes.ts',
-    module: 'accountability',
-    until: 'ticket 04: sla reply part',
-  },
-  {
-    file: 'apps/server/src/modules/tickets/list.ts',
-    module: 'accountability',
-    until: 'ticket 04: sla reply part',
-  },
-  {
     file: 'apps/server/src/modules/imports/bhavin.ts',
     module: 'accountability',
     until: 'ticket 09: importer rewrite',

@@ -1,0 +1,1 @@
+- Mobile numbers in the plant setup are now sent only to admins; other logins no longer receive them.

@@ -53,54 +53,6 @@ export async function listItem(
   ).rows[0];
 }
 
-/** Active values of the given lists, optionally narrowed to one list. */
-export async function listItemsOf(
-  tx: Db,
-  tenantId: string,
-  lists: readonly string[],
-  only: string | null,
-): Promise<Record<string, unknown>[]> {
-  return (
-    await tx.query(
-      `SELECT id, list, code, label, label_gu, label_hi, active, sort FROM list_item
-     WHERE tenant_id = $1 AND list = ANY($2::text[]) AND active = true
-       AND ($3::text IS NULL OR list = $3)
-     ORDER BY array_position($2::text[], list), sort, code`,
-      [tenantId, lists, only],
-    )
-  ).rows;
-}
-
-export async function listItemOf(
-  tx: Db,
-  tenantId: string,
-  id: string,
-  lists: readonly string[],
-): Promise<Record<string, unknown> | undefined> {
-  return (
-    await tx.query(
-      `SELECT id, list, code, label, label_gu, label_hi, active, sort FROM list_item
-     WHERE tenant_id = $1 AND id = $2 AND list = ANY($3::text[])`,
-      [tenantId, id, lists],
-    )
-  ).rows[0];
-}
-
-export async function listItemsByIds(
-  tx: Db,
-  tenantId: string,
-  ids: readonly string[],
-  lists: readonly string[],
-): Promise<Record<string, unknown>[]> {
-  return (
-    await tx.query(
-      `SELECT id, list, code, label, label_gu, label_hi, active, sort FROM list_item
-     WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY array_position($3::text[], list), sort, code`,
-      [tenantId, ids, lists],
-    )
-  ).rows;
-}
-
 /** The shift covering `at` in the tenant zone; the later-starting shift owns an overlap. */
 export async function shiftCodeAt(
   tx: Db,
