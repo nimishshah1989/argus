@@ -213,4 +213,6 @@ test('E3 offers Cancel on My complaints exactly when the server would', async ({
   await expect(card('open').getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
   await expect(card('cancelled')).toBeVisible();
   await expect(card('cancelled').getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+  // No other card on the page offers Cancel: the open, unstarted ticket is the only one.
+  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(1);
 });

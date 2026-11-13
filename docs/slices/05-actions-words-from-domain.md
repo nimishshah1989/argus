@@ -457,3 +457,10 @@ refuses. Work roles = technician, supervisor, head, admin.
 
 Q3, Q4, Q5, Q7, Q8, Q9, Q10, Q14 and Q18 are the "Follow-up: server accepts what the Spec forbids (or the web
 hides what the server accepts)" section of `docs/slices/05-pr-body.md`.
+
+## 11. Build notes (deviations recorded after code review)
+
+- `apps/web/e2e/actions.spec.ts` answers read-only lookups (brand, config, tags, `/auth/me`) from the first reply per login, because the API allows 1000 requests per minute per address and the third Playwright project otherwise produced 429s. The ticket itself is always read from the server. No server edit is possible here to raise the limit.
+- `fixtures-actions.ts` exports `actionMachines()` (no project argument) and a `getJson` helper, not the signature named in §3.
+- `packages/domain/test/registry.test.ts` D2 gained `ACTION_ORDER` and `availableActions` in the pinned export list (additive).
+- `docs/plan/MILESTONES.md` row 05 is left to the orchestrator.
