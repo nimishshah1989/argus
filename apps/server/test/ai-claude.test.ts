@@ -14,6 +14,7 @@ const outputSchema: AiOutputSchema<{ answer: string }> = {
     type: 'object',
     properties: { answer: { type: 'string' } },
     required: ['answer'],
+    additionalProperties: false,
   },
   zod: z.object({ answer: z.string() }),
   example: { answer: 'example' },
@@ -165,16 +166,25 @@ describe('claude provider', () => {
   it('never puts the key, the request or the response body in an error', async () => {
     const failing: (() => Response)[] = [
       () => json({ error: BODY_TEXT }, 429, { 'retry-after': '20' }),
+      () => json({ error: BODY_TEXT }, 429),
       () => json({ error: BODY_TEXT }, 529),
       () => json({ error: BODY_TEXT }, 500),
+      () => json({ error: BODY_TEXT }, 503),
       () => json({ error: BODY_TEXT }, 400),
+      () => json({ error: BODY_TEXT }, 401),
+      () => json({ error: BODY_TEXT }, 403),
+      () => json({ error: BODY_TEXT }, 404),
       () => new Response(BODY_TEXT),
       ...invalid,
       refused,
     ];
     const network = (() =>
       Promise.reject(new TypeError(`fetch failed ${KEY}`))) as unknown as typeof fetch;
-    const errors = [await caught(provider(network))];
+    const hangs = ((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      })) as unknown as typeof fetch;
+    const errors = [await caught(provider(network)), await caught(provider(hangs, 50))];
     for (const make of failing) errors.push(await failWith(make));
     for (const error of errors)
       for (const text of [error.message, String(error), JSON.stringify(error)])
