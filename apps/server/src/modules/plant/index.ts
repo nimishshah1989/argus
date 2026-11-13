@@ -2,6 +2,7 @@ import { defineModule } from '../../kernel/index.js';
 import { registerPlantRoutes } from './routes.js';
 
 export { hasShifts, setMachineCriticality } from './repo/config.js';
+export { machinesByIds, type MachineRow } from './repo/reads.js';
 export {
   insertGlossaryTerms,
   insertListItems,

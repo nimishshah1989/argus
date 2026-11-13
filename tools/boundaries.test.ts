@@ -20,12 +20,10 @@ describe('boundaries check', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
   });
 
-  it('keeps the LEGACY baseline at the 9-file snapshot, so it can only shrink', () => {
+  it('keeps the LEGACY baseline at the 7-file snapshot, so it can only shrink', () => {
     expect(Object.keys(LEGACY).sort()).toEqual(
       [
-        'day-report.ts',
         'import/references.ts',
-        'reports.ts',
         'tag-sql.ts',
         'ticket-report.ts',
         'ticket-sql.ts',

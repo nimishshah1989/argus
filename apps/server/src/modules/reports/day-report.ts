@@ -1,4 +1,6 @@
 import type { PoolClient } from 'pg';
+import { activePerson, tenantInfo } from '../identity/index.js';
+import { withMachines } from './machines.js';
 
 export type DayShift = 'day' | 'night';
 
@@ -102,12 +104,10 @@ const JOBS_SQL = `WITH touched AS (
        AND COALESCE(ended_at, $4) > $3
      GROUP BY ticket_id
   )
-  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.machine_snapshot,
-         m.code AS machine_code, m.category AS machine_category, m.cell AS machine_cell,
+  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.machine_snapshot, t.machine_id,
          COALESCE(minutes.mins, 0) AS minutes
     FROM touched
     JOIN ticket t ON t.id = touched.ticket_id AND t.tenant_id = $1
-    LEFT JOIN machine m ON m.id = t.machine_id AND m.tenant_id = t.tenant_id
     LEFT JOIN minutes ON minutes.ticket_id = t.id
    ORDER BY t.reported_at, t.ref`;
 
@@ -117,7 +117,11 @@ async function queryJobs(
   personId: string,
   window: { start: Date; end: Date },
 ): Promise<DayReportJob[]> {
-  const rows = (await client.query(JOBS_SQL, [tenantId, personId, window.start, window.end])).rows;
+  const rows = await withMachines(
+    client,
+    tenantId,
+    (await client.query(JOBS_SQL, [tenantId, personId, window.start, window.end])).rows,
+  );
   return rows.map((row) => ({
     ticketId: row.id as string,
     ref: row.ref as string,
@@ -129,9 +133,8 @@ async function queryJobs(
   }));
 }
 
-const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot,
-         m.code AS machine_code, m.category AS machine_category, m.cell AS machine_cell
-    FROM ticket t LEFT JOIN machine m ON m.id = t.machine_id AND m.tenant_id = t.tenant_id
+const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id
+    FROM ticket t
    WHERE t.tenant_id = $1 AND t.status IN ('open', 'working', 'waiting') AND t.reported_at < $2
    ORDER BY t.reported_at, t.ref`;
 
@@ -141,7 +144,11 @@ async function queryPending(
   tenantId: string,
   windowEnd: Date,
 ): Promise<DayReportPending[]> {
-  const rows = (await client.query(PENDING_SQL, [tenantId, windowEnd])).rows;
+  const rows = await withMachines(
+    client,
+    tenantId,
+    (await client.query(PENDING_SQL, [tenantId, windowEnd])).rows,
+  );
   return rows.map((row) => ({
     ticketId: row.id as string,
     ref: row.ref as string,
@@ -162,16 +169,9 @@ export async function loadDayReport(
   client: PoolClient,
   query: DayReportQuery,
 ): Promise<DayReportData | null> {
-  const tenant = (
-    await client.query('SELECT name, language, time_zone FROM tenant_info($1)', [query.tenantId])
-  ).rows[0];
+  const tenant = await tenantInfo(client, query.tenantId);
   if (!tenant) return null;
-  const person = (
-    await client.query('SELECT id, name FROM person WHERE tenant_id = $1 AND id = $2 AND active', [
-      query.tenantId,
-      query.personId,
-    ])
-  ).rows[0];
+  const person = await activePerson(client, query.tenantId, query.personId);
   if (!person) return null;
   const window = await windowBounds(client, query.date, query.shift, tenant.time_zone as string);
   const jobs = await queryJobs(client, query.tenantId, query.personId, window);

@@ -7,21 +7,22 @@ import type { Figures } from '@uptimo/domain';
 import { canDayReport, type ActorContext } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { requireAuth } from './auth.js';
-import type { AppConfig } from './config.js';
+import { peopleByIds, requireAuth, tenantInfo } from '../identity/index.js';
+import type { AppConfig } from '../../kernel/index.js';
+import { withMachines } from './machines.js';
 import {
   createLocalFileStore,
   dayReportObjectKey,
   insertFileRow,
   pdfObjectKey,
   type ObjectStore,
-} from './modules/files/index.js';
+} from '../files/index.js';
 import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { loadDayReport, type DayReportData } from './day-report.js';
 import { renderDayReportHtml } from './day-report-template.js';
-import { loadReport, type StoredReport } from './ticket-report.js';
-import { figuresFromRow } from './ticket-mapper.js';
+import { loadReport, type StoredReport } from '../../ticket-report.js';
+import { figuresFromRow } from '../../ticket-mapper.js';
 
 const PDF_MIME = 'application/pdf';
 
@@ -52,9 +53,8 @@ interface PdfDeps {
 
 const TICKET_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.closed_at,
     t.machine_snapshot, t.response_min, t.active_min, t.wait_min, t.vendor_min,
-    t.handover_wait_min, t.down_acc_min, t.downtime_min, t.follow_min, t.repair_min,
-    m.code AS machine_code, m.category AS machine_category, m.cell AS machine_cell
-  FROM ticket t LEFT JOIN machine m ON m.id = t.machine_id AND m.tenant_id = t.tenant_id
+    t.handover_wait_min, t.down_acc_min, t.downtime_min, t.follow_min, t.repair_min, t.machine_id
+  FROM ticket t
   WHERE t.id = $1 AND t.tenant_id = $2`;
 
 function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
@@ -88,12 +88,7 @@ async function personNames(
   if (!report) return {};
   const ids = [...new Set(report.people.map((person) => person.personId))];
   if (ids.length === 0) return {};
-  const rows = (
-    await client.query(
-      'SELECT id, name FROM person WHERE tenant_id = $1 AND id = ANY($2::uuid[])',
-      [tenantId, ids],
-    )
-  ).rows;
+  const rows = await peopleByIds(client, tenantId, ids);
   return Object.fromEntries(rows.map((row) => [row.id as string, row.name as string]));
 }
 
@@ -102,11 +97,10 @@ async function loadPdfContext(
   tenantId: string,
   ticketId: string,
 ): Promise<PdfContext | null> {
-  const row = (await client.query(TICKET_SQL, [ticketId, tenantId])).rows[0];
-  if (!row) return null;
-  const tenant = (
-    await client.query('SELECT name, language, time_zone FROM tenant_info($1)', [tenantId])
-  ).rows[0];
+  const found = (await client.query(TICKET_SQL, [ticketId, tenantId])).rows;
+  if (found.length === 0) return null;
+  const row = (await withMachines(client, tenantId, found))[0];
+  const tenant = await tenantInfo(client, tenantId);
   const report = await loadReport(client, ticketId);
   return {
     tenant: {

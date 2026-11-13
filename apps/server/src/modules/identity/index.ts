@@ -7,6 +7,7 @@ export {
   insertPeople,
   insertTenant,
   listPeople,
+  peopleByIds,
   resolveTenant,
   tenantInfo,
   type NewPerson,

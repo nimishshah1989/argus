@@ -125,7 +125,7 @@ export async function listPeople(tx: Db): Promise<Record<string, unknown>[]> {
 export async function tenantInfo(
   tx: Db,
   tenantId: string,
-): Promise<{ language: string; time_zone: string }> {
+): Promise<{ name: string; language: string; time_zone: string }> {
   return (await tx.query('SELECT * FROM tenant_info($1)', [tenantId])).rows[0];
 }
 
@@ -175,6 +175,19 @@ export async function insertPeople(
         [tenantId, row.id, p.login.username, passwordHash, p.login.role],
       );
   }
+}
+
+export async function peopleByIds(
+  tx: Db,
+  tenantId: string,
+  ids: readonly string[],
+): Promise<{ id: string; name: string }[]> {
+  return (
+    await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [
+      tenantId,
+      ids,
+    ])
+  ).rows;
 }
 
 export async function activePerson(

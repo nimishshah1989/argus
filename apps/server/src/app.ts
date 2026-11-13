@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
 import { registerTags } from './tags.js';
@@ -46,7 +45,6 @@ export async function buildApp(config: AppConfig) {
   for (const mod of modules) mod.register(app, config);
   registerSettings(app, config);
   registerTickets(app, config);
-  registerReports(app, config);
   registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof SlaInputError) {

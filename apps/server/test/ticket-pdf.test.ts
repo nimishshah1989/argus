@@ -8,8 +8,8 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { buildQrPayload, qrSvg, qrText } from '../src/pdf.js';
-import { renderReportHtml, type ReportPdfInput } from '../src/pdf-template.js';
+import { buildQrPayload, qrSvg, qrText } from '../src/modules/reports/pdf.js';
+import { renderReportHtml, type ReportPdfInput } from '../src/modules/reports/pdf-template.js';
 import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
