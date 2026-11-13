@@ -20,7 +20,7 @@ describe('createRedactor', () => {
       problem: 'ravi fake called from 90000 00101 and +91-90000-00101',
     }) as { problem: string };
     expect(out.problem).not.toMatch(/ravi fake/i);
-    expect(out.problem).not.toMatch(/90000 ?-?00101/);
+    for (const run of ['+91', '90000', '00101']) expect(out.problem).not.toContain(run);
     expect(out.problem).toContain('[P1]');
     expect(out.problem).toContain('[PHONE]');
   });
