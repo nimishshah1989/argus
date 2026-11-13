@@ -129,6 +129,34 @@ export async function tenantInfo(
   return (await tx.query('SELECT * FROM tenant_info($1)', [tenantId])).rows[0];
 }
 
+export interface RedactionTerms {
+  names: string[];
+  shortNames: string[];
+  phones: string[];
+  usernames: string[];
+  tenantName: string;
+}
+
+const clean = (values: (string | null)[]): string[] => [
+  ...new Set(values.map((v) => v?.trim() ?? '').filter(Boolean)),
+];
+
+/** Every value that identifies a person or the plant, for the AI redactor; values only, no ids. */
+export async function redactionTerms(tx: Db, tenantId: string): Promise<RedactionTerms> {
+  const people = (
+    await tx.query('SELECT name, short_name, phone FROM person WHERE tenant_id = $1', [tenantId])
+  ).rows;
+  const logins = (await tx.query('SELECT username FROM login WHERE tenant_id = $1', [tenantId]))
+    .rows;
+  return {
+    names: clean(people.map((p) => p.name)),
+    shortNames: clean(people.map((p) => p.short_name)),
+    phones: clean(people.map((p) => p.phone)),
+    usernames: clean(logins.map((l) => l.username)),
+    tenantName: (await tenantInfo(tx, tenantId)).name.trim(),
+  };
+}
+
 export interface NewPerson {
   name: string;
   team: string;
