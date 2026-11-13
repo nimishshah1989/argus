@@ -1,6 +1,6 @@
 # D18 — One build process: Athena v3
 
-Date: 13 November 2026 · Status: accepted (orchestrator, ticket 01)
+Date: 13 November 2026 · Status: superseded by D23
 
 ## Decision
 
