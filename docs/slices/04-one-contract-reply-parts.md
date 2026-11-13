@@ -5,7 +5,7 @@ Issue: [#82](https://github.com/nimishshah1989/argus/issues/82) · Milestone M0 
 its enforcement and the web type switch must land together; the golden fixture is under `fixtures/` and not
 counted). The PR body contains `Closes #82`.
 
-**Status: READY for plan review.** One product question (§10) does not block the build. The technical deviations
+**Status: plan-review findings 1-7 applied (orchestrator ruling); ready to build.** One product question (§10) does not block the build. The technical deviations
 from ARCHITECTURE are marked **D** in §2 and need the orchestrator's acceptance.
 
 ## 1. Goal
@@ -19,6 +19,12 @@ ticket reply from `accountability` without `tickets` knowing about it. Nothing a
 | **G1w** | `api-types.ts` and the domain DTO copies are deleted and web types are `z.infer`                                  |
 | **G2**  | `/state` is byte-identical for a fixed ticket set while SLA arrives as the `sla` reply part from `accountability` |
 | **G2b** | `tickets` imports no higher module                                                                                |
+
+**Two readings of "SLA data leaves the ticket reply"** (MILESTONES 04 "Delivers"): (a) SLA stops being part of what
+`tickets` builds, and arrives as a part `accountability` contributes; (b) SLA fields disappear from replies. Chosen: **(a)**
+(ticket item 2: byte-identical `/state`, `sla` as a contributed part). Likewise `slaPolicies` stays in `/config` as a
+config part contributed by `accountability`. "SLA policies leave /config" (the old manifest exception text) is
+**deferred** by the orchestrator and noted in the PR body.
 
 ## 2. Decisions (technical)
 
@@ -34,7 +40,7 @@ ticket reply from `accountability` without `tickets` knowing about it. Nothing a
 raisedLoginId` is `string | null` (the column is nullable; `state.test.ts` seeds such tickets).
 3. **Enforcement without editing route tests.** `kernel/reply-check.ts` adds a Fastify `onSend` hook that parses
    every JSON reply of a matched route against `REPLY_SCHEMAS` and, on a mismatch, replaces the reply with `500`
-   and `apiError('internal', 'Reply contract: <route> <status>: <issue paths>')`. `app.ts` registers it only when
+   and `apiError('internal', 'Reply contract: ' + problem)`, with `problem` as defined in §4.3 (one format). `app.ts` registers it only when
    `process.env.CHECK_REPLIES === '1'`; `vitest.config.ts` sets that for the whole test run, so all 18 server test
    files that call `buildApp` check every reply. Production is unchanged (no parse, no new failure mode).
    **D:** ARCHITECTURE §4 names a kernel `route()` that parses and replies through the schema; that wrapper is not
@@ -337,6 +343,11 @@ export function replyProblem(route: string, status: number, body: unknown): stri
 export function registerReplyCheck(app: FastifyInstance): void;
 ```
 
+The hook runs only when the reply's `content-type` starts with `application/json`; the payload is a string and is
+`JSON.parse`d (a Buffer or stream payload is skipped, never checked). On a problem the hook sets `reply.code(500)`, the
+content-type to `application/json; charset=utf-8`, and returns `JSON.stringify(apiError('internal', 'Reply contract: ' + problem))`.
+The one message format is `` `${route} ${status}: ${issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}` ``.
+
 `replyProblem`: no key in `REPLY_SCHEMAS` → `"<route> has no reply schema"`; status ≥ 400 and a valid error body →
 `null`; schema `null` → `"<route> is binary but sent JSON"`; otherwise `schema.safeParse(body)` → `null` or
 `"<route> <status>: <path> <message>; …"` from the Zod issues.
@@ -413,7 +424,10 @@ export type BreakdownCategory = NonNullable<BreakdownReportBody['breakdownCatego
 export type CommandResult = CommandReply | { queued: true; id: string };
 ```
 
-`CorrectChanges`, `TicketListQuery` and `CommandBody` move into `api.ts` verbatim from `api-types.ts` lines 229-268:
+`CorrectChanges`, `TicketListQuery` and `CommandBody` move into `api.ts` verbatim from `api-types.ts` lines 229-231 (`CorrectChanges`), 241-251 (`TicketListQuery`) and 258-268
+(`CommandBody`; lines 232-239 `RaiseTicketBody` and 253-256 `TicketPage` are NOT moved: the web `RaiseTicketBody` becomes
+the shared `z.infer` type, which has a required `kind` and more optional fields, and no caller breaks because callers
+already pass `kind`; `TicketPage` becomes the shared page type):
 they are request builders the web sends, not replies, and the shared request schemas coerce dates to `Date`, so their
 `z.infer` would not match what the web sends.
 
@@ -462,7 +476,11 @@ passwordHash: string): Promise<void>`, which inserts with the superuser pool (id
   `{"reason":"spare","pausesSla":true}`); `24` BD-9004 support **open** on GW-3, S3, `raised_channel` 'desk',
   reported 04:00 (ack breached at `GOLDEN_NOW`); `25` WR-9005 general **open** (Canteen, Civil), S4,
   `raised_channel` 'backfill', `raised_login_id` NULL, `sla_policy_id` NULL, reported 03:00 (`sla` is `null`).
-  All times 2026-11-12 UTC unless dated. Machine snapshots on 21, 22, 24 are `{code, category, cell, criticality}`.
+  **Rule for every column not named:** it takes its default or NULL; `problem` = `Golden <ref>`; every `ticket_event` has
+`login_id` = login `03`, `acting_person_id` = person `02`, `text` = `Golden <ref>`, payload `{}` unless named;
+`reported_by_person_id` = person `02`; `self_started` false; `handed_over` false; `criticality_snapshot` = the machine's
+criticality (21 `A`, 22 `B`, 24 `C`, others NULL); `severity` as named; figure columns NULL except `response_min`.
+Ticket 23 is started by Ravi (lead = person `02`). All times 2026-11-12 UTC unless dated. Machine snapshots on 21, 22, 24 are `{code, category, cell, criticality}`.
 
 The golden user sees no `no_report` ticket, so `needReport` is `[]` (its rows are filtered by Postgres `now()`,
 which cannot be frozen; the same `withTicketParts` path is checked on every other `needReport` by the contract).
@@ -498,9 +516,14 @@ All fail first except those marked **guard** (they pass on today's code and must
   returns `Map { 't1' → 'x' }`, when `withTicketParts(client, 'tenant', [{ id: 't1' }, { id: 't2' }], (row) =>
 ({ id: row.id, a: 1 }))`, then the result is `[{ id: 't1', a: 1, fake: 'x' }, { id: 't2', a: 1, fake: null }]`
   and `Object.keys` of the first is `['id', 'a', 'fake']`.
+- **P1b** `keeps contribution order`: Given two parts `fake` then `fake2`, the keys of a merged row are
+  `['id', 'a', 'fake', 'fake2']`.
 - **P2** `returns the write fields of every part in order`: Given `fake`'s `afterWrite` returns `{ b: 2, fake: 'y' }`,
   when `ticketPartsAfterWrite(client, { tenantId, ticketId: 't1', now })`, then `{ b: 2, fake: 'y' }`, and its
   `afterWrite` received the same `client` and `write`.
+
+- **P3** `a part contributed twice under one name is replaced`: Given `fake` contributed twice, the second `load`
+  wins and the key `fake` appears once.
 
 **G1 — `apps/server/test/reply-contract.test.ts`** (R1 uses `buildApp` with the fake pool and fake `jobBoss` of
 `guard.test.ts`; R2–R5 call `replyProblem` on the golden JSON; R6 uses a bare `Fastify()`)
@@ -521,9 +544,9 @@ All fail first except those marked **guard** (they pass on today's code and must
 true }`, then 500 with `error.code` `internal` and a message starting `Reply contract:`; when it sends
   `{ company: 'Fake Co', logo: null }`, then 200 and that exact body; when `GET /api/v1/reports/day.pdf` sends a
   `Buffer` with `content-type: application/pdf`, then 200 and the same bytes.
-- **R7** (`apps/server/test/settings.test.ts`) `reads settings and a list in the shared shape`: Given `admin`, when
+- **R7** (**guard**: passes on today's code; it only pins the two routes no test reached, `apps/server/test/settings.test.ts`) `reads settings and a list in the shared shape`: Given `admin`, when
   `GET /api/v1/settings` and `GET /api/v1/lists/wait_reason`, then both are 200 (the only two JSON routes no test
-  reaches today; the contract hook checks their shape) and the list has the two seeded codes.
+  reaches today; the contract hook checks their shape) and the list has the two seeded codes `spare` and `vendor`.
 - **R8** (**the whole suite**) every existing server test passes with `CHECK_REPLIES=1`, none edited except those in
   §3. A contract 500 in an existing test means §4.1 is wrong about a field: the coder stops and returns it, never
   loosens a schema or edits the server to fit.
@@ -563,7 +586,8 @@ P1, P2, B1; (4) domain re-exports, web types and fixtures, X1, X2.
   replaces them. An app built without `accountability` would reply without `sla` (none exists).
 - **Web:** `Ticket.sla` is now typed required (`SlaProjection | null`); `SlaTimerSummary` keeps its `=== undefined`
   branch for cached pre-SLA replies, so runtime is unchanged. Cached replies never carried fewer keys than today.
-- **Golden:** the frozen `Date` lasts one request; pg-boss runs on real timers. If S1 is flaky, the coder stops.
+- **Golden:** the frozen `Date` lasts one request; the frozen `Date` is global during that one request, so pg-boss and the rate limiter also read it. S1 asserts status
+  and body only, never headers. If S1 is flaky, the coder stops.
 - **Domain now depends on shared (types only).** `import type`/`export type` only, so no runtime `zod` in the domain.
 - **PR size:** over 400 changed lines without the fixtures; `size:large` with the reason above.
 
