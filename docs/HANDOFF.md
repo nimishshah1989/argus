@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 17:48 UTC on branch `claude/orchestrator-m0-gate`.
-- 5cc46a0 docs(plan): 14 code merged
-- 0baeeec Merge remote-tracking branch 'origin/main' into claude/orchestrator-m0-gate
-- f3fa031 14: Staging holds Cosmos, safe to run (jobs, backups, restore drill, safe load) (#176)
+Last session ended 2026-11-13 22:11 UTC on branch `claude/orchestrator-m0-gate`.
+- c55df7d docs(plan): audit, 15 api merged, hardening dispatched
+- 3743e4d docs(plan): ledger, frontend gate and OIDC fix
+- eeb5017 Merge remote-tracking branch 'origin/main' into claude/orchestrator-m0-gate
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
