@@ -17,6 +17,16 @@ describe('pii deny-list', () => {
     expect(deny.phones).toEqual([n]);
   });
 
+  it('takes workbook phones from people sheets, never from machine registers', () => {
+    const sheet = (header: string, value: string) =>
+      `<worksheet><c r="A1" t="inlineStr"><is><t>${header}</t></is></c><c r="A2" t="inlineStr"><is><t>${value}</t></is></c></worksheet>`;
+    const n = `${6 + Math.floor(Math.random() * 4)}${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+    const people = denyListFromSources({ workbook: sheet('Contact', `call ${n}`) });
+    const register = denyListFromSources({ workbook: sheet('Serial No', `FX7 ${n}`) });
+    expect(people.phones).toEqual([n]);
+    expect(register.phones).toEqual([]);
+  });
+
   it('ignores generic labels', () => {
     const users = ['Operator', 'Maint. Team', 'Cell1', 'AB', 'Fake Person'].map((name) => ({
       name,

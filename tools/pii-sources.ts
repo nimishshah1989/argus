@@ -119,6 +119,16 @@ function lettersIn(text: string): number {
   return (text.match(/\p{L}/gu) ?? []).length;
 }
 
+/** The workbook without its machine registers (sheets with a "Serial No" header): a model number can look like a phone. */
+function peopleSheets(text: string): string {
+  return text
+    .split('<worksheet')
+    .slice(1)
+    .filter((sheet) => !/>\s*Serial No\s*</i.test(sheet))
+    .map((sheet) => `<worksheet${sheet}`)
+    .join('');
+}
+
 export function denyListFromSources(texts: SourceTexts): DenyList {
   const names = new Set<string>();
   for (const candidate of nameCandidates(texts)) {
@@ -129,7 +139,8 @@ export function denyListFromSources(texts: SourceTexts): DenyList {
     }
   }
   const phones = new Set<string>();
-  for (const text of [texts.users, texts.tickets, texts.workbook]) {
+  const workbook = texts.workbook === undefined ? undefined : peopleSheets(texts.workbook);
+  for (const text of [texts.users, texts.tickets, workbook]) {
     for (const match of text?.matchAll(PHONE) ?? []) phones.add(normalisePhone(match[0]));
   }
   return { names: [...names], phones: [...phones] };
