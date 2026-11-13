@@ -118,3 +118,39 @@ export async function shiftCodeAt(
     )
   ).rows[0]?.code;
 }
+
+export async function activeMachineByCode(
+  tx: Db,
+  tenantId: string,
+  code: string,
+): Promise<MachineRow[]> {
+  return (
+    await tx.query(
+      'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2 AND status = $3',
+      [tenantId, code, 'active'],
+    )
+  ).rows;
+}
+
+export async function activeListItems(
+  tx: Db,
+  tenantId: string,
+  lists: readonly string[],
+): Promise<Record<string, unknown>[]> {
+  return (
+    await tx.query(
+      `SELECT list, code, is_vendor, pauses_sla FROM list_item
+     WHERE tenant_id = $1 AND active AND list = ANY($2)`,
+      [tenantId, lists],
+    )
+  ).rows;
+}
+
+export async function shiftsOf(tx: Db, tenantId: string): Promise<Record<string, unknown>[]> {
+  return (
+    await tx.query(
+      'SELECT code, starts_at, ends_at, crosses_midnight FROM shift WHERE tenant_id = $1',
+      [tenantId],
+    )
+  ).rows;
+}

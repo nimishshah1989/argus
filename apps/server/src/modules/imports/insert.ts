@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { computeSeverity } from '@uptimo/domain';
-import { loadSeverityMatrix } from '../modules/tickets/index.js';
+import { loadSeverityMatrix } from '../tickets/index.js';
 import { insertReports } from './insert-reports.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import { reconcileTicket, type ReconcileReferences } from './reconcile.js';

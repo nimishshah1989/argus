@@ -5,7 +5,8 @@ import {
   makeCompletionFingerprint,
   type BatchSnapshot,
 } from './fingerprint.js';
-import { audit } from '../modules/ops/index.js';
+import { fileIdForTickets } from '../files/index.js';
+import { audit } from '../ops/index.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import type { CompletionFingerprint } from './schema.js';
@@ -119,11 +120,8 @@ async function assertNoOutsideReferences(
     [tenantId, ticketIds],
   );
   if (child.rows[0]) throw new Error(`Undo refused: outside child reference ${child.rows[0].ref}`);
-  const file = await client.query(
-    'SELECT id FROM file WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[]) LIMIT 1',
-    [tenantId, ticketIds],
-  );
-  if (file.rows[0]) throw new Error(`Undo refused: ticket file reference ${file.rows[0].id}`);
+  const fileId = await fileIdForTickets(client, tenantId, ticketIds);
+  if (fileId) throw new Error(`Undo refused: ticket file reference ${fileId}`);
   const report = await client.query(
     `SELECT id FROM breakdown_report WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])
        AND (signature_file_id IS NOT NULL OR pdf_file_id IS NOT NULL) LIMIT 1`,

@@ -18,3 +18,16 @@ export async function insertFileRow(client: PoolClient, file: NewFile): Promise<
   );
   return result.rows[0].id as string;
 }
+
+export async function fileIdForTickets(
+  tx: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  ticketIds: readonly string[],
+): Promise<string | undefined> {
+  return (
+    await tx.query(
+      'SELECT id FROM file WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[]) LIMIT 1',
+      [tenantId, ticketIds],
+    )
+  ).rows[0]?.id;
+}

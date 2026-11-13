@@ -24,8 +24,8 @@ import {
   type ImportStats,
   type SyntheticExport,
 } from './schema.js';
-import { lockRefCounter } from '../modules/tickets/index.js';
-import { reconcileSlaPolicies } from '../modules/accountability/index.js';
+import { lockRefCounter } from '../tickets/index.js';
+import { reconcileSlaPolicies } from '../accountability/index.js';
 
 type TicketResult = Awaited<ReturnType<typeof importTicket>>;
 type RunCtx = ImportCtx & { aliases: AliasConfig; now: Date; timeZone?: string };

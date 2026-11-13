@@ -20,10 +20,8 @@ describe('boundaries check', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
   });
 
-  it('keeps the LEGACY baseline at the 1-file snapshot, so it can only shrink', () => {
-    expect(Object.keys(LEGACY).sort()).toEqual(
-      ['import/references.ts'].map((file) => `${SRC}/${file}`),
-    );
+  it('keeps the LEGACY baseline empty, so no file may break the rule', () => {
+    expect(Object.keys(LEGACY)).toEqual([]);
   });
 
   it.each([

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ImportFatalError } from '../src/import/batch.js';
-import { importBhavin, undoImport } from '../src/import/bhavin.js';
+import { ImportFatalError } from '../src/modules/imports/batch.js';
+import { importBhavin, undoImport } from '../src/modules/imports/bhavin.js';
 import {
   makeOrdinaryTicket,
   makeSyntheticExport,

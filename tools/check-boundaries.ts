@@ -37,9 +37,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
 
 export type Baseline = Readonly<Record<string, readonly string[]>>;
 
-export const LEGACY: Baseline = {
-  'apps/server/src/import/references.ts': ['list_item', 'machine', 'person', 'shift'],
-};
+export const LEGACY: Baseline = {};
 
 /** The text of every string literal and template literal (static parts), never comments or identifiers. */
 export function sqlLiterals(source: string): string[] {

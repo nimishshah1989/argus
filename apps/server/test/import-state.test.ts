@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { BhavinEvent } from '../src/import/event-schema.js';
-import { parseTicket, type BhavinState, type BhavinTicket } from '../src/import/schema.js';
-import { reduceTicketState } from '../src/import/state.js';
+import type { BhavinEvent } from '../src/modules/imports/event-schema.js';
+import { parseTicket, type BhavinState, type BhavinTicket } from '../src/modules/imports/schema.js';
+import { reduceTicketState } from '../src/modules/imports/state.js';
 import { makeOrdinaryTicket } from './import-fixture.js';
 
 const NOW = new Date('2026-11-01T12:00:00Z');

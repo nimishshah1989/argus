@@ -3,6 +3,8 @@ import { registerPlantRoutes } from './routes.js';
 
 export { hasShifts, setMachineCriticality } from './repo/config.js';
 export {
+  activeListItems,
+  activeMachineByCode,
   listItem,
   listItemOf,
   listItemsByIds,
@@ -10,6 +12,7 @@ export {
   machinesByIds,
   setting,
   shiftCodeAt,
+  shiftsOf,
   shiftWindows,
   type MachineRow,
 } from './repo/reads.js';

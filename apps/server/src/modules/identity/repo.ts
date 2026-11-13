@@ -202,3 +202,20 @@ export async function activePerson(
     ])
   ).rows[0];
 }
+
+export async function activePeople(
+  tx: Db,
+  tenantId: string,
+): Promise<{ id: string; name: string }[]> {
+  return (await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND active', [tenantId]))
+    .rows;
+}
+
+export async function ensurePendingPerson(tx: Db, tenantId: string, name: string): Promise<string> {
+  const inserted = await tx.query(
+    `INSERT INTO person (tenant_id, name, team, kind, active, pending)
+       VALUES ($1, $2, 'production', 'production', true, true) RETURNING id`,
+    [tenantId, name],
+  );
+  return inserted.rows[0].id as string;
+}

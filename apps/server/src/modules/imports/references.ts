@@ -1,3 +1,5 @@
+import { activePeople, ensurePendingPerson } from '../identity/index.js';
+import { activeListItems, activeMachineByCode, shiftsOf } from '../plant/index.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import type { ImportCtx } from './batch.js';
 import type {
@@ -74,11 +76,7 @@ async function loadLists(ctx: ImportCtx): Promise<{
   observedBy: Map<string, CodeReference>;
   maintenanceCodes: Map<string, CodeReference>;
 }> {
-  const result = await ctx.client.query(
-    `SELECT list, code, is_vendor, pauses_sla FROM list_item
-     WHERE tenant_id = $1 AND active AND list = ANY($2)`,
-    [ctx.tenantId, [...LISTS]],
-  );
+  const rows = await activeListItems(ctx.client, ctx.tenantId, [...LISTS]);
   const maps = {
     workTypes: new Map<string, CodeReference>(),
     locations: new Map<string, CodeReference>(),
@@ -95,7 +93,7 @@ async function loadLists(ctx: ImportCtx): Promise<{
     observed_by: maps.observedBy,
     maint_code: maps.maintenanceCodes,
   } as const;
-  for (const row of result.rows) {
+  for (const row of rows) {
     const code = row.code as string;
     addCode(targets[row.list as keyof typeof targets], code, {
       code,
@@ -108,12 +106,8 @@ async function loadLists(ctx: ImportCtx): Promise<{
 }
 
 async function loadShifts(ctx: ImportCtx): Promise<Map<string, ShiftReference>> {
-  const result = await ctx.client.query(
-    'SELECT code, starts_at, ends_at, crosses_midnight FROM shift WHERE tenant_id = $1',
-    [ctx.tenantId],
-  );
   const shifts = new Map<string, ShiftReference>();
-  for (const row of result.rows) {
+  for (const row of await shiftsOf(ctx.client, ctx.tenantId)) {
     addCode(shifts, row.code as string, {
       code: row.code as string,
       startsAt: row.starts_at as string,
@@ -134,12 +128,9 @@ async function loadMachine(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasC
   );
   const source = normalizeCode(ticket.machineCode);
   const code = aliasesBySource.get(source) ?? source;
-  const result = await ctx.client.query(
-    'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2 AND status = $3',
-    [ctx.tenantId, code, 'active'],
-  );
-  if (result.rows.length !== 1) throw new Error(`Unknown or inactive machine: ${code}`);
-  return result.rows[0] as {
+  const rows = await activeMachineByCode(ctx.client, ctx.tenantId, code);
+  if (rows.length !== 1) throw new Error(`Unknown or inactive machine: ${code}`);
+  return rows[0] as {
     id: string;
     code: string;
     category: string | null;
@@ -149,12 +140,9 @@ async function loadMachine(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasC
 }
 
 async function loadPeople(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasConfig) {
-  const existing = await ctx.client.query(
-    'SELECT id, name FROM person WHERE tenant_id = $1 AND active',
-    [ctx.tenantId],
-  );
+  const existing = await activePeople(ctx.client, ctx.tenantId);
   const byName = new Map<string, Array<{ id: string; name: string }>>();
-  for (const row of existing.rows) {
+  for (const row of existing) {
     const key = normalizeKey(row.name as string);
     byName.set(key, [
       ...(byName.get(key) ?? []),
@@ -180,12 +168,7 @@ async function loadPeople(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasCo
     }
     if (aliasBySource.has(source)) throw new Error(`Unknown or inactive person alias: ${target}`);
     const name = displayName(sourceName);
-    const inserted = await ctx.client.query(
-      `INSERT INTO person (tenant_id, name, team, kind, active, pending)
-       VALUES ($1, $2, 'production', 'production', true, true) RETURNING id`,
-      [ctx.tenantId, name],
-    );
-    const personId = inserted.rows[0].id as string;
+    const personId = await ensurePendingPerson(ctx.client, ctx.tenantId, name);
     people.set(source, personId);
     pendingPersons.set(source, { personId, name, createdByImport: true });
   }
