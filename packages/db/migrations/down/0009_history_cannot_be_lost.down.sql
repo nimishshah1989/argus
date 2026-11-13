@@ -1,5 +1,5 @@
 -- Revert of 0009_history_cannot_be_lost.sql (ticket 07).
--- approved-by: schema-reviewer: PENDING
+-- approved-by: schema-reviewer: PASS-with-conditions (3 rounds, 13 Nov; documentation items applied), orchestrator ruling
 -- backup: full snapshot first (RDS: aws rds create-db-snapshot; elsewhere pg_dump -Fc). ticket_tag comes back
 --   empty; its rows are reloaded from the export made before 0009 with
 --   \copy ticket_tag FROM 'ticket_tag-<utc>.csv' WITH (FORMAT csv, HEADER)
@@ -7,12 +7,17 @@
 --   backup. An RDS snapshot restore is physical, and a full pg_restore into an empty database loads rows
 --   before it creates triggers and NOT VALID checks: neither needs anything extra. A data-only reload of
 --   platform_access into a database that already has 0009 needs, around the reload:
---     ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;   (or pg_restore --disable-triggers)
+--     ALTER TABLE platform_access NO FORCE ROW LEVEL SECURITY;
+--     ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;
 --     ALTER TABLE platform_access DROP CONSTRAINT platform_access_approver_required;
 --     ... reload ...
 --     ALTER TABLE platform_access ADD CONSTRAINT platform_access_approver_required
 --       CHECK (approved_by_login_id IS NOT NULL) NOT VALID;
 --     ALTER TABLE platform_access ENABLE TRIGGER platform_access_guard;
+--     ALTER TABLE platform_access FORCE ROW LEVEL SECURITY;
+--   `pg_restore --disable-triggers` can stand in for the DISABLE and ENABLE lines, but it needs a superuser:
+--   not for RDS. Data-only reload only from a dump taken after 0009. A pre-0009 backup is restored in full
+--   into an empty database and 0009 is then run again.
 -- Not reverted, on purpose: app_router stays without BYPASSRLS and keeps its router_definer policies on
 -- login, session and sla_policy, which auth_lookup and tenants_with_sla_policies now depend on.
 -- Refuses to run once support access has been used under the new rules or a customer has been offboarded:

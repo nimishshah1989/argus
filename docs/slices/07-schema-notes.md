@@ -273,8 +273,15 @@ Decisions inside it:
   is switched off, their logins are neutralised, their own devices go, shared devices forget them, the repeat
   guard is cleared for their own logins, their own audit lines are blanked and the cached PDFs are dropped. No
   text is searched and no other row is touched (measured). The audit row carries `text_searched: false` and
-  `skipped_short_terms`, so the request shows that a manual review of the text is still owed. The function does
-  not refuse: the id-linked half is the larger part of the erasure and should not wait for the review.
+  `skipped_short_terms`. The function does not refuse: the id-linked half is the larger part of the erasure and
+  should not wait for the review.
+- **`text_searched: false` means no automatic text pass ran, so the plant reviews every text place by hand:**
+  ticket problem, location, close note, waiting-for-spare note, task reason and overrides; ticket history text and
+  payload; the breakdown report fields, including `observed_by` and `handover_name`; import rows and
+  `import_batch.stats`; audit lines about other people; other people's stored repeat-guard replies; and the
+  signature image on any report handed over to that person (the function finds those reports by matching
+  `handover_name`, so with no pattern it removes no signature). `scripts/erase-person.ts` must print this list
+  when it sees `text_searched: false`, and must not report the request complete until the review is recorded.
 - **`erase_json_values` returns its input unchanged when the pattern is NULL**, and the repeat-guard update uses
   the text match only when there is a pattern. In the first amended draft a NULL pattern blanked the stored reply
   of every repeat-guard row of the tenant (second review, finding 1).
@@ -442,13 +449,20 @@ migration header carries the same text.
   the approver check refuse the grants from before the rule (measured). Around such a reload:
 
   ```sql
-  ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;  -- or pg_restore --disable-triggers
+  ALTER TABLE platform_access NO FORCE ROW LEVEL SECURITY;
+  ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;
   ALTER TABLE platform_access DROP CONSTRAINT platform_access_approver_required;
   -- reload
   ALTER TABLE platform_access ADD CONSTRAINT platform_access_approver_required
     CHECK (approved_by_login_id IS NOT NULL) NOT VALID;
   ALTER TABLE platform_access ENABLE TRIGGER platform_access_guard;
+  ALTER TABLE platform_access FORCE ROW LEVEL SECURITY;
   ```
+
+  FORCE is lifted because the owner on RDS is not a superuser and would otherwise be stopped by row security.
+  `pg_restore --disable-triggers` can stand in for the DISABLE and ENABLE lines, but it needs a superuser: not
+  for RDS. Data-only reload only from a dump taken after 0009. A pre-0009 backup is restored in full into an
+  empty database and 0009 is then run again.
 
   The same text is in the header of both migration files.
 
