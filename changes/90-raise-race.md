@@ -1,0 +1,1 @@
+- Two people reporting the same machine at the same moment, or an admin restoring a cancelled ticket onto a machine that already has an open one, now get 'Already reported' instead of an error.
