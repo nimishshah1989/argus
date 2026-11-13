@@ -13,7 +13,7 @@ import {
 } from '../src/modules/imports/fingerprint.js';
 import { loadBatchSnapshot } from '../src/modules/imports/fingerprint-sql.js';
 import type { ImportStats } from '../src/modules/imports/schema.js';
-import { hashToken } from '../src/session.js';
+import { hashToken } from '../src/modules/identity/index.js';
 import {
   makeOrdinaryTicket,
   makeSyntheticExport,

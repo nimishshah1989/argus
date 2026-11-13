@@ -3,13 +3,12 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import type { AppConfig } from './config.js';
 import {
   startJobs,
   reconcileTicket,
   type SlaTicketReconciler,
 } from './modules/accountability/index.js';
-import { registerAuthGuard, registerHealth } from './kernel/index.js';
+import { registerAuthGuard, registerHealth, type AppConfig } from './kernel/index.js';
 import { modules } from './modules/index.js';
 import { authenticate } from './modules/identity/index.js';
 

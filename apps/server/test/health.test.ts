@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import type { AppConfig } from '../src/config.js';
+import type { AppConfig } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 let db: TestDb;

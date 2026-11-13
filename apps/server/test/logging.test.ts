@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { loggerOptions } from '../src/kernel/logging.js';
-import { hashToken } from '../src/session.js';
+import { hashToken } from '../src/modules/identity/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
