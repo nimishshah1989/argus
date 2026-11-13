@@ -263,7 +263,9 @@ describe('breakdown report PDF', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
     const ticket = (await pool.query('SELECT ref FROM ticket WHERE id = $1', [id])).rows[0];
-    expect(res.headers['content-disposition']).toContain(`${ticket.ref}.pdf`);
+    expect(res.headers['content-disposition']).toMatch(
+      /filename="Breakdown_[A-Za-z0-9._-]+_2026-11-10\.pdf"/,
+    );
     expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
     expect(res.rawPayload.length).toBeGreaterThan(5000);
 

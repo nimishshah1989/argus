@@ -144,6 +144,13 @@ async function renderTicketPdf(deps: PdfDeps, context: PdfContext): Promise<Buff
   return renderPdf(html, deps.chromiumPath);
 }
 
+/** `Breakdown_<machine>_<date>.pdf`, the name the old platform used (parity v3.reports.02). */
+function ticketPdfName(context: PdfContext): string {
+  const machine = context.ticket.machine.code ?? context.ticket.ref;
+  const date = (context.report as StoredReport).date;
+  return `Breakdown_${machine}_${date}.pdf`.replace(/[^A-Za-z0-9._-]+/g, '_');
+}
+
 /** A PDF is made when asked for and sent as it is: nothing is stored, so nothing is lost on a deploy. */
 function sendBytes(reply: FastifyReply, bytes: Buffer, fileName: string): void {
   reply.type(PDF_MIME).header('content-disposition', `inline; filename="${fileName}"`).send(bytes);
@@ -184,8 +191,7 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
     return;
   }
   const bytes = await renderOrBusy(reply, () => renderTicketPdf(deps, context));
-  if (bytes)
-    sendBytes(reply, bytes, `Breakdown_${context.ticket.ref.replace(/[^a-z0-9-]+/gi, '_')}.pdf`);
+  if (bytes) sendBytes(reply, bytes, ticketPdfName(context));
 }
 
 function isCalendarDate(value: string): boolean {
