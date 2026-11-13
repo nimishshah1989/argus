@@ -66,8 +66,9 @@ describe('logging', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/health?probe=1' });
     const id = res.headers['x-request-id'];
     expect(id).toMatch(UUID);
-    const mine = logged().filter((l) => l.requestId === id);
+    const mine = logged();
     expect(mine.length).toBeGreaterThanOrEqual(2);
+    expect(mine.every((l) => l.requestId === id)).toBe(true);
     expect(mine.find((l) => l.msg === 'incoming request')?.req).toEqual({
       method: 'GET',
       url: '/api/v1/health',
