@@ -36,10 +36,10 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 10:20 UTC on branch `claude/orchestrator-ledger`.
-- 15356f6 docs(plan): ledger — 03 done, 05/06 dispatched, 04 held
-- 4473807 Merge branch 'main' of https://github.com/nimishshah1989/argus into claude/orchestrator-ledger
-- 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
+Last session ended 2026-11-13 10:50 UTC on branch `claude/orchestrator-ledger`.
+- d567b72 docs(plan): ledger — rulings on tags export and test deletions
+- 3b4daa9 docs(plan): ledger — correction on staging 503 claim
+- 6526209 docs(plan): ledger — staging server created
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
