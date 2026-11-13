@@ -256,3 +256,43 @@ test('reprojects overdue, cancelled, and restored timer states', async ({ page }
     0,
   );
 });
+
+test.describe('plant time zone', () => {
+  test.use({ timezoneId: 'America/New_York' });
+
+  test('shows no SLA due time until the plant time zone loads', async ({ page }) => {
+    await ensureSlaConfiguration();
+    const ticket = await raiseWorkRequest(await apiLogin('asha'), 'SLA time zone');
+    let releaseConfig!: () => void;
+    const configDelay = new Promise<void>((resolve) => {
+      releaseConfig = resolve;
+    });
+    await page.route(/\/api\/v1\/config(?:\?.*)?$/, async (route) => {
+      await configDelay;
+      await route.continue();
+    });
+    const timers = page.getByRole('region', { name: 'SLA timers', exact: true });
+    try {
+      await signIn(page, 'admin');
+      await page.goto(`/desk/${ticket.id}`);
+      await expect(timers).toContainText('min left');
+      await expect(timers.locator('time')).toHaveCount(0);
+      await expect(timers).not.toContainText('Due');
+    } finally {
+      releaseConfig();
+    }
+
+    const due = timerRow(timers, 'Acknowledge').locator('time');
+    await expect(due).toBeVisible();
+    const iso = await due.getAttribute('datetime');
+    expect(await due.innerText()).toBe(
+      new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+      }).format(new Date(iso ?? '')),
+    );
+  });
+});

@@ -32,7 +32,7 @@ function TimerDetails({ timer, status, timeZone }: Omit<RowProps, 'label' | 'det
   const { t } = useTranslation();
   return (
     <>
-      {timer?.dueAt && timer.state !== 'stopped' && (
+      {timeZone && timer?.dueAt && timer.state !== 'stopped' && (
         <dd className="mt-0.5 text-xs text-neutral-600">
           {t('sla.due')} <time dateTime={timer.dueAt}>{formatDateTime(timer.dueAt, timeZone)}</time>
         </dd>
@@ -40,7 +40,7 @@ function TimerDetails({ timer, status, timeZone }: Omit<RowProps, 'label' | 'det
       {timer?.state === 'paused' && !timer.dueAt && (
         <dd className="mt-0.5 text-xs text-neutral-600">{t('sla.dueAfterResume')}</dd>
       )}
-      {timer?.stoppedAt && (
+      {timeZone && timer?.stoppedAt && (
         <dd className="mt-0.5 text-xs text-neutral-600">
           {t('sla.stoppedAt')}{' '}
           <time dateTime={timer.stoppedAt}>{formatDateTime(timer.stoppedAt, timeZone)}</time>
