@@ -43,7 +43,7 @@ export interface MachineFixture {
   cell: string;
 }
 
-/** Machine ownership by suite: floor, desk, tags/Settings, board, then SLA. */
+/** Machine ownership by suite: floor, desk, Settings, board, then SLA. */
 export const MACHINES: MachineFixture[] = [
   {
     id: scopedId('10000000-0000-0000-0000-000000000003'),
@@ -240,9 +240,8 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
 }
 
 /** One machine per spec per project so both projects can run in parallel. */
-export function machineFor(suite: 'floor' | 'desk' | 'tags', projectName: string): MachineFixture {
-  const index =
-    (suite === 'floor' ? 0 : suite === 'desk' ? 2 : 4) + (projectName === 'phone' ? 1 : 0);
+export function machineFor(suite: 'floor' | 'desk', projectName: string): MachineFixture {
+  const index = (suite === 'floor' ? 0 : 2) + (projectName === 'phone' ? 1 : 0);
   const machine = MACHINES[index];
   if (!machine) throw new Error(`No machine fixture for ${suite}/${projectName}`);
   return machine;
@@ -310,7 +309,7 @@ export async function apiLogin(username: string): Promise<string> {
 /** Raises a stopped ticket through the real API, so the desk spec does not depend on the floor form. */
 export async function raiseTicketViaApi(
   token: string,
-  machineId: string | null,
+  machineId: string,
   problem: string,
 ): Promise<RaisedTicket> {
   const body = await apiJson<{ ticket: RaisedTicket }>('/api/v1/tickets', {
@@ -320,11 +319,7 @@ export async function raiseTicketViaApi(
       authorization: `Bearer ${token}`,
       'idempotency-key': randomUUID(),
     },
-    body: JSON.stringify(
-      machineId
-        ? { machineId, problem }
-        : { kind: 'general', location: 'Workshop', workType: 'Tag test', problem },
-    ),
+    body: JSON.stringify({ machineId, problem }),
   });
   return body.ticket;
 }

@@ -1,5 +1,4 @@
 import { defineModule } from '../../kernel/index.js';
-import { registerTags } from './tags.js';
 import { registerTickets } from './routes.js';
 
 export { figuresFromRow } from './mapper.js';
@@ -20,7 +19,6 @@ export const ticketsModule = defineModule({
   name: 'tickets',
   register: (app, config) => {
     registerTickets(app, config);
-    registerTags(app, config);
   },
 });
 export { dayJobRows, pdfTicketRow, pendingRows, setReportPdf } from './repo/history.js';

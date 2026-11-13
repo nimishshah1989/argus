@@ -11,7 +11,7 @@ import {
 import { withTenant, type AppConfig } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import {
-  removeListItem,
+  deactivateListItem,
   saveListItem,
   selectListItems,
   selectMissingTranslations,
@@ -111,7 +111,7 @@ async function deleteListItem(pool: Pool, request: FastifyRequest, reply: Fastif
   if (!ctx) return;
   if (!canWrite(ctx.role)) return forbidden(reply);
   const { id } = request.params as { id: string };
-  await withTenant(pool, ctx.tenantId, (client) => removeListItem(client, id));
+  await withTenant(pool, ctx.tenantId, (client) => deactivateListItem(client, id));
   reply.send({ ok: true });
 }
 

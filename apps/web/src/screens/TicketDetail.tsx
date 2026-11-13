@@ -23,7 +23,6 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
-import { TagsPanel } from '../components/tags/TagsPanel.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -144,7 +143,6 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         <ShareButton ticket={ticket} config={config} mode="full" />
       </div>
       <Facts ticket={ticket} config={config} />
-      <TagsPanel ticketId={ticket.id} canEdit={canWork(me?.role)} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
       <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
       <Timeline

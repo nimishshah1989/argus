@@ -24,7 +24,8 @@ anything without an approver and a backup reference.
 1. **Segment persistence moves to its own file.** `apps/server/src/modules/tickets/repo/ticket.ts` is 375 lines
    against a 400-line budget, so `loadSegments` + `persistSegments` move to a new
    `apps/server/src/modules/tickets/repo/segments.ts` and `ticket.ts` re-exports them
-   (`export { … } from './segments.js';`, the pattern it already uses for `./events.js`). Call sites keep using
+   (`export { … } from './segments.js';`, the pattern it already uses for `./events.js`) and also imports
+   `endReasonFor` and `persistSegments` locally for `persistResult`. Call sites keep using
    `sql.loadSegments` / `sql.persistSegments`. `repo/` is inside the module's repo folder, so
    `pnpm boundaries` is satisfied.
 2. **`persistSegments` inserts and updates; it never deletes.** Algorithm, in one transaction:
@@ -34,7 +35,8 @@ anything without an approver and a backup reference.
           WHERE tenant_id = $1 AND ticket_id = $2 ORDER BY started_at, id
    if rows.length > input.segments.length → throw Error('work_segment rows would be lost')
    for i < rows.length:                            // the stretches that already exist
-     guard rows[i].person_id/role/started_at === input.segments[i].personId/role/startedAt
+     guard rows[i].person_id/role === input.segments[i].personId/role and
+       new Date(rows[i].started_at).getTime() === input.segments[i].startedAt.getTime()  (never Date ===)
        else throw Error('work_segment rows would be lost')
      if rows[i].ended_at === null && input.segments[i].endedAt:
        if input.endReason === null → throw Error('work_segment closed without an end reason')
@@ -139,8 +141,8 @@ anything without an approver and a backup reference.
 | File                                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/server/src/modules/tickets/repo/segments.ts` | **New.** `SegmentEndReason`, `endReasonFor`, `loadSegments` (moved, `ORDER BY started_at, id`) and the rewritten `persistSegments` (decisions 1–3). Under 90 lines.                                                                                                                                                                                                                                                                                       |
-| `apps/server/src/modules/tickets/repo/ticket.ts`   | Delete `loadSegments` and the old `persistSegments`; add `export { endReasonFor, loadSegments, persistSegments, type SegmentEndReason } from './segments.js';`. `persistResult` passes `{ segments: result.segments, endReason: endReasonFor(tx.action) }`.                                                                                                                                                                                               |
-| `apps/server/src/modules/tickets/routes.ts`        | The raise call becomes `sql.persistSegments(client, tx.tenantId, raised.ticket.id, { segments: raised.segments, endReason: null })` (line 267). Delete nothing else.                                                                                                                                                                                                                                                                                      |
+| `apps/server/src/modules/tickets/repo/ticket.ts`   | Delete `loadSegments` and the old `persistSegments`; add `export { endReasonFor, loadSegments, persistSegments, type SegmentEndReason } from './segments.js';` and a local `import { endReasonFor, persistSegments } from './segments.js';`. `persistResult` passes `{ segments: result.segments, endReason: endReasonFor(tx.action) }`.                                                                                                                  |
+| `apps/server/src/modules/tickets/routes.ts`        | The raise call becomes `sql.persistSegments(client, tx.tenantId, raised.ticket.id, { segments: raised.segments, endReason: null })` (line 267; written as `{ ...raised, endReason: null }` to keep `executeRaise` within the 60-line budget). Delete nothing else.                                                                                                                                                                                        |
 | `apps/server/src/modules/tickets/index.ts`         | Delete the `registerTags` import and its call inside `register`. Published exports unchanged.                                                                                                                                                                                                                                                                                                                                                             |
 | `apps/server/src/modules/plant/repo/config.ts`     | `removeListItem` → `deactivateListItem` with the `UPDATE … SET active = false, updated_at = now()` (decision 4).                                                                                                                                                                                                                                                                                                                                          |
 | `apps/server/src/modules/plant/repo/reads.ts`      | Delete `listItemsOf`, `listItemOf`, `listItemsByIds` (decision 8).                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -152,10 +154,10 @@ anything without an approver and a backup reference.
 | `apps/web/src/api.ts`                              | Delete the `TagDefinition`/`TagList` import (line 3), the type re-export (line 183) and `getTagCatalogue`, `getTicketTags`, `addTicketTag`, `removeTicketTag` (lines 185–206).                                                                                                                                                                                                                                                                            |
 | `apps/web/src/i18n/en.ts`                          | Delete the seven `tags.*` keys (lines 370–376). Keep `timeline.tagAdd` / `timeline.tagRemove`. `gu.ts` derives its keys from `en`, so it is not touched; nothing else in the catalogues changes (ticket 05 owns them).                                                                                                                                                                                                                                    |
 | `apps/web/e2e/fixtures.ts`                         | `machineFor(suite: 'floor' \| 'desk', …)`: drop the `'tags'` arm (index becomes `suite === 'floor' ? 0 : 2`) and fix the comment on line 46. `raiseTicketViaApi(token, machineId: string, problem)`: drop the `machineId === null` general-request branch and the `workType: 'Tag test'` literal — the tag spec was its only caller (checked). `MACHINES` is unchanged: `settings-severity.spec.ts` uses entries 4–5 and `board`/`sla` index by position. |
-| `tools/check-migrations.ts`                        | Rewritten as `guardedStatements`, `hasApproval`, `scanMigrations`, `EXCEPTIONS` + `main` (decisions 9–11). Under 110 lines.                                                                                                                                                                                                                                                                                                                               |
+| `tools/check-migrations.ts`                        | Rewritten as `guardedStatements`, `hasApproval`, `scanMigrations`, `EXCEPTIONS` + `main` (decisions 9–11). `main` is guarded by `if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();` (as in `check-boundaries.ts`), prints `migrations: N files, M findings` and exits 1 on any finding. Comments blank `--` to end of line only (strings not parsed), replaced by spaces so line numbers hold. Under 110 lines.                  |
 | `packages/db/README.md`                            | The migration-rules bullet names `-- approved-by:` and `-- backup:` instead of `-- destructive-approved`, and says the seven merged files are dated exceptions.                                                                                                                                                                                                                                                                                           |
-| `apps/server/test/tickets-commands.test.ts`        | Seed gains machines `VC-17`/`VC-18`/`VC-19` and a second wait reason `vendor`; new `describe('history is kept')` with tests 1–7.                                                                                                                                                                                                                                                                                                                          |
-| `apps/server/test/tickets.test.ts`                 | Seed gains machine `VC-5` (`MACHINE_DISABLED`); tests 8–10.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `apps/server/test/tickets-commands.test.ts`        | Seed gains machines `VC-17`..`VC-20` (UUIDs `…1c`..`…1f`) and a second wait reason `vendor`; new `describe('history is kept')` at the end of the file with tests 1–5 (6–7 dropped, not asked).                                                                                                                                                                                                                                                            |
+| `apps/server/test/tickets.test.ts`                 | Seed gains machines `VC-5` (`MACHINE_DISABLED`) and `VC-6` (`MACHINE_LEGACY`); tests 8–10, appended as a new describe at the end of the file. Tests 8–10 are regression guards that pass today.                                                                                                                                                                                                                                                           |
 | `apps/server/test/guard.test.ts`                   | Delete `'GET /api/v1/tags'` from the expected route list (line 61); add test 13.                                                                                                                                                                                                                                                                                                                                                                          |
 | `apps/server/test/history-guard.test.ts`           | **New**, no database: tests 11–12.                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `tools/migrations.test.ts`                         | **New**: tests 14–17.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -300,14 +302,14 @@ surviving route changes.
 
 ## 6. Test cases
 
-Every test is Given / When / Then. Tests **1, 2, 5, 11, 12, 14, 15, 17 fail before the change** — they are the
+Every test is Given / When / Then. Tests **1, 2, 3, 4, 5, 11, 12, 14, 15, 17 fail before the change** — they are the
 reproduction of the four faults ARCHITECTURE §9 items 21 and 22 name.
 
 ### Goal 1 — work stretches · `apps/server/test/tickets-commands.test.ts`
 
 New `describe('history is kept')` in the existing file (one container, existing `post`/`get`/`login` helpers,
 `ASHA`/`BINA`/admin tokens, wait reason `spare`). Seed additions: machines `VC-17` `MACHINE_SEGMENTS`,
-`VC-18` `MACHINE_REVOKED`, `VC-19` `MACHINE_WAITING`, and list item `('wait_reason','vendor','Vendor', true)`.
+`VC-18` `MACHINE_REVOKED`, `VC-19` `MACHINE_WAITING`, `VC-20` `MACHINE_GUARD`, and list item `('wait_reason','vendor','Vendor', true)`.
 
 1. **`keeps every work_segment id through pause and resume`**
    - **Given** a ticket raised on `VC-17` and started by Asha, whose single `work_segment` row id and
@@ -327,16 +329,17 @@ New `describe('history is kept')` in the existing file (one container, existing 
 3. **`runs the lifecycle with DELETE on work_segment revoked`**
    - **Given** `REVOKE DELETE ON work_segment FROM app_user` (as `db.admin`, restored with
      `GRANT DELETE …` in a `finally`), which is the grant ticket 07 makes permanent.
-   - **When** a ticket on `VC-18` is raised, started, paused, resumed, transferred, picked up and closed.
+   - **When** a ticket on `VC-18` is raised, started, joined by Bina, left by Bina, paused, resumed, transferred, picked up, cancelled, restored and closed.
    - **Then** every command answers 200/201 and the ticket's stretches are all present with their end reasons.
 4. **`refuses to persist fewer stretches than the ticket has`** (repo level, importing
    `persistSegments`/`loadSegments` from `../src/modules/tickets/repo/segments.js`, like `plant-repo.test.ts`
    imports a repo)
-   - **Given** the two-stretch ticket from test 1.
+   - **Given** the multi-stretch ticket from tests 1–2.
    - **When** `persistSegments` is called inside `withTenant(db.app, …)` with only the first stretch.
-   - **Then** it rejects with `/work_segment rows would be lost/` and both rows are still there.
-   - **And when** it is called with the open stretch marked `endedAt` but `endReason: null`.
-   - **Then** it rejects with `/without an end reason/` and that row is still open.
+   - **Then** it rejects with `/work_segment rows would be lost/` and every row is still there.
+   - **And given** its own ticket on `VC-20` (`MACHINE_GUARD`), raised and started (one open stretch),
+   - **when** `persistSegments` is called with that stretch marked `endedAt` but `endReason: null`,
+   - **then** it rejects with `/without an end reason/` and that row is still open.
 
 ### Goal 1 — list entries · same file
 
@@ -346,14 +349,7 @@ New `describe('history is kept')` in the existing file (one container, existing 
    - **Then** the answer is 200 `{ok: true}`; the row still exists with `active = false` and its label
      unchanged; `GET /api/v1/config` still returns the entry in `lists.wait_reason` with `active: false`; and
      `GET /api/v1/tickets/<id>` still reports `waitReason: 'spare'`.
-6. **`refuses a non-admin switch-off and keeps the entry active`**
-   - **Given** the `vendor` entry and Asha's technician token.
-   - **When** she calls `DELETE /api/v1/lists/wait_reason/<id>`.
-   - **Then** the answer is 403 with error code `forbidden` and the row is still `active = true`.
-7. **`refuses a switch-off without a session`**
-   - **Given** no `authorization` header.
-   - **When** `DELETE /api/v1/lists/wait_reason/<id>` is called.
-   - **Then** the answer is 401 with error code `unauthenticated` and the row is still `active = true`.
+     Tests 6 and 7 of the first draft (non-admin and unauthenticated switch-off) are dropped: not asked.
 
 ### Goal 1 — logins · `apps/server/test/tickets.test.ts`
 
@@ -369,6 +365,8 @@ Seed addition: machine `VC-5` `MACHINE_DISABLED`.
      `personId`; and `/config` `people` still carries her name.
 
 ### Goal 2 — tags are gone
+
+Tests 8–10 are regression guards: they pass today and must keep passing. Test 11–13 are the new red/green ones.
 
 9. **`still returns a legacy tag event in the timeline`** · `apps/server/test/tickets.test.ts`
    - **Given** a ticket with events, and a row inserted straight into `ticket_event`

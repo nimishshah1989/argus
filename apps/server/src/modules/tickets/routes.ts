@@ -264,7 +264,7 @@ async function executeRaise(
     actingPersonId: tx.auth.personId,
     textFor: () => tx.body.problem as string,
   });
-  await sql.persistSegments(client, tx.tenantId, raised.ticket.id, raised.segments);
+  await sql.persistSegments(client, tx.tenantId, raised.ticket.id, { ...raised, endReason: null });
   const slaPolicyId = await reconcileTicket(client, {
     tenantId: tx.tenantId,
     ticketId: raised.ticket.id,
@@ -272,7 +272,6 @@ async function executeRaise(
     boss,
   });
   const sla = await projectTicketSla(client, tx.tenantId, raised.ticket.id, now);
-
   const outcome: Outcome = {
     status: 201,
     body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), slaPolicyId, sla } },

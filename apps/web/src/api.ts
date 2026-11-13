@@ -1,6 +1,5 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { enqueue, isQueueable } from './offline/outbox.js';
-import type { TagDefinition, TagList } from '../../../packages/shared/src/tags.js';
 import type {
   CommandAction,
   CommandBody,
@@ -180,30 +179,6 @@ export async function command(
 
 /** Re-exported so existing `from '../api.js'` type imports keep working after the split. */
 export type * from './api-types.js';
-export type { TagDefinition, TagList } from '../../../packages/shared/src/tags.js';
-
-export function getTagCatalogue(): Promise<{ tags: TagDefinition[] }> {
-  return api<{ tags: TagDefinition[] }>('/api/v1/tags');
-}
-
-export function getTicketTags(ticketId: string): Promise<TagList> {
-  return api<TagList>(`/api/v1/tickets/${ticketId}/tags`);
-}
-
-export function addTicketTag(ticketId: string, tagId: string): Promise<TagList> {
-  return api<TagList>(`/api/v1/tickets/${ticketId}/tags`, {
-    method: 'POST',
-    headers: { 'Idempotency-Key': idempotencyKey() },
-    body: JSON.stringify({ tagId }),
-  });
-}
-
-export function removeTicketTag(ticketId: string, tagId: string): Promise<TagList> {
-  return api<TagList>(`/api/v1/tickets/${ticketId}/tags/${tagId}`, {
-    method: 'DELETE',
-    headers: { 'Idempotency-Key': idempotencyKey() },
-  });
-}
 
 export function putSeverityMatrix(value: SeverityMatrix): Promise<{ ok: boolean }> {
   return api<{ ok: boolean }>('/api/v1/settings/severity_matrix', {

@@ -1,0 +1,4 @@
+- Pausing, resuming and transferring a ticket keeps every work stretch and records why it ended.
+- A list entry is switched off, never deleted, and still reads back on old tickets.
+- Tags are gone from the app; tag history on old tickets still shows.
+- CI refuses a migration that drops, rewrites or revokes anything without an approver and a backup.

@@ -22,6 +22,7 @@ export type EventType =
   | 'edit'
   | 'report'
   | 'upgrade_kind'
+  // tag_add / tag_remove: history only, nothing writes them any more (old events still render)
   | 'tag_add'
   | 'tag_remove'
   | 'acknowledge';
