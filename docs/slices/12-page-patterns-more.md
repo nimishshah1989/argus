@@ -49,7 +49,7 @@ typecheck (D7). Gallery keys use i18next's namespace prefix (`gallery:crud.title
    one-line alias of `useUpdate` (D6 lists it; rule of two). `fetch-guard.test.ts` passes unchanged: the
    mutations call the same `send` inside `data/`.
 4. **`CrudPage` uses a plain accessible `<table>` and the existing `FormSheet`** (orchestrator ruling). **D:**
-   this departs from D5's TanStack Table and react-hook-form. Recorded in D23 as a deferral with a trigger, plus a
+   this departs from D5's TanStack Table and react-hook-form. Recorded in D24 as a deferral with a trigger, plus a
    one-line pointer in D05 (question 1 for the orchestrator). `FormSheet` gains one optional prop, `initial`, so
    an edit opens prefilled. `CrudPage` mounts the sheet only while it is open, so every opening starts from
    `initial`.
@@ -57,7 +57,7 @@ typecheck (D7). Gallery keys use i18next's namespace prefix (`gallery:crud.title
    `error`) while the sheet is open, and otherwise as `<p role="alert">` above the table. Opening the sheet or
    pressing a switch clears it. A failed write is never retried silently and the row keeps the server's value: the
    table only changes after the refetch.
-6. **Charts (D23).** `echarts` 6.1.0 is pinned exactly.
+6. **Charts (D24).** `echarts` 6.1.0 is pinned exactly.
    - **One file touches it:** `ui/chart/use-chart.ts`, through `import type` and `import()` of `echarts/core`,
      `echarts/charts` (`BarChart`, `LineChart`), `echarts/components` (`GridComponent`) and `echarts/renderers`
      (`SVGRenderer`). The loader promise is cached in that module and reset on failure.
@@ -96,7 +96,7 @@ typecheck (D7). Gallery keys use i18next's namespace prefix (`gallery:crud.title
 ## 3. Files
 
 Write area: `apps/web/**`, `packages/shared/src/i18n/common.en.ts`, `packages/shared/test/fixtures/en-before-05.json`
-(append only, as tickets 05, 06 and 11 did), `THIRD_PARTY.md` (one row), `pnpm-lock.yaml`, `docs/decisions/D23-*.md`,
+(append only, as tickets 05, 06 and 11 did), `THIRD_PARTY.md` (one row), `pnpm-lock.yaml`, `docs/decisions/D24-*.md`,
 one line in `docs/decisions/D05-*.md`, `changes/88-page-patterns-more.md`, this plan.
 
 **Not touched:** `apps/server/**`, `packages/db/**`, any migration, `packages/shared/src/config.ts`, `tools/**`,
@@ -122,7 +122,7 @@ one line in `docs/decisions/D05-*.md`, `changes/88-page-patterns-more.md`, this 
 | File            | Change                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ui/button.tsx` | `VARIANT.secondary` becomes `'bg-surface border border-neutral-300 text-neutral-900 aria-pressed:ring-2 aria-pressed:ring-accent-strong aria-pressed:text-accent-strong'` (decision 9). Nothing else.                                                                                                                                                                                                                          |
-| `ui/tokens.css` | Append to the existing `:root { … }` block (not `@theme`: these are read by script, not used as utilities): `--color-chart-1: var(--color-accent);` `--color-chart-2: var(--color-neutral-600);` `--color-chart-axis: var(--color-neutral-600);` `--color-chart-grid: var(--color-neutral-200);` with the comment `/* Charts (D23): series 1 and 2, axis text, grid lines. Series 2 is also dashed with triangle markers. */`. |
+| `ui/tokens.css` | Append to the existing `:root { … }` block (not `@theme`: these are read by script, not used as utilities): `--color-chart-1: var(--color-accent);` `--color-chart-2: var(--color-neutral-600);` `--color-chart-axis: var(--color-neutral-600);` `--color-chart-grid: var(--color-neutral-200);` with the comment `/* Charts (D24): series 1 and 2, axis text, grid lines. Series 2 is also dashed with triangle markers. */`. |
 
 **Patterns (`apps/web/src/patterns/`; each new file under 250 lines, every function under 60)**
 
@@ -165,8 +165,8 @@ one line in `docs/decisions/D05-*.md`, `changes/88-page-patterns-more.md`, this 
 | `THIRD_PARTY.md`                                   | The row `Apache ECharts` becomes `Apache ECharts (\`echarts\` 6.1.0; brings \`zrender\` 6.1.0, BSD-3-Clause, and \`tslib\` 2.3.0, 0BSD)`·`charts`·`Apache-2.0`. Nothing else.                                                                                                     |
 | `packages/shared/src/i18n/common.en.ts`            | The 18 `kit.*` keys of §5, appended after `kit.form.needsConnection`. `common.gu.ts` is `blank(commonEn)`: unchanged.                                                                                                                                                             |
 | `packages/shared/test/fixtures/en-before-05.json`  | The same 18 keys and values appended after `kit.form.needsConnection`; no existing line changes; `catalogue.test.ts` untouched (its "changes no existing copy" check reads this file).                                                                                            |
-| `docs/decisions/D23-charts-echarts.md` (new)       | §7.                                                                                                                                                                                                                                                                               |
-| `docs/decisions/D05-generated-settings-screens.md` | One line appended: `Amended 13 November 2026 by D23 (ticket 12): until a resource needs sorting, column choice, virtualised rows or schema field errors, \`CrudPage\` uses a plain \`<table>\` and \`FormSheet\`; TanStack Table and react-hook-form are deferred, not rejected.` |
+| `docs/decisions/D24-charts-echarts.md` (new)       | §7.                                                                                                                                                                                                                                                                               |
+| `docs/decisions/D05-generated-settings-screens.md` | One line appended: `Amended 13 November 2026 by D24 (ticket 12): until a resource needs sorting, column choice, virtualised rows or schema field errors, \`CrudPage\` uses a plain \`<table>\` and \`FormSheet\`; TanStack Table and react-hook-form are deferred, not rejected.` |
 | `changes/88-page-patterns-more.md` (new)           | §8.                                                                                                                                                                                                                                                                               |
 
 **Browser tests and baselines**
@@ -704,10 +704,10 @@ active: true } }, { POST /gallery/machines, { code: 'CNC-07', name: 'Duplicate' 
 3. Then `pnpm gallery:update:docker`: commit the 8 new PNGs; the 22 old ones are unchanged.
 4. Then `pnpm gallery:test`, `pnpm format:check`, `pnpm verify`.
 
-## 7. ADR text (`docs/decisions/D23-charts-echarts.md`)
+## 7. ADR text (`docs/decisions/D24-charts-echarts.md`)
 
 ```
-# D23 — Charts: ECharts 6.1.0, lazy, SVG, two series, token palette
+# D24 — Charts: ECharts 6.1.0, lazy, SVG, two series, token palette
 
 Date: 13 November 2026 · Status: proposed (slice planner, ticket 12); builds on ARCHITECTURE §5 "Charts", D4, D5, D6
 
@@ -758,7 +758,7 @@ Date: 13 November 2026 · Status: proposed (slice planner, ticket 12); builds on
 
 ```
 - `/gallery` shows a settings page generated from one short description: it lists, adds, edits and switches machines off and on again through the API, and never deletes.
-- `/gallery` shows the wizard, board and dashboard patterns; dashboard charts (ECharts, D23) load only when first shown and each comes with a table of its numbers.
+- `/gallery` shows the wizard, board and dashboard patterns; dashboard charts (ECharts, D24) load only when first shown and each comes with a table of its numbers.
 ```
 
 ## 9. Regression risk
@@ -795,8 +795,8 @@ Date: 13 November 2026 · Status: proposed (slice planner, ticket 12); builds on
 
 1. **D5 deviation.** Your ruling (plain `<table>`, `FormSheet`, no TanStack Table, no react-hook-form) departs from
    accepted D5, which names both and rejects the plain table. The harness sends an architecture change back
-   through the maker-checker. I have planned it as a dated deferral, recorded in D23 with a one-line pointer in
-   D05. Please confirm that the architecture-reviewer's PASS on D23 is enough, or route it.
+   through the maker-checker. I have planned it as a dated deferral, recorded in D24 with a one-line pointer in
+   D05. Please confirm that the architecture-reviewer's PASS on D24 is enough, or route it.
 2. **Dependency outside a Platform PR.** ARCHITECTURE §8 puts `pnpm-lock.yaml` and `THIRD_PARTY.md` changes in a
    Platform PR. The ticket itself asks for ECharts under an ADR, so I have planned it in this PR (as D20 did for the
    kit in ticket 10). Please confirm.
