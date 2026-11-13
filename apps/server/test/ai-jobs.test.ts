@@ -145,7 +145,7 @@ it('creates the queue but runs no worker for the api role', async () => {
 it('starts no worker while no feature is registered, but still creates the queue', async () => {
   const fake = createFakeProvider();
   const b = await newBoss();
-  await startAiJobs(b, { pool: db.app, config, provider: fake }, 'all');
+  await startAiJobs(b, { pool: db.app, config, provider: fake, features: {} }, 'all');
   expect(await b.getQueue(AI_SUGGEST_QUEUE)).toBeTruthy();
   const id = await b.send(AI_SUGGEST_QUEUE, payloadFor(await newTicket()));
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -153,4 +153,19 @@ it('starts no worker while no feature is registered, but still creates the queue
     ?.state;
   expect(state).toBe('created');
   expect(fake.calls).toHaveLength(0);
+});
+
+it('runs a diagnosis job with the default features', async () => {
+  const ticket = await newTicket();
+  const b = await newBoss();
+  await startAiJobs(b, { pool: db.app, config, provider: createFakeProvider() }, 'all');
+  await b.send(AI_SUGGEST_QUEUE, { ...payloadFor(ticket), promptVersion: 'diagnosis-1' });
+  const row = await waitFor(async () => {
+    const result = await db.admin.query(
+      'SELECT status, prompt_version FROM ai_suggestion WHERE ticket_id = $1',
+      [ticket],
+    );
+    return result.rows[0]?.status === 'ready' ? result.rows[0] : undefined;
+  });
+  expect(row).toEqual({ status: 'ready', prompt_version: 'diagnosis-1' });
 });

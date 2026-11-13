@@ -2,8 +2,15 @@ import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import type { JobRole } from '../../kernel/index.js';
 import type { AiConfig } from './config.js';
+import { diagnosisFeature } from './diagnosis.js';
 import { pickProvider, type AiProvider } from './provider.js';
-import { AI_SUGGEST_QUEUE, runSuggest, type AiFeatures, type AiLogLine } from './suggest.js';
+import {
+  AI_SUGGEST_QUEUE,
+  runSuggest,
+  type AiFeature,
+  type AiFeatures,
+  type AiLogLine,
+} from './suggest.js';
 
 export { AI_SUGGEST_QUEUE };
 
@@ -12,15 +19,15 @@ export interface AiJobDeps {
   config: AiConfig;
   /** Default `pickProvider(config)`. */
   provider?: AiProvider | null;
-  /** Default `{}`: no feature is registered in this slice. */
+  /** Default `{ diagnosis }`. */
   features?: AiFeatures;
   now?: () => Date;
   log?: (line: AiLogLine) => void;
 }
 
 /**
- * Creates the queue for every role (senders need it) and, unless the role is `api` or no feature is registered,
- * the worker.
+ * Creates the queue for every role (senders need it) and, unless the role is `api` or no feature is registered
+ * (a worker would only poll an empty queue every two seconds), the worker.
  * `retryDelay` 95 s is above the 90 s claim lease, so pg-boss's own single retry (a crash or an
  * unexpected error) can re-claim a `running` row.
  */
@@ -32,8 +39,7 @@ export async function startAiJobs(boss: PgBoss, deps: AiJobDeps, role: JobRole):
       retryDelay: 95,
       expireInSeconds: 90,
     });
-  // No feature is registered until M6: a worker would only poll an empty queue every two seconds.
-  const features = deps.features ?? {};
+  const features = deps.features ?? { diagnosis: diagnosisFeature as AiFeature<unknown> };
   if (role === 'api' || Object.keys(features).length === 0) return;
   const runtime = {
     pool: deps.pool,
