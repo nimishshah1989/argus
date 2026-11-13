@@ -268,9 +268,11 @@ describe('ai suggest job', () => {
     await setSetting('ai.consent', consent);
     const production = { ...baseConfig, production: true };
     const fake = createFakeProvider();
+    const start = await rows();
     expect(
       await runSuggest(payload(await makeTicket()), runtime(fake, { config: production })),
     ).toBe('cap_reached');
+    expect(await rows()).toHaveLength(start.length);
     await setSetting('ai.monthlyCapUsd', 1);
     await spendRow(1_000_000);
     const before = await rows();
