@@ -36,7 +36,7 @@ deploy() {
     echo "migration failed; ${current:-nothing} still running"
     exit 1
   fi
-  up "$tag"
+  up "$tag" || true
   if healthy; then
     if [ -n "$current" ] && [ "$current" != "$tag" ]; then echo "$current" > .previous_tag; fi
     echo "$tag" > .current_tag

@@ -85,10 +85,14 @@ jobs:
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
       - name: Build and push the server image
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
-        run: docker buildx build --platform linux/arm64 -f infra/server.Dockerfile -t "${{ steps.ecr.outputs.registry }}/$APP-server:$TAG" --push .
+        env:
+          REG: ${{ steps.ecr.outputs.registry }}
+        run: docker buildx build --platform linux/arm64 -f infra/server.Dockerfile -t "$REG/$APP-server:$TAG" --push .
       - name: Build and push the web image
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
-        run: docker buildx build --platform linux/arm64 -f infra/web.Dockerfile --build-context dist=apps/web/dist -t "${{ steps.ecr.outputs.registry }}/$APP-web:$TAG" --push infra
+        env:
+          REG: ${{ steps.ecr.outputs.registry }}
+        run: docker buildx build --platform linux/arm64 -f infra/web.Dockerfile --build-context dist=apps/web/dist -t "$REG/$APP-web:$TAG" --push infra
       # No public SSH: the instance is reached through SSM only.
       - name: Run the release on the instance
         if: steps.gate.outputs.ready == 'true'

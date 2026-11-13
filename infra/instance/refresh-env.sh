@@ -8,7 +8,7 @@ set -a; . ./.env; set +a
 secret="$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --region "$AWS_REGION" \
   --query SecretString --output text)"
 umask 077
-jq -r '"DATABASE_URL=" + .DATABASE_URL' <<<"$secret" > app.env
-jq -r '"MIGRATION_DATABASE_URL=" + .MIGRATION_DATABASE_URL, "APP_API_PASSWORD=" + .APP_API_PASSWORD' \
+jq -er '"DATABASE_URL=" + .DATABASE_URL' <<<"$secret" > app.env
+jq -er '"MIGRATION_DATABASE_URL=" + .MIGRATION_DATABASE_URL, "APP_API_PASSWORD=" + .APP_API_PASSWORD' \
   <<<"$secret" > migrate.env
 echo "env refreshed"

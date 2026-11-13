@@ -16,3 +16,7 @@ Staging images go to Amazon ECR (immutable tags, tag = commit SHA), not GHCR. St
 - GHCR: needs a second credential on the instance and a package token in the workflow.
 - SSM Parameter Store for secrets: a second store for the same thing; the architecture already names Secrets Manager.
 - Mutable tags: a tag could silently change what a rollback restores.
+
+## Note
+
+`AmazonSSMManagedInstanceCore` allows `ssm:GetParameter*` on `*`: never store a secret in Parameter Store.

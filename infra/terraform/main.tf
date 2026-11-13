@@ -327,8 +327,10 @@ resource "aws_instance" "server" {
     systemctl enable --now docker
     # Compose v2 CLI plugin, pinned (docker/compose releases page, 13 Nov 2026).
     mkdir -p /usr/local/lib/docker/cli-plugins
-    curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
-      https://github.com/docker/compose/releases/download/v5.7.1/docker-compose-linux-aarch64
+    compose_url=https://github.com/docker/compose/releases/download/v5.7.1/docker-compose-linux-aarch64
+    curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose "$compose_url"
+    compose_sum=$(curl -fsSL "$compose_url.sha256" | cut -d' ' -f1)
+    echo "$compose_sum  /usr/local/lib/docker/cli-plugins/docker-compose" | sha256sum -c -
     chmod 755 /usr/local/lib/docker/cli-plugins/docker-compose
     mkdir -p /opt/uptimo
     cat > /opt/uptimo/.env <<'ENV'
