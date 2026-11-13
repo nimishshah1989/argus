@@ -2,7 +2,14 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LEGACY, boundaryErrors, sqlLiterals, tablesNamed } from './check-boundaries.js';
+import { EXCEPTIONS } from '../apps/server/src/modules/manifest.js';
+import {
+  LEGACY,
+  boundaryErrors,
+  importErrors,
+  sqlLiterals,
+  tablesNamed,
+} from './check-boundaries.js';
 
 const SRC = 'apps/server/src';
 
@@ -20,21 +27,8 @@ describe('boundaries check', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
   });
 
-  it('keeps the LEGACY baseline at the 10-file snapshot, so it can only shrink', () => {
-    expect(Object.keys(LEGACY).sort()).toEqual(
-      [
-        'day-report.ts',
-        'import/references.ts',
-        'push.ts',
-        'reports.ts',
-        'tag-sql.ts',
-        'ticket-report.ts',
-        'ticket-sql.ts',
-        'ticket/severity.ts',
-        'ticket/sla.ts',
-        'tickets.ts',
-      ].map((file) => `${SRC}/${file}`),
-    );
+  it('keeps the LEGACY baseline empty, so no file may break the rule', () => {
+    expect(Object.keys(LEGACY)).toEqual([]);
   });
 
   it.each([
@@ -65,6 +59,14 @@ describe('boundaries check', () => {
       [`${SRC}/modules/ops/repo.ts`]: "q('INSERT INTO audit_log (action) VALUES ($1)');",
     });
     expect(boundaryErrors(root, {})).toEqual([]);
+  });
+
+  it("allows the owner's repo/ folder", () => {
+    const sql = "q('SELECT 1 FROM machine');";
+    expect(boundaryErrors(plant({ [`${SRC}/modules/plant/repo/x.ts`]: sql }), {})).toEqual([]);
+    expect(boundaryErrors(plant({ [`${SRC}/modules/tickets/repo/x.ts`]: sql }), {})).toEqual([
+      `${SRC}/modules/tickets/repo/x.ts: SQL names machine (owned by plant); only ${SRC}/modules/plant/repo.ts may`,
+    ]);
   });
 
   it('ignores comments, unowned tables and test files', () => {
@@ -100,5 +102,108 @@ describe('boundaries check', () => {
     expect(boundaryErrors(root, { [`${SRC}/push.ts`]: ['person', 'machine'] })).toEqual([
       `${SRC}/push.ts: LEGACY lists machine but the file no longer names it; remove it`,
     ]);
+  });
+
+  it.each([
+    'SELECT 1 FROM widget w, person p',
+    'SELECT 1 FROM public.person',
+    'SELECT 1 FROM "person"',
+    'SELECT 1 FROM ONLY person',
+    'SELECT 1 FROM widget w JOIN LATERAL person p ON true',
+    'SELECT 1 FROM widget w, LATERAL (SELECT 1) x, "public"."person" y',
+    'SELECT 1 FROM widget w, (SELECT 1 FROM person) x',
+    'SELECT 1 FROM widget w, LATERAL (SELECT 1 FROM person WHERE true) x',
+    'SELECT 1 FROM person p, f(g(1)) x',
+  ])('names a table in every FROM form: %s', (sql) => {
+    const file = `${SRC}/modules/reports/x.ts`;
+    expect(boundaryErrors(plant({ [file]: `q('${sql}');` }), {})).toEqual([
+      `${file}: SQL names person (owned by identity); only ${SRC}/modules/identity/repo.ts may`,
+    ]);
+  });
+
+  it('fails a non-index import of another module', () => {
+    const file = `${SRC}/modules/reports/a.ts`;
+    const error = `${file}: imports ${SRC}/modules/plant/repo.ts; plant is reached only through ${SRC}/modules/plant/index.ts`;
+    for (const text of [
+      "import { x } from '../plant/repo.js';",
+      "import type { X } from '../plant/repo.js';",
+    ])
+      expect(importErrors(plant({ [file]: text }), [])).toEqual([error]);
+  });
+
+  it('fails a kernel-internal import', () => {
+    const file = `${SRC}/modules/plant/a.ts`;
+    const root = plant({ [file]: "import { g } from '../../kernel/guard.js';" });
+    expect(importErrors(root, [])).toEqual([
+      `${file}: imports ${SRC}/kernel/guard.ts; kernel is reached only through ${SRC}/kernel/index.ts`,
+    ]);
+  });
+
+  it('fails a legacy path', () => {
+    expect(importErrors(plant({ [`${SRC}/tickets.ts`]: 'export const x = 1;' }), [])).toEqual([
+      `${SRC}/tickets.ts: legacy path; move it into kernel/, modules/<name>/ or seed/`,
+    ]);
+    const file = `${SRC}/modules/plant/a.ts`;
+    expect(importErrors(plant({ [file]: "import '../../auth.js';" }), [])).toEqual([
+      `${file}: imports legacy path ${SRC}/auth.ts`,
+    ]);
+  });
+
+  it('fails a call the manifest does not allow', () => {
+    const file = `${SRC}/modules/plant/a.ts`;
+    const exception = [{ file, module: 'tickets', until: 't' }];
+    const calling = plant({ [file]: "import { x } from '../tickets/index.js';" });
+    expect(importErrors(calling, [])).toEqual([
+      `${file}: plant may not call tickets (${SRC}/modules/tickets/index.ts)`,
+    ]);
+    expect(importErrors(calling, exception)).toEqual([]);
+    const stale = `${file}: EXCEPTIONS lists tickets but the file no longer imports it; remove it`;
+    expect(importErrors(plant({ [file]: 'export {};' }), exception)).toEqual([stale]);
+    expect(importErrors(plant({ [`${SRC}/index.ts`]: 'export {};' }), exception)).toEqual([stale]);
+  });
+
+  it('keeps module imports out of the kernel', () => {
+    const file = `${SRC}/kernel/a.ts`;
+    const root = plant({ [file]: "import { m } from '../modules/plant/index.js';" });
+    expect(importErrors(root, [])).toEqual([
+      `${file}: the kernel imports no module (${SRC}/modules/plant/index.ts)`,
+    ]);
+  });
+
+  it('fails a module folder missing from the manifest', () => {
+    const file = `${SRC}/modules/zzz/index.ts`;
+    expect(importErrors(plant({ [file]: 'export {};' }), [])).toEqual([
+      `${file}: module zzz is not in the manifest`,
+    ]);
+  });
+
+  it('lets the seed reach modules only through their index', () => {
+    const seed = `${SRC}/seed/a.ts`;
+    const index = plant({ [seed]: "import { x } from '../modules/plant/index.js';" });
+    expect(importErrors(index, [])).toEqual([]);
+    const inner = plant({ [seed]: "import { x } from '../modules/plant/repo/config.js';" });
+    expect(importErrors(inner, [])).toEqual([
+      `${seed}: imports ${SRC}/modules/plant/repo/config.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
+    ]);
+    const module = `${SRC}/modules/plant/a.ts`;
+    expect(importErrors(plant({ [module]: "import '../../seed/cosmos.js';" }), [])).toEqual([
+      `${module}: a module may not import ${SRC}/seed/cosmos.ts`,
+    ]);
+  });
+
+  it('lists the dated call exceptions, so they can only shrink', () => {
+    expect(EXCEPTIONS.map((e) => `${e.file} -> ${e.module}`)).toEqual(
+      [
+        'plant/service.ts -> accountability',
+        'tickets/routes.ts -> accountability',
+        'tickets/list.ts -> accountability',
+        'imports/bhavin.ts -> accountability',
+        'imports/cli.ts -> accountability',
+      ].map((row) => `${SRC}/modules/${row}`),
+    );
+  });
+
+  it("passes the server tree's imports", () => {
+    expect(importErrors(process.cwd())).toEqual([]);
   });
 });

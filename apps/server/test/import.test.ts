@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { importBhavin, undoImport } from '../src/import/bhavin.js';
+import { importBhavin, undoImport } from '../src/modules/imports/bhavin.js';
 import {
   makeOrdinaryTicket,
   makeSyntheticExport,

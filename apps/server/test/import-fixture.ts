@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { AliasConfig } from '../src/import/schema.js';
+import type { AliasConfig } from '../src/modules/imports/schema.js';
 
 export const syntheticSource = 'argus.synthetic-bhavin/v1' as const;
 

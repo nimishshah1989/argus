@@ -1,9 +1,10 @@
 import { buildApp } from './app.js';
-import { createPool } from './db.js';
-import { loggerOptions } from './kernel/logging.js';
-import { startJobs, type JobRole } from './jobs/index.js';
-import { reconcileTicket } from './ticket/sla.js';
-import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
+import { createPool, loggerOptions, type JobRole } from './kernel/index.js';
+import {
+  startJobs,
+  reconcileTicket,
+  type SlaTicketReconciler,
+} from './modules/accountability/index.js';
 import type { PgBoss } from 'pg-boss';
 
 const url = process.env.DATABASE_URL;

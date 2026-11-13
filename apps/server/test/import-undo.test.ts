@@ -4,14 +4,14 @@ import {
   emptyCompletionFingerprint,
   fingerprintMismatches,
   makeCompletionFingerprint,
-} from '../src/import/fingerprint.js';
-import { loadBatchSnapshot } from '../src/import/fingerprint-sql.js';
+} from '../src/modules/imports/fingerprint.js';
+import { loadBatchSnapshot } from '../src/modules/imports/fingerprint-sql.js';
 import {
   makeRawEnvelope,
   type CompletionFingerprint,
   type EntryType,
-} from '../src/import/schema.js';
-import { undoImport } from '../src/import/undo.js';
+} from '../src/modules/imports/schema.js';
+import { undoImport } from '../src/modules/imports/undo.js';
 import {
   makeOrdinaryTicket,
   makeSyntheticExport,

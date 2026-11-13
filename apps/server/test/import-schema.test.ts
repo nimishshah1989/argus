@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeOrdinaryTicket, makeSyntheticExport, syntheticSource } from './import-fixture.js';
 import { startTestDb } from './harness.js';
 
-const loadSchema = () => import('../src/import/schema.js');
+const loadSchema = () => import('../src/modules/imports/schema.js');
 
 function captureError(run: () => unknown): unknown {
   try {

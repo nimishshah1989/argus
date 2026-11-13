@@ -12,4 +12,5 @@ export {
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
 export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
+export { createPool } from './db.js';
 export { jobDb, type JobRole, type JobsHandle } from './jobs.js';

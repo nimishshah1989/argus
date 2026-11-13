@@ -125,7 +125,7 @@ export async function listPeople(tx: Db): Promise<Record<string, unknown>[]> {
 export async function tenantInfo(
   tx: Db,
   tenantId: string,
-): Promise<{ language: string; time_zone: string }> {
+): Promise<{ name: string; language: string; time_zone: string }> {
   return (await tx.query('SELECT * FROM tenant_info($1)', [tenantId])).rows[0];
 }
 
@@ -175,4 +175,47 @@ export async function insertPeople(
         [tenantId, row.id, p.login.username, passwordHash, p.login.role],
       );
   }
+}
+
+export async function peopleByIds(
+  tx: Db,
+  tenantId: string,
+  ids: readonly string[],
+): Promise<{ id: string; name: string }[]> {
+  return (
+    await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [
+      tenantId,
+      ids,
+    ])
+  ).rows;
+}
+
+export async function activePerson(
+  tx: Db,
+  tenantId: string,
+  personId: string,
+): Promise<{ id: string; name: string } | undefined> {
+  return (
+    await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND id = $2 AND active', [
+      tenantId,
+      personId,
+    ])
+  ).rows[0];
+}
+
+export async function activePeople(
+  tx: Db,
+  tenantId: string,
+): Promise<{ id: string; name: string }[]> {
+  return (await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND active', [tenantId]))
+    .rows;
+}
+
+export async function ensurePendingPerson(tx: Db, tenantId: string, name: string): Promise<string> {
+  const inserted = await tx.query(
+    `INSERT INTO person (tenant_id, name, team, kind, active, pending)
+       VALUES ($1, $2, 'production', 'production', true, true) RETURNING id`,
+    [tenantId, name],
+  );
+  return inserted.rows[0].id as string;
 }

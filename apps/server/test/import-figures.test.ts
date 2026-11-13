@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { computeTicketFigures } from '../src/import/figures.js';
-import { reconcileTicket, ReconcileError, type ReconciledReport } from '../src/import/reconcile.js';
-import { parseTicket, type BhavinTicket } from '../src/import/schema.js';
-import { reduceTicketState } from '../src/import/state.js';
-import { validateIntervals } from '../src/import/intervals.js';
+import { computeTicketFigures } from '../src/modules/imports/figures.js';
+import {
+  reconcileTicket,
+  ReconcileError,
+  type ReconciledReport,
+} from '../src/modules/imports/reconcile.js';
+import { parseTicket, type BhavinTicket } from '../src/modules/imports/schema.js';
+import { reduceTicketState } from '../src/modules/imports/state.js';
+import { validateIntervals } from '../src/modules/imports/intervals.js';
 import { makeOrdinaryTicket, makeReconcileReferences } from './import-fixture.js';
 
 const NOW = new Date('2026-11-01T12:00:00Z');

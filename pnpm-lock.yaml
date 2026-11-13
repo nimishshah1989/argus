@@ -71,6 +71,9 @@ importers:
       '@uptimo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@uptimo/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@uptimo/shared':
         specifier: workspace:*
         version: link:../../packages/shared

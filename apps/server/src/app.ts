@@ -3,16 +3,12 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import { registerReports } from './reports.js';
-import { registerSettings } from './settings.js';
-import { registerTickets } from './tickets.js';
-import { registerPush } from './push.js';
-import { registerTags } from './tags.js';
-import type { AppConfig } from './config.js';
-import { startJobs } from './jobs/index.js';
-import { reconcileTicket } from './ticket/sla.js';
-import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
-import { registerAuthGuard, registerHealth } from './kernel/index.js';
+import {
+  startJobs,
+  reconcileTicket,
+  type SlaTicketReconciler,
+} from './modules/accountability/index.js';
+import { registerAuthGuard, registerHealth, type AppConfig } from './kernel/index.js';
 import { modules } from './modules/index.js';
 import { authenticate } from './modules/identity/index.js';
 
@@ -45,11 +41,6 @@ export async function buildApp(config: AppConfig) {
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   registerHealth(app, config);
   for (const mod of modules) mod.register(app, config);
-  registerSettings(app, config);
-  registerTickets(app, config);
-  registerReports(app, config);
-  registerPush(app, config);
-  registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof SlaInputError) {
       reply.code(422).send(apiError('validation', error.message, error.code));
