@@ -21,7 +21,15 @@ export const ticketsModule = defineModule({
     registerTickets(app, config);
   },
 });
-export { dayJobRows, pdfTicketRow, pendingRows, setReportPdf } from './repo/history.js';
+export {
+  dayJobRows,
+  machineHistory,
+  notesSeenElsewhere,
+  pdfTicketRow,
+  pendingRows,
+  setReportPdf,
+  type HistoryRow,
+} from './repo/history.js';
 export {
   importedChildren,
   importedTicketRows,

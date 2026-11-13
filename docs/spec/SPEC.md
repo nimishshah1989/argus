@@ -306,7 +306,7 @@ maintenance-os/
   packages/shared     Zod schemas, settings schema, i18n messages, constants
   packages/engine     analytics port (from M4); python/ sidecar beside it
   docs/spec           SPEC.md, DOMAIN.md, PARITY.md, parity.yaml, QUESTIONS.md, DIFFERENCES.md
-  docs/plan           backlog.md, STATUS.md, NEEDS.md, gates/M0.md ...
+  docs/plan           MILESTONES.md, NEEDS.md, ledger.md, gates/M0.md ...
   docs/discovery      the research pack, both HTML sources, inventories, exports, answer-key fixtures
   docs/adr            0001-stack.md, 0002-... 
   infra/              Terraform (AWS), Docker Compose, Caddyfile, deploy and rollback scripts, .env.example
@@ -315,11 +315,11 @@ maintenance-os/
 
 **Tooling:** TypeScript strict; ESLint (with the no-literal-strings rule) and Prettier; Vitest; Playwright for end-to-end and PDF tests; Testcontainers Postgres for database and isolation tests; a local S3 stand-in (MinIO) in Docker Compose for development; GitHub Actions for lint, typecheck, test, build, migration check, licence check and deploy; Conventional Commits; dependency updates batched monthly by a bot into one pull request so sessions are not spent on version bumps; `pnpm` scripts for every routine action (`dev`, `test`, `migrate`, `seed:cosmos`, `import:bhavin`, `import:undo`, `deploy:staging`, `deploy:production`, `deploy:rollback`). Environment variables are listed in `infra/.env.example` with a one-line purpose each; secrets come from AWS Secrets Manager in staging and production and from `.env.local` in development.
 
-**Spec-driven workflow.** Session 1 turns section 11 and the Parity checklist into `docs/plan/backlog.md` (one ticket per row, acceptance criteria copied in, dependencies, a `verification` field of `auto`, `gate-manual` or `external`) and `docs/spec/parity.yaml`. Each later session takes the first unblocked ticket, re-reads its spec section and parity rows, writes or updates the tests first, implements, runs the full suite, updates docs, changelog and `parity.yaml`, opens a pull request and, when every check is green, **merges it itself** (squash to `main`), then takes the next ticket. Merge to `main` deploys staging automatically. Nimish reviews behaviour on staging and reads the gate report; he does not review code or merge. Nothing merges with a red check.
+**Spec-driven workflow.** Session 1 turns section 11 and the Parity checklist into `docs/plan/MILESTONES.md` (one ticket per row, acceptance criteria copied in, dependencies, a `verification` field of `auto`, `gate-manual` or `external`) and `docs/spec/parity.yaml`. Each later session takes the first unblocked ticket, re-reads its spec section and parity rows, writes or updates the tests first, implements, runs the full suite, updates docs, changelog and `parity.yaml`, opens a pull request and, when every check is green, **merges it itself** (squash to `main`), then takes the next ticket. Merge to `main` deploys staging automatically. Nimish reviews behaviour on staging and reads the gate report; he does not review code or merge. Nothing merges with a red check.
 
 **Four files make the loop self-correcting**
 
-- `docs/plan/STATUS.md`: what the last session did, what is in progress, what it was about to do. Read first, written last, every session.
+- `docs/HANDOFF.md`: what the last session did, what is in progress, what it was about to do. Read first, written last, every session.
 - `docs/plan/NEEDS.md`: every input only Nimish or Bhavin can supply (an account, a credential, a file, a decision), with exactly what is needed and in what format. A ticket that hits one is marked `blocked-external` and the session moves to the next unblocked ticket; it never fabricates the input. Synthetic fixtures may be used only where the ticket allows and are labelled as such.
 - `docs/spec/QUESTIONS.md`: conflicts between spec, parity and code, each with the resolution the session proposed and followed. Changes that alter stored data, money or an outside account wait for Nimish; everything else proceeds on the proposed resolution.
 - `docs/spec/DIFFERENCES.md`: every deliberate departure from Bhavin's behaviour with old, new and why.
@@ -332,7 +332,7 @@ maintenance-os/
 
 **CLAUDE.md** (paste as is)
 
-1. Read `docs/plan/STATUS.md`, then the `docs/spec/SPEC.md` section and the parity rows for the ticket, before writing code. If the spec and the ticket disagree, write the conflict and your resolution in `docs/spec/QUESTIONS.md` and proceed, unless the change alters stored data, money or an outside account; then mark the ticket blocked and move on.
+1. Read `docs/HANDOFF.md`, then the `docs/spec/SPEC.md` section and the parity rows for the ticket, before writing code. If the spec and the ticket disagree, write the conflict and your resolution in `docs/spec/QUESTIONS.md` and proceed, unless the change alters stored data, money or an outside account; then mark the ticket blocked and move on.
 2. Every tenant table has `tenant_id` and row-level security in the same migration. The generic isolation test must pass. Cross-tenant access only through the `app_router` role's documented functions.
 3. Business rules live in `packages/domain` as pure functions with tests; handlers and components never contain rules.
 4. Nothing plant-specific in code. Segments, groups, codes, lists, shifts, SLA targets, roles, numbering prefixes and the Cosmos legacy constants are configuration or test fixtures.
@@ -345,18 +345,18 @@ maintenance-os/
 11. Migrations are expand-and-contract and never destructive in the same release. Destructive scripts refuse to run unless `APP_ENV=staging` or a human passes `--production-confirm`. Sessions never run anything against production.
 12. Parity rule: match the intent of the Parity checklist row; log any deliberate difference in `docs/spec/DIFFERENCES.md` with old, new and why.
 13. Inputs you do not have (accounts, credentials, Bhavin's files, a human decision) go in `docs/plan/NEEDS.md` with the exact format needed; mark the ticket `blocked-external` and continue with the next. Never fabricate data to get past a blocker.
-14. Write `docs/plan/STATUS.md` before the session ends, every time.
+14. Write `docs/HANDOFF.md` before the session ends, every time.
 
 ## 11. Build order for Claude Code
 
-Epics in sequence. Each is a few sessions and has acceptance criteria tagged **auto** (a test or script proves it), **gate-manual** (Nimish checks it on staging at the gate) or **external** (needs an input from outside; tracked in NEEDS.md). Session 1 turns this list into `docs/plan/backlog.md`.
+Epics in sequence. Each is a few sessions and has acceptance criteria tagged **auto** (a test or script proves it), **gate-manual** (Nimish checks it on staging at the gate) or **external** (needs an input from outside; tracked in NEEDS.md). Session 1 turns this list into `docs/plan/MILESTONES.md`.
 
 **M0 Foundation and walking skeleton**
 
 | # | Epic | Acceptance |
 | --- | --- | --- |
 | 0.1 | Monorepo scaffold: the layout in section 10, lint with the no-literal-strings rule, Vitest, Playwright, Testcontainers, CI running lint, typecheck, test, build, licence check | auto: `pnpm test` green on the empty repo; CI runs on every pull request |
-| 0.2 | `docs/adr/0001-stack.md`, `docs/adr/0002-outside-services.md`, `CLAUDE.md`, `docs/plan/backlog.md`, `docs/plan/STATUS.md`, `docs/plan/NEEDS.md`, `docs/spec/parity.yaml` generated from PARITY.md | auto: parity.yaml validates and its row count equals the checklist's rows; gate-manual: Nimish reads the two decision records |
+| 0.2 | `docs/adr/0001-stack.md`, `docs/adr/0002-outside-services.md`, `CLAUDE.md`, `docs/plan/MILESTONES.md`, `docs/HANDOFF.md`, `docs/plan/NEEDS.md`, `docs/spec/parity.yaml` generated from PARITY.md | auto: parity.yaml validates and its row count equals the checklist's rows; gate-manual: Nimish reads the two decision records |
 | 0.3 | Schema v1 migrations with RLS: tenant, person, login, session (our tables), machine, segment, machine\_group, machine\_move, list\_item, shift, setting, glossary\_term, ticket, ticket\_event, crew\_member, work\_segment, breakdown\_report, file, push\_subscription, audit\_log, import\_batch, ref\_counter; `app_router` role and its functions | auto: generic isolation test passes for every table; dev assertion fires on a query without tenant |
 | 0.4 | Auth: tenant from host, login, logout, me, change password, 30-day sliding bearer sessions, shared logins with acting person; `/brand` by host | auto: contract tests; end-to-end sign-in on two tenants on staging |
 | 0.5 | Settings API and the first Settings screens: lists with flags, people and logins, machines, shifts, features; translation screen with the untranslated list | auto: a list edited in Settings is returned by `/config` with a new fingerprint |

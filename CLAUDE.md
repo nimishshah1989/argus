@@ -1,10 +1,9 @@
 # How work is done here (pstack)
 
-Product spec: `docs/spec/SPEC.md`. Current state: `docs/HANDOFF.md` (read first). Queue: `docs/plan/MILESTONES.md`.
-Loop and models: `docs/plan/ORCHESTRATOR.md`. Anti-bloat: `docs/LEAN.md` (400-line file, 60-line function, no
+Product spec: `docs/spec/SPEC.md`. Current state: `docs/HANDOFF.md` (read first). The one plan:
+`docs/plan/MILESTONES.md` (68 tickets, their goals, blockers and live status). Anti-bloat: `docs/LEAN.md` (400-line file, 60-line function, no
 new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: `docs/DATA-MAP.md`. Design:
-`docs/DESIGN.md`. Discovery in `docs/discovery/` is reference only, never code to copy. The Athena v3 process is
-retired (D23); `docs/archive/athena-v3/` is history, not instructions.
+`docs/DESIGN.md`. Discovery in `docs/discovery/` is reference only, never code to copy.
 
 ## Who decides
 
@@ -37,11 +36,25 @@ retired (D23); `docs/archive/athena-v3/` is history, not instructions.
 - Pause for a person before anything irreversible: production deploys, data deletion, messages to customers.
 - When you catch an agent repeating a mistake, run `/pstack:correct` so a check blocks it next time.
 
+## Orchestrating the plan
+
+- **Frontier:** a ticket is ready when every ticket it is "Blocked by" is merged to `main`. Work the frontier;
+  at most three tickets at once, each in its own worktree, branch and PR, with write areas that do not overlap.
+  Schema-changing tickets run one at a time. Merges go one at a time: CI green, then merge.
+- **Parallel agents** do not message each other. They share the frozen interfaces in each slice plan
+  (`docs/slices/<issue>.md`), `main`, and the ledger (`docs/plan/ledger.md`, one line per dispatch, ruling or merge).
+- **Gate:** when a milestone's tickets are merged, run the full suite and `ponytail-audit`, write
+  `docs/plan/gates/<M>.md` (goals, tests, evidence, what Nimish checks), then stop for his go.
+- **Timebox:** a ticket reaches its PR in about an hour; past two, cut scope. Record every ruling in the ledger
+  (`Ruling: what, why, cost if wrong`).
+- **Resume:** read `docs/HANDOFF.md`, the ledger and `docs/plan/MILESTONES.md`; never re-dispatch a ticket the
+  tracker marks done. Start an orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLAUDE.md`."
+
 ## Git
 
 Work on a branch. Never push to main, never force-push, never `--no-verify`. One ticket per PR, with one
 `changes/<issue>-<slug>.md` fragment. The PR body says what changed for a user, which tests prove it, and how
-to try the preview.
+to try the preview. Run `pnpm precheck` before every push.
 
 ## Memory
 

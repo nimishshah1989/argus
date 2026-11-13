@@ -29,18 +29,24 @@ describe('ai configuration', () => {
     expect(pickProvider(config)?.modelRef).toBe('fake');
   });
 
-  it('requires environment, model and prices when a key is set, without printing the key', () => {
-    for (const missing of [
-      'APP_ENV',
-      'AI_MODEL',
-      'AI_PRICE_INPUT_USD_PER_MTOK',
-      'AI_PRICE_OUTPUT_USD_PER_MTOK',
-    ] as const) {
-      const env: Record<string, string | undefined> = { ...FULL };
-      delete env[missing];
-      expect(() => aiConfigFromEnv(env)).toThrow(missing);
-      expect(() => aiConfigFromEnv(env)).not.toThrow(new RegExp(KEY));
-    }
+  it('runs on the key alone: Sonnet 5.5, its listed prices, not production', () => {
+    const config = aiConfigFromEnv({ ANTHROPIC_API_KEY: KEY });
+    expect(config).toMatchObject({
+      apiKey: KEY,
+      model: 'claude-sonnet-5-5',
+      priceInputUsdPerMtok: 2,
+      priceOutputUsdPerMtok: 10,
+      production: false,
+    });
+    expect(pickProvider(config)?.modelRef).toBe('claude-sonnet-5-5');
+    const opus = aiConfigFromEnv({ ANTHROPIC_API_KEY: KEY, AI_MODEL: 'claude-opus-5-5' });
+    expect([opus.priceInputUsdPerMtok, opus.priceOutputUsdPerMtok]).toEqual([4, 20]);
+  });
+
+  it('needs prices for a model not in the table, without printing the key', () => {
+    const env = { ANTHROPIC_API_KEY: KEY, AI_MODEL: 'test-model-id' };
+    expect(() => aiConfigFromEnv(env)).toThrow('AI_PRICE_INPUT_USD_PER_MTOK');
+    expect(() => aiConfigFromEnv(env)).not.toThrow(new RegExp(KEY));
     const bad = { ...FULL, AI_PRICE_INPUT_USD_PER_MTOK: 'abc' };
     expect(() => aiConfigFromEnv(bad)).toThrow('AI_PRICE_INPUT_USD_PER_MTOK');
     expect(() => aiConfigFromEnv(bad)).not.toThrow(new RegExp(KEY));

@@ -20,7 +20,7 @@ breakdown and prove whether maintenance is working. AI suggests; a person confir
 
 ## Scope and order (in this order; each milestone has a gate Nimish answers)
 
-1. **Harness re-baseline** — one process (Athena v3), issues as the queue, true status.
+1. **Harness re-baseline** — one process (pstack), issues as the queue, true status.
 2. **Design system first** — one design language installed before more screens are built (see below).
 3. **Staging live** — Nimish tests every slice on his phone.
 4. **M1 parity complete and cutover** — ticket raising at Cosmos happens on Uptimo; Bhavin's app read-only.
