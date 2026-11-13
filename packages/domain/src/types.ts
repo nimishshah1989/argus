@@ -1,3 +1,4 @@
+import type { Criticality, Severity, SeverityMatrix } from '@uptimo/shared';
 export type Status = 'open' | 'working' | 'waiting' | 'closed' | 'cancelled';
 export type RestorableStatus = 'open' | 'working' | 'waiting';
 export type Kind = 'stopped' | 'support' | 'general';
@@ -105,18 +106,11 @@ export interface CrewMember {
 }
 
 export interface TicketContext {
-  raisedLoginId: string;
+  raisedLoginId: string | null;
   leadPersonId: string | null;
   startedAt: Date | null;
   status: Status;
   crew: CrewMember[];
 }
 
-export type Criticality = 'A' | 'B' | 'C';
-export type Severity = 'S1' | 'S2' | 'S3' | 'S4';
-
-export interface SeverityMatrix {
-  default: Record<Criticality, Record<'stopped' | 'support', Severity>>;
-  workRequest: Severity;
-  urgentWorkRequest: Severity;
-}
+export type { Criticality, Severity, SeverityMatrix };

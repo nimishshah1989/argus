@@ -1,21 +1,37 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { enqueue, isQueueable } from './offline/outbox.js';
+import type { User } from '@uptimo/shared/auth';
 import type {
-  CommandAction,
-  CommandBody,
-  CommandResult,
-  Config,
+  Criticality,
+  Group,
   ListItem,
-  Me,
-  RaiseTicketBody,
+  Machine,
+  Person,
+  Segment,
+  Severity,
   SeverityMatrix,
-  SlaPoliciesUpdate,
+  Shift,
+} from '@uptimo/shared/config';
+import type {
+  CommandReply,
+  Config,
   State,
   Ticket,
   TicketDetail,
-  TicketListQuery,
   TicketPage,
-} from './api-types.js';
+} from '@uptimo/shared/replies';
+import type { SlaPoliciesUpdate, SlaPolicy, SlaProjection, SlaTimer } from '@uptimo/shared/sla';
+import type { BreakdownReportBody, CommandAction, RaiseTicketBody } from '@uptimo/shared/ticket';
+import type {
+  BreakdownReport,
+  CloseKind,
+  Figures,
+  TicketEvent,
+  TicketInterval,
+  TicketKind,
+  TicketPerson,
+  TicketStatus,
+} from '@uptimo/shared/ticket-reply';
 
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
@@ -177,8 +193,68 @@ export async function command(
   return sendCommand(ticketId, action, body, key);
 }
 
-/** Re-exported so existing `from '../api.js'` type imports keep working after the split. */
-export type * from './api-types.js';
+export type {
+  BreakdownReport,
+  BreakdownReportBody,
+  CloseKind,
+  CommandAction,
+  Config,
+  Criticality,
+  Figures,
+  Group,
+  ListItem,
+  Machine,
+  Person,
+  RaiseTicketBody,
+  Segment,
+  Severity,
+  SeverityMatrix,
+  Shift,
+  SlaPoliciesUpdate,
+  SlaPolicy,
+  SlaProjection,
+  SlaTimer,
+  State,
+  Ticket,
+  TicketDetail,
+  TicketEvent,
+  TicketInterval,
+  TicketPage,
+  TicketPerson,
+  TicketStatus,
+};
+export type RaiseKind = TicketKind;
+export type Me = User;
+export type BreakdownCategory = NonNullable<BreakdownReportBody['breakdownCategory']>;
+export type CommandResult = CommandReply | { queued: true; id: string };
+
+export type CorrectChanges = Partial<
+  Pick<Ticket, 'reportedAt' | 'startedAt' | 'closedAt' | 'problem' | 'leadPersonId'>
+> & { machineId?: string | null; kind?: RaiseKind; closedByPersonId?: string | null };
+
+export interface TicketListQuery {
+  status?: TicketStatus[];
+  kind?: RaiseKind[];
+  machineId?: string;
+  personId?: string;
+  raisedBy?: string;
+  from?: string;
+  to?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+/** The action bodies the desk sends; each command from DOMAIN.md §4. */
+export type CommandBody =
+  | { personId: string }
+  | { personId: string; reasonCode: string; note?: string }
+  | { personId: string; text: string }
+  | { personId: string; note: string; toPersonId?: string }
+  | { personId: string; kind: CloseKind; note?: string; report?: BreakdownReportBody }
+  | { personId: string; report: BreakdownReportBody }
+  | { personId: string; reason: string }
+  | { personId: string; role: 'primary' | 'support' }
+  | { reason: string; changes: CorrectChanges };
 
 export function putSeverityMatrix(value: SeverityMatrix): Promise<{ ok: boolean }> {
   return api<{ ok: boolean }>('/api/v1/settings/severity_matrix', {
