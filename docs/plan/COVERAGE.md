@@ -347,3 +347,12 @@ Every table has an owner. Only 22 names its tables, and none of M4a/M4b/M6/M3 ha
 | M3 (14)         | 00→ implied 44 (Q1) · 01→44 · 03→44 (p, G32) · 02→44 · 05→46 (p, G14) · 12→47 · 04→45 · 06→46 · 09→44 · 07→46 · 10→45 (p: printable QR sheet) · 11→45 · 08→46 · 13→47                                                                                                                                                                                                                                                                                                                |
 
 Totals: 176 = 152 kept (26 of them only partly) + 4 implied but not named (schema tickets M4a-02, M4b-00, M6-01, M3-00; see Q1) + 2 dropped with a reason (H8, M1-I4) + 18 dropped with no reason. The 18 unexplained drops are the structural work (F1–F7, F9), tags (M1-P11), one-truth-per-fact (M1-P5), leaver erasure (M1-P8), importer behind the interface (M1-I2), analytics settings (M4a-03), catalogues (D4), and the harness truth tickets H5, H6, H7, H10.
+
+## Re-verification (13 November 2026)
+
+The plan was revised to 65 tickets against every finding above. Two fresh-context reviews followed:
+
+1. **Round 1 — MECE NO, close:** 45 of 46 gaps and all 11 overlaps fixed, all 10 rejections accepted; 11 remaining findings (M1 order vs the gallery gate, customer offboarding, module names, tag drop timing, sign-off overlap, AI thresholds in 59/60, cell-log edit, analytics settings screen, PM meter and checklist storage, erasure reach, wording).
+2. **Round 2 — MECE YES:** all 11 fixed with no new gap, overlap or edge fault. Two stale lines in `docs/ARCHITECTURE.md` (tag drop timing; "tags" owned by `tickets`) were corrected afterwards.
+
+**Result: the 65 tickets in `docs/plan/MILESTONES.md` are mutually exclusive and collectively exhaustive against the binding sources**, with one product question left open (G46: lockout checklist, critical-spares list, Weibull fits).
