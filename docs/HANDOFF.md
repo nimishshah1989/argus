@@ -33,3 +33,11 @@ in `docs/plan/MILESTONES.md` is the queue.
 ## Parallel rule
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
+
+<!-- facts: written by the session-end hook -->
+Last session ended 2026-11-13 09:30 UTC on branch `claude/t13b-server-az`.
+- 5627c02 13b: staging server zone is a setting (server_az_suffix, default b)
+- 5662137 08: Real plant in — machines, 26 logins, shifts (#150)
+- 1bb9a3b 13: staging live — deploy on merge, rollback, health 503, redacted logs, alarms (#146)
+Uncommitted files: 0
+<!-- end facts -->
