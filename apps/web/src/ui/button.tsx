@@ -6,7 +6,8 @@ export type ButtonProps = Omit<ComponentProps<'button'>, 'className' | 'style'> 
 
 const VARIANT = {
   primary: 'bg-accent-strong text-white',
-  secondary: 'bg-surface border border-neutral-300 text-neutral-900',
+  secondary:
+    'bg-surface border border-neutral-300 text-neutral-900 aria-pressed:ring-2 aria-pressed:ring-accent-strong aria-pressed:text-accent-strong',
 };
 
 export function Button({ variant = 'primary', type = 'button', ...rest }: ButtonProps) {

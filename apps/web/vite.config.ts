@@ -21,6 +21,9 @@ export default defineConfig({
       },
     }),
   ],
+  optimizeDeps: {
+    include: ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+  },
   server: {
     proxy: {
       // 127.0.0.1 (an IP) so a proxied Host resolves the default tenant (see tenant.ts);

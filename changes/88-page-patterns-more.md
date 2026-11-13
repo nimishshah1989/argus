@@ -1,0 +1,2 @@
+- `/gallery` shows a settings page generated from one short description: it lists, adds, edits and switches machines off and on again through the API, and never deletes.
+- `/gallery` shows the wizard, board and dashboard patterns; dashboard charts (ECharts, D24) load only when first shown and each comes with a table of its numbers.

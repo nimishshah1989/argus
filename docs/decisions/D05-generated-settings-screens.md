@@ -18,3 +18,5 @@ The BRIEF requires that a new screen is mostly configuration. Today four setting
 - React state per field instead of react-hook-form: no dirty tracking or schema-driven field errors, and a re-render per keystroke on a low-end phone.
 
 Both libraries are named in SPEC §5a and are verify in current docs.
+
+Amended 13 November 2026 by D24 (ticket 12): until a resource needs sorting, column choice, virtualised rows or schema field errors, `CrudPage` uses a plain `<table>` and `FormSheet`; TanStack Table and react-hook-form are deferred, not rejected.
