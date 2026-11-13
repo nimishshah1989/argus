@@ -42,3 +42,4 @@
 - 2026-11-13 06:54 UTC session c23c2255 on `claude/orchestrator-ledger`: b21370f docs(plan): ledger — format ruling
 - 2026-11-13 06:57 UTC session ? on `claude/orchestrator-ledger`: 82922f2 docs(plan): ledger — ticket 01 rulings
 - 2026-11-13 07:01 UTC session c23c2255 on `claude/orchestrator-ledger`: 422856b docs: fence the hook-written HANDOFF facts from prettier
+- 2026-11-13 07:20 UTC session c23c2255 on `claude/orchestrator-ledger`: 18fd23d docs: session-end facts
