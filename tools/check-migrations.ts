@@ -14,7 +14,8 @@ export type RuleName =
   | 'SET NOT NULL'
   | 'ALTER TYPE'
   | 'REVOKE'
-  | 'EXECUTE';
+  | 'EXECUTE'
+  | 'UNPAIRED $';
 
 export interface Finding {
   rule: RuleName;
@@ -44,15 +45,19 @@ export const EXCEPTIONS: readonly MigrationException[] = [
   predates('0007_sla_policy_timer.sql', '2026-11-12'),
 ];
 
-/** A plain or double-quoted identifier, optionally schema-qualified: `t`, `"my table"`, `public."t"`. */
-const IDENT = String.raw`(?:[\w$]+|"(?:[^"]|"")*")(?:\.(?:[\w$]+|"(?:[^"]|"")*"))*`;
+/** Any non-ASCII character counts as part of a name (when in doubt, flag: a false positive only costs an approval). */
+const NAME = String.raw`[\w$\u0080-\uffff]+`;
+/** A quoted name, plain or unicode-escaped: `"my table"`, `U&"\0074icket"`. */
+const QUOTED = String.raw`(?:u&)?"(?:[^"]|"")*"`;
+/** A plain or quoted identifier, optionally schema-qualified: `t`, `"my table"`, `public."t"`. */
+const IDENT = String.raw`(?:${NAME}|${QUOTED})(?:\.(?:${NAME}|${QUOTED}))*`;
 
 const RULES: readonly [RuleName, RegExp][] = [
   ['DROP', /\bdrop\b/gi],
   [
     'UPDATE',
     new RegExp(
-      String.raw`\bupdate\s+(?:only\s+)?${IDENT}(?:\s*\*)?\s+(?:(?:as\s+)?[\w$]+\s+)?set\b`,
+      String.raw`\bupdate\s+(?:only\s+)?${IDENT}(?:\s*\*)?\s+(?:(?:as\s+)?(?:${NAME}|${QUOTED})\s+)?set\b`,
       'gi',
     ),
   ],
@@ -69,7 +74,7 @@ const RULES: readonly [RuleName, RegExp][] = [
   ['REVOKE', /\brevoke\b/gi],
   // Dynamic SQL (a DO body or a prepared statement) can build any statement from pieces; the function and
   // trigger forms and a GRANT EXECUTE are not dynamic.
-  ['EXECUTE', /\bexecute\b(?!\s+(?:function|procedure|on)\b)(?!')/gi],
+  ['EXECUTE', /(?<!')\bexecute\b(?!\s+(?:function|procedure|on)\b)/gi],
 ];
 
 const spaces = (text: string): string => text.replace(/[^\n]/g, ' ');
@@ -90,7 +95,7 @@ function blockEnd(sql: string, start: number): number {
 
 /** The `$tag$` that opens a dollar quote at `i` (not inside a name such as `a$b$`), or undefined. */
 function dollarTag(sql: string, i: number): string | undefined {
-  if (/[\w$]/.test(sql[i - 1] ?? '')) return undefined;
+  if (/[\w$\u0080-\uffff]/.test(sql[i - 1] ?? '')) return undefined;
   return /^\$(?:[A-Za-z_\u0080-\uffff][\w\u0080-\uffff]*)?\$/.exec(sql.slice(i, i + 80))?.[0];
 }
 
@@ -110,18 +115,20 @@ function quotedEnd(sql: string, start: number): number {
   return sql.length;
 }
 
-/** Index just past the dollar-quoted span that opens at `start`, or -1 when none opens there. */
-function dollarEnd(sql: string, start: number): number {
+/** Index just past the dollar-quoted span that opens at `start`, or -1 when none opens there. A span with no
+ *  closing tag runs to the end of the file and its start is added to `unpaired`. */
+function dollarEnd(sql: string, start: number, unpaired: number[]): number {
   const tag = dollarTag(sql, start);
   if (tag === undefined) return -1;
   const close = sql.indexOf(tag, start + tag.length);
+  if (close === -1) unpaired.push(start);
   return close === -1 ? sql.length : close + tag.length;
 }
 
 /** One pass: comments (`--`, nested block) become spaces, newlines kept. Quoted text is kept and scanned.
  *  Nothing inside a `$tag$...$tag$` span is blanked (a DO body stays scanned, comments and all: a comment
  *  there can cost a false positive, never a hidden statement). */
-function blankComments(sql: string): string {
+function blankComments(sql: string, unpaired: number[]): string {
   let out = '';
   let i = 0;
   while (i < sql.length) {
@@ -134,7 +141,8 @@ function blankComments(sql: string): string {
       i = end;
       continue;
     }
-    const end = c === "'" || c === '"' ? quotedEnd(sql, i) : c === '$' ? dollarEnd(sql, i) : -1;
+    const end =
+      c === "'" || c === '"' ? quotedEnd(sql, i) : c === '$' ? dollarEnd(sql, i, unpaired) : -1;
     out += end === -1 ? c : sql.slice(i, end);
     i = end === -1 ? i + 1 : end;
   }
@@ -143,11 +151,12 @@ function blankComments(sql: string): string {
 
 /** Every guarded statement in one file's SQL, comments blanked out, line numbers 1-based. */
 export function guardedStatements(sql: string): Finding[] {
-  const clean = blankComments(sql);
-  const found: Finding[] = [];
+  const unpaired: number[] = [];
+  const clean = blankComments(sql, unpaired);
+  const lineAt = (index: number | undefined): number => clean.slice(0, index).split('\n').length;
+  const found: Finding[] = unpaired.map((i) => ({ rule: 'UNPAIRED $', line: lineAt(i) }));
   for (const [rule, pattern] of RULES)
-    for (const m of clean.matchAll(pattern))
-      found.push({ rule, line: clean.slice(0, m.index).split('\n').length });
+    for (const m of clean.matchAll(pattern)) found.push({ rule, line: lineAt(m.index) });
   return found.sort((a, b) => a.line - b.line);
 }
 

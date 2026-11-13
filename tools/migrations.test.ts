@@ -147,6 +147,32 @@ describe('migration guard scanner', () => {
     for (const sql of benign) expect(rules(sql), sql).toEqual([]);
   });
 
+  it('does not let non-ASCII names, quoted aliases or unicode-escaped names hide a statement', () => {
+    const drop = [{ rule: 'DROP', line: 1 }];
+    const update = [{ rule: 'UPDATE', line: 1 }];
+    // A non-ASCII letter before $$ is part of a name, so the $$ does not open a quote.
+    expect(rules('SELECT 1 AS é$$, $$ -- $$; DROP TABLE ticket;')).toEqual(drop);
+    expect(rules("DO $$ BEGIN EXECUTE'DR'||'OP TABLE ticket'; END $$;")).toEqual([
+      { rule: 'EXECUTE', line: 1 },
+    ]);
+    expect(rules('UPDATE ticket "x" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE ticket AS "my x" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE ticket é SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE é SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE U&"\\0074icket" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE u&"\\0074icket" AS x SET a = 1;')).toEqual(update);
+    expect(rules('ALTER TABLE t ALTER COLUMN U&"c\\0301" TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+  });
+
+  it('reports a dollar quote it cannot pair instead of trusting the rest of the file', () => {
+    expect(rules('SELECT 1;\nSELECT $x$ never closed;\nSELECT 2;')).toEqual([
+      { rule: 'UNPAIRED $', line: 2 },
+    ]);
+    expect(rules('SELECT $x$ closed $x$;')).toEqual([]);
+  });
+
   it('flags the planted bypass files', () => {
     const planted = [
       'SELECT $$--$$; DROP TABLE ticket;',
@@ -154,6 +180,12 @@ describe('migration guard scanner', () => {
       "SELECT E'\\' -- '; DROP TABLE ticket;",
       'UPDATE "my table" SET a = 1;',
       "DO $$ BEGIN EXECUTE 'DR' || 'OP TABLE ticket'; END $$;",
+      'SELECT 1 AS é$$, $$ -- $$; DROP TABLE ticket;',
+      "DO $$ BEGIN EXECUTE'DR'||'OP TABLE ticket'; END $$;",
+      'UPDATE ticket "x" SET a = 1;',
+      'UPDATE ticket é SET a = 1;',
+      'UPDATE U&"\\0074icket" SET a = 1;',
+      'SELECT $x$ never closed;',
     ];
     for (const sql of planted)
       expect(scanMigrations(plant({ '0008_planted.sql': sql })).length, sql).toBeGreaterThan(0);
