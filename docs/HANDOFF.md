@@ -40,10 +40,10 @@ orchestrator the number. Agents cannot force-push or delete tests: he deletes te
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 14:04 UTC on branch `claude/orchestrator-ledger`.
-- 4c24791 docs: session notes (hook)
-- 303d079 docs(plan): ledger — #163 merged; one PR at the gate
-- 12fcb1c merge main (ledger PR #163 merged)
+Last session ended 2026-11-13 15:09 UTC on branch `claude/kind-curie-ayp7eq`.
+- 25e2f04 Merge branch 'slice-72b' into claude/kind-curie-ayp7eq
+- 8c75707 Merge remote-tracking branch 'origin/main' into claude/kind-curie-ayp7eq
+- 79a65f5 72a: diagnosis evidence — machine history, same-model machines and the evidence rules (#172)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
