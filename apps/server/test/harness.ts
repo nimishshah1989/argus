@@ -49,12 +49,12 @@ export interface TestDb {
 export async function startTestDb(): Promise<TestDb> {
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
   const admin = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
+  const beginAdmin = tolerateShutdown(admin);
   for (const file of migrationFiles()) {
     await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
   }
   await installJobSchema(admin);
   await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
-  const beginAdmin = tolerateShutdown(admin);
   const app = new Pool({
     connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`,
     max: 5,

@@ -41,6 +41,16 @@ describe('pr reason', () => {
     expect(prReason(body, 'Large PR')).toBeNull();
     expect(prReason(body, 'No parity')).toBe('test-only change to the harness');
   });
+  it('T7b never takes the reason from a later line', () => {
+    expect(prReason('Large PR:\nsome unrelated paragraph text here', 'Large PR')).toBeNull();
+    expect(prReason('Large PR:   \r\n\r\nSecond paragraph long enough', 'Large PR')).toBeNull();
+    expect(prReason('Large\nPR: ports the whole suite', 'Large PR')).toBeNull();
+  });
+  it('T7c reads a reason from a CRLF body', () => {
+    expect(prReason('intro\r\nLarge PR: ports the whole gallery suite\r\n', 'Large PR')).toBe(
+      'ports the whole gallery suite',
+    );
+  });
   it('T8 allows a large PR by label or by body line', () => {
     const shapes = [
       { LEAN_ALLOW_LARGE: '1' },

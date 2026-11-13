@@ -15,9 +15,7 @@ export function changedFiles(outputs: string[], exists: (path: string) => boolea
 
 function git(...args: string[]): string | null {
   try {
-    return execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', ...args], {
-      encoding: 'utf8',
-    });
+    return execFileSync('git', ['-c', 'core.quotepath=off', ...args], { encoding: 'utf8' });
   } catch {
     return null;
   }
@@ -33,17 +31,16 @@ function run(step: string, args: string[]): void {
 }
 
 function main(): void {
-  const base = git('origin/main...HEAD');
+  const diff = ['diff', '--name-only', '--diff-filter=ACMR'];
+  const base = git(...diff, 'origin/main...HEAD');
   if (base === null)
     console.log(
       'precheck: no origin/main to compare with; formatting uncommitted and untracked files only',
     );
-  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
-    encoding: 'utf8',
-  });
-  const files = changedFiles([base ?? '', git('HEAD') ?? '', untracked], existsSync);
+  const others = git('ls-files', '--others', '--exclude-standard');
+  const files = changedFiles([base ?? '', git(...diff, 'HEAD') ?? '', others ?? ''], existsSync);
   const flags = ['--write', '--ignore-unknown', '--no-error-on-unmatched-pattern'];
-  if (files.length > 0) run('prettier', ['exec', 'prettier', ...flags, ...files]);
+  if (files.length > 0) run('prettier', ['exec', 'prettier', ...flags, '--', ...files]);
   for (const step of STEPS) run(step, ['run', step]);
   console.log(
     `precheck: OK — ${files.length} file(s) checked by prettier, ${STEPS.length} checks passed`,
