@@ -49,4 +49,10 @@ export const commonEn = {
   'share.send': 'Send on WhatsApp',
   'kit.sheet.close': 'Close',
   'kit.notFound': 'Page not found',
+  'kit.pattern.more': 'Load more',
+  'kit.pattern.error': 'Could not load. Try again.',
+  'kit.pattern.retry': 'Try again',
+  'kit.pattern.offline': 'You are offline. This will load when you reconnect.',
+  'kit.form.offlineQueued': 'You are offline. This will send when you reconnect.',
+  'kit.form.needsConnection': 'You are offline. Connect to send this.',
 };
