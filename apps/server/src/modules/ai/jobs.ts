@@ -2,8 +2,15 @@ import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import type { JobRole } from '../../kernel/index.js';
 import type { AiConfig } from './config.js';
+import { diagnosisFeature } from './diagnosis.js';
 import { pickProvider, type AiProvider } from './provider.js';
-import { AI_SUGGEST_QUEUE, runSuggest, type AiFeatures, type AiLogLine } from './suggest.js';
+import {
+  AI_SUGGEST_QUEUE,
+  runSuggest,
+  type AiFeature,
+  type AiFeatures,
+  type AiLogLine,
+} from './suggest.js';
 
 export { AI_SUGGEST_QUEUE };
 
@@ -12,7 +19,7 @@ export interface AiJobDeps {
   config: AiConfig;
   /** Default `pickProvider(config)`. */
   provider?: AiProvider | null;
-  /** Default `{}`: no feature is registered in this slice. */
+  /** Default `{ diagnosis }`. */
   features?: AiFeatures;
   now?: () => Date;
   log?: (line: AiLogLine) => void;
@@ -37,7 +44,7 @@ export async function startAiJobs(boss: PgBoss, deps: AiJobDeps, role: JobRole):
     boss,
     config: deps.config,
     provider: deps.provider === undefined ? pickProvider(deps.config) : deps.provider,
-    features: deps.features ?? {},
+    features: deps.features ?? { diagnosis: diagnosisFeature as AiFeature<unknown> },
     now: deps.now ?? (() => new Date()),
     log: deps.log ?? ((line: AiLogLine) => console.log(JSON.stringify(line))),
   };
