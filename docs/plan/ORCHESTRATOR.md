@@ -37,7 +37,7 @@ CODE     ticket worktree + branch → for each task in the plan:
 TEST     stop hook runs the fast tests (~2 s) on every agent stop
          the ticket's seam tests (API on real data, browser journey, engine vs answer key) all green
 BUILD    PR → code-reviewer PASS + CI green (lint, typecheck, touched-module API tests, isolation, smoke)
-         → merge → staging deploys → Nimish previews if user-visible → ledger, parity, HANDOFF updated
+         → the agent merges (Nimish, 13 Nov: agents merge on code-review PASS + green CI) → staging deploys → Nimish previews if user-visible → ledger, parity, HANDOFF updated
 EXIT     every goal of the ticket has a passing test on main. Otherwise the loop continues.
 ```
 

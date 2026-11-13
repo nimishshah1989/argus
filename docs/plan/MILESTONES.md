@@ -30,12 +30,12 @@ no other ticket adds a migration, and no ticket adds a table outside D17's list.
 | --- | ------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------: |
 | M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                     14 |
 | M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only       | Day-3 and day-7 go/no-go                                                                             |                     14 |
-| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off                | Sign-off turnaround visible on live tickets                                                          |                      7 |
+| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off, lockout       | Sign-off turnaround visible on live tickets                                                          |                      8 |
 | M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                          | Ten figures spot-checked against Bhavin's platform                                                   |                     10 |
-| M4b | The loop                  | PM, registers, coded closes, frozen forecasts, scorecard, ranking            | First monthly scorecard from live data                                                               |                      9 |
+| M4b | The loop                  | PM, registers, coded closes, reliability, forecasts, scorecard, ranking      | First monthly scorecard from live data                                                               |                     10 |
 | M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                      | Agrees capabilities and thresholds; sees shadow results                                              |                      6 |
 | M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                           | An operator raises a ticket by voice                                                                 |                      5 |
-|     | **Total**                 |                                                                              |                                                                                                      | **65** (28 to cutover) |
+|     | **Total**                 |                                                                              |                                                                                                      | **67** (28 to cutover) |
 
 Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. Every ticket of a later milestone waits for every
 ticket of the milestone before it and for that milestone's gate: the first tickets of each milestone (15 and 16
@@ -220,7 +220,7 @@ Escalation details (ladder people, delays, repeats, who acknowledges) are Nimish
 cutover; agents propose defaults (BRIEF open question).
 
 **29 M2 schema** · Blocked by: 28
-Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`, `notification`; `sla_timer.kind` gains `pause` and `handback`; the handover person link (ARCHITECTURE §9 items 30, 32).
+Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`, `notification`; `sla_timer.kind` gains `pause` and `handback`; `list_item` gains a "needs lockout" flag (ticket 66); the handover person link (ARCHITECTURE §9 items 30, 32).
 
 1. [API] The migration applies and reverts on a copy of production after a backup; a roster line is unique per tenant, date, shift (a link to `shift`) and person; a notification is unique per tenant and dedupe key.
 2. [API] Handover on a report is a person link and imported text is kept; the SLA policy is found by severity; nothing reads or writes `person.kind`, `ticket.sla_policy_id` or `ticket.handback_status`.
@@ -258,9 +258,14 @@ Split from draft ticket 24: the service is its own module, used by escalation, r
 2. [API] A person lists their devices and signs one out; that device's next call answers 401.
 3. [API] Support access needs the Cosmos admin's approval, lasts at most 7 days, and every action under it is in the audit trail with its grant; an expired grant answers 403.
 
+**66 Lockout before electrical work** · Blocked by: 29, 30
+
+1. [API] A ticket whose work type or breakdown category is flagged "needs lockout" (a flag on the list entry, added in 29) refuses Start until the lockout steps (a plant setting) are confirmed; the confirmation is a ticket history entry with who and when. No new table.
+2. [Browser] The technician ticks the lockout steps on the phone before Start; the ticket history shows the confirmation; an unflagged ticket starts as before.
+
 ## M4a — Analytics parity
 
-**36 M4a schema and answer key** · Blocked by: 33, 34, 35 (M2 gate) · External: triage with Bhavin, code aliases (N12)
+**36 M4a schema and answer key** · Blocked by: 33, 34, 35, 66 (M2 gate) · External: triage with Bhavin, code aliases (N12)
 
 1. [Engine] Bhavin's 11 November platform and workbook figures for every screen the triage keeps are pseudonymised answer-key fixtures; `parity.yaml` gains a row per kept screen, the AMC & Warranty, Legal Compliance, PM Plan and PM Reports registers included; the parity check fails on a kept screen without a row and ticket.
 2. [API] One migration (backup first): `kpi_snapshot`; the alias column on `list_item`; each kept stored item (Why-Why records, Team Focus status/owner/note, nudge snooze, PDF import by QR) gets a home in an existing table confirmed by the schema-reviewer, or is dropped in `DIFFERENCES.md`.
@@ -371,9 +376,15 @@ Split from draft ticket 37: the scorecard reads three other slices' figures.
 1. [Engine] Every PM plan change is an intervention judged before and after against a control group (proposed default: same category and segment, no PM change in the window, at least three machines).
 2. [Engine] Technicians are ranked by the agreed measures, weights, period and minimum jobs from `kpi_snapshot`, each input shown and the method written in the Guide.
 
+**67 Reliability and critical spares** · Blocked by: 48
+
+1. [Engine] Weibull two-parameter fits with censoring per machine (only above a minimum number of failures, otherwise per category), with Kaplan-Meier and Crow-AMSAA trend, each proven against reference values computed independently; results in `kpi_snapshot`. No new table.
+2. [Engine] A critical-spares list per machine from failure history (spares used on breakdown reports, ranked by how often and how much downtime they caused), in `kpi_snapshot`.
+3. [Browser] The machine page shows the reliability fit (or "not enough history") and its critical spares; both drill to the breakdowns behind them.
+
 ## M6 — AI (India only)
 
-**55 M6 schema and AI provider** · Blocked by: 51, 53, 54 (M4b gate) · External: capability alignment and numeric thresholds T1–T6 (Nimish), residency record
+**55 M6 schema and AI provider** · Blocked by: 51, 53, 54, 67 (M4b gate) · External: capability alignment and numeric thresholds T1–T6 (Nimish), residency record
 Delivers: the one M6 migration: `ai_suggestion`, `document`, `document_chunk`, the `pg_trgm` extension.
 
 1. [API] The migration applies and reverts; suggestions are tenant-scoped; suggestions older than 2 years are purged (fake clock).
@@ -446,17 +457,15 @@ Split from draft ticket 44 (five draft tickets): the schema and the signed webho
 | Start   | 02, 08, 10, 13 (after 01)                                                      |
 | M0      | 04, 05, 06 after 03; 11 after 04 and 10; 07 then 09; 14 last                   |
 | M1      | 15 and 16; then 17 → 18 → 19 with 20; then 21, 22, 23, 25 together; 24, 26, 27 |
-| M2      | 30 and 32 after 29; then 31 and 34; 33; 35                                     |
+| M2      | 30 and 32 after 29; then 31, 34 and 66; 33; 35                                 |
 | M4a     | 38, 39, 40, 41 after 37; then 42 and 43; then 44 and 45                        |
-| M4b     | 47, 49, 51, 52 after 46; then 48 and 50; then 53 and 54                        |
+| M4b     | 47, 49, 51, 52 after 46; then 48 and 50; then 53, 54 and 67                    |
 | M6 / M3 | 57–60 after 56; 62 after 61, then 63 → 64 → 65                                 |
 
 One milestone migration at a time; one browser-test stack; Nimish previews every user-visible slice.
 
-**Open product question (not a ticket):** the lockout checklist, critical-spares list and Weibull fits are in
-SPEC §3 but in no BRIEF milestone (COVERAGE G46). Nimish decides: plan (and where) or drop; the answer is
-recorded in the BRIEF. **Note for the schema reviewer:** D17 says 13 new tables but lists 12; this plan adds
-exactly the 12 listed (40 tables) and leaves the thirteenth slot unused.
+**G46 decided (Nimish, 13 Nov):** build all three — lockout checklist (ticket 66), critical-spares list and Weibull fits (ticket 67); no new table.
+**Note for the schema reviewer:** D17 (corrected) allows 12 new tables, 40 in total; this plan adds exactly those 12.
 
 ## Rejected findings
 
@@ -489,7 +498,7 @@ Old → new: 01→01, 02→09, 03→08, 04→06+07, 05→10, 06→11+12, 07→13
 · G24→36 · G25→37 · G26→39 (document numbers), 42, 43 (kept exports) · G27→39 (page), 42 (forecast), 43 (health),
 50 (tasks) · G28→38 · G29→52 · G30→49 · G31→13 · G32→62 (WhatsApp cap), 64 (speech cap) · G33→61 · G34→21
 (validate), 61 (constraint) · G35→36 (`kpi_snapshot`), 46 (`forecast`) · G36→25 · G37→10 · G38→12 · G39→01 (scan),
-08 (fixtures) · G40→14 · G41→20 · G42→32 · G43→31 · G44→21 · G45→26 (External sign-off) · **G46 → not placed:
+08 (fixtures) · G40→14 · G41→20 · G42→32 · G43→31 · G44→21 · G45→26 (External sign-off) · **G46 → 66, 67 (decided 13 Nov)** — was not placed:
 product question above.** Split owners are distinct parts, each with one ticket.
 
 **Overlaps → single owner.** O1→24 (15 only uses keys) · O2→43 (57 adds evidence) · O3→20 · O4→18 (work
