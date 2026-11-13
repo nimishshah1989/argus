@@ -39,6 +39,7 @@ jobs:
       - run: pnpm pii:scan
       - run: pnpm licences
       - run: pnpm migrations:check
+      - run: pnpm ui:check
       - run: pnpm audit:lean
       - run: pnpm parity:update
         if: github.event_name == 'pull_request'
@@ -100,6 +101,37 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
+
+  gallery:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --ipc=host
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - id: paths
+        run: |
+          run=true
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            run=false
+            if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Eq '^(apps/web/|playwright\.gallery\.config\.ts$|tools/check-ui\.ts$|tools/gallery-baselines\.sh$|package\.json$|pnpm-lock\.yaml$)'; then run=true; fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - run: apt-get update && apt-get install -y fonts-noto-core
+        if: steps.paths.outputs.run == 'true'
+      - run: npm i -g pnpm@10.30.3 && pnpm install --frozen-lockfile
+        if: steps.paths.outputs.run == 'true'
+      - run: pnpm gallery:test
+        if: steps.paths.outputs.run == 'true'
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.paths.outputs.run == 'true'
+        with:
+          name: gallery-diffs
+          path: test-results/gallery
 
   secrets:
     runs-on: ubuntu-latest

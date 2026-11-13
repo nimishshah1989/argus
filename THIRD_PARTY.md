@@ -23,9 +23,9 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Tailwind CSS                                             | web styles          | MIT              |
 | i18next                                                  | web i18n            | MIT              |
 | react-i18next                                            | web i18n            | MIT              |
-| shadcn/ui (copied components)                            | web UI              | MIT              |
-| Radix UI primitives                                      | web accessibility   | MIT              |
-| Lucide                                                   | icons               | ISC              |
+| shadcn/ui (copied by hand, no package)                   | web UI              | MIT              |
+| Radix UI primitives (`radix-ui` 1.8.1)                   | web accessibility   | MIT              |
+| Lucide (`lucide-react` 1.72.0)                           | icons               | ISC              |
 | Apache ECharts                                           | charts              | Apache-2.0       |
 | FullCalendar standard plugins                            | PM calendar         | MIT              |
 | vis-timeline                                             | resource timeline   | Apache-2.0 / MIT |
