@@ -7,11 +7,16 @@ also the test of this page.** Where a step says "unverified", paste the exact ou
 
 ## What is kept, and for how long
 
-| Copy                        | Where                               | How far back                              | Restores into                      |
-| --------------------------- | ----------------------------------- | ----------------------------------------- | ---------------------------------- |
-| RDS automated backup (PITR) | RDS, `backup_retention_period` (14) | any second in the last 14 days            | a new RDS server, minutes to hours |
-| Weekly dump (`pg_dump -Fc`) | S3 `uptimo-…-backups`, `dumps/`     | 13 weeks, one per week (Mon 03:00 Mumbai) | any Postgres 16                    |
-| Files (photos, PDFs)        | S3 `uptimo-…-files`, versioned      | every version                             | the same bucket                    |
+| Copy                        | Where                                                                               | How far back                              | Restores into                      |
+| --------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
+| RDS automated backup (PITR) | RDS, `backup_retention_period` (14 after the next maintenance window; 7 until then) | any second in the last 14 days            | a new RDS server, minutes to hours |
+| Weekly dump (`pg_dump -Fc`) | S3 `uptimo-…-backups`, `dumps/`                                                     | 13 weeks, one per week (Mon 03:00 Mumbai) | any Postgres 16                    |
+| Files (photos, PDFs)        | S3 `uptimo-…-files`, versioned                                                      | every version                             | the same bucket                    |
+
+**What counts as the backup:** point-in-time recovery plus RDS snapshots (one is taken before the first migration and one before the Cosmos
+load). The weekly dump is best effort: RDS's master login may be refused a full dump (section 0, step 4). If so, it is recorded in the
+drill log and the dump is not relied on. GitHub pauses scheduled workflows in a repository with no activity for 60 days; the drill log
+shows the date of the last dump.
 
 ## 0. Switch the weekly dump on (once, after Nimish applies the Terraform in `infra/terraform`)
 
@@ -19,7 +24,8 @@ also the test of this page.** Where a step says "unverified", paste the exact ou
 2. `gh variable set BACKUP_BUCKET --body "$(../../.tools/bin/terraform output -raw backup_bucket)"`
 3. `gh workflow run backup.yml`, then `gh run watch`. Success ends with a line
    `dump ok: s3://uptimo-xxxx-backups/dumps/uptimo-<date>.dump (<bytes> bytes)`.
-4. If it says `STOP: this login is subject to row security`, the weekly dump cannot work with the master login; send the line back.
+4. If it says `STOP: this login is subject to row security`, the weekly dump cannot work with the master login. **On RDS this is the likely
+   result and is not a fault of the drill.** Write it in the drill log and carry on; send the line back.
    Measured on a plain Postgres 16 with a non-superuser owner: `pg_dump` fails with "query would be affected by row-level
    security policy", so the script stops instead of storing a partial file. **Unverified: whether RDS's master login is exempt.**
    The point-in-time restore (Drill A) does not depend on it. If the dump is blocked, the decision (for the orchestrator, not Nimish) is

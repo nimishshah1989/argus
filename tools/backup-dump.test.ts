@@ -153,7 +153,18 @@ case "$*" in *list-objects-v2*) echo "\${LATEST_KEY:-dumps/uptimo-2027-01-03T213
     stub(
       'docker',
       `echo "docker $*" >> "$UPTIMO_DIR/calls.log"
-case "$*" in *pg_restore*) printf '%s' "\${RESTORE_STDERR:-pg_restore: error: could not execute query: ERROR:  schema \\"public\\" already exists}" >&2; exit 1 ;; esac`,
+case "$*" in
+  *"CREATE ROLE app_user"*) touch "$UPTIMO_DIR/roles-created" ;;
+  *pg_restore*)
+    # What the real tool prints: the policies need the roles; "already exists" and the summary line are normal.
+    if [ ! -f "$UPTIMO_DIR/roles-created" ]; then
+      echo 'pg_restore: error: could not execute query: ERROR:  role "app_router" does not exist' >&2
+    fi
+    printf '%s\\n' "\${RESTORE_STDERR:-pg_restore: error: could not execute query: ERROR:  schema \\"public\\" already exists}" >&2
+    echo 'Command was: CREATE SCHEMA public;' >&2
+    echo 'pg_restore: warning: errors ignored on restore: 1' >&2
+    exit 1 ;;
+esac`,
     );
     return spawnSync('bash', [join(dir, 'instance/dump-restore-drill.sh')], {
       encoding: 'utf8',
@@ -173,6 +184,9 @@ case "$*" in *pg_restore*) printf '%s' "\${RESTORE_STDERR:-pg_restore: error: co
     expect(res.stdout).toContain('RESTORED dumps/uptimo-2027-01-03T2130Z.dump');
     expect(log()).toMatch(/restore-check\.ts/);
     expect(log()).toMatch(/docker rm -f scratch-pg-/);
+    // The application roles exist in the scratch database before anything is restored into it.
+    expect(log().indexOf('CREATE ROLE app_user')).toBeGreaterThan(-1);
+    expect(log().indexOf('CREATE ROLE app_user')).toBeLessThan(log().indexOf('pg_restore -U'));
   });
 
   it('stops on a real restore error but not on "already exists"', () => {
@@ -193,13 +207,14 @@ case "$*" in *pg_restore*) printf '%s' "\${RESTORE_STDERR:-pg_restore: error: co
 });
 
 describe('weekly dump workflow', () => {
-  it('runs weekly and on request, from main only, and skips quietly until the bucket is configured', () => {
+  it('runs weekly and on request, from main only, and warns visibly until the bucket is configured', () => {
     const wf = parse(readFileSync(join(root, '.github/workflows/backup.yml'), 'utf8'));
     expect(wf.on.schedule[0].cron).toMatch(/^\d+ \d+ \* \* 0$/);
     expect(wf.on).toHaveProperty('workflow_dispatch');
     expect(wf.jobs.dump.if).toBe("github.ref == 'refs/heads/main'");
     const text = readFileSync(join(root, '.github/workflows/backup.yml'), 'utf8');
-    expect(text).toContain('backups not set up yet');
+    // Never a silent green: a missing secret or variable ends the run with a visible warning.
+    expect(text).toContain('::warning title=Weekly backup did not run::backups not set up yet');
     expect(text).not.toMatch(/secrets\.(?!AWS_ROLE_ARN)/);
   });
 });

@@ -30,7 +30,7 @@ jobs:
         id: gate
         run: |
           if [ -z "$AWS_ROLE_ARN" ] || [ -z "$BACKUP_BUCKET" ]; then
-            echo "backups not set up yet (AWS_ROLE_ARN or BACKUP_BUCKET missing)"
+            echo "::warning title=Weekly backup did not run::backups not set up yet (AWS_ROLE_ARN or BACKUP_BUCKET missing)"
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"

@@ -20,7 +20,7 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
 ## 2. Decisions (each with what it costs if wrong)
 
 - **`audit.purge` is an operator command, not a worker job.** D24: the server must never hold the router credential,
-  and `audit_purge` is router-only. So `pnpm audit:purge` (reads `ROUTER_DATABASE_URL`) calls the function. No audit row
+  and `audit_purge` is router-only. So `pnpm audit:purge` (runs on `MIGRATION_DATABASE_URL`, the operator login the migrations use, which is a member of the router role; the exact command is in `infra/STAGING.md`) calls the function. No audit row
   can be 3 years old before Nov 2029, so nothing runs it yet. Cost if wrong: one script to schedule later.
 - **Orchestrator ruling kept:** `audit_purge` in migration 0009 would also delete the proof rows `person.erase` and
   `tenant.offboard`. Migration `0010` replaces the function so it skips those two actions; ordinary rows only.
@@ -40,9 +40,12 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
 
 - **`figures.drift` compares closed tickets only**, recomputed at the ticket's own close time. An open ticket's cached
   figures were right as of its last change, so comparing it with "now" would flag every working ticket.
-- **Seed guard:** if Cosmos already holds any ticket, seeding stops with a plain message and changes nothing. An empty
-  Cosmos is still replaced, as before (dev and CI rely on that).
-- **No alias file** for the 31 pending people; the runbook says how an admin merges them.
+- **Seed guard (review round):** the seed locks Cosmos's row by slug (any status, so a suspended Cosmos is seen) and, in the same
+  transaction as the delete, refuses if Cosmos is not active or holds any ticket, any import batch (an undone one is the undo's
+  proof) or any audit line. An empty, active Cosmos is still replaced (dev and CI rely on that). Replacing anything else needs
+  `--replace-cosmos`, allowed on staging only, and the runbook does not recommend it.
+- **Clock guard (review round):** a job refuses to run when its clock is more than 24 hours from the database's.
+- **No alias file** for the pending people, and nothing merges them yet (see section 5).
 
 ## 3. Tests (behaviour, fake clock, each fails before the change)
 
