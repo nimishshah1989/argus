@@ -2,6 +2,7 @@ import { defineModule } from '../../kernel/index.js';
 import { registerIdentityRoutes } from './routes.js';
 
 export {
+  activePerson,
   deleteTenantBySlug,
   insertPeople,
   insertTenant,

@@ -6,7 +6,6 @@ import { apiError } from '@uptimo/shared';
 import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
-import { registerPush } from './push.js';
 import { registerTags } from './tags.js';
 import type { AppConfig } from './config.js';
 import { startJobs } from './jobs/index.js';
@@ -48,7 +47,6 @@ export async function buildApp(config: AppConfig) {
   registerSettings(app, config);
   registerTickets(app, config);
   registerReports(app, config);
-  registerPush(app, config);
   registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof SlaInputError) {

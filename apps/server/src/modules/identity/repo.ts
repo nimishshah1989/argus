@@ -176,3 +176,16 @@ export async function insertPeople(
       );
   }
 }
+
+export async function activePerson(
+  tx: Db,
+  tenantId: string,
+  personId: string,
+): Promise<{ id: string; name: string } | undefined> {
+  return (
+    await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND id = $2 AND active', [
+      tenantId,
+      personId,
+    ])
+  ).rows[0];
+}

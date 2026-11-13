@@ -1,6 +1,14 @@
 import type { ModuleDefinition } from '../kernel/index.js';
+import { filesModule } from './files/index.js';
 import { identityModule } from './identity/index.js';
+import { notificationsModule } from './notifications/index.js';
 import { opsModule } from './ops/index.js';
 import { plantModule } from './plant/index.js';
 
-export const modules: readonly ModuleDefinition[] = [opsModule, identityModule, plantModule];
+export const modules: readonly ModuleDefinition[] = [
+  opsModule,
+  identityModule,
+  plantModule,
+  filesModule,
+  notificationsModule,
+];

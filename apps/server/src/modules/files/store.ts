@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { PoolClient } from 'pg';
 
 /**
  * The storage adapter. Local disk in development and tests; the S3 adapter will
@@ -36,22 +35,4 @@ export function dayReportObjectKey(tenantId: string, date: string, shift: string
 
 export function sha256(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
-}
-
-export interface NewFile {
-  tenantId: string;
-  ticketId: string | null;
-  key: string;
-  mime: string;
-  bytes: Buffer;
-}
-
-/** Insert the `file` row for a rendered PDF and return its id. */
-export async function insertFileRow(client: PoolClient, file: NewFile): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO file (tenant_id, kind, s3_key, mime, bytes, sha256, ticket_id)
-     VALUES ($1, 'pdf', $2, $3, $4, $5, $6) RETURNING id`,
-    [file.tenantId, file.key, file.mime, file.bytes.length, sha256(file.bytes), file.ticketId],
-  );
-  return result.rows[0].id as string;
 }

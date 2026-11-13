@@ -15,7 +15,7 @@ import {
   insertFileRow,
   pdfObjectKey,
   type ObjectStore,
-} from './file-store.js';
+} from './modules/files/index.js';
 import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { loadDayReport, type DayReportData } from './day-report.js';

@@ -1,11 +1,18 @@
 import webpush from 'web-push';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { requireAuth } from './auth.js';
-import type { AppConfig } from './config.js';
+import { activePerson, requireAuth } from '../identity/index.js';
+import type { AppConfig } from '../../kernel/index.js';
+import {
+  deleteSubscription,
+  subscriptionsOfLogin,
+  subscriptionsOfPerson,
+  upsertSubscription,
+  type SubscriptionRow,
+} from './repo.js';
 
 const subscribeSchema = z.object({
   subscription: z.object({
@@ -40,46 +47,6 @@ function configureWebPush(vapid: Vapid): void {
   }
 }
 
-interface SubscriptionRow {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-}
-
-async function personExists(
-  client: PoolClient,
-  tenantId: string,
-  personId: string,
-): Promise<boolean> {
-  const row = (
-    await client.query('SELECT 1 FROM person WHERE tenant_id = $1 AND id = $2 AND active', [
-      tenantId,
-      personId,
-    ])
-  ).rows[0];
-  return Boolean(row);
-}
-
-function rowsToSubs(rows: unknown[]): SubscriptionRow[] {
-  return rows.map((row) => ({
-    endpoint: (row as { endpoint: string }).endpoint,
-    keys: (row as { keys: { p256dh: string; auth: string } }).keys,
-  }));
-}
-
-async function callerSubscriptions(
-  client: PoolClient,
-  tenantId: string,
-  loginId: string,
-): Promise<SubscriptionRow[]> {
-  const rows = (
-    await client.query(
-      'SELECT endpoint, keys FROM push_subscription WHERE tenant_id = $1 AND login_id = $2',
-      [tenantId, loginId],
-    )
-  ).rows;
-  return rowsToSubs(rows);
-}
-
 async function deliver(subs: SubscriptionRow[], payload: unknown): Promise<void> {
   await Promise.allSettled(
     subs.map((sub) => webpush.sendNotification(sub, JSON.stringify(payload))),
@@ -111,24 +78,17 @@ async function subscribeHandler(
   }
   const { subscription, actingPersonId } = parsed.data;
   await withTenant(pool, auth.tenantId, async (client) => {
-    if (!(await personExists(client, auth.tenantId, actingPersonId))) {
+    if (!(await activePerson(client, auth.tenantId, actingPersonId))) {
       return { missingPerson: true as const };
     }
-    await client.query(
-      `INSERT INTO push_subscription (tenant_id, login_id, acting_person_id, endpoint, keys, role)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (tenant_id, endpoint) DO UPDATE SET
-         login_id = EXCLUDED.login_id, acting_person_id = EXCLUDED.acting_person_id,
-         keys = EXCLUDED.keys, role = EXCLUDED.role, updated_at = now()`,
-      [
-        auth.tenantId,
-        auth.loginId,
-        actingPersonId,
-        subscription.endpoint,
-        JSON.stringify(subscription.keys),
-        auth.role,
-      ],
-    );
+    await upsertSubscription(client, {
+      tenantId: auth.tenantId,
+      loginId: auth.loginId,
+      actingPersonId,
+      endpoint: subscription.endpoint,
+      keys: JSON.stringify(subscription.keys),
+      role: auth.role,
+    });
     return { missingPerson: false as const };
   }).then((result) => {
     if (result.missingPerson) {
@@ -152,10 +112,7 @@ async function unsubscribeHandler(
     return;
   }
   await withTenant(pool, auth.tenantId, (client) =>
-    client.query('DELETE FROM push_subscription WHERE tenant_id = $1 AND endpoint = $2', [
-      auth.tenantId,
-      parsed.data.endpoint,
-    ]),
+    deleteSubscription(client, auth.tenantId, parsed.data.endpoint),
   );
   reply.send({ ok: true });
 }
@@ -174,7 +131,7 @@ async function testHandler(
   }
   configureWebPush(vapid);
   const subs = await withTenant(pool, auth.tenantId, (client) =>
-    callerSubscriptions(client, auth.tenantId, auth.loginId),
+    subscriptionsOfLogin(client, auth.tenantId, auth.loginId),
   );
   await deliver(subs, { title: 'UPTIMO', body: 'Push works' });
   reply.send({ sent: subs.length });
@@ -195,10 +152,5 @@ export async function sendPush(pool: Pool, personId: string, payload: unknown): 
   const vapid = vapidConfig();
   if (!vapid.configured) return;
   configureWebPush(vapid);
-  const rows = (
-    await pool.query('SELECT endpoint, keys FROM push_subscription WHERE acting_person_id = $1', [
-      personId,
-    ])
-  ).rows;
-  await deliver(rowsToSubs(rows), payload);
+  await deliver(await subscriptionsOfPerson(pool, personId), payload);
 }
