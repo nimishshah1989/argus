@@ -41,10 +41,10 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 13:47 UTC on branch `claude/orchestrator-ledger`.
+Last session ended 2026-11-13 14:04 UTC on branch `claude/orchestrator-ledger`.
+- 4c24791 docs: session notes (hook)
 - 303d079 docs(plan): ledger — #163 merged; one PR at the gate
 - 12fcb1c merge main (ledger PR #163 merged)
-- 1f43b56 docs(plan): M0 orchestrator ledger (continued) (#163)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
