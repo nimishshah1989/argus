@@ -234,6 +234,7 @@ Parity rows are cited by id; their acceptance tests in `parity.yaml` are the "as
 
 1. [Browser] Open (counts strip, breakdowns, tasks, work), Mine, Team and needs-report show the real tickets per `v3.views.01–03`, and lists page by cursor past 200 rows.
 2. [Browser] The ticket card and detail show the facts, full history, people and minutes, and the action bar from `availableActions`.
+3. [API] (Nimish, 13 Nov: new tickets follow Bhavin's rules.) `figures()` gives the same repair, waiting, vendor and downtime minutes as his `worker.js` for every ticket in the pseudonymised export (09's `real-oracle` is the test): repair is his wall clock, support and general tickets carry downtime by his current rule (the 6 Nov change, to be confirmed by Bhavin), minutes are rounded as he rounds. `docs/spec/DOMAIN.md` section 5 is rewritten to say so, and the 29 listed differences from 09 vanish for new tickets.
 
 **17 Work the ticket** · Blocked by: 16
 

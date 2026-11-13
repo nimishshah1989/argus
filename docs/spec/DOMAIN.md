@@ -181,7 +181,7 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 
 ## 5. Derived figures: exact definitions
 
-These reproduce Bhavin's figures, so his stored values and ours agree to the minute on import. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last. All in whole minutes at server time. **Rounding:** v3 floors elapsed minutes in most places and rounds in one (`downAt()` in the close screen); until his Worker source confirms which the server used, we floor everywhere and list every one-minute difference in the reconciliation report rather than hide it.
+These reproduce Bhavin's figures, so his stored values and ours agree to the minute on import. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last. All in whole minutes at server time. **Rounding:** v3 floors elapsed minutes in most places and rounds in one (`downAt()` in the close screen); **decided 13 Nov (Nimish): new tickets follow Bhavin's `worker.js` rules exactly** (wall-clock repair, his support/general downtime rule as changed around 6 Nov, his rounding); ticket 16 goal 3 makes `figures()` match his worker on every real ticket. Until then the old floor rules stand.
 
 | Figure | Definition | Bhavin's field |
 | --- | --- | --- |
