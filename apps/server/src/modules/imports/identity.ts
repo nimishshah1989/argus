@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { refsByIds, ticketParents } from '../tickets/index.js';
 import type { ImportCtx } from './batch.js';
+import { provenanceRows } from './repo.js';
 import { canonicalJson, canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import {
   makeRawEnvelope,
@@ -83,12 +85,9 @@ function validationMessage(error: unknown): string {
 }
 
 async function existingTickets(ctx: ImportCtx) {
-  const result = await ctx.client.query(
-    'SELECT id, ref, parent_id FROM ticket WHERE tenant_id = $1 ORDER BY ref',
-    [ctx.tenantId],
-  );
+  const rows = await ticketParents(ctx.client, ctx.tenantId);
   return new Map(
-    result.rows.map((row) => [
+    rows.map((row) => [
       row.ref as string,
       { id: row.id as string, parentId: row.parent_id as string | null },
     ]),
@@ -96,16 +95,13 @@ async function existingTickets(ctx: ImportCtx) {
 }
 
 async function provenance(ctx: ImportCtx): Promise<Provenance[]> {
-  const result = await ctx.client.query(
-    `SELECT r.source_ref, r.ticket_id, r.status, r.payload, t.ref
-     FROM import_row r
-     JOIN import_batch b ON b.id = r.batch_id AND b.tenant_id = r.tenant_id
-     LEFT JOIN ticket t ON t.id = r.ticket_id AND t.tenant_id = r.tenant_id
-     WHERE r.tenant_id = $1 AND b.source = 'bhavin' AND b.status IN ('done','failed')
-       AND b.stats->>'contract' = $2 AND r.status IN ('imported','skipped')`,
-    [ctx.tenantId, SYNTHETIC_SOURCE],
+  const rows = await provenanceRows(ctx.client, ctx.tenantId, SYNTHETIC_SOURCE);
+  const refs = await refsByIds(
+    ctx.client,
+    ctx.tenantId,
+    rows.map((row) => row.ticket_id as string).filter(Boolean),
   );
-  return result.rows.map((row) => {
+  return rows.map((row) => {
     const payload = row.payload as StoredRawPayload;
     if (payload?.format !== 'argus.import-raw/v1' || !payload.identitySha256) {
       throw new Error('Legacy import identity envelope is invalid');
@@ -116,7 +112,7 @@ async function provenance(ctx: ImportCtx): Promise<Provenance[]> {
     return {
       legacyId: row.source_ref as string,
       ticketId: row.ticket_id as string | null,
-      ref: (row.ref as string | null) ?? '',
+      ref: refs.get(row.ticket_id as string) ?? '',
       identitySha256: payload.identitySha256,
       status: row.status as 'imported' | 'skipped',
     };

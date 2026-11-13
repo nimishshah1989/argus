@@ -24,3 +24,23 @@ export const ticketsModule = defineModule({
   },
 });
 export { dayJobRows, pdfTicketRow, pendingRows, setReportPdf } from './repo/history.js';
+export {
+  deleteImportedTickets,
+  importedChildren,
+  importedTicketRows,
+  insertImportedCrew,
+  insertImportedEvent,
+  insertImportedReport,
+  insertImportedSegment,
+  insertImportedTicket,
+  insertReportPerson,
+  outsideChildRef,
+  raiseRefCounter,
+  refCounterRows,
+  refsByIds,
+  reportWithFileId,
+  setParent,
+  ticketParents,
+  ticketRefsLike,
+} from './repo/imported.js';
+export { initRefCounters } from './repo/seed.js';

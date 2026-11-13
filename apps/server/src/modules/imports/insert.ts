@@ -1,6 +1,12 @@
 import type { PoolClient } from 'pg';
 import { computeSeverity } from '@uptimo/domain';
-import { loadSeverityMatrix } from '../tickets/index.js';
+import {
+  insertImportedCrew,
+  insertImportedEvent,
+  insertImportedSegment,
+  insertImportedTicket,
+  loadSeverityMatrix,
+} from '../tickets/index.js';
 import { insertReports } from './insert-reports.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import { reconcileTicket, type ReconcileReferences } from './reconcile.js';
@@ -174,12 +180,7 @@ async function insertTicketRow(
     criticality,
     ...figureValues(reconciled),
   ];
-  const placeholders = TICKET_COLUMNS.map((_, index) => `$${index + 1}`).join(',');
-  const result = await ctx.client.query(
-    `INSERT INTO ticket (${TICKET_COLUMNS.join(',')}) VALUES (${placeholders}) RETURNING id`,
-    values,
-  );
-  return result.rows[0].id as string;
+  return insertImportedTicket(ctx.client, TICKET_COLUMNS, values);
 }
 
 async function insertEvents(
@@ -189,28 +190,23 @@ async function insertEvents(
   refs: ReconcileReferences,
 ): Promise<void> {
   for (const [seq, event] of ticket.events.entries()) {
-    await ctx.client.query(
-      `INSERT INTO ticket_event (
-         tenant_id, ticket_id, seq, type, idempotency_key, at, login_id, acting_person_id, text, payload
-       ) VALUES ($1,$2,$3,$4,NULL,$5,NULL,$6,$7,$8)`,
-      [
-        ctx.tenantId,
-        ticketId,
-        seq,
-        event.type,
-        event.at,
-        person(refs, event.by),
-        event.text,
-        JSON.stringify(
-          event.type === 'pause'
-            ? {
-                ...event.payload,
-                pausesSla: pauseSlaFlag(refs, event.payload.reason),
-              }
-            : event.payload,
-        ),
-      ],
-    );
+    await insertImportedEvent(ctx.client, [
+      ctx.tenantId,
+      ticketId,
+      seq,
+      event.type,
+      event.at,
+      person(refs, event.by),
+      event.text,
+      JSON.stringify(
+        event.type === 'pause'
+          ? {
+              ...event.payload,
+              pausesSla: pauseSlaFlag(refs, event.payload.reason),
+            }
+          : event.payload,
+      ),
+    ]);
   }
 }
 
@@ -221,20 +217,15 @@ async function insertCrew(
   refs: ReconcileReferences,
 ): Promise<void> {
   for (const member of ticket.crew) {
-    await ctx.client.query(
-      `INSERT INTO crew_member (
-         tenant_id, ticket_id, person_id, role, joined_at, left_at, left_reason
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [
-        ctx.tenantId,
-        ticketId,
-        person(refs, member.person),
-        member.role === 'lead' ? 'primary' : member.role,
-        member.joinedAt,
-        member.leftAt,
-        member.leftReason,
-      ],
-    );
+    await insertImportedCrew(ctx.client, [
+      ctx.tenantId,
+      ticketId,
+      person(refs, member.person),
+      member.role === 'lead' ? 'primary' : member.role,
+      member.joinedAt,
+      member.leftAt,
+      member.leftReason,
+    ]);
   }
 }
 
@@ -245,20 +236,15 @@ async function insertSegments(
   refs: ReconcileReferences,
 ): Promise<void> {
   for (const segment of ticket.segments) {
-    await ctx.client.query(
-      `INSERT INTO work_segment (
-         tenant_id, ticket_id, person_id, role, started_at, ended_at, end_reason
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [
-        ctx.tenantId,
-        ticketId,
-        person(refs, segment.person),
-        segment.role,
-        segment.startedAt,
-        segment.endedAt,
-        segment.endReason,
-      ],
-    );
+    await insertImportedSegment(ctx.client, [
+      ctx.tenantId,
+      ticketId,
+      person(refs, segment.person),
+      segment.role,
+      segment.startedAt,
+      segment.endedAt,
+      segment.endReason,
+    ]);
   }
 }
 

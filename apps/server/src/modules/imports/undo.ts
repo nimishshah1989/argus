@@ -7,6 +7,8 @@ import {
 } from './fingerprint.js';
 import { fileIdForTickets } from '../files/index.js';
 import { audit } from '../ops/index.js';
+import { deleteImportedTickets, outsideChildRef, reportWithFileId } from '../tickets/index.js';
+import { lockBatchRow, markUndone } from './repo.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import type { CompletionFingerprint } from './schema.js';
@@ -68,12 +70,7 @@ async function lockBatch(
   tenantId: string,
   batchId: string,
 ): Promise<LockedBatch> {
-  const result = await client.query(
-    `SELECT status, stats FROM import_batch
-     WHERE id = $1 AND tenant_id = $2 AND source = 'bhavin' FOR UPDATE`,
-    [batchId, tenantId],
-  );
-  const batch = result.rows[0] as { status?: string; stats?: unknown } | undefined;
+  const batch = await lockBatchRow(client, tenantId, batchId);
   if (!batch) throw new Error('Import batch not found');
   if (!isRecord(batch.stats) || batch.stats.contract !== SYNTHETIC_SOURCE) {
     throw new Error('Undo refused: synthetic import contract is required');
@@ -114,20 +111,12 @@ async function assertNoOutsideReferences(
   ticketIds: string[],
 ): Promise<void> {
   if (!ticketIds.length) return;
-  const child = await client.query(
-    `SELECT ref FROM ticket WHERE tenant_id = $1 AND parent_id = ANY($2::uuid[])
-       AND id <> ALL($2::uuid[]) LIMIT 1`,
-    [tenantId, ticketIds],
-  );
-  if (child.rows[0]) throw new Error(`Undo refused: outside child reference ${child.rows[0].ref}`);
+  const childRef = await outsideChildRef(client, tenantId, ticketIds);
+  if (childRef !== undefined) throw new Error(`Undo refused: outside child reference ${childRef}`);
   const fileId = await fileIdForTickets(client, tenantId, ticketIds);
   if (fileId) throw new Error(`Undo refused: ticket file reference ${fileId}`);
-  const report = await client.query(
-    `SELECT id FROM breakdown_report WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])
-       AND (signature_file_id IS NOT NULL OR pdf_file_id IS NOT NULL) LIMIT 1`,
-    [tenantId, ticketIds],
-  );
-  if (report.rows[0]) throw new Error(`Undo refused: report file reference ${report.rows[0].id}`);
+  const reportId = await reportWithFileId(client, tenantId, ticketIds);
+  if (reportId !== undefined) throw new Error(`Undo refused: report file reference ${reportId}`);
 }
 
 async function deleteCandidates(
@@ -136,15 +125,8 @@ async function deleteCandidates(
   ticketIds: string[],
 ): Promise<void> {
   if (!ticketIds.length) return;
-  await client.query(
-    'DELETE FROM breakdown_report WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])',
-    [tenantId, ticketIds],
-  );
-  const deleted = await client.query(
-    'DELETE FROM ticket WHERE tenant_id = $1 AND id = ANY($2::uuid[]) RETURNING id',
-    [tenantId, ticketIds],
-  );
-  if (deleted.rowCount !== ticketIds.length) {
+  const deleted = await deleteImportedTickets(client, tenantId, ticketIds);
+  if (deleted !== ticketIds.length) {
     throw new Error('Undo refused: imported ticket delete count changed');
   }
 }
@@ -155,11 +137,8 @@ async function finishUndo(
   batch: LockedBatch,
   completion: CompletionFingerprint,
 ): Promise<void> {
-  const updated = await client.query(
-    "UPDATE import_batch SET status = 'undone' WHERE id = $1 AND tenant_id = $2 AND source = 'bhavin'",
-    [batchId, batch.tenantId],
-  );
-  if (updated.rowCount !== 1) throw new Error('Undo refused: batch update failed');
+  const updated = await markUndone(client, batchId, batch.tenantId);
+  if (updated !== 1) throw new Error('Undo refused: batch update failed');
   const before = {
     status: batch.status,
     fingerprintDigest: completion.digest,

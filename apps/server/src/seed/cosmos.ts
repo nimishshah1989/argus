@@ -16,6 +16,7 @@ import {
   insertSettings,
   insertShifts,
 } from '../modules/plant/index.js';
+import { initRefCounters } from '../modules/tickets/index.js';
 import { buildSeed, type SeedFiles } from './cosmos-data.js';
 
 interface Paths {
@@ -98,10 +99,7 @@ export async function seedCosmos(
     await insertShifts(client, tenantId, seed.shifts);
     await insertSettings(client, tenantId, settingsFor(seed.teamShifts));
     await insertGlossaryTerms(client, tenantId, seed.glossaryTerms);
-    await client.query(
-      "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 150), ($1, 'WR', 99)",
-      [tenantId],
-    );
+    await initRefCounters(client, tenantId);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
