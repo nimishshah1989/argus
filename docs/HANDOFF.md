@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 17:09 UTC on branch `claude/t14-staging-safe`.
-- caf46c7 test: migration runner knows the artifact check for 0010
-- 7812d05 docs(14): architecture notes and as-built findings
-- aca2113 changes: fragment for 14
+Last session ended 2026-11-13 15:36 UTC on branch `claude/orchestrator-ledger`.
+- 6b4fa1e docs: session notes (hook)
+- f4857a1 docs: session notes (hook)
+- 298b06b docs: handoff under 50 lines
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
