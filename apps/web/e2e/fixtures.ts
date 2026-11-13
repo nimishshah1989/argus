@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { request } from 'node:http';
 import { expect, type Page } from '@playwright/test';
 
 /**
  * The fake cosmos used by the e2e stack. Every id is fixed so specs can reference
- * machines/people without reading the database back. Nothing here is real data.
+ * machines/people without reading the database back; ids are scoped per Playwright worker.
+ * Nothing here is real data.
  */
 export const API_PORT = 3001;
 export const WEB_PORT = 3000;
@@ -12,14 +14,24 @@ export const WEB_URL = process.env.E2E_WEB_URL ?? `http://127.0.0.1:${WEB_PORT}`
 
 export const E2E_PASSWORD = 'correct-horse-battery';
 
+export const WORKER = Number(process.env.TEST_WORKER_INDEX ?? '0');
+
+/** The fixture id with its first 8 hex digits replaced by this worker's number. */
+export function scopedId(base: string): string {
+  return (0x20000000 + WORKER).toString(16) + base.slice(8);
+}
+
 export const TENANT = {
-  id: '10000000-0000-0000-0000-000000000001',
-  slug: 'cosmos',
+  id: scopedId('10000000-0000-0000-0000-000000000001'),
+  slug: `e2e-w${WORKER}`,
   name: 'Cosmos',
 } as const;
 
+export const TENANT_WEB_URL = `http://${TENANT.slug}.localhost:${WEB_PORT}`;
+export const API_HOST = `${TENANT.slug}.localhost`;
+
 export const SEGMENT = {
-  id: '10000000-0000-0000-0000-000000000002',
+  id: scopedId('10000000-0000-0000-0000-000000000002'),
   code: 'CNC',
   name: 'CNC',
 } as const;
@@ -33,39 +45,89 @@ export interface MachineFixture {
 
 /** Machine ownership by suite: floor, desk, tags/Settings, board, then SLA. */
 export const MACHINES: MachineFixture[] = [
-  { id: '10000000-0000-0000-0000-000000000003', code: 'VC-1', category: 'VMC', cell: 'Cell-1' },
-  { id: '10000000-0000-0000-0000-000000000004', code: 'VC-2', category: 'VMC', cell: 'Cell-1' },
-  { id: '10000000-0000-0000-0000-000000000005', code: 'VC-3', category: 'HMC', cell: 'Cell-2' },
-  { id: '10000000-0000-0000-0000-000000000006', code: 'VC-4', category: 'HMC', cell: 'Cell-2' },
-  { id: '10000000-0000-0000-0000-000000000007', code: 'VC-5', category: 'VMC', cell: 'Cell-3' },
-  { id: '10000000-0000-0000-0000-000000000008', code: 'VC-6', category: 'HMC', cell: 'Cell-3' },
-  { id: '10000000-0000-0000-0000-000000000013', code: 'VC-7', category: 'VMC', cell: 'Cell-4' },
-  { id: '10000000-0000-0000-0000-000000000014', code: 'VC-8', category: 'HMC', cell: 'Cell-4' },
-  { id: '10000000-0000-0000-0000-000000000016', code: 'VC-9', category: 'VMC', cell: 'Cell-5' },
-  { id: '10000000-0000-0000-0000-000000000017', code: 'VC-10', category: 'HMC', cell: 'Cell-5' },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000003'),
+    code: 'VC-1',
+    category: 'VMC',
+    cell: 'Cell-1',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000004'),
+    code: 'VC-2',
+    category: 'VMC',
+    cell: 'Cell-1',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000005'),
+    code: 'VC-3',
+    category: 'HMC',
+    cell: 'Cell-2',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000006'),
+    code: 'VC-4',
+    category: 'HMC',
+    cell: 'Cell-2',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000007'),
+    code: 'VC-5',
+    category: 'VMC',
+    cell: 'Cell-3',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000008'),
+    code: 'VC-6',
+    category: 'HMC',
+    cell: 'Cell-3',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000013'),
+    code: 'VC-7',
+    category: 'VMC',
+    cell: 'Cell-4',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000014'),
+    code: 'VC-8',
+    category: 'HMC',
+    cell: 'Cell-4',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000016'),
+    code: 'VC-9',
+    category: 'VMC',
+    cell: 'Cell-5',
+  },
+  {
+    id: scopedId('10000000-0000-0000-0000-000000000017'),
+    code: 'VC-10',
+    category: 'HMC',
+    cell: 'Cell-5',
+  },
 ];
 
 const PEOPLE = [
   {
-    id: '10000000-0000-0000-0000-000000000009',
+    id: scopedId('10000000-0000-0000-0000-000000000009'),
     name: 'Asha',
     team: 'maintenance',
     title: 'Technician',
   },
   {
-    id: '10000000-0000-0000-0000-00000000000a',
+    id: scopedId('10000000-0000-0000-0000-00000000000a'),
     name: 'Bina',
     team: 'maintenance',
     title: 'Technician',
   },
   {
-    id: '10000000-0000-0000-0000-00000000000b',
+    id: scopedId('10000000-0000-0000-0000-00000000000b'),
     name: 'Omi',
     team: 'production',
     title: 'Operator',
   },
   {
-    id: '10000000-0000-0000-0000-000000000011',
+    id: scopedId('10000000-0000-0000-0000-000000000011'),
     name: 'Meera',
     team: 'maintenance',
     title: 'Admin',
@@ -74,7 +136,7 @@ const PEOPLE = [
 
 const LOGINS = [
   {
-    id: '10000000-0000-0000-0000-00000000000d',
+    id: scopedId('10000000-0000-0000-0000-00000000000d'),
     personId: PEOPLE[0].id,
     username: 'asha',
     role: 'technician',
@@ -82,7 +144,7 @@ const LOGINS = [
     cell: null,
   },
   {
-    id: '10000000-0000-0000-0000-00000000000e',
+    id: scopedId('10000000-0000-0000-0000-00000000000e'),
     personId: PEOPLE[1].id,
     username: 'bina',
     role: 'technician',
@@ -90,7 +152,7 @@ const LOGINS = [
     cell: null,
   },
   {
-    id: '10000000-0000-0000-0000-00000000000f',
+    id: scopedId('10000000-0000-0000-0000-00000000000f'),
     personId: PEOPLE[2].id,
     username: 'op',
     role: 'operator',
@@ -98,7 +160,7 @@ const LOGINS = [
     cell: null,
   },
   {
-    id: '10000000-0000-0000-0000-000000000010',
+    id: scopedId('10000000-0000-0000-0000-000000000010'),
     personId: null,
     username: 'cell-phone',
     role: 'operator',
@@ -106,7 +168,7 @@ const LOGINS = [
     cell: 'Cell-1',
   },
   {
-    id: '10000000-0000-0000-0000-000000000012',
+    id: scopedId('10000000-0000-0000-0000-000000000012'),
     personId: PEOPLE[3].id,
     username: 'admin',
     role: 'admin',
@@ -143,7 +205,7 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
     },
     {
       text: "INSERT INTO shift (id, tenant_id, code, name, starts_at, ends_at) VALUES ($1, $2, 'e2e', 'E2E business hours', '00:00', '23:59')",
-      values: ['10000000-0000-0000-0000-000000000015', TENANT.id],
+      values: [scopedId('10000000-0000-0000-0000-000000000015'), TENANT.id],
     },
     ...MACHINES.map((machine) => ({
       text: 'INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -195,8 +257,40 @@ interface RaisedTicket {
   ref: string;
 }
 
-async function apiJson<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, init);
+export interface ApiInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+/** Node's fetch drops a Host override, so API calls go through node:http with this worker's tenant host. */
+export function apiFetch(path: string, init: ApiInit = {}): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const req = request(
+      new URL(path, API_URL),
+      { method: init.method ?? 'GET', headers: { ...init.headers, host: API_HOST } },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('error', reject);
+        res.on('end', () => {
+          const status = res.statusCode ?? 0;
+          resolve(
+            new Response(status === 204 || status === 304 ? null : Buffer.concat(chunks), {
+              status,
+              headers: { 'content-type': res.headers['content-type'] ?? '' },
+            }),
+          );
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end(init.body);
+  });
+}
+
+async function apiJson<T>(path: string, init: ApiInit): Promise<T> {
+  const res = await apiFetch(path, init);
   if (!res.ok) {
     throw new Error(`${init.method ?? 'GET'} ${path} failed: ${res.status} ${await res.text()}`);
   }

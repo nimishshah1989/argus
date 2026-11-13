@@ -2,13 +2,13 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * End-to-end harness for the real stack. globalSetup starts a postgres:16-alpine
- * Testcontainer, migrates and seeds the fake cosmos, and boots the API (:3001) plus the
+ * Testcontainer, migrates it, and boots the API (:3001) plus the
  * Vite dev server (:3000). There are no `webServer` entries on purpose: Playwright starts
  * those before globalSetup, so they could not receive the Testcontainer's DATABASE_URL.
  *
- * baseURL is 127.0.0.1 rather than localhost because the server resolves the tenant from
- * the Host header: an IP address maps to DEFAULT_TENANT_SLUG (cosmos), while the bare
- * host "localhost" carries no tenant slug and every sign-in would 404.
+ * baseURL is 127.0.0.1, which maps to no tenant (DEFAULT_TENANT_SLUG e2e-unscoped): every spec
+ * imports `test` from apps/web/e2e/test.ts, which seeds this worker's tenant e2e-w<n> and points
+ * baseURL at e2e-w<n>.localhost:3000 (the server resolves the tenant from the Host header).
  */
 const WEB_URL = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
 

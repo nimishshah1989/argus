@@ -6,20 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
-import {
-  API_PORT,
-  API_URL,
-  E2E_PASSWORD,
-  seedStatements,
-  TENANT,
-  WEB_PORT,
-  WEB_URL,
-} from './fixtures.js';
+import { API_PORT, API_URL, E2E_PASSWORD, WEB_PORT, WEB_URL } from './fixtures.js';
 import { assertPortFree, killPid, removeContainer, spawnLogged, waitForHttp } from './processes.js';
 
 /**
- * Boots the real stack for the e2e run: a postgres:16-alpine Testcontainer migrated and
- * seeded with the fake cosmos, the Fastify API on :3001 and the Vite dev server on :3000.
+ * Boots the real stack for the e2e run: a postgres:16-alpine Testcontainer, migrated (each Playwright
+ * worker seeds its own tenant in test.ts), the Fastify API on :3001 and the Vite dev server on :3000.
  * The stack is started from globalSetup because Playwright starts `webServer` entries
  * before globalSetup, so a webServer could never receive the container's DATABASE_URL.
  */
@@ -89,10 +81,8 @@ async function startDatabase(): Promise<Database> {
     }
     await installJobSchema(pool);
     await pool.query(`ALTER ROLE ${APP_API_USER} LOGIN PASSWORD '${APP_API_PASSWORD}'`);
-    const passwordHash = await hashPassword();
-    for (const statement of seedStatements(passwordHash)) {
-      await pool.query(statement.text, statement.values);
-    }
+    process.env.E2E_ADMIN_DATABASE_URL = container.getConnectionUri();
+    process.env.E2E_PASSWORD_HASH = await hashPassword();
   } catch (error) {
     await container.stop().catch(() => undefined);
     throw error;
@@ -110,7 +100,7 @@ function startApi(databaseUrl: string): ChildProcess {
       ...process.env,
       DATABASE_URL: databaseUrl,
       PORT: String(API_PORT),
-      DEFAULT_TENANT_SLUG: TENANT.slug,
+      DEFAULT_TENANT_SLUG: 'e2e-unscoped',
       NODE_ENV: 'test',
     },
     logFile: API_LOG,
