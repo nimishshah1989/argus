@@ -17,15 +17,23 @@ const present = (value: string | undefined): string | null =>
 function required(env: Env, name: string): string {
   const value = present(env[name]);
   if (value === null)
-    throw new Error(`AI config: ${name} is required when ANTHROPIC_API_KEY is set`);
+    throw new Error(`AI config: ${name} is required for a model not in the price table`);
   return value;
 }
 
-function price(env: Env, name: string, keyed: boolean): number {
+/** Anthropic list prices, USD per million tokens (input, output). Update when Anthropic changes them. */
+const PRICES: Record<string, [number, number]> = {
+  'claude-sonnet-5-5': [2, 10],
+  'claude-opus-5-5': [4, 20],
+};
+const DEFAULT_MODEL = 'claude-sonnet-5-5';
+
+function price(env: Env, name: string, listed: number | undefined, keyed: boolean): number {
   if (!keyed && present(env[name]) === null) return 0;
+  if (listed !== undefined && present(env[name]) === null) return listed;
   const value = Number(required(env, name));
   if (!Number.isFinite(value) || value < 0)
-    throw new Error(`AI config: ${name} is required when ANTHROPIC_API_KEY is set`);
+    throw new Error(`AI config: ${name} is required for a model not in the price table`);
   return value;
 }
 
@@ -39,13 +47,14 @@ export function aiConfigFromEnv(env: Env): AiConfig {
   const defaultMonthlyCapUsd = Number(present(env.AI_DEFAULT_MONTHLY_CAP_USD) ?? 50);
   if (!Number.isFinite(defaultMonthlyCapUsd) || defaultMonthlyCapUsd <= 0)
     throw new Error('AI config: AI_DEFAULT_MONTHLY_CAP_USD must be a positive number');
-  const appEnv = keyed ? required(env, 'APP_ENV') : present(env.APP_ENV);
+  const model = keyed ? (present(env.AI_MODEL) ?? DEFAULT_MODEL) : 'fake';
+  const listed = PRICES[model];
   return {
-    production: appEnv === 'production',
+    production: present(env.APP_ENV) === 'production',
     apiKey,
-    model: keyed ? required(env, 'AI_MODEL') : 'fake',
-    priceInputUsdPerMtok: price(env, 'AI_PRICE_INPUT_USD_PER_MTOK', keyed),
-    priceOutputUsdPerMtok: price(env, 'AI_PRICE_OUTPUT_USD_PER_MTOK', keyed),
+    model,
+    priceInputUsdPerMtok: price(env, 'AI_PRICE_INPUT_USD_PER_MTOK', listed?.[0], keyed),
+    priceOutputUsdPerMtok: price(env, 'AI_PRICE_OUTPUT_USD_PER_MTOK', listed?.[1], keyed),
     maxOutputTokens,
     defaultMonthlyCapUsd,
     timeoutMs: 30000,
