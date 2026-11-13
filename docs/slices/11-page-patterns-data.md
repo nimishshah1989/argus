@@ -175,6 +175,8 @@ orchestrator's.
 
 **Lint (`i18next/no-literal-string`).** In `patterns/*.tsx`, put `// eslint-disable-next-line i18next/no-literal-string -- prop value, not copy` above each `variant=`, `group=` and `name:` literal line. `gallery/patterns-section.tsx` and `gallery/form-section.tsx` start with a file-level `/* eslint-disable i18next/no-literal-string -- prop values and state ids only; every visible string goes through t() */`, as `gallery/Gallery.tsx` does.
 
+**Fixture (ruled by the orchestrator, 13 Nov).** `packages/shared/test/fixtures/en-before-05.json` gains the same six keys, appended after `kit.notFound`, exactly as tickets 05 and 06 added theirs; no existing line changes and `catalogue.test.ts` is untouched.
+
 ## 4. Interfaces
 
 ```ts
