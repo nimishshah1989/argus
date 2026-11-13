@@ -44,3 +44,4 @@
 - 2026-11-13 07:01 UTC session c23c2255 on `claude/orchestrator-ledger`: 422856b docs: fence the hook-written HANDOFF facts from prettier
 - 2026-11-13 07:20 UTC session c23c2255 on `claude/orchestrator-ledger`: 18fd23d docs: session-end facts
 - 2026-11-13 07:35 UTC session c23c2255 on `claude/orchestrator-ledger`: 709d758 docs(plan): lean review and test rules (ORCHESTRATOR §3a)
+- 2026-11-13 07:41 UTC session c23c2255 on `claude/orchestrator-ledger`: 04ef395 docs(plan): ledger — no-domain staging ruling
