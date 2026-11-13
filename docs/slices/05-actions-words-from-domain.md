@@ -4,10 +4,9 @@ Issue: [#83](https://github.com/nimishshah1989/argus/issues/83) · Milestone M0 
 `claude/t05-actions-words-domain`. One PR, labels `size:large` (the catalogue move and its frozen copy fixture
 must land together) and `no-parity`. The PR body contains `Closes #83`.
 
-**Status: BLOCKED on the product answers in §10.** The rules in §4 are the draft "the server as it is today"
-(the ticket's own wording: "exactly the server's `availableActions`"). Each row that Nimish answers differently
-changes the named rule, test expectation and ported test, and nothing else. The coder starts after §10 is
-answered and the answers are written into §10.
+**Status: READY.** The product questions are ruled (§10) and the plan-review findings are applied. The rules in
+§4 are the rulings: a button is never added where it is hidden today unless the Spec and the server both allow
+it, and never shown when the server refuses it.
 
 ## 1. Goal
 
@@ -36,16 +35,27 @@ transfer, machine-running, machine-stopped, join, leave, close, cancel`. The fir
    only the `apps/web` importer in `pnpm-lock.yaml`. No external dependency; `tools/check-deps.ts` exempts
    `@uptimo/*`; `tools/check-boundaries.ts` covers only `apps/server/src`, so nothing to register. The existing
    relative import of `packages/shared/src/tags.js` in `api.ts` is left alone (ticket 04 replaces `api-types`).
-5. **Catalogues move to `packages/shared/src/i18n/` (ARCHITECTURE D7)**, one `<namespace>.en.ts` per group,
-   each under 250 lines, exported through a new subpath `"./i18n": "./src/i18n/index.ts"`. At runtime there is
-   still one i18next namespace (`translation`) holding the merged catalogue, so every existing `t('…')` call is
-   unchanged. `MessageKey = keyof typeof en`.
-   - The Gujarati placeholder stays one derived file (`gu.ts`, every key, empty value) until real Gujarati
-     arrives (ticket 24), then it splits per namespace. Rejected now: twelve three-line `.gu.ts` copies.
+5. **Catalogues move to `packages/shared/src/i18n/` (D7)**: per namespace one `<namespace>.en.ts` and one
+   `<namespace>.gu.ts`, each under 250 lines, exported through a new subpath `"./i18n": "./src/i18n/index.ts"`.
+   At runtime there is still one i18next namespace (`translation`) holding the merged catalogue, so every
+   existing `t('…')` call is unchanged. Old `en.ts` and `kit.en.ts` text moves, never reworded.
+   - Each catalogue is a named, un-annotated `export const` (for example `commonEn`), so its keys stay literal
+     types. `index.ts` spreads them: `en = { ...commonEn, ...deskEn, … }`, `gu = { ...commonGu, … }`,
+     `MessageKey = keyof typeof en`. An annotation such as `Record<string, string>` would widen `MessageKey` to
+     `string`, so none is allowed.
+   - Each `<namespace>.gu.ts` is `export const commonGu = blank(commonEn);` (`blank` is in `i18n/blank.ts`: same
+     keys, every value `''`). Ticket 24 replaces the call with real strings, file by file.
+   - Status is split finer: `status-ticket` (`status.open…cancelled`, `status.ticket.*`), `status-signal`
+     (`status.severity.*`, `status.clock.*`, `status.forecast.*`), `status-flow` (`status.handback.*`,
+     `status.pm.*`, `status.sync.*`). The 31 kit status labels keep their values.
+   - **Gujarati proof limit:** until ticket 24 every `gu` value is empty and falls back to English. The `gujarati`
+     e2e project therefore proves only that the tenant language is read from the seed and `/config` and that
+     nothing regresses with `gu` active. It does not prove a Gujarati string renders.
    - The gallery's own `gallery` namespace (`apps/web/src/gallery/strings.ts`) is untouched.
-6. **Label fields in `.ts` are typed `MessageKey`.** `ActionSpec.label` and `StatusDef.label` are `MessageKey`;
-   a type-level test with `@ts-expect-error` proves an English literal fails `pnpm typecheck`. The board's
-   `'Other'` literal (the only other English label in a `.ts` file) becomes the key `board.other`.
+6. **Label fields in `.ts` are typed `MessageKey`.** `ActionSpec.label` is `MessageKey` (new) and
+   `StatusDef.label` becomes `MessageKey` (today `keyof typeof kitEn`, so its guard already holds). A type-level
+   test with `@ts-expect-error` proves an English literal fails `pnpm typecheck` (W4). The board's `'Other'`
+   literal (the only other English label in a `.ts` file) becomes the key `board.other`.
 7. **Gujarati journeys:** a third Playwright project `gujarati` (Pixel 5) seeds its worker tenant with
    `language = 'gu'`, so the app applies Gujarati from `/config` like a real tenant. No server change; the
    existing `tenant.language` column is used. The action-matrix spec runs only in `chromium`.
@@ -62,71 +72,81 @@ transfer, machine-running, machine-stopped, join, leave, close, cancel`. The fir
 
 **Catalogues (`packages/shared/src/i18n/`, all new; keys and values moved verbatim from `apps/web/src/i18n/en.ts` and `kit.en.ts`)**
 
-| File                         | Keys (prefixes)                                                                                                                                     | About |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `common.en.ts`               | `nav`, `common`, `login`, `offline`, `drafts`, `account`, `notifications`, `share`, `role`, `close`, `kit`                                          | 50    |
-| `desk.en.ts`                 | `desk`                                                                                                                                              | 30    |
-| `floor.en.ts`                | `floor`                                                                                                                                             | 25    |
-| `ticket.en.ts`               | `ticket`, `timeline`, `figures`                                                                                                                     | 58    |
-| `sla.en.ts`                  | `sla`                                                                                                                                               | 18    |
-| `actions.en.ts`              | `action` (28 existing + 11 new `action.label.*`, §5)                                                                                                | 42    |
-| `report.en.ts`               | `report`                                                                                                                                            | 33    |
-| `admin.en.ts`                | `admin`                                                                                                                                             | 21    |
-| `board.en.ts`                | `board`, `tile`, new `board.other`                                                                                                                  | 21    |
-| `settings.en.ts`             | `settings`                                                                                                                                          | 41    |
-| `tags.en.ts`                 | `tags`                                                                                                                                              | 9     |
-| `status.en.ts`               | the 31 kit `status.*` labels and the 5 `status.open…cancelled` keys, values unchanged                                                               | 38    |
-| `index.ts`                   | `en` (spread of the twelve), `EN_NAMESPACES`, `MessageKey`, `gu`                                                                                    | 35    |
-| `fixtures/en-before-05.json` | Frozen copy of today's merged `en` (generated once from `main` before the move: `tsx -e` printing `JSON.stringify(en, null, 2)`). Test data for I3. | ~370  |
-| `catalogue.test.ts`          | I1–I4.                                                                                                                                              |       |
+Each namespace has `<ns>.en.ts` (export `<ns>En`) and `<ns>.gu.ts` (export `<ns>Gu = blank(<ns>En)`, two lines).
+
+| Namespace (export prefix)        | Keys (prefixes)                                                                                            | About |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----- |
+| `common` (`common`)              | `nav`, `common`, `login`, `offline`, `drafts`, `account`, `notifications`, `share`, `role`, `close`, `kit` | 55    |
+| `desk` (`desk`)                  | `desk`                                                                                                     | 30    |
+| `floor` (`floor`)                | `floor`                                                                                                    | 25    |
+| `ticket` (`ticket`)              | `ticket`, `timeline`, `figures`                                                                            | 58    |
+| `sla` (`sla`)                    | `sla`                                                                                                      | 18    |
+| `actions` (`actions`)            | `action` (28 existing + 11 new `action.label.*`, §5)                                                       | 42    |
+| `report` (`report`)              | `report`                                                                                                   | 33    |
+| `admin` (`admin`)                | `admin`                                                                                                    | 21    |
+| `board` (`board`)                | `board`, `tile`, new `board.other`                                                                         | 21    |
+| `settings` (`settings`)          | `settings`                                                                                                 | 41    |
+| `tags` (`tags`)                  | `tags`                                                                                                     | 9     |
+| `status-ticket` (`statusTicket`) | `status.open…cancelled`, `status.ticket.*`                                                                 | 16    |
+| `status-signal` (`statusSignal`) | `status.severity.*`, `status.clock.*`, `status.forecast.*`                                                 | 14    |
+| `status-flow` (`statusFlow`)     | `status.handback.*`, `status.pm.*`, `status.sync.*`                                                        | 14    |
+
+| File                                              | Change                                                                                                                                                                |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `i18n/blank.ts`                                   | New. `blank<T extends object>(source: T): { [K in keyof T]: string }`; every value `''`.                                                                              |
+| `i18n/index.ts`                                   | New. `NAMESPACES` (`Record<string, Record<string, string>>`, name to catalogue, English), `en` (spread of the fourteen), `gu` (spread of the fourteen), `MessageKey`. |
+| `packages/shared/test/fixtures/en-before-05.json` | Frozen copy of today's merged `en`, generated once from the unmoved `en.ts` before the move (`tsx -e` printing `JSON.stringify(en, null, 2)`). Test data for I3.      |
+| `packages/shared/test/catalogue.test.ts`          | New. I1–I4. The shared tests live in `packages/shared/test/` like the existing ones.                                                                                  |
 
 `packages/shared/package.json`: add `"./i18n": "./src/i18n/index.ts"` to `exports` (`"."` unchanged).
 
 **Web**
 
-| File                                              | Change                                                                                                                                                                                                                                                                                               |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/package.json`                           | Add the two workspace dependencies (decision 4). `pnpm-lock.yaml` follows.                                                                                                                                                                                                                           |
-| `apps/web/src/components/actions.ts`              | **Deleted.**                                                                                                                                                                                                                                                                                         |
-| `apps/web/src/components/actions.test.ts`         | **Deleted after porting**: every test moves to `actionSpecs.test.ts` or `correctChanges.test.ts` (§6 mapping).                                                                                                                                                                                       |
-| `apps/web/src/components/actionSpecs.ts`          | New. `ActionSpec`, `actionSpecs`, `quickSpec`, `offers`, `actorFrom`, `crewFrom` (§4). Presentation only: label and primary.                                                                                                                                                                         |
-| `apps/web/src/components/actionSpecs.test.ts`     | New. W1–W7 and the ports.                                                                                                                                                                                                                                                                            |
-| `apps/web/src/components/correctChanges.ts`       | New. `CorrectChangeValues`, `buildCorrectChanges`, `hasCorrectChanges` moved verbatim.                                                                                                                                                                                                               |
-| `apps/web/src/components/correctChanges.test.ts`  | New. The four `buildCorrectChanges` tests moved verbatim.                                                                                                                                                                                                                                            |
-| `apps/web/src/components/useTicketCommand.ts`     | New. `useTicketCommand` moved verbatim.                                                                                                                                                                                                                                                              |
-| `apps/web/src/components/ActionBar.tsx`           | Props `crew: string[]` → `crew: ActionCrewMember[]`, add `actor: ActorContext`; `legalActions(…)` → `actionSpecs(ticket, crew, actor)`; render `t(item.label)`. `FORM_ACTIONS` unchanged.                                                                                                            |
-| `apps/web/src/components/TicketCard.tsx`          | Import `ActionSpec` from `./actionSpecs.js`; render `t(quick.label)`.                                                                                                                                                                                                                                |
-| `apps/web/src/components/ReportForm.tsx`          | `PanelProps`: `crew: ActionCrewMember[]`, add `actor: ActorContext`; pass both to `ActionBar`. Whether `ActionBar` stays inside `canEdit &&` follows Q18.                                                                                                                                            |
-| `apps/web/src/components/AdminPanel.tsx`          | Imports only: `buildCorrectChanges`, `hasCorrectChanges` from `./correctChanges.js`, `useTicketCommand` from `./useTicketCommand.js`.                                                                                                                                                                |
-| `apps/web/src/screens/TicketDetail.tsx`           | `actor = me ? actorFrom(me) : null`; `crew = crewFrom(people)` (all people, left ones included); `canEdit = actor !== null && canWork(actor)` (domain `canWork`) for `ReportPanel` and `TagsPanel` (the `TagsPanel` file is not touched); pass `actor` to `ReportPanel`; imports from the new files. |
-| `apps/web/src/screens/Desk.tsx`                   | Drop `canWork`/`canQuick`; `actor = me.data ? actorFrom(me.data.user) : null`; pass `actor` to `Board`; import `useTicketCommand` from the new file.                                                                                                                                                 |
-| `apps/web/src/screens/desk/Board.tsx`             | Prop `canQuick: boolean` → `actor: ActorContext \| null` (both prop types); `quick={actor ? quickSpec(ticket, actor) : null}`.                                                                                                                                                                       |
-| `apps/web/src/screens/floor/MyComplaints.tsx`     | `canCancelOwn(ticket, personId)` → `actor !== null && offers(ticket, actor, 'cancel')`; quick spec `{ action: 'cancel', label: 'action.cancel', primary: false }`; import `useTicketCommand` from the new file.                                                                                      |
-| `apps/web/src/screens/floor/SentConfirmation.tsx` | Same `offers(…, 'cancel')` swap; the `ticket` prop type becomes `Ticket`.                                                                                                                                                                                                                            |
-| `apps/web/src/api-types.ts`                       | `Ticket` gains `raisedLoginId: string` (the server already sends it: `ticketProjection` spreads the domain ticket).                                                                                                                                                                                  |
-| `apps/web/src/screens/desk/views.test.ts`         | Ticket fixture gains `raisedLoginId` (type follows; no assertion changes).                                                                                                                                                                                                                           |
-| `apps/web/src/screens/board/data.ts`              | `SegmentSection` and `GroupSection` gain `other: boolean`; the catch-all section and group get `label: null, other: true` instead of `'Other'`; `SegmentSection.label` becomes `string \| null`.                                                                                                     |
-| `apps/web/src/screens/board/BoardSections.tsx`    | Render and `aria-label` use `x.other ? t('board.other') : x.label`.                                                                                                                                                                                                                                  |
-| `apps/web/src/ui/status/index.ts`                 | `label: keyof typeof kitEn` → `label: MessageKey`; import from `@uptimo/shared/i18n`.                                                                                                                                                                                                                |
-| `apps/web/src/i18n/index.ts`                      | Import `en`, `gu` from `@uptimo/shared/i18n`; nothing else changes.                                                                                                                                                                                                                                  |
-| `apps/web/src/i18n/en.ts`, `gu.ts`, `kit.en.ts`   | **Deleted** (moved, decision 5).                                                                                                                                                                                                                                                                     |
-| `apps/web/src/i18n/i18n.test.ts`                  | Keeps the fallback test (import paths only); the key-identity test moves to I4.                                                                                                                                                                                                                      |
-| `apps/web/src/i18n/message-key.test.ts`           | New. I5.                                                                                                                                                                                                                                                                                             |
+| File                                              | Change                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/package.json`                           | Add the two workspace dependencies (decision 4). `pnpm-lock.yaml` follows.                                                                                                                                                                                                                                                                                                                                                                        |
+| `apps/web/src/components/actions.ts`              | **Deleted.**                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `apps/web/src/components/actions.test.ts`         | **Deleted after porting**: every test moves to `actionSpecs.test.ts` or `correctChanges.test.ts` (§6 mapping).                                                                                                                                                                                                                                                                                                                                    |
+| `apps/web/src/components/actionSpecs.ts`          | New. `ActionSpec`, `actionSpecs`, `quickSpec`, `offers`, `actorFrom`, `crewFrom` (§4). Presentation only: label and primary.                                                                                                                                                                                                                                                                                                                      |
+| `apps/web/src/components/actionSpecs.test.ts`     | New. W1–W7 and the ports.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `apps/web/src/components/correctChanges.ts`       | New. `CorrectChangeValues`, `buildCorrectChanges`, `hasCorrectChanges` moved verbatim.                                                                                                                                                                                                                                                                                                                                                            |
+| `apps/web/src/components/correctChanges.test.ts`  | New. The four `buildCorrectChanges` tests moved verbatim.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `apps/web/src/components/useTicketCommand.ts`     | New. `useTicketCommand` moved verbatim.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `apps/web/src/components/ActionBar.tsx`           | Props `crew: string[]` → `crew: ActionCrewMember[]`, add `actor: ActorContext`; `legalActions(…)` → `actionSpecs(ticket, crew, actor)`; render `t(item.label)`. `FORM_ACTIONS` unchanged.                                                                                                                                                                                                                                                         |
+| `apps/web/src/components/TicketCard.tsx`          | Import `ActionSpec` from `./actionSpecs.js`; render `t(quick.label)`.                                                                                                                                                                                                                                                                                                                                                                             |
+| `apps/web/src/components/ReportForm.tsx`          | `PanelProps`: `crew: ActionCrewMember[]`, add `actor: ActorContext`; pass both to `ActionBar`. `ActionBar` stays inside `canEdit &&` (Q18: operator, plant head and board see no action bar).                                                                                                                                                                                                                                                     |
+| `apps/web/src/components/AdminPanel.tsx`          | Imports only: `buildCorrectChanges`, `hasCorrectChanges` from `./correctChanges.js`, `useTicketCommand` from `./useTicketCommand.js`.                                                                                                                                                                                                                                                                                                             |
+| `apps/web/src/screens/TicketDetail.tsx`           | `actor = me ? actorFrom(me) : null`; `crew = crewFrom(people)` (all people, left ones included); `canEdit = actor !== null && canWork(actor)` (domain `canWork`), used by `ReportPanel` and the one `TagsPanel` line (the `TagsPanel` file is not touched; that line is the only tags edit); the `ReportPanel` condition becomes `hasReportContext(config, personId) && actor !== null`, and `actor` is passed to it; imports from the new files. |
+| `apps/web/src/screens/Desk.tsx`                   | Drop `canWork`/`canQuick`; `actor = me.data ? actorFrom(me.data.user) : null`; pass `actor` to `Board`; import `useTicketCommand` from the new file.                                                                                                                                                                                                                                                                                              |
+| `apps/web/src/screens/desk/Board.tsx`             | Prop `canQuick: boolean` → `actor: ActorContext \| null` (both prop types); `quick={actor ? quickSpec(ticket, actor) : null}`.                                                                                                                                                                                                                                                                                                                    |
+| `apps/web/src/screens/floor/MyComplaints.tsx`     | `const actor = me.data ? actorFrom(me.data.user) : null;` then `canCancelOwn(ticket, personId)` → `actor !== null && offers(ticket, actor, 'cancel')`; quick spec `{ action: 'cancel', label: 'action.cancel', primary: false }` (the label is rendered with `t(quick.label)` in `TicketCard`); import `useTicketCommand` from the new file.                                                                                                      |
+| `apps/web/src/screens/floor/SentConfirmation.tsx` | Same `const actor = me.data ? actorFrom(me.data.user) : null;` and `offers(…, 'cancel')` swap; the `ticket` prop type becomes `Ticket`.                                                                                                                                                                                                                                                                                                           |
+| `apps/web/src/api-types.ts`                       | `Ticket` gains `raisedLoginId: string` (the server already sends it: `ticketProjection` spreads the domain ticket).                                                                                                                                                                                                                                                                                                                               |
+| `apps/web/src/screens/desk/views.test.ts`         | Ticket fixture gains `raisedLoginId` (type follows; no assertion changes).                                                                                                                                                                                                                                                                                                                                                                        |
+| `apps/web/src/screens/board/data.ts`              | `SegmentSection` and `GroupSection` gain `other: boolean`; `SegmentSection.label` becomes `string \| null`. The catch-all segment section is `label: null, other: true`. In `toSection`, `key === '' ? null : key === 'other' ? 'Other' : (labels.get(key) ?? 'Other')` is replaced by `label: key === '' \|\| key === 'other' ? null : (labels.get(key) ?? null)` and `other: key === 'other'`.                                                  |
+| `apps/web/src/screens/board/data.test.ts`         | New (none exists). Cases in §6 (B1, B2).                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `apps/web/src/screens/board/BoardSections.tsx`    | Render and `aria-label` use `x.other ? t('board.other') : x.label`.                                                                                                                                                                                                                                                                                                                                                                               |
+| `apps/web/src/ui/status/index.ts`                 | `label: keyof typeof kitEn` → `label: MessageKey`; import from `@uptimo/shared/i18n`.                                                                                                                                                                                                                                                                                                                                                             |
+| `apps/web/src/i18n/index.ts`                      | Import `en`, `gu` from `@uptimo/shared/i18n`; nothing else changes.                                                                                                                                                                                                                                                                                                                                                                               |
+| `apps/web/src/i18n/en.ts`, `gu.ts`, `kit.en.ts`   | **Deleted** (moved, decision 5). The deletions are moves; no key or value is dropped (I3).                                                                                                                                                                                                                                                                                                                                                        |
+| `apps/web/src/i18n/i18n.test.ts`                  | Keeps the fallback test (import paths only); the key-identity test moves to I4.                                                                                                                                                                                                                                                                                                                                                                   |
+| `apps/web/src/i18n/message-key.test.ts`           | New. I5 (a regression guard: it passes before the change).                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **E2E and config**
 
-| File                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/e2e/fixtures.ts`         | `seedStatements(passwordHash, language: 'en' \| 'gu' = 'en')`; the tenant insert writes `language`.                                                                                                                                                                                                                                                                                                                                                                  |
-| `apps/web/e2e/fixtures-actions.ts` | New (keeps `fixtures.ts` under 400 lines). Four fake people and logins: `sup` supervisor, `head` head, `ph` plant_head, `brd` board (fake names Sara, Hari, Pia, Bo; ids `scopedId('10000000-0000-0000-0000-00000000001c'…'1f')` people, `…20'…'23'` logins); four machines VC-11…VC-14 (`…18'…'1b'`); `actionMachines(projectName)`; `actionSeedStatements(passwordHash)`; `commandViaApi(token, ticketId, action, body)`. Imports from `fixtures.ts` one way only. |
-| `apps/web/e2e/test.ts`             | Worker option `uiLanguage: ['en', { scope: 'worker', option: true }]`; seeds `[...seedStatements(hash, uiLanguage), ...actionSeedStatements(hash)]`.                                                                                                                                                                                                                                                                                                                 |
-| `apps/web/e2e/actions.spec.ts`     | New. E1–E3.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `apps/web/e2e/i18n.spec.ts`        | New. E4.                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `playwright.config.ts`             | `defineConfig<object, { uiLanguage: 'en' \| 'gu' }>`; project `gujarati` (`devices['Pixel 5']`, `uiLanguage: 'gu'`); `phone` and `gujarati` add `**/actions.spec.ts` to `testIgnore`.                                                                                                                                                                                                                                                                                |
-| `tools/workspace.test.ts`          | New case X1 (web declares its `@uptimo` imports).                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| File                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/e2e/fixtures.ts`         | `seedStatements(passwordHash, language: 'en' \| 'gu' = 'en')`; the tenant insert writes `language`.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `apps/web/e2e/fixtures-actions.ts` | New (keeps `fixtures.ts` under 400 lines). Four fake people and personal logins: `sup` supervisor, `head` head, `ph` plant_head, `brd` board (fake names Sara, Hari, Pia, Bo; ids `scopedId('10000000-0000-0000-0000-00000000001c'…'1f')` people, `…20'…'23'` logins); two machines, A = VC-11 (`…18`) and B = VC-12 (`…19`); `actionMachines(projectName)`; `actionSeedStatements(passwordHash)`; `commandViaApi(token, ticketId, action, body)`. Imports from `fixtures.ts` one way only. |
+| `apps/web/e2e/test.ts`             | Worker option `uiLanguage: ['en', { scope: 'worker', option: true }]`; seeds `[...seedStatements(hash, uiLanguage), ...actionSeedStatements(hash)]`.                                                                                                                                                                                                                                                                                                                                        |
+| `apps/web/e2e/actions.spec.ts`     | New. E1–E3.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `apps/web/e2e/i18n.spec.ts`        | New. E4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `playwright.config.ts`             | `defineConfig<object, { uiLanguage: 'en' \| 'gu' }>`; project `gujarati` (`devices['Pixel 5']`, `uiLanguage: 'gu'`); `phone` and `gujarati` add `**/actions.spec.ts` to `testIgnore`.                                                                                                                                                                                                                                                                                                       |
+| `tools/workspace.test.ts`          | New case X1 (web declares its `@uptimo` imports).                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
-**Records:** `changes/83-actions-words-domain.md` (§7), MILESTONES row 05, one line in `wiki/log.md`, top of
-`docs/HANDOFF.md`.
+**Records:** `changes/83-actions-words-domain.md` (§7, short, same format as the other fragments),
+`docs/slices/05-pr-body.md` (the PR body draft: what changed for a user, tests, how to try, the ported-test list,
+the follow-ups of §10), MILESTONES row 05, one line in `wiki/log.md`, top of `docs/HANDOFF.md`.
 
 ## 4. Interfaces
 
@@ -169,23 +189,26 @@ export interface ActionTicket {
 export function availableActions(ticket: ActionTicket, actor: ActorContext): TicketAction[];
 ```
 
-Draft rules ("server today"; `W` = `canWork(actor)`; `onCrew` = an active crew row for `actor.personId`;
-`live` = open, working or waiting). `canCancel` and `canClose` get a `TicketContext` built inside the file
-(`startedAt` → `Date | null`, `leftAt` → `Date | undefined`):
+Rules (the rulings of §10). `W` = `canWork(actor)`; `live` = open, working or waiting; `onCrew` = an active crew
+row (`leftAt` null) for `actor.personId`; `onTicket` = `onCrew` or `actor.personId === leadPersonId`.
+**First rule: `actor.personId === null` returns `[]`** (the server refuses every action for a person-less
+session: a personal login needs the body person to equal its own, a shared login needs a known person).
+`canCancel` and `canClose` get a `TicketContext` built inside the file (`startedAt` → `Date | null`, `leftAt` →
+`Date | undefined`).
 
-| Action          | Rule                                                                                             | Rows in §10 that can change it |
-| --------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
-| start           | open and W                                                                                       | —                              |
-| resume          | waiting and W                                                                                    | —                              |
-| update          | live and W                                                                                       | Q7                             |
-| pause           | working and W                                                                                    | —                              |
-| transfer        | working and W                                                                                    | —                              |
-| machine-running | `kind === 'stopped'` and W (any status)                                                          | Q8, Q9                         |
-| machine-stopped | `machineRunningAt` set and W (any status)                                                        | Q10                            |
-| join            | working or waiting, W, `actor.personId` set, not `onCrew` (the lead without a crew row may join) | Q1, Q3                         |
-| leave           | W, `actor.personId` set, `onCrew` (any status)                                                   | Q2, Q4, Q5                     |
-| close           | working and `canClose(actor, ticket)`                                                            | Q6                             |
-| cancel          | `canCancel(actor, ticket)` (operator: same login and not started, any status)                    | Q12–Q16                        |
+| Action          | Rule                                                                                                               | Ruling                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| start           | open and W                                                                                                         | as today                                                    |
+| resume          | waiting and W                                                                                                      | as today                                                    |
+| update          | W and (working or waiting, or open and `handedOver`)                                                               | Q7 stays hidden                                             |
+| pause           | working and W                                                                                                      | as today                                                    |
+| transfer        | working and W                                                                                                      | as today                                                    |
+| machine-running | W, `kind === 'stopped'`, working or waiting                                                                        | Q8, Q9 stay hidden                                          |
+| machine-stopped | W, `machineRunningAt` set, working or waiting                                                                      | Q10 stays hidden                                            |
+| join            | W, working or waiting, not `onTicket`                                                                              | Q1 hide on open; Q3 stays hidden for the lead               |
+| leave           | W, live, `onCrew` (the lead without a crew row does not get Leave)                                                 | Q2 hide; Q4 stays shown; Q5 stays hidden                    |
+| close           | working and `canClose(actor, ticket)`                                                                              | Q6 hide for a personal-login technician not lead or primary |
+| cancel          | live and `canCancel(actor, ticket)` (operator: raised on the same login and not started; plant head, board: never) | Q12 show; Q13, Q15 hide; Q14 stays hidden; Q16 show         |
 
 `apps/web/src/components/actionSpecs.ts`:
 
@@ -215,10 +238,10 @@ export function crewFrom(people: TicketPerson[]): ActionCrewMember[]; // rows wi
 `packages/shared/src/i18n/index.ts`:
 
 ```ts
-export const EN_NAMESPACES: Record<string, Record<string, string>>; // the twelve, by file name
-export const en: {/* spread of the twelve */};
+export const NAMESPACES: Record<string, Record<string, string>>; // the fourteen English catalogues, by file name
+export const en = { ...commonEn /* … the fourteen, no type annotation */ };
 export type MessageKey = keyof typeof en;
-export const gu: Record<MessageKey, string>; // every key, ''
+export const gu = { ...commonGu /* … the fourteen */ }; // every key, ''
 ```
 
 `apps/web/src/ui/status/index.ts`: `StatusDef.label: MessageKey`. E2E: `uiLanguage` worker option; helpers in
@@ -242,18 +265,26 @@ Pick up · `action.label.resume` Resume · `action.label.update` Update · `acti
 Leave · `action.label.close` Close · `board.other` Other. Every existing key and value is unchanged (I3),
 including the 31 status labels.
 
-## 6. Test cases (all fail first)
+## 6. Test cases (all fail first, except the marked regression guards)
 
 **Domain — `packages/domain/test/actions.test.ts`**
 
-- **T1** `matches what the server accepts for every role, state and relation`. Given each of the 7 roles × ticket
+- **T1** `never shows what the server refuses, and hides only the ruled rows`. Given each of the 7 roles × ticket
   variants built with `raiseTicket` + `transition` (open fresh; open handed over; working; waiting; closed
   report/no_report/done; cancelled from open unstarted; cancelled from working) × kinds stopped/support/general ×
   machine running or not × actor relation (lead; primary crew; support crew; left crew; not on ticket; same login
-  or other; shared or personal; `personId` null), when `availableActions` is compared with "the route gate
-  (`canWork` for leave, pause, resume, transfer, update, machine-running, machine-stopped) passes and
-  `transition()` does not throw" for each of the 11 actions, then they agree — except the rows §10 answers
-  "hide", which are listed in the test as `HIDDEN` and must be absent while the server still accepts them.
+  or other; shared or personal; `personId` null), the oracle `serverAccepts(action, state, actor)` is:
+  `actor.personId !== null` (models `resolveActingPerson`: a personal login without a matching person gets 403, a
+  shared login with no known person gets 404, so neither can act) **and** (the action is in the route gate list
+  `leave, pause, resume, transfer, update, machine-running, machine-stopped` ⇒ `canWork(actor)`) **and**
+  `transition()` does not throw for the command built with `personId = actor.personId`: `start {pickup:
+ticket.handedOver}`, `resume`, `update {text: 'x'}`, `pause {reason: 'spare'}`, `transfer {note: 'x'}`,
+  `machineRunning`, `machineStopped`, `join {role: 'support'}`, `leave {reason: 'x'}`, `close {kind: 'done'}`,
+  `cancel {reason: 'x'}`. Then (a) every action in `availableActions` is `serverAccepts` (never shown when
+  refused), (b) every `serverAccepts` action that is absent matches a row of the test's `HIDDEN` table: Q3 (join
+  by the lead), Q5 (leave on closed or cancelled), Q7 (update on open, not handed over), Q8, Q9 (machine-running
+  on open, closed, cancelled), Q10 (machine-stopped on open, closed, cancelled), Q14 (operator cancel on an own
+  cancelled ticket), and (c) `actor.personId === null` gives `[]`.
 - **T2** `lists actions in the canonical order`. Given a working stopped ticket with the machine running and a
   supervisor on support crew, then the list is `update, pause, transfer, machine-running, machine-stopped,
 leave, close, cancel`.
@@ -261,8 +292,12 @@ leave, close, cancel`.
   each gets `[]`.
 - **T4** `reads ISO strings like dates`. Given the T2 ticket with `startedAt`, `machineRunningAt` and `leftAt`
   as ISO strings, then the result equals the Date version.
-- **T5** `refuses close to a technician who is not lead or primary on a personal login` and allows it on a
-  shared login (Q6 sets the expected value).
+- **T5** `refuses close to a technician who is not lead or primary on a personal login` (Q6): hidden; still
+  shown on a shared login and to the lead and to primary crew.
+- **T6** `follows the rulings Q1, Q2, Q12, Q13, Q15, Q16`: Q1 open ticket, technician not on crew: no `join`; Q2
+  working, lead without crew row: no `leave`; Q12 shared-login operator, ticket raised on that login by another
+  person, unstarted: `cancel`; Q13 personal-login operator, ticket raised from another login: none; Q15 plant head
+  on an own unstarted open ticket: none; Q16 technician, own started working ticket: `cancel` present.
 
 **Web — `apps/web/src/components/actionSpecs.test.ts`** (fixture: today's `ticket()` plus `raisedLoginId`)
 
@@ -274,69 +309,89 @@ leave, close, cancel`.
   not running → machineRunning; working running → null; operator → null.
 - **W4** `rejects an English literal as a label`: `// @ts-expect-error` on
   `const s: ActionSpec = { action: 'start', label: 'Start', primary: true }` (fails `pnpm typecheck` if the
-  literal were accepted).
+  literal were accepted). Carries the "English literal fails typecheck" goal for action labels.
 - **W5** `maps me to an actor`: `actorFrom` copies login id, role, shared, acting person; unknown role → null.
 - **W6** `keeps left crew rows for close`: `crewFrom` keeps `leftAt`.
 - **W7** `offers the reporter's own cancel only while unstarted on the same login`: operator, `raisedLoginId`
   equal, open, `startedAt` null → true; started → false; other login → false.
 
-Ports of `actions.test.ts` (none dropped; the expected value of a port marked Q follows that answer):
+Ports of `actions.test.ts` (none dropped; a port whose expectation changes by a ruling says which, and is listed
+in the PR body draft):
 
-| Old test                                                                                                       | New test (same file)                                                             |
-| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| offers join to a technician who is not on the crew (open)                                                      | `join on open` — Q1                                                              |
-| offers leave to an active crew member instead of join                                                          | same name, working ticket                                                        |
-| treats the lead as being on the crew                                                                           | `the lead and join/leave` — Q2, Q3                                               |
-| offers join/leave on working and waiting tickets too                                                           | same name                                                                        |
-| omits join/leave without an acting person or outside the live statuses                                         | same name; closed/cancelled expectations follow Q5, Q9                           |
-| offers cancel from working (technician and above can cancel)                                                   | same name                                                                        |
-| keeps cancel on open and waiting                                                                               | same name, technician actor                                                      |
-| canCancelOwn: allows / refuses once started / refuses when not open / refuses someone else or no acting person | W7 plus `own cancel on a cancelled ticket` (Q14) and `shared login cancel` (Q12) |
-| buildCorrectChanges × 4                                                                                        | `correctChanges.test.ts`, verbatim                                               |
+| Old test                                                                                                       | New test (same file)                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| offers join to a technician who is not on the crew (open)                                                      | `offers join to a technician who is not on the crew` on a working ticket; the open half becomes `hides join on an open ticket` (Q1); `start` is still offered                                                                                                                       |
+| offers leave to an active crew member instead of join                                                          | same name, open and working tickets (Q4 keeps Leave on open)                                                                                                                                                                                                                        |
+| treats the lead as being on the crew                                                                           | `treats the lead as on the ticket`: no join (Q3) and no leave (Q2, was offered)                                                                                                                                                                                                     |
+| offers join/leave on working and waiting tickets too                                                           | same name                                                                                                                                                                                                                                                                           |
+| omits join/leave without an acting person or outside the live statuses                                         | same name; `personId` null gives `[]`; closed and cancelled give `[]` for a technician                                                                                                                                                                                              |
+| offers cancel from working (technician and above can cancel)                                                   | same name                                                                                                                                                                                                                                                                           |
+| keeps cancel on open and waiting                                                                               | same name, technician actor                                                                                                                                                                                                                                                         |
+| canCancelOwn: allows / refuses once started / refuses when not open / refuses someone else or no acting person | W7, `refuses an operator on a started or closed ticket`, `refuses the operator named reporter on another login` (Q13), `offers a technician cancel on an own started ticket` (Q16), `offers a shared-login operator cancel` (Q12), `refuses own cancel on a cancelled ticket` (Q14) |
+| buildCorrectChanges × 4                                                                                        | `correctChanges.test.ts`, verbatim                                                                                                                                                                                                                                                  |
 
-**Catalogues — `packages/shared/src/i18n/catalogue.test.ts`**
+**Board — `apps/web/src/screens/board/data.test.ts`**
 
-- **I1** `keeps every namespace file under 250 lines`: Given every `*.en.ts` in the folder, then each has fewer
-  than 250 lines.
-- **I2** `has no key in two namespaces`: the sum of `EN_NAMESPACES` sizes equals `Object.keys(en).length`.
-- **I3** `changes no existing copy`: every key in `fixtures/en-before-05.json` has the same value in `en`, and
-  `en` has exactly those keys plus the 12 in §5.
+- **B1** `labels a machine with no segment as other`: Given a machine with no segment, then the section is
+  `other: true, label: null`.
+- **B2** `labels a machine in an unknown group as other`: Given a segment with groups and a machine whose
+  `group_id` is not one of them, then the group is `id: 'other'`, `other: true`, `label: null`; a configured
+  group keeps its name and `other: false`.
+
+**Catalogues — `packages/shared/test/catalogue.test.ts`**
+
+- **I1** `keeps every catalogue file under 250 lines`: Given every `*.en.ts` and `*.gu.ts` in `src/i18n/`, then
+  each has fewer than 250 lines.
+- **I2** `has no key in two namespaces`: the sum of `NAMESPACES` sizes equals `Object.keys(en).length`.
+- **I3** `changes no existing copy`: every key in `test/fixtures/en-before-05.json` has the same value in `en`, and
+  `en` has exactly those keys plus the 12 in §5 (including all 31 `status.*` kit labels, unchanged).
 - **I4** `keeps gu key-identical`: `gu` keys equal `en` keys; every value is `''`.
-- **I5** (`apps/web/src/i18n/message-key.test.ts`) `rejects an English status label`: `// @ts-expect-error` on
-  a `StatusDef` with `label: 'Stopped'`; `label: 'status.ticket.stopped'` compiles.
+- **I5** (`apps/web/src/i18n/message-key.test.ts`, **regression guard: passes today**, `StatusDef.label` is already
+  `keyof typeof kitEn`) `rejects an English status label`: `// @ts-expect-error` on a `StatusDef` with
+  `label: 'Stopped'`; `label: 'status.ticket.stopped'` compiles.
 - `apps/web/src/i18n/i18n.test.ts` `falls back to English for an untranslated gu key` stays.
 
 **Workspace — `tools/workspace.test.ts`**
 
 - **X1** `declares every @uptimo import of the web`: every `@uptimo/<name>` imported in `apps/web/src` and
-  `apps/web/e2e` (`.ts`, `.tsx`) is a `workspace:*` dependency of `apps/web/package.json`.
+  `apps/web/e2e` (`.ts`, `.tsx`) is a `workspace:*` dependency of `apps/web/package.json`; the set of imports
+  found is not empty; and `apps/web/package.json` lists both `@uptimo/domain` and `@uptimo/shared` as
+  `workspace:*`.
 
-**Browser — `apps/web/e2e/actions.spec.ts`** (serial; `beforeAll` raises through the API: open stopped ticket
-raised by `op` on machine A; working stopped ticket on machine B started by `asha` with `bina` joined as
-support; general tickets: handed over (asha start, transfer), waiting (start, pause `spare`), closed (start,
-close `done`), cancelled (cancel))
+**Browser — `apps/web/e2e/actions.spec.ts`** (serial, `chromium` only; `beforeAll` raises through the API. Six
+tickets: **open stopped**, machine A (VC-11), raised by `op`; **working stopped**, machine B (VC-12), raised
+and started by `asha`, `bina` joined as support; four general tickets (no machine) raised by `asha`:
+**handed over** (`asha` start, `asha` transfer), **waiting** (`asha` start, pause `spare`), **closed** (`asha`
+start, close `done`); and **cancelled**, raised by `op`, cancelled by `op`. `afterAll` cancels the live ones as
+`admin` so later specs on the worker see none)
 
 - **E1** `shows exactly availableActions on the ticket for every role and state`: Given each login (`asha`,
   `bina`, `op`, `sup`, `head`, `ph`, `brd`, `admin`) and each of the six tickets, when the login opens
-  `/desk/<id>`, then the button names in the `Actions` region, in order, equal `actionSpecs(ticket,
-crewFrom(people), actorFrom(me))` mapped through `en` (an empty list means no `Actions` region). Expected
-  values for operator rows follow Q18.
-- **E2** `shows the quick action on the desk card`: Given `asha` on `/desk`, then each open-board card's button
-  equals `quickSpec` (Start on the open ticket, Resume on the waiting one, Machine running on the working one).
-- **E3** `offers Cancel on My complaints exactly when the server would`: Given `op` on `/floor`, then the open
-  unstarted ticket's card has Cancel and no other card does (Q13–Q15 may add rows).
+  `/desk/<id>`, then the button names in the `Actions` region, in order, equal the domain
+  `availableActions(ticket, actor)` for that login (computed in the test from the API reply and `/auth/me`) mapped
+  through a literal English label table (`start` Start, `start` on a handed-over ticket Pick up, `join` Add me as
+  support, …), not through `actionSpecs`. Operator, plant head and board expect no `Actions` region (Q18). Three
+  rows also assert a literal list: `asha` on the working ticket (Update, Pause, Transfer, Machine running, Close,
+  Cancel: asha is lead without a crew row, so no Leave), `bina` on it (Update, Pause, Transfer, Machine running,
+  Leave, Cancel; no Close, Q6), `asha` on the open ticket (Start, Cancel).
+- **E2** `shows the quick action on the desk card` (**regression guard: passes today**): Given `asha` on
+  `/desk`, then Start is on the open ticket's card, Resume on the waiting one, Machine running on the working
+  one.
+- **E3** `offers Cancel on My complaints exactly when the server would` (**regression guard: passes today**):
+  Given `op` on `/floor`, then the open unstarted ticket's card has Cancel and no other card does.
 
 **Browser — `apps/web/e2e/i18n.spec.ts`**
 
 - **E4** `serves the project language`: Given the worker tenant, when `GET /api/v1/config` is called as
-  `asha`, then `language` equals the project's `uiLanguage` (`gu` in `gujarati`).
+  `asha`, then `language` equals the project's `uiLanguage` (`gu` in `gujarati`). Proves the seed and the
+  config only (decision 5, Gujarati proof limit).
 - **E5** every existing spec passes in `chromium`, `phone` and `gujarati` (no spec edited except imports).
 
 Commands: `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm audit:lean && pnpm build`.
 
 ## 7. Changelog
 
-`changes/83-actions-words-domain.md`:
+`changes/83-actions-words-domain.md`, same format as the neighbouring fragments (checked by `pnpm changelog:check`):
 
 ```
 - The ticket buttons come from one domain rule, `availableActions`, so a button is shown only when the server accepts it.
@@ -345,56 +400,60 @@ Commands: `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm aud
 
 ## 8. Regression risk
 
-- **Behaviour change on the card** exactly where §10 rows differ; each is a named test.
-- **Parity drift:** T1 restates the route gate list from `tickets/mapper.ts`; until the server calls
-  `availableActions`, a server-side rule change must update T1. Named in HANDOFF.
-- **Ticket 06 runs in parallel** and may edit `apps/web/src/i18n/en.ts` (tags keys). Whoever merges second
-  moves those keys into `tags.en.ts` and regenerates nothing else; I3's fixture is taken from `main` at branch
+- **Behaviour change on the card** exactly where §10 rules a change; each is a named test (T6, T5, W7, ports).
+- **Existing specs that exercise the changed screens**, which must stay green: `desk.spec.ts` (action bar, quick
+  buttons, "Needs report" count 0, bina joins then leaves as support on a working ticket), `floor.spec.ts` (My
+  complaints cancel), `admin.spec.ts`, `board.spec.ts` (section and group labels), `gallery.spec.ts` (the 31
+  status pills), and the unit tests `apps/web/src/i18n/i18n.test.ts` and `apps/web/src/screens/desk/views.test.ts`.
+- **Parity drift:** T1 restates the route gate list from `tickets/mapper.ts` and models `resolveActingPerson`;
+  until the server calls `availableActions`, a server-side rule change must update T1. Named in HANDOFF.
+- **Ticket 06 runs in parallel and deletes the tags code entirely.** The second PR to merge deletes
+  `tags.en.ts`, `tags.gu.ts`, their entries in `index.ts` and `NAMESPACES`, the fixture keys it removed from the
+  frozen JSON only if it removes them from `en`, and the `TagsPanel` line in `TicketDetail.tsx`. If 06 merges
+  first, 05 drops the `tags` namespace and that line while rebasing. I3's fixture is taken from `main` at branch
   time.
 - **CI time:** a third project adds about half the browser time; `globalTimeout` is 300 s across 2 shards. If
   the run exceeds it, the coder stops and returns to the planner (do not raise the timeout silently).
 - **Stale cached tickets** without `raisedLoginId` hide the floor Cancel until refetch (`staleTime: 0` there).
 - **i18n runtime:** still one `translation` namespace with the same flat keys; only import paths change.
+- **Worker tenant pollution:** `actions.spec.ts` adds people, machines and tickets to the worker's tenant; its
+  `afterAll` cancels the live tickets, and the full e2e run must stay green.
 
 ## 9. Out of scope
 
 - Any server change, including making the server call `availableActions` (later ticket); tag screens (06).
-- `restore`, `correct`, late `report`, `upgrade-kind` on the card unless Q17 says otherwise.
+- `restore`, `correct`, late `report` and `upgrade-kind` on the card (Q17 ruled: unchanged, out of scope).
+- The operator action bar on the ticket page (Q18: stays hidden).
 - Shared Zod reply contracts and deleting `api-types.ts` (04).
-- Real Gujarati and per-namespace `.gu.ts` files (24); the gallery namespace.
+- Real Gujarati strings (24); the gallery namespace.
 - English error strings in `.ts` that are not label fields (for example the `useTicketCommand` fallback).
 - The machine-stopped follow-up (the handler keeps `machineRunningAt`, so "Machine stopped" stays offered after
   use; same today).
 
-## 10. Product questions for the orchestrator (for Nimish; no answer is picked here)
+## 10. Rulings (binding; the orchestrator ruled the product questions)
 
-Legend. **Today** = what the screen shows now. **Server** = what the server accepts now. **Spec** =
-`docs/spec/DOMAIN.md` §2–§3. Work roles = technician, supervisor, head, admin. Where Server refuses, "show"
-needs a server rule change in a later ticket; where Server accepts, "hide" makes the card narrower than the
-server until a later ticket changes the server. Operator, plant head and board see nothing on the ticket page
-today and the server accepts nothing for them there, except as listed.
+Principle: floor and desk keep Bhavin's v3 buttons, order and copy. `availableActions` never adds a button hidden
+today unless the Spec (`docs/spec/DOMAIN.md`) and the server both allow it, and never shows one the server
+refuses. Work roles = technician, supervisor, head, admin.
 
-| #   | Situation                                                                                                                                                                                                                 | Role              | Action                        | Today                                               | Server                                  | Spec                                                    |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ----------------------------- | --------------------------------------------------- | --------------------------------------- | ------------------------------------------------------- |
-| Q1  | Open ticket (fresh or handed over), person not on crew                                                                                                                                                                    | work roles        | Add me as support (join)      | shown                                               | refused ("Can only join a live ticket") | join only from working or waiting                       |
-| Q2  | Working or waiting, the lead (has no crew row)                                                                                                                                                                            | work roles        | Leave                         | shown                                               | refused ("Not on this ticket")          | lead may leave when a primary can take over             |
-| Q3  | Working or waiting, the lead (has no crew row)                                                                                                                                                                            | work roles        | Add me as support             | hidden (Leave shown instead)                        | accepted (adds the lead as crew)        | "not already on the ticket"                             |
-| Q4  | Open handed-over ticket, person still on crew (handover does not remove crew)                                                                                                                                             | work roles        | Leave                         | shown                                               | accepted                                | leave only from working or waiting                      |
-| Q5  | Closed or cancelled ticket, person still on crew                                                                                                                                                                          | work roles        | Leave                         | hidden                                              | accepted                                | not allowed                                             |
-| Q6  | Working ticket, technician on a personal login who is not lead or primary crew (support crew or not on it)                                                                                                                | technician        | Close                         | shown                                               | refused (403)                           | lead or primary only; anyone on a shared login          |
-| Q7  | Open ticket not handed over                                                                                                                                                                                               | work roles        | Update                        | hidden                                              | accepted                                | update on open only when handed over                    |
-| Q8  | Open stopped ticket                                                                                                                                                                                                       | work roles        | Machine running               | hidden                                              | accepted                                | working or waiting only                                 |
-| Q9  | Closed or cancelled stopped ticket                                                                                                                                                                                        | work roles        | Machine running               | hidden                                              | accepted                                | not allowed                                             |
-| Q10 | Open, closed or cancelled ticket whose machine was marked running                                                                                                                                                         | work roles        | Machine stopped               | hidden                                              | accepted                                | working or waiting only                                 |
-| Q11 | Support ticket, any status (incl. closed, cancelled)                                                                                                                                                                      | work roles        | Upgrade to stopped            | never on the card (offered in the raise flow)       | accepted                                | open, working, waiting; offered when raising            |
-| Q12 | Shared floor login; ticket raised on that login by another person; not started                                                                                                                                            | operator          | Cancel (My complaints, Sent)  | hidden                                              | accepted ("own" = same login)           | "raised from the same login"                            |
-| Q13 | Personal login named as reporter on a ticket raised from another login                                                                                                                                                    | operator          | Cancel                        | shown                                               | refused (403)                           | own = raised from this login                            |
-| Q14 | Own unstarted ticket that is already cancelled                                                                                                                                                                            | operator          | Cancel                        | hidden                                              | accepted (cancels again)                | cancel from open, working, waiting                      |
-| Q15 | Own open unstarted ticket                                                                                                                                                                                                 | plant head        | Cancel (My complaints, Sent)  | shown                                               | refused (403)                           | plant head: no cancel                                   |
-| Q16 | Own ticket already started (working, waiting, handed over) on My complaints / Sent                                                                                                                                        | work roles        | Cancel                        | hidden                                              | accepted                                | any active ticket                                       |
-| Q17 | Does "the card" include admin Restore and Correct and the Fill report button? (Restore shows on any cancelled ticket; the server refuses after 7 days. Fill report is hidden for work requests; the server accepts them.) | admin; work roles | Restore, Correct, Fill report | as described                                        | as described                            | restore within 7 days; late report technician and above |
-| Q18 | Operator opens the page of their own unstarted ticket                                                                                                                                                                     | operator          | Cancel on the ticket page     | hidden (whole action bar hidden for non-work roles) | accepted                                | own, not yet started                                    |
+| #      | Ruling                                                                                                        | Effect                                   |
+| ------ | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Q1     | Open ticket, work roles: no "Add me as support" (the server refuses)                                          | build as the server                      |
+| Q2     | Lead without a crew row: no Leave (the server refuses)                                                        | build as the server                      |
+| Q6     | Personal-login technician who is not lead or primary: no Close on a working ticket                            | build as the server                      |
+| Q12    | Shared floor login, operator, other person's unstarted ticket: Cancel on My complaints and Sent               | build as the server                      |
+| Q13    | Personal-login operator named reporter, ticket raised from another login: no Cancel                           | build as the server                      |
+| Q15    | Plant head: no Cancel                                                                                         | build as the server                      |
+| Q16    | Own started ticket on My complaints and Sent, work roles: Cancel shown (the server accepts any active ticket) | build as the server                      |
+| Q3     | Lead without a crew row: Join stays hidden                                                                    | stays hidden; follow-up (server accepts) |
+| Q4     | Open handed-over ticket, person still on crew: Leave stays shown                                              | stays as today                           |
+| Q5     | Leave on closed or cancelled: stays hidden                                                                    | stays hidden; follow-up                  |
+| Q7     | Update on an open ticket not handed over: stays hidden                                                        | stays hidden; follow-up                  |
+| Q8, Q9 | Machine running on open, closed, cancelled: stays hidden                                                      | stays hidden; follow-up                  |
+| Q10    | Machine stopped on open, closed, cancelled: stays hidden                                                      | stays hidden; follow-up                  |
+| Q14    | Cancel on an own, unstarted, already cancelled ticket: stays hidden                                           | stays hidden; follow-up                  |
+| Q17    | Restore, Correct and Fill report unchanged; Upgrade-kind out                                                  | out of scope                             |
+| Q18    | Operator ticket-page action bar stays hidden                                                                  | out of scope; follow-up                  |
 
-Rows that agree everywhere (no question): start, resume, pause, transfer for work roles; close for supervisor,
-head, admin and for lead/primary or shared-login technicians; cancel by work roles on open, working, waiting;
-nothing for plant head and board on the ticket page; nothing for operators on started tickets.
+Q3, Q4, Q5, Q7, Q8, Q9, Q10, Q14 and Q18 are the "Follow-up: server accepts what the Spec forbids (or the web
+hides what the server accepts)" section of `docs/slices/05-pr-body.md`.
