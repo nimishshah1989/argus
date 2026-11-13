@@ -224,5 +224,9 @@ duplicate detection — each in shadow mode until it clears its threshold.
 9. **Audit log** written only for SLA policy changes and import undo.
 10. **E2E shares one database across two parallel projects** with `retries: 2`; a spec that edits the
     tenant-wide severity matrix is not serial (flakiness risk inferred, not observed: 42/42 passed here).
-11. Low: `/health` never checks the DB; `sendPush` is dead; `/api/v1/files/:id` URLs are returned but no
+11. **Seen in CI on PR #75:** SLA due times render in the browser time zone until `/config` loads
+    (`SlaTimerSummary.tsx:89` passes `config?.timeZone`), then jump to plant time; and
+    `sla-timers.spec.ts:23` raises on a fixed machine without cancelling, so serial retries 409. Fix slice
+    goes first in M1 close (test-first: no plant time shown until the tenant zone is known).
+12. Low: `/health` never checks the DB; `sendPush` is dead; `/api/v1/files/:id` URLs are returned but no
     route serves them; three files at 384–399 lines held under the cap partly by re-export shims.
