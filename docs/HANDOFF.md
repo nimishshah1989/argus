@@ -35,10 +35,10 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 09:28 UTC on branch `claude/orchestrator-ledger`.
+Last session ended 2026-11-13 09:49 UTC on branch `claude/orchestrator-ledger`.
+- ad4d8b9 docs(plan): ledger — 03c merged
 - 721f9fb docs(plan): ledger — 13b dispatched, correction
 - 8d78df9 docs(plan): ledger — 03c review, AWS capacity issue
-- 2ac027b docs(plan): ledger — 03c dispatched
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->

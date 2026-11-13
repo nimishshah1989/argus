@@ -58,3 +58,5 @@ One line per event, append-only: `dispatched NN → session`, `PR #n`, `merged`,
 - 2026-11-13 · Correction: I claimed the EC2 user_data had no shebang; it does (#!/bin/bash) — my grep filtered comment lines. No fix needed there. The AZ pin is real: aws_subnet.public uses local.az_a. Dispatched 13b → session_01KEBF27v5cKeKjTCawmuRc8 (branch claude/t13b-server-az): server_az_suffix variable, default b; docs line in STAGING.md. Low risk, merges on green CI.
 - 2026-11-13 · #151 (03c) static failed only on pr-size (1,503 lines): size:large added.
 - 2026-11-13 · 03c MERGED #151 (25395c8) on green CI (8/8) + orchestrator review PASS. 03a/03b remain (session_01KEBF27BBgdnFgdFWkph1oe); last of them says Closes #81.
+
+- 2026-11-13 09:50 UTC — #152 (13b server AZ fix) merged; #153 (03a) independent HIGH-RISK review PASS, merged (4a10427); 03b cleared to push (follow-ups A–C relayed). Manufacturing-plugin research session blocked: plugin not enabled; awaiting Nimish (enable it, or allow read of public upstream). Nimish to run terraform plan on argus-staging and send the `Plan:` line.

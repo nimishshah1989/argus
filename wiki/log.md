@@ -50,3 +50,4 @@
 - 2026-11-13 — Ticket 01 evidence (orchestrator): SLA journey passed 20/20 consecutive fresh-stack runs (14 tests each, no retries); the earlier `<passed>/280` line above was a placeholder.
 - 2026-11-13 09:04 UTC session c23c2255 on `claude/orchestrator-ledger`: 2a9257f docs(plan): 08 done; plan/apply status
 - 2026-11-13 09:28 UTC session c23c2255 on `claude/orchestrator-ledger`: 721f9fb docs(plan): ledger — 13b dispatched, correction
+- 2026-11-13 09:49 UTC session c23c2255 on `claude/orchestrator-ledger`: ad4d8b9 docs(plan): ledger — 03c merged
