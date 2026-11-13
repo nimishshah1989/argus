@@ -31,8 +31,8 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 12  | Page patterns: wizard, settings, dashboard, board | M0        | done        | #171             |
 | 13  | Staging live                                      | M0        | done        | #146             |
 | 14  | Staging holds Cosmos, safe to run                 | M0        | in progress | #176 (code merged; AWS steps, load and restore drill pending) |
-| 15  | Report a breakdown (floor)                        | M1        | in progress | —                |
-| 16  | Desk lists and ticket detail                      | M1        | in progress | —                |
+| 15  | Report a breakdown (floor)                        | M1        | in progress | API race fix #179 merged; screens held for approval |
+| 16  | Desk lists and ticket detail                      | M1        | in progress | goal 3 (figures) #181 merged; screens held for approval |
 | 17  | Work the ticket                                   | M1        | todo        | —                |
 | 18  | Close, report, PDFs                               | M1        | todo        | —                |
 | 19  | Follow-up tasks                                   | M1        | todo        | —                |

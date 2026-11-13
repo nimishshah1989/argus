@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 22:11 UTC on branch `claude/orchestrator-m0-gate`.
+Last session ended 2026-11-13 22:36 UTC on branch `claude/orchestrator-m0-gate`.
+- 02ff9a5 docs: session notes (hook)
 - c55df7d docs(plan): audit, 15 api merged, hardening dispatched
 - 3743e4d docs(plan): ledger, frontend gate and OIDC fix
-- eeb5017 Merge remote-tracking branch 'origin/main' into claude/orchestrator-m0-gate
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
