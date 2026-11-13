@@ -189,20 +189,18 @@ for (const login of LOGINS) {
 test('E2 shows the quick action on the desk card', async ({ page }) => {
   await signIn(page, 'asha');
   await page.goto('/desk');
-  // v3: Open lists the breakdowns nobody has started (Breakdowns) and work requests (Work); a job
-  // someone is working on, or has paused, is under Mine.
-  const expectQuick = async (name: Name, label: string) => {
+  const quick: [Name, string][] = [
+    ['open', 'Start'],
+    ['handed over', 'Pick up'],
+    ['waiting', 'Resume'],
+    ['working', 'Machine running'],
+  ];
+  for (const [name, label] of quick) {
     const card = page
       .getByRole('listitem')
       .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
     await expect(card.getByRole('button', { name: label, exact: true })).toBeVisible();
-  };
-  await expectQuick('open', 'Start');
-  await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
-  await expectQuick('handed over', 'Pick up');
-  await page.getByRole('button', { name: 'Mine', exact: true }).click();
-  await expectQuick('waiting', 'Resume');
-  await expectQuick('working', 'Machine running');
+  }
 });
 
 test('E3 offers Cancel on My complaints exactly when the server would', async ({ page }) => {

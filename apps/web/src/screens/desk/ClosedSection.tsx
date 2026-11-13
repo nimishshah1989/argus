@@ -1,5 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { Config, Machine } from '../../api.js';
+import { listTickets, type Config, type Machine } from '../../api.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -7,8 +8,6 @@ import {
   machineLabel,
 } from '../../components/format.js';
 import {
-  CANCELLED_WINDOW_MS,
-  CLOSED_WINDOW_MS,
   cancelledLast24h,
   closedLast30Days,
   monthlyTotals,
@@ -16,7 +15,6 @@ import {
   type MonthTotals,
 } from './views.js';
 import { Empty, Section, TicketRow } from './parts.js';
-import { useTicketWindow } from './useTicketWindow.js';
 
 function names(config?: Config): Record<string, string> {
   const map: Record<string, string> = {};
@@ -66,11 +64,15 @@ function MonthList({ totals, config }: { totals: MonthTotals[]; config?: Config 
 
 export function RecentCancelled({ machines }: { machines: Machine[] }) {
   const { t } = useTranslation();
-  const query = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
-  const cancelled = cancelledLast24h(query.items);
+  const query = useQuery({
+    queryKey: ['tickets', 'team', 'cancelled'],
+    queryFn: () => listTickets({ status: ['cancelled'], limit: 200 }),
+    staleTime: 30_000,
+  });
+  const cancelled = cancelledLast24h(query.data?.items ?? []);
   return (
     <Section title={t('desk.view.cancelled24h')}>
-      {query.loading ? (
+      {query.isLoading ? (
         <p className="mt-2 text-neutral-500">{t('common.loading')}</p>
       ) : query.error ? (
         <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
@@ -97,12 +99,16 @@ export function RecentCancelled({ machines }: { machines: Machine[] }) {
 
 export function ClosedTotals({ machines, config }: { machines: Machine[]; config?: Config }) {
   const { t } = useTranslation();
-  const query = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
-  const closed = closedLast30Days(query.items);
+  const query = useQuery({
+    queryKey: ['tickets', 'team', 'closed'],
+    queryFn: () => listTickets({ status: ['closed'], limit: 200 }),
+    staleTime: 30_000,
+  });
+  const closed = closedLast30Days(query.data?.items ?? []);
   const totals = monthlyTotals(closed);
   return (
     <Section title={t('desk.view.closed30d')}>
-      {query.loading ? (
+      {query.isLoading ? (
         <p className="mt-2 text-neutral-500">{t('common.loading')}</p>
       ) : query.error ? (
         <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">

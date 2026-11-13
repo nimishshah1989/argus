@@ -16,7 +16,7 @@ async function expectOpenBoard(page: Page, ref: string): Promise<void> {
     'aria-pressed',
     'true',
   );
-  await expect(page.getByRole('button', { name: /^Breakdowns \(\d+\)$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Breakdowns/ })).toBeVisible();
   await expect(page.getByRole('link', { name: new RegExp(ref) })).toBeVisible();
 }
 
@@ -42,8 +42,6 @@ async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<voi
     const other = await context.newPage();
     await signIn(other, 'bina');
     await other.goto('/desk');
-    // v3: a started job is under Team (working now), not in Open's Breakdowns
-    await other.getByRole('button', { name: 'Team', exact: true }).click();
     await other.getByRole('link', { name: new RegExp(ref) }).click();
     await expect(other.getByRole('heading', { name: ref })).toBeVisible();
     await other.getByRole('button', { name: 'Add me as support', exact: true }).click();
@@ -72,10 +70,7 @@ async function checkDeskTabs(page: Page, ref: string): Promise<void> {
     'aria-pressed',
     'true',
   );
-  // v3: a started job leaves the Breakdowns list and shows under Team now
-  await expect(refLink).toHaveCount(0);
-  await page.getByRole('button', { name: /^Team now: \d+ on/ }).click();
-  await expect(page.getByRole('region', { name: 'Team now' })).toContainText(ref);
+  await expect(refLink).toBeVisible();
 
   await page.getByRole('button', { name: 'Mine', exact: true }).click();
   await expect(page.getByRole('region', { name: 'In progress' })).toContainText(ref);

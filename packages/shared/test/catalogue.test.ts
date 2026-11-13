@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { deskListsEn } from '../src/i18n/desk-lists.en.js';
 import { en, gu, NAMESPACES } from '../src/i18n/index.js';
 
 const folder = new URL('../src/i18n/', import.meta.url);
@@ -21,8 +20,6 @@ const NEW_KEYS = [
   'action.label.leave',
   'action.label.close',
   'board.other',
-  // ticket 16: the desk lists' own namespace
-  ...Object.keys(deskListsEn),
 ];
 
 describe('message catalogues', () => {
