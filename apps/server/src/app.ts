@@ -17,6 +17,8 @@ import {
 import { modules } from './modules/index.js';
 import { authenticate } from './modules/identity/index.js';
 
+const TRUSTED_PROXIES = ['loopback', 'linklocal', 'uniquelocal'];
+
 export async function buildApp(config: AppConfig) {
   const reconcileForJobs: SlaTicketReconciler = (client, tenantId, ticketId, now) =>
     reconcileTicket(client, { tenantId, ticketId, now, boss: config.jobBoss });
@@ -34,6 +36,10 @@ export async function buildApp(config: AppConfig) {
   config.jobBoss = jobs.boss;
   const app = Fastify({
     logger: config.logger ?? false,
+    // Port 3001 is reachable only from Caddy on the compose network (private address); Caddy overwrites
+    // any X-Forwarded-For a visitor sends. Believe the header only from a private or loopback peer,
+    // so a request that reaches us from anywhere else is rate-limited by its real address.
+    trustProxy: TRUSTED_PROXIES,
     genReqId: () => randomUUID(),
     logController: new LogController({ requestIdLogLabel: 'requestId' }),
   });
