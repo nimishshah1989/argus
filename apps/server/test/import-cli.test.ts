@@ -26,6 +26,7 @@ import {
   CliUsageError,
   assertAppApiRole,
   assertProductionAccess,
+  assertRouterRole,
   parseCliArgs,
   type CliCommand,
 } from '../src/modules/imports/security.js';
@@ -36,6 +37,7 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 function runPnpm(args: string[], overrides: NodeJS.ProcessEnv = {}) {
   const env: NodeJS.ProcessEnv = { ...process.env, APP_ENV: 'production', ...overrides };
   if (!('DATABASE_URL' in overrides)) delete env.DATABASE_URL;
+  if (!('ROUTER_DATABASE_URL' in overrides)) delete env.ROUTER_DATABASE_URL;
   return spawnSync('pnpm', ['--silent', ...args], {
     cwd: ROOT,
     env,
@@ -47,6 +49,26 @@ function runPnpm(args: string[], overrides: NodeJS.ProcessEnv = {}) {
 
 function rolePool(
   rows: Array<{ name: string; rolsuper: boolean; rolbypassrls: boolean }>,
+  error?: Error,
+): { pool: Pool; query: ReturnType<typeof vi.fn>; release: ReturnType<typeof vi.fn> } {
+  const query = vi.fn().mockImplementation(() => {
+    if (error) return Promise.reject(error);
+    return Promise.resolve({ rows });
+  });
+  const release = vi.fn();
+  const client = { query, release } as unknown as PoolClient;
+  const pool = { connect: vi.fn().mockResolvedValue(client) } as unknown as Pool;
+  return { pool, query, release };
+}
+
+interface RouterRoleRow {
+  name: string;
+  router: boolean;
+  app_user: boolean;
+}
+
+function routerRolePool(
+  rows: RouterRoleRow[],
   error?: Error,
 ): { pool: Pool; query: ReturnType<typeof vi.fn>; release: ReturnType<typeof vi.fn> } {
   const query = vi.fn().mockImplementation(() => {
@@ -73,11 +95,14 @@ describe('CLI argument and production guards (T16)', () => {
       ...importCommand,
       productionConfirm: true,
     });
-    expect(parseCliArgs(['undo', BATCH_ID, '--tenant', 'plant-two'])).toEqual({
+    expect(
+      parseCliArgs(['undo', BATCH_ID, '--tenant', 'plant-two', '--operator', 'agent-test']),
+    ).toEqual({
       mode: 'undo',
       batchId: BATCH_ID,
       tenantSlug: 'plant-two',
       productionConfirm: false,
+      operator: 'agent-test',
     });
   });
 
@@ -99,6 +124,10 @@ describe('CLI argument and production guards (T16)', () => {
       ['synthetic.json', '--tenant', 'cosmos-'],
       ['undo', 'not-a-uuid', '--tenant', 'cosmos'],
       ['undo', BATCH_ID.toUpperCase(), '--tenant', 'cosmos', 'extra'],
+      ['undo', BATCH_ID, '--tenant', 'cosmos'],
+      ['undo', BATCH_ID, '--tenant', 'cosmos', '--operator', ' '],
+      ['undo', BATCH_ID, '--tenant', 'cosmos', '--operator', 'a', '--operator', 'b'],
+      ['synthetic.json', '--tenant', 'cosmos', '--operator', 'agent-test'],
     ].map((argv) => ({ argv })),
   )('rejects invalid or repeated arguments before any database work: %j', ({ argv }) => {
     expect(() => parseCliArgs(argv)).toThrow(CliUsageError);
@@ -116,6 +145,7 @@ describe('CLI argument and production guards (T16)', () => {
       batchId: BATCH_ID,
       tenantSlug: 'cosmos',
       productionConfirm: false,
+      operator: 'agent-test',
     };
     for (const command of [importCommand, undoCommand]) {
       expect(() => assertProductionAccess(command, 'staging')).not.toThrow();
@@ -172,13 +202,52 @@ describe('app_api role guard (T17)', () => {
   });
 });
 
+describe('router role guard', () => {
+  it('requires a member of app_router and app_user that is not app_api, and releases its client', async () => {
+    const { pool, query, release } = routerRolePool([
+      { name: 'migrator', router: true, app_user: true },
+    ]);
+    await expect(assertRouterRole(pool)).resolves.toBeUndefined();
+    expect(query).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it.each(
+    [
+      [],
+      [{ name: 'app_api', router: true, app_user: true }],
+      [{ name: 'migrator', router: false, app_user: true }],
+      [{ name: 'migrator', router: true, app_user: false }],
+      [
+        { name: 'migrator', router: true, app_user: true },
+        { name: 'migrator', router: true, app_user: true },
+      ],
+    ].map((rows) => ({ rows })),
+  )('fails closed for a missing, wrong or ambiguous login: %j', async ({ rows }) => {
+    const { pool, release } = routerRolePool(rows);
+    await expect(assertRouterRole(pool)).rejects.toThrow(/app_router/);
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed when the role query or the connection fails', async () => {
+    const failing = routerRolePool([], new Error('role query unavailable'));
+    await expect(assertRouterRole(failing.pool)).rejects.toThrow(/app_router/);
+    expect(failing.release).toHaveBeenCalledOnce();
+    const pool = {
+      connect: vi.fn().mockRejectedValue(new Error('connection unavailable')),
+    } as unknown as Pool;
+    await expect(assertRouterRole(pool)).rejects.toThrow(/app_router/);
+  });
+});
+
 describe('real CLI subprocess guards (T16)', () => {
   it.each(
     [
       ['import:bhavin'],
       ['import:bhavin', 'synthetic.json'],
       ['import:bhavin', 'synthetic.json', '--tenant', 'cosmos', '--tenant', 'cosmos'],
-      ['import:undo', 'not-a-uuid', '--tenant', 'cosmos'],
+      ['import:undo', 'not-a-uuid', '--tenant', 'cosmos', '--operator', 'agent-test'],
+      ['import:undo', BATCH_ID, '--tenant', 'cosmos'],
     ].map((args) => ({ args })),
   )('returns usage exit 2 before touching the database: %j', ({ args }) => {
     const result = runPnpm(args);
@@ -192,7 +261,7 @@ describe('real CLI subprocess guards (T16)', () => {
   it('rejects unconfirmed production import and undo before file or database work', () => {
     for (const args of [
       ['import:bhavin', 'not-read.json', '--tenant', 'cosmos'],
-      ['import:undo', BATCH_ID, '--tenant', 'cosmos'],
+      ['import:undo', BATCH_ID, '--tenant', 'cosmos', '--operator', 'agent-test'],
     ]) {
       const result = runPnpm(args);
       expect(result.error).toBeUndefined();
@@ -204,8 +273,22 @@ describe('real CLI subprocess guards (T16)', () => {
   });
 });
 
+describe('undo router connection (T16)', () => {
+  it('stops before database work without ROUTER_DATABASE_URL', () => {
+    const result = runPnpm(
+      ['import:undo', BATCH_ID, '--tenant', 'cosmos', '--operator', 'agent-test'],
+      { APP_ENV: 'staging' },
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toMatch(/ROUTER_DATABASE_URL is required/);
+  });
+});
+
 interface CommandOptions {
   url?: string;
+  routerUrl?: string;
   tenant?: string;
   appEnv?: string;
   productionConfirm?: boolean;
@@ -240,11 +323,13 @@ describe('real CLI import and undo (T13–T20)', () => {
       batchId,
       '--tenant',
       options.tenant ?? 'cosmos',
+      '--operator',
+      'agent-test',
       ...(options.productionConfirm ? ['--production-confirm'] : []),
     ];
     return runPnpm(args, {
       APP_ENV: options.appEnv ?? 'staging',
-      DATABASE_URL: options.url ?? appApiUrl(),
+      ROUTER_DATABASE_URL: options.routerUrl ?? db.routerUrl,
     });
   }
 
@@ -454,15 +539,20 @@ describe('real CLI import and undo (T13–T20)', () => {
       const file = await jsonFile(makeSyntheticExport([]));
       const bypassUrl = `postgresql://synthetic_bypass:synthetic-bypass-password@${db.container.getHost()}:${db.container.getPort()}/${db.container.getDatabase()}`;
       for (const url of [db.container.getConnectionUri(), bypassUrl]) {
-        for (const result of [
-          runImport(file, { url, tenant: 'missing' }),
-          runUndo(BATCH_ID, { url, tenant: 'missing' }),
-        ]) {
-          expect(result.status).toBe(1);
-          expect(result.stdout).toBe('');
-          expect(result.stderr).toMatch(/app_api/i);
-          expect(result.stderr).not.toMatch(/Unknown tenant/i);
-        }
+        const result = runImport(file, { url, tenant: 'missing' });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toMatch(/app_api/i);
+        expect(result.stderr).not.toMatch(/Unknown tenant/i);
+      }
+      // Undo refuses every login that is not a member of app_router and app_user. An owner or
+      // superuser URL is the intended credential (the migration role), so it is not refused.
+      for (const routerUrl of [appApiUrl(), bypassUrl]) {
+        const result = runUndo(BATCH_ID, { routerUrl, tenant: 'missing' });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toMatch(/app_router/i);
+        expect(result.stderr).not.toMatch(/Unknown tenant/i);
       }
       expect(await batchCount()).toBe(0);
     },
@@ -652,7 +742,7 @@ describe('real CLI import and undo (T13–T20)', () => {
         fingerprintDigest: stats.completion?.digest,
         ticketIds: [original.ticket_id],
       },
-      after: { status: 'undone', deleted: 1 },
+      after: { status: 'undone', deleted: 1, operator: 'agent-test' },
     });
   });
 });

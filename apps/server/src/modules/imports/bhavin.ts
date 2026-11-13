@@ -287,7 +287,6 @@ async function runMain(
     stats.status = stats.errored === 0 && stats.hardMismatches === 0 ? 'done' : 'failed';
     await finishBatch(client, {
       status: stats.status,
-      finishedAt: context.now,
       stats: JSON.stringify(stats),
       batchId,
       tenantId,
@@ -318,7 +317,6 @@ export async function importBhavin(
         ticketCount: parsed.tickets.length,
         aliasSha256,
         error,
-        now,
       });
     } catch (fatalError) {
       throw new AggregateError(
