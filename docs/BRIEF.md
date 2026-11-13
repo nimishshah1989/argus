@@ -66,9 +66,18 @@ Still needed: see `docs/plan/NEEDS.md` (N1 live ticket export **and** Worker sou
 - latest Excel export, N3 PM tool, N5 Gujarati strings, N7 domain + OIDC, N10 security reviewer, N11 shifts,
   N12 code aliases, N14 data-use consent, N15 usability sessions). N13 is closed: the name is **Uptimo**.
 
+## Decided 13 November 2026
+
+- Test on real Cosmos data: staging, the import rehearsal, the answer key and manual checks use the real data; no synthetic people on staging. Automated tests in CI use real records with names and numbers replaced (proposed; data must not leave India).
+- AI runs in India only. The AI capabilities that are possible under that rule are aligned with Nimish before M6 is sized.
+- Analytics rank named technicians, by a method agreed before it is built.
+- Mobile numbers are collected from M1 for Cosmos staff.
+- Gujarati is the focus language; Cosmos's Gujarati becomes the default for every Gujarat plant.
+
 ## Open product questions (answered by Nimish, not agents)
 
 - M2-2.3 escalation: ladder people, roster model, delays/repeats, who may acknowledge, notification payload —
   answer after two weeks of live use; agents propose defaults.
 - M4a: which platform screens Cosmos actually uses (triage with Bhavin).
-- M6: where AI inference may run given data residency (India region only, or an ADR allowing otherwise).
+- M6: which AI capabilities are possible with India-only inference (alignment session before M6 is sized).
+- M4: the technician ranking method.
