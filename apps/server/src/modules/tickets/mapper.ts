@@ -1,4 +1,4 @@
-import { apiError } from '@uptimo/shared';
+import { apiError, type CommandAction } from '@uptimo/shared';
 import {
   canLateReport,
   canRestore,
@@ -18,22 +18,7 @@ import {
 
 export type Outcome = { status: number; body: unknown };
 
-export type CommandAction =
-  | 'start'
-  | 'join'
-  | 'leave'
-  | 'pause'
-  | 'resume'
-  | 'transfer'
-  | 'update'
-  | 'machine-running'
-  | 'machine-stopped'
-  | 'close'
-  | 'report'
-  | 'cancel'
-  | 'restore'
-  | 'correct'
-  | 'upgrade-kind';
+export type { CommandAction } from '@uptimo/shared';
 
 /** The slice of the authenticated session the ticket flow needs. */
 export interface ActorAuth {

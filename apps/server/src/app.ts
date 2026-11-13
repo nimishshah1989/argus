@@ -8,7 +8,12 @@ import {
   reconcileTicket,
   type SlaTicketReconciler,
 } from './modules/accountability/index.js';
-import { registerAuthGuard, registerHealth, type AppConfig } from './kernel/index.js';
+import {
+  registerAuthGuard,
+  registerHealth,
+  registerReplyCheck,
+  type AppConfig,
+} from './kernel/index.js';
 import { modules } from './modules/index.js';
 import { authenticate } from './modules/identity/index.js';
 
@@ -35,6 +40,7 @@ export async function buildApp(config: AppConfig) {
   app.addHook('onSend', async (request, reply) => {
     reply.header('x-request-id', request.id);
   });
+  if (process.env.CHECK_REPLIES === '1') registerReplyCheck(app);
   app.addHook('onClose', async () => jobs.close());
   // The guard must stay registered before any route: a route added earlier escapes it.
   registerAuthGuard(app, (token) => authenticate(config.pool, token));

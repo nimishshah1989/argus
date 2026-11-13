@@ -1,0 +1,2 @@
+- Server and web now share one typed contract; every API reply is checked against it in the test suite.
+- SLA clocks reach ticket replies as a part contributed by the accountability module; replies are unchanged.

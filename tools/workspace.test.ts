@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -53,5 +53,39 @@ describe('workspace packages', () => {
     expect(tsconfig.compilerOptions.paths).toBeUndefined();
     expect(readFileSync('vitest.config.ts', 'utf8')).not.toContain('alias');
     expect(readFileSync('scripts/build-server.ts', 'utf8')).not.toContain('alias');
+  });
+
+  it('keeps no hand-written API types in the web', () => {
+    expect(existsSync('apps/web/src/api-types.ts')).toBe(false);
+    for (const file of [...tsFiles('apps/web/src'), ...tsFiles('apps/web/e2e')]) {
+      expect(readFileSync(file, 'utf8'), file).not.toContain('api-types');
+    }
+    const names =
+      'Ticket State Config TicketDetail TicketPage Machine Segment Group ListItem Person Shift Figures BreakdownReport TicketEvent TicketPerson TicketInterval'.split(
+        ' ',
+      );
+    const api = readFileSync('apps/web/src/api.ts', 'utf8');
+    for (const name of names)
+      expect(api, name).not.toMatch(new RegExp(`(interface|type) ${name}\\b`));
+  });
+
+  it('takes the contract types in the domain from shared', () => {
+    const source = tsFiles('packages/domain/src')
+      .map((file) => readFileSync(file, 'utf8'))
+      .join('\n');
+    for (const decl of [
+      'type Criticality =',
+      'type Severity =',
+      'type SlaTimerState =',
+      'interface SeverityMatrix',
+      'interface SlaPolicy',
+    ]) {
+      expect(source, decl).not.toContain(decl);
+    }
+    const dependencies = json('packages/domain/package.json').dependencies as Record<
+      string,
+      string
+    >;
+    expect(dependencies['@uptimo/shared']).toBe('workspace:*');
   });
 });

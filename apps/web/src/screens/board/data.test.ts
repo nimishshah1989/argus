@@ -15,8 +15,22 @@ function machine(overrides: Partial<Machine> = {}): Machine {
   };
 }
 
-const segment: Segment = { id: 's-1', code: 'CNC', name: 'CNC' };
-const group: Group = { id: 'g-1', segment_id: 's-1', code: 'VMC', name: 'Vertical' };
+const segment: Segment = {
+  id: 's-1',
+  code: 'CNC',
+  name: 'CNC',
+  sort: 0,
+  show_on_board: true,
+  group_by: 'letters',
+};
+const group: Group = {
+  id: 'g-1',
+  segment_id: 's-1',
+  code: 'VMC',
+  name: 'Vertical',
+  sort: 0,
+  hidden: false,
+};
 
 describe('buildSections', () => {
   it('labels a machine with no segment as other', () => {
