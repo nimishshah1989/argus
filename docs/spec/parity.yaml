@@ -761,7 +761,7 @@ rows:
         the missing translations'
       - 'apps/server/test/settings.test.ts :: updates features through /settings and reflects them
         in /config'
-      - 'apps/server/test/cosmos-seed.test.ts :: shifts are the data file\'s windows and re-seeding is idempotent'
+      - "apps/server/test/cosmos-seed.test.ts :: shifts are the data file's windows and re-seeding is idempotent"
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.08
     feature: Utility machines hidden by a hard-coded regex when no groups are configured
