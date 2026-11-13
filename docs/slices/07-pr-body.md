@@ -66,7 +66,7 @@ preserving the tenant`. Old: the tag rows go with the ticket and the tenant stay
 4. `T17` undo half. Old: an owner URL and a BYPASSRLS URL are refused for undo. New: the `app_api` URL and the BYPASSRLS
    URL are refused by a membership check (`assertRouterRole`) that refuses every non-member login; the owner URL is the
    intended credential (decision 2). The import half is unchanged.
-5. `tools/boundaries.test.ts`: 29 to 28 tables, one owner each, plus a new test that no dropped table is owned and each
+5. `tools/boundaries.test.ts`: 30 to 29 tables (`ticket_tag` dropped, `ai_suggestion` from main kept), one owner each, plus a new test that no dropped table is owned and each
    database function is owned exactly once.
 
 Other edits to existing tests, all forced and none weaker: `migration-runner.test.ts` "refuses to adopt an unledgered
@@ -78,9 +78,10 @@ Other edits to existing tests, all forced and none weaker: `migration-runner.tes
 
 Plan section 6, numbers 1 to 56. Pass counts at the end of this branch:
 
-- `packages/db` + `apps/server` + `tools` + `scripts`, one run: 57 files, 530 passed and 1 failed; the one failure was a
+- After merging `main` (with `0008_ai_suggestion`), one run each: `packages/db` + `tools` + `scripts`: 24 files, 183
+  passed; `apps/server`: 43 files, 416 passed. Before the merge the implementer's combined run had one failure, a
   test-order bug in test 56 (a first scenario's PDF rows leaked into the second), fixed; the file then passed twice in a
-  row (7 of 7). Fast set (`.claude/harness/fast-tests.sh`): 33 files, 275 passed.
+  row. Fast set (`.claude/harness/fast-tests.sh`): 33 files, 275 passed.
 - Gates: `migrations:check` 0 findings, `migrations:immutable` 0 changed, `boundaries` 0 problems, `docs:check` 0,
   `pii:scan` 0, `typecheck`, `lint`, `format:check`, `changelog:check` clean.
 
@@ -108,7 +109,7 @@ exactly once` failed until `manifest.ts` changed; tests 49 to 52 failed four of 
   (scheduled). The functions are built and tested; the scripts are not.
 - **S3 deletion of erased files** joins when the S3 adapter lands (the erase script deletes under `--files-dir` now).
 - **Lead-person filter** rewrite as a UNION with its two indexes (notes open question 6).
-- **PR #158 (`ai_suggestion`) interplay:** it is now on `main` as `0008`. `erase_person` does not know its `output`
-  column and its keys to `person` and `login` are `SET NULL` and to `ticket` `CASCADE`; whichever follow-up lands needs
-  `CREATE OR REPLACE erase_person` and RESTRICT keys. `seed.sql` and `isolation.test.ts` need an `ai_suggestion` row
-  after rebasing on it.
+- **`ai_suggestion` (migration 0008, now on `main`):** `erase_person` does not know its `output` column, and its keys to
+  `person` and `login` are `SET NULL` and to `ticket` `CASCADE`. A follow-up needs `CREATE OR REPLACE erase_person` and
+  RESTRICT keys. `main` is merged into this branch; the seed and the isolation test already carry its row.
+- **Decision file:** ours is `docs/decisions/D24-database-roles-and-definer-functions.md` (D23 on `main` is pstack).
