@@ -1,5 +1,5 @@
 import type { Figures } from '@uptimo/domain';
-import type { StoredReport } from '../../ticket-report.js';
+import type { StoredReport } from '../tickets/index.js';
 
 export interface ReportPdfInput {
   tenant: { name: string; language: string; timeZone: string };

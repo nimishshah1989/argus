@@ -16,7 +16,8 @@ import {
   type Ticket,
 } from '@uptimo/domain';
 import { severityMatrixSchema } from '@uptimo/shared';
-import type { LoadedCtx, TicketExtras, Tx } from '../ticket-mapper.js';
+import type { LoadedCtx, TicketExtras, Tx } from './mapper.js';
+import { machinesByIds, setting } from '../plant/index.js';
 
 /** Build raise extras, deriving severity from the machine criticality snapshot. */
 export function buildRaiseExtras(
@@ -79,13 +80,9 @@ export async function loadSeverityMatrix(
   client: PoolClient,
   tenantId: string,
 ): Promise<SeverityMatrix> {
-  const result = await client.query(
-    "SELECT value FROM setting WHERE tenant_id = $1 AND key = 'severity_matrix'",
-    [tenantId],
-  );
-  const row = result.rows[0] as { value?: unknown } | undefined;
-  if (!row?.value) return defaultSeverityMatrix;
-  const parsed = severityMatrixSchema.safeParse(row.value);
+  const value = await setting(client, tenantId, 'severity_matrix');
+  if (!value) return defaultSeverityMatrix;
+  const parsed = severityMatrixSchema.safeParse(value);
   return parsed.success ? parsed.data : defaultSeverityMatrix;
 }
 
@@ -96,11 +93,7 @@ export async function machineCriticality(
   machineId: string | null,
 ): Promise<Criticality | null> {
   if (!machineId) return null;
-  const result = await client.query(
-    'SELECT criticality FROM machine WHERE id = $1 AND tenant_id = $2',
-    [machineId, tenantId],
-  );
-  return (result.rows[0]?.criticality as Criticality | null) ?? null;
+  return (await machinesByIds(client, tenantId, [machineId]))[0]?.criticality ?? null;
 }
 
 export interface RecalculateInput {

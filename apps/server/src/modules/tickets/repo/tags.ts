@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
-import { persistEvents } from './ticket-sql.js';
+import { listItemOf, listItemsByIds, listItemsOf } from '../../plant/index.js';
+import { persistEvents } from './ticket.js';
 import { TAG_CATEGORIES, type TagCategory, type TagDefinition, type TagList } from '@uptimo/shared';
 
 function definition(row: Record<string, unknown>): TagDefinition {
@@ -21,14 +22,8 @@ export async function listCatalogue(
   tenantId: string,
   category?: TagCategory,
 ): Promise<TagDefinition[]> {
-  const result = await client.query(
-    `SELECT id, list, code, label, label_gu, label_hi, active, sort FROM list_item
-     WHERE tenant_id = $1 AND list = ANY($2::text[]) AND active = true
-       AND ($3::text IS NULL OR list = $3)
-     ORDER BY array_position($2::text[], list), sort, code`,
-    [tenantId, TAG_CATEGORIES, category ?? null],
-  );
-  return result.rows.map(definition);
+  const rows = await listItemsOf(client, tenantId, TAG_CATEGORIES, category ?? null);
+  return rows.map(definition);
 }
 
 export async function ticketExists(
@@ -48,12 +43,8 @@ export async function findDefinition(
   tenantId: string,
   itemId: string,
 ): Promise<TagDefinition | null> {
-  const result = await client.query(
-    `SELECT id, list, code, label, label_gu, label_hi, active, sort FROM list_item
-     WHERE tenant_id = $1 AND id = $2 AND list = ANY($3::text[])`,
-    [tenantId, itemId, TAG_CATEGORIES],
-  );
-  return result.rows[0] ? definition(result.rows[0]) : null;
+  const row = await listItemOf(client, tenantId, itemId, TAG_CATEGORIES);
+  return row ? definition(row) : null;
 }
 
 export async function loadTicketTags(
@@ -61,22 +52,38 @@ export async function loadTicketTags(
   tenantId: string,
   ticketId: string,
 ): Promise<TagList> {
-  const result = await client.query(
-    `SELECT t.item_id, t.applied_at, t.applied_by_login_id, t.applied_by_person_id,
-       i.id, i.list, i.code, i.label, i.label_gu, i.label_hi, i.active, i.sort
-     FROM ticket_tag t JOIN list_item i ON i.tenant_id = t.tenant_id AND i.id = t.item_id
-     WHERE t.tenant_id = $1 AND t.ticket_id = $2
-     ORDER BY array_position($3::text[], i.list), i.sort, i.code`,
-    [tenantId, ticketId, TAG_CATEGORIES],
-  );
+  const assignments = (
+    await client.query(
+      `SELECT item_id, applied_at, applied_by_login_id, applied_by_person_id
+     FROM ticket_tag WHERE tenant_id = $1 AND ticket_id = $2`,
+      [tenantId, ticketId],
+    )
+  ).rows;
+  const items =
+    assignments.length === 0
+      ? []
+      : await listItemsByIds(
+          client,
+          tenantId,
+          assignments.map((row) => row.item_id as string),
+          TAG_CATEGORIES,
+        );
+  const byItem = new Map(assignments.map((row) => [row.item_id as string, row]));
+  const paired = items.map((item) => ({ item, row: byItem.get(item.id as string) }));
   return {
-    applied: result.rows.map((row) => ({
-      tagId: row.item_id as string,
-      appliedAt: (row.applied_at as Date).toISOString(),
-      appliedBy: row.applied_by_person_id as string | null,
-      appliedByLogin: row.applied_by_login_id as string | null,
-    })),
-    tags: result.rows.map(definition),
+    applied: paired.flatMap(({ row }) =>
+      row
+        ? [
+            {
+              tagId: row.item_id as string,
+              appliedAt: (row.applied_at as Date).toISOString(),
+              appliedBy: row.applied_by_person_id as string | null,
+              appliedByLogin: row.applied_by_login_id as string | null,
+            },
+          ]
+        : [],
+    ),
+    tags: items.map(definition),
   };
 }
 

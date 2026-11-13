@@ -1,7 +1,9 @@
 import type { PoolClient } from 'pg';
 import type { Figures, Ticket, TransitionResult } from '@uptimo/domain';
 import type { BreakdownReportBody } from '@uptimo/shared';
-import type { Tx } from './ticket-mapper.js';
+import type { Tx } from '../mapper.js';
+import { peopleByIds, tenantInfo } from '../../identity/index.js';
+import { shiftCodeAt } from '../../plant/index.js';
 
 export interface StoredReportPerson {
   personId: string;
@@ -91,27 +93,15 @@ function figureDefaults(input: ReportStoreInput): {
 }
 
 async function tenantDate(client: PoolClient, tenantId: string): Promise<string> {
-  const row = (
-    await client.query(
-      'SELECT (now() AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::date::text AS today',
-      [tenantId],
-    )
-  ).rows[0];
+  const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
+  const row = (await client.query('SELECT (now() AT TIME ZONE $1)::date::text AS today', [zone]))
+    .rows[0];
   return row.today as string;
 }
 
 export async function shiftAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {
-  const row = (
-    await client.query(
-      `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::time AS t)
-       SELECT code FROM shift, local_time
-       WHERE (NOT crosses_midnight AND t >= starts_at AND t < ends_at)
-          OR (crosses_midnight AND (t >= starts_at OR t < ends_at))
-       ORDER BY starts_at DESC LIMIT 1`,
-      [tenantId, at],
-    )
-  ).rows[0];
-  return (row?.code as string) ?? '1';
+  const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
+  return (await shiftCodeAt(client, zone, at)) ?? '1';
 }
 
 async function currentShift(client: PoolClient, tenantId: string): Promise<string> {
@@ -143,11 +133,8 @@ async function assertPeople(
 ): Promise<void> {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return;
-  const result = await client.query(
-    'SELECT count(*)::int AS n FROM person WHERE tenant_id = $1 AND id = ANY($2::uuid[])',
-    [tenantId, unique],
-  );
-  if (result.rows[0].n !== unique.length) throw new ReportValidationError(field);
+  if ((await peopleByIds(client, tenantId, unique)).length !== unique.length)
+    throw new ReportValidationError(field);
 }
 
 async function insertPeople(

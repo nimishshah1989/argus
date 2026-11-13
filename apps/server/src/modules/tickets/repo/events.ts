@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import type { LoadedEvent } from '../ticket-mapper.js';
+import type { LoadedEvent } from '../mapper.js';
 
 /** Rehydrate a correction timestamp into a Date for SLA projection. */
 export function reviveCorrection(change: unknown): unknown {

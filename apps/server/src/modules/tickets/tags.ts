@@ -3,10 +3,10 @@ import type { Pool, PoolClient } from 'pg';
 import { apiError, isTagCategory, tagApplySchema, ticketIdSchema } from '@uptimo/shared';
 import { canWork, type Role } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { requireAuth } from './auth.js';
-import type { AppConfig } from './config.js';
-import * as idem from './ticket-idempotency.js';
-import { loadTicketRow } from './ticket-sql.js';
+import { requireAuth } from '../identity/index.js';
+import type { AppConfig } from '../../kernel/index.js';
+import * as idem from './repo/idempotency.js';
+import { loadTicketRow } from './repo/ticket.js';
 import {
   addAssignment,
   appendTagEvent,
@@ -15,7 +15,7 @@ import {
   loadTicketTags,
   removeAssignment,
   ticketExists,
-} from './tag-sql.js';
+} from './repo/tags.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = { status: number; body: unknown };

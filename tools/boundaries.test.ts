@@ -20,16 +20,9 @@ describe('boundaries check', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
   });
 
-  it('keeps the LEGACY baseline at the 6-file snapshot, so it can only shrink', () => {
+  it('keeps the LEGACY baseline at the 1-file snapshot, so it can only shrink', () => {
     expect(Object.keys(LEGACY).sort()).toEqual(
-      [
-        'import/references.ts',
-        'tag-sql.ts',
-        'ticket-report.ts',
-        'ticket-sql.ts',
-        'ticket/severity.ts',
-        'tickets.ts',
-      ].map((file) => `${SRC}/${file}`),
+      ['import/references.ts'].map((file) => `${SRC}/${file}`),
     );
   });
 

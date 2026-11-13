@@ -3,8 +3,6 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import { registerTickets } from './tickets.js';
-import { registerTags } from './tags.js';
 import type { AppConfig } from './config.js';
 import {
   startJobs,
@@ -44,8 +42,6 @@ export async function buildApp(config: AppConfig) {
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   registerHealth(app, config);
   for (const mod of modules) mod.register(app, config);
-  registerTickets(app, config);
-  registerTags(app, config);
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof SlaInputError) {
       reply.code(422).send(apiError('validation', error.message, error.code));

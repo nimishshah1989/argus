@@ -5,21 +5,16 @@ import { z } from 'zod';
 import * as shared from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { requireAuth } from './auth.js';
-import type { AppConfig } from './config.js';
-import * as tm from './ticket-mapper.js';
-import * as sql from './ticket-sql.js';
-import * as idem from './ticket-idempotency.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './ticket-list.js';
-import * as report from './ticket-report.js';
-import {
-  buildRaiseExtras,
-  buildRaised,
-  loadSeverityMatrix,
-  refreshSeverity,
-} from './ticket/severity.js';
-import { projectTicketSla, withSlaProjections } from './modules/accountability/index.js';
-import { reconcileTicket } from './modules/accountability/index.js';
+import { requireAuth } from '../identity/index.js';
+import { machinesByIds } from '../plant/index.js';
+import type { AppConfig } from '../../kernel/index.js';
+import * as tm from './mapper.js';
+import * as sql from './repo/ticket.js';
+import * as idem from './repo/idempotency.js';
+import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
+import * as report from './repo/report.js';
+import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
+import { projectTicketSla, reconcileTicket, withSlaProjections } from '../accountability/index.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -189,11 +184,8 @@ async function validateMachine(
   await sql.lockRefCounter(client, tx.tenantId, 'BD');
   if (!tx.body.machineId) return { snapshot: {}, criticality: null };
   const machine = (
-    await client.query(
-      'SELECT id, code, category, cell, criticality FROM machine WHERE id = $1 AND tenant_id = $2 FOR SHARE',
-      [tx.body.machineId, tx.tenantId],
-    )
-  ).rows[0];
+    await machinesByIds(client, tx.tenantId, [tx.body.machineId as string], 'share')
+  )[0];
   if (!machine)
     return { status: 404, body: shared.apiError('not_found', 'Unknown machine', 'machineId') };
   const duplicate = (

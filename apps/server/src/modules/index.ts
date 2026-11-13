@@ -6,6 +6,7 @@ import { notificationsModule } from './notifications/index.js';
 import { opsModule } from './ops/index.js';
 import { plantModule } from './plant/index.js';
 import { reportsModule } from './reports/index.js';
+import { ticketsModule } from './tickets/index.js';
 
 export const modules: readonly ModuleDefinition[] = [
   opsModule,
@@ -13,6 +14,7 @@ export const modules: readonly ModuleDefinition[] = [
   plantModule,
   filesModule,
   notificationsModule,
+  ticketsModule,
   accountabilityModule,
   reportsModule,
 ];

@@ -1,5 +1,7 @@
 import type { PoolClient } from 'pg';
 import { SlaInputError } from '@uptimo/domain';
+import { activePerson } from '../../identity/index.js';
+import { listItem } from '../../plant/index.js';
 import {
   nextRef,
   type CrewMember,
@@ -15,7 +17,7 @@ import {
   type PersistEventsOptions,
   type RaiseExtras,
   type Tx,
-} from './ticket-mapper.js';
+} from '../mapper.js';
 
 export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapshot, location,
   work_type, urgent, problem, problem_lang, reported_at, reported_by_person_id, reported_by_role,
@@ -109,7 +111,7 @@ export async function loadTicketRow(
   return (result.rows[0] as Record<string, unknown> | undefined) ?? null;
 }
 
-export { loadEvents, reviveCorrection } from './ticket/events.js';
+export { loadEvents, reviveCorrection } from './events.js';
 
 export async function loadSegments(client: PoolClient, ticketId: string): Promise<WorkSegment[]> {
   const result = await client.query(
@@ -332,13 +334,7 @@ export async function personExists(
   tenantId: string,
   personId: string,
 ): Promise<boolean> {
-  const row = (
-    await client.query('SELECT 1 FROM person WHERE id = $1 AND tenant_id = $2 AND active', [
-      personId,
-      tenantId,
-    ])
-  ).rows[0];
-  return Boolean(row);
+  return Boolean(await activePerson(client, tenantId, personId));
 }
 
 export async function lockRefCounter(
@@ -373,12 +369,7 @@ export async function waitReasonSlaFlags(
   reasonCode: string,
   tenantId: string,
 ): Promise<{ isVendor: boolean; pausesSla: boolean }> {
-  const row = (
-    await client.query(
-      "SELECT is_vendor, pauses_sla FROM list_item WHERE tenant_id = $1 AND list = 'wait_reason' AND code = $2",
-      [tenantId, reasonCode],
-    )
-  ).rows[0];
+  const row = await listItem(client, tenantId, 'wait_reason', reasonCode);
   if (!row) throw new SlaInputError('missing_pause_flag', `Unknown wait reason: ${reasonCode}`);
   return { isVendor: row.is_vendor === true, pausesSla: row.pauses_sla === true };
 }

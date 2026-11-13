@@ -39,11 +39,6 @@ export type Baseline = Readonly<Record<string, readonly string[]>>;
 
 export const LEGACY: Baseline = {
   'apps/server/src/import/references.ts': ['list_item', 'machine', 'person', 'shift'],
-  'apps/server/src/tag-sql.ts': ['list_item'],
-  'apps/server/src/ticket-report.ts': ['person', 'shift', 'tenant_info'],
-  'apps/server/src/ticket-sql.ts': ['list_item', 'person'],
-  'apps/server/src/ticket/severity.ts': ['machine', 'setting'],
-  'apps/server/src/tickets.ts': ['machine'],
 };
 
 /** The text of every string literal and template literal (static parts), never comments or identifiers. */

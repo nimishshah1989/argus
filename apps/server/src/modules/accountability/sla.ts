@@ -6,7 +6,7 @@ import { tenantInfo } from '../identity/index.js';
 import { shiftWindows } from '../plant/index.js';
 import { rearmTicket } from './repo/timers.js';
 import { tenantPolicies } from './repo/policies.js';
-import { loadEvents, reviveCorrection } from '../../ticket-sql.js';
+import { loadEvents, reviveCorrection } from '../tickets/index.js';
 
 interface TicketRow {
   id: string;

@@ -24,7 +24,7 @@ import {
   type ImportStats,
   type SyntheticExport,
 } from './schema.js';
-import { lockRefCounter } from '../ticket-sql.js';
+import { lockRefCounter } from '../modules/tickets/index.js';
 import { reconcileSlaPolicies } from '../modules/accountability/index.js';
 
 type TicketResult = Awaited<ReturnType<typeof importTicket>>;

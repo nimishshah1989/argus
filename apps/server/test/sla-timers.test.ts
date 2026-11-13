@@ -10,7 +10,7 @@ import {
   type SlaTimerPayload,
 } from '../src/modules/accountability/repo/timers.js';
 import { reconcileSlaPolicies, reconcileTicket } from '../src/modules/accountability/sla.js';
-import { lockRefCounter } from '../src/ticket-sql.js';
+import { lockRefCounter } from '../src/modules/tickets/repo/ticket.js';
 import { jobDb } from '../src/jobs/adapter.js';
 import { withTenant } from '@uptimo/db';
 import { runSlaConsistency } from '../src/modules/accountability/consistency.js';

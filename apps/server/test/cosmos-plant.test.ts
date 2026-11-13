@@ -3,7 +3,7 @@ import { withTenant } from '@uptimo/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { FIXTURE_PASSWORD, seedCosmos } from '../src/seed/cosmos.js';
-import { shiftAt } from '../src/ticket-report.js';
+import { shiftAt } from '../src/modules/tickets/repo/report.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const doc = (name: string) =>

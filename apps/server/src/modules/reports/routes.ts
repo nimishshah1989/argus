@@ -21,8 +21,7 @@ import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { loadDayReport, type DayReportData } from './day-report.js';
 import { renderDayReportHtml } from './day-report-template.js';
-import { loadReport, type StoredReport } from '../../ticket-report.js';
-import { figuresFromRow } from '../../ticket-mapper.js';
+import { figuresFromRow, loadReport, type StoredReport } from '../tickets/index.js';
 
 const PDF_MIME = 'application/pdf';
 

@@ -3,11 +3,11 @@ import type { Pool, PoolClient } from 'pg';
 import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { requireAuth } from './auth.js';
-import * as tm from './ticket-mapper.js';
-import * as sql from './ticket-sql.js';
-import { projectTicketSla, withSlaProjections } from './modules/accountability/index.js';
-import * as report from './ticket-report.js';
+import { requireAuth } from '../identity/index.js';
+import * as tm from './mapper.js';
+import * as sql from './repo/ticket.js';
+import { projectTicketSla, withSlaProjections } from '../accountability/index.js';
+import * as report from './repo/report.js';
 
 interface ListFilters {
   statuses: string[] | null;
