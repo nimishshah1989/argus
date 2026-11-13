@@ -5,7 +5,7 @@ import {
   type ActorContext,
   type TicketAction,
 } from '@uptimo/domain';
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 import { actionMachines, commandViaApi, getJson } from './fixtures-actions.js';
@@ -39,6 +39,7 @@ interface Seeded {
 type Name = 'open' | 'working' | 'handed over' | 'waiting' | 'closed' | 'cancelled';
 const seeded = {} as Record<Name, Seeded>;
 const tokens = {} as Record<(typeof LOGINS)[number], string>;
+const details = {} as Record<Name, DetailReply>;
 
 interface MeReply {
   user: { id: string; role: ActorContext['role']; shared: boolean; actingPersonId: string };
@@ -82,6 +83,11 @@ test.beforeAll(async () => {
 
   seeded.cancelled = await raiseTicketViaApi(tokens.op, null, 'Matrix: cancelled');
   await byOp(seeded.cancelled.id, 'cancel', { reason: 'Raised by mistake' });
+
+  // The six tickets do not change while the matrix runs, so read them once (the API rate limit is shared).
+  for (const name of Object.keys(seeded) as Name[]) {
+    details[name] = await getJson<DetailReply>(tokens.admin, `/api/v1/tickets/${seeded[name].id}`);
+  }
 });
 
 /** Later specs on this worker must not see the live tickets this one raised. */
@@ -102,16 +108,44 @@ const LITERAL: Partial<Record<`${string}/${Name}`, string[]>> = {
   'asha/open': ['Start', 'Cancel'],
 };
 
-async function expectBar(page: Page, login: (typeof LOGINS)[number], name: Name): Promise<void> {
+/**
+ * The API allows 1000 requests a minute from one address and the whole run shares it. The matrix
+ * loads 48 ticket pages, so the read-only lookups around each page (brand, config, tags, me) are
+ * answered from the first real reply per login; the ticket itself is always read from the server.
+ */
+const LOOKUPS = /\/api\/v1\/(brand|config|tags|auth\/me|tickets\/[0-9a-f-]+\/tags)(\?|$)/;
+const lookups = new Map<
+  string,
+  { status: number; headers: Record<string, string>; body: Buffer }
+>();
+
+function lookupKey(url: string, headers: Record<string, string>): string {
+  return `${headers.authorization ?? ''} ${url}`;
+}
+
+async function answerLookupsOnce(context: BrowserContext): Promise<void> {
+  await context.route(LOOKUPS, (route) => {
+    const request = route.request();
+    const hit = lookups.get(lookupKey(request.url(), request.headers()));
+    return hit ? route.fulfill(hit) : route.continue();
+  });
+  context.on('response', async (response) => {
+    if (!LOOKUPS.test(response.url()) || !response.ok()) return;
+    const key = lookupKey(response.url(), response.request().headers());
+    if (lookups.has(key)) return;
+    const body = await response.body().catch(() => null);
+    if (body) lookups.set(key, { status: response.status(), headers: response.headers(), body });
+  });
+}
+
+async function expectBar(
+  page: Page,
+  actor: ActorContext,
+  login: (typeof LOGINS)[number],
+  name: Name,
+): Promise<void> {
   const { id, ref } = seeded[name];
-  const me = (await getJson<MeReply>(tokens[login], '/api/v1/auth/me')).user;
-  const detail = await getJson<DetailReply>(tokens[login], `/api/v1/tickets/${id}`);
-  const actor: ActorContext = {
-    role: me.role,
-    loginId: me.id,
-    personId: me.actingPersonId,
-    shared: me.shared,
-  };
+  const detail = details[name];
   const crew = detail.people.flatMap((member): ActionCrewMember[] =>
     member.role === 'primary' || member.role === 'support'
       ? [{ personId: member.personId, role: member.role, leftAt: member.leftAt }]
@@ -135,9 +169,20 @@ async function expectBar(page: Page, login: (typeof LOGINS)[number], name: Name)
 }
 
 for (const login of LOGINS) {
-  test(`E1 shows exactly availableActions on the ticket for ${login}`, async ({ page }) => {
+  test(`E1 shows exactly availableActions on the ticket for ${login}`, async ({
+    page,
+    context,
+  }) => {
+    await answerLookupsOnce(context);
+    const { user } = await getJson<MeReply>(tokens[login], '/api/v1/auth/me');
+    const actor: ActorContext = {
+      role: user.role,
+      loginId: user.id,
+      personId: user.actingPersonId,
+      shared: user.shared,
+    };
     await signIn(page, login);
-    for (const name of Object.keys(seeded) as Name[]) await expectBar(page, login, name);
+    for (const name of Object.keys(seeded) as Name[]) await expectBar(page, actor, login, name);
   });
 }
 
