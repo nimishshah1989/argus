@@ -15,76 +15,76 @@ GitHub Issues with `ready-for-agent` only after approval. Binding inputs: `docs/
 
 Updated by the orchestrator at every merge (status: `todo` → `in progress` → `done`; `parked` = not in the current build). GitHub Issues mirror this table for agents; this file wins if they differ.
 
-| #   | Ticket                                            | Milestone | Status | PR  |
-| --- | ------------------------------------------------- | --------- | ------ | --- |
-| 01  | Green, fast main                                  | M0        | todo   | —   |
-| 02  | Module boundaries: expand                         | M0        | todo   | —   |
-| 03  | Module boundaries: contract                       | M0        | todo   | —   |
-| 04  | One contract, reply parts                         | M0        | todo   | —   |
-| 05  | Actions and words from the domain                 | M0        | todo   | —   |
-| 06  | Stop destroying history                           | M0        | todo   | —   |
-| 07  | History cannot be lost (cutover migration)        | M0        | todo   | —   |
-| 08  | Real plant in                                     | M0        | todo   | —   |
-| 09  | Real tickets in                                   | M0        | todo   | —   |
-| 10  | One design kit                                    | M0        | todo   | —   |
-| 11  | Page patterns: data, queue, detail, form          | M0        | todo   | —   |
-| 12  | Page patterns: wizard, settings, dashboard, board | M0        | todo   | —   |
-| 13  | Staging live                                      | M0        | todo   | —   |
-| 14  | Staging holds Cosmos, safe to run                 | M0        | todo   | —   |
-| 15  | Report a breakdown (floor)                        | M1        | todo   | —   |
-| 16  | Desk lists and ticket detail                      | M1        | todo   | —   |
-| 17  | Work the ticket                                   | M1        | todo   | —   |
-| 18  | Close, report, PDFs                               | M1        | todo   | —   |
-| 19  | Follow-up tasks                                   | M1        | todo   | —   |
-| 20  | Admin fixes and audit                             | M1        | todo   | —   |
-| 21  | People, logins and sign-in                        | M1        | todo   | —   |
-| 22  | Plant settings: machines, groups, shifts          | M1        | todo   | —   |
-| 23  | Plant settings: lists and company                 | M1        | todo   | —   |
-| 24  | Gujarati                                          | M1        | todo   | —   |
-| 25  | Live board and alerts                             | M1        | todo   | —   |
-| 26  | Hardened                                          | M1        | todo   | —   |
-| 27  | Usability round                                   | M1        | todo   | —   |
-| 28  | Cutover                                           | M1        | todo   | —   |
-| 29  | M2 schema                                         | M2        | todo   | —   |
-| 30  | Clocks live                                       | M2        | todo   | —   |
-| 31  | Roster, ladder, acknowledge                       | M2        | todo   | —   |
-| 32  | Notification service                              | M2        | todo   | —   |
-| 33  | Escalation                                        | M2        | todo   | —   |
-| 34  | Production sign-off                               | M2        | todo   | —   |
-| 35  | Run it safely                                     | M2        | todo   | —   |
-| 36  | M4a schema and answer key                         | M4a       | todo   | —   |
-| 37  | History, engine and drill-down                    | M4a       | todo   | —   |
-| 38  | Dashboard and Today                               | M4a       | todo   | —   |
-| 39  | Registers and machine pages                       | M4a       | todo   | —   |
-| 40  | Breakdown analyses                                | M4a       | todo   | —   |
-| 41  | Manpower, energy, root cause                      | M4a       | todo   | —   |
-| 42  | Forecast                                          | M4a       | todo   | —   |
-| 43  | Compare, team, money, Fix Finder                  | M4a       | todo   | —   |
-| 44  | Action Center                                     | M4a       | todo   | —   |
-| 45  | Reports, export, Guide                            | M4a       | todo   | —   |
-| 46  | M4b schema                                        | M4b       | todo   | —   |
-| 47  | Coded closes                                      | M4b       | todo   | —   |
-| 48  | Shift-calendar KPIs                               | M4b       | todo   | —   |
-| 49  | PM plans on the phone                             | M4b       | todo   | —   |
-| 50  | PM calendar and compliance                        | M4b       | todo   | —   |
-| 51  | Registers                                         | M4b       | todo   | —   |
-| 52  | Forecast freeze and inspections                   | M4b       | todo   | —   |
-| 53  | Monthly scorecard                                 | M4b       | todo   | —   |
-| 54  | Interventions and ranking                         | M4b       | todo   | —   |
-| 55  | M6 schema and AI provider                         | M6        | todo   | —   |
-| 56  | Evaluation harness and confirm                    | M6        | todo   | —   |
-| 57  | Find past jobs                                    | M6        | todo   | —   |
-| 58  | Code suggestion                                   | M6        | todo   | —   |
-| 59  | Ask and brief                                     | M6        | todo   | —   |
-| 60  | Manuals                                           | M6        | todo   | —   |
-| 61  | M3 schema and webhook                             | M3        | parked | —   |
-| 62  | WhatsApp people and outbound                      | M3        | parked | —   |
-| 63  | Report by WhatsApp                                | M3        | parked | —   |
-| 64  | Voice                                             | M3        | parked | —   |
-| 65  | Email and deletion                                | M3        | parked | —   |
-| 66  | Lockout before electrical work                    | M2        | todo   | —   |
-| 67  | Reliability and critical spares                   | M4b       | todo   | —   |
-| 68  | Gujarati text understood                          | M1        | todo   | —   |
+| #   | Ticket                                            | Milestone | Status | PR   |
+| --- | ------------------------------------------------- | --------- | ------ | ---- |
+| 01  | Green, fast main                                  | M0        | done   | #TBD |
+| 02  | Module boundaries: expand                         | M0        | todo   | —    |
+| 03  | Module boundaries: contract                       | M0        | todo   | —    |
+| 04  | One contract, reply parts                         | M0        | todo   | —    |
+| 05  | Actions and words from the domain                 | M0        | todo   | —    |
+| 06  | Stop destroying history                           | M0        | todo   | —    |
+| 07  | History cannot be lost (cutover migration)        | M0        | todo   | —    |
+| 08  | Real plant in                                     | M0        | todo   | —    |
+| 09  | Real tickets in                                   | M0        | todo   | —    |
+| 10  | One design kit                                    | M0        | todo   | —    |
+| 11  | Page patterns: data, queue, detail, form          | M0        | todo   | —    |
+| 12  | Page patterns: wizard, settings, dashboard, board | M0        | todo   | —    |
+| 13  | Staging live                                      | M0        | todo   | —    |
+| 14  | Staging holds Cosmos, safe to run                 | M0        | todo   | —    |
+| 15  | Report a breakdown (floor)                        | M1        | todo   | —    |
+| 16  | Desk lists and ticket detail                      | M1        | todo   | —    |
+| 17  | Work the ticket                                   | M1        | todo   | —    |
+| 18  | Close, report, PDFs                               | M1        | todo   | —    |
+| 19  | Follow-up tasks                                   | M1        | todo   | —    |
+| 20  | Admin fixes and audit                             | M1        | todo   | —    |
+| 21  | People, logins and sign-in                        | M1        | todo   | —    |
+| 22  | Plant settings: machines, groups, shifts          | M1        | todo   | —    |
+| 23  | Plant settings: lists and company                 | M1        | todo   | —    |
+| 24  | Gujarati                                          | M1        | todo   | —    |
+| 25  | Live board and alerts                             | M1        | todo   | —    |
+| 26  | Hardened                                          | M1        | todo   | —    |
+| 27  | Usability round                                   | M1        | todo   | —    |
+| 28  | Cutover                                           | M1        | todo   | —    |
+| 29  | M2 schema                                         | M2        | todo   | —    |
+| 30  | Clocks live                                       | M2        | todo   | —    |
+| 31  | Roster, ladder, acknowledge                       | M2        | todo   | —    |
+| 32  | Notification service                              | M2        | todo   | —    |
+| 33  | Escalation                                        | M2        | todo   | —    |
+| 34  | Production sign-off                               | M2        | todo   | —    |
+| 35  | Run it safely                                     | M2        | todo   | —    |
+| 36  | M4a schema and answer key                         | M4a       | todo   | —    |
+| 37  | History, engine and drill-down                    | M4a       | todo   | —    |
+| 38  | Dashboard and Today                               | M4a       | todo   | —    |
+| 39  | Registers and machine pages                       | M4a       | todo   | —    |
+| 40  | Breakdown analyses                                | M4a       | todo   | —    |
+| 41  | Manpower, energy, root cause                      | M4a       | todo   | —    |
+| 42  | Forecast                                          | M4a       | todo   | —    |
+| 43  | Compare, team, money, Fix Finder                  | M4a       | todo   | —    |
+| 44  | Action Center                                     | M4a       | todo   | —    |
+| 45  | Reports, export, Guide                            | M4a       | todo   | —    |
+| 46  | M4b schema                                        | M4b       | todo   | —    |
+| 47  | Coded closes                                      | M4b       | todo   | —    |
+| 48  | Shift-calendar KPIs                               | M4b       | todo   | —    |
+| 49  | PM plans on the phone                             | M4b       | todo   | —    |
+| 50  | PM calendar and compliance                        | M4b       | todo   | —    |
+| 51  | Registers                                         | M4b       | todo   | —    |
+| 52  | Forecast freeze and inspections                   | M4b       | todo   | —    |
+| 53  | Monthly scorecard                                 | M4b       | todo   | —    |
+| 54  | Interventions and ranking                         | M4b       | todo   | —    |
+| 55  | M6 schema and AI provider                         | M6        | todo   | —    |
+| 56  | Evaluation harness and confirm                    | M6        | todo   | —    |
+| 57  | Find past jobs                                    | M6        | todo   | —    |
+| 58  | Code suggestion                                   | M6        | todo   | —    |
+| 59  | Ask and brief                                     | M6        | todo   | —    |
+| 60  | Manuals                                           | M6        | todo   | —    |
+| 61  | M3 schema and webhook                             | M3        | parked | —    |
+| 62  | WhatsApp people and outbound                      | M3        | parked | —    |
+| 63  | Report by WhatsApp                                | M3        | parked | —    |
+| 64  | Voice                                             | M3        | parked | —    |
+| 65  | Email and deletion                                | M3        | parked | —    |
+| 66  | Lockout before electrical work                    | M2        | todo   | —    |
+| 67  | Reliability and critical spares                   | M4b       | todo   | —    |
+| 68  | Gujarati text understood                          | M1        | todo   | —    |
 
 ## Testing seams (to-spec step 2: fewest, highest)
 
