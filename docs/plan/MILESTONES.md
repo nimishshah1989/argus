@@ -21,7 +21,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 02  | Module boundaries: expand                         | M0        | todo   | —    |
 | 03  | Module boundaries: contract                       | M0        | todo   | —    |
 | 04  | One contract, reply parts                         | M0        | todo   | —    |
-| 05  | Actions and words from the domain                 | M0        | in progress | — |
+| 05  | Actions and words from the domain                 | M0        | todo   | —    |
 | 06  | Stop destroying history                           | M0        | todo   | —    |
 | 07  | History cannot be lost (cutover migration)        | M0        | todo   | —    |
 | 08  | Real plant in                                     | M0        | todo   | —    |
