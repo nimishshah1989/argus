@@ -1,0 +1,1 @@
+- Staging server zone is now a setting (`server_az_suffix`, default b), so a capacity shortage in one zone no longer blocks `terraform apply`.

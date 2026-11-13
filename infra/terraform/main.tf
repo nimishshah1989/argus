@@ -24,6 +24,12 @@ variable "region" {
   default = "ap-south-1"
 }
 
+variable "server_az_suffix" {
+  type        = string
+  default     = "b"
+  description = "Zone letter for the server's public subnet (region + letter). Change it if AWS reports InsufficientInstanceCapacity."
+}
+
 variable "app" {
   type    = string
   default = "uptimo"
@@ -118,7 +124,7 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = cidrsubnet(var.cidr, 8, 1)
-  availability_zone       = local.az_a
+  availability_zone       = "${var.region}${var.server_az_suffix}"
   map_public_ip_on_launch = true
   tags                    = { Name = "${var.app}-public" }
 }
