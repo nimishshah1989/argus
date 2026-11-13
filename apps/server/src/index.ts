@@ -5,6 +5,7 @@ import {
   reconcileTicket,
   type SlaTicketReconciler,
 } from './modules/accountability/index.js';
+import { aiConfigFromEnv, startAiJobs } from './modules/ai/index.js';
 import type { PgBoss } from 'pg-boss';
 
 const url = process.env.DATABASE_URL;
@@ -24,6 +25,7 @@ const jobs = await startJobs({
     runtime.boss = boss;
   },
 });
+await startAiJobs(jobs.boss, { pool, config: aiConfigFromEnv(process.env) }, role);
 
 if (role === 'worker') {
   console.log('SLA worker started (no HTTP listener)');
