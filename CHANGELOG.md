@@ -3,6 +3,8 @@
 All notable changes to this product. Format: Keep a Changelog. The build is pre-release: it runs
 locally and in CI, but there is no staging or production deployment yet.
 
+From #76 on, each PR adds one fragment `changes/<issue>-<slug>.md` (1–5 bullet lines in this file's style) and does not edit this file; fragments are folded in here at a release.
+
 ## Unreleased
 
 ### Changed
