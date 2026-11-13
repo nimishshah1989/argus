@@ -4,7 +4,7 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## RESUME HERE
 
-**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and ticket 01 (#TBD). The only build
+**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and ticket 01 (#145). The only build
 process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
 in `docs/plan/MILESTONES.md` is the queue.
 
