@@ -1,0 +1,1 @@
+- The deploy names the environment itself (staging or production), so a production server can never run the AI without its production checks.
