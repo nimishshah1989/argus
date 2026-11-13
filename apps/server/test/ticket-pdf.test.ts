@@ -11,6 +11,7 @@ import { buildApp } from '../src/app.js';
 import { buildQrPayload, qrSvg, qrText } from '../src/modules/reports/pdf.js';
 import { renderReportHtml, type ReportPdfInput } from '../src/modules/reports/pdf-template.js';
 import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
+import { tolerateShutdown } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
 const SEGMENT = '10000000-0000-0000-0000-000000000002';
@@ -30,6 +31,7 @@ type Res = Awaited<ReturnType<App['inject']>>;
 
 let container: StartedPostgreSqlContainer;
 let pool: Pool;
+let beginPoolShutdown: () => void;
 let app: App;
 let filesDir = '';
 let ashaToken = '';
@@ -161,6 +163,7 @@ function qrFixture(): ReportPdfInput {
 beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:16-alpine').start();
   pool = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
+  beginPoolShutdown = tolerateShutdown(pool);
   // Apply every migration in order (the same rule as the shared harness), so a new
   // migration never silently breaks this suite.
   const migrations = new URL('../../../packages/db/migrations/', import.meta.url);
@@ -233,6 +236,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
+  beginPoolShutdown();
   await app.close();
   await pool.end();
   await container.stop();

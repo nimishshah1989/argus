@@ -1,8 +1,15 @@
 import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { prReason } from './pr-reason.js';
 
 const SOFT = 400;
 const HARD = 800;
 const SKIP = [/pnpm-lock\.yaml$/, /^docs\//, /\.md$/, /migrations\//, /fixtures\//, /generated\//];
+
+/** A large PR passes with the size:large label (LEAN_ALLOW_LARGE) or a `Large PR: <reason>` body line. */
+export function largePrAllowed(env: NodeJS.ProcessEnv): boolean {
+  return Boolean(env.LEAN_ALLOW_LARGE) || prReason(env.PR_BODY, 'Large PR') !== null;
+}
 
 function diffStat(): string {
   try {
@@ -29,9 +36,9 @@ function main(): void {
     files += 1;
   }
   console.log(`pr-size: ${changed} changed lines across ${files} code files`);
-  if (changed > HARD && !process.env.LEAN_ALLOW_LARGE) {
+  if (changed > HARD && !largePrAllowed(process.env)) {
     console.error(
-      `pr-size: FAIL over ${HARD} lines; split the PR or set LEAN_ALLOW_LARGE with a reason`,
+      `pr-size: FAIL over ${HARD} lines; split the PR, add the size:large label, or put a line "Large PR: <reason>" (at least 10 characters) in the PR description`,
     );
     process.exitCode = 1;
   } else if (changed > SOFT) {
@@ -39,4 +46,4 @@ function main(): void {
   }
 }
 
-main();
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();
