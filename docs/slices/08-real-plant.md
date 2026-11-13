@@ -300,3 +300,9 @@ export async function shiftAt(client: PoolClient, tenantId: string, at: Date): P
    staging copy of the file adds a `shift` for each maintenance person. Should it?
 
 Note: staging persons have no phone until a phone source exists.
+
+## 9. Amendments after ticket 02 merged (orchestrator ruling)
+
+- The seed's SQL on module-owned tables lives in `modules/identity/repo.ts` (`deleteTenantBySlug`, `insertTenant`, `insertPeople`) and `modules/plant/repo.ts` (`insertSegments`, `insertMachines`, `insertListItems`, `insertShifts`, `insertSettings`, `insertGlossaryTerms`), exported through each module's `index.ts`; `cosmos.ts` only orchestrates. This is required by `pnpm boundaries`. `insertSettings` takes `Array<[key, value]>`.
+- `hashPassword` lives in `modules/identity/routes.ts` and is exported from the identity `index.ts`; `auth.ts` stays the one-line shim.
+- The parity row that named the old `packages/db` seed test now names `apps/server/test/cosmos-seed.test.ts`.
