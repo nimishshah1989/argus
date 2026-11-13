@@ -2,8 +2,6 @@ import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
 import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
-import type { PgBoss } from 'pg-boss';
-import type { JobsHandle } from './jobs/index.js';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;
@@ -120,16 +118,4 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
   });
 }
 
-export interface AppConfig {
-  pool: Pool;
-  logger?: boolean;
-  rateLimitMax?: number;
-  /** Local storage root for rendered files; S3 replaces this adapter later. */
-  filesDir?: string;
-  /** Chromium binary for PDF rendering; defaults to CHROMIUM_PATH or the E2E browsers. */
-  chromiumPath?: string;
-  /** Set by production startup; tests create a producer-only boss lazily. */
-  databaseUrl?: string;
-  jobBoss?: PgBoss;
-  jobsHandle?: JobsHandle;
-}
+export type { AppConfig } from './kernel/index.js';
