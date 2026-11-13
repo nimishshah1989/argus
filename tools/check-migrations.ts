@@ -47,33 +47,38 @@ const RULES: readonly [RuleName, RegExp][] = [
   ['REVOKE', /\brevoke\b/gi],
 ];
 
+const spaces = (text: string): string => text.replace(/[^\n]/g, ' ');
+
+/** Index just past the (nested) block comment that starts at `start`. */
+function blockEnd(sql: string, start: number): number {
+  let depth = 0;
+  for (let i = start; i < sql.length; i++) {
+    const pair = sql.slice(i, i + 2);
+    if (pair === '/*' || pair === '*/') {
+      depth += pair === '/*' ? 1 : -1;
+      i++;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return sql.length;
+}
+
 /** One pass: comments (`--`, nested block) become spaces, newlines kept. Quoted text is kept and scanned;
  *  dollar quotes are not strings, so DO bodies stay scanned. */
 function blankComments(sql: string): string {
   let out = '';
   let quote = '';
-  let depth = 0;
   for (let i = 0; i < sql.length; i++) {
     const c = sql[i] ?? '';
     const pair = sql.slice(i, i + 2);
-    if (depth > 0) {
-      if (pair === '/*' || pair === '*/') {
-        depth += pair === '/*' ? 1 : -1;
-        out += '  ';
-        i++;
-      } else out += c === '\n' ? c : ' ';
-    } else if (quote !== '') {
+    if (quote !== '') {
       out += c;
       if (c === quote) quote = '';
-    } else if (pair === '--') {
-      const end = sql.indexOf('\n', i);
-      const stop = end === -1 ? sql.length : end;
-      out += ' '.repeat(stop - i);
-      i = stop - 1;
-    } else if (pair === '/*') {
-      depth++;
-      out += '  ';
-      i++;
+    } else if (pair === '--' || pair === '/*') {
+      const end =
+        pair === '--' ? (sql.indexOf('\n', i) + 1 || sql.length + 1) - 1 : blockEnd(sql, i);
+      out += spaces(sql.slice(i, end));
+      i = end - 1;
     } else {
       out += c;
       if (c === "'" || c === '"') quote = c;
