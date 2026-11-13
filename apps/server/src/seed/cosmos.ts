@@ -153,6 +153,20 @@ async function insertSettings(
   }
 }
 
+function buildFromFiles(paths: Paths) {
+  const files: SeedFiles = {
+    machines: loadJson(SEED_FILES.machines),
+    shifts: loadJson(SEED_FILES.shifts),
+    people: loadJson(paths.peoplePath ?? SEED_FILES.peopleFixture),
+  };
+  return buildSeed(
+    loadJson(paths.exportPath),
+    loadJson(paths.livePath),
+    loadJson(paths.glossaryPath),
+    files,
+  );
+}
+
 async function insertShifts(client: PoolClient, tenantId: string, shifts: SeedFiles['shifts']) {
   for (const shift of shifts) {
     await client.query(
@@ -169,15 +183,7 @@ export async function seedCosmos(
 ): Promise<SeedReport> {
   if (paths.peoplePath && !initialPassword)
     throw new Error('seed: SEED_INITIAL_PASSWORD is required with a people file');
-  const exp = loadJson<Record<string, unknown>>(paths.exportPath);
-  const live = loadJson<Record<string, unknown>>(paths.livePath);
-  const glossary = loadJson<Record<string, unknown>>(paths.glossaryPath);
-  const files: SeedFiles = {
-    machines: loadJson(SEED_FILES.machines),
-    shifts: loadJson(SEED_FILES.shifts),
-    people: loadJson(paths.peoplePath ?? SEED_FILES.peopleFixture),
-  };
-  const seed = buildSeed(exp, live, glossary, files);
+  const seed = buildFromFiles(paths);
   const passwordHash = await hashPassword(paths.peoplePath ? initialPassword! : FIXTURE_PASSWORD);
   const client = await pool.connect();
   try {
