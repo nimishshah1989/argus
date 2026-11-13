@@ -24,6 +24,12 @@ variable "region" {
   default = "ap-south-1"
 }
 
+variable "server_az_suffix" {
+  type        = string
+  default     = "b"
+  description = "Zone letter for the server's public subnet (region + letter). Change it if AWS reports InsufficientInstanceCapacity."
+}
+
 variable "app" {
   type    = string
   default = "uptimo"
@@ -56,12 +62,33 @@ variable "github_org" {
 
 variable "github_repo" {
   type    = string
-  default = "uptimo"
+  default = "argus"
 }
 
+# Caddy's ACME email and both alarm subscriptions.
 variable "billing_email" {
-  type    = string
-  default = ""
+  type = string
+  validation {
+    condition     = var.billing_email != ""
+    error_message = "billing_email is required: it receives the alarm emails."
+  }
+}
+
+# false serves plain HTTP on :80 (fallback if the certificate cannot be issued).
+variable "enable_https" {
+  type    = bool
+  default = true
+}
+
+# false skips the Route 53 health check and its us-east-1 alarm.
+variable "external_uptime_ping" {
+  type    = bool
+  default = true
+}
+
+variable "error_alarm_threshold" {
+  type    = number
+  default = 5
 }
 
 variable "cidr" {
@@ -77,6 +104,9 @@ provider "aws" {
 locals {
   az_a = "${var.region}a"
   az_b = "${var.region}b"
+  # The cosmos. label picks the tenant (tenantSlugFromHost); sslip.io resolves the Elastic IP until a domain exists.
+  site_host    = var.domain != "" ? "cosmos.staging.${var.domain}" : "cosmos.${replace(aws_eip.server.public_ip, ".", "-")}.sslip.io"
+  site_address = var.enable_https ? local.site_host : ":80"
 }
 
 resource "aws_vpc" "main" {
@@ -94,7 +124,7 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = cidrsubnet(var.cidr, 8, 1)
-  availability_zone       = local.az_a
+  availability_zone       = "${var.region}${var.server_az_suffix}"
   map_public_ip_on_launch = true
   tags                    = { Name = "${var.app}-public" }
 }
@@ -271,10 +301,16 @@ resource "aws_iam_role_policy" "server" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["ssm:GetParameter", "ssm:GetParametersByPath"], Resource = "*" },
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = "${aws_s3_bucket.files.arn}/*" },
       { Effect = "Allow", Action = ["s3:ListBucket"], Resource = aws_s3_bucket.files.arn },
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = "*" },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = aws_secretsmanager_secret.app.arn },
+      { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
+      {
+        Effect   = "Allow"
+        Action   = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability"]
+        Resource = [aws_ecr_repository.server.arn, aws_ecr_repository.web.arn]
+      },
+      { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"], Resource = "${aws_cloudwatch_log_group.server.arn}:*" },
     ]
   })
 }
@@ -285,26 +321,50 @@ resource "aws_iam_instance_profile" "server" {
 }
 
 resource "aws_instance" "server" {
-  ami                    = data.aws_ami.amazon_linux_2023.id
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.ec2.id]
-  iam_instance_profile   = aws_iam_instance_profile.server.name
-  user_data              = <<-EOT
+  ami                         = data.aws_ami.amazon_linux_2023.id
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.ec2.id]
+  iam_instance_profile        = aws_iam_instance_profile.server.name
+  user_data                   = <<-EOT
     #!/bin/bash
-    set -e
-    dnf install -y docker
+    set -euo pipefail
+    dnf install -y docker jq
     systemctl enable --now docker
+    # Compose v2 CLI plugin, pinned (docker/compose releases page, 13 Nov 2026).
+    mkdir -p /usr/local/lib/docker/cli-plugins
+    compose_url=https://github.com/docker/compose/releases/download/v5.7.1/docker-compose-linux-aarch64
+    curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose "$compose_url"
+    compose_sum=$(curl -fsSL "$compose_url.sha256" | cut -d' ' -f1)
+    echo "$compose_sum  /usr/local/lib/docker/cli-plugins/docker-compose" | sha256sum -c -
+    chmod 755 /usr/local/lib/docker/cli-plugins/docker-compose
     mkdir -p /opt/uptimo
+    cat > /opt/uptimo/.env <<'ENV'
+    ECR_REGISTRY=${split("/", aws_ecr_repository.server.repository_url)[0]}
+    SITE_ADDRESS=${local.site_address}
+    ACME_EMAIL=${var.billing_email}
+    AWS_REGION=${var.region}
+    LOG_GROUP=${aws_cloudwatch_log_group.server.name}
+    SECRET_ID=${aws_secretsmanager_secret.app.name}
+    ENV
     usermod -aG docker ec2-user
   EOT
-  tags                   = { Name = "${var.app}-server" }
+  user_data_replace_on_change = true
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+  tags = { Name = "${var.app}-server" }
 }
 
 resource "aws_eip" "server" {
-  instance = aws_instance.server.id
-  domain   = "vpc"
-  tags     = { Name = "${var.app}-eip" }
+  domain = "vpc"
+  tags   = { Name = "${var.app}-eip" }
+}
+
+resource "aws_eip_association" "server" {
+  instance_id   = aws_instance.server.id
+  allocation_id = aws_eip.server.id
 }
 
 resource "aws_route53_zone" "main" {
@@ -330,47 +390,6 @@ resource "aws_route53_record" "staging" {
   records = [aws_eip.server.public_ip]
 }
 
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-}
-
-resource "aws_iam_role" "deploy" {
-  name = "${var.app}-deploy"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
-      Action    = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
-        }
-      }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "deploy" {
-  role = aws_iam_role.deploy.id
-  name = "${var.app}-deploy"
-  # Broad for M0; narrow to the exact services before production.
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ec2:*", "rds:*", "s3:*", "secretsmanager:*", "ssm:*", "iam:*", "budgets:*", "cloudwatch:*"]
-      Resource = "*"
-    }]
-  })
-}
-
-resource "aws_secretsmanager_secret" "app" {
-  name = "${var.app}/prod"
-}
-
 # Budget lives in the account (argus-monthly-cost, USD 150); Terraform must not
 # create a second one. See the setup note.
 
@@ -378,5 +397,6 @@ output "db_endpoint" { value = aws_db_instance.postgres.endpoint }
 output "files_bucket" { value = aws_s3_bucket.files.id }
 output "server_public_ip" { value = aws_eip.server.public_ip }
 output "server_instance_id" { value = aws_instance.server.id }
-output "dns_name" { value = var.domain == "" ? aws_eip.server.public_ip : "cosmos.${var.domain}" }
+output "site_url" { value = "${var.enable_https ? "https" : "http"}://${local.site_host}" }
+output "alert_topic_arn" { value = aws_sns_topic.alerts.arn }
 output "deploy_role_arn" { value = aws_iam_role.deploy.arn }

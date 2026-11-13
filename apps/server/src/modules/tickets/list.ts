@@ -1,0 +1,209 @@
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { Pool, PoolClient } from 'pg';
+import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
+import * as domain from '@uptimo/domain';
+import { withTenant } from '@uptimo/db';
+import { requireAuth } from '../identity/index.js';
+import * as tm from './mapper.js';
+import * as sql from './repo/ticket.js';
+import { projectTicketSla, withSlaProjections } from '../accountability/index.js';
+import * as report from './repo/report.js';
+import {
+  needReportRows,
+  segmentRowsFor,
+  selectTicketPage,
+  ticketRowById,
+  type ListFilters,
+} from './repo/list.js';
+
+function encodeCursor(updatedAt: string, id: string): string {
+  return Buffer.from(`${updatedAt}|${id}`, 'utf8').toString('base64url');
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function decodeCursor(cursor: string | undefined): { updatedAt: string; id: string } | null {
+  if (!cursor) return null;
+  const raw = Buffer.from(cursor, 'base64url').toString('utf8');
+  const sep = raw.indexOf('|');
+  const updatedAt = sep < 0 ? '' : raw.slice(0, sep);
+  const id = sep < 0 ? '' : raw.slice(sep + 1);
+  if (!updatedAt || !UUID_RE.test(id) || Number.isNaN(Date.parse(updatedAt))) {
+    throw new Error('invalid cursor');
+  }
+  return { updatedAt, id };
+}
+
+function csv(raw: string | undefined): string[] | null {
+  return raw ? raw.split(',').filter(Boolean) : null;
+}
+
+export function projectTicket(
+  row: Record<string, unknown>,
+  perPerson?: Record<string, number>,
+): Record<string, unknown> {
+  const ticket = tm.rowToTicket(row);
+  const figures = tm.figuresFromRow(row);
+  if (perPerson) figures.perPerson = perPerson;
+  ticket.figures = figures;
+  return tm.ticketProjection(ticket, tm.rowExtras(row));
+}
+
+async function loadPerPerson(
+  client: PoolClient,
+  tenantId: string,
+  ticketIds: string[],
+  now: Date,
+): Promise<Record<string, Record<string, number>>> {
+  if (ticketIds.length === 0) return {};
+  const rows = await segmentRowsFor(client, tenantId, ticketIds);
+  const byTicket: Record<
+    string,
+    Array<{ personId: string; startedAt: Date; endedAt: Date | null }>
+  > = {};
+  for (const row of rows) {
+    const id = row.ticket_id as string;
+    (byTicket[id] ??= []).push({
+      personId: row.person_id as string,
+      startedAt: new Date(row.started_at as string | number | Date),
+      endedAt: row.ended_at ? new Date(row.ended_at as string | number | Date) : null,
+    });
+  }
+  const result: Record<string, Record<string, number>> = {};
+  for (const [id, segments] of Object.entries(byTicket)) {
+    result[id] = tm.perPersonFromSegments(segments, now);
+  }
+  return result;
+}
+
+async function queryList(
+  client: PoolClient,
+  tenantId: string,
+  filters: ListFilters,
+): Promise<{ items: unknown[]; nextCursor: string | null }> {
+  const rows = await selectTicketPage(client, tenantId, filters);
+
+  const page = rows.slice(0, filters.limit);
+  const perPerson = await loadPerPerson(
+    client,
+    tenantId,
+    page.map((row) => row.id as string),
+    new Date(),
+  );
+  const items = await withSlaProjections(client, tenantId, page, (row) =>
+    projectTicket(row, perPerson[row.id as string]),
+  );
+  let nextCursor: string | null = null;
+  if (rows.length > filters.limit) {
+    const last = page[page.length - 1] as Record<string, unknown>;
+    nextCursor = encodeCursor(last.updated_at_cursor as string, last.id as string);
+  }
+  return { items, nextCursor };
+}
+
+export async function listTickets(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  const parsed = listTicketsQuerySchema.safeParse(request.query ?? {});
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path.join('.');
+    reply.code(422).send(apiError('validation', 'Invalid query', field || undefined));
+    return;
+  }
+  const q = parsed.data;
+
+  let cursor: { updatedAt: string; id: string } | null;
+  try {
+    cursor = decodeCursor(q.cursor);
+  } catch {
+    reply.code(422).send(apiError('validation', 'Invalid cursor', 'cursor'));
+    return;
+  }
+
+  const filters: ListFilters = {
+    statuses: csv(q.status),
+    kinds: csv(q.kind),
+    machineId: q.machineId,
+    personId: q.personId,
+    raisedBy: q.raisedBy,
+    from: q.from,
+    to: q.to,
+    cursor,
+    limit: q.limit,
+  };
+  const result = await withTenant(pool, ctx.tenantId, (client) =>
+    queryList(client, ctx.tenantId, filters),
+  );
+  reply.send(result);
+}
+
+/** Closed `no_report` tickets from the last 7 days, scoped to the acting person (or all for management). */
+export async function listNeedReport(
+  pool: Pool,
+  tenantId: string,
+  actingPersonId: string | null,
+  role: string,
+): Promise<unknown[]> {
+  return withTenant(pool, tenantId, async (client) => {
+    const rows = await needReportRows(client, tenantId, actingPersonId, role);
+    return withSlaProjections(client, tenantId, rows, (row) => projectTicket(row));
+  });
+}
+
+export async function detail(
+  pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  const ticketId = (request.params as { id: string }).id;
+  const payload = await withTenant(pool, ctx.tenantId, async (client) => {
+    const row = await ticketRowById(client, ctx.tenantId, ticketId);
+    if (!row) return null;
+    const ticket = tm.rowToTicket(row as Record<string, unknown>);
+    const events = await sql.loadEvents(client, ticketId);
+    const segments = await sql.loadSegments(client, ticketId);
+    const crew = await sql.loadCrew(client, ticketId);
+    ticket.figures = tm.recomputeFigures(ticket, events, segments, {
+      overrides: (row.overrides as Record<string, unknown>) ?? {},
+      now: new Date(),
+    });
+    return {
+      ticket: {
+        ...tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
+        sla: await projectTicketSla(client, ctx.tenantId, ticketId, new Date()),
+      },
+      events: events.map((event) => ({
+        seq: event.seq,
+        type: event.type,
+        at: event.at,
+        text: event.text,
+        reason: event.reason ?? null,
+        isVendor: event.isVendor ?? false,
+        actingPersonId: event.actingPersonId,
+        loginId: event.loginId,
+      })),
+      people: crew.map((member: domain.CrewMember) => ({
+        personId: member.personId,
+        role: member.role,
+        leftAt: member.leftAt ?? null,
+        leftReason: member.leftReason ?? null,
+      })),
+      tasks: [],
+      intervals: segments.map((segment: domain.WorkSegment) => ({
+        personId: segment.personId,
+        role: segment.role,
+        startedAt: segment.startedAt,
+        endedAt: segment.endedAt ?? null,
+      })),
+      report: await report.loadReport(client, ticketId),
+    };
+  });
+  if (!payload) reply.code(404).send(apiError('not_found', 'Unknown ticket'));
+  else reply.send(payload);
+}

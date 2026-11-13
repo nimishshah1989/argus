@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tenantSlugFromHost } from '../src/tenant.js';
+import { tenantSlugFromHost } from '../src/modules/identity/index.js';
 
 describe('tenantSlugFromHost', () => {
   it('returns the subdomain for a dotted host', () => {

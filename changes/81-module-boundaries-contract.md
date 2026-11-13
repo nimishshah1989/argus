@@ -1,0 +1,1 @@
+- Server code is grouped into nine modules, each reached only through its index; `pnpm boundaries` and lint fail a crossing.

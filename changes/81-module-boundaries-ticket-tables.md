@@ -1,0 +1,1 @@
+- Ticket and import tables are touched only by their own module.

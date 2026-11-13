@@ -6,9 +6,9 @@ import { hash } from '@node-rs/argon2';
 import { withTenant } from '@uptimo/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { loadDayReport } from '../src/day-report.js';
-import { renderDayReportHtml } from '../src/day-report-template.js';
-import { resolveChromium } from '../src/pdf.js';
+import { loadDayReport } from '../src/modules/reports/day-report.js';
+import { renderDayReportHtml } from '../src/modules/reports/day-report-template.js';
+import { resolveChromium } from '../src/modules/reports/pdf.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';

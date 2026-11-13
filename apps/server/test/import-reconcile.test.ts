@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { BhavinEvent, BhavinEditChange } from '../src/import/event-schema.js';
-import { parseTicket, type BhavinState, type BhavinTicket } from '../src/import/schema.js';
-import { reconcileTicket, ReconcileError } from '../src/import/reconcile.js';
+import type { BhavinEvent, BhavinEditChange } from '../src/modules/imports/event-schema.js';
+import { parseTicket, type BhavinState, type BhavinTicket } from '../src/modules/imports/schema.js';
+import { reconcileTicket, ReconcileError } from '../src/modules/imports/reconcile.js';
 import { makeOrdinaryTicket, makeReconcileReferences, syntheticIds } from './import-fixture.js';
 
 const NOW = new Date('2026-11-01T12:00:00Z');

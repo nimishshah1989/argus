@@ -6,7 +6,7 @@ import { startTestDb, type TestDb } from './harness.js';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 type InjectResponse = Awaited<ReturnType<App['inject']>>;
-import { hashToken } from '../src/session.js';
+import { hashToken } from '../src/modules/identity/index.js';
 
 const A = '10000000-0000-0000-0000-000000000001';
 const B = '20000000-0000-0000-0000-000000000001';

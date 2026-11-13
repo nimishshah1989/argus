@@ -5,40 +5,49 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { installJobSchema } from '../src/install-jobs.js';
 
-const TENANT_TABLES = [
-  'person',
-  'login',
-  'session',
-  'platform_access',
-  'segment',
-  'machine_group',
-  'machine',
-  'machine_move',
-  'list_item',
-  'shift',
-  'setting',
-  'glossary_term',
-  'ticket',
-  'ticket_event',
-  'ticket_tag',
-  'crew_member',
-  'work_segment',
-  'breakdown_report',
-  'file',
-  'push_subscription',
-  'audit_log',
-  'import_batch',
-  'import_row',
-  'ref_counter',
-  'command_idempotency',
-  'sla_policy',
-  'sla_timer',
+const D17_TABLES = [
+  ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment'.split(
+    ' ',
+  ),
+  ...'roster_entry escalation_rule notification kpi_snapshot forecast intervention pm_plan asset_register ai_suggestion document document_chunk wa_message'.split(
+    ' ',
+  ),
 ];
+const DATED_TABLES: Record<string, string> = { ticket_tag: 'ticket 07 drops it' };
 
 const A = '10000000-0000-0000-0000-000000000001';
 const B = '20000000-0000-0000-0000-000000000001';
 let container: StartedPostgreSqlContainer;
 let db: Client;
+let tenantTables: string[] = [];
+
+const TABLES_SQL = `SELECT c.relname FROM pg_class c
+  WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','p') ORDER BY 1`;
+const TENANT_TABLES_SQL = `SELECT c.relname FROM pg_class c JOIN pg_attribute a ON a.attrelid = c.oid
+  WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','p')
+  AND a.attname = 'tenant_id' AND NOT a.attisdropped ORDER BY 1`;
+
+async function names(sql: string): Promise<string[]> {
+  return (await db.query(sql)).rows.map((row) => row.relname as string);
+}
+
+function budgetProblems(tables: string[]): string[] {
+  return tables
+    .filter((t) => !D17_TABLES.includes(t) && !(t in DATED_TABLES))
+    .map((t) => `${t}: not in D17's table list`);
+}
+
+async function rowProblems(tables: string[]): Promise<string[]> {
+  const problems: string[] = [];
+  for (const tenant of [A, B]) {
+    await setTenant(tenant);
+    for (const table of tables) {
+      const n = await count(table);
+      if (n !== 1) problems.push(`${table} as ${tenant}: ${n} rows`);
+    }
+  }
+  return problems;
+}
 
 async function setTenant(id?: string): Promise<void> {
   if (id) await db.query("SELECT set_config('app.tenant_id', $1, false)", [id]);
@@ -64,6 +73,7 @@ beforeAll(async () => {
   await installJobSchema(installerPool);
   await installerPool.end();
   await db.query(readFileSync(new URL('./seed.sql', import.meta.url), 'utf8'));
+  tenantTables = await names(TENANT_TABLES_SQL);
   await db.query('SET ROLE app_user');
 }, 120_000);
 
@@ -78,9 +88,9 @@ describe('schema v1 isolation', () => {
       `SELECT relname, relrowsecurity, relforcerowsecurity
        FROM pg_class
        WHERE relnamespace = 'public'::regnamespace AND relname = ANY($1)`,
-      [TENANT_TABLES],
+      [tenantTables],
     );
-    expect(result.rows).toHaveLength(TENANT_TABLES.length);
+    expect(result.rows).toHaveLength(tenantTables.length);
     for (const row of result.rows) {
       expect(row.relrowsecurity, `${row.relname} RLS`).toBe(true);
       expect(row.relforcerowsecurity, `${row.relname} FORCE`).toBe(true);
@@ -93,9 +103,9 @@ describe('schema v1 isolation', () => {
     const columns = await db.query(
       `SELECT table_name FROM information_schema.columns
        WHERE table_schema = 'public' AND column_name = 'tenant_id' AND table_name = ANY($1)`,
-      [TENANT_TABLES],
+      [tenantTables],
     );
-    expect(columns.rows).toHaveLength(TENANT_TABLES.length);
+    expect(columns.rows).toHaveLength(tenantTables.length);
   });
 
   it('gives app_user no bypass and app_router bypass', async () => {
@@ -109,16 +119,40 @@ describe('schema v1 isolation', () => {
   });
 
   it('shows each tenant exactly its own row in every table', async () => {
-    for (const tenant of [A, B]) {
-      await setTenant(tenant);
-      for (const table of TENANT_TABLES)
-        expect(await count(table), `${table} as ${tenant}`).toBe(1);
+    expect(tenantTables).toContain('breakdown_report_person');
+    expect(await rowProblems(tenantTables)).toEqual([]);
+  });
+
+  it('allows no table outside the D17 budget', async () => {
+    expect(D17_TABLES).toHaveLength(40);
+    expect(budgetProblems(await names(TABLES_SQL))).toEqual([]);
+  });
+
+  it('catches a planted table', async () => {
+    await db.query('RESET ROLE');
+    await db.query('BEGIN');
+    try {
+      await db.query(
+        'CREATE TABLE stray_widget (id uuid PRIMARY KEY, tenant_id uuid NOT NULL); GRANT SELECT ON stray_widget TO app_user',
+      );
+      expect(budgetProblems(await names(TABLES_SQL))).toEqual([
+        "stray_widget: not in D17's table list",
+      ]);
+      expect(await names(TENANT_TABLES_SQL)).toContain('stray_widget');
+      await db.query('SET LOCAL ROLE app_user');
+      expect(await rowProblems(['stray_widget'])).toEqual([
+        `stray_widget as ${A}: 0 rows`,
+        `stray_widget as ${B}: 0 rows`,
+      ]);
+    } finally {
+      await db.query('ROLLBACK');
+      await db.query('SET ROLE app_user');
     }
   });
 
   it('returns zero rows when app.tenant_id is unset', async () => {
     await setTenant();
-    for (const table of TENANT_TABLES) expect(await count(table), `${table} unset`).toBe(0);
+    for (const table of tenantTables) expect(await count(table), `${table} unset`).toBe(0);
   });
 
   it('does not let app_user read tenant directly', async () => {

@@ -10,10 +10,10 @@ import { buildApp } from '../src/app.js';
 import {
   emptyCompletionFingerprint,
   makeCompletionFingerprint,
-} from '../src/import/fingerprint.js';
-import { loadBatchSnapshot } from '../src/import/fingerprint-sql.js';
-import type { ImportStats } from '../src/import/schema.js';
-import { hashToken } from '../src/session.js';
+} from '../src/modules/imports/fingerprint.js';
+import { loadBatchSnapshot } from '../src/modules/imports/fingerprint-sql.js';
+import type { ImportStats } from '../src/modules/imports/schema.js';
+import { hashToken } from '../src/modules/identity/index.js';
 import {
   makeOrdinaryTicket,
   makeSyntheticExport,
@@ -28,7 +28,7 @@ import {
   assertProductionAccess,
   parseCliArgs,
   type CliCommand,
-} from '../src/import/security.js';
+} from '../src/modules/imports/security.js';
 
 const BATCH_ID = '10000000-0000-0000-0000-000000000001';
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));

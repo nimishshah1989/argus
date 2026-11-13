@@ -4,13 +4,13 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## RESUME HERE
 
-**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and ticket 01 (#145). The only build
+**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and tickets 01 (#145) and 10 (design kit, D20; PR pending). The only build
 process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
 in `docs/plan/MILESTONES.md` is the queue.
 
 - CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
   Playwright worker (`apps/web/e2e/test.ts`).
-- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR).
+- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR), `pnpm boundaries` (owners, calls and dated exceptions in `apps/server/src/modules/manifest.ts`; SQL on a module's tables only in its `repo.ts` or `repo/`).
 
 ## Live on main
 
@@ -22,7 +22,8 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 ## Next
 
-- The M0 frontier after 01: tickets 02, 08, 10, 13 (MILESTONES "What can run at the same time").
+- Gate: Nimish opens `/gallery` (dev; staging after ticket 13) and picks blue or deep teal before ticket 15.
+- The M0 frontier after 10: 03 (after 02), 08, 13 (MILESTONES "What can run at the same time").
 
 ## Blocked / external inputs
 

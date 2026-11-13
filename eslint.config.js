@@ -3,6 +3,57 @@ import prettier from 'eslint-config-prettier';
 import i18next from 'eslint-plugin-i18next';
 import tseslint from 'typescript-eslint';
 
+const ONLY_INDEX = 'Reach another module or the kernel only through its index.js.';
+const LEAVES = 'This import leaves apps/server/src.';
+
+// [folder glob, [regex, message][]] per folder depth under apps/server/src.
+function serverBoundaries() {
+  const rules = [
+    [
+      '*.ts',
+      [
+        [String.raw`^\.\./`, LEAVES],
+        [String.raw`^\./(?:kernel|modules/[^/]+)/(?!index\.js$)`, ONLY_INDEX],
+      ],
+    ],
+    ['kernel/*.ts', [[String.raw`^\.\./`, LEAVES]]],
+    [
+      'seed/*.ts',
+      [[String.raw`^\.\./(?!(?:kernel/index|modules/[^/]+/(?:index|seed))\.js$)`, ONLY_INDEX]],
+    ],
+    [
+      'modules/*.ts',
+      [
+        [String.raw`^\.\./(?!kernel/index\.js$)`, LEAVES],
+        [String.raw`^\./[^/]+/(?!index\.js$)`, ONLY_INDEX],
+      ],
+    ],
+    [
+      'modules/*/*.ts',
+      [
+        [String.raw`^\.\./\.\./(?!kernel/index\.js$)`, LEAVES],
+        [String.raw`^\.\./[^./][^/]*/(?!index\.js$)`, ONLY_INDEX],
+      ],
+    ],
+    [
+      'modules/*/*/*.ts',
+      [
+        [String.raw`^\.\./\.\./\.\./(?!kernel/index\.js$)`, LEAVES],
+        [String.raw`^\.\./\.\./[^./][^/]*/(?!index\.js$)`, ONLY_INDEX],
+      ],
+    ],
+  ];
+  return rules.map(([glob, patterns]) => ({
+    files: [`apps/server/src/${glob}`],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: patterns.map(([regex, message]) => ({ regex, message })) },
+      ],
+    },
+  }));
+}
+
 export default tseslint.config(
   {
     ignores: [
@@ -28,6 +79,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  // Module boundaries (ticket 03): the same rules tools/check-boundaries.ts checks, at edit time.
+  ...serverBoundaries(),
   {
     files: ['**/*.tsx'],
     rules: {

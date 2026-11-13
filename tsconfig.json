@@ -12,15 +12,11 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "paths": {
-      "@uptimo/db": ["./packages/db/src/index.ts"],
-      "@uptimo/shared": ["./packages/shared/src/index.ts"],
-      "@uptimo/domain": ["./packages/domain/src/index.ts"]
-    },
     "jsx": "react-jsx"
   },
   "include": [
     "playwright.config.ts",
+    "playwright.gallery.config.ts",
     "tools/**/*.ts",
     "packages/**/*.ts",
     "apps/**/*.ts",

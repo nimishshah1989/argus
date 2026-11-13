@@ -1,17 +1,16 @@
 import rateLimit from '@fastify/rate-limit';
-import Fastify from 'fastify';
+import { randomUUID } from 'node:crypto';
+import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import { registerAuth } from './auth.js';
-import { registerReports } from './reports.js';
-import { registerSettings } from './settings.js';
-import { registerTickets } from './tickets.js';
-import { registerPush } from './push.js';
-import { registerTags } from './tags.js';
-import type { AppConfig } from './config.js';
-import { startJobs } from './jobs/index.js';
-import { reconcileTicket } from './ticket/sla.js';
-import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
+import {
+  startJobs,
+  reconcileTicket,
+  type SlaTicketReconciler,
+} from './modules/accountability/index.js';
+import { registerAuthGuard, registerHealth, type AppConfig } from './kernel/index.js';
+import { modules } from './modules/index.js';
+import { authenticate } from './modules/identity/index.js';
 
 export async function buildApp(config: AppConfig) {
   const reconcileForJobs: SlaTicketReconciler = (client, tenantId, ticketId, now) =>
@@ -28,16 +27,20 @@ export async function buildApp(config: AppConfig) {
         },
       });
   config.jobBoss = jobs.boss;
-  const app = Fastify({ logger: config.logger ?? false });
+  const app = Fastify({
+    logger: config.logger ?? false,
+    genReqId: () => randomUUID(),
+    logController: new LogController({ requestIdLogLabel: 'requestId' }),
+  });
+  app.addHook('onSend', async (request, reply) => {
+    reply.header('x-request-id', request.id);
+  });
   app.addHook('onClose', async () => jobs.close());
+  // The guard must stay registered before any route: a route added earlier escapes it.
+  registerAuthGuard(app, (token) => authenticate(config.pool, token));
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
-  app.get('/api/v1/health', async () => ({ status: 'ok' }));
-  registerAuth(app, config);
-  registerSettings(app, config);
-  registerTickets(app, config);
-  registerReports(app, config);
-  registerPush(app, config);
-  registerTags(app, config);
+  registerHealth(app, config);
+  for (const mod of modules) mod.register(app, config);
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof SlaInputError) {
       reply.code(422).send(apiError('validation', error.message, error.code));
@@ -53,7 +56,7 @@ export async function buildApp(config: AppConfig) {
       reply.code(statusCode).send(apiError('validation', message));
       return;
     }
-    app.log.error(error);
+    reply.log.error({ err: error }, 'unhandled error');
     reply.code(500).send(apiError('internal', 'Internal error'));
   });
   return app;
