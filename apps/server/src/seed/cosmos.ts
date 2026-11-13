@@ -1,14 +1,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { Pool } from 'pg';
-import { withTenant } from '../kernel/index.js';
+import type { Pool, PoolClient } from 'pg';
 import {
   deleteTenantBySlug,
   hashPassword,
   insertPeople,
   insertTenant,
-  resolveTenant,
+  lockTenantBySlug,
 } from '../modules/identity/index.js';
 import {
   insertGlossaryTerms,
@@ -18,6 +17,8 @@ import {
   insertSettings,
   insertShifts,
 } from '../modules/plant/seed.js';
+import { countImportBatches } from '../modules/imports/index.js';
+import { countAuditRows } from '../modules/ops/index.js';
 import { countTickets, initRefCounters } from '../modules/tickets/index.js';
 import { buildSeed, type SeedFiles } from './cosmos-data.js';
 
@@ -75,14 +76,24 @@ function buildFromFiles(paths: Paths) {
   );
 }
 
-/** Seeding replaces the whole customer. Once it holds tickets (loaded or raised), that would destroy history. */
-async function assertNoTickets(pool: Pool): Promise<void> {
-  const existing = await resolveTenant(pool, 'cosmos');
-  if (!existing) return;
-  const held = await withTenant(pool, existing.id, (client) => countTickets(client, existing.id));
-  if (held > 0)
+/**
+ * Seeding replaces the whole customer, so it only runs over one that is seed-only: active, and holding no ticket,
+ * no import batch (an undone one is the undo's proof) and no audit row. Runs inside the replacing transaction,
+ * after the customer's row is locked, so nothing can be added between the check and the delete.
+ */
+async function assertSeedOnly(client: PoolClient, tenant: { id: string; status: string }) {
+  // Row security filters even the owner: count under the customer's own tenant setting.
+  await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenant.id]);
+  const held: Array<[n: number, one: string, many: string]> = [
+    [await countTickets(client, tenant.id), 'ticket', 'tickets'],
+    [await countImportBatches(client, tenant.id), 'import batch', 'import batches'],
+    [await countAuditRows(client, tenant.id), 'audit row', 'audit rows'],
+  ];
+  const parts = held.filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+  if (tenant.status !== 'active') parts.push(`status ${tenant.status}`);
+  if (parts.length > 0)
     throw new Error(
-      `seed: Cosmos already holds ${held} ticket${held === 1 ? '' : 's'}; nothing was changed. ` +
+      `seed: Cosmos already holds ${parts.join(', ')}; nothing was changed. ` +
         'Seeding replaces the whole customer, so it only runs on an empty one.',
     );
 }
@@ -91,16 +102,20 @@ export async function seedCosmos(
   pool: Pool,
   paths: Paths,
   initialPassword?: string,
+  options: { replace?: boolean } = {},
 ): Promise<SeedReport> {
   if (paths.peoplePath && !initialPassword)
     throw new Error('seed: SEED_INITIAL_PASSWORD is required with a people file');
   const seed = buildFromFiles(paths);
-  await assertNoTickets(pool);
   const passwordHash = await hashPassword(paths.peoplePath ? initialPassword! : FIXTURE_PASSWORD);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await deleteTenantBySlug(client, 'cosmos');
+    const existing = await lockTenantBySlug(client, 'cosmos');
+    if (existing) {
+      if (!options.replace) await assertSeedOnly(client, existing);
+      await deleteTenantBySlug(client, 'cosmos');
+    }
     const tenantId = await insertTenant(client, {
       slug: 'cosmos',
       name: 'Cosmos',
@@ -139,7 +154,12 @@ export async function seedCosmos(
 }
 
 /** The fixture people are fake and share a password in the repo: never on a shared server. */
-export function assertSeedAllowed(env: { APP_ENV?: string; SEED_PEOPLE_FILE?: string }): void {
+export function assertSeedAllowed(
+  env: { APP_ENV?: string; SEED_PEOPLE_FILE?: string },
+  replace = false,
+): void {
+  if (replace && env.APP_ENV !== 'staging')
+    throw new Error('seed: --replace-cosmos is allowed on staging only');
   if (!env.SEED_PEOPLE_FILE && (env.APP_ENV === 'staging' || env.APP_ENV === 'production'))
     throw new Error(
       'seed: on staging or production set SEED_PEOPLE_FILE; the fixture people are fake',
@@ -147,7 +167,8 @@ export function assertSeedAllowed(env: { APP_ENV?: string; SEED_PEOPLE_FILE?: st
 }
 
 async function main(): Promise<void> {
-  assertSeedAllowed(process.env);
+  const replace = process.argv.includes('--replace-cosmos');
+  assertSeedAllowed(process.env, replace);
   const { Pool } = await import('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const paths: Paths = {
@@ -159,7 +180,7 @@ async function main(): Promise<void> {
     glossaryPath: resolve(process.cwd(), 'docs/discovery/bhavin-v3/glossary-2026-11-09.json'),
     peoplePath: process.env.SEED_PEOPLE_FILE,
   };
-  const report = await seedCosmos(pool, paths, process.env.SEED_INITIAL_PASSWORD);
+  const report = await seedCosmos(pool, paths, process.env.SEED_INITIAL_PASSWORD, { replace });
   await pool.end();
   const sources = report.sources.map((s) =>
     s.startsWith(process.cwd()) ? relative(process.cwd(), s) : s,

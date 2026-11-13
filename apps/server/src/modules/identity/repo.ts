@@ -167,6 +167,15 @@ export interface NewPerson {
   login: { username: string; role: string } | null;
 }
 
+/** Locks a customer's row by slug, whatever its status, until the transaction ends. */
+export async function lockTenantBySlug(
+  tx: Db,
+  slug: string,
+): Promise<{ id: string; status: string } | undefined> {
+  return (await tx.query('SELECT id, status FROM tenant WHERE slug = $1 FOR UPDATE', [slug]))
+    .rows[0];
+}
+
 export async function deleteTenantBySlug(tx: Db, slug: string): Promise<void> {
   await tx.query('DELETE FROM tenant WHERE slug = $1', [slug]);
 }

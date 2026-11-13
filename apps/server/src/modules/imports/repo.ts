@@ -148,3 +148,11 @@ export async function stripOldImportPayloads(
   );
   return result.rowCount ?? 0;
 }
+
+export async function countImportBatches(tx: Db, tenantId: string): Promise<number> {
+  const result = await tx.query(
+    'SELECT count(*)::int AS n FROM import_batch WHERE tenant_id = $1',
+    [tenantId],
+  );
+  return result.rows[0].n as number;
+}

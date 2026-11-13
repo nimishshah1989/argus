@@ -24,3 +24,13 @@ export async function recordAudit(tx: Pick<PoolClient, 'query'>, entry: AuditEnt
     ],
   );
 }
+
+export async function countAuditRows(
+  tx: Pick<PoolClient, 'query'>,
+  tenantId: string,
+): Promise<number> {
+  const result = await tx.query('SELECT count(*)::int AS n FROM audit_log WHERE tenant_id = $1', [
+    tenantId,
+  ]);
+  return result.rows[0].n as number;
+}

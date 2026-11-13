@@ -9,6 +9,7 @@ export {
   insertPeople,
   insertTenant,
   jobTenantIds,
+  lockTenantBySlug,
   listPeople,
   peopleByIds,
   purgeDeadSessions,

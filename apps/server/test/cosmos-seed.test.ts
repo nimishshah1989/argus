@@ -220,7 +220,7 @@ describe('cosmos real plant seed', () => {
       `DROP ROLE IF EXISTS seed_like;
        CREATE ROLE seed_like LOGIN PASSWORD 'seed-like-pw' NOSUPERUSER NOBYPASSRLS;
        GRANT app_user TO seed_like;
-       GRANT SELECT, INSERT, DELETE ON tenant TO seed_like`,
+       GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO seed_like`,
     );
     const { Pool } = await import('pg');
     const pool = new Pool({
@@ -236,6 +236,83 @@ describe('cosmos real plant seed', () => {
       'SELECT (SELECT count(*) FROM machine)::int AS machines, (SELECT count(*) FROM login)::int AS logins',
     );
     expect(n).toEqual({ machines: 192, logins: 26 });
+  });
+
+  describe('what a re-seed may destroy', () => {
+    const cosmosId = async () =>
+      (await one<{ id: string }>("SELECT id FROM tenant WHERE slug = 'cosmos'")).id;
+    const rows = async () =>
+      one<Record<string, number>>(
+        `SELECT (SELECT count(*) FROM person)::int AS people, (SELECT count(*) FROM machine)::int AS machines`,
+      );
+
+    it('refuses a suspended Cosmos that holds tickets (a lookup by slug alone would not see it)', async () => {
+      const id = await cosmosId();
+      await db.admin.query(
+        `INSERT INTO ticket (tenant_id, ref, kind, status, problem, reported_at, severity)
+         VALUES ($1, 'BD-0001', 'stopped', 'open', 'x', now(), 'S3')`,
+        [id],
+      );
+      await db.admin.query("UPDATE tenant SET status = 'suspended' WHERE id = $1", [id]);
+      const before = await rows();
+      await expect(seedCosmos(db.admin, paths)).rejects.toThrow(/already holds 1 ticket/);
+      expect(await rows()).toEqual(before);
+      expect(await cosmosId()).toBe(id);
+      await db.admin.query('DELETE FROM ticket WHERE tenant_id = $1', [id]);
+      await db.admin.query("UPDATE tenant SET status = 'active' WHERE id = $1", [id]);
+    });
+
+    it('refuses a Cosmos with no tickets left but import history or audit rows: that is the undo proof', async () => {
+      const id = await cosmosId();
+      await db.admin.query(
+        "INSERT INTO import_batch (tenant_id, source, status) VALUES ($1, 'bhavin', 'undone')",
+        [id],
+      );
+      await expect(seedCosmos(db.admin, paths)).rejects.toThrow(/1 import batch/);
+      await db.admin.query('DELETE FROM import_batch WHERE tenant_id = $1', [id]);
+      await db.admin.query(
+        "INSERT INTO audit_log (tenant_id, action, entity) VALUES ($1, 'import.undo', 'import_batch')",
+        [id],
+      );
+      await expect(seedCosmos(db.admin, paths)).rejects.toThrow(/1 audit row/);
+      expect(await cosmosId()).toBe(id);
+      await db.admin.query('DELETE FROM audit_log WHERE tenant_id = $1', [id]);
+    });
+
+    it('replaces a Cosmos with history only when asked in so many words', async () => {
+      const id = await cosmosId();
+      await db.admin.query(
+        `INSERT INTO ticket (tenant_id, ref, kind, status, problem, reported_at, severity)
+         VALUES ($1, 'BD-0001', 'stopped', 'open', 'x', now(), 'S3')`,
+        [id],
+      );
+      await expect(seedCosmos(db.admin, paths)).rejects.toThrow(/already holds/);
+      await seedCosmos(db.admin, paths, undefined, { replace: true });
+      expect((await one<{ n: number }>('SELECT count(*)::int AS n FROM ticket')).n).toBe(0);
+      expect(await cosmosId()).not.toBe(id);
+    });
+
+    it('checks and deletes under one lock: a ticket raised while the seed waits is still seen', async () => {
+      const id = await cosmosId();
+      const other = await db.admin.connect();
+      try {
+        await other.query('BEGIN');
+        await other.query('SELECT id FROM tenant WHERE id = $1 FOR UPDATE', [id]);
+        const seeding = seedCosmos(db.admin, paths).catch((error: Error) => error);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await other.query(
+          `INSERT INTO ticket (tenant_id, ref, kind, status, problem, reported_at, severity)
+           VALUES ($1, 'BD-0001', 'stopped', 'open', 'x', now(), 'S3')`,
+          [id],
+        );
+        await other.query('COMMIT');
+        expect(((await seeding) as Error).message).toMatch(/already holds 1 ticket/);
+      } finally {
+        other.release();
+      }
+      expect(await cosmosId()).toBe(id);
+      await db.admin.query('DELETE FROM ticket WHERE tenant_id = $1', [id]);
+    });
   });
 
   it('the fake fixture people never seed a shared server', () => {
