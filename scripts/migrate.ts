@@ -214,7 +214,22 @@ export async function applyAppMigrations(
     if (!applied.has(file)) await applyFile(pool, file, { migrations, adoptThrough, bypass });
 }
 
-/** Tracked deployment migration: app SQL, then pg-boss, then optional app_api login. */
+/** How many migration files the database has not applied yet (all of them on a database never migrated). */
+export async function countPendingMigrations(pool: Pool, files: string[]): Promise<number> {
+  const ledger = await pool.query(
+    "SELECT to_regclass('public.schema_migration') IS NOT NULL AS yes",
+  );
+  if (!ledger.rows[0]?.yes) return files.length;
+  const applied = new Set(
+    (await pool.query('SELECT filename FROM schema_migration')).rows.map((row) => row.filename),
+  );
+  return files.filter((file) => !applied.has(file)).length;
+}
+
+/**
+ * Tracked deployment migration: app SQL, then pg-boss, then optional app_api login.
+ * `--pending` only counts what a migration would apply and prints `pending: N` (deploy.sh snapshots first).
+ */
 async function main(): Promise<void> {
   const url = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!url) throw new Error('MIGRATION_DATABASE_URL or DATABASE_URL is required');
@@ -223,6 +238,14 @@ async function main(): Promise<void> {
   const files = readdirSync(migrations)
     .filter((name) => name.endsWith('.sql'))
     .sort();
+  if (process.argv.includes('--pending')) {
+    try {
+      console.log(`pending: ${await countPendingMigrations(pool, files)}`);
+    } finally {
+      await pool.end();
+    }
+    return;
+  }
   const adoptThrough = declaredBaseline(files);
   try {
     await applyAppMigrations(pool, files, migrations, adoptThrough);

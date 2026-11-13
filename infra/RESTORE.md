@@ -13,8 +13,8 @@ also the test of this page.** Where a step says "unverified", paste the exact ou
 | Weekly dump (`pg_dump -Fc`) | S3 `uptimo-…-backups`, `dumps/`                                                     | 13 weeks, one per week (Mon 03:00 Mumbai) | any Postgres 16                    |
 | Files (photos, PDFs)        | S3 `uptimo-…-files`, versioned                                                      | every version                             | the same bucket                    |
 
-**What counts as the backup:** point-in-time recovery plus RDS snapshots (one is taken before the first migration and one before the Cosmos
-load). The weekly dump is best effort: RDS's master login may be refused a full dump (section 0, step 4). If so, it is recorded in the
+**What counts as the backup:** point-in-time recovery plus RDS snapshots (one is taken before the first migration, one before the Cosmos
+load, and `deploy.sh` takes `uptimo-pre-<tag>-<time>` before every deploy that migrates). The weekly dump is best effort: RDS's master login may be refused a full dump (section 0, step 4). If so, it is recorded in the
 drill log and the dump is not relied on. GitHub pauses scheduled workflows in a repository with no activity for 60 days; the drill log
 shows the date of the last dump.
 

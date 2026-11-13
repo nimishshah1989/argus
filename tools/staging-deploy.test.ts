@@ -60,13 +60,23 @@ beforeEach(() => {
   );
   stub(
     'aws',
-    'echo "IMAGE_TAG=${IMAGE_TAG:-} aws $*" >> "$UPTIMO_DIR/calls.log"\necho fake-password',
+    `echo "IMAGE_TAG=\${IMAGE_TAG:-} aws $*" >> "$UPTIMO_DIR/calls.log"
+if [ "$1 $2" = "rds create-db-snapshot" ] && [ -n "\${FAIL_SNAPSHOT:-}" ]; then exit 1; fi
+echo fake-password`,
   );
   stub(
     'docker',
     `echo "IMAGE_TAG=\${IMAGE_TAG:-} docker $*" >> "$UPTIMO_DIR/calls.log"
 if [ "$1" = "login" ]; then cat > /dev/null; fi
 if [ "$1 $2" = "compose up" ]; then echo "$IMAGE_TAG" > "$UPTIMO_DIR/lastup"; fi
+if [[ "$*" == *"migrate.ts --pending"* ]]; then
+  [ -z "\${BAD_STATE:-}" ] || exit 1
+  echo "pending: \${PENDING:-0}"
+fi
+if [[ "$*" == *pdf-smoke* ]]; then
+  [ -z "\${BAD_PDF:-}" ] || { echo "Chromium not found: set CHROMIUM_PATH"; exit 1; }
+  exit 0
+fi
 if [ "$1 $2" = "compose exec" ]; then [ "$(cat "$UPTIMO_DIR/lastup")" != "\${BAD_TAG:-}" ]; fi`,
   );
 });
@@ -105,6 +115,7 @@ describe('staging deploy', () => {
     const migrate = log.findIndex(
       (l) =>
         l.includes('run --rm --env-file') &&
+        !l.includes('--pending') &&
         l.includes('migrate.env') &&
         l.includes('registry.test/uptimo-server:bbb') &&
         l.includes('scripts/migrate.ts'),
@@ -125,6 +136,86 @@ describe('staging deploy', () => {
     expect(ups.at(-1)).toMatch(/^IMAGE_TAG=aaa /);
     expect(state('.current_tag')).toBe('aaa');
     expect(existsSync(join(dir, '.previous_tag'))).toBe(false);
+  });
+
+  it('takes an RDS snapshot before migrating when migrations are pending, and waits for it', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    const res = run(['deploy', 'bbb-1.2'], { PENDING: '2' });
+    expect(res.status).toBe(0);
+    const log = calls();
+    const create = log.findIndex((l) => l.includes('rds create-db-snapshot'));
+    const wait = log.findIndex((l) => l.includes('rds wait db-snapshot-available'));
+    const migrate = log.findIndex(
+      (l) => l.includes('scripts/migrate.ts') && !l.includes('--pending'),
+    );
+    const up = log.findIndex((l) => l.includes('compose up -d'));
+    expect(create).toBeGreaterThanOrEqual(0);
+    expect(wait).toBeGreaterThan(create);
+    expect(migrate).toBeGreaterThan(wait);
+    expect(up).toBeGreaterThan(migrate);
+    expect(log[create]).toMatch(/--db-instance-identifier uptimo-postgres /);
+    // Unique per attempt, and only letters, digits and hyphens (what RDS accepts).
+    const name = /--db-snapshot-identifier (\S+)/.exec(log[create])?.[1] ?? '';
+    expect(name).toMatch(/^uptimo-pre-bbb12-\d{14}$/);
+    expect(log[wait]).toContain(`--db-snapshot-identifier ${name}`);
+  });
+
+  it('takes no snapshot when nothing is waiting to be migrated', () => {
+    const res = run(['deploy', 'bbb'], { PENDING: '0' });
+    expect(res.status).toBe(0);
+    expect(calls().some((l) => l.includes('rds '))).toBe(false);
+  });
+
+  it('does not migrate, and leaves the running release alone, when the snapshot fails', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    const res = run(['deploy', 'bbb'], { PENDING: '1', FAIL_SNAPSHOT: '1' });
+    expect(res.status).not.toBe(0);
+    expect(res.stdout + res.stderr).toMatch(
+      /snapshot uptimo-pre-bbb-\d+ failed.*nothing migrated.*aaa still running/,
+    );
+    const log = calls();
+    expect(log.some((l) => l.includes('scripts/migrate.ts') && !l.includes('--pending'))).toBe(
+      false,
+    );
+    expect(log.some((l) => l.includes('compose up -d'))).toBe(false);
+    expect(state('.current_tag')).toBe('aaa');
+  });
+
+  it('treats an unreadable migration state as a reason to stop, not to skip the snapshot', () => {
+    const res = run(['deploy', 'bbb'], { BAD_STATE: '1' });
+    expect(res.status).not.toBe(0);
+    expect(res.stdout + res.stderr).toContain('could not read');
+    expect(calls().some((l) => l.includes('compose up -d'))).toBe(false);
+  });
+
+  it('after a migration, a failed health check says the database is already migrated', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    const res = run(['deploy', 'bbb'], { PENDING: '1', BAD_TAG: 'bbb' });
+    const out = res.stdout + res.stderr;
+    expect(res.status).not.toBe(0);
+    expect(out).toContain('rolled back to aaa');
+    expect(out).toMatch(/already migrated for bbb.*aaa is running on the NEW schema/);
+    expect(out).toContain('additive');
+    expect(out).toMatch(/restore snapshot uptimo-pre-bbb-\d+/);
+    expect(state('.current_tag')).toBe('aaa');
+  });
+
+  it('a release that cannot make a PDF is rolled back like one that is unhealthy', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    const res = run(['deploy', 'bbb'], { BAD_PDF: '1' });
+    const out = res.stdout + res.stderr;
+    expect(res.status).not.toBe(0);
+    expect(out).toContain('PDF check failed: Chromium not found');
+    expect(out).toContain('rolled back to aaa');
+    expect(out).not.toContain('already migrated');
+    expect(state('.current_tag')).toBe('aaa');
+  });
+
+  it('a first deploy that cannot make a PDF fails and records nothing', () => {
+    const res = run(['deploy', 'bbb'], { BAD_PDF: '1' });
+    expect(res.status).not.toBe(0);
+    expect(res.stdout + res.stderr).toContain('first deploy');
+    expect(existsSync(join(dir, '.current_tag'))).toBe(false);
   });
 
   it('rollback returns to the previous release without migrating', () => {

@@ -40,7 +40,7 @@ Notes on the steps:
   time nobody is testing. On the production cutover (ticket 28) it is a real window.
 - **Step 8** the first deploy may stop at "migration failed" if RDS refuses something the tests could not try (master-user roles, the job
   queue, `pgcrypto`). Nothing is replaced when that happens; paste the log and the orchestrator fixes it. The linux/arm64 image build
-  runs under emulation; the job limit is 30 minutes.
+  runs under emulation; the job limit is 45 minutes (a pre-migration database snapshot can take up to 20 of them).
 - **Step 11** proves the operator password (`ROUTER_DATABASE_URL`) sits in `migrate.env` only, a file the server never reads
   (`infra/docker-compose.yml` hands the server `app.env` alone).
 - **Step 9** if HTTPS has no answer after 10 minutes, see "If HTTPS does not come up" below.
@@ -121,7 +121,21 @@ Terraform binary: `.tools/bin/terraform` on Nimish's Mac (the sandbox builder us
    `site_url/api/v1/health` (expect `{"status":"ok"}`).
 
 The first deploy stops at "migration failed" until the RDS migration fix lands (a separate ticket); nothing is
-replaced when that happens. The linux/arm64 image build runs under QEMU; its time is unmeasured (job limit 30 minutes).
+replaced when that happens. The linux/arm64 image build runs under QEMU; its time is unmeasured (job limit 45 minutes).
+
+## What every deploy does for the database and for PDFs
+
+- **Snapshot first.** When `scripts/migrate.ts --pending` says migrations are waiting, `deploy.sh` takes an RDS snapshot named
+  `uptimo-pre-<tag>-<time>` and waits for it before migrating (up to 20 minutes). If the snapshot fails, nothing is migrated and the
+  running release is untouched. This needs the `server_snapshot` policy in `infra/terraform/backup.tf`: run `terraform apply` once
+  before the first deploy that migrates, or that deploy stops at "snapshot ... failed". The step-1 snapshot by hand still stands
+  for the very first deploy. Pre-release snapshots are never deleted automatically (the server may not delete them): remove old ones
+  by hand when a release has proved itself.
+- **A release that fails its checks** (the app does not answer, or `scripts/pdf-smoke.ts` cannot make a PDF in the running
+  container) is rolled back to the previous release. If that release had migrated the database, the log says so, names the snapshot,
+  and warns that the previous code now runs on the new schema (safe only for additive migrations).
+- **`docs/discovery` is not in the server image** (`.dockerignore`) and the server never reads it: only `pnpm seed:cosmos` does, from
+  the Mac in part 2.
 
 ## Test the alarms
 
