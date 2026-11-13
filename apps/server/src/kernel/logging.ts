@@ -2,7 +2,20 @@ import type { FastifyReply, FastifyRequest, FastifyServerOptions } from 'fastify
 
 export type LoggerOptions = Exclude<FastifyServerOptions['logger'], boolean | undefined>;
 
-const PERSONAL = ['name', 'phone', 'username', 'password', 'token', 'endpoint', 'text', 'problem'];
+const PERSONAL = [
+  'name',
+  'phone',
+  'username',
+  'password',
+  'token',
+  'endpoint',
+  'text',
+  'problem',
+  'prompt',
+  'input',
+  'output',
+  'query',
+];
 
 /** JSON logs with no client address, no bodies and no personal fields (names, phones, credentials). */
 export function loggerOptions(stream?: { write(line: string): void }): LoggerOptions {

@@ -1,0 +1,1 @@
+- AI foundation, part 2: the server can now call Claude (staging only, with a spend cap setting and no key needed to run on a fake), and logs never show prompts or answers (no user-visible change yet).
