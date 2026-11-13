@@ -101,6 +101,42 @@ describe('weekly dump (infra/instance/dump.sh)', () => {
   });
 });
 
+describe('restore check (infra/instance/restore-check.sh)', () => {
+  const check = (args: string[]) => {
+    stub(
+      'docker',
+      'echo "url=$MIGRATION_DATABASE_URL" >> "$UPTIMO_DIR/calls.log"; echo "$*" >> "$UPTIMO_DIR/calls.log"',
+    );
+    copyFileSync(
+      join(root, 'infra/instance/restore-check.sh'),
+      join(dir, 'instance/restore-check.sh'),
+    );
+    writeFileSync(join(dir, '.env'), 'AWS_REGION=ap-south-1\nECR_REGISTRY=registry.test\n');
+    writeFileSync(join(dir, '.current_tag'), 'abc123\n');
+    return spawnSync('bash', [join(dir, 'instance/restore-check.sh'), ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, UPTIMO_DIR: dir },
+    });
+  };
+
+  it('counts the live database with the running release', () => {
+    const res = check([]);
+    expect(res.status).toBe(0);
+    expect(readFileSync(join(dir, 'calls.log'), 'utf8')).toMatch(
+      /registry\.test\/uptimo-server:abc123/,
+    );
+  });
+
+  it('points the same login at a restored server by swapping only the host', () => {
+    const res = check(['uptimo-postgres-restore.abc.ap-south-1.rds.amazonaws.com']);
+    expect(res.status).toBe(0);
+    expect(log()).toContain(
+      'url=postgresql://fake-u:fake-pw@uptimo-postgres-restore.abc.ap-south-1.rds.amazonaws.com:5432/uptimo?sslmode=no-verify',
+    );
+    expect(res.stdout + res.stderr).not.toMatch(/fake-pw/);
+  });
+});
+
 describe('weekly dump workflow', () => {
   it('runs weekly and on request, from main only, and skips quietly until the bucket is configured', () => {
     const wf = parse(readFileSync(join(root, '.github/workflows/backup.yml'), 'utf8'));
