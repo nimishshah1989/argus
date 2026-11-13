@@ -25,12 +25,12 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 06  | Stop destroying history                           | M0        | done        | merged           |
 | 07  | History cannot be lost (cutover migration)        | M0        | done        | #169             |
 | 08  | Real plant in                                     | M0        | done        | #150             |
-| 09  | Real tickets in                                   | M0        | in progress | —                |
+| 09  | Real tickets in                                   | M0        | done        | #175             |
 | 10  | One design kit                                    | M0        | done        | #147             |
 | 11  | Page patterns: data, queue, detail, form          | M0        | done        | #162             |
 | 12  | Page patterns: wizard, settings, dashboard, board | M0        | done        | #171             |
 | 13  | Staging live                                      | M0        | done        | #146             |
-| 14  | Staging holds Cosmos, safe to run                 | M0        | todo        | —                |
+| 14  | Staging holds Cosmos, safe to run                 | M0        | in progress | —                |
 | 15  | Report a breakdown (floor)                        | M1        | todo        | —                |
 | 16  | Desk lists and ticket detail                      | M1        | todo        | —                |
 | 17  | Work the ticket                                   | M1        | todo        | —                |
