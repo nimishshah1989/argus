@@ -30,13 +30,13 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
   fan out per customer; the app role cannot read `tenant`. Same pattern as `tenants_with_sla_policies()`. No table.
 - **Retention rules (all counted from the row's own date, never from "now minus X" alone):**
 
-  | Job                 | Deletes / clears                                                                                     | Never touches                                                  |
-  | ------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-  | `session.purge`     | sessions dead (expired, or revoked) for over 30 days; dead since = earliest of expiry and revocation | a live session; one revoked or expired less than 30 days ago   |
-  | `idempotency.purge` | command keys created over 30 days ago                                                                | newer keys (replay protection inside the window)               |
-  | `import.purge`      | `payload` of rows of batches with status `done` and finished over 1 year ago, set to `{}`            | the row itself, its ticket link, batches not done, the tickets |
-  | `audit.purge` (CLI) | ordinary audit rows older than 3 years                                                               | `person.erase` and `tenant.offboard` rows (pending decision)   |
-  | `figures.drift`     | nothing: reports                                                                                     | open tickets (their figures move with the clock)               |
+  | Job                 | Deletes / clears                                                                                     | Never touches                                                                                              |
+  | ------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+  | `session.purge`     | sessions dead (expired, or revoked) for over 30 days; dead since = earliest of expiry and revocation | a live session; one revoked or expired less than 30 days ago                                               |
+  | `idempotency.purge` | command keys created over 30 days ago                                                                | newer keys (replay protection inside the window)                                                           |
+  | `import.purge`      | source content (`raw`, `canonicalJson`) of a row's payload, 1 year after its batch is `done`         | the row, its ticket link, format, both hashes and entry type (replay and undo read them); batches not done |
+  | `audit.purge` (CLI) | ordinary audit rows older than 3 years                                                               | `person.erase` and `tenant.offboard` rows (pending decision)                                               |
+  | `figures.drift`     | nothing: reports                                                                                     | open tickets (their figures move with the clock)                                                           |
 
 - **`figures.drift` compares closed tickets only**, recomputed at the ticket's own close time. An open ticket's cached
   figures were right as of its last change, so comparing it with "now" would flag every working ticket.
@@ -58,3 +58,20 @@ leaves them intact. `refresh-env.sh`: router URL in `migrate.env`, absent from `
 
 Running anything on AWS. Terraform `apply`. Alias file for pending people. Scheduling `audit.purge` (nothing is old
 enough until 2029). `notification.purge` (ticket 54, M2).
+
+## 5. As built (what building it found)
+
+- **`import_row.payload` is not disposable.** It holds the identity hash that replay protection compares and the entry
+  type that undo reads. Clearing it to `{}` would have made a re-import throw and an undo impossible. `import.purge` strips
+  only the source content and marks the row `purged`; a test re-imports and undoes after the purge.
+- **The seed failed for a non-superuser owner** (RDS's master login is one): row security rejected its inserts. Reproduced on
+  a plain Postgres 16 with a non-superuser owner, fixed by naming the tenant in the seed transaction, test added.
+- **`pg_dump` fails for that same login** ("query would be affected by row-level security policy"). The weekly dump script
+  stops instead of storing a partial file. Whether RDS's master login is exempt is **unverified**; RESTORE.md says what to do.
+- **`audit.purge` rule:** a cut-off of 3 years and one day before the clock; the database function still refuses anything
+  younger than 3 years by its own clock, so a wrong clock cannot purge young rows.
+- **Run end to end on a copy of the real files** (plain Postgres 16, non-superuser owner): seed, then import (275 tickets,
+  `unexplained: 0`), then every job (nothing to remove, `figures.drift` silent on imported tickets), then a second seed refused.
+- **Not validated:** Terraform (`terraform` was not available and could not be downloaded here), and everything that
+  needs AWS. The shell scripts and the workflow are tested against stubs only.
+- **Merging pending people does not exist** and is not built here (ticket 21's people screen; touching history needs a design).
