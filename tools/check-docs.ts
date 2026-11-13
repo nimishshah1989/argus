@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 /**
  * Docs guard (ticket 01): CI fails when an instruction file names a build process other than
- * Athena v3, or when a stack document names Drizzle (the repo uses raw SQL on pg, D02).
+ * pstack (D23), or when a stack document names Drizzle (the repo uses raw SQL on pg, D02).
  */
 
 export interface DocFile {
@@ -15,12 +15,6 @@ export interface DocFile {
 export const INSTRUCTION_FILES: readonly string[] = [
   'CLAUDE.md',
   'AGENTS.md',
-  '.claude/harness/CLAUDE.md',
-  'docs/BUILD-PROTOCOL.md',
-  'docs/WORKFLOW.md',
-  'docs/ORCHESTRATION.md',
-  'docs/SKILLS.md',
-  'docs/REVIEW-MECHANISMS.md',
   'docs/LEAN.md',
   'docs/TESTING.md',
   'docs/HANDOFF.md',
@@ -84,7 +78,7 @@ export function processErrors(files: DocFile[]): string[] {
     files,
     PROCESS_MARKERS.map((marker) => ({
       ...marker,
-      message: (label) => `names a process other than Athena v3 (${label})`,
+      message: (label) => `names a process other than pstack (${label})`,
     })),
     (path, line, message) => `${path}:${line}: ${message}`,
   );

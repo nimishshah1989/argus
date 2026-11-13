@@ -62,7 +62,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | PostgreSQL                                                                                                                                                                  | database                  | PostgreSQL License |
 | LocalStack (community) or s3rver                                                                                                                                            | local S3                  | Apache-2.0 / MIT   |
 | Ubuntu 24.04 LTS or Amazon Linux 2023                                                                                                                                       | server OS                 | free               |
-| Ponytail skill (adapted)                                                                                                                                                    | coding discipline         | MIT                |
+| Ponytail skills (core adapted; review and audit as published)                                                                                                               | coding discipline         | MIT                |
 | Anthropic `claude-for-manufacturing` plugin 1.0.0 (text adapted into our prompt files and tests; not installed; each derived file names the source and says it was changed) | AI prompts and test rules | Apache-2.0         |
 
 ## Outside services (not code)

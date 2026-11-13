@@ -2,7 +2,7 @@
 
 The goal post is `docs/plan/MILESTONES.md`: 7 milestones, 47 tickets, each with 2–3 goals and its blocking
 edges. Completeness is proven in `docs/plan/COVERAGE.md`. This file says how one orchestrator session turns
-that graph into merged, tested, previewed software under the Athena v3 harness.
+that graph into merged, tested, previewed software under pstack.
 
 ## 1. The graph
 
@@ -13,54 +13,40 @@ that graph into merged, tested, previewed software under the Athena v3 harness.
 - **Milestone gate** = all tickets of a milestone merged + the gate check in MILESTONES.md + Nimish's go.
   The next milestone's tickets become ready only after that gate.
 
-## 2. Roles (Athena v3 model table)
+## 2. Roles and models (pstack, D23)
 
-| Step                                       | Who                                                                      | Model               | Output                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------------ | ------------------- | -------------------------------------------------------------------- |
-| Orchestrator                               | the main session                                                         | Opus                | picks the frontier, dispatches, rules, merges, keeps the ledger      |
-| Define                                     | `slice-planner` agent                                                    | Opus                | `docs/slices/<issue>.md`: files, interfaces, fields, Given/When/Then |
-| Check the plan                             | `plan-reviewer` agent, fresh context                                     | Opus                | PASS or FAIL with numbered findings                                  |
-| Schema (only if the ticket changes tables) | `architect` + `schema-reviewer`                                          | Fable + Opus        | migration plan inside the D17 table budget                           |
-| Code                                       | implementer subagents (`subagent-driven-development`, `tdd`, `ponytail`) | Sonnet              | commits on the ticket branch, tests first                            |
-| Task review                                | fresh reviewer per task                                                  | Sonnet/Opus by risk | spec ✅ and quality ✅, or findings                                  |
-| PR review                                  | `code-reviewer` agent, fresh context                                     | Opus                | PASS or FAIL against the slice plan                                  |
-| Product check                              | Nimish                                                                   | —                   | tries the slice on staging; answers product questions only           |
+| Step                  | Who                                                            | Model                 |
+| --------------------- | -------------------------------------------------------------- | --------------------- |
+| Orchestrator          | the main session, running `/pstack:poteto-mode`                | Opus                  |
+| Understand and design | pstack `how` and `architect` inside the Feature playbook       | Opus                  |
+| Code                  | pstack code delegate, one per ticket                           | Sonnet                |
+| Hardest changes       | schema, migrations, tenancy, concurrency                       | Fable                 |
+| Verify                | the ticket's goal tests + a run on the real surface (browser)  | Sonnet                |
+| PR review             | `ponytail-review`; `/pstack:interrogate` for high-risk tickets | Opus (+ Sonnet panel) |
+| Milestone audit       | `ponytail-audit` on the whole repo                             | Opus                  |
+| Product check         | Nimish                                                         | —                     |
 
-## 3. The loop for one ticket: Define → Code → Test → Build
+The per-role model lines live in `.claude/rules/pstack-models.md`.
+
+## 3. The loop for one ticket
 
 ```
-DEFINE   issue (ready-for-agent) → slice-planner writes the plan → plan-reviewer PASS
-         (FAIL → planner revises; silence in the plan = stop and ask, never guess)
-CODE     ticket worktree + branch → for each task in the plan:
-           implementer (Sonnet) writes the failing test, then the smallest code (ponytail) → commit
-           task reviewer → fix rounds 1–3 resume the implementer, 4–5 a stronger model → breaker at 5
-TEST     stop hook runs the fast tests (~2 s) on every agent stop
-         the ticket's seam tests (API on real data, browser journey, engine vs answer key) all green
-BUILD    PR → code-reviewer PASS + CI green (lint, typecheck, touched-module API tests, isolation, smoke)
-         → the agent merges (Nimish, 13 Nov: agents merge on code-review PASS + green CI) → staging deploys → Nimish previews if user-visible → ledger, parity, HANDOFF updated
-EXIT     every goal of the ticket has a passing test on main. Otherwise the loop continues.
+UNDERSTAND  ticket goals (MILESTONES.md) + DATA-MAP.md → pstack `how` over the touched modules
+DESIGN      name the data shape first; reuse an existing table or module unless the PR says why it cannot
+CODE        ticket worktree + branch → goal tests written first (behaviour, not table names) → smallest code
+VERIFY      fast tests on every stop; the ticket's seam tests; drive the real surface for a user-visible change
+REVIEW      PR → CI green (lint, typecheck, boundaries, isolation, smoke) + ponytail-review with no blocking
+            finding; high-risk tickets (schema, auth, tenancy, data rewrite) also get /pstack:interrogate
+MERGE       the agent merges → staging deploys → Nimish previews if user-visible → ledger and HANDOFF updated
+EXIT        every goal of the ticket has a passing test on main
 ```
 
-### 3a. Lean rules (Nimish, 13 Nov — these override the loop above where they differ)
-
-- **Plan:** the slice plan names files, interfaces and the ticket's goal tests only. One plan review;
-  if it fails, the orchestrator rules on the findings and coding starts. No second round.
 - **Tests per ticket = the ticket's goals.** Each goal is one test (or a few) at its seam, written first.
-  No extra unit tests beyond what a goal or a bug fix needs.
-- **While coding:** fast tests plus the touched files' tests only. No per-task reviews; one implementer
-  works through the plan.
-- **Before push:** the touched module's API tests and the browser smoke, once.
-- **PR:** CI (lint, typecheck, touched-module API tests, tenant isolation, browser smoke) + one
-  `code-reviewer` pass. Low-risk tickets merge on that. The orchestrator's own independent review runs
-  only on high-risk tickets: schema or migration, auth or permissions, tenancy, deleting or rewriting data.
-- **Comprehensive testing once per milestone:** the full API suite, every browser journey and any soak run
-  at the milestone gate, before Nimish's check — not per ticket.
-- **Timebox:** a ticket should reach its PR in about an hour; past two, the orchestrator cuts scope or rules.
-
-Stop conditions (the only four from `subagent-driven-development`): an irreversible or destructive
-operation, a security-sensitive action, a side effect outside the ticket's branch that needs a person (a
-production deploy, an outside account), and a plan so broken every path is a guess. Everything else is a
-**ruling** the orchestrator records in the ledger (`Ruling: what — why — cost if wrong`) and keeps going.
+- **Comprehensive testing once per milestone:** the full API suite, every browser journey, and `ponytail-audit`.
+- **Timebox:** a ticket should reach its PR in about an hour; past two, the orchestrator cuts scope.
+- **Stop for a person only** before something irreversible (production deploy, data deletion, an outside
+  account) or a product call no experiment can settle. Everything else is a ruling the orchestrator records in
+  the ledger (`Ruling: what — why — cost if wrong`) and keeps going.
 
 ## 4. Parallel development
 

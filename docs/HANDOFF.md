@@ -5,7 +5,7 @@ Under 50 lines. Read first, rewrite at session end.
 ## RESUME HERE
 
 **State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and tickets 01 (#145) and 10 (design kit, D20; PR pending). The only build
-process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
+process is pstack (`CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D23, replacing Athena v3). The progress tracker
 in `docs/plan/MILESTONES.md` is the queue.
 
 - CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
