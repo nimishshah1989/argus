@@ -48,8 +48,8 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
 
 Per purge: deletes past the period · keeps rows inside it (including the day before the edge) · second run deletes
 nothing · another customer's rows untouched · history (tickets, events, segments, reports) untouched.
-`session.purge`: live session survives. `import.purge`: payload cleared, row and ticket link stay, failed or undone
-batches untouched, replay of the same file still skipped. `audit.purge`: erase and offboard proof rows survive,
+`session.purge`: live session survives. `import.purge`: payload cleared, row and ticket link stay, done, failed and undone
+batches are cleared after a year (not before, not while running), replay of the same file still skipped and undo still works. `audit.purge`: erase and offboard proof rows survive,
 a fresh purge note is written once. `figures.drift`: reports a planted difference, skips an override, skips `import`
 and `backfill`, skips open tickets, is silent on a ticket made through the real commands. Seed: refuses over tickets,
 leaves them intact. `refresh-env.sh`: router URL in `migrate.env`, absent from `app.env`.
