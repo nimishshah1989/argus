@@ -288,13 +288,13 @@ The PM calendar is one further pattern at M4b (FullCalendar standard plugins, SP
 
 "Cutover" = before ticket 1.12. No item here is made by this document. **Schema items do not each get a migration:** each lands inside its milestone's single schema migration (Part 8 rule), which carries the schema reviewer's approval marker and a backup reference.
 
-| Schema migration            | Items it contains                                                                                                                 |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Cutover                     | 21 (grants, foreign keys, the definer functions for import undo, erasure, offboarding and `audit.purge` from item 33), 24, 25, 31 |
-| M2 (with the new M2 tables) | 27 (drop `ticket_tag`), 30, 32                                                                                                    |
-| M4a                         | 28 and 29 (drop the unused columns; they stop being used before M2 in code)                                                       |
-| M4b                         | 34, 38                                                                                                                            |
-| M3                          | 37                                                                                                                                |
+| Schema migration            | Items it contains                                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cutover                     | 21 (grants, foreign keys, the definer functions for import undo, erasure, offboarding and `audit.purge` from item 33), 24, 25, 27 (drop `ticket_tag`, D17 and DATA-MAP Q12), 31 |
+| M2 (with the new M2 tables) | 30, 32                                                                                                                                                                          |
+| M4a                         | 28 and 29 (drop the unused columns; they stop being used before M2 in code)                                                                                                     |
+| M4b                         | 34, 38                                                                                                                                                                          |
+| M3                          | 37                                                                                                                                                                              |
 
 Code-only steps of schema items: 21's prerequisite slice, 27 stop writing (cutover), 28 and 29 stop reading and writing (before M2). Items 22, 23, 26, 33 (the jobs), 35 and 36 are tooling, test, job, importer and document work.
 
