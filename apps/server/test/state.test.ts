@@ -1,6 +1,14 @@
 import { hash } from '@node-rs/argon2';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
+import {
+  seedGolden,
+  GOLDEN_FILE,
+  GOLDEN_HOST,
+  GOLDEN_NOW,
+  GOLDEN_USER,
+} from './fixtures/state-golden.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
@@ -48,11 +56,11 @@ function post(url: string, token: string, payload: unknown): Promise<Res> {
   });
 }
 
-function get(url: string, token: string): Promise<Res> {
+function get(url: string, token: string, host = 'cosmos.localhost'): Promise<Res> {
   return app.inject({
     method: 'GET',
     url,
-    headers: { host: 'cosmos.localhost', authorization: `Bearer ${token}` },
+    headers: { host, authorization: `Bearer ${token}` },
   });
 }
 
@@ -127,6 +135,8 @@ beforeAll(async () => {
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 150)",
     [TENANT],
   );
+
+  await seedGolden(db.admin, passwordHash);
 
   app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
   ashaToken = await login('asha', 'cosmos.localhost');
@@ -208,5 +218,23 @@ describe('state needReport', () => {
     const state = await get('/api/v1/state', ashaToken);
     const refs = state.json().needReport.map((t: { id: string }) => t.id);
     expect(refs).toContain(leadTicket);
+  });
+});
+
+describe('state golden', () => {
+  it('answers /state byte for byte as before', async () => {
+    const token = await login(GOLDEN_USER, GOLDEN_HOST);
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(GOLDEN_NOW) });
+    let res: Res;
+    try {
+      res = await get('/api/v1/state', token, GOLDEN_HOST);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(res.statusCode).toBe(200);
+    if (process.env.WRITE_GOLDEN === '1') {
+      writeFileSync(GOLDEN_FILE, JSON.stringify(JSON.parse(res.body), null, 2) + '\n');
+    }
+    expect(res.body).toBe(JSON.stringify(JSON.parse(readFileSync(GOLDEN_FILE, 'utf8'))));
   });
 });
