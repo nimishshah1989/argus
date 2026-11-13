@@ -30,7 +30,7 @@ Before writing, read the task and the code it touches — callers, tests, fixtur
 | Nesting depth               | **4**                                                                | ESLint `max-depth`                                                                                         |
 | Parameters                  | **4**                                                                | ESLint `max-params`                                                                                        |
 | New runtime dependency      | **0 without an ADR**                                                 | `tools/check-deps.ts`; every dependency in `THIRD_PARTY.md`; licence allowlist                             |
-| PR changed lines            | **400 soft / 800 hard** (excluding lockfiles, migrations, generated) | `tools/check-pr-size.ts`; a `size:large` label or `LEAN_ALLOW_LARGE=1` with a written reason               |
+| PR changed lines            | **400 soft / 800 hard** (excluding lockfiles, migrations, generated) | `tools/check-pr-size.ts`; a `size:large` label, or a `Large PR: <reason>` line in the PR description       |
 | `shortcut:` comments        | Ledger at every gate                                                 | `tools/check-shortcuts.ts` → `docs/plan/DEBT.md`                                                           |
 | Duplicate logic             | 0                                                                    | Review: grep before writing; reuse the shared function                                                     |
 
@@ -54,16 +54,16 @@ Verdict is still `PASS` or `FAIL`; a lean finding is numbered like any other.
 
 ## 4. Automation
 
-| Check             | Script                                                                | Fails when                                                                                                            |
-| ----------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| File size         | `tools/check-size.ts`                                                 | A source file is over 400 lines without `lean-allow`                                                                  |
-| Dependency budget | `tools/check-deps.ts`                                                 | A runtime dependency is not in `THIRD_PARTY.md` or is outside the licence allowlist                                   |
-| PR size           | `tools/check-pr-size.ts`                                              | Over 800 changed lines without an explicit large-PR reason                                                            |
-| Parity ledger     | `tools/check-parity-update.ts`                                        | A PR changes `apps/` or `packages/` without updating `docs/spec/parity.yaml` (or the `no-parity` label with a reason) |
-| Shortcut ledger   | `tools/check-shortcuts.ts`                                            | A `shortcut:` comment is not in `docs/plan/DEBT.md` (reported, not silently dropped)                                  |
-| Migrations        | `tools/check-migrations.ts` + `tools/check-migration-immutability.ts` | A destructive statement is unapproved, or an existing migration file is modified/deleted/renamed                      |
-| Lint budgets      | ESLint                                                                | Function/complexity/depth/params limits                                                                               |
-| Duplicate/unused  | ESLint + `tsc`                                                        | Unused exports/variables, duplicate imports                                                                           |
+| Check             | Script                                                                | Fails when                                                                                                                                                     |
+| ----------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File size         | `tools/check-size.ts`                                                 | A source file is over 400 lines without `lean-allow`                                                                                                           |
+| Dependency budget | `tools/check-deps.ts`                                                 | A runtime dependency is not in `THIRD_PARTY.md` or is outside the licence allowlist                                                                            |
+| PR size           | `tools/check-pr-size.ts`                                              | Over 800 changed lines without an explicit large-PR reason                                                                                                     |
+| Parity ledger     | `tools/check-parity-update.ts`                                        | A PR changes `apps/` or `packages/` without updating `docs/spec/parity.yaml` (or the `no-parity` label, or a `No parity: <reason>` line in the PR description) |
+| Shortcut ledger   | `tools/check-shortcuts.ts`                                            | A `shortcut:` comment is not in `docs/plan/DEBT.md` (reported, not silently dropped)                                                                           |
+| Migrations        | `tools/check-migrations.ts` + `tools/check-migration-immutability.ts` | A destructive statement is unapproved, or an existing migration file is modified/deleted/renamed                                                               |
+| Lint budgets      | ESLint                                                                | Function/complexity/depth/params limits                                                                                                                        |
+| Duplicate/unused  | ESLint + `tsc`                                                        | Unused exports/variables, duplicate imports                                                                                                                    |
 
 The checks run on every PR and print a one-screen **size report**: total source lines, files over 250, largest files, runtime dependency count, new dependencies, shortcut count, net diff. The gate report includes it.
 
