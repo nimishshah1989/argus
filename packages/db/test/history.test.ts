@@ -65,14 +65,14 @@ afterAll(async () => {
 describe('history cannot be lost', () => {
   it('refuses the app role every history delete and event edit', async () => {
     const tables =
-      'ticket work_segment crew_member breakdown_report breakdown_report_person list_item login person machine machine_move file'.split(
+      'ticket work_segment crew_member breakdown_report breakdown_report_person list_item login person machine machine_move file platform_access import_batch'.split(
         ' ',
       );
     const statements: [string, string][] = [
       ['ticket_event', "UPDATE ticket_event SET text = 'tamper'"],
       ...['ticket_event', ...tables].map((t): [string, string] => [t, `DELETE FROM ${t}`]),
     ];
-    expect(statements).toHaveLength(13);
+    expect(statements).toHaveLength(15);
     await asApi(A, async (attempt) => {
       for (const [, sql] of statements) {
         expect((await attempt(sql)).error, sql).toMatch(/permission denied/);

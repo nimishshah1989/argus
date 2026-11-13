@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Client } from 'pg';
+import { Client } from 'pg';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startMigratedDb } from './migrated.js';
@@ -7,8 +7,8 @@ import { startMigratedDb } from './migrated.js';
 const A = '10000000-0000-0000-0000-000000000001';
 const B = '20000000-0000-0000-0000-000000000001';
 const FUNCTIONS = [
-  'import_undo(uuid,text)',
-  'erase_person(uuid,text,text)',
+  'import_undo(uuid,uuid,text)',
+  'erase_person(uuid,uuid,text,text)',
   'offboard_tenant(uuid,text,text,text)',
   'audit_purge(timestamptz,text)',
   'erase_json_values(jsonb,text)',
@@ -16,6 +16,7 @@ const FUNCTIONS = [
 
 let container: StartedPostgreSqlContainer;
 let db: Client;
+let url: string;
 
 /** Runs `run` as the router role in one committed transaction. */
 async function asRouter<T>(run: () => Promise<T>): Promise<T> {
@@ -31,10 +32,17 @@ async function asRouter<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-const erase = (person: string, ref: string, operator = 'agent-test') =>
+const erase = (tenantId: string, person: string, ref: string, operator = 'agent-test') =>
   asRouter(
     async () =>
-      (await db.query('SELECT erase_person($1, $2, $3) AS r', [person, ref, operator])).rows[0].r,
+      (
+        await db.query('SELECT erase_person($1, $2, $3, $4) AS r', [
+          tenantId,
+          person,
+          ref,
+          operator,
+        ])
+      ).rows[0].r,
   );
 
 async function tenant(id: string, slug: string, status = 'active'): Promise<void> {
@@ -105,7 +113,7 @@ async function count(table: string, tenantId: string): Promise<number> {
 }
 
 beforeAll(async () => {
-  ({ container, client: db } = await startMigratedDb());
+  ({ container, client: db, url } = await startMigratedDb());
 }, 120_000);
 
 afterAll(async () => {
@@ -128,17 +136,142 @@ describe('who may call the definer functions', () => {
     try {
       await db.query('SET LOCAL ROLE app_api');
       await expect(
-        db.query('SELECT import_undo($1, $2)', [randomUUID(), 'agent-test']),
+        db.query('SELECT import_undo($1, $2, $3)', [A, randomUUID(), 'agent-test']),
       ).rejects.toThrow(/permission denied for function/);
     } finally {
       await db.query('ROLLBACK');
     }
   });
 
+  it('the app login is not a member of the router role', async () => {
+    const member = await db.query(
+      "SELECT pg_has_role('app_api', 'app_router', 'USAGE') AS usage, pg_has_role('app_api', 'app_router', 'MEMBER') AS member",
+    );
+    expect(member.rows[0]).toEqual({ usage: false, member: false });
+  });
+
   it('import_undo refuses a blank operator', async () => {
     await expect(
-      asRouter(() => db.query('SELECT import_undo($1, $2)', [randomUUID(), ' '])),
+      asRouter(() => db.query('SELECT import_undo($1, $2, $3)', [A, randomUUID(), ' '])),
     ).rejects.toThrow(/operator is required/);
+  });
+});
+
+let imports = 0;
+
+/** A finished import batch of tenant `tenantId` with `n` imported tickets; its fingerprint names them. */
+async function importedBatch(tenantId: string, n = 1) {
+  imports += 1;
+  const batch = randomUUID();
+  const tickets: string[] = [];
+  for (let i = 0; i < n; i++) {
+    tickets.push(
+      await ticket(tenantId, `IM-${imports}-${i}`, 'imported', { raised_channel: 'import' }),
+    );
+  }
+  await db.query(
+    `INSERT INTO import_batch (id, tenant_id, source, status, finished_at, stats)
+     VALUES ($1, $2, 'bhavin', 'done', now() - interval '1 hour', $3)`,
+    [
+      batch,
+      tenantId,
+      JSON.stringify({ completion: { tickets: tickets.map((t) => ({ ticketId: t })) } }),
+    ],
+  );
+  for (const [i, t] of tickets.entries()) {
+    await db.query(
+      `INSERT INTO import_row (tenant_id, batch_id, row_number, status, ticket_id)
+       VALUES ($1, $2, $3, 'imported', $4)`,
+      [tenantId, batch, i + 1, t],
+    );
+  }
+  return { batch, tickets, first: tickets[0] ?? '' };
+}
+
+const undo = (tenantId: string, batch: string) =>
+  asRouter(
+    async () =>
+      (await db.query('SELECT import_undo($1, $2, $3) AS n', [tenantId, batch, 'agent-test']))
+        .rows[0].n as number,
+  );
+
+describe('import_undo', () => {
+  it('removes the batch tickets and marks the batch undone', async () => {
+    const { batch, tickets } = await importedBatch(A, 2);
+    expect(await undo(A, batch)).toBe(2);
+    expect((await db.query('SELECT 1 FROM ticket WHERE id = ANY($1)', [tickets])).rows).toEqual([]);
+    expect(
+      (await db.query('SELECT status FROM import_batch WHERE id = $1', [batch])).rows[0].status,
+    ).toBe('undone');
+  });
+
+  it("refuses another customer's batch", async () => {
+    const { batch, tickets } = await importedBatch(A);
+    await expect(undo(B, batch)).rejects.toThrow(/does not belong to this customer/);
+    expect(
+      (await db.query('SELECT 1 FROM ticket WHERE id = ANY($1)', [tickets])).rows,
+    ).toHaveLength(1);
+  });
+
+  it('waits for a writer on an imported ticket and then refuses, never deleting the new row', async () => {
+    const { batch, tickets } = await importedBatch(A);
+    const writer = new Client({ connectionString: url });
+    await writer.connect();
+    try {
+      await writer.query('BEGIN');
+      await writer.query(
+        `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, text)
+         VALUES ($1, $2, 1, 'note', 'late note')`,
+        [A, tickets[0]],
+      );
+      let settled = false;
+      const attempt = undo(A, batch).then(
+        () => 'undone',
+        (error: Error) => error.message,
+      );
+      void attempt.then(() => (settled = true));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(settled).toBe(false);
+      await writer.query('COMMIT');
+      expect(await attempt).toMatch(/worked on after the import finished/);
+    } finally {
+      await writer.end();
+    }
+    const note = await db.query(
+      "SELECT 1 FROM ticket_event WHERE ticket_id = $1 AND text = 'late note'",
+      [tickets[0]],
+    );
+    expect(note.rows).toHaveLength(1);
+    expect((await db.query('SELECT 1 FROM ticket WHERE id = $1', [tickets[0]])).rows).toHaveLength(
+      1,
+    );
+  });
+
+  it('refuses when an AI suggestion on a batch ticket was decided or made after the import', async () => {
+    const insert = (ticketId: string, extra: string, values: unknown[] = []) =>
+      db.query(
+        `INSERT INTO ai_suggestion (tenant_id, feature, subject_type, subject_id, ticket_id,
+           prompt_version, model_ref, status, outcome, output, decision, decided_at, created_at)
+         VALUES ($1, 'triage', 'ticket', $2::text, $2::uuid, 'v1', 'm', 'ready', 'ok', '{}', ${extra})`,
+        [A, ticketId, ...values],
+      );
+    const decided = await importedBatch(A);
+    await insert(
+      decided.first,
+      "'accepted', now() - interval '30 minutes', now() - interval '2 hours'",
+    );
+    await expect(undo(A, decided.batch)).rejects.toThrow(/AI suggestion/);
+
+    const fresh = await importedBatch(A);
+    await insert(fresh.first, 'NULL, NULL, now()');
+    await expect(undo(A, fresh.batch)).rejects.toThrow(/AI suggestion/);
+    expect((await db.query('SELECT 1 FROM ticket WHERE id = $1', [fresh.first])).rows).toHaveLength(
+      1,
+    );
+
+    const old = await importedBatch(A);
+    await insert(old.first, "NULL, NULL, now() - interval '2 hours'");
+    expect(await undo(A, old.batch)).toBe(1);
   });
 });
 
@@ -231,6 +364,11 @@ describe('erase_person', () => {
       [T, leaver],
     );
     await db.query(
+      `INSERT INTO audit_log (tenant_id, login_id, action, entity, ip) VALUES
+       ($1, $2, 'ticket.start', 'ticket', '203.0.113.7'), ($1, $3, 'ticket.start', 'ticket', '203.0.113.8')`,
+      [T, own, shared],
+    );
+    await db.query(
       `INSERT INTO command_idempotency (tenant_id, login_id, key, command, request_hash, result)
        VALUES ($1, $2, 'k1', 'raise', 'h', '{"message":"Testa Leaver raised it"}')`,
       [T, shared],
@@ -245,7 +383,7 @@ describe('erase_person', () => {
       [T, batch],
     );
 
-    const result = await erase(leaver, 'REQ-1');
+    const result = await erase(T, leaver, 'REQ-1');
 
     expect(await hits(T, pattern)).toEqual([]);
     const after = await db.query(
@@ -294,6 +432,7 @@ describe('erase_person', () => {
     expect(Object.keys(row).sort()).toEqual(
       [
         'audit_log',
+        'audit_log_ip',
         'audit_log_own',
         'breakdown_report',
         'command_idempotency',
@@ -319,15 +458,36 @@ describe('erase_person', () => {
       operator: 'agent-test',
     });
     expect(JSON.stringify(row)).not.toMatch(/Testa/);
+    expect(row.audit_log_ip).toBe(1);
+    const ips = await db.query(
+      "SELECT login_id, ip FROM audit_log WHERE tenant_id = $1 AND action = 'ticket.start' ORDER BY ip NULLS FIRST",
+      [T],
+    );
+    expect(ips.rows).toEqual([
+      { login_id: own, ip: null },
+      { login_id: shared, ip: '203.0.113.8' },
+    ]);
+  });
+
+  it('refuses a person of another customer', async () => {
+    const T = '40000000-0000-0000-0000-000000000005';
+    await tenant(T, 'wrong-tenant');
+    const leaver = await person(T, 'Testa Leaver');
+    await expect(erase(B, leaver, 'REQ-5')).rejects.toThrow(/does not belong to this customer/);
+    expect((await db.query('SELECT name FROM person WHERE id = $1', [leaver])).rows[0].name).toBe(
+      'Testa Leaver',
+    );
   });
 
   it('refuses without a reference or operator, or with the name in the reference', async () => {
     const T = '40000000-0000-0000-0000-000000000002';
     await tenant(T, 'refusals');
     const leaver = await person(T, 'Testa Leaver', { short: 'Testa' });
-    await expect(erase(leaver, ' ')).rejects.toThrow(/required/);
-    await expect(erase(leaver, 'REQ-2', ' ')).rejects.toThrow(/required/);
-    await expect(erase(leaver, 'REQ for Testa Leaver')).rejects.toThrow(/must not hold the name/);
+    await expect(erase(T, leaver, ' ')).rejects.toThrow(/required/);
+    await expect(erase(T, leaver, 'REQ-2', ' ')).rejects.toThrow(/required/);
+    await expect(erase(T, leaver, 'REQ for Testa Leaver')).rejects.toThrow(
+      /must not hold the name/,
+    );
     const row = await db.query('SELECT name, active FROM person WHERE id = $1', [leaver]);
     expect(row.rows[0]).toEqual({ name: 'Testa Leaver', active: true });
   });
@@ -338,7 +498,7 @@ describe('erase_person', () => {
     const leaver = await person(T, 'ટેસ્ટા');
     const first = await ticket(T, 'WR-0001', 'ટેસ્ટા (ફિટર) આવ્યા');
     const second = await ticket(T, 'WR-0002', 'ટેસ્ટાભાઈ આવ્યા');
-    await erase(leaver, 'REQ-3');
+    await erase(T, leaver, 'REQ-3');
     const rows = await db.query('SELECT id, problem FROM ticket WHERE tenant_id = $1', [T]);
     const problem = (id: string) => rows.rows.find((r) => r.id === id).problem;
     expect(problem(first)).toBe('Former staff (ફિટર) આવ્યા');
@@ -354,7 +514,7 @@ describe('erase_person', () => {
       'SELECT problem, updated_at::text AS u FROM ticket WHERE id = $1',
       [id],
     );
-    await erase(leaver, 'REQ-4');
+    await erase(T, leaver, 'REQ-4');
     expect(
       (await db.query('SELECT problem, updated_at::text AS u FROM ticket WHERE id = $1', [id]))
         .rows,

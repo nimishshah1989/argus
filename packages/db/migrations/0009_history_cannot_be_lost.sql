@@ -201,11 +201,12 @@ ALTER TABLE tenant
 -- 8. What the app role can no longer do, and what the router role's functions may touch.
 REVOKE UPDATE, DELETE ON ticket_event FROM app_user;
 REVOKE DELETE ON ticket, work_segment, crew_member, breakdown_report, breakdown_report_person,
-  list_item, login, person, machine, machine_move, file FROM app_user;
+  list_item, login, person, machine, machine_move, file, platform_access, import_batch FROM app_user;
 
 GRANT SELECT, UPDATE, DELETE ON person, login, session, push_subscription, ticket, ticket_event,
   work_segment, crew_member, breakdown_report, breakdown_report_person, file, import_batch, import_row,
   audit_log, command_idempotency TO app_router;
+GRANT SELECT ON ai_suggestion TO app_router;
 GRANT INSERT ON audit_log TO app_router;
 GRANT INSERT, DELETE ON tenant TO app_router;
 DO $$
@@ -214,7 +215,7 @@ BEGIN
   FOR t IN SELECT unnest(ARRAY[
     'person', 'login', 'session', 'push_subscription', 'ticket', 'ticket_event', 'work_segment',
     'crew_member', 'breakdown_report', 'breakdown_report_person', 'file', 'import_batch', 'import_row',
-    'audit_log', 'command_idempotency', 'sla_policy'
+    'audit_log', 'command_idempotency', 'sla_policy', 'ai_suggestion'
   ])
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS router_definer ON %I', t);  -- three survive a revert
@@ -227,7 +228,7 @@ END $$;
 -- records who ran it (p_operator) in the audit trail.
 
 -- Removes what one import batch created. Tickets come from the batch's own rows, never from the caller.
-CREATE FUNCTION import_undo(p_batch_id uuid, p_operator text) RETURNS integer
+CREATE FUNCTION import_undo(p_tenant_id uuid, p_batch_id uuid, p_operator text) RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   b record;
@@ -239,6 +240,9 @@ BEGIN
   SELECT tenant_id, status, stats, finished_at INTO b FROM import_batch
   WHERE id = p_batch_id AND source = 'bhavin' FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'import_undo: batch not found'; END IF;
+  IF b.tenant_id IS DISTINCT FROM p_tenant_id THEN
+    RAISE EXCEPTION 'import_undo: the batch does not belong to this customer';
+  END IF;
   IF b.status NOT IN ('done', 'failed') THEN
     RAISE EXCEPTION 'import_undo: batch status % is not undoable', b.status;
   END IF;
@@ -258,6 +262,11 @@ BEGIN
       AND raised_channel NOT IN ('import', 'backfill')) THEN
     RAISE EXCEPTION 'import_undo: a ticket of this batch was not raised by an import';
   END IF;
+  -- Hold every ticket of the batch until this transaction ends: a writer that adds an event, a crew
+  -- line, a work segment or an AI suggestion waits here (or is refused by the foreign key once the
+  -- ticket is gone), so nothing can arrive between the checks below and the deletes. Ordered by id so
+  -- two undos cannot deadlock.
+  PERFORM 1 FROM ticket WHERE tenant_id = b.tenant_id AND id = ANY(ids) ORDER BY id FOR UPDATE;
   -- Work done on an imported ticket after the import is real history; it is not undone.
   IF EXISTS (SELECT 1 FROM ticket_event WHERE tenant_id = b.tenant_id AND ticket_id = ANY(ids)
       AND (created_at > b.finished_at OR login_id IS NOT NULL))
@@ -266,6 +275,10 @@ BEGIN
     OR EXISTS (SELECT 1 FROM work_segment WHERE tenant_id = b.tenant_id AND ticket_id = ANY(ids)
       AND created_at > b.finished_at) THEN
     RAISE EXCEPTION 'import_undo: a ticket of this batch was worked on after the import finished';
+  END IF;
+  IF EXISTS (SELECT 1 FROM ai_suggestion WHERE tenant_id = b.tenant_id AND ticket_id = ANY(ids)
+      AND (decided_at IS NOT NULL OR created_at > b.finished_at)) THEN
+    RAISE EXCEPTION 'import_undo: an AI suggestion on a ticket of this batch was decided or made after the import finished';
   END IF;
   IF EXISTS (SELECT 1 FROM ticket WHERE tenant_id = b.tenant_id AND parent_id = ANY(ids)
       AND id <> ALL(ids)) THEN
@@ -317,7 +330,7 @@ END $$;
 
 -- Replaces a leaver's name in every place DATA-MAP §5 lists. Deletes no history row. Writes one audit
 -- row holding counts only. Returns the counts and the storage keys the caller must delete.
-CREATE FUNCTION erase_person(p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
+CREATE FUNCTION erase_person(p_tenant_id uuid, p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   p person%ROWTYPE;
@@ -333,6 +346,9 @@ BEGIN
   END IF;
   SELECT * INTO p FROM person WHERE id = p_person_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'erase_person: person not found'; END IF;
+  IF p.tenant_id IS DISTINCT FROM p_tenant_id THEN
+    RAISE EXCEPTION 'erase_person: the person does not belong to this customer';
+  END IF;
   logins := ARRAY(SELECT id FROM login WHERE tenant_id = p.tenant_id AND person_id = p.id);
 
   -- Search terms: name, short name, mobile number and own usernames. A term under three characters
@@ -416,6 +432,11 @@ BEGIN
     AND action <> 'person.erase';
   GET DIAGNOSTICS n = ROW_COUNT;
   counts := counts || jsonb_build_object('audit_log_own', n);
+  -- The address a leaver's logins signed in from is personal data too.
+  UPDATE audit_log SET ip = NULL, updated_at = now()
+  WHERE tenant_id = p.tenant_id AND login_id = ANY(logins) AND ip IS NOT NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  counts := counts || jsonb_build_object('audit_log_ip', n);
 
   IF pat IS NOT NULL THEN
     UPDATE breakdown_report SET
@@ -531,13 +552,13 @@ BEGIN
   RETURN n;
 END $$;
 
-ALTER FUNCTION import_undo(uuid, text) OWNER TO app_router;
+ALTER FUNCTION import_undo(uuid, uuid, text) OWNER TO app_router;
 ALTER FUNCTION erase_json_values(jsonb, text) OWNER TO app_router;
-ALTER FUNCTION erase_person(uuid, text, text) OWNER TO app_router;
+ALTER FUNCTION erase_person(uuid, uuid, text, text) OWNER TO app_router;
 ALTER FUNCTION offboard_tenant(uuid, text, text, text) OWNER TO app_router;
 ALTER FUNCTION audit_purge(timestamptz, text) OWNER TO app_router;
-REVOKE ALL ON FUNCTION import_undo(uuid, text), erase_json_values(jsonb, text),
-  erase_person(uuid, text, text), offboard_tenant(uuid, text, text, text),
+REVOKE ALL ON FUNCTION import_undo(uuid, uuid, text), erase_json_values(jsonb, text),
+  erase_person(uuid, uuid, text, text), offboard_tenant(uuid, text, text, text),
   audit_purge(timestamptz, text) FROM PUBLIC;
 
 -- 10. Row security is forced again on every table opened at the top (ticket_tag is gone).

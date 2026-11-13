@@ -120,12 +120,22 @@ async function prepareRoles(pool: Pool): Promise<void> {
       IF NOT pg_has_role(current_user, 'app_user', 'SET') THEN
         EXECUTE format('GRANT app_user TO %I', current_user);
       END IF;
-    END $$;
-    GRANT CREATE ON SCHEMA public TO app_router;`);
+    END $$;`);
 }
 
-async function revokeLentCreate(pool: Pool): Promise<void> {
-  await pool.query('REVOKE CREATE ON SCHEMA public FROM app_router');
+/**
+ * The router role is lent CREATE on public only inside each file's own transaction (it must own the
+ * functions it runs, schema-notes §8), so a rollback, a failure or a dead connection takes it back.
+ * A grant left by an older run is removed here, with a warning if that cannot be done.
+ */
+async function revokeLeftoverCreate(pool: Pool): Promise<void> {
+  try {
+    await pool.query('REVOKE CREATE ON SCHEMA public FROM app_router');
+  } catch (error) {
+    console.warn(
+      `warning: could not revoke CREATE on schema public from app_router: ${error instanceof Error ? error.message : error}`,
+    );
+  }
 }
 
 async function canGrantBypass(pool: Pool): Promise<boolean> {
@@ -159,6 +169,7 @@ async function applyFile(pool: Pool, file: string, ctx: RunContext): Promise<voi
   const { migrations, adoptThrough, bypass } = ctx;
   await pool.query('BEGIN');
   try {
+    await pool.query('GRANT CREATE ON SCHEMA public TO app_router');
     const mayAdopt = adoptThrough !== undefined && file <= adoptThrough;
     const execute = mayAdopt ? !(await alreadyInstalled(pool, file)) : true;
     if (execute) {
@@ -169,6 +180,7 @@ async function applyFile(pool: Pool, file: string, ctx: RunContext): Promise<voi
     await pool.query('INSERT INTO schema_migration (filename) VALUES ($1) ON CONFLICT DO NOTHING', [
       file,
     ]);
+    await pool.query('REVOKE CREATE ON SCHEMA public FROM app_router'); // a failure rolls the file back
     if (execute) console.log(`applied ${file}`);
     await pool.query('COMMIT');
   } catch (error) {
@@ -189,22 +201,17 @@ export async function applyAppMigrations(
 ): Promise<void> {
   await pool.query("SELECT pg_advisory_lock(hashtext('uptimo-migrations'))");
   await prepareRoles(pool);
-  try {
-    await secureAppApiRole(pool);
-    await pool.query(
-      'CREATE TABLE IF NOT EXISTS schema_migration (filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())',
-    );
-    const applied = new Set(
-      (await pool.query('SELECT filename FROM schema_migration')).rows.map((row) => row.filename),
-    );
-    const bypass = await canGrantBypass(pool);
-    for (const file of files)
-      if (!applied.has(file)) await applyFile(pool, file, { migrations, adoptThrough, bypass });
-  } catch (error) {
-    await revokeLentCreate(pool).catch(() => undefined); // keep the migration error
-    throw error;
-  }
-  await revokeLentCreate(pool);
+  await revokeLeftoverCreate(pool);
+  await secureAppApiRole(pool);
+  await pool.query(
+    'CREATE TABLE IF NOT EXISTS schema_migration (filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())',
+  );
+  const applied = new Set(
+    (await pool.query('SELECT filename FROM schema_migration')).rows.map((row) => row.filename),
+  );
+  const bypass = await canGrantBypass(pool);
+  for (const file of files)
+    if (!applied.has(file)) await applyFile(pool, file, { migrations, adoptThrough, bypass });
 }
 
 /** Tracked deployment migration: app SQL, then pg-boss, then optional app_api login. */

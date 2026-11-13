@@ -536,7 +536,7 @@ describe('real CLI import and undo (T13–T20)', () => {
   );
 
   it(
-    'T17 rejects owner and bypass-RLS roles before tenant resolution',
+    'T17 import refuses owner and bypass-RLS roles, undo refuses logins outside the router role, before tenant resolution',
     { timeout: 120_000 },
     async () => {
       const file = await jsonFile(makeSyntheticExport([]));

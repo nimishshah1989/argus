@@ -48,8 +48,8 @@ BEGIN
   END IF;
 END $$;
 
-DROP FUNCTION import_undo(uuid, text);
-DROP FUNCTION erase_person(uuid, text, text);
+DROP FUNCTION import_undo(uuid, uuid, text);
+DROP FUNCTION erase_person(uuid, uuid, text, text);
 DROP FUNCTION erase_json_values(jsonb, text);
 DROP FUNCTION offboard_tenant(uuid, text, text, text);
 DROP FUNCTION audit_purge(timestamptz, text);
@@ -62,14 +62,15 @@ BEGIN
   FOR t IN SELECT unnest(ARRAY[
     'person', 'push_subscription', 'ticket', 'ticket_event', 'work_segment', 'crew_member',
     'breakdown_report', 'breakdown_report_person', 'file', 'import_batch', 'import_row', 'audit_log',
-    'command_idempotency'
+    'command_idempotency', 'ai_suggestion'
   ])
   LOOP
     EXECUTE format('DROP POLICY router_definer ON %I', t);
   END LOOP;
 END $$;
 REVOKE ALL ON push_subscription, ticket, ticket_event, work_segment, crew_member, breakdown_report,
-  breakdown_report_person, file, import_batch, import_row, audit_log, command_idempotency FROM app_router;
+  breakdown_report_person, file, import_batch, import_row, audit_log, command_idempotency,
+  ai_suggestion FROM app_router;
 REVOKE UPDATE, DELETE ON person, login, session FROM app_router;
 REVOKE INSERT, DELETE ON tenant FROM app_router;
 ALTER TABLE tenant
@@ -78,7 +79,7 @@ ALTER TABLE tenant
 
 GRANT UPDATE, DELETE ON ticket_event TO app_user;
 GRANT DELETE ON ticket, work_segment, crew_member, breakdown_report, breakdown_report_person,
-  list_item, login, person, machine, machine_move, file TO app_user;
+  list_item, login, person, machine, machine_move, file, platform_access, import_batch TO app_user;
 
 DROP INDEX ticket_open_breakdown_unique, ticket_event_actor_idx, work_segment_person_idx,
   ticket_reporter_idx, ticket_reported_idx;
@@ -91,8 +92,11 @@ ALTER TABLE platform_access
   DROP CONSTRAINT platform_access_tenant_id_unique,
   DROP COLUMN approved_by_login_id,
   ALTER COLUMN expires_at DROP NOT NULL;
--- Put back each expiry 0009 changed, from the latest trace it left. The trace rows stay.
-UPDATE platform_access pa SET expires_at = (a.before ->> 'expires_at')::timestamptz, updated_at = now()
+-- Put back each expiry 0009 changed, from the latest trace it left, but never later than now: a revert
+-- must not re-open a grant that 0009 closed (an open-ended or far-future one stays closed). least() skips
+-- an empty old value, so an open-ended grant ends now. The trace rows stay.
+UPDATE platform_access pa SET expires_at = least((a.before ->> 'expires_at')::timestamptz, now()),
+  updated_at = now()
 FROM (
   SELECT DISTINCT ON (entity_id) tenant_id, entity_id, before FROM audit_log
   WHERE action = 'migration.0009.platform_access_expiry' ORDER BY entity_id, at DESC, created_at DESC

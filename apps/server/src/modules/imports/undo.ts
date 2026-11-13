@@ -114,6 +114,6 @@ export async function undoImport(
     const completion = parseCompletion((batch.stats as { completion?: unknown }).completion);
     assertCompletion(completion, await loadBatchSnapshot(client, tenantId, batchId, true));
     await client.query('RESET ROLE');
-    return { deleted: await callImportUndo(client, batchId, operator) };
+    return { deleted: await callImportUndo(client, tenantId, batchId, operator) };
   });
 }

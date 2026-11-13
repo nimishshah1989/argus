@@ -1,9 +1,9 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { Pool } from 'pg';
+import { Client, Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, withoutBypassGrant } from '../../../scripts/migrate.js';
 
@@ -37,7 +37,7 @@ const ARTIFACTS: Record<string, string> = {
     AND to_regclass('public.sla_timer') IS NOT NULL
     AND to_regprocedure('tenants_with_sla_policies()') IS NOT NULL AS installed`,
   '0008_ai_suggestion.sql': "SELECT to_regclass('public.ai_suggestion') IS NOT NULL AS installed",
-  '0009_history_cannot_be_lost.sql': `SELECT to_regprocedure('import_undo(uuid,text)') IS NOT NULL
+  '0009_history_cannot_be_lost.sql': `SELECT to_regprocedure('import_undo(uuid,uuid,text)') IS NOT NULL
     AND to_regclass('public.ticket_tag') IS NULL AS installed`,
 };
 
@@ -253,6 +253,67 @@ it('takes back the CREATE it lent to app_router when a step before the files fai
     expect(lent.rows[0].lent).toBe(false);
   });
 }, 120_000);
+
+it('takes back a CREATE left behind by an older run when it starts', async () => {
+  await withRunnerDatabases(async (createDatabase) => {
+    const { pool, url } = await createDatabase();
+    await runMigration(url);
+    await pool.query('GRANT CREATE ON SCHEMA public TO app_router');
+    await runMigration(url);
+    const lent = await pool.query(
+      "SELECT has_schema_privilege('app_router', 'public', 'CREATE') AS lent",
+    );
+    expect(lent.rows[0].lent).toBe(false);
+  });
+}, 120_000);
+
+it('leaves no CREATE lent when the run is killed in the middle of a file', async () => {
+  await withRunnerDatabases(async (createDatabase) => {
+    const { pool, url } = await createDatabase();
+    await applyThrough(pool, '0008_ai_suggestion.sql');
+    await recordThrough(pool, '0008_ai_suggestion.sql');
+    const holder = new Client({ connectionString: url });
+    await holder.connect();
+    const child = spawn('pnpm', ['tsx', 'scripts/migrate.ts'], {
+      cwd: ROOT,
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, MIGRATION_DATABASE_URL: url, MIGRATION_ADOPT_THROUGH: '' },
+    });
+    const exited = new Promise((resolve) => child.once('exit', resolve));
+    try {
+      await holder.query('BEGIN');
+      await holder.query('LOCK TABLE person IN ACCESS EXCLUSIVE MODE'); // 0009 waits on it
+      let waiting = 0;
+      for (let attempt = 0; attempt < 150 && waiting === 0; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        waiting = (
+          await pool.query(
+            `SELECT count(*)::int AS n FROM pg_stat_activity
+             WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+          )
+        ).rows[0].n;
+      }
+      expect(waiting).toBeGreaterThan(0);
+      process.kill(-(child.pid ?? 0), 'SIGKILL'); // no catch block and no cleanup can run
+      await exited;
+    } finally {
+      await holder.query('ROLLBACK');
+      await holder.end();
+    }
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const left = await pool.query(
+        "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND state <> 'idle'",
+      );
+      if (left.rows[0].n === 0) break;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    const lent = await pool.query(
+      "SELECT has_schema_privilege('app_router', 'public', 'CREATE') AS lent",
+    );
+    expect(lent.rows[0].lent).toBe(false);
+  });
+}, 180_000);
 
 it('refuses to ledger incomplete migration artifacts', async () => {
   await withRunnerDatabases(async (createDatabase) => {
@@ -554,6 +615,39 @@ it('goes up, down and up again', async () => {
     expect(await ledger(pool)).toEqual(FILES);
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
+  });
+}, 180_000);
+
+it('a revert does not re-open a support grant that 0009 closed', async () => {
+  await withRunnerDatabases(async (createDatabase) => {
+    const { pool, url } = await createDatabase();
+    await applyThrough(pool, '0008_ai_suggestion.sql');
+    await recordThrough(pool, '0008_ai_suggestion.sql');
+    await pool.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'grants', 'Grants')", [
+      TENANT,
+    ]);
+    await pool.query(
+      `INSERT INTO platform_access (tenant_id, platform_user, granted_by, expires_at, reason) VALUES
+       ($1, 'open-ended', 'nimish', NULL, 'r'), ($1, 'far-future', 'nimish', now() + interval '1 year', 'r')`,
+      [TENANT],
+    );
+    await runMigration(url);
+    const live =
+      'SELECT count(*)::int AS n FROM platform_access WHERE expires_at IS NULL OR expires_at > now()';
+    expect((await pool.query(live)).rows[0].n).toBe(0);
+
+    const grant = `SELECT has_table_privilege('app_user', 'platform_access', 'DELETE') AS a,
+      has_table_privilege('app_user', 'import_batch', 'DELETE') AS b`;
+    expect((await pool.query(grant)).rows[0]).toEqual({ a: false, b: false });
+
+    await pool.query(
+      readFileSync(
+        new URL('../migrations/down/0009_history_cannot_be_lost.down.sql', import.meta.url),
+        'utf8',
+      ),
+    );
+    expect((await pool.query(live)).rows[0].n).toBe(0);
+    expect((await pool.query(grant)).rows[0]).toEqual({ a: true, b: true });
   });
 }, 180_000);
 
