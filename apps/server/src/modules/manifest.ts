@@ -41,8 +41,9 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'breakdown_report_person',
     'command_idempotency',
     'ref_counter',
+    'import_undo',
   ],
-  imports: ['import_batch', 'import_row', 'import_undo'],
+  imports: ['import_batch', 'import_row'],
   ai: ['ai_suggestion'],
 };
 
@@ -67,15 +68,4 @@ export interface CallException {
   until: string;
 }
 
-export const EXCEPTIONS: readonly CallException[] = [
-  {
-    file: 'apps/server/src/modules/imports/bhavin.ts',
-    module: 'accountability',
-    until: 'ticket 09: importer rewrite',
-  },
-  {
-    file: 'apps/server/src/modules/imports/cli.ts',
-    module: 'accountability',
-    until: 'ticket 09: importer rewrite',
-  },
-];
+export const EXCEPTIONS: readonly CallException[] = [];

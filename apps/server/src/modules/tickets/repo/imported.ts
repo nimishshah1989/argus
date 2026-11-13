@@ -177,3 +177,19 @@ export async function importedChildren(
     : [];
   return { rows, reports, people };
 }
+
+/**
+ * SELECT import_undo($1, $2, $3): the router-only definer function of D24. It refuses another customer's
+ * batch, deletes the batch's tickets and everything under them, marks the batch undone and audits it.
+ */
+export async function removeImported(
+  tx: Db,
+  input: { tenantId: string; batchId: string; operator: string },
+): Promise<number> {
+  const result = await tx.query('SELECT import_undo($1, $2, $3) AS deleted', [
+    input.tenantId,
+    input.batchId,
+    input.operator,
+  ]);
+  return result.rows[0].deleted as number;
+}
