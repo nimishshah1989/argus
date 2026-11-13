@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EXCEPTIONS } from '../apps/server/src/modules/manifest.js';
+import { EXCEPTIONS, OWNERS } from '../apps/server/src/modules/manifest.js';
 import {
   LEGACY,
   boundaryErrors,
@@ -205,5 +205,19 @@ describe('boundaries check', () => {
 
   it("passes the server tree's imports", () => {
     expect(importErrors(process.cwd())).toEqual([]);
+  });
+
+  it('gives every current table exactly one owner', () => {
+    const tables = [
+      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment ticket_tag'.split(
+        ' ',
+      ),
+    ];
+    expect(tables).toHaveLength(29);
+    for (const table of tables)
+      expect(
+        Object.keys(OWNERS).filter((m) => OWNERS[m]?.includes(table)),
+        table,
+      ).toHaveLength(1);
   });
 });
