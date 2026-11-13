@@ -25,6 +25,7 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
+import { downNow } from '../components/liveDowntime.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -122,6 +123,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
   const actor = me ? actorFrom(me) : null;
   const crew = crewFrom(people);
   const canEdit = canEditTicket(actor);
+  const liveDown = downNow(ticket, new Date().toISOString());
   return (
     <>
       <header className="mt-2">
@@ -154,7 +156,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
       </div>
       <Facts ticket={ticket} config={config} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
-      <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
+      <Figures figures={ticket.figures} kind={ticket.kind} names={names} liveDownMin={liveDown} />
       <Timeline
         events={events}
         names={names}

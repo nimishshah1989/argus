@@ -85,7 +85,7 @@ Every transition is a command handled by `transition(ticket, events, command, ct
 | `lateReport` | closed (`no_report`) | closed (`report`) | technician and above | report fields valid | event `report`; `breakdown_report` |
 | `recordPastBreakdown` | — | closed (`report`) | technician and above | the old "report only": machine, date, shift, downtime and the form fields; no live timeline | a ticket with `raised_channel=backfill`, events `down` and `close` at the given times, figures taken from the form as overrides |
 | `cancel` | open, working, waiting | cancelled | technician and above for any ticket; an operator only for their own ticket with `started_at` null | reason required | event `cancel` with the previous status; segments close |
-| `restore` | cancelled (within 7 days) | the previous status | admin | reason required | event `restore`; a restored working ticket reopens a segment for the previous lead from the restore time; a restored waiting ticket resumes its pause from the restore time; the cancelled gap counts in nothing |
+| `restore` | cancelled (within 7 days) | the previous status | admin | reason required | event `restore`; a restored working ticket reopens a segment for the previous lead from the restore time; a restored waiting ticket is waiting again; the cancelled gap counts in the waiting, handover and downtime figures (§5) and in no hands-on segment |
 | `correct` | any active, or closed within 7 days | same | admin | reason required; only changed fields; may change reported, started, closed times, lead, closed by, problem, machine, kind; may set hands-on and waiting minutes directly; the arithmetic check warns as today | event `edit` with old and new values; directly set minutes become overrides; figures recomputed |
 | `acknowledge` (M2) | open, working | same | assignee or any on-duty technician |  | event `acknowledge`; the ack timer stops (a `start` or `pickup` also stops it) |
 | `escalate` (M2) | any active | same | the job runner, on a timer |  | event `escalate`; `escalation_event`; notices |
@@ -187,7 +187,7 @@ New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026
 
 **Finished stretches only:** hands-on, waiting, handover wait and `down_acc` hold stretches that have ended. A stretch still open (working, paused, transferred, machine down) is shown live from its start time and is added to the figure when it ends or at the close, as `worker.js` does.
 
-**Where we still differ from his app (waiting for Nimish):** a cancelled ticket stops its stretches and a restore reopens them, so the cancelled gap counts in nothing (see Time rules). His app leaves every stretch running through a cancel, so a restored ticket there counts the cancelled hours (BD-0077: 366 minutes of downtime against our 115). The parity test skips the stretch figures of tickets that were ever cancelled for this reason.
+**Cancel and restore follow his app (Nimish's ruling that new tickets follow `worker.js`; the orchestrator is putting the question itself to him):** a cancel and a restore touch no waiting, handover or downtime stretch, so the cancelled gap counts in those figures (BD-0077: 366 minutes of downtime). This is questionable, because a ticket cancelled for a day keeps counting. Hands-on is still the lead's finished segments, and a cancel ends the open one (DOMAIN §2).
 
 | Figure | Definition | Bhavin's field |
 | --- | --- | --- |
@@ -209,7 +209,7 @@ New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026
 - No command's time may precede the ticket's latest event. Starts may be back-dated to the report time (or the transfer time for a picked-up ticket); closes to the latest event (segment start, join, running-again, whichever is last). A time in the future is clamped to now. The 5-minute step is a client convenience.
 - Expected-back dates are stored as 18:00 local on the chosen day, as today, until the UI offers a time.
 - Admin corrections may move reported, started and closed times, change lead, closed-by, problem, machine and kind, and set hands-on and waiting minutes directly; the arithmetic check warns when hands-on exceeds closed minus started minus waiting minus handover wait, or when the close precedes the start plus waiting. Old and new values live in the `edit` event.
-- Restore reopens no past stretches: a restored working ticket starts a new segment for the previous lead at the restore time; a restored waiting ticket's pause continues from the restore time; the cancelled gap counts in nothing.
+- Restore reopens no past stretches: a restored working ticket starts a new segment for the previous lead at the restore time; a restored waiting ticket is waiting again; the cancelled gap counts in the waiting, handover and downtime figures (§5) and in no hands-on segment.
 - Time zone is the tenant's (Asia/Kolkata for Cosmos); shift 2 (18:29 to 05:00) crosses midnight and its production date is the start date; the one-minute overlap between shift 1's end (18:30) and shift 2's start (18:29) resolves to the later shift.
 - Durations display as `n min`, `h h mm min`, `d d h h`, exactly as today.
 

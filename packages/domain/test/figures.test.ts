@@ -152,39 +152,33 @@ describe('figures', () => {
     expect(result.overridden).not.toContain('waitMin');
   });
 
-  it('stops the downtime clock at cancel', () => {
-    const result = figures({
-      ...base,
-      reportedAt: t('2026-01-01T09:00:00Z'),
-      events: [event('cancel', '2026-01-01T09:30:00Z')],
-      now: t('2026-01-01T14:00:00Z'),
-    });
-    // 09:00 -> 09:30, then the cancelled gap counts in nothing.
-    expect(result.downAccMin).toBe(30);
-  });
-
-  it('resumes the downtime clock at restore when it was down at cancel', () => {
+  it('lets the downtime clock run through a cancel and a restore, as his worker does', () => {
+    const closedAt = t('2026-01-01T14:00:00Z');
     const result = figures({
       ...base,
       reportedAt: t('2026-01-01T09:00:00Z'),
       events: [event('cancel', '2026-01-01T09:30:00Z'), event('restore', '2026-01-01T10:00:00Z')],
-      now: t('2026-01-01T11:00:00Z'),
-      closedAt: t('2026-01-01T11:00:00Z'),
+      now: closedAt,
+      closedAt,
     });
-    // 09:00 -> 09:30 (30) + 10:00 -> 11:00 (60); the cancelled gap counts in nothing.
-    expect(result.downtimeMin).toBe(90);
+    // 09:00 -> 14:00: the cancelled half hour counts, his cancel touches no stretch
+    expect(result.downtimeMin).toBe(300);
   });
 
-  it('stops the handover wait at cancel', () => {
+  it('lets a handover wait run through a cancel', () => {
     const result = figures({
       ...base,
-      events: [event('transfer', '2026-01-01T11:00:00Z'), event('cancel', '2026-01-01T11:30:00Z')],
-      now: t('2026-01-01T14:00:00Z'),
+      events: [
+        event('transfer', '2026-01-01T11:00:00Z'),
+        event('cancel', '2026-01-01T11:30:00Z'),
+        event('restore', '2026-01-01T12:00:00Z'),
+        event('pickup', '2026-01-01T12:15:00Z'),
+      ],
     });
-    expect(result.handoverWaitMin).toBe(30);
+    expect(result.handoverWaitMin).toBe(75);
   });
 
-  it('reopens the wait clock at restore so waits sum across a cancel', () => {
+  it('lets a wait run through a cancel and a restore', () => {
     const result = figures({
       ...base,
       events: [
@@ -195,7 +189,6 @@ describe('figures', () => {
       ],
       now: t('2026-01-01T10:40:00Z'),
     });
-    // 10:00 -> 10:10 (10) + 10:10 -> 10:40 (30).
     expect(result.waitMin).toBe(40);
   });
 });

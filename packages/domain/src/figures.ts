@@ -15,7 +15,6 @@ function downStretches(input: FigureInput): { done: number; openSince: Date | nu
   let acc = 0;
   let downStart = input.kindUpgradedAt ?? input.reportedAt;
   let isDown = true;
-  let downAtCancel = false;
   const closeDown = (at: Date) => {
     if (!isDown) return;
     acc += wholeMin(downStart, at);
@@ -29,13 +28,6 @@ function downStretches(input: FigureInput): { done: number; openSince: Date | nu
     if (event.type === 'running') closeDown(event.at);
     else if (event.type === 'stopped' && !isDown) openDown(event.at);
     else if (event.type === 'upgrade_kind') openDown(event.at);
-    else if (event.type === 'cancel') {
-      downAtCancel = isDown;
-      closeDown(event.at);
-    } else if (event.type === 'restore' && downAtCancel) {
-      openDown(event.at);
-      downAtCancel = false;
-    }
   }
   return { done: acc, openSince: isDown ? downStart : null };
 }
@@ -75,8 +67,6 @@ function waitingMinutes(events: TicketEvent[]) {
   let vendorMin = 0;
   let pauseAt: Date | null = null;
   let pauseIsVendor = false;
-  let waitingAtCancel = false;
-  let vendorAtCancel = false;
   const close = (at: Date) => {
     if (!pauseAt) return;
     const minutes = wholeMin(pauseAt, at);
@@ -90,14 +80,6 @@ function waitingMinutes(events: TicketEvent[]) {
       pauseIsVendor = Boolean(event.isVendor);
     } else if (event.type === 'resume' || event.type === 'close') {
       close(event.at);
-    } else if (event.type === 'cancel') {
-      waitingAtCancel = pauseAt !== null;
-      vendorAtCancel = pauseIsVendor;
-      close(event.at);
-    } else if (event.type === 'restore' && waitingAtCancel) {
-      pauseAt = event.at;
-      pauseIsVendor = vendorAtCancel;
-      waitingAtCancel = false;
     }
   }
   return { waitMin, vendorMin };
@@ -106,7 +88,6 @@ function waitingMinutes(events: TicketEvent[]) {
 function handoverAndFollow(events: TicketEvent[], closedAt?: Date) {
   let handoverWaitMin = 0;
   let handoverAt: Date | null = null;
-  let handoverAtCancel = false;
   const closeHandover = (at: Date) => {
     if (!handoverAt) return;
     handoverWaitMin += wholeMin(handoverAt, at);
@@ -115,14 +96,6 @@ function handoverAndFollow(events: TicketEvent[], closedAt?: Date) {
   for (const event of events) {
     if (event.type === 'transfer') handoverAt = event.at;
     if (event.type === 'pickup' || event.type === 'close') closeHandover(event.at);
-    if (event.type === 'cancel') {
-      handoverAtCancel = handoverAt !== null;
-      closeHandover(event.at);
-    }
-    if (event.type === 'restore' && handoverAtCancel) {
-      handoverAt = event.at;
-      handoverAtCancel = false;
-    }
   }
   const lastRunningAt = runningSince(events);
   const followMin = closedAt && lastRunningAt ? wholeMin(lastRunningAt, closedAt) : null;

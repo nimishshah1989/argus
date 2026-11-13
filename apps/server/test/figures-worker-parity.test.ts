@@ -69,18 +69,13 @@ const FIGURES = {
   downtimeMin: 'downtimeMin',
 } as const;
 
-const STRETCHES = new Set(['waitMin', 'vendorMin', 'handoverWaitMin', 'downAcc', 'downtimeMin']);
-
 describe('a new ticket gets the minutes his worker.js gives', () => {
   it('matches the repair, waiting, vendor and downtime minutes of every ticket in his export', () => {
     const wrong: string[] = [];
     let compared = 0;
     for (const ticket of exported.tickets) {
-      const cancelled = ticket.events.some((e) => e.type === 'cancel');
       const got = figures(asFigureInput(ticket)) as unknown as Record<string, number | null>;
       for (const check of checkTicketFigures(ticket)) {
-        // His cancel leaves every stretch as it was; ours stops them and a restore reopens them (DOMAIN section 2).
-        if (cancelled && STRETCHES.has(check.figure)) continue;
         compared += 1;
         const key = FIGURES[check.figure as keyof typeof FIGURES];
         const his = check.oracle ?? (key === 'repairMin' ? 0 : null); // never started: his null, our 0
