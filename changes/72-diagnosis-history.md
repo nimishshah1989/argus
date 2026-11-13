@@ -1,1 +1,2 @@
 - AI diagnosis, part 1: the server can gather a stopped machine's past jobs and those of its same-model machines, and the rules that check an AI answer against them are in place; nothing is shown yet.
+- The deploy names the environment itself (staging or production), so a production server can never run the AI without its production checks.
