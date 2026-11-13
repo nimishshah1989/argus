@@ -8,62 +8,119 @@ One PR, body contains `Closes #78`. No table, no migration, no new npm dependenc
 The Cosmos tenant opens with the plant's real 192 machines, its 26 logins and both shift windows, and an event
 at 18:29 counts in shift 2.
 
-## 2. Decisions (technical; recorded, not reopened)
+## 2. Decisions
 
-1. **Machines.** `registers-to-json.py` (openpyxl, run by hand, never in CI) reads the five sheets of the 11 Nov xlsx
-   (header row = the row whose first cell starts `Sr.`; id column `Machine ID`, or `DG ID` on `DG Sets`) and
-   writes `{sheetCounts, machines: MachineSeed[]}`. Segment comes from the sheet (CNC sheet: `Robot` when
-   Category is `Robot`, else `CNC`; `Conventional`, `Process`, `DG`, `Utility`); the CNC `Segment` column is
-   ignored. Map: Category, Make, Model, `Serial No`, Controller, `Ctrl Model`, `Ctrl Sr No`, Year (int), `Date of
-Purchase` (`YYYY-MM-DD`), `Power(KVA)` → `powerKw` (as today), Location, Cell, `Asset Code`, `Capacity(KVA)` →
-   `capacityKva`. Trimmed; blank, `None` or non-numeric → `null`. Length, Width, Age, Efficiency, Conveyor are
-   dropped (as today). It fails loudly on a missing header, a duplicate id or a missing sheet. Run it, then
-   `pnpm prettier --write` the output.
-2. **File locations (deviation, please confirm).** `tools/check-pr-size.ts` caps a PR at 800 changed code lines and
-   skips only `fixtures/` and `generated/` paths. The pretty-printed machines JSON is about 3,500 lines, so it
-   lives at `scripts/seed/generated/cosmos-machines.json`. The people fixture lives at
-   `scripts/seed/fixtures/cosmos-people.fixture.json`. `cosmos-shifts.json` stays at `scripts/seed/`.
-3. **Usernames are PII.** All 26 real usernames are the person's first name. So the fixture uses `person01` to
-   `person26` with names `Person 01` to `Person 26`, never a real username. Entries 01–14 are `maint` (01–07
-   `shift: "1"`, 08–14 `shift: "2"`), 15–25 are `report`, and 26 is `admin`. Every entry has
-   `phone: "+9199999000NN"` (NN = 01..26), `title: ""`, `active: true`, `shared: false`, `locked: false`,
-   `devices: 0`, and `created`/`lastLogin`/`seen` set to `"2026-01-01T00:00:00.000Z"`.
-4. **Hashing.** The repo root cannot resolve `@node-rs/argon2` (it is only in `apps/server/node_modules`).
-   Adding it to the root would be a new dependency, so `auth.ts` exports `hashPassword`, and
-   `seed-cosmos.ts` imports it from `../apps/server/src/auth.js` (precedent: `tools/import-bhavin.ts`). One
-   hash per seed run is shared by all logins: the password is the same for all of them and must be changed at
-   first sign-in.
-5. **Password source.** If `peoplePath` is given, `initialPassword` is required; without it the seed throws before
-   any write. Without `peoplePath` the seed uses the fixture and `FIXTURE_PASSWORD`. The fixture is for
-   dev and CI only: staging always sets `SEED_PEOPLE_FILE` and `SEED_INITIAL_PASSWORD`.
-6. **People file validation (trust boundary).** Each entry must have a non-empty `username`, a non-empty `name` and
-   a `role` in the role map. Otherwise the seed throws `seed: people entry <index> is invalid (<field>)`.
-   Messages never contain a name, username or phone. `title: ""` → `null`; a missing `phone` or `shift` → `null`.
-7. **Shift at 18:29.** `shiftAt` orders matches by `starts_at DESC` (DOMAIN line 207: the overlap goes to the later
-   shift). Between 05:00 and 08:00 nothing matches, and the existing fallback `'1'` stays. `currentShift`
-   becomes `shiftAt(client, tenantId, new Date())`, so the clock is the app's, not `now()` in the database.
+1. **Machines.** `apps/server/src/seed/registers-to-json.py` is run by hand, never in CI. It is not in any package
+   manifest, so it needs no ADR. It uses openpyxl 3.1.5 (`python3 -m pip install openpyxl==3.1.5`) and runs as
+   `python3 -I apps/server/src/seed/registers-to-json.py <xlsx> apps/server/src/seed/generated/cosmos-machines.json`.
+   - **Input.** It reads the sheets `CNC Machine Master`, `Conventional Machines`, `Process Machines`, `DG Sets`
+     and `Utilities`. The header row is the first row whose first cell starts with `Sr.`. The id column is
+     `Machine ID`, or `DG ID` on `DG Sets`.
+   - **Output.** It writes `{sheetCounts, machines: MachineSeed[]}`.
+   - **Segment** comes from the sheet:
+     - on the CNC sheet, `Robot` when Category is `Robot`, else `CNC`;
+     - the other sheets give `Conventional`, `Process`, `DG` and `Utility`;
+     - the CNC sheet's own `Segment` column is ignored.
+   - **Field map.** Category, Make, Model, `Serial No`, Controller, `Ctrl Model`, `Ctrl Sr No`, Year (int),
+     `Date of Purchase` (`YYYY-MM-DD`), `Power(KVA)` → `powerKw` (as today), Location, Cell, `Asset Code`,
+     `Capacity(KVA)` → `capacityKva`.
+   - **Values.** Text is trimmed. A blank, `None` or non-numeric value becomes `null`. Length, Width, Age,
+     Efficiency and Conveyor are dropped, as today.
+   - **Failures.** It exits non-zero on a missing sheet, a missing header or a duplicate id.
+   - **After running it,** run `pnpm prettier --write` on the output. Because the script is hand-run, its failure
+     paths are not tested.
+2. **Paths.** `tools/check-pr-size.ts` skips `generated/` and `fixtures/`, so the large files live at:
+   - `apps/server/src/seed/generated/cosmos-machines.json`;
+   - `apps/server/src/seed/fixtures/cosmos-people.fixture.json`;
+   - `apps/server/src/seed/cosmos-shifts.json`.
+
+   `cosmos.ts` resolves all three with `fileURLToPath(new URL('./<relative path>', import.meta.url))`
+   (for example `new URL('./generated/cosmos-machines.json', import.meta.url)`) and exports them as
+   `SEED_FILES = { machines, shifts, peopleFixture }`. Tests import `SEED_FILES`.
+
+3. **People fixture.** It has the same shape as `users.json`. The real usernames are first names, so the fixture
+   uses `person01` to `person26` and the names `Person 01` to `Person 26`.
+   - Entries 01–14 are `maint`: 01–07 have `shift: "1"`, 08–14 have `shift: "2"`.
+   - Entries 15–25 are `report`, and 26 is `admin`.
+   - Every entry has `phone: "+9199999000NN"` (NN = its number), `title: ""`, `active: true`, `shared: false`,
+     `locked: false` and `devices: 0`.
+   - `created`, `lastLogin` and `seen` are all `"2026-01-01T00:00:00.000Z"`.
+4. **Where the seed lives (orchestrator ruling).** Nothing under `packages/` or `scripts/` may import from
+   `apps/server`, so the Cosmos seed moves into `apps/server/src/seed/` (`git mv` for the two `.ts` files, so
+   history follows). `apps/server` already depends on `@node-rs/argon2` and `pg`, so no dependency is added.
+   - `cosmos.ts` imports `hashPassword` from `../auth.js` (a re-export shim once ticket 02 lands).
+   - The seed hashes the password once, before `BEGIN`, and all logins use that hash.
+   - `package.json` `seed:cosmos` becomes `tsx apps/server/src/seed/cosmos.ts`. `main` keeps resolving the
+     `docs/discovery` paths and the report path from `process.cwd()`, which is the repo root under pnpm.
+   - **The server build does not bundle the seed.** `scripts/build-server.ts` bundles from the single entry
+     `apps/server/src/index.ts`, and nothing in the server imports `seed/`, so esbuild never reaches it (checked:
+     no file in `apps/server/src` mentions the seed today). `scripts/build-server.ts` is not changed. The gate
+     (§6) proves it after the build.
+5. **Order inside `seedCosmos`.**
+   1. Check the password rule.
+   2. Load and validate the files, and run `buildSeed`.
+   3. Hash the password.
+   4. Connect, then `BEGIN`, then delete the tenant and insert everything.
+
+   So any failure in steps 1 to 3 leaves the existing tenant untouched.
+
+6. **Password source.** If `peoplePath` is given, `initialPassword` is required. Without `peoplePath`, the seed uses
+   `SEED_FILES.peopleFixture` and `FIXTURE_PASSWORD`, which is for dev and CI only. `main` passes
+   `process.env.SEED_PEOPLE_FILE` and `process.env.SEED_INITIAL_PASSWORD`.
+7. **Exact strings.**
+   - **Missing password:** `seed: SEED_INITIAL_PASSWORD is required with a people file`.
+   - **No users array:** `seed: people file has no users array`.
+   - **Bad entry:** `seed: people entry <i> is invalid (<field>)`.
+     - `<i>` is 0-based.
+     - Fields are checked in the order `username`, `name`, `role`, and the first failure is reported.
+     - `username` and `name` must be non-empty strings, and `role` must be a key of `ROLE_MAP`.
+     - No message ever contains a name, username or phone.
+   - **Shift names** come from the data file: `Shift 1`, `Shift 2`.
+   - **Conflicts** (from `machineConflicts`, in this order; a line is written only when its list is non-empty):
+     - `CNC Machine Master has 126 rows: 125 CNC + 1 Robot (own segment).`
+     - `In the 11 Nov registers but not the 28 Oct export: VC-57.`
+     - `In the 28 Oct export but not the 11 Nov registers: <codes>.`
+     - `Blank make, model or serial in <segment>: <codes>.` One line per segment, in the order CNC,
+       Conventional, Process, Utility, DG, Robot.
+     - Codes keep file order and are joined with `, `.
+     - The old ids are the union of `exp.machines`, `conv`, `proc`, `util` and `dg`.
+   - **People line:** `26 logins (14 technician, 11 operator, 1 admin) + 1 vendor person (Imptex Team) without a login.`
+     - The codes, Q8 and glossary lines are kept.
+     - These lines are deleted: the VC-57 blank-nameplate line, the Robot/live-config line and the 191/192 line.
+   - **`SeedReport.sources`:**
+     1. `exportPath`, `livePath`, `glossaryPath`;
+     2. `SEED_FILES.machines`, `SEED_FILES.shifts`;
+     3. `SEED_FILES.peopleFixture` when there is no `peoplePath`, else the literal `people file (outside repo)`.
+        The real path is never listed.
+
+     `main` prints the same entries, with repo-relative paths for files inside the repo.
+8. **Shift at 18:29.** `shiftAt` orders matches by `starts_at DESC`, because DOMAIN line 207 gives the overlap to
+   the later shift. Between 05:00 and 08:00 no shift matches, so the existing fallback `'1'` stays.
+   `currentShift` becomes `shiftAt(client, tenantId, new Date())`.
 
 ## 3. Files
 
-| File                                               | Change                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/seed/registers-to-json.py`                | New: `python3 -I scripts/seed/registers-to-json.py <xlsx> <out.json>`, per decision 1. Under 80 lines.                                                                                                                                                                                                                                                                                                                         |
-| `scripts/seed/generated/cosmos-machines.json`      | New, generated: `sheetCounts` = CNC Machine Master 126, Conventional Machines 16, Process Machines 17, DG Sets 3, Utilities 30; 192 machines.                                                                                                                                                                                                                                                                                  |
-| `scripts/seed/fixtures/cosmos-people.fixture.json` | New, per decision 3.                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `scripts/seed/cosmos-shifts.json`                  | New: the two shifts exactly as in the ticket (codes `1`, `2`).                                                                                                                                                                                                                                                                                                                                                                 |
-| `scripts/seed-data.ts`                             | Delete `ExportMachine`, `toInt`, `machineSeed`, the old `buildMachines` and `buildShifts`. Add `PeopleEntry`, `SeedFiles`, `ROLE_MAP`, `buildPeople(users, exportTeam)` (fixture/real people, then the export team's `Vendor` entries only). Add `machineConflicts`. Change `buildSeed`'s signature, its counts and its conflicts (§4, §5).                                                                                    |
-| `scripts/seed-cosmos.ts`                           | `Paths` gains `peoplePath?`. Load the three seed files. `insertPeople` inserts each person `RETURNING id`, then its login. `insertSettings` takes `seed.teamShifts`. `seedCosmos` gains `initialPassword?`. `main` reads `SEED_PEOPLE_FILE` and `SEED_INITIAL_PASSWORD`, and the report's Sources list the new files (the people source prints as `fixture` or `SEED_PEOPLE_FILE`, never the path). Export `FIXTURE_PASSWORD`. |
-| `apps/server/src/auth.ts`                          | Add exported `hashPassword`. Line 216 calls it. Nothing else changes.                                                                                                                                                                                                                                                                                                                                                          |
-| `apps/server/src/ticket-report.ts`                 | Replace the `currentShift` body only (decision 7) and add exported `shiftAt`. No other line moves (another ticket is moving this file).                                                                                                                                                                                                                                                                                        |
-| `packages/db/test/cosmos-seed.test.ts`             | Rewritten to tests 1–7.                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `apps/server/test/cosmos-plant.test.ts`            | New: tests 8–9.                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `docs/plan/seed-report.md`                         | Regenerated by `pnpm seed:cosmos` (fixture mode).                                                                                                                                                                                                                                                                                                                                                                              |
-| `changes/78-real-plant.md`                         | `- Cosmos seeds its real machine registers, 26 logins (fake in CI) and both shifts; 18:29 is shift 2.`                                                                                                                                                                                                                                                                                                                         |
+| File                                                                         | Change                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/server/src/seed/registers-to-json.py`                                  | New (decision 1), under 80 lines.                                                                                                                                                                            |
+| `apps/server/src/seed/generated/cosmos-machines.json`                        | New, generated. `sheetCounts`: CNC Machine Master 126, Conventional Machines 16, Process Machines 17, DG Sets 3, Utilities 30.                                                                               |
+| `apps/server/src/seed/fixtures/cosmos-people.fixture.json`                   | New (decision 3).                                                                                                                                                                                            |
+| `apps/server/src/seed/cosmos-shifts.json`                                    | New: `[{code:'1',name:'Shift 1',startsAt:'08:00',endsAt:'18:30',crossesMidnight:false},{code:'2',name:'Shift 2',startsAt:'18:29',endsAt:'05:00',crossesMidnight:true}]`.                                     |
+| `apps/server/src/seed/cosmos-data.ts` (`git mv` from `scripts/seed-data.ts`) | Delete `ExportMachine`, `toInt`, `machineSeed`, the old `buildMachines` and `buildShifts`. Add `PeopleEntry`, `SeedFiles`, `ROLE_MAP`, `machineConflicts`, and a new `buildPeople`. Change `buildSeed` (§4). |
+| `apps/server/src/seed/cosmos.ts` (`git mv` from `scripts/seed-cosmos.ts`)    | Add `SEED_FILES` and `FIXTURE_PASSWORD`. Make the changes in §4 and decisions 5–7.                                                                                                                           |
+| `package.json`                                                               | `seed:cosmos` script path only (decision 4).                                                                                                                                                                 |
+| `apps/server/src/auth.ts`                                                    | Add the exported `hashPassword`, and make line 216 call it.                                                                                                                                                  |
+| `apps/server/src/ticket-report.ts`                                           | Add the exported `shiftAt`. `currentShift` becomes a one-line body. No other line moves.                                                                                                                     |
+| `apps/server/test/cosmos-seed.test.ts`                                       | New: tests 1–8.                                                                                                                                                                                              |
+| `packages/db/test/cosmos-seed.test.ts`                                       | Deleted on purpose: tests 1–8 replace it, and are stricter. This is not a weakened test.                                                                                                                     |
+| `apps/server/test/cosmos-plant.test.ts`                                      | New: tests 9–10.                                                                                                                                                                                             |
+| `docs/plan/seed-report.md`                                                   | Regenerated by `pnpm seed:cosmos` in fixture mode.                                                                                                                                                           |
+| `changes/78-real-plant.md`                                                   | `- Cosmos seeds its real machine registers, 26 logins (fake in CI) and both shifts; 18:29 is shift 2.`                                                                                                       |
 
 ## 4. Interfaces
 
 ```ts
-// scripts/seed-data.ts
+// apps/server/src/seed/cosmos-data.ts
 export interface PeopleEntry {
   username: string;
   name: string;
@@ -91,16 +148,39 @@ export interface PersonSeed {
   defaultShift: string | null;
   login: { username: string; role: string } | null;
 }
-// SeedResult gains teamShifts: Record<string, string> (name -> shift, only entries with a shift)
-export function buildSeed(exp, live, glossary, files: SeedFiles): SeedResult; // throws on an invalid people entry
-// scripts/seed-cosmos.ts
+// file people first (title '' -> null, missing phone/shift -> null), then exportTeam entries with type 'Vendor'
+// (team/kind 'vendor', login null); teamShifts = { name: shift } for file entries that have a shift
+export function buildPeople(
+  users: unknown,
+  exportTeam: Array<{ name: string; type: string; status: string }>,
+): { people: PersonSeed[]; teamShifts: Record<string, string> }; // throws per decision 7
+export function machineConflicts(
+  exp: Record<string, unknown>,
+  machines: SeedFiles['machines'],
+): string[];
+// SeedResult gains teamShifts; machines = files.machines.machines; shifts = files.shifts
+export function buildSeed(exp, live, glossary, files: SeedFiles): SeedResult;
+// apps/server/src/seed/cosmos.ts
 interface Paths {
   exportPath: string;
   livePath: string;
   glossaryPath: string;
   peoplePath?: string;
 }
+export const SEED_FILES: { machines: string; shifts: string; peopleFixture: string };
 export const FIXTURE_PASSWORD = 'fixture-only-password';
+async function insertPeople(
+  client: PoolClient,
+  tenantId: string,
+  people: PersonSeed[],
+  passwordHash: string,
+): Promise<void>;
+//   person INSERT (name, team, kind, title, phone, default_shift, active=true) RETURNING id; then the login if any
+async function insertSettings(
+  client: PoolClient,
+  tenantId: string,
+  teamShifts: Record<string, string>,
+): Promise<void>;
 export async function seedCosmos(
   pool: Pool,
   paths: Paths,
@@ -110,77 +190,113 @@ export async function seedCosmos(
 export function hashPassword(password: string): Promise<string>; // hash(password, PASSWORD_OPTS)
 // apps/server/src/ticket-report.ts
 export async function shiftAt(client: PoolClient, tenantId: string, at: Date): Promise<string>;
-// SQL: ($2::timestamptz AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::time; same WHERE; ORDER BY starts_at DESC LIMIT 1; fallback '1'
+// ($2::timestamptz AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::time; same WHERE; ORDER BY starts_at DESC LIMIT 1; fallback '1'
 ```
 
 ## 5. Data (existing columns only)
 
-- `machine`: the same 17 columns as today, from `cosmos-machines.json`.
-- `person`: `name`, `team`, `kind`, `title`, `phone`, `default_shift`, `active` (`true`). The vendor person has a
-  `null` title, phone and shift.
-- `login`: `person_id`, `username`, `password_hash` (argon2id), `role`, `shared` (false),
-  `must_change_password` (true), `disabled_at` (null), `cell` (null).
-- `shift`: `code`, `name`, `starts_at`, `ends_at`, `crosses_midnight`, from `cosmos-shifts.json`.
-- `setting.team_shifts`: jsonb `{name: shift}` from the people file. It is no longer read from the live config.
-- Report `counts`: `machines` 192; `segment_CNC` 125, `segment_Robot` 1, `segment_Conventional` 16,
-  `segment_Process` 17, `segment_DG` 3, `segment_Utility` 30; `people` 27; `logins` 26. The rest are unchanged.
-- Report `conflicts`: the first three lines are computed by `machineConflicts`:
-  - `CNC Machine Master has 126 rows: 125 CNC + 1 Robot (own segment).`
-  - `In the 11 Nov registers but not the 28 Oct export: VC-57.` (and the reverse, if any)
-  - `Blank make, model or serial: <segment>: <codes>` (one line per segment that has blanks)
-
-  Then the people line becomes `26 logins (14 technician, 11 operator, 1 admin) + 1 vendor person (Imptex Team) without a login.`
-  The codes, Q8 and glossary lines are kept. The VC-57 blank-nameplate, Robot-live-config and 191/192 lines are deleted.
+- **`machine`:** the same 17 columns as today.
+- **`person`:**
+  - `name`, `team`, `kind`, `title`, `phone`, `default_shift`, and `active = true`;
+  - the vendor person's title, phone and shift are `null`.
+- **`login`:**
+  - `person_id`, `username`, `role`;
+  - `password_hash` (argon2id);
+  - `shared` false, `must_change_password` true, `disabled_at` null, `cell` null.
+- **`shift`:** from `cosmos-shifts.json`.
+- **`setting.team_shifts`:** jsonb `{name: shift}`, built from the people file.
+- **Report `counts`:**
+  - `machines` 192;
+  - `segment_CNC` 125, `segment_Robot` 1, `segment_Conventional` 16, `segment_Process` 17, `segment_DG` 3,
+    `segment_Utility` 30;
+  - `people` 27, `logins` 26;
+  - all other counts unchanged.
 
 ## 6. Test cases (each fails before the change)
 
-`packages/db/test/cosmos-seed.test.ts`, with `seedCosmos(pool, paths)` (fixture mode):
+`apps/server/test/cosmos-seed.test.ts` (imports `seedCosmos`, `SEED_FILES` and `FIXTURE_PASSWORD` from `../src/seed/cosmos.js`): one `startTestDb`, seeded with `seedCosmos(db.admin, paths)` in fixture mode, where `paths` holds the three
+`docs/discovery` files. Assertions query `db.admin`.
 
-1. `loads every register machine by segment` — Given the seed, When counting machines per segment, Then
-   `{CNC:125, Conventional:16, DG:3, Process:17, Robot:1, Utility:30}`. CNC+Robot equals
-   `sheetCounts['CNC Machine Master']`, each other segment equals its sheet's count, and `report.counts.segment_*` match.
-2. `VC-57 carries its nameplate` — Then its `make`, `model` and `serial` are non-null.
-3. `seed report lists register differences` — Then `conflicts` has a line containing `VC-57` and `28 Oct`, and the
-   `126 rows: 125 CNC + 1 Robot` line, and no line containing `nameplate fields left blank`.
-4. `seeds 26 logins with roles, each tied to its own person` — Then roles are `{technician:14, operator:11,
-admin:1}`; 26 distinct non-null `person_id`; 27 persons, 1 of them `vendor` with no login. Every login has
-   `must_change_password` true, `shared` false, `disabled_at` null and a hash starting `$argon2id$`.
-   Every non-vendor name matches `/^Person \d{2}$/`, every phone matches `/^\+9199999000\d{2}$/`, and there are 26 phones.
-5. `team shifts and default shifts come from the people file` — Then `setting.team_shifts` equals the fixture's
-   name→shift map (14 keys), and maintenance persons' `default_shift` equals their entry.
-6. `shifts are the data file's windows and re-seeding is idempotent` — Then the `shift` rows are exactly
-   `1 08:00:00–18:30:00 false` and `2 18:29:00–05:00:00 true`, and equal `cosmos-shifts.json`. After a second
-   seed: 192 machines, 26 logins, 27 persons, 144 glossary terms.
-7. `a real people file needs an initial password` — Given `peoplePath` set and no `initialPassword`, When seeding,
-   Then it rejects with `SEED_INITIAL_PASSWORD`, and the existing tenant's 26 logins remain.
+1. `loads every register machine by segment`
+   - **Given** the seed, and **When** reading `SEED_FILES.machines` and counting machines per segment.
+   - **Then** the counts are `{CNC:125, Conventional:16, DG:3, Process:17, Robot:1, Utility:30}`.
+   - CNC + Robot equals `sheetCounts['CNC Machine Master']`, and each other segment equals its own sheet count.
+   - Each `report.counts.segment_*` matches its segment.
+   - The number of machines with a non-null `cell` equals the number in the JSON, and VC-57's `cell` equals its JSON value.
+2. `VC-57 carries its nameplate`
+   - **Then** VC-57's `make`, `model` and `serial` are all non-null.
+3. `seed report lists register differences`
+   - **Then** `conflicts` contains `In the 11 Nov registers but not the 28 Oct export: VC-57.` and
+     `CNC Machine Master has 126 rows: 125 CNC + 1 Robot (own segment).`
+   - No line contains `nameplate fields left blank`.
+   - `sources` ends with `SEED_FILES.peopleFixture`.
+4. `seeds 26 logins with roles, each tied to its own person`
+   - **Then** the roles are `{technician:14, operator:11, admin:1}`.
+   - There are 26 distinct non-null `person_id` values, and 27 persons, one of them a `vendor` with no login.
+   - Every login has `must_change_password` true, `shared` false, `disabled_at` null, and a `$argon2id$` hash.
+   - Every non-vendor name matches `/^Person \d{2}$/`.
+   - All 26 phones match `/^\+9199999000\d{2}$/`.
+5. `team shifts and default shifts come from the people file`
+   - **Then** `team_shifts` equals the fixture's name→shift map, which has 14 keys.
+   - Each maintenance person's `default_shift` equals their fixture entry.
+6. `shifts are the data file's windows and re-seeding is idempotent`
+   - **Then** the rows are exactly `1, Shift 1, 08:00:00, 18:30:00, false` and `2, Shift 2, 18:29:00, 05:00:00, true`.
+   - **After a second seed:** 192 machines, 26 logins, 27 persons and 144 glossary terms.
+7. `a people file needs an initial password`
+   - **Given** `peoplePath = SEED_FILES.peopleFixture` and no password.
+   - **Then** the seed rejects with the exact missing-password message, and 26 logins remain.
+   - **Given** the same path and `FIXTURE_PASSWORD`, **Then** `sources` contains `people file (outside repo)` and
+     not the path.
+8. `an invalid people entry is rejected without leaking values`
+   - **Given** a temporary copy of the fixture (in an `mkdtemp` directory) where entry 3 has no `role`.
+   - **Then** the seed rejects with exactly `seed: people entry 3 is invalid (role)`.
+   - The message contains neither `person` nor `+91`.
+   - 26 logins and 192 machines remain.
 
-`apps/server/test/cosmos-plant.test.ts` (`startTestDb` + `seedCosmos(db.admin, paths)` + `buildApp` on `db.app`):
+`apps/server/test/cosmos-plant.test.ts`: `startTestDb`, then `seedCosmos(db.admin, paths)`, then `buildApp` on `db.app`. The
+`tenantId` comes from `SELECT id FROM tenant WHERE slug = 'cosmos'` on `db.admin`.
 
-8. `a seeded login signs in` — When `POST /api/v1/auth/login` with host `cosmos.localhost`, `person01` and
-   `FIXTURE_PASSWORD`, Then 200 with a token. With a wrong password, Then 401.
-9. `an event at 18:29 falls in the later shift` — Then `shiftAt` returns `'1'` at `2026-11-13T18:28:00+05:30`,
-   `'2'` at 18:29, `'2'` at 18:30, `'2'` at `2026-11-14T04:59:00+05:30`, and the fallback `'1'` at 05:00.
+9. `a seeded login signs in`
+   - **When** `POST /api/v1/auth/login` with host `cosmos.localhost`, user `person01` and `FIXTURE_PASSWORD`,
+     **Then** the answer is 200 with a token.
+   - **With a wrong password,** the answer is 401.
+10. `an event at 18:29 falls in the later shift`
+    - Each instant is checked with `withTenant(db.app, tenantId, (c) => shiftAt(c, tenantId, at))`.
 
-Gates: `pnpm pii:scan` passes, with the fixture and the generated JSON scanned. The full `pnpm verify` is green.
+    | Instant                     | Shift            |
+    | --------------------------- | ---------------- |
+    | `2026-11-13T18:28:00+05:30` | `'1'`            |
+    | `2026-11-13T18:29:00+05:30` | `'2'`            |
+    | `2026-11-13T18:30:00+05:30` | `'2'`            |
+    | `2026-11-14T04:59:00+05:30` | `'2'`            |
+    | `2026-11-14T05:00:00+05:30` | `'1'` (fallback) |
+
+**Gates:** `pnpm pii:scan` passes over the fixture and the generated JSON. After `pnpm build:server`,
+`grep -cE 'seedCosmos|cosmos-machines' apps/server/dist/server.mjs` prints `0`. `pnpm verify` is green.
 
 ## 7. Out of scope and regression risk
 
-Out of scope: tickets (09), staging deploy (13), person `active` or locked flags from the file, shared floor
-logins, a third shift (Q8), the 18:29 ownership question N11 (changing it is a data change), `MILESTONES.md`,
-`ledger.md`.
+**Out of scope:**
 
-Regression risks:
+- tickets (ticket 09) and the staging deploy (ticket 13);
+- the `active` and `locked` flags from the people file;
+- shared floor logins;
+- a third shift (Q8), and who owns 18:29 (N11, which would be a data change);
+- `MILESTONES.md` and `ledger.md`.
 
-- `currentShift` now uses the app clock instead of the database clock.
-- The old export's 13 maintenance people are no longer seeded.
-- Anything that assumed `person.team = 'maintenance'` for every staff member: operators are now `production`.
-- `packages/db` tests now import `apps/server/src/auth.ts` through the seed.
+**Regression risks and the tests that guard them:**
+
+- `currentShift` now uses the app's clock, so a report's default shift could change. Guarded by
+  `apps/server/test/ticket-report.test.ts` and `apps/server/test/ticket-pdf.test.ts`.
+- The password-change route now goes through `hashPassword`. Guarded by `apps/server/test/auth.test.ts`.
+- The old export's 13 maintenance people are no longer seeded, and operators are now `team = 'production'`.
+  Guarded by tests 4–5.
+- The seed moved into `apps/server/src/seed/` and imports `../auth.js`. Guarded by tests 1 and 9, and by the
+  build gate (the seed stays out of `server.mjs`).
 
 ## 8. Questions
 
-1. (Caller) Accept the `generated/` and `fixtures/` paths in decision 2, or keep the decided paths and run the PR
-   with `LEAN_ALLOW_LARGE`?
-2. (Caller) "One fixture entry per username" is read as one entry per real user, with fake usernames, because the
-   real usernames are first names (decision 3).
-3. (Nimish, not blocking) The real user list has no shifts. Staging persons get no default shift unless the staging
-   copy of the file adds `shift` per maintenance person. Should it?
+1. (Nimish, not blocking) The real user list has no shifts. On staging, people get no default shift unless the
+   staging copy of the file adds a `shift` for each maintenance person. Should it?
+
+Note: staging persons have no phone until a phone source exists.
