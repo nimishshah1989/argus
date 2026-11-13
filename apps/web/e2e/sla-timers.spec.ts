@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API_URL, MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { API_URL, MACHINES, apiLogin, signIn } from './fixtures.js';
 import {
   FUTURE_PAUSE_COPY,
   POLICIES,
@@ -45,8 +45,7 @@ test('configures policies and future pause rules, then shows ticket timers', asy
 
   const machine = MACHINES[testInfo.project.name === 'phone' ? 9 : 8];
   if (!machine) throw new Error(`No SLA machine for ${testInfo.project.name}`);
-  const token = await apiLogin('asha');
-  const ticket = await raiseTicketViaApi(token, machine.id, `SLA timers on ${machine.code}`);
+  const ticket = await prepareStoppedTicket(machine, await apiLogin('admin'));
   await page.goto('/desk');
   const card = page.getByRole('link', { name: new RegExp(ticket.ref) });
   await expect(card).toContainText('Acknowledge');
@@ -168,6 +167,7 @@ test('freezes cached Settings and ticket timers while offline', async ({ page })
   await page.goto(`/desk/${ticket.id}`);
   const timers = page.getByRole('region', { name: 'SLA timers', exact: true });
   await expect(timers).toContainText('Acknowledge');
+  await expect(timerRow(timers, 'Acknowledge').locator('time')).toBeVisible();
   const before = await timers.innerText();
 
   await page.context().setOffline(true);
