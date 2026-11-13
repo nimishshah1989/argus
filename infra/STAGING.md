@@ -146,7 +146,7 @@ orchestrator. Point a free outside pinger at `site_url/api/v1/health` instead.
 
 ## Check the access is narrow
 
-- `aws iam get-role --role-name uptimo-deploy`: the trust names only `ref:refs/heads/main`.
+- `aws iam get-role --role-name uptimo-deploy`: the trust names only `ref:refs/heads/main` of this one repository (by its immutable ids, `github_sub_prefix`).
 - `aws iam get-role-policy --role-name uptimo-server --policy-name uptimo-server`.
 - `aws ec2 describe-instances --filters Name=tag:Name,Values=uptimo-server --query 'Reservations[].Instances[].MetadataOptions'`:
   `HttpTokens` is `required` and `HttpPutResponseHopLimit` is `1`.
