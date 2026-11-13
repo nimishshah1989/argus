@@ -1,14 +1,14 @@
 # Milestones and tickets — Uptimo
 
-**This is the development goal post and the core tracking document.** Scope, order, every ticket's goals and blockers, and live status all live here; `docs/plan/ORCHESTRATOR.md` says how it is worked, `docs/plan/COVERAGE.md` proves it is complete.
+**This is the development goal post and the core tracking document.** Scope, order, every ticket's goals and blockers, and live status all live here. It is the one plan we follow; `CLAUDE.md` says how it is worked.
 
 Made with the `to-tickets` skill (Matt Pocock): tracer-bullet vertical slices, each a complete path through
 schema, API, UI and tests, demoable on its own, sized to one fresh context window, with its blocking edges.
 Prefactoring comes first ("make the change easy, then make the easy change"); the one wide refactor (module
-boundaries) runs expand → contract. Status: **draft for Nimish's approval (to-tickets step 4)**; published to
-GitHub Issues with `ready-for-agent` only after approval. Binding inputs: `docs/BRIEF.md`, `docs/ARCHITECTURE.md`,
+boundaries) runs expand → contract. Status: **the plan we follow (Nimish, 13 Nov 2026)**; GitHub Issues mirror it, with `ready-for-agent` on the
+current milestone's tickets. Binding inputs: `docs/BRIEF.md`, `docs/ARCHITECTURE.md`,
 `docs/DATA-MAP.md`, `docs/decisions/D01–D17` (table budget), `docs/spec/parity.yaml`, SPEC §3/§9, real data in
-`docs/discovery/real-2026-11-13/`. Revision 2 resolves `docs/plan/COVERAGE.md` (coverage map at the end); the
+`docs/discovery/real-2026-11-13/`. The coverage map is at the end; the
 47-ticket draft is in git history (`a9dfe3c`), the 176-ticket draft at `9b1c3b2`.
 
 ## Progress tracker
@@ -125,7 +125,7 @@ before M3 depends on M3.
 Delivers: every PR gets a quick, honest answer, and the documents tell the truth.
 
 1. [Browser] The SLA timer shows no due time until the plant's time zone is known, and the SLA journey passes 20 runs in a row; CI runs lint, typecheck, touched-module API tests, tenant isolation and the browser smoke, sharded, with a seeded tenant per Playwright worker, each shard under 8 minutes.
-2. [Process] A docs check fails CI when an instruction file names a process other than Athena v3, when ADR 0001, SPEC or `THIRD_PARTY.md` name Drizzle, or when an `in-progress` parity row has neither evidence nor a ticket; the changelog is one fragment per PR under `changes/`, `wiki/log.md` union-merged.
+2. [Process] A docs check fails CI when an instruction file names a process other than pstack, when ADR 0001, SPEC or `THIRD_PARTY.md` name Drizzle, or when an `in-progress` parity row has neither evidence nor a ticket; the changelog is one fragment per PR under `changes/`, `wiki/log.md` union-merged.
 3. [Process] A PII scan in CI fails on a planted real name or phone number from the source lists.
 
 **02 Module boundaries: expand** · Blocked by: 01
@@ -135,7 +135,7 @@ Delivers: the server starts to be modules that talk only through published inter
 2. [API] The kernel (`withTenant`, request context, guard, jobs) and the modules `ops`, `identity` and `plant` (ARCHITECTURE §2) live in module folders with a `repo.ts` and the manifest; the whole API suite passes unchanged; the boundary check fails a planted SQL call outside a moved module's `repo.ts`.
 
 **03 Module boundaries: contract** · Blocked by: 02
-Delivers: every module is behind its interface and CI enforces it (Athena rule; contract step).
+Delivers: every module is behind its interface and CI enforces it (contract step).
 
 1. [API] `tickets`, `accountability`, `notifications`, `reports`, `files` and `imports` are moved (`analytics`, `pm`, `ai` and `whatsapp` are born as modules in their milestones); workspace dependencies and `exports` replace relative imports; commands and permissions are one file each with a registry; the whole API suite passes unchanged and the boundary check is enforced for every module.
 2. [API] The isolation test discovers tenant tables from the catalogue (`breakdown_report_person` included) and fails on any table not exercised as two tenants; the same test fails when a table outside D17's list exists (`ticket_tag` is a dated exception until 07 drops it).
@@ -571,10 +571,10 @@ One milestone migration at a time; one browser-test stack; Nimish previews every
 | TB-46 (now 64)          | Storage reuses `file`, the glossary reuses `glossary_term`; the speech call is one adapter                                                                                   |
 | NV-01 (01 not vertical) | BRIEF scope item 1 (harness re-baseline: one process, issues as the queue, true status) is process work by definition; the product owner allows it in M0's first ticket only |
 
-## Coverage map (COVERAGE.md → this plan)
+## Coverage map
 
 Ids: G gap, O overlap, Q other quality, TB too big (old ticket number), NV not vertical, UT untestable goal, E edge.
-COVERAGE §4's too-big table lists 26 tickets (its text says 27); all 26 are mapped below.
+The earlier coverage review's too-big table listed 26 tickets; all 26 are mapped below.
 Old → new: 01→01, 02→09, 03→08, 04→06+07, 05→10, 06→11+12, 07→13+14, 08→13+14, 09→15, 10→16, 11→17, 12→18,
 13→19, 14→20, 15→21, 16→22+23, 17→24, 18→25, 19→26, 20→27, 21→28, 22→29+30, 23→31, 24→32+33, 25→34, 26→35,
 27→36+37, 28→37+38+39, 29→40, 30→41, 31→42, 32→43, 33→44+45, 34→47+48, 35→49+50, 36→51, 37→52+53, 38→54,
