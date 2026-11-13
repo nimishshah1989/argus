@@ -156,9 +156,13 @@ describe('staging deploy', () => {
     expect(readFileSync(join(dir, 'app.env'), 'utf8')).toBe(
       'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo\nAPP_ENV=staging\n',
     );
+    // D24: the operator credential (migrations, import undo) lives in migrate.env only, never where the server reads.
     expect(readFileSync(join(dir, 'migrate.env'), 'utf8')).toBe(
-      'MIGRATION_DATABASE_URL=postgresql://fake-master:fake-pw-2@db.test/uptimo\nAPP_API_PASSWORD=fake-pw-3\n',
+      'MIGRATION_DATABASE_URL=postgresql://fake-master:fake-pw-2@db.test/uptimo\n' +
+        'ROUTER_DATABASE_URL=postgresql://fake-master:fake-pw-2@db.test/uptimo\n' +
+        'APP_API_PASSWORD=fake-pw-3\n',
     );
+    expect(readFileSync(join(dir, 'app.env'), 'utf8')).not.toMatch(/ROUTER|MIGRATION|fake-pw-[23]/);
     for (const f of ['app.env', 'migrate.env'])
       expect(statSync(join(dir, f)).mode & 0o777).toBe(0o600);
     expect(calls().join('\n')).toContain('--secret-id uptimo/staging');

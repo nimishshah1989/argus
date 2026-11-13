@@ -1,0 +1,1 @@
+- Staging is ready to hold Cosmos's real plant and tickets safely: old sessions, replay keys and import payloads are cleaned up nightly, a nightly check reports any ticket whose saved figures differ from its history, backups and a restore drill are written down, and loading Cosmos is one documented command sequence that can no longer wipe tickets already there.

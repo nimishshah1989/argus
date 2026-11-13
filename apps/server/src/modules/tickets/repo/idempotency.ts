@@ -105,3 +105,16 @@ export async function storeIdempotent(
 export function isUniqueViolation(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === '23505';
 }
+
+/** Retention: replay keys created before `cutoff`. A key only protects a replay for 24 hours; the rest is history. */
+export async function purgeIdempotencyKeys(
+  client: PoolClient,
+  tenantId: string,
+  cutoff: Date,
+): Promise<number> {
+  const result = await client.query(
+    'DELETE FROM command_idempotency WHERE tenant_id = $1 AND created_at < $2',
+    [tenantId, cutoff],
+  );
+  return result.rowCount ?? 0;
+}

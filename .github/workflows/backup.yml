@@ -1,0 +1,69 @@
+name: backup
+
+# Weekly logical dump of the staging database to the backup bucket (ticket 14, infra/RESTORE.md).
+# Needs the AWS_ROLE_ARN secret (as deploy.yml) and the repository variable BACKUP_BUCKET (Terraform output).
+# GitHub pauses scheduled workflows in a repository with no activity for 60 days; the drill log shows the last dump.
+on:
+  schedule:
+    - cron: '30 21 * * 0' # Sunday 21:30 UTC = Monday 03:00 in Mumbai
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+      APP: uptimo
+    steps:
+      - name: Gate
+        id: gate
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ] || [ -z "$BACKUP_BUCKET" ]; then
+            echo "::warning title=Weekly backup did not run::backups not set up yet (AWS_ROLE_ARN or BACKUP_BUCKET missing)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.ready == 'true'
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Dump on the instance
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$APP-server" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "no running $APP-server instance"; exit 1
+          fi
+          PAYLOAD=$(tar czf - -C infra docker-compose.yml instance | base64 -w0)
+          jq -n --arg cmd "mkdir -p /opt/uptimo && echo $PAYLOAD | base64 -d | tar xz -C /opt/uptimo && chmod +x /opt/uptimo/instance/*.sh && BACKUP_BUCKET=$BACKUP_BUCKET /opt/uptimo/instance/dump.sh" \
+            '{commands: [$cmd], executionTimeout: ["1500"]}' > params.json
+          COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment "weekly dump" \
+            --parameters file://params.json --query 'Command.CommandId' --output text)
+          for _ in $(seq 1 270); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in Pending|InProgress|Delayed) sleep 5 ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardErrorContent --output text
+          [ "$STATUS" = Success ]

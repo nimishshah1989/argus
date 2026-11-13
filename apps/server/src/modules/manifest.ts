@@ -12,6 +12,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'auth_lookup',
     'tenant_by_slug',
     'tenant_info',
+    'job_tenant_ids',
     'erase_person',
     'erase_json_values',
     'offboard_tenant',
