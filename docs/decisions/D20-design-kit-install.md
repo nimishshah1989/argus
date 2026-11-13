@@ -6,7 +6,7 @@ Date: 13 November 2026 · Status: accepted (orchestrator, ticket 10); builds on 
 
 - **Two runtime packages**, pinned exact in `apps/web/package.json`: `radix-ui` 1.8.1 (MIT, the unified Radix package, so later primitives need no new dependency) and `lucide-react` 1.72.0 (ISC; every D04 icon name exists in it). shadcn/ui is copied by hand: no CLI, no package.
 - **Five kit components**, each at most 150 lines: `Button` (primary and secondary only), `Input` with `Label`, `Card`, `Sheet` (Radix Dialog, the one modal) and `StatusPill`. Kit components never accept `className` or `style`.
-- **Accent switch**: blue is the default (`#0a66c2`); deep teal is `:root[data-accent='teal']` (`#0d9488`, with `#0f766e` for fills behind white text). Only `/gallery` sets the attribute. Nimish's choice later changes the default in `ui/tokens.css`.
+- **Accent switch**: decided 13 Nov 2026: deep teal (`#0f766e`, 5.47:1 on white, so one value serves text, fills behind white text and rings; `#0d9488` is only 3.74:1 and fails as text) is the default in `ui/tokens.css`. Blue (`#0a66c2`) is the comparison, `:root[data-accent='blue']`. Only `/gallery` sets the attribute.
 - **Screenshot image**: baselines and CI both run in `mcr.microsoft.com/playwright:v1.65.0-noble` (1.65.0 is the installed `@playwright/test`) plus the OS font package `fonts-noto-core`, so the PNGs are byte-identical everywhere.
 
 ## Why

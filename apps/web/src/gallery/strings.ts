@@ -6,7 +6,7 @@ export const galleryEn: Record<string, string> = {
   'language.en': 'English',
   'language.gu': 'Gujarati (placeholder)',
   accent: 'Accent',
-  'accent.blue': 'Blue',
+  'accent.blue': 'Blue (comparison)',
   'accent.teal': 'Deep teal',
   'section.tokens': 'Tokens',
   'section.components': 'Components',

@@ -75,14 +75,14 @@ export default function Gallery() {
   const { t } = useTranslation('gallery');
   const [params] = useSearchParams();
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
-  const accent = params.get('accent') === 'teal' ? 'teal' : 'blue';
+  const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
 
   useEffect(() => {
     void setLanguage(lang);
     document.documentElement.lang = lang;
   }, [lang]);
   useEffect(() => {
-    if (accent === 'teal') document.documentElement.dataset.accent = 'teal';
+    if (accent === 'blue') document.documentElement.dataset.accent = 'blue';
     else delete document.documentElement.dataset.accent;
   }, [accent]);
   useEffect(
@@ -111,8 +111,8 @@ export default function Gallery() {
           param="accent"
           current={accent}
           options={[
-            { value: 'blue', label: t('accent.blue') },
             { value: 'teal', label: t('accent.teal') },
+            { value: 'blue', label: t('accent.blue') },
           ]}
         />
         {lang === 'gu' ? <GuNote /> : null}

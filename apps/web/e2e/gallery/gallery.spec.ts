@@ -54,7 +54,7 @@ for (const lang of ['en', 'gu']) {
     test(`gallery ${lang} ${accent}: axe clean`, async ({ page }) => {
       await open(page, `lang=${lang}&accent=${accent}`);
       const html = page.locator('html');
-      if (accent === 'teal') await expect(html).toHaveAttribute('data-accent', 'teal');
+      if (accent === 'blue') await expect(html).toHaveAttribute('data-accent', 'blue');
       else await expect(html).not.toHaveAttribute('data-accent');
       await expect(page.getByTestId('gallery-primary-sample')).toHaveCSS(
         'background-color',
@@ -68,11 +68,12 @@ for (const lang of ['en', 'gu']) {
 
 test('accent switcher changes the accent token and leaving resets it', async ({ page }) => {
   await open(page, 'lang=gu');
-  const teal = page.getByRole('button', { name: /Deep teal/ });
-  await teal.click();
-  await expect(teal).toHaveAttribute('aria-pressed', 'true');
-  await expect(page).toHaveURL(/accent=teal/);
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+  await expect(page.locator('html')).not.toHaveAttribute('data-accent');
+  const blue = page.getByRole('button', { name: /Blue/ });
+  await blue.click();
+  await expect(blue).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL(/accent=blue/);
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'blue');
   await page.evaluate(() => {
     history.pushState({}, '', '/floor');
     dispatchEvent(new PopStateEvent('popstate'));
