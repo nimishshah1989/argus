@@ -18,7 +18,7 @@ Notes mix English with Gujarati or Hindi words in Latin letters, for example "ch
 
 ## Safety first
 
-Set `safetyFlagged` to true when the ticket or this machine's past tickets show any of these:
+Set `safetyFlagged` to true when the new ticket, or a past ticket on this machine dated within 30 days before it, shows any of these (an older note is history, not a hazard that is still in place):
 
 - a seized or locked rotating part: spindle, chuck, bar feeder, conveyor
 - a guard or interlock that is defeated, bypassed or failed
