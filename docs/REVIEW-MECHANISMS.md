@@ -110,7 +110,7 @@ Each backend capability has a named proof, not a claim.
 ## 7. Reviewer independence and the two-model split
 
 - The reviewer gets a **fresh context**: the plan, the diff, the CI result and the checklist. It does not get the author’s reasoning or the whole conversation.
-- The coder is a hosted free model (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`); the reviewer is DeepSeek Flash. They are different model families, so a fresh context is a real independence boundary. It is still not a senior human: fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review remain mandatory for R3.
+- The coder (Sonnet) and the reviewers (Opus, fresh context) are different models, so a fresh context is a real independence boundary. It is still not a senior human: fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review remain mandatory for R3.
 - **Adversarial review** is used on R3 and on the analytics port: one pass argues the change is correct, a second pass actively tries to break it (wrong tenant, replayed command, back-dated time, overlapping crew, shift midnight, NO DT, a blank code, a long Gujarati string).
 - **Review of reviewers:** each month a sample of merged PRs is re-reviewed by a fresh reviewer. A false pass becomes a ticket against the checklist, not against the author.
 
