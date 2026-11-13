@@ -5,21 +5,21 @@ import { PgBoss, TestClock } from 'pg-boss';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { installJobSchema, withTenant } from '@uptimo/db';
-import { runSlaConsistency } from './sla-consistency.js';
-import { startJobs } from './index.js';
+import { runSlaConsistency } from '../consistency.js';
+import { startJobs } from '../jobs.js';
 import {
   processSlaTimerJob,
   rearmTicket,
   type SlaTimerPayload,
   type SlaTimerProjection,
-} from './sla-timer.js';
+} from '../repo/timers.js';
 
 const A = '70000000-0000-0000-0000-000000000001';
 const TICKET_A = '70000000-0000-0000-0000-000000000002';
 const B = '80000000-0000-0000-0000-000000000001';
 const TICKET_B = '80000000-0000-0000-0000-000000000002';
 const PASSWORD = 'sla-jobs-test-password';
-const MIGRATIONS = new URL('../../../../packages/db/migrations/', import.meta.url);
+const MIGRATIONS = new URL('../../../../../../packages/db/migrations/', import.meta.url);
 const START = new Date('2026-01-01T09:00:00Z');
 
 let container: StartedPostgreSqlContainer;

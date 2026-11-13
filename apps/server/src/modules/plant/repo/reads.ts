@@ -24,3 +24,11 @@ export async function machinesByIds(
     )
   ).rows;
 }
+
+export async function shiftWindows(tx: Db): Promise<Record<string, unknown>[]> {
+  return (
+    await tx.query(
+      'SELECT code, starts_at::text, ends_at::text, crosses_midnight FROM shift ORDER BY code',
+    )
+  ).rows;
+}

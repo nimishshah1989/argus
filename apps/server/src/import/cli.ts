@@ -1,7 +1,6 @@
 import { readFileSync, statSync } from 'node:fs';
 import { createPool } from '../kernel/index.js';
-import { startJobs } from '../jobs/index.js';
-import { reconcileTicket } from '../ticket/sla.js';
+import { startJobs, reconcileTicket } from '../modules/accountability/index.js';
 import type { PgBoss } from 'pg-boss';
 import { resolveTenant } from '../tenant.js';
 import { IMPORT_LIMITS } from './json.js';

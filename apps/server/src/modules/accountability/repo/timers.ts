@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
-import { jobDb } from './adapter.js';
+import { jobDb } from '../../../kernel/index.js';
 
 export type SlaTimerKind = 'ack' | 'restore';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';

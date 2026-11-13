@@ -6,7 +6,7 @@ import { withTenant } from '@uptimo/db';
 import { requireAuth } from './auth.js';
 import * as tm from './ticket-mapper.js';
 import * as sql from './ticket-sql.js';
-import { projectTicketSla, withSlaProjections } from './sla-projection.js';
+import { projectTicketSla, withSlaProjections } from './modules/accountability/index.js';
 import * as report from './ticket-report.js';
 
 interface ListFilters {

@@ -1,12 +1,12 @@
 import { PgBoss, type Clock, type Queue } from 'pg-boss';
 import type { Pool } from 'pg';
-import { processSlaTimerJob, type SlaTimerPayload } from './sla-timer.js';
+import { processSlaTimerJob, type SlaTimerPayload } from './repo/timers.js';
 import {
   processSlaConsistencyJob,
   type SlaConsistencyPayload,
   type SlaTicketReconciler,
-} from './sla-consistency.js';
-import type { JobRole, JobsHandle } from '../kernel/index.js';
+} from './consistency.js';
+import type { JobRole, JobsHandle } from '../../kernel/index.js';
 
 export type { JobRole, JobsHandle };
 
@@ -119,5 +119,5 @@ export async function startJobs(options: StartJobsOptions): Promise<JobsHandle> 
   };
 }
 
-export { rearmTicket, processSlaTimerJob } from './sla-timer.js';
-export { runSlaConsistency, processSlaConsistencyJob } from './sla-consistency.js';
+export { rearmTicket, processSlaTimerJob } from './repo/timers.js';
+export { runSlaConsistency, processSlaConsistencyJob } from './consistency.js';

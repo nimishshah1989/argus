@@ -1,9 +1,12 @@
 import type { PgBoss } from 'pg-boss';
 import type { PoolClient } from 'pg';
 import { projectSlaTimers, type BusinessCalendar, type SlaPolicy } from '@uptimo/domain';
-import type { SlaPolicy as SlaPolicyReply, SlaProjection, SlaTimer } from '@uptimo/shared';
-import { rearmTicket } from '../jobs/sla-timer.js';
-import { loadEvents, reviveCorrection } from '../ticket-sql.js';
+import type { SlaProjection, SlaTimer } from '@uptimo/shared';
+import { tenantInfo } from '../identity/index.js';
+import { shiftWindows } from '../plant/index.js';
+import { rearmTicket } from './repo/timers.js';
+import { tenantPolicies } from './repo/policies.js';
+import { loadEvents, reviveCorrection } from '../../ticket-sql.js';
 
 interface TicketRow {
   id: string;
@@ -28,18 +31,15 @@ function minutes(value: string): number {
 }
 
 async function loadCalendar(client: PoolClient, tenantId: string): Promise<BusinessCalendar> {
-  const timeZone = (await client.query('SELECT time_zone FROM tenant_info($1)', [tenantId])).rows[0]
-    .time_zone as string;
-  const shifts = await client.query(
-    'SELECT code, starts_at::text, ends_at::text, crosses_midnight FROM shift ORDER BY code',
-  );
+  const timeZone = (await tenantInfo(client, tenantId)).time_zone;
+  const shifts = await shiftWindows(client);
   return {
     timeZone,
-    windows: shifts.rows.map((shift) => ({
-      code: shift.code,
-      startMinute: minutes(shift.starts_at),
-      endMinute: minutes(shift.ends_at),
-      crossesMidnight: shift.crosses_midnight,
+    windows: shifts.map((shift) => ({
+      code: shift.code as string,
+      startMinute: minutes(shift.starts_at as string),
+      endMinute: minutes(shift.ends_at as string),
+      crossesMidnight: shift.crosses_midnight as boolean,
     })),
   };
 }
@@ -89,12 +89,9 @@ async function loadContexts(
     [tenantId, ticketIds],
   );
   if (tickets.rows.length === 0) return contexts;
-  const policies = await client.query<SlaPolicy>(
-    'SELECT id, severity, ack_minutes AS "ackMinutes", restore_minutes AS "restoreMinutes", business_hours_only AS "businessHoursOnly" FROM sla_policy WHERE tenant_id = $1',
-    [tenantId],
-  );
-  const bySeverity = new Map(policies.rows.map((policy) => [policy.severity, policy]));
-  const needsCalendar = policies.rows.some((policy) => policy.businessHoursOnly);
+  const policies = await tenantPolicies(client, tenantId);
+  const bySeverity = new Map(policies.map((policy) => [policy.severity, policy]));
+  const needsCalendar = policies.some((policy) => policy.businessHoursOnly);
   const calendar = needsCalendar ? await loadCalendar(client, tenantId) : undefined;
   const eventsByTicket = await loadEventsByTicket(client, ticketIds);
   for (const row of tickets.rows) {
@@ -252,23 +249,4 @@ export async function reconcileSlaPolicies(
   for (const row of candidates.rows) {
     await reconcileTicket(client, { tenantId, ticketId: row.id, now, boss });
   }
-}
-
-function slaPolicyDto(row: Record<string, unknown>): SlaPolicyReply {
-  return {
-    id: row.id as string,
-    severity: row.severity as SlaPolicyReply['severity'],
-    ackMinutes: row.ack_minutes as number,
-    restoreMinutes: row.restore_minutes as number,
-    businessHoursOnly: row.business_hours_only as boolean,
-  };
-}
-
-export async function loadSlaPolicies(
-  client: Pick<PoolClient, 'query'>,
-): Promise<SlaPolicyReply[]> {
-  const rows = await client.query(
-    'SELECT id, severity, ack_minutes, restore_minutes, business_hours_only FROM sla_policy ORDER BY severity',
-  );
-  return rows.rows.map(slaPolicyDto);
 }

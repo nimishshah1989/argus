@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
 import { withTenant } from '../../kernel/index.js';
 // Accepted exception: SLA policies belong to accountability; ticket 04 removes this import.
-import { loadSlaPolicies } from '../../ticket/sla.js';
+import { loadSlaPolicies } from '../accountability/index.js';
 import { listPeople, tenantInfo } from '../identity/index.js';
 import { loadPlantRows } from './repo/config.js';
 

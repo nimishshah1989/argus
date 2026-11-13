@@ -20,7 +20,7 @@ describe('boundaries check', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
   });
 
-  it('keeps the LEGACY baseline at the 7-file snapshot, so it can only shrink', () => {
+  it('keeps the LEGACY baseline at the 6-file snapshot, so it can only shrink', () => {
     expect(Object.keys(LEGACY).sort()).toEqual(
       [
         'import/references.ts',
@@ -28,7 +28,6 @@ describe('boundaries check', () => {
         'ticket-report.ts',
         'ticket-sql.ts',
         'ticket/severity.ts',
-        'ticket/sla.ts',
         'tickets.ts',
       ].map((file) => `${SRC}/${file}`),
     );

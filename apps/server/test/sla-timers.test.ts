@@ -5,12 +5,15 @@ import { buildApp } from '../src/app.js';
 import type { AppConfig } from '../src/config.js';
 import type { PgBoss } from 'pg-boss';
 import { startTestDb, type TestDb } from './harness.js';
-import { processSlaTimerJob, type SlaTimerPayload } from '../src/jobs/sla-timer.js';
-import { reconcileSlaPolicies, reconcileTicket } from '../src/ticket/sla.js';
+import {
+  processSlaTimerJob,
+  type SlaTimerPayload,
+} from '../src/modules/accountability/repo/timers.js';
+import { reconcileSlaPolicies, reconcileTicket } from '../src/modules/accountability/sla.js';
 import { lockRefCounter } from '../src/ticket-sql.js';
 import { jobDb } from '../src/jobs/adapter.js';
 import { withTenant } from '@uptimo/db';
-import { runSlaConsistency } from '../src/jobs/sla-consistency.js';
+import { runSlaConsistency } from '../src/modules/accountability/consistency.js';
 
 const TENANT = '60000000-0000-0000-0000-000000000001';
 const MACHINE = '60000000-0000-0000-0000-000000000002';

@@ -4,13 +4,14 @@ import type { PgBoss } from 'pg-boss';
 import { apiError, machineCriticalitySchema, slaPoliciesUpdateSchema } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { computeSeverity } from '@uptimo/domain';
-import { loadSeverityMatrix } from './ticket/severity.js';
-import { reconcileSlaPolicies } from './ticket/sla.js';
-import { lockRefCounter } from './ticket-sql.js';
-import { requireAuth } from './auth.js';
-import type { AppConfig } from './config.js';
-import { audit } from './modules/ops/index.js';
-import { canWrite, forbidden, hasShifts, setMachineCriticality } from './modules/plant/index.js';
+import { loadSeverityMatrix } from '../../ticket/severity.js';
+import { reconcileSlaPolicies } from './sla.js';
+import { currentPolicies, upsertPolicy } from './repo/policies.js';
+import { lockRefCounter } from '../../ticket-sql.js';
+import { requireAuth } from '../identity/index.js';
+import type { AppConfig } from '../../kernel/index.js';
+import { audit } from '../ops/index.js';
+import { canWrite, forbidden, hasShifts, setMachineCriticality } from '../plant/index.js';
 
 function unchangedPolicies(
   before: Record<string, unknown>[],
@@ -51,24 +52,7 @@ async function upsertSlaPolicies(
   },
 ): Promise<void> {
   const { tenantId, loginId, before, policies } = input;
-  for (const policy of policies) {
-    await client.query(
-      `INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes, business_hours_only)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (tenant_id, severity) DO UPDATE SET
-         ack_minutes = EXCLUDED.ack_minutes,
-         restore_minutes = EXCLUDED.restore_minutes,
-         business_hours_only = EXCLUDED.business_hours_only,
-         updated_at = now()`,
-      [
-        tenantId,
-        policy.severity,
-        policy.ackMinutes,
-        policy.restoreMinutes,
-        policy.businessHoursOnly,
-      ],
-    );
-  }
+  for (const policy of policies) await upsertPolicy(client, tenantId, policy);
   await audit.record(client, {
     tenantId,
     loginId,
@@ -104,10 +88,8 @@ async function putSlaPolicies(
         return;
       }
     }
-    const before = await client.query(
-      'SELECT severity, ack_minutes, restore_minutes, business_hours_only FROM sla_policy ORDER BY severity',
-    );
-    const unchanged = unchangedPolicies(before.rows, policies);
+    const before = await currentPolicies(client);
+    const unchanged = unchangedPolicies(before, policies);
     if (unchanged) {
       reply.send({ ok: true });
       return;
@@ -115,7 +97,7 @@ async function putSlaPolicies(
     await upsertSlaPolicies(client, {
       tenantId: ctx.tenantId,
       loginId: ctx.loginId,
-      before: before.rows,
+      before,
       policies,
     });
     await reconcileSlaPolicies(client, ctx.tenantId, boss);

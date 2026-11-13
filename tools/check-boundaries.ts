@@ -43,7 +43,6 @@ export const LEGACY: Baseline = {
   'apps/server/src/ticket-report.ts': ['person', 'shift', 'tenant_info'],
   'apps/server/src/ticket-sql.ts': ['list_item', 'person'],
   'apps/server/src/ticket/severity.ts': ['machine', 'setting'],
-  'apps/server/src/ticket/sla.ts': ['shift', 'tenant_info'],
   'apps/server/src/tickets.ts': ['machine'],
 };
 

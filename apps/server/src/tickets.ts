@@ -18,8 +18,8 @@ import {
   loadSeverityMatrix,
   refreshSeverity,
 } from './ticket/severity.js';
-import { projectTicketSla, withSlaProjections } from './sla-projection.js';
-import { reconcileTicket } from './ticket/sla.js';
+import { projectTicketSla, withSlaProjections } from './modules/accountability/index.js';
+import { reconcileTicket } from './modules/accountability/index.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;

@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
-import { loadSlaProjections } from './ticket/sla.js';
+import { loadSlaProjections } from './sla.js';
 
-export { projectTicketSla } from './ticket/sla.js';
+export { projectTicketSla } from './sla.js';
 
 /** Attach one batch of SLA projections to ticket rows without per-card queries. */
 export async function withSlaProjections(
