@@ -22,7 +22,7 @@ pg() { docker run --rm --user "$(id -u):$(id -g)" -e PGSSLMODE=require -e DBURL 
 # empty tables. Stop instead of storing a backup that looks complete and is not.
 ok="$(pg sh -c 'psql "$DBURL" -Atc "select rolsuper or rolbypassrls from pg_roles where rolname = current_user"')"
 if [ "$ok" != "t" ]; then
-  echo "STOP: this login is subject to row security; a dump from it would be incomplete. Nothing was uploaded."
+  echo "STOP: this login is subject to row security; a dump from it would be incomplete. Nothing was uploaded. The point-in-time restore (infra/RESTORE.md, Drill A) does not depend on this."
   exit 1
 fi
 

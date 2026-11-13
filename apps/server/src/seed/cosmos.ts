@@ -107,6 +107,8 @@ export async function seedCosmos(
       language: 'gu',
       timeZone: 'Asia/Kolkata',
     });
+    // Row security filters every login but a superuser, the database owner on RDS included: name the tenant.
+    await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
     const segmentIds = await insertSegments(client, tenantId, SEGMENT_CODES);
     await insertMachines(client, tenantId, segmentIds, seed.machines);
     await insertPeople(client, tenantId, seed.people, passwordHash);

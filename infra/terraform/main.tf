@@ -228,6 +228,7 @@ resource "aws_db_instance" "postgres" {
   # Point-in-time restore to any second inside this window (ticket 14). Was 7; 14 days covers a fortnight's
   # unnoticed mistake for a few cents. Applies without a restart.
   backup_retention_period = 14
+  apply_immediately       = true # only this one setting changes in this apply; a longer window needs no restart
   skip_final_snapshot     = false
   tags                    = { Name = "${var.app}-postgres" }
 }

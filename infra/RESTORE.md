@@ -19,8 +19,11 @@ also the test of this page.** Where a step says "unverified", paste the exact ou
 2. `gh variable set BACKUP_BUCKET --body "$(../../.tools/bin/terraform output -raw backup_bucket)"`
 3. `gh workflow run backup.yml`, then `gh run watch`. Success ends with a line
    `dump ok: s3://uptimo-xxxx-backups/dumps/uptimo-<date>.dump (<bytes> bytes)`.
-4. If it says `STOP: this login is subject to row security`, do not rely on backups; send the line back. (Unverified: whether
-   the RDS master login is exempt from row security. The dump script refuses to store an empty-looking dump instead of guessing.)
+4. If it says `STOP: this login is subject to row security`, the weekly dump cannot work with the master login; send the line back.
+   Measured on a plain Postgres 16 with a non-superuser owner: `pg_dump` fails with "query would be affected by row-level
+   security policy", so the script stops instead of storing a partial file. **Unverified: whether RDS's master login is exempt.**
+   The point-in-time restore (Drill A) does not depend on it. If the dump is blocked, the decision (for the orchestrator, not Nimish) is
+   between a per-table `NO FORCE ROW LEVEL SECURITY` window during the dump, an RDS snapshot export to S3, or point-in-time only.
 
 ## 1. Drill A: restore the database to a point in time
 

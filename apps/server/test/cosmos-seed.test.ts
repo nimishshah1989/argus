@@ -214,6 +214,30 @@ describe('cosmos real plant seed', () => {
     await expect(seedCosmos(db.admin, paths)).resolves.toBeTruthy();
   });
 
+  it('seeds as a login that row security applies to, as the database owner on RDS is', async () => {
+    // RDS's master login is not a superuser: row security filters it like any role unless the seed names the tenant.
+    await db.admin.query(
+      `DROP ROLE IF EXISTS seed_like;
+       CREATE ROLE seed_like LOGIN PASSWORD 'seed-like-pw' NOSUPERUSER NOBYPASSRLS;
+       GRANT app_user TO seed_like;
+       GRANT SELECT, INSERT, DELETE ON tenant TO seed_like`,
+    );
+    const { Pool } = await import('pg');
+    const pool = new Pool({
+      connectionString: `postgresql://seed_like:seed-like-pw@${db.container.getHost()}:${db.container.getPort()}/${db.container.getDatabase()}`,
+    });
+    try {
+      const report = await seedCosmos(pool, paths);
+      expect(report.counts.machines).toBe(192);
+    } finally {
+      await pool.end();
+    }
+    const n = await one<Record<string, number>>(
+      'SELECT (SELECT count(*) FROM machine)::int AS machines, (SELECT count(*) FROM login)::int AS logins',
+    );
+    expect(n).toEqual({ machines: 192, logins: 26 });
+  });
+
   it('the fake fixture people never seed a shared server', () => {
     expect(() => assertSeedAllowed({ APP_ENV: 'staging' })).toThrow(/SEED_PEOPLE_FILE/);
     expect(() => assertSeedAllowed({ APP_ENV: 'production' })).toThrow(/SEED_PEOPLE_FILE/);
