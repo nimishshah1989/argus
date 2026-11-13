@@ -16,7 +16,7 @@ import {
 import { AdminPanel } from '../components/AdminPanel.js';
 import { canWork, type ActorContext } from '@uptimo/domain';
 import { actorFrom, crewFrom } from '../components/actionSpecs.js';
-import { useTicketCommand } from '../components/useTicketCommand.js';
+import { useCommand } from '../data/index.js';
 import { Facts, ReportCard } from '../components/TicketFacts.js';
 import { ReportPanel } from '../components/ReportForm.js';
 import { ShareButton } from '../components/ShareButton.js';
@@ -181,7 +181,7 @@ export function TicketDetail() {
   });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
-  const { run, error, pending } = useTicketCommand();
+  const { run, error, pending } = useCommand();
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { shareText, waMeUrl, type ShareMode } from '../../../../packages/shared/src/share.js';
-import { api, type Config, type Ticket } from '../api.js';
+import { getBrand, type Config, type Ticket } from '../api.js';
 
 interface Props {
   ticket: Ticket;
@@ -17,7 +17,7 @@ export function ShareButton({ ticket, config, mode = 'short' }: Props) {
   const { t } = useTranslation();
   const brand = useQuery({
     queryKey: ['brand'],
-    queryFn: () => api<{ company: string }>('/api/v1/brand'),
+    queryFn: getBrand,
     staleTime: Infinity,
     retry: false,
   });
