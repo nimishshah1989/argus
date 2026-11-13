@@ -26,7 +26,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 07  | History cannot be lost (cutover migration)        | M0        | todo   | —    |
 | 08  | Real plant in                                     | M0        | todo   | —    |
 | 09  | Real tickets in                                   | M0        | todo   | —    |
-| 10  | One design kit                                    | M0        | todo   | —    |
+| 10  | One design kit                                    | M0        | done   | #TBD |
 | 11  | Page patterns: data, queue, detail, form          | M0        | todo   | —    |
 | 12  | Page patterns: wizard, settings, dashboard, board | M0        | todo   | —    |
 | 13  | Staging live                                      | M0        | todo   | —    |

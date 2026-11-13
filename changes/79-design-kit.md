@@ -1,0 +1,3 @@
+- One design kit: tokens, five components, Lucide icons and the status vocabulary (D19).
+- `/gallery` (development and staging builds) shows the kit at phone width in English and placeholder Gujarati, with two accent options.
+- CI fails on a changed gallery screenshot and on hand styling or raw colours in `faces/`.

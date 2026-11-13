@@ -37,9 +37,9 @@ describe('check-ui', () => {
 
   it('flags a faces screen over 120 lines', () => {
     const lines = (n: number) => Array.from({ length: n }, () => 'const a = 1;').join('\n');
-    expect(
-      check({ 'faces/desk/long.tsx': lines(121), 'faces/desk/ok.tsx': lines(120) }),
-    ).toEqual(['faces/desk/long.tsx: 121 lines (faces limit 120)']);
+    expect(check({ 'faces/desk/long.tsx': lines(121), 'faces/desk/ok.tsx': lines(120) })).toEqual([
+      'faces/desk/long.tsx: 121 lines (faces limit 120)',
+    ]);
   });
 
   it('flags lucide-react outside ui/icon.ts', () => {
