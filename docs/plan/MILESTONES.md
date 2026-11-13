@@ -20,14 +20,14 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 01  | Green, fast main                                  | M0        | done        | #145             |
 | 02  | Module boundaries: expand                         | M0        | done        | #149             |
 | 03  | Module boundaries: contract                       | M0        | done        | #151, #153, #154 |
-| 04  | One contract, reply parts                         | M0        | in progress | —                |
+| 04  | One contract, reply parts                         | M0        | done        | #160             |
 | 05  | Actions and words from the domain                 | M0        | in progress | —                |
 | 06  | Stop destroying history                           | M0        | in progress | —                |
 | 07  | History cannot be lost (cutover migration)        | M0        | in progress | —                |
 | 08  | Real plant in                                     | M0        | done        | #150             |
 | 09  | Real tickets in                                   | M0        | todo        | —                |
 | 10  | One design kit                                    | M0        | done        | #147             |
-| 11  | Page patterns: data, queue, detail, form          | M0        | todo        | —                |
+| 11  | Page patterns: data, queue, detail, form          | M0        | in progress | —                |
 | 12  | Page patterns: wizard, settings, dashboard, board | M0        | todo        | —                |
 | 13  | Staging live                                      | M0        | blocked     | #146             |
 | 14  | Staging holds Cosmos, safe to run                 | M0        | todo        | —                |
