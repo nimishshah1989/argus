@@ -18,7 +18,7 @@ export interface BoardFilter {
 export interface BoardPageProps<Row> {
   title: string;
   resource: Resource<unknown, Row>;
-  /** In display order; every group shows, even at 0. */
+  /** In display order; every group shows, even at 0. Rows whose group is not listed are not shown. */
   groups: BoardGroup[];
   /** A BoardGroup id. */
   groupOf: (row: Row) => string;

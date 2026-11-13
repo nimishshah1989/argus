@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
-import { defineResource, useOnline, type ResourceSpec } from '../data/index.js';
+import { defineResource, idempotencyKey, useOnline, type ResourceSpec } from '../data/index.js';
 import { Button } from '../ui/button.js';
 import { Inline } from '../ui/layout.js';
 import { FormSheet } from './form-sheet.js';
@@ -32,7 +32,7 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   const create = resource.useCreate();
   const update = resource.useUpdate();
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
-  const [sheet, setSheet] = useState<{ row: Row | null } | null>(null);
+  const [sheet, setSheet] = useState<{ row: Row | null; key: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const valuesOf = (row: Row): Record<string, string> =>
     Object.fromEntries(spec.fields.map((f) => [f.name, String(row[f.name] ?? '')]));
@@ -42,7 +42,7 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
     const row = sheet?.row;
     try {
       if (row) await update.mutateAsync({ id: row.id, body: { ...values, active: row.active } });
-      else await create.mutateAsync(values);
+      else await create.mutateAsync({ body: values, idempotencyKey: sheet?.key });
       return true;
     } catch {
       setError(t('kit.crud.error'));
@@ -59,9 +59,56 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   }
   const open = (row: Row | null) => {
     setError(null);
-    setSheet({ row });
+    setSheet({ row, key: idempotencyKey() });
   };
   return { list, items, sheet, setSheet, error, valuesOf, save, toggle, open, create, update };
+}
+
+function CrudTableRow<Row extends CrudRow>(p: {
+  spec: CrudSpec<Row>;
+  row: Row;
+  onEdit: (row: Row) => void;
+  onToggle: (row: Row) => void;
+  busy: boolean;
+}) {
+  const { t } = useTranslation();
+  const { row } = p;
+  const [first, ...others] = p.spec.fields;
+  const name = String(row[first!.name] ?? '');
+  return (
+    <tr className="border-t border-neutral-200">
+      <th scope="row" className="p-2 font-medium">
+        {name}
+      </th>
+      {others.map((f) => (
+        <td key={f.name} className="p-2">
+          {String(row[f.name] ?? '')}
+        </td>
+      ))}
+      <td className="p-2">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>
+      <td className="p-2">
+        <Inline gap={2}>
+          <Button
+            // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
+            variant="secondary"
+            aria-label={t('kit.crud.editRow', { name })}
+            onClick={() => p.onEdit(row)}
+          >
+            {t('kit.crud.edit')}
+          </Button>
+          <Button
+            // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
+            variant="secondary"
+            disabled={p.busy}
+            aria-label={t(row.active ? 'kit.crud.switchOffRow' : 'kit.crud.switchOnRow', { name })}
+            onClick={() => p.onToggle(row)}
+          >
+            {row.active ? t('kit.crud.switchOff') : t('kit.crud.switchOn')}
+          </Button>
+        </Inline>
+      </td>
+    </tr>
+  );
 }
 
 function CrudTable<Row extends CrudRow>(p: {
@@ -72,7 +119,6 @@ function CrudTable<Row extends CrudRow>(p: {
   busy: boolean;
 }) {
   const { t } = useTranslation();
-  const [first, ...others] = p.spec.fields;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-footnote">
@@ -94,30 +140,14 @@ function CrudTable<Row extends CrudRow>(p: {
         </thead>
         <tbody>
           {p.rows.map((row) => (
-            <tr key={row.id} className="border-t border-neutral-200">
-              {}
-              <th scope="row" className="p-2 font-medium">
-                {String(row[first!.name] ?? '')}
-              </th>
-              {others.map((f) => (
-                <td key={f.name} className="p-2">
-                  {String(row[f.name] ?? '')}
-                </td>
-              ))}
-              <td className="p-2">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>
-              <td className="p-2">
-                <Inline gap={2}>
-                  {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
-                  <Button variant="secondary" onClick={() => p.onEdit(row)}>
-                    {t('kit.crud.edit')}
-                  </Button>
-                  {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
-                  <Button variant="secondary" disabled={p.busy} onClick={() => p.onToggle(row)}>
-                    {row.active ? t('kit.crud.switchOff') : t('kit.crud.switchOn')}
-                  </Button>
-                </Inline>
-              </td>
-            </tr>
+            <CrudTableRow
+              key={row.id}
+              spec={p.spec}
+              row={row}
+              onEdit={p.onEdit}
+              onToggle={p.onToggle}
+              busy={p.busy}
+            />
           ))}
         </tbody>
       </table>

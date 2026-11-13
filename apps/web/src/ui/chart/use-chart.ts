@@ -125,13 +125,21 @@ export function useChart(spec: ChartSpec): {
       (echarts) => {
         const el = ref.current;
         if (!live || !el) return;
-        const chart = echarts.init(el, null, { renderer: 'svg' });
-        chart.setOption(chartOption(JSON.parse(key) as ChartSpec, palette(el)));
-        const resize = () => chart.resize();
+        let chart: { setOption(o: unknown): void; resize(): void; dispose(): void } | undefined;
+        try {
+          chart = echarts.init(el, null, { renderer: 'svg' });
+          chart.setOption(chartOption(JSON.parse(key) as ChartSpec, palette(el)));
+        } catch {
+          chart?.dispose();
+          setState('error');
+          return;
+        }
+        const made = chart;
+        const resize = () => made.resize();
         window.addEventListener('resize', resize);
         dispose = () => {
           window.removeEventListener('resize', resize);
-          chart.dispose();
+          made.dispose();
         };
         setState('ready');
       },

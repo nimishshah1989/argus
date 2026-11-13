@@ -12,6 +12,9 @@ export interface GalleryRequest {
   body: unknown;
 }
 
+/** The Idempotency-Key of each POST, in order. */
+export const postKeys: (string | undefined)[] = [];
+
 /** Every call, in order; read by the browser tests. */
 export const requests: GalleryRequest[] = [];
 
@@ -51,7 +54,10 @@ export const machinesTransport: Transport = async (path, init) => {
   const body = (init?.body ? JSON.parse(String(init.body)) : undefined) as Body | undefined;
   requests.push({ method, path, body });
   if (method === 'GET') return { items: rows.map((r) => ({ ...r })), nextCursor: null };
-  if (method === 'POST') return post(body ?? {});
+  if (method === 'POST') {
+    postKeys.push((init?.headers as Record<string, string> | undefined)?.['Idempotency-Key']);
+    return post(body ?? {});
+  }
   if (method === 'PUT') return put(path, body ?? {});
   throw new ApiError('method_not_allowed', 'Not allowed');
 };

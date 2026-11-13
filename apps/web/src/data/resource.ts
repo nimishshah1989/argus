@@ -38,7 +38,7 @@ export interface Resource<TOne, TItem> {
     query?: ListQuery,
   ): UseInfiniteQueryResult<InfiniteData<CursorPage<TItem>, string | undefined>, Error>;
   /** POST path, JSON body; on success awaits invalidateQueries({ queryKey: [key] }). */
-  useCreate(): UseMutationResult<unknown, Error, unknown>;
+  useCreate(): UseMutationResult<unknown, Error, { body: unknown; idempotencyKey?: string }>;
   /** PUT url(id), JSON body; on success awaits invalidateQueries({ queryKey: [key] }). */
   useUpdate(): UseMutationResult<unknown, Error, { id: string; body: unknown }>;
 }
@@ -99,7 +99,8 @@ export function defineResource<TOne = unknown, TItem = never>(
       }),
     useCreate: () =>
       useMutation({
-        mutationFn: (body: unknown) => create(body),
+        mutationFn: (v: { body: unknown; idempotencyKey?: string }) =>
+          create(v.body, { idempotencyKey: v.idempotencyKey }),
         onSuccess: settled(useQueryClient()),
       }),
     useUpdate: () =>

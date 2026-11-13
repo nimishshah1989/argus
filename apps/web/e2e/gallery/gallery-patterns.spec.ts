@@ -312,3 +312,36 @@ test('dashboard: chart colours come from the tokens', async ({ page }) => {
     ).toBeGreaterThanOrEqual(1);
   }
 });
+
+test('crud: the add sheet sends one Idempotency-Key and a retry re-sends the same one', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const crud = page.getByTestId('gallery-crud');
+  await crud.getByRole('button', { name: 'Add', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Code').fill('CNC-07');
+  await dialog.getByLabel('Name').fill('Duplicate');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog.getByRole('alert')).toContainText(SAVE_ERROR);
+  await dialog.getByLabel('Code').fill('MILL-03');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+  const keys = await page.evaluate(
+    (u) => import(/* @vite-ignore */ u).then((m) => m.postKeys),
+    '/src/gallery/crud-data.ts',
+  );
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
+});
+
+test('crud: row buttons are named after the row', async ({ page }) => {
+  await open(page, 'lang=en');
+  const row = crudRow(page, 'LATHE-02');
+  await expect(row.getByRole('button', { name: 'Edit LATHE-02', exact: true })).toBeVisible();
+  await expect(row.getByRole('button', { name: 'Switch off LATHE-02', exact: true })).toBeVisible();
+  await expect(
+    crudRow(page, 'DRILL-01').getByRole('button', { name: 'Switch on DRILL-01', exact: true }),
+  ).toBeVisible();
+});
