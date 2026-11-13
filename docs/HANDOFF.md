@@ -4,47 +4,46 @@ Under 50 lines. Read first, rewrite at session end.
 
 ## RESUME HERE
 
-**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and tickets 01 (#145) and 10 (design kit, D20; PR pending). The only build
-process is pstack (`CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D23, replacing Athena v3). The progress tracker
-in `docs/plan/MILESTONES.md` is the queue.
+**Process:** pstack (`CLAUDE.md`, D23). **Plan:** `docs/plan/MILESTONES.md` (68 tickets; tracker at the top wins).
+**Ledger:** `docs/plan/ledger.md` (every dispatch, ruling and merge, one line each).
 
-- CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
-  Playwright worker (`apps/web/e2e/test.ts`).
-- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR), `pnpm boundaries` (owners, calls and dated exceptions in `apps/server/src/modules/manifest.ts`; SQL on a module's tables only in its `repo.ts` or `repo/`).
+**M0 (14 tickets): 10 merged**: 01, 02, 03, 04, 05, 06, 08, 10, 11, 13 (+ side PRs 01b, 13b, 04b).
+**In flight when this was written** (finish or restart them): 07 (history cannot be lost: schema, 54 tests,
+branch `claude/t07-history-cannot-be-lost`), 12 (page patterns: wizard, settings, dashboard, board; branch
+`claude/t12-page-patterns-more`), a CI-friction fix (auto labels, `pnpm precheck`, 57P01 teardown).
+**Then:** 09 (real tickets in) → 14 (staging holds Cosmos, safe to run) → the M0 gate report
+`docs/plan/gates/M0.md` → Nimish's go → move `ready-for-agent` from M0 to M1 issues.
 
-## Live on main
+## Staging (AWS, account 118167167649, ap-south-1)
 
-- M0 foundation: schema v1 with forced RLS and `app_api`, auth, settings/config, Cosmos seed, walking skeleton.
-- M1a ticket core: domain state/figures/permissions, tickets API, floor/desk, lists and real E2E harness.
-- M1b: report/PDF, live board, PWA/WhatsApp, offline outbox, push, needs-report, day-report, admin, Desk
-  Views, exact cancel time and per-person minutes, synthetic importer with undo.
-- M2: configurable tags (#71), severity matrix (#72), SLA policies and timers (#74).
+- Server `i-0c8debfdec0da8209`, Elastic IP 3.108.95.203, `m6g.large` in zone c (t4g.medium had no capacity),
+  RDS up, site_url `https://cosmos.3-108-95-203.sslip.io`. Nothing answers until the first deploy.
+- First deploy needs: ticket 07 merged (RDS-compatible roles), GitHub secret `AWS_ROLE_ARN` (Nimish, withheld
+  until then), `ROUTER_DATABASE_URL` on the server (ticket 14), a free outside uptime pinger.
 
-## Ticket 05 (in review, branch `claude/t05-actions-words-domain`)
+## Decisions waiting for Nimish at the gate
 
-- Ticket buttons come from `availableActions` (`packages/domain/src/actions.ts`); catalogues live in `packages/shared/src/i18n` (D7). Parity drift: until the server calls `availableActions`, a server rule change must update `packages/domain/test/actions.test.ts` T1. Follow-ups (server accepts what the Spec forbids) are in `docs/slices/05-pr-body.md`.
-- Gujarati is still empty (ticket 24): the `gujarati` e2e project proves only the seed and config.
+- Pick the accent (blue or deep teal) on `/gallery`; review the 31 status labels (copy written by agents).
+- DATA-MAP §5 wording from ticket 07; Q25 default (offboarding proof lives in the audit row, files in the
+  backup bucket); offboarded-tenant stub keeps customer name; billing alarm = existing USD 150 budget.
+- Tag data: existing rows are exported before `ticket_tag` is dropped (07).
 
-## Next
+## Follow-ups logged (not yet tickets)
 
-- Gate: Nimish opens `/gallery` (dev; staging after ticket 13) and picks blue or deep teal before ticket 15.
-- The M0 frontier after 10: 03 (after 02), 08, 13 (MILESTONES "What can run at the same time").
+Server accepts what the Spec forbids (05); make the server call `availableActions`; raise-race 500 → 'already
+open' (15); phones for admins on the people screen (21); `must_change_password` not enforced (21); seed
+fixture mode wipes tenant (14); admin group for switched-off list entries; boundary tool gaps (template
+`import()`, `LOCK`/`COPY`/`TRUNCATE` lists); PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
 
-## Blocked / external inputs
-
-- N1 Bhavin live export and Worker source; N11 real shifts; N12 legacy aliases; N5 Gujarati strings.
-- Production migration needs backup/restore evidence and human security sign-off.
-
-## Parallel rule
-
-One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
+Nimish may merge small PRs when all 8 checks are green (not DB, permissions, tenancy, deletes) and tells the
+orchestrator the number. Agents cannot force-push or delete tests: he deletes test files by hand.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 12:46 UTC on branch `claude/orchestrator-ledger`.
-- cb90f34 docs(plan): ledger — 07 schema-review rulings
-- dcd4cbe docs(plan): ledger — 04 rulings, phone-number privacy finding
-- 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
+Last session ended 2026-11-13 14:04 UTC on branch `claude/orchestrator-ledger`.
+- 4c24791 docs: session notes (hook)
+- 303d079 docs(plan): ledger — #163 merged; one PR at the gate
+- 12fcb1c merge main (ledger PR #163 merged)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->

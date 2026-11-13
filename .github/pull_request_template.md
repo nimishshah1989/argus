@@ -9,7 +9,7 @@
 - [ ] `pnpm test:e2e` green when a screen or server route changed
 - [ ] `docs/spec/parity.yaml` updated for every `apps/` or `packages/` change (or the `no-parity`
       label, or a `No parity: <reason>` line below)
-- [ ] `docs/plan/MILESTONES.md` updated when a shipped slice changes what the product does
+- [ ] `docs/HANDOFF.md` updated when a shipped slice changes what the product does
 - [ ] New migration file (never edit a merged one); `tenant_id` + RLS in the same file
 - [ ] PR under 800 changed lines (or the `size:large` label, or a `Large PR: <reason>` line below)
 

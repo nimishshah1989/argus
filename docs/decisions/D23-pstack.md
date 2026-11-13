@@ -5,7 +5,7 @@ Date: 13 November 2026 · Status: accepted (Nimish) · Supersedes: D18
 ## Decision
 
 pstack (Lauren Tan's plugin in `cursor/plugins`, installed for Claude Code through `.claude/settings.json`)
-runs every build. `CLAUDE.md` holds the loop and the rules; `docs/plan/ORCHESTRATOR.md` holds the ticket loop
+runs every build. `CLAUDE.md` holds the loop and the rules; `CLAUDE.md` also holds the ticket loop
 and the model table; `.claude/rules/pstack-models.md` pins the model per role. Matt Pocock's `grill-with-docs`,
 `to-spec` and `to-tickets` shape new work; `impeccable` designs; Ponytail reviews (`ponytail-review` per PR,
 `ponytail-audit` per milestone). The Athena v3 harness, its six agents and its process documents move to
