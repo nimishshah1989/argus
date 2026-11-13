@@ -35,14 +35,14 @@ BEGIN
 END $$;
 
 -- The nightly retention jobs run one customer at a time under that customer's row security. The application role
--- cannot read `tenant`, so this lists the active customers (id only), as tenants_with_sla_policies() does for SLA.
-CREATE FUNCTION active_tenant_ids()
+-- cannot read `tenant`, so this lists every customer that still holds data, active or suspended (id only), as tenants_with_sla_policies() does for SLA.
+CREATE FUNCTION job_tenant_ids()
 RETURNS TABLE (tenant_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
-  SELECT t.id FROM tenant t WHERE t.status = 'active';
+  SELECT t.id FROM tenant t WHERE t.status <> 'offboarded';
 $$;
-ALTER FUNCTION active_tenant_ids() OWNER TO app_router;
-REVOKE ALL ON FUNCTION active_tenant_ids() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION active_tenant_ids() TO app_user;
+ALTER FUNCTION job_tenant_ids() OWNER TO app_router;
+REVOKE ALL ON FUNCTION job_tenant_ids() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION job_tenant_ids() TO app_user;
 
 COMMIT;

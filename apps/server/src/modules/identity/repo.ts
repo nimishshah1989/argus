@@ -247,3 +247,18 @@ export async function ensurePendingPerson(tx: Db, tenantId: string, name: string
   );
   return inserted.rows[0].id as string;
 }
+
+/** Customers that still hold data (not offboarded): the list a nightly job fans out over. */
+export async function jobTenantIds(pool: Pool): Promise<string[]> {
+  const result = await pool.query('SELECT tenant_id FROM job_tenant_ids()');
+  return result.rows.map((row) => row.tenant_id as string);
+}
+
+/** Retention: sessions dead (expired or revoked, whichever came first) since before `cutoff`. Never a live one. */
+export async function purgeDeadSessions(tx: Db, tenantId: string, cutoff: Date): Promise<number> {
+  const result = await tx.query(
+    'DELETE FROM session WHERE tenant_id = $1 AND LEAST(expires_at, revoked_at) < $2',
+    [tenantId, cutoff],
+  );
+  return result.rowCount ?? 0;
+}

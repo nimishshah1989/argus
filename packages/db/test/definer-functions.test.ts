@@ -662,19 +662,19 @@ describe('offboard_tenant and audit_purge', () => {
   });
 });
 
-describe('active_tenant_ids', () => {
-  it('lists active customers only and is callable by the application role', async () => {
+describe('job_tenant_ids', () => {
+  it('lists customers that still hold data, not offboarded ones, and is callable by the application role', async () => {
     await tenant('60000000-0000-0000-0000-000000000001', 'lister-active');
     await tenant('60000000-0000-0000-0000-000000000002', 'lister-suspended', 'suspended');
     await tenant('60000000-0000-0000-0000-000000000003', 'lister-offboarded', 'offboarded');
     await db.query('BEGIN');
     try {
       await db.query('SET LOCAL ROLE app_api');
-      const ids = (await db.query('SELECT tenant_id FROM active_tenant_ids()')).rows.map(
+      const ids = (await db.query('SELECT tenant_id FROM job_tenant_ids()')).rows.map(
         (r) => r.tenant_id,
       );
       expect(ids).toContain('60000000-0000-0000-0000-000000000001');
-      expect(ids).not.toContain('60000000-0000-0000-0000-000000000002');
+      expect(ids).toContain('60000000-0000-0000-0000-000000000002');
       expect(ids).not.toContain('60000000-0000-0000-0000-000000000003');
     } finally {
       await db.query('ROLLBACK');

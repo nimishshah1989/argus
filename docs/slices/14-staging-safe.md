@@ -26,7 +26,7 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
   `tenant.offboard`. Migration `0010` replaces the function so it skips those two actions; ordinary rows only.
   0010 changes a function and adds a function; it alters and deletes no data, so no extra backup step beyond the
   first-deploy snapshot that 0009 already needs. Revert file included.
-- **One new function `active_tenant_ids()`** (executable by the app role) lists active customers so a nightly job can
+- **One new function `job_tenant_ids()`** (executable by the app role) lists customers that still hold data (not offboarded) so a nightly job can
   fan out per customer; the app role cannot read `tenant`. Same pattern as `tenants_with_sla_policies()`. No table.
 - **Retention rules (all counted from the row's own date, never from "now minus X" alone):**
 

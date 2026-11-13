@@ -14,3 +14,4 @@ export {
   parseCliArgs,
   type CliCommand,
 } from './security.js';
+export { stripOldImportPayloads } from './repo.js';

@@ -1,7 +1,7 @@
--- Revert of 0010_retention_support.sql (ticket 14). destructive-approved: drops only active_tenant_ids and puts the 0009 body back.
+-- Revert of 0010_retention_support.sql (ticket 14). destructive-approved: drops only job_tenant_ids and puts the 0009 body back.
 -- backup: none needed; no table is touched.
 BEGIN;
-DROP FUNCTION active_tenant_ids();
+DROP FUNCTION job_tenant_ids();
 CREATE OR REPLACE FUNCTION audit_purge(p_older_than timestamptz, p_operator text) RETURNS bigint
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE n bigint;

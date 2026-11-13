@@ -2,6 +2,8 @@ import { defineModule } from '../../kernel/index.js';
 import { registerTickets } from './routes.js';
 
 export { figuresFromRow } from './mapper.js';
+export { figureDrift, type DriftLine } from './drift.js';
+export { purgeIdempotencyKeys } from './repo/idempotency.js';
 export { loadEvents, lockRefCounter, reviveCorrection } from './repo/ticket.js';
 export { loadReport, type StoredReport } from './repo/report.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
