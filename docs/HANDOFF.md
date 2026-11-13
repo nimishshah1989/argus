@@ -51,12 +51,9 @@ not a route check.
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
 
 <!-- facts: written by the session-end hook -->
-
-Last session ended 2026-11-13 06:43 UTC on branch `claude/orchestrator-ledger`.
-
-- 7011fa3 docs(plan): ledger — issue map and PR #144
-- a2c830d docs(plan): ledger — dispatch ticket 01
-- 05095e1 docs(plan): start the M0 orchestrator ledger
-  Uncommitted files: 0
-
+Last session ended 2026-11-13 06:54 UTC on branch `claude/orchestrator-ledger`.
+- b21370f docs(plan): ledger — format ruling
+- 6520cc3 docs: format session-end facts for prettier
+- 0e63c9e docs: session-end facts and log line
+Uncommitted files: 0
 <!-- end facts -->

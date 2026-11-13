@@ -39,3 +39,4 @@
 2026-11-12 — Build coder switched to the hosted free route (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`) after a full harness gate: 1-word probe 1.7 s, fixture A 40 s/4 calls, B 22 s/6, C 40 s/10, real microtask (shared-login E2E) PASS after one review FAIL and fix. Contract updated in `docs/orchestration.yaml`, `docs/ORCHESTRATION.md` §10, AGENTS/BUILD-PROTOCOL/REVIEW/SKILLS; the route needs the `llm-pi-ai/openrouter` credential record and a real dispatch probe (`list_subagent_models` is not a route check).
 
 - 2026-11-13 06:43 UTC session c23c2255 on `claude/orchestrator-ledger`: 7011fa3 docs(plan): ledger — issue map and PR #144
+- 2026-11-13 06:54 UTC session c23c2255 on `claude/orchestrator-ledger`: b21370f docs(plan): ledger — format ruling
