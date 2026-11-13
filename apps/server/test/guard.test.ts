@@ -105,12 +105,15 @@ describe('auth guard', () => {
 
   it('still rate-limits before the guard answers', async () => {
     const limited = await build(1);
-    await limited.ready();
-    const get = () => limited.inject({ method: 'GET', url: '/api/v1/auth/me' });
-    expect((await get()).statusCode).toBe(401);
-    const second = await get();
-    expect(second.statusCode).toBe(429);
-    expect(second.json().error.code).toBe('rate_limited');
-    await limited.close();
+    try {
+      await limited.ready();
+      const get = () => limited.inject({ method: 'GET', url: '/api/v1/auth/me' });
+      expect((await get()).statusCode).toBe(401);
+      const second = await get();
+      expect(second.statusCode).toBe(429);
+      expect(second.json().error.code).toBe('rate_limited');
+    } finally {
+      await limited.close();
+    }
   });
 });

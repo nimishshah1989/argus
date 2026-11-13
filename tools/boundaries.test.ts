@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { boundaryErrors, sqlLiterals, tablesNamed } from './check-boundaries.js';
+import { LEGACY, boundaryErrors, sqlLiterals, tablesNamed } from './check-boundaries.js';
 
 const SRC = 'apps/server/src';
 
@@ -18,6 +18,23 @@ function plant(files: Record<string, string>): string {
 describe('boundaries check', () => {
   it('passes the server tree', () => {
     expect(boundaryErrors(process.cwd())).toEqual([]);
+  });
+
+  it('keeps the LEGACY baseline at the 10-file snapshot, so it can only shrink', () => {
+    expect(Object.keys(LEGACY).sort()).toEqual(
+      [
+        'day-report.ts',
+        'import/references.ts',
+        'push.ts',
+        'reports.ts',
+        'tag-sql.ts',
+        'ticket-report.ts',
+        'ticket-sql.ts',
+        'ticket/severity.ts',
+        'ticket/sla.ts',
+        'tickets.ts',
+      ].map((file) => `${SRC}/${file}`),
+    );
   });
 
   it.each([

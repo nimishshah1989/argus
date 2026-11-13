@@ -32,6 +32,7 @@ export async function buildApp(config: AppConfig) {
   config.jobBoss = jobs.boss;
   const app = Fastify({ logger: config.logger ?? false });
   app.addHook('onClose', async () => jobs.close());
+  // The guard must stay registered before any route: a route added earlier escapes it.
   registerAuthGuard(app, (token) => authenticate(config.pool, token));
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   app.get('/api/v1/health', async () => ({ status: 'ok' }));
