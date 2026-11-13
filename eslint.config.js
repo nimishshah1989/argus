@@ -17,7 +17,10 @@ function serverBoundaries() {
       ],
     ],
     ['kernel/*.ts', [[String.raw`^\.\./`, LEAVES]]],
-    ['seed/*.ts', [[String.raw`^\.\./(?!(?:kernel|modules/[^/]+)/index\.js$)`, ONLY_INDEX]]],
+    [
+      'seed/*.ts',
+      [[String.raw`^\.\./(?!(?:kernel/index|modules/[^/]+/(?:index|seed))\.js$)`, ONLY_INDEX]],
+    ],
     [
       'modules/*.ts',
       [

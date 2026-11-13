@@ -34,5 +34,6 @@ describe('eslint module boundaries', () => {
     const seed = 'apps/server/src/seed/a.ts';
     expect(await lint(seed, from('../modules/plant/repo/config.js'))).toBe(1);
     expect(await lint(seed, from('../modules/plant/index.js'))).toBe(0);
+    expect(await lint(seed, from('../modules/plant/seed.js'))).toBe(0);
   });
 });

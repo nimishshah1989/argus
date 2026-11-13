@@ -15,7 +15,7 @@ import {
   insertSegments,
   insertSettings,
   insertShifts,
-} from '../modules/plant/index.js';
+} from '../modules/plant/seed.js';
 import { initRefCounters } from '../modules/tickets/index.js';
 import { buildSeed, type SeedFiles } from './cosmos-data.js';
 

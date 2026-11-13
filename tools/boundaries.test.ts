@@ -114,6 +114,10 @@ describe('boundaries check', () => {
     'SELECT 1 FROM widget w, (SELECT 1 FROM person) x',
     'SELECT 1 FROM widget w, LATERAL (SELECT 1 FROM person WHERE true) x',
     'SELECT 1 FROM person p, f(g(1)) x',
+    'DELETE FROM widget USING person WHERE true',
+    'TRUNCATE person',
+    'TRUNCATE TABLE person',
+    'LOCK TABLE person IN SHARE MODE',
   ])('names a table in every FROM form: %s', (sql) => {
     const file = `${SRC}/modules/reports/x.ts`;
     expect(boundaryErrors(plant({ [file]: `q('${sql}');` }), {})).toEqual([
@@ -129,6 +133,14 @@ describe('boundaries check', () => {
       "import type { X } from '../plant/repo.js';",
     ])
       expect(importErrors(plant({ [file]: text }), [])).toEqual([error]);
+  });
+
+  it('fails a dynamic import of another module', () => {
+    const file = `${SRC}/modules/reports/a.ts`;
+    const root = plant({ [file]: "const x = await import('../plant/repo.js');" });
+    expect(importErrors(root, [])).toEqual([
+      `${file}: imports ${SRC}/modules/plant/repo.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
+    ]);
   });
 
   it('fails a kernel-internal import', () => {
@@ -184,6 +196,12 @@ describe('boundaries check', () => {
     const inner = plant({ [seed]: "import { x } from '../modules/plant/repo/config.js';" });
     expect(importErrors(inner, [])).toEqual([
       `${seed}: imports ${SRC}/modules/plant/repo/config.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
+    ]);
+    const seedEntry = plant({ [seed]: "import { x } from '../modules/plant/seed.js';" });
+    expect(importErrors(seedEntry, [])).toEqual([]);
+    const fromModule = `${SRC}/modules/reports/a.ts`;
+    expect(importErrors(plant({ [fromModule]: "import '../plant/seed.js';" }), [])).toEqual([
+      `${fromModule}: imports ${SRC}/modules/plant/seed.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
     ]);
     const module = `${SRC}/modules/plant/a.ts`;
     expect(importErrors(plant({ [module]: "import '../../seed/cosmos.js';" }), [])).toEqual([

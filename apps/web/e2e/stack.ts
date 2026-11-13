@@ -46,7 +46,7 @@ type Argon2 = {
   ): Promise<string>;
 };
 
-/** Argon2id options matching apps/server/src/auth.ts; loaded from the server's own dependency. */
+/** Argon2id options matching apps/server/src/modules/identity/routes.ts; loaded from the server's own dependency. */
 function hashPassword(): Promise<string> {
   const requireFromServer = createRequire(resolve(ROOT, 'apps/server/package.json'));
   const argon2 = requireFromServer('@node-rs/argon2') as Argon2;
