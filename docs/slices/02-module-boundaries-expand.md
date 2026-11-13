@@ -181,7 +181,7 @@ module only through its `index.js`.
 | `apps/server/test/guard.test.ts` (new)       | G1–G6.                                                                                                                                   |
 | `package.json`                               | Add `"boundaries": "tsx tools/check-boundaries.ts"`; `audit:lean` becomes `pnpm size && pnpm deps && pnpm shortcuts && pnpm boundaries`. |
 | `changes/77-module-boundaries-expand.md`     | New fragment, text in §6.                                                                                                                |
-| `docs/plan/MILESTONES.md`                    | Row 02 becomes `\| 02  \| Module boundaries: expand \| M0 \| done \| #<n> \|` (prettier aligns).                                         |
+| `docs/plan/MILESTONES.md`                    | Not edited: the orchestrator keeps the progress tracker (ruling of 13 Nov).                                                              |
 | `wiki/log.md`                                | Append one line (§6).                                                                                                                    |
 | `docs/HANDOFF.md`                            | The "Guards" bullet and the "Next" bullet (§6).                                                                                          |
 | `docs/slices/02-module-boundaries-expand.md` | §8 Evidence, filled by the builder.                                                                                                      |
@@ -631,9 +631,9 @@ schema, migration, web, infra or deploy change.
 
 - B1–B7 red then green: red (`check-boundaries` missing, then B1 red on dropped LEGACY entries in tasks 3 and 5), then `tools/boundaries.test.ts` 9 passed (the B2 `it.each` counts three).
 - G1/G2 red (task 4, before wiring: `routeTable is not a function`, 6 skipped) then G1–G6 green: `guard.test.ts` 6 passed.
-- R1 full vitest run after tasks 2, 3, 4, 5: not run by the builder (DB-backed suite left to the orchestrator); `git diff --name-status origin/main -- apps/server/test` shows only `A apps/server/test/guard.test.ts`.
+- R1 full API suite (`apps/server` + `packages/db`), run by the orchestrator-side session before push: 352 passed (36 files) on the second run; the first run had one failure plus a teardown connection error, not captured. `git diff --name-status origin/main -- apps/server/test` shows only `A apps/server/test/guard.test.ts`.
 - R2 planted `pnpm boundaries` output (exit 1): `boundaries: apps/server/src/modules/plant/routes.ts: SQL names person (owned by identity); only apps/server/src/modules/identity/repo.ts may`; clean (exit 0): `boundaries: 69 files scanned, 0 problem(s)`.
-- R3 `pnpm verify` and `pnpm test:e2e`: left to the orchestrator.
+- R3 browser smoke (tenant, floor, desk, admin; chromium + phone): 10 passed locally. Full `pnpm verify` and the full browser suite were not run locally; CI results are pending (Actions had no runners when the PR opened). `PlantRows` is a named return type in `plant/repo.ts` (same shape as above).
 - Fast tests: 23 files, 197 tests passed before and after (about 2 s).
 
 ## 9. Open questions
