@@ -43,4 +43,5 @@
 2026-11-13 — Ticket 03a Module boundaries: contract (part of #81): server code moved into nine modules (ops, identity, plant, files, notifications, tickets, accountability, reports, imports) reached only through index.ts; `modules/manifest.ts` holds owners, calls and dated exceptions; pnpm boundaries and ESLint fail a crossing; workspace exports replace path aliases; LEGACY baseline empty.
 2026-11-13 — Ticket 03c Domain registries and isolation (#81, part): ticket commands and permissions are one file each behind a registry; the isolation test finds tenant tables from the catalogue and fails on a table outside D17's 40.
 2026-11-13 — Ticket 03b Module boundaries: contract (part of #81): tickets and imports own their tables in the manifest; every cross-module statement on them moved behind published repo functions (sla, severity, history, list, imported, seed; imports/repo.ts). pnpm boundaries: 0 problems with full ownership.
+
 - 2026-11-13 10:21 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
