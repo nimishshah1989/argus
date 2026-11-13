@@ -5,7 +5,8 @@
 --   \copy ticket_tag FROM 'ticket_tag-<utc>.csv' WITH (FORMAT csv, HEADER)
 -- Not reverted, on purpose: app_router stays without BYPASSRLS and keeps its router_definer policies on
 -- login, session and sla_policy, which auth_lookup and tenants_with_sla_policies now depend on.
--- Refuses to run once support access has been used under the new rules: restore the snapshot instead.
+-- Refuses to run once support access has been used under the new rules or a customer has been offboarded:
+-- restore the snapshot instead.
 
 BEGIN;
 
@@ -14,7 +15,8 @@ DO $$
 DECLARE t text;
 BEGIN
   FOR t IN SELECT unnest(ARRAY['person', 'login', 'ticket', 'ticket_event', 'crew_member', 'work_segment',
-    'breakdown_report', 'breakdown_report_person', 'file', 'audit_log', 'platform_access', 'list_item'])
+    'breakdown_report', 'breakdown_report_person', 'file', 'audit_log', 'platform_access', 'list_item',
+    'machine'])
   LOOP
     EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', t);
   END LOOP;
@@ -26,12 +28,18 @@ BEGIN
     OR EXISTS (SELECT 1 FROM platform_access WHERE approved_by_login_id IS NOT NULL) THEN
     RAISE EXCEPTION 'Revert stopped: support-access approvals or audit links would be lost. Restore the snapshot instead.';
   END IF;
+  IF EXISTS (SELECT 1 FROM tenant WHERE status = 'offboarded') THEN
+    RAISE EXCEPTION 'Revert stopped: an offboarded customer''s record would be lost. Restore the snapshot instead.';
+  END IF;
 END $$;
 
-DROP FUNCTION import_undo(uuid);
-DROP FUNCTION erase_person(uuid, text);
-DROP FUNCTION offboard_tenant(uuid, text, text);
-DROP FUNCTION audit_purge(timestamptz);
+DROP FUNCTION import_undo(uuid, text);
+DROP FUNCTION erase_person(uuid, text, text);
+DROP FUNCTION erase_json_values(jsonb, text);
+DROP FUNCTION offboard_tenant(uuid, text, text, text);
+DROP FUNCTION audit_purge(timestamptz, text);
+DROP TRIGGER platform_access_guard ON platform_access;
+DROP FUNCTION platform_access_guard();
 
 DO $$
 DECLARE t text;
@@ -48,11 +56,14 @@ END $$;
 REVOKE ALL ON push_subscription, ticket, ticket_event, work_segment, crew_member, breakdown_report,
   breakdown_report_person, file, import_batch, import_row, audit_log, command_idempotency FROM app_router;
 REVOKE UPDATE, DELETE ON person, login, session FROM app_router;
-REVOKE DELETE ON tenant FROM app_router;
+REVOKE INSERT, DELETE ON tenant FROM app_router;
+ALTER TABLE tenant
+  DROP CONSTRAINT tenant_status_check,
+  ADD CONSTRAINT tenant_status_check CHECK (status IN ('active', 'suspended'));
 
 GRANT UPDATE, DELETE ON ticket_event TO app_user;
 GRANT DELETE ON ticket, work_segment, crew_member, breakdown_report, breakdown_report_person,
-  list_item, login, person TO app_user;
+  list_item, login, person, machine, machine_move, file TO app_user;
 
 DROP INDEX ticket_open_breakdown_unique, ticket_event_actor_idx, work_segment_person_idx,
   ticket_reporter_idx, ticket_reported_idx;
@@ -65,11 +76,13 @@ ALTER TABLE platform_access
   DROP CONSTRAINT platform_access_tenant_id_unique,
   DROP COLUMN approved_by_login_id,
   ALTER COLUMN expires_at DROP NOT NULL;
--- Put back each expiry 0009 changed, from the trace it left. The trace rows stay.
+-- Put back each expiry 0009 changed, from the latest trace it left. The trace rows stay.
 UPDATE platform_access pa SET expires_at = (a.before ->> 'expires_at')::timestamptz, updated_at = now()
-FROM audit_log a
-WHERE a.action = 'migration.0009.platform_access_expiry' AND a.entity_id = pa.id
-  AND a.tenant_id = pa.tenant_id;
+FROM (
+  SELECT DISTINCT ON (entity_id) tenant_id, entity_id, before FROM audit_log
+  WHERE action = 'migration.0009.platform_access_expiry' ORDER BY entity_id, at DESC, created_at DESC
+) a
+WHERE a.entity_id = pa.id AND a.tenant_id = pa.tenant_id;
 
 ALTER TABLE login
   DROP CONSTRAINT login_person_id_fkey,
@@ -83,6 +96,7 @@ ALTER TABLE ticket
   DROP CONSTRAINT ticket_assigned_to_person_id_fkey,
   DROP CONSTRAINT ticket_closed_by_person_id_fkey,
   DROP CONSTRAINT ticket_parent_id_fkey,
+  DROP CONSTRAINT ticket_machine_id_fkey,
   ADD CONSTRAINT ticket_reported_by_person_id_fkey FOREIGN KEY (reported_by_person_id) REFERENCES person(id) ON DELETE SET NULL,
   ADD CONSTRAINT ticket_raised_login_id_fkey FOREIGN KEY (raised_login_id) REFERENCES login(id) ON DELETE SET NULL,
   ADD CONSTRAINT ticket_lead_person_id_fkey FOREIGN KEY (lead_person_id) REFERENCES person(id) ON DELETE SET NULL,
@@ -90,7 +104,8 @@ ALTER TABLE ticket
   ADD CONSTRAINT ticket_paused_by_person_id_fkey FOREIGN KEY (paused_by_person_id) REFERENCES person(id) ON DELETE SET NULL,
   ADD CONSTRAINT ticket_assigned_to_person_id_fkey FOREIGN KEY (assigned_to_person_id) REFERENCES person(id) ON DELETE SET NULL,
   ADD CONSTRAINT ticket_closed_by_person_id_fkey FOREIGN KEY (closed_by_person_id) REFERENCES person(id) ON DELETE SET NULL,
-  ADD CONSTRAINT ticket_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES ticket(id) ON DELETE SET NULL;
+  ADD CONSTRAINT ticket_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES ticket(id) ON DELETE SET NULL,
+  ADD CONSTRAINT ticket_machine_id_fkey FOREIGN KEY (machine_id) REFERENCES machine(id) ON DELETE SET NULL;
 ALTER TABLE ticket_event
   DROP CONSTRAINT ticket_event_ticket_id_fkey,
   DROP CONSTRAINT ticket_event_login_id_fkey,
@@ -152,7 +167,8 @@ DO $$
 DECLARE t text;
 BEGIN
   FOR t IN SELECT unnest(ARRAY['person', 'login', 'ticket', 'ticket_event', 'crew_member', 'work_segment',
-    'breakdown_report', 'breakdown_report_person', 'file', 'audit_log', 'platform_access', 'list_item'])
+    'breakdown_report', 'breakdown_report_person', 'file', 'audit_log', 'platform_access', 'list_item',
+    'machine'])
   LOOP
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
   END LOOP;

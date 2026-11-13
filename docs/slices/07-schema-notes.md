@@ -1,29 +1,30 @@
 # Ticket 07 — History cannot be lost: schema design notes
 
-GitHub #85 · Architect draft for the `schema-reviewer` · ARCHITECTURE §9 items 21, 24, 25, 27, 31, 33 · D23.
+GitHub #85 · Architect draft for the `schema-reviewer`, revised after its first review (§13) · ARCHITECTURE §9 items 21, 24, 25, 27, 31, 33 · D23.
 Draft files: `packages/db/migrations/0009_history_cannot_be_lost.sql` and
 `packages/db/migrations/down/0009_history_cannot_be_lost.down.sql`. No app code, test or script is written here;
 §9 and §10 say what the slice plan must name.
 
 **Number.** `0009`, because open PR #158 holds `0008_ai_suggestion.sql`. The runner applies by name and skips
-what its ledger holds, so either merge order works. Neither file depends on the other (see open question 3).
+what its ledger holds, so either merge order works. Neither file depends on the other (see open question 5).
 
-**No new table.** `ticket_tag` goes: 29 tables become 28, as D17 counts. Nothing here needed a table.
+**No new table.** `ticket_tag` goes: 29 tables become 28, as D17 counts. Nothing here needed a table, including the offboarding record (§7).
 
 ## 1. What the migration does, in order
 
-| Part | Change                                                                                                            |
-| ---- | ----------------------------------------------------------------------------------------------------------------- |
-| top  | `SET LOCAL row_security = off`; FORCE lifted on the 12 tables the file reads, rewrites or re-validates (D23 pt 5) |
-| 1    | Two guards that stop everything: unexported tags; more than one open breakdown on a machine                       |
-| 2    | `app_router` loses BYPASSRLS where it has it                                                                      |
-| 3    | `DROP TABLE ticket_tag`                                                                                           |
-| 4    | 20 foreign keys become `ON DELETE RESTRICT`                                                                       |
-| 5    | Support access: expiry backfilled with a trace, then required and capped at 7 days; approver; audit link          |
-| 6    | Four indexes and the partial unique index                                                                         |
-| 7    | Revokes on `app_user`; grants and `router_definer` policies for `app_router`                                      |
-| 8    | The four definer functions                                                                                        |
-| 9    | FORCE put back on the 11 remaining tables                                                                         |
+| Part | Change                                                                                                                       |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------- |
+| top  | `SET LOCAL row_security = off`; FORCE lifted on the 13 tables the file reads, rewrites or re-validates (D23 pt 5)            |
+| 1    | Two guards that stop everything: unexported tags; more than one open breakdown on a machine                                  |
+| 2    | `app_router` loses BYPASSRLS where it has it                                                                                 |
+| 3    | `DROP TABLE ticket_tag`                                                                                                      |
+| 4    | 21 foreign keys become `ON DELETE RESTRICT`                                                                                  |
+| 5    | Support access: every existing grant ended with a trace; expiry required and capped at 7 days; approver; trigger; audit link |
+| 6    | Four indexes and the partial unique index                                                                                    |
+| 7    | `tenant.status` may be `offboarded`                                                                                          |
+| 8    | Revokes on `app_user`; grants and `router_definer` policies for `app_router`                                                 |
+| 9    | The four definer functions and the JSON helper                                                                               |
+| 10   | FORCE put back on the 12 remaining tables                                                                                    |
 
 One transaction. A failed guard or statement leaves the database exactly as it was, so the grant changes are never
 half-applied (item 25).
@@ -34,14 +35,19 @@ Revoked from `app_user`, and so from `app_api`, which has no grants of its own:
 
 - `UPDATE, DELETE` on `ticket_event`
 - `DELETE` on `ticket`, `work_segment`, `crew_member`, `breakdown_report`, `breakdown_report_person`, `list_item`,
-  `login`, `person`
+  `login`, `person`, and (review findings 2 and 9) `machine`, `machine_move`, `file`
+
+**Nothing the app does today is broken by the three added revokes.** `grep -rni "DELETE FROM" apps/server/src`
+finds only `identity/repo.ts:143` (tenant, seed, run as owner), `notifications/repo.ts:57` (`push_subscription`),
+and `tickets/repo/imported.ts:216` and `:220` (import undo, which moves to `import_undo`). The only DELETE route,
+`plant/routes.ts:148`, switches a list entry off. No route removes a photo, a file, a machine or a machine move.
 
 Still deletable by the app, on purpose: `session` (sign-out, `session.purge`), `push_subscription` (unsubscribe),
-`command_idempotency` (`idempotency.purge`), and the configuration tables. `tenant` was never granted.
+`command_idempotency` (`idempotency.purge`), and the other configuration tables. `tenant` was never granted.
 
 ## 3. Foreign keys
 
-**Changed to RESTRICT (20).** Each is dropped and re-added with the same name, columns and target; names read from
+**Changed to RESTRICT (21).** Each is dropped and re-added with the same name, columns and target; names read from
 `pg_constraint` after applying 0001–0007.
 
 | Table                     | Constraint                                     | Was      |
@@ -55,6 +61,7 @@ Still deletable by the app, on purpose: `session` (sign-out, `session.purge`), `
 | `ticket`                  | `ticket_assigned_to_person_id_fkey`            | SET NULL |
 | `ticket`                  | `ticket_closed_by_person_id_fkey`              | SET NULL |
 | `ticket`                  | `ticket_parent_id_fkey`                        | SET NULL |
+| `ticket`                  | `ticket_machine_id_fkey`                       | SET NULL |
 | `ticket_event`            | `ticket_event_ticket_id_fkey`                  | CASCADE  |
 | `ticket_event`            | `ticket_event_login_id_fkey`                   | SET NULL |
 | `ticket_event`            | `ticket_event_acting_person_id_fkey`           | SET NULL |
@@ -67,9 +74,9 @@ Still deletable by the app, on purpose: `session` (sign-out, `session.purge`), `
 | `file`                    | `file_uploaded_by_fkey`                        | SET NULL |
 | `audit_log`               | `audit_log_login_id_fkey`                      | SET NULL |
 
-Two go beyond the ticket's list, both by the same rule: `login_person_id_fkey` (a login that silently loses its
+Three go beyond the ticket's list, both by the same rule: `login_person_id_fkey` (a login that silently loses its
 person changes who "acted" on every event it wrote) and the two `file` keys (a photo or PDF that loses its ticket is
-lost evidence). Neither can fire from the app once the deletes are revoked; they close the owner's path too.
+lost evidence), and, after review, `ticket_machine_id_fkey` (a deleted machine blanked the machine on its tickets). Neither can fire from the app once the deletes are revoked; they close the owner's path too.
 
 The four `ticket_tag` keys go with the table. The composite `(tenant_id, …)` keys were already NO ACTION and are
 untouched.
@@ -83,9 +90,8 @@ untouched.
 | `session_acting_person_id_fkey`, `push_subscription_acting_…fkey` | SET NULL            | Same                                                                                                                                  |
 | `import_row_ticket_id_fkey`                                       | SET NULL            | Import bookkeeping. Only `import_undo` deletes a ticket, and an undone row with an empty ticket link is the correct record            |
 | `sla_timer_ticket_tenant_fk`                                      | CASCADE             | A timer is a projection rebuilt from events (0007), not history; it must go with its ticket in `import_undo`                          |
-| `ticket_machine_id_fkey`                                          | SET NULL            | Not in item 21. `breakdown_report.machine_id` is already RESTRICT and no route deletes a machine. Open question 4                     |
 | `machine_move`, `machine`, `machine_group` → their parents        | as built            | Configuration                                                                                                                         |
-| `ai_suggestion` keys (PR #158, not on main)                       | as PR #158 has them | The table may not exist when 0009 runs. Open question 3                                                                               |
+| `ai_suggestion` keys (PR #158, not on main)                       | as PR #158 has them | The table may not exist when 0009 runs. Open question 5                                                                               |
 
 **Measured, and it corrects an assumption in the ticket text.** RESTRICT on the history keys does not stop a tenant
 cascade. PostgreSQL queues the checks raised by cascaded deletes and runs them after every cascade of the outer
@@ -126,7 +132,7 @@ to keep data the product decided to drop); a boolean flag (above).
 whose other arm is a subquery: with a trial index in place the plan stayed a sequential scan of `ticket` (about
 300 ms at 60,000 tickets, the same as without it). The index would be dead weight. The fix is in code: write the
 filter as a UNION of two indexed arms; that slice then adds this index and `crew_member (tenant_id, person_id)`
-together. Open question 5.
+together. Open question 6.
 
 The unique index predicate is `kind <> 'general' AND status NOT IN ('closed', 'cancelled')`. A row with no machine
 is never a duplicate (NULLs are distinct).
@@ -143,86 +149,122 @@ duplicates through `correct` or `cancel` first. Nothing is fixed automatically.
 | `platform_access_expiry_window`                                     | `CHECK (expires_at <= created_at + interval '7 days')`; there is no `granted_at`, `created_at` is it |
 | `platform_access.approved_by_login_id` + composite key to `login`   | RESTRICT                                                                                             |
 | `platform_access_approver_required`                                 | `CHECK (approved_by_login_id IS NOT NULL) NOT VALID`                                                 |
+| trigger `platform_access_guard`, BEFORE INSERT OR UPDATE            | See below                                                                                            |
 | `audit_log.platform_access_id` + composite key to `platform_access` | RESTRICT; needs the new `platform_access_tenant_id_unique (tenant_id, id)`                           |
+
+**The trigger.** The 7-day check is only as good as `created_at`, which the app could write. So:
+
+- on insert, `created_at` is set to the database's `now()`, whatever the caller sent;
+- on update, a changed `created_at` is refused, and so is a later `expires_at` than the row had (shortening is allowed);
+- on insert, and on any update that changes the approver, `approved_by_login_id` must be a login of the same tenant
+  with role `admin` and not disabled. "Not disabled" is one step beyond the finding; a switched-off admin approving
+  access would defeat the rule.
+
+It runs as the caller, so under row security the app can only ever name a login of its own tenant.
 
 **Existing rows.** No row is deleted.
 
-- Expiry empty, or later than 7 days after the grant: set to `created_at + 7 days`. That only ever shortens access.
-  Each changed row first gets an audit line, action `migration.0009.platform_access_expiry`, with the old and new
-  value (DATA-MAP §6 rule 3), and the down file restores from those lines.
+- No existing grant has an approver, so none may stay live. Each gets
+  `expires_at = least(expires_at, created_at + 7 days, now())`: an empty or over-long expiry is capped, and a live
+  grant ends at the cutover. A grant that had already ended is not touched.
+- Each changed row first gets an audit line, action `migration.0009.platform_access_expiry`, with the old and new
+  value (DATA-MAP §6 rule 3). The down file restores from the latest such line per grant.
 - Approver: left empty. There is no truthful value to fill in. `NOT VALID` means PostgreSQL enforces the rule on
-  every insert and every later update, and does not judge the rows that predate it. A plain `NOT NULL` would have
-  needed an invented approver.
+  every insert and every later update, and does not judge the rows that predate it.
 
 Rejected: backfilling the approver with the tenant's first admin (a false record); deleting grants without an expiry
-(loses rows); a nullable approver enforced only in code.
+(loses rows); a nullable approver enforced only in code; trusting the app to send `created_at`.
 
 The table is "built, not used yet"; the seed is the only writer.
 
-## 7. The four definer functions
+## 7. The definer functions
 
-All: `LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp`, owner `app_router`,
-`REVOKE ALL … FROM PUBLIC`, no other grant. Measured: `app_api` gets `permission denied for function` on each.
+Exact signatures after the review:
+
+```sql
+import_undo(p_batch_id uuid, p_operator text) RETURNS integer
+erase_person(p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
+offboard_tenant(p_tenant_id uuid, p_export_ref text, p_backup_ref text, p_operator text) RETURNS void
+audit_purge(p_older_than timestamptz, p_operator text) RETURNS bigint
+erase_json_values(j jsonb, pat text) RETURNS jsonb   -- helper of erase_person; IMMUTABLE, not a definer
+platform_access_guard() RETURNS trigger              -- §6; runs as the caller
+```
+
+The first four: `LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp`. The first five: owner
+`app_router`, `REVOKE ALL … FROM PUBLIC`, no other grant. Measured: `app_api` gets `permission denied for function`
+on each of the five. Each of the four refuses a NULL or blank `p_operator` and writes it into its audit row.
 Model and rejected alternatives: D23.
 
-Manifest owners for the slice plan: `import_undo` → imports; `erase_person`, `offboard_tenant` → identity;
-`audit_purge` → ops.
+Manifest owners for the slice plan: `import_undo` → imports; `erase_person`, `erase_json_values`,
+`offboard_tenant`, `platform_access_guard` → identity; `audit_purge` → ops.
 
-### `import_undo(p_batch_id uuid) RETURNS integer`
+### `import_undo`
 
 Replaces `deleteImportedTickets` and `markUndone` plus the audit write in `imports/undo.ts`. The tickets come from
 the batch's own `import_row` rows, never from the caller.
 
-Refuses unless: the batch exists with `source = 'bhavin'` and status `done` or `failed`; `stats.completion.tickets`
-is an array; the imported rows and that fingerprint name the same tickets; every ticket has `raised_channel` in
-(`import`, `backfill`); no ticket outside the set has a parent inside it; no `file` points at a ticket of the set
-and no report of the set has a signature or PDF. These are today's checks in `undo.ts`, repeated where they cannot
-be skipped. The content comparison (`assertCompletion`) stays in `undo.ts`, before the call.
+Refuses unless all of these hold:
 
-| Table                     | Rows touched                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------ |
-| `import_batch`            | The one batch: locked, then `status = 'undone'`                                                  |
-| `breakdown_report_person` | Deleted: rows of reports on the batch's tickets                                                  |
-| `breakdown_report`        | Deleted: reports on the batch's tickets                                                          |
-| `work_segment`            | Deleted: the batch's tickets                                                                     |
-| `crew_member`             | Deleted: the batch's tickets                                                                     |
-| `ticket_event`            | Deleted: the batch's tickets                                                                     |
-| `ticket`                  | Deleted: the batch's tickets; the count must equal the set or everything rolls back              |
-| `sla_timer`               | Deleted by the existing cascade from `ticket`                                                    |
-| `import_row`              | `ticket_id` emptied by the existing SET NULL; the rows stay                                      |
-| `audit_log`               | One row, `import.undo`: before = status, fingerprint digest, ticket ids; after = `undone`, count |
+- the batch exists with `source = 'bhavin'`, status `done` or `failed`, and a `finished_at`;
+- `stats.completion.tickets` is an array, and the imported rows and that fingerprint name the same tickets;
+- every ticket has `raised_channel` in (`import`, `backfill`);
+- **no `ticket_event`, `crew_member` or `work_segment` row of those tickets has `created_at > finished_at`, and no
+  `ticket_event` of them has a `login_id`** (an import writes events with no login, `tickets/repo/imported.ts:83`).
+  Work done on an imported ticket afterwards is real history and is not undone;
+- no ticket outside the set has a parent inside it;
+- no `file` points at a ticket of the set and no report of the set has a signature or PDF.
 
-### `erase_person(p_person_id uuid, p_request_ref text) RETURNS jsonb`
+The content comparison (`assertCompletion`) stays in `undo.ts`, before the call, in the same transaction (§8).
+
+| Table                     | Rows touched                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `import_batch`            | The one batch: locked, then `status = 'undone'`                                                            |
+| `breakdown_report_person` | Deleted: rows of reports on the batch's tickets                                                            |
+| `breakdown_report`        | Deleted: reports on the batch's tickets                                                                    |
+| `work_segment`            | Deleted: the batch's tickets                                                                               |
+| `crew_member`             | Deleted: the batch's tickets                                                                               |
+| `ticket_event`            | Deleted: the batch's tickets                                                                               |
+| `ticket`                  | Deleted: the batch's tickets; the count must equal the set or everything rolls back                        |
+| `sla_timer`               | Deleted by the existing cascade from `ticket`                                                              |
+| `import_row`              | `ticket_id` emptied by the existing SET NULL; the rows stay                                                |
+| `audit_log`               | One row, `import.undo`: before = status, fingerprint digest, ticket ids; after = `undone`, count, operator |
+
+### `erase_person`
 
 Deletes no history row. Search terms are the person's name, short name, mobile number and the usernames of their
-own (not shared) logins, matched as whole words, case-insensitively, any run of spaces matching any run of spaces.
+own (not shared) logins, matched case-insensitively as whole words, any run of spaces matching any run of spaces.
 Returns the counts plus `s3_keys`, the storage objects the calling script must delete.
 
-Refuses when: the reference is empty; the reference contains one of the terms (so a name cannot reach the audit
-row); a term holds a quote or backslash (it could not be replaced safely inside stored JSON).
+Refuses when the reference or the operator is empty, or when either contains one of the terms (so a name cannot
+reach the audit row).
 
 DATA-MAP §5, place by place:
 
-| §5 place                      | Table: what happens                                                                                                                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The person                    | `person`: `name = 'Former staff'`; `short_name`, `phone`, `title`, `default_shift` emptied; `active = false`                                                                                                 |
-| Their logins                  | `login` where `person_id` is the person: `username = 'former-<login id>'`, `password_hash = '!'` (not a hash, so nothing verifies), `disabled_at` set if empty                                               |
-| Devices, push registrations   | `session`, `push_subscription`: deleted where the login is theirs or `acting_person_id` is the person. WhatsApp contact is `person.phone` (D17), emptied above                                               |
-| Breakdown report typed fields | `breakdown_report`: terms replaced in `problem`, `observed_by`, `corrective_action`, `spare_used`, `root_cause`, `handover_name`                                                                             |
-| Ticket text                   | `ticket`: terms replaced in `problem`, `close_note`, `waiting_spare`, and also `task_reason` and `overrides` (free text §5 does not name)                                                                    |
-| Ticket history                | `ticket_event`: terms replaced in `text` and `payload`. The one permitted edit of history                                                                                                                    |
-| Import rows                   | `import_row`: `payload = '{}'` on every row of the tenant whose payload holds a term                                                                                                                         |
-| Audit before and after        | `audit_log`: on rows about this person or their logins every stored value is blanked and the field names kept; on every other row of the tenant the terms are replaced                                       |
-| Signature images              | `breakdown_report.signature_file_id` emptied where `handover_name` held a term; the `file` row deleted; key returned                                                                                         |
-| Repeat guard                  | `command_idempotency`: `result = '{}'` where the login is theirs or the stored reply holds a term. The row stays, so the key still blocks a replay                                                           |
-| (not in §5) saved report PDFs | Every `breakdown_report.pdf_file_id` of the tenant emptied, `qr_payload = '{}'`, the `file` rows deleted, keys returned. A PDF bakes in names and is re-made on the next request. DATA-MAP §5 gains this row |
-| Audit of the erasure          | One `audit_log` row, `person.erase`: `after` = one count per table and the request reference. No name, no text, no ids of changed rows                                                                       |
+| §5 place                      | Table: what happens                                                                                                                                                                                                                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The person                    | `person`: `name = 'Former staff'`; `short_name`, `phone`, `title`, `default_shift` emptied; `active = false`                                                                                                                                                                                              |
+| Their logins                  | `login` where `person_id` is the person: `username = 'former-<login id>'`, `password_hash = '!'` (not a hash, so nothing verifies), `disabled_at` set if empty                                                                                                                                            |
+| Devices, push registrations   | `session`, `push_subscription`: **deleted only where `login_id` is one of the leaver's logins.** On any other row (a shared floor login they were acting on) `acting_person_id` is emptied and the row stays, so the floor phone stays signed in. WhatsApp contact is `person.phone` (D17), emptied above |
+| Breakdown report typed fields | `breakdown_report`: terms replaced in `problem`, `observed_by`, `corrective_action`, `spare_used`, `root_cause`, `handover_name`                                                                                                                                                                          |
+| Ticket text                   | `ticket`: terms replaced in `problem`, `location`, `close_note`, `waiting_spare`, `task_reason`, and in the text values of `overrides`                                                                                                                                                                    |
+| Ticket history                | `ticket_event`: terms replaced in `text` and in the text values of `payload`. The one permitted edit of history                                                                                                                                                                                           |
+| Import rows                   | `import_row`: `payload = '{}'` on every row of the tenant with a term in a text value of its payload                                                                                                                                                                                                      |
+| Import batch                  | `import_batch.stats`: terms replaced in every text value outside `completion` (`pendingPersons`, `fatal.message`, `issues[].message`); `stats.completion` is put back untouched, so the undo fingerprint holds                                                                                            |
+| Audit before and after        | `audit_log`: on rows about this person or their logins every stored value is blanked and the field names kept; on every other row of the tenant the terms are replaced in text values                                                                                                                     |
+| Signature images              | `breakdown_report.signature_file_id` emptied where `handover_name` held a term; the `file` row deleted; key returned                                                                                                                                                                                      |
+| Repeat guard                  | `command_idempotency`: `result = '{}'` where the login is theirs or a text value of the stored reply holds a term. The row stays, so the key still blocks a replay                                                                                                                                        |
+| Saved report PDFs             | Every `breakdown_report.pdf_file_id` of the tenant emptied, `qr_payload = '{}'`, the `file` rows deleted, keys returned. A PDF bakes in names and is re-made on the next request                                                                                                                          |
+| Audit of the erasure          | One `audit_log` row, `person.erase`: `after` = one count per table, the request reference and the operator. No name, no text, no ids of changed rows                                                                                                                                                      |
 
 Decisions inside it:
 
-- **Whole words, failing towards erasing more.** The boundary is "the neighbour is not a letter or digit" written
-  as a lookaround, not `\m…\M`. Under a C locale `\m` never matches before a Gujarati letter, which would leave the
-  name in place; the lookaround replaces it (measured with a Gujarati name). "Ashok" survives the erasure of "Asha".
+- **Whole words: the neighbour on each side must be a space, ASCII punctuation, or the start or end of the text**
+  (`(?<![^[:space:][:punct:]])…(?![^[:space:][:punct:]])`). A name inside a longer word survives in any script:
+  "રમેશભાઈ" is untouched when "રમેશ" is erased, and "Ashok" when "Asha" is (both measured). The first draft used
+  "not a letter or digit", which under a C locale would have cut a Gujarati name out of a longer Gujarati word.
+- **JSON: text values only.** `erase_json_values` walks objects and arrays and replaces inside strings. A key that
+  happens to equal the name keeps its name, numbers and shape are untouched (measured). The first draft replaced
+  in the JSON text, which could rename a key.
 - **Terms under three characters are not searched** and are counted in `terms_too_short`. "RP" would rewrite
   ordinary text. They join the nicknames the plant reviews by hand (DATA-MAP §5).
 - **All of the plant's cached PDFs go, not only the leaver's.** Which names a PDF shows depends on the template,
@@ -231,29 +273,40 @@ Decisions inside it:
 - **`updated_at` is bumped** on changed tickets and reports, so a device holding an offline copy fetches the cleaned
   text. Side effect: those tickets rise in lists ordered by last change.
 - **Running it twice is harmless.** The second run finds nothing and writes a second audit row of zeros.
-- **Counts, not record ids.** DATA-MAP §5 said the audit trail records "which records and which fields". The ticket
-  asks for counts only; §5 is reworded to match. Open question 6.
 - **Later tables extend the function** with `CREATE OR REPLACE` in their own migration: `ai_suggestion` (PR #158),
   `notification`, `wa_message`.
 
-### `offboard_tenant(p_tenant_id uuid, p_export_ref text, p_backup_ref text) RETURNS void`
+### `offboard_tenant`
 
-Refuses when either reference is empty or blank, when the tenant does not exist, and when its status is not
-`suspended`. Then `DELETE FROM tenant WHERE id = …`: the `ON DELETE CASCADE` keys from every tenant table remove
-all of that customer's rows, in every table that carries `tenant_id`, including tables added later. It writes
-`RAISE LOG` with the tenant id and both references to the database log.
+Refuses when a reference or the operator is empty or blank, when the tenant does not exist, and when its status is
+not `suspended`. Then, in order:
 
-- **Suspend first** is an interlock against a mistyped id: suspending also stops sign-in (`tenant_by_slug` answers
-  only for active tenants).
-- **No audit row.** The customer's audit trail is deleted with the customer, and there is no cross-tenant table to
-  hold one (D17). The record is the database log line and the operator's offboarding note. Question 25 in DATA-MAP.
+1. `DELETE FROM tenant WHERE id = …`: the `ON DELETE CASCADE` keys from every tenant table remove all of that
+   customer's rows, in every table that carries `tenant_id`, including tables added later.
+2. The tenant row is put back with the same id, name, language, time zone, plan and creation time,
+   `status = 'offboarded'` and `slug = 'offboarded-<id>'`, so the address is free for a new customer. No logo.
+3. One `audit_log` row, `tenant.offboard`: `after` = export reference, backup reference, operator.
+4. `RAISE LOG` with the same three values.
+
+- **Why the tenant row stays** (orchestrator ruling on question 25: the proof is the audit row, no new table).
+  `audit_log.tenant_id` must point at a tenant, so the proof needs one. Delete-then-reinsert keeps the single
+  cascade, which no later table can be forgotten from. `tenant_status_check` gains `offboarded`. Sign-in cannot
+  reach the row: `tenant_by_slug` answers only for `active`.
+- **Suspend first** is an interlock against a mistyped id; it also makes a second call fail.
+- The export and backup files live in the backup bucket; the references name them.
 - The script that calls it also deletes the tenant's storage prefix and queued jobs; neither is in the database
   schema this ticket owns.
 
-### `audit_purge(p_older_than timestamptz) RETURNS bigint`
+Rejected: deleting each table in a hand-written order so the tenant row is never deleted (every new table must be
+added to the list, and a miss leaves a customer's rows behind); a nullable `audit_log.tenant_id` (weakens every
+tenant policy on the table); the database log alone (not in the customer's record, and logs expire).
 
-Refuses a NULL cut-off or one newer than `now() - 3 years`. Deletes `audit_log` rows with `at < p_older_than`,
-across tenants. Returns the count.
+### `audit_purge`
+
+Refuses a NULL cut-off, one newer than `now() - 3 years`, or a blank operator. Deletes `audit_log` rows with
+`at < p_older_than`, across tenants, and writes one `audit.purge` row for each customer that lost rows:
+`after` = cut-off, number deleted, operator. Returns the total. It stays executable by `app_router` only
+(orchestrator ruling).
 
 ## 8. RDS
 
@@ -277,7 +330,7 @@ differs from a plain CREATEROLE owner in any statement above; that pg-boss's own
 (it needs only CREATE on the database, which the owner has); `pgcrypto` on RDS (a trusted extension since
 PostgreSQL 13). The design needs none of the uncertain rights: no role attribute is asked for anywhere.
 
-**Runner changes, `scripts/migrate.ts`** (for the slice plan; not written here):
+**Runner changes, `scripts/migrate.ts`** (for the slice plan; **still unwritten**):
 
 1. `prepareRoles(pool)`, after the advisory lock and before anything else:
 
@@ -327,6 +380,18 @@ over `tenant` (no row security) and set `app.tenant_id` for each, which the exis
 honours for every role (measured). For one transaction that must act as the app and then call a definer function
 (`import:undo`): `SET LOCAL ROLE app_user`, do the tenant-scoped work, `RESET ROLE`, call the function (measured).
 
+**`ROUTER_DATABASE_URL`.** The one new environment value.
+
+- What it is: a PostgreSQL URL for a login that is a member of both `app_router` and `app_user`. Today the only
+  such login is the migration role, so its value is the same connection string as `MIGRATION_DATABASE_URL`.
+- Who reads it: the `import:undo` code path only (`imports/cli.ts`). It opens one transaction on that connection,
+  does `SET LOCAL ROLE app_user` plus `app.tenant_id` for the fingerprint checks (row security on, exactly the app's
+  rights), then `RESET ROLE` and `SELECT import_undo($1, $2)`. If the value is missing, undo stops with a message.
+- Who must not have it: the running server. `app.env` keeps `DATABASE_URL` only. The secret key
+  `ROUTER_DATABASE_URL` belongs in `uptimo/staging` and in `migrate.env` (written by `infra/instance/refresh-env.sh`).
+  `infra/` was not touched here; that edit is a follow-up for whoever owns ticket 13's files.
+- The other operator scripts (erase, offboard, purge, export, preflight) run on `MIGRATION_DATABASE_URL` directly.
+
 **What Nimish runs on staging, in order.** Staging has never completed a migration, so its database is empty.
 
 1. Backup first:
@@ -342,20 +407,23 @@ between 1 and 2: `tsx scripts/preflight-cutover.ts` until it exits 0, then `tsx 
 
 ## 9. Migration plan
 
-**What changes for stored data:** `ticket_tag` rows are removed (exported first); `platform_access.expires_at` is
-shortened or filled on rows that break the 7-day rule (traced in `audit_log`); nothing else is rewritten.
+**What changes for stored data:** `ticket_tag` rows are removed (exported first); every existing support-access
+grant is ended (`expires_at` no later than now, and never more than 7 days after the grant), each change traced in
+`audit_log`; nothing else is rewritten.
 
 **Backup step, first:** a full snapshot, its identifier recorded; then the preflight; then the tag export. The
 migration header carries the same text.
 
 **Roll back.**
 
-- Before any support-access grant is approved under the new rules: run the down file. It restores the grants, the
-  20 keys with their old actions, the expiries from the trace rows, drops the indexes, functions, columns and
-  policies, and re-creates `ticket_tag` empty; the header gives the `\copy` line that reloads the export. Measured:
-  `pg_dump` before 0009 and after 0009 + down + reload differ only by the three kept policies, the trace audit row
-  and `updated_at` on the restored grant.
-- After that: the down file refuses (it would drop approvals and audit links). Restore the snapshot.
+- Before any support-access grant is approved under the new rules and before any customer is offboarded: run the
+  down file. It restores the grants on `app_user`, the 21 keys with their old actions, the expiries from the latest
+  trace row of each grant, and the two-value tenant status check; it drops the indexes, functions, trigger, columns
+  and policies, and re-creates `ticket_tag` empty. The header gives the `\copy` line that reloads the export.
+  Measured: `pg_dump` before 0009 and after 0009 + down + reload differ only by the three kept policies, the trace
+  audit rows and `updated_at` on the restored grants.
+- After either of those: the down file refuses (it would drop approvals, audit links or an offboarding record).
+  Restore the snapshot.
 - Not rolled back by design: `app_router` without BYPASSRLS and its policies on `login`, `session`, `sla_policy`.
   Putting BYPASSRLS back is impossible on RDS, and without the policies `auth_lookup` would return nothing.
 - Code: the release before this one still deletes through `app_user` in import undo, so a code rollback without
@@ -363,65 +431,111 @@ migration header carries the same text.
 
 ## 10. What the slice plan must name (not done here)
 
-| Item                                                          | Change                                                                                                                                                                              |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/migrate.ts`                                          | §8 steps 1–3                                                                                                                                                                        |
-| `scripts/export-tags.ts` (new)                                | Per-tenant loop; writes `ticket_tag-<utc>.csv` (all columns, header) to `--out <dir>`; prints N and the `PGOPTIONS` line; exits 0 with "nothing to export" on 0 rows or no table    |
-| `scripts/preflight-cutover.ts` (new)                          | Per-tenant loop; the duplicate query of part 1; also prints the tag count and the grants whose expiry will change; exit 1 on any duplicate; exit 0 when the schema is not installed |
-| `scripts/erase-person.ts`, `scripts/offboard-tenant.ts` (new) | Operator credential; call the function; erase deletes the returned `s3_keys`; offboard exports first, then deletes the storage prefix                                               |
-| `imports/undo.ts`, `tickets/repo/imported.ts`                 | `deleteCandidates` + `finishUndo` become one `import_undo` call; `deleteImportedTickets` goes                                                                                       |
-| `imports/cli.ts`, `imports/security.ts`                       | `import:undo` runs on the operator credential with the `SET LOCAL ROLE app_user` pattern; `assertAppApiRole` no longer fits undo                                                    |
-| `modules/manifest.ts`, `tools/boundaries.test.ts`             | `ticket_tag` out (28 tables); the four functions get owners                                                                                                                         |
-| `packages/db/test/seed.sql`                                   | Drop the `ticket_tag` insert; `platform_access` rows need `approved_by_login_id`                                                                                                    |
-| `packages/db/test/isolation.test.ts`                          | `:113-117` expects `app_router` BYPASSRLS true, now false; `:207-255` is replaced by the two refusals item 21 words; `DATED_TABLES` loses `ticket_tag`                              |
-| `packages/db/test/migration-runner.test.ts`                   | A non-superuser case for §8; the tags flag; the duplicate guard; up, down, up                                                                                                       |
-| `apps/server/test/import-undo.test.ts`                        | Its tamper cases update `ticket_event` as admin and still can; the undo path changes under them                                                                                     |
-| `packages/db/README.md`                                       | Roles table updated in this draft                                                                                                                                                   |
+| Item                                                          | Change                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/migrate.ts`                                          | §8 steps 1–3. **Still unwritten.** Without them 0001 cannot run on RDS                                                                                                                                                                                                                                                                                                                                                     |
+| `imports/batch.ts`, `imports/bhavin.ts`, `imports/repo.ts`    | **Required by finding 4.** `finished_at` is written today from a clock value taken when the import starts (`bhavin.ts:306`, passed at `:290` and `batch.ts:76`). It must be stamped by the database when the batch finishes (`finished_at = clock_timestamp()` in `finishBatch` and `failBatch`). Until then `import_undo` refuses every batch, because every imported row is newer than the stored finish time (measured) |
+| `scripts/export-tags.ts` (new)                                | Per-tenant loop; writes `ticket_tag-<utc>.csv` (all columns, header) to `--out <dir>`; prints N and the `PGOPTIONS` line; exits 0 with "nothing to export" on 0 rows or no table                                                                                                                                                                                                                                           |
+| `scripts/preflight-cutover.ts` (new)                          | Per-tenant loop; the duplicate query of part 1; also prints the tag count and the grants that will be ended; exit 1 on any duplicate; exit 0 when the schema is not installed                                                                                                                                                                                                                                              |
+| `scripts/erase-person.ts`, `scripts/offboard-tenant.ts` (new) | Operator credential; pass `--operator`; erase deletes the returned `s3_keys`; offboard exports first, then deletes the storage prefix                                                                                                                                                                                                                                                                                      |
+| `imports/undo.ts`, `tickets/repo/imported.ts`                 | `deleteCandidates` + `finishUndo` become one `import_undo` call; `deleteImportedTickets` goes                                                                                                                                                                                                                                                                                                                              |
+| `imports/cli.ts`, `imports/security.ts`                       | `import:undo` connects with `ROUTER_DATABASE_URL` (§8) and uses the `SET LOCAL ROLE app_user` pattern; it takes `--operator`; `assertAppApiRole` no longer fits undo                                                                                                                                                                                                                                                       |
+| `modules/manifest.ts`, `tools/boundaries.test.ts`             | `ticket_tag` out (28 tables); the functions get owners                                                                                                                                                                                                                                                                                                                                                                     |
+| `packages/db/test/seed.sql`                                   | Drop the `ticket_tag` insert; add an admin login per tenant and name it as `approved_by_login_id` on the `platform_access` rows                                                                                                                                                                                                                                                                                            |
+| `packages/db/test/isolation.test.ts`                          | `:113-117` expects `app_router` BYPASSRLS true, now false; `:207-255` is replaced by the two refusals item 21 words; `DATED_TABLES` loses `ticket_tag`                                                                                                                                                                                                                                                                     |
+| `packages/db/test/migration-runner.test.ts`                   | A non-superuser case for §8; the tags flag; the duplicate guard; up, down, up                                                                                                                                                                                                                                                                                                                                              |
+| `apps/server/test/import-undo.test.ts`                        | Its tamper cases update `ticket_event` as admin and still can; the undo path changes under them                                                                                                                                                                                                                                                                                                                            |
+| `apps/server/src/seed/cosmos.ts`                              | `deleteTenantBySlug` as the owner still works (§3); no change needed                                                                                                                                                                                                                                                                                                                                                       |
+| `packages/db/README.md`                                       | Roles table updated in this draft                                                                                                                                                                                                                                                                                                                                                                                          |
 
 Regression risks to name: `auth_lookup` and `tenants_with_sla_policies` now depend on a policy (covered by the
 sign-in tests and `sla.consistency`); the unique index turns a race in `raise` from a duplicate into a unique
 violation that the route must map to today's "already open" reply; `DELETE /api/v1/lists/:list/:id` already
-switches off (ticket 06).
+switches off (ticket 06); any code that lists tenants must skip `status = 'offboarded'` (today only
+`tenant_by_slug` reads status, and it asks for `active`).
 
 ## 11. Verified here, and how
 
 Two throwaway `postgres:16-alpine` containers (Docker), `psql` only. No app test suite was run; none exists for
-this file yet.
+this file yet. Re-run in full after the review changes.
 
-- Superuser path: 0001–0007, seed, 0009. Tag guard without the flag, with a wrong flag, with the count. Duplicate
-  guard with a second open breakdown, then after cancelling it. Expiry backfill and trace on a NULL and a 30-day grant.
-- As `app_api`: all ten revoked statements and the four functions refused; `auth_lookup`, list switch-off, event
-  insert, session, push and idempotency deletes still work; the unique index refuses a second breakdown and allows
-  a general request; the approver and 7-day checks; the audit link refuses another tenant's grant.
-- As owner: deleting a login, person or ticket with history is refused; `DELETE FROM tenant` still cascades.
-- `erase_person` with fake names in every §5 place, a Gujarati name, a name with punctuation, a two-letter short
-  name, a namesake ("Ashok") and a second run: no row of the tenant held the name afterwards; the other tenant was
-  untouched; event, crew and stretch counts unchanged.
-- `import_undo`: five refusals, then success; counts, batch status, audit row and the untouched original ticket.
-- `offboard_tenant`: blank and NULL references, an active tenant, then success; `audit_purge`: recent and NULL
-  cut-offs refused, a 3-year-old row removed.
-- Non-superuser path (§8): everything above that is role-sensitive, as a real `app_api` login and as the owner.
-- `EXPLAIN ANALYZE` for §5. `pnpm migrations:check` and `pnpm migrations:immutable` pass.
+- Superuser path: 0001–0007, seed, 0009, down, tag reload, 0009 again. Tag guard without the flag, with a wrong
+  flag, with the count. Duplicate guard with a second open breakdown, then after cancelling it. Every seeded grant
+  ended at the cutover with a trace row; a grant that had already ended left alone; the down restores each expiry.
+- As `app_api` (also as a real `app_api` login on the non-superuser database): 13 revoked statements (now with
+  `machine`, `machine_move`, `file`) and all five functions refused; `auth_lookup`, list switch-off, machine
+  update, event insert, session, push and idempotency deletes still work; the unique index refuses a second
+  breakdown and allows a general request.
+- Support-access trigger: refused with no approver, a technician approver, another customer's admin, 8 days, and a
+  back-dated grant time; an accepted grant gets the database's time whatever the caller sent; extending it, moving
+  its grant time and swapping the approver for a non-admin are refused; shortening works; the audit link refuses
+  another tenant's grant and then holds the grant against deletion.
+- As owner: deleting a login, person, ticket or machine with history is refused; `DELETE FROM tenant` still cascades.
+- `erase_person`: refused without a reference, without an operator, and with the name in either. With fake names
+  in every §5 place: no column of the tenant held the name afterwards outside JSON keys and `stats.completion`;
+  a JSON key named like the person kept its name and a JSON number was untouched; nested values were replaced;
+  `location` cleaned; `import_batch.stats` cleaned with `completion` byte-identical; the leaver's own session and
+  push registration deleted; a shared floor login's session and push registration kept with the actor cleared;
+  event, crew and stretch counts unchanged; a namesake ("Ashok") and the other tenant untouched; a second run
+  changes nothing. Gujarati: the name as a whole word and inside brackets was replaced, the name inside a longer
+  Gujarati word survived, a two-letter short name was counted and skipped, a name with an apostrophe, brackets and
+  a full stop was replaced inside quotes and left alone when a letter followed it.
+- `import_undo`: refused without an operator, without a finish time, with a finish time earlier than its rows, with
+  an event, a crew row or a stretch created after the finish time, with an event written by a login, with a
+  non-import ticket, an outside child, and rows that disagree with the fingerprint; then success with counts, batch
+  status, the audit row carrying the operator, and the untouched original ticket; a second call refused.
+- `offboard_tenant`: blank reference, missing operator, an active tenant refused; then success: every tenant table
+  empty for that customer, the tenant row `offboarded` with slug `offboarded-<id>`, one `tenant.offboard` audit row
+  with both references and the operator, sign-in lookup returns nothing, the old slug can be used by a new
+  customer, and a second call is refused.
+- `audit_purge`: recent cut-off and missing operator refused; old rows of two tenants removed, one `audit.purge`
+  row written for each with the cut-off, its count and the operator.
+- Non-superuser owner (§8): 0001 (one statement skipped) to 0007, 0009, down, 0009 again; the schema dump after
+  the down differs from before only by the three kept policies; all 27 row-security tables forced again; the down
+  refuses once a grant is approved or a customer is offboarded.
+- `EXPLAIN ANALYZE` for §5 (first round; the indexes did not change). `pnpm migrations:check`,
+  `pnpm migrations:immutable` and `pnpm docs:check` pass.
+
+Not done: anything on real RDS; the runner changes as TypeScript; the operator scripts; `PGOPTIONS` through `pg`
+end to end (read in `connection-parameters.js` only); pg-boss install as a non-superuser.
 
 ## 12. Open questions for the orchestrator
 
-1. **`audit_purge` and the job worker.** "Callable only by the router role" means the server cannot run it. Nothing
-   is due before November 2029. Confirm the job slice decides (D23 consequence), or say now that this one function
-   may be granted to `app_user`; its 3-year floor makes that safe.
-2. **`import:undo` credential.** It must move from `DATABASE_URL` to the operator credential. Confirm, since
-   `assertAppApiRole` was a deliberate guard.
-3. **PR #158 (`ai_suggestion`).** Its keys to `person` and `login` are `SET NULL` and to `ticket` `CASCADE`, the
-   pattern this ticket removes, and `erase_person` does not know its `output` column. Whichever merges second needs
-   a follow-up: RESTRICT on the two actor keys, and the table added to `erase_person`.
-4. **`ticket.machine_id` SET NULL.** Outside item 21, left alone. A deleted machine would blank the machine on its
-   tickets (the snapshot stays). No route deletes a machine. Add `DELETE` on `machine` to the revokes and RESTRICT
-   here, or leave it for M4?
-5. **The lead-person filter** cannot use an index as written (§5). A code ticket to rewrite it as a UNION, with
+1. **Finding 4 needs an importer change (§10, second row).** As worded, the rule is correct and fails safe, but
+   with today's importer it refuses every undo. The slice must change how `finished_at` is stamped, or the rule
+   must compare against something else. I kept the reviewer's wording.
+2. **`ROUTER_DATABASE_URL` holds the migration role's connection** (§8). A dedicated login that is only a member
+   of `app_router` and `app_user` would be narrower; it needs a new role, a new secret and an `infra/` change, so
+   it is left as a follow-up.
+3. **The offboarded tenant row.** Keeping it (name, language, time zone, plan; slug freed) is what gives the
+   audit row a home without a table. If the customer's name must go too, the function can blank it; say so.
+4. **`audit.purge` rows** are written only for customers that lost rows, so a daily run with nothing to purge
+   leaves no trace. Say if every run should leave one row per customer.
+5. **PR #158 (`ai_suggestion`).** Unchanged from round one: its keys to `person` and `login` are `SET NULL` and
+   to `ticket` `CASCADE`, and `erase_person` does not know its `output` column. Whichever merges second needs a
+   follow-up. Not touched here.
+6. **The lead-person filter** cannot use an index as written (§5). A code ticket to rewrite it as a UNION, with
    its two indexes.
-6. **Audit detail for erasure.** Counts per table, as the ticket says, replaces §5's "which records and which
-   fields". DATA-MAP is Nimish's document; the rewording needs his nod with the rest of the delta.
-7. **`platform_access` itself** can still be updated and deleted by `app_user` (a grant with audit lines is held by
-   RESTRICT). It reads like a record that should be insert-only. Not in item 31; say if it should join the revokes.
+7. **`platform_access` rows** can still be deleted by `app_user` when no audit line points at them. The trigger
+   now stops every lengthening edit; deletion of an unused grant is the remaining gap. Not in item 31 or the
+   findings; say if DELETE should be revoked too.
 8. **"Signature removed".** Nothing writes a signature today. After erasure the report has no signature file and
    `handover_name = 'Former staff'`; the slice that builds signatures decides how the screen words it.
-9. **Offboarding record** (DATA-MAP question 25, for Nimish).
+9. **A legacy grant cannot be edited by the app at all** (the approver check applies to every update). All of them
+   are ended by the migration, so nothing needs editing; noted so it is not a surprise.
+
+## 13. Review round 2: what changed per finding
+
+| #   | Finding                      | Change                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `import_batch.stats`         | `erase_person` walks `stats` without `completion` and replaces the name in every text value (covers `pendingPersons`, `fatal.message`, `issues[].message`); `completion` is put back untouched; count `import_batch`. DATA-MAP row and §5 row added                                                                                                                                                                                   |
+| 2   | `ticket.machine_id`          | `ticket_machine_id_fkey` is RESTRICT (21 keys now); DELETE revoked on `machine` and `machine_move`; both restored in the down file                                                                                                                                                                                                                                                                                                    |
+| 3   | `platform_access`            | Trigger `platform_access_guard` (§6); every existing grant ended at cutover with a trace row                                                                                                                                                                                                                                                                                                                                          |
+| 4   | `import_undo` and later work | Refuses on any event, crew row or stretch created after `finished_at`, on an event with a login, and on a batch with no finish time. Needs the importer change in §10                                                                                                                                                                                                                                                                 |
+| 5   | Word boundary                | Neighbour must be a space, ASCII punctuation, or the start or end of the text. A Gujarati name inside a longer Gujarati word survives (measured)                                                                                                                                                                                                                                                                                      |
+| 6   | Operator                     | All four functions take a required, non-blank `p_operator`, written to the audit row's `after` (and the log line for offboarding). `audit_purge` writes one `audit.purge` row per customer that lost rows                                                                                                                                                                                                                             |
+| 7   | Sessions and push            | Deleted only for the leaver's own logins; elsewhere `acting_person_id` is emptied and the row stays; counts `session_unlinked`, `push_subscription_unlinked`                                                                                                                                                                                                                                                                          |
+| 8   | JSON values only             | New helper `erase_json_values` walks objects and arrays and replaces inside text values only. Used for `ticket.overrides`, `ticket_event.payload`, `audit_log.before/after`, `import_batch.stats` and the match tests on `import_row.payload` and `command_idempotency.result`. The quote-or-backslash refusal is gone: it is no longer needed. `ticket.location` added                                                               |
+| 9   | `file`                       | DELETE revoked. Evidence that nothing breaks: `grep -rni "DELETE FROM" apps/server/src` finds only `identity/repo.ts:143` (tenant, seed), `notifications/repo.ts:57` (push_subscription), `tickets/repo/imported.ts:216` and `:220` (import undo). No route deletes a file, photo, machine or machine move; the only `app.delete` route is `plant/routes.ts:148`, which switches a list entry off. No floor or desk behaviour changes |
+| 10  | `ticket_tag` in DATA-MAP     | Row marked removed; the export file is the only remaining copy, kept with the backup                                                                                                                                                                                                                                                                                                                                                  |
+| —   | Ruling on question 25        | `offboard_tenant` keeps the tenant row as `offboarded` and writes one `tenant.offboard` audit row with the export reference, the backup reference and the operator. No new table                                                                                                                                                                                                                                                      |

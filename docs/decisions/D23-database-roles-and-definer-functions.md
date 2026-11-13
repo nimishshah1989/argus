@@ -5,8 +5,8 @@ Date: 13 November 2026 · Status: proposed (architect, ticket 07; waits for the 
 ## Decision
 
 1. **`app_router` never bypasses row security.** It gets one explicit policy, `router_definer … TO app_router USING (true)`, on each table its SECURITY DEFINER functions read or write, and nothing on the rest. Migration 0009 removes the BYPASSRLS attribute where it is set.
-2. **Four functions are the only way to delete history or edit it:** `import_undo`, `erase_person`, `offboard_tenant`, `audit_purge`. Each is owned by `app_router`, pins `search_path`, and is executable by `app_router` alone. `app_user` and `app_api` cannot call them.
-3. **The operator credential reaches them, the server does not.** The migration role (`MIGRATION_DATABASE_URL`) is a member of `app_router`, so operator scripts run with it and call the functions directly. The server holds only `DATABASE_URL` (`app_api`), which is not a member.
+2. **Four functions are the only way to delete history or edit it:** `import_undo`, `erase_person`, `offboard_tenant`, `audit_purge`. Each is owned by `app_router`, pins `search_path`, is executable by `app_router` alone, and takes a required `p_operator` that it writes into the audit trail. `app_user` and `app_api` cannot call them. (`erase_json_values`, a helper of `erase_person`, has the same owner and no grant.)
+3. **The operator credential reaches them, the server does not.** The migration role (`MIGRATION_DATABASE_URL`) is a member of `app_router`, so operator scripts run with it and call the functions directly. `import:undo` reads that connection from `ROUTER_DATABASE_URL`. The server holds only `DATABASE_URL` (`app_api`), which is not a member.
 4. **The migration runner prepares the roles** before the first file: it creates `app_router` when missing, makes the migration role a member, lends `app_router` CREATE on schema `public` for the run (PostgreSQL needs it for `OWNER TO`) and takes it back at the end. When the migration role cannot grant BYPASSRLS it skips the one statement in `0001` that asks for it.
 5. **A migration that reads or rewrites rows runs with `row_security = off`** and lifts FORCE on the tables it touches for its transaction. A table it forgot then raises an error instead of quietly returning no rows.
 
@@ -27,4 +27,5 @@ Date: 13 November 2026 · Status: proposed (architect, ticket 07; waits for the 
 
 ## Consequence
 
-`audit_purge` cannot be called by the server's job worker. No audit row can be 3 years old before November 2029; the job's slice (ARCHITECTURE §9 item 33) decides then whether the purge runs as an operator task or the grant is widened by a reviewed migration.
+- `audit_purge` cannot be called by the server's job worker and stays that way (orchestrator ruling): the purge is an operator task. No audit row can be 3 years old before November 2029.
+- Offboarding keeps the tenant row, marked `offboarded`, and one audit line, so the proof has a home without a new table (D17).
