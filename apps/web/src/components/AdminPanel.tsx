@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Config, Me, RaiseKind, Ticket } from '../api.js';
 import { buildCorrectChanges, hasCorrectChanges } from './correctChanges.js';
-import { useTicketCommand } from './useTicketCommand.js';
+import { useCommand } from '../data/index.js';
 
 const inputClass =
   'mt-1 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
@@ -94,7 +94,7 @@ interface RestoreProps {
 
 function RestoreForm({ ticket, personId, onDone }: RestoreProps) {
   const { t } = useTranslation();
-  const { run, error, pending } = useTicketCommand();
+  const { run, error, pending } = useCommand();
   const [reason, setReason] = useState('');
 
   async function submit(event: FormEvent) {
@@ -187,7 +187,7 @@ interface CorrectProps {
 
 function CorrectForm({ ticket, config, onDone }: CorrectProps) {
   const { t } = useTranslation();
-  const { run, error, pending } = useTicketCommand();
+  const { run, error, pending } = useCommand();
   const [values, setValues] = useState<Record<string, string>>({});
   const changes = buildCorrectChanges(values);
   const ready = Boolean(values[FIELD.reason]?.trim()) && hasCorrectChanges(changes);

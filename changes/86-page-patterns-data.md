@@ -1,0 +1,3 @@
+- One data layer: every server call goes through `defineResource` or `useCommand`; a test fails on a raw `fetch` anywhere else (two dated exceptions: sign-in until 21, day-report PDF until 18).
+- Offline commands still queue, replay on reconnect and turn a refusal into a draft; a sync status shows online, offline, sending and draft.
+- `/gallery` shows the queue, detail and form-sheet patterns in their loading, empty, error and offline states.

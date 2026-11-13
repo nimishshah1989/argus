@@ -10,7 +10,7 @@ import {
   type Ticket,
 } from '../../api.js';
 import { actorFrom, offers, type ActionSpec } from '../../components/actionSpecs.js';
-import { useTicketCommand } from '../../components/useTicketCommand.js';
+import { useCommand } from '../../data/index.js';
 import { ActionForm } from '../../components/ActionForm.js';
 import { errorMessage, machineLabel } from '../../components/format.js';
 import { TicketCard } from '../../components/TicketCard.js';
@@ -27,7 +27,7 @@ interface CancelProps {
 
 /** The reason form for the caller's own not-started ticket; the server checks the rule too. */
 export function CancelOwnForm({ ticket, config, personId, onDone }: CancelProps) {
-  const { run, error, pending } = useTicketCommand();
+  const { run, error, pending } = useCommand();
   return (
     <div className="mt-2 text-left">
       <ActionForm
