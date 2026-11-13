@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
+import { listPeople, tenantInfo } from './modules/identity/index.js';
 import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
 
 export interface ConfigPayload {
@@ -70,15 +71,13 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
     const machines = await client.query(
       'SELECT id, code, category, cell, segment_id, group_id, criticality FROM machine ORDER BY code',
     );
-    const people = await client.query(
-      'SELECT id, name, team, title, active, phone FROM person ORDER BY name',
-    );
+    const people = await listPeople(client);
     const shifts = await client.query(
       'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
     );
     const slaPolicies = await loadSlaPolicies(client);
     const settings = await client.query('SELECT key, value FROM setting');
-    const tenant = await client.query('SELECT * FROM tenant_info($1)', [tenantId]);
+    const tenant = await tenantInfo(client, tenantId);
     const byList: Record<string, unknown[]> = {};
     for (const row of lists.rows) {
       (byList[row.list as string] ??= []).push(listItem(row as Record<string, unknown>));
@@ -104,13 +103,13 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
 
     return {
       features,
-      language: tenant.rows[0].language,
-      timeZone: tenant.rows[0].time_zone,
+      language: tenant.language,
+      timeZone: tenant.time_zone,
       lists: byList,
       segments: segments.rows,
       groups: groups.rows,
       machines: machines.rows,
-      people: people.rows,
+      people,
       shifts: shifts.rows,
       severityMatrix,
       slaPolicies,
