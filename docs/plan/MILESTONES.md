@@ -28,7 +28,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 09  | Real tickets in                                   | M0        | todo        | —                |
 | 10  | One design kit                                    | M0        | done        | #147             |
 | 11  | Page patterns: data, queue, detail, form          | M0        | done        | #162             |
-| 12  | Page patterns: wizard, settings, dashboard, board | M0        | in progress | —                |
+| 12  | Page patterns: wizard, settings, dashboard, board | M0        | done        | #171             |
 | 13  | Staging live                                      | M0        | blocked     | #146             |
 | 14  | Staging holds Cosmos, safe to run                 | M0        | todo        | —                |
 | 15  | Report a breakdown (floor)                        | M1        | todo        | —                |
