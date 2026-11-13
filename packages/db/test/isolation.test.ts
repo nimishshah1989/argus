@@ -1,9 +1,8 @@
-import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { Client, Pool } from 'pg';
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { Client } from 'pg';
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { installJobSchema } from '../src/install-jobs.js';
+import { startMigratedDb } from './migrated.js';
 
 const D17_TABLES = [
   ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment'.split(
@@ -13,7 +12,12 @@ const D17_TABLES = [
     ' ',
   ),
 ];
-const DATED_TABLES: Record<string, string> = { ticket_tag: 'ticket 07 drops it' };
+const DATED_TABLES: Record<string, string> = {};
+
+const ROUTER_TABLES =
+  'person login session push_subscription ticket ticket_event work_segment crew_member breakdown_report breakdown_report_person file import_batch import_row audit_log command_idempotency sla_policy'.split(
+    ' ',
+  );
 
 const A = '10000000-0000-0000-0000-000000000001';
 const B = '20000000-0000-0000-0000-000000000001';
@@ -60,19 +64,7 @@ async function count(table: string): Promise<number> {
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  db = new Client({ connectionString: container.getConnectionUri() });
-  await db.connect();
-  const migrations = new URL('../migrations/', import.meta.url);
-  for (const file of readdirSync(migrations)
-    .filter((name) => name.endsWith('.sql'))
-    .sort()) {
-    await db.query(readFileSync(new URL(file, migrations), 'utf8'));
-  }
-  const installerPool = new Pool({ connectionString: container.getConnectionUri(), max: 1 });
-  await installJobSchema(installerPool);
-  await installerPool.end();
-  await db.query(readFileSync(new URL('./seed.sql', import.meta.url), 'utf8'));
+  ({ container, client: db } = await startMigratedDb());
   tenantTables = await names(TENANT_TABLES_SQL);
   await db.query('SET ROLE app_user');
 }, 120_000);
@@ -83,7 +75,7 @@ afterAll(async () => {
 });
 
 describe('schema v1 isolation', () => {
-  it('enables and forces RLS on every tenant table', async () => {
+  it('enables and forces RLS on every tenant table, with one tenant_isolation policy each', async () => {
     const result = await db.query(
       `SELECT relname, relrowsecurity, relforcerowsecurity
        FROM pg_class
@@ -96,10 +88,22 @@ describe('schema v1 isolation', () => {
       expect(row.relforcerowsecurity, `${row.relname} FORCE`).toBe(true);
     }
     const policies = await db.query(
-      `SELECT tablename, count(*)::int AS n FROM pg_policies
-       WHERE schemaname = 'public' GROUP BY tablename`,
+      `SELECT tablename, policyname, roles::text AS roles FROM pg_policies
+       WHERE schemaname = 'public' ORDER BY tablename, policyname`,
     );
-    for (const row of policies.rows) expect(row.n, `${row.tablename} policy`).toBe(1);
+    const definer = policies.rows.filter((row) => row.policyname === 'router_definer');
+    expect(definer.map((row) => row.tablename)).toEqual([...ROUTER_TABLES].sort());
+    for (const row of definer) expect(row.roles, `${row.tablename} role`).toBe('{app_router}');
+    for (const table of tenantTables) {
+      const names = policies.rows.filter((row) => row.tablename === table);
+      const expected = [
+        'tenant_isolation',
+        ...(ROUTER_TABLES.includes(table) ? ['router_definer'] : []),
+      ];
+      expect(names.map((row) => row.policyname).sort(), `${table} policies`).toEqual(
+        expected.sort(),
+      );
+    }
     const columns = await db.query(
       `SELECT table_name FROM information_schema.columns
        WHERE table_schema = 'public' AND column_name = 'tenant_id' AND table_name = ANY($1)`,
@@ -108,12 +112,12 @@ describe('schema v1 isolation', () => {
     expect(columns.rows).toHaveLength(tenantTables.length);
   });
 
-  it('gives app_user no bypass and app_router bypass', async () => {
+  it('gives neither app_user nor app_router a bypass', async () => {
     const result = await db.query(
       "SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname IN ('app_user', 'app_router') ORDER BY rolname",
     );
     expect(result.rows).toEqual([
-      { rolname: 'app_router', rolbypassrls: true },
+      { rolname: 'app_router', rolbypassrls: false },
       { rolname: 'app_user', rolbypassrls: false },
     ]);
   });
@@ -238,54 +242,61 @@ describe('schema v1 isolation', () => {
     ).rejects.toThrow(/foreign key/);
   });
 
-  it('preserves a tag assignment when its login and person are deleted', async () => {
+  describe('history rows cannot be deleted', () => {
     const tenant = '30000000-0000-0000-0000-000000000001';
     const person = '30000000-0000-0000-0000-000000000002';
     const login = '30000000-0000-0000-0000-000000000003';
     const ticket = '30000000-0000-0000-0000-00000000000e';
-    const item = '30000000-0000-0000-0000-00000000000a';
-    await db.query('RESET ROLE');
-    await db.query(
-      "INSERT INTO tenant (id, slug, name) VALUES ($1, 'actor-delete', 'Actor Delete')",
-      [tenant],
-    );
-    await db.query("INSERT INTO person (id, tenant_id, name) VALUES ($1, $2, 'Actor')", [
-      person,
-      tenant,
-    ]);
-    await db.query(
-      "INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, $3, 'actor', 'hash', 'technician', false)",
-      [login, tenant, person],
-    );
-    await db.query(
-      "INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity) VALUES ($1, $2, 'BD-0001', 'stopped', 'open', 'Actor test', now(), 'S3')",
-      [ticket, tenant],
-    );
-    await db.query(
-      "INSERT INTO list_item (id, tenant_id, list, code, label) VALUES ($1, $2, 'maint_code', 'M', 'Mechanical')",
-      [item, tenant],
-    );
-    await db.query(
-      `INSERT INTO ticket_tag (tenant_id, ticket_id, item_id, applied_by_login_id, applied_by_person_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [tenant, ticket, item, login, person],
-    );
-    await db.query('SET ROLE app_user');
-    await setTenant(tenant);
 
-    await db.query('DELETE FROM login WHERE id = $1', [login]);
-    let assignment = (await db.query('SELECT * FROM ticket_tag WHERE tenant_id = $1', [tenant]))
-      .rows[0];
-    expect(assignment.applied_by_login_id).toBeNull();
-    expect(assignment.applied_by_person_id).toBe(person);
+    beforeAll(async () => {
+      await db.query('RESET ROLE');
+      await db.query(
+        "INSERT INTO tenant (id, slug, name) VALUES ($1, 'actor-delete', 'Actor Delete')",
+        [tenant],
+      );
+      await db.query("INSERT INTO person (id, tenant_id, name) VALUES ($1, $2, 'Actor')", [
+        person,
+        tenant,
+      ]);
+      await db.query(
+        "INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, $3, 'actor', 'hash', 'technician', false)",
+        [login, tenant, person],
+      );
+      await db.query(
+        `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, severity,
+           reported_by_person_id, raised_login_id)
+         VALUES ($1, $2, 'BD-0001', 'stopped', 'open', 'Actor test', now(), 'S3', $3, $4)`,
+        [ticket, tenant, person, login],
+      );
+      await db.query(
+        `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, login_id, acting_person_id)
+         VALUES ($1, $2, 1, 'down', $3, $4)`,
+        [tenant, ticket, login, person],
+      );
+      await db.query('SET ROLE app_user');
+      await setTenant(tenant);
+    });
 
-    await db.query('DELETE FROM person WHERE id = $1', [person]);
-    assignment = (await db.query('SELECT * FROM ticket_tag WHERE tenant_id = $1', [tenant]))
-      .rows[0];
-    expect(assignment.applied_by_login_id).toBeNull();
-    expect(assignment.applied_by_person_id).toBeNull();
-    expect(assignment.ticket_id).toBe(ticket);
-    expect(assignment.item_id).toBe(item);
+    for (const [name, table, id] of [
+      ['login that acted on a ticket', 'login', login],
+      ['person who appears on a ticket', 'person', person],
+    ] as const) {
+      it(`refuses to delete a ${name}, and the row remains`, async () => {
+        await expect(db.query(`DELETE FROM ${table} WHERE id = $1`, [id])).rejects.toThrow(
+          /permission denied/,
+        );
+        await db.query('RESET ROLE');
+        try {
+          await expect(db.query(`DELETE FROM ${table} WHERE id = $1`, [id])).rejects.toThrow(
+            /foreign key/,
+          );
+          const rows = await db.query(`SELECT id FROM ${table} WHERE id = $1`, [id]);
+          expect(rows.rows).toHaveLength(1);
+        } finally {
+          await db.query('SET ROLE app_user');
+        }
+      });
+    }
   });
 
   it('keeps the audit log append-only for the app role', async () => {
