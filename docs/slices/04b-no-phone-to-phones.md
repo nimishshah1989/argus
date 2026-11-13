@@ -1,8 +1,8 @@
 # 04b — No phone numbers to phones
 
-Issue: none found in GitHub Issues at planning time; the orchestrator opens or names it and fills `<issue>` in §6 before
+Issue: none found in GitHub Issues at planning time; the orchestrator opens or names it and fills `82` in §6 before
 the build. Follows 04 (merged, #160) · Branch `claude/t04b-no-phone-to-phones`. One PR, label `no-parity`. The PR
-body contains `Closes #<issue>`.
+body contains `Follow-up to #82 (no `Closes`: #82 belongs to merged slice 04)`.
 
 **Status: ready for plan review.** No product question blocks the build (§8).
 
@@ -33,7 +33,7 @@ people, still does (DATA-MAP §5 "Only what is needed", DPDP Act 2023). Nothing 
 | `apps/server/src/modules/plant/routes.ts` | Import `canSettingsPeople, type ActorContext` from `@uptimo/domain`; add `withoutPhone`; in `handleConfig` strip `people[].phone` for a non-manager, then fingerprint and reply |
 | `packages/shared/src/config.ts`           | `personSchema.phone`: `nstr` → `nstr.optional()` (still `.strict()`)                                                                                                            |
 | `apps/server/test/settings.test.ts`       | One new test (§6, T1) in `describe('settings and config')`                                                                                                                      |
-| `changes/<issue>-no-phone-to-phones.md`   | New changelog fragment, one line (§7)                                                                                                                                           |
+| `changes/82-no-phone-to-phones.md`   | New changelog fragment, one line (§7)                                                                                                                                           |
 
 No migration, no new dependency, no web source change expected (see §4.3).
 
@@ -120,8 +120,11 @@ today the technician's people carry `phone`).
      entries still have no `phone` key;
   6. the technician's `GET /api/v1/config?fp=<own fp>` returns `{ same: true, fp }` (per-audience cache still works).
 
-**Permissions** are covered by T1 (admin yes, technician no). Head is not added as a separate test: its outcome is
-the domain rule `canSettingsPeople`, already unit-tested in `packages/domain`; the handler calls it, not a role list.
+**Permissions** (orchestrator ruling: admin-only confirmed). T1 also has a head: Given a person id
+`10000000-0000-0000-0000-000000000071` ('Phones Head', team 'maintenance') and a login id
+`10000000-0000-0000-0000-000000000072` (username 'phones-head', role 'head', shared false, `password_hash` copied from
+`ADMIN_LOGIN`; same SQL pattern as `settings.test.ts:171-188`); Then every entry of the head's `people` has no `phone`
+key. This guards against gating on `canWrite` (admin or head). Test name: `...fingerprinted per audience` stays.
 
 **Regression:** existing tests `returns same:true for an unchanged fingerprint…` (admin) and the M2-2.1 fingerprint
 test keep passing unchanged; `tickets.test.ts:395` reads `people[].name` only; `reply-contract.test.ts` still parses.
@@ -140,7 +143,7 @@ pnpm docs:check
 
 ## 7. Changelog
 
-`changes/<issue>-no-phone-to-phones.md`:
+`changes/82-no-phone-to-phones.md`:
 
 ```
 - Mobile numbers in the plant setup are now sent only to admins; other logins no longer receive them.
