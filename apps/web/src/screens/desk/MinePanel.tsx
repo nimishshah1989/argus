@@ -2,9 +2,19 @@ import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getMe, getToken, listTickets, type Machine, type Ticket } from '../../api.js';
+import {
+  getMe,
+  getToken,
+  type CommandAction,
+  type Machine,
+  type Person,
+  type Ticket,
+} from '../../api.js';
+import type { ActorContext } from '@uptimo/domain';
 import { elapsedLabel, errorMessage, machineLabel } from '../../components/format.js';
-import { closedLast30Days, dayReportHref, todayDate } from './views.js';
+import { TicketCards } from './OpenParts.js';
+import { useTicketWindow } from './useTicketWindow.js';
+import { CLOSED_WINDOW_MS, closedLast30Days, dayReportHref, todayDate } from './views.js';
 
 const rowClass =
   'flex min-h-13 items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 shadow-sm';
@@ -105,57 +115,71 @@ function DayReport() {
   );
 }
 
-/** The Mine tab: my working/waiting tickets, my closed 30 days, and the day report. */
-export function MinePanel({ machines }: { machines: Machine[] }) {
+interface MineProps {
+  machines: Machine[];
+  people: Person[] | undefined;
+  timeZone?: string;
+  now: string;
+  actor: ActorContext | null;
+  pending: boolean;
+  onQuick: (ticket: Ticket, action: CommandAction) => void;
+}
+
+/** Mine, as v3 has it: my jobs as cards with their buttons, then my closed jobs of the last 30 days. */
+function MineLists({
+  shared,
+  personId,
+  ...cards
+}: MineProps & { shared: boolean; personId?: string }) {
   const { t } = useTranslation();
+  const who = shared ? {} : { personId };
+  const active = useTicketWindow({ ...who, status: ['working', 'waiting'] });
+  const closedList = useTicketWindow({ ...who, status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
+  const error = active.error ?? closedList.error;
+  if (active.loading || closedList.loading)
+    return <p className="text-neutral-500">{t('common.loading')}</p>;
+  if (error)
+    return (
+      <p role="alert" className="rounded-xl bg-stopped/10 p-3 text-stopped">
+        {errorMessage(error)}
+      </p>
+    );
+  const groups: Array<{ status: Ticket['status']; title: string }> = [
+    { status: 'working', title: t('status.working') },
+    { status: 'waiting', title: t('status.waiting') },
+  ];
+  return (
+    <>
+      {groups.map(({ status, title }) => (
+        <section key={status} aria-label={title}>
+          <h2 className="text-sm font-medium text-neutral-600">{title}</h2>
+          <TicketCards
+            {...cards}
+            tickets={active.items.filter((ticket) => ticket.status === status)}
+            empty={t('desk.view.none')}
+          />
+        </section>
+      ))}
+      <TicketSection
+        title={t('desk.view.closed30d')}
+        tickets={closedLast30Days(closedList.items)}
+        machines={cards.machines}
+        time={(ticket) => elapsedLabel(ticket.closedAt ?? ticket.reportedAt)}
+      />
+    </>
+  );
+}
+
+/** The Mine tab: my working/waiting tickets, my closed 30 days, and the day report. */
+export function MinePanel(props: MineProps) {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const personId = me.data?.user.actingPersonId;
   const shared = me.data?.user.shared ?? false;
-  const mine = useQuery({
-    queryKey: ['tickets', 'mine', personId, shared],
-    queryFn: () =>
-      listTickets({
-        ...(shared ? {} : { personId: personId ?? undefined }),
-        status: ['working', 'waiting', 'closed'],
-        limit: 200,
-      }),
-    enabled: Boolean(personId) || shared,
-    staleTime: 0,
-  });
-  const tickets = mine.data?.items ?? [];
-  const working = tickets.filter((ticket) => ticket.status === 'working');
-  const waiting = tickets.filter((ticket) => ticket.status === 'waiting');
-  const closed = closedLast30Days(tickets);
   return (
     <div className="mt-6 space-y-6">
       <DayReport />
-      {mine.isLoading ? (
-        <p className="text-neutral-500">{t('common.loading')}</p>
-      ) : mine.error ? (
-        <p role="alert" className="rounded-xl bg-stopped/10 p-3 text-stopped">
-          {errorMessage(mine.error)}
-        </p>
-      ) : (
-        <>
-          <TicketSection
-            title={t('status.working')}
-            tickets={working}
-            machines={machines}
-            time={(ticket) => elapsedLabel(ticket.startedAt ?? ticket.reportedAt)}
-          />
-          <TicketSection
-            title={t('status.waiting')}
-            tickets={waiting}
-            machines={machines}
-            time={(ticket) => elapsedLabel(ticket.reportedAt)}
-          />
-          <TicketSection
-            title={t('desk.view.closed30d')}
-            tickets={closed}
-            machines={machines}
-            time={(ticket) => elapsedLabel(ticket.closedAt ?? ticket.reportedAt)}
-          />
-        </>
+      {(Boolean(personId) || shared) && (
+        <MineLists {...props} shared={shared} personId={personId ?? undefined} />
       )}
     </div>
   );

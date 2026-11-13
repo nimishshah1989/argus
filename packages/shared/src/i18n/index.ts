@@ -2,6 +2,8 @@ import { commonEn } from './common.en.js';
 import { commonGu } from './common.gu.js';
 import { deskEn } from './desk.en.js';
 import { deskGu } from './desk.gu.js';
+import { deskListsEn } from './desk-lists.en.js';
+import { deskListsGu } from './desk-lists.gu.js';
 import { floorEn } from './floor.en.js';
 import { floorGu } from './floor.gu.js';
 import { ticketEn } from './ticket.en.js';
@@ -29,6 +31,7 @@ import { statusFlowGu } from './status-flow.gu.js';
 export const NAMESPACES: Record<string, Record<string, string>> = {
   common: commonEn,
   desk: deskEn,
+  'desk-lists': deskListsEn,
   floor: floorEn,
   ticket: ticketEn,
   sla: slaEn,
@@ -46,6 +49,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
 export const en = {
   ...commonEn,
   ...deskEn,
+  ...deskListsEn,
   ...floorEn,
   ...ticketEn,
   ...slaEn,
@@ -65,6 +69,7 @@ export type MessageKey = keyof typeof en;
 export const gu = {
   ...commonGu,
   ...deskGu,
+  ...deskListsGu,
   ...floorGu,
   ...ticketGu,
   ...slaGu,

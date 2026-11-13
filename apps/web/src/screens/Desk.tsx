@@ -2,7 +2,19 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getConfig, getMe, getState, type CommandAction, type Ticket } from '../api.js';
+import type { UseQueryResult } from '@tanstack/react-query';
+import type { ActorContext } from '@uptimo/domain';
+import {
+  getConfig,
+  getMe,
+  getState,
+  type CommandAction,
+  type Config,
+  type Machine,
+  type Person,
+  type State,
+  type Ticket,
+} from '../api.js';
 import { actorFrom } from '../components/actionSpecs.js';
 import { useCommand } from '../data/index.js';
 import { AccountSheet } from '../components/AccountSheet.js';
@@ -43,6 +55,29 @@ function DeskNav() {
   );
 }
 
+interface TabBodyProps {
+  tab: Tab;
+  state: UseQueryResult<State>;
+  config: Config | undefined;
+  machines: Machine[];
+  cards: {
+    people: Person[] | undefined;
+    timeZone?: string;
+    actor: ActorContext | null;
+    pending: boolean;
+    onQuick: (ticket: Ticket, action: CommandAction) => void;
+  };
+}
+
+function TabBody({ tab, state, config, machines, cards }: TabBodyProps) {
+  if (tab === 'team') return <TeamPanel state={state} config={config} machines={machines} />;
+  if (tab === 'mine')
+    return (
+      <MinePanel machines={machines} now={state.data?.now ?? new Date().toISOString()} {...cards} />
+    );
+  return <Board state={state} machines={machines} {...cards} />;
+}
+
 export function Desk() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('open');
@@ -58,6 +93,13 @@ export function Desk() {
     if (!personId) return;
     void run(ticket.id, action, { personId });
   }
+  const cards = {
+    people: config.data?.people,
+    timeZone: config.data?.timeZone,
+    actor,
+    pending,
+    onQuick: quick,
+  };
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">
@@ -81,20 +123,7 @@ export function Desk() {
         </p>
       )}
 
-      {tab === 'mine' ? (
-        <MinePanel machines={machines} />
-      ) : tab === 'team' ? (
-        <TeamPanel state={state} config={config.data} machines={machines} />
-      ) : (
-        <Board
-          state={state}
-          people={config.data?.people}
-          machines={machines}
-          actor={actor}
-          pending={pending}
-          onQuick={quick}
-        />
-      )}
+      <TabBody tab={tab} state={state} config={config.data} cards={cards} machines={machines} />
     </main>
   );
 }
