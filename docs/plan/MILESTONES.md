@@ -18,7 +18,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | #   | Ticket                                            | Milestone | Status | PR   |
 | --- | ------------------------------------------------- | --------- | ------ | ---- |
 | 01  | Green, fast main                                  | M0        | done   | #145 |
-| 02  | Module boundaries: expand                         | M0        | done   | #TBD |
+| 02  | Module boundaries: expand                         | M0        | done   | #149 |
 | 03  | Module boundaries: contract                       | M0        | todo   | —    |
 | 04  | One contract, reply parts                         | M0        | todo   | —    |
 | 05  | Actions and words from the domain                 | M0        | todo   | —    |
