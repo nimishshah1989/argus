@@ -26,17 +26,21 @@ breakdown and prove whether maintenance is working. AI suggests; a person confir
 4. **M1 parity complete and cutover** — ticket raising at Cosmos happens on Uptimo; Bhavin's app read-only.
 5. **M2 Accountability** — severity, SLA clocks, escalation ladder and duty roster, acknowledge, production
    handback (confirm/dispute), push notifications, operational safety (failed jobs, timer-lag alarm, device revoke).
-6. **M4a Analytics parity** — every figure of Bhavin's platform reproduced exactly at a frozen as-of date,
+6. **M6 AI layer, first part — starts right after cutover, alongside M2** (Nimish, 13 Nov): evaluation
+   harness first, then **diagnosis on the ticket** (likely causes citing past tickets, the cheapest first check,
+   the expected fix, safety shown first), fix finder with evidence and duplicate detection.
+7. **M4a Analytics parity** — every figure of Bhavin's platform reproduced exactly at a frozen as-of date,
    after a usage triage with Bhavin decides which screens are kept.
-7. **M4b The loop** — PM plans and calendar, failure-code taxonomy at close, shift-calendar KPIs, frozen monthly
+8. **M4b The loop** — PM plans and calendar, failure-code taxonomy at close, shift-calendar KPIs, frozen monthly
    forecasts, scorecard, inspection tickets from Hot machines, intervention ledger.
-8. **M6 AI layer** — evaluation harness first; failure-code suggestion, fix finder with evidence, duplicate
-   detection, plain-language analytics, daily briefing per role, PM drafts from the plant's manuals. Each runs
-   in shadow mode until it clears its acceptance threshold. AI never invents numbers or codes.
-9. **M3 WhatsApp and voice — parked** (Nimish, 13 Nov): not built now; the use case is limited. Its tickets stay in the plan, inactive.
+9. **M6 AI layer, second part** — the features that need M4b data: failure-code suggestion, plain-language
+   analytics, daily briefing per role, PM drafts from the plant's manuals. Every AI feature runs in shadow mode
+   until it clears its acceptance threshold. AI never invents numbers or codes.
+10. **M3 WhatsApp and voice — parked** (Nimish, 13 Nov): not built now; the use case is limited. Its tickets stay in the plan, inactive.
 
 **Deferred (not planned now):** second tenant / plant two (M5): onboarding wizard, industry packs, settings
-cascade, multi-plant tenants, Hindi, mid-market features. Multi-tenant safety already built (RLS, no plant
+cascade, multi-plant tenants, Hindi, mid-market features. Until then, a Claude session is used only to clean
+Cosmos's fuller history from Bhavin (Nimish, 13 Nov); a general import format for other plants waits for M5. Multi-tenant safety already built (RLS, no plant
 constants in code) stays a rule.
 
 ## Design language (non-negotiable)
@@ -56,7 +60,7 @@ constants in code) stays a rule.
 
 Accountability loop first; every legacy number reproduced before any is improved; everything plant-specific is
 configuration; server-side permissions; event log is the truth; data stays in India (AWS ap-south-1) unless an
-ADR with a data-protection note says otherwise; no secrets or real personal data in the repo.
+ADR with a data-protection note says otherwise (AI: ADR 0007); no secrets or real personal data in the repo.
 
 ## Inputs (owner: Nimish / Bhavin)
 
@@ -69,10 +73,10 @@ Still needed: see `docs/plan/NEEDS.md` (N1 live ticket export **and** Worker sou
 
 ## Decided 13 November 2026
 
-- **Gujarati text is core.** Most problems are written in Gujarati text (script or Latin letters), not voice. Understanding it in English, inside India, with Bhavin's glossary and spelling tool, is an M1 cutover capability (ticket 68). Provider candidates (Nimish): AI4Bharat and Sarvam; the same India-only families are the first candidates for M6.
+- **Gujarati text is core.** Most problems are written in Gujarati text (script or Latin letters), not voice. Understanding it in English, with Bhavin's glossary and spelling tool, is an M1 cutover capability (ticket 68). Provider candidates (Nimish): AI4Bharat and Sarvam; Claude is also allowed since ADR 0007 and is measured on the same Cosmos texts.
 
 - Test on real Cosmos data: staging, the import rehearsal, the answer key and manual checks use the real data; no synthetic people on staging. Automated tests in CI use real records with names and numbers replaced (proposed; data must not leave India).
-- AI runs in India only. The AI capabilities that are possible under that rule are aligned with Nimish before M6 is sized.
+- ~~AI runs in India only.~~ Superseded the same day: **AI may run outside India (Anthropic's Claude), with names and phone numbers removed before sending and each plant's written consent first** (ADR 0007).
 - Analytics rank named technicians, by a method agreed before it is built.
 - Mobile numbers are collected from M1 for Cosmos staff.
 - Gujarati is the focus language; Cosmos's Gujarati becomes the default for every Gujarat plant.
@@ -82,5 +86,5 @@ Still needed: see `docs/plan/NEEDS.md` (N1 live ticket export **and** Worker sou
 - M2-2.3 escalation: ladder people, roster model, delays/repeats, who may acknowledge, notification payload —
   answer after two weeks of live use; agents propose defaults.
 - M4a: which platform screens Cosmos actually uses (triage with Bhavin).
-- M6: which AI capabilities are possible with India-only inference (alignment session before M6 is sized).
+- M6: the consent wording each plant signs for AI processing outside India (N14), and the thresholds T1–T6.
 - M4: the technician ranking method.

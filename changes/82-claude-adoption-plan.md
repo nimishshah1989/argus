@@ -1,0 +1,1 @@
+- Decision record 0007 (proposed): Claude for AI features and plant onboarding, plus the adoption plan.
