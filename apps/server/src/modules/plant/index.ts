@@ -6,11 +6,13 @@ export {
   activeListItems,
   activeMachineByCode,
   listItem,
+  machineFamily,
   machinesByIds,
   setting,
   shiftCodeAt,
   shiftsOf,
   shiftWindows,
+  type MachineFamily,
   type MachineRow,
 } from './repo/reads.js';
 export { canWrite, forbidden } from './routes.js';
