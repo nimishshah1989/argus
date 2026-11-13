@@ -1,0 +1,3 @@
+- Every API route except health, brand and sign-in needs a session, checked in one place.
+- Operations, identity and plant code live in server module folders, with SQL only in each `repo.ts`.
+- `pnpm boundaries` fails SQL on those modules' tables outside their `repo.ts`.

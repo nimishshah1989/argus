@@ -629,12 +629,12 @@ schema, migration, web, infra or deploy change.
 
 ## 8. Evidence (filled by the builder)
 
-- B1–B7 red then green: _paste_
-- G1/G2 red (task 4, before wiring) then G1–G6 green: _paste_
-- R1 full vitest run after tasks 2, 3, 4, 5: _counts_
-- R2 planted `pnpm boundaries` output (exit 1) and clean output (exit 0): _paste_
-- R3 `pnpm verify` and `pnpm test:e2e`: _result_
-- Fast tests before/after: _s_ / _s_
+- B1–B7 red then green: red (`check-boundaries` missing, then B1 red on dropped LEGACY entries in tasks 3 and 5), then `tools/boundaries.test.ts` 9 passed (the B2 `it.each` counts three).
+- G1/G2 red (task 4, before wiring: `routeTable is not a function`, 6 skipped) then G1–G6 green: `guard.test.ts` 6 passed.
+- R1 full vitest run after tasks 2, 3, 4, 5: not run by the builder (DB-backed suite left to the orchestrator); `git diff --name-status origin/main -- apps/server/test` shows only `A apps/server/test/guard.test.ts`.
+- R2 planted `pnpm boundaries` output (exit 1): `boundaries: apps/server/src/modules/plant/routes.ts: SQL names person (owned by identity); only apps/server/src/modules/identity/repo.ts may`; clean (exit 0): `boundaries: 69 files scanned, 0 problem(s)`.
+- R3 `pnpm verify` and `pnpm test:e2e`: left to the orchestrator.
+- Fast tests: 23 files, 197 tests passed before and after (about 2 s).
 
 ## 9. Open questions
 
