@@ -111,6 +111,9 @@ describe('boundaries check', () => {
     'SELECT 1 FROM ONLY person',
     'SELECT 1 FROM widget w JOIN LATERAL person p ON true',
     'SELECT 1 FROM widget w, LATERAL (SELECT 1) x, "public"."person" y',
+    'SELECT 1 FROM widget w, (SELECT 1 FROM person) x',
+    'SELECT 1 FROM widget w, LATERAL (SELECT 1 FROM person WHERE true) x',
+    'SELECT 1 FROM person p, f(g(1)) x',
   ])('names a table in every FROM form: %s', (sql) => {
     const file = `${SRC}/modules/reports/x.ts`;
     expect(boundaryErrors(plant({ [file]: `q('${sql}');` }), {})).toEqual([

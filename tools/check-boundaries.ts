@@ -38,16 +38,33 @@ export function sqlLiterals(source: string): string[] {
 
 const NAME = String.raw`(?:only\s+)?(?:lateral\s+)?(?:"?[a-z_][a-z0-9_]*"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?`;
 const AFTER_KEYWORD = new RegExp(String.raw`\b(?:join|into|update)\s+${NAME}`, 'gi');
-// A FROM list runs to the next clause keyword; a flat (...) group is part of the list.
+// A FROM list runs to the next clause keyword; parenthesised groups are scanned on their own first.
 const FROM_LIST =
-  /\bfrom\s+((?:[^;()]|\([^()]*\))*?)(?=\b(?:where|join|on|group|order|limit|union|returning|set|having|for|using|window)\b|[;)]|$)/gi;
+  /\bfrom\s+([^;]*?)(?=\b(?:where|join|on|group|order|limit|union|returning|set|having|for|using|window)\b|;|$)/gi;
 const FROM_ITEM = new RegExp(String.raw`^\s*${NAME}`, 'i');
+const INNERMOST_GROUP = /\(([^()]*)\)/;
+
+function namesIn(sql: string): string[] {
+  let flat = sql;
+  const names: string[] = [];
+  for (let group = INNERMOST_GROUP.exec(flat); group; group = INNERMOST_GROUP.exec(flat)) {
+    names.push(...namesIn(group[1] ?? ''));
+    flat = flat.replace(INNERMOST_GROUP, ' _g ');
+  }
+  names.push(...[...flat.matchAll(AFTER_KEYWORD)].map((m) => m[1] ?? ''));
+  for (const list of flat.matchAll(FROM_LIST))
+    for (const item of (list[1] ?? '').split(',')) names.push(item.match(FROM_ITEM)?.[1] ?? '');
+  return names;
+}
 
 export function tablesNamed(sql: string): string[] {
-  const names = [...sql.matchAll(AFTER_KEYWORD)].map((m) => m[1] ?? '');
-  for (const list of sql.matchAll(FROM_LIST))
-    for (const item of (list[1] ?? '').split(',')) names.push(item.match(FROM_ITEM)?.[1] ?? '');
-  return [...new Set(names.filter(Boolean).map((name) => name.toLowerCase()))].sort();
+  return [
+    ...new Set(
+      namesIn(sql)
+        .filter(Boolean)
+        .map((name) => name.toLowerCase()),
+    ),
+  ].sort();
 }
 
 export function serverFiles(root: string): string[] {

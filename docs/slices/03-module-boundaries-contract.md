@@ -229,9 +229,9 @@ export const EXCEPTIONS: readonly CallException[] = [/* the five rows below, in 
 // tools/check-boundaries.ts — table names in SQL text (replaces 02's single regex)
 const NAME = String.raw`(?:only\s+)?(?:lateral\s+)?(?:"?[a-z_][a-z0-9_]*"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?`;
 const AFTER_KEYWORD = new RegExp(String.raw`\b(?:join|into|update)\s+${NAME}`, 'gi');
-const FROM_LIST = /\bfrom\s+([^;()]*?)(?=\b(?:where|join|on|group|order|limit|union|returning|set|having|for|using|window)\b|[;()]|$)/gi;
+const FROM_LIST = /\bfrom\s+([^;]*?)(?=\b(?:where|join|on|group|order|limit|union|returning|set|having|for|using|window)\b|;|$)/gi; // D: parenthesised groups are first replaced by ' _g ' and scanned on their own (recursively), so a FROM inside a subquery and a list item after a LATERAL group are both seen
 const FROM_ITEM = new RegExp(String.raw`^\s*${NAME}`, 'i');
-// tablesNamed(sql): AFTER_KEYWORD captures + each FROM_LIST capture split(','), FROM_ITEM capture per item;
+// tablesNamed(sql) = namesIn(sql): innermost (...) groups recursed then replaced; AFTER_KEYWORD captures + each FROM_LIST capture split(','), FROM_ITEM capture per item. Extra B8 cases: subquery FROM, LATERAL subquery FROM, nested call parens.
 // lower-cased, unique, sorted.
 ```
 
