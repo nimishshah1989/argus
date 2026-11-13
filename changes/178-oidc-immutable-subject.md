@@ -1,0 +1,1 @@
+- The staging deploy role now accepts GitHub's newer, safer workflow identity (it includes the numeric ids of the account and repository), so the first staging deploy can sign in to AWS. Still one repository, main branch only.

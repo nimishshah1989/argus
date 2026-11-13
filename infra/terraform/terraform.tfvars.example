@@ -5,3 +5,4 @@ github_repo   = "argus"
 # enable_https         = false  # plain HTTP fallback if the certificate cannot be issued
 # external_uptime_ping = false  # skip the us-east-1 health check and alarm
 # server_az_suffix     = "b"    # the server's zone (ap-south-1b); change to "c" or "a" if AWS reports InsufficientInstanceCapacity
+# github_sub_prefix = "repo:<org>@<owner id>/<repo>@<repo id>"  # from: gh api repos/<org>/<repo>/actions/oidc/customization/sub
