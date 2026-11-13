@@ -28,4 +28,6 @@ Date: 13 November 2026 · Status: proposed (architect, ticket 07; waits for the 
 ## Consequence
 
 - `audit_purge` cannot be called by the server's job worker and stays that way (orchestrator ruling): the purge is an operator task. No audit row can be 3 years old before November 2029.
+- `erase_person` searches text only for terms of three characters or more. A person whose every term is shorter is still switched off and unlinked by id; the audit row says `text_searched: false` and how many terms were skipped, and the plant reviews the text by hand.
+- A data-only reload of `platform_access` into a migrated database must switch off `platform_access_guard` and lift the approver check for the reload; the runbook is in both migration headers. RDS snapshot restores and full restores into an empty database are unaffected.
 - Offboarding keeps the tenant row, marked `offboarded`, and one audit line, so the proof has a home without a new table (D17).

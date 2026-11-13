@@ -236,7 +236,8 @@ own (not shared) logins, matched case-insensitively as whole words, any run of s
 Returns the counts plus `s3_keys`, the storage objects the calling script must delete.
 
 Refuses when the reference or the operator is empty, or when either contains one of the terms (so a name cannot
-reach the audit row).
+reach the audit row). That second test runs only when there is at least one searchable term; with none there is
+nothing to test against.
 
 DATA-MAP §5, place by place:
 
@@ -265,8 +266,18 @@ Decisions inside it:
 - **JSON: text values only.** `erase_json_values` walks objects and arrays and replaces inside strings. A key that
   happens to equal the name keeps its name, numbers and shape are untouched (measured). The first draft replaced
   in the JSON text, which could rename a key.
-- **Terms under three characters are not searched** and are counted in `terms_too_short`. "RP" would rewrite
-  ordinary text. They join the nicknames the plant reviews by hand (DATA-MAP §5).
+- **Terms under three characters are not searched** and are counted in `skipped_short_terms`. "RP" or "Om" would
+  rewrite ordinary text. They join the nicknames the plant reviews by hand (DATA-MAP §5).
+- **A person with no searchable term at all** (a two-character name such as "Om" or "જય", no short name of three
+  letters, no mobile number, no login of their own) is still erased by id: the person becomes "Former staff" and
+  is switched off, their logins are neutralised, their own devices go, shared devices forget them, the repeat
+  guard is cleared for their own logins, their own audit lines are blanked and the cached PDFs are dropped. No
+  text is searched and no other row is touched (measured). The audit row carries `text_searched: false` and
+  `skipped_short_terms`, so the request shows that a manual review of the text is still owed. The function does
+  not refuse: the id-linked half is the larger part of the erasure and should not wait for the review.
+- **`erase_json_values` returns its input unchanged when the pattern is NULL**, and the repeat-guard update uses
+  the text match only when there is a pattern. In the first amended draft a NULL pattern blanked the stored reply
+  of every repeat-guard row of the tenant (second review, finding 1).
 - **All of the plant's cached PDFs go, not only the leaver's.** Which names a PDF shows depends on the template,
   which will change; "all" cannot go stale, and the cost is a re-render. Only `file` rows a report points at are
   deleted, so a future manual stored as a PDF is safe.
@@ -424,6 +435,23 @@ migration header carries the same text.
   audit rows and `updated_at` on the restored grants.
 - After either of those: the down file refuses (it would drop approvals, audit links or an offboarding record).
   Restore the snapshot.
+- **Restoring from a backup.** An RDS snapshot restore is physical: no trigger or check runs. A full `pg_restore`
+  (or `psql` of a full `pg_dump`) into an empty database is also unaffected, because the dump loads the rows
+  before it creates triggers and `NOT VALID` checks (measured). Only a data-only reload of `platform_access` into
+  a database that already has 0009 needs care: `platform_access_guard` would reset each `created_at`, and it and
+  the approver check refuse the grants from before the rule (measured). Around such a reload:
+
+  ```sql
+  ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;  -- or pg_restore --disable-triggers
+  ALTER TABLE platform_access DROP CONSTRAINT platform_access_approver_required;
+  -- reload
+  ALTER TABLE platform_access ADD CONSTRAINT platform_access_approver_required
+    CHECK (approved_by_login_id IS NOT NULL) NOT VALID;
+  ALTER TABLE platform_access ENABLE TRIGGER platform_access_guard;
+  ```
+
+  The same text is in the header of both migration files.
+
 - Not rolled back by design: `app_router` without BYPASSRLS and its policies on `login`, `session`, `sla_policy`.
   Putting BYPASSRLS back is impossible on RDS, and without the policies `auth_lookup` would return nothing.
 - Code: the release before this one still deletes through `app_user` in import undo, so a code rollback without
@@ -490,6 +518,20 @@ this file yet. Re-run in full after the review changes.
   customer, and a second call is refused.
 - `audit_purge`: recent cut-off and missing operator refused; old rows of two tenants removed, one `audit.purge`
   row written for each with the cut-off, its count and the operator.
+- `erase_person` for a person with no searchable term, once with the name "Om" and once with "જય" (no phone, no
+  login), with those words planted in ticket text, an event, a stored reply, an import row, batch stats and an
+  audit line: a row-by-row hash of `ticket`, `ticket_event`, `breakdown_report`, `command_idempotency`,
+  `import_row`, `import_batch`, `audit_log`, `login` and the other people was identical before and after
+  (so no `updated_at` moved either); the person became "Former staff"; a shared floor session they were acting on
+  stayed with the actor cleared; one `person.erase` audit row each, with `text_searched: false` and
+  `skipped_short_terms: 1`. `erase_json_values(x, NULL)` returns `x`. Run on both database kinds. No report in
+  that data had a cached PDF; had one existed it would have been dropped, by design.
+- Dump and reload of `platform_access` (`pg_dump -Fc`, rows from before the rule and an approved one): a full
+  `pg_restore` into an empty database gives identical `created_at`, `expires_at` and approver with no flag; a
+  data-only reload into a migrated database is refused as it stands; with the trigger disabled alone it is still
+  refused, by the approver check; with the runbook of §9 (both the `ALTER … DISABLE TRIGGER` form and
+  `--disable-triggers`) the rows come back identical, the trigger is enabled again, the check is `NOT VALID`
+  again, and a new unapproved grant is refused.
 - Non-superuser owner (§8): 0001 (one statement skipped) to 0007, 0009, down, 0009 again; the schema dump after
   the down differs from before only by the three kept policies; all 27 row-security tables forced again; the down
   refuses once a grant is approved or a customer is offboarded.
@@ -539,3 +581,13 @@ end to end (read in `connection-parameters.js` only); pg-boss install as a non-s
 | 9   | `file`                       | DELETE revoked. Evidence that nothing breaks: `grep -rni "DELETE FROM" apps/server/src` finds only `identity/repo.ts:143` (tenant, seed), `notifications/repo.ts:57` (push_subscription), `tickets/repo/imported.ts:216` and `:220` (import undo). No route deletes a file, photo, machine or machine move; the only `app.delete` route is `plant/routes.ts:148`, which switches a list entry off. No floor or desk behaviour changes |
 | 10  | `ticket_tag` in DATA-MAP     | Row marked removed; the export file is the only remaining copy, kept with the backup                                                                                                                                                                                                                                                                                                                                                  |
 | —   | Ruling on question 25        | `offboard_tenant` keeps the tenant row as `offboarded` and writes one `tenant.offboard` audit row with the export reference, the backup reference and the operator. No new table                                                                                                                                                                                                                                                      |
+
+**Second review (scoped re-check), two findings.**
+
+1. `erase_person` with no searchable term. The request-reference test and the text arm of the repeat-guard update
+   now run only when there is a pattern; the repeat guard is still cleared for the leaver's own logins;
+   `erase_json_values` returns its input for a NULL pattern; the count is renamed `skipped_short_terms` and
+   `text_searched` is added. Behaviour for such a person is stated in §7 and measured in §11.
+2. `platform_access_guard` and reloads. The runbook is in both file headers and §9. One thing beyond the finding:
+   disabling the trigger is not enough for a data-only reload, because the `NOT VALID` approver check also refuses
+   the older grants; the runbook lifts and re-adds it. A full restore into an empty database needs neither.

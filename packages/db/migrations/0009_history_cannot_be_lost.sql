@@ -4,6 +4,16 @@
 --   deploy note; then `tsx scripts/preflight-cutover.ts` (must exit 0) and `tsx scripts/export-tags.ts`, which
 --   writes ticket_tag-<utc>.csv beside the backup and prints the row count N. If N > 0 the migration runs only
 --   with PGOPTIONS='-c uptimo.tags_exported=N'. Revert: packages/db/migrations/down/0009_history_cannot_be_lost.down.sql.
+-- restore: an RDS snapshot restore is physical, and a full pg_restore (or psql of a full pg_dump) into an
+--   empty database loads the rows before it creates triggers and NOT VALID checks: neither needs anything
+--   extra. A data-only reload of platform_access into a database that already has this migration does:
+--     ALTER TABLE platform_access DISABLE TRIGGER platform_access_guard;   (or pg_restore --disable-triggers)
+--     ALTER TABLE platform_access DROP CONSTRAINT platform_access_approver_required;
+--     ... reload ...
+--     ALTER TABLE platform_access ADD CONSTRAINT platform_access_approver_required
+--       CHECK (approved_by_login_id IS NOT NULL) NOT VALID;
+--     ALTER TABLE platform_access ENABLE TRIGGER platform_access_guard;
+--   Otherwise the trigger resets each created_at and it, or the check, refuses the grants from before the rule.
 -- Design and every rejected alternative: docs/slices/07-schema-notes.md.
 
 BEGIN;
@@ -285,10 +295,11 @@ BEGIN
 END $$;
 
 -- Replaces every match of a pattern inside the text values of stored JSON. Keys, numbers and the
--- shape are never touched.
+-- shape are never touched. Without a pattern the input comes back unchanged.
 CREATE FUNCTION erase_json_values(j jsonb, pat text) RETURNS jsonb
 LANGUAGE plpgsql IMMUTABLE SET search_path = public, pg_temp AS $$
 BEGIN
+  IF pat IS NULL THEN RETURN j; END IF;  -- no pattern, nothing to replace
   RETURN CASE jsonb_typeof(j)
     WHEN 'string' THEN to_jsonb(regexp_replace(j #>> '{}', pat, 'Former staff', 'gi'))
     WHEN 'array' THEN (SELECT coalesce(jsonb_agg(erase_json_values(e, pat) ORDER BY o), '[]')
@@ -329,15 +340,16 @@ BEGIN
       || ARRAY(SELECT username FROM login WHERE id = ANY(logins) AND NOT shared)) x
     WHERE btrim(coalesce(x, '')) <> '' AND lower(btrim(x)) <> 'former staff'
   ) s;
-  counts := jsonb_build_object('terms_too_short', n);
+  counts := jsonb_build_object('skipped_short_terms', n, 'text_searched', cardinality(terms) > 0);
   -- Whole words only: each neighbour must be a space, ASCII punctuation or the start or end of the
   -- text, so a name inside a longer word (in any script) is left alone. Every other character of a
-  -- term is taken literally; a run of spaces matches any run of spaces. NULL when there is no term.
+  -- term is taken literally; a run of spaces matches any run of spaces. NULL when there is no term:
+  -- then nothing below searches text, and only the rows tied to the person by id are changed.
   SELECT '(?<![^[:space:][:punct:]])(?:' || string_agg(
       regexp_replace(regexp_replace(t, '([^[:alnum:][:space:]])', '\\\1', 'g'), '\s+', '\\s+', 'g'),
       '|' ORDER BY length(t) DESC, t) || ')(?![^[:space:][:punct:]])'
     INTO pat FROM unnest(terms) t;
-  IF concat_ws(' ', p_request_ref, p_operator) ~* pat THEN
+  IF pat IS NOT NULL AND concat_ws(' ', p_request_ref, p_operator) ~* pat THEN
     RAISE EXCEPTION 'erase_person: the request reference and operator must not hold the name';
   END IF;
 
@@ -364,7 +376,8 @@ BEGIN
   counts := counts || jsonb_build_object('push_subscription_unlinked', n);
   UPDATE command_idempotency SET result = '{}', updated_at = now()
   WHERE tenant_id = p.tenant_id AND result <> '{}'
-    AND (login_id = ANY(logins) OR erase_json_values(result, pat) IS DISTINCT FROM result);
+    AND (login_id = ANY(logins)
+      OR (pat IS NOT NULL AND erase_json_values(result, pat) IS DISTINCT FROM result));
   GET DIAGNOSTICS n = ROW_COUNT;
   counts := counts || jsonb_build_object('command_idempotency', n);
 
