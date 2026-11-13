@@ -1,17 +1,32 @@
 import { readFileSync, statSync } from 'node:fs';
-import { createPool } from '../../kernel/index.js';
-import { startJobs, reconcileTicket } from '../accountability/index.js';
+import type { PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { resolveTenant } from '../identity/index.js';
-import { IMPORT_LIMITS } from './json.js';
+import { createPool } from '../kernel/index.js';
+import {
+  reconcileSlaPolicies,
+  reconcileTicket,
+  startJobs,
+} from '../modules/accountability/index.js';
+import { resolveTenant } from '../modules/identity/index.js';
 import {
   CliUsageError,
+  IMPORT_LIMITS,
   assertAppApiRole,
   assertProductionAccess,
   assertRouterRole,
+  importBhavin,
+  importRealExport,
+  looksLikeBhavinExport,
   parseCliArgs,
+  undoImport,
   type CliCommand,
-} from './security.js';
+} from '../modules/imports/index.js';
+
+/**
+ * The operator CLI of the importer (`pnpm import:bhavin`, `pnpm import:undo`). It lives here, not in the
+ * `imports` module, because it starts the job queue and reconciles SLA timers: it is the one place that may
+ * reach both `imports` and `accountability`.
+ */
 
 function printUsage(): void {
   console.error('usage: import:bhavin <file.json> --tenant <slug> [--production-confirm]');
@@ -39,7 +54,6 @@ async function runUndo(command: Extract<CliCommand, { mode: 'undo' }>): Promise<
     await assertRouterRole(pool);
     const tenant = await resolveTenant(pool, command.tenantSlug);
     if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
-    const { undoImport } = await import('./bhavin.js');
     const result = await undoImport(pool, tenant.id, command.batchId, command.operator);
     console.log(JSON.stringify({ batchId: command.batchId, deleted: result.deleted }));
   } finally {
@@ -79,13 +93,13 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     });
     const tenant = await resolveTenant(pool, command.tenantSlug);
     if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
-    const { importBhavin } = await import('./bhavin.js');
-    const { batchId, stats } = await importBhavin(pool, tenant.id, input, {
-      timeZone: tenant.time_zone,
-      boss: runtime.boss,
-    });
+    const afterImport = (client: PoolClient, tenantId: string) =>
+      reconcileSlaPolicies(client, tenantId, runtime.boss);
+    const { batchId, stats } = looksLikeBhavinExport(input)
+      ? await importRealExport(pool, tenant.id, input, { afterImport })
+      : await importBhavin(pool, tenant.id, input, { timeZone: tenant.time_zone, afterImport });
     console.log(JSON.stringify({ batchId, stats }));
-    if ('status' in stats && stats.status === 'failed') process.exitCode = 1;
+    if (stats.status === 'failed') process.exitCode = 1;
   } finally {
     await jobs?.close();
     await pool.end();

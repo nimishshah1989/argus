@@ -124,18 +124,3 @@ export async function lockBatchRow(
   );
   return result.rows[0];
 }
-
-/** SELECT import_undo($1, $2, $3): the definer function of D24; it refuses another customer's batch, deletes, marks the batch undone and audits. */
-export async function callImportUndo(
-  tx: Db,
-  tenantId: string,
-  batchId: string,
-  operator: string,
-): Promise<number> {
-  const result = await tx.query('SELECT import_undo($1, $2, $3) AS deleted', [
-    tenantId,
-    batchId,
-    operator,
-  ]);
-  return result.rows[0].deleted as number;
-}

@@ -1,6 +1,5 @@
 import { withTenant } from '@uptimo/db';
-import type { Pool } from 'pg';
-import type { PgBoss } from 'pg-boss';
+import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
 import {
   emptyImportStats,
@@ -26,8 +25,8 @@ import {
 } from './schema.js';
 import { finishBatch, insertErrorRow, insertPendingRow, updateImportRow } from './repo.js';
 import { lockRefCounter } from '../tickets/index.js';
-import { reconcileSlaPolicies } from '../accountability/index.js';
 
+export type AfterImport = (client: PoolClient, tenantId: string) => Promise<void>;
 type TicketResult = Awaited<ReturnType<typeof importTicket>>;
 type RunCtx = ImportCtx & { aliases: AliasConfig; now: Date; timeZone?: string };
 
@@ -250,10 +249,10 @@ async function runMain(
     aliasSha256: string;
     now: Date;
     timeZone?: string;
-    boss?: PgBoss;
+    afterImport?: AfterImport;
   },
 ): Promise<{ batchId: string; stats: ImportStats }> {
-  const { parsed, aliasSha256, now, timeZone, boss } = input;
+  const { parsed, aliasSha256, now, timeZone, afterImport } = input;
   const context = { aliasSha256, now, timeZone };
   return withTenant(pool, tenantId, async (client) => {
     const ctx: RunCtx = {
@@ -275,8 +274,8 @@ async function runMain(
     }
     stats.parentRepairs = await applyParentLinks(ctx, plans);
     stats.refCounters = await advanceRefCounters(ctx, plans);
-    // M2-2.2: reconcile imported live tickets with the tenant's configured SLA policies.
-    await reconcileSlaPolicies(client, tenantId, boss);
+    // The caller decides what follows (the CLI reconciles SLA timers); this module reaches no other.
+    await afterImport?.(client, tenantId);
     stats.completion = makeCompletionFingerprint(
       await loadBatchSnapshot(client, tenantId, batchId, false),
     );
@@ -299,7 +298,7 @@ export async function importBhavin(
   pool: Pool,
   tenantId: string,
   input: unknown,
-  options: { timeZone?: string; boss?: PgBoss } = {},
+  options: { timeZone?: string; afterImport?: AfterImport } = {},
 ): Promise<{ batchId: string; stats: ImportStats }> {
   const parsed = parseSyntheticExport(input);
   const now = new Date();

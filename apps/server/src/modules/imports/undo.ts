@@ -5,8 +5,10 @@ import {
   makeCompletionFingerprint,
   type BatchSnapshot,
 } from './fingerprint.js';
-import { callImportUndo, lockBatchRow } from './repo.js';
+import { removeImported } from '../tickets/index.js';
+import { lockBatchRow } from './repo.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
+import { REAL_SOURCE } from './bhavin-export.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import type { CompletionFingerprint } from './schema.js';
 
@@ -67,7 +69,10 @@ async function lockBatch(
 ): Promise<LockedBatch> {
   const batch = await lockBatchRow(client, tenantId, batchId);
   if (!batch) throw new Error('Import batch not found');
-  if (!isRecord(batch.stats) || batch.stats.contract !== SYNTHETIC_SOURCE) {
+  if (
+    !isRecord(batch.stats) ||
+    (batch.stats.contract !== SYNTHETIC_SOURCE && batch.stats.contract !== REAL_SOURCE)
+  ) {
     throw new Error('Undo refused: synthetic import contract is required');
   }
   if (batch.status !== 'done' && batch.status !== 'failed') {
@@ -114,6 +119,6 @@ export async function undoImport(
     const completion = parseCompletion((batch.stats as { completion?: unknown }).completion);
     assertCompletion(completion, await loadBatchSnapshot(client, tenantId, batchId, true));
     await client.query('RESET ROLE');
-    return { deleted: await callImportUndo(client, tenantId, batchId, operator) };
+    return { deleted: await removeImported(client, { tenantId, batchId, operator }) };
   });
 }

@@ -1,0 +1,1 @@
+- Uptimo can load Cosmos's 275 real tickets with Bhavin's own numbers, prove each against his arithmetic, and undo the load.
