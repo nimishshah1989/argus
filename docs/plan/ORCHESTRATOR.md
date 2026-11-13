@@ -41,6 +41,22 @@ BUILD    PR → code-reviewer PASS + CI green (lint, typecheck, touched-module A
 EXIT     every goal of the ticket has a passing test on main. Otherwise the loop continues.
 ```
 
+### 3a. Lean rules (Nimish, 13 Nov — these override the loop above where they differ)
+
+- **Plan:** the slice plan names files, interfaces and the ticket's goal tests only. One plan review;
+  if it fails, the orchestrator rules on the findings and coding starts. No second round.
+- **Tests per ticket = the ticket's goals.** Each goal is one test (or a few) at its seam, written first.
+  No extra unit tests beyond what a goal or a bug fix needs.
+- **While coding:** fast tests plus the touched files' tests only. No per-task reviews; one implementer
+  works through the plan.
+- **Before push:** the touched module's API tests and the browser smoke, once.
+- **PR:** CI (lint, typecheck, touched-module API tests, tenant isolation, browser smoke) + one
+  `code-reviewer` pass. Low-risk tickets merge on that. The orchestrator's own independent review runs
+  only on high-risk tickets: schema or migration, auth or permissions, tenancy, deleting or rewriting data.
+- **Comprehensive testing once per milestone:** the full API suite, every browser journey and any soak run
+  at the milestone gate, before Nimish's check — not per ticket.
+- **Timebox:** a ticket should reach its PR in about an hour; past two, the orchestrator cuts scope or rules.
+
 Stop conditions (the only four from `subagent-driven-development`): an irreversible or destructive
 operation, a security-sensitive action, a side effect outside the ticket's branch that needs a person (a
 production deploy, an outside account), and a plan so broken every path is a guess. Everything else is a
