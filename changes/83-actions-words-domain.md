@@ -1,0 +1,2 @@
+- The ticket buttons come from one domain rule, `availableActions`, so a button is shown only when the server accepts it.
+- Every label now comes from per-namespace catalogues with a typed `MessageKey`; journeys also run in Gujarati.
