@@ -20,7 +20,7 @@ Schema v1 and migrations. Plain SQL, not an ORM migration dialect: RLS policies 
 | ------------ | ----- | ---------- | ----------------------------------------------------------------- |
 | `app_api`    | yes*  | no         | the server and API runtime (least privilege, RLS enforced)        |
 | `app_user`   | no    | no         | the shared table/function grants that `app_api` inherits          |
-| `app_router` | no    | yes        | SECURITY DEFINER `tenant_by_slug` / `auth_lookup` / `tenant_info` |
+| `app_router` | no    | no (D23)   | owns the SECURITY DEFINER functions; one policy per table it uses |
 | owner        | yes   | yes        | migrations only                                                   |
 
 \* `app_api` is created `NOLOGIN` in the migration; the deployment layer
