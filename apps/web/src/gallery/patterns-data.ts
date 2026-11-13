@@ -29,8 +29,8 @@ const DETAIL: GalleryDetail = {
   historyKeys: ['detail.history.1', 'detail.history.2'],
 };
 
-const never: Transport = () => new Promise(() => undefined);
-const failing: Transport = () => Promise.reject(new ApiError('internal', 'Sample error'));
+export const never: Transport = () => new Promise(() => undefined);
+export const failing: Transport = () => Promise.reject(new ApiError('internal', 'Sample error'));
 
 const queueTransport: Record<Example, Transport> = {
   ready: async (path) => {
@@ -52,21 +52,21 @@ const detailTransport: Record<Example, Transport> = {
   offline: never,
 };
 
-function resources<TOne, TItem>(
-  kind: 'queue' | 'detail',
-  transports: Record<Example, Transport>,
-): Record<Example, Resource<TOne, TItem>> {
+export function resources<TOne, TItem, S extends string>(
+  kind: string,
+  transports: Record<S, Transport>,
+  path = '/gallery/tickets',
+): Record<S, Resource<TOne, TItem>> {
   return Object.fromEntries(
-    EXAMPLES.map((state) => [
+    Object.entries<Transport>(transports).map(([state, transport]) => [
       state,
-      defineResource<TOne, TItem>({
-        key: `gallery-${kind}-${state}`,
-        path: '/gallery/tickets',
-        transport: transports[state],
-      }),
+      defineResource<TOne, TItem>({ key: `gallery-${kind}-${state}`, path, transport }),
     ]),
-  ) as Record<Example, Resource<TOne, TItem>>;
+  ) as Record<S, Resource<TOne, TItem>>;
 }
 
-export const queueResources = resources<unknown, GalleryRow>('queue', queueTransport);
-export const detailResources = resources<GalleryDetail, unknown>('detail', detailTransport);
+export const queueResources = resources<unknown, GalleryRow, Example>('queue', queueTransport);
+export const detailResources = resources<GalleryDetail, unknown, Example>(
+  'detail',
+  detailTransport,
+);

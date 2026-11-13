@@ -5,12 +5,16 @@ import { useSearchParams } from 'react-router-dom';
 import { setLanguage } from '../i18n/index.js';
 import { Button } from '../ui/button.js';
 import { Inline, Page, Stack } from '../ui/layout.js';
+import { BoardSection } from './board-section.js';
+import { CrudSection } from './crud-section.js';
+import { DashboardSection } from './dashboard-section.js';
 import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
 import { PatternsSection } from './patterns-section.js';
 import { StatusSection } from './status-section.js';
 import { registerGalleryStrings } from './strings.js';
 import { TokensSection } from './tokens-section.js';
+import { WizardSection } from './wizard-section.js';
 
 registerGalleryStrings();
 
@@ -52,6 +56,18 @@ function Switcher({
         </Inline>
       </Stack>
     </div>
+  );
+}
+
+function GuNote() {
+  const { t } = useTranslation('gallery');
+  return (
+    <>
+      <p className="text-footnote">{t('guBanner')}</p>
+      <p data-testid="gallery-gu-specimen" className="text-body">
+        {t('guSpecimen')}
+      </p>
+    </>
   );
 }
 
@@ -99,19 +115,16 @@ export default function Gallery() {
             { value: 'teal', label: t('accent.teal') },
           ]}
         />
-        {lang === 'gu' ? (
-          <>
-            <p className="text-footnote">{t('guBanner')}</p>
-            <p data-testid="gallery-gu-specimen" className="text-body">
-              {t('guSpecimen')}
-            </p>
-          </>
-        ) : null}
+        {lang === 'gu' ? <GuNote /> : null}
         <TokensSection />
         <KitSection />
         <StatusSection />
         <PatternsSection />
         <FormSection />
+        <CrudSection />
+        <WizardSection />
+        <BoardSection />
+        <DashboardSection />
       </Page>
     </div>
   );

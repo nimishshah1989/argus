@@ -57,6 +57,12 @@
 :root {
   --motion-fast: 150ms;
   --motion-slow: 250ms;
+
+  /* Charts (D24): series 1 and 2, axis text, grid lines. Series 2 is also dashed with triangle markers. */
+  --color-chart-1: var(--color-accent);
+  --color-chart-2: var(--color-neutral-600);
+  --color-chart-axis: var(--color-neutral-600);
+  --color-chart-grid: var(--color-neutral-200);
 }
 
 @media (prefers-reduced-motion: reduce) {
