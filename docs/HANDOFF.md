@@ -19,7 +19,7 @@ AWS/production actions without him. Orchestrator branch: `claude/orchestrator-m0
 
 - Accent deep teal: session_01KEBF26AWUhsJAHGgtCdsoV (tokens + gallery baselines; needs Docker for baselines).
 - Hardening (audit 2,3,4,5,10): session_01KEBF28NGDXJg93xZ9TLLyR. HIGH RISK: run adversarial Opus review before merge.
-- Deploy fixes (audit 1,7,8,9,16, non-root): session_01KEBF29Gq4ynmkL9cZTiP9a. Review infra myself; Terraform changes need Nimish.
+- Deploy fixes MERGED as #182 (Chromium in image, snapshot before migrating, PDF bytes direct, render gate, non-root; D25). NEW TERRAFORM: `aws_iam_role_policy.server_snapshot` (instance may create `uptimo-pre-*` snapshots). Nimish MUST apply it in the same apply as `github_sub_prefix`, before the first deploy, else the deploy stops safely at 'snapshot failed; nothing migrated'.
   Children never merge; merge on 9 green checks (static, api x3, browser x2, gallery, secrets, pr-meta), squash, then archive the child.
 
 ## Staging (AWS 118167167649 ap-south-1) — needs Nimish
@@ -30,7 +30,7 @@ server_az_suffix "c", instance_type "m6g.large", external_uptime_ping false (org
 First deploy failed at AWS sign-in: GitHub uses immutable subject. Fixed in #178. Nimish must: git pull; add
 `github_sub_prefix = "repo:nimishshah1989@228974158/argus@1436478041"` to tfvars; terraform plan (expect 0 add, 1 change, 0 destroy);
 apply; `gh workflow run deploy.yml`. Then infra/STAGING.md steps 9-12, part 2 (load Cosmos; Mac + SSM tunnel), RESTORE.md drill (log in docs/plan/restore-drill-log.md).
-Do not let him deploy before the deploy-fixes PR is merged (PDF needs Chromium in the image) unless he insists.
+Plan expected after pulling main: `Plan: 1 to add (server_snapshot policy), 1 to change (deploy role trust), 0 to destroy`.
 
 ## Decisions waiting for Nimish
 
@@ -50,5 +50,10 @@ Do not message old sessions; archive children after merge.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
+Last session ended 2026-11-13 22:49 UTC on branch `claude/orchestrator-m0-gate`.
+- d34d59a docs: handoff for the next orchestrator session
+- 33f14dc docs(plan): 16 goal 3 merged
+- 02ff9a5 docs: session notes (hook)
+Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
