@@ -1,31 +1,33 @@
 services:
   server:
-    build:
-      context: ..
-      dockerfile: infra/server.Dockerfile
+    image: ${ECR_REGISTRY}/uptimo-server:${IMAGE_TAG}
     restart: unless-stopped
-    env_file: .env
+    env_file: app.env
     environment:
       PORT: '3001'
+      NODE_ENV: production
     expose:
       - '3001'
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: ${LOG_GROUP}
+        tag: '{{.Name}}'
     networks: [web]
 
   caddy:
-    image: caddy:2-alpine
+    image: ${ECR_REGISTRY}/uptimo-web:${IMAGE_TAG}
     restart: unless-stopped
     ports:
       - '80:80'
       - '443:443'
     environment:
-      # No domain yet: default to :80 (plain HTTP, no Let's Encrypt). Set
-      # SITE_ADDRESS=cosmos.<domain> once a domain is registered for automatic HTTPS.
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      SITE_ADDRESS: ${SITE_ADDRESS}
+      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - ../apps/web/dist:/srv/web:ro
     networks: [web]
 
 networks:

@@ -1,3 +1,5 @@
+import { kitEn } from './kit.en.js';
+
 /**
  * The English catalogue (SPEC §7). Every key here is a dotted path that a screen/component
  * renders via `t('key')`; the value is the exact current UI string so the e2e selectors and
@@ -372,4 +374,6 @@ export const en = {
   'tags.category.breakdown_category': 'Breakdown category',
   'tags.category.maint_code': 'Maintenance code',
   'tags.category.work_type': 'Work type',
+
+  ...kitEn,
 };

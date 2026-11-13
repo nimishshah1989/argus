@@ -1,0 +1,5 @@
+- Every merge to `main` builds the server and web images, pushes them to ECR and deploys staging over SSM, migrating first and rolling back by itself if the health check fails.
+- A bad release can be rolled back from GitHub: `gh workflow run deploy.yml -f action=rollback`.
+- `GET /api/v1/health` answers 503 with `db` and `queue` flags when the database or job queue is down.
+- Server logs carry `requestId`, `tenantId` and `loginId`; names, phones, credentials and bodies are redacted; no client address is logged; every response has `x-request-id`.
+- Terraform adds ECR, Secrets Manager, a narrow deploy role, an error-count alarm and an external uptime ping, all emailing `billing_email`; `infra/STAGING.md` has the steps.

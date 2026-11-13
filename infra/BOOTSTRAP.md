@@ -1,16 +1,15 @@
-# First-boot bootstrap (once per environment)
+# First boot
 
-Terraform creates the instance but not the compose files. Run these once over SSM
-(the instance has no public SSH; use `aws ssm start-session --target <instance-id>`).
+Nothing to do by hand. On first boot the instance's `user_data` installs Docker, `jq` and the Compose plugin,
+and writes `/opt/uptimo/.env` (registry, site address, ACME email, log group, secret name; no secrets). The
+deploy workflow then ships `docker-compose.yml` and `instance/` and runs `instance/deploy.sh` over SSM.
+
+Inspect it (no public SSH):
 
 ```bash
-sudo dnf install -y docker
-sudo systemctl enable --now docker
-sudo mkdir -p /opt/uptimo
-sudo chown ec2-user:ec2-user /opt/uptimo
-# copy infra/docker-compose.yml and infra/Caddyfile to /opt/uptimo/
-# create /opt/uptimo/.env from Secrets Manager / SSM (DATABASE_URL, SESSION_SECRET, S3_*)
-sudo usermod -aG docker ec2-user
+aws ssm start-session --target <instance-id>
+cat /var/log/cloud-init-output.log
+ls -l /opt/uptimo
 ```
 
-The deploy workflow then runs `docker compose pull && docker compose up -d server caddy` over SSM.
+Steps to bring staging up: `STAGING.md`.

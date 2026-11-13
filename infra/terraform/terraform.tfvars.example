@@ -1,4 +1,6 @@
-domain        = "example.com"
+domain        = ""
 billing_email = "you@example.com"
+github_repo   = "argus"
 # github_org  = "nimishshah1989"
-# github_repo = "uptimo"
+# enable_https         = false  # plain HTTP fallback if the certificate cannot be issued
+# external_uptime_ping = false  # skip the us-east-1 health check and alarm

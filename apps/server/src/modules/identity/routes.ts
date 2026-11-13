@@ -2,7 +2,7 @@ import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
-import { withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
+import { bindLog, withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
 import {
   findLogin,
   findPerson,
@@ -51,6 +51,7 @@ async function login(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
+  bindLog(request, reply, { tenantId: tenant.id });
   const { username, password, device, actingPersonId } = parsed.data;
   const loginRow = await findLogin(pool, tenant.id, username);
   const passwordOk =
