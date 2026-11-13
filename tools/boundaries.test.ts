@@ -71,7 +71,7 @@ describe('boundaries check', () => {
 
   it('ignores comments, unowned tables and test files', () => {
     const root = plant({
-      [`${SRC}/a.ts`]: "// read from person\nconst fromPerson = 1;\nq('SELECT * FROM ticket');",
+      [`${SRC}/a.ts`]: "// read from person\nconst fromPerson = 1;\nq('SELECT * FROM widget');",
       [`${SRC}/a.test.ts`]: "q('SELECT * FROM person');",
     });
     expect(boundaryErrors(root, {})).toEqual([]);

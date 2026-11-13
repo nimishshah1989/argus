@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
+import { lockTicket } from '../../tickets/index.js';
 
 export type SlaTimerKind = 'ack' | 'restore';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
@@ -197,11 +198,7 @@ export async function rearmTicket(
   boss: PgBoss,
   input: RearmTicketInput,
 ): Promise<void> {
-  const ticket = await client.query(
-    'SELECT id FROM ticket WHERE tenant_id=$1 AND id=$2 FOR UPDATE',
-    [input.tenantId, input.ticketId],
-  );
-  if (ticket.rowCount !== 1) {
+  if (!(await lockTicket(client, input.tenantId, input.ticketId))) {
     throw new Error(`Ticket not found for SLA rearm: ${input.tenantId}/${input.ticketId}`);
   }
   if (new Set(input.timers.map((timer) => timer.kind)).size !== input.timers.length) {
@@ -240,11 +237,7 @@ export async function processSlaTimerJob(
 ): Promise<boolean> {
   assertPayload(payload);
   return withTenant(runtime.pool, payload.tenantId, async (client) => {
-    const ticket = await client.query(
-      'SELECT id FROM ticket WHERE tenant_id=$1 AND id=$2 FOR UPDATE',
-      [payload.tenantId, payload.ticketId],
-    );
-    if (ticket.rowCount !== 1) return false;
+    if (!(await lockTicket(client, payload.tenantId, payload.ticketId))) return false;
     const firedAt = runtime.now();
     const result = await client.query(
       `UPDATE sla_timer SET fired_at=$4, updated_at=$4

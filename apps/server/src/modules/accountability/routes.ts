@@ -3,8 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { apiError, machineCriticalitySchema, slaPoliciesUpdateSchema } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { computeSeverity } from '@uptimo/domain';
-import { loadSeverityMatrix, lockRefCounter } from '../tickets/index.js';
+import { lockRefCounter, refreshMachineSeverity } from '../tickets/index.js';
 import { reconcileSlaPolicies } from './sla.js';
 import { currentPolicies, upsertPolicy } from './repo/policies.js';
 import { requireAuth } from '../identity/index.js';
@@ -126,23 +125,7 @@ async function putMachineCriticality(
     await lockRefCounter(client, ctx.tenantId, 'BD');
     const count = await setMachineCriticality(client, id, criticality);
     if (count === 0) return 0;
-    // Severity follows current criticality; report-time snapshots stay unchanged.
-    const matrix = await loadSeverityMatrix(client, ctx.tenantId);
-    const tickets = await client.query(
-      'SELECT id, kind, urgent FROM ticket WHERE tenant_id = $1 AND machine_id = $2 ORDER BY id FOR UPDATE',
-      [ctx.tenantId, id],
-    );
-    if (tickets.rows.length > 0) {
-      const severities = tickets.rows.map((ticket) =>
-        computeSeverity(matrix, criticality, ticket.kind, ticket.urgent === true),
-      );
-      await client.query(
-        `UPDATE ticket AS t SET severity = v.severity
-         FROM UNNEST($1::uuid[], $2::text[]) AS v(id, severity)
-         WHERE t.id = v.id AND t.tenant_id = $3`,
-        [tickets.rows.map((ticket) => ticket.id), severities, ctx.tenantId],
-      );
-    }
+    await refreshMachineSeverity(client, { tenantId: ctx.tenantId, machineId: id, criticality });
     await reconcileSlaPolicies(client, ctx.tenantId, boss);
     return count;
   });

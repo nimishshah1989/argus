@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
+import { slaConsistencyIds } from '../tickets/index.js';
 
 export type SlaTicketReconciler = (
   client: PoolClient,
@@ -22,17 +23,11 @@ export interface SlaConsistencyResult {
 
 async function reconcileTenant(options: SlaConsistencyOptions, tenantId: string): Promise<number> {
   return withTenant(options.pool, tenantId, async (client) => {
-    const tickets = await client.query<{ id: string }>(
-      `SELECT id FROM ticket
-       WHERE tenant_id=$1 AND raised_channel <> 'backfill'
-         AND (sla_policy_id IS NOT NULL OR status IN ('open','working','waiting'))
-       ORDER BY id`,
-      [tenantId],
-    );
-    for (const ticket of tickets.rows) {
-      await options.reconcileTicket(client, tenantId, ticket.id, options.now);
+    const ticketIds = await slaConsistencyIds(client, tenantId);
+    for (const ticketId of ticketIds) {
+      await options.reconcileTicket(client, tenantId, ticketId, options.now);
     }
-    return tickets.rowCount ?? 0;
+    return ticketIds.length;
   });
 }
 
