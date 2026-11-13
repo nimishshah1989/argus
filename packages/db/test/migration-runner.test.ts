@@ -39,6 +39,8 @@ const ARTIFACTS: Record<string, string> = {
   '0008_ai_suggestion.sql': "SELECT to_regclass('public.ai_suggestion') IS NOT NULL AS installed",
   '0009_history_cannot_be_lost.sql': `SELECT to_regprocedure('import_undo(uuid,uuid,text)') IS NOT NULL
     AND to_regclass('public.ticket_tag') IS NULL AS installed`,
+  '0010_retention_support.sql':
+    "SELECT to_regprocedure('job_tenant_ids()') IS NOT NULL AS installed",
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
