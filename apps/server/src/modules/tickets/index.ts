@@ -23,3 +23,4 @@ export const ticketsModule = defineModule({
     registerTags(app, config);
   },
 });
+export { dayJobRows, pdfTicketRow, pendingRows, setReportPdf } from './repo/history.js';
