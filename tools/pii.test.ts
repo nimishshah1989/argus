@@ -79,9 +79,9 @@ describe('pii scan', () => {
   });
 
   it('flags a real name and a real phone planted in a temp file, and skips binary files', () => {
-    const deny = loadDenyList();
+    const phone = `${6 + Math.floor(Math.random() * 4)}${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+    const deny = { ...loadDenyList(), phones: [phone] };
     const dir = mkdtempSync(join(tmpdir(), 'pii-plant-'));
-    const phone = deny.phones[0] ?? '';
     writeFileSync(join(dir, 'a.md'), `x\n${deny.names[0] ?? ''}\ncall ${phone}\n`);
     writeFileSync(join(dir, 'b.bin'), `\0${deny.names[0] ?? ''}`);
     expect(scanFiles(dir, ['a.md', 'b.bin'], deny)).toEqual([
