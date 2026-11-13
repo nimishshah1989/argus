@@ -1,0 +1,1 @@
+- Agents now build with pstack: Opus designs and reviews, Sonnet writes code, Ponytail reviews every pull request and audits every milestone.

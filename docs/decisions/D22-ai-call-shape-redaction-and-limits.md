@@ -27,21 +27,22 @@ Date: 13 November 2026 · Status: proposed (architect); needs the architecture a
 
 Rows exist only for calls that were made. `attempts` on the row is the truth; the handler schedules its own retry with a start time. At most four provider calls per row.
 
-| Case                                                  | Outcome code        | What happens                                                                       |
-| ----------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
-| Feature off for the tenant                            | `feature_off`       | No call, no row, no retry                                                          |
-| No consent, or consent withdrawn                      | `no_consent`        | No call, no row, no retry                                                          |
-| Monthly cap reached, or no cap set                    | `cap_reached`       | No call, no row, no retry. The admin is told once a month through `notify`         |
-| Ticket closed or cancelled before the job             | `stale`             | No call                                                                            |
-| A term survives redaction                             | `redaction_failed`  | No call, no retry, alarm                                                           |
-| Timeout (30 s), network error, 5xx                    | `provider_error`    | 3 attempts: wait 30 s, then 2 min. Then the row is `failed`                        |
-| 429 rate limit                                        | `rate_limited`      | 4 attempts: wait `retry-after` (10 min at most), else 1, 2, 4 min                  |
-| 529 overloaded                                        | `overloaded`        | Same as 429                                                                        |
-| 400, 401, 403                                         | `provider_rejected` | No retry, alarm                                                                    |
-| Output fails the schema, is cut short or is a refusal | `schema_invalid`    | 2 attempts. Then `failed`. Nothing is shown. The tokens are still counted          |
-| Same key already claimed or done                      | `duplicate`         | No call                                                                            |
-| Process dies after the reply, before storing          | `provider_error`    | The retry calls again; `attempts` was raised before the call, so the ceiling holds |
-| Success                                               | `ok`                | Row is `ready`. Shown only when the feature is live for the tenant                 |
+| Case                                          | Outcome code        | What happens                                                                       |
+| --------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
+| Feature off for the tenant                    | `feature_off`       | No call, no row, no retry                                                          |
+| No consent, or consent withdrawn              | `no_consent`        | No call, no row, no retry                                                          |
+| Monthly cap reached, or no cap set            | `cap_reached`       | No call, no row, no retry. The admin is told once a month through `notify`         |
+| Ticket closed or cancelled before the job     | `stale`             | No call                                                                            |
+| A term survives redaction                     | `redaction_failed`  | No call, no retry, alarm                                                           |
+| Timeout (30 s), network error, 5xx            | `provider_error`    | 3 attempts: wait 30 s, then 2 min. Then the row is `failed`                        |
+| 429 rate limit                                | `rate_limited`      | 4 attempts: wait `retry-after` (10 min at most), else 1, 2, 4 min                  |
+| 529 overloaded                                | `overloaded`        | Same as 429                                                                        |
+| 400, 401, 403                                 | `provider_rejected` | No retry, alarm                                                                    |
+| Output fails the schema or is cut short       | `schema_invalid`    | 2 attempts. Then `failed`. Nothing is shown. The tokens are still counted          |
+| The model refuses (amended 13 Nov, slice 55b) | `provider_rejected` | No retry (a refusal repeats); the tokens are still counted                         |
+| Same key already claimed or done              | `duplicate`         | No call                                                                            |
+| Process dies after the reply, before storing  | `provider_error`    | The retry calls again; `attempts` was raised before the call, so the ceiling holds |
+| Success                                       | `ok`                | Row is `ready`. Shown only when the feature is live for the tenant                 |
 
 A failed or missing suggestion never blocks a person. Two jobs racing the cap can overshoot by one call each; the provider console's own monthly limit is the backstop (verify in current docs).
 

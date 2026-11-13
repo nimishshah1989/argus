@@ -119,3 +119,7 @@ UPDATE ticket SET sla_policy_id = '20000000-0000-0000-0000-00000000001d'
 INSERT INTO sla_timer (id, tenant_id, ticket_id, kind, due_at, state, revision) VALUES
   ('10000000-0000-0000-0000-00000000001e', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000e', 'ack', now() + interval '5 minutes', 'running', 1),
   ('20000000-0000-0000-0000-00000000001e', '20000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000e', 'ack', now() + interval '10 minutes', 'running', 1);
+
+INSERT INTO ai_suggestion (id, tenant_id, feature, subject_type, subject_id, ticket_id, prompt_version, model_ref, status, outcome, output) VALUES
+  ('10000000-0000-0000-0000-00000000001f', '10000000-0000-0000-0000-000000000001', 'diagnosis', 'ticket', '10000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-00000000000e', 'seed', 'fake', 'ready', 'ok', '{}'),
+  ('20000000-0000-0000-0000-00000000001f', '20000000-0000-0000-0000-000000000001', 'diagnosis', 'ticket', '20000000-0000-0000-0000-00000000000e', '20000000-0000-0000-0000-00000000000e', 'seed', 'fake', 'ready', 'ok', '{}');
