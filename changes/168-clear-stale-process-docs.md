@@ -1,0 +1,1 @@
+- Cleared stale process and planning files: one plan (MILESTONES), one CLAUDE.md, no Athena.

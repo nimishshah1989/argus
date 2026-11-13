@@ -18,7 +18,6 @@ export const INSTRUCTION_FILES: readonly string[] = [
   'docs/LEAN.md',
   'docs/TESTING.md',
   'docs/HANDOFF.md',
-  'docs/plan/ORCHESTRATOR.md',
 ];
 
 export const STACK_FILES: readonly string[] = [

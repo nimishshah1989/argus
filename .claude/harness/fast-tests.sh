@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The fast tests the stop hook runs before an agent may finish (Athena v3). The repository owns this file:
+# The fast tests the stop hook runs before an agent may finish (pstack). The repository owns this file:
 # the installer writes it once and never overwrites it. Keep it under a few minutes.
 #
 # Database-free suites only (pure domain rules, shared contracts, web logic, repo tools): about 2 seconds.
