@@ -1,4 +1,4 @@
-import type { kitEn } from '../../i18n/kit.en.js';
+import type { MessageKey } from '@uptimo/shared/i18n';
 import type { IconComponent } from '../icon.js';
 import { clock } from './clock.js';
 import { forecast } from './forecast.js';
@@ -13,7 +13,7 @@ export type Tone = 'danger' | 'info' | 'warning' | 'hold' | 'moved' | 'ok' | 'mu
 export interface StatusDef {
   tone: Tone;
   icon: IconComponent;
-  label: keyof typeof kitEn;
+  label: MessageKey;
 }
 
 export const STATUS = { ticket, severity, clock, handback, pm, forecast, sync };

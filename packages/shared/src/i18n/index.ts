@@ -1,0 +1,84 @@
+import { commonEn } from './common.en.js';
+import { commonGu } from './common.gu.js';
+import { deskEn } from './desk.en.js';
+import { deskGu } from './desk.gu.js';
+import { floorEn } from './floor.en.js';
+import { floorGu } from './floor.gu.js';
+import { ticketEn } from './ticket.en.js';
+import { ticketGu } from './ticket.gu.js';
+import { slaEn } from './sla.en.js';
+import { slaGu } from './sla.gu.js';
+import { actionsEn } from './actions.en.js';
+import { actionsGu } from './actions.gu.js';
+import { reportEn } from './report.en.js';
+import { reportGu } from './report.gu.js';
+import { statusTicketEn } from './status-ticket.en.js';
+import { statusTicketGu } from './status-ticket.gu.js';
+import { adminEn } from './admin.en.js';
+import { adminGu } from './admin.gu.js';
+import { boardEn } from './board.en.js';
+import { boardGu } from './board.gu.js';
+import { settingsEn } from './settings.en.js';
+import { settingsGu } from './settings.gu.js';
+import { tagsEn } from './tags.en.js';
+import { tagsGu } from './tags.gu.js';
+import { statusSignalEn } from './status-signal.en.js';
+import { statusSignalGu } from './status-signal.gu.js';
+import { statusFlowEn } from './status-flow.en.js';
+import { statusFlowGu } from './status-flow.gu.js';
+
+/** The English catalogues by namespace; each key lives in exactly one. */
+export const NAMESPACES: Record<string, Record<string, string>> = {
+  common: commonEn,
+  desk: deskEn,
+  floor: floorEn,
+  ticket: ticketEn,
+  sla: slaEn,
+  actions: actionsEn,
+  report: reportEn,
+  'status-ticket': statusTicketEn,
+  admin: adminEn,
+  board: boardEn,
+  settings: settingsEn,
+  tags: tagsEn,
+  'status-signal': statusSignalEn,
+  'status-flow': statusFlowEn,
+};
+
+/** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
+export const en = {
+  ...commonEn,
+  ...deskEn,
+  ...floorEn,
+  ...ticketEn,
+  ...slaEn,
+  ...actionsEn,
+  ...reportEn,
+  ...statusTicketEn,
+  ...adminEn,
+  ...boardEn,
+  ...settingsEn,
+  ...tagsEn,
+  ...statusSignalEn,
+  ...statusFlowEn,
+};
+
+export type MessageKey = keyof typeof en;
+
+/** Gujarati placeholder (SPEC 1.11): the same keys, empty values, until real strings arrive (ticket 24). */
+export const gu = {
+  ...commonGu,
+  ...deskGu,
+  ...floorGu,
+  ...ticketGu,
+  ...slaGu,
+  ...actionsGu,
+  ...reportGu,
+  ...statusTicketGu,
+  ...adminGu,
+  ...boardGu,
+  ...settingsGu,
+  ...tagsGu,
+  ...statusSignalGu,
+  ...statusFlowGu,
+};

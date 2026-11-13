@@ -20,6 +20,11 @@ in `docs/plan/MILESTONES.md` is the queue.
   Views, exact cancel time and per-person minutes, synthetic importer with undo.
 - M2: configurable tags (#71), severity matrix (#72), SLA policies and timers (#74).
 
+## Ticket 05 (in review, branch `claude/t05-actions-words-domain`)
+
+- Ticket buttons come from `availableActions` (`packages/domain/src/actions.ts`); catalogues live in `packages/shared/src/i18n` (D7). Parity drift: until the server calls `availableActions`, a server rule change must update `packages/domain/test/actions.test.ts` T1. Follow-ups (server accepts what the Spec forbids) are in `docs/slices/05-pr-body.md`.
+- Gujarati is still empty (ticket 24): the `gujarati` e2e project proves only the seed and config.
+
 ## Next
 
 - Gate: Nimish opens `/gallery` (dev; staging after ticket 13) and picks blue or deep teal before ticket 15.

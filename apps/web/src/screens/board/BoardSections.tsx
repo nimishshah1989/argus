@@ -9,29 +9,37 @@ export function BoardSections({ sections, large }: { sections: SegmentSection[];
   }
   return (
     <div className="mt-6 space-y-8">
-      {sections.map((section) => (
-        <section key={section.id} aria-label={section.label}>
-          <h2 className={`font-semibold tracking-tight ${large ? 'text-2xl' : 'text-lg'}`}>
-            {section.label}
-          </h2>
-          <div className="mt-3 space-y-4">
-            {section.groups.map((group) => (
-              <div key={group.id}>
-                {group.label && (
-                  <h3 className={`font-medium text-neutral-600 ${large ? 'text-lg' : 'text-sm'}`}>
-                    {group.label}
-                  </h3>
-                )}
-                <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                  {group.tiles.map((tile) => (
-                    <Tile key={tile.machine.id} tile={tile} large={large} />
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+      {sections.map((section) => {
+        const name = section.other ? t('board.other') : section.label;
+        return (
+          <section key={section.id} aria-label={name ?? undefined}>
+            <h2 className={`font-semibold tracking-tight ${large ? 'text-2xl' : 'text-lg'}`}>
+              {name}
+            </h2>
+            <div className="mt-3 space-y-4">
+              {section.groups.map((group) => {
+                const groupName = group.other ? t('board.other') : group.label;
+                return (
+                  <div key={group.id}>
+                    {groupName && (
+                      <h3
+                        className={`font-medium text-neutral-600 ${large ? 'text-lg' : 'text-sm'}`}
+                      >
+                        {groupName}
+                      </h3>
+                    )}
+                    <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                      {group.tiles.map((tile) => (
+                        <Tile key={tile.machine.id} tile={tile} large={large} />
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

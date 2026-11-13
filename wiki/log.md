@@ -68,4 +68,6 @@
 2026-11-13 — Ticket 03c Domain registries and isolation (#81, part): ticket commands and permissions are one file each behind a registry; the isolation test finds tenant tables from the catalogue and fails on a table outside D17's 40.
 2026-11-13 — Ticket 03b Module boundaries: contract (part of #81): tickets and imports own their tables in the manifest; every cross-module statement on them moved behind published repo functions (sla, severity, history, list, imported, seed; imports/repo.ts). pnpm boundaries: 0 problems with full ownership.
 
+- 2026-11-13 10:19 UTC session e4bca1bd on `claude/t05-actions-words-domain`: 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
+  2026-11-13 — Ticket 05 Actions and words from the domain (#83): the ticket buttons come from the domain availableActions (server rules plus the product rulings); message catalogues moved per namespace into packages/shared/src/i18n (D7); the web depends on @uptimo/domain and @uptimo/shared; the e2e runs a Gujarati project (empty gu values fall back to English until ticket 24).
 - 2026-11-13 10:21 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan

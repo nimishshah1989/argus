@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, Ticket } from '../api.js';
-import type { ActionSpec } from './actions.js';
+import type { ActionSpec } from './actionSpecs.js';
 import { elapsedLabel } from './format.js';
 import { StatusBadge } from './StatusBadge.js';
 import { SeverityBadge } from './SeverityBadge.js';
@@ -42,7 +42,7 @@ export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }
           onClick={() => onQuick(ticket, quick.action)}
           className="mt-3 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-50"
         >
-          {quick.label}
+          {t(quick.label)}
         </button>
       )}
     </li>

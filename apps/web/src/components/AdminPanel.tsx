@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Config, Me, RaiseKind, Ticket } from '../api.js';
-import { buildCorrectChanges, hasCorrectChanges, useTicketCommand } from './actions.js';
+import { buildCorrectChanges, hasCorrectChanges } from './correctChanges.js';
+import { useTicketCommand } from './useTicketCommand.js';
 
 const inputClass =
   'mt-1 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';

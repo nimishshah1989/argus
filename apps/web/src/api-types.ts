@@ -157,6 +157,7 @@ export interface Ticket {
   problem: string;
   reportedAt: string;
   reportedByPersonId: string | null;
+  raisedLoginId: string;
   location: string | null;
   workType: string | null;
   urgent: boolean;
