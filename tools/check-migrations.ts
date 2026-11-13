@@ -39,7 +39,7 @@ export const EXCEPTIONS: readonly MigrationException[] = [
 
 const RULES: readonly [RuleName, RegExp][] = [
   ['DROP', /\bdrop\b/gi],
-  ['UPDATE', /\bupdate\s+(?:only\s+)?[\w."$]+\s+(?:(?:as\s+)?[\w$]+\s+)?set\b/gi],
+  ['UPDATE', /\bupdate\s+(?:only\s+)?[\w."$]+(?:\s*\*)?\s+(?:(?:as\s+)?[\w$]+\s+)?set\b/gi],
   ['TRUNCATE', /\btruncate\b/gi],
   ['DELETE FROM', /\bdelete\s+from\b/gi],
   ['SET NOT NULL', /\bset\s+not\s+null\b/gi],
@@ -47,9 +47,40 @@ const RULES: readonly [RuleName, RegExp][] = [
   ['REVOKE', /\brevoke\b/gi],
 ];
 
-// `--` to end of line only; string literals are not parsed. Blanks keep offsets, so line numbers hold.
-const blankComments = (sql: string): string =>
-  sql.replace(/--[^\n]*/g, (c) => ' '.repeat(c.length));
+/** One pass: comments (`--`, nested block) become spaces, newlines kept. Quoted text is kept and scanned;
+ *  dollar quotes are not strings, so DO bodies stay scanned. */
+function blankComments(sql: string): string {
+  let out = '';
+  let quote = '';
+  let depth = 0;
+  for (let i = 0; i < sql.length; i++) {
+    const c = sql[i] ?? '';
+    const pair = sql.slice(i, i + 2);
+    if (depth > 0) {
+      if (pair === '/*' || pair === '*/') {
+        depth += pair === '/*' ? 1 : -1;
+        out += '  ';
+        i++;
+      } else out += c === '\n' ? c : ' ';
+    } else if (quote !== '') {
+      out += c;
+      if (c === quote) quote = '';
+    } else if (pair === '--') {
+      const end = sql.indexOf('\n', i);
+      const stop = end === -1 ? sql.length : end;
+      out += ' '.repeat(stop - i);
+      i = stop - 1;
+    } else if (pair === '/*') {
+      depth++;
+      out += '  ';
+      i++;
+    } else {
+      out += c;
+      if (c === "'" || c === '"') quote = c;
+    }
+  }
+  return out;
+}
 
 /** Every guarded statement in one file's SQL, comments blanked out, line numbers 1-based. */
 export function guardedStatements(sql: string): Finding[] {

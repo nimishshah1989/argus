@@ -78,3 +78,29 @@ describe('migration guard', () => {
     expect(scanMigrations(plant({ '0008_planted.sql': drop }))).toHaveLength(1);
   });
 });
+
+describe('migration guard scanner', () => {
+  const rules = (sql: string) => guardedStatements(sql);
+
+  it('catches statements hidden by block comments', () => {
+    expect(rules("UPDATE ticket/**/SET severity = 'S4';")).toEqual([{ rule: 'UPDATE', line: 1 }]);
+    expect(rules('DELETE/**/FROM ticket;')).toEqual([{ rule: 'DELETE FROM', line: 1 }]);
+    expect(rules('/* one\ntwo */ DROP TABLE x;')).toEqual([{ rule: 'DROP', line: 2 }]);
+  });
+
+  it('does not let -- inside a string hide the rest of the line', () => {
+    expect(rules("SELECT '--'; DROP TABLE ticket;")).toEqual([{ rule: 'DROP', line: 1 }]);
+    expect(rules("-- don't\nDROP TABLE x;")).toEqual([{ rule: 'DROP', line: 2 }]);
+  });
+
+  it('catches UPDATE ONLY t * SET', () => {
+    expect(rules("UPDATE ONLY ticket * SET severity = 'S4';")).toEqual([
+      { rule: 'UPDATE', line: 1 },
+    ]);
+  });
+
+  it('leaves comments and strings that only mention a keyword alone', () => {
+    expect(rules('/* drop later */')).toEqual([]);
+    expect(rules("SELECT 'a -- b';")).toEqual([]);
+  });
+});
