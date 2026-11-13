@@ -155,7 +155,7 @@ describe('staging deploy', () => {
     expect(up).toBeGreaterThan(migrate);
     expect(log[create]).toMatch(/--db-instance-identifier uptimo-postgres /);
     // Unique per attempt, and only letters, digits and hyphens (what RDS accepts).
-    const name = /--db-snapshot-identifier (\S+)/.exec(log[create])?.[1] ?? '';
+    const name = /--db-snapshot-identifier (\S+)/.exec(log[create] ?? '')?.[1] ?? '';
     expect(name).toMatch(/^uptimo-pre-bbb12-\d{14}$/);
     expect(log[wait]).toContain(`--db-snapshot-identifier ${name}`);
   });
