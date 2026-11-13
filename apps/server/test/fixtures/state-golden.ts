@@ -170,6 +170,8 @@ export async function seedGolden(admin: Pool, passwordHash: string): Promise<voi
   for (const t of TICKETS) await insertTicket(admin, t);
 }
 
+const n = <T, D = null>(v: T | undefined, d: D = null as D): T | D => v ?? d;
+
 async function insertTicket(admin: Pool, t: GoldenTicket): Promise<void> {
   await admin.query(
     `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, machine_snapshot, location, work_type,
@@ -184,24 +186,24 @@ async function insertTicket(admin: Pool, t: GoldenTicket): Promise<void> {
       t.kind,
       t.status,
       t.machine ? id(t.machine) : null,
-      JSON.stringify(t.snapshot ?? {}),
-      t.location ?? null,
-      t.workType ?? null,
-      t.urgent ?? false,
+      JSON.stringify(n(t.snapshot, {})),
+      n(t.location),
+      n(t.workType),
+      Boolean(t.urgent),
       `Golden ${t.ref}`,
       t.reportedAt,
       PERSON,
       t.raisedLogin ? LOGIN : null,
-      t.channel ?? 'floor',
-      t.startedAt ?? null,
+      n(t.channel, 'floor'),
+      n(t.startedAt),
       t.lead ? PERSON : null,
-      t.waitReason ?? null,
-      t.waitingSpare ?? null,
-      t.expectedBackAt ?? null,
+      n(t.waitReason),
+      n(t.waitingSpare),
+      n(t.expectedBackAt),
       t.severity,
-      t.crit ?? null,
+      n(t.crit),
       t.policy ? id(t.policy) : null,
-      t.responseMin ?? null,
+      n(t.responseMin),
       t.events.length,
     ],
   );
