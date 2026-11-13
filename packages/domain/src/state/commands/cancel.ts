@@ -1,0 +1,38 @@
+import type { RestorableStatus } from '../../types.js';
+import { canCancel } from '../../permissions.js';
+import { apply, clampAt, closeSegments, TransitionError } from '../helpers.js';
+import type { Command, TransitionInput, TransitionResult } from '../types.js';
+
+export function cancel(
+  input: TransitionInput,
+  command: Extract<Command, { type: 'cancel' }>,
+): TransitionResult {
+  const actor = {
+    role: input.ctx.role,
+    loginId: input.ctx.loginId,
+    personId: input.ctx.personId,
+    shared: input.ctx.shared,
+  };
+  if (
+    !canCancel(actor, {
+      raisedLoginId: input.ticket.raisedLoginId,
+      leadPersonId: input.ticket.leadPersonId,
+      startedAt: input.ticket.startedAt,
+      status: input.ticket.status,
+      crew: input.crew,
+    })
+  ) {
+    throw new TransitionError('Not allowed to cancel');
+  }
+  const at = clampAt(input.ctx.now, input);
+  return apply(input, {
+    ticket: { status: 'cancelled' as const, cancelledAt: at },
+    event: {
+      type: 'cancel',
+      reason: command.reason,
+      status: input.ticket.status as RestorableStatus,
+    },
+    at,
+    segments: closeSegments(input.segments, at),
+  });
+}

@@ -1,37 +1,13 @@
 import type { Criticality, SeverityMatrix, TicketEvent, WorkSegment } from './types.js';
 import type { Ticket } from './ticket.js';
-import * as commands from './state/commands.js';
+import { handlers } from './state/commands/registry.js';
 import { deriveSeverity } from './severity.js';
-import * as corrections from './state/corrections.js';
-import type { Command, TransitionInput, TransitionResult } from './state/types.js';
+import type { TransitionInput, TransitionResult } from './state/types.js';
 
 export * from './state/types.js';
 export * from './state/helpers.js';
-export * from './state/commands.js';
-export * from './state/corrections.js';
-
-const handlers: {
-  [K in Command['type']]: (
-    input: TransitionInput,
-    command: Extract<Command, { type: K }>,
-  ) => TransitionResult;
-} = {
-  start: commands.start,
-  pause: commands.pause,
-  resume: commands.resume,
-  transfer: commands.transfer,
-  update: commands.update,
-  machineRunning: commands.machineRunning,
-  machineStopped: commands.machineStopped,
-  close: commands.close,
-  cancel: commands.cancel,
-  join: commands.join,
-  leave: commands.leave,
-  upgradeKind: commands.upgradeKind,
-  lateReport: commands.lateReport,
-  restore: corrections.restore,
-  correct: corrections.correct,
-};
+export * from './state/commands/index.js';
+export * from './state/past-breakdown.js';
 
 export function transition(input: TransitionInput): TransitionResult {
   const handler = handlers[input.command.type];
