@@ -225,7 +225,9 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name    = aws_db_subnet_group.main.name
   vpc_security_group_ids  = [aws_security_group.rds.id]
   publicly_accessible     = false
-  backup_retention_period = 7
+  # Point-in-time restore to any second inside this window (ticket 14). Was 7; 14 days covers a fortnight's
+  # unnoticed mistake for a few cents. Applies without a restart.
+  backup_retention_period = 14
   skip_final_snapshot     = false
   tags                    = { Name = "${var.app}-postgres" }
 }
