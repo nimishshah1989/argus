@@ -8,6 +8,7 @@ import {
   severityMatrixSchema,
   translationSchema,
 } from '@uptimo/shared';
+import { canSettingsPeople, type ActorContext } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import {
@@ -29,10 +30,25 @@ export function forbidden(reply: FastifyReply): void {
   reply.code(403).send(apiError('forbidden', 'You do not have permission for this action'));
 }
 
+function withoutPhone(p: unknown): Record<string, unknown> {
+  const copy = { ...(p as Record<string, unknown>) };
+  delete copy.phone;
+  return copy;
+}
+
 async function handleConfig(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const payload = await loadConfig(pool, ctx.tenantId);
+  const full = await loadConfig(pool, ctx.tenantId);
+  const actor: ActorContext = {
+    role: ctx.role as ActorContext['role'],
+    loginId: ctx.loginId,
+    personId: ctx.personId,
+    shared: ctx.shared,
+  };
+  const payload = canSettingsPeople(actor)
+    ? full
+    : { ...full, people: full.people.map(withoutPhone) };
   const fp = fingerprint(payload);
   const requested = (request.query as { fp?: string }).fp;
   if (requested === fp) {
