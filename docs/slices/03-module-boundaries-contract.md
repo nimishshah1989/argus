@@ -385,6 +385,12 @@ published through `modules/tickets/index.ts` when called from another module.
 | `seed/cosmos.ts:101-104`                                                                                             | `initRefCounters(tx, tenantId)` (`tickets/repo/seed.ts`, SQL verbatim), published                                                                                                                                                                                                                     |
 | `imports/batch.ts:53`, `:76`; `bhavin.ts:145`, `:153`, `:163`, `:295`; `fingerprint-sql.ts:50`; `undo.ts:71`, `:161` | `imports/repo.ts`: `insertBatch`, `failBatch`, `updateImportRow`, `insertPendingRow`, `insertErrorRow`, `finishBatch`, `importedRowRows`, `lockBatchRow`, `markUndone`                                                                                                                                |
 
+**D (03b review notes, requested by the orchestrator after 03a's independent review).** `tools/check-boundaries.ts`:
+`AFTER_KEYWORD` also matches `using`, `truncate`, `table`; `importsOf` also sees dynamic `import('…')`. `modules/plant/seed.ts`
+re-exports the seed inserts, `plant/index.ts` no longer does, and only `seed/` files may import a module's `seed.ts`
+(tool rule and ESLint seed pattern). Each has a planted-file test. `lockBatchRow(tx, tenantId, batchId)` and
+`ticketRowById(tx, tenantId, ticketId)` take `tenantId` first (published-read convention), not in `$n` order.
+
 Savepoints, the advisory lock and `SHOW TIME ZONE` name no table and stay. Test: **B19 `it('gives every current
 table exactly one owner')`**: each of the 28 D17 tables (§6.2) and `ticket_tag` is in exactly one `OWNERS` list —
 red until `OWNERS` gains `tickets` and `imports`.
