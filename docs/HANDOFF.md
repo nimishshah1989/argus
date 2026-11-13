@@ -12,7 +12,7 @@ on Nimish's instruction so he can restart on the new harness; no builder session
 **Left in M0:** 09 (real tickets in; blocked by 07 + 08, both merged: READY) and 14 (staging holds Cosmos, safe to
 run; blocked by 09 + 13). Then the M0 gate: `docs/plan/gates/M0.md`, Nimish tests staging on his phone, picks
 the accent, reviews the 31 status labels, then moves `ready-for-agent` from M0 to M1 issues.
-09 may overlap the AI plan in `docs/plan/CLAUDE-ADOPTION.md` (import pack): read it first.
+09 may overlap `docs/plan/CLAUDE-ADOPTION.md` (import pack): read it first.
 
 ## Staging (AWS, account 118167167649, ap-south-1)
 
@@ -21,9 +21,9 @@ the accent, reviews the 31 status labels, then moves `ready-for-agent` from M0 t
 - First deploy (ticket 14 owns it; Nimish does the AWS parts, step by step): 1) RDS snapshot first
   (`aws rds create-db-snapshot`, wait until available); 2) GitHub secret `AWS_ROLE_ARN`; 3) `ROUTER_DATABASE_URL`
   in `migrate.env` only, never `app.env` (edit `infra/instance/refresh-env.sh`); 4) migration 0009 needs a
-  maintenance window (FK re-validation takes ACCESS EXCLUSIVE locks); 5) `gh workflow run deploy.yml`; 6) free outside uptime pinger. Unverified on real RDS: master-user role behaviour, pg-boss install, pgcrypto.
-- Tag data: staging has none; any database with tags runs `scripts/export-tags.ts` first, then the migration with
-  `PGOPTIONS='-c uptimo.tags_exported=N'`; `scripts/preflight-cutover.ts` must exit 0.
+  maintenance window (FK re-validation takes ACCESS EXCLUSIVE locks); 5) `gh workflow run deploy.yml`; 6) free outside uptime pinger. Unverified on real RDS: master-user roles, pg-boss, pgcrypto.
+- Tags: staging has none; otherwise `scripts/export-tags.ts` first, then `PGOPTIONS='-c uptimo.tags_exported=N'`;
+  `scripts/preflight-cutover.ts` must exit 0.
 
 ## Decisions waiting for Nimish at the gate
 
@@ -38,7 +38,7 @@ removes offboard/erase proof rows after 3 years; billing alarm = existing USD 15
 Separate NOLOGIN history-owner role before production (26/28); server accepts what the Spec forbids (05);
 raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
 seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
-import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit; stale `ORCHESTRATOR` wording gone.
+import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
