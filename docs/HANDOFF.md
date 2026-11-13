@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 15:08 UTC on branch `claude/t07-history-cannot-be-lost`.
-- a9eb35a Merge main into 07
-- c45d417 07: PR body pass counts after round 2
-- de72810 07: docs for review round 2 (signatures, exit codes, router credential, window, follow-ups)
+Last session ended 2026-11-13 15:22 UTC on branch `claude/orchestrator-ledger`.
+- 298b06b docs: handoff under 50 lines
+- f475f94 docs(plan): 07 merged; M0 12/14; handoff for the restart
+- 7ee2dbe merge main (#169 merged)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->

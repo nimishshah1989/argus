@@ -82,3 +82,4 @@
 - 2026-11-13 14:22 UTC session c23c2255 on `claude/orchestrator-ledger`: 11cfa8b docs(plan): ledger — #168 merged
 - 2026-11-13 14:41 UTC session c23c2255 on `claude/orchestrator-ledger`: 3338b8b docs(plan): ledger — 12 merged
 - 2026-11-13 15:08 UTC session 0e8eecef on `claude/t07-history-cannot-be-lost`: a9eb35a Merge main into 07
+- 2026-11-13 15:22 UTC session c23c2255 on `claude/orchestrator-ledger`: 298b06b docs: handoff under 50 lines
