@@ -69,7 +69,7 @@ Still needed: see `docs/plan/NEEDS.md` (N1 live ticket export **and** Worker sou
 
 ## Decided 13 November 2026
 
-- **Gujarati text is core.** Most problems are written in Gujarati text (script or Latin letters), not voice. Understanding it in English, inside India, with Bhavin's glossary and spelling tool, is an M1 cutover capability (ticket 68).
+- **Gujarati text is core.** Most problems are written in Gujarati text (script or Latin letters), not voice. Understanding it in English, inside India, with Bhavin's glossary and spelling tool, is an M1 cutover capability (ticket 68). Provider candidates (Nimish): AI4Bharat and Sarvam; the same India-only families are the first candidates for M6.
 
 - Test on real Cosmos data: staging, the import rehearsal, the answer key and manual checks use the real data; no synthetic people on staging. Automated tests in CI use real records with names and numbers replaced (proposed; data must not leave India).
 - AI runs in India only. The AI capabilities that are possible under that rule are aligned with Nimish before M6 is sized.

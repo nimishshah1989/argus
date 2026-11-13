@@ -220,7 +220,7 @@ Split from draft ticket 16 (six draft tickets): machine moves and the group flag
 1. [API] Production runs and a deploy outside 05:00–08:00 IST is refused by the pipeline; a restore drill on production is executed and logged.
 2. [API] The cutover-morning import and its undo are rehearsed on staging with zero unexplained mismatches, then run; Bhavin's app goes read-only; the rehearsed revert restores the pre-cutover state on staging.
 
-**68 Gujarati text understood** · Blocked by: 15, 23 · External: India-region translation provider (Amazon Translate in ap-south-1 or Sarvam — verify Gujarati support before choosing; decision record)
+**68 Gujarati text understood** · Blocked by: 15, 23 · External: India-only translation provider — candidates AI4Bharat IndicTrans2 (self-hosted in AWS Mumbai; verify the model licence) and Sarvam (India-hosted API), suggested by Nimish; a short trial on the real Cosmos problem texts picks one, recorded as a decision
 
 1. [API] A problem written in Gujarati script or in transliterated Gujarati is translated to English inside India behind one adapter, using Bhavin's two-stage glossary (script terms → English before translation, English corrections after); the original text is kept beside the English. Proven on the real tickets and the 144 live glossary rules (e.g. every "coolant" variant becomes "coolant").
 2. [Browser] The person sees the English back and confirms or edits it before sending, as in v3; offline, the original is queued and translated on arrival.
