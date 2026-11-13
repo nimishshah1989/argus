@@ -45,3 +45,4 @@
 2026-11-13 — Ticket 03b Module boundaries: contract (part of #81): tickets and imports own their tables in the manifest; every cross-module statement on them moved behind published repo functions (sla, severity, history, list, imported, seed; imports/repo.ts). pnpm boundaries: 0 problems with full ownership.
 
 - 2026-11-13 10:21 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
+- 2026-11-13 11:28 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: a6bf2ca D22 and slice 55: refusal is provider_rejected; structured-output request and reply recorded

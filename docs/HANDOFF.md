@@ -36,11 +36,11 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- facts: written by the session-end hook -->
 
-Last session ended 2026-11-13 10:21 UTC on branch `claude/kind-curie-ayp7eq`.
+Last session ended 2026-11-13 11:28 UTC on branch `claude/kind-curie-ayp7eq`.
 
-- f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
-- 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
-- 4a10427 03a: Module boundaries — contract (moves, workspace wiring, enforced check) (#153)
+- a6bf2ca D22 and slice 55: refusal is provider_rejected; structured-output request and reply recorded
+- b0869df Slice 55: test 23 split for structured outputs; refusal is provider_rejected
+- 5fa13b0 Slice 55: structured outputs replace the forced tool call
   Uncommitted files: 0
 
 <!-- end facts -->
