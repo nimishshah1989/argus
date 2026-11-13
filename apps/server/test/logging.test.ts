@@ -2,7 +2,7 @@ import { hash } from '@node-rs/argon2';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { loggerOptions } from '../src/logging.js';
+import { loggerOptions } from '../src/kernel/logging.js';
 import { hashToken } from '../src/session.js';
 import { startTestDb, type TestDb } from './harness.js';
 
@@ -105,7 +105,11 @@ describe('logging', () => {
 
   it('an unhandled error is logged at level 50 with its request id', async () => {
     lines.length = 0;
-    const res = await app.inject({ method: 'GET', url: '/boom' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/boom',
+      headers: { host: 'cosmos.localhost', authorization: `Bearer ${FAKE_TOKEN}` },
+    });
     expect(res.statusCode).toBe(500);
     expect(res.json().error.code).toBe('internal');
     const errors = logged().filter((l) => l.level === 50);

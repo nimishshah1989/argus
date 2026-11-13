@@ -1,7 +1,7 @@
 import type { PgBoss } from 'pg-boss';
 import type { PoolClient } from 'pg';
 import { projectSlaTimers, type BusinessCalendar, type SlaPolicy } from '@uptimo/domain';
-import type { SlaProjection, SlaTimer } from '@uptimo/shared';
+import type { SlaPolicy as SlaPolicyReply, SlaProjection, SlaTimer } from '@uptimo/shared';
 import { rearmTicket } from '../jobs/sla-timer.js';
 import { loadEvents, reviveCorrection } from '../ticket-sql.js';
 
@@ -252,4 +252,23 @@ export async function reconcileSlaPolicies(
   for (const row of candidates.rows) {
     await reconcileTicket(client, { tenantId, ticketId: row.id, now, boss });
   }
+}
+
+function slaPolicyDto(row: Record<string, unknown>): SlaPolicyReply {
+  return {
+    id: row.id as string,
+    severity: row.severity as SlaPolicyReply['severity'],
+    ackMinutes: row.ack_minutes as number,
+    restoreMinutes: row.restore_minutes as number,
+    businessHoursOnly: row.business_hours_only as boolean,
+  };
+}
+
+export async function loadSlaPolicies(
+  client: Pick<PoolClient, 'query'>,
+): Promise<SlaPolicyReply[]> {
+  const rows = await client.query(
+    'SELECT id, severity, ack_minutes, restore_minutes, business_hours_only FROM sla_policy ORDER BY severity',
+  );
+  return rows.rows.map(slaPolicyDto);
 }

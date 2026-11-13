@@ -3,8 +3,6 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { LogController } from 'fastify';
 import { SlaInputError } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
-import { registerAuth } from './auth.js';
-import { registerHealth } from './health.js';
 import { registerReports } from './reports.js';
 import { registerSettings } from './settings.js';
 import { registerTickets } from './tickets.js';
@@ -14,6 +12,9 @@ import type { AppConfig } from './config.js';
 import { startJobs } from './jobs/index.js';
 import { reconcileTicket } from './ticket/sla.js';
 import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
+import { registerAuthGuard, registerHealth } from './kernel/index.js';
+import { modules } from './modules/index.js';
+import { authenticate } from './modules/identity/index.js';
 
 export async function buildApp(config: AppConfig) {
   const reconcileForJobs: SlaTicketReconciler = (client, tenantId, ticketId, now) =>
@@ -39,9 +40,11 @@ export async function buildApp(config: AppConfig) {
     reply.header('x-request-id', request.id);
   });
   app.addHook('onClose', async () => jobs.close());
+  // The guard must stay registered before any route: a route added earlier escapes it.
+  registerAuthGuard(app, (token) => authenticate(config.pool, token));
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   registerHealth(app, config);
-  registerAuth(app, config);
+  for (const mod of modules) mod.register(app, config);
   registerSettings(app, config);
   registerTickets(app, config);
   registerReports(app, config);
