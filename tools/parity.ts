@@ -15,6 +15,7 @@ export interface ParityRow {
   external_reason?: string;
   evidence: string[];
   source?: string;
+  ticket?: string;
 }
 
 export interface ParityFile {
@@ -73,6 +74,8 @@ function evidenceErrors(row: ParityRow): string[] {
   const errors: string[] = [];
   if (row.status === 'done' && !row.evidence?.length)
     errors.push(`${row.id}: done without evidence`);
+  if (row.status === 'in-progress' && !row.evidence?.length && !row.ticket?.trim())
+    errors.push(`${row.id}: in-progress without evidence or a ticket`);
   if (row.status === 'waived' && !row.waiver_reason?.trim())
     errors.push(`${row.id}: waived without a reason`);
   if (row.status === 'external' && !row.external_reason?.trim())
