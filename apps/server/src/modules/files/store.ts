@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
@@ -22,15 +22,6 @@ export function createLocalFileStore(root: string): ObjectStore {
       return readFile(join(root, key));
     },
   };
-}
-
-export function pdfObjectKey(tenantId: string, ticketId: string): string {
-  return `${tenantId}/pdf/${ticketId}/${randomUUID()}.pdf`;
-}
-
-/** Day reports are tenant-scoped, not tied to a ticket. */
-export function dayReportObjectKey(tenantId: string, date: string, shift: string): string {
-  return `${tenantId}/reports/day-${date}-${shift}-${randomUUID()}.pdf`;
 }
 
 export function sha256(bytes: Buffer): string {

@@ -29,7 +29,6 @@ export {
   notesSeenElsewhere,
   pdfTicketRow,
   pendingRows,
-  setReportPdf,
   type HistoryRow,
 } from './repo/history.js';
 export {

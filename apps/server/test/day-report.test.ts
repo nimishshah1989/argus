@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { hash } from '@node-rs/argon2';
@@ -264,27 +265,21 @@ describe('day report PDF endpoint', () => {
     expect(html).toContain('Work time');
   });
 
-  it.skipIf(!chromiumPath)('returns a stored application/pdf for the caller’s day', async () => {
+  it.skipIf(!chromiumPath)('returns the caller’s day as a PDF and stores nothing', async () => {
+    const before = await db.admin.query('SELECT count(*)::int AS n FROM file');
     const res = await get(
       `/api/v1/reports/day.pdf?date=2026-11-10&personId=me&shift=day`,
       ashaToken,
     );
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
-    const fileId = res.headers['x-file-id'] as string;
-    expect(fileId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(res.headers['content-disposition']).toContain('Day_report_Asha_2026-11-10_day.pdf');
     expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
     expect(res.rawPayload.length).toBeGreaterThan(5000);
 
-    const files = await db.admin.query('SELECT * FROM file WHERE id = $1', [fileId]);
-    expect(files.rows).toHaveLength(1);
-    const file = files.rows[0];
-    expect(file.kind).toBe('pdf');
-    expect(file.mime).toBe('application/pdf');
-    expect(file.ticket_id).toBeNull();
-    expect(Number(file.bytes)).toBe(res.rawPayload.length);
-    const stored = await readFile(join(filesDir, file.s3_key as string));
-    expect(stored.equals(res.rawPayload)).toBe(true);
+    const after = await db.admin.query('SELECT count(*)::int AS n FROM file');
+    expect(after.rows[0].n).toBe(before.rows[0].n);
+    expect(readdirSync(filesDir)).toEqual([]);
   });
 
   it('defaults personId to the caller and shift to day', async () => {

@@ -1,5 +1,3 @@
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
@@ -10,24 +8,12 @@ import { withTenant } from '@uptimo/db';
 import { peopleByIds, requireAuth, tenantInfo } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
 import { withMachines } from './machines.js';
-import {
-  createLocalFileStore,
-  dayReportObjectKey,
-  insertFileRow,
-  pdfObjectKey,
-  type ObjectStore,
-} from '../files/index.js';
 import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
+import { RenderBusyError } from './render-gate.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { loadDayReport, type DayReportData } from './day-report.js';
 import { renderDayReportHtml } from './day-report-template.js';
-import {
-  figuresFromRow,
-  loadReport,
-  pdfTicketRow,
-  setReportPdf,
-  type StoredReport,
-} from '../tickets/index.js';
+import { figuresFromRow, loadReport, pdfTicketRow, type StoredReport } from '../tickets/index.js';
 
 const PDF_MIME = 'application/pdf';
 
@@ -52,7 +38,6 @@ interface PdfContext {
 
 interface PdfDeps {
   pool: Pool;
-  store: ObjectStore;
   chromiumPath?: string;
 }
 
@@ -153,30 +138,34 @@ function payloadFor(context: PdfContext): ReturnType<typeof buildQrPayload> {
   });
 }
 
-async function renderTicketPdf(
-  deps: PdfDeps,
-  tenantId: string,
-  context: PdfContext,
-): Promise<{ fileId: string; url: string }> {
-  const report = context.report as StoredReport;
-  const payload = payloadFor(context);
-  const text = qrText(payload);
+async function renderTicketPdf(deps: PdfDeps, context: PdfContext): Promise<Buffer> {
+  const text = qrText(payloadFor(context));
   const html = renderReportHtml(pdfInput(context, await qrSvg(text)));
-  const bytes = await renderPdf(html, deps.chromiumPath);
-  const key = pdfObjectKey(tenantId, context.ticket.id);
-  await deps.store.put(key, bytes);
-  const fileId = await withTenant(deps.pool, tenantId, async (client) => {
-    const id = await insertFileRow(client, {
-      tenantId,
-      ticketId: context.ticket.id,
-      key,
-      mime: PDF_MIME,
-      bytes,
-    });
-    await setReportPdf(client, { fileId: id, payload, reportId: report.id, tenantId });
-    return id;
-  });
-  return { fileId, url: `/api/v1/files/${fileId}` };
+  return renderPdf(html, deps.chromiumPath);
+}
+
+/** A PDF is made when asked for and sent as it is: nothing is stored, so nothing is lost on a deploy. */
+function sendBytes(reply: FastifyReply, bytes: Buffer, fileName: string): void {
+  reply.type(PDF_MIME).header('content-disposition', `inline; filename="${fileName}"`).send(bytes);
+}
+
+/** Runs a render; a full queue becomes a 503 the caller can retry (null: the reply is already sent). */
+async function renderOrBusy(
+  reply: FastifyReply,
+  render: () => Promise<Buffer>,
+): Promise<Buffer | null> {
+  try {
+    return await render();
+  } catch (error) {
+    if (!(error instanceof RenderBusyError)) throw error;
+    reply
+      .code(503)
+      .header('retry-after', '5')
+      .send(
+        apiError('rate_limited', 'Too many reports are being made right now; try again shortly'),
+      );
+    return null;
+  }
 }
 
 async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -194,7 +183,9 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
     reply.code(409).send(apiError('conflict', 'This ticket has no breakdown report'));
     return;
   }
-  reply.send(await renderTicketPdf(deps, auth.tenantId, context));
+  const bytes = await renderOrBusy(reply, () => renderTicketPdf(deps, context));
+  if (bytes)
+    sendBytes(reply, bytes, `Breakdown_${context.ticket.ref.replace(/[^a-z0-9-]+/gi, '_')}.pdf`);
 }
 
 function isCalendarDate(value: string): boolean {
@@ -283,31 +274,14 @@ async function sendDayPdf(
     reply.code(404).send(apiError('not_found', 'Unknown person', 'personId'));
     return;
   }
-  const bytes = await renderPdf(renderDayReportHtml(data), deps.chromiumPath);
-  const key = dayReportObjectKey(auth.tenantId, data.date, data.shift);
-  await deps.store.put(key, bytes);
-  const fileId = await withTenant(deps.pool, auth.tenantId, (client) =>
-    insertFileRow(client, {
-      tenantId: auth.tenantId,
-      ticketId: null,
-      key,
-      mime: PDF_MIME,
-      bytes,
-    }),
+  const bytes = await renderOrBusy(reply, () =>
+    renderPdf(renderDayReportHtml(data), deps.chromiumPath),
   );
-  reply
-    .type(PDF_MIME)
-    .header('content-disposition', `inline; filename="${dayReportFileName(data)}"`)
-    .header('x-file-id', fileId)
-    .send(bytes);
+  if (bytes) sendBytes(reply, bytes, dayReportFileName(data));
 }
 
 export function registerReports(app: FastifyInstance, config: AppConfig): void {
-  const deps: PdfDeps = {
-    pool: config.pool,
-    store: createLocalFileStore(config.filesDir ?? join(tmpdir(), 'uptimo-files')),
-    chromiumPath: config.chromiumPath,
-  };
+  const deps: PdfDeps = { pool: config.pool, chromiumPath: config.chromiumPath };
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
   app.get('/api/v1/reports/day.pdf', (request, reply) => sendDayPdf(deps, request, reply));
 }
