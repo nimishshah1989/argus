@@ -41,11 +41,11 @@ export function emptyImportStats(ticketCount: number, aliasSha256: string): Impo
 export async function openBatch(
   pool: Pool,
   tenantId: string,
-  input: { ticketCount: number; aliasSha256: string; now: Date },
+  input: { ticketCount: number; aliasSha256: string; now: Date; contract?: string },
 ): Promise<string> {
   return withTenant(pool, tenantId, async (client) => {
     const stats = {
-      contract: SYNTHETIC_SOURCE,
+      contract: input.contract ?? SYNTHETIC_SOURCE,
       status: 'running',
       tickets: input.ticketCount,
       aliasSha256: input.aliasSha256,

@@ -1,4 +1,4 @@
-import { main } from '../apps/server/src/modules/imports/cli.js';
+import { main } from '../apps/server/src/seed/import-cli.js';
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);

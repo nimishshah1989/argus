@@ -791,9 +791,13 @@ rows:
         start/update/running/stopped/pause/resume/cancel/restore with sequential events'
       - 'apps/server/test/import-undo.test.ts :: T25 undoes an empty failed batch once and ignores
         stale skipped rows'
+      - 'apps/server/test/import-real.test.ts :: imports every ticket with his numbers and proves them'
+      - 'apps/server/test/import-real.test.ts :: a re-run is identical'
+      - 'apps/server/test/import-real.test.ts :: undo leaves no row, and cannot run twice'
+      - 'apps/server/test/import-real-figures.test.ts :: leaves no unexplained difference'
     source: PARITY.md §v3 / Import and cutover; SPEC 1.10 / NEEDS N1
-    external_reason: Real N1 export/Worker schema/compatibility and cutover remain external; only
-      argus.synthetic-bhavin/v1 is accepted.
+    external_reason: Bhavin's own export is imported (ticket 09, tested on a pseudonymised copy);
+      the run on staging (ticket 14) and the production cutover remain external.
   - id: analytics.registers.01
     feature:
       'Dashboard: KPI tiles, bubble chart, register summaries, mixed all-years and latest-year

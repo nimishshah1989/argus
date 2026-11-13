@@ -209,12 +209,8 @@ describe('boundaries check', () => {
     ]);
   });
 
-  it('lists the dated call exceptions, so they can only shrink', () => {
-    expect(EXCEPTIONS.map((e) => `${e.file} -> ${e.module}`)).toEqual(
-      ['imports/bhavin.ts -> accountability', 'imports/cli.ts -> accountability'].map(
-        (row) => `${SRC}/modules/${row}`,
-      ),
-    );
+  it('lists the dated call exceptions, so they can only shrink (ticket 09 ended the last two)', () => {
+    expect(EXCEPTIONS).toEqual([]);
   });
 
   it("passes the server tree's imports", () => {
