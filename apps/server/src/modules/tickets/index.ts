@@ -31,7 +31,6 @@ export {
   type HistoryRow,
 } from './repo/history.js';
 export {
-  deleteImportedTickets,
   importedChildren,
   importedTicketRows,
   insertImportedCrew,
@@ -40,11 +39,9 @@ export {
   insertImportedSegment,
   insertImportedTicket,
   insertReportPerson,
-  outsideChildRef,
   raiseRefCounter,
   refCounterRows,
   refsByIds,
-  reportWithFileId,
   setParent,
   ticketParents,
   ticketRefsLike,

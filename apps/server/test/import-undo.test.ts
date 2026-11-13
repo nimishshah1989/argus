@@ -11,6 +11,7 @@ import {
   type CompletionFingerprint,
   type EntryType,
 } from '../src/modules/imports/schema.js';
+import { importBhavin } from '../src/modules/imports/bhavin.js';
 import { undoImport } from '../src/modules/imports/undo.js';
 import {
   makeOrdinaryTicket,
@@ -45,7 +46,6 @@ async function seedBatch(options: SeedOptions = {}) {
   const legacyId = `synthetic-undo-${String(100 + batchNumber).padStart(4, '0')}`;
   const entryType = options.entryType ?? 'ordinary';
   const status = options.status ?? 'done';
-  const finishedAt = new Date('2026-11-02T00:00:00.000Z');
   const raw = makeOrdinaryTicket({ entryType, legacyId, ref });
   const payload = makeRawEnvelope(raw, makeSyntheticExport().aliases);
   await admin.query(
@@ -56,7 +56,7 @@ async function seedBatch(options: SeedOptions = {}) {
       tenantId,
       options.source ?? 'bhavin',
       status,
-      finishedAt,
+      null,
       JSON.stringify({ contract: syntheticSource }),
     ],
   );
@@ -145,6 +145,12 @@ async function seedBatch(options: SeedOptions = {}) {
     );
   }
 
+  // The database clock, after every row above: the batch finished after the rows it wrote.
+  const stamped = await admin.query(
+    'UPDATE import_batch SET finished_at = clock_timestamp() WHERE id = $1 RETURNING finished_at',
+    [batchId],
+  );
+  const finishedAt = stamped.rows[0].finished_at as Date;
   const client = await admin.connect();
   let completion: CompletionFingerprint;
   try {
@@ -245,7 +251,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
         reports: 1,
       });
 
-      await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).resolves.toEqual({
+      await expect(
+        undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+      ).resolves.toEqual({
         deleted: 1,
       });
       expect(await counts(seeded.ticketId)).toEqual({
@@ -277,42 +285,72 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     },
   );
 
-  it('T21 cascades ticket tags on undo while preserving the tenant', async () => {
+  it('T21 removes the batch SLA timers and keeps its import rows while preserving the tenant', async () => {
     const seeded = await seedBatch();
-    const item = await db.admin.query(
-      "SELECT id FROM list_item WHERE tenant_id = $1 AND list = 'maint_code' AND code = 'M'",
-      [syntheticIds.tenant],
-    );
     await db.admin.query(
-      `INSERT INTO ticket_tag (tenant_id, ticket_id, item_id, applied_by_person_id)
-       VALUES ($1, $2, $3, $4)`,
-      [syntheticIds.tenant, seeded.ticketId, item.rows[0].id, syntheticIds.asha],
+      `INSERT INTO sla_timer (tenant_id, ticket_id, kind, due_at, state, revision)
+       VALUES ($1, $2, 'ack', now() + interval '5 minutes', 'running', 1)`,
+      [syntheticIds.tenant, seeded.ticketId],
     );
 
-    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).resolves.toEqual({
-      deleted: 1,
-    });
-    expect(
-      (
-        await db.admin.query('SELECT count(*)::int AS n FROM ticket_tag WHERE ticket_id = $1', [
-          seeded.ticketId,
-        ])
-      ).rows[0].n,
-    ).toBe(0);
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).resolves.toEqual({ deleted: 1 });
+    const left = await db.admin.query(
+      `SELECT (SELECT count(*)::int FROM sla_timer WHERE ticket_id = $1) AS timers,
+              (SELECT count(*)::int FROM tenant WHERE id = $2) AS tenant,
+              (SELECT ticket_id FROM import_row WHERE batch_id = $3 AND row_number = 1) AS link,
+              (SELECT count(*)::int FROM import_row WHERE batch_id = $3 AND row_number = 1) AS rows`,
+      [seeded.ticketId, syntheticIds.tenant, seeded.batchId],
+    );
+    expect(left.rows[0]).toEqual({ timers: 0, tenant: 1, link: null, rows: 1 });
     expect((await counts(seeded.ticketId)).ticket).toBe(0);
-    expect(
-      (
-        await db.admin.query('SELECT count(*)::int AS n FROM tenant WHERE id = $1', [
-          syntheticIds.tenant,
-        ])
-      ).rows[0].n,
-    ).toBe(1);
+  });
+
+  it('T26 stamps finished_at after every row the import wrote', async () => {
+    const { batchId } = await importBhavin(db.app, syntheticIds.tenant, makeSyntheticExport());
+    const result = await db.admin.query(
+      `SELECT b.finished_at >= greatest(
+         (SELECT max(e.created_at) FROM ticket_event e JOIN import_row r ON r.ticket_id = e.ticket_id
+            WHERE r.batch_id = b.id),
+         (SELECT max(c.created_at) FROM crew_member c JOIN import_row r ON r.ticket_id = c.ticket_id
+            WHERE r.batch_id = b.id),
+         (SELECT max(w.created_at) FROM work_segment w JOIN import_row r ON r.ticket_id = w.ticket_id
+            WHERE r.batch_id = b.id)
+       ) AS after_rows
+       FROM import_batch b WHERE b.id = $1`,
+      [batchId],
+    );
+    expect(result.rows[0].after_rows).toBe(true);
+  });
+
+  it('T27 undoes a batch the importer has just finished', async () => {
+    const { batchId } = await importBhavin(db.app, syntheticIds.tenant, makeSyntheticExport());
+    const tickets = await db.admin.query(
+      'SELECT count(*)::int AS n FROM import_row WHERE batch_id = $1 AND status = $2',
+      [batchId, 'imported'],
+    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, batchId, 'agent-test'),
+    ).resolves.toEqual({ deleted: tickets.rows[0].n });
+  });
+
+  it('T28 refuses a batch whose finish time predates its rows', async () => {
+    const seeded = await seedBatch();
+    await db.admin.query(
+      "UPDATE import_batch SET finished_at = finished_at - interval '1 hour' WHERE id = $1",
+      [seeded.batchId],
+    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).rejects.toThrow(/worked on after the import finished/);
+    expect((await counts(seeded.ticketId)).ticket).toBe(1);
   });
 
   it('T22 rejects a missing batch without writes', async () => {
-    await expect(undoImport(db.app, syntheticIds.tenant, randomUUID())).rejects.toThrow(
-      /not found/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, randomUUID(), 'agent-test'),
+    ).rejects.toThrow(/not found/i);
     expect(await db.admin.query('SELECT count(*)::int AS n FROM audit_log')).toEqual(
       expect.objectContaining({ rows: [{ n: 0 }] }),
     );
@@ -322,9 +360,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     'T22 rejects terminal-invalid status %s',
     async (status) => {
       const seeded = await seedBatch({ status });
-      await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-        /status|undone|pending|running/i,
-      );
+      await expect(
+        undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+      ).rejects.toThrow(/status|undone|pending|running/i);
       expect((await counts(seeded.ticketId)).ticket).toBe(1);
     },
   );
@@ -336,40 +374,40 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
       "INSERT INTO tenant (id, slug, name) VALUES ($1, 'other', 'Synthetic Other')",
       [otherTenant],
     );
-    await expect(undoImport(db.app, otherTenant, wrongTenant.batchId)).rejects.toThrow(
-      /not found/i,
-    );
+    await expect(
+      undoImport(db.router, otherTenant, wrongTenant.batchId, 'agent-test'),
+    ).rejects.toThrow(/not found/i);
     expect((await counts(wrongTenant.ticketId)).ticket).toBe(1);
 
     const wrongSource = await seedBatch({ source: 'seed' });
-    await expect(undoImport(db.app, syntheticIds.tenant, wrongSource.batchId)).rejects.toThrow(
-      /not found|source/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, wrongSource.batchId, 'agent-test'),
+    ).rejects.toThrow(/not found|source/i);
     expect((await counts(wrongSource.ticketId)).ticket).toBe(1);
   });
 
   it('T22 rejects absent fingerprints, changed provenance, and wrong channels', async () => {
     const noFingerprint = await seedBatch({ withFingerprint: false });
-    await expect(undoImport(db.app, syntheticIds.tenant, noFingerprint.batchId)).rejects.toThrow(
-      /fingerprint/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, noFingerprint.batchId, 'agent-test'),
+    ).rejects.toThrow(/fingerprint/i);
 
     const wrongProvenance = await seedBatch();
     await db.admin.query(
       'UPDATE import_row SET source_ref = $1 WHERE batch_id = $2 AND row_number = 1',
       ['changed-legacy-id', wrongProvenance.batchId],
     );
-    await expect(undoImport(db.app, syntheticIds.tenant, wrongProvenance.batchId)).rejects.toThrow(
-      /provenance|legacyId|fingerprint/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, wrongProvenance.batchId, 'agent-test'),
+    ).rejects.toThrow(/provenance|legacyId|fingerprint/i);
 
     const wrongChannel = await seedBatch();
     await db.admin.query("UPDATE ticket SET raised_channel = 'floor' WHERE id = $1", [
       wrongChannel.ticketId,
     ]);
-    await expect(undoImport(db.app, syntheticIds.tenant, wrongChannel.batchId)).rejects.toThrow(
-      /channel|fingerprint/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, wrongChannel.batchId, 'agent-test'),
+    ).rejects.toThrow(/channel|fingerprint/i);
     for (const seeded of [noFingerprint, wrongProvenance, wrongChannel]) {
       expect((await counts(seeded.ticketId)).ticket).toBe(1);
     }
@@ -459,9 +497,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     async ({ mutate }) => {
       const seeded = await seedBatch({ withSkipped: true });
       await mutate(seeded.ticketId);
-      await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-        new RegExp(`fingerprint[\\s\\S]*${seeded.legacyId}`),
-      );
+      await expect(
+        undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+      ).rejects.toThrow(new RegExp(`fingerprint[\\s\\S]*${seeded.legacyId}`));
       expect((await counts(seeded.ticketId)).ticket).toBe(1);
       const state = await db.admin.query('SELECT status FROM import_batch WHERE id = $1', [
         seeded.batchId,
@@ -481,9 +519,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
       seeded.ticketId,
       seeded.preexistingId,
     ]);
-    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-      /outside|child|reference/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).rejects.toThrow(/outside|child|reference/i);
     const outside = await db.admin.query('SELECT parent_id FROM ticket WHERE id = $1', [
       seeded.preexistingId,
     ]);
@@ -499,9 +537,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
        VALUES ($1, $2, 'photo', 'synthetic-file', 'image/png', 1, $3, $4)`,
       [fileId, syntheticIds.tenant, '0'.repeat(64), seeded.ticketId],
     );
-    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-      /file|reference/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).rejects.toThrow(/file|reference/i);
     expect((await counts(seeded.ticketId)).ticket).toBe(1);
     expect(
       (await db.admin.query('SELECT ticket_id FROM file WHERE id = $1', [fileId])).rows[0]
@@ -524,9 +562,9 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
         seeded.ticketId,
       ]);
       await refreshFingerprint(seeded.batchId);
-      await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-        /file|report|reference/i,
-      );
+      await expect(
+        undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+      ).rejects.toThrow(/file|report|reference/i);
       expect((await counts(seeded.ticketId)).reports).toBe(1);
       expect((await counts(seeded.ticketId)).ticket).toBe(1);
     },
@@ -535,12 +573,14 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
   it('T25 undoes an empty failed batch once and ignores stale skipped rows', async () => {
     const seeded = await seedBatch({ status: 'failed', withTicket: false, staleSkipped: true });
     expect(seeded.completion).toEqual(emptyCompletionFingerprint());
-    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).resolves.toEqual({
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).resolves.toEqual({
       deleted: 0,
     });
-    await expect(undoImport(db.app, syntheticIds.tenant, seeded.batchId)).rejects.toThrow(
-      /undone|status/i,
-    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, seeded.batchId, 'agent-test'),
+    ).rejects.toThrow(/undone|status/i);
     const result = await db.admin.query(
       `SELECT b.status, b.finished_at, ir.status AS row_status, ir.ticket_id,
         (SELECT count(*)::int FROM ticket WHERE tenant_id = $1 AND id = $3) AS skipped,
@@ -562,7 +602,7 @@ describe('undoImport terminal behavior and safety (T21–T25)', () => {
     ]);
     expect(audit.rows[0]).toEqual({
       before: { status: 'failed', fingerprintDigest: seeded.completion.digest, ticketIds: [] },
-      after: { status: 'undone', deleted: 0 },
+      after: { status: 'undone', deleted: 0, operator: 'agent-test' },
     });
   });
 });

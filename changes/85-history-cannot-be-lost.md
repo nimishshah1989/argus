@@ -1,0 +1,5 @@
+- The database refuses to delete or rewrite ticket history, people, logins, machines and files.
+- A machine can have only one open breakdown at a time.
+- A leaver's name can be erased everywhere it appears, without deleting any history.
+- A customer can be removed only with an export and a backup on record.
+- Support access needs a customer admin's approval and ends within 7 days.

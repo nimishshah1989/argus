@@ -18,24 +18,25 @@ export async function insertBatch(
 /** Marks a running batch failed; returns the row count (1 when it was running). */
 export async function failBatch(
   tx: Db,
-  input: { finishedAt: Date; stats: string; batchId: string; tenantId: string },
+  input: { stats: string; batchId: string; tenantId: string },
 ): Promise<number | null> {
   const result = await tx.query(
-    `UPDATE import_batch SET status = 'failed', finished_at = $1, stats = $2
-       WHERE id = $3 AND tenant_id = $4 AND source = 'bhavin' AND status = 'running'`,
-    [input.finishedAt, input.stats, input.batchId, input.tenantId],
+    `UPDATE import_batch SET status = 'failed', finished_at = clock_timestamp(), stats = $1
+       WHERE id = $2 AND tenant_id = $3 AND source = 'bhavin' AND status = 'running'`,
+    [input.stats, input.batchId, input.tenantId],
   );
   return result.rowCount;
 }
 
 export async function finishBatch(
   tx: Db,
-  input: { status: string; finishedAt: Date; stats: string; batchId: string; tenantId: string },
+  input: { status: string; stats: string; batchId: string; tenantId: string },
 ): Promise<void> {
+  // The database clock: the import's rows carry the transaction's now(), which is later than any clock read before it.
   await tx.query(
-    `UPDATE import_batch SET status = $1, finished_at = $2, stats = $3
-       WHERE id = $4 AND tenant_id = $5 AND source = 'bhavin'`,
-    [input.status, input.finishedAt, input.stats, input.batchId, input.tenantId],
+    `UPDATE import_batch SET status = $1, finished_at = clock_timestamp(), stats = $2
+       WHERE id = $3 AND tenant_id = $4 AND source = 'bhavin'`,
+    [input.status, input.stats, input.batchId, input.tenantId],
   );
 }
 
@@ -124,15 +125,17 @@ export async function lockBatchRow(
   return result.rows[0];
 }
 
-/** Marks a bhavin batch undone; returns the row count (1 on success). */
-export async function markUndone(
+/** SELECT import_undo($1, $2, $3): the definer function of D24; it refuses another customer's batch, deletes, marks the batch undone and audits. */
+export async function callImportUndo(
   tx: Db,
-  batchId: string,
   tenantId: string,
-): Promise<number | null> {
-  const updated = await tx.query(
-    "UPDATE import_batch SET status = 'undone' WHERE id = $1 AND tenant_id = $2 AND source = 'bhavin'",
-    [batchId, tenantId],
-  );
-  return updated.rowCount;
+  batchId: string,
+  operator: string,
+): Promise<number> {
+  const result = await tx.query('SELECT import_undo($1, $2, $3) AS deleted', [
+    tenantId,
+    batchId,
+    operator,
+  ]);
+  return result.rows[0].deleted as number;
 }

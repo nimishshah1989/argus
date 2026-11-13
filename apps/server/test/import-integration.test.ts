@@ -106,7 +106,7 @@ describe('synthetic importer integration', () => {
       makeSyntheticExport([otherLegacy]),
     );
     expect(refConflict.stats.errored).toBe(1);
-    await undoImport(db.app, syntheticIds.tenant, first.batchId);
+    await undoImport(db.router, syntheticIds.tenant, first.batchId, 'agent-test');
     const revived = await importBhavin(db.app, syntheticIds.tenant, input);
     expect(revived.stats.imported).toBe(1);
     expect(await ticketCount('BD-0100')).toBe(1);
@@ -364,7 +364,7 @@ describe('synthetic importer integration', () => {
       makeSyntheticExport([makeOrdinaryTicket(), general]),
     );
     expect(stats.refCounters).toEqual({ BD: 1000, WR: 101 });
-    await undoImport(db.app, syntheticIds.tenant, batchId);
+    await undoImport(db.router, syntheticIds.tenant, batchId, 'agent-test');
     const counters = await db.admin.query(
       'SELECT prefix, next_value FROM ref_counter WHERE tenant_id = $1 ORDER BY prefix',
       [syntheticIds.tenant],
@@ -399,5 +399,20 @@ describe('synthetic importer integration', () => {
     ).rejects.toThrow(ImportFatalError);
     const batch = await db.admin.query("SELECT status FROM import_batch WHERE source = 'bhavin'");
     expect(batch.rows[0].status).toBe('failed');
+  });
+
+  it('T44 undoes a batch whose tickets follow each other', async () => {
+    const child = generalTicket({ ref: 'WR-0001', parentRef: 'WR-0002', legacyId: 'child' });
+    const parent = generalTicket({ ref: 'WR-0002', legacyId: 'parent' });
+    const { batchId } = await importBhavin(
+      db.app,
+      syntheticIds.tenant,
+      makeSyntheticExport([child, parent]),
+    );
+    await expect(
+      undoImport(db.router, syntheticIds.tenant, batchId, 'agent-test'),
+    ).resolves.toEqual({ deleted: 2 });
+    expect(await ticketCount('WR-0001')).toBe(0);
+    expect(await ticketCount('WR-0002')).toBe(0);
   });
 });

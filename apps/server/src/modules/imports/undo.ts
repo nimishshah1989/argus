@@ -5,17 +5,12 @@ import {
   makeCompletionFingerprint,
   type BatchSnapshot,
 } from './fingerprint.js';
-import { fileIdForTickets } from '../files/index.js';
-import { audit } from '../ops/index.js';
-import { deleteImportedTickets, outsideChildRef, reportWithFileId } from '../tickets/index.js';
-import { lockBatchRow, markUndone } from './repo.js';
+import { callImportUndo, lockBatchRow } from './repo.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import type { CompletionFingerprint } from './schema.js';
 
 interface LockedBatch {
-  tenantId: string;
-  status: 'done' | 'failed';
   stats: unknown;
 }
 
@@ -78,7 +73,7 @@ async function lockBatch(
   if (batch.status !== 'done' && batch.status !== 'failed') {
     throw new Error(`Undo refused: batch status ${batch.status} is not undoable`);
   }
-  return { tenantId, status: batch.status, stats: batch.stats };
+  return { stats: batch.stats };
 }
 
 function assertProvenance(expected: CompletionFingerprint, actual: BatchSnapshot): void {
@@ -105,72 +100,20 @@ function assertCompletion(expected: CompletionFingerprint, actual: BatchSnapshot
   }
 }
 
-async function assertNoOutsideReferences(
-  client: PoolClient,
-  tenantId: string,
-  ticketIds: string[],
-): Promise<void> {
-  if (!ticketIds.length) return;
-  const childRef = await outsideChildRef(client, tenantId, ticketIds);
-  if (childRef !== undefined) throw new Error(`Undo refused: outside child reference ${childRef}`);
-  const fileId = await fileIdForTickets(client, tenantId, ticketIds);
-  if (fileId) throw new Error(`Undo refused: ticket file reference ${fileId}`);
-  const reportId = await reportWithFileId(client, tenantId, ticketIds);
-  if (reportId !== undefined) throw new Error(`Undo refused: report file reference ${reportId}`);
-}
-
-async function deleteCandidates(
-  client: PoolClient,
-  tenantId: string,
-  ticketIds: string[],
-): Promise<void> {
-  if (!ticketIds.length) return;
-  const deleted = await deleteImportedTickets(client, tenantId, ticketIds);
-  if (deleted !== ticketIds.length) {
-    throw new Error('Undo refused: imported ticket delete count changed');
-  }
-}
-
-async function finishUndo(
-  client: PoolClient,
-  batchId: string,
-  batch: LockedBatch,
-  completion: CompletionFingerprint,
-): Promise<void> {
-  const updated = await markUndone(client, batchId, batch.tenantId);
-  if (updated !== 1) throw new Error('Undo refused: batch update failed');
-  const before = {
-    status: batch.status,
-    fingerprintDigest: completion.digest,
-    ticketIds: completion.tickets.map((ticket) => ticket.ticketId),
-  };
-  const after = { status: 'undone', deleted: completion.tickets.length };
-  await audit.record(client, {
-    tenantId: batch.tenantId,
-    loginId: null,
-    action: 'import.undo',
-    entity: 'import_batch',
-    entityId: batchId,
-    before,
-    after,
-  });
-}
-
+/** `router` connects as a member of app_router and app_user (ROUTER_DATABASE_URL). */
 export async function undoImport(
-  pool: Pool,
+  router: Pool,
   tenantId: string,
   batchId: string,
+  operator: string,
 ): Promise<{ deleted: number }> {
-  return withTenant(pool, tenantId, async (client) => {
+  return withTenant(router, tenantId, async (client) => {
+    // The checks run with exactly the app's rights; only the deletes run as the definer function.
+    await client.query('SET LOCAL ROLE app_user');
     const batch = await lockBatch(client, tenantId, batchId);
-    const stats = batch.stats as { completion?: unknown };
-    const completion = parseCompletion(stats.completion);
-    const snapshot = await loadBatchSnapshot(client, tenantId, batchId, true);
-    assertCompletion(completion, snapshot);
-    const ticketIds = completion.tickets.map((ticket) => ticket.ticketId);
-    await assertNoOutsideReferences(client, tenantId, ticketIds);
-    await deleteCandidates(client, tenantId, ticketIds);
-    await finishUndo(client, batchId, batch, completion);
-    return { deleted: ticketIds.length };
+    const completion = parseCompletion((batch.stats as { completion?: unknown }).completion);
+    assertCompletion(completion, await loadBatchSnapshot(client, tenantId, batchId, true));
+    await client.query('RESET ROLE');
+    return { deleted: await callImportUndo(client, tenantId, batchId, operator) };
   });
 }
