@@ -16,4 +16,7 @@ export {
   type FakeReply,
 } from './provider.js';
 
+export { AI_SUGGEST_QUEUE, startAiJobs, type AiJobDeps } from './jobs.js';
+export type { AiFeature } from './suggest.js';
+
 export const aiModule = defineModule({ name: 'ai', register: () => undefined });
