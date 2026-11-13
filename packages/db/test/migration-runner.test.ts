@@ -174,9 +174,7 @@ it('refuses to adopt an unledgered 0007 schema even when it is complete', async 
       rolreplication: false,
     });
 
-    expect(await ledger(pool)).toEqual(
-      FILES.filter((file) => file < '0007_sla_policy_timer.sql'),
-    );
+    expect(await ledger(pool)).toEqual(FILES.filter((file) => file < '0007_sla_policy_timer.sql'));
     await expectInstalled(pool, '0007_sla_policy_timer.sql', true);
   });
 }, 120_000);

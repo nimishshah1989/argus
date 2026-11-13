@@ -149,13 +149,14 @@ async function secureAppApiRole(pool: Pool): Promise<void> {
   `);
 }
 
-async function applyFile(
-  pool: Pool,
-  file: string,
-  migrations: URL,
-  adoptThrough: string | undefined,
-  bypass: boolean,
-): Promise<void> {
+interface RunContext {
+  migrations: URL;
+  adoptThrough: string | undefined;
+  bypass: boolean;
+}
+
+async function applyFile(pool: Pool, file: string, ctx: RunContext): Promise<void> {
+  const { migrations, adoptThrough, bypass } = ctx;
   await pool.query('BEGIN');
   try {
     const mayAdopt = adoptThrough !== undefined && file <= adoptThrough;
@@ -198,7 +199,7 @@ export async function applyAppMigrations(
   const bypass = await canGrantBypass(pool);
   try {
     for (const file of files)
-      if (!applied.has(file)) await applyFile(pool, file, migrations, adoptThrough, bypass);
+      if (!applied.has(file)) await applyFile(pool, file, { migrations, adoptThrough, bypass });
   } catch (error) {
     await revokeLentCreate(pool).catch(() => undefined); // keep the migration error
     throw error;
