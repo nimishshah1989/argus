@@ -24,6 +24,20 @@ import {
 
 export const AI_SUGGEST_QUEUE = 'ai.suggest';
 
+export interface AiLoaded {
+  task: string;
+  input: AiJson;
+  /** Evidence key sent to the model -> ticket id; only these may be cited (D22 section 4). */
+  evidence?: Record<string, string>;
+  /** Facts made by code and stored beside the answer; never sent. */
+  facts?: AiJson;
+}
+export interface AiGrounded {
+  output: AiJson;
+  evidenceTicketIds: string[];
+  dropped: number;
+}
+
 export interface AiFeature<T> {
   name: AiSuggestPayload['feature'];
   promptVersion: string;
@@ -33,7 +47,14 @@ export interface AiFeature<T> {
     tx: Pick<PoolClient, 'query'>,
     tenantId: string,
     subjectId: string,
-  ): Promise<{ task: string; input: AiJson } | 'stale'>;
+  ): Promise<AiLoaded | 'stale'>;
+  /** Transaction 3, before storing: check the answer against this call's evidence. Absent: stored as returned. */
+  ground?(
+    tx: Pick<PoolClient, 'query'>,
+    tenantId: string,
+    output: T,
+    loaded: AiLoaded,
+  ): Promise<AiGrounded>;
 }
 export type AiFeatures = Partial<Record<AiSuggestPayload['feature'], AiFeature<unknown>>>;
 
@@ -64,12 +85,13 @@ export interface AiRuntime {
   log: (line: AiLogLine) => void;
 }
 
-type Prepared = { task: string; redacted: AiJson; redactor: Redactor };
+type Prepared = { task: string; redacted: AiJson; redactor: Redactor; loaded: AiLoaded };
+type Db = Pick<PoolClient, 'query'>;
 type Claimed = { id: string; attempts: number };
 /** What the log line learns on the way; the rest is fixed by the payload. */
 type Progress = Pick<
   AiLogLine,
-  'suggestionId' | 'attempt' | 'inputTokens' | 'outputTokens' | 'costMicroUsd'
+  'suggestionId' | 'attempt' | 'inputTokens' | 'outputTokens' | 'costMicroUsd' | 'evidenceDropped'
 >;
 
 const NO_USAGE: AiUsage = { inputTokens: 0, outputTokens: 0 };
@@ -113,7 +135,8 @@ async function prepare(
     const loaded = await feature.load(tx, tenantId, payload.subjectId);
     if (loaded === 'stale') return 'stale';
     const redactor = createRedactor(await redactionTerms(tx, tenantId));
-    const prepared = { task: loaded.task, redacted: redactor.redact(loaded.input), redactor };
+    const redacted = redactor.redact(loaded.input);
+    const prepared = { task: loaded.task, redacted, redactor, loaded };
     return (await capReached(tx, tenantId, prepared, rt)) ? 'cap_reached' : prepared;
   });
 }
@@ -122,7 +145,7 @@ function settlement(
   status: Settlement['status'],
   outcome: Settlement['outcome'],
   rt: AiRuntime,
-  extra: { output?: AiJson; usage?: AiUsage } = {},
+  extra: { output?: AiJson; usage?: AiUsage; evidenceTicketIds?: string[] } = {},
 ): Settlement {
   const usage = extra.usage ?? NO_USAGE;
   return {
@@ -131,6 +154,7 @@ function settlement(
     output: extra.output ?? null,
     usage,
     costMicroUsd: costMicroUsd(usage, rt.config),
+    evidenceTicketIds: extra.evidenceTicketIds ?? [],
     now: rt.now(),
   };
 }
@@ -169,21 +193,30 @@ async function claim(
   });
 }
 
+type SettledCall = { output: AiJson; usage: AiUsage; ground?: (tx: Db) => Promise<AiGrounded> };
+
 /** Transaction 3: store the answer, or the failure and, when the table says so, the next try. */
 async function settleCall(
   payload: AiSuggestPayload,
   claimed: Claimed,
-  result: { output: AiJson; usage: AiUsage } | AiProviderError,
+  result: SettledCall | AiProviderError,
   rt: AiRuntime,
 ): Promise<AiOutcome> {
   const { tenantId } = payload;
   return withTenant(rt.pool, tenantId, async (tx) => {
     if (!(result instanceof AiProviderError)) {
+      const grounded = result.ground
+        ? await result.ground(tx)
+        : { output: result.output, evidenceTicketIds: [] };
       await settleSuggestion(
         tx,
         tenantId,
         claimed.id,
-        settlement('ready', 'ok', rt, { output: result.output, usage: result.usage }),
+        settlement('ready', 'ok', rt, {
+          output: grounded.output,
+          usage: result.usage,
+          evidenceTicketIds: grounded.evidenceTicketIds,
+        }),
       );
       return 'ok';
     }
@@ -227,10 +260,25 @@ async function call(
     outputTokens: usage.outputTokens,
     costMicroUsd: costMicroUsd(usage, ctx.rt.config),
   });
-  const settled =
+  const settled: SettledCall | AiProviderError =
     result instanceof AiProviderError
       ? result
-      : { output: result.output as AiJson, usage: result.usage };
+      : {
+          output: result.output as AiJson,
+          usage: result.usage,
+          ground: feature.ground
+            ? async (tx) => {
+                const g = await feature.ground!(
+                  tx,
+                  payload.tenantId,
+                  result.output,
+                  prepared.loaded,
+                );
+                ctx.progress.evidenceDropped = g.dropped;
+                return g;
+              }
+            : undefined,
+        };
   return settleCall(payload, ctx.claimed, settled, ctx.rt);
 }
 
@@ -265,6 +313,7 @@ export async function runSuggest(raw: unknown, rt: AiRuntime): Promise<AiOutcome
     inputTokens: 0,
     outputTokens: 0,
     costMicroUsd: 0,
+    evidenceDropped: 0,
   };
   const outcome = await execute(payload, rt, progress);
   rt.log({
@@ -276,7 +325,6 @@ export async function runSuggest(raw: unknown, rt: AiRuntime): Promise<AiOutcome
     modelRef: rt.provider?.modelRef ?? 'none',
     ...progress,
     outcome,
-    evidenceDropped: 0,
     durationMs: Date.now() - started,
   });
   return outcome;

@@ -71,6 +71,7 @@ export interface Settlement {
   output: AiJson | null;
   usage: AiUsage;
   costMicroUsd: number;
+  evidenceTicketIds: string[];
   now: Date;
 }
 
@@ -85,7 +86,8 @@ export async function settleSuggestion(
     `UPDATE ai_suggestion
      SET status = $3, outcome = $4, output = $5::jsonb,
          input_tokens = input_tokens + $6, output_tokens = output_tokens + $7,
-         cost_micro_usd = cost_micro_usd + $8, updated_at = $9
+         cost_micro_usd = cost_micro_usd + $8, updated_at = $9,
+         evidence_ticket_ids = $10::uuid[]
      WHERE tenant_id = $1 AND id = $2`,
     [
       tenantId,
@@ -97,6 +99,7 @@ export async function settleSuggestion(
       s.usage.outputTokens,
       s.costMicroUsd,
       s.now,
+      s.evidenceTicketIds,
     ],
   );
 }
