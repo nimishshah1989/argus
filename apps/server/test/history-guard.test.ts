@@ -8,18 +8,16 @@ function offenders(pattern: RegExp, skip: string[] = []): string[] {
   const hits: string[] = [];
   for (const rel of readdirSync(SRC, { recursive: true, encoding: 'utf8' })) {
     if (!rel.endsWith('.ts') || skip.includes(rel)) continue;
-    readFileSync(join(SRC, rel), 'utf8')
-      .split('\n')
-      .forEach((line, i) => {
-        if (pattern.test(line)) hits.push(`${rel}:${i + 1}`);
-      });
+    const text = readFileSync(join(SRC, rel), 'utf8');
+    for (const m of text.matchAll(new RegExp(pattern.source, 'gi')))
+      hits.push(`${rel}:${text.slice(0, m.index).split('\n').length}`);
   }
   return hits;
 }
 
 describe('history is never destroyed by server SQL', () => {
   it('no server SQL deletes a work segment, list entry, login, person or ticket event', () => {
-    // A statement may break across lines, so match on "delete from <table>" per line.
+    // Matched over the whole file text, so a statement broken across lines is still caught.
     expect(
       offenders(/delete\s+from\s+(work_segment|list_item|login|person|ticket_event)\b/i),
     ).toEqual([]);

@@ -309,7 +309,7 @@ reproduction of the four faults ARCHITECTURE §9 items 21 and 22 name.
 
 New `describe('history is kept')` in the existing file (one container, existing `post`/`get`/`login` helpers,
 `ASHA`/`BINA`/admin tokens, wait reason `spare`). Seed additions: machines `VC-17` `MACHINE_SEGMENTS`,
-`VC-18` `MACHINE_REVOKED`, `VC-19` `MACHINE_WAITING`, `VC-20` `MACHINE_GUARD`, and list item `('wait_reason','vendor','Vendor', true)`.
+`VC-18` `MACHINE_REVOKED`, `VC-19` `MACHINE_WAITING`, `VC-20` `MACHINE_GUARD`.
 
 1. **`keeps every work_segment id through pause and resume`**
    - **Given** a ticket raised on `VC-17` and started by Asha, whose single `work_segment` row id and

@@ -623,10 +623,17 @@ describe('history is kept', () => {
     await command(id, binaToken, 'join', { personId: BINA, role: 'support' });
     const before = await segmentRows(id);
     const ids = before.map((r) => r.id);
-    await command(id, binaToken, 'leave', { personId: BINA, reason: 'All set' });
-    await command(id, ashaToken, 'transfer', { personId: ASHA, note: 'Next shift' });
-    await command(id, ashaToken, 'start', { personId: ASHA });
-    await command(id, ashaToken, 'close', { personId: ASHA, kind: 'report' });
+    let count = before.length;
+    const step = async (token: string, action: string, body: object) => {
+      await command(id, token, action, body);
+      const now = (await segmentRows(id)).length;
+      expect(now, action).toBeGreaterThanOrEqual(count);
+      count = now;
+    };
+    await step(binaToken, 'leave', { personId: BINA, reason: 'All set' });
+    await step(ashaToken, 'transfer', { personId: ASHA, note: 'Next shift' });
+    await step(ashaToken, 'start', { personId: ASHA });
+    await step(ashaToken, 'close', { personId: ASHA, kind: 'report' });
 
     const rows = await segmentRows(id);
     expect(rows.length).toBeGreaterThanOrEqual(before.length);
