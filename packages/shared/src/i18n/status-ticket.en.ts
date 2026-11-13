@@ -1,0 +1,15 @@
+export const statusTicketEn = {
+  'status.open': 'Open',
+  'status.working': 'In progress',
+  'status.waiting': 'Waiting',
+  'status.closed': 'Closed',
+  'status.cancelled': 'Cancelled',
+  'status.ticket.stopped': 'Stopped',
+  'status.ticket.inProgress': 'In progress',
+  'status.ticket.support': 'Support',
+  'status.ticket.waiting': 'Waiting',
+  'status.ticket.transferred': 'Transferred',
+  'status.ticket.running': 'Running',
+  'status.ticket.closed': 'Closed',
+  'status.ticket.cancelled': 'Cancelled',
+};

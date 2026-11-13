@@ -8,7 +8,7 @@ function tsFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : tsFiles(path);
-    return entry.name.endsWith('.ts') ? [path] : [];
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
   });
 }
 
@@ -27,6 +27,22 @@ describe('workspace packages', () => {
       ),
     );
     const dependencies = json('apps/server/package.json').dependencies as Record<string, string>;
+    for (const name of used) expect(dependencies[name as string], name).toBe('workspace:*');
+  });
+
+  it('declares every @uptimo import of the web', () => {
+    const used = new Set(
+      ['apps/web/src', 'apps/web/e2e'].flatMap((dir) =>
+        tsFiles(dir).flatMap((file) =>
+          [...readFileSync(file, 'utf8').matchAll(/from '(@uptimo\/[a-z]+)/g)].map((m) => m[1]),
+        ),
+      ),
+    );
+    const dependencies = json('apps/web/package.json').dependencies as Record<string, string>;
+    expect(used.size).toBeGreaterThan(0);
+    for (const name of ['@uptimo/domain', '@uptimo/shared']) {
+      expect(dependencies[name], name).toBe('workspace:*');
+    }
     for (const name of used) expect(dependencies[name as string], name).toBe('workspace:*');
   });
 

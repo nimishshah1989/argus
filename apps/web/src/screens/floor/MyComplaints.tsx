@@ -5,17 +5,18 @@ import {
   getConfig,
   getMe,
   listTickets,
-  type CommandAction,
   type Config,
   type Machine,
   type Ticket,
 } from '../../api.js';
-import { canCancelOwn, useTicketCommand } from '../../components/actions.js';
+import { actorFrom, offers, type ActionSpec } from '../../components/actionSpecs.js';
+import { useTicketCommand } from '../../components/useTicketCommand.js';
 import { ActionForm } from '../../components/ActionForm.js';
 import { errorMessage, machineLabel } from '../../components/format.js';
 import { TicketCard } from '../../components/TicketCard.js';
 
-const CANCEL_ACTION: CommandAction = 'cancel';
+const CANCEL_ACTION = 'cancel';
+const CANCEL_SPEC: ActionSpec = { action: CANCEL_ACTION, label: 'action.cancel', primary: false };
 
 interface CancelProps {
   ticket: Ticket;
@@ -52,6 +53,7 @@ export function MyComplaints({ machines }: { machines: Machine[] }) {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const personId = me.data?.user.actingPersonId;
+  const actor = me.data ? actorFrom(me.data.user) : null;
   const complaints = useQuery({
     queryKey: ['tickets', 'raised', personId],
     queryFn: () => listTickets({ raisedBy: personId, limit: 50 }),
@@ -80,11 +82,7 @@ export function MyComplaints({ machines }: { machines: Machine[] }) {
               ticket={ticket}
               now={now}
               machineCode={machineLabel(ticket, machines)}
-              quick={
-                canCancelOwn(ticket, personId)
-                  ? { action: CANCEL_ACTION, label: t('action.cancel') }
-                  : null
-              }
+              quick={actor !== null && offers(ticket, actor, CANCEL_ACTION) ? CANCEL_SPEC : null}
               pending={false}
               onQuick={() => setCancelTicket(ticket)}
             />

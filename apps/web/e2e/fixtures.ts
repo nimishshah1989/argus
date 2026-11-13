@@ -193,11 +193,14 @@ export interface SeedStatement {
 }
 
 /** The seeded cosmos: one tenant, one segment, machines, people, logins, lists, BD refs. */
-export function seedStatements(passwordHash: string): SeedStatement[] {
+export function seedStatements(
+  passwordHash: string,
+  language: 'en' | 'gu' = 'en',
+): SeedStatement[] {
   return [
     {
-      text: 'INSERT INTO tenant (id, slug, name) VALUES ($1, $2, $3)',
-      values: [TENANT.id, TENANT.slug, TENANT.name],
+      text: 'INSERT INTO tenant (id, slug, name, language) VALUES ($1, $2, $3, $4)',
+      values: [TENANT.id, TENANT.slug, TENANT.name, language],
     },
     {
       text: 'INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, $3, $4, 0)',
@@ -309,7 +312,7 @@ export async function apiLogin(username: string): Promise<string> {
 /** Raises a stopped ticket through the real API, so the desk spec does not depend on the floor form. */
 export async function raiseTicketViaApi(
   token: string,
-  machineId: string,
+  machineId: string | null,
   problem: string,
 ): Promise<RaisedTicket> {
   const body = await apiJson<{ ticket: RaisedTicket }>('/api/v1/tickets', {
@@ -319,7 +322,11 @@ export async function raiseTicketViaApi(
       authorization: `Bearer ${token}`,
       'idempotency-key': randomUUID(),
     },
-    body: JSON.stringify({ machineId, problem }),
+    body: JSON.stringify(
+      machineId
+        ? { machineId, problem }
+        : { kind: 'general', location: 'Workshop', workType: 'Tag test', problem },
+    ),
   });
   return body.ticket;
 }

@@ -52,21 +52,22 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 
 ## Tools and infrastructure (not shipped as code)
 
-| Tool                                    | Use                    | Licence            |
-| --------------------------------------- | ---------------------- | ------------------ |
-| TypeScript, ESLint, Prettier, tsx, yaml | build/dev              | MIT / ISC          |
-| eslint-plugin-i18next                   | lint                   | MIT                |
-| Terraform                               | infrastructure as code | MPL-2.0            |
-| Caddy                                   | TLS and static files   | Apache-2.0         |
-| Docker / Docker Compose                 | packaging              | Apache-2.0         |
-| PostgreSQL                              | database               | PostgreSQL License |
-| LocalStack (community) or s3rver        | local S3               | Apache-2.0 / MIT   |
-| Ubuntu 24.04 LTS or Amazon Linux 2023   | server OS              | free               |
-| Ponytail skill (adapted)                | coding discipline      | MIT                |
+| Tool                                                                                                                                                                        | Use                       | Licence            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ |
+| TypeScript, ESLint, Prettier, tsx, yaml                                                                                                                                     | build/dev                 | MIT / ISC          |
+| eslint-plugin-i18next                                                                                                                                                       | lint                      | MIT                |
+| Terraform                                                                                                                                                                   | infrastructure as code    | MPL-2.0            |
+| Caddy                                                                                                                                                                       | TLS and static files      | Apache-2.0         |
+| Docker / Docker Compose                                                                                                                                                     | packaging                 | Apache-2.0         |
+| PostgreSQL                                                                                                                                                                  | database                  | PostgreSQL License |
+| LocalStack (community) or s3rver                                                                                                                                            | local S3                  | Apache-2.0 / MIT   |
+| Ubuntu 24.04 LTS or Amazon Linux 2023                                                                                                                                       | server OS                 | free               |
+| Ponytail skill (adapted)                                                                                                                                                    | coding discipline         | MIT                |
+| Anthropic `claude-for-manufacturing` plugin 1.0.0 (text adapted into our prompt files and tests; not installed; each derived file names the source and says it was changed) | AI prompts and test rules | Apache-2.0         |
 
 ## Outside services (not code)
 
-AWS (EC2, RDS, S3, SES, Secrets Manager, CloudWatch, Route 53), Meta WhatsApp Cloud API, Sarvam speech-to-text, browser push services. Each is behind an adapter and has a data-protection note in ADR 0002.
+AWS (EC2, RDS, S3, SES, Secrets Manager, CloudWatch, Route 53), Meta WhatsApp Cloud API, Sarvam speech-to-text, browser push services, Anthropic Claude API (M6). Each is behind an adapter and has a data-protection note in ADR 0002; the note for Claude is in ADR 0007. The Claude adapter uses Node's `fetch`, so no SDK is added.
 
 ## Not used, with reason
 
