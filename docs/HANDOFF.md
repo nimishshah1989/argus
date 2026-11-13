@@ -41,11 +41,11 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- facts: written by the session-end hook -->
 
-Last session ended 2026-11-13 10:19 UTC on branch `claude/t05-actions-words-domain`.
+Last session ended 2026-11-13 10:21 UTC on branch `claude/kind-curie-ayp7eq`.
 
+- f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
 - 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
 - 4a10427 03a: Module boundaries — contract (moves, workspace wiring, enforced check) (#153)
-- ef75dbe 13b: staging server zone is a setting (server_az_suffix) (#152)
   Uncommitted files: 0
 
 <!-- end facts -->

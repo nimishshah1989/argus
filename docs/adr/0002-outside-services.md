@@ -1,7 +1,7 @@
 # 0002 — Hosting and outside services
 
 Date: 10 November 2026
-Status: accepted
+Status: accepted; amended 13 November 2026 (Anthropic's Claude added by ADR 0007)
 
 ## Context
 
@@ -16,7 +16,7 @@ The pilot is one plant, about 15 users, 192 machines and 250 tickets a month. Da
 - S3 for files and backups with versioning and lifecycle; SES for transactional email.
 - Secrets Manager for production secrets (SSM Parameter Store for staging); CloudWatch for logs and alarms; Route 53 for DNS and health checks; GitHub Actions + GHCR for CI and images.
 - No NAT Gateway, ALB, ECS/EKS, CloudFront, ElastiCache or Lambda in the pilot.
-- Outside services only where there is no good local substitute: Meta WhatsApp Cloud API (M3), Sarvam speech-to-text (M3), browser push services (M1). An error tracker is optional; CloudWatch logs are the pilot default. Any LLM provider for M6 needs its own decision record.
+- Outside services only where there is no good local substitute: Meta WhatsApp Cloud API (M3), Sarvam speech-to-text (M3), browser push services (M1). An error tracker is optional; CloudWatch logs are the pilot default. Any LLM provider for M6 needs its own decision record. **Amended 13 November:** that record is ADR 0007. Anthropic's Claude API (M6) joins this list: text only, names and phone numbers removed first, each plant's written consent first, a monthly cap per plant.
 - Open-source dependencies only under MIT, Apache-2.0, BSD, ISC, MPL-2.0 or OFL; no AGPL/GPL code; `THIRD_PARTY.md` is checked in CI.
 
 ## Why
@@ -32,7 +32,7 @@ The pilot is one plant, about 15 users, 192 machines and 250 tickets a month. Da
 - Single-AZ RDS for the pilot; Multi-AZ is a later cost.
 - We own more operations than a managed platform would: patching, backups, monitoring. The runbooks are part of M0.
 - The cost is roughly $60–95/month for both environments, before WhatsApp and speech, which is below the earlier $110–150 estimate.
-- Data stays in India for the backend. WhatsApp, Sarvam and browser push necessarily leave the region; each is documented and capped. An error tracker that stores data outside India needs PII scrubbing and a note.
+- Data stays in India for the backend. WhatsApp, Sarvam, browser push and, from M6, Anthropic's Claude necessarily leave the region; each is documented and capped. The data-protection note for Claude is in ADR 0007. An error tracker that stores data outside India needs PII scrubbing and a note.
 
 ## Rejected
 
