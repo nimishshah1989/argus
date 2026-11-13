@@ -195,25 +195,31 @@ describe('import.purge', () => {
     (await db.admin.query('SELECT payload FROM import_row WHERE id = $1', [rowId])).rows[0]
       .payload as Record<string, unknown>;
 
-  it('strips the source content a year after the batch is done, keeps what replay and undo read', async () => {
+  it('strips the source content a year after a batch finished (done, failed or undone), keeps what replay and undo read', async () => {
     const old = await batch(A, 'done', ago(366), 'SECRET-OLD');
     const edge = await batch(A, 'done', ago(365), 'SECRET-EDGE');
     const recent = await batch(A, 'done', ago(364), 'SECRET-RECENT');
-    const failed = await batch(A, 'failed', ago(500), 'SECRET-FAILED');
-    const undone = await batch(A, 'undone', ago(500), 'SECRET-UNDONE');
+    const failedOld = await batch(A, 'failed', ago(500), 'SECRET-FAILED-OLD');
+    const undoneOld = await batch(A, 'undone', ago(500), 'SECRET-UNDONE-OLD');
+    const failedRecent = await batch(A, 'failed', ago(100), 'SECRET-FAILED-RECENT');
+    const undoneRecent = await batch(A, 'undone', ago(100), 'SECRET-UNDONE-RECENT');
+    const running = await batch(A, 'running', null, 'SECRET-RUNNING');
     const other = await batch(B, 'done', ago(900), 'SECRET-OTHER');
 
     const first = await runRetentionJob(db.app, 'import.purge', { now: NOW, tenantId: A });
-    expect(first.affected).toBe(1);
-    const stripped = await payloadOf(old.rowId);
-    expect(JSON.stringify(stripped)).not.toContain('SECRET');
-    expect(stripped).toMatchObject({
-      format: 'argus.import-raw/v1',
-      identitySha256: 'identity-sha',
-      rawSha256: 'raw-sha',
-      raw: { entryType: 'ordinary' },
-    });
-    for (const kept of [edge, recent, failed, undone, other]) {
+    expect(first.affected).toBe(3);
+    // Done, failed and undone batches alike: the keys replay and undo read stay, the source content goes.
+    for (const gone of [old, failedOld, undoneOld]) {
+      const stripped = await payloadOf(gone.rowId);
+      expect(JSON.stringify(stripped)).not.toContain('SECRET');
+      expect(stripped).toMatchObject({
+        format: 'argus.import-raw/v1',
+        identitySha256: 'identity-sha',
+        rawSha256: 'raw-sha',
+        raw: { entryType: 'ordinary' },
+      });
+    }
+    for (const kept of [edge, recent, failedRecent, undoneRecent, running, other]) {
       expect(JSON.stringify(await payloadOf(kept.rowId))).toContain('SECRET');
     }
     // The row itself and its batch stay.

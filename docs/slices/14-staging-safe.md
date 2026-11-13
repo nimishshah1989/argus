@@ -30,13 +30,13 @@ happens on AWS after Nimish applies things. This builder cannot touch AWS and di
   fan out per customer; the app role cannot read `tenant`. Same pattern as `tenants_with_sla_policies()`. No table.
 - **Retention rules (all counted from the row's own date, never from "now minus X" alone):**
 
-  | Job                 | Deletes / clears                                                                                     | Never touches                                                                                              |
-  | ------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-  | `session.purge`     | sessions dead (expired, or revoked) for over 30 days; dead since = earliest of expiry and revocation | a live session; one revoked or expired less than 30 days ago                                               |
-  | `idempotency.purge` | command keys created over 30 days ago                                                                | newer keys (replay protection inside the window)                                                           |
-  | `import.purge`      | source content (`raw`, `canonicalJson`) of a row's payload, 1 year after its batch is `done`         | the row, its ticket link, format, both hashes and entry type (replay and undo read them); batches not done |
-  | `audit.purge` (CLI) | ordinary audit rows older than 3 years                                                               | `person.erase` and `tenant.offboard` rows (pending decision)                                               |
-  | `figures.drift`     | nothing: reports                                                                                     | open tickets (their figures move with the clock)                                                           |
+  | Job                 | Deletes / clears                                                                                                           | Never touches                                                                                                      |
+  | ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+  | `session.purge`     | sessions dead (expired, or revoked) for over 30 days; dead since = earliest of expiry and revocation                       | a live session; one revoked or expired less than 30 days ago                                                       |
+  | `idempotency.purge` | command keys created over 30 days ago                                                                                      | newer keys (replay protection inside the window)                                                                   |
+  | `import.purge`      | source content (`raw`, `canonicalJson`) of a row's payload, 1 year after its batch finished (`done`, `failed` or `undone`) | the row, its ticket link, format, both hashes and entry type (replay and undo read them); batches not yet finished |
+  | `audit.purge` (CLI) | ordinary audit rows older than 3 years                                                                                     | `person.erase` and `tenant.offboard` rows (pending decision)                                                       |
+  | `figures.drift`     | nothing: reports                                                                                                           | open tickets (their figures move with the clock)                                                                   |
 
 - **`figures.drift` compares closed tickets only**, recomputed at the ticket's own close time. An open ticket's cached
   figures were right as of its last change, so comparing it with "now" would flag every working ticket.
