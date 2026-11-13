@@ -48,7 +48,7 @@ raisedLoginId` is `string | null` (the column is nullable; `state.test.ts` seeds
    edited); parsing in production (a strict mismatch would turn into a user-facing 500).
 4. **What the check accepts**: a reply passes when it matches its route's schema, or when its status is ≥ 400
    and it matches `errorBodySchema`. `/health`'s 503 `{status:'down',db,queue}` is part of its own schema.
-   Binary routes (the two PDFs) map to `null`: their bytes are not JSON and are not checked; their JSON errors
+   The one binary route (`GET /api/v1/reports/day.pdf`) maps to `null`: their bytes are not JSON and are not checked; their JSON errors
    are. HEAD requests, non-JSON content types and requests answered by the not-found handler (`request.is404`
    or no `routeOptions.url`) are not checked.
 5. **Reply parts in the kernel (D11).** `kernel/reply-parts.ts` holds two tiny registries keyed by name:
@@ -196,7 +196,7 @@ workType, problemLang, reportedByRole, parentId, waitingSpare, raisedLoginId: st
 segmentStartedAt, handoverSince, waitSince, machineRunningAt, machineStoppedAt, closedAt, kindUpgradedAt,
 expectedBackAt: iso?; cancelledAt: iso opt; selfStarted, handedOver, urgent: bool; transfers, lastEventSeq: num;
 taskDownMin: num?; closeKind: closeKindSchema?; figures: figuresSchema?; severity: severitySchema?;
-criticalitySnapshot: criticalitySchema?; raisedChannel: str; machineSnapshot: { code, category, cell: str? opt;
+criticalitySnapshot: criticalitySchema?; raisedChannel: str; machineSnapshot: { code, category, cell, id: str? opt;
 criticality: criticalitySchema? opt }?`.
 - `ticketEventSchema` (`TicketEvent`): `seq: num; type: str; at: iso; text, reason, actingPersonId, loginId: str?;
 isVendor: bool`. `ticketPersonSchema` (`TicketPerson`): `personId, role: str; leftAt: iso?; leftReason: str?`.
@@ -209,6 +209,7 @@ z.enum(['done','supported']) })`.
 `replies.ts`:
 
 ```ts
+export const pdfFileReplySchema = z.object({ fileId: z.string(), url: z.string() }).strict();
 export const okReplySchema = z.object({ ok: z.literal(true) }).strict();
 export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
@@ -262,7 +263,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>>;
 | `GET /api/v1/push/key` · `POST /api/v1/push/test`                                                                                                                                                                                                                                                                                     | `pushKeyReplySchema` · `pushSentReplySchema`                                                 |
 | `POST /api/v1/tickets` and `POST /api/v1/tickets/:id/<action>` for each of `COMMAND_ACTIONS` (15)                                                                                                                                                                                                                                     | `commandReplySchema`                                                                         |
 | `GET /api/v1/tickets` · `GET /api/v1/state` · `GET /api/v1/tickets/:id`                                                                                                                                                                                                                                                               | `ticketPageSchema` · `stateReplySchema` · `ticketDetailSchema`                               |
-| `GET /api/v1/tickets/:id/pdf` · `GET /api/v1/reports/day.pdf`                                                                                                                                                                                                                                                                         | `null`                                                                                       |
+| `GET /api/v1/tickets/:id/pdf` · `GET /api/v1/reports/day.pdf`                                                                                                                                                                                                                                                                         | `pdfFileReplySchema` (`{ fileId: str, url: str }`, JSON) · `null` (binary)                   |
 
 ### 4.2 Kernel reply parts and the SLA parts
 
@@ -477,10 +478,10 @@ passwordHash: string): Promise<void>`, which inserts with the superuser pool (id
   reported 04:00 (ack breached at `GOLDEN_NOW`); `25` WR-9005 general **open** (Canteen, Civil), S4,
   `raised_channel` 'backfill', `raised_login_id` NULL, `sla_policy_id` NULL, reported 03:00 (`sla` is `null`).
   **Rule for every column not named:** it takes its default or NULL; `problem` = `Golden <ref>`; every `ticket_event` has
-`login_id` = login `03`, `acting_person_id` = person `02`, `text` = `Golden <ref>`, payload `{}` unless named;
-`reported_by_person_id` = person `02`; `self_started` false; `handed_over` false; `criticality_snapshot` = the machine's
-criticality (21 `A`, 22 `B`, 24 `C`, others NULL); `severity` as named; figure columns NULL except `response_min`.
-Ticket 23 is started by Ravi (lead = person `02`). All times 2026-11-12 UTC unless dated. Machine snapshots on 21, 22, 24 are `{code, category, cell, criticality}`.
+  `login_id` = login `03`, `acting_person_id` = person `02`, `text` = `Golden <ref>`, payload `{}` unless named;
+  `reported_by_person_id` = person `02`; `self_started` false; `handed_over` false; `criticality_snapshot` = the machine's
+  criticality (21 `A`, 22 `B`, 24 `C`, others NULL); `severity` as named; figure columns NULL except `response_min`.
+  Ticket 23 is started by Ravi (lead = person `02`). All times 2026-11-12 UTC unless dated. Machine snapshots on 21, 22, 24 are `{code, category, cell, criticality}`.
 
 The golden user sees no `no_report` ticket, so `needReport` is `[]` (its rows are filtered by Postgres `now()`,
 which cannot be frozen; the same `withTicketParts` path is checked on every other `needReport` by the contract).
@@ -577,8 +578,7 @@ P1, P2, B1; (4) domain re-exports, web types and fixtures, X1, X2.
 - **Every server test now checks its replies.** A field the plan types wrongly fails tests loudly (R8 rule). Known
   edges named in decision 2: nullable `raisedLoginId`; `features` assumed `Record<string, boolean>` (an admin could
   store anything under `PUT /settings/features`; production is unaffected since the check is test-only);
-  `machineSnapshot` assumed to hold only `code, category, cell, criticality` (imported snapshots are copied from the
-  import file).
+  `machineSnapshot` holds `code, category, cell, criticality` and `id` (imported tickets carry `id`; ruling: stays strict, all five optional).
 - **Behaviour:** `/state`, `/tickets`, `/tickets/:id`, raise, all commands and `/config` keep their bytes (§4.2);
   stored idempotent replies replay unchanged. Existing tests that read `sla`, `slaPolicyId` and `slaPolicies`
   (`sla-timers`, `sla-policies`, `tickets-commands`, `tickets-list`, `settings`) must stay green.

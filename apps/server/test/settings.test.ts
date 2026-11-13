@@ -128,6 +128,15 @@ describe('settings and config', () => {
     expect(cfg.json().features.general).toBe(false);
   });
 
+  it('reads settings and a list in the shared shape', async () => {
+    const token = await loginAs('admin');
+    const settings = await req('GET', '/api/v1/settings', token);
+    expect(settings.statusCode).toBe(200);
+    const list = await req('GET', '/api/v1/lists/wait_reason', token);
+    expect(list.statusCode).toBe(200);
+    expect(list.json().map((row: { code: string }) => row.code)).toEqual(['spare', 'vendor']);
+  });
+
   it('fills a missing translation and removes it from the list', async () => {
     const token = await loginAs('admin');
     const put = await req('PUT', `/api/v1/translations/${ITEM_SPARE}`, token, { labelGu: 'સ્પેર' });
