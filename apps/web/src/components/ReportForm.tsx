@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ActionCrewMember, ActorContext } from '@uptimo/domain';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { ActionBar } from './ActionBar.js';
 import {
@@ -109,7 +110,8 @@ interface PanelProps {
   ticket: Ticket;
   config: Config;
   personId: string;
-  crew: string[];
+  actor: ActorContext;
+  crew: ActionCrewMember[];
   canEdit: boolean;
   command: (action: CommandAction, body: CommandBody) => Promise<boolean>;
   pending: boolean;
@@ -124,6 +126,7 @@ export function ReportPanel({
   ticket,
   config,
   personId,
+  actor,
   crew,
   canEdit,
   command,
@@ -173,6 +176,7 @@ export function ReportPanel({
           ticket={ticket}
           config={config}
           personId={personId}
+          actor={actor}
           crew={crew}
           error={error}
           pending={pending}

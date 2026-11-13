@@ -50,7 +50,7 @@ describe('domain registries', () => {
 
   it('D2: the public API is unchanged', async () => {
     expect(Object.keys(await import('../src/index.js')).sort()).toEqual(
-      `SlaInputError, TransitionError, addBusinessMinutes, apply, assertWorking, businessMinutesBetween, canAnalytics, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsLists, canSettingsPeople, canSettingsSla, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, defaultSeverityMatrix, figures, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, pause, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, slaBreached, start, transfer, transition, update, upgradeKind`.split(
+      `ACTION_ORDER, SlaInputError, TransitionError, addBusinessMinutes, apply, assertWorking, availableActions, businessMinutesBetween, canAnalytics, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsLists, canSettingsPeople, canSettingsSla, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, defaultSeverityMatrix, figures, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, pause, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, slaBreached, start, transfer, transition, update, upgradeKind`.split(
         ', ',
       ),
     );

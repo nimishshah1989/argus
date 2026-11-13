@@ -39,6 +39,7 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     problem: 'Spindle alarm',
     reportedAt: '2026-11-10T09:00:00.000Z',
     reportedByPersonId: 'person-1',
+    raisedLoginId: 'login-1',
     location: null,
     workType: null,
     urgent: false,
