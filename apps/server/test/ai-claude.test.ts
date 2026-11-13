@@ -38,10 +38,10 @@ const provider = (fetchImpl: typeof fetch, timeoutMs = 30000) =>
   });
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers });
-const toolReply = (input: unknown, extra: Record<string, unknown> = {}) =>
+const textReply = (text: string, extra: Record<string, unknown> = {}) =>
   json({
-    stop_reason: 'tool_use',
-    content: [{ type: 'tool_use', id: 'toolu_1', name: 'record_answer', input }],
+    stop_reason: 'end_turn',
+    content: [{ type: 'text', text }],
     usage: { input_tokens: 50, output_tokens: 10 },
     ...extra,
   });
@@ -58,11 +58,14 @@ const caught = async (p: ReturnType<typeof provider>): Promise<AiProviderError> 
 const failWith = (res: () => Response) => caught(provider(recorder(res).fetchImpl));
 
 describe('claude provider', () => {
-  it('sends one request with the key, version, model, task, input and one forced output tool', async () => {
+  it('sends one request with the key, version, model, task, input and a JSON-schema output format', async () => {
     const { calls, fetchImpl } = recorder(() =>
       json({
-        stop_reason: 'tool_use',
-        content: [{ type: 'tool_use', id: 't', name: 'record_answer', input: { answer: 'x' } }],
+        stop_reason: 'end_turn',
+        content: [
+          { type: 'thinking', thinking: '', signature: 's' },
+          { type: 'text', text: JSON.stringify({ answer: 'x' }) },
+        ],
         usage: { input_tokens: 120, output_tokens: 30 },
       }),
     );
@@ -84,15 +87,10 @@ describe('claude provider', () => {
       max_tokens: 1024,
       system: 'T',
       messages: [{ role: 'user', content: JSON.stringify({ problem: 'p' }) }],
-      tool_choice: { type: 'tool', name: 'record_answer' },
+      output_config: { format: { type: 'json_schema', schema: outputSchema.jsonSchema } },
     });
-    expect(body.tools).toEqual([
-      {
-        name: 'record_answer',
-        description: 'Record the answer.',
-        input_schema: outputSchema.jsonSchema,
-      },
-    ]);
+    for (const absent of ['tools', 'tool_choice', 'thinking'])
+      expect(body).not.toHaveProperty(absent);
     expect(JSON.stringify(body)).not.toContain('"image"');
     expect(result).toEqual({
       output: { answer: 'x' },
@@ -136,23 +134,28 @@ describe('claude provider', () => {
   });
 
   const invalid: (() => Response)[] = [
-    () => toolReply({ answer: 'x' }, { stop_reason: 'max_tokens' }),
-    () => toolReply({ answer: 'x' }, { stop_reason: 'refusal' }),
+    () => textReply(JSON.stringify({ answer: 'x' }), { stop_reason: 'max_tokens' }),
     () =>
       json({
         stop_reason: 'end_turn',
-        content: [{ type: 'text', text: BODY_TEXT }],
+        content: [{ type: 'thinking', thinking: '', signature: 's' }],
         usage: { input_tokens: 50, output_tokens: 10 },
       }),
-    () => toolReply({ answer: 3 }),
+    () => textReply(BODY_TEXT),
+    () => textReply(JSON.stringify({ answer: 3 })),
   ];
+  const refused = () => textReply(JSON.stringify({ answer: 'x' }), { stop_reason: 'refusal' });
 
-  it('maps a cut-short, refused or invalid reply to schema_invalid and keeps its usage', async () => {
+  it('maps a cut-short, empty, malformed or invalid reply to schema_invalid and keeps its usage', async () => {
     for (const make of invalid) {
       const error = await failWith(make);
       expect(error.code).toBe('schema_invalid');
       expect(error.usage).toEqual({ inputTokens: 50, outputTokens: 10 });
     }
+  });
+
+  it('maps a refusal to provider_rejected', async () => {
+    expect((await failWith(refused)).code).toBe('provider_rejected');
   });
 
   it('maps a 200 reply that is not JSON to provider_error', async () => {
@@ -167,6 +170,7 @@ describe('claude provider', () => {
       () => json({ error: BODY_TEXT }, 400),
       () => new Response(BODY_TEXT),
       ...invalid,
+      refused,
     ];
     const network = (() =>
       Promise.reject(new TypeError(`fetch failed ${KEY}`))) as unknown as typeof fetch;

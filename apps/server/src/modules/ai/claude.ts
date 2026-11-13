@@ -1,3 +1,4 @@
+import type { z } from 'zod';
 import {
   AiProviderError,
   type AiCompleteRequest,
@@ -28,6 +29,24 @@ interface Reply {
 const count = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
+/** Joins the text blocks (thinking blocks are ignored), parses them as JSON and validates. */
+function answerFrom<T>(
+  content: unknown,
+  schema: z.ZodType<T>,
+): z.SafeParseReturnType<unknown, T> | null {
+  const text = Array.isArray(content)
+    ? (content as { type?: unknown; text?: unknown }[])
+        .filter((b) => b?.type === 'text' && typeof b.text === 'string')
+        .map((b) => b.text as string)
+        .join('')
+    : '';
+  try {
+    return schema.safeParse(JSON.parse(text));
+  } catch {
+    return null;
+  }
+}
+
 function retryAfter(res: Response): number | null {
   const raw = res.headers.get('retry-after');
   return raw !== null && /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : null;
@@ -42,10 +61,7 @@ function statusError(res: Response): AiProviderError {
   return new AiProviderError('provider_rejected', undefined, null, detail);
 }
 
-/**
- * One request, one forced tool call whose input is the answer. Forced tool use is rejected by
- * some models (for example Claude Opus 5.5 and Sonnet 5.5): AI_MODEL must name one that accepts it.
- */
+/** One request; the answer is JSON text in the reply, constrained by a JSON Schema output format. */
 export function createClaudeProvider(options: ClaudeOptions): AiProvider {
   const doFetch = options.fetchImpl ?? globalThis.fetch;
   return {
@@ -57,10 +73,7 @@ export function createClaudeProvider(options: ClaudeOptions): AiProvider {
         max_tokens: options.maxOutputTokens,
         system: request.task,
         messages: [{ role: 'user', content: JSON.stringify(request.input) }],
-        tools: [
-          { name: schema.name, description: schema.description, input_schema: schema.jsonSchema },
-        ],
-        tool_choice: { type: 'tool', name: schema.name },
+        output_config: { format: { type: 'json_schema', schema: schema.jsonSchema } },
       };
       let res: Response;
       try {
@@ -88,15 +101,12 @@ export function createClaudeProvider(options: ClaudeOptions): AiProvider {
         inputTokens: count(reply.usage?.input_tokens),
         outputTokens: count(reply.usage?.output_tokens),
       };
-      const block = Array.isArray(reply.content)
-        ? (reply.content as { type?: unknown; name?: unknown; input?: unknown }[]).find(
-            (b) => b?.type === 'tool_use' && b.name === schema.name,
-          )
-        : undefined;
-      const cutShort = reply.stop_reason === 'max_tokens' || reply.stop_reason === 'refusal';
-      const parsed = block && !cutShort ? schema.zod.safeParse(block.input) : null;
-      if (!parsed?.success) throw new AiProviderError('schema_invalid', usage);
-      return { output: parsed.data, usage, modelRef: options.model };
+      if (reply.stop_reason === 'refusal')
+        throw new AiProviderError('provider_rejected', usage, null, 'refusal');
+      const answer = answerFrom(reply.content, schema.zod);
+      if (!answer?.success || reply.stop_reason === 'max_tokens')
+        throw new AiProviderError('schema_invalid', usage);
+      return { output: answer.data, usage, modelRef: options.model };
     },
   };
 }
