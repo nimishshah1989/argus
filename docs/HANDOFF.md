@@ -10,7 +10,7 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 - CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
   Playwright worker (`apps/web/e2e/test.ts`).
-- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR).
+- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR), `pnpm boundaries` (SQL on ops/identity/plant tables only in that module's `repo.ts`; its LEGACY list is emptied by 03).
 
 ## Live on main
 
@@ -23,7 +23,7 @@ in `docs/plan/MILESTONES.md` is the queue.
 ## Next
 
 - Gate: Nimish opens `/gallery` (dev; staging after ticket 13) and picks blue or deep teal before ticket 15.
-- The M0 frontier after 01 and 10: tickets 02, 08, 13 (MILESTONES "What can run at the same time").
+- The M0 frontier after 10: 03 (after 02), 08, 13 (MILESTONES "What can run at the same time").
 
 ## Blocked / external inputs
 
