@@ -59,3 +59,4 @@
   2026-11-13 — Ticket 03b Module boundaries: contract (part of #81): tickets and imports own their tables in the manifest; every cross-module statement on them moved behind published repo functions (sla, severity, history, list, imported, seed; imports/repo.ts). pnpm boundaries: 0 problems with full ownership.
 - 2026-11-13 10:20 UTC session c23c2255 on `claude/orchestrator-ledger`: 15356f6 docs(plan): ledger — 03 done, 05/06 dispatched, 04 held
 - 2026-11-13 10:50 UTC session c23c2255 on `claude/orchestrator-ledger`: d567b72 docs(plan): ledger — rulings on tags export and test deletions
+- 2026-11-13 10:59 UTC session c23c2255 on `claude/orchestrator-ledger`: 0157a60 docs(plan): ledger — 06 PR up, awaiting test deletions
