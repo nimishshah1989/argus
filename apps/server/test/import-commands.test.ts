@@ -19,14 +19,9 @@ let technicianToken = '';
 let adminToken = '';
 let adminPerson = '';
 
-function minutes(start: string, end: Date): number {
-  return Math.max(0, Math.floor((end.getTime() - new Date(start).getTime()) / 60_000));
-}
-
 function liveTicket(
   kind: 'open' | 'working' | 'waiting' | 'running' | 'cancelled' | 'noReport',
 ): RawTicket {
-  const now = new Date();
   const base = makeOrdinaryTicket({ legacyId: `live-${kind}`, ref: 'BD-0100' });
   const state = {
     ...base.state,
@@ -39,15 +34,13 @@ function liveTicket(
     closeNote: null,
     cancelledAt: null,
   };
-  const downAccMin = minutes('2026-11-01T10:00:00Z', now);
-  const activeMin = minutes('2026-11-01T10:05:00Z', now);
-  const waitMin = minutes('2026-11-01T10:30:00Z', now);
+  // His arithmetic keeps only finished stretches until the ticket moves on, and repair until it closes.
   const baseFigures = {
     ...base.storedFigures,
-    activeMin,
-    downAccMin,
+    activeMin: 0,
+    downAccMin: 0,
     downtimeMin: null,
-    repairMin: activeMin,
+    repairMin: 0,
   };
   if (kind === 'open') {
     return {
@@ -103,7 +96,7 @@ function liveTicket(
         waitSince: '2026-11-01T10:30:00Z',
         pausedByPerson: 'SYNTH-LEAD',
       },
-      storedFigures: { ...baseFigures, activeMin: 25, repairMin: 25, waitMin, vendorMin: waitMin },
+      storedFigures: { ...baseFigures, activeMin: 25 },
     } as RawTicket;
   }
   if (kind === 'running') {
@@ -141,7 +134,7 @@ function liveTicket(
       segments: [{ ...base.segments[0], endedAt: '2026-11-01T10:30:00Z', endReason: 'cancel' }],
       reports: [],
       state: { ...working, cancelledAt: '2026-11-01T10:30:00Z' },
-      storedFigures: { ...baseFigures, activeMin: 25, downAccMin: 30, repairMin: 25 },
+      storedFigures: { ...baseFigures, activeMin: 25, downAccMin: 30 },
     } as RawTicket;
   }
   return {

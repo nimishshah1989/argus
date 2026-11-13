@@ -196,7 +196,7 @@ export function perPersonFromSegments(
   const result: Record<string, number> = {};
   for (const segment of segments) {
     const end = segment.endedAt ?? now;
-    const minutes = Math.max(0, Math.floor((end.getTime() - segment.startedAt.getTime()) / 60000));
+    const minutes = Math.max(0, Math.round((end.getTime() - segment.startedAt.getTime()) / 60000));
     result[segment.personId] = (result[segment.personId] ?? 0) + minutes;
   }
   return result;

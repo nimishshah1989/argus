@@ -181,19 +181,25 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 
 ## 5. Derived figures: exact definitions
 
-These reproduce Bhavin's figures, so his stored values and ours agree to the minute on import. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last. All in whole minutes at server time. **Rounding:** v3 floors elapsed minutes in most places and rounds in one (`downAt()` in the close screen); until his Worker source confirms which the server used, we floor everywhere and list every one-minute difference in the reconciliation report rather than hide it.
+New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026), so a ticket raised on Uptimo and one raised on his app show the same minutes. His stored numbers on imported tickets are kept as recorded and never recomputed (ticket 09); `figures.drift` skips them. The proof is `apps/server/test/figures-worker-parity.test.ts`: `figures()` is run on every ticket of the pseudonymised export and must equal the port of his arithmetic in `imports/real-oracle.ts`. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last.
+
+**Rounding:** every elapsed time is rounded to the nearest whole minute, never below zero (his `mins()`, `Math.round`). No figure has a one-minute floor.
+
+**Finished stretches only:** hands-on, waiting, handover wait and `down_acc` hold stretches that have ended. A stretch still open (working, paused, transferred, machine down) is shown live from its start time and is added to the figure when it ends or at the close, as `worker.js` does.
+
+**Where we still differ from his app (waiting for Nimish):** a cancelled ticket stops its stretches and a restore reopens them, so the cancelled gap counts in nothing (see Time rules). His app leaves every stretch running through a cancel, so a restored ticket there counts the cancelled hours (BD-0077: 366 minutes of downtime against our 115). The parity test skips the stretch figures of tickets that were ever cancelled for this reason.
 
 | Figure | Definition | Bhavin's field |
 | --- | --- | --- |
 | Response | first `start` minus `reported_at`; null until started; null for a self-started ticket (as in v3); not changed by later transfers | `responseMin` |
-| Hands-on (active) | the **union** of the ticket's work segments (minutes during which at least one person was working), plus the open stretch while `working`; two people overlapping add once | `activeMin` (+ `segStart`) |
-| Repair | hands-on at close; pauses and handover waits are outside every segment by construction | `repairMin` |
+| Hands-on (active) | the sum of the **lead's** finished work segments (a pickup makes the new person the lead); a joined primary's or supporter's minutes are their own (per-person below) and are not added | `activeMin` (+ `segStart`) |
+| Repair | the wall clock from the first start to the close, or to the last `running` when the machine is running again at the close; pauses and waits are inside it; 0 until the ticket closes | `repairMin` |
 | Waiting | sum of `pause` to `resume` (or to close or cancel) stretches; vendor waiting is the subset whose reason has `is_vendor` | `waitMin`, `vendorMin` |
 | Handover wait | sum of `transfer` to `pickup` stretches | `handoverWaitMin` |
-| Downtime so far | `kind=stopped` only: from `reported_at` (or `kind_upgraded_at`) to now, minus the stretches between `running` and the next `stopped`; zero for `support` and `general` | `downAcc + since stopAt` |
-| Downtime at close | downtime so far at the close time; minimum 1 minute for a stopped ticket; nothing accrues after a `running` event that is not followed by `stopped` | `downtimeMin` |
-| Follow-up | from the last `running` event to close, while the ticket stayed open | `followMin` |
-| Per-person minutes | the sum of that person's own segments, by role (lead or primary counted under Done by; support under Supported by); a person's segments are not unioned with others' | `people[].mins`, `segments[]` |
+| Downtime so far (`down_acc`) | `kind=stopped` only: the finished stopped stretches, each from `reported_at` (or `kind_upgraded_at`, or the last `stopped`) to the next `running`; the open stretch is not in it | `downAcc` |
+| Downtime at close | `stopped`: `down_acc` plus the open stretch to the close (nothing when the machine is running at the close); `support`: 0 (his rule of 6 Nov, to be confirmed by Bhavin); `general`: its hands-on minutes. No one-minute floor (two of his stopped tickets hold 0) | `downtimeMin` |
+| Follow-up | from the last `running` event (not cancelled by a later `stopped`) to close | `followMin` |
+| Per-person minutes | the sum of that person's own segments, each rounded, by role (lead or primary counted under Done by; support under Supported by) | `people[].mins`, `segments[]` |
 | Task machine-stopped minutes | entered by the person who marks a task done, 0 to 1440; not added to the parent's downtime | `taskDownMin` |
 | Day report work time | for each person, the part of each of their segments inside the report window; the window is the shift's start to its end (across midnight for shift 2), or the calendar day when no shift is chosen; the **production date** of a night-shift job is the date the shift started | `dayreport.people[].mins` |
 | Overrides | an admin correction may set hands-on and waiting minutes directly; a past-breakdown record sets downtime, response and repair from the form; overrides replace the computed value, are shown with a marker, and are excluded from the drift check | `/api/edit` scalars |
