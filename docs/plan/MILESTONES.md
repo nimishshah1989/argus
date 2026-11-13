@@ -26,16 +26,16 @@ no other ticket adds a migration, and no ticket adds a table outside D17's list.
 
 ## Milestones
 
-| #   | Milestone                 | Goal                                                                         | Gate (Nimish checks)                                                                                 |                Tickets |
-| --- | ------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------: |
-| M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                     14 |
-| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only       | Day-3 and day-7 go/no-go                                                                             |                     14 |
-| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off, lockout       | Sign-off turnaround visible on live tickets                                                          |                      8 |
-| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                          | Ten figures spot-checked against Bhavin's platform                                                   |                     10 |
-| M4b | The loop                  | PM, registers, coded closes, reliability, forecasts, scorecard, ranking      | First monthly scorecard from live data                                                               |                     10 |
-| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                      | Agrees capabilities and thresholds; sees shadow results                                              |                      6 |
-| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                           | An operator raises a ticket by voice                                                                 |                      5 |
-|     | **Total**                 |                                                                              |                                                                                                      | **67** (28 to cutover) |
+| #   | Milestone                 | Goal                                                                         | Gate (Nimish checks)                                                                                 |                                     Tickets |
+| --- | ------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------: |
+| M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                                          14 |
+| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only       | Day-3 and day-7 go/no-go                                                                             |                                          15 |
+| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off, lockout       | Sign-off turnaround visible on live tickets                                                          |                                           8 |
+| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                          | Ten figures spot-checked against Bhavin's platform                                                   |                                          10 |
+| M4b | The loop                  | PM, registers, coded closes, reliability, forecasts, scorecard, ranking      | First monthly scorecard from live data                                                               |                                          10 |
+| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                      | Agrees capabilities and thresholds; sees shadow results                                              |                                           6 |
+| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                           | An operator raises a ticket by voice                                                                 |                                           5 |
+|     | **Total**                 |                                                                              |                                                                                                      | **68** (63 active, 5 parked; 29 to cutover) |
 
 Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. Every ticket of a later milestone waits for every
 ticket of the milestone before it and for that milestone's gate: the first tickets of each milestone (15 and 16
@@ -139,6 +139,12 @@ Delivers: Nimish tries every slice on his phone on Cosmos's real data, and that 
 
 ## M1 — Cutover
 
+> **Layout rule (Nimish, 13 Nov, binding):** the floor and desk keep v3's flows, screen order, button positions
+> and copy, because the shop floor already knows them. Reference: Bhavin's screens rendered from
+> `docs/discovery/real-2026-11-13/bhavin-source/phone_tool` (and `docs/discovery/bhavin-v3`) at 360 px. The
+> design kit changes look (tokens, components, status vocabulary), never placement or flow. Every M1 screen
+> ticket's browser goal includes a side-by-side check against the v3 reference screenshot.
+
 Rule for every M1 ticket that moves a screen onto the kit: the parity rows already `done` keep their tests green.
 Parity rows are cited by id; their acceptance tests in `parity.yaml` are the "as v3" rule list.
 
@@ -209,10 +215,16 @@ Split from draft ticket 16 (six draft tickets): machine moves and the group flag
 1. [Browser] 3–5 operators and 3 technicians run the floor and desk journeys on staging; times and errors are recorded against each journey spec.
 2. [Browser] Each stumble fixed here first becomes a failing journey, then passes; at most five are fixed, the rest are filed as issues.
 
-**28 Cutover** · Blocked by: 14, 15–27 · External: N7
+**28 Cutover** · Blocked by: 14, 15–27, 68 · External: N7
 
 1. [API] Production runs and a deploy outside 05:00–08:00 IST is refused by the pipeline; a restore drill on production is executed and logged.
 2. [API] The cutover-morning import and its undo are rehearsed on staging with zero unexplained mismatches, then run; Bhavin's app goes read-only; the rehearsed revert restores the pre-cutover state on staging.
+
+**68 Gujarati text understood** · Blocked by: 15, 23 · External: India-region translation provider (Amazon Translate in ap-south-1 or Sarvam — verify Gujarati support before choosing; decision record)
+
+1. [API] A problem written in Gujarati script or in transliterated Gujarati is translated to English inside India behind one adapter, using Bhavin's two-stage glossary (script terms → English before translation, English corrections after); the original text is kept beside the English. Proven on the real tickets and the 144 live glossary rules (e.g. every "coolant" variant becomes "coolant").
+2. [Browser] The person sees the English back and confirms or edits it before sending, as in v3; offline, the original is queued and translated on arrival.
+3. [Browser] The admin's spelling tool (Bhavin's): scans the breakdown history for words used twice or more and look-alikes of known words, offers fix entries / add rule / keep; accepted rules apply to new reports and search. No new table (`glossary_term`).
 
 ## M2 — Accountability
 
@@ -420,7 +432,7 @@ Split from draft ticket 39: the schema and adapter must land before any feature 
 2. [Browser] A PM plan draft cites its manual pages and waits for a person (`pm.createDraftPlan`).
 3. [API] Drafts go live per tenant only above T6 (as named in 55); below, they run in shadow.
 
-## M3 — WhatsApp and voice (last)
+## M3 — WhatsApp and voice (parked: not in the current build, Nimish 13 Nov)
 
 **61 M3 schema and webhook** · Blocked by: 57, 58, 59, 60 (M6 gate) · External: Meta verification, number, templates (N8)
 Delivers: the one M3 migration: `wa_message` (unique per tenant and provider message id); E.164 check on `person.phone` after non-conforming numbers are listed for the admin (item 37).

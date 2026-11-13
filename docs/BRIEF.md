@@ -33,8 +33,7 @@ breakdown and prove whether maintenance is working. AI suggests; a person confir
 8. **M6 AI layer** — evaluation harness first; failure-code suggestion, fix finder with evidence, duplicate
    detection, plain-language analytics, daily briefing per role, PM drafts from the plant's manuals. Each runs
    in shadow mode until it clears its acceptance threshold. AI never invents numbers or codes.
-9. **M3 WhatsApp and voice — last.** Report by WhatsApp text/voice, transcription, PDFs on WhatsApp, email.
-   Nothing before it may depend on it; push is the only notification channel until then.
+9. **M3 WhatsApp and voice — parked** (Nimish, 13 Nov): not built now; the use case is limited. Its tickets stay in the plan, inactive.
 
 **Deferred (not planned now):** second tenant / plant two (M5): onboarding wizard, industry packs, settings
 cascade, multi-plant tenants, Hindi, mid-market features. Multi-tenant safety already built (RLS, no plant
@@ -50,6 +49,8 @@ constants in code) stays a rule.
 - Screens are thin compositions of shared components and shared page patterns (list, detail, form, settings
   table, dashboard). Frontend code must stay small and modular; a new screen is mostly configuration.
 - Phone first (360 px), 52 px targets on the floor, WCAG AA, English and Gujarati, offline-tolerant.
+- **The floor and desk keep v3's flows, screen order, button positions and copy** (Nimish, 13 Nov): they were
+  made with the shop-floor workers, who already use them. The kit changes the look, never placement or flow.
 
 ## Non-negotiables carried from the spec
 
@@ -67,6 +68,8 @@ Still needed: see `docs/plan/NEEDS.md` (N1 live ticket export **and** Worker sou
   N12 code aliases, N14 data-use consent, N15 usability sessions). N13 is closed: the name is **Uptimo**.
 
 ## Decided 13 November 2026
+
+- **Gujarati text is core.** Most problems are written in Gujarati text (script or Latin letters), not voice. Understanding it in English, inside India, with Bhavin's glossary and spelling tool, is an M1 cutover capability (ticket 68).
 
 - Test on real Cosmos data: staging, the import rehearsal, the answer key and manual checks use the real data; no synthetic people on staging. Automated tests in CI use real records with names and numbers replaced (proposed; data must not leave India).
 - AI runs in India only. The AI capabilities that are possible under that rule are aligned with Nimish before M6 is sized.
