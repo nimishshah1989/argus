@@ -47,3 +47,4 @@
 - 2026-11-13 10:19 UTC session e4bca1bd on `claude/t05-actions-words-domain`: 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
   2026-11-13 — Ticket 05 Actions and words from the domain (#83): the ticket buttons come from the domain availableActions (server rules plus the product rulings); message catalogues moved per namespace into packages/shared/src/i18n (D7); the web depends on @uptimo/domain and @uptimo/shared; the e2e runs a Gujarati project (empty gu values fall back to English until ticket 24).
 - 2026-11-13 10:21 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
+- 2026-11-13 11:44 UTC session e4bca1bd on `claude/t05-actions-words-domain`: f65ca17 05: E3 asserts Cancel only on the open card; record build deviations
