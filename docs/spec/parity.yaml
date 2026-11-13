@@ -500,8 +500,6 @@ rows:
     status: in-progress
     evidence:
       - 'PR #27'
-      - 'apps/web/src/screens/desk/openLists.test.ts :: Open counts (v3.views.01)'
-      - 'apps/web/src/screens/desk/openLists.test.ts :: Open lists (v3.views.01 sort rules)'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Views
   - id: v3.views.02
@@ -513,7 +511,6 @@ rows:
     status: in-progress
     evidence:
       - 'PR #27'
-      - 'apps/web/src/screens/desk/openLists.test.ts :: the minutes on a card'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Views
   - id: v3.views.03
@@ -529,7 +526,6 @@ rows:
       - 'PR #31'
       - 'PR #35'
       - 'PR #40'
-      - 'apps/server/test/import-real.test.ts :: shows his stored minutes on the ticket detail, not a recompute'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Views
   - id: v3.views.04
