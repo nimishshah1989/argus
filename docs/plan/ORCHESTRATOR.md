@@ -63,12 +63,12 @@ production deploy, an outside account), and a plan so broken every path is a gue
 
 Cloud containers are temporary, so everything durable is committed or on GitHub:
 
-| What                                                               | Where                                                              |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| Ticket state (ready, in progress, review, merged)                  | GitHub Issues + their milestone and labels                         |
-| Orchestrator ledger (dispatches, fix rounds, rulings, completions) | `docs/plan/ledger.md`, one line per event, committed on each merge |
-| Where things stand                                                 | `docs/HANDOFF.md` (< 50 lines), rewritten at every session end     |
-| Per-ticket plan and evidence                                       | `docs/slices/<issue>.md`                                           |
+| What                                                               | Where                                                                                        |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Ticket state (todo, in progress, done, parked) and PR              | The progress tracker at the top of `docs/plan/MILESTONES.md` (wins); GitHub Issues mirror it |
+| Orchestrator ledger (dispatches, fix rounds, rulings, completions) | `docs/plan/ledger.md`, one line per event, committed on each merge                           |
+| Where things stand                                                 | `docs/HANDOFF.md` (< 50 lines), rewritten at every session end                               |
+| Per-ticket plan and evidence                                       | `docs/slices/<issue>.md`                                                                     |
 
 A fresh orchestrator session reads HANDOFF, the ledger and the open issues, and resumes at the frontier.
 It never re-dispatches a ticket the ledger marks complete.
