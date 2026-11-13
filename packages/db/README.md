@@ -40,8 +40,9 @@ skip RLS.
   when there is no diff base).
 - Every new tenant table goes in a new migration with its `tenant_id`, RLS enable/force and
   policy in the same file; the generic isolation test picks it up.
-- Keep `pnpm migrations:check` green (no destructive statement without a
-  `-- destructive-approved` note and a backup step).
+- Keep `pnpm migrations:check` green: a `DROP`, data `UPDATE`, `DELETE FROM`, `TRUNCATE`, `SET NOT NULL`,
+  column type change or `REVOKE` needs `-- approved-by:` and `-- backup:` lines (with text) in the file's
+  leading comment block. The seven files merged before the rule are named, dated exceptions in the tool.
 
 ```bash
 pnpm test                    # includes packages/db/test/isolation.test.ts (Docker required)
