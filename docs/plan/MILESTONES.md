@@ -37,8 +37,10 @@ no other ticket adds a migration, and no ticket adds a table outside D17's list.
 | M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                           | An operator raises a ticket by voice                                                                 |                      5 |
 |     | **Total**                 |                                                                              |                                                                                                      | **65** (28 to cutover) |
 
-Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. The first ticket of each later milestone is blocked
-by every ticket of the milestone before it (its gate); nothing before M3 depends on M3.
+Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. Every ticket of a later milestone waits for every
+ticket of the milestone before it and for that milestone's gate: the first tickets of each milestone (15 and 16
+for M1; 29, 36, 46, 55, 61) name the gate in "Blocked by", and every other ticket descends from them. Nothing
+before M3 depends on M3.
 
 ## M0 — Foundation
 
@@ -53,13 +55,13 @@ Delivers: every PR gets a quick, honest answer, and the documents tell the truth
 Delivers: the server starts to be modules that talk only through published interfaces (wide refactor, expand step).
 
 1. [API] One kernel auth guard: every route not on the public allowlist answers 401 without a session (test generated from the route table).
-2. [API] `auth`, `tenancy`, `config`, `people` and `machines` live in module folders with a `repo.ts` and the manifest; the whole API suite passes unchanged; the boundary check fails a planted SQL call outside a moved module's `repo.ts`.
+2. [API] The kernel (`withTenant`, request context, guard, jobs) and the modules `ops`, `identity` and `plant` (ARCHITECTURE §2) live in module folders with a `repo.ts` and the manifest; the whole API suite passes unchanged; the boundary check fails a planted SQL call outside a moved module's `repo.ts`.
 
 **03 Module boundaries: contract** · Blocked by: 02
 Delivers: every module is behind its interface and CI enforces it (Athena rule; contract step).
 
-1. [API] `tickets`, `tasks`, `reports`, `files`, `notifications`, `imports` and `admin` are moved; workspace dependencies and `exports` replace relative imports; commands and permissions are one file each with a registry; the whole API suite passes unchanged and the boundary check is enforced for every module.
-2. [API] The isolation test discovers tenant tables from the catalogue (`breakdown_report_person` included) and fails on any table not exercised as two tenants; the same test fails when a table outside D17's list exists.
+1. [API] `tickets`, `accountability`, `notifications`, `reports`, `files` and `imports` are moved (`analytics`, `pm`, `ai` and `whatsapp` are born as modules in their milestones); workspace dependencies and `exports` replace relative imports; commands and permissions are one file each with a registry; the whole API suite passes unchanged and the boundary check is enforced for every module.
+2. [API] The isolation test discovers tenant tables from the catalogue (`breakdown_report_person` included) and fails on any table not exercised as two tenants; the same test fails when a table outside D17's list exists (`ticket_tag` is a dated exception until 07 drops it).
 
 Split from the draft's one modularisation item: ~25 server files and the domain registries do not fit one window.
 
@@ -67,7 +69,7 @@ Split from the draft's one modularisation item: ~25 server files and the domain 
 Delivers: server and web share one typed contract; SLA data leaves the ticket reply before M2.
 
 1. [API] Every route's reply parses with its shared Zod schema; a missing or extra field fails the route test; `api-types.ts` and the domain DTO copies are deleted and web types are `z.infer`.
-2. [API] `/state` is byte-identical for a fixed ticket set while SLA arrives as the `sla` reply part; `tickets` imports no higher module.
+2. [API] `/state` is byte-identical for a fixed ticket set while SLA arrives as the `sla` reply part contributed by `accountability`; `tickets` imports no higher module.
 
 **05 Actions and words from the domain** · Blocked by: 03
 Delivers: the buttons a person sees and every label come from one place.
@@ -83,11 +85,11 @@ Delivers: no code path deletes or rewrites history any more (prefactor the cutov
 3. [API] The migration check catches `DROP`, `UPDATE`, `DROP CONSTRAINT`, `SET NOT NULL`, `ALTER … TYPE`, `REVOKE` anywhere in a statement and demands an `approved-by` and a `backup:` header; the seven merged files are dated exceptions.
 
 **07 History cannot be lost (cutover migration)** · Blocked by: 06
-Delivers: the database itself refuses to lose history (the cutover schema ticket: ARCHITECTURE §9 items 21, 24, 25, 31; backup first, staging first).
+Delivers: the database itself refuses to lose history (the cutover schema ticket: ARCHITECTURE §9 items 21, 24, 25, 31, and the `ticket_tag` drop, which D17 and DATA-MAP Q12 put before cutover; backup first, staging first).
 
-1. [API] As the app role, update or delete of `ticket_event` and delete of `ticket`, `work_segment` or `breakdown_report` is refused; history foreign keys are RESTRICT; the item-24 indexes exist and the day-report and My-complaints queries use them.
+1. [API] As the app role, UPDATE and DELETE on `ticket_event` and DELETE on `ticket`, `work_segment`, `crew_member`, `breakdown_report`, `breakdown_report_person`, `list_item`, `login` and `person` are refused; history foreign keys are RESTRICT, so deleting a login that acted on a ticket, or a person who appears on one, is refused and the row remains; `ticket_tag` is dropped; the item-24 indexes exist and the day-report and My-complaints queries use them.
 2. [API] A second open breakdown on one machine is refused by the database; the preflight lists existing duplicates and stops the migration when any exist.
-3. [API] The definer functions work on fake data, callable only by the router role: import undo removes one batch; erasure leaves a leaver's name in no DATA-MAP §5 place and writes one count-only audit row (the controlled leaver script); offboarding clears number and devices; `audit.purge` removes rows over 3 years. A support grant without approver or over 7 days is refused and `audit_log` carries `platform_access_id`.
+3. [API] The definer functions work on fake data, callable only by the router role: import undo removes one batch; erasure leaves a leaver's name in no DATA-MAP §5 place and writes one count-only audit row (the controlled leaver script); customer offboarding deletes a tenant's rows only when its export and backup references are given, and is the only path that does; `audit.purge` removes rows over 3 years. A support grant without approver or over 7 days is refused and `audit_log` carries `platform_access_id`.
 
 **08 Real plant in** · Blocked by: 01
 Delivers: machines, people and settings are Cosmos's real ones, not seed guesses.
@@ -140,12 +142,12 @@ Delivers: Nimish tries every slice on his phone on Cosmos's real data, and that 
 Rule for every M1 ticket that moves a screen onto the kit: the parity rows already `done` keep their tests green.
 Parity rows are cited by id; their acceptance tests in `parity.yaml` are the "as v3" rule list.
 
-**15 Report a breakdown (floor)** · Blocked by: 05, 09, 12
+**15 Report a breakdown (floor)** · Blocked by: 05, 12, 13, 14 (M0 gate: Nimish approves `/gallery` and the accent)
 
-1. [Browser] An operator reports a stopped machine in three taps by search or group with quick problems; `?m=` opens a machine; a second report of an open machine opens the existing ticket, and a stopped report on a machine with an open running ticket upgrades that ticket (`upgradeKind`).
+1. [Browser] An operator reports a stopped machine in three taps by search or group with quick problems; `?m=` opens a machine; a second report of an open machine opens the existing ticket, and a stopped report on a machine with an open ticket of kind `support` upgrades that ticket (`upgradeKind`).
 2. [Browser] Other work requests, the sent screen with the ticket number, "I am starting work on it now" and My complaints pass `v3.reporting.01–04, 06–10`; every floor string is a catalogue key (Gujarati itself is 24).
 
-**16 Desk lists and ticket detail** · Blocked by: 05, 09, 11
+**16 Desk lists and ticket detail** · Blocked by: 05, 12, 13, 14 (M0 gate: Nimish approves `/gallery` and the accent)
 
 1. [Browser] Open (counts strip, breakdowns, tasks, work), Mine, Team and needs-report show the real tickets per `v3.views.01–03`, and lists page by cursor past 200 rows.
 2. [Browser] The ticket card and detail show the facts, full history, people and minutes, and the action bar from `availableActions`.
@@ -157,7 +159,7 @@ Parity rows are cited by id; their acceptance tests in `parity.yaml` are the "as
 
 **18 Close, report, PDFs** · Blocked by: 08, 17
 
-1. [Browser] Close with report (the form of `v3.reports.01`), close without report, mark done for a work request, and late report work; recording a past breakdown creates a record without a ticket.
+1. [Browser] Close with report (the form of `v3.reports.01`), close without report, mark done for a work request, and late report work; a past breakdown creates a closed ticket with no workflow.
 2. [Browser] The breakdown PDF (QR identical to v3) and the day report on the real shifts render, Gujarati included (`v3.reports.02–03`, `v3.actions.16`).
 
 **19 Follow-up tasks** · Blocked by: 15, 18
@@ -195,7 +197,7 @@ Split from draft ticket 16 (six draft tickets): machine moves and the group flag
 **25 Live board and alerts** · Blocked by: 12, 16
 
 1. [Browser] The TV board shows the same tickets as Open and refreshes every 30 seconds; the WhatsApp share text matches `v3.views.06, 08`.
-2. [Browser] New-breakdown and complaint-fixed push go through the existing push module's one send call (33 later takes it over; no second path); the account sheet works; the update banner waits out the shift changeover; floor and desk install as two apps.
+2. [Browser] New-breakdown and complaint-fixed push go through the existing push module's one send call (32 later takes it over; no second path); the account sheet works; the update banner waits out the shift changeover; floor and desk install as two apps.
 
 **26 Hardened** · Blocked by: 13, 16, 25 · External: security reviewer signs off ASVS L1 and the DPDP checklist (N10)
 
@@ -218,7 +220,7 @@ Escalation details (ladder people, delays, repeats, who acknowledges) are Nimish
 cutover; agents propose defaults (BRIEF open question).
 
 **29 M2 schema** · Blocked by: 28
-Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`, `notification`; `ticket_tag` dropped; `sla_timer.kind` gains `pause` and `handback`; the handover person link (ARCHITECTURE §9 items 27, 30, 32).
+Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`, `notification`; `sla_timer.kind` gains `pause` and `handback`; the handover person link (ARCHITECTURE §9 items 30, 32).
 
 1. [API] The migration applies and reverts on a copy of production after a backup; a roster line is unique per tenant, date, shift (a link to `shift`) and person; a notification is unique per tenant and dedupe key.
 2. [API] Handover on a report is a person link and imported text is kept; the SLA policy is found by severity; nothing reads or writes `person.kind`, `ticket.sla_policy_id` or `ticket.handback_status`.
@@ -226,7 +228,7 @@ Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`
 **30 Clocks live** · Blocked by: 29
 
 1. [Browser] Severity and SLA targets are switched on at Cosmos; acknowledge and restore clocks show on cards, detail and board.
-2. [API] A pause longer than the policy's maximum and an unanswered sign-off each fire one breach on the fake clock.
+2. [API] A pause longer than the policy's maximum fires one breach on the fake clock (the sign-off timeout is 34's).
 
 **31 Roster, ladder, acknowledge** · Blocked by: 29, 30
 
@@ -266,8 +268,8 @@ Split from draft ticket 24: the service is its own module, used by escalation, r
 
 **37 History, engine and drill-down** · Blocked by: 36
 
-1. [API] The 1,354-row breakdown log is loaded as closed tickets through the past-breakdown path with source references and legacy codes mapped through the alias column; each counts once beside the live tickets, and imported history shows on the desk.
-2. [Engine] `run(data, asOf)` with the legacy profile reads hours/day, days/year, cost/hour, thresholds and Action Center constants from settings (a change is audited) and writes `kpi_snapshot`.
+1. [API] The 1,354-row breakdown log is loaded as closed tickets through the past-breakdown path with source references and legacy codes mapped through the alias column; each counts once beside the live tickets, and imported history shows on the desk; the leaver erasure path from 07 replaces a leaver's name in these history tickets too.
+2. [Engine] `run(data, asOf)` with the legacy profile reads hours/day, days/year, cost/hour, thresholds and Action Center constants from settings and writes `kpi_snapshot`; the admin edits hours/day, cost/hour and thresholds on a generated settings screen, each change audited.
 3. [Browser] The analytics face has its shell and Guide entry; every registered figure carries a drill target to its rows, and a test fails on a figure without one.
 
 **38 Dashboard and Today** · Blocked by: 37
@@ -277,7 +279,7 @@ Split from draft ticket 24: the service is its own module, used by escalation, r
 
 **39 Registers and machine pages** · Blocked by: 37
 
-1. [Engine] Registers (controller and make split), fleet age and footprint match the answer key; the cell change log exports as the platform's sheet; register exports carry their controlled-document numbers.
+1. [Engine] Registers (controller and make split), fleet age and footprint match the answer key; the cell change log exports as the platform's sheet, and an admin correcting a cell move's date is audited; register exports carry their controlled-document numbers.
 2. [Browser] One page per machine shows nameplate, history and cell moves, each figure drillable.
 
 Split from draft ticket 28 (seven draft tickets): registers and machine pages are a separate engine family and face.
@@ -321,6 +323,7 @@ Delivers: the one M4b migration (backup first): `forecast`, `intervention`, `pm_
 
 1. [API] The migration applies and reverts on a production copy; an `asset_register` row needs a `kind`; a ticket can be raised with channel `pm` or `inspection`.
 2. [API] A breakdown report stores four codes that must be `failure_code` list items of the tenant.
+3. [API] Meter interval, tolerance and the last meter reading are `pm_plan` columns; the ticked checklist points of a PM job are that ticket's report data (D17: no `pm_execution` or checklist table).
 
 **47 Coded closes** · Blocked by: 46
 
@@ -375,6 +378,7 @@ Delivers: the one M6 migration: `ai_suggestion`, `document`, `document_chunk`, t
 
 1. [API] The migration applies and reverts; suggestions are tenant-scoped; suggestions older than 2 years are purged (fake clock).
 2. [API] `AiProvider` with a fake provider; a real provider call is refused until the residency record is filed, and an endpoint outside India is always refused; input is redacted before send.
+3. [API] The erasure function is extended so erasing a person replaces their name in `ai_suggestion` text, keeping only the ticket link (DATA-MAP §5).
 
 **56 Evaluation harness and confirm** · Blocked by: 55
 
@@ -397,11 +401,13 @@ Split from draft ticket 39: the schema and adapter must land before any feature 
 
 1. [Browser] A manager asks a question and sees the answer, its view and its SQL; every number on screen comes from `kpi_snapshot` or ticket ids through `analytics.figuresByIds`, never from model text.
 2. [API] Each role's daily briefing summarises that role's Today items (38), each line carrying its ticket or snapshot ids, and is pushed through `notify`.
+3. [API] Questions go live per tenant only above T4 and the briefing only above T5 (as named in 55); below, they run in shadow.
 
 **60 Manuals** · Blocked by: 56
 
 1. [API] A plant's uploaded manual is searchable by page for that plant only (two-tenant test); PDF text extraction is under an ADR.
 2. [Browser] A PM plan draft cites its manual pages and waits for a person (`pm.createDraftPlan`).
+3. [API] Drafts go live per tenant only above T6 (as named in 55); below, they run in shadow.
 
 ## M3 — WhatsApp and voice (last)
 
@@ -454,18 +460,18 @@ exactly the 12 listed (40 tables) and leaves the thirteenth slot unused.
 
 ## Rejected findings
 
-| Finding                 | Reason                                                                                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TB-05 (now 10)          | The "≤ 800 lines" size rule is the old draft's, not a binding source; kit components are copied from shadcn, the authored part (tokens, status, gallery) fits |
-| TB-18 (now 25)          | Board, push and PWA are already on `main` (HANDOFF, M1b); the ticket moves them onto the kit and adds the changeover hold                                     |
-| TB-19 (now 26)          | Each item is a small independent change (a limit, a route, a check); paging moved to 16, the review is External                                               |
-| TB-25 (now 34)          | The sign-off clock is in 30; what remains is one command, a timeout and two figures                                                                           |
-| TB-30 (now 41)          | Four pure engine functions, each proven by its fixture; screens are `DashboardPage` configuration; storage decided in 36                                      |
-| TB-31 (now 42)          | Same: pure, seeded functions with fixtures, one screen config; drill-down moved to 37                                                                         |
-| TB-32 (now 43)          | Same; Team Focus storage decided in 36                                                                                                                        |
-| TB-40 (now 57)          | Search is Postgres full-text plus `pg_trgm` (extension in 55); duplicates reuse the same search; the screen exists (43)                                       |
-| TB-46 (now 64)          | Storage reuses `file`, the glossary reuses `glossary_term`; the speech call is one adapter                                                                    |
-| NV-01 (01 not vertical) | The product owner allows process goals in M0's first ticket; it is the declared prefactor for every later PR                                                  |
+| Finding                 | Reason                                                                                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TB-05 (now 10)          | The "≤ 800 lines" size rule is the old draft's, not a binding source; kit components are copied from shadcn, the authored part (tokens, status, gallery) fits                |
+| TB-18 (now 25)          | Board, push and PWA are already on `main` (HANDOFF, M1b); the ticket moves them onto the kit and adds the changeover hold                                                    |
+| TB-19 (now 26)          | Each item is a small independent change (a limit, a route, a check); paging moved to 16, the review is External                                                              |
+| TB-25 (now 34)          | The sign-off clock kind is in 29; what remains is one command, a timeout and two figures                                                                                     |
+| TB-30 (now 41)          | Four pure engine functions, each proven by its fixture; screens are `DashboardPage` configuration; storage decided in 36                                                     |
+| TB-31 (now 42)          | Same: pure, seeded functions with fixtures, one screen config; drill-down moved to 37                                                                                        |
+| TB-32 (now 43)          | Same; Team Focus storage decided in 36                                                                                                                                       |
+| TB-40 (now 57)          | Search is Postgres full-text plus `pg_trgm` (extension in 55); duplicates reuse the same search; the screen exists (43)                                                      |
+| TB-46 (now 64)          | Storage reuses `file`, the glossary reuses `glossary_term`; the speech call is one adapter                                                                                   |
+| NV-01 (01 not vertical) | BRIEF scope item 1 (harness re-baseline: one process, issues as the queue, true status) is process work by definition; the product owner allows it in M0's first ticket only |
 
 ## Coverage map (COVERAGE.md → this plan)
 
@@ -476,8 +482,8 @@ Old → new: 01→01, 02→09, 03→08, 04→06+07, 05→10, 06→11+12, 07→13
 27→36+37, 28→37+38+39, 29→40, 30→41, 31→42, 32→43, 33→44+45, 34→47+48, 35→49+50, 36→51, 37→52+53, 38→54,
 39→55+56, 40→57, 41→58, 42→59, 43→60, 44→61+62, 45→63, 46→64, 47→65.
 
-**Gaps → owner.** G1→02, 03 · G2→02 · G3→04 · G4→04 · G5→05 · G6→05 · G7→09 · G8→03 · G9→06 (header), 07 (contents)
-· G10→06 (stop), 29 (drop) · G11→29 (stop), 36 (drop) · G12→29 · G13→07 (erasure function and script), 21 (switch-off)
+**Gaps → owner.** G1→02, 03 · G2→02 · G3→04 · G4→04 · G5→05 · G6→05 · G7→09 · G8→03 · G9→06 (header), 07 g1 (full revoke list, RESTRICT tests), 07 g3 (definer functions incl. customer offboarding)
+· G10→06 (stop), 07 (drop) · G11→29 (stop), 36 (drop) · G12→29 · G13→07 (erasure function and script), 21 (switch-off), 37 g1 (history tickets), 55 g3 (`ai_suggestion`)
 · G14→14 (session, idempotency, import, audit), 31 (roster), 32 (notification), 55 (AI), 62 (WhatsApp), 64 (voice)
 · G15→26 (benchmark), 16 (paging) · G16→01 · G17→01 · G18→26 · G19→21 · G20→15 · G21→22 · G22→37 · G23→39
 · G24→36 · G25→37 · G26→39 (document numbers), 42, 43 (kept exports) · G27→39 (page), 42 (forecast), 43 (health),
@@ -511,3 +517,10 @@ UT-39g1→55 External · UT-41g1→58 (T1 metric; number set at 55) · UT-42g2�
 E6 26←16, 25 · E7 27←14, 16 · E8 28←14 (restore drill) · E9 54←50 · E10 48 has no schedule compliance · E11 53←50 ·
 E12 36←33, 34, 35 (M2 gate) · E13 55←51, 53, 54 (M4b gate) · E14 61←57–60 (M6 gate) · E15 device sign-out in 35 ·
 E16 13←01 only · E17 51←46 only.
+
+**Re-verification fixes (round 2).** R1 order→15, 16 blocked by 05, 12, 13, 14 and the M0 gate; order note rewritten ·
+R2 G9→07 g1, g3 · R3 module names per ARCHITECTURE §2→02 g2, 03 g1, 04 g2 (`accountability` owns `sla`); 20 keeps
+`ops.audit.record` · R4 `ticket_tag` drop→07 (removed from 29), 03 g2 dated exception · R5 sign-off timeout only in
+34 g2 (removed from 30 g2) · R6 shadow below threshold→59 g3 (T4, T5), 60 g3 (T6) · R7 `analytics.registers.03`→39 g1 ·
+R8 `analytics.registers.05`→37 g2 · R9 meter and checklist homes→46 g3 · R10 erasure→37 g1, 55 g3 · R11 wording→18 g1,
+15 g1, 25 g2, NV-01 reason.
