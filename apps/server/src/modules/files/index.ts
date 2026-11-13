@@ -1,6 +1,6 @@
 import { defineModule } from '../../kernel/index.js';
 
-export { fileIdForTickets, insertFileRow } from './repo.js';
+export { insertFileRow } from './repo.js';
 export {
   createLocalFileStore,
   dayReportObjectKey,

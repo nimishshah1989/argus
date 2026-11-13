@@ -2,7 +2,13 @@ import type { Pool } from 'pg';
 
 export type CliCommand =
   | { mode: 'import'; file: string; tenantSlug: string; productionConfirm: boolean }
-  | { mode: 'undo'; batchId: string; tenantSlug: string; productionConfirm: boolean };
+  | {
+      mode: 'undo';
+      batchId: string;
+      tenantSlug: string;
+      productionConfirm: boolean;
+      operator: string;
+    };
 
 export class CliUsageError extends Error {
   readonly exitCode = 2;
@@ -17,6 +23,7 @@ interface CliTokens {
   target: string | undefined;
   tenantSlug: string | undefined;
   productionConfirm: boolean;
+  operator: string | undefined;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -28,42 +35,59 @@ function invalid(message: string): never {
   throw new CliUsageError(message);
 }
 
+function flagValue(
+  argv: string[],
+  index: number,
+  current: string | undefined,
+  flag: string,
+): string {
+  if (current !== undefined) invalid(`duplicate ${flag}`);
+  const value = argv[index + 1];
+  if (!value || value.startsWith('-')) invalid(`${flag} requires a value`);
+  return value;
+}
+
 function parseTokens(argv: string[], start: number): CliTokens {
-  let target: string | undefined;
-  let tenantSlug: string | undefined;
-  let productionConfirm = false;
+  const tokens: CliTokens = {
+    target: undefined,
+    tenantSlug: undefined,
+    productionConfirm: false,
+    operator: undefined,
+  };
   for (let index = start; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--tenant') {
-      if (tenantSlug !== undefined) invalid('duplicate --tenant');
-      const value = argv[index + 1];
-      if (!value || value.startsWith('-')) invalid('--tenant requires a slug');
-      tenantSlug = value;
+      tokens.tenantSlug = flagValue(argv, index, tokens.tenantSlug, '--tenant');
+      index += 1;
+    } else if (arg === '--operator') {
+      tokens.operator = flagValue(argv, index, tokens.operator, '--operator');
       index += 1;
     } else if (arg === '--production-confirm') {
-      if (productionConfirm) invalid('duplicate --production-confirm');
-      productionConfirm = true;
+      if (tokens.productionConfirm) invalid('duplicate --production-confirm');
+      tokens.productionConfirm = true;
     } else if (arg?.startsWith('-')) {
       invalid(`unknown flag: ${arg}`);
-    } else if (target !== undefined) {
+    } else if (tokens.target !== undefined) {
       invalid('extra positional argument');
     } else {
-      target = arg;
+      tokens.target = arg;
     }
   }
-  return { target, tenantSlug, productionConfirm };
+  return tokens;
 }
 
 export function parseCliArgs(argv: string[]): CliCommand {
   const mode = argv[0] === 'undo' ? 'undo' : 'import';
   const tokens = parseTokens(argv, mode === 'undo' ? 1 : 0);
-  const { target, tenantSlug, productionConfirm } = tokens;
+  const { target, tenantSlug, productionConfirm, operator } = tokens;
   if (!target) invalid(`${mode} target is required`);
   if (!tenantSlug || !SLUG.test(tenantSlug)) invalid('a valid --tenant slug is required');
   if (mode === 'undo') {
     if (!UUID.test(target)) invalid('batch id must be a canonical UUID');
-    return { mode, batchId: target, tenantSlug, productionConfirm };
+    if (!operator?.trim()) invalid('undo requires --operator');
+    return { mode, batchId: target, tenantSlug, productionConfirm, operator };
   }
+  if (operator !== undefined) invalid('--operator applies to undo only');
   return { mode, file: target, tenantSlug, productionConfirm };
 }
 
@@ -96,6 +120,41 @@ export async function assertAppApiRole(pool: Pool): Promise<void> {
       row.rolbypassrls !== false
     ) {
       throw roleFailure();
+    }
+  } finally {
+    client.release();
+  }
+}
+
+const ROUTER_QUERY = `SELECT current_user AS name, pg_has_role(current_user, 'app_router', 'USAGE') AS router,
+  pg_has_role(current_user, 'app_user', 'MEMBER') AS app_user`;
+
+function routerFailure(): Error {
+  return new Error(
+    'import:undo requires ROUTER_DATABASE_URL: a login that is a member of app_router and app_user',
+  );
+}
+
+export async function assertRouterRole(pool: Pool): Promise<void> {
+  let client;
+  try {
+    client = await pool.connect();
+  } catch {
+    throw routerFailure();
+  }
+  try {
+    const result = await client.query(ROUTER_QUERY).catch(() => {
+      throw routerFailure();
+    });
+    const row = result.rows[0] as
+      { name?: string; router?: boolean; app_user?: boolean } | undefined;
+    if (
+      result.rows.length !== 1 ||
+      row?.name === 'app_api' ||
+      row?.router !== true ||
+      row.app_user !== true
+    ) {
+      throw routerFailure();
     }
   } finally {
     client.release();

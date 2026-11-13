@@ -223,15 +223,32 @@ describe('boundaries check', () => {
 
   it('gives every current table exactly one owner', () => {
     const tables = [
-      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment ticket_tag ai_suggestion'.split(
+      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment ai_suggestion'.split(
         ' ',
       ),
     ];
-    expect(tables).toHaveLength(30);
+    expect(tables).toHaveLength(29);
     for (const table of tables)
       expect(
         Object.keys(OWNERS).filter((m) => OWNERS[m]?.includes(table)),
         table,
+      ).toHaveLength(1);
+  });
+
+  it('owns no dropped table and owns each database function exactly once', () => {
+    const owned = Object.values(OWNERS).flat();
+    expect(owned).not.toContain('ticket_tag');
+    for (const name of [
+      'import_undo',
+      'erase_person',
+      'erase_json_values',
+      'offboard_tenant',
+      'platform_access_guard',
+      'audit_purge',
+    ])
+      expect(
+        owned.filter((owner) => owner === name),
+        name,
       ).toHaveLength(1);
   });
 });

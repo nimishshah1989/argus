@@ -8,13 +8,16 @@ import {
   CliUsageError,
   assertAppApiRole,
   assertProductionAccess,
+  assertRouterRole,
   parseCliArgs,
   type CliCommand,
 } from './security.js';
 
 function printUsage(): void {
   console.error('usage: import:bhavin <file.json> --tenant <slug> [--production-confirm]');
-  console.error('       import:undo <batchId> --tenant <slug> [--production-confirm]');
+  console.error(
+    '       import:undo <batchId> --tenant <slug> --operator <name> [--production-confirm]',
+  );
 }
 
 function readImportFile(command: Extract<CliCommand, { mode: 'import' }>): unknown {
@@ -25,6 +28,22 @@ function readImportFile(command: Extract<CliCommand, { mode: 'import' }>): unkno
     return JSON.parse(readFileSync(command.file, 'utf8')) as unknown;
   } catch {
     throw new Error('Import file is not valid JSON');
+  }
+}
+
+async function runUndo(command: Extract<CliCommand, { mode: 'undo' }>): Promise<void> {
+  const url = process.env.ROUTER_DATABASE_URL;
+  if (!url) throw new Error('ROUTER_DATABASE_URL is required for import:undo');
+  const pool = createPool(url);
+  try {
+    await assertRouterRole(pool);
+    const tenant = await resolveTenant(pool, command.tenantSlug);
+    if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
+    const { undoImport } = await import('./bhavin.js');
+    const result = await undoImport(pool, tenant.id, command.batchId, command.operator);
+    console.log(JSON.stringify({ batchId: command.batchId, deleted: result.deleted }));
+  } finally {
+    await pool.end();
   }
 }
 
@@ -39,7 +58,8 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     return;
   }
   assertProductionAccess(command, process.env.APP_ENV);
-  const input = command.mode === 'import' ? readImportFile(command) : null;
+  if (command.mode === 'undo') return runUndo(command);
+  const input = readImportFile(command);
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
   const pool = createPool(url);
@@ -59,12 +79,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     });
     const tenant = await resolveTenant(pool, command.tenantSlug);
     if (!tenant) throw new Error(`Unknown tenant: ${command.tenantSlug}`);
-    const { importBhavin, undoImport } = await import('./bhavin.js');
-    if (command.mode === 'undo') {
-      const result = await undoImport(pool, tenant.id, command.batchId);
-      console.log(JSON.stringify({ batchId: command.batchId, deleted: result.deleted }));
-      return;
-    }
+    const { importBhavin } = await import('./bhavin.js');
     const { batchId, stats } = await importBhavin(pool, tenant.id, input, {
       timeZone: tenant.time_zone,
       boss: runtime.boss,

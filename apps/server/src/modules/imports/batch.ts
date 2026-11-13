@@ -62,7 +62,7 @@ export async function markBatchFatal(
   pool: Pool,
   tenantId: string,
   batchId: string,
-  input: { ticketCount: number; aliasSha256: string; error: unknown; now: Date },
+  input: { ticketCount: number; aliasSha256: string; error: unknown },
 ): Promise<ImportStats> {
   const stats = emptyImportStats(input.ticketCount, input.aliasSha256);
   Object.assign(stats, {
@@ -73,7 +73,6 @@ export async function markBatchFatal(
   });
   await withTenant(pool, tenantId, async (client) => {
     const count = await failBatch(client, {
-      finishedAt: input.now,
       stats: JSON.stringify(stats),
       batchId,
       tenantId,
