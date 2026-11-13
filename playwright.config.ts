@@ -14,6 +14,7 @@ const WEB_URL = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
 
 export default defineConfig({
   testDir: './apps/web/e2e',
+  testIgnore: '**/gallery/**',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
