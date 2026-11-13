@@ -39,13 +39,12 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
 
+<!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-
-Last session ended 2026-11-13 10:21 UTC on branch `claude/kind-curie-ayp7eq`.
-
-- f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
-- 4b8ef56 03b: Module boundaries — tickets and imports own their tables (#154)
-- 4a10427 03a: Module boundaries — contract (moves, workspace wiring, enforced check) (#153)
-  Uncommitted files: 0
-
+Last session ended 2026-11-13 12:46 UTC on branch `claude/orchestrator-ledger`.
+- cb90f34 docs(plan): ledger — 07 schema-review rulings
+- dcd4cbe docs(plan): ledger — 04 rulings, phone-number privacy finding
+- 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
+Uncommitted files: 0
 <!-- end facts -->
+<!-- prettier-ignore-end -->
