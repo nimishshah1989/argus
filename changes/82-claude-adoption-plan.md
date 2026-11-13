@@ -1,1 +1,1 @@
-- Decision record 0007 (proposed): Claude for AI features, with consent, name removal and a monthly cap; a Claude session only to clean Cosmos's old history. Adds D21, D22 and the adoption plan.
+- Decision record 0007 (proposed): Claude for AI features and plant onboarding, plus the adoption plan.

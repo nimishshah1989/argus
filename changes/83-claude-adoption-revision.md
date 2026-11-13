@@ -1,0 +1,1 @@
+- Claude adoption design revised after review: cleaned-history loader (D21), AI call shape, redaction and limits (D22), D16 and ADR 0002 amended.
