@@ -41,10 +41,10 @@ One orchestrator. Children use fresh contexts and disjoint files; contract-first
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 12:46 UTC on branch `claude/orchestrator-ledger`.
-- cb90f34 docs(plan): ledger — 07 schema-review rulings
-- dcd4cbe docs(plan): ledger — 04 rulings, phone-number privacy finding
-- 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
+Last session ended 2026-11-13 14:33 UTC on branch `claude/t07-history-cannot-be-lost`.
+- bd3ae2c 07: code-review fixes (revoke lent CREATE on every failure path, stricter tests, erase key report)
+- 2557c2b 07: PR body after merging main
+- 661be55 Merge main into 07; rename our decision to D24 (D23 is pstack)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
