@@ -49,5 +49,5 @@ export {
   ticketParents,
   ticketRefsLike,
 } from './repo/imported.js';
-export { initRefCounters } from './repo/seed.js';
+export { countTickets, initRefCounters } from './repo/seed.js';
 export { importTickets, type ImportedTicketRow } from './import.js';

@@ -2,11 +2,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Pool } from 'pg';
+import { withTenant } from '../kernel/index.js';
 import {
   deleteTenantBySlug,
   hashPassword,
   insertPeople,
   insertTenant,
+  resolveTenant,
 } from '../modules/identity/index.js';
 import {
   insertGlossaryTerms,
@@ -16,7 +18,7 @@ import {
   insertSettings,
   insertShifts,
 } from '../modules/plant/seed.js';
-import { initRefCounters } from '../modules/tickets/index.js';
+import { countTickets, initRefCounters } from '../modules/tickets/index.js';
 import { buildSeed, type SeedFiles } from './cosmos-data.js';
 
 interface Paths {
@@ -73,6 +75,18 @@ function buildFromFiles(paths: Paths) {
   );
 }
 
+/** Seeding replaces the whole customer. Once it holds tickets (loaded or raised), that would destroy history. */
+async function assertNoTickets(pool: Pool): Promise<void> {
+  const existing = await resolveTenant(pool, 'cosmos');
+  if (!existing) return;
+  const held = await withTenant(pool, existing.id, (client) => countTickets(client, existing.id));
+  if (held > 0)
+    throw new Error(
+      `seed: Cosmos already holds ${held} ticket${held === 1 ? '' : 's'}; nothing was changed. ` +
+        'Seeding replaces the whole customer, so it only runs on an empty one.',
+    );
+}
+
 export async function seedCosmos(
   pool: Pool,
   paths: Paths,
@@ -81,6 +95,7 @@ export async function seedCosmos(
   if (paths.peoplePath && !initialPassword)
     throw new Error('seed: SEED_INITIAL_PASSWORD is required with a people file');
   const seed = buildFromFiles(paths);
+  await assertNoTickets(pool);
   const passwordHash = await hashPassword(paths.peoplePath ? initialPassword! : FIXTURE_PASSWORD);
   const client = await pool.connect();
   try {
@@ -121,7 +136,16 @@ export async function seedCosmos(
   };
 }
 
+/** The fixture people are fake and share a password in the repo: never on a shared server. */
+export function assertSeedAllowed(env: { APP_ENV?: string; SEED_PEOPLE_FILE?: string }): void {
+  if (!env.SEED_PEOPLE_FILE && (env.APP_ENV === 'staging' || env.APP_ENV === 'production'))
+    throw new Error(
+      'seed: on staging or production set SEED_PEOPLE_FILE; the fixture people are fake',
+    );
+}
+
 async function main(): Promise<void> {
+  assertSeedAllowed(process.env);
   const { Pool } = await import('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const paths: Paths = {
@@ -156,8 +180,9 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  main().catch((error) => {
-    console.error(error);
+  main().catch((error: unknown) => {
+    // Message only: a stack or a raw error object could echo a real value from the people file.
+    console.error(error instanceof Error ? error.message : 'seed failed');
     process.exitCode = 1;
   });
 }

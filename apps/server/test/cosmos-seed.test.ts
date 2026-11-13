@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FIXTURE_PASSWORD, SEED_FILES, seedCosmos } from '../src/seed/cosmos.js';
+import { FIXTURE_PASSWORD, SEED_FILES, assertSeedAllowed, seedCosmos } from '../src/seed/cosmos.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const paths = {
@@ -186,5 +186,40 @@ describe('cosmos real plant seed', () => {
       'SELECT (SELECT count(*) FROM login)::int AS logins, (SELECT count(*) FROM machine)::int AS machines',
     );
     expect(n).toEqual({ logins: 26, machines: 192 });
+  });
+
+  it('refuses to replace a Cosmos that already holds tickets, and says so without changing anything', async () => {
+    const tenant = await one<{ id: string }>("SELECT id FROM tenant WHERE slug = 'cosmos'");
+    await db.admin.query(
+      `INSERT INTO ticket (tenant_id, ref, kind, status, problem, reported_at, severity)
+       VALUES ($1, 'BD-0001', 'stopped', 'open', 'Imported breakdown', now(), 'S3')`,
+      [tenant.id],
+    );
+    const before = await one<Record<string, number>>(
+      `SELECT (SELECT count(*) FROM ticket)::int AS tickets, (SELECT count(*) FROM person)::int AS people,
+              (SELECT count(*) FROM machine)::int AS machines`,
+    );
+    await expect(seedCosmos(db.admin, paths)).rejects.toThrow(/already holds 1 ticket/);
+    expect(
+      await one<Record<string, number>>(
+        `SELECT (SELECT count(*) FROM ticket)::int AS tickets, (SELECT count(*) FROM person)::int AS people,
+                (SELECT count(*) FROM machine)::int AS machines`,
+      ),
+    ).toEqual(before);
+    expect((await one<{ id: string }>("SELECT id FROM tenant WHERE slug = 'cosmos'")).id).toBe(
+      tenant.id,
+    );
+    // An empty Cosmos is still replaced, as dev and CI rely on.
+    await db.admin.query('DELETE FROM ticket WHERE tenant_id = $1', [tenant.id]);
+    await expect(seedCosmos(db.admin, paths)).resolves.toBeTruthy();
+  });
+
+  it('the fake fixture people never seed a shared server', () => {
+    expect(() => assertSeedAllowed({ APP_ENV: 'staging' })).toThrow(/SEED_PEOPLE_FILE/);
+    expect(() => assertSeedAllowed({ APP_ENV: 'production' })).toThrow(/SEED_PEOPLE_FILE/);
+    expect(() =>
+      assertSeedAllowed({ APP_ENV: 'staging', SEED_PEOPLE_FILE: 'x.json' }),
+    ).not.toThrow();
+    expect(() => assertSeedAllowed({})).not.toThrow();
   });
 });
