@@ -42,10 +42,10 @@ import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate lim
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 15:36 UTC on branch `claude/orchestrator-ledger`.
-- 6b4fa1e docs: session notes (hook)
-- f4857a1 docs: session notes (hook)
-- 298b06b docs: handoff under 50 lines
+Last session ended 2026-11-13 16:11 UTC on branch `claude/orchestrator-m0-gate`.
+- e8bbfb4 docs(plan): tracker and ledger for the new orchestrator session
+- fffd2d5 docs(plan): M0 ledger, ticket tracker and handoff for the harness restart (#174)
+- 8186ca8 07: History cannot be lost (cutover migration) (#169)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->

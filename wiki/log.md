@@ -85,3 +85,4 @@
 - 2026-11-13 15:22 UTC session c23c2255 on `claude/orchestrator-ledger`: 298b06b docs: handoff under 50 lines
 - 2026-11-13 15:29 UTC session c23c2255 on `claude/orchestrator-ledger`: f4857a1 docs: session notes (hook)
 - 2026-11-13 15:36 UTC session c23c2255 on `claude/orchestrator-ledger`: 6b4fa1e docs: session notes (hook)
+- 2026-11-13 16:11 UTC session d928e15c on `claude/orchestrator-m0-gate`: e8bbfb4 docs(plan): tracker and ledger for the new orchestrator session
