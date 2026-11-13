@@ -20,7 +20,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 01  | Green, fast main                                  | M0        | done        | #145             |
 | 02  | Module boundaries: expand                         | M0        | done        | #149             |
 | 03  | Module boundaries: contract                       | M0        | done        | #151, #153, #154 |
-| 04  | One contract, reply parts                         | M0        | todo        | —                |
+| 04  | One contract, reply parts                         | M0        | in progress | —                |
 | 05  | Actions and words from the domain                 | M0        | in progress | —                |
 | 06  | Stop destroying history                           | M0        | in progress | —                |
 | 07  | History cannot be lost (cutover migration)        | M0        | in progress | —                |
