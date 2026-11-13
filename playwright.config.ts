@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const WEB_URL = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
 
-export default defineConfig({
+export default defineConfig<object, { uiLanguage: 'en' | 'gu' }>({
   testDir: './apps/web/e2e',
   testIgnore: '**/gallery/**',
   fullyParallel: true,
@@ -30,6 +30,17 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'phone', use: { ...devices['Pixel 5'] } },
+    {
+      name: 'phone',
+      use: { ...devices['Pixel 5'] },
+      testIgnore: ['**/gallery/**', '**/actions.spec.ts'],
+    },
+    // Journeys with the tenant language set to Gujarati; empty gu values fall back to English
+    // until ticket 24, so this proves the seed, the config and no regressions, not a translation.
+    {
+      name: 'gujarati',
+      use: { ...devices['Pixel 5'], uiLanguage: 'gu' },
+      testIgnore: ['**/gallery/**', '**/actions.spec.ts'],
+    },
   ],
 });

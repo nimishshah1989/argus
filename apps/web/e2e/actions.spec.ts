@@ -1,0 +1,171 @@
+import {
+  availableActions,
+  canWork,
+  type ActionCrewMember,
+  type ActorContext,
+  type TicketAction,
+} from '@uptimo/domain';
+import type { Page } from '@playwright/test';
+import { expect, test } from './test.js';
+import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { actionMachines, commandViaApi, getJson } from './fixtures-actions.js';
+
+/**
+ * The action matrix: six tickets in six states, eight logins, one rule. Every button the ticket
+ * page shows must be what the domain `availableActions` offers (the server's rule), and nothing
+ * else. The six tickets are raised through the API, so the spec does not depend on the floor form.
+ */
+test.describe.configure({ mode: 'serial' });
+
+const LOGINS = ['asha', 'bina', 'op', 'sup', 'head', 'ph', 'brd', 'admin'] as const;
+const BUTTON: Record<TicketAction, string> = {
+  start: 'Start',
+  resume: 'Resume',
+  update: 'Update',
+  pause: 'Pause',
+  transfer: 'Transfer',
+  'machine-running': 'Machine running',
+  'machine-stopped': 'Machine stopped',
+  join: 'Add me as support',
+  leave: 'Leave',
+  close: 'Close',
+  cancel: 'Cancel',
+};
+
+interface Seeded {
+  id: string;
+  ref: string;
+}
+type Name = 'open' | 'working' | 'handed over' | 'waiting' | 'closed' | 'cancelled';
+const seeded = {} as Record<Name, Seeded>;
+const tokens = {} as Record<(typeof LOGINS)[number], string>;
+
+interface MeReply {
+  user: { id: string; role: ActorContext['role']; shared: boolean; actingPersonId: string };
+}
+interface DetailReply {
+  ticket: Parameters<typeof availableActions>[0] & { handedOver: boolean };
+  people: { personId: string; role: string; leftAt: string | null }[];
+}
+
+async function personOf(login: (typeof LOGINS)[number]): Promise<string> {
+  return (await getJson<MeReply>(tokens[login], '/api/v1/auth/me')).user.actingPersonId;
+}
+
+test.beforeAll(async () => {
+  for (const login of LOGINS) tokens[login] = await apiLogin(login);
+  const { a, b } = actionMachines();
+  const [asha, bina, op] = await Promise.all([personOf('asha'), personOf('bina'), personOf('op')]);
+  const as =
+    (token: string, personId: string) =>
+    (id: string, action: string, extra = {}) =>
+      commandViaApi(token, id, action, { personId, ...extra });
+  const byAsha = as(tokens.asha, asha);
+  const byOp = as(tokens.op, op);
+
+  seeded.open = await raiseTicketViaApi(tokens.op, a.id, 'Matrix: open stopped');
+  seeded.working = await raiseTicketViaApi(tokens.asha, b.id, 'Matrix: working stopped');
+  await byAsha(seeded.working.id, 'start');
+  await as(tokens.bina, bina)(seeded.working.id, 'join', { role: 'support' });
+
+  seeded['handed over'] = await raiseTicketViaApi(tokens.asha, null, 'Matrix: handed over');
+  await byAsha(seeded['handed over'].id, 'start');
+  await byAsha(seeded['handed over'].id, 'transfer', { note: 'Night shift' });
+
+  seeded.waiting = await raiseTicketViaApi(tokens.asha, null, 'Matrix: waiting');
+  await byAsha(seeded.waiting.id, 'start');
+  await byAsha(seeded.waiting.id, 'pause', { reasonCode: 'spare' });
+
+  seeded.closed = await raiseTicketViaApi(tokens.asha, null, 'Matrix: closed');
+  await byAsha(seeded.closed.id, 'start');
+  await byAsha(seeded.closed.id, 'close', { kind: 'done' });
+
+  seeded.cancelled = await raiseTicketViaApi(tokens.op, null, 'Matrix: cancelled');
+  await byOp(seeded.cancelled.id, 'cancel', { reason: 'Raised by mistake' });
+});
+
+/** Later specs on this worker must not see the live tickets this one raised. */
+test.afterAll(async () => {
+  const admin = await personOf('admin');
+  for (const name of ['open', 'working', 'handed over', 'waiting'] as const) {
+    await commandViaApi(tokens.admin, seeded[name].id, 'cancel', {
+      personId: admin,
+      reason: 'Matrix cleanup',
+    });
+  }
+});
+
+/** The literal bars three rows must show, so one wrong rule cannot hide behind the shared function. */
+const LITERAL: Partial<Record<`${string}/${Name}`, string[]>> = {
+  'asha/working': ['Update', 'Pause', 'Transfer', 'Machine running', 'Close', 'Cancel'],
+  'bina/working': ['Update', 'Pause', 'Transfer', 'Machine running', 'Leave', 'Cancel'],
+  'asha/open': ['Start', 'Cancel'],
+};
+
+async function expectBar(page: Page, login: (typeof LOGINS)[number], name: Name): Promise<void> {
+  const { id, ref } = seeded[name];
+  const me = (await getJson<MeReply>(tokens[login], '/api/v1/auth/me')).user;
+  const detail = await getJson<DetailReply>(tokens[login], `/api/v1/tickets/${id}`);
+  const actor: ActorContext = {
+    role: me.role,
+    loginId: me.id,
+    personId: me.actingPersonId,
+    shared: me.shared,
+  };
+  const crew = detail.people.flatMap((member): ActionCrewMember[] =>
+    member.role === 'primary' || member.role === 'support'
+      ? [{ personId: member.personId, role: member.role, leftAt: member.leftAt }]
+      : [],
+  );
+  // Operator, plant head and board never get the action bar on the ticket page.
+  const expected = canWork(actor)
+    ? availableActions({ ...detail.ticket, crew }, actor).map((action) =>
+        action === 'start' && detail.ticket.handedOver ? 'Pick up' : BUTTON[action],
+      )
+    : [];
+  const literal = LITERAL[`${login}/${name}`];
+  if (literal) expect(expected).toEqual(literal);
+
+  await page.goto(`/desk/${id}`);
+  await expect(page.getByRole('heading', { name: ref })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  const region = page.getByRole('region', { name: 'Actions', exact: true });
+  if (expected.length === 0) await expect(region).toHaveCount(0);
+  else await expect(region.getByRole('button')).toHaveText(expected);
+}
+
+for (const login of LOGINS) {
+  test(`E1 shows exactly availableActions on the ticket for ${login}`, async ({ page }) => {
+    await signIn(page, login);
+    for (const name of Object.keys(seeded) as Name[]) await expectBar(page, login, name);
+  });
+}
+
+test('E2 shows the quick action on the desk card', async ({ page }) => {
+  await signIn(page, 'asha');
+  await page.goto('/desk');
+  const quick: [Name, string][] = [
+    ['open', 'Start'],
+    ['handed over', 'Pick up'],
+    ['waiting', 'Resume'],
+    ['working', 'Machine running'],
+  ];
+  for (const [name, label] of quick) {
+    const card = page
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
+    await expect(card.getByRole('button', { name: label, exact: true })).toBeVisible();
+  }
+});
+
+test('E3 offers Cancel on My complaints exactly when the server would', async ({ page }) => {
+  await signIn(page, 'op');
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
+  const card = (name: Name) =>
+    page
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
+  await expect(card('open').getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+  await expect(card('cancelled')).toBeVisible();
+  await expect(card('cancelled').getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+});
