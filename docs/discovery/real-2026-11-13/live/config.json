@@ -1,0 +1,1451 @@
+{
+ "fp": "104vj1f117wgy2e1t",
+ "at": "2026-11-11T09:30:38.921Z",
+ "config": {
+  "id": "cosmos",
+  "company": "Cosmos Engitech",
+  "reportTitle": "BREAKDOWN REPORT",
+  "product": "Cosmos Platform",
+  "language": {
+   "code": "gu-IN",
+   "name": "Gujarati"
+  },
+  "relay": "",
+  "api": "https://bd-live-api.bhaven89.workers.dev",
+  "groupNames": {},
+  "tagline": "Live Machine Status",
+  "logo": "",
+  "groups": {},
+  "ticketPrefix": {
+   "bd": "BD",
+   "wr": "WR"
+  },
+  "shiftTimes": [
+   {
+    "name": "1",
+    "start": "08:00",
+    "end": "18:30"
+   },
+   {
+    "name": "2",
+    "start": "18:29",
+    "end": "05:00"
+   }
+  ],
+  "teamShifts": {
+   "Sagar T": "2",
+   "Madhu K": "1",
+   "Priyank R": "1",
+   "Chirag P": "1",
+   "Bipin P": "2",
+   "Kiran B": "2",
+   "Abhi S": "1",
+   "Jitu R": "2",
+   "Mayur C": "1",
+   "Vishal P": "1",
+   "Ganesh Z": "1",
+   "Mehul P": "1",
+   "Mahendra P": "1"
+  },
+  "features": {
+   "general": true,
+   "pause": true
+  },
+  "floorLive": false,
+  "segShow": {},
+  "workTypes": [
+   "Electrical",
+   "Plumbing / water",
+   "Air line",
+   "Civil / building",
+   "Fabrication / welding",
+   "Installation / shifting",
+   "Material Collection",
+   "Other"
+  ],
+  "waitReasons": [
+   "Waiting for spare",
+   "Sent to vendor for repair",
+   "Waiting for approval / PO",
+   "Waiting for utility (power, air)",
+   "Machine not released by production",
+   "Other"
+  ],
+  "ref": {
+   "machines": [
+    {
+     "id": "A/TANK-1",
+     "category": "Air Receiver Tank",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "A/TANK-2",
+     "category": "Air Receiver Tank",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "A/TANK-3",
+     "category": "Air Receiver Tank",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "A/TANK-4",
+     "category": "Air Receiver Tank",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "A/TANK-5",
+     "category": "Air Receiver Tank",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "BM-1",
+     "category": "Blasting",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "BM-2",
+     "category": "Blasting",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "BM-3",
+     "category": "Blasting",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "BOXY",
+     "category": "Robot",
+     "cell": "1",
+     "seg": "Robot"
+    },
+    {
+     "id": "BRO-1",
+     "category": "Broaching",
+     "cell": "3",
+     "seg": "Conventional"
+    },
+    {
+     "id": "BS-01",
+     "category": "Bandsaw",
+     "cell": "4",
+     "seg": "Conventional"
+    },
+    {
+     "id": "BS-02",
+     "category": "Bandsaw",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "BS-03",
+     "category": "Bandsaw",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "BS-04",
+     "category": "Bandsaw",
+     "cell": "3",
+     "seg": "Conventional"
+    },
+    {
+     "id": "BS-05",
+     "category": "Bandsaw",
+     "cell": "2",
+     "seg": "Conventional"
+    },
+    {
+     "id": "CAM-01",
+     "category": "CAM Profile Machine",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "COMP.-01",
+     "category": "Air Compressor",
+     "cell": "6",
+     "seg": "Utility"
+    },
+    {
+     "id": "COMP.-02",
+     "category": "Air Compressor",
+     "cell": "6",
+     "seg": "Utility"
+    },
+    {
+     "id": "COMP.-03",
+     "category": "Air Compressor",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "COMP.-04",
+     "category": "Air Compressor",
+     "cell": "7",
+     "seg": "Utility"
+    },
+    {
+     "id": "COMP.-05",
+     "category": "Air Compressor",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "COMP.-06",
+     "category": "Air Compressor",
+     "cell": "7",
+     "seg": "Utility"
+    },
+    {
+     "id": "COP-1",
+     "category": "Copper Spray",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "DCMC-01",
+     "category": "Vertical Double Column Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "DCMC-02",
+     "category": "Vertical Double Column Machining Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "DG-1",
+     "category": "",
+     "cell": "",
+     "seg": "DG"
+    },
+    {
+     "id": "DG-2",
+     "category": "",
+     "cell": "",
+     "seg": "DG"
+    },
+    {
+     "id": "DG-3",
+     "category": "",
+     "cell": "",
+     "seg": "DG"
+    },
+    {
+     "id": "DRILL-1",
+     "category": "Drilling",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "DRILL-2",
+     "category": "Drilling",
+     "cell": "7",
+     "seg": "Conventional"
+    },
+    {
+     "id": "DRILL-3",
+     "category": "Radial Drill",
+     "cell": "2",
+     "seg": "Conventional"
+    },
+    {
+     "id": "DRYER-01",
+     "category": "Air Dryer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-02",
+     "category": "Air Dryer",
+     "cell": "6",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-03",
+     "category": "Air Dryer",
+     "cell": "7",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-04",
+     "category": "Air Dryer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-05",
+     "category": "Air Dryer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-06",
+     "category": "Air Dryer",
+     "cell": "6",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-07",
+     "category": "Air Dryer",
+     "cell": "7",
+     "seg": "Utility"
+    },
+    {
+     "id": "DRYER-08",
+     "category": "Air Dryer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "GRD-1",
+     "category": "Cylinderical rotary Grinding",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-2",
+     "category": "CNC Surface Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-3",
+     "category": "CNC Surface Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-4",
+     "category": "CNC Angular Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-5",
+     "category": "CNC Internal Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-6",
+     "category": "CNC Angular Grinding",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-7",
+     "category": "Centerless Grinding Machine",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-8",
+     "category": "CNC Internal Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "GRD-9",
+     "category": "CNC Internal Grinding",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "HL-1",
+     "category": "Helium Testing",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "HMC-2",
+     "category": "Horizontal Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "HMC-3",
+     "category": "Horizontal Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "HMC-4",
+     "category": "Horizontal Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "HPM-1",
+     "category": "Hydraulic Press",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "HPM-2",
+     "category": "Hydraulic Press",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "HTP-1",
+     "category": "Hydrostatic Test Pump",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "ITL-01",
+     "category": "Circular Cutting",
+     "cell": "4",
+     "seg": "Conventional"
+    },
+    {
+     "id": "LASER-01",
+     "category": "Laser Marking",
+     "cell": "3",
+     "seg": "Process"
+    },
+    {
+     "id": "LATHE-3",
+     "category": "Lathe",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "LATHE-4",
+     "category": "Lathe",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "MARK-01",
+     "category": "Marking",
+     "cell": "3",
+     "seg": "Process"
+    },
+    {
+     "id": "MARK-02",
+     "category": "Marking",
+     "cell": "7",
+     "seg": "Process"
+    },
+    {
+     "id": "MD-1",
+     "category": "Magnetic Deburring",
+     "cell": "3",
+     "seg": "Process"
+    },
+    {
+     "id": "MD-2",
+     "category": "Magnetic Deburring",
+     "cell": "7",
+     "seg": "Process"
+    },
+    {
+     "id": "PCM-01",
+     "category": "Plate Cutting",
+     "cell": "6",
+     "seg": "Conventional"
+    },
+    {
+     "id": "PH-1",
+     "category": "Polishing Head",
+     "cell": "3",
+     "seg": "Process"
+    },
+    {
+     "id": "PH-2",
+     "category": "Polishing Head",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "RDM-2",
+     "category": "Radial Drill",
+     "cell": "4",
+     "seg": "Conventional"
+    },
+    {
+     "id": "S-1",
+     "category": "Cnc Sliding Head  Automatic Lathe",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "S-2",
+     "category": "Cnc Sliding Head  Automatic Lathe",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "STABILIZER-01",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-02",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-03",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-04",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-05",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-06",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-07",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-08",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-09",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "STABILIZER-10",
+     "category": "Stabilizer",
+     "cell": "",
+     "seg": "Utility"
+    },
+    {
+     "id": "TC-10",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-11",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-12",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-13",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-14",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-15",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-16",
+     "category": "Turning Center",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-17",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-18",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-19",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-20",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-21",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-22",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-23",
+     "category": "Turning Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-24",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-25",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-26",
+     "category": "Turning Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-27",
+     "category": "Turning Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-28",
+     "category": "Turning Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-29",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-3",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-30",
+     "category": "Turning Center",
+     "cell": "8",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-31",
+     "category": "Turning Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-32",
+     "category": "Turning Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-33",
+     "category": "Turning Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-34",
+     "category": "Turning Center",
+     "cell": "8",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-35",
+     "category": "Turning Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-36",
+     "category": "Turning Center",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-37",
+     "category": "Turning Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-38",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-39",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-40",
+     "category": "Turning Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-41",
+     "category": "Turning Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-5",
+     "category": "Turning Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-6",
+     "category": "Turning Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-7",
+     "category": "Turning Center",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-8",
+     "category": "Turning Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "TC-9",
+     "category": "Turning Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "TMC-1",
+     "category": "Turnmill",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "TMC-2",
+     "category": "Turnmill",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "TMC-4",
+     "category": "Turnmill",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "TMC-5",
+     "category": "Turnmill",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "TMC-6",
+     "category": "Turnmill",
+     "cell": "1",
+     "seg": "CNC"
+    },
+    {
+     "id": "UPS-01",
+     "category": "UPS",
+     "cell": "1",
+     "seg": "Utility"
+    },
+    {
+     "id": "US-1",
+     "category": "Ultrasonic Washing",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "US-2",
+     "category": "Ultrasonic Washing",
+     "cell": "6",
+     "seg": "Process"
+    },
+    {
+     "id": "US-3",
+     "category": "Ultrasonic Washing",
+     "cell": "7",
+     "seg": "Process"
+    },
+    {
+     "id": "US-4",
+     "category": "Ultrasonic Washing",
+     "cell": "3",
+     "seg": "Process"
+    },
+    {
+     "id": "VC-10",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-11",
+     "category": "Vertical Machining Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-12",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-13",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-14",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-15",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-16",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-17",
+     "category": "Vertical Machining Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-18",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-19",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-20",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-21",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-22",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-23",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-24",
+     "category": "Vertical Machining Center",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-25",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-26",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-27",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-28",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-29",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-30",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-31",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-32",
+     "category": "Vertical Machining Center",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-33",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-34",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-35",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-36",
+     "category": "Vertical Machining Center",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-37",
+     "category": "Vertical Machining Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-38",
+     "category": "Vertical Machining Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-39",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-40",
+     "category": "Vertical Machining Center",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-41",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-42",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-43",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-44",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-45",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-46",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-47",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-48",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-49",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-50",
+     "category": "Vertical Machining Center",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-51",
+     "category": "Vertical Machining Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-52",
+     "category": "Vertical Machining Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-53",
+     "category": "Vertical Machining Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-54",
+     "category": "Vertical Machining Center",
+     "cell": "8",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-55",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-56",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-57",
+     "category": "Vertical Machining Center",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-6",
+     "category": "Vertical Machining Center",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-7",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-8",
+     "category": "Vertical Machining Center",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VC-9",
+     "category": "Vertical Machining Center",
+     "cell": "3",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-1",
+     "category": "Vertical Turning Lathe",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-10",
+     "category": "Vertical Turning Lathe",
+     "cell": "2",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-11",
+     "category": "Vertical Turning Lathe",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-12",
+     "category": "Vertical Turning Lathe",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-2",
+     "category": "Vertical Turning Lathe",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-3",
+     "category": "Vertical Turning Lathe",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-4",
+     "category": "Vertical Turning Lathe",
+     "cell": "9",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-5",
+     "category": "Vertical Turning Lathe",
+     "cell": "4",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-6",
+     "category": "Vertical Turning Lathe",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-7",
+     "category": "Vertical Turning Lathe",
+     "cell": "5",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-8",
+     "category": "Vertical Turning Lathe",
+     "cell": "7",
+     "seg": "CNC"
+    },
+    {
+     "id": "VTL-9",
+     "category": "Vertical Turning Lathe",
+     "cell": "6",
+     "seg": "CNC"
+    },
+    {
+     "id": "WJ-01",
+     "category": "WaterJet CNC",
+     "cell": "6",
+     "seg": "CNC"
+    }
+   ],
+   "shifts": [
+    "1",
+    "2",
+    "3"
+   ],
+   "observedBy": [
+    "Operator",
+    "Setter",
+    "Supervisor",
+    "Engineer"
+   ],
+   "team": [
+    "Sagar T",
+    "Madhu K",
+    "Priyank R",
+    "Chirag P",
+    "Bipin P",
+    "Kiran B",
+    "Abhi S",
+    "Imptex Team",
+    "Jitu R",
+    "Mayur C",
+    "Vishal P",
+    "Ganesh Z",
+    "Mehul P",
+    "Mahendra P"
+   ],
+   "codes": [
+    "E",
+    "M",
+    "AX",
+    "SP",
+    "RT",
+    "ATC",
+    "PC",
+    "LB",
+    "CON",
+    "PM",
+    "HY",
+    "MIS",
+    "CHI",
+    "HUM",
+    "LIK",
+    "PNU",
+    "TUR",
+    "NO DT",
+    "RINT"
+   ],
+   "breakdownCategories": [
+    "E",
+    "M",
+    "E/M",
+    "PM"
+   ],
+   "locations": [
+    "434",
+    "435/4",
+    "445",
+    "486",
+    "841-A",
+    "841-B",
+    "381"
+   ],
+   "cells": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+   ]
+  },
+  "glossary": {
+   "સ્પિન્ડલ": "spindle",
+   "સ્પીન્ડલ": "spindle",
+   "પીન્ડલ": "spindle",
+   "પિન્ડલ": "spindle",
+   "સ્પિંડલ": "spindle",
+   "સ્પીંડલ": "spindle",
+   "પિંડલ": "spindle",
+   "પીંડલ": "spindle",
+   "બેરિંગ": "bearing",
+   "બેરીંગ": "bearing",
+   "સેન્સર": "sensor",
+   "સેંસર": "sensor",
+   "પ્રોક્સિમિટી": "proximity",
+   "પ્રોક્ઝિમિટી": "proximity",
+   "અનક્લેમ્પ": "unclamp",
+   "ક્લેમ્પ": "clamp",
+   "ક્લેંપ": "clamp",
+   "કૂલન્ટ": "coolant",
+   "કુલન્ટ": "coolant",
+   "કૂલંટ": "coolant",
+   "હાઇડ્રોલિક": "hydraulic",
+   "હાઈડ્રોલિક": "hydraulic",
+   "હાયડ્રોલિક": "hydraulic",
+   "ન્યુમેટિક": "pneumatic",
+   "મોટર": "motor",
+   "બેલ્ટ": "belt",
+   "ફિલ્ટર": "filter",
+   "એટીસી": "ATC",
+   "એ ટી સી": "ATC",
+   "આર્મ": "arm",
+   "ટરેટ": "turret",
+   "ઓવરલોડ": "overload",
+   "એલાર્મ": "alarm",
+   "અલાર્મ": "alarm",
+   "કન્વેયર": "conveyor",
+   "ચિલર": "chiller",
+   "સોલેનોઇડ": "solenoid",
+   "સોલેનોઈડ": "solenoid",
+   "વાલ્વ": "valve",
+   "રિલે": "relay",
+   "કોન્ટેક્ટર": "contactor",
+   "એન્કોડર": "encoder",
+   "બેટરી": "battery",
+   "ડ્રાઈવ": "drive",
+   "ડ્રાઇવ": "drive",
+   "સર્વો": "servo",
+   "એક્સિસ": "axis",
+   "એક્સીસ": "axis",
+   "પેરામીટર": "parameter",
+   "લિમિટ સ્વિચ": "limit switch",
+   "સ્વિચ": "switch",
+   "ગ્રીસ": "grease",
+   "ઓઇલ": "oil",
+   "ઓઈલ": "oil",
+   "લુબ્રિકેશન": "lubrication",
+   "પ્રેશર": "pressure",
+   "ટૂલ ચેન્જર": "tool changer",
+   "પેલેટ": "pallet",
+   "pindle": "spindle",
+   "spindal": "spindle",
+   "spindel": "spindle",
+   "bering": "bearing",
+   "berring": "bearing",
+   "acceident": "accident",
+   "acitvity": "activity",
+   "allignemet": "alignment",
+   "allignment": "alignment",
+   "attache": "attach",
+   "bellow": "bellows",
+   "breack": "break",
+   "brokan": "broken",
+   "cahin": "chain",
+   "cahnge": "change",
+   "cahnged": "changed",
+   "chetring": "checking",
+   "chked": "chcked",
+   "cleam": "clean",
+   "conection": "connection",
+   "connectin": "connection",
+   "convryor": "conveyor",
+   "convyor": "conveyor",
+   "cooloant": "coolant",
+   "damge": "damage",
+   "damged": "damaged",
+   "disconnect": "disconnected",
+   "geroetry": "geometry",
+   "hydarulic": "hydraulic",
+   "indux": "index",
+   "labricasion": "lubrication",
+   "lavel": "level",
+   "leakeg": "leakge",
+   "leval": "level",
+   "limiw": "limit",
+   "llose": "loose",
+   "lubraction": "lubrication",
+   "lubriaction": "lubrication",
+   "machien": "machine",
+   "machin": "machine",
+   "magazin": "magazine",
+   "magezin": "magazine",
+   "muanually": "manually",
+   "obervaed": "observed",
+   "oberved": "observed",
+   "operatore": "operator",
+   "oreation": "operation",
+   "orientaion": "orientation",
+   "oriyent": "orient",
+   "palte": "plate",
+   "paramaeter": "parameter",
+   "paramiter": "parameter",
+   "prebventive": "preventive",
+   "pressur": "pressure",
+   "presure": "pressure",
+   "pused": "puted",
+   "realy": "relay",
+   "refrence": "reference",
+   "relese": "release",
+   "relesed": "released",
+   "repeatabiltiy": "repeatability",
+   "repired": "repaired",
+   "replpaced": "replaced",
+   "rotay": "rotary",
+   "rotory": "rotary",
+   "sacarping": "scraping",
+   "sansor": "sensor",
+   "satting": "setting",
+   "selector": "selection",
+   "shfiting": "shifting",
+   "shoft": "soft",
+   "soluction": "solution",
+   "spaider": "spider",
+   "stariner": "strainer",
+   "stude": "stud",
+   "taighting": "tighting",
+   "tarvel": "travel",
+   "tersit": "turcite",
+   "thrue": "thru",
+   "tightning": "tightening",
+   "tureet": "turret",
+   "turet": "turret",
+   "unclmap": "unclamp",
+   "unclmp": "unclamp",
+   "vibrating": "vibration",
+   "volteage": "voltage"
+  }
+ }
+}
