@@ -50,10 +50,12 @@ not a route check.
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
 
+<!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 06:54 UTC on branch `claude/orchestrator-ledger`.
+Last session ended 2026-11-13 06:57 UTC on branch `claude/orchestrator-ledger`.
+- 82922f2 docs(plan): ledger — ticket 01 rulings
 - b21370f docs(plan): ledger — format ruling
 - 6520cc3 docs: format session-end facts for prettier
-- 0e63c9e docs: session-end facts and log line
-Uncommitted files: 0
+Uncommitted files: 1 (first: ocs/HANDOFF.md)
 <!-- end facts -->
+<!-- prettier-ignore-end -->
