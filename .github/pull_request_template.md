@@ -4,14 +4,18 @@
 
 ## Verification
 
+- [ ] `pnpm precheck` green before the push
 - [ ] `pnpm verify` green
 - [ ] `pnpm test:e2e` green when a screen or server route changed
 - [ ] `docs/spec/parity.yaml` updated for every `apps/` or `packages/` change (or the `no-parity`
-      label plus the reason below)
-- [ ] `docs/plan/STATUS.md` updated when a shipped slice changes what the product does
+      label, or a `No parity: <reason>` line below)
+- [ ] `docs/plan/MILESTONES.md` updated when a shipped slice changes what the product does
 - [ ] New migration file (never edit a merged one); `tenant_id` + RLS in the same file
-- [ ] PR under 800 changed lines, or the `size:large` label plus the reason below
+- [ ] PR under 800 changed lines (or the `size:large` label, or a `Large PR: <reason>` line below)
 
-## Label reasons
+## Reasons
 
-<!-- Fill in when using size:large or no-parity. -->
+<!-- Over 800 lines, or apps/ or packages/ without the parity ledger? Add a line below, for example:
+Large PR: ports the whole gallery suite
+No parity: test-only change to the harness
+(at least 10 characters; the examples stay inside this comment so they never count). -->

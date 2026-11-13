@@ -51,10 +51,11 @@ label; runs the fast static checks locally with one `pnpm precheck`; and no long
 - `apps/server/test/harness.ts`: add `tolerateShutdown`; attach it to `admin` and `app` in `startTestDb`; `stop()` calls
   both begins first, then ends the pools, then stops the container. `apps/server/test/harness-shutdown.test.ts` new:
   T13–T16.
-- `apps/server/test/ticket-pdf.test.ts` (pool `pool`) and
-  `apps/server/src/modules/accountability/test/sla-jobs.test.ts` (pools `admin`, `app`): setup and teardown only, zero
-  assertion changes. Each imports `tolerateShutdown` from the harness (`sla-jobs.test.ts`: `../../../../test/harness.js`; `ticket-pdf.test.ts`: `./harness.js`; `*.test.ts` files are skipped by
-  `pnpm boundaries`), attaches it where the pool is created and calls the returned begin first in `afterAll`, before `boss.stop()`. pg-boss's own pool is not covered (it has its own listener).
+- `apps/server/test/ticket-pdf.test.ts` (pool `pool`): setup and teardown only, zero assertion changes. It imports
+  `tolerateShutdown` from `./harness.js`, attaches it where the pool is created and calls the returned begin first in
+  `afterAll`. `sla-jobs.test.ts` is NOT guarded (decided at build): ESLint forbids a file under `apps/server/src`
+  importing `apps/server/test/harness.ts` (`LEAVES`), inlining a copy would duplicate the guard, and its teardown
+  already ends both pools before `container.stop()`.
 - `docs/LEAN.md`: row at line 33 ends `a size:large label, or a "Large PR: <reason>" line in the PR description`;
   row at line 62 ends `(or the no-parity label, or a "No parity: <reason>" line in the PR description)`.
 - `CLAUDE.md` section "Git": append one sentence: `Run pnpm precheck before every push.`

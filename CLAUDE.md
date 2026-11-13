@@ -41,7 +41,7 @@ retired (D23); `docs/archive/athena-v3/` is history, not instructions.
 
 Work on a branch. Never push to main, never force-push, never `--no-verify`. One ticket per PR, with one
 `changes/<issue>-<slug>.md` fragment. The PR body says what changed for a user, which tests prove it, and how
-to try the preview.
+to try the preview. Run `pnpm precheck` before every push.
 
 ## Memory
 
