@@ -10,7 +10,7 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 - CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
   Playwright worker (`apps/web/e2e/test.ts`).
-- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR), `pnpm boundaries` (SQL on ops/identity/plant tables only in that module's `repo.ts`; its LEGACY list is emptied by 03).
+- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR), `pnpm boundaries` (owners, calls and dated exceptions in `apps/server/src/modules/manifest.ts`; SQL on a module's tables only in its `repo.ts` or `repo/`).
 
 ## Live on main
 
