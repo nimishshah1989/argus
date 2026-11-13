@@ -20,7 +20,6 @@ import {
 
 export { errorBodySchema } from './error.js';
 
-export const pdfFileReplySchema = z.object({ fileId: z.string(), url: z.string() }).strict();
 export const okReplySchema = z.object({ ok: z.literal(true) }).strict();
 export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
@@ -101,6 +100,6 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
-  [`GET ${P}/tickets/:id/pdf`]: pdfFileReplySchema,
+  [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,
 };

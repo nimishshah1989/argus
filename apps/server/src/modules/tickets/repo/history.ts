@@ -60,21 +60,6 @@ export async function pdfTicketRow(
   return (await tx.query(TICKET_SQL, [ticketId, tenantId])).rows;
 }
 
-export async function setReportPdf(
-  tx: Db,
-  input: {
-    fileId: string;
-    payload: Record<string, string | number | null>;
-    reportId: string;
-    tenantId: string;
-  },
-): Promise<void> {
-  await tx.query(
-    'UPDATE breakdown_report SET pdf_file_id = $1, qr_payload = $2 WHERE id = $3 AND tenant_id = $4',
-    [input.fileId, input.payload, input.reportId, input.tenantId],
-  );
-}
-
 export interface HistoryRow {
   id: string;
   machineId: string;

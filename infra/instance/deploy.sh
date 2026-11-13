@@ -3,6 +3,8 @@
 set -euo pipefail
 UPTIMO_DIR="${UPTIMO_DIR:-/opt/uptimo}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-60}"
+DB_INSTANCE_ID="${DB_INSTANCE_ID:-uptimo-postgres}"
+SNAPSHOT_WAIT="${SNAPSHOT_WAIT:-1200}" # seconds to wait for the snapshot before giving up
 cd "$UPTIMO_DIR"
 set -a; . ./.env; set +a
 
@@ -21,6 +23,39 @@ healthy() {
   return 1
 }
 
+# One real PDF made inside the running container (scripts/pdf-smoke.ts): no Chromium, no Gujarati font or a user
+# that cannot run Chromium fails the release here, not on the first report somebody prints.
+pdf_works() {
+  local out
+  if out="$(docker compose exec -T server node_modules/.bin/tsx scripts/pdf-smoke.ts 2>&1)"; then return 0; fi
+  echo "PDF check failed: $(printf '%s' "$out" | tail -3)"
+  return 1
+}
+
+# Before migrations that change the database: a snapshot you can restore (CLAUDE.md: back up first).
+# Sets `snapshot` to its name, or leaves it empty when nothing was pending. Any answer that is not exactly
+# "pending: 0" counts as pending, so a doubt is settled by taking the snapshot.
+snapshot=""
+snapshot_if_migrating() {
+  local image="$1" tag="$2" out short
+  if ! out="$(docker run --rm --env-file "$UPTIMO_DIR/migrate.env" "$image" \
+    node_modules/.bin/tsx scripts/migrate.ts --pending)"; then
+    echo "could not read the database's migration state; nothing changed; ${current:-nothing} still running"
+    exit 1
+  fi
+  if printf '%s\n' "$out" | grep -qx 'pending: 0'; then return 0; fi
+  short="${tag//[^A-Za-z0-9]/}"
+  snapshot="uptimo-pre-${short:0:12}-$(date -u +%Y%m%d%H%M%S)"
+  echo "migrations are pending; taking snapshot $snapshot of $DB_INSTANCE_ID first"
+  if ! { aws rds create-db-snapshot --region "$AWS_REGION" --db-instance-identifier "$DB_INSTANCE_ID" \
+      --db-snapshot-identifier "$snapshot" >/dev/null &&
+    timeout "$SNAPSHOT_WAIT" aws rds wait db-snapshot-available --region "$AWS_REGION" \
+      --db-snapshot-identifier "$snapshot"; }; then
+    echo "snapshot $snapshot failed or timed out; nothing migrated; ${current:-nothing} still running"
+    exit 1
+  fi
+}
+
 prepare() {
   "$UPTIMO_DIR/instance/refresh-env.sh"
   aws ecr get-login-password --region "$AWS_REGION" |
@@ -28,27 +63,35 @@ prepare() {
 }
 
 deploy() {
-  local tag="$1"
+  local tag="$1" image
+  image="$ECR_REGISTRY/uptimo-server:$tag"
   prepare
   IMAGE_TAG="$tag" docker compose pull
-  if ! docker run --rm --env-file "$UPTIMO_DIR/migrate.env" "$ECR_REGISTRY/uptimo-server:$tag" \
+  snapshot_if_migrating "$image" "$tag"
+  if ! docker run --rm --env-file "$UPTIMO_DIR/migrate.env" "$image" \
     node_modules/.bin/tsx scripts/migrate.ts; then
-    echo "migration failed; ${current:-nothing} still running"
+    echo "migration failed; ${current:-nothing} still running${snapshot:+; snapshot $snapshot was taken first}"
     exit 1
   fi
   up "$tag" || true
-  if healthy; then
+  if healthy && pdf_works; then
     if [ -n "$current" ] && [ "$current" != "$tag" ]; then echo "$current" > .previous_tag; fi
     echo "$tag" > .current_tag
     echo "deployed $tag"
     return
   fi
-  if [ -n "$current" ]; then
-    up "$current"
-    echo "health failed; rolled back to $current"
-  else
-    echo "health failed on the first deploy; nothing to roll back to"
+  if [ -z "$current" ]; then
+    echo "release check failed on the first deploy; nothing to roll back to"
+    exit 1
   fi
+  up "$current"
+  echo "release check failed; rolled back to $current"
+  if [ -n "$snapshot" ]; then
+    echo "WARNING: the database was already migrated for $tag, so $current is running on the NEW schema."
+    echo "That is safe only if the migration was additive (nothing dropped or renamed)."
+    echo "Check the app now. To undo the data change, restore snapshot $snapshot (infra/RESTORE.md)."
+  fi
+  healthy || echo "WARNING: $current is not healthy either"
   exit 1
 }
 

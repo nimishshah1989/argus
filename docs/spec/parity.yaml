@@ -371,8 +371,8 @@ rows:
       - 'PR #37'
       - 'apps/server/test/ticket-report.test.ts :: stores one report with people and returns it from
         detail'
-      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
-        from the report'
+      - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
+        however often it is asked'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.11
@@ -635,8 +635,8 @@ rows:
     status: in-progress
     evidence:
       - 'PR #37'
-      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
-        from the report'
+      - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
+        however often it is asked'
       - 'apps/server/test/ticket-pdf.test.ts :: builds the v1 QR payload and embeds the QR in the
         template'
     source: PARITY.md §v3 / Reports and PDFs
@@ -653,7 +653,7 @@ rows:
       - 'PR #56'
       - 'apps/server/test/day-report.test.ts :: lists every ticket the person touched with their own
         clipped minutes'
-      - 'apps/server/test/day-report.test.ts :: returns a stored application/pdf for the caller day'
+      - 'apps/server/test/day-report.test.ts :: returns the caller’s day as a PDF and stores nothing'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name
@@ -664,8 +664,8 @@ rows:
     status: done
     evidence:
       - 'PR #37'
-      - 'apps/server/test/ticket-pdf.test.ts :: renders one stored PDF for the ticket and links it
-        from the report'
+      - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
+        however often it is asked'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.alerts.01
     feature:

@@ -1,17 +1,30 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readdirSync, readFileSync } from 'node:fs';
+import { chmodSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { hash } from '@node-rs/argon2';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { buildQrPayload, qrSvg, qrText } from '../src/modules/reports/pdf.js';
 import { renderReportHtml, type ReportPdfInput } from '../src/modules/reports/pdf-template.js';
 import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 import { tolerateShutdown } from './harness.js';
+
+// Records every QR payload the route builds, so the test can read what the PDF's QR carries.
+const { qrPayloads } = vi.hoisted(() => ({ qrPayloads: [] as unknown[] }));
+vi.mock('../src/modules/reports/pdf.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/modules/reports/pdf.js')>();
+  return {
+    ...actual,
+    qrText: (payload: Parameters<typeof actual.qrText>[0]) => {
+      qrPayloads.push(payload);
+      return actual.qrText(payload);
+    },
+  };
+});
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
 const SEGMENT = '10000000-0000-0000-0000-000000000002';
@@ -244,32 +257,26 @@ afterAll(async () => {
 });
 
 describe('breakdown report PDF', () => {
-  it('renders one stored PDF for the ticket and links it from the report', async () => {
+  it('answers with the PDF itself and stores nothing, however often it is asked', async () => {
     const id = await raiseWithReport(M1, 'સ્પિન્ડલ બેરિંગ બદલવું પડ્યું');
     const res = await get(`/api/v1/tickets/${id}/pdf`, ashaToken);
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { fileId: string; url: string };
-    expect(body.fileId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(body.url).toBe(`/api/v1/files/${body.fileId}`);
-
-    const files = await pool.query('SELECT * FROM file WHERE ticket_id = $1', [id]);
-    expect(files.rows).toHaveLength(1);
-    const file = files.rows[0];
-    expect(file.kind).toBe('pdf');
-    expect(file.mime).toBe('application/pdf');
-    const bytes = await readFile(join(filesDir, file.s3_key as string));
-    expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
-    expect(bytes.length).toBeGreaterThan(5000);
-    expect(Number(file.bytes)).toBe(bytes.length);
-    expect(file.sha256).toBe(createHash('sha256').update(bytes).digest('hex'));
-
-    const reports = await pool.query(
-      'SELECT pdf_file_id, qr_payload FROM breakdown_report WHERE ticket_id = $1',
-      [id],
-    );
+    expect(res.headers['content-type']).toContain('application/pdf');
     const ticket = (await pool.query('SELECT ref FROM ticket WHERE id = $1', [id])).rows[0];
-    expect(reports.rows[0].pdf_file_id).toBe(body.fileId);
-    expect(reports.rows[0].qr_payload).toMatchObject({
+    expect(res.headers['content-disposition']).toMatch(
+      /filename="Breakdown_[A-Za-z0-9._-]+_2026-11-10\.pdf"/,
+    );
+    expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(res.rawPayload.length).toBeGreaterThan(5000);
+
+    // A second tap makes no row and no file: nothing to lose on a deploy, nothing growing.
+    expect((await get(`/api/v1/tickets/${id}/pdf`, ashaToken)).statusCode).toBe(200);
+    const files = await pool.query('SELECT 1 FROM file WHERE ticket_id = $1', [id]);
+    expect(files.rows).toHaveLength(0);
+    expect(readdirSync(filesDir)).toEqual([]);
+
+    // The QR the platform imports carries this report's own numbers and names.
+    expect(qrPayloads.at(-1)).toMatchObject({
       v: 1,
       mid: M1,
       d: '2026-11-10',
@@ -335,6 +342,54 @@ describe('breakdown report PDF', () => {
     expect(html).toContain('Scan to import into the platform');
     expect(html).toContain('VC-1');
     expect(html).toContain('Replaced bearing');
+  });
+
+  it('answers 503 with Retry-After when more reports are asked for than the queue holds', async () => {
+    const id = await raiseWithReport(M1, 'Busy day');
+    // A stand-in Chromium that holds its render until the test says go, so the queue fills for certain.
+    const release = join(filesDir, 'release');
+    const fake = join(filesDir, 'slow-chromium.sh');
+    writeFileSync(
+      fake,
+      `#!/bin/bash
+for arg in "$@"; do case "$arg" in --print-to-pdf=*) out="\${arg#--print-to-pdf=}";; esac; done
+while [ ! -e "${release}" ]; do sleep 0.05; done
+printf '%%PDF-1.4 stand-in' > "$out"
+`,
+    );
+    chmodSync(fake, 0o755);
+    const slowApp = await buildApp({
+      pool,
+      logger: false,
+      rateLimitMax: 100000,
+      chromiumPath: fake,
+    });
+    try {
+      const replies: Res[] = [];
+      const calls = Array.from({ length: 6 }, () =>
+        slowApp
+          .inject({
+            method: 'GET',
+            url: `/api/v1/tickets/${id}/pdf`,
+            headers: { host: 'cosmos.localhost', authorization: `Bearer ${ashaToken}` },
+          })
+          .then((res) => replies.push(res)),
+      );
+      // One render runs, three wait: the other two callers are told to come back, at once.
+      for (let i = 0; i < 200 && replies.length < 2; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(replies.map((res) => res.statusCode)).toEqual([503, 503]);
+      expect(replies[0]?.headers['retry-after']).toBe('5');
+      expect(replies[0]?.json().error.code).toBe('rate_limited');
+      writeFileSync(release, '');
+      await Promise.all(calls);
+      expect(replies.slice(2).map((res) => res.statusCode)).toEqual([200, 200, 200, 200]);
+      expect(existsSync(release)).toBe(true);
+    } finally {
+      writeFileSync(release, '');
+      await slowApp.close();
+    }
   });
 
   it('refuses a ticket without a report', async () => {
