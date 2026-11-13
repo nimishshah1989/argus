@@ -27,7 +27,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 1. **Import undo runs on a second connection.** `import:undo` reads `ROUTER_DATABASE_URL` and nothing else; the
    import path keeps `DATABASE_URL` and `assertAppApiRole`. In one transaction on the router connection:
    `SET LOCAL ROLE app_user`, set `app.tenant_id`, run today's TypeScript checks (lock, contract, completion
-   fingerprint), `RESET ROLE`, then `SELECT import_undo($1, $2)` (notes §8). The function does the deletes, the
+   fingerprint), `RESET ROLE`, then `SELECT import_undo($1, $2, $3)` (tenant, batch, operator; notes §8). The function does the deletes, the
    status change and the audit row, so `deleteCandidates`, `finishUndo`, `assertNoOutsideReferences` go: the
    function refuses the same outside-child and file cases with messages the existing tests' regexes already match
    (`outside`, `file`).
@@ -51,14 +51,19 @@ an export and a backup on record, and a second open breakdown on one machine is 
    table only through its policy (notes §8). `scripts/operator-db.ts` holds the two shared lines (pool, tenant
    list) for the three scripts.
 7. **Erasure completion.** `scripts/erase-person.ts` exits **0** and prints `erase: complete` only when the audit
-   row says `text_searched: true` (or a review is already recorded). With `text_searched: false` it prints the
-   hand-review list (DATA-MAP §5 last paragraph) and `erase: review pending`, and exits **3**. The review is
-   recorded by a second run with `--review-done`, which writes one `audit_log` row, action
-   `person.erase.review`, `after = {request_ref, operator}`, and then prints `erase: complete`. No new table.
+   row says `text_searched: true` **and** no short term was skipped (`skipped_short_terms = 0`), or a review is
+   already recorded. With `text_searched: false` or a skipped term it prints the hand-review list (DATA-MAP §5 last
+   paragraph) and `erase: review pending`, and exits **3**. The review is recorded by a second run with
+   `--review-done --person <uuid>`, which writes one `audit_log` row, action `person.erase.review`,
+   `entity_id` = the person, `after = {request_ref, operator}`, and then prints `erase: complete`. The review is
+   keyed by person and reference. A person who already has a `person.erase` row is refused. No new table.
 8. **Storage objects.** There is no S3 adapter yet (`files/store.ts` is local disk). `erase-person.ts` requires
-   `--files-dir <dir>` and removes each returned `s3_keys` entry under it (`rm`, `force: true`), checking every key
-   first: a key that is absolute or contains `..` prints `erase: unsafe storage key <key>`, exits 1, and no file
-   is deleted. S3 deletion joins when the S3 adapter lands (out of scope).
+   `--files-dir <dir>`, which must exist and be a directory (checked before anything changes; it is resolved with
+   `realpath`), and removes each returned `s3_keys` entry under it, checking every key first inside the erasing
+   transaction: a key that is absolute, contains `..` or whose folder is a link leading outside the directory prints
+   `erase: unsafe storage key <key>`, exits 1, and nothing is changed. After the commit a key with no file, or one
+   that cannot be removed, is not ignored: the counts and the review list are printed, then `erase: stored files
+missing or not removed: <keys>` and exit 1 (the rows are gone, so the keys are recorded nowhere else). S3 deletion joins when the S3 adapter lands (out of scope).
 9. **Tag export format.** CSV with a header, every column of `ticket_tag` as PostgreSQL's own text output
    (`rowMode: 'array'`, a type parser that returns the raw string), `NULL` as an empty unquoted field, any value
    containing `,` `"` CR or LF quoted with `""` doubling, so the down file's `\copy … WITH (FORMAT csv, HEADER)`
@@ -82,18 +87,18 @@ an export and a backup on record, and a second open breakdown on one machine is 
 
 ### New
 
-| File                                         | What                                                                                                                                                                      |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/operator-db.ts`                     | `operatorPool`, `listTenants` (§4). About 25 lines.                                                                                                                       |
-| `scripts/export-tags.ts`                     | Decision 9; output in §4. About 80 lines.                                                                                                                                 |
-| `scripts/preflight-cutover.ts`               | Duplicate query of 0009 part 1 per tenant, tag count, grants that end at cutover; exit 1 on any duplicate; exit 0 when `to_regclass('public.ticket')` is null. ~85 lines. |
-| `scripts/erase-person.ts`                    | Decisions 7, 8; `HAND_REVIEW` exported. About 170 lines.                                                                                                                  |
-| `packages/db/test/migrated.ts`               | `startMigratedDb` (§4).                                                                                                                                                   |
-| `packages/db/test/history.test.ts`           | Tests 5–9, 13, 26–28.                                                                                                                                                     |
-| `packages/db/test/definer-functions.test.ts` | Tests 16–25.                                                                                                                                                              |
-| `packages/db/test/cutover-scripts.test.ts`   | Tests 15, 39–43, 56 (order fixed, §6).                                                                                                                                    |
-| `apps/server/test/history-indexes.test.ts`   | Tests 10–12.                                                                                                                                                              |
-| `changes/85-history-cannot-be-lost.md`       | Fragment (§9).                                                                                                                                                            |
+| File                                         | What                                                                                                                                                                                           |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/operator-db.ts`                     | `operatorPool`, `listTenants` (§4). About 25 lines.                                                                                                                                            |
+| `scripts/export-tags.ts`                     | Decision 9; output in §4. About 80 lines.                                                                                                                                                      |
+| `scripts/preflight-cutover.ts`               | Duplicate query of 0009 part 1 per tenant, tag count, grants that end at cutover; exit 3 on any duplicate (1 only for a crash); exit 0 when `to_regclass('public.ticket')` is null. ~85 lines. |
+| `scripts/erase-person.ts`                    | Decisions 7, 8; `HAND_REVIEW` exported. About 170 lines.                                                                                                                                       |
+| `packages/db/test/migrated.ts`               | `startMigratedDb` (§4).                                                                                                                                                                        |
+| `packages/db/test/history.test.ts`           | Tests 5–9, 13, 26–28.                                                                                                                                                                          |
+| `packages/db/test/definer-functions.test.ts` | Tests 16–25.                                                                                                                                                                                   |
+| `packages/db/test/cutover-scripts.test.ts`   | Tests 15, 39–43, 56 (order fixed, §6).                                                                                                                                                         |
+| `apps/server/test/history-indexes.test.ts`   | Tests 10–12.                                                                                                                                                                                   |
+| `changes/85-history-cannot-be-lost.md`       | Fragment (§9).                                                                                                                                                                                 |
 
 ### Changed
 
@@ -113,7 +118,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 | `apps/server/src/modules/manifest.ts`                                                                        | Decision 11.                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `packages/db/test/seed.sql`                                                                                  | Decision 4: both logins `role = 'admin'`; `platform_access` rows gain `approved_by_login_id` (`…0003` per tenant); `ticket_tag` insert deleted. Fake data only.                                                                                                                                                                                                                                                       |
 | `packages/db/test/isolation.test.ts`                                                                         | `beforeAll` uses `startMigratedDb()` then `SET ROLE app_user` as today; `DATED_TABLES = {}`; tests 1–4 (§6). **Hook-sensitive, §11.**                                                                                                                                                                                                                                                                                 |
-| `packages/db/test/migration-runner.test.ts`                                                                  | `ARTIFACTS['0009_history_cannot_be_lost.sql']` = `SELECT to_regprocedure('import_undo(uuid,text)') IS NOT NULL AND to_regclass('public.ticket_tag') IS NULL AS installed` (the fault-injection test iterates every file); `runMigration(url, adoptThrough?, env = {})`; tests 14, 44–47.                                                                                                                              |
+| `packages/db/test/migration-runner.test.ts`                                                                  | `ARTIFACTS['0009_history_cannot_be_lost.sql']` = `SELECT to_regprocedure('import_undo(uuid,uuid,text)') IS NOT NULL AND to_regclass('public.ticket_tag') IS NULL AS installed` (the fault-injection test iterates every file); `runMigration(url, adoptThrough?, env = {})`; tests 14, 44–47.                                                                                                                         |
 | `apps/server/test/harness.ts`                                                                                | Decision 2: `ROUTER_PASSWORD = 'router-test-password'`; `CREATE ROLE uptimo_router LOGIN PASSWORD …; GRANT app_router, app_user TO uptimo_router`; `TestDb` gains `router`, `routerUrl`; `stop` ends `router`.                                                                                                                                                                                                        |
 | `apps/server/test/import-undo.test.ts`                                                                       | Every `undoImport(db.app, t, b)` → `undoImport(db.router, t, b, 'agent-test')`; `seedBatch` stamps `finished_at = clock_timestamp()` after inserting its rows (`UPDATE … RETURNING finished_at`, returned as `finishedAt`); tests 29–33.                                                                                                                                                                              |
 | `apps/server/test/import.test.ts` (line 122), `apps/server/test/import-integration.test.ts` (lines 109, 367) | Same call change; test 54 appended to `import-integration.test.ts`.                                                                                                                                                                                                                                                                                                                                                   |
@@ -136,7 +141,8 @@ step); `apps/server/src/seed/cosmos.ts` (`DELETE FROM tenant` as owner still cas
 export function withoutBypassGrant(sql: string): string;
 async function prepareRoles(pool: Pool): Promise<void>; // notes §8 step 1, verbatim
 async function canGrantBypass(pool: Pool): Promise<boolean>; // rolsuper OR rolbypassrls of current_user; no row → false
-async function revokeLentCreate(pool: Pool): Promise<void>; // REVOKE CREATE ON SCHEMA public FROM app_router
+async function revokeLeftoverCreate(pool: Pool): Promise<void>; // start-up REVOKE of a grant an older run left; warns on failure
+// the CREATE itself is granted after BEGIN and revoked before COMMIT inside applyFile
 async function secureAppApiRole(pool: Pool): Promise<void>; // full statement only when app_api has rolsuper,
 // rolbypassrls or rolreplication; otherwise ALTER ROLE app_api INHERIT NOCREATEDB NOCREATEROLE; nothing if absent
 ```
@@ -151,8 +157,13 @@ export function finishBatch(
   tx: Db,
   input: { status: string; stats: string; batchId: string; tenantId: string },
 ): Promise<void>;
-/** SELECT import_undo($1, $2) AS deleted — the definer function of D24. */
-export function callImportUndo(tx: Db, batchId: string, operator: string): Promise<number>;
+/** SELECT import_undo($1, $2, $3) AS deleted — the definer function of D24. */
+export function callImportUndo(
+  tx: Db,
+  tenantId: string,
+  batchId: string,
+  operator: string,
+): Promise<number>;
 
 // apps/server/src/modules/imports/batch.ts
 export function markBatchFatal(
@@ -207,14 +218,14 @@ export function startMigratedDb(options?: {
 export const HAND_REVIEW: readonly string[]; // the seven places of DATA-MAP §5's last paragraph, one line each
 ```
 
-**Command lines and output** (exit codes: 0 done, 1 error, 2 usage, 3 review pending):
+**Command lines and output** (exit codes: 0 done, 1 error or files left behind, 2 usage, 3 review pending; `preflight-cutover` exits 3 for duplicates and 1 only for a crash):
 
-| Command                                                                                                          | Prints                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tsx scripts/preflight-cutover.ts`                                                                               | per tenant: `preflight: <slug>: machine <code>: open breakdowns <ref>, <ref>`, `preflight: <slug>: <n> tag rows to export`, `preflight: <slug>: <n> support grants end at cutover`; last line `preflight: <d> machines with duplicates, <t> tag rows, <g> grants`. Exit 1 when d > 0. Schema absent: `preflight: schema not installed` exit 0                                                                                                                 |
-| `tsx scripts/export-tags.ts --out <dir>`                                                                         | `export-tags: <N> rows written to <path>` and `export-tags: migrate with PGOPTIONS='-c uptimo.tags_exported=<N>'`; 0 rows or no table: `export-tags: nothing to export`, no file, exit 0                                                                                                                                                                                                                                                                      |
-| `tsx scripts/erase-person.ts --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>` | the function's counts as one JSON line (`s3_keys` removed from it), then `erase: complete` (exit 0) or the `HAND_REVIEW` lines and `erase: review pending: record it with --review-done` (exit 3). Refuses (exit 1) a person not in that tenant, checked under `app.tenant_id` before the call. Before deleting any file it checks every key: one that is absolute or contains `..` prints `erase: unsafe storage key <key>`, exits 1, and no file is deleted |
-| `tsx scripts/erase-person.ts --tenant <slug> --review-done --request <ref> --operator <who>`                     | `erase: complete` (exit 0) after writing the review row; exit 1 `no erasure with that request reference`; an already recorded or `text_searched: true` erasure prints `erase: complete` without a new row                                                                                                                                                                                                                                                     |
+| Command                                                                                                          | Prints                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsx scripts/preflight-cutover.ts`                                                                               | per tenant: `preflight: <slug>: machine <code>: open breakdowns <ref>, <ref>`, `preflight: <slug>: <n> tag rows to export`, `preflight: <slug>: <n> support grants end at cutover`; last line `preflight: <d> machines with duplicates, <t> tag rows, <g> grants`. Exit 3 when d > 0. Schema absent: `preflight: schema not installed` exit 0                                                                                                                                                                                                                                                                              |
+| `tsx scripts/export-tags.ts --out <dir>`                                                                         | `export-tags: <N> rows written to <path>` and `export-tags: migrate with PGOPTIONS='-c uptimo.tags_exported=<N>'`; 0 rows or no table: `export-tags: nothing to export`, no file, exit 0. The file is opened with `wx`; a second export in the same second is written as `…-1.csv`, never over the first                                                                                                                                                                                                                                                                                                                   |
+| `tsx scripts/erase-person.ts --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>` | the function's counts as one JSON line (`s3_keys` removed from it), then `erase: complete` (exit 0) or the `HAND_REVIEW` lines and `erase: review pending: record it with --review-done` (exit 3). Refuses (exit 1) a person not in that tenant (the function checks `p_tenant_id`) and one already erased. A missing `--files-dir` exits 1 before any change. Before deleting any file it checks every key: one that is absolute, contains `..` or sits behind a link leading outside prints `erase: unsafe storage key <key>`, exits 1, and nothing is changed. Exit 3 as well when a short name or username was skipped |
+| `tsx scripts/erase-person.ts --tenant <slug> --person <uuid> --review-done --request <ref> --operator <who>`     | `erase: complete` (exit 0) after writing the review row; exit 1 `no erasure with that request reference for this person`; an already recorded or `text_searched: true` erasure prints `erase: complete` without a new row                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Database functions: signatures exactly as notes §7; no new endpoint, event or component.
 
@@ -255,7 +266,7 @@ there once in a `git worktree` and pastes the failing summary into the PR. Fake 
 2. **`refuses to delete a person who appears on a ticket, and the row remains`** — same tenant, the ticket's
    `reported_by_person_id`; same When/Then for `person`.
 3. **`enables and forces RLS on every tenant table`** (assertion changed) — Then every tenant table has exactly one
-   `tenant_isolation` policy, and `router_definer` exists, `TO app_router`, on exactly the 16 tables of 0009 part 8
+   `tenant_isolation` policy, and `router_definer` exists, `TO app_router`, on exactly the 17 tables of 0009 part 8 (16, plus `ai_suggestion` for the undo check, round 3)
    and no other.
 4. **`gives neither app_user nor app_router a bypass`** (was `…and app_router bypass`) — Then both `rolbypassrls`
    are `false`.
@@ -298,8 +309,8 @@ inside `withTenant`, and searches the plan JSON for `"Index Name"`.
     at 0007 (`applyThrough` + `recordThrough`) with two open `stopped` tickets `BD-0001`, `BD-0002` on one
     machine. When `runMigration` runs. Then it rejects, stderr names both refs, the ledger lacks 0009. **And**
     after one is set `cancelled`, `runMigration` succeeds and the ledger equals `FILES`.
-15. **`preflight lists duplicates and exits non-zero`** · `cutover-scripts.test.ts` — Given the scripts database
-    at 0007 (§ below) with the same two tickets. When `preflight-cutover.ts` runs. Then exit 1 and stdout has
+15. **`preflight lists duplicates and exits 3`** · `cutover-scripts.test.ts` — Given the scripts database
+    at 0008 (§ below) with the same two tickets. When `preflight-cutover.ts` runs. Then exit 3 and stdout has
     `machine <code>: open breakdowns BD-0001, BD-0002`. **And** after cancelling one: exit 0, last line
     `0 machines with duplicates, 3 tag rows, 1 grants`. **And** given an empty database, made with
     `CREATE DATABASE empty_preflight` on the client `startMigratedDb` returned, its URL built from the returned
@@ -312,7 +323,7 @@ inside `withTenant`, and searches the plan JSON for `"Index Name"`.
 
 16. **`lets only the router role call the five functions`** — Then `has_function_privilege` is false for
     `app_api` and `app_user` and true for `app_router` on all five signatures, and `SELECT import_undo(…)` as
-    `app_api` fails `/permission denied for function/`.
+    `app_api` fails `/permission denied for function/`. **Also** `app_api` is not a member of `app_router`.
 17. **`import_undo refuses a blank operator`** — When called as router with `' '`. Then `/operator is required/`.
 18. **`erase_person leaves the leaver's name in no DATA-MAP §5 place and writes one count-only audit row`** —
     Given tenant `4000…01` with the leaver (own login and session and push row), a shared floor login whose
@@ -321,7 +332,7 @@ inside `withTenant`, and searches the plan JSON for `"Index Name"`.
     `payload`; all six report fields with a signature and a PDF `file`; `import_row.payload`;
     `import_batch.stats.pendingPersons` beside a `completion` object; an `audit_log` row about the person and one
     about something else; another login's `command_idempotency.result`; plus `Testabhai` in one ticket's problem.
-    When `erase_person(leaver, 'REQ-1', 'agent-test')` runs as router. Then no text column of those tables and no
+    When `erase_person(tenant, leaver, 'REQ-1', 'agent-test')` runs as router. Then no text column of those tables and no
     JSON **string value** (`jsonb_path_query(col, 'strict $.**')`) in the tenant matches `\mTesta\M|0000000099`;
     `Testabhai` is unchanged; the key `Testa` keeps value 1; `stats->'completion'` is byte-identical; the person
     is `Former staff` with phone null; the login is `former-<id>`, hash `!`, disabled; the own session and push row
@@ -436,6 +447,16 @@ order: 15, 39, 40, 41, 42, 43, 56.
     1, stderr `erase: unsafe storage key ../outside.pdf`, and both files still exist (all keys are checked before
     any is deleted). The same rule refuses an absolute key.
 
+    Round 3 adds, in `definer-functions.test.ts`: `import_undo` removes the batch and marks it undone; refuses another
+    customer's batch; waits for an open writer on an imported ticket and then refuses without deleting the new
+    row; refuses on an AI suggestion decided or made after the import; `erase_person` refuses another customer's
+    person and empties `audit_log.ip` for the leaver's logins. In `history.test.ts` the app role is refused DELETE on
+    `platform_access` and `import_batch`. In `migration-runner.test.ts`: a revert never re-opens a closed support
+    grant; a leftover lent CREATE is revoked at start-up; a killed run leaves none. In `cutover-scripts.test.ts`:
+    a mistyped files directory changes nothing, missing or stuck files exit 1 after the counts, a link out of the
+    directory is refused, a skipped short name holds the erasure at exit 3, two leavers on one reference are kept
+    apart and an erased person is refused, two exports in one second never collide.
+
 ### The migration runner · `packages/db/test/migration-runner.test.ts`
 
 44. **`runs every migration as a non-superuser database owner`** — Given its own container, a role
@@ -537,7 +558,7 @@ Functions stay under 60 lines (split `runUndo` out of `cli.main`, the role helpe
 | An undo of a batch with parent links inside it trips the self-referencing RESTRICT | Test 54 (no existing test undoes such a batch)                                                                                                                           |
 | `DELETE FROM tenant` in tests and the Cosmos seed                                  | Test 9; every server suite's `beforeEach`; `cosmos-seed.test.ts`                                                                                                         |
 | The new scanner changes findings on merged files                                   | Slice 06 test 17 (real directory passes)                                                                                                                                 |
-| The runner's lent CREATE stays on `app_router` after a failed run                  | Test 44 (success path); failure path revokes with its error swallowed                                                                                                    |
+| The runner's lent CREATE stays on `app_router` after a failed or killed run        | Granted and revoked inside each file's transaction; round 3 tests: leftover revoked at start-up, killed run leaves none                                                  |
 | The importer's `failed` batches lose their finish time                             | `import-integration.test.ts` fatal case (`finished_at` is a Date), test 29                                                                                               |
 
 ## 11. Test edits the harness hook may block

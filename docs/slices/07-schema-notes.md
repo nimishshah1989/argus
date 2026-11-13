@@ -182,8 +182,8 @@ The table is "built, not used yet"; the seed is the only writer.
 Exact signatures after the review:
 
 ```sql
-import_undo(p_batch_id uuid, p_operator text) RETURNS integer
-erase_person(p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
+import_undo(p_tenant_id uuid, p_batch_id uuid, p_operator text) RETURNS integer
+erase_person(p_tenant_id uuid, p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
 offboard_tenant(p_tenant_id uuid, p_export_ref text, p_backup_ref text, p_operator text) RETURNS void
 audit_purge(p_older_than timestamptz, p_operator text) RETURNS bigint
 erase_json_values(j jsonb, pat text) RETURNS jsonb   -- helper of erase_person; IMMUTABLE, not a definer
@@ -192,7 +192,9 @@ platform_access_guard() RETURNS trigger              -- §6; runs as the caller
 
 The first four: `LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp`. The first five: owner
 `app_router`, `REVOKE ALL … FROM PUBLIC`, no other grant. Measured: `app_api` gets `permission denied for function`
-on each of the five. Each of the four refuses a NULL or blank `p_operator` and writes it into its audit row.
+on each of the five. Each of the four refuses a NULL or blank `p_operator` and writes it into its audit row. `import_undo` and
+`erase_person` also take the customer (`p_tenant_id`) and raise "does not belong to this customer" when the batch
+or person is another customer's, so the tenant check no longer lives only in the calling script.
 Model and rejected alternatives: D24.
 
 Manifest owners for the slice plan: `import_undo` → imports; `erase_person`, `erase_json_values`,
@@ -211,8 +213,16 @@ Refuses unless all of these hold:
 - **no `ticket_event`, `crew_member` or `work_segment` row of those tickets has `created_at > finished_at`, and no
   `ticket_event` of them has a `login_id`** (an import writes events with no login, `tickets/repo/imported.ts:83`).
   Work done on an imported ticket afterwards is real history and is not undone;
+- **no `ai_suggestion` of those tickets was decided or made after `finished_at`** (the key from `ai_suggestion`
+  to `ticket` cascades, so deleting the ticket would silently take a decision with it);
 - no ticket outside the set has a parent inside it;
 - no `file` points at a ticket of the set and no report of the set has a signature or PDF.
+
+The batch must belong to `p_tenant_id`. Before any check the function locks every ticket of the batch
+(`SELECT … FOR UPDATE`, ordered by id so two undos cannot deadlock). A writer adding an event, crew line, work
+segment or AI suggestion to one of them waits for the lock (its foreign key takes a share lock on the ticket), so
+nothing can arrive between the checks and the deletes under READ COMMITTED; if the writer got in first, the checks
+see its row and refuse. Measured with an open writer transaction (`definer-functions.test.ts`).
 
 The content comparison (`assertCompletion`) stays in `undo.ts`, before the call, in the same transaction (§8).
 
@@ -233,7 +243,8 @@ The content comparison (`assertCompletion`) stays in `undo.ts`, before the call,
 
 Deletes no history row. Search terms are the person's name, short name, mobile number and the usernames of their
 own (not shared) logins, matched case-insensitively as whole words, any run of spaces matching any run of spaces.
-Returns the counts plus `s3_keys`, the storage objects the calling script must delete.
+Returns the counts plus `s3_keys`, the storage objects the calling script must delete. The person must belong to
+`p_tenant_id`.
 
 Refuses when the reference or the operator is empty, or when either contains one of the terms (so a name cannot
 reach the audit row). That second test runs only when there is at least one searchable term; with none there is
@@ -255,6 +266,7 @@ DATA-MAP §5, place by place:
 | Signature images              | `breakdown_report.signature_file_id` emptied where `handover_name` held a term; the `file` row deleted; key returned                                                                                                                                                                                      |
 | Repeat guard                  | `command_idempotency`: `result = '{}'` where the login is theirs or a text value of the stored reply holds a term. The row stays, so the key still blocks a replay                                                                                                                                        |
 | Saved report PDFs             | Every `breakdown_report.pdf_file_id` of the tenant emptied, `qr_payload = '{}'`, the `file` rows deleted, keys returned. A PDF bakes in names and is re-made on the next request                                                                                                                          |
+| Sign-in address               | `audit_log.ip` emptied on every row whose `login_id` is one of the leaver's own logins; count `audit_log_ip`                                                                                                                                                                                              |
 | Audit of the erasure          | One `audit_log` row, `person.erase`: `after` = one count per table, the request reference and the operator. No name, no text, no ids of changed rows                                                                                                                                                      |
 
 Decisions inside it:
@@ -281,7 +293,10 @@ Decisions inside it:
   `import_batch.stats`; audit lines about other people; other people's stored repeat-guard replies; and the
   signature image on any report handed over to that person (the function finds those reports by matching
   `handover_name`, so with no pattern it removes no signature). `scripts/erase-person.ts` must print this list
-  when it sees `text_searched: false`, and must not report the request complete until the review is recorded.
+  when it sees `text_searched: false` **or a skipped short term** (`skipped_short_terms > 0`: "RK" would stay in
+  ticket notes), and must not report the request complete until the review is recorded. The review is recorded per
+  person and request reference, so two leavers on one reference are kept apart, and a person already erased is
+  refused.
 - **`erase_json_values` returns its input unchanged when the pattern is NULL**, and the repeat-guard update uses
   the text match only when there is a pattern. In the first amended draft a NULL pattern blanked the stored reply
   of every repeat-guard row of the tenant (second review, finding 1).
@@ -367,11 +382,13 @@ PostgreSQL 13). The design needs none of the uncertain rights: no role attribute
        EXECUTE format('GRANT app_user TO %I', current_user);
      END IF;
    END $$;
-   GRANT CREATE ON SCHEMA public TO app_router;
    ```
 
-   and, in a `finally` after the last file: `REVOKE CREATE ON SCHEMA public FROM app_router`. For a superuser
-   both `pg_has_role` tests are already true, so local and CI databases change only by the lent CREATE.
+   Then `REVOKE CREATE ON SCHEMA public FROM app_router` once, with a printed warning if it fails: it clears a
+   grant an older or killed run left behind. The CREATE that PostgreSQL needs for `OWNER TO` is lent **inside each
+   file's own transaction** (`GRANT` right after `BEGIN`, `REVOKE` just before `COMMIT`), so a failure, a
+   rollback or a dead connection undoes it with the file. Nothing is lent between files. For a superuser both
+   `pg_has_role` tests are already true, so local and CI databases change only by the lent CREATE.
 
 2. For `0001_schema_v1.sql` only, and only when
    `SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user` is false: replace the exact text
@@ -385,7 +402,7 @@ PostgreSQL 13). The design needs none of the uncertain rights: no role attribute
 
 **Three database states, one path.**
 
-- Local and CI (superuser): step 1 is a no-op apart from the lent CREATE, step 2 does not trigger, 0001 sets
+- Local and CI (superuser): step 1 is a no-op, step 2 does not trigger, 0001 sets
   BYPASSRLS and 0009 removes it.
 - A database with 0001–0007 already applied: only 0009 (and 0008 when merged) runs.
 - RDS, empty: step 1 creates the roles, step 2 skips one statement, 0001–0009 run.
@@ -401,10 +418,16 @@ honours for every role (measured). For one transaction that must act as the app 
 **`ROUTER_DATABASE_URL`.** The one new environment value.
 
 - What it is: a PostgreSQL URL for a login that is a member of both `app_router` and `app_user`. Today the only
-  such login is the migration role, so its value is the same connection string as `MIGRATION_DATABASE_URL`.
+  such login is the migration role, so its value is the same connection string as `MIGRATION_DATABASE_URL`. **It
+  is an operator credential**, kept out of `app.env`, used only by the operator CLIs and `migrate.env`. What the
+  design guarantees is that history is protected against the _application_ role (`app_user`/`app_api` have no
+  delete or event-edit right and cannot call the four functions). `app_router` itself holds table rights through
+  its policies, so any login that is a member of it can change history without the four functions. A separate
+  NOLOGIN history-owner role that owns the functions, with `app_router` reduced to a caller, is a follow-up before
+  production cutover.
 - Who reads it: the `import:undo` code path only (`imports/cli.ts`). It opens one transaction on that connection,
   does `SET LOCAL ROLE app_user` plus `app.tenant_id` for the fingerprint checks (row security on, exactly the app's
-  rights), then `RESET ROLE` and `SELECT import_undo($1, $2)`. If the value is missing, undo stops with a message.
+  rights), then `RESET ROLE` and `SELECT import_undo($1, $2, $3)` (tenant, batch, operator). If the value is missing, undo stops with a message.
 - Who must not have it: the running server. `app.env` keeps `DATABASE_URL` only. The secret key
   `ROUTER_DATABASE_URL` belongs in `uptimo/staging` and in `migrate.env` (written by `infra/instance/refresh-env.sh`).
   `infra/` was not touched here; that edit is a follow-up for whoever owns ticket 13's files.
@@ -478,7 +501,7 @@ migration header carries the same text.
 | `scripts/migrate.ts`                                          | §8 steps 1–3. **Still unwritten.** Without them 0001 cannot run on RDS                                                                                                                                                                                                                                                                                                                                                     |
 | `imports/batch.ts`, `imports/bhavin.ts`, `imports/repo.ts`    | **Required by finding 4.** `finished_at` is written today from a clock value taken when the import starts (`bhavin.ts:306`, passed at `:290` and `batch.ts:76`). It must be stamped by the database when the batch finishes (`finished_at = clock_timestamp()` in `finishBatch` and `failBatch`). Until then `import_undo` refuses every batch, because every imported row is newer than the stored finish time (measured) |
 | `scripts/export-tags.ts` (new)                                | Per-tenant loop; writes `ticket_tag-<utc>.csv` (all columns, header) to `--out <dir>`; prints N and the `PGOPTIONS` line; exits 0 with "nothing to export" on 0 rows or no table                                                                                                                                                                                                                                           |
-| `scripts/preflight-cutover.ts` (new)                          | Per-tenant loop; the duplicate query of part 1; also prints the tag count and the grants that will be ended; exit 1 on any duplicate; exit 0 when the schema is not installed                                                                                                                                                                                                                                              |
+| `scripts/preflight-cutover.ts` (new)                          | Per-tenant loop; the duplicate query of part 1; also prints the tag count and the grants that will be ended; exit 3 on any duplicate; exit 0 when the schema is not installed                                                                                                                                                                                                                                              |
 | `scripts/erase-person.ts`, `scripts/offboard-tenant.ts` (new) | Operator credential; pass `--operator`; erase deletes the returned `s3_keys`; offboard exports first, then deletes the storage prefix                                                                                                                                                                                                                                                                                      |
 | `imports/undo.ts`, `tickets/repo/imported.ts`                 | `deleteCandidates` + `finishUndo` become one `import_undo` call; `deleteImportedTickets` goes                                                                                                                                                                                                                                                                                                                              |
 | `imports/cli.ts`, `imports/security.ts`                       | `import:undo` connects with `ROUTER_DATABASE_URL` (§8) and uses the `SET LOCAL ROLE app_user` pattern; it takes `--operator`; `assertAppApiRole` no longer fits undo                                                                                                                                                                                                                                                       |
@@ -562,7 +585,8 @@ end to end (read in `connection-parameters.js` only); pg-boss install as a non-s
    must compare against something else. I kept the reviewer's wording.
 2. **`ROUTER_DATABASE_URL` holds the migration role's connection** (§8). A dedicated login that is only a member
    of `app_router` and `app_user` would be narrower; it needs a new role, a new secret and an `infra/` change, so
-   it is left as a follow-up.
+   it is left as a follow-up. Orchestrator ruling (round 3): no separate NOLOGIN history-owner role now; the
+   credential is stated honestly as an operator credential (§8), and the role split comes before production cutover.
 3. **The offboarded tenant row.** Keeping it (name, language, time zone, plan; slug freed) is what gives the
    audit row a home without a table. If the customer's name must go too, the function can blank it; say so.
 4. **`audit.purge` rows** are written only for customers that lost rows, so a daily run with nothing to purge
@@ -572,9 +596,10 @@ end to end (read in `connection-parameters.js` only); pg-boss install as a non-s
    follow-up. Not touched here.
 6. **The lead-person filter** cannot use an index as written (§5). A code ticket to rewrite it as a UNION, with
    its two indexes.
-7. **`platform_access` rows** can still be deleted by `app_user` when no audit line points at them. The trigger
-   now stops every lengthening edit; deletion of an unused grant is the remaining gap. Not in item 31 or the
-   findings; say if DELETE should be revoked too.
+7. **`platform_access` rows** could be deleted by `app_user` when no audit line pointed at them. Closed in round 3:
+   DELETE is revoked on `platform_access` and on `import_batch` (deleting a batch cascades to `import_row` and
+   destroys the undo fingerprint). No server code deletes either (`grep -rniE "DELETE FROM (platform_access|import_batch)"
+apps scripts` finds nothing); both are re-granted by the down file.
 8. **"Signature removed".** Nothing writes a signature today. After erasure the report has no signature file and
    `handover_name = 'Former staff'`; the slice that builds signatures decides how the screen words it.
 9. **A legacy grant cannot be edited by the app at all** (the approver check applies to every update). All of them
@@ -605,3 +630,20 @@ end to end (read in `connection-parameters.js` only); pg-boss install as a non-s
 2. `platform_access_guard` and reloads. The runbook is in both file headers and §9. One thing beyond the finding:
    disabling the trigger is not enough for a data-only reload, because the `NOT VALID` approver check also refuses
    the older grants; the runbook lifts and re-adds it. A full restore into an empty database needs neither.
+
+## 14. Review round 3: what changed
+
+| Item                   | Change                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import_undo` race     | Locks the batch's tickets (`FOR UPDATE`, ordered) before the checks (§7)                                                                                                                                                                                                                                                                                                                                                  |
+| `import_undo`, AI      | Refuses when an `ai_suggestion` of those tickets was decided or made after the import; `app_router` gets SELECT and a `router_definer` policy on `ai_suggestion` (revoked and dropped by the down file)                                                                                                                                                                                                                   |
+| App role deletes       | DELETE revoked on `platform_access` and `import_batch`; re-granted by the down file                                                                                                                                                                                                                                                                                                                                       |
+| Tenant in the function | `import_undo(p_tenant_id, …)` and `erase_person(p_tenant_id, …)` refuse another customer's batch or person                                                                                                                                                                                                                                                                                                                |
+| Sign-in address        | `erase_person` empties `audit_log.ip` for the leaver's logins; count `audit_log_ip`                                                                                                                                                                                                                                                                                                                                       |
+| Down file expiries     | A grant's expiry is restored as `least(old value, now())`: a revert never re-opens a grant 0009 closed (an open-ended grant ends at the revert)                                                                                                                                                                                                                                                                           |
+| Router credential      | Worded as an operator credential (§8, D24); the NOLOGIN history-owner role is a follow-up before production cutover                                                                                                                                                                                                                                                                                                       |
+| Runner                 | The lent CREATE lives inside each file's transaction (§8)                                                                                                                                                                                                                                                                                                                                                                 |
+| `erase-person.ts`      | Checks `--files-dir` first; resolves it and refuses a key whose folder links outside; prints counts and the review list before exiting 1 when a stored file is missing or cannot be removed; exit 3 while a short term was skipped; review keyed by person and reference; refuses an erased person; `--person` is required with `--review-done`. Missing keys are printed, not ignored, because the rows are already gone |
+| `preflight-cutover.ts` | Exit 3 when duplicate open breakdowns exist; 1 only for a crash                                                                                                                                                                                                                                                                                                                                                           |
+| `export-tags.ts`       | Opens its file with `wx`; a second export in the same second gets `-1`, `-2` … and never overwrites                                                                                                                                                                                                                                                                                                                       |
+| `check-migrations.ts`  | Dollar-quoted spans are never blanked; `E'\''` escapes; quoted identifiers; `EXECUTE` (dynamic SQL) is a guarded statement                                                                                                                                                                                                                                                                                                |

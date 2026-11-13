@@ -10,9 +10,11 @@ have only one open breakdown at a time.
 
 - **Leavers (DATA-MAP section 5).** On request, a leaver's name becomes "Former staff" on every ticket, report, history
   line and import record. Their logins are switched off and their own devices signed out; a shared floor phone stays
-  signed in. If their name is only one or two letters, the tool switches them off at once, prints the list of places the
-  plant must check by hand, and does not mark the request complete until that check is recorded (`erase: review pending`,
-  exit 3; recorded with `--review-done`).
+  signed in. If their name, or a short name or username of theirs, is only one or two letters (so it was not searched), the
+  tool switches them off at once, prints the list of places the plant must check by hand, and does not mark the request
+  complete until that check is recorded (`erase: review pending`, exit 3; recorded with `--review-done --person <uuid>`,
+  kept per person and reference). Their sign-in addresses in the audit trail are cleared too. A mistyped `--files-dir`
+  stops before anything changes, and a stored file that is missing or cannot be removed is listed and exits 1.
 - **A customer who leaves (question 25, the default you approved).** Everything of theirs is deleted except their own
   record, kept as "left" with its name, language, time zone and plan, and one audit line holding the export and backup
   references and who did it. This is the "offboarded stub". **Your call:** should the customer's name also be blanked on
@@ -23,19 +25,30 @@ have only one open breakdown at a time.
   writes `ticket_tag-<date>.csv` (all columns, header) beside the backup and prints the count; the migration will not run
   until that count is given with `PGOPTIONS='-c uptimo.tags_exported=<N>'`.
 
+## Staging and production: maintenance window
+
+The migration runs as one transaction per file and takes ACCESS EXCLUSIVE locks while it re-validates foreign keys and
+builds indexes, so floor users cannot write while it runs. Schedule a maintenance window for staging and production and
+tell the plant before it starts. Record the snapshot identifier in the deploy note before the window opens.
+
 ## Staging, in order
 
-1. **Backup first:** `aws rds create-db-snapshot --db-instance-identifier uptimo-postgres --db-snapshot-identifier
+1. **Backup first (the snapshot identifier is recorded in the deploy note):** `aws rds create-db-snapshot --db-instance-identifier uptimo-postgres --db-snapshot-identifier
 uptimo-pre-0009-<date>`, then `aws rds wait db-snapshot-available --db-snapshot-identifier uptimo-pre-0009-<date>`.
    Send the identifier to the orchestrator.
 2. `ROUTER_DATABASE_URL` goes in **`migrate.env` only**, set to the same value as `MIGRATION_DATABASE_URL`. Never in
-   `app.env`: the running server must not have it. Only `import:undo` reads it.
+   `app.env`: the running server must not have it. Only `import:undo` reads it. It is an **operator credential**. What
+   this PR guarantees is that history is protected against the application role (`app_user` and `app_api` cannot delete
+   history, edit events or call the four functions). `app_router` itself holds table rights through its policies, so any
+   login that is a member of it can change history without the four functions. A separate NOLOGIN history-owner role is a
+   follow-up before production cutover.
 3. `gh workflow run deploy.yml`, then `gh run watch`. If it stops at "migration failed", nothing changed (one transaction
    per file); send the log line.
 4. Open `site_url/api/v1/health` and expect `{"status":"ok"}`.
 
 On a database that holds data (none exists today), two steps go between 1 and 3: `tsx scripts/preflight-cutover.ts` until
-it exits 0, then `tsx scripts/export-tags.ts`.
+it exits 0 (exit 3 means duplicate open breakdowns to resolve; 1 means the script crashed), then
+`tsx scripts/export-tags.ts` (it never overwrites an earlier export).
 
 ## Not yet proven on real RDS (schema notes section 8)
 
@@ -58,7 +71,7 @@ was read in `connection-parameters.js` and is now exercised end to end by test 4
    `app_user`, two column values checked. New: two refusals per table (privilege, then RESTRICT as owner) and the row
    still present, for both login and person.
 2. Policy-count assertion and `gives app_user no bypass and app_router bypass` become test 3 and 4. Old: one policy per
-   table, one attribute pair. New: the exact policy names per table and their role (`router_definer` on exactly the 16
+   table, one attribute pair. New: the exact policy names per table and their role (`router_definer` on exactly the 17
    tables of 0009 part 8, `TO app_router`), and neither role bypasses; any extra, missing or widened policy fails.
 3. `T21 cascades ticket tags on undo` becomes `T21 removes the batch's SLA timers and keeps its import rows while
 preserving the tenant`. Old: the tag rows go with the ticket and the tenant stays. New: the timer goes with the
@@ -105,11 +118,36 @@ FAIL on first pass. Fixed in this PR: the `CREATE` lent to `app_router` is now t
 runner (new runner test); test 26 asserts the technician insert succeeded and matches the trigger's own message; test 34
 asserts the exact role query; `erase-person.ts` prints the storage keys it could not remove. Deviation recorded:
 `undo.ts` still uses `withTenant` (plan decision 1 needs the tenant-scoped transaction on the router connection; plan §3
-said to delete the import). Waiting on CI for the head commit before the PR leaves draft. Not fixed here (follow-ups):
-the migration scanner still misreads an odd apostrophe inside a dollar-quoted or `E'..'` literal and an `UPDATE` of a
-quoted identifier containing a space; neither is in a real migration.
+said to delete the import). Waiting on CI for the head commit before the PR leaves draft.
+
+## Review round 2 (all fixed in this PR)
+
+- **`import_undo`:** locks the batch's tickets before its checks (no silent deletion of a row committed in between),
+  refuses when an AI suggestion was decided or made after the import, and takes the customer (`import_undo(tenant, batch,
+operator)`; `erase_person(tenant, person, ref, operator)` likewise) and refuses another customer's rows.
+- **Deletes:** the app role can no longer delete `platform_access` or `import_batch` (no server code does; the down file
+  re-grants both). `erase_person` also clears `audit_log.ip` for the leaver's logins.
+- **Down file:** a revert restores each support-grant expiry as the earlier of its old value and now, so it never
+  re-opens a grant 0009 closed.
+- **Runner:** the `CREATE` lent to `app_router` lives inside each file's transaction, so a killed run or dropped
+  connection cannot leave it; a leftover from an older run is revoked at start-up.
+- **Migration scanner:** dollar-quoted spans are never blanked, `E'\''` escapes, quoted identifiers are read, and
+  `EXECUTE` (dynamic SQL) counts as a guarded statement. The planted bypass files are now caught.
+- **Scripts:** `erase-person` (directory check, link escape, counts-then-failure, short-term review, per-person review,
+  erased person refused), `preflight-cutover` exits 3 for duplicates and 1 only for a crash, `export-tags` never
+  overwrites. `T17`'s test title now says what it checks (undo accepts a superuser router URL by design).
 
 ## Follow-ups (not in this PR)
+
+Deferred from review round 2:
+
+- **Tags gate:** check a digest of the exported ids, not only the row count.
+- **`erase_person` dry run** that returns the match counts before editing anything.
+- **`audit_purge`** also removing the offboard and erase proof rows after 3 years (a product ruling at the gate).
+- **Cutover-script tests** also run as a non-superuser (the RDS shape).
+- **`machine_move.machine_id`** is still `ON DELETE CASCADE`.
+- **`audit_log.at`** can be backdated by the app role.
+- **A separate NOLOGIN history-owner role** before production cutover (see the router credential wording above).
 
 - **Raise race:** a second open breakdown raised at the same instant now ends in a unique violation (a 500) instead of a
   silent duplicate. Map `ticket_open_breakdown_unique` to today's "already open" reply.
