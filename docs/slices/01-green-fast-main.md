@@ -1,129 +1,212 @@
 # 01 — Green, fast main
 
 Issue: [#76](https://github.com/nimishshah1989/argus/issues/76) · Milestone M0 · Blocked by: none · Branch
-`claude/t01-green-fast-main` (base `eb80a47`). The PR body must contain `Closes #76`.
+`claude/t01-green-fast-main` (base `eb80a47`). One PR, labels `size:large` and `no-parity`, one commit series per
+goal. The PR body must contain `Closes #76`.
 
 ## 1. Goal
 
-Every PR gets a quick, honest answer: the SLA timer stops jumping between time zones, the browser tests stop
-colliding, CI runs in parallel shards of under 8 minutes each, and CI fails when the instruction documents
-describe another process, when the stack documents still name Drizzle, or when a real Cosmos name gets into the repo.
+Every PR gets a quick, honest answer. The SLA timer no longer jumps between time zones. Browser tests no
+longer collide. CI runs in parallel shards of under 8 minutes each. CI also fails when an instruction file
+describes another process, when a stack document names Drizzle, or when a real Cosmos name or phone number
+gets into the repo.
 
-## 2. Decisions taken here (technical; record each as a ledger ruling)
+## 2. Decisions (technical; each is a ruling the orchestrator records)
 
-1. **Time zone (bug root cause).** `SlaTimerSummary` renders the `Due` and `Stopped at` times with
-   `config?.timeZone`, which is `undefined` until `/api/v1/config` answers. The browser zone is used in the
-   meantime, then the text jumps. Fix: render neither time until `timeZone` is known. `TicketCard` renders the
-   compact summary (`detailed` false), which never shows times, so it is unaffected.
-2. **Serial-retry collision.** The first SLA test raises a ticket on `MACHINES[8]`/`[9]` without cancelling
-   the open one, so a retry or a repeat gets 409. Fix: use the existing `prepareStoppedTicket` (cancel first).
-   The offline test captures `timers.innerText()` before config loads. Fix: wait for the `<time>` element first.
-3. **A seeded tenant per Playwright worker, with no new table.** The server already resolves the tenant from
-   the `Host` header (`apps/server/src/tenant.ts`: the label before the first dot). Each worker process seeds
-   its own tenant `e2e-w<TEST_WORKER_INDEX>` into the run's one Testcontainer. All its ids come from the fixed
-   fixture ids, with the first 8 hex digits replaced by `(0x20000000 + workerIndex)`. The browser opens
-   `http://e2e-w<n>.localhost:3000`. Chromium is pinned to resolve `*.localhost` to 127.0.0.1, and Vite proxies
-   `/api` with `changeOrigin: false`, so the Host header is kept. Node's `fetch` drops a `Host` override
-   (verified), so helper API calls go through one `node:http` helper, `apiFetch`. A worker restarted after a
-   failure gets a new `workerIndex`, so it starts on a fresh tenant. The stack's IP-host default tenant
-   becomes the non-existent `e2e-unscoped`. A spec that forgets the per-worker `test` therefore fails loudly
-   with 404 "Unknown company" instead of sharing state without anyone noticing.
-4. **CI shape.** Today one `checks` job takes about 6.5 min (vitest 3m42s, Playwright 1m52s, run 43379580801).
-   New jobs: `static` (format, lint, typecheck, build, every guard tool), `api` (a vitest matrix of 3 shards),
-   `browser` (a Playwright matrix of 2 shards), plus the existing `secrets` job. Every job has
-   `timeout-minutes: 8`, so CI itself enforces "each shard under 8 minutes". There is no branch protection
-   (private repo on the free plan: the API answers 403), so the old `checks` name needs no aggregator job.
-5. **"Touched-module API tests" and "browser smoke".** Modules do not exist until tickets 02 and 03, and
-   staging does not exist until 13. Until then the `api` shards run the whole vitest suite (a superset of the
-   touched module plus `packages/db/test/isolation.test.ts`), and the `browser` shards run the whole Playwright
-   suite (a superset of a smoke). Both fit the budget. Ticket 03 narrows the API selection once modules exist.
-   Ticket 13 moves the full journeys to staging.
-6. **"Another process" means the DeepSeek-Harness route (DSH) with the hosted free coder.** BRIEF scope item 1
-   says "one process (Athena v3)", and ROADMAP H1 says "DSH routing retired in `docs/decisions/` with the
-   reason". The markers are `DeepSeek`, `OpenRouter`, `nemotron`, `TwIL`, `ollama`, `DSH` (case-sensitive) and
-   `free coder`. This slice removes them from every instruction file, deletes `docs/orchestration.yaml` and
-   `tools/check-orchestration.ts`, and records decision D18.
-7. **The parity rule lives in the existing parity check** (`tools/parity.ts`, run by `pnpm parity`), not in a
-   second parser. Today all 34 `in-progress` rows carry evidence, so no row changes.
-8. **Drizzle.** D02 already says ADR 0001, SPEC and `THIRD_PARTY.md` "are corrected"; they are not. This slice
-   corrects them, and the check keeps them corrected.
-9. **PII scan: deny-list derived at run time.** The scan reads its deny-list from the committed, tracked
-   source files every time it runs. Those files are in git, about 3 MB, under `docs/discovery/real-2026-11-13/`.
-   No real value is ever written into code, tests, fixtures or logs. Error messages name the file, the line and
-   the kind, never the value. Verified on the current tree, without printing any value: the rules below yield
-   60 names and 0 hits outside `docs/discovery/`. **The source files contain no phone numbers.** `users.json`
-   has no phone field, and the export's `Phone` cells are a source label. The phone path is built and proven
-   on a synthetic source list; see question 2.
+1. **Time-zone bug.** `SlaTimerSummary` formats the `Due` and `Stopped at` times with `config?.timeZone`. That
+   value is `undefined` until `/api/v1/config` answers, so the times render in the browser zone and then
+   jump. Fix: render neither time until `timeZone` is known. `TicketCard` renders the compact summary, which
+   never shows times.
+2. **Serial-retry collision.** The first SLA test raises a ticket on `MACHINES[8]`/`[9]` without cancelling,
+   so a retry or a repeat gets 409. Fix: use the existing `prepareStoppedTicket`, which cancels first. The
+   offline test snapshots the timers before config loads. Fix: wait for the `<time>` element first.
+3. **One seeded tenant per Playwright worker, with no new table.** This is required by the goal.
+   - The server already takes the tenant from the `Host` label before the first dot (`apps/server/src/tenant.ts`).
+   - Each worker process seeds `e2e-w<TEST_WORKER_INDEX>` into the run's one Testcontainer. Its ids are the
+     fixture ids with the first 8 hex digits replaced by `(0x20000000 + workerIndex)`.
+   - The browser opens `http://e2e-w<n>.localhost:3000`. Measured: Chromium resolves it to the 127.0.0.1-bound
+     server and keeps the Host header, and Vite 8.3.7 allows `*.localhost` by default. So no config flag is
+     needed for either.
+   - Node's `fetch` drops a `Host` override (measured), so helper API calls use one `node:http` helper, `apiFetch`.
+   - A worker restarted after a failure gets a new index, so it starts on a fresh tenant.
+   - The stack's IP-host default becomes the non-existent `e2e-unscoped`. A spec that forgets the per-worker
+     `test` fails with 404 "Unknown company"; it cannot share state unnoticed.
+4. **CI shape.** Today one job takes about 6.5 min (vitest 3m42s, Playwright 1m52s; run 43379580801). The new
+   jobs are `static`, `api` (3 vitest shards), `browser` (2 Playwright shards) and the unchanged `secrets`, each
+   with `timeout-minutes: 8`. CI itself therefore enforces "each shard under 8 minutes". There is no branch
+   protection on this repo (the API answers 403).
+5. **"Touched-module API tests" and "browser smoke".** Modules arrive in tickets 02 and 03, staging in 13.
+   Until then the `api` shards run the whole vitest suite: a superset of any module and of
+   `packages/db/test/isolation.test.ts`. The `browser` shards run the whole Playwright suite: a superset of a
+   smoke. Both fit the 8-minute budget.
+6. **"Another process" means the DeepSeek-Harness route (DSH) with the hosted free coder** (BRIEF scope 1,
+   ROADMAP H1; Q3 confirmed by the orchestrator). Markers: `DeepSeek`, `OpenRouter`, `nemotron`, `TwIL`,
+   `ollama`, `free coder` (case-insensitive) and `DSH` (case-sensitive). `.claude/harness/` is read by the
+   check but never edited; it is already clean.
+7. **The parity rule goes into the existing `tools/parity.ts`** (run by `pnpm parity`). Today all 34
+   `in-progress` rows carry evidence. `parity.yaml` and `tools/sync-parity.ts` are not touched.
+8. **Drizzle.** D02 says ADR 0001, SPEC and `THIRD_PARTY.md` "are corrected"; they are not. This slice
+   corrects them. `tools/check-deps.ts` only checks that installed dependencies are listed, and Drizzle is not
+   installed, so deleting its row is safe.
+9. **PII deny-list derived at run time from the tracked source files**
+   (`docs/discovery/real-2026-11-13/`: in git, about 3 MB).
+   - Names come from named fields. Phones are every phone-shaped value anywhere in the three files (Q2 ruling;
+     no real phone list exists).
+   - No real value is ever written to code, tests, fixtures or logs. Errors give the file, line and kind,
+     never the value.
+   - Measured with the exact rules below: 60 names, 1 phone-shaped value, 492 files scanned, 0 hits, 160 ms.
+
+**Cuts from the first draft (LEAN).**
+
+- Dropped:
+  - the `parity.yaml` header and `sync-parity.ts` edits (the PR takes `no-parity` instead);
+  - the ticket-format rule;
+  - the zip parser (the frozen workbook stores its sheets uncompressed, so the sheet XML is read straight
+    from the file text, with a loud guard);
+  - the JSON phone-key walk (replaced by one phone regex over the raw source text);
+  - Vite `allowedHosts` and the Chromium resolver flag (both measured unnecessary);
+  - `changes/README.md` (the CHANGELOG note documents the format);
+  - the ledger edit (ruling);
+  - the temporary CI job (Docker is now local).
+- Tests: 28 → 21.
 
 ## 3. Files
 
-### Browser goal (bug, isolation, CI)
+### Browser goal
 
-| File                                                                           | Change                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/components/SlaTimerSummary.tsx`                                  | `TimerDetails`: render the `Due` row and the `Stopped at` row only when `timeZone` is a non-empty string (add `timeZone &&` to both conditions). Nothing else changes.                                                                                                                                                                                                                                            |
-| `apps/web/e2e/sla-timers.spec.ts`                                              | New test T1 (§5). Test "configures policies…": replace `raiseTicketViaApi(token, machine.id, …)` with `prepareStoppedTicket(machine, await apiLogin('admin'))`. Test "freezes cached Settings…": before `const before = …`, add `await expect(timerRow(timers, 'Acknowledge').locator('time')).toBeVisible();`. Import `test`/`expect` from `./test.js`; replace the `fetch(\`${API_URL}…\`)`call with`apiFetch`. |
-| `apps/web/e2e/sla-test-helpers.ts`                                             | `apiJson` calls `apiFetch(path, …)` instead of `fetch(\`${API_URL}${path}\`, …)`; its `init`type becomes`ApiInit`.                                                                                                                                                                                                                                                                                                |
-| `apps/web/e2e/fixtures.ts`                                                     | Add `WORKER`, `scopedId`, `TENANT_WEB_URL`, `API_HOST`, `ApiInit`, `apiFetch` (§4). `TENANT`, `SEGMENT`, `MACHINES`, `PEOPLE`, `LOGINS` and the shift id use `scopedId(...)`. `TENANT.slug` becomes `e2e-w${WORKER}`. The private `apiJson` calls `apiFetch`. Keep `API_URL` and `WEB_URL`: they are the stack's own origins, used by `stack.ts`.                                                                 |
-| `apps/web/e2e/test.ts` (new)                                                   | Exports `test` (with the worker-scoped auto fixture `workerTenant` and a `baseURL` override) and `expect` (§4).                                                                                                                                                                                                                                                                                                   |
-| `apps/web/e2e/tenant.spec.ts` (new)                                            | Test T5 (§5).                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `apps/web/e2e/stack.ts`                                                        | `startDatabase` no longer runs `seedStatements`. After migrations and the role password, it sets `process.env.E2E_ADMIN_DATABASE_URL = container.getConnectionUri()` and `process.env.E2E_PASSWORD_HASH = await hashPassword()`. `startApi` passes `DEFAULT_TENANT_SLUG: 'e2e-unscoped'`. Drop the now-unused `seedStatements`/`TENANT` imports.                                                                  |
-| `apps/web/e2e/vite.e2e.config.ts`                                              | `server.allowedHosts: ['.localhost']`, with the comment updated.                                                                                                                                                                                                                                                                                                                                                  |
-| `playwright.config.ts`                                                         | `use.launchOptions: { args: ['--host-resolver-rules=MAP *.localhost 127.0.0.1'] }`. Update the header comment: the tenant comes from the per-worker host.                                                                                                                                                                                                                                                         |
-| `apps/web/e2e/{admin,board,desk,floor,offline,settings-severity,tags}.spec.ts` | Value imports `test`, `expect` from `./test.js` (type imports may stay on `@playwright/test`). Every `fetch(\`${API_URL}…\`, init)`becomes`apiFetch('…', init)`, and `RequestInit`becomes`ApiInit`. `desk.spec.ts`: `browser.newContext({ baseURL: TENANT_WEB_URL })`. `offline.spec.ts`: `ASHA_PERSON_ID = scopedId('10000000-0000-0000-0000-000000000009')` (and update its comment). No assertion changes.     |
-| `.github/workflows/ci.yml`                                                     | Replace the `checks` job with `static`, `api` (matrix `shard: [1, 2, 3]`) and `browser` (matrix `shard: [1, 2]`), each with `timeout-minutes: 8` and `strategy.fail-fast: false` on the matrices; `secrets` stays unchanged (§4).                                                                                                                                                                                 |
+| File                                                                           | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/components/SlaTimerSummary.tsx`                                  | In `TimerDetails`, prefix both the `timer?.dueAt && timer.state !== 'stopped'` condition and the `timer?.stoppedAt` condition with `timeZone &&`. Nothing else changes.                                                                                                                                                                                                                                                                                                                                                                          |
+| `apps/web/e2e/sla-timers.spec.ts`                                              | Add T1. In "configures policies…", delete line 48 (`const token = …`) and replace line 49 with `const ticket = await prepareStoppedTicket(machine, await apiLogin('admin'));`. In "freezes cached Settings…", before `const before = …`, add `await expect(timerRow(timers, 'Acknowledge').locator('time')).toBeVisible();`. Line 145: `fetch(\`${API_URL}/api/v1/settings/sla-policies\`, …)`becomes`apiFetch('/api/v1/settings/sla-policies', …)`. Imports: see the import table below.                                                        |
+| `apps/web/e2e/sla-test-helpers.ts`                                             | `apiJson`: `fetch(\`${API_URL}${path}\`, {…})`becomes`apiFetch(path, {…})`, and the `init`parameter type becomes`ApiInit`.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `apps/web/e2e/fixtures.ts`                                                     | Add `WORKER`, `scopedId`, `TENANT_WEB_URL`, `API_HOST`, `ApiInit` and `apiFetch` (§4). `TENANT.id`, `SEGMENT.id`, every `MACHINES[].id`, every `PEOPLE[].id`, every `LOGINS[].id` and the shift id `…015` are wrapped in `scopedId('<same literal>')`. `TENANT.slug` becomes `` `e2e-w${WORKER}` ``. The private `apiJson` calls `apiFetch(path, init)` with `init: ApiInit`. `API_URL` and `WEB_URL` stay as they are: they are the stack's own origins, used by `stack.ts`. Update the header comment: "ids are scoped per Playwright worker". |
+| `apps/web/e2e/test.ts` (new)                                                   | Exports `test` (worker-scoped auto fixture `workerTenant`, plus a `baseURL` override) and `expect` (§4).                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `apps/web/e2e/tenant.spec.ts` (new)                                            | T5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `apps/web/e2e/stack.ts`                                                        | In `startDatabase`, delete the `seedStatements` loop. After the `ALTER ROLE` line, add `process.env.E2E_ADMIN_DATABASE_URL = container.getConnectionUri();` and `process.env.E2E_PASSWORD_HASH = await hashPassword();` (the existing `const passwordHash` line goes). `startApi` passes `DEFAULT_TENANT_SLUG: 'e2e-unscoped'`. Remove `seedStatements` and `TENANT` from the `./fixtures.js` import.                                                                                                                                            |
+| `playwright.config.ts`                                                         | Header comment only: "each worker's tenant comes from its host `e2e-w<n>.localhost` (apps/web/e2e/test.ts); the IP base URL maps to no tenant."                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `apps/web/e2e/{admin,board,desk,floor,offline,settings-severity,tags}.spec.ts` | Imports exactly as in the table below. Every `fetch(\`${API_URL}<path>\`, init)`becomes`apiFetch('<path>', init)`; `admin.spec.ts` `apiJson`takes`init: ApiInit = {}`. `desk.spec.ts:39`uses`browser.newContext({ baseURL: TENANT_WEB_URL })`. In `offline.spec.ts`, line 14 becomes `const ASHA_PERSON_ID = scopedId('10000000-0000-0000-0000-000000000009');`, and the comment at lines 9–11 drops "and fixtures.ts is not in this slice's write scope". No assertion changes.                                                                 |
+| `.github/workflows/ci.yml`                                                     | Replace the `checks` job with `static`, `api` and `browser` (§4). `secrets` is unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
-### Process goal 2 (docs check, parity, changelog, union merge)
+Import lines after the change (exactly these; all other imports unchanged):
 
-| File                                      | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tools/check-docs.ts` (new)               | The instruction-file process check and the Drizzle check (§4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `tools/docs.test.ts` (new)                | T8–T12.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `tools/parity.ts`                         | `ParityRow.ticket?: string`; two new rules in `evidenceErrors` (§4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `tools/parity.test.ts`                    | T13–T15.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `docs/spec/parity.yaml`                   | Header comment, line 3: "An in-progress row names evidence or a `ticket: '#<issue>'`." No row changes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `docs/adr/0001-stack.md`                  | Database row: `PostgreSQL 16+ on RDS; raw SQL through \`pg\` (D02); SQL migrations with RLS`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `docs/spec/SPEC.md`                       | Line 158 `packages/db` row: "SQL migrations with RLS policies, raw SQL repos on `pg` (D02), seed and import scripts, isolation test", technology "node-postgres (`pg`)". Line 164: drop "Drizzle ORM, ". Line 174: "re-implemented on Drizzle" becomes "re-implemented in SQL". Line 176: the pick becomes "Postgres RLS with `set_config('app.tenant_id', ..., true)` inside our `withTenant` transaction wrapper; policies in plain SQL in the migrations". Line 190: drop ", drizzle-zod". Line 205: "Postgres 16 (RDS), raw SQL on `pg` (D02), SQL migrations in `packages/db`, …". Line 305: "packages/db SQL migrations with RLS, seeds, import scripts, isolation test". Afterwards `grep -i drizzle` on the file is empty. |
-| `THIRD_PARTY.md`                          | Delete the `Drizzle ORM` row.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `CLAUDE.md` (repo)                        | Replace the "Execution routing: … Do not fall back to DeepSeek for code." paragraph with: "Execution routing: `docs/plan/ORCHESTRATOR.md` (the Athena v3 model table in `.claude/harness/CLAUDE.md`)."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `AGENTS.md`                               | Delete the section "## Model routing and the build loop" (lines 14–24). Replace it with "## The build loop" and one sentence: "Roles, models and the loop are `.claude/harness/CLAUDE.md` and `docs/plan/ORCHESTRATOR.md`; agents without Claude Code follow their intent."                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `docs/ORCHESTRATION.md`                   | Delete §10 (from the line "## 10. Model routing…" up to the line before "## 11."). Renumber "## 11." to "## 10.". Line 28: delete ", and in DSH as a persisted goal when the milestone starts". Delete "**DSH tools it uses:**" and its table (about lines 120–131). Line 185: "alongside DSH's `workflow`/`subagent`" becomes "alongside Claude Code subagents".                                                                                                                                                                                                                                                                                                                                                                  |
-| `docs/BUILD-PROTOCOL.md`                  | Delete the subsection "### DeepSeek Harness specifics" (lines 272–280).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `docs/REVIEW-MECHANISMS.md`               | §7, second bullet: "The coder (Sonnet) and the reviewers (Opus, fresh context) are different models; a fresh context is a real independence boundary. It is still not a senior human: …" (keep the rest of the sentence).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `docs/SKILLS.md`                          | Line 3: delete the sentence starting "DeepSeek Harness has native skills". Line 5: delete "In DSH the pins and hooks do not apply; follow the **intent**, not the frontmatter." Line 30: replace "In DSH it is not a native skill, …" with "The code-reviewer checks it." Delete the line-54 bullet ("… no exact DSH native equivalent …"). §5: replace the paragraph with "`model:` pins and the hooks in `.claude/harness/hooks/` apply as written (Athena v3); R3 still adds a human reviewer."                                                                                                                                                                                                                                 |
-| `docs/WORKFLOW.md`                        | Delete the `docs/orchestration.yaml` table row (line 38).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `docs/HANDOFF.md`                         | Rewrite the top part so it is true after this merge, under 50 lines, with no DSH marker (§7 task 14).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `docs/decisions/D18-one-process.md` (new) | In D02's format. Decision: Athena v3 is the only build process. The DSH route with the hosted free coder (PR #73) is retired, `docs/orchestration.yaml` and `tools/check-orchestration.ts` are deleted, and `tools/check-docs.ts` keeps it that way. Why: BRIEF scope 1, ROADMAP finding 5 (two contradictory harnesses). Rejected: keeping both (agents follow whichever they read first); keeping the yaml as a record (git history holds it). Revisit: only through a new decision and a harness change.                                                                                                                                                                                                                        |
-| `docs/orchestration.yaml`                 | Delete.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `tools/check-orchestration.ts`            | Delete.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `tools/check-changelog.ts` (new)          | The one-fragment-per-PR check (§4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `tools/changelog.test.ts` (new)           | T16–T19.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `changes/README.md` (new)                 | Three lines: one fragment per PR, named `changes/<issue>-<slug>.md`, holding 1–5 bullet lines in the CHANGELOG style; fragments are folded into `CHANGELOG.md` at a release.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `changes/76-green-fast-main.md` (new)     | This PR's fragment (§7 task 14).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `CHANGELOG.md`                            | Under the intro paragraph, add one line: "From #76 on, each PR adds one fragment under `changes/` (see `changes/README.md`) and does not edit this file; fragments are folded in at a release." The existing Unreleased block stays.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `.gitattributes` (new)                    | `wiki/log.md merge=union`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `tools/union-merge.test.ts` (new)         | T20.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `package.json`                            | Scripts: add `"docs:check": "tsx tools/check-docs.ts"`, `"pii:scan": "tsx tools/check-pii.ts"`, `"changelog:check": "tsx tools/check-changelog.ts"`; delete `orchestration:check`. In `verify`, replace `pnpm orchestration:check` with `pnpm docs:check && pnpm pii:scan`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| File                        | Imports                                                                                                                                                                                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin.spec.ts`             | `import { expect, test } from './test.js';` · `import { apiFetch, apiLogin, signIn, type ApiInit } from './fixtures.js';`                                                                                                                                            |
+| `board.spec.ts`             | `import type { Page } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { MACHINES, apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';`                                                                           |
+| `desk.spec.ts`              | `import type { Browser, Page } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { TENANT_WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';`                                                          |
+| `floor.spec.ts`             | `import { expect, test } from './test.js';` · `import { machineFor, signIn } from './fixtures.js';`                                                                                                                                                                  |
+| `offline.spec.ts`           | `import type { Page } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { apiFetch, apiLogin, scopedId, signIn } from './fixtures.js';`                                                                                              |
+| `settings-severity.spec.ts` | `import type { Locator, Page, Response } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';`                                                                           |
+| `sla-timers.spec.ts`        | `import { expect, test } from './test.js';` · `import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';` (the helpers import also gains nothing: `prepareStoppedTicket`, `raiseWorkRequest`, `ensureSlaConfiguration`, `timerRow` are already imported) |
+| `tags.spec.ts`              | `import type { Page } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';`                                                                                     |
+| `sla-test-helpers.ts`       | line 3: `import { apiFetch, apiLogin, raiseTicketViaApi, type ApiInit, type MachineFixture } from './fixtures.js';` (line 2 unchanged)                                                                                                                               |
+| `tenant.spec.ts`            | `import { expect, test } from './test.js';` · `import { API_URL, E2E_PASSWORD, TENANT, apiLogin } from './fixtures.js';`                                                                                                                                             |
 
-### Process goal 3 (PII scan)
+### Process goal 2
 
-| File                         | Change                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `tools/pii-sources.ts` (new) | Builds the deny-list from the three source files, with a standard-library xlsx reader (§4). |
-| `tools/check-pii.ts` (new)   | Scans the tracked files against the deny-list; CLI (§4).                                    |
-| `tools/pii.test.ts` (new)    | T21–T28.                                                                                    |
+| File                                      | Change                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tools/check-docs.ts` (new)               | The process check and the Drizzle check (§4).                                                                                                                                                                                                                                                                         |
+| `tools/docs.test.ts` (new)                | T8–T10.                                                                                                                                                                                                                                                                                                               |
+| `tools/parity.ts`                         | `ParityRow.ticket?: string`. One new rule in `evidenceErrors` (§4).                                                                                                                                                                                                                                                   |
+| `tools/parity.test.ts`                    | T11–T12.                                                                                                                                                                                                                                                                                                              |
+| `docs/adr/0001-stack.md`                  | Line 18 becomes `\| Database \| PostgreSQL 16+ on RDS; raw SQL through \`pg\` (D02); SQL migrations with RLS \|` (prettier realigns the table).                                                                                                                                                                       |
+| `docs/spec/SPEC.md`                       | Replace these whole lines (see §3a).                                                                                                                                                                                                                                                                                  |
+| `THIRD_PARTY.md`                          | Delete the `\| Drizzle ORM …` row (line 17).                                                                                                                                                                                                                                                                          |
+| `CLAUDE.md` (repo)                        | Line 5 becomes: ``Execution routing: `docs/plan/ORCHESTRATOR.md` (the Athena v3 model table in `.claude/harness/CLAUDE.md`).``                                                                                                                                                                                        |
+| `AGENTS.md`                               | Replace lines 14–24 (from `## Model routing and the build loop` to the end of the file) with `## The build loop`, a blank line, and: ``Roles, models and the loop are `.claude/harness/CLAUDE.md` and `docs/plan/ORCHESTRATOR.md`; agents without Claude Code follow their intent.``                                  |
+| `docs/ORCHESTRATION.md`                   | Edits listed in §3b.                                                                                                                                                                                                                                                                                                  |
+| `docs/BUILD-PROTOCOL.md`                  | Edits listed in §3b.                                                                                                                                                                                                                                                                                                  |
+| `docs/SKILLS.md`                          | Edits listed in §3b.                                                                                                                                                                                                                                                                                                  |
+| `docs/REVIEW-MECHANISMS.md`               | Line 113 becomes: `- The coder (Sonnet) and the reviewers (Opus, fresh context) are different models, so a fresh context is a real independence boundary. It is still not a senior human: fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review remain mandatory for R3.` |
+| `docs/WORKFLOW.md`                        | Delete line 38 (the `docs/orchestration.yaml` table row).                                                                                                                                                                                                                                                             |
+| `docs/HANDOFF.md`                         | Rewrite in task 15 (§6).                                                                                                                                                                                                                                                                                              |
+| `docs/decisions/D18-one-process.md` (new) | In D02's shape (§3c).                                                                                                                                                                                                                                                                                                 |
+| `docs/orchestration.yaml`                 | Delete.                                                                                                                                                                                                                                                                                                               |
+| `tools/check-orchestration.ts`            | Delete.                                                                                                                                                                                                                                                                                                               |
+| `tools/check-changelog.ts` (new)          | The fragment check (§4).                                                                                                                                                                                                                                                                                              |
+| `tools/changelog.test.ts` (new)           | T13.                                                                                                                                                                                                                                                                                                                  |
+| `changes/76-green-fast-main.md` (new)     | This PR's fragment (task 15).                                                                                                                                                                                                                                                                                         |
+| `CHANGELOG.md`                            | After line 4, add a blank line, then: ``From #76 on, each PR adds one fragment `changes/<issue>-<slug>.md` (1–5 bullet lines in this file's style) and does not edit this file; fragments are folded in here at a release.``                                                                                          |
+| `.gitattributes` (new)                    | One line: `wiki/log.md merge=union`                                                                                                                                                                                                                                                                                   |
+| `tools/union-merge.test.ts` (new)         | T14.                                                                                                                                                                                                                                                                                                                  |
+| `package.json`                            | Add scripts `"docs:check": "tsx tools/check-docs.ts"`, `"pii:scan": "tsx tools/check-pii.ts"` and `"changelog:check": "tsx tools/check-changelog.ts"`. Delete `"orchestration:check"`. In `verify`, replace `pnpm orchestration:check` with `pnpm docs:check && pnpm pii:scan`.                                       |
+
+**§3a SPEC.md: whole replacement lines**
+
+- 158: ``| `packages/db` | SQL migrations with RLS policies, raw SQL on `pg` (D02), seed and import scripts, isolation test | node-postgres (`pg`) | Every table has `tenant_id`; policies in the same migration as the table |``
+- 164: `**Verify before relying on:** library names here are ones I am confident exist (Vite, React, Fastify, pg-boss, our sessions (ADR 0003), Zod, ECharts, web-push, vite-plugin-pwa); the Claude Code session must still check current versions and APIs in the official docs rather than from memory.`
+- 174: `| Escalation | GoAlert's model (Apache-2.0): policy, steps, delay, repeat, re-implemented in SQL | Keep's YAML workflow pattern | Data model |`
+- 176: ``| Multi-tenancy | Postgres RLS with `set_config('app.tenant_id', ..., true)` inside our `withTenant` transaction wrapper (`packages/db/src/tenant.ts`); policies in plain SQL in the migrations | Tenant-id discipline without RLS (not recommended) | Code |``
+- 190: ``| Admin UI and forms | shadcn/ui, react-hook-form, Zod; AutoForm for master-data screens | react-admin `ra-core` (MIT) | Libraries |``
+- 205: ``| Database | Postgres 16 (RDS), raw SQL on `pg` (D02), SQL migrations in `packages/db`, policies written in plain SQL | RLS policies live next to the tables |``
+- 305: `  packages/db         SQL migrations with RLS, seeds, import scripts, isolation test`
+
+**§3b Instruction files: exact edits.** When done, `pnpm docs:check` exits 0.
+
+`docs/ORCHESTRATION.md`:
+
+- Delete §10, from the line `## 10. Model routing: DeepSeek plans…` through the line before `## 11.`.
+- Renumber `## 11.` to `## 10.`.
+- Line 28: delete `, and in DSH as a persisted goal when the milestone starts`.
+- Delete the block from `**DSH tools it uses:**` (line 120) through the table row starting `` | `web_fetch` `` (line 131), and the blank line after it.
+- Line 185: ``alongside DSH’s `workflow`/`subagent` and the repo’s backlog`` becomes `alongside Claude Code subagents and the repo’s tickets`.
+
+`docs/BUILD-PROTOCOL.md`:
+
+- Delete lines 272–279 (`### DeepSeek Harness specifics` and its five bullets) and the blank line after them.
+- Line 284: delete the two sentences `DSH also has its own native skills with overlapping intent. I use the native one when it matches, and read the repo’s pinned `SKILL.md` when it does not.`
+- Header line 286: `Source / DSH use` becomes `Source`.
+- Last cell on lines 289, 290, 293, 294: `both` becomes `Repo`.
+- Line 291: `Repo agents; emulated with fresh-context subagents` becomes `Repo agents`.
+- Line 292: `Repo agents; emulated` becomes `Repo agents`.
+- Line 295: `Repo + native design skills` becomes `Repo`.
+- Delete line 297 (the `handoff` / `native` row) and line 298 (the `improve-codebase-architecture` / `later` row).
+- Prettier realigns the table.
+
+`docs/SKILLS.md`:
+
+- Line 3: delete the sentence `DeepSeek Harness has native skills with the same intent; use the native one when it exists, read the pinned `SKILL.md` when it does not.`
+- Line 5: delete `In DSH the pins and hooks do not apply; follow the **intent**, not the frontmatter.`
+- Delete table rows 22 (`Design system`), 23 (`Prototype`), 24 (`Memory`) and 26 (`Audit`).
+- Line 30: `In DSH it is not a native skill, so the lead applies it manually and the code-reviewer checks it.` becomes `The code-reviewer checks it.`
+- Delete the bullets at lines 53 (`- DSH native: …`) and 54 (``- The repo’s `office-hours` …``).
+- Replace the §5 paragraph (line 58) with: `` `model:` pins in `.claude/agents/` and the hooks in `.claude/harness/hooks/` apply as written (Athena v3); R3 still adds a human reviewer. ``
+
+**§3c `docs/decisions/D18-one-process.md`**
+
+- Title: `# D18 — One build process: Athena v3`
+- Byline: `Date: 13 November 2026 · Status: accepted (orchestrator, ticket 01)`
+- **Decision:** Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`) is the only build process. The DeepSeek-Harness routing with the hosted free coder (PR #73) is retired. `docs/orchestration.yaml` and `tools/check-orchestration.ts` are deleted. `tools/check-docs.ts` fails CI if an instruction file names that route again.
+- **Why:** BRIEF scope 1 ("one process (Athena v3)") and ROADMAP finding 5 (two contradictory harnesses; the last stretch went into model routing, not product).
+- **Rejected:**
+  - Keeping both routes: agents follow whichever file they read first.
+  - Keeping `orchestration.yaml` as a record: git history keeps it.
+  - A softer check that only warns: the drift returned within days.
+- **Revisit:** only through a new decision and a harness change.
+
+### Process goal 3
+
+| File                         | Change                     |
+| ---------------------------- | -------------------------- |
+| `tools/pii-sources.ts` (new) | Builds the deny-list (§4). |
+| `tools/check-pii.ts` (new)   | Scan plus CLI (§4).        |
+| `tools/pii.test.ts` (new)    | T15–T21.                   |
 
 ### Bookkeeping (same PR)
 
-`docs/plan/MILESTONES.md` (row 01: `done`, PR `#<n>`), `docs/plan/ledger.md` (new on `main`, §7 task 14),
-`wiki/log.md` (one appended line), and this plan's §9 Evidence.
+- `docs/plan/MILESTONES.md`: row 01 becomes `done` with PR `#<n>`.
+- `wiki/log.md`: append one line.
+- `changes/76-green-fast-main.md`.
+- §8 Evidence in this plan.
+- Not `docs/plan/ledger.md` (ruling).
 
 ## 4. Interfaces
 
 ```ts
 // apps/web/e2e/fixtures.ts
 export const WORKER: number; // Number(process.env.TEST_WORKER_INDEX ?? '0')
-export function scopedId(base: string): string; // (0x20000000 + WORKER).toString(16) + base.slice(8); base must be a fixture uuid
+export function scopedId(base: string): string; // (0x20000000 + WORKER).toString(16) + base.slice(8)
 export const TENANT: { id: string; slug: string; name: 'Cosmos' }; // slug `e2e-w${WORKER}`
 export const TENANT_WEB_URL: string; // `http://${TENANT.slug}.localhost:${WEB_PORT}`
 export const API_HOST: string; // `${TENANT.slug}.localhost`
@@ -132,30 +215,20 @@ export interface ApiInit {
   headers?: Record<string, string>;
   body?: string;
 }
-/** node:http request to API_URL with header host: API_HOST; resolves a WHATWG Response
- *  (status from the reply; body null for 204/304; content-type header copied). Rejects on socket error. */
+/** node:http request to new URL(path, API_URL) with headers {...init.headers, host: API_HOST}; resolves
+ *  new Response(status 204/304 ? null : body, { status, headers: { 'content-type': <reply content-type or ''> } });
+ *  rejects on a request or response error. */
 export function apiFetch(path: string, init?: ApiInit): Promise<Response>;
-// unchanged signatures: apiLogin, raiseTicketViaApi, signIn, machineFor, seedStatements, MACHINES, API_URL, WEB_URL
 
 // apps/web/e2e/test.ts
-export const test: TestType<
-  PlaywrightTestArgs & PlaywrightTestOptions,
-  PlaywrightWorkerArgs & PlaywrightWorkerOptions & { workerTenant: void }
->;
-//   workerTenant: worker scope, auto: true. Reads E2E_ADMIN_DATABASE_URL and E2E_PASSWORD_HASH (throws
-//   'e2e: global setup did not publish the database' if either is missing), runs seedStatements(hash)
-//   on a pg Pool (max 1), then ends the pool. `{}` fixture args carry `// eslint-disable-next-line no-empty-pattern`.
-//   baseURL: overridden to TENANT_WEB_URL.
+export const test; // base.extend<object, { workerTenant: void }>({
+//   workerTenant: [async ({}, use) => { await seedWorkerTenant(); await use(); }, { scope: 'worker', auto: true }],
+//   baseURL: async ({}, use) => { await use(TENANT_WEB_URL); } })
+//   `{}` args carry `// eslint-disable-next-line no-empty-pattern`.
+//   seedWorkerTenant(): reads E2E_ADMIN_DATABASE_URL and E2E_PASSWORD_HASH (throws
+//   'e2e: global setup did not publish the database' if either is missing), runs each seedStatements(hash)
+//   statement on new Pool({connectionString, max: 1}), and ends the pool in finally.
 export { expect } from '@playwright/test';
-```
-
-```tsx
-// apps/web/src/components/SlaTimerSummary.tsx — props unchanged; behaviour: no <time> until timeZone is known
-function TimerDetails({
-  timer,
-  status,
-  timeZone,
-}: Omit<RowProps, 'label' | 'detailed'>): JSX.Element;
 ```
 
 ```ts
@@ -169,277 +242,275 @@ export const INSTRUCTION_FILES: readonly string[]; // 'CLAUDE.md', 'AGENTS.md', 
 //   'docs/REVIEW-MECHANISMS.md', 'docs/LEAN.md', 'docs/TESTING.md', 'docs/HANDOFF.md', 'docs/plan/ORCHESTRATOR.md'
 export const STACK_FILES: readonly string[]; // 'docs/adr/0001-stack.md', 'docs/spec/SPEC.md', 'THIRD_PARTY.md'
 export const PROCESS_MARKERS: readonly { label: string; pattern: RegExp }[];
-//   DeepSeek /\bdeepseek\b/i · OpenRouter /\bopenrouter\b/i · nemotron /\bnemotron\b/i · TwIL /\btwil\b/i
-//   · ollama /\bollama\b/i · DSH /\bDSH\b/ · free coder /\bfree coder\b/i
-export function instructionPaths(root?: string): string[]; // INSTRUCTION_FILES + every .claude/agents/*.md, sorted
+//   ['DeepSeek', /\bdeepseek\b/i], ['OpenRouter', /\bopenrouter\b/i], ['nemotron', /\bnemotron\b/i],
+//   ['TwIL', /\btwil\b/i], ['ollama', /\bollama\b/i], ['free coder', /\bfree coder\b/i], ['DSH', /\bDSH\b/]
+export function instructionPaths(root?: string): string[]; // INSTRUCTION_FILES + .claude/agents/*.md (sorted)
 export function readDocs(paths: string[], root?: string): DocFile[]; // throws `docs: missing <path>`
-export function processErrors(files: DocFile[]): string[]; // `${path}:${line}: names a process other than Athena v3 (${label})`, one per marker per line
+export function processErrors(files: DocFile[]): string[]; // `${path}:${line}: names a process other than Athena v3 (${label})`
 export function drizzleErrors(files: DocFile[]): string[]; // /drizzle/i → `${path}:${line}: names Drizzle; the repo uses raw SQL on pg (D02)`
-// main(): prints `docs: <n> instruction files, <m> stack files, <e> problem(s)`, each error to stderr, exitCode 1 on any.
+// Line rule (both): split text on '\n'; test each line; line numbers start at 1; one error per marker per line.
+// main(): prints `docs: <n> instruction files, <m> stack files, <e> problem(s)`, errors to stderr, exitCode 1 on any.
 
-// tools/parity.ts
-export interface ParityRow {
-  /* existing fields */ ticket?: string;
-}
-//   new errors in evidenceErrors:
-//   status 'in-progress' && !evidence?.length && !ticket?.trim() → `${id}: in-progress without evidence or a ticket`
-//   ticket !== undefined && !/^#\d+$/.test(ticket)              → `${id}: ticket must be a GitHub issue like #91`
+// tools/parity.ts: ParityRow gains `ticket?: string`; in evidenceErrors:
+//   row.status === 'in-progress' && !row.evidence?.length && !row.ticket?.trim()
+//     → `${row.id}: in-progress without evidence or a ticket`
 
 // tools/check-changelog.ts
 export interface ChangedFile {
   status: string;
   path: string;
-} // from `git diff --name-status --no-renames`
+} // lines of `git diff --name-status --no-renames`
 export const FRAGMENT: RegExp; // /^changes\/\d+-[a-z0-9-]+\.md$/
 export function changelogErrors(files: ChangedFile[]): string[];
-//   added = files with status 'A', path under 'changes/', path !== 'changes/README.md'
-//   each added path failing FRAGMENT → `${path}: name a fragment changes/<issue>-<slug>.md`
-//   added.length !== 1 → `add exactly one changelog fragment under changes/ (found ${n})`
-// main(): diff origin/main...HEAD, else HEAD~1...HEAD, else print 'changelog: no diff base yet, skipping'
-//   (same pattern as check-parity-update.ts). Prints a summary; exitCode 1 on errors.
+//   added = files.filter(f => f.status === 'A' && f.path.startsWith('changes/'))
+//   for each added path failing FRAGMENT: `${path}: name a fragment changes/<issue>-<slug>.md`
+//   added.length !== 1: `add exactly one changelog fragment under changes/ (found ${added.length})`
+// main(): diff origin/main...HEAD, else HEAD~1...HEAD, else log 'changelog: no diff base yet, skipping'
+//   (the check-parity-update.ts pattern); prints a summary; exitCode 1 on errors.
 
 // tools/pii-sources.ts
 export const SOURCES: { users: string; tickets: string; workbook: string };
-//   'docs/discovery/real-2026-11-13/live/users.json', '.../live/tickets-export.json',
-//   '.../cosmos-export-2026-11-11.xlsx'
+//   'docs/discovery/real-2026-11-13/live/users.json', '…/live/tickets-export.json', '…/cosmos-export-2026-11-11.xlsx'
 export interface DenyList {
   names: string[];
   phones: string[];
-} // names lower-case, whitespace collapsed; phones = last 10 digits
-export interface SourceInput {
-  users?: unknown;
-  tickets?: unknown;
-  workbook?: Buffer;
 }
-export function denyListFromSources(input: SourceInput): DenyList;
-export function loadDenyList(root?: string): DenyList; // throws `pii: source list missing: <path>`
+export interface SourceTexts {
+  users?: string;
+  tickets?: string;
+  workbook?: string;
+} // workbook read as utf8 text
+export const PHONE: RegExp; // /(?<![\w.+])(?:\+?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?![\w.])/g
+export function normalisePhone(value: string): string; // digits only, last 10
 export function workbookCells(
-  workbook: Buffer,
-): { sheet: string; col: string; row: number; value: string }[];
+  text: string,
+): { sheet: number; col: string; row: number; value: string }[];
+export function denyListFromSources(texts: SourceTexts): DenyList;
+export function loadDenyList(root?: string): DenyList; // throws `pii: source list missing: <path>`
 
 // tools/check-pii.ts
-export function scannedPaths(paths: string[]): string[]; // drops /^docs\/discovery\//, 'pnpm-lock.yaml'
+export function scannedPaths(paths: string[]): string[]; // drops paths starting 'docs/discovery/' and 'pnpm-lock.yaml'
 export function scanText(path: string, text: string, deny: DenyList): string[];
-//   `${path}:${line}: real name from the source lists` / `${path}:${line}: real phone from the source lists`
-//   (at most one per kind per line; the value is never printed)
-export function scanFiles(root: string, paths: string[], deny: DenyList): string[]; // skips files with a NUL in the first 8000 bytes
-// main(): deny = loadDenyList(); paths = scannedPaths(`git ls-files -z`); prints
+export function scanFiles(root: string, paths: string[], deny: DenyList): string[]; // skips a file with a NUL byte in its first 8000 bytes
+// main(): deny = loadDenyList(); paths = scannedPaths(git ls-files -z); prints
 //   `pii: <n> names and <m> phones from the source lists; <f> files scanned; <e> problem(s)`; exitCode 1 on any.
 ```
 
-**Deny-list rules (`denyListFromSources`), exactly:**
+**Deny-list rules (`denyListFromSources`).**
 
-- Name candidates:
-  - `users.users[].name`;
-  - for each `tickets.tickets[]`: `reportedBy`, `startedBy`, `closedBy`, `assignedTo`, `transferTo`, `pausedBy`, and `crew[].name`;
-  - workbook cells below a header cell (same sheet, same column, higher row number) whose trimmed lower-case value is `name`, `done by` or `supported by`.
-- Every candidate is split on `/[,&/+]|\band\b/i`, trimmed and whitespace-collapsed. A part is dropped when it has fewer than 3 letters (`\p{L}`) or matches the generic-label rule `/^(?:operator|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i`. Result: unique, lower-case.
-- Phone candidates:
-  - any string or number value under a JSON key matching `/phone|mobile|whatsapp/i`, at any depth, in `users` and `tickets`;
-  - workbook cells below a header cell matching `/^(?:phone|mobile|whatsapp)(?:\s*(?:no\.?|number))?$/i`.
-- Normalise a phone candidate as: digits only; keep it only if it has 10–13 digits; store the last 10.
+- **Name candidates.**
+  - `JSON.parse(users).users[].name`.
+  - For each `JSON.parse(tickets).tickets[]`: `reportedBy`, `startedBy`, `closedBy`, `assignedTo`, `transferTo`, `pausedBy`, and each `crew[].name`. Non-strings are skipped.
+  - From `workbookCells(workbook)`: every cell below a header cell (same `sheet`, same `col`, higher `row`) whose `value.trim().toLowerCase()` is `name`, `done by` or `supported by`.
+- **Name filter.** Split each candidate on `/[,&/+]|\band\b/i`. Trim and collapse whitespace. Drop a part with fewer than 3 `\p{L}` letters, or one matching `/^(?:operator|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i`. The result is lower-case and unique.
+- **Phones.** Every `PHONE` match in the raw `users`, `tickets` and `workbook` texts, normalised with `normalisePhone`, unique.
 
-**Workbook reader (`workbookCells`, standard library only).**
+**`workbookCells(text)`.**
 
-- Find the End-of-Central-Directory signature `PK\x05\x06` with `lastIndexOf`; read the entry count at +10 and the directory offset at +16.
-- For each central entry (signature `PK\x01\x02`), read:
-  - method at +10, compressed size at +20;
-  - name, extra and comment lengths at +28, +30 and +32;
-  - local header offset at +42, and the name at +46.
-- The data starts at local offset + 30 + local name length (+26) + local extra length (+28).
-- Method 0 is the raw bytes, method 8 is `zlib.inflateRawSync`; any other method throws `pii: unsupported zip method`. If `xl/sharedStrings.xml` exists, throw `pii: shared strings not supported`, so a changed workbook cannot pass silently. The frozen file uses inline `t="str"` values.
-- Each `xl/worksheets/*.xml` is read with `/<c r="([A-Z]+)(\d+)"[^>]*>(?:<f>[^<]*<\/f>)?(?:<v>([^<]*)<\/v>|<is><t[^>]*>([^<]*)<\/t><\/is>)/g`. Values are XML-unescaped (`&amp; &lt; &gt; &quot; &apos; &#n; &#xh;`). `sheet` is the entry path.
+- Split `text` on `<worksheet`. Each part after the first is one sheet (index from 1). If there are none, throw `pii: workbook has no readable worksheets`. The frozen file stores its sheets uncompressed; a compressed workbook must fail loudly, not silently.
+- Read each sheet with `/<c r="([A-Z]+)(\d+)"[^>]*>(?:<f>[^<]*<\/f>)?(?:<v>([^<]*)<\/v>|<is><t[^>]*>([^<]*)<\/t><\/is>)/g`.
+- Unescape `&amp; &lt; &gt; &quot; &apos;`, `&#<dec>;` and `&#x<hex>;`.
 
-**Scan rules (`scanText`).**
+**`scanText` (exact).**
 
-- Names: one regex, `(?<![\p{L}\p{N}_])(?:n1|n2|…)(?![\p{L}\p{N}_])` with flags `giu`. Names are sorted longest first and regex-escaped, and each inner space becomes `\s+`. An empty name list matches nothing.
-- Phones: `/(?<!\d)\+?\d[\d\s-]{8,15}\d(?!\d)/g`. Normalise each match as above and look it up in the phone set.
+- Split `text` on `'\n'`. Apply both checks to each line. Line numbers start at 1.
+- Names: one regex `(?<![\p{L}\p{N}_])(?:n1|n2|…)(?![\p{L}\p{N}_])` with flags `iu`. Names are sorted longest first and regex-escaped, and each space becomes `\s+`. An empty list matches nothing.
+- Phones: each `PHONE` match whose `normalisePhone` is in `deny.phones`.
+- Output: at most one `${path}:${line}: real name from the source lists` and one `${path}:${line}: real phone from the source lists` per line. The value is never printed.
 
-**CI (`.github/workflows/ci.yml`).** Every job runs checkout (`fetch-depth: 0`), `pnpm/action-setup@v4` (10.30.3),
-`setup-node@v4` (24, pnpm cache) and `pnpm install --frozen-lockfile`. Then:
+**CI (`.github/workflows/ci.yml`).** Each job starts with the existing setup steps: `checkout@v4` with `fetch-depth: 0`, `pnpm/action-setup@v4` 10.30.3, `setup-node@v4` 24 with the pnpm cache, and `pnpm install --frozen-lockfile`. Each job has `timeout-minutes: 8`; matrices have `fail-fast: false`.
 
 - `static`:
-  - `format:check`, `lint`, `typecheck`, `build`, `parity`, `docs:check`, `pii:scan`, `licences`, `migrations:check`, `audit:lean`;
-  - on `pull_request` only: `parity:update` (keeps its `PARITY_ALLOW_SKIP` env), `changelog:check`, `migrations:immutable`, `pr:size` (keeps its `LEAN_ALLOW_LARGE` env).
-- `api`: `pnpm exec playwright install --with-deps chromium` (the PDF tests need it), then `pnpm exec vitest run --shard=${{ matrix.shard }}/3`.
-- `browser`: the same Chromium install, then `pnpm exec playwright test --shard=${{ matrix.shard }}/2`.
-- `secrets`: unchanged.
+  - always: `format:check`, `lint`, `typecheck`, `build`, `parity`, `docs:check`, `pii:scan`, `licences`, `migrations:check`, `audit:lean`;
+  - `if: github.event_name == 'pull_request'`: `parity:update` (keeps its `PARITY_ALLOW_SKIP` env), `changelog:check`, `migrations:immutable`, `pr:size` (keeps its `LEAN_ALLOW_LARGE` env).
+- `api` (`matrix.shard: [1, 2, 3]`): `pnpm exec playwright install --with-deps chromium` (the PDF tests need it), then `pnpm exec vitest run --shard=${{ matrix.shard }}/3`.
+- `browser` (`matrix.shard: [1, 2]`): the same Chromium install, then `pnpm exec playwright test --shard=${{ matrix.shard }}/2`.
 
 ## 5. Data
 
-| Field                                                                                                                        | Type                                          | Where                                               | Read/write                                      |
-| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
-| `tenant.time_zone` → `Config.timeZone`                                                                                       | `string` (IANA), default `Asia/Kolkata`       | Postgres `tenant`; `GET /api/v1/config`             | read by `SlaTimerSummary`                       |
-| `SlaTimer.dueAt`, `SlaTimer.stoppedAt`                                                                                       | `string \| null` (ISO)                        | ticket reply `sla`                                  | read (render gated)                             |
-| Per-worker seed rows: `tenant(id, slug, name)`, `segment`, `shift`, `machine`, `person`, `login`, `list_item`, `ref_counter` | the existing columns used by `seedStatements` | the run's throwaway Testcontainer only              | written once per worker process                 |
-| `E2E_ADMIN_DATABASE_URL`, `E2E_PASSWORD_HASH`                                                                                | `string` env                                  | set by global setup, read by workers                | test-only; the hash is of the fake e2e password |
-| `parity.yaml rows[].ticket`                                                                                                  | optional `string` `#<issue>`                  | `docs/spec/parity.yaml`                             | new optional field; no row sets it now          |
-| Source lists (§4 rules)                                                                                                      | JSON / xlsx                                   | `docs/discovery/real-2026-11-13/` (tracked, frozen) | read-only, in memory, never echoed              |
+| Field                                                                                                                                         | Type                                   | Where                                | Use                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| `tenant.time_zone` → `Config.timeZone`                                                                                                        | `string`, IANA, default `Asia/Kolkata` | Postgres / `GET /api/v1/config`      | read; gates the times                           |
+| `SlaTimer.dueAt`, `SlaTimer.stoppedAt`                                                                                                        | `string \| null` (ISO)                 | ticket `sla` reply part              | read                                            |
+| Per-worker seed rows (the `seedStatements` columns of `tenant`, `segment`, `shift`, `machine`, `person`, `login`, `list_item`, `ref_counter`) | existing                               | the run's throwaway Testcontainer    | written once per worker                         |
+| `E2E_ADMIN_DATABASE_URL`, `E2E_PASSWORD_HASH`                                                                                                 | env `string`                           | set in global setup, read by workers | test-only; the hash is of the fake e2e password |
+| `parity.yaml rows[].ticket`                                                                                                                   | optional `string`                      | `docs/spec/parity.yaml`              | read by the check; no row sets it               |
+| The three source files                                                                                                                        | JSON, xlsx                             | `docs/discovery/real-2026-11-13/`    | read in memory only, never echoed               |
 
-**No schema change, no migration, no new table, no new dependency.** `pg` and `yaml` are already root devDependencies.
+No schema change, no migration, no new table, no new dependency (`pg` is already a root devDependency).
 
-## 6. Test cases (Given / When / Then)
+## 6. Test cases and tasks
 
-Docker is needed for the browser and API tiers. This cloud container has none, so the browser tests go red
-and green on the branch's CI. Every `tools/` test is database-free and runs in the stop hook's fast tests.
+Docker is running in this container, so the browser and API suites and the 20-run evidence run locally and
+in CI. Every `tools/` test is database-free and runs in the stop hook's fast tests.
 
-**Browser** (`apps/web/e2e/`, both projects)
+### Browser (`apps/web/e2e/`, both projects)
 
-1. **T1 — bug repro, written first.** `sla-timers.spec.ts` ›
-   `test.describe('plant time zone')` with `test.use({ timezoneId: 'America/New_York' })` ›
-   "shows no SLA due time until the plant time zone loads".
-   - **Given:** `ensureSlaConfiguration()` has run, asha has raised a work request with `raiseWorkRequest`, admin is signed in, and `/api/v1/config` is held by `page.route` (same pattern as the "keeps SLA drafts" test).
-   - **When:** admin opens `/desk/<id>`.
-   - **Then:** the "SLA timers" region contains "min left", has 0 `time` elements and does not contain "Due".
-   - **When:** the route is released (in a `finally`).
-   - **Then:** the Acknowledge row's `time` is visible, and its text equals `Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata'})` applied to its `datetime` attribute.
-   - Red before the `SlaTimerSummary` change (a `<time>` renders while config is held).
-2. **T2 — regression.** "freezes cached Settings and ticket timers while offline".
-   - **Given:** a work-request ticket, with the Acknowledge `<time>` visible.
+1. **T1 — reproduces the bug; written first.**
+   - Location: `sla-timers.spec.ts` › `test.describe('plant time zone', …)` with `test.use({ timezoneId: 'America/New_York' })` › "shows no SLA due time until the plant time zone loads".
+   - **Given:** `await ensureSlaConfiguration()`; `ticket = await raiseWorkRequest(await apiLogin('asha'), 'SLA time zone')`; `signIn(page, 'admin')`; then `/^…\/api\/v1\/config(?:\?.*)?$/` is held by `page.route` (the pattern of "keeps SLA drafts…").
+   - **When:** `page.goto(\`/desk/${ticket.id}\`)`.
+   - **Then:** the "SLA timers" region contains `min left`, has 0 `time` elements and does not contain `Due`.
+   - **When:** the route is released (in `finally`).
+   - **Then:** `timerRow(timers, 'Acknowledge').locator('time')` is visible, and its `innerText()` equals `new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata'}).format(new Date(<datetime attribute>))`.
+   - Red before the `SlaTimerSummary` change: a `<time>` renders while config is held.
+2. **T2 — offline snapshot.** "freezes cached Settings and ticket timers while offline", with the added wait.
+   - **Given:** the Acknowledge `<time>` is visible.
    - **When:** the page goes offline and the clock moves 2 minutes.
    - **Then:** the timers text is unchanged.
-3. **T3 — regression.** "configures policies and future pause rules, then shows ticket timers".
-   - **Given:** a previous run left an open ticket on the SLA machine.
-   - **When:** the test runs again.
-   - **Then:** it passes (`prepareStoppedTicket` cancels first; no 409).
-4. **T4 — 20 in a row (evidence).**
-   - **Given:** the full SLA file (7 tests).
+   - The race (config arriving after the snapshot) is not made red separately. **T1 is accepted as its reproduction:** the same root cause, and T2's wait only becomes meaningful once `<time>` means "config loaded".
+3. **T3 — repeat collision.**
+   - **Red first (before the edit):** `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts -g "configures policies" --repeat-each=2 --retries=0 --project=chromium` fails on the second run with `POST /api/v1/tickets failed: 409`. Record it in §8.
+   - **After the edit:** the same command passes.
+4. **T4 — 20 in a row.**
+   - **Given:** the 7 tests of `sla-timers.spec.ts`.
    - **When:** `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts --repeat-each=20 --retries=0 --global-timeout=2400000`.
-   - **Then:** 280 passed, 0 failed, 0 flaky (7 × 20 × 2 projects).
+   - **Then:** 280 passed, 0 failed, 0 flaky.
 5. **T5.** `tenant.spec.ts` › "signs in to this worker's own tenant and nowhere else".
-   - **Given:** worker `i`.
-   - **Then:** `TENANT.slug` is `e2e-w${testInfo.workerIndex}`; `apiLogin('asha')` returns a token; a plain `fetch(\`${API_URL}/api/v1/auth/login\`)` (IP host, no tenant) with asha's credentials answers 404.
-6. **T6 — regression.** The whole suite (`pnpm test:e2e`) passes on both projects with per-worker tenants and no assertion changes.
-7. **T7 — CI.**
-   - **Given:** the PR.
-   - **Then:** the jobs `static`, `api (1–3)`, `browser (1–2)` and `secrets` are green, and each finishes in under 8 minutes (`timeout-minutes: 8` makes a slower shard red).
+   - `TENANT.slug` is `` `e2e-w${test.info().workerIndex}` ``.
+   - `await apiLogin('asha')` returns a non-empty token.
+   - `fetch(\`${API_URL}/api/v1/auth/login\`, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({username:'asha', password:E2E_PASSWORD})})`answers 404: an IP host maps to`e2e-unscoped`.
+   - Red until task 3.
+6. **T6 — regression.** `pnpm test:e2e` is green on both projects; no assertion changed.
+7. **T7 — CI.** On the PR, `static`, `api (1/2/3)`, `browser (1/2)` and `secrets` are green, each under 8 minutes.
 
-**Docs check** (`tools/docs.test.ts`)
+### Docs (`tools/docs.test.ts`)
 
-8. **T8.** "fails an instruction file that names another process".
-   - **Given:** `[{path:'AGENTS.md', text:'intro\nroute to DeepSeek Flash'}]`.
-   - **When:** `processErrors`.
-   - **Then:** `['AGENTS.md:2: names a process other than Athena v3 (DeepSeek)']`.
-9. **T9.** "flags every process marker" (`it.each` over the 7 markers, each in a one-line text): each gives exactly 1 error with its label. The lower-case word `dsh` gives 0 errors (case-sensitive marker).
-10. **T10.** "passes Athena v3 wording": `'Athena v3: Opus plans and reviews, Sonnet builds'` gives `[]`.
-11. **T11.** "fails ADR 0001, SPEC or THIRD_PARTY naming Drizzle": `[{path:'THIRD_PARTY.md', text:'| Drizzle ORM | database |'}]` gives `drizzleErrors` = `['THIRD_PARTY.md:1: names Drizzle; the repo uses raw SQL on pg (D02)']`.
-12. **T12.** "the repository's instruction and stack files pass".
-    - **Given:** the real tree.
-    - **When:** `processErrors(readDocs(instructionPaths()))` and `drizzleErrors(readDocs([...STACK_FILES]))`.
-    - **Then:** both are `[]`.
-    - Red until the documentation edits in tasks 8–11 are done.
+8. **T8.** "flags another process in an instruction file" (`it.each`), on `processErrors([{path:'AGENTS.md', text:'intro\n' + line}])`:
+   - each of `route to DeepSeek Flash`, `the OpenRouter provider`, `nemotron-3`, `local TwIL`, `ollama/x`, `the hosted free coder`, `in DSH` gives exactly `['AGENTS.md:2: names a process other than Athena v3 (<label>)']`;
+   - `the dsh profile` (lower case) and `Athena v3: Opus plans and reviews, Sonnet builds` give `[]`.
+9. **T9.** "fails a stack document that names Drizzle": `drizzleErrors([{path:'THIRD_PARTY.md', text:'| Drizzle ORM | database |'}])` gives `['THIRD_PARTY.md:1: names Drizzle; the repo uses raw SQL on pg (D02)']`.
+10. **T10.** "the repository's instruction and stack files pass": `processErrors(readDocs(instructionPaths()))` and `drizzleErrors(readDocs([...STACK_FILES]))` are both `[]`. Red until tasks 10–12.
 
-**Parity** (`tools/parity.test.ts`)
+### Parity (`tools/parity.test.ts`)
 
-13. **T13.** "rejects an in-progress row with neither evidence nor a ticket": a row with `status 'in-progress'` and `evidence []` gives an error list containing `'v3.test.04: in-progress without evidence or a ticket'`.
-14. **T14.** "accepts an in-progress row with a ticket and no evidence": the same row with `ticket: '#91'` gives no error for that row.
-15. **T15.** "rejects a ticket that is not a GitHub issue": `ticket: '91'` gives `'v3.test.06: ticket must be a GitHub issue like #91'`.
-    - Existing "passes the schema" stays green on the real ledger.
+11. **T11.** "rejects an in-progress row with neither evidence nor a ticket":
+    - row `{id:'v3.test.04', feature:'x', disposition:'keep', milestone:'M1', status:'in-progress', evidence:[]}`;
+    - `validateParity({version:1, rows:[row]})` contains `'v3.test.04: in-progress without evidence or a ticket'`.
+12. **T12.** "accepts an in-progress row with a ticket": the same row with `ticket:'#91'` gives an error list without any `v3.test.04` entry.
 
-**Changelog and union merge** (`tools/changelog.test.ts`, `tools/union-merge.test.ts`)
+### Changelog and merge
 
-16. **T16.** "accepts exactly one fragment": `[{status:'A', path:'changes/76-green-fast-main.md'}, {status:'M', path:'apps/x.ts'}]` gives `[]`.
-17. **T17.** "fails a PR without a fragment": `[{status:'M', path:'changes/70-old.md'}]` gives `['add exactly one changelog fragment under changes/ (found 0)']`.
-18. **T18.** "fails a PR with two fragments": two `A` fragments give `[... '(found 2)']`.
-19. **T19.** "fails a badly named fragment and ignores the README":
-    - `[{A,'changes/notes.md'}, {A,'changes/README.md'}]` gives the name error for `changes/notes.md` and no count error (found 1).
-20. **T20.** "merges two appended wiki/log.md lines without a conflict".
-    - **Given:** a temp git repo (`mkdtemp`) with this repo's `.gitattributes`, a committed `wiki/log.md` holding `base`, branch `a` appending `line a`, and `main` appending `line b`. Git runs with `-c user.name=Test -c user.email=test@example.invalid`.
+13. **T13.** `tools/changelog.test.ts` › "allows exactly one well-named fragment" (`it.each` on `changelogErrors`):
+    - `[A changes/76-green-fast-main.md, M apps/x.ts]` gives `[]`;
+    - `[M changes/70-old.md]` gives `['add exactly one changelog fragment under changes/ (found 0)']`;
+    - `[A changes/1-a.md, A changes/2-b.md]` gives `['add exactly one changelog fragment under changes/ (found 2)']`;
+    - `[A changes/notes.md]` gives `['changes/notes.md: name a fragment changes/<issue>-<slug>.md']`.
+14. **T14.** `tools/union-merge.test.ts` › "merges two appended wiki/log.md lines without a conflict".
+    - **Given:** in `mkdtemp`, `git init -q -b main`; the repo's `.gitattributes` copied in; `wiki/log.md` = `base\n`; both committed **in one base commit**; branch `a` appends `line a\n` and commits; `main` appends `line b\n` and commits. Every git call uses `-c user.name=Test -c user.email=test@example.invalid`.
     - **When:** `git merge a --no-edit`.
     - **Then:** exit 0, and the file contains `base`, `line a` and `line b`.
-    - Red without `.gitattributes` (merge conflict).
+    - Red without `.gitattributes` (conflict).
 
-**PII scan** (`tools/pii.test.ts`). No real value is ever written to disk outside the temp dir, or into an assertion message.
+### PII (`tools/pii.test.ts`)
 
-21. **T21.** "fails on a planted real name from the source lists".
-    - **Given:** `deny = loadDenyList()`, `name = deny.names[0]`, and a temp dir with `planted.md` = `Reported by ${name}\n` (title-cased with `toUpperCase` on the first letter of each word, to prove case-insensitivity).
-    - **When:** `scanFiles(tmp, ['planted.md'], deny)`.
-    - **Then:** exactly 1 error equal to `'planted.md:1: real name from the source lists'`, and no error contains `name`.
-22. **T22.** "passes the same file without the planted name": `planted.md` = `Reported by a fake person\n` gives `[]`.
-23. **T23.** "fails on a planted phone in every written form".
-    - **Given:** `deny = denyListFromSources({users: {users: [{name: 'Fake Person', phone: '+91 90000 00001'}]}})`.
-    - **When:** scanning lines `9000000001`, `+91-90000-00001`, `09000000001`, `+919000000001`.
-    - **Then:** 4 errors, `'p.md:1…4: real phone from the source lists'`; the line `9000000002` gives none.
-24. **T24.** "ignores generic labels":
-    - `denyListFromSources({users: {users: [{name:'Operator'}, {name:'Maint. Team'}, {name:'Cell1'}, {name:'AB'}, {name:'Fake Person'}]}})` gives `.names` equal to `['fake person']`.
-25. **T25.** "reads names from the workbook":
-    - **Given:** the real workbook buffer and the real JSON sources.
-    - **Then:** the deny-list built from all three has more names than the one built from the JSON alone (compared as counts only).
-26. **T26.** "fails loudly when a source list is missing": `loadDenyList(emptyTmpDir)` throws `/pii: source list missing/`.
-27. **T27.** "never scans the source lists": `scannedPaths(['docs/discovery/real-2026-11-13/live/users.json', 'pnpm-lock.yaml', 'apps/x.ts'])` gives `['apps/x.ts']`.
-28. **T28.** "the repository holds no real name or phone outside docs/discovery".
-    - `scanFiles(root, scannedPaths(gitLsFiles()), loadDenyList())` gives `[]`.
-    - The same check runs in CI as `pnpm pii:scan`.
+No real value goes into an assertion message, and nothing real is written outside a `mkdtemp` dir.
 
-## 7. Tasks (in order; one acceptance assertion each; red first, then green)
+15. **T15.** "fails on a planted real name from the source lists, passes without it".
+    - **Given:** `deny = loadDenyList()`, `name = deny.names[0]`.
+    - **Then:**
+      - `scanText('planted.md', 'intro\nReported by ' + titleCase(name), deny)` equals `['planted.md:2: real name from the source lists']`;
+      - `errors.join()` does not contain `name`;
+      - `scanText('planted.md', 'Reported by a fake person', deny)` is `[]`.
+    - `titleCase` is a local one-line helper; it proves case-insensitivity.
+16. **T16.** "fails on a generated Indian mobile number in every written form".
+    - **Given:** `n = String(6 + Math.floor(Math.random() * 4)) + String(Math.floor(Math.random() * 1e9)).padStart(9, '0')`; `deny = denyListFromSources({ users: JSON.stringify({ users: [{ name: 'Fake Person', note: 'call +91' + n }] }) })`. The `note` key proves that phone-shaped values are taken from anywhere.
+    - **When:** `scanText('p.md', ['+91' + n, '+91 ' + n.slice(0, 5) + ' ' + n.slice(5), '0' + n, n, other].join('\n'), deny)`, where `other` is `n` with its last digit changed (`(d + 1) % 10`).
+    - **Then:** exactly `['p.md:1: …', 'p.md:2: …', 'p.md:3: …', 'p.md:4: …']`, each `real phone from the source lists`.
+17. **T17.** "ignores generic labels": `denyListFromSources({ users: JSON.stringify({ users: ['Operator', 'Maint. Team', 'Cell1', 'AB', 'Fake Person'].map((name) => ({ name })) }) }).names` equals `['fake person']`.
+18. **T18.** "reads names from the workbook": `denyListFromSources` of the three real texts has more names than the JSON-only call (compared as counts only); `workbookCells('no sheets')` throws `/no readable worksheets/`.
+19. **T19.** "fails loudly when a source list is missing": `loadDenyList(<empty mkdtemp>)` throws `/pii: source list missing/`.
+20. **T20.** "never scans the source lists or the lockfile": `scannedPaths(['docs/discovery/real-2026-11-13/live/users.json', 'pnpm-lock.yaml', 'apps/x.ts'])` equals `['apps/x.ts']`.
+21. **T21.** "the repository holds no real name or phone outside docs/discovery": `scanFiles(root, scannedPaths(gitLsFiles), loadDenyList())` is `[]`, where `gitLsFiles` is `git ls-files -z` split on NUL.
 
-| #   | Files (≤3 unless noted)                                                                                                                                                                                                                                                             | Red → green                                                                                                                                                                                                                                                                                |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | `sla-timers.spec.ts` (T1 only), `SlaTimerSummary.tsx`                                                                                                                                                                                                                               | T1 red on CI, then the `timeZone &&` gates → T1 green. Command: `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts -g "time zone"`                                                                                                                                                 |
-| 2   | `sla-timers.spec.ts` (T2, T3 edits)                                                                                                                                                                                                                                                 | `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts --repeat-each=3 --retries=0` green (T4 is task 15)                                                                                                                                                                              |
-| 3   | `fixtures.ts`, `test.ts` (new), `tenant.spec.ts` (new)                                                                                                                                                                                                                              | T5 red (env not published yet)                                                                                                                                                                                                                                                             |
-| 4   | `stack.ts`, `playwright.config.ts`, `vite.e2e.config.ts`                                                                                                                                                                                                                            | T5 green: `pnpm exec playwright test apps/web/e2e/tenant.spec.ts`                                                                                                                                                                                                                          |
-| 5   | `admin`, `board`, `desk` specs (mechanical import/`apiFetch` swap)                                                                                                                                                                                                                  | those three files green                                                                                                                                                                                                                                                                    |
-| 6   | `floor`, `offline`, `settings-severity` specs                                                                                                                                                                                                                                       | those three files green                                                                                                                                                                                                                                                                    |
-| 7   | `sla-timers.spec.ts`, `tags.spec.ts`, `sla-test-helpers.ts`                                                                                                                                                                                                                         | T6: `pnpm test:e2e` all green                                                                                                                                                                                                                                                              |
-| 8   | `tools/parity.ts`, `tools/parity.test.ts`, `docs/spec/parity.yaml` (comment)                                                                                                                                                                                                        | T13–T15 red → green: `pnpm exec vitest run tools/parity.test.ts`                                                                                                                                                                                                                           |
-| 9   | `tools/check-docs.ts`, `tools/docs.test.ts`, `package.json` (`docs:check`)                                                                                                                                                                                                          | T8–T11 green; T12 red                                                                                                                                                                                                                                                                      |
-| 10  | `docs/adr/0001-stack.md`, `docs/spec/SPEC.md`, `THIRD_PARTY.md`                                                                                                                                                                                                                     | the Drizzle half of T12 green                                                                                                                                                                                                                                                              |
-| 11  | DSH retirement: (a) delete `docs/orchestration.yaml` and `tools/check-orchestration.ts`, `package.json` scripts/verify, `D18`; (b) `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`; (c) `ORCHESTRATION.md`, `BUILD-PROTOCOL.md`, `REVIEW-MECHANISMS.md`; (d) `SKILLS.md`, `WORKFLOW.md` | T12 green; `pnpm docs:check` exit 0. Any line still reported is fixed by deleting the DSH-only text or replacing it with the Athena v3 equivalent (harness model table). Never by weakening a marker.                                                                                      |
-| 12  | `tools/check-changelog.ts`, `tools/changelog.test.ts`, `package.json` (`changelog:check`)                                                                                                                                                                                           | T16–T19 red → green                                                                                                                                                                                                                                                                        |
-| 13  | `.gitattributes`, `tools/union-merge.test.ts`                                                                                                                                                                                                                                       | T20 red (no attributes) → green                                                                                                                                                                                                                                                            |
-| 14a | `tools/pii-sources.ts`, `tools/pii.test.ts` (T23–T26)                                                                                                                                                                                                                               | red → green: `pnpm exec vitest run tools/pii.test.ts`                                                                                                                                                                                                                                      |
-| 14b | `tools/check-pii.ts`, `tools/pii.test.ts` (T21, T22, T27, T28), `package.json` (`pii:scan`)                                                                                                                                                                                         | red → green; `pnpm pii:scan` exit 0                                                                                                                                                                                                                                                        |
-| 15  | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                          | push; T7 green; record the shard times in §9                                                                                                                                                                                                                                               |
-| 16  | Evidence T4                                                                                                                                                                                                                                                                         | Locally where Docker exists: the T4 command. Otherwise in CI: one commit adds a temporary job `sla-repeat` (`timeout-minutes: 45`, the same setup steps plus the Chromium install, running the T4 command). Record the run URL and the counts in §9, then the next commit deletes the job. |
-| 17  | Bookkeeping (docs only, see below)                                                                                                                                                                                                                                                  | `pnpm verify` green; `pnpm changelog:check` green                                                                                                                                                                                                                                          |
+### Tasks (in order; one acceptance assertion each)
 
-**Task 17, exactly.**
+| #   | Files                                                                                                                                                                    | Red → green                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| 1   | `sla-timers.spec.ts` (T1), `SlaTimerSummary.tsx`                                                                                                                         | T1 red, then the fix; `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts -g "time zone"` green |
+| 2   | `sla-timers.spec.ts` (T3 edit, then the T2 wait)                                                                                                                         | T3 red command recorded, then green; T2 green                                                          |
+| 3   | `fixtures.ts`, `test.ts` (new), `tenant.spec.ts` (new)                                                                                                                   | T5 red (global setup does not publish the database yet)                                                |
+| 4   | `stack.ts`, `playwright.config.ts` (comment)                                                                                                                             | T5 green: `pnpm exec playwright test apps/web/e2e/tenant.spec.ts`                                      |
+| 5   | `admin`, `board`, `desk` specs                                                                                                                                           | those files green                                                                                      |
+| 6   | `floor`, `offline`, `settings-severity` specs                                                                                                                            | those files green                                                                                      |
+| 7   | `sla-timers.spec.ts` (imports, `apiFetch`), `tags.spec.ts`, `sla-test-helpers.ts`                                                                                        | T6 `pnpm test:e2e` green; then T4, recorded in §8                                                      |
+| 8   | `tools/parity.ts`, `tools/parity.test.ts`                                                                                                                                | T11 red → green; T12 green                                                                             |
+| 9   | `tools/check-docs.ts`, `tools/docs.test.ts`, `package.json` (`docs:check`)                                                                                               | T8, T9 green; T10 red                                                                                  |
+| 10  | `docs/adr/0001-stack.md`, `docs/spec/SPEC.md`, `THIRD_PARTY.md`                                                                                                          | Drizzle half of T10 green                                                                              |
+| 11  | Delete `docs/orchestration.yaml` and `tools/check-orchestration.ts`; `package.json` scripts/verify; `D18`                                                                | `pnpm verify` no longer calls `orchestration:check`                                                    |
+| 12  | (a) `CLAUDE.md`, `AGENTS.md`, `docs/WORKFLOW.md`; (b) `ORCHESTRATION.md`, `BUILD-PROTOCOL.md`, `REVIEW-MECHANISMS.md`; (c) `SKILLS.md`, `docs/HANDOFF.md` (task-15 text) | T10 green; `pnpm docs:check` exit 0                                                                    |
+| 13  | `tools/check-changelog.ts`, `tools/changelog.test.ts`, `package.json` (`changelog:check`)                                                                                | T13 red → green                                                                                        |
+| 14  | `.gitattributes`, `tools/union-merge.test.ts`                                                                                                                            | T14 red → green                                                                                        |
+| 14a | `tools/pii-sources.ts`, `tools/pii.test.ts` (T16–T19)                                                                                                                    | red → green: `pnpm exec vitest run tools/pii.test.ts`                                                  |
+| 14b | `tools/check-pii.ts`, `tools/pii.test.ts` (T15, T20, T21), `package.json` (`pii:scan`)                                                                                   | red → green; `pnpm pii:scan` exit 0                                                                    |
+| 15  | `.github/workflows/ci.yml`, then the bookkeeping docs                                                                                                                    | T7 green; shard times in §8; `pnpm verify` green                                                       |
 
-- `changes/README.md`, `changes/76-green-fast-main.md` (bullets, each a user-visible or contributor-visible change):
-  - SLA due times wait for the plant time zone;
-  - browser tests use one tenant per worker;
-  - CI runs in sharded jobs under 8 minutes;
-  - the docs, changelog and PII checks;
-  - one process (D18).
-- `CHANGELOG.md`: the note line.
-- `docs/plan/MILESTONES.md`: row 01 → `done`, PR `#<n>`.
-- `docs/plan/ledger.md`: create it on this branch with exactly the first three lines of `origin/claude/orchestrator-ledger:docs/plan/ledger.md` (title, blank line, the "One line per event…" line), a blank line, then `- 2026-11-13 · 01 PR #<n> — SLA x20: <passed>/280; shards static <m>, api <m>/<m>/<m>, browser <m>/<m>; docs, changelog and PII checks proven by planted violations (T8–T28)`.
-- `wiki/log.md`: append `2026-11-13 — Ticket 01 Green, fast main (#<n>): SLA due times wait for the plant zone; one seeded tenant per Playwright worker; CI sharded (static, api×3, browser×2, each < 8 min); docs/parity/changelog/PII guards; DSH routing retired (D18).`
-- `docs/HANDOFF.md` (rewritten in task 11b; refresh here):
-  - State: `main` has M2-2.2 (#74), the milestone plan (#75) and ticket 01 merged.
-  - The only process is Athena v3 (D18).
-  - Frontier: 02, 08, 10, 13.
-  - CI shape and the per-worker e2e tenants.
-  - Blocked/external: N1, N11, N12, N5, and production backup/security sign-off.
-  - Under 50 lines.
-- PR: body says what changed for a user, which tests prove it, and how to try it (open a ticket and watch the SLA panel). It contains `Closes #76`. Labels: see question 1.
+**Task 15, bookkeeping text.**
 
-## 8. Out of scope
+- **`changes/76-green-fast-main.md`**, five bullets:
+  - SLA due and stopped times wait for the plant time zone.
+  - Browser tests seed one tenant per Playwright worker.
+  - CI runs as `static`, `api` ×3, `browser` ×2, each under 8 minutes.
+  - Docs, parity, changelog and PII guards.
+  - One build process, Athena v3 (D18).
+- **`docs/plan/MILESTONES.md`** row 01: `| 01 | Green, fast main | M0 | done | #<n> |`.
+- **`wiki/log.md`**, append: `2026-11-13 — Ticket 01 Green, fast main (#<n>): SLA times wait for the plant zone; one seeded tenant per Playwright worker; CI static/api×3/browser×2, each < 8 min; docs, parity, changelog and PII guards; one process, Athena v3 (D18). SLA ×20: <passed>/280.`
+- **`docs/HANDOFF.md`**: replace lines 5–42 (from `## RESUME HERE` through the end of `## Next`) with:
 
-- `Timeline` and `PeopleSection` in `TicketDetail.tsx` also format with `config?.timeZone` before config loads. This is the same class of bug, but the ticket names only the SLA timer. Proposed follow-up issue.
-- Selecting API tests by touched module (ticket 03, once modules exist); moving full journeys to staging (13).
-- Pseudonymised fixtures and loading real people (ticket 08); `merge=union` for `docs/plan/ledger.md` (question 4).
-- Folding the `changes/` fragments into a release (no release yet); rewriting old `wiki/log.md` lines (append-only), ROADMAP or spike docs (history, not instruction files).
-- Vendored `.claude/skills/**` (installed by the harness, pinned by `skills.lock.json`).
+```
+## RESUME HERE
+
+**State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and ticket 01 (#<n>). The only build
+process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
+in `docs/plan/MILESTONES.md` is the queue.
+
+- CI: `static`, `api` ×3, `browser` ×2 and `secrets`, each under 8 minutes. Browser tests seed one tenant per
+  Playwright worker (`apps/web/e2e/test.ts`).
+- Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR).
+
+## Live on main
+
+- M0 foundation: schema v1 with forced RLS and `app_api`, auth, settings/config, Cosmos seed, walking skeleton.
+- M1a ticket core: domain state/figures/permissions, tickets API, floor/desk, lists and real E2E harness.
+- M1b: report/PDF, live board, PWA/WhatsApp, offline outbox, push, needs-report, day-report, admin, Desk
+  Views, exact cancel time and per-person minutes, synthetic importer with undo.
+- M2: configurable tags (#71), severity matrix (#72), SLA policies and timers (#74).
+
+## Next
+
+- The M0 frontier after 01: tickets 02, 08, 10, 13 (MILESTONES "What can run at the same time").
+```
+
+## 7. Out of scope and regression risk
+
+**Out of scope:**
+
+- `Timeline` and `PeopleSection` in `TicketDetail.tsx` (lines 150–161) share the time-zone bug, but the ticket names only the SLA timer. Proposed follow-up issue.
+- Selecting tests by touched module (ticket 03); full journeys on staging (13); pseudonymised fixtures (08).
+- `docs/plan/ledger.md` (ruling); `parity.yaml` and `sync-parity.ts`; anything in `.claude/harness/` or `.claude/skills/`.
+- Releasing `changes/`; old `wiki/log.md` lines (append-only); ROADMAP and spike docs (history, not instruction files).
 - Any server, schema or API change.
 
-**Regression risk.**
+**Regression risk, with how it is caught:**
 
-- Every e2e spec changes its imports and the stack no longer seeds `cosmos`: T6 must be green on both projects.
-- Removing `orchestration:check` from `verify`.
-- The CI job split must still run every check the old `checks` job ran: compare the step lists one by one in review.
+- Every e2e spec changes, and the stack no longer seeds `cosmos`: T6 on both projects.
+- `SlaTimerSummary` has no unit test (no component-test setup exists); only T1 and T6 cover it.
+- `verify` loses `orchestration:check`, and its file is deleted. Check with `grep -rn orchestration package.json .github`.
+- The CI split must keep every old step: review compares the old step list with `static` + `api` + `browser`.
+- `api` shards now also run `tools/**`, `packages/**` and `apps/**` unit tests (`vitest.config.ts:13` includes them all). That is intended.
+- `tools/check-deps.ts` reads `THIRD_PARTY.md`. Drizzle is not installed, so deleting its row cannot fail it; `pnpm deps` stays green.
+- Fast tests (the stop hook) now read the three source files about 4 times. Measured baseline: 1.8 s. The deny-list build plus the repo scan measured 160 ms, so the expected total is under 3 s. Record the measured value in §8.
 
-## 9. Evidence (filled by the builder)
+## 8. Evidence (filled by the builder)
 
-- T4 SLA ×20: _command, where, passed/failed/flaky, run URL_
-- Shard times (run URL): static _m_, api 1/2/3 _m_, browser 1/2 _m_
-- T1 red run (before the fix) and green run: _run URLs_
+- T3 red (409) output and green: _paste_
+- T1 red and green: _paste_
+- T4 SLA ×20: _passed/failed/flaky_
+- CI run URL and job times: static _m_, api 1/2/3 _m_, browser 1/2 _m_
+- Fast tests before/after: 1.8 s / _s_
 
-## 10. Questions for the orchestrator
+## 9. Questions for the orchestrator
 
-1. **PR shape.** About 1,050 changed code lines (about 110 of them from deleting `check-orchestration.ts`; docs excluded) is over the 800 hard limit. Default if not answered: one PR with `size:large` and the reason "ticket 01 bundles three process goals". The alternative is three PRs from this plan: tasks 1–7 + 15–16, tasks 8–13, tasks 14a–b; the last one carries `Closes #76`. The plan works either way. `no-parity` is not needed: `parity.yaml` changes legitimately (task 8).
-2. **Phones (for Nimish, plain English).** "The Cosmos files we have (logins, tickets, the platform export) contain no phone numbers. The scan checks every real name now, and will check phone numbers from any list that contains them. Is there a list of the team's real phone numbers (for example for the 26 logins), and where is it?" Non-blocking: the phone check is built and proven on made-up numbers.
-3. **Retiring the DSH / hosted-free-coder route (#73, two commits ago)** by editing the repo `CLAUDE.md` and `AGENTS.md`. The plan follows BRIEF scope 1 and ROADMAP H1. Please confirm before task 11 runs, since `CLAUDE.md` is a governing file.
-4. **Ledger.** `docs/plan/ledger.md` exists only on `claude/orchestrator-ledger` (PR #144). Creating it here per your ruling gives #144 an add/add conflict on rebase. Do you want `docs/plan/ledger.md merge=union` added to `.gitattributes` in this PR (one line)? Default: not added.
-5. Note, no answer needed: `merge=union` applies to local merges and rebases, which is how the merge queue rebases. Whether GitHub's web merge honours it is not verified.
+None open. Rulings applied: Q1 (one PR, `size:large`; cuts in §2), Q2 (phones from any phone-shaped value in
+the sources, proven with generated +91 numbers), Q3 (confirmed; `.claude/harness/` untouched), Q4 (no ledger edit).
+`no-parity` is added because `apps/` changes but no parity row does.
