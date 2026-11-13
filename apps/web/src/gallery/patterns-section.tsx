@@ -17,7 +17,7 @@ import {
 } from './patterns-data.js';
 
 // Own client: no retry, never stale, so the error state shows at once and nothing refetches.
-const galleryQueries = new QueryClient({
+export const galleryQueries = new QueryClient({
   defaultOptions: { queries: { retry: false, staleTime: Infinity } },
 });
 
