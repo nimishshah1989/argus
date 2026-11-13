@@ -4,3 +4,4 @@ One line per event, append-only: `dispatched NN → session`, `PR #n`, `merged`,
 
 - 2026-11-13 · M0 orchestration started on `main` eb80a47; frontier = {01}.
 - 2026-11-13 · Ruling: children append their line to this file in their own PR and the orchestrator rebases `claude/orchestrator-ledger` after each merge — the brief asks for both; append-only lines resolve trivially — cost if wrong: a rebase conflict per merge.
+- 2026-11-13 · dispatched 01 → session_01KEBF28bH3ZUiJA3Dp6SYCF (branch claude/t01-green-fast-main, Sonnet).
