@@ -114,8 +114,9 @@ export async function machineHistory(
   ).rows;
 }
 
-const SEEN_ELSEWHERE_SQL = `SELECT DISTINCT n.note FROM (
-  SELECT lower(regexp_replace(btrim(COALESCE(NULLIF(btrim(r.corrective_action), ''), t.close_note)), '\\s+', ' ', 'g')) AS note
+const SEEN_ELSEWHERE_SQL = `SELECT n.note FROM (
+  SELECT lower(regexp_replace(btrim(COALESCE(NULLIF(btrim(r.corrective_action), ''), t.close_note)), '\\s+', ' ', 'g')) AS note,
+         t.machine_id, (t.reported_at AT TIME ZONE 'UTC')::date AS day
     FROM ticket t
     LEFT JOIN LATERAL (
       SELECT corrective_action FROM breakdown_report br
@@ -124,9 +125,11 @@ const SEEN_ELSEWHERE_SQL = `SELECT DISTINCT n.note FROM (
    WHERE t.tenant_id = $1 AND t.status = 'closed' AND t.machine_id IS NOT NULL
      AND t.machine_id <> ALL($2::uuid[])
 ) n
- WHERE n.note = ANY($3::text[])`;
+ WHERE n.note = ANY($3::text[])
+ GROUP BY n.note, n.day
+HAVING count(DISTINCT n.machine_id) >= 3`;
 
-/** Which of the (normalised) notes are the closing note of a closed ticket on a machine outside the family. */
+/** Which of the (normalised) notes are stock phrases: the closing note of closed tickets on 3+ machines outside the family on one UTC day. */
 export async function notesSeenElsewhere(
   tx: Db,
   tenantId: string,
