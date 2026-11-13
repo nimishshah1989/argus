@@ -3,10 +3,10 @@ import type { Pool, PoolClient } from 'pg';
 import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
+import { withTicketParts } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
-import { projectTicketSla, withSlaProjections } from '../accountability/index.js';
 import * as report from './repo/report.js';
 import {
   needReportRows,
@@ -90,7 +90,7 @@ async function queryList(
     page.map((row) => row.id as string),
     new Date(),
   );
-  const items = await withSlaProjections(client, tenantId, page, (row) =>
+  const items = await withTicketParts(client, tenantId, page, (row) =>
     projectTicket(row, perPerson[row.id as string]),
   );
   let nextCursor: string | null = null;
@@ -150,7 +150,7 @@ export async function listNeedReport(
 ): Promise<unknown[]> {
   return withTenant(pool, tenantId, async (client) => {
     const rows = await needReportRows(client, tenantId, actingPersonId, role);
-    return withSlaProjections(client, tenantId, rows, (row) => projectTicket(row));
+    return withTicketParts(client, tenantId, rows, (row) => projectTicket(row));
   });
 }
 
@@ -174,10 +174,11 @@ export async function detail(
       now: new Date(),
     });
     return {
-      ticket: {
-        ...tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
-        sla: await projectTicketSla(client, ctx.tenantId, ticketId, new Date()),
-      },
+      ticket: (
+        await withTicketParts(client, ctx.tenantId, [row], () =>
+          tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
+        )
+      )[0],
       events: events.map((event) => ({
         seq: event.seq,
         type: event.type,
