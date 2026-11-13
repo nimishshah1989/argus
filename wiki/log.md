@@ -72,3 +72,4 @@
   2026-11-13 — Ticket 05 Actions and words from the domain (#83): the ticket buttons come from the domain availableActions (server rules plus the product rulings); message catalogues moved per namespace into packages/shared/src/i18n (D7); the web depends on @uptimo/domain and @uptimo/shared; the e2e runs a Gujarati project (empty gu values fall back to English until ticket 24).
 - 2026-11-13 10:21 UTC session d0898bb7 on `claude/kind-curie-ayp7eq`: f9a5b22 Propose ADR 0007 and the claude-for-manufacturing adoption plan
 - 2026-11-13 11:54 UTC session c23c2255 on `claude/orchestrator-ledger`: 4717d0c docs(plan): ledger — adoption plan landed, 05 merged
+- 2026-11-13 12:16 UTC session c23c2255 on `claude/orchestrator-ledger`: 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
