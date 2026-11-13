@@ -65,6 +65,15 @@ variable "github_repo" {
   default = "argus"
 }
 
+# GitHub now puts the numeric owner and repository ids into the workflow's identity
+# (`use_immutable_subject`, so a re-created repo of the same name cannot deploy). Find the prefix with:
+#   gh api repos/<org>/<repo>/actions/oidc/customization/sub   (field sub_claim_prefix)
+# Leave empty only if that call says use_immutable_subject is false.
+variable "github_sub_prefix" {
+  type    = string
+  default = ""
+}
+
 # Caddy's ACME email and both alarm subscriptions.
 variable "billing_email" {
   type = string
