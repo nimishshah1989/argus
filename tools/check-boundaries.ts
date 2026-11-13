@@ -38,19 +38,10 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
 export type Baseline = Readonly<Record<string, readonly string[]>>;
 
 export const LEGACY: Baseline = {
-  'apps/server/src/config.ts': [
-    'list_item',
-    'machine',
-    'machine_group',
-    'segment',
-    'setting',
-    'shift',
-  ],
   'apps/server/src/day-report.ts': ['machine', 'person', 'tenant_info'],
   'apps/server/src/import/references.ts': ['list_item', 'machine', 'person', 'shift'],
   'apps/server/src/push.ts': ['person'],
   'apps/server/src/reports.ts': ['machine', 'person', 'tenant_info'],
-  'apps/server/src/settings.ts': ['list_item', 'machine', 'setting', 'shift'],
   'apps/server/src/tag-sql.ts': ['list_item'],
   'apps/server/src/ticket-report.ts': ['person', 'shift', 'tenant_info'],
   'apps/server/src/ticket-sql.ts': ['list_item', 'person'],
