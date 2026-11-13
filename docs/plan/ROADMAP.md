@@ -1,3 +1,5 @@
+> **Superseded on 13 November 2026 by `docs/plan/MILESTONES.md`** (the goal post and tracker). Kept for the evaluation in §1–§3 and §8.
+
 # Roadmap — evaluation and full plan (13 November 2026)
 
 Basis: `docs/spec/SPEC.md`, `docs/plan/*`, `docs/spec/parity.yaml`, both harness contracts, the code on
