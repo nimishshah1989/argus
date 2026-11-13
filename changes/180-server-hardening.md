@@ -1,0 +1,4 @@
+- Signing in is now protected against password guessing: ten wrong tries for one name from one place, or a hundred from one place across names, pause sign-in for a few minutes. Correct sign-ins never count, so a whole shift can use one shared phone login. An unknown name now takes as long to refuse as a wrong password.
+- The plant's busy-ness limit is now counted per phone, not for the whole plant at once.
+- Only the settings the app really changes (features, severity matrix, the AI monthly cap) can be saved, each checked for shape; the AI cap is admin only. Anything else is refused.
+- Phone alerts can only be registered with the real browser push services, and the server never sends to any other address.
