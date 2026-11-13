@@ -88,3 +88,4 @@
 - 2026-11-13 16:11 UTC session d928e15c on `claude/orchestrator-m0-gate`: e8bbfb4 docs(plan): tracker and ledger for the new orchestrator session
 - 2026-11-13 16:31 UTC session d928e15c on `claude/orchestrator-m0-gate`: c68dc30 docs: session notes (hook)
 - 2026-11-13 16:42 UTC session d928e15c on `claude/orchestrator-m0-gate`: d555082 docs(plan): 09 merged
+- 2026-11-13 17:21 UTC session d928e15c on `claude/orchestrator-m0-gate`: f1362e1 docs(plan): ledger, 14 review
