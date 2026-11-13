@@ -1,0 +1,1 @@
+- Cosmos seeds its real machine registers, 26 logins (fake in CI) and both shifts; 18:29 is shift 2.

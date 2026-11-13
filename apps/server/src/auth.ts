@@ -14,6 +14,10 @@ const PASSWORD_OPTS = {
   parallelism: 1,
 } as const;
 
+export function hashPassword(password: string): Promise<string> {
+  return hash(password, PASSWORD_OPTS);
+}
+
 interface AuthContext {
   token: string;
   tenantId: string;
@@ -213,7 +217,7 @@ async function changePassword(pool: Pool, request: FastifyRequest, reply: Fastif
     const row = (await client.query('SELECT password_hash FROM login WHERE id = $1', [ctx.loginId]))
       .rows[0];
     if (!(await verify(row.password_hash, parsed.data.old))) return false;
-    const newHash = await hash(parsed.data.password, PASSWORD_OPTS);
+    const newHash = await hashPassword(parsed.data.password);
     await client.query('UPDATE login SET password_hash = $1 WHERE id = $2', [newHash, ctx.loginId]);
     await client.query(
       'UPDATE session SET revoked_at = now() WHERE login_id = $1 AND token_hash <> $2',

@@ -1,14 +1,31 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { relative, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Pool, PoolClient } from 'pg';
-import { buildSeed, type ListSeed, type MachineSeed, type PersonSeed } from './seed-data.js';
+import { hashPassword } from '../auth.js';
+import {
+  buildSeed,
+  type ListSeed,
+  type MachineSeed,
+  type PersonSeed,
+  type SeedFiles,
+} from './cosmos-data.js';
 
 interface Paths {
   exportPath: string;
   livePath: string;
   glossaryPath: string;
+  peoplePath?: string;
 }
+
+export const SEED_FILES = {
+  machines: fileURLToPath(new URL('./generated/cosmos-machines.json', import.meta.url)),
+  shifts: fileURLToPath(new URL('./cosmos-shifts.json', import.meta.url)),
+  peopleFixture: fileURLToPath(new URL('./fixtures/cosmos-people.fixture.json', import.meta.url)),
+};
+
+/** For dev and CI only: the fixture people file is fake. */
+export const FIXTURE_PASSWORD = 'fixture-only-password';
 
 export interface SeedReport {
   counts: Record<string, number>;
@@ -53,12 +70,24 @@ async function insertMachines(
   }
 }
 
-async function insertPeople(client: PoolClient, tenantId: string, people: PersonSeed[]) {
-  for (const person of people) {
-    await client.query(
-      'INSERT INTO person (tenant_id, name, team, kind, active) VALUES ($1, $2, $3, $4, true)',
-      [tenantId, person.name, person.team, person.kind],
-    );
+async function insertPeople(
+  client: PoolClient,
+  tenantId: string,
+  people: PersonSeed[],
+  passwordHash: string,
+) {
+  for (const p of people) {
+    const row = (
+      await client.query(
+        'INSERT INTO person (tenant_id, name, team, kind, title, phone, default_shift, active) VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING id',
+        [tenantId, p.name, p.team, p.kind, p.title, p.phone, p.defaultShift],
+      )
+    ).rows[0] as { id: string };
+    if (p.login)
+      await client.query(
+        'INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared, must_change_password) VALUES ($1, $2, $3, $4, $5, false, true)',
+        [tenantId, row.id, p.login.username, passwordHash, p.login.role],
+      );
   }
 }
 
@@ -101,7 +130,11 @@ async function insertSegments(client: PoolClient, tenantId: string): Promise<Map
   return ids;
 }
 
-async function insertSettings(client: PoolClient, tenantId: string, teamShifts: unknown) {
+async function insertSettings(
+  client: PoolClient,
+  tenantId: string,
+  teamShifts: Record<string, string>,
+) {
   const settings: Array<[string, unknown]> = [
     ['features', { general: true, pause: true, floorLive: false }],
     ['language', 'gu'],
@@ -120,11 +153,32 @@ async function insertSettings(client: PoolClient, tenantId: string, teamShifts: 
   }
 }
 
-export async function seedCosmos(pool: Pool, paths: Paths): Promise<SeedReport> {
+async function insertShifts(client: PoolClient, tenantId: string, shifts: SeedFiles['shifts']) {
+  for (const shift of shifts) {
+    await client.query(
+      'INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight) VALUES ($1, $2, $3, $4, $5, $6)',
+      [tenantId, shift.code, shift.name, shift.startsAt, shift.endsAt, shift.crossesMidnight],
+    );
+  }
+}
+
+export async function seedCosmos(
+  pool: Pool,
+  paths: Paths,
+  initialPassword?: string,
+): Promise<SeedReport> {
+  if (paths.peoplePath && !initialPassword)
+    throw new Error('seed: SEED_INITIAL_PASSWORD is required with a people file');
   const exp = loadJson<Record<string, unknown>>(paths.exportPath);
   const live = loadJson<Record<string, unknown>>(paths.livePath);
   const glossary = loadJson<Record<string, unknown>>(paths.glossaryPath);
-  const seed = buildSeed(exp, live, glossary);
+  const files: SeedFiles = {
+    machines: loadJson(SEED_FILES.machines),
+    shifts: loadJson(SEED_FILES.shifts),
+    people: loadJson(paths.peoplePath ?? SEED_FILES.peopleFixture),
+  };
+  const seed = buildSeed(exp, live, glossary, files);
+  const passwordHash = await hashPassword(paths.peoplePath ? initialPassword! : FIXTURE_PASSWORD);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -136,19 +190,10 @@ export async function seedCosmos(pool: Pool, paths: Paths): Promise<SeedReport> 
     ).rows[0] as { id: string };
     const segmentIds = await insertSegments(client, tenant.id);
     await insertMachines(client, tenant.id, segmentIds, seed.machines);
-    await insertPeople(client, tenant.id, seed.people);
+    await insertPeople(client, tenant.id, seed.people, passwordHash);
     await insertListItems(client, tenant.id, seed.lists);
-    for (const shift of seed.shifts) {
-      await client.query(
-        'INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight) VALUES ($1, $2, $3, $4, $5, $6)',
-        [tenant.id, shift.code, shift.name, shift.startsAt, shift.endsAt, shift.crossesMidnight],
-      );
-    }
-    await insertSettings(
-      client,
-      tenant.id,
-      (live.client as { teamShifts?: unknown }).teamShifts ?? {},
-    );
+    await insertShifts(client, tenant.id, seed.shifts);
+    await insertSettings(client, tenant.id, seed.teamShifts);
     for (const term of seed.glossaryTerms) {
       await client.query(
         'INSERT INTO glossary_term (tenant_id, source, english, direction) VALUES ($1, $2, $3, $4)',
@@ -169,7 +214,14 @@ export async function seedCosmos(pool: Pool, paths: Paths): Promise<SeedReport> 
   return {
     counts: seed.counts,
     conflicts: seed.conflicts,
-    sources: [paths.exportPath, paths.livePath, paths.glossaryPath],
+    sources: [
+      paths.exportPath,
+      paths.livePath,
+      paths.glossaryPath,
+      SEED_FILES.machines,
+      SEED_FILES.shifts,
+      paths.peoplePath ? 'people file (outside repo)' : SEED_FILES.peopleFixture,
+    ],
   };
 }
 
@@ -183,14 +235,13 @@ async function main(): Promise<void> {
     ),
     livePath: resolve(process.cwd(), 'docs/discovery/bhavin-v3/live-config-2026-11-09.json'),
     glossaryPath: resolve(process.cwd(), 'docs/discovery/bhavin-v3/glossary-2026-11-09.json'),
+    peoplePath: process.env.SEED_PEOPLE_FILE,
   };
-  const report = await seedCosmos(pool, paths);
+  const report = await seedCosmos(pool, paths, process.env.SEED_INITIAL_PASSWORD);
   await pool.end();
-  const sources = [
-    'docs/discovery/source/cosmos-platform-export-2026-10-28.json',
-    'docs/discovery/bhavin-v3/live-config-2026-11-09.json',
-    'docs/discovery/bhavin-v3/glossary-2026-11-09.json',
-  ];
+  const sources = report.sources.map((s) =>
+    s.startsWith(process.cwd()) ? relative(process.cwd(), s) : s,
+  );
   const lines = [
     '# Seed report — Cosmos',
     '',
