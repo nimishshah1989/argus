@@ -89,7 +89,11 @@ describe('session.purge', () => {
     await session(SUSPENDED, 'suspended-expired-60d', ago(60));
     await session(B, 'other-expired-60d', ago(60));
 
-    const first = await runRetentionJob(db.app, 'session.purge', { now: NOW, tenantId: A });
+    const first = await runRetentionJob(db.app, 'session.purge', {
+      now: NOW,
+      allowFakeClock: true,
+      tenantId: A,
+    });
     expect(first.affected).toBe(4);
     expect(await labels(A)).toEqual([
       'expired-29d',
@@ -100,18 +104,24 @@ describe('session.purge', () => {
     // Another customer is untouched when one customer is named.
     expect(await labels(B)).toEqual(['other-expired-60d']);
 
-    const second = await runRetentionJob(db.app, 'session.purge', { now: NOW, tenantId: A });
+    const second = await runRetentionJob(db.app, 'session.purge', {
+      now: NOW,
+      allowFakeClock: true,
+      tenantId: A,
+    });
     expect(second.affected).toBe(0);
     expect(await labels(A)).toHaveLength(4);
   });
 
   it('with no customer named, sweeps every customer that still holds data, one at a time', async () => {
-    const all = await runRetentionJob(db.app, 'session.purge', { now: NOW });
+    const all = await runRetentionJob(db.app, 'session.purge', { now: NOW, allowFakeClock: true });
     expect(all.tenants).toBeGreaterThanOrEqual(3);
     expect(await labels(B)).toEqual([]);
     expect(await labels(SUSPENDED)).toEqual([]);
     expect(await labels(A)).toContain('live');
-    expect((await runRetentionJob(db.app, 'session.purge', { now: NOW })).affected).toBe(0);
+    expect(
+      (await runRetentionJob(db.app, 'session.purge', { now: NOW, allowFakeClock: true })).affected,
+    ).toBe(0);
   });
 });
 
@@ -148,16 +158,26 @@ describe('idempotency.purge', () => {
       [A, ticketId, ago(200)],
     );
 
-    const first = await runRetentionJob(db.app, 'idempotency.purge', { now: NOW, tenantId: A });
+    const first = await runRetentionJob(db.app, 'idempotency.purge', {
+      now: NOW,
+      allowFakeClock: true,
+      tenantId: A,
+    });
     expect(first.affected).toBe(1);
     expect(await keys(A)).toEqual(['a-1d', 'a-exactly-30d']);
     expect(await keys(B)).toEqual(['b-90d']);
     expect(await count('ticket', A)).toBe(1);
     expect(await count('ticket_event', A)).toBe(1);
 
-    expect((await runRetentionJob(db.app, 'idempotency.purge', { now: NOW })).affected).toBe(1);
+    expect(
+      (await runRetentionJob(db.app, 'idempotency.purge', { now: NOW, allowFakeClock: true }))
+        .affected,
+    ).toBe(1);
     expect(await keys(B)).toEqual([]);
-    expect((await runRetentionJob(db.app, 'idempotency.purge', { now: NOW })).affected).toBe(0);
+    expect(
+      (await runRetentionJob(db.app, 'idempotency.purge', { now: NOW, allowFakeClock: true }))
+        .affected,
+    ).toBe(0);
     expect(await keys(A)).toEqual(['a-1d', 'a-exactly-30d']);
   });
 });
@@ -206,7 +226,11 @@ describe('import.purge', () => {
     const running = await batch(A, 'running', null, 'SECRET-RUNNING');
     const other = await batch(B, 'done', ago(900), 'SECRET-OTHER');
 
-    const first = await runRetentionJob(db.app, 'import.purge', { now: NOW, tenantId: A });
+    const first = await runRetentionJob(db.app, 'import.purge', {
+      now: NOW,
+      allowFakeClock: true,
+      tenantId: A,
+    });
     expect(first.affected).toBe(3);
     // Done, failed and undone batches alike: the keys replay and undo read stay, the source content goes.
     for (const gone of [old, failedOld, undoneOld]) {
@@ -227,11 +251,21 @@ describe('import.purge', () => {
     expect(await count('import_batch', A, `id = '${old.batchId}'`)).toBe(1);
 
     expect(
-      (await runRetentionJob(db.app, 'import.purge', { now: NOW, tenantId: A })).affected,
+      (
+        await runRetentionJob(db.app, 'import.purge', {
+          now: NOW,
+          allowFakeClock: true,
+          tenantId: A,
+        })
+      ).affected,
     ).toBe(0);
-    expect((await runRetentionJob(db.app, 'import.purge', { now: NOW })).affected).toBe(1);
+    expect(
+      (await runRetentionJob(db.app, 'import.purge', { now: NOW, allowFakeClock: true })).affected,
+    ).toBe(1);
     expect(JSON.stringify(await payloadOf(other.rowId))).not.toContain('SECRET');
-    expect((await runRetentionJob(db.app, 'import.purge', { now: NOW })).affected).toBe(0);
+    expect(
+      (await runRetentionJob(db.app, 'import.purge', { now: NOW, allowFakeClock: true })).affected,
+    ).toBe(0);
   });
 
   it('after the purge a re-run of the same file is still skipped and the batch can still be undone', async () => {
@@ -245,6 +279,7 @@ describe('import.purge', () => {
 
     const purged = await runRetentionJob(db.app, 'import.purge', {
       now: later,
+      allowFakeClock: true,
       tenantId: syntheticIds.tenant,
     });
     expect(purged.affected).toBe(1);
@@ -256,5 +291,54 @@ describe('import.purge', () => {
     const undone = await undoImport(db.router, syntheticIds.tenant, first.batchId, 'agent-test');
     expect(undone.deleted).toBe(1);
     expect(await count('ticket', syntheticIds.tenant)).toBe(0);
+  });
+});
+
+describe('safety around every job', () => {
+  const sessionIn = async (tenantId: string, label: string, expiresAt: Date): Promise<void> => {
+    await db.admin.query(
+      `INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [tenantId, logins.get(tenantId), randomUUID(), label, expiresAt],
+    );
+  };
+  const left = async (tenantId: string, label: string): Promise<number> =>
+    (
+      await db.admin.query(
+        'SELECT count(*)::int AS n FROM session WHERE tenant_id = $1 AND device_label = $2',
+        [tenantId, label],
+      )
+    ).rows[0].n;
+
+  it('refuses a clock more than 24 hours from the database, and runs with a sane one', async () => {
+    const real = new Date();
+    await sessionIn(A, 'guard-old', new Date(real.getTime() - 100 * DAY));
+    const wrong = new Date(real.getTime() + 5 * DAY);
+    await expect(
+      runRetentionJob(db.app, 'session.purge', { now: wrong, tenantId: A }),
+    ).rejects.toThrow(/more than 24 hours/);
+    expect(await left(A, 'guard-old')).toBe(1);
+    const ok = await runRetentionJob(db.app, 'session.purge', { now: real, tenantId: A });
+    expect(ok.affected).toBeGreaterThanOrEqual(1);
+    expect(await left(A, 'guard-old')).toBe(0);
+  });
+
+  it('an error in one customer leaves the failing customer unchanged and the others still run', async () => {
+    await sessionIn(A, 'fails-old', ago(90));
+    await sessionIn(B, 'works-old', ago(90));
+    await db.admin.query(
+      `CREATE FUNCTION refuse_a() RETURNS trigger LANGUAGE plpgsql AS $$
+       BEGIN IF OLD.tenant_id = '${A}' THEN RAISE EXCEPTION 'planted failure'; END IF; RETURN OLD; END $$;
+       CREATE TRIGGER refuse_a BEFORE DELETE ON session FOR EACH ROW EXECUTE FUNCTION refuse_a()`,
+    );
+    try {
+      await expect(
+        runRetentionJob(db.app, 'session.purge', { now: NOW, allowFakeClock: true }),
+      ).rejects.toThrow(/session.purge failed/);
+      expect(await left(A, 'fails-old')).toBe(1);
+      expect(await left(B, 'works-old')).toBe(0);
+    } finally {
+      await db.admin.query('DROP TRIGGER refuse_a ON session; DROP FUNCTION refuse_a()');
+    }
   });
 });

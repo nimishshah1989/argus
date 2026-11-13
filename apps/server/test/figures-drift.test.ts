@@ -108,7 +108,11 @@ afterAll(async () => {
 });
 
 const drift = (tenantId?: string) =>
-  runRetentionJob(db.app, 'figures.drift', { now: NOW, ...(tenantId ? { tenantId } : {}) });
+  runRetentionJob(db.app, 'figures.drift', {
+    now: NOW,
+    allowFakeClock: true,
+    ...(tenantId ? { tenantId } : {}),
+  });
 
 describe('figures.drift', () => {
   it('is silent when every cached figure matches its events', async () => {

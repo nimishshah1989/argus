@@ -12,6 +12,8 @@ import { figureDrift, purgeIdempotencyKeys, type DriftLine } from './modules/tic
  */
 
 const DAY = 86_400_000;
+/** A job whose clock is further than this from the database's refuses to run: a wrong clock would purge too much. */
+const MAX_CLOCK_SKEW_MS = DAY;
 
 export interface RetentionResult {
   tenants: number;
@@ -60,12 +62,25 @@ export interface RetentionPayload {
   tenantId?: string;
 }
 
-/** Runs one job for the named customer, or for every customer that still holds data. */
+async function assertClockNearDatabase(pool: Pool, name: string, now: Date): Promise<void> {
+  const row = (await pool.query('SELECT clock_timestamp() AS t')).rows[0] as { t: Date };
+  if (Math.abs(row.t.getTime() - now.getTime()) > MAX_CLOCK_SKEW_MS)
+    throw new Error(
+      `${name}: the clock (${now.toISOString()}) is more than 24 hours from the database's ` +
+        `(${row.t.toISOString()}); nothing was changed`,
+    );
+}
+
+/**
+ * Runs one job for the named customer, or for every customer that still holds data. Refuses a clock more than 24
+ * hours from the database's; only a test with a fake clock passes `allowFakeClock`.
+ */
 export async function runRetentionJob(
   pool: Pool,
   name: RetentionJobName,
-  options: { now: Date; tenantId?: string },
+  options: { now: Date; tenantId?: string; allowFakeClock?: boolean },
 ): Promise<RetentionResult> {
+  if (!options.allowFakeClock) await assertClockNearDatabase(pool, name, options.now);
   const spec: JobSpec = JOBS[name];
   const tenantIds = options.tenantId ? [options.tenantId] : await jobTenantIds(pool);
   const result: RetentionResult = {
