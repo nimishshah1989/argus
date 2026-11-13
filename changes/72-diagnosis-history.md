@@ -1,0 +1,1 @@
+- AI diagnosis, part 1: the server can gather a stopped machine's past jobs and those of its same-model machines, and the rules that check an AI answer against them are in place; nothing is shown yet.

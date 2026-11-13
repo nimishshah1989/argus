@@ -106,3 +106,40 @@ export async function shiftsOf(tx: Db, tenantId: string): Promise<Record<string,
     )
   ).rows;
 }
+
+export interface MachineFamily {
+  machine: {
+    id: string;
+    code: string;
+    make: string | null;
+    model: string | null;
+    category: string | null;
+  };
+  siblings: { id: string; code: string }[]; // same model and make, this machine excluded
+}
+
+export async function machineFamily(
+  tx: Db,
+  tenantId: string,
+  machineId: string,
+): Promise<MachineFamily | null> {
+  const machine = (
+    await tx.query(
+      'SELECT id, code, make, model, category FROM machine WHERE tenant_id = $1 AND id = $2',
+      [tenantId, machineId],
+    )
+  ).rows[0];
+  if (!machine) return null;
+  if (!machine.model?.trim()) return { machine, siblings: [] };
+  const siblings = (
+    await tx.query(
+      `SELECT id, code FROM machine
+        WHERE tenant_id = $1 AND id <> $2
+          AND lower(btrim(model)) = lower(btrim($3))
+          AND lower(btrim(COALESCE(make, ''))) = lower(btrim(COALESCE($4, '')))
+        ORDER BY code LIMIT 50`,
+      [tenantId, machineId, machine.model, machine.make],
+    )
+  ).rows;
+  return { machine, siblings };
+}
