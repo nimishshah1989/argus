@@ -33,8 +33,11 @@ anywhere else. Nothing a user sees changes.
 4. **Intended behaviour changes (the guard's purpose; no existing test asserts the old answers):**
    `POST /api/v1/auth/password` without a session and with a bad body answered 422 (body checked before auth);
    it now answers 401. Any protected route called without a session and with malformed JSON answered 400; it now
-   answers 401. Every other answer is unchanged: same 401 bodies and messages, same queries in the same order,
-   one authentication per request (the guard authenticates; `requireAuth` returns what the guard set).
+   answers 401. Every other answer is unchanged: same 401 bodies and messages, one authentication per request (the guard
+   authenticates; `requireAuth` returns what the guard set), and on the auth path the same queries in the same order.
+   **D:** `GET /config` runs its reads in one read-only transaction; they are reordered to plant rows (lists,
+   segments, groups, machines, shifts, setting) → people → SLA policies → tenant info. Results are identical; only
+   the order of the reads inside that one transaction differs.
 5. **Kernel imports no module.** `registerAuthGuard(app, authenticate)` takes identity's `authenticate` as a
    parameter; `app.ts` wires it. `bearerToken` (HTTP header parsing) moves to the kernel; it is used only by the
    guard, so `src/session.ts` stops exporting it (no test or file imports it).
@@ -63,8 +66,8 @@ personId, personName, personTitle`) moves to `kernel/context.ts` unchanged, and 
     index for `settings.ts` (no duplicate); ticket 03 makes permissions one file.
 11. **`sla_policy` (accountability's table).** No `sla_policy` SQL enters `modules/`. `loadSlaPolicies` and its
     mapper move verbatim from `config.ts` to `src/ticket/sla.ts` (the future `accountability`); plant's `loadConfig`
-    imports it from there. This is the one upward import from a module to a legacy file, named here for 04
-    (SLA becomes a reply part). The tool does not track `sla_policy` yet (not a moved module's table), so nothing is
+    imports it from there. **D:** this is the one upward import from a module (`plant/service.ts`) to a legacy file
+    (`src/ticket/sla.ts`), an accepted and flagged exception for ticket 04 to remove (SLA becomes a reply part); listed in §9. The tool does not track `sla_policy` yet (not a moved module's table), so nothing is
     baselined for it.
 12. **ops.** Owns `audit_log` only. The two `INSERT INTO audit_log` (settings, import undo) become
     `audit.record(tx, entry)`, one SQL statement that names `entity_id` explicitly (NULL for settings, the batch id
@@ -262,15 +265,27 @@ wins over 401; an unknown URL answers 404; `HEAD` authenticates once.
 // kernel/index.ts — re-exports only
 export { withTenant } from '@uptimo/db';
 export type { AuthContext } from './context.js';
-export { AUTH_MESSAGES, PUBLIC_ROUTES, isPublicRoute, registerAuthGuard, routeTable,
-  type Authenticate, type RouteKey } from './guard.js';
+export {
+  AUTH_MESSAGES,
+  PUBLIC_ROUTES,
+  isPublicRoute,
+  registerAuthGuard,
+  routeTable,
+  type Authenticate,
+  type RouteKey,
+} from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
 export { jobDb, type JobRole, type JobsHandle } from './jobs.js';
 
 // modules/ops/repo.ts
 export interface AuditEntry {
-  tenantId: string; loginId: string | null; action: string; entity: string;
-  entityId?: string | null; before: unknown; after: unknown;
+  tenantId: string;
+  loginId: string | null;
+  action: string;
+  entity: string;
+  entityId?: string | null;
+  before: unknown;
+  after: unknown;
 }
 /** INSERT INTO audit_log (tenant_id, login_id, action, entity, entity_id, before, after) VALUES ($1..$7);
  *  values [tenantId, loginId, action, entity, entityId ?? null, JSON.stringify(before), JSON.stringify(after)] */
@@ -281,35 +296,66 @@ export type { AuditEntry };
 export const opsModule: ModuleDefinition; // defineModule({ name: 'ops', register: () => undefined })
 
 // modules/identity/repo.ts — Db = Pick<PoolClient, 'query'>; SQL text of each is today's, unchanged
-export interface TenantRow { id: string; slug: string; name: string; language: string; time_zone: string }
-export interface SessionLookup { tenant_id: string; login_id: string; acting_person_id: string | null }
-export function resolveTenant(pool: Pool, slug: string): Promise<TenantRow | null>;              // pool.query tenant_by_slug
-export function lookupSession(pool: Pool, tokenHash: string): Promise<SessionLookup | undefined>;  // pool.query auth_lookup
-export function touchSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void>;     // own withTenant
-export function loginById(pool: Pool, tenantId: string, loginId: string):
-  Promise<{ id: string; username: string; role: string; shared: boolean } | undefined>;          // own withTenant
-export function findPerson(pool: Pool, tenantId: string, personId: string):
-  Promise<{ id: string; name: string; title: string | null } | undefined>;                       // own withTenant (verbatim)
+export interface TenantRow {
+  id: string;
+  slug: string;
+  name: string;
+  language: string;
+  time_zone: string;
+}
+export interface SessionLookup {
+  tenant_id: string;
+  login_id: string;
+  acting_person_id: string | null;
+}
+export function resolveTenant(pool: Pool, slug: string): Promise<TenantRow | null>; // pool.query tenant_by_slug
+export function lookupSession(pool: Pool, tokenHash: string): Promise<SessionLookup | undefined>; // pool.query auth_lookup
+export function touchSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void>; // own withTenant
+export function loginById(
+  pool: Pool,
+  tenantId: string,
+  loginId: string,
+): Promise<{ id: string; username: string; role: string; shared: boolean } | undefined>; // own withTenant
+export function findPerson(
+  pool: Pool,
+  tenantId: string,
+  personId: string,
+): Promise<{ id: string; name: string; title: string | null } | undefined>; // own withTenant (verbatim)
 export async function findLogin(pool: Pool, tenantId: string, username: string); // verbatim; no return annotation (pg's row type as today, no explicit `any`)
-export function insertSession(pool: Pool, args: { tenantId: string; loginId: string; device?: string;
-  actingPersonId: string; tokenHash: string }): Promise<void>; // own withTenant; caller makes the token
-export function revokeSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void>;    // own withTenant (logout)
-export function passwordHashOf(tx: Db, loginId: string): Promise<string>;                          // in caller's tx
-export function setPasswordHash(tx: Db, loginId: string, hash: string): Promise<void>;             // in caller's tx
+export function insertSession(
+  pool: Pool,
+  args: {
+    tenantId: string;
+    loginId: string;
+    device?: string;
+    actingPersonId: string;
+    tokenHash: string;
+  },
+): Promise<void>; // own withTenant; caller makes the token
+export function revokeSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void>; // own withTenant (logout)
+export function passwordHashOf(tx: Db, loginId: string): Promise<string>; // in caller's tx
+export function setPasswordHash(tx: Db, loginId: string, hash: string): Promise<void>; // in caller's tx
 export function revokeOtherSessions(tx: Db, loginId: string, keepTokenHash: string): Promise<void>; // in caller's tx
-export function listPeople(tx: Db): Promise<Record<string, unknown>[]>;   // SELECT id, name, team, title, active, phone FROM person ORDER BY name
-export function tenantInfo(tx: Db, tenantId: string): Promise<{ language: string; time_zone: string }>; // tenant_info($1) row 0
+export function listPeople(tx: Db): Promise<Record<string, unknown>[]>; // SELECT id, name, team, title, active, phone FROM person ORDER BY name
+export function tenantInfo(
+  tx: Db,
+  tenantId: string,
+): Promise<{ language: string; time_zone: string }>; // tenant_info($1) row 0
 
 // modules/identity/service.ts
-export function hashToken(token: string): string;  // verbatim
-export function newToken(): string;                // verbatim
+export function hashToken(token: string): string; // verbatim
+export function newToken(): string; // verbatim
 export function tenantSlugFromHost(host: string): string | null; // verbatim
 /** Today's requireAuth lookups, same order: lookupSession → touchSession → loginById → findPerson (if acting)
  *  → null if no session row or no login; else the AuthContext built exactly as today. */
 export function authenticate(pool: Pool, token: string): Promise<AuthContext | null>;
 /** Same signature as today. Returns request.auth (set by the guard). If it is null (unreachable on a guarded
  *  route), replies 401 apiError('unauthenticated', AUTH_MESSAGES.missing) and returns null. */
-export function requireAuth(_pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<AuthContext | null>;
+export function requireAuth(
+  _pool: Pool,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<AuthContext | null>;
 
 // modules/identity/routes.ts
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void;
@@ -321,21 +367,41 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
 export const identityModule: ModuleDefinition; // defineModule({ name: 'identity', register: registerIdentityRoutes })
 
 // modules/plant/repo.ts — Db = Pick<PoolClient, 'query'>; every function runs in the caller's tx; SQL text unchanged
-export function loadPlantRows(tx: Db): Promise<{ lists: Record<string, unknown>[]; segments: …; groups: …;
-  machines: …; shifts: …; settings: { key: string; value: unknown }[] }>; // the six plant queries of loadConfig, in today's order
-export function selectSettings(tx: Db): Promise<Record<string, unknown>[]>;            // listSettings
+export function loadPlantRows(tx: Db): Promise<{
+  lists: Record<string, unknown>[];
+  segments: Record<string, unknown>[];
+  groups: Record<string, unknown>[];
+  machines: Record<string, unknown>[];
+  shifts: Record<string, unknown>[];
+  settings: { key: string; value: unknown }[];
+}>; // the six plant queries of loadConfig (lists, segments, groups, machines, shifts, setting)
+export function selectSettings(tx: Db): Promise<Record<string, unknown>[]>; // listSettings
 export function upsertSetting(tx: Db, tenantId: string, key: string, value: unknown): Promise<void>; // JSON.stringify(value) inside
 export function selectListItems(tx: Db, list: string): Promise<Record<string, unknown>[]>;
-export function saveListItem(tx: Db, item: { tenantId: string; list: string; code: string; body: ListUpsertBody }): Promise<void>;
+export function saveListItem(
+  tx: Db,
+  item: { tenantId: string; list: string; code: string; body: ListUpsertBody },
+): Promise<void>;
 export function removeListItem(tx: Db, id: string): Promise<void>;
 export function selectMissingTranslations(tx: Db): Promise<Record<string, unknown>[]>;
-export function updateTranslation(tx: Db, id: string, labelGu: string | null, labelHi: string | null): Promise<void>;
-export function setMachineCriticality(tx: Db, id: string, criticality: Criticality | null): Promise<number>; // rowCount ?? 0
+export function updateTranslation(
+  tx: Db,
+  id: string,
+  labelGu: string | null,
+  labelHi: string | null,
+): Promise<void>;
+export function setMachineCriticality(
+  tx: Db,
+  id: string,
+  criticality: Criticality | null,
+): Promise<number>; // rowCount ?? 0
 export function hasShifts(tx: Db): Promise<boolean>; // SELECT 1 FROM shift LIMIT 1 → (rowCount ?? 0) > 0
 // (ListUpsertBody, Criticality: existing types in @uptimo/shared)
 
 // modules/plant/service.ts
-export interface ConfigPayload { /* verbatim */ }
+export interface ConfigPayload {
+  /* verbatim */
+}
 export function fingerprint(payload: unknown): string; // verbatim
 /** One withTenant transaction: loadPlantRows(tx), listPeople(tx), loadSlaPolicies(tx), tenantInfo(tx, tenantId);
  *  returns the object with keys in today's order: features, language, timeZone, lists, segments, groups,
@@ -343,7 +409,7 @@ export function fingerprint(payload: unknown): string; // verbatim
 export function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPayload>;
 
 // modules/plant/routes.ts
-export function canWrite(role: string): boolean;     // verbatim
+export function canWrite(role: string): boolean; // verbatim
 export function forbidden(reply: FastifyReply): void; // verbatim
 export function registerPlantRoutes(app: FastifyInstance, config: AppConfig): void;
 //   GET /api/v1/config, GET /api/v1/settings, PUT /api/v1/settings/:key, GET /api/v1/lists/:list,
@@ -457,8 +523,8 @@ Setup (`beforeAll`): `queries: string[] = []`; `pool = { query: async (text: str
    - **Given** the app above and `protectedRoutes`.
    - **When** each is injected with its method and `fill(url)`, no `Authorization`, no body.
    - **Then** collect `${method} ${url} → ${status}` for every reply that is not 401, or (for non-`HEAD`) whose
-     `json().error.code` is not `'unauthenticated'`; the list equals `[]`. Also `queries` equals `[]` (no handler and
-     no lookup ran).
+     `json().error.code` is not `'unauthenticated'`; the list equals `[]`. Also record `queries.length` before the loop and assert it is unchanged after (no
+     handler and no lookup ran), so the test does not depend on test order.
    - Red today: `POST /api/v1/auth/password` answers 422; and before the guard exists `routeTable` is empty (G2).
 2. **G2 — "the route table sees every registrar"**.
    - **Then** `routeTable(app)` contains (`method url`): `GET /api/v1/auth/me`, `GET /api/v1/config`,
@@ -524,7 +590,7 @@ Fixture helper: `plant(files: Record<string, string>)` writes each repo-relative
 | #   | Files                                                                                                                                                                                                                                                                                                                                                                                                         | Red → green                                                                                      |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | 1   | `tools/boundaries.test.ts` (B1–B7), then `tools/check-boundaries.ts` with the **task-1 baseline** (15 files), `package.json`                                                                                                                                                                                                                                                                                  | B1–B7 red (no module) → green; `pnpm boundaries` exit 0                                          |
-| 2   | `kernel/context.ts`, `kernel/jobs.ts`, `kernel/module.ts`, `kernel/index.ts` (without the guard exports); `jobs/adapter.ts` → shim; `jobs/index.ts` types; `config.ts` drops `AppConfig` for `export type { AppConfig } from './kernel/index.js';` (its other code stays until task 5)                                                                                                                        | pure move: typecheck + R1                                                                        |
+| 2   | `kernel/context.ts`, `kernel/jobs.ts`, `kernel/module.ts`, `kernel/index.ts` (without the guard exports); `jobs/adapter.ts` → shim; `jobs/index.ts` types; `config.ts` drops `AppConfig` for `export type { AppConfig } from './kernel/index.js';` and deletes its now-unused `PgBoss` and `JobsHandle` imports (its other code stays until task 5)                                                           | pure move: typecheck + R1                                                                        |
 | 3   | `modules/ops/repo.ts`, `modules/ops/index.ts`; `settings.ts` and `import/undo.ts` call `audit.record`; LEGACY drops `import/undo.ts` and `audit_log` from `settings.ts`                                                                                                                                                                                                                                       | B1 + R1 (`sla-policies`, `import-undo`, `import-cli` tests assert the audit rows)                |
 | 4   | `guard.test.ts` (G1–G6) first; then `kernel/guard.ts` (+ its `kernel/index.ts` exports), `modules/identity/*`, `modules/index.ts` (`[opsModule, identityModule]`), `auth.ts`, `session.ts`, `tenant.ts` → shims, `app.ts` (§3b); `config.ts` `loadConfig` calls identity's `listPeople` and `tenantInfo` (moved there now); LEGACY drops `auth.ts`, `tenant.ts`, and `person`, `tenant_info` from `config.ts` | G1, G2 red (422 on password; empty table) → G1–G6 green; B1; R1                                  |
 | 5   | `modules/plant/*`; manifest gains `plantModule`; `settings.ts` §3a; `loadSlaPolicies` → `ticket/sla.ts`; `config.ts` → final one-line shim; LEGACY drops `config.ts` and `settings.ts` (final 10)                                                                                                                                                                                                             | B1; R1 (`settings`, `sla-policies`, `ticket-severity` tests); G2 still sees `GET /api/v1/config` |
@@ -577,6 +643,7 @@ None blocking. For the orchestrator to confirm or override (each is decided abov
 1. **D §2.10:** SLA-policy and machine-criticality routes stay in `settings.ts` instead of plant (they write `ticket`
    and `sla_policy`, which plant may not call).
 2. **D §2.13:** the ownership table and `LEGACY` live in the tool, not in `modules/manifest.ts` as ARCHITECTURE §2 says.
-3. **§2.2:** the guard is a route-level `preParsing` hook, not `onRequest` (keeps 429 before 401; measured).
+3. **D §2.11:** `plant/service.ts` imports `loadSlaPolicies` from the legacy `src/ticket/sla.ts` (accepted; ticket 04 removes it).
+4. **§2.2:** the guard is a route-level `preParsing` hook, not `onRequest` (keeps 429 before 401; measured).
 
 No product question for Nimish: nothing a user sees changes.
