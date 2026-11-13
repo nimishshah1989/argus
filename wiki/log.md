@@ -48,3 +48,4 @@
   2026-11-13 — Ticket 01 Green, fast main (#145): SLA times wait for the plant zone; one seeded tenant per Playwright worker; CI static/api×3/browser×2, each < 8 min; docs, parity, changelog and PII guards; one process, Athena v3 (D18). SLA ×20: <passed>/280.
 - 2026-11-13 08:16 UTC session c23c2255 on `claude/orchestrator-ledger`: 2f8efbf docs(plan): ledger — Actions unblocked
 - 2026-11-13 — Ticket 01 evidence (orchestrator): SLA journey passed 20/20 consecutive fresh-stack runs (14 tests each, no retries); the earlier `<passed>/280` line above was a placeholder.
+- 2026-11-13 09:04 UTC session c23c2255 on `claude/orchestrator-ledger`: 2a9257f docs(plan): 08 done; plan/apply status
