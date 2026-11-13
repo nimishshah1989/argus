@@ -1,12 +1,12 @@
-# D17 — Table budget: 41 tables for the whole product, no duplicates
+# D17 — Table budget: 40 tables for the whole product, no duplicates
 
 Date: 13 November 2026. Supersedes the planned-table list in `docs/DATA-MAP.md` §2 where they differ.
 
-**Decision.** Uptimo has **28 tables today** (29 built, `ticket_tag` removed before cutover) and adds **at most 13** for everything in the BRIEF (M1, M2, M4a, M4b, M6, M3): **41 in total**. A new table is allowed only if the `schema-reviewer` confirms, in writing, that the data cannot live in an existing table (a row kind, a status column, a `list_item` list, a `setting` key, a `ticket_event` type or the `file` table). The table count is checked in CI against this budget.
+**Decision.** Uptimo has **28 tables today** (29 built, `ticket_tag` removed before cutover) and adds **at most 12** for everything in the BRIEF (M1, M2, M4a, M4b, M6, M3): **40 in total**. A new table is allowed only if the `schema-reviewer` confirms, in writing, that the data cannot live in an existing table (a row kind, a status column, a `list_item` list, a `setting` key, a `ticket_event` type or the `file` table). The table count is checked in CI against this budget.
 
-**Why.** The product owner requires an efficient codebase with no duplicate or speculative tables. The reviewed design had 35 planned tables (63 total); 22 of them re-stored something an existing table already holds.
+**Why.** The product owner requires an efficient codebase with no duplicate or speculative tables. The reviewed design had 35 planned tables (63 in total); 23 of them re-stored something an existing table already holds, and 12 remain.
 
-## The 13 new tables
+## The 12 new tables
 
 | Milestone | Table             | Why it cannot live elsewhere                                                                                                |
 | --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |

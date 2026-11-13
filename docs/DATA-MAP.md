@@ -18,7 +18,7 @@ Written 13 November 2026 from `docs/BRIEF.md`, the spec, and the database as it 
 
 ## 2. What is stored
 
-> **Table budget (D17, 13 Nov, binding):** 28 tables today + at most 13 new = **41 total**. Where a planned table below conflicts with `docs/decisions/D17-table-budget.md`, D17 wins: the data lives in the existing table D17 names. No other new table without a written schema-reviewer confirmation.
+> **Table budget (D17, 13 Nov, binding):** 28 tables today + at most 12 new = **40 total**. Where a planned table below conflicts with `docs/decisions/D17-table-budget.md`, D17 wins: the data lives in the existing table D17 names. No other new table without a written schema-reviewer confirmation.
 
 "Personal" means it identifies or describes a person. "Kept" is how long before it is deleted; "decided" means Nimish accepted that period on 13 November. "Built" means it exists in the database today, even if no user has seen it yet.
 

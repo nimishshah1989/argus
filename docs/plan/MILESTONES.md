@@ -2,11 +2,12 @@
 
 Made with the `to-tickets` skill (Matt Pocock): tracer-bullet vertical slices, each a complete path through
 schema, API, UI and tests, demoable on its own, sized to one fresh context window, with its blocking edges.
-Prefactoring comes first ("make the change easy, then make the easy change"). Status: **draft for Nimish's
-approval (to-tickets step 4)**; published to GitHub Issues with `ready-for-agent` only after approval.
-Binding inputs: `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/DATA-MAP.md`, `docs/decisions/D01–D17`
-(41-table budget), real data in `docs/discovery/real-2026-11-13/`. The 176-ticket first draft is in git
-history (`9b1c3b2`) for its traceability matrix.
+Prefactoring comes first ("make the change easy, then make the easy change"); the one wide refactor (module
+boundaries) runs expand → contract. Status: **draft for Nimish's approval (to-tickets step 4)**; published to
+GitHub Issues with `ready-for-agent` only after approval. Binding inputs: `docs/BRIEF.md`, `docs/ARCHITECTURE.md`,
+`docs/DATA-MAP.md`, `docs/decisions/D01–D17` (table budget), `docs/spec/parity.yaml`, SPEC §3/§9, real data in
+`docs/discovery/real-2026-11-13/`. Revision 2 resolves `docs/plan/COVERAGE.md` (coverage map at the end); the
+47-ticket draft is in git history (`a9dfe3c`), the 176-ticket draft at `9b1c3b2`.
 
 ## Testing seams (to-spec step 2: fewest, highest)
 
@@ -17,290 +18,496 @@ history (`9b1c3b2`) for its traceability matrix.
 | **3. The engine call** `run(data, asOf) → figures`                                                                    | Every analytics number equals Bhavin's answer key                                                          | new in M4a           |
 
 CI on every PR: lint, typecheck, seam 1 for the touched module plus tenant isolation, one browser smoke.
-The slice's full browser journey runs on staging before Nimish previews it.
+The slice's full browser journey runs on staging before Nimish previews it. Guard tools (boundaries, migrations,
+UI budgets, table budget, PII scan) run inside the seam-1 CI job; a guard is proven by a planted violation that
+turns that job red. Each goal below is tagged with its seam: **[API]**, **[Browser]**, **[Engine]**; only ticket
+01 has **[Process]** goals. Every schema change rides in its milestone's one schema ticket (ARCHITECTURE §8);
+no other ticket adds a migration, and no ticket adds a table outside D17's list.
 
 ## Milestones
 
-| #   | Milestone                 | Goal                                                                   | Gate (Nimish checks)                                                                           |                Tickets |
-| --- | ------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------: |
-| M0  | Foundation                | Green fast CI, real Cosmos data in, one design kit, staging live       | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and the accent |                      8 |
-| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only | Day-3 and day-7 go/no-go                                                                       |                     13 |
-| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off          | Sign-off turnaround visible on live tickets                                                    |                      5 |
-| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                    | Ten figures spot-checked against Bhavin's platform                                             |                      7 |
-| M4b | The loop                  | PM, registers, coded closes, frozen forecasts, scorecard, ranking      | First monthly scorecard from live data                                                         |                      5 |
-| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                | Agrees capabilities; sees shadow results                                                       |                      5 |
-| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                     | An operator raises a ticket by voice                                                           |                      4 |
-|     | **Total**                 |                                                                        |                                                                                                | **47** (21 to cutover) |
+| #   | Milestone                 | Goal                                                                         | Gate (Nimish checks)                                                                                 |                Tickets |
+| --- | ------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------: |
+| M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                     14 |
+| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only       | Day-3 and day-7 go/no-go                                                                             |                     14 |
+| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off                | Sign-off turnaround visible on live tickets                                                          |                      7 |
+| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                          | Ten figures spot-checked against Bhavin's platform                                                   |                     10 |
+| M4b | The loop                  | PM, registers, coded closes, frozen forecasts, scorecard, ranking            | First monthly scorecard from live data                                                               |                      9 |
+| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                      | Agrees capabilities and thresholds; sees shadow results                                              |                      6 |
+| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                           | An operator raises a ticket by voice                                                                 |                      5 |
+|     | **Total**                 |                                                                              |                                                                                                      | **65** (28 to cutover) |
+
+Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. The first ticket of each later milestone is blocked
+by every ticket of the milestone before it (its gate); nothing before M3 depends on M3.
 
 ## M0 — Foundation
 
 **01 Green, fast main** · Blocked by: none
-Delivers: every PR gets a quick, honest answer and `main` is green.
+Delivers: every PR gets a quick, honest answer, and the documents tell the truth.
 
-1. The SLA timer shows no due time until the plant's time zone is known; the SLA browser test passes on retry.
-2. CI runs only lint, typecheck, the API tests of touched modules, tenant isolation and one browser smoke, in under 8 minutes.
-3. One process in every instruction file (Athena: define → code → test → build); `HANDOFF.md` true.
+1. [Browser] The SLA timer shows no due time until the plant's time zone is known, and the SLA journey passes 20 runs in a row; CI runs lint, typecheck, touched-module API tests, tenant isolation and the browser smoke, sharded, with a seeded tenant per Playwright worker, each shard under 8 minutes.
+2. [Process] A docs check fails CI when an instruction file names a process other than Athena v3, when ADR 0001, SPEC or `THIRD_PARTY.md` name Drizzle, or when an `in-progress` parity row has neither evidence nor a ticket; the changelog is one fragment per PR under `changes/`, `wiki/log.md` union-merged.
+3. [Process] A PII scan in CI fails on a planted real name or phone number from the source lists.
 
-**02 Real tickets in** · Blocked by: 01
-Delivers: Uptimo holds Cosmos's 275 real tickets with Bhavin's exact numbers.
+**02 Module boundaries: expand** · Blocked by: 01
+Delivers: the server starts to be modules that talk only through published interfaces (wide refactor, expand step).
 
-1. The importer reads Bhavin's real `/api/export` (his field names, report keys, `segment`, `lead`, `task` events).
-2. Every imported ticket's response, repair, waiting, vendor and downtime minutes equal Bhavin's, or the difference is explained by an edit.
-3. Import and undo run on the real file; CI uses the same file with names and phones swapped.
+1. [API] One kernel auth guard: every route not on the public allowlist answers 401 without a session (test generated from the route table).
+2. [API] `auth`, `tenancy`, `config`, `people` and `machines` live in module folders with a `repo.ts` and the manifest; the whole API suite passes unchanged; the boundary check fails a planted SQL call outside a moved module's `repo.ts`.
 
-**03 Real plant in** · Blocked by: 01
+**03 Module boundaries: contract** · Blocked by: 02
+Delivers: every module is behind its interface and CI enforces it (Athena rule; contract step).
+
+1. [API] `tickets`, `tasks`, `reports`, `files`, `notifications`, `imports` and `admin` are moved; workspace dependencies and `exports` replace relative imports; commands and permissions are one file each with a registry; the whole API suite passes unchanged and the boundary check is enforced for every module.
+2. [API] The isolation test discovers tenant tables from the catalogue (`breakdown_report_person` included) and fails on any table not exercised as two tenants; the same test fails when a table outside D17's list exists.
+
+Split from the draft's one modularisation item: ~25 server files and the domain registries do not fit one window.
+
+**04 One contract, reply parts** · Blocked by: 03
+Delivers: server and web share one typed contract; SLA data leaves the ticket reply before M2.
+
+1. [API] Every route's reply parses with its shared Zod schema; a missing or extra field fails the route test; `api-types.ts` and the domain DTO copies are deleted and web types are `z.infer`.
+2. [API] `/state` is byte-identical for a fixed ticket set while SLA arrives as the `sla` reply part; `tickets` imports no higher module.
+
+**05 Actions and words from the domain** · Blocked by: 03
+Delivers: the buttons a person sees and every label come from one place.
+
+1. [Browser] For every role and state in the permissions matrix the card shows exactly the server's `availableActions`; `components/actions.ts` is deleted.
+2. [Browser] Catalogues are per namespace (each under 250 lines) with `MessageKey`; an English literal in a `.ts` label field fails typecheck; the existing journeys pass in English and Gujarati.
+
+**06 Stop destroying history** · Blocked by: 03
+Delivers: no code path deletes or rewrites history any more (prefactor the cutover migration needs, ARCHITECTURE §9 item 21).
+
+1. [API] Pausing, resuming and transferring a real ticket keeps every `work_segment` id; `ended_at` and `end_reason` are updated in place; list entries and logins are switched off, never deleted, and still show on old tickets.
+2. [API] Tags are gone from code: no tag route, screen or reply field remains and `ticket_tag` is no longer written.
+3. [API] The migration check catches `DROP`, `UPDATE`, `DROP CONSTRAINT`, `SET NOT NULL`, `ALTER … TYPE`, `REVOKE` anywhere in a statement and demands an `approved-by` and a `backup:` header; the seven merged files are dated exceptions.
+
+**07 History cannot be lost (cutover migration)** · Blocked by: 06
+Delivers: the database itself refuses to lose history (the cutover schema ticket: ARCHITECTURE §9 items 21, 24, 25, 31; backup first, staging first).
+
+1. [API] As the app role, update or delete of `ticket_event` and delete of `ticket`, `work_segment` or `breakdown_report` is refused; history foreign keys are RESTRICT; the item-24 indexes exist and the day-report and My-complaints queries use them.
+2. [API] A second open breakdown on one machine is refused by the database; the preflight lists existing duplicates and stops the migration when any exist.
+3. [API] The definer functions work on fake data, callable only by the router role: import undo removes one batch; erasure leaves a leaver's name in no DATA-MAP §5 place and writes one count-only audit row (the controlled leaver script); offboarding clears number and devices; `audit.purge` removes rows over 3 years. A support grant without approver or over 7 days is refused and `audit_log` carries `platform_access_id`.
+
+**08 Real plant in** · Blocked by: 01
 Delivers: machines, people and settings are Cosmos's real ones, not seed guesses.
 
-1. Machines come from the 11 November registers (CNC, conventional, process, DG, utilities), with segments and cells.
-2. The 26 real logins and their people exist with roles; shift windows are 08:00–18:30 and 18:29–05:00.
-3. Seed counts match the sources; differences are listed, not silently fixed.
+1. [API] Machines come from the 11 November registers (CNC, conventional, process, DG, utilities) with segments and cells; counts per segment equal the sources and differences are listed in the seed report.
+2. [API] The 26 real logins and their people exist with roles; shifts are 08:00–18:30 and 18:29–05:00, and an event at 18:29 falls in the later shift.
+3. [API] CI fixtures carry pseudonymised names and phones; the real files load only on staging, and the PII scan from 01 passes.
 
-**04 History cannot be lost** · Blocked by: 01
-Delivers: no action in the app can erase or rewrite a ticket's history. (Prefactor, expand–contract.)
+**09 Real tickets in** · Blocked by: 07, 08
+Delivers: Uptimo holds Cosmos's 275 real tickets with Bhavin's exact numbers.
 
-1. Work stretches are updated in place, never deleted and re-inserted; list entries and logins are switched off, never deleted.
-2. The cutover migration removes delete and edit rights on history, makes one open breakdown per machine a database rule, and adds the known indexes.
-3. The migration check catches any destructive statement anywhere in a line.
+1. [API] The importer reads Bhavin's real `/api/export` (his field names, report keys, `segment`, `lead`, `task` events); every ticket's response, repair, waiting, vendor and downtime minutes equal his `worker.js` result, or the difference is listed with the edit that explains it (zero unexplained).
+2. [API] Import and undo go through `tickets.importTickets` and `removeImported` (the manifest exception ends); a re-run is identical, undo leaves no row, and CI runs on the pseudonymised copy.
 
-**05 One design kit** · Blocked by: 01
+**10 One design kit** · Blocked by: 01
 Delivers: every future screen is built from one installed kit (Apple principles, `docs/DESIGN.md`).
 
-1. The component kit, tokens, icons, layout pieces and one status vocabulary (colour + label + icon) are installed; screens cannot hand-style (checked in CI).
-2. `/gallery` shows every component and status at 360 px in English and Gujarati, axe clean.
-3. Nimish picks the accent colour on the gallery.
+1. [Browser] The kit, tokens, Lucide icons, layout pieces and the status vocabulary (colour + label + icon) are installed under one ADR naming every package; the UI check fails a planted `className`, raw colour or screen file over 120 lines in `faces/`.
+2. [Browser] `/gallery` shows every token, component and status at 360 px in English and Gujarati, axe clean; a changed screenshot fails CI; the production build answers 404 on `/gallery`.
 
-**06 Page patterns** · Blocked by: 05
-Delivers: a new screen is mostly configuration.
+**11 Page patterns: data, queue, detail, form** · Blocked by: 04, 10
+Delivers: lists, details and forms are configuration on one data layer.
 
-1. List, detail, form, step-by-step, settings-table, dashboard and board patterns exist, each shown in the gallery.
-2. A settings screen is one short description generated into a working screen with its API.
-3. All data fetching goes through one resource layer with offline and sync states.
+1. [Browser] `defineResource` and `useCommand` are the only fetch path; an offline command queues, replays on reconnect, and a 409 becomes a draft; the sync status shows online, offline, sending and draft.
+2. [Browser] `QueuePage` (with cursor paging), `DetailPage` and `FormSheet` are in the gallery with loading, empty, error and offline states, axe clean at 360 px.
 
-**07 Staging live** · Blocked by: 02, 03 · External: domain and AWS role (N7)
-Delivers: every merge is on staging with Cosmos's real data, and Nimish can try it on his phone.
+**12 Page patterns: wizard, settings, dashboard, board** · Blocked by: 11
+Delivers: a settings screen is one short description; charts come from one layer.
 
-1. A merge to `main` deploys staging; a rollback runs from CI.
-2. Staging is loaded with the real tickets and plant; `/health` checks the database and queue.
-3. Secrets live in the secret store; logs carry tenant and request ids and no personal data.
+1. [Browser] One `ResourceSpec` (≤ 60 lines, no JSX) generates a working `CrudPage` that lists, creates, edits and switches off a gallery resource through its API.
+2. [Browser] `WizardPage`, `BoardPage` and `DashboardPage` with `useChart` (ECharts lazy-loaded under an ADR, token palette) are in the gallery, axe clean.
 
-**08 Safe to run** · Blocked by: 07
-Delivers: data can be restored and problems are seen early.
+Split from draft ticket 06: seven patterns, the data layer and the chart layer exceed one window.
 
-1. Backups run and a restore drill is executed and logged.
-2. A billing alarm and an error alarm exist.
-3. Old sessions and replay keys are cleaned up on schedule.
+**13 Staging live** · Blocked by: 01 · External: domain and AWS role (N7)
+Delivers: every merge reaches staging, and problems are seen early.
+
+1. [API] A merge to `main` deploys staging and a rollback runs from CI; `/health` answers 503 when the database or queue is down.
+2. [API] Secrets come from the secret store; logs carry tenant and request ids and a logged body with a name is redacted; the external uptime ping, error-count and ₹30,000 billing alarms exist and fire on a test signal.
+
+**14 Staging holds Cosmos, safe to run** · Blocked by: 09, 13
+Delivers: Nimish tries every slice on his phone on Cosmos's real data, and that data can be restored.
+
+1. [Browser] Staging holds the real plant and 275 tickets, loaded by 08's seed and 09's import (the one owner of the staging load); the desk Open list shows them on a phone.
+2. [API] Backups run (point-in-time plus weekly dump); a restore drill restores staging and its log is committed.
+3. [API] `session.purge` and `idempotency.purge` (30 days), `import.purge` (payloads 1 year after the batch is done) and the `audit.purge` job delete past their period and are no-ops on re-run (fake clock); nightly `figures.drift` reports cached figures that differ from their events, skipping overrides.
 
 ## M1 — Cutover
 
-**09 Report a breakdown (floor)** · Blocked by: 02, 03, 06
+Rule for every M1 ticket that moves a screen onto the kit: the parity rows already `done` keep their tests green.
+Parity rows are cited by id; their acceptance tests in `parity.yaml` are the "as v3" rule list.
 
-1. An operator reports a stopped machine in three taps, by search or group, with quick problems; a second report of an open machine shows the existing ticket.
-2. Other work requests, the sent screen with the ticket number, My complaints and cancel-own work as in v3; `?m=` opens a machine; a machine with a pending task warns.
-3. The floor is fully usable in Gujarati.
+**15 Report a breakdown (floor)** · Blocked by: 05, 09, 12
 
-**10 Desk lists and ticket detail** · Blocked by: 02, 06
+1. [Browser] An operator reports a stopped machine in three taps by search or group with quick problems; `?m=` opens a machine; a second report of an open machine opens the existing ticket, and a stopped report on a machine with an open running ticket upgrades that ticket (`upgradeKind`).
+2. [Browser] Other work requests, the sent screen with the ticket number, "I am starting work on it now" and My complaints pass `v3.reporting.01–04, 06–10`; every floor string is a catalogue key (Gujarati itself is 24).
 
-1. Open (counts strip, breakdowns, tasks, work), Mine, Team and needs-report show the real tickets exactly as v3 groups them.
-2. The ticket card and detail show the facts, full history, people and minutes, and only the actions allowed in that state.
+**16 Desk lists and ticket detail** · Blocked by: 05, 09, 11
 
-**11 Work the ticket** · Blocked by: 10
+1. [Browser] Open (counts strip, breakdowns, tasks, work), Mine, Team and needs-report show the real tickets per `v3.views.01–03`, and lists page by cursor past 200 rows.
+2. [Browser] The ticket card and detail show the facts, full history, people and minutes, and the action bar from `availableActions`.
 
-1. Start (back-dated), update, pause with reasons, resume, join, leave, transfer, pick up, running and stopped behave as v3, checked against `worker.js` on real tickets.
-2. Per-person minutes on the ticket and on the day report are the same number.
+**17 Work the ticket** · Blocked by: 16
 
-**12 Close, report, PDFs** · Blocked by: 11
+1. [API] Start (back-dated), update, pause with reasons, resume, join, leave, transfer, pick up, running and stopped give the `worker.js` result on real tickets (`v3.actions.01, 03, 04, 07, 08`).
+2. [API] Per-person minutes come from one domain function and are the same number on the ticket and the day report.
 
-1. Close with report, without report, done and late report work; report-only creates a record without a ticket.
-2. The breakdown PDF (QR identical to v3) and the day report on the real shifts render, Gujarati included.
+**18 Close, report, PDFs** · Blocked by: 08, 17
 
-**13 Follow-up tasks** · Blocked by: 12
+1. [Browser] Close with report (the form of `v3.reports.01`), close without report, mark done for a work request, and late report work; recording a past breakdown creates a record without a ticket.
+2. [Browser] The breakdown PDF (QR identical to v3) and the day report on the real shifts render, Gujarati included (`v3.reports.02–03`, `v3.actions.16`).
 
-1. A job left unfinished at close becomes a child task with reason and expected date, on the Tasks tab.
-2. The parent shows pending, overdue and done boxes; machine-stopped minutes are asked when a task is done.
+**19 Follow-up tasks** · Blocked by: 15, 18
 
-**14 Admin fixes** · Blocked by: 11
+1. [Browser] A job left unfinished at close becomes a child task with reason and expected date on the Tasks tab; the parent shows pending, overdue and done; marking a task done asks the machine-stopped minutes (`v3.actions.17`).
+2. [Browser] Reporting a machine that has a pending task warns the operator (`v3.reporting.05`).
 
-1. Cancel, restore within 7 days, and correct (including machine and kind) work with reasons and old and new values.
-2. Every configuration and correction change appears in the audit trail screen.
+**20 Admin fixes and audit** · Blocked by: 15, 17
 
-**15 People and logins** · Blocked by: 06, 03
+1. [API] Cancel (with the floor's cancel-own entry), restore within 7 days, and correct (machine and kind included) work with reasons and old and new values (`v3.actions.13–15`).
+2. [Browser] `ops.audit.record` is the one audit writer; every configuration and correction change appears on the audit screen, and the admin exports the trail as CSV.
 
-1. The admin adds, edits and switches off people (with mobile numbers) and logins (personal or shared, role, cell).
-2. Shared phones ask who is acting; every action records the acting person; a person can see and sign out their devices.
+**21 People, logins and sign-in** · Blocked by: 12, 20
 
-**16 Plant settings** · Blocked by: 06, 03
+1. [API] The admin adds, edits and switches off people and logins (personal or shared, role, cell) on generated screens, each change audited; a mobile number must be E.164; switching a person off clears number and devices and keeps the name on past tickets; a technician's reply holds no phone.
+2. [Browser] Sign-in is a `WizardPage` with show-password and the last username; any 401 signs out with a message (`v3.signin.01, 03, 05`); a shared phone asks who is acting and every action records the acting person.
 
-1. Machines, segments and groups, shifts, every list (wait reasons and their flags, work types, quick problems) and the glossary are edited on generated settings screens.
-2. Company name, logo, language, time zone and feature switches are settings; the old hand-built settings screens are gone.
+**22 Plant settings: machines, groups, shifts** · Blocked by: 12, 20
 
-**17 Gujarati** · Blocked by: 16 · External: Gujarati strings (N5)
+1. [Browser] Machines, segments, groups and shifts are edited on generated settings screens; machine criticality is edited and audited; a cell change writes a dated `machine_move`.
+2. [API] A hidden-group flag replaces the utility regex (`v3.alerts.08`); no regex is left in code.
 
-1. The admin sees untranslated keys and enters Gujarati on a translation screen.
-2. The floor's untranslated list is empty; Cosmos's wording is Uptimo's default Gujarati.
+Split from draft ticket 16 (six draft tickets): machine moves and the group flag carry domain rules, not only specs.
 
-**18 Live board and alerts** · Blocked by: 10
+**23 Plant settings: lists and company** · Blocked by: 12, 20
 
-1. The TV board matches the Open list; push (new breakdown, complaint fixed), WhatsApp share text and 30-second refresh behave as v3.
-2. The account sheet and update banner work; floor and desk install as two separate apps.
+1. [Browser] Every list (wait reasons and their flags, work types, quick problems) and the glossary are edited on generated settings screens (`v3.alerts.07`).
+2. [Browser] Company name, logo, language, time zone and feature switches are settings (`v3.signin.07`); no hand-built settings screen is left.
 
-**19 Hardened** · Blocked by: 07 · External: security reviewer (N10)
+**24 Gujarati** · Blocked by: 15, 23 · External: Gujarati strings (N5)
 
-1. Login and `/brand` are rate-limited per client; a session cannot cross tenants; stored PDFs and logos are served.
-2. Open and Live render in under 2 seconds on a cheap Android over 3G.
-3. A human security review signs off.
+1. [Browser] The admin sees untranslated keys and enters Gujarati on a translation screen; overrides are stored as a `setting` (D17).
+2. [Browser] The floor's untranslated list is empty, Cosmos's wording is Uptimo's default Gujarati, and the floor journey of 15 passes in Gujarati.
 
-**20 Usability round** · Blocked by: 09, 11, 12 · External: sessions (N15)
+**25 Live board and alerts** · Blocked by: 12, 16
 
-1. 3–5 operators and 3 technicians try the floor and desk on staging; time and errors recorded.
-2. What they stumble on is fixed.
+1. [Browser] The TV board shows the same tickets as Open and refreshes every 30 seconds; the WhatsApp share text matches `v3.views.06, 08`.
+2. [Browser] New-breakdown and complaint-fixed push go through the existing push module's one send call (33 later takes it over; no second path); the account sheet works; the update banner waits out the shift changeover; floor and desk install as two apps.
 
-**21 Cutover** · Blocked by: 09–20
+**26 Hardened** · Blocked by: 13, 16, 25 · External: security reviewer signs off ASVS L1 and the DPDP checklist (N10)
 
-1. Production runs, deploys only in the 05:00–08:00 window, and has a restore drill.
-2. The cutover-morning import and its undo are rehearsed on staging, then run; Bhavin's app goes read-only.
-3. Day-3 and day-7 checks are recorded; the revert plan is ready.
+1. [API] Login and `/brand` are rate-limited per client; a session cannot cross tenants; `/files/{id}` serves stored PDFs and logos with a permission check; a common password is refused; a high-severity dependency advisory fails CI.
+2. [Browser] Open and Live render in under 2 seconds on a cheap Android over 3G on staging; `/state` p95 is under 300 ms on a 500-machine fixture.
+
+**27 Usability round** · Blocked by: 14, 15, 16, 17, 18 · External: sessions (N15)
+
+1. [Browser] 3–5 operators and 3 technicians run the floor and desk journeys on staging; times and errors are recorded against each journey spec.
+2. [Browser] Each stumble fixed here first becomes a failing journey, then passes; at most five are fixed, the rest are filed as issues.
+
+**28 Cutover** · Blocked by: 14, 15–27 · External: N7
+
+1. [API] Production runs and a deploy outside 05:00–08:00 IST is refused by the pipeline; a restore drill on production is executed and logged.
+2. [API] The cutover-morning import and its undo are rehearsed on staging with zero unexplained mismatches, then run; Bhavin's app goes read-only; the rehearsed revert restores the pre-cutover state on staging.
 
 ## M2 — Accountability
 
-**22 Clocks live** · Blocked by: 21
+Escalation details (ladder people, delays, repeats, who acknowledges) are Nimish's answers two weeks after
+cutover; agents propose defaults (BRIEF open question).
 
-1. Severity and SLA targets are switched on at Cosmos; acknowledge and restore clocks show on cards, detail and board.
-2. Long pauses and unanswered sign-offs have their own clocks. (M2 schema migration: roster, escalation rule, notification.)
+**29 M2 schema** · Blocked by: 28
+Delivers: the one M2 migration (backup first): `roster_entry`, `escalation_rule`, `notification`; `ticket_tag` dropped; `sla_timer.kind` gains `pause` and `handback`; the handover person link (ARCHITECTURE §9 items 27, 30, 32).
 
-**23 Roster, ladder, acknowledge** · Blocked by: 22
+1. [API] The migration applies and reverts on a copy of production after a backup; a roster line is unique per tenant, date, shift (a link to `shift`) and person; a notification is unique per tenant and dedupe key.
+2. [API] Handover on a report is a person link and imported text is kept; the SLA policy is found by severity; nothing reads or writes `person.kind`, `ticket.sla_policy_id` or `ticket.handback_status`.
 
-1. The head sets the duty roster per shift and the ladder L1–L4 and vendor.
-2. The right person acknowledges a ticket and its acknowledge clock stops.
+**30 Clocks live** · Blocked by: 29
 
-**24 Escalation** · Blocked by: 23
+1. [Browser] Severity and SLA targets are switched on at Cosmos; acknowledge and restore clocks show on cards, detail and board.
+2. [API] A pause longer than the policy's maximum and an unanswered sign-off each fire one breach on the fake clock.
 
-1. Missed acknowledge notifies L2, missed restore L3, a critical machine still down L4, repeating up to the cap, by push through one notification service that retries.
-2. Every escalation shows on the ticket's history; a transferred ticket nobody picks up escalates.
+**31 Roster, ladder, acknowledge** · Blocked by: 29, 30
 
-**25 Production sign-off** · Blocked by: 22
+1. [Browser] The head sets the duty roster per shift and the ladder L1–L4 and vendor on generated screens; `repeat_minutes` under 15 or no repeat cap is refused; roster lines older than 1 year are purged (fake clock).
+2. [API] The rostered person acknowledges a ticket and its acknowledge clock stops; anyone else is refused.
 
-1. The reporter (or anyone in the cell) confirms or disputes the fix from My complaints or the board QR; a dispute reopens the same ticket for the last lead.
-2. An unanswered sign-off times out; turnaround is measured both ways.
+**32 Notification service** · Blocked by: 29
 
-**26 Run it safely** · Blocked by: 24
+1. [API] `notify` writes one row per recipient and channel (the same dedupe key twice gives one row) holding ids, not names; `notify.send` retries 5 times with backoff, then marks the row dead; an expired subscription is deleted; rows over 90 days are purged.
+2. [Browser] The two v3 pushes from 25 now go through `notify`, and the direct send call is deleted.
 
-1. The admin sees and retries failed jobs; late timers raise an alarm.
-2. Support access to Cosmos data needs an approved, expiring grant, visible in the audit trail.
+Split from draft ticket 24: the service is its own module, used by escalation, registers and M3.
+
+**33 Escalation** · Blocked by: 31, 32
+
+1. [API] Missed acknowledge notifies L2, missed restore L3, a critical machine still down L4, repeating up to the cap (fake clock).
+2. [Browser] Every escalation shows in the ticket's history; a transferred ticket nobody picks up escalates.
+
+**34 Production sign-off** · Blocked by: 30
+
+1. [Browser] The reporter, or any operator login in the same cell, confirms or disputes the fix from My complaints or the board QR; a dispute reopens the same ticket for the last lead (`v3.views.07`).
+2. [API] An unanswered sign-off times out on the fake clock; turnaround is shown both ways on the ticket and Team.
+
+**35 Run it safely** · Blocked by: 32, 33
+
+1. [Browser] The admin sees failed jobs (dead notifications included) and retries one, audited; a late timer raises the timer-lag alarm.
+2. [API] A person lists their devices and signs one out; that device's next call answers 401.
+3. [API] Support access needs the Cosmos admin's approval, lasts at most 7 days, and every action under it is in the audit trail with its grant; an expired grant answers 403.
 
 ## M4a — Analytics parity
 
-**27 Answer key and history** · Blocked by: 21 · External: triage with Bhavin, code aliases (N12)
+**36 M4a schema and answer key** · Blocked by: 33, 34, 35 (M2 gate) · External: triage with Bhavin, code aliases (N12)
 
-1. Bhavin's 11 November platform and workbook are captured as answer-key fixtures, only for the screens Cosmos uses.
-2. The 1,354-row breakdown log is loaded as closed tickets, counted once alongside the live tickets.
+1. [Engine] Bhavin's 11 November platform and workbook figures for every screen the triage keeps are pseudonymised answer-key fixtures; `parity.yaml` gains a row per kept screen, the AMC & Warranty, Legal Compliance, PM Plan and PM Reports registers included; the parity check fails on a kept screen without a row and ticket.
+2. [API] One migration (backup first): `kpi_snapshot`; the alias column on `list_item`; each kept stored item (Why-Why records, Team Focus status/owner/note, nudge snooze, PDF import by QR) gets a home in an existing table confirmed by the schema-reviewer, or is dropped in `DIFFERENCES.md`.
+3. [API] `person.kind`, `ticket.sla_policy_id` and `ticket.handback_status` are dropped; the migration reverts on a production copy.
 
-**28 Dashboard and machines** · Blocked by: 27
+**37 History, engine and drill-down** · Blocked by: 36
 
-1. The engine computes dashboard KPIs, registers, fleet age and footprint, and the data checklist, matching the answer key.
-2. The dashboard and one page per machine show them; every figure drills to its rows.
+1. [API] The 1,354-row breakdown log is loaded as closed tickets through the past-breakdown path with source references and legacy codes mapped through the alias column; each counts once beside the live tickets, and imported history shows on the desk.
+2. [Engine] `run(data, asOf)` with the legacy profile reads hours/day, days/year, cost/hour, thresholds and Action Center constants from settings (a change is audited) and writes `kpi_snapshot`.
+3. [Browser] The analytics face has its shell and Guide entry; every registered figure carries a drill target to its rows, and a test fails on a figure without one.
 
-**29 Breakdown analyses** · Blocked by: 28
+**38 Dashboard and Today** · Blocked by: 37
 
-1. Breakdown log, A1 BD % and PM split, A2 category and cell, A3 MTTR and MTBF match exactly.
-2. Their screens drill to rows.
+1. [Engine] Dashboard KPIs, derived numbers and the data checklist match the answer key.
+2. [Browser] The dashboard shows them; each role's home opens on what needs that person now (operator My complaints, technician Mine, heads a Today dashboard of open items and breached clocks).
 
-**30 Manpower, energy, root cause** · Blocked by: 28
+**39 Registers and machine pages** · Blocked by: 37
 
-1. A4 manpower, A5 energy heatmap, A6 Why-Why and A10 problem analysis match and are on screen with sortable tables.
+1. [Engine] Registers (controller and make split), fleet age and footprint match the answer key; the cell change log exports as the platform's sheet; register exports carry their controlled-document numbers.
+2. [Browser] One page per machine shows nameplate, history and cell moves, each figure drillable.
 
-**31 Forecast** · Blocked by: 29
+Split from draft ticket 28 (seven draft tickets): registers and machine pages are a separate engine family and face.
 
-1. Planning forecast (pooled rate, seeded Monte Carlo), risk bands, bottleneck scoring, trend test and repeat faults match.
-2. The Forecast Lab backtest matches and is on screen.
+**40 Breakdown analyses** · Blocked by: 37
 
-**32 Compare, team, money, Fix Finder** · Blocked by: 29
+1. [Engine] Breakdown log (NO DT and conversions included), A1 BD % and PM split, A2 category and cell, A3 MTTR and MTBF match exactly.
+2. [Browser] Their screens show them with drill-downs.
 
-1. Health score comparison, Team Focus, Money Matters and Fix Finder ranking match and are on screen.
+**41 Manpower, energy, root cause** · Blocked by: 37
 
-**33 Action Center, reports, export** · Blocked by: 31, 32
+1. [Engine] A4 manpower, A5 energy heatmap, A6 Why-Why and A10 problem analysis match the answer key.
+2. [Browser] Their screens have sortable tables; a Why-Why record is saved in its home from 36 and prints as PDF.
 
-1. The 13 nudge rules fire as the platform's; monthly and annual reports and their PDFs match.
-2. The whole data set exports as the platform's workbook; the Guide explains every figure.
+**42 Forecast** · Blocked by: 39, 40
+
+1. [Engine] Planning forecast (pooled rate, seeded Monte Carlo), risk bands, A9 bottleneck scoring, trend test, repeat faults and the Forecast Lab backtest match.
+2. [Browser] They are on screen with their kept exports; the machine page shows its forecast band.
+
+**43 Compare, team, money, Fix Finder** · Blocked by: 39, 40
+
+1. [Engine] Health score comparison, Team Focus, Money Matters and the Fix Finder ranking match.
+2. [Browser] They are on screen with their kept exports; Team Focus status, owner and note persist; money is shown only to heads and admin; the machine page shows its health score.
+
+**44 Action Center** · Blocked by: 41, 42, 43
+
+1. [Engine] The 13 nudge rules fire on the fixture exactly as the platform's.
+2. [Browser] A nudge can be snoozed and the snooze holds across sessions.
+
+Split from draft ticket 33 (six draft tickets): the rule engine is independent of reports and export.
+
+**45 Reports, export, Guide** · Blocked by: 38, 41, 42, 43
+
+1. [Engine] Monthly and annual reports and their PDFs match; the whole data set exports as the platform's workbook (writer library under an ADR).
+2. [Browser] The Guide explains every figure on screen, and each Guide entry opens its figure.
 
 ## M4b — The loop
 
-**34 Coded closes and real KPIs** · Blocked by: 33
+**46 M4b schema** · Blocked by: 44, 45 (M4a gate)
+Delivers: the one M4b migration (backup first): `forecast`, `intervention`, `pm_plan`, `asset_register`; `raised_channel` gains `pm` and `inspection`; failure-code columns (component, mode, cause, action) on `breakdown_report` (ARCHITECTURE §9 items 34, 38 as amended by D17).
 
-1. Every closed breakdown is coded from one code list (Bhavin's old codes mapped); codes are required at close.
-2. Shift-calendar MTBF, MTTR and availability, Pareto, heatmaps, backlog and schedule compliance sit beside the legacy figures.
+1. [API] The migration applies and reverts on a production copy; an `asset_register` row needs a `kind`; a ticket can be raised with channel `pm` or `inspection`.
+2. [API] A breakdown report stores four codes that must be `failure_code` list items of the tenant.
 
-**35 PM on Uptimo** · Blocked by: 33
+**47 Coded closes** · Blocked by: 46
 
-1. PM plans and checklists come in from the workbook (PM Plan, PM Reports); PM jobs are tickets done on the phone.
-2. The PM calendar spreads load; PM compliance is measured.
+1. [Browser] Every breakdown close requires codes from one `failure_code` list; the list is a generated settings screen; a switched-off code still shows on old reports.
+2. [API] Bhavin's old codes resolve through the alias column loaded in 37, so legacy and new closes count in one code.
 
-**36 Registers** · Blocked by: 35
+**48 Shift-calendar KPIs** · Blocked by: 47
 
-1. AMC, warranty and legal tests/calibrations live in one register with due alerts.
+1. [Engine] MTBF, MTTR and availability on real working hours (standard profile) sit beside the legacy figures and never replace them; hand-computed fixtures agree.
+2. [Browser] Pareto and heatmaps by machine, cell, code and shift, and the backlog, are on screen and drill to tickets.
 
-**37 Forecast freeze and scorecard** · Blocked by: 34
+Split from draft ticket 34: coding at close and the standard KPI family are separate lanes (ARCHITECTURE §8).
 
-1. The forecast freezes on the 1st and is scored after the month; Hot machines raise inspection tickets; an accepted nudge becomes a ticket.
-2. The plant head gets one monthly scorecard.
+**49 PM plans on the phone** · Blocked by: 46
 
-**38 Interventions and ranking** · Blocked by: 37 · External: ranking method (Nimish)
+1. [API] PM plans and checklists come from the workbook (PM Plan 431 rows, PM Reports) into `pm_plan`; counts match.
+2. [Browser] `pm.generate` raises PM jobs as tickets by time and by meter reading; a technician ticks the checklist on the phone and closes the job.
 
-1. Every PM change is judged against similar machines in the intervention ledger.
-2. Technicians are ranked by the agreed method.
+**50 PM calendar and compliance** · Blocked by: 49
+
+1. [Browser] The PM calendar (FullCalendar under an ADR) spreads load and moving a job reschedules it; the machine page lists its open and PM tasks.
+2. [Engine] PM compliance and schedule compliance are defined once here and match hand-computed fixtures.
+
+Split from draft ticket 35 (five draft tickets): a new page pattern and its figures do not fit beside the import.
+
+**51 Registers** · Blocked by: 46
+
+1. [Browser] AMC, warranty and legal tests and calibrations are one register with `kind`, loaded from the workbook and edited on a generated screen.
+2. [API] An item within its lead time notifies its owner through `notify` (fake clock).
+
+**52 Forecast freeze and inspections** · Blocked by: 46
+
+1. [API] `engine.freeze` on the 1st writes one `forecast` row per machine; after the month the outcome is scored into the same row (fake clock).
+2. [API] A Hot machine raises one inspection ticket per run, and its closed outcome is stored on the forecast row; an accepted nudge becomes a linked ticket.
+
+**53 Monthly scorecard** · Blocked by: 48, 50, 52
+
+1. [API] When a month closes (fake clock), one frozen `kpi_snapshot` period holds forecast hits and outcomes, MTBF, MTTR, availability, PM compliance, backlog and sign-off turnaround; money only for heads and admin.
+2. [Browser] The plant head opens the scorecard and its PDF.
+
+Split from draft ticket 37: the scorecard reads three other slices' figures.
+
+**54 Interventions and ranking** · Blocked by: 48, 50 · External: ranking method (Nimish)
+
+1. [Engine] Every PM plan change is an intervention judged before and after against a control group (proposed default: same category and segment, no PM change in the window, at least three machines).
+2. [Engine] Technicians are ranked by the agreed measures, weights, period and minimum jobs from `kpi_snapshot`, each input shown and the method written in the Guide.
 
 ## M6 — AI (India only)
 
-**39 AI foundation** · Blocked by: 33 · External: capability alignment with Nimish
+**55 M6 schema and AI provider** · Blocked by: 51, 53, 54 (M4b gate) · External: capability alignment and numeric thresholds T1–T6 (Nimish), residency record
+Delivers: the one M6 migration: `ai_suggestion`, `document`, `document_chunk`, the `pg_trgm` extension.
 
-1. Nimish and the agents agree the capabilities; an India-region provider sits behind one adapter.
-2. The evaluation harness measures every feature on real tickets; a suggestion changes nothing until a person confirms.
+1. [API] The migration applies and reverts; suggestions are tenant-scoped; suggestions older than 2 years are purged (fake clock).
+2. [API] `AiProvider` with a fake provider; a real provider call is refused until the residency record is filed, and an endpoint outside India is always refused; input is redacted before send.
 
-**40 Find past jobs** · Blocked by: 39
+**56 Evaluation harness and confirm** · Blocked by: 55
 
-1. Search by words (transliterated Gujarati included) finds past jobs; duplicate reports are caught.
-2. Fix finder shows similar jobs, what fixed them and how often it held.
+1. [API] Pseudonymised evaluation files in the repo run in CI on the fake provider and give a score per feature; real-ticket shadow runs happen only on staging.
+2. [Browser] A shadow suggestion is not shown; a live one is shown on the ticket, changes nothing until a person confirms, and then calls the owning command marked `suggested_by: ai`.
 
-**41 Code suggestion** · Blocked by: 39, 34
+Split from draft ticket 39: the schema and adapter must land before any feature lane (ARCHITECTURE §8: M6 is one lane, then three).
 
-1. A failure code is suggested from the words; it goes live only above its threshold.
+**57 Find past jobs** · Blocked by: 56
 
-**42 Ask and brief** · Blocked by: 39
+1. [API] Search by words, transliterated Gujarati included, finds past jobs at or above T2 on the evaluation set; a duplicate report is caught at or above T3 (shadow until then).
+2. [Browser] The Fix Finder screen from 43 shows evidence: similar jobs, what fixed them and how often it held; no second screen.
 
-1. Managers ask questions and see the answer, its view and its SQL; numbers come from code.
-2. Each role gets a daily briefing.
+**58 Code suggestion** · Blocked by: 56
 
-**43 Manuals** · Blocked by: 39, 35
+1. [API] A failure code is suggested from the words, validated against the tenant's `failure_code` items or dropped; the person's code is in the top 3 in at least T1 % of evaluation cases.
+2. [Browser] It goes live per tenant only above T1; below it, agreement is measured in shadow.
 
-1. A plant's manuals are searchable by page, for that plant only; PM plan drafts cite their pages.
+**59 Ask and brief** · Blocked by: 56
+
+1. [Browser] A manager asks a question and sees the answer, its view and its SQL; every number on screen comes from `kpi_snapshot` or ticket ids through `analytics.figuresByIds`, never from model text.
+2. [API] Each role's daily briefing summarises that role's Today items (38), each line carrying its ticket or snapshot ids, and is pushed through `notify`.
+
+**60 Manuals** · Blocked by: 56
+
+1. [API] A plant's uploaded manual is searchable by page for that plant only (two-tenant test); PDF text extraction is under an ADR.
+2. [Browser] A PM plan draft cites its manual pages and waits for a person (`pm.createDraftPlan`).
 
 ## M3 — WhatsApp and voice (last)
 
-**44 WhatsApp channel** · Blocked by: 24 · External: Meta verification, number, templates (N8)
+**61 M3 schema and webhook** · Blocked by: 57, 58, 59, 60 (M6 gate) · External: Meta verification, number, templates (N8)
+Delivers: the one M3 migration: `wa_message` (unique per tenant and provider message id); E.164 check on `person.phone` after non-conforming numbers are listed for the admin (item 37).
 
-1. Signed webhooks; messages tied to a consenting person by phone; templates within the 24-hour rules and a monthly cost cap.
-2. Escalations, assignments and sign-off requests go out and are answered on WhatsApp.
+1. [API] The migration applies and reverts; a non-E.164 number is refused by the database.
+2. [API] A bad signature answers 401; the verification handshake works; the webhook is rate-limited and on the public allowlist; the same payload twice gives one message.
 
-**45 Report by WhatsApp** · Blocked by: 44
+**62 WhatsApp people and outbound** · Blocked by: 61 · External: N8, consent text (N14)
 
-1. An operator reports by chat or by scanning the machine's QR; PDFs and day reports arrive on WhatsApp.
+1. [API] A message is tied to a person by `person.phone`; an unknown number gets a polite reply and no ticket; first contact gets the consent text, and consent and opt-out are `wa_message` rows; messages older than 1 year are purged.
+2. [API] The WhatsApp adapter registers with `notify`: escalations, assignments and sign-off requests go out (templates outside 24 hours, English and Gujarati) and replies end in the normal commands; at the monthly cap the channel falls back to push and the admin is told.
 
-**46 Voice** · Blocked by: 45 · External: voice notes (N6)
+Split from draft ticket 44 (five draft tickets): the schema and the signed webhook land first.
 
-1. A voice note is transcribed in India, read back and confirmed; corrections improve the glossary; accuracy is recorded.
+**63 Report by WhatsApp** · Blocked by: 62
 
-**47 Email and deletion** · Blocked by: 44
+1. [API] An operator reports by chat (machine, situation, problem) and a ticket is raised with channel `whatsapp`; a printable QR sheet opens `?m=` or the chat per machine.
+2. [API] A closed ticket's PDF and the day reports arrive on WhatsApp on schedule.
 
-1. The plant head gets escalations and reports by email; a person's messages and voice can be deleted.
+**64 Voice** · Blocked by: 63 · External: voice notes (N6), speech key (N9)
+
+1. [API] A voice note is stored as a `file`, transcribed in India (client under an ADR), read back and counted only once confirmed; the daily minutes cap is checked first and three failures ask the person to type; recordings go 90 days after confirmation.
+2. [API] Accuracy per language on the consented test set is recorded by a test in the repo; a corrected word is proposed as a glossary term for the admin.
+
+**65 Email and deletion** · Blocked by: 64 · External: mail domain (N7)
+
+1. [API] The plant head gets escalations and reports by email through `notify`.
+2. [API] On request a person's messages and recordings are deleted and audited.
 
 ## What can run at the same time
 
-| Window         | Parallel tickets                                                           |
-| -------------- | -------------------------------------------------------------------------- |
-| Start          | 02, 03, 04, 05 (after 01)                                                  |
-| Before staging | 06, then 07                                                                |
-| M1             | 09, 10, 15, 16 together; then 11 → 12 → 13 with 14, 17, 18, 19 beside them |
-| M2             | 24 and 25 together                                                         |
-| M4a            | 29 and 30, then 31 and 32                                                  |
-| M4b / M6       | 34, 35 and 39 together                                                     |
+| Window  | Parallel tickets                                                               |
+| ------- | ------------------------------------------------------------------------------ |
+| Start   | 02, 08, 10, 13 (after 01)                                                      |
+| M0      | 04, 05, 06 after 03; 11 after 04 and 10; 07 then 09; 14 last                   |
+| M1      | 15 and 16; then 17 → 18 → 19 with 20; then 21, 22, 23, 25 together; 24, 26, 27 |
+| M2      | 30 and 32 after 29; then 31 and 34; 33; 35                                     |
+| M4a     | 38, 39, 40, 41 after 37; then 42 and 43; then 44 and 45                        |
+| M4b     | 47, 49, 51, 52 after 46; then 48 and 50; then 53 and 54                        |
+| M6 / M3 | 57–60 after 56; 62 after 61, then 63 → 64 → 65                                 |
 
-Database changes run one milestone migration at a time; one browser-test stack; Nimish previews every user-visible slice.
+One milestone migration at a time; one browser-test stack; Nimish previews every user-visible slice.
+
+**Open product question (not a ticket):** the lockout checklist, critical-spares list and Weibull fits are in
+SPEC §3 but in no BRIEF milestone (COVERAGE G46). Nimish decides: plan (and where) or drop; the answer is
+recorded in the BRIEF. **Note for the schema reviewer:** D17 says 13 new tables but lists 12; this plan adds
+exactly the 12 listed (40 tables) and leaves the thirteenth slot unused.
+
+## Rejected findings
+
+| Finding                 | Reason                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TB-05 (now 10)          | The "≤ 800 lines" size rule is the old draft's, not a binding source; kit components are copied from shadcn, the authored part (tokens, status, gallery) fits |
+| TB-18 (now 25)          | Board, push and PWA are already on `main` (HANDOFF, M1b); the ticket moves them onto the kit and adds the changeover hold                                     |
+| TB-19 (now 26)          | Each item is a small independent change (a limit, a route, a check); paging moved to 16, the review is External                                               |
+| TB-25 (now 34)          | The sign-off clock is in 30; what remains is one command, a timeout and two figures                                                                           |
+| TB-30 (now 41)          | Four pure engine functions, each proven by its fixture; screens are `DashboardPage` configuration; storage decided in 36                                      |
+| TB-31 (now 42)          | Same: pure, seeded functions with fixtures, one screen config; drill-down moved to 37                                                                         |
+| TB-32 (now 43)          | Same; Team Focus storage decided in 36                                                                                                                        |
+| TB-40 (now 57)          | Search is Postgres full-text plus `pg_trgm` (extension in 55); duplicates reuse the same search; the screen exists (43)                                       |
+| TB-46 (now 64)          | Storage reuses `file`, the glossary reuses `glossary_term`; the speech call is one adapter                                                                    |
+| NV-01 (01 not vertical) | The product owner allows process goals in M0's first ticket; it is the declared prefactor for every later PR                                                  |
+
+## Coverage map (COVERAGE.md → this plan)
+
+Ids: G gap, O overlap, Q other quality, TB too big (old ticket number), NV not vertical, UT untestable goal, E edge.
+COVERAGE §4's too-big table lists 26 tickets (its text says 27); all 26 are mapped below.
+Old → new: 01→01, 02→09, 03→08, 04→06+07, 05→10, 06→11+12, 07→13+14, 08→13+14, 09→15, 10→16, 11→17, 12→18,
+13→19, 14→20, 15→21, 16→22+23, 17→24, 18→25, 19→26, 20→27, 21→28, 22→29+30, 23→31, 24→32+33, 25→34, 26→35,
+27→36+37, 28→37+38+39, 29→40, 30→41, 31→42, 32→43, 33→44+45, 34→47+48, 35→49+50, 36→51, 37→52+53, 38→54,
+39→55+56, 40→57, 41→58, 42→59, 43→60, 44→61+62, 45→63, 46→64, 47→65.
+
+**Gaps → owner.** G1→02, 03 · G2→02 · G3→04 · G4→04 · G5→05 · G6→05 · G7→09 · G8→03 · G9→06 (header), 07 (contents)
+· G10→06 (stop), 29 (drop) · G11→29 (stop), 36 (drop) · G12→29 · G13→07 (erasure function and script), 21 (switch-off)
+· G14→14 (session, idempotency, import, audit), 31 (roster), 32 (notification), 55 (AI), 62 (WhatsApp), 64 (voice)
+· G15→26 (benchmark), 16 (paging) · G16→01 · G17→01 · G18→26 · G19→21 · G20→15 · G21→22 · G22→37 · G23→39
+· G24→36 · G25→37 · G26→39 (document numbers), 42, 43 (kept exports) · G27→39 (page), 42 (forecast), 43 (health),
+50 (tasks) · G28→38 · G29→52 · G30→49 · G31→13 · G32→62 (WhatsApp cap), 64 (speech cap) · G33→61 · G34→21
+(validate), 61 (constraint) · G35→36 (`kpi_snapshot`), 46 (`forecast`) · G36→25 · G37→10 · G38→12 · G39→01 (scan),
+08 (fixtures) · G40→14 · G41→20 · G42→32 · G43→31 · G44→21 · G45→26 (External sign-off) · **G46 → not placed:
+product question above.** Split owners are distinct parts, each with one ticket.
+
+**Overlaps → single owner.** O1→24 (15 only uses keys) · O2→43 (57 adds evidence) · O3→20 · O4→18 (work
+requests), 19 (tasks with stopped minutes) · O5→19 · O6→20 (21, 22, 23 blocked by it) · O7→50 (48 owns backlog
+only) · O8→32 (25 makes no second path) · O9→14 · O10→37 · O11→37 (alias load; 47 reuses).
+
+**Other quality → fixed.** Q1→29, 36, 46, 55, 61 (schema-first tickets) · Q2→07 (support columns), 29 (M2
+migration alone) · Q3→56 · Q4→36 (homes for Why-Why, Team Focus, nudges), 62 (consent as `wa_message` rows) ·
+Q5→ADRs named in 10, 12, 45, 50, 60, 64 · Q6→24 (15 carries no Gujarati goal) · Q7→27 (cap of five).
+
+**Too big → fixed** by split: TB-06 (11, 12), TB-07 (13, 14), TB-16 (22, 23), TB-22 (29, 30), TB-24 (32, 33), TB-27
+(36, 37), TB-28 (37, 38, 39), TB-33 (44, 45), TB-34 (47, 48), TB-35 (49, 50), TB-37 (52, 53), TB-39 (55, 56), TB-44
+(61, 62); by narrowing: TB-02 (staging load to 14), TB-15 (devices to 35, erasure to 07), TB-21 (day-3/7 checks are the
+gate, importer move to 09), TB-29 (drill system to 37). Rejected: TB-05, 18, 19, 25,
+30, 31, 32, 40, 46 (table above).
+
+**Not vertical → fixed.** NV-08→14 (Nimish sees real tickets on staging) · NV-27→37 (history shows on the desk) ·
+NV-39→56 (confirm flow on the ticket). NV-01 rejected.
+
+**Untestable → fixed.** UT-01g3→01 g2 (docs check) · UT-05g3→M0 gate · UT-09g2→15 g2 (parity ids) · UT-18g1→25 g1
+(parity ids) · UT-20g2→27 g2 · UT-37g2→53 g1 (contents named) · UT-38g1→54 g1 (control group defined) ·
+UT-39g1→55 External · UT-41g1→58 (T1 metric; number set at 55) · UT-42g2→59 g2 (contents named).
+
+**Edges → fixed.** E1 09←08 · E2 09←07, 14←09, 28←14 · E3 warning moved to 19 (19←15) · E4 18←08 · E5 21, 22, 23←20 ·
+E6 26←16, 25 · E7 27←14, 16 · E8 28←14 (restore drill) · E9 54←50 · E10 48 has no schedule compliance · E11 53←50 ·
+E12 36←33, 34, 35 (M2 gate) · E13 55←51, 53, 54 (M4b gate) · E14 61←57–60 (M6 gate) · E15 device sign-out in 35 ·
+E16 13←01 only · E17 51←46 only.

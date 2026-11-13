@@ -49,7 +49,7 @@ Words used here: a **module** is a folder in `apps/server/src/modules/` with one
 | Deploy | Cannot run (six faults); nothing is live                                                                       | `.github/workflows/deploy.yml`; ROADMAP §8.1 |
 | E2E    | One stack and one database for two parallel projects, `retries: 2`, `globalTimeout` 300 s                      | `playwright.config.ts`                       |
 
-> **Table budget:** 41 tables in total (28 today + 13 new), no duplicates — `docs/decisions/D17-table-budget.md` overrides any table named below.
+> **Table budget:** 40 tables in total (28 today + 12 new), no duplicates — `docs/decisions/D17-table-budget.md` overrides any table named below.
 
 ## 2. Target: one modular monolith
 
