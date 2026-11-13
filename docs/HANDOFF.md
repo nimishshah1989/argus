@@ -2,50 +2,53 @@
 
 Under 50 lines. Read first, rewrite at session end.
 
-## RESUME HERE
+## RESUME HERE (orchestrator, 13 Nov 2026 ~23:00 UTC)
 
-**Process:** pstack (`CLAUDE.md`, D23). **Plan:** `docs/plan/MILESTONES.md` (68 tickets; tracker at the top wins).
-**Ledger:** `docs/plan/ledger.md` (every dispatch, ruling and merge, one line each). Orchestrator stopped here
-on Nimish's instruction so he can restart on the new harness; no builder session is running.
+**Process:** pstack (`CLAUDE.md`). The pstack plugin did NOT load in the cloud sandbox: builders are child sessions
+(`create_session`), reviews are `ponytail-review` or fresh read-only Opus agents (adversarial for schema, auth,
+tenancy, deletes). **Plan:** `docs/plan/MILESTONES.md` (tracker wins). **Ledger:** `docs/plan/ledger.md`.
+**Standing authority (Nimish, asleep until ~04:00 UTC):** keep developing and merging; a fresh orchestrator session
+continues when the previous one nears 60% context. BINDING EXCEPTION: no screens/flows/access-control UI are built
+until Nimish approves the frontend plan (artifact https://claude.ai/artifact/VD9xJM9r9g77TQYKYW4XTS). No irreversible
+AWS/production actions without him. Orchestrator branch: `claude/orchestrator-m0-gate` (ledger + tracker; ships in ONE PR at the gate).
 
-**M0 (14 tickets): 12 merged**: 01–08, 10–13 (+ side PRs 01b, 13b, 04b, CI friction #170).
-**Left in M0:** 09 (real tickets in; blocked by 07 + 08, both merged: READY) and 14 (staging holds Cosmos, safe to
-run; blocked by 09 + 13). Then the M0 gate: `docs/plan/gates/M0.md`, Nimish tests staging on his phone, picks
-the accent, reviews the 31 status labels, then moves `ready-for-agent` from M0 to M1 issues.
-09 may overlap `docs/plan/CLAUDE-ADOPTION.md` (import pack): read it first.
+**M0:** 01-13 merged, 14 code merged (#176) but 14 stays open until staging deploys, loads Cosmos and the restore drill is logged.
+**M1 started early (API only):** 15 race fix #179, 16 goal 3 figures follow Bhavin #181. UI parked: branch `claude/t16-desk-ui-parked`.
 
-## Staging (AWS, account 118167167649, ap-south-1)
+## In flight (3 builders max)
 
-- Server `i-0c8debfdec0da8209`, Elastic IP 3.108.95.203, `m6g.large` in zone c, RDS `uptimo-postgres`,
-  site_url `https://cosmos.3-108-95-203.sslip.io`. Nothing answers until the first deploy.
-- First deploy (ticket 14 owns it; Nimish does the AWS parts, step by step): 1) RDS snapshot first
-  (`aws rds create-db-snapshot`, wait until available); 2) GitHub secret `AWS_ROLE_ARN`; 3) `ROUTER_DATABASE_URL`
-  in `migrate.env` only, never `app.env` (edit `infra/instance/refresh-env.sh`); 4) migration 0009 needs a
-  maintenance window (FK re-validation takes ACCESS EXCLUSIVE locks); 5) `gh workflow run deploy.yml`; 6) free outside uptime pinger. Unverified on real RDS: master-user roles, pg-boss, pgcrypto.
-- Tags: staging has none; otherwise `scripts/export-tags.ts` first, then `PGOPTIONS='-c uptimo.tags_exported=N'`;
-  `scripts/preflight-cutover.ts` must exit 0.
+- Accent deep teal: session_01KEBF26AWUhsJAHGgtCdsoV (tokens + gallery baselines; needs Docker for baselines).
+- Hardening (audit 2,3,4,5,10): session_01KEBF28NGDXJg93xZ9TLLyR. HIGH RISK: run adversarial Opus review before merge.
+- Deploy fixes (audit 1,7,8,9,16, non-root): session_01KEBF29Gq4ynmkL9cZTiP9a. Review infra myself; Terraform changes need Nimish.
+  Children never merge; merge on 9 green checks (static, api x3, browser x2, gallery, secrets, pr-meta), squash, then archive the child.
 
-## Decisions waiting for Nimish at the gate
+## Staging (AWS 118167167649 ap-south-1) — needs Nimish
 
-Accent (blue or deep teal) on `/gallery`; 31 status labels; new words ("Switch off", "Step 1 of 3", "Show the
-numbers"), chart style, a "Show switched off" option; DATA-MAP §5 wording from 07, Q25 default (offboarding proof in
-the audit row, files in the backup bucket), offboarded-tenant stub keeps the company name; `audit_purge` also
-removes offboard/erase proof rows after 3 years; billing alarm = existing USD 150 budget; a repo admin adds the
-`pr-meta` check to the required checks (merge rule: 9 green checks).
+Deployed infra: server i-0c8debfdec0da8209 (m6g.large, zone c), RDS uptimo-postgres, backup bucket, secret AWS_ROLE_ARN and variable
+BACKUP_BUCKET set, snapshot `uptimo-before-0009` ready. Live tfvars (his Mac, ~/argus-staging/infra/terraform): domain "", billing_email set,
+server_az_suffix "c", instance_type "m6g.large", external_uptime_ping false (org policy blocks SNS us-east-1).
+First deploy failed at AWS sign-in: GitHub uses immutable subject. Fixed in #178. Nimish must: git pull; add
+`github_sub_prefix = "repo:nimishshah1989@228974158/argus@1436478041"` to tfvars; terraform plan (expect 0 add, 1 change, 0 destroy);
+apply; `gh workflow run deploy.yml`. Then infra/STAGING.md steps 9-12, part 2 (load Cosmos; Mac + SSM tunnel), RESTORE.md drill (log in docs/plan/restore-drill-log.md).
+Do not let him deploy before the deploy-fixes PR is merged (PDF needs Chromium in the image) unless he insists.
 
-## Follow-ups (not yet tickets)
+## Decisions waiting for Nimish
 
-Separate NOLOGIN history-owner role before production (26/28); server accepts what the Spec forbids (05);
-raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
-seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
-import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
+Screens plan approval + 5 questions in the artifact; 31 status labels; new words (Switch off, Step 1 of 3, Show the numbers), chart style,
+"Show switched off"; DATA-MAP section 5 wording; Q25 offboarding proof; offboarded stub keeps company name; audit.purge also removes
+import.undo rows after 3 years; billing alarm = USD 150 budget; repo admin must add `pr-meta` to required checks; cancel-then-restore gap counted
+as downtime (follows Bhavin, questionable); Bhavin must confirm the 6 Nov support-downtime rule; floor taps 3 vs 4, 'Report a problem' vs
+'Report a breakdown', open-support wording; what "Manav"/"core MD files" mean (analytics: dashboards are widgets, core + custom).
+
+## Next after the above
+
+M0 gate paperwork: `docs/plan/gates/M0.md` (goals, tests, evidence, what Nimish checks), full suite + audit (done: docs/plan/m0-audit.md), then STOP for his go.
+Audit leftovers (not yet dispatched): 6 offline replay blocks on non-409 refusals (web data layer, with screens), 11 AI module polls every 2 s (M6),
+12 four DB round-trips per request, 13-15,17-20 cleanups. Follow-ups: NOLOGIN history-owner role before production; erase_person blanks import_row
+payload so later re-import/undo of that batch throws; admin phones (21); must_change_password (21); pending people merge needs design (21).
+Do not message old sessions; archive children after merge.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 22:36 UTC on branch `claude/orchestrator-m0-gate`.
-- 02ff9a5 docs: session notes (hook)
-- c55df7d docs(plan): audit, 15 api merged, hardening dispatched
-- 3743e4d docs(plan): ledger, frontend gate and OIDC fix
-Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
