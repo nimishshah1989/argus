@@ -40,7 +40,7 @@ Anthropic's `claude-for-manufacturing` plugin (1.0.0, Apache-2.0, "reference imp
 | Features that keep data with the provider | None is used: no stored files, no stored conversations, no batch upload. Using one needs this note amended first                                                                                                                                                             |
 | Access                                    | One API key per environment in Secrets Manager, loaded only when the feature is on                                                                                                                                                                                           |
 
-**No real call is made, on staging or production, until every "to verify" line above is filled in from the signed terms.**
+**No production call for a real plant is made until every "to verify" line above is filled in from the signed terms.** **Build phase (Nimish, 13 November):** these lines and the consent record do not block building or staging. Staging calls Claude now, using the staging key and the default cap of 50 USD a month. They gate production for a real plant only.
 
 ## Rejected
 

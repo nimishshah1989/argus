@@ -15,3 +15,5 @@ BRIEF: AI never invents numbers or codes; data stays in India unless an ADR with
 - Free-text answers containing numbers.
 - A vector store up front: only if the evaluation harness shows text search misses the threshold.
 - A tool-use loop in which the model fetches its own evidence (D22).
+
+**Build phase (Nimish, 13 November):** these lines and the consent record do not block building or staging. Staging calls Claude now, using the staging key and the default cap of 50 USD a month. They gate production for a real plant only.

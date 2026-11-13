@@ -72,3 +72,5 @@ The Platform lane defines both in `infra/`. They go to the alarm topic that stag
 - **A usage table:** the suggestion row is the call.
 - **Turning placeholders back into names:** it keeps a name map alive and puts names into stored AI text.
 - **Sending photos now:** faces, name boards and handwriting cannot be removed by a word list.
+
+**Build phase (Nimish, 13 November):** these lines and the consent record do not block building or staging. Staging calls Claude now, using the staging key and the default cap of 50 USD a month. They gate production for a real plant only.
