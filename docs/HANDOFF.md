@@ -40,10 +40,10 @@ orchestrator the number. Agents cannot force-push or delete tests: he deletes te
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 14:04 UTC on branch `claude/orchestrator-ledger`.
-- 4c24791 docs: session notes (hook)
-- 303d079 docs(plan): ledger — #163 merged; one PR at the gate
-- 12fcb1c merge main (ledger PR #163 merged)
+Last session ended 2026-11-13 14:22 UTC on branch `claude/orchestrator-ledger`.
+- 11cfa8b docs(plan): ledger — #168 merged
+- 57a6019 merge main (#168 merged)
+- f93fd76 chore(process): one plan, one CLAUDE.md; remove stale docs and Athena v3 leftovers (#168)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
