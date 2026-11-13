@@ -1,3 +1,4 @@
+import { raiseRefCounter, refCounterRows, ticketRefsLike } from '../tickets/index.js';
 import type { ImportCtx } from './batch.js';
 import type { PlannedRow } from './identity.js';
 
@@ -16,18 +17,12 @@ async function prefixMaximum(
   plans: PlannedRow[],
 ): Promise<number> {
   const [counter, tickets] = await Promise.all([
-    ctx.client.query('SELECT next_value FROM ref_counter WHERE tenant_id = $1 AND prefix = $2', [
-      ctx.tenantId,
-      prefix,
-    ]),
-    ctx.client.query('SELECT ref FROM ticket WHERE tenant_id = $1 AND ref LIKE $2', [
-      ctx.tenantId,
-      `${prefix}-%`,
-    ]),
+    refCounterRows(ctx.client, ctx.tenantId, prefix),
+    ticketRefsLike(ctx.client, ctx.tenantId, `${prefix}-%`),
   ]);
-  let maximum = counter.rows[0] ? Number(counter.rows[0].next_value) - 1 : 0;
+  let maximum = counter[0] ? Number(counter[0].next_value) - 1 : 0;
   const refs = [
-    ...tickets.rows.map((row) => row.ref as string),
+    ...tickets.map((row) => row.ref as string),
     ...plans
       .filter((row) => row.outcome !== 'error' && row.ticket)
       .map((row) => row.ticket?.ref as string),
@@ -48,11 +43,7 @@ export async function advanceRefCounters(
     const maximum = await prefixMaximum(ctx, prefix, plans);
     if (maximum > MAX_REF) throw new Error(`${prefix} reference counter is exhausted`);
     const next = maximum + 1;
-    await ctx.client.query(
-      `INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, $2, $3)
-       ON CONFLICT (tenant_id, prefix) DO UPDATE SET next_value = GREATEST(ref_counter.next_value, $3)`,
-      [ctx.tenantId, prefix, next],
-    );
+    await raiseRefCounter(ctx.client, { tenantId: ctx.tenantId, prefix, next });
     result[prefix] = next;
   }
   return result;

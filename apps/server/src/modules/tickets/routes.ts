@@ -13,6 +13,7 @@ import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import * as report from './repo/report.js';
+import { openDuplicateId, openTicketRows } from './repo/list.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 import { projectTicketSla, reconcileTicket, withSlaProjections } from '../accountability/index.js';
 
@@ -188,12 +189,7 @@ async function validateMachine(
   )[0];
   if (!machine)
     return { status: 404, body: shared.apiError('not_found', 'Unknown machine', 'machineId') };
-  const duplicate = (
-    await client.query(
-      "SELECT id FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status NOT IN ('closed', 'cancelled') LIMIT 1",
-      [tx.tenantId, tx.body.machineId],
-    )
-  ).rows[0];
+  const duplicate = await openDuplicateId(client, tx.tenantId, tx.body.machineId as string);
   if (duplicate)
     return { status: 409, body: shared.apiError('conflict', 'Already reported', 'machineId') };
   const { code, category, cell, criticality } = machine;
@@ -323,14 +319,11 @@ async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   const openRows = await withTenant(pool, ctx.tenantId, (client) =>
-    client.query(
-      `SELECT ${sql.TICKET_COLUMNS} FROM ticket WHERE tenant_id = $1 AND status IN ('open', 'working', 'waiting') ORDER BY reported_at DESC`,
-      [ctx.tenantId],
-    ),
+    openTicketRows(client, ctx.tenantId),
   );
   const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
   const open = await withTenant(pool, ctx.tenantId, (client) =>
-    withSlaProjections(client, ctx.tenantId, openRows.rows, (row) => projectTicket(row)),
+    withSlaProjections(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
   );
   reply.send({ open, needReport, now: new Date().toISOString() });
 }

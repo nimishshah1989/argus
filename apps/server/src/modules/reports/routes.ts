@@ -21,7 +21,13 @@ import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { loadDayReport, type DayReportData } from './day-report.js';
 import { renderDayReportHtml } from './day-report-template.js';
-import { figuresFromRow, loadReport, type StoredReport } from '../tickets/index.js';
+import {
+  figuresFromRow,
+  loadReport,
+  pdfTicketRow,
+  setReportPdf,
+  type StoredReport,
+} from '../tickets/index.js';
 
 const PDF_MIME = 'application/pdf';
 
@@ -49,12 +55,6 @@ interface PdfDeps {
   store: ObjectStore;
   chromiumPath?: string;
 }
-
-const TICKET_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.closed_at,
-    t.machine_snapshot, t.response_min, t.active_min, t.wait_min, t.vendor_min,
-    t.handover_wait_min, t.down_acc_min, t.downtime_min, t.follow_min, t.repair_min, t.machine_id
-  FROM ticket t
-  WHERE t.id = $1 AND t.tenant_id = $2`;
 
 function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
   const snapshot = (row.machine_snapshot ?? {}) as Record<string, string | null>;
@@ -96,7 +96,7 @@ async function loadPdfContext(
   tenantId: string,
   ticketId: string,
 ): Promise<PdfContext | null> {
-  const found = (await client.query(TICKET_SQL, [ticketId, tenantId])).rows;
+  const found = await pdfTicketRow(client, tenantId, ticketId);
   if (found.length === 0) return null;
   const row = (await withMachines(client, tenantId, found))[0];
   const tenant = await tenantInfo(client, tenantId);
@@ -173,10 +173,7 @@ async function renderTicketPdf(
       mime: PDF_MIME,
       bytes,
     });
-    await client.query(
-      'UPDATE breakdown_report SET pdf_file_id = $1, qr_payload = $2 WHERE id = $3 AND tenant_id = $4',
-      [id, payload, report.id, tenantId],
-    );
+    await setReportPdf(client, { fileId: id, payload, reportId: report.id, tenantId });
     return id;
   });
   return { fileId, url: `/api/v1/files/${fileId}` };

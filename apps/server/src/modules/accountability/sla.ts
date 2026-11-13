@@ -6,17 +6,16 @@ import { tenantInfo } from '../identity/index.js';
 import { shiftWindows } from '../plant/index.js';
 import { rearmTicket } from './repo/timers.js';
 import { tenantPolicies } from './repo/policies.js';
-import { loadEvents, reviveCorrection } from '../tickets/index.js';
-
-interface TicketRow {
-  id: string;
-  kind: 'stopped' | 'support' | 'general';
-  severity: SlaPolicy['severity'];
-  status: 'open' | 'working' | 'waiting' | 'closed' | 'cancelled';
-  reported_at: Date;
-  closed_at: Date | null;
-  raised_channel: string;
-}
+import {
+  loadEvents,
+  lockTicket,
+  reviveCorrection,
+  setSlaPolicyId,
+  slaCandidateIds,
+  slaTicketRows,
+  ticketEventRows,
+  type SlaTicketRow as TicketRow,
+} from '../tickets/index.js';
 
 interface SlaContext {
   row: TicketRow;
@@ -48,13 +47,9 @@ async function loadEventsByTicket(
   client: PoolClient,
   ticketIds: string[],
 ): Promise<Map<string, SlaContext['events']>> {
-  const events = await client.query(
-    `SELECT ticket_id, seq, type, at, login_id, acting_person_id, text, payload
-     FROM ticket_event WHERE ticket_id = ANY($1::uuid[]) ORDER BY ticket_id, seq`,
-    [ticketIds],
-  );
+  const events = await ticketEventRows(client, ticketIds);
   const eventsByTicket = new Map<string, SlaContext['events']>();
-  for (const row of events.rows) {
+  for (const row of events) {
     const payload = (row.payload ?? {}) as Record<string, unknown>;
     const event = {
       type: row.type,
@@ -83,18 +78,14 @@ async function loadContexts(
 ): Promise<Map<string, SlaContext>> {
   const contexts = new Map<string, SlaContext>();
   if (ticketIds.length === 0) return contexts;
-  const tickets = await client.query<TicketRow>(
-    `SELECT id, kind, severity, status, reported_at, closed_at, raised_channel
-     FROM ticket WHERE tenant_id = $1 AND id = ANY($2::uuid[])`,
-    [tenantId, ticketIds],
-  );
-  if (tickets.rows.length === 0) return contexts;
+  const tickets = await slaTicketRows(client, tenantId, ticketIds);
+  if (tickets.length === 0) return contexts;
   const policies = await tenantPolicies(client, tenantId);
   const bySeverity = new Map(policies.map((policy) => [policy.severity, policy]));
   const needsCalendar = policies.some((policy) => policy.businessHoursOnly);
   const calendar = needsCalendar ? await loadCalendar(client, tenantId) : undefined;
   const eventsByTicket = await loadEventsByTicket(client, ticketIds);
-  for (const row of tickets.rows) {
+  for (const row of tickets) {
     if (row.raised_channel === 'backfill') continue;
     const policy = bySeverity.get(row.severity);
     if (!policy) continue;
@@ -190,11 +181,7 @@ export async function reconcileTicket(
   input: { tenantId: string; ticketId: string; now: Date; boss?: PgBoss },
 ): Promise<string | null> {
   const { tenantId, ticketId, now, boss } = input;
-  const locked = await client.query(
-    'SELECT id FROM ticket WHERE tenant_id=$1 AND id=$2 FOR UPDATE',
-    [tenantId, ticketId],
-  );
-  if (locked.rowCount !== 1) return null;
+  if (!(await lockTicket(client, tenantId, ticketId))) return null;
   const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
   if (!context) return null;
   const projectionNow = effectiveNow(context, now);
@@ -228,11 +215,7 @@ export async function reconcileTicket(
       now: projectionNow,
     });
   }
-  await client.query('UPDATE ticket SET sla_policy_id = $3 WHERE id = $1 AND tenant_id = $2', [
-    ticketId,
-    tenantId,
-    context.policy.id,
-  ]);
+  await setSlaPolicyId(client, tenantId, ticketId, context.policy.id);
   return context.policy.id;
 }
 
@@ -242,11 +225,7 @@ export async function reconcileSlaPolicies(
   boss?: PgBoss,
 ): Promise<void> {
   const now = new Date();
-  const candidates = await client.query(
-    "SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel <> 'backfill' ORDER BY id",
-    [tenantId],
-  );
-  for (const row of candidates.rows) {
-    await reconcileTicket(client, { tenantId, ticketId: row.id, now, boss });
+  for (const ticketId of await slaCandidateIds(client, tenantId)) {
+    await reconcileTicket(client, { tenantId, ticketId, now, boss });
   }
 }

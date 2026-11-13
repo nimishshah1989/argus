@@ -28,6 +28,18 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
   notifications: ['push_subscription'],
   accountability: ['sla_policy', 'sla_timer'],
   reports: [],
+  tickets: [
+    'ticket',
+    'ticket_event',
+    'ticket_tag',
+    'crew_member',
+    'work_segment',
+    'breakdown_report',
+    'breakdown_report_person',
+    'command_idempotency',
+    'ref_counter',
+  ],
+  imports: ['import_batch', 'import_row'],
 };
 
 /** Which modules each module may call (through their index.ts). Acyclic, bottom-up. */

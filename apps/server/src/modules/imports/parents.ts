@@ -1,3 +1,4 @@
+import { setParent, ticketParents } from '../tickets/index.js';
 import type { ImportCtx } from './batch.js';
 import { rowIssue, type PlannedRow } from './identity.js';
 
@@ -135,15 +136,12 @@ function dependencyOrder(plans: PlannedRow[]): PlannedRow[] {
 
 export async function planParentGraph(ctx: ImportCtx, plans: PlannedRow[]): Promise<PlannedRow[]> {
   resolveDuplicates(plans);
-  const existing = await ctx.client.query(
-    'SELECT id, ref, parent_id FROM ticket WHERE tenant_id = $1',
-    [ctx.tenantId],
-  );
+  const existing = await ticketParents(ctx.client, ctx.tenantId);
   const byRef = new Map<string, PlannedRow>();
   for (const row of plans) if (row.ticket) byRef.set(row.ticket.ref, row);
-  const existingByRef = new Map(existing.rows.map((row) => [row.ref as string, row.id as string]));
+  const existingByRef = new Map(existing.map((row) => [row.ref as string, row.id as string]));
   const existingParents = new Map<string, string | null>(
-    existing.rows.map((row) => [row.id as string, row.parent_id as string | null]),
+    existing.map((row) => [row.id as string, row.parent_id as string | null]),
   );
   for (const row of plans) planOneParent(row, byRef, existingByRef);
   const byNumber = new Map(plans.map((plan) => [plan.rowNumber, plan]));
@@ -174,11 +172,11 @@ export async function applyParentLinks(
   for (const row of plans) {
     const target = parentTarget(row, byNumber);
     if (!target || row.currentParentId === target.parentId) continue;
-    await ctx.client.query('UPDATE ticket SET parent_id = $1 WHERE id = $2 AND tenant_id = $3', [
-      target.parentId,
-      target.childId,
-      ctx.tenantId,
-    ]);
+    await setParent(ctx.client, {
+      tenantId: ctx.tenantId,
+      childId: target.childId,
+      parentId: target.parentId,
+    });
     if (row.outcome === 'skip') {
       repairs.push({
         rowNumber: row.rowNumber,

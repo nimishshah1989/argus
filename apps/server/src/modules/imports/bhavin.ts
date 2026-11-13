@@ -24,6 +24,7 @@ import {
   type ImportStats,
   type SyntheticExport,
 } from './schema.js';
+import { finishBatch, insertErrorRow, insertPendingRow, updateImportRow } from './repo.js';
 import { lockRefCounter } from '../tickets/index.js';
 import { reconcileSlaPolicies } from '../accountability/index.js';
 
@@ -141,35 +142,28 @@ async function updateRow(
     error?: string;
   },
 ): Promise<void> {
-  await ctx.client.query(
-    `UPDATE import_row SET status = $1, ticket_id = $2, error = $3
-     WHERE id = $4 AND tenant_id = $5 AND batch_id = $6`,
-    [input.status, input.ticketId ?? null, input.error ?? null, input.rowId, ctx.tenantId, batchId],
-  );
+  await updateImportRow(ctx.client, { ...input, tenantId: ctx.tenantId, batchId });
 }
 
 async function insertRaw(ctx: ImportCtx, batchId: string, row: PlannedRow): Promise<string> {
-  const result = await ctx.client.query(
-    `INSERT INTO import_row (tenant_id, batch_id, row_number, source_ref, status, payload)
-     VALUES ($1,$2,$3,$4,'pending',$5) RETURNING id`,
-    [ctx.tenantId, batchId, row.rowNumber, sourceRef(row), JSON.stringify(row.envelope)],
-  );
-  return result.rows[0].id as string;
+  return insertPendingRow(ctx.client, {
+    tenantId: ctx.tenantId,
+    batchId,
+    rowNumber: row.rowNumber,
+    sourceRef: sourceRef(row),
+    payload: JSON.stringify(row.envelope),
+  });
 }
 
 async function rawFailure(ctx: ImportCtx, batchId: string, row: PlannedRow): Promise<void> {
   await ctx.client.query('ROLLBACK TO SAVEPOINT import_raw');
-  await ctx.client.query(
-    `INSERT INTO import_row (tenant_id, batch_id, row_number, source_ref, status, payload, error)
-     VALUES ($1,$2,$3,$4,'error',$5,'raw_insert_failed')`,
-    [
-      ctx.tenantId,
-      batchId,
-      row.rowNumber,
-      sourceRef(row),
-      JSON.stringify({ format: 'argus.import-error/v1', rawSha256: row.envelope.rawSha256 }),
-    ],
-  );
+  await insertErrorRow(ctx.client, {
+    tenantId: ctx.tenantId,
+    batchId,
+    rowNumber: row.rowNumber,
+    sourceRef: sourceRef(row),
+    payload: JSON.stringify({ format: 'argus.import-error/v1', rawSha256: row.envelope.rawSha256 }),
+  });
   await ctx.client.query('RELEASE SAVEPOINT import_raw');
 }
 
@@ -291,11 +285,13 @@ async function runMain(
       (issue) => issue.code.startsWith('figure_') && issue.severity === 'error',
     ).length;
     stats.status = stats.errored === 0 && stats.hardMismatches === 0 ? 'done' : 'failed';
-    await client.query(
-      `UPDATE import_batch SET status = $1, finished_at = $2, stats = $3
-       WHERE id = $4 AND tenant_id = $5 AND source = 'bhavin'`,
-      [stats.status, context.now, JSON.stringify(stats), batchId, tenantId],
-    );
+    await finishBatch(client, {
+      status: stats.status,
+      finishedAt: context.now,
+      stats: JSON.stringify(stats),
+      batchId,
+      tenantId,
+    });
     return { batchId, stats };
   });
 }

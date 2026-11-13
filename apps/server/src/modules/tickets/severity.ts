@@ -18,6 +18,7 @@ import {
 import { severityMatrixSchema } from '@uptimo/shared';
 import type { LoadedCtx, TicketExtras, Tx } from './mapper.js';
 import { machinesByIds, setting } from '../plant/index.js';
+import { machineTicketsForUpdate, setSeverities } from './repo/severity.js';
 
 /** Build raise extras, deriving severity from the machine criticality snapshot. */
 export function buildRaiseExtras(
@@ -142,4 +143,20 @@ export async function refreshSeverity(
   // snapshot is immutable and remains the value loaded from the original row.
   ticket.severity = severity;
   loaded.extras.severity = severity;
+}
+
+/** Severity follows current criticality; report-time snapshots stay unchanged. */
+export async function refreshMachineSeverity(
+  client: PoolClient,
+  input: { tenantId: string; machineId: string; criticality: Criticality | null },
+): Promise<void> {
+  const { tenantId, machineId, criticality } = input;
+  const matrix = await loadSeverityMatrix(client, tenantId);
+  const tickets = await machineTicketsForUpdate(client, tenantId, machineId);
+  if (tickets.length > 0) {
+    const severities = tickets.map((ticket) =>
+      computeSeverity(matrix, criticality, ticket.kind, ticket.urgent === true),
+    );
+    await setSeverities(client, { ids: tickets.map((ticket) => ticket.id), severities, tenantId });
+  }
 }

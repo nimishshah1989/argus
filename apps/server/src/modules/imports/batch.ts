@@ -2,6 +2,7 @@ import { withTenant } from '@uptimo/db';
 import type { Pool, PoolClient } from 'pg';
 import { emptyCompletionFingerprint } from './fingerprint.js';
 import { SYNTHETIC_SOURCE } from './json.js';
+import { failBatch, insertBatch } from './repo.js';
 import { messageOf, type ImportStats } from './schema.js';
 
 export interface ImportCtx {
@@ -49,12 +50,11 @@ export async function openBatch(
       tickets: input.ticketCount,
       aliasSha256: input.aliasSha256,
     };
-    const result = await client.query(
-      `INSERT INTO import_batch (tenant_id, source, status, started_at, stats)
-       VALUES ($1, 'bhavin', 'running', $2, $3) RETURNING id`,
-      [tenantId, input.now, JSON.stringify(stats)],
-    );
-    return result.rows[0].id as string;
+    return insertBatch(client, {
+      tenantId,
+      startedAt: input.now,
+      stats: JSON.stringify(stats),
+    });
   });
 }
 
@@ -72,12 +72,13 @@ export async function markBatchFatal(
     completion: emptyCompletionFingerprint(),
   });
   await withTenant(pool, tenantId, async (client) => {
-    const result = await client.query(
-      `UPDATE import_batch SET status = 'failed', finished_at = $1, stats = $2
-       WHERE id = $3 AND tenant_id = $4 AND source = 'bhavin' AND status = 'running'`,
-      [input.now, JSON.stringify(stats), batchId, tenantId],
-    );
-    if (result.rowCount !== 1) throw new Error('Unable to persist fatal import batch status');
+    const count = await failBatch(client, {
+      finishedAt: input.now,
+      stats: JSON.stringify(stats),
+      batchId,
+      tenantId,
+    });
+    if (count !== 1) throw new Error('Unable to persist fatal import batch status');
   });
   return stats;
 }

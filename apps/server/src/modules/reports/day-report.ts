@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { activePerson, tenantInfo } from '../identity/index.js';
+import { dayJobRows, pendingRows } from '../tickets/index.js';
 import { withMachines } from './machines.js';
 
 export type DayShift = 'day' | 'night';
@@ -88,29 +89,6 @@ async function windowBounds(
   return { start: new Date(row.starts_at as string), end: new Date(row.ends_at as string) };
 }
 
-const JOBS_SQL = `WITH touched AS (
-    SELECT ticket_id FROM work_segment
-     WHERE tenant_id = $1 AND person_id = $2 AND started_at < $4
-       AND COALESCE(ended_at, $4) > $3
-    UNION
-    SELECT ticket_id FROM ticket_event
-     WHERE tenant_id = $1 AND acting_person_id = $2 AND at >= $3 AND at < $4
-  ), minutes AS (
-    SELECT ticket_id,
-           SUM(EXTRACT(EPOCH FROM (LEAST(COALESCE(ended_at, $4), $4) - GREATEST(started_at, $3))) / 60)::int
-             AS mins
-      FROM work_segment
-     WHERE tenant_id = $1 AND person_id = $2 AND started_at < $4
-       AND COALESCE(ended_at, $4) > $3
-     GROUP BY ticket_id
-  )
-  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.machine_snapshot, t.machine_id,
-         COALESCE(minutes.mins, 0) AS minutes
-    FROM touched
-    JOIN ticket t ON t.id = touched.ticket_id AND t.tenant_id = $1
-    LEFT JOIN minutes ON minutes.ticket_id = t.id
-   ORDER BY t.reported_at, t.ref`;
-
 async function queryJobs(
   client: PoolClient,
   tenantId: string,
@@ -120,7 +98,7 @@ async function queryJobs(
   const rows = await withMachines(
     client,
     tenantId,
-    (await client.query(JOBS_SQL, [tenantId, personId, window.start, window.end])).rows,
+    await dayJobRows(client, { tenantId, personId, start: window.start, end: window.end }),
   );
   return rows.map((row) => ({
     ticketId: row.id as string,
@@ -133,22 +111,13 @@ async function queryJobs(
   }));
 }
 
-const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id
-    FROM ticket t
-   WHERE t.tenant_id = $1 AND t.status IN ('open', 'working', 'waiting') AND t.reported_at < $2
-   ORDER BY t.reported_at, t.ref`;
-
 /** Tickets still pending when the window closed; opened after it are not "pending at end". */
 async function queryPending(
   client: PoolClient,
   tenantId: string,
   windowEnd: Date,
 ): Promise<DayReportPending[]> {
-  const rows = await withMachines(
-    client,
-    tenantId,
-    (await client.query(PENDING_SQL, [tenantId, windowEnd])).rows,
-  );
+  const rows = await withMachines(client, tenantId, await pendingRows(client, tenantId, windowEnd));
   return rows.map((row) => ({
     ticketId: row.id as string,
     ref: row.ref as string,

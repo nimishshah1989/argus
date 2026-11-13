@@ -37,7 +37,10 @@ export function sqlLiterals(source: string): string[] {
 }
 
 const NAME = String.raw`(?:only\s+)?(?:lateral\s+)?(?:"?[a-z_][a-z0-9_]*"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?`;
-const AFTER_KEYWORD = new RegExp(String.raw`\b(?:join|into|update)\s+${NAME}`, 'gi');
+const AFTER_KEYWORD = new RegExp(
+  String.raw`\b(?:join|into|update|using|truncate|table)\s+(?:table\s+)?${NAME}`,
+  'gi',
+);
 // A FROM list runs to the next clause keyword; parenthesised groups are scanned on their own first.
 const FROM_LIST =
   /\bfrom\s+([^;]*?)(?=\b(?:where|join|on|group|order|limit|union|returning|set|having|for|using|window)\b|;|$)/gi;
@@ -129,13 +132,18 @@ function importsOf(root: string, file: string): string[] {
     ts.ScriptTarget.Latest,
   );
   const targets: string[] = [];
-  for (const node of source.statements) {
-    if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) continue;
-    const spec = node.moduleSpecifier;
-    if (!spec || !ts.isStringLiteral(spec) || !spec.text.startsWith('.')) continue;
+  const add = (spec: ts.Expression | undefined): void => {
+    if (!spec || !ts.isStringLiteral(spec) || !spec.text.startsWith('.')) return;
     const target = posix.join(posix.dirname(file), spec.text).replace(/\.js$/, '.ts');
     if (target.endsWith('.ts') && target.startsWith(`${SERVER_SRC}/`)) targets.push(target);
-  }
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) add(node.moduleSpecifier);
+    else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword)
+      add(node.arguments[0]);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
   return targets;
 }
 
@@ -159,6 +167,8 @@ function moduleError(file: string, target: string, calls: readonly string[]): st
   const to = unitOf(target);
   if (to.kind !== 'module' || (from.kind === 'module' && from.name === to.name)) return null;
   const index = `${SERVER_SRC}/modules/${to.name}/index.ts`;
+  // The cosmos seed is the only caller of a module's seed inserts; it has its own entry file.
+  if (from.kind === 'seed' && target === `${SERVER_SRC}/modules/${to.name}/seed.ts`) return null;
   if (target !== index)
     return `${file}: imports ${target}; ${to.name} is reached only through ${index}`;
   if (from.kind === 'module' && !calls.includes(to.name))

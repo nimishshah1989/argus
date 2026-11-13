@@ -4,6 +4,8 @@ import {
   type BatchSnapshot,
   type BatchTicketSnapshot,
 } from './fingerprint.js';
+import { importedChildren, importedTicketRows } from '../tickets/index.js';
+import { importedRowRows } from './repo.js';
 import type { EntryType, StoredRawPayload } from './schema.js';
 
 type Row = Record<string, unknown>;
@@ -46,12 +48,8 @@ async function loadImportedRows(
   tenantId: string,
   batchId: string,
 ): Promise<ImportedRow[]> {
-  const result = await client.query(
-    `SELECT row_number, source_ref, ticket_id, payload FROM import_row
-     WHERE tenant_id = $1 AND batch_id = $2 AND status = 'imported' ORDER BY ticket_id`,
-    [tenantId, batchId],
-  );
-  return result.rows.map((row) => {
+  const rows = await importedRowRows(client, tenantId, batchId);
+  return rows.map((row) => {
     if (!row.ticket_id || !row.source_ref) throw new Error('Imported row provenance is dangling');
     return {
       rowNumber: row.row_number as number,
@@ -71,53 +69,13 @@ async function loadTicketRows(
   const columns = TICKET_FINGERPRINT_COLUMNS.map((column) =>
     column === 'task_expected_on' ? 'task_expected_on::text AS task_expected_on' : column,
   ).join(', ');
-  const result = await client.query(
-    `SELECT ${columns} FROM ticket WHERE tenant_id = $1 AND id = ANY($2::uuid[])
-     ORDER BY id${lockTickets ? ' FOR UPDATE' : ''}`,
-    [tenantId, ticketIds],
-  );
-  return new Map(result.rows.map((row) => [row.id as string, row as Row]));
-}
-
-async function queryChildren(
-  client: PoolClient,
-  tenantId: string,
-  ticketIds: string[],
-): Promise<{ rows: Row[]; reports: Row[]; people: Row[] }> {
-  const rows: Row[] = [];
-  for (const sql of [
-    `SELECT ticket_id, seq, type, idempotency_key, at, login_id, acting_person_id, text, payload
-     FROM ticket_event WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[]) ORDER BY ticket_id, seq`,
-    `SELECT ticket_id, id, person_id, role, joined_at, left_at, left_reason
-     FROM crew_member WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[]) ORDER BY ticket_id, id`,
-    `SELECT ticket_id, id, person_id, role, started_at, ended_at, end_reason
-     FROM work_segment WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[]) ORDER BY ticket_id, id`,
-  ]) {
-    rows.push(...(await client.query(sql, [tenantId, ticketIds])).rows);
-  }
-  const reports = (
-    await client.query(
-      `SELECT ticket_id, id, machine_id, date::text AS date, shift_code, problem, observed_by,
-        corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
-        spare_used, root_cause, handover_name, signature_file_id, pdf_file_id, qr_payload,
-        submitted_by_person_id, submitted_at, approved_at
-       FROM breakdown_report WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])
-       ORDER BY ticket_id, id`,
-      [tenantId, ticketIds],
-    )
-  ).rows;
-  const reportIds = reports.map((row) => row.id as string);
-  const people = reportIds.length
-    ? (
-        await client.query(
-          `SELECT report_id, person_id, role FROM breakdown_report_person
-           WHERE tenant_id = $1 AND report_id = ANY($2::uuid[])
-           ORDER BY report_id, person_id, role`,
-          [tenantId, reportIds],
-        )
-      ).rows
-    : [];
-  return { rows, reports, people };
+  const rows = await importedTicketRows(client, {
+    tenantId,
+    ticketIds,
+    columns,
+    lock: lockTickets,
+  });
+  return new Map(rows.map((row) => [row.id as string, row as Row]));
 }
 
 function groupRows(rows: Row[], key: string): Map<string, Row[]> {
@@ -236,7 +194,7 @@ export async function loadBatchSnapshot(
     throw new Error('Imported ticket provenance is duplicated');
   }
   const ticketRows = await loadTicketRows(client, tenantId, ticketIds, lockTickets);
-  const raw = await queryChildren(client, tenantId, ticketIds);
+  const raw = await importedChildren(client, tenantId, ticketIds);
   const children = groupChildren(raw.rows, raw.reports, raw.people);
   return {
     tickets: imported.map((row) => {

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EXCEPTIONS } from '../apps/server/src/modules/manifest.js';
+import { EXCEPTIONS, OWNERS } from '../apps/server/src/modules/manifest.js';
 import {
   LEGACY,
   boundaryErrors,
@@ -71,7 +71,7 @@ describe('boundaries check', () => {
 
   it('ignores comments, unowned tables and test files', () => {
     const root = plant({
-      [`${SRC}/a.ts`]: "// read from person\nconst fromPerson = 1;\nq('SELECT * FROM ticket');",
+      [`${SRC}/a.ts`]: "// read from person\nconst fromPerson = 1;\nq('SELECT * FROM widget');",
       [`${SRC}/a.test.ts`]: "q('SELECT * FROM person');",
     });
     expect(boundaryErrors(root, {})).toEqual([]);
@@ -114,6 +114,10 @@ describe('boundaries check', () => {
     'SELECT 1 FROM widget w, (SELECT 1 FROM person) x',
     'SELECT 1 FROM widget w, LATERAL (SELECT 1 FROM person WHERE true) x',
     'SELECT 1 FROM person p, f(g(1)) x',
+    'DELETE FROM widget USING person WHERE true',
+    'TRUNCATE person',
+    'TRUNCATE TABLE person',
+    'LOCK TABLE person IN SHARE MODE',
   ])('names a table in every FROM form: %s', (sql) => {
     const file = `${SRC}/modules/reports/x.ts`;
     expect(boundaryErrors(plant({ [file]: `q('${sql}');` }), {})).toEqual([
@@ -129,6 +133,14 @@ describe('boundaries check', () => {
       "import type { X } from '../plant/repo.js';",
     ])
       expect(importErrors(plant({ [file]: text }), [])).toEqual([error]);
+  });
+
+  it('fails a dynamic import of another module', () => {
+    const file = `${SRC}/modules/reports/a.ts`;
+    const root = plant({ [file]: "const x = await import('../plant/repo.js');" });
+    expect(importErrors(root, [])).toEqual([
+      `${file}: imports ${SRC}/modules/plant/repo.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
+    ]);
   });
 
   it('fails a kernel-internal import', () => {
@@ -185,6 +197,12 @@ describe('boundaries check', () => {
     expect(importErrors(inner, [])).toEqual([
       `${seed}: imports ${SRC}/modules/plant/repo/config.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
     ]);
+    const seedEntry = plant({ [seed]: "import { x } from '../modules/plant/seed.js';" });
+    expect(importErrors(seedEntry, [])).toEqual([]);
+    const fromModule = `${SRC}/modules/reports/a.ts`;
+    expect(importErrors(plant({ [fromModule]: "import '../plant/seed.js';" }), [])).toEqual([
+      `${fromModule}: imports ${SRC}/modules/plant/seed.ts; plant is reached only through ${SRC}/modules/plant/index.ts`,
+    ]);
     const module = `${SRC}/modules/plant/a.ts`;
     expect(importErrors(plant({ [module]: "import '../../seed/cosmos.js';" }), [])).toEqual([
       `${module}: a module may not import ${SRC}/seed/cosmos.ts`,
@@ -205,5 +223,19 @@ describe('boundaries check', () => {
 
   it("passes the server tree's imports", () => {
     expect(importErrors(process.cwd())).toEqual([]);
+  });
+
+  it('gives every current table exactly one owner', () => {
+    const tables = [
+      ...'audit_log breakdown_report breakdown_report_person command_idempotency crew_member file glossary_term import_batch import_row list_item login machine machine_group machine_move person platform_access push_subscription ref_counter segment session setting shift sla_policy sla_timer tenant ticket ticket_event work_segment ticket_tag'.split(
+        ' ',
+      ),
+    ];
+    expect(tables).toHaveLength(29);
+    for (const table of tables)
+      expect(
+        Object.keys(OWNERS).filter((m) => OWNERS[m]?.includes(table)),
+        table,
+      ).toHaveLength(1);
   });
 });
