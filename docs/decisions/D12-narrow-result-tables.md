@@ -4,7 +4,7 @@ Date: 13 November 2026 · Status: accepted (architect); detail in `docs/ARCHITEC
 
 ## Decision
 
-`engine_run` (profile, as-of, input fingerprint) and `kpi_snapshot` (run, metric key, scope, period, value). Screens read these only.
+`engine_run` (profile, as-of, input fingerprint) and `kpi_snapshot` (run, metric key, scope, period, value). KPI, trend and scorecard screens read these only. Registers and drill-down lists (breakdown rows, machines, PM tasks) read their own module's tables through its interface.
 
 ## Why
 

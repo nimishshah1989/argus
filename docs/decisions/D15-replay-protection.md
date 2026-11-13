@@ -4,7 +4,7 @@ Date: 13 November 2026 · Status: accepted (architect); detail in `docs/ARCHITEC
 
 ## Decision
 
-The kernel parses the `Idempotency-Key` header and owns no table. `command_idempotency` belongs to `tickets`; acknowledge and handback use it because they end in `tickets.applyCommand`. Any other replayable write stores a unique key on its own table (`notification.dedupe_key`, `pm_execution.idempotency_key`). `idempotency.purge` deletes keys older than the outbox window.
+The kernel parses the `Idempotency-Key` header and owns no table. `command_idempotency` belongs to `tickets`; acknowledge and handback use it because they end in `tickets.applyCommand`. Any other replayable write stores a unique key on its own table (`notification.dedupe_key`, `pm_execution.idempotency_key`, the provider message id on `wa_message`). `idempotency.purge` deletes keys older than the outbox window.
 
 ## Why
 

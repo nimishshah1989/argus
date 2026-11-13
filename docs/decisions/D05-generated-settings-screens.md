@@ -14,3 +14,7 @@ The BRIEF requires that a new screen is mostly configuration. Today four setting
 
 - AutoForm (named in SPEC §5a): a second form abstraction beside `FormSheet`.
 - Hand-written screens.
+- A plain `<table>` instead of TanStack Table: sorting, column visibility and virtualised rows (192 machines, 1,354 history rows) would be rewritten in every pattern.
+- React state per field instead of react-hook-form: no dirty tracking or schema-driven field errors, and a re-render per keystroke on a low-end phone.
+
+Both libraries are named in SPEC §5a and are verify in current docs.

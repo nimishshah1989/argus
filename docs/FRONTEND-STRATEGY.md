@@ -1,5 +1,7 @@
 # Frontend strategy — better than Bhavin, production-grade
 
+> **Superseded in part, 13 November 2026.** `docs/ARCHITECTURE.md` Part 5 and `docs/decisions/D04` and `D09` are the contract. Where this file differs, they win: (1) no Storybook or Ladle; the in-app `/gallery` with Playwright screenshot tests at 360 px is the component gallery and the visual regression (§5, §8, §9, §11); (2) type is the system font stack of `docs/DESIGN.md`, with Noto Sans Gujarati only as the Gujarati glyph fallback and in PDFs, not a bundled primary font (§5, §11); (3) there is no `docs/DESIGN-SYSTEM.md`; tokens and the status vocabulary are in D04 (§10); (4) the accent is deep teal `#0d9488`.
+
 The goal is not a prettier version of Bhavin’s page. It is a **role-first product**: the operator sees one big action, the technician sees the next job, the supervisor sees what is stuck, the head sees whether maintenance is working, and the plant head sees money and risk. Same data, different screens.
 
 ## 1. What Bhavin got right, and what we change
