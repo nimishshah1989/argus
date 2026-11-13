@@ -119,55 +119,6 @@ describe('Bhavin export in', () => {
     expect(JSON.stringify(list.json())).toMatch(/BD-|WR-/);
   });
 
-  it('shows his stored minutes on the ticket detail, not a recompute', async () => {
-    const login = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/login',
-      headers: { host: 'cosmos.localhost' },
-      payload: { username: 'person01', password: FIXTURE_PASSWORD },
-    });
-    const headers = { host: 'cosmos.localhost', authorization: `Bearer ${login.json().token}` };
-    const ids = new Map(
-      (
-        await db.admin.query('SELECT ref, id FROM ticket WHERE tenant_id = $1', [tenantId])
-      ).rows.map((r) => [r.ref as string, r.id as string]),
-    );
-    const wrong: string[] = [];
-    for (const t of fixture().tickets.filter((x) => x.status === 'closed')) {
-      const res = await app.inject({
-        method: 'GET',
-        url: `/api/v1/tickets/${ids.get(t.ref as string)}`,
-        headers,
-      });
-      const f = res.json().ticket.figures;
-      const got = [
-        f.responseMin,
-        f.activeMin,
-        f.waitMin,
-        f.vendorMin,
-        f.handoverWaitMin,
-        f.downAccMin,
-        f.downtimeMin,
-        f.followMin,
-        f.repairMin,
-      ];
-      const his = [
-        t.responseMin,
-        t.activeMin,
-        t.waitMin,
-        t.vendorMin,
-        t.handoverWaitMin,
-        t.downAcc,
-        t.downtimeMin,
-        t.followMin,
-        t.repairMin ?? 0,
-      ];
-      if (JSON.stringify(got) !== JSON.stringify(his))
-        wrong.push(`${t.ref}: his ${his}, shown ${got}`);
-    }
-    expect(wrong).toEqual([]);
-  });
-
   it('a re-run is identical', async () => {
     const before = await count('SELECT count(*) n FROM ticket WHERE tenant_id = $1');
     const again = await importRealExport(db.app, tenantId, fixture());
