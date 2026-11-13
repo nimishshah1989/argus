@@ -19,6 +19,7 @@ import { lockRefCounter } from './ticket-sql.js';
 import { requireAuth } from './auth.js';
 import { fingerprint, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
+import { audit } from './modules/ops/index.js';
 
 function canWrite(role: string): boolean {
   return role === 'admin' || role === 'head';
@@ -234,17 +235,14 @@ async function upsertSlaPolicies(
       ],
     );
   }
-  await client.query(
-    'INSERT INTO audit_log (tenant_id, login_id, action, entity, before, after) VALUES ($1, $2, $3, $4, $5, $6)',
-    [
-      tenantId,
-      loginId,
-      'sla_policy.update',
-      'sla_policy',
-      JSON.stringify(before),
-      JSON.stringify(policies),
-    ],
-  );
+  await audit.record(client, {
+    tenantId,
+    loginId,
+    action: 'sla_policy.update',
+    entity: 'sla_policy',
+    before,
+    after: policies,
+  });
 }
 
 async function putSlaPolicies(

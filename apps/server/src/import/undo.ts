@@ -5,6 +5,7 @@ import {
   makeCompletionFingerprint,
   type BatchSnapshot,
 } from './fingerprint.js';
+import { audit } from '../modules/ops/index.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import type { CompletionFingerprint } from './schema.js';
@@ -167,11 +168,15 @@ async function finishUndo(
     ticketIds: completion.tickets.map((ticket) => ticket.ticketId),
   };
   const after = { status: 'undone', deleted: completion.tickets.length };
-  await client.query(
-    `INSERT INTO audit_log (tenant_id, login_id, action, entity, entity_id, ip, before, after)
-     VALUES ($1, NULL, 'import.undo', 'import_batch', $2, NULL, $3, $4)`,
-    [batch.tenantId, batchId, JSON.stringify(before), JSON.stringify(after)],
-  );
+  await audit.record(client, {
+    tenantId: batch.tenantId,
+    loginId: null,
+    action: 'import.undo',
+    entity: 'import_batch',
+    entityId: batchId,
+    before,
+    after,
+  });
 }
 
 export async function undoImport(
