@@ -1,0 +1,16 @@
+[
+  {
+    "code": "1",
+    "name": "Shift 1",
+    "startsAt": "08:00",
+    "endsAt": "18:30",
+    "crossesMidnight": false
+  },
+  {
+    "code": "2",
+    "name": "Shift 2",
+    "startsAt": "18:29",
+    "endsAt": "05:00",
+    "crossesMidnight": true
+  }
+]

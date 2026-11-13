@@ -128,3 +128,51 @@ export async function tenantInfo(
 ): Promise<{ language: string; time_zone: string }> {
   return (await tx.query('SELECT * FROM tenant_info($1)', [tenantId])).rows[0];
 }
+
+export interface NewPerson {
+  name: string;
+  team: string;
+  kind: string;
+  title: string | null;
+  phone: string | null;
+  defaultShift: string | null;
+  login: { username: string; role: string } | null;
+}
+
+export async function deleteTenantBySlug(tx: Db, slug: string): Promise<void> {
+  await tx.query('DELETE FROM tenant WHERE slug = $1', [slug]);
+}
+
+export async function insertTenant(
+  tx: Db,
+  t: { slug: string; name: string; language: string; timeZone: string },
+): Promise<string> {
+  const row = (
+    await tx.query(
+      'INSERT INTO tenant (slug, name, language, time_zone) VALUES ($1, $2, $3, $4) RETURNING id',
+      [t.slug, t.name, t.language, t.timeZone],
+    )
+  ).rows[0] as { id: string };
+  return row.id;
+}
+
+export async function insertPeople(
+  tx: Db,
+  tenantId: string,
+  people: NewPerson[],
+  passwordHash: string,
+): Promise<void> {
+  for (const p of people) {
+    const row = (
+      await tx.query(
+        'INSERT INTO person (tenant_id, name, team, kind, title, phone, default_shift, active) VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING id',
+        [tenantId, p.name, p.team, p.kind, p.title, p.phone, p.defaultShift],
+      )
+    ).rows[0] as { id: string };
+    if (p.login)
+      await tx.query(
+        'INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared, must_change_password) VALUES ($1, $2, $3, $4, $5, false, true)',
+        [tenantId, row.id, p.login.username, passwordHash, p.login.role],
+      );
+  }
+}

@@ -22,6 +22,10 @@ const PASSWORD_OPTS = {
   parallelism: 1,
 } as const;
 
+export function hashPassword(password: string): Promise<string> {
+  return hash(password, PASSWORD_OPTS);
+}
+
 function userFrom(ctx: AuthContext) {
   return {
     id: ctx.loginId,
@@ -117,7 +121,7 @@ async function changePassword(pool: Pool, request: FastifyRequest, reply: Fastif
   if (!ctx) return;
   const ok = await withTenant(pool, ctx.tenantId, async (client) => {
     if (!(await verify(await passwordHashOf(client, ctx.loginId), parsed.data.old))) return false;
-    const newHash = await hash(parsed.data.password, PASSWORD_OPTS);
+    const newHash = await hashPassword(parsed.data.password);
     await setPasswordHash(client, ctx.loginId, newHash);
     await revokeOtherSessions(client, ctx.loginId, hashToken(ctx.token));
     return true;

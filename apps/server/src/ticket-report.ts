@@ -100,18 +100,22 @@ async function tenantDate(client: PoolClient, tenantId: string): Promise<string>
   return row.today as string;
 }
 
-async function currentShift(client: PoolClient, tenantId: string): Promise<string> {
+export async function shiftAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {
   const row = (
     await client.query(
-      `WITH local_time AS (SELECT (now() AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::time AS t)
+      `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE (SELECT time_zone FROM tenant_info($1)))::time AS t)
        SELECT code FROM shift, local_time
        WHERE (NOT crosses_midnight AND t >= starts_at AND t < ends_at)
           OR (crosses_midnight AND (t >= starts_at OR t < ends_at))
-       ORDER BY code LIMIT 1`,
-      [tenantId],
+       ORDER BY starts_at DESC LIMIT 1`,
+      [tenantId, at],
     )
   ).rows[0];
   return (row?.code as string) ?? '1';
+}
+
+async function currentShift(client: PoolClient, tenantId: string): Promise<string> {
+  return shiftAt(client, tenantId, new Date());
 }
 
 async function reportValues(client: PoolClient, input: ReportStoreInput): Promise<ReportValues> {

@@ -34,7 +34,7 @@
     "gallery:test": "playwright test -c playwright.gallery.config.ts",
     "gallery:update": "playwright test -c playwright.gallery.config.ts --update-snapshots=all --grep-invert @planted",
     "gallery:update:docker": "docker run --rm --ipc=host -v \"$PWD\":/src:ro -v \"$PWD/apps/web/e2e/gallery/__screenshots__\":/out mcr.microsoft.com/playwright:v1.65.0-noble bash /src/tools/gallery-baselines.sh",
-    "seed:cosmos": "tsx scripts/seed-cosmos.ts",
+    "seed:cosmos": "tsx apps/server/src/seed/cosmos.ts",
     "migrate": "tsx scripts/migrate.ts",
     "import:bhavin": "tsx tools/import-bhavin.ts",
     "import:undo": "tsx tools/import-bhavin.ts undo",

@@ -1,21 +1,3 @@
-export interface ExportMachine {
-  id: string;
-  category?: string;
-  make?: string;
-  model?: string;
-  serial?: string;
-  controller?: string;
-  ctrlModel?: string;
-  ctrlSerial?: string;
-  year?: number | string;
-  datePurchase?: string;
-  power?: number | string;
-  location?: string;
-  cell?: string;
-  assetCode?: string;
-  capacityKva?: number | string;
-}
-
 export interface MachineSeed {
   code: string;
   segment: string;
@@ -35,10 +17,35 @@ export interface MachineSeed {
   capacityKva: number | null;
 }
 
+export interface PeopleEntry {
+  username: string;
+  name: string;
+  role: string;
+  title?: string;
+  phone?: string;
+  shift?: string;
+}
+
+export interface SeedFiles {
+  machines: { sheetCounts: Record<string, number>; machines: MachineSeed[] };
+  shifts: SeedResult['shifts'];
+  people: { users: PeopleEntry[] };
+}
+
+export const ROLE_MAP = {
+  maint: { role: 'technician', team: 'maintenance', kind: 'staff' },
+  report: { role: 'operator', team: 'production', kind: 'production' },
+  admin: { role: 'admin', team: 'maintenance', kind: 'staff' },
+} as const;
+
 export interface PersonSeed {
   name: string;
   team: string;
   kind: string;
+  title: string | null;
+  phone: string | null;
+  defaultShift: string | null;
+  login: { username: string; role: string } | null;
 }
 
 export interface ListSeed {
@@ -61,60 +68,88 @@ export interface SeedResult {
     endsAt: string;
     crossesMidnight: boolean;
   }>;
+  teamShifts: Record<string, string>;
   glossaryTerms: Array<{ source: string; english: string; direction: string }>;
   counts: Record<string, number>;
   conflicts: string[];
 }
 
-function toInt(value: number | string | undefined): number | null {
-  const n = Number(value);
-  return Number.isFinite(n) && value !== '' ? n : null;
+function isText(value: unknown): boolean {
+  return typeof value === 'string' && value !== '';
 }
 
-function machineSeed(m: ExportMachine, segment: string): MachineSeed {
-  return {
-    code: m.id,
-    segment,
-    category: m.category ?? null,
-    make: m.make ?? null,
-    model: m.model ?? null,
-    serial: m.serial ?? null,
-    controller: m.controller ?? null,
-    controllerModel: m.ctrlModel ?? null,
-    controllerSerial: m.ctrlSerial ?? null,
-    year: toInt(m.year),
-    purchasedOn: m.datePurchase ? m.datePurchase : null,
-    powerKw: toInt(m.power),
-    location: m.location ?? null,
-    cell: m.cell ?? null,
-    assetCode: m.assetCode ?? null,
-    capacityKva: toInt(m.capacityKva),
-  };
+// Messages never carry a name, username or phone.
+export function buildPeople(
+  users: unknown,
+  exportTeam: Array<{ name: string; type: string; status: string }>,
+): { people: PersonSeed[]; teamShifts: Record<string, string> } {
+  if (!Array.isArray(users)) throw new Error('seed: people file has no users array');
+  const people: PersonSeed[] = [];
+  const teamShifts: Record<string, string> = {};
+  users.forEach((u: Partial<PeopleEntry>, i) => {
+    const bad = !isText(u?.username)
+      ? 'username'
+      : !isText(u.name)
+        ? 'name'
+        : typeof u.role !== 'string' || !Object.hasOwn(ROLE_MAP, u.role)
+          ? 'role'
+          : null;
+    if (bad) throw new Error(`seed: people entry ${i} is invalid (${bad})`);
+    const map = ROLE_MAP[u.role as keyof typeof ROLE_MAP];
+    if (u.shift) teamShifts[u.name as string] = u.shift;
+    people.push({
+      name: u.name as string,
+      team: map.team,
+      kind: map.kind,
+      title: u.title || null,
+      phone: u.phone ?? null,
+      defaultShift: u.shift ?? null,
+      login: { username: u.username as string, role: map.role },
+    });
+  });
+  for (const v of exportTeam.filter((t) => t.type === 'Vendor'))
+    people.push({
+      name: v.name,
+      team: 'vendor',
+      kind: 'vendor',
+      title: null,
+      phone: null,
+      defaultShift: null,
+      login: null,
+    });
+  return { people, teamShifts };
 }
 
-function buildMachines(exp: Record<string, unknown>): MachineSeed[] {
-  const arrays: Array<[string, ExportMachine[]]> = [
-    ['CNC', exp.machines as ExportMachine[]],
-    ['Conventional', exp.conv as ExportMachine[]],
-    ['Process', exp.proc as ExportMachine[]],
-    ['Utility', exp.util as ExportMachine[]],
-    ['DG', exp.dg as ExportMachine[]],
-  ];
-  const out: MachineSeed[] = [];
-  for (const [segment, items] of arrays) {
-    for (const item of items)
-      out.push(machineSeed(item, item.category === 'Robot' ? 'Robot' : segment));
+const SEGMENTS = ['CNC', 'Conventional', 'Process', 'Utility', 'DG', 'Robot'];
+
+export function machineConflicts(
+  exp: Record<string, unknown>,
+  machines: SeedFiles['machines'],
+): string[] {
+  const oldIds = ['machines', 'conv', 'proc', 'util', 'dg'].flatMap((key) =>
+    (exp[key] as Array<{ id: string }>).map((m) => m.id),
+  );
+  const newIds = machines.machines.map((m) => m.code);
+  const count = (segment: string) => machines.machines.filter((m) => m.segment === segment).length;
+  const lines: string[] = [];
+  const robots = count('Robot');
+  if (robots)
+    lines.push(
+      `CNC Machine Master has ${machines.sheetCounts['CNC Machine Master']} rows: ${count('CNC')} CNC + ${robots} Robot (own segment).`,
+    );
+  const added = newIds.filter((id) => !oldIds.includes(id));
+  if (added.length)
+    lines.push(`In the 11 Nov registers but not the 28 Oct export: ${added.join(', ')}.`);
+  const dropped = oldIds.filter((id) => !newIds.includes(id));
+  if (dropped.length)
+    lines.push(`In the 28 Oct export but not the 11 Nov registers: ${dropped.join(', ')}.`);
+  for (const segment of SEGMENTS) {
+    const blank = machines.machines
+      .filter((m) => m.segment === segment && !(m.make && m.model && m.serial))
+      .map((m) => m.code);
+    if (blank.length) lines.push(`Blank make, model or serial in ${segment}: ${blank.join(', ')}.`);
   }
-  out.push({ ...machineSeed({ id: 'VC-57' }, 'CNC'), category: 'Vertical Machining Center' });
-  return out;
-}
-
-function buildPeople(team: Array<{ name: string; type: string; status: string }>): PersonSeed[] {
-  return team.map((person) => ({
-    name: person.name,
-    team: person.type === 'Vendor' ? 'vendor' : 'maintenance',
-    kind: person.type === 'Vendor' ? 'vendor' : 'staff',
-  }));
+  return lines;
 }
 
 function codeList(live: string[], exportCodes: Array<{ code: string }>): ListSeed[] {
@@ -183,18 +218,6 @@ function buildLists(exp: Record<string, unknown>, live: Record<string, unknown>)
   return lists;
 }
 
-function buildShifts(client: Record<string, unknown>): SeedResult['shifts'] {
-  return (client.shiftTimes as Array<{ name: string; start: string; end: string }>).map(
-    (shift, index) => ({
-      code: shift.name,
-      name: `Shift ${shift.name}`,
-      startsAt: shift.start,
-      endsAt: shift.end,
-      crossesMidnight: index === 1,
-    }),
-  );
-}
-
 function buildGlossary(glossary: Record<string, unknown>): SeedResult['glossaryTerms'] {
   return [
     ...Object.entries(glossary.english_corrections as Record<string, string>).map(
@@ -218,21 +241,27 @@ export function buildSeed(
   exp: Record<string, unknown>,
   live: Record<string, unknown>,
   glossary: Record<string, unknown>,
+  files: SeedFiles,
 ): SeedResult {
-  const machines = buildMachines(exp);
-  const people = buildPeople(
-    (exp.settings as { team: Array<{ name: string; type: string; status: string }> }).team,
-  );
+  const machines = files.machines.machines;
+  const exportTeam = (
+    exp.settings as { team: Array<{ name: string; type: string; status: string }> }
+  ).team;
+  const { people, teamShifts } = buildPeople(files.people.users, exportTeam);
   const lists = buildLists(exp, live);
-  const shifts = buildShifts(live.client as Record<string, unknown>);
+  const shifts = files.shifts;
   const glossaryTerms = buildGlossary(glossary);
   const activeCodes = lists.filter((item) => item.list === 'maint_code' && item.active).length;
   const inactiveCodes = lists.filter((item) => item.list === 'maint_code' && !item.active).length;
+  const roleCount = (role: string) => people.filter((p) => p.login?.role === role).length;
+  const logins = people.filter((p) => p.login).length;
+  const vendors = people.filter((p) => !p.login).map((p) => p.name);
+  const segmentCounts = Object.fromEntries(
+    SEGMENTS.map((s) => [`segment_${s}`, machines.filter((m) => m.segment === s).length]),
+  );
   const conflicts = [
-    'VC-57 exists only in the live ids; segment inferred as CNC, category as Vertical Machining Center, nameplate fields left blank.',
-    'Robot is one machine inside the export CNC list; the live config counts it as its own segment.',
-    '191 machines in the 28 Oct export, 192 live ids on 9 Nov — the difference is VC-57.',
-    '14 people = 13 maintenance + 1 vendor (Imptex Team); the vendor is seeded as a vendor person, not staff.',
+    ...machineConflicts(exp, files.machines),
+    `${logins} logins (${roleCount('technician')} technician, ${roleCount('operator')} operator, ${roleCount('admin')} admin) + ${vendors.length} vendor person (${vendors.join(', ')}) without a login.`,
     '19 live maintenance codes; ELE, HYD, ROT are kept inactive. History also uses MEC, NI, INT, FS, PP, UTI — not seeded; resolve aliases (Q9).',
     'Two shift windows (08:00–18:30, 18:29–05:00) but the report form lists three shifts — pending Bhavin/Nimish (Q8).',
     'Glossary caveats are recorded in the source file and must be fixed at seed.',
@@ -242,10 +271,13 @@ export function buildSeed(
     people,
     lists,
     shifts,
+    teamShifts,
     glossaryTerms,
     counts: {
       machines: machines.length,
+      ...segmentCounts,
       people: people.length,
+      logins,
       codes_active: activeCodes,
       codes_inactive: inactiveCodes,
       shifts: shifts.length,
