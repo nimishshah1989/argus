@@ -60,3 +60,4 @@
 - 2026-11-13 10:20 UTC session c23c2255 on `claude/orchestrator-ledger`: 15356f6 docs(plan): ledger — 03 done, 05/06 dispatched, 04 held
 - 2026-11-13 10:50 UTC session c23c2255 on `claude/orchestrator-ledger`: d567b72 docs(plan): ledger — rulings on tags export and test deletions
 - 2026-11-13 10:59 UTC session c23c2255 on `claude/orchestrator-ledger`: 0157a60 docs(plan): ledger — 06 PR up, awaiting test deletions
+- 2026-11-13 11:05 UTC session c23c2255 on `claude/orchestrator-ledger`: 76dc317 docs(plan): ledger — 06 review PASS, 05 rulings
