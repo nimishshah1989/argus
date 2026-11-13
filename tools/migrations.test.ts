@@ -103,4 +103,60 @@ describe('migration guard scanner', () => {
     expect(rules('/* drop later */')).toEqual([]);
     expect(rules("SELECT 'a -- b';")).toEqual([]);
   });
+
+  it('does not let a dollar quote or an escaped quote hide a statement', () => {
+    const drop = [{ rule: 'DROP', line: 2 }];
+    expect(rules('SELECT $$--$$;\nDROP TABLE ticket;')).toEqual(drop);
+    expect(rules('SELECT $x$/*$x$;\nDROP TABLE ticket;')).toEqual(drop);
+    expect(rules("SELECT E'\\' -- ';\nDROP TABLE ticket;")).toEqual(drop);
+    expect(rules("SELECT E'it''s \\\\';\nDROP TABLE ticket;")).toEqual(drop);
+    expect(rules('SELECT $x$/*$x$;\nDROP TABLE ticket;\nDELETE FROM audit_log;')).toEqual([
+      { rule: 'DROP', line: 2 },
+      { rule: 'DELETE FROM', line: 3 },
+    ]);
+    // A body is scanned as it is: a comment in it can cost a false positive, never a hidden statement.
+    expect(rules('DO $$ BEGIN\n-- drop later\nEND $$;')).toEqual(drop);
+  });
+
+  it('reads quoted identifiers', () => {
+    expect(rules('UPDATE "my table" SET a = 1;')).toEqual([{ rule: 'UPDATE', line: 1 }]);
+    expect(rules('UPDATE public."my ""t""" AS x SET a = 1;')).toEqual([
+      { rule: 'UPDATE', line: 1 },
+    ]);
+    expect(rules('ALTER TABLE t ALTER COLUMN "my col" TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+    expect(rules('ALTER TABLE t ALTER COLUMN "my col" SET DATA TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+  });
+
+  it('counts dynamic SQL, and only dynamic SQL, as guarded', () => {
+    expect(rules("DO $$ BEGIN\n  EXECUTE 'DR' || 'OP TABLE ticket';\nEND $$;")).toEqual([
+      { rule: 'EXECUTE', line: 2 },
+    ]);
+    expect(rules("DO $$ BEGIN EXECUTE format('ALTER TABLE %I', 'x'); END $$;")).toEqual([
+      { rule: 'EXECUTE', line: 1 },
+    ]);
+    const benign = [
+      'CREATE TRIGGER x BEFORE INSERT ON t FOR EACH ROW EXECUTE FUNCTION f();',
+      'CREATE TRIGGER x BEFORE INSERT ON t FOR EACH ROW EXECUTE PROCEDURE f();',
+      'GRANT EXECUTE ON FUNCTION f() TO app_user;',
+      "SELECT has_function_privilege('app_api', 'f()', 'EXECUTE');",
+    ];
+    for (const sql of benign) expect(rules(sql), sql).toEqual([]);
+  });
+
+  it('flags the planted bypass files', () => {
+    const planted = [
+      'SELECT $$--$$; DROP TABLE ticket;',
+      'SELECT $x$/*$x$;\nDROP TABLE ticket;\nDELETE FROM audit_log;',
+      "SELECT E'\\' -- '; DROP TABLE ticket;",
+      'UPDATE "my table" SET a = 1;',
+      "DO $$ BEGIN EXECUTE 'DR' || 'OP TABLE ticket'; END $$;",
+    ];
+    for (const sql of planted)
+      expect(scanMigrations(plant({ '0008_planted.sql': sql })).length, sql).toBeGreaterThan(0);
+    expect(scanMigrations(plant({ '0008_planted.sql': APPROVED + planted[0] }))).toEqual([]);
+  });
 });
