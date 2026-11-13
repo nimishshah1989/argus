@@ -38,7 +38,7 @@ describe('figures', () => {
     expect(figures(base).responseMin).toBeNull();
   });
 
-  it('unions overlapping hands-on segments', () => {
+  it('counts the lead only as hands-on; a crew member keeps their own minutes', () => {
     const result = figures({
       ...base,
       segments: [
@@ -46,7 +46,7 @@ describe('figures', () => {
         seg('b', 'support', '2026-01-01T10:30:00Z', '2026-01-01T11:30:00Z'),
       ],
     });
-    expect(result.activeMin).toBe(90);
+    expect(result.activeMin).toBe(60);
     expect(result.perPerson).toEqual({ a: 60, b: 60 });
   });
 
@@ -78,9 +78,46 @@ describe('figures', () => {
       reportedAt: t('2026-01-01T09:00:00Z'),
       events: [event('running', '2026-01-01T09:30:00Z'), event('stopped', '2026-01-01T10:00:00Z')],
       now: t('2026-01-01T10:30:00Z'),
+      closedAt: t('2026-01-01T10:30:00Z'),
     });
-    // 09:00->09:30 (30) + 10:00->10:30 (30)
-    expect(result.downAccMin).toBe(60);
+    // 09:00->09:30 (30) is finished; 10:00->10:30 (30) ends at the close
+    expect(result.downAccMin).toBe(30);
+    expect(result.downtimeMin).toBe(60);
+  });
+
+  it('rounds to the nearest minute, as his worker does', () => {
+    const closedAt = t('2026-01-01T10:20:31Z');
+    expect(figures({ ...base, closedAt, now: closedAt }).downtimeMin).toBe(21);
+    const early = t('2026-01-01T10:20:29Z');
+    expect(figures({ ...base, closedAt: early, now: early }).downtimeMin).toBe(20);
+  });
+
+  it('measures repair on the wall clock from the first start to the close or to running again', () => {
+    const events = [event('start', '2026-01-01T10:10:00Z'), event('pause', '2026-01-01T10:20:00Z')];
+    const closedAt = t('2026-01-01T11:00:00Z');
+    expect(figures({ ...base, events, closedAt, now: closedAt }).repairMin).toBe(50);
+    const ran = [...events, event('running', '2026-01-01T10:40:00Z')];
+    expect(figures({ ...base, events: ran, closedAt, now: closedAt }).repairMin).toBe(30);
+    expect(figures({ ...base, closedAt, now: closedAt }).repairMin).toBe(0);
+  });
+
+  it('gives support no downtime and a general job its hands-on minutes', () => {
+    const closedAt = t('2026-01-01T11:00:00Z');
+    const segments = [seg('a', 'lead', '2026-01-01T10:00:00Z', '2026-01-01T10:45:00Z')];
+    const input = { ...base, segments, closedAt, now: closedAt };
+    expect(figures({ ...input, kind: 'support' }).downtimeMin).toBe(0);
+    expect(figures({ ...input, kind: 'general' }).downtimeMin).toBe(45);
+  });
+
+  it('counts only finished stretches until the ticket moves on', () => {
+    const result = figures({
+      ...base,
+      events: [event('pause', '2026-01-01T11:00:00Z'), event('transfer', '2026-01-01T11:10:00Z')],
+      segments: [seg('a', 'lead', '2026-01-01T10:00:00Z')],
+    });
+    expect(result.waitMin).toBe(0);
+    expect(result.handoverWaitMin).toBe(0);
+    expect(result.activeMin).toBe(0);
   });
 
   it('enforces a minimum of one minute of downtime at close', () => {
@@ -115,48 +152,43 @@ describe('figures', () => {
     expect(result.overridden).not.toContain('waitMin');
   });
 
-  it('stops the downtime clock at cancel', () => {
-    const result = figures({
-      ...base,
-      reportedAt: t('2026-01-01T09:00:00Z'),
-      events: [event('cancel', '2026-01-01T09:30:00Z')],
-      now: t('2026-01-01T14:00:00Z'),
-    });
-    // 09:00 -> 09:30, then the cancelled gap counts in nothing.
-    expect(result.downAccMin).toBe(30);
-  });
-
-  it('resumes the downtime clock at restore when it was down at cancel', () => {
+  it('lets the downtime clock run through a cancel and a restore, as his worker does', () => {
+    const closedAt = t('2026-01-01T14:00:00Z');
     const result = figures({
       ...base,
       reportedAt: t('2026-01-01T09:00:00Z'),
       events: [event('cancel', '2026-01-01T09:30:00Z'), event('restore', '2026-01-01T10:00:00Z')],
-      now: t('2026-01-01T11:00:00Z'),
+      now: closedAt,
+      closedAt,
     });
-    // 09:00 -> 09:30 (30) + 10:00 -> 11:00 (60); the cancelled gap counts in nothing.
-    expect(result.downAccMin).toBe(90);
+    // 09:00 -> 14:00: the cancelled half hour counts, his cancel touches no stretch
+    expect(result.downtimeMin).toBe(300);
   });
 
-  it('stops the handover wait at cancel', () => {
+  it('lets a handover wait run through a cancel', () => {
     const result = figures({
       ...base,
-      events: [event('transfer', '2026-01-01T11:00:00Z'), event('cancel', '2026-01-01T11:30:00Z')],
-      now: t('2026-01-01T14:00:00Z'),
+      events: [
+        event('transfer', '2026-01-01T11:00:00Z'),
+        event('cancel', '2026-01-01T11:30:00Z'),
+        event('restore', '2026-01-01T12:00:00Z'),
+        event('pickup', '2026-01-01T12:15:00Z'),
+      ],
     });
-    expect(result.handoverWaitMin).toBe(30);
+    expect(result.handoverWaitMin).toBe(75);
   });
 
-  it('reopens the wait clock at restore so waits sum across a cancel', () => {
+  it('lets a wait run through a cancel and a restore', () => {
     const result = figures({
       ...base,
       events: [
         event('pause', '2026-01-01T10:00:00Z'),
         event('cancel', '2026-01-01T10:10:00Z'),
         event('restore', '2026-01-01T10:10:00Z'),
+        event('close', '2026-01-01T10:40:00Z'),
       ],
       now: t('2026-01-01T10:40:00Z'),
     });
-    // 10:00 -> 10:10 (10) + 10:10 -> 10:40 (30).
     expect(result.waitMin).toBe(40);
   });
 });

@@ -13,6 +13,7 @@ const people = new Map<string, string>();
 /**
  * A closed breakdown reported 09:00, started 09:10 by one person, closed 10:00 with the machine still down:
  * response 10, hands-on 50, repair 50, downtime 60, no waiting. Worked out by hand, not by the code under test.
+ * His `down_acc` holds finished stopped stretches only, and the machine never ran again, so it is 0.
  */
 const HAND_COMPUTED = {
   response_min: 10,
@@ -20,7 +21,7 @@ const HAND_COMPUTED = {
   wait_min: 0,
   vendor_min: 0,
   handover_wait_min: 0,
-  down_acc_min: 60,
+  down_acc_min: 0,
   downtime_min: 60,
   follow_min: null,
   repair_min: 50,

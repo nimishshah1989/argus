@@ -86,8 +86,9 @@ function pausedTicket(isVendor = true): BhavinTicket {
     pausedByPerson: 'SYNTH-LEAD',
     assignedToPerson: 'Bina',
   });
-  Object.assign(ticket.storedFigures, { activeMin: 45, repairMin: 45, waitMin: 10, vendorMin: 10 });
-  ticket.reports[0]!.repairMin = 45;
+  // repair is his wall clock from the start to the close: the 10-minute pause is inside it
+  Object.assign(ticket.storedFigures, { activeMin: 45, repairMin: 55, waitMin: 10, vendorMin: 10 });
+  ticket.reports[0]!.repairMin = 55;
   return ticket;
 }
 
@@ -215,7 +216,7 @@ describe('T26 exact full reconciliation', () => {
       waitMin: 0,
       vendorMin: 0,
       handoverWaitMin: 0,
-      downAccMin: 60,
+      downAccMin: 0, // finished stopped stretches only: the machine never ran again
       downtimeMin: 60,
       followMin: null,
       repairMin: 55,
@@ -433,7 +434,7 @@ describe('T32 past breakdown mapping and constraints', () => {
       waitMin: 0,
       vendorMin: 0,
       handoverWaitMin: 0,
-      downAccMin: 60,
+      downAccMin: 0, // finished stopped stretches only: the machine never ran again
       downtimeMin: 60,
       followMin: null,
       repairMin: 55,
@@ -476,7 +477,7 @@ describe('T34 report-local fields and code references', () => {
     Object.assign(ticket.storedFigures, {
       activeMin: 955,
       repairMin: 955,
-      downAccMin: 960,
+      downAccMin: 0,
       downtimeMin: 960,
     });
     Object.assign(ticket.reports[0]!, { repairMin: 955, downtimeMin: 960 });

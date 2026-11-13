@@ -1,0 +1,1 @@
+- A ticket raised on Uptimo now gets the same repair, waiting, vendor and downtime minutes as one raised on Bhavin's app: repair is the wall clock from start to close, downtime for a general job is its hands-on time and none for support, minutes are rounded to the nearest minute, and only finished stretches count until the job moves on.

@@ -332,7 +332,8 @@ describe('ticket commands', () => {
     expect(close.json().ticket.status).toBe('closed');
     expect(close.json().ticket.closeKind).toBe('report');
     expect(close.json().ticket.closedAt).not.toBeNull();
-    expect(close.json().ticket.figures.downtimeMin).toBeGreaterThanOrEqual(1);
+    // his worker has no one-minute floor: two of his stopped tickets (BD-0163, BD-0166) hold 0
+    expect(close.json().ticket.figures.downtimeMin).toBeGreaterThanOrEqual(0);
     expectFigures(close.json().ticket);
   });
 

@@ -43,7 +43,12 @@ function generalTicket(overrides: Record<string, unknown> = {}): RawTicket {
       event.type === 'close' ? { ...event, payload: { kind: 'done' } } : event,
     ),
     state: { ...base.state, closeKind: 'done' },
-    storedFigures: { ...base.storedFigures, downAccMin: 0, downtimeMin: null },
+    // his rule: a general job's downtime is its hands-on minutes
+    storedFigures: {
+      ...base.storedFigures,
+      downAccMin: 0,
+      downtimeMin: base.storedFigures.activeMin,
+    },
   } as RawTicket;
 }
 
