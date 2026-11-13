@@ -56,8 +56,9 @@ an export and a backup on record, and a second open breakdown on one machine is 
    recorded by a second run with `--review-done`, which writes one `audit_log` row, action
    `person.erase.review`, `after = {request_ref, operator}`, and then prints `erase: complete`. No new table.
 8. **Storage objects.** There is no S3 adapter yet (`files/store.ts` is local disk). `erase-person.ts` requires
-   `--files-dir <dir>` and removes each returned `s3_keys` entry under it (`rm`, `force: true`), refusing a key
-   that is absolute or contains `..`. S3 deletion joins when the S3 adapter lands (out of scope).
+   `--files-dir <dir>` and removes each returned `s3_keys` entry under it (`rm`, `force: true`), checking every key
+   first: a key that is absolute or contains `..` prints `erase: unsafe storage key <key>`, exits 1, and no file
+   is deleted. S3 deletion joins when the S3 adapter lands (out of scope).
 9. **Tag export format.** CSV with a header, every column of `ticket_tag` as PostgreSQL's own text output
    (`rowMode: 'array'`, a type parser that returns the raw string), `NULL` as an empty unquoted field, any value
    containing `,` `"` CR or LF quoted with `""` doubling, so the down file's `\copy … WITH (FORMAT csv, HEADER)`
@@ -90,7 +91,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 | `packages/db/test/migrated.ts`               | `startMigratedDb` (§4).                                                                                                                                                   |
 | `packages/db/test/history.test.ts`           | Tests 5–9, 13, 26–28.                                                                                                                                                     |
 | `packages/db/test/definer-functions.test.ts` | Tests 16–25.                                                                                                                                                              |
-| `packages/db/test/cutover-scripts.test.ts`   | Tests 15, 39–43.                                                                                                                                                          |
+| `packages/db/test/cutover-scripts.test.ts`   | Tests 15, 39–43, 56 (order fixed, §6).                                                                                                                                    |
 | `apps/server/test/history-indexes.test.ts`   | Tests 10–12.                                                                                                                                                              |
 | `changes/85-history-cannot-be-lost.md`       | Fragment (§9).                                                                                                                                                            |
 
@@ -118,7 +119,7 @@ an export and a backup on record, and a second open breakdown on one machine is 
 | `apps/server/test/import.test.ts` (line 122), `apps/server/test/import-integration.test.ts` (lines 109, 367) | Same call change; test 54 appended to `import-integration.test.ts`.                                                                                                                                                                                                                                                                                                                                                   |
 | `apps/server/test/import-cli.test.ts`                                                                        | `runPnpm` also deletes `ROUTER_DATABASE_URL` unless overridden; `runUndo` passes `--operator agent-test` and `ROUTER_DATABASE_URL: options.routerUrl ?? db.routerUrl` (no `DATABASE_URL`); `CommandOptions` gains `routerUrl?`; parse tests add `--operator`; tests 34–38.                                                                                                                                            |
 | `tools/migrations.test.ts`                                                                                   | Tests 49–52 appended.                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `tools/boundaries.test.ts`                                                                                   | Table list without `ticket_tag`, `toHaveLength(28)` (test 53).                                                                                                                                                                                                                                                                                                                                                        |
+| `tools/boundaries.test.ts`                                                                                   | Table list without `ticket_tag`, `toHaveLength(28)` (test 53); test 55 added.                                                                                                                                                                                                                                                                                                                                         |
 
 ### Deliberately not touched
 
@@ -208,12 +209,12 @@ export const HAND_REVIEW: readonly string[]; // the seven places of DATA-MAP §5
 
 **Command lines and output** (exit codes: 0 done, 1 error, 2 usage, 3 review pending):
 
-| Command                                                                                                          | Prints                                                                                                                                                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tsx scripts/preflight-cutover.ts`                                                                               | per tenant: `preflight: <slug>: machine <code>: open breakdowns <ref>, <ref>`, `preflight: <slug>: <n> tag rows to export`, `preflight: <slug>: <n> support grants end at cutover`; last line `preflight: <d> machines with duplicates, <t> tag rows, <g> grants`. Exit 1 when d > 0. Schema absent: `preflight: schema not installed` exit 0 |
-| `tsx scripts/export-tags.ts --out <dir>`                                                                         | `export-tags: <N> rows written to <path>` and `export-tags: migrate with PGOPTIONS='-c uptimo.tags_exported=<N>'`; 0 rows or no table: `export-tags: nothing to export`, no file, exit 0                                                                                                                                                      |
-| `tsx scripts/erase-person.ts --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>` | the function's counts as one JSON line (`s3_keys` removed from it), then `erase: complete` (exit 0) or the `HAND_REVIEW` lines and `erase: review pending: record it with --review-done` (exit 3). Refuses (exit 1) a person not in that tenant, checked under `app.tenant_id` before the call                                                |
-| `tsx scripts/erase-person.ts --tenant <slug> --review-done --request <ref> --operator <who>`                     | `erase: complete` (exit 0) after writing the review row; exit 1 `no erasure with that request reference`; an already recorded or `text_searched: true` erasure prints `erase: complete` without a new row                                                                                                                                     |
+| Command                                                                                                          | Prints                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsx scripts/preflight-cutover.ts`                                                                               | per tenant: `preflight: <slug>: machine <code>: open breakdowns <ref>, <ref>`, `preflight: <slug>: <n> tag rows to export`, `preflight: <slug>: <n> support grants end at cutover`; last line `preflight: <d> machines with duplicates, <t> tag rows, <g> grants`. Exit 1 when d > 0. Schema absent: `preflight: schema not installed` exit 0                                                                                                                 |
+| `tsx scripts/export-tags.ts --out <dir>`                                                                         | `export-tags: <N> rows written to <path>` and `export-tags: migrate with PGOPTIONS='-c uptimo.tags_exported=<N>'`; 0 rows or no table: `export-tags: nothing to export`, no file, exit 0                                                                                                                                                                                                                                                                      |
+| `tsx scripts/erase-person.ts --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>` | the function's counts as one JSON line (`s3_keys` removed from it), then `erase: complete` (exit 0) or the `HAND_REVIEW` lines and `erase: review pending: record it with --review-done` (exit 3). Refuses (exit 1) a person not in that tenant, checked under `app.tenant_id` before the call. Before deleting any file it checks every key: one that is absolute or contains `..` prints `erase: unsafe storage key <key>`, exits 1, and no file is deleted |
+| `tsx scripts/erase-person.ts --tenant <slug> --review-done --request <ref> --operator <who>`                     | `erase: complete` (exit 0) after writing the review row; exit 1 `no erasure with that request reference`; an already recorded or `text_searched: true` erasure prints `erase: complete` without a new row                                                                                                                                                                                                                                                     |
 
 Database functions: signatures exactly as notes §7; no new endpoint, event or component.
 
@@ -221,23 +222,24 @@ Database functions: signatures exactly as notes §7; no new endpoint, event or c
 
 No schema change in this slice. Fields this slice's code reads or writes:
 
-| Field                                                                                                                             | Type                                                                                           | Where                     | This slice                                                                         |
-| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------- |
-| `import_batch.finished_at`                                                                                                        | timestamptz                                                                                    | 0001                      | **written** `clock_timestamp()` by `finishBatch`/`failBatch`                       |
-| `import_batch.status`, `.stats`, `.source`                                                                                        | text, jsonb, text                                                                              | 0001                      | read under `app_user` by `lockBatchRow` (unchanged); written only by `import_undo` |
-| everything `import_undo`, `erase_person`, `offboard_tenant`, `audit_purge` touch                                                  | —                                                                                              | 0009                      | as notes §7 tables; code only calls them                                           |
-| `audit_log` row `person.erase.review`                                                                                             | `tenant_id`, `action`, `entity = 'person'`, `entity_id`, `after jsonb {request_ref, operator}` | 0001 columns              | **written** by `erase-person.ts --review-done`; a new action value, not a column   |
-| `audit_log.after->>'request_ref'`, `->>'text_searched'` (action `person.erase`)                                                   | jsonb                                                                                          | written by `erase_person` | read by `erase-person.ts --review-done`                                            |
-| `ticket_tag.*` (id, tenant_id, ticket_id, item_id, applied_at, applied_by_login_id, applied_by_person_id, created_at, updated_at) | —                                                                                              | 0005                      | read by `export-tags.ts`, counted by `preflight-cutover.ts`, before 0009 only      |
-| `ticket.tenant_id, machine_id, kind, status, ref`; `machine.code`; `tenant.id, slug`                                              | uuid, uuid, text, text, text; text; uuid, text                                                 | 0001                      | read by `preflight-cutover.ts`                                                     |
-| `platform_access.id, created_at, expires_at`                                                                                      | uuid, timestamptz, timestamptz                                                                 | 0001                      | counted by `preflight-cutover.ts` (same predicate as 0009 part 5)                  |
-| `platform_access.approved_by_login_id`                                                                                            | uuid                                                                                           | 0009                      | written by `seed.sql`                                                              |
-| `login.role`                                                                                                                      | text                                                                                           | 0001                      | written `admin` by `seed.sql`                                                      |
+| Field                                                                                                                             | Type                                                                                                                                                                       | Where                     | This slice                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------- |
+| `import_batch.finished_at`                                                                                                        | timestamptz                                                                                                                                                                | 0001                      | **written** `clock_timestamp()` by `finishBatch`/`failBatch`                       |
+| `import_batch.status`, `.stats`, `.source`                                                                                        | text, jsonb, text                                                                                                                                                          | 0001                      | read under `app_user` by `lockBatchRow` (unchanged); written only by `import_undo` |
+| everything `import_undo`, `erase_person`, `offboard_tenant`, `audit_purge` touch                                                  | —                                                                                                                                                                          | 0009                      | as notes §7 tables; code only calls them                                           |
+| `audit_log` row `person.erase.review`                                                                                             | `tenant_id`, `action`, `entity = 'person'`, `entity_id` (copied from the matched `person.erase` row's `entity_id`), `login_id` NULL, `after jsonb {request_ref, operator}` | 0001 columns              | **written** by `erase-person.ts --review-done`; a new action value, not a column   |
+| `audit_log.after->>'request_ref'`, `->>'text_searched'` (action `person.erase`)                                                   | jsonb                                                                                                                                                                      | written by `erase_person` | read by `erase-person.ts --review-done`                                            |
+| `ticket_tag.*` (id, tenant_id, ticket_id, item_id, applied_at, applied_by_login_id, applied_by_person_id, created_at, updated_at) | —                                                                                                                                                                          | 0005                      | read by `export-tags.ts`, counted by `preflight-cutover.ts`, before 0009 only      |
+| `ticket.tenant_id, machine_id, kind, status, ref`; `machine.code`; `tenant.id, slug`                                              | uuid, uuid, text, text, text; text; uuid, text                                                                                                                             | 0001                      | read by `preflight-cutover.ts`                                                     |
+| `platform_access.id, created_at, expires_at`                                                                                      | uuid, timestamptz, timestamptz                                                                                                                                             | 0001                      | counted by `preflight-cutover.ts` (same predicate as 0009 part 5)                  |
+| `platform_access.approved_by_login_id`                                                                                            | uuid                                                                                                                                                                       | 0009                      | written by `seed.sql`                                                              |
+| `login.role`                                                                                                                      | text                                                                                                                                                                       | 0001                      | written `admin` by `seed.sql`                                                      |
 
 ## 6. Test cases
 
 Shorthand: "as `app_api`" = in a transaction `SET LOCAL ROLE app_api` + `app.tenant_id`, rolled back.
-**Red first:** tests 29, 30, 34–37, 44, 47, 49–51, 54 fail on the branch head (code not written). Tests 1–28, 39 and 45
+**Red first:** tests 29–38, 40–44, 47, 49–52, 54, 55, 56 fail on the branch head (code not written). Tests 46 and 53
+are regression guards: they pass once the rest is built and keep the down file and the owner list honest. Tests 1–28, 39 and 45
 exercise the committed migration: their red run is on the parent commit `2fe99fa` (no 0009); the coder runs them
 there once in a `git worktree` and pastes the failing summary into the PR. Fake names only: the leaver is
 `Testa Leaver` (short `Testa`, phone `+910000000099`, username `testa.l`), operator `agent-test`.
@@ -299,8 +301,10 @@ inside `withTenant`, and searches the plan JSON for `"Index Name"`.
 15. **`preflight lists duplicates and exits non-zero`** · `cutover-scripts.test.ts` — Given the scripts database
     at 0007 (§ below) with the same two tickets. When `preflight-cutover.ts` runs. Then exit 1 and stdout has
     `machine <code>: open breakdowns BD-0001, BD-0002`. **And** after cancelling one: exit 0, last line
-    `0 machines with duplicates, 3 tag rows, 1 grants`. **And** on an empty database: exit 0,
-    `preflight: schema not installed`.
+    `0 machines with duplicates, 3 tag rows, 1 grants`. **And** given an empty database, made with
+    `CREATE DATABASE empty_preflight` on the client `startMigratedDb` returned, its URL built from the returned
+    `url` with `pathname = '/empty_preflight'` (the `withRunnerDatabases` pattern), no migration applied: when
+    the script runs on that URL, then exit 0 and `preflight: schema not installed`.
 
 ### Goal 3 — the definer functions and support access
 
@@ -379,7 +383,9 @@ tenant, batchId, 'agent-test')` follows that import. Then it resolves `{ deleted
 
 `apps/server/test/import-cli.test.ts`
 
-34. **`router role guard`** — unit, mocked pool like `rolePool`: resolves for `{name:'migrator', router:true,
+34. **`router role guard`** — unit, with a new helper beside `rolePool`:
+    `routerRolePool(rows: RouterRoleRow[], error?: Error)`, `interface RouterRoleRow { name: string; router:
+boolean; app_user: boolean }`, returning `{ pool, query, release }` exactly as `rolePool` does. It resolves for `{name:'migrator', router:true,
 app_user:true}`; rejects `/app_router/` for no row, `app_api`, either membership false, two rows, a query
     error, a connect error; releases the client every time it got one.
 35. **`undo stops before database work without ROUTER_DATABASE_URL`** (T16 describe) — When `import:undo <id>
@@ -387,8 +393,11 @@ app_user:true}`; rejects `/app_router/` for no row, `app_api`, either membership
     `/ROUTER_DATABASE_URL is required/`.
 36. **Usage** — `['import:undo', BATCH_ID, '--tenant', 'cosmos']` (no operator) joins the T16 exit-2 list, and
     `parseCliArgs` refuses `--operator` on import.
-37. **`T17 …` undo half** (§11) — When undo runs with `ROUTER_DATABASE_URL` set to the `app_api` URL. Then exit 1,
-    stderr `/app_router/`, no batch written. The import half is unchanged.
+37. **`T17 …` undo half** (§11) — When undo runs with `ROUTER_DATABASE_URL` set to the `app_api` URL, and again
+    set to the existing `synthetic_bypass` URL (BYPASSRLS, not a member of `app_router`). Then each exits 1,
+    stderr `/app_router/`, no batch written and no undo done. An owner or superuser router URL is **accepted by
+    design** (decision 2: the router connection is the migration credential; locally that is the superuser), so
+    T17's owner-URL undo case is not kept. The import half is unchanged.
 38. **`T20 …`** — the audit `after` also carries `operator: 'agent-test'`.
 
 `apps/server/test/import-integration.test.ts`
@@ -405,6 +414,10 @@ Given `startMigratedDb({ through: '0007_sla_policy_timer.sql', seed: false })` p
 `beta`, three `ticket_tag` rows (2 + 1), one live `platform_access` grant. Scripts run as `pnpm tsx scripts/…`
 subprocesses with `MIGRATION_DATABASE_URL`.
 
+**Order in the file is required** (vitest runs one file's tests in order; they share the database): tests 15 and
+39 run **at 0007**; test 39 ends by applying 0009; tests 40, 41, 42, 43, 56 then run **at 0009**. Written in that
+order: 15, 39, 40, 41, 42, 43, 56.
+
 39. **`export-tags writes every row and its count opens the guard`** — When run with `--out <mkdtemp>`. Then
     exit 0; stdout says 3 rows; the file has the header and 3 lines holding each tag id; **and** 0009 applied raw
     on a client with `SET uptimo.tags_exported = '3'` succeeds.
@@ -417,11 +430,17 @@ subprocesses with `MIGRATION_DATABASE_URL`.
     with `erase: complete` and one `person.erase.review` row; a second `--review-done` adds no row.
 43. **`erase-person refuses bad input`** — Then a missing `--operator` exits 2 with usage, and a person of `beta`
     given `--tenant alpha` exits 1 and the person is unchanged.
+44. **`erase-person refuses an unsafe storage key and deletes nothing`** (at 0009) — Given a leaver of `alpha`
+    with two reports whose PDF `file` rows have `s3_key = '../outside.pdf'` and a safe key, a file `outside.pdf`
+    in the parent of the `--files-dir` and the safe key's file inside it. When `erase-person.ts` runs. Then exit
+    1, stderr `erase: unsafe storage key ../outside.pdf`, and both files still exist (all keys are checked before
+    any is deleted). The same rule refuses an absolute key.
 
 ### The migration runner · `packages/db/test/migration-runner.test.ts`
 
 44. **`runs every migration as a non-superuser database owner`** — Given its own container, a role
-    `uptimo_master LOGIN CREATEROLE CREATEDB` owning a new database. When `runMigration` runs on its URL. Then it
+    `uptimo_master LOGIN CREATEROLE CREATEDB PASSWORD UPTIMO_MASTER_PASSWORD` (a constant in the test file,
+    `const UPTIMO_MASTER_PASSWORD = 'master-test-password'`, fake) owning a new database. When `runMigration` runs on its URL. Then it
     succeeds; the ledger equals `FILES`; `app_router` has no BYPASSRLS and no CREATE on `public`;
     `uptimo_master` is a member of `app_router`; `app_api` is clean as in the existing test; and
     `SELECT audit_purge(now() - interval '4 years', 'agent-test')` as `uptimo_master` returns 0.
@@ -446,7 +465,11 @@ subprocesses with `MIGRATION_DATABASE_URL`.
 52. **`leaves comments and strings that only mention a keyword alone`** — `/* drop later */` and
     `SELECT 'a -- b';` → `[]`. Test 17 of slice 06 (real directory passes, exceptions exact) must stay green.
 53. **`gives every current table exactly one owner`** · `tools/boundaries.test.ts` — the list without
-    `ticket_tag`, length 28.
+    `ticket_tag`, length 28 (regression guard).
+54. **`owns no dropped table`** · `tools/boundaries.test.ts` (new, red until `manifest.ts` changes) — Given
+    `OWNERS`. Then `Object.values(OWNERS).flat()` does not contain `ticket_tag`, and contains `import_undo`,
+    `erase_person`, `erase_json_values`, `offboard_tenant`, `platform_access_guard` and `audit_purge` exactly once
+    each.
 
 ### Gates
 
@@ -457,7 +480,7 @@ subprocesses with `MIGRATION_DATABASE_URL`.
 ## 7. How to run, order of work, sizes
 
 **Docker.** Everything that touches a database uses Testcontainers `postgres:16-alpine` (Docker): tests 1–48.
-Tests 47 and 49–53 need no database and run in the stop hook's fast set (`tools`). No test uses a plain local
+Tests 47, 49–53 and 55 need no database and run in the stop hook's fast set (`tools`). No test uses a plain local
 Postgres. Without Docker the coder cannot see the database tiers go green; they run in CI on every PR, and the PR
 must not be marked ready until that CI job is green.
 
@@ -470,9 +493,9 @@ must not be marked ready until that CI job is green.
 5. Importer clock (`repo.ts`, `batch.ts`, `bhavin.ts`) + harness router + test 29.
 6. Undo through the router (`undo.ts`, `repo.ts`, `security.ts`, `cli.ts`) + tests 30–38, 54 and the call changes in
    `import.test.ts`, `import-integration.test.ts`.
-7. Dead code (decision 12), `manifest.ts`, test 53; `pnpm boundaries`.
+7. Dead code (decision 12), `manifest.ts`, tests 53, 55; `pnpm boundaries`.
 8. `history-indexes.test.ts` (10–12).
-9. `operator-db.ts`, `preflight-cutover.ts`, `export-tags.ts`, `erase-person.ts` + tests 15, 39–43.
+9. `operator-db.ts`, `preflight-cutover.ts`, `export-tags.ts`, `erase-person.ts` + tests 15, 39–43, 56.
 10. Changelog fragment; full `pnpm verify`; the red run on `2fe99fa` for §6's migration tests.
 
 **Sizes** (budget 400 per source file, tests and migrations excluded): `scripts/migrate.ts` 178 → about 235;
@@ -530,9 +553,28 @@ and ask the orchestrator for that edit**, do not work around it:
 4. `import-cli.test.ts` T17's undo assertions → test 37 (undo no longer reads `DATABASE_URL`).
 5. `tools/boundaries.test.ts` 29 → 28 tables (test 53).
 
-Items 2–5 were not in the orchestrator's list; each is forced by the dropped table or the new undo path.
+Items 2–5 were not in the orchestrator's first list; each is forced by the dropped table or the new undo path,
+and the orchestrator has since confirmed all five. Per replaced test, the new one asserts the new rule at least as
+strictly as the old one asserted the old rule:
+
+1. Old: one delete as `app_user`, two column values checked. New: two refusals per table (privilege and
+   RESTRICT) and the row still present, for both login and person.
+2. Old: one policy per table, one attribute pair. New: the exact policy names per table and their role, and both
+   attributes; any extra, missing or widened policy fails.
+3. Old: the tag rows go with the ticket and the tenant stays. New: the timer goes with the ticket, the import row
+   stays with its link emptied, and the tenant stays.
+4. Old: an owner URL and a BYPASSRLS URL are refused for undo. New: the `app_api` URL and the BYPASSRLS URL are
+   refused by a membership check that refuses every non-member login; the owner URL is the intended credential
+   (test 37).
+5. Old: 29 tables, one owner each. New: 28 tables, one owner each, plus test 55 (no dropped table owned, each
+   function owned once).
 
 ## 12. Questions for the orchestrator (none for Nimish)
+
+**Plan review:** `plan-reviewer` FAIL with 8 text gaps (unsafe storage key, empty-database Given, scripts-test
+order, review-row `entity_id`/`login_id`, test-44 password constant, red-first accounting and the `OWNERS`
+assertion, test 37's accepted owner URL and kept BYPASSRLS refusal, test 34's helper type). All fixed in this text;
+no design change; no second round, by orchestrator ruling. That ruling also answers questions 1 and 4 below.
 
 1. Confirm §11 items 2–5 as permitted replacements.
 2. The raise race: map a `ticket_open_breakdown_unique` violation to today's "already open" reply in this slice,
@@ -567,4 +609,4 @@ deploy.yml`, `gh run watch`. (4) open `site_url/api/v1/health`, expect `{"status
 - **Not yet proven on real RDS** (notes §8): whether RDS's master behaves like the stand-in owner used in CI (test
   44), pg-boss's install as that user, and `pgcrypto`. Test 44 covers the stand-in; staging is the first real run.
 - **Schema review:** PASS-with-conditions after 3 rounds; conditions were documentation and are applied.
-- **Tests that prove it:** §6 numbers 1–54; how to try it: nothing to click; the health check above.
+- **Tests that prove it:** §6 numbers 1–56; how to try it: nothing to click; the health check above.
