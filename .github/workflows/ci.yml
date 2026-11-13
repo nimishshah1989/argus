@@ -15,8 +15,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  static:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,28 +30,76 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Install Chromium (PDF renderer)
-        run: pnpm exec playwright install --with-deps chromium
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm test:e2e
       - run: pnpm build
       - run: pnpm parity
+      - run: pnpm docs:check
+      - run: pnpm pii:scan
+      - run: pnpm licences
+      - run: pnpm migrations:check
+      - run: pnpm audit:lean
       - run: pnpm parity:update
         if: github.event_name == 'pull_request'
         env:
           PARITY_ALLOW_SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'no-parity') && '1' || '' }}
-      - run: pnpm licences
-      - run: pnpm migrations:check
+      - run: pnpm changelog:check
+        if: github.event_name == 'pull_request'
       - run: pnpm migrations:immutable
         if: github.event_name == 'pull_request'
-      - run: pnpm audit:lean
       - run: pnpm pr:size
         if: github.event_name == 'pull_request'
         env:
           LEAN_ALLOW_LARGE: ${{ contains(github.event.pull_request.labels.*.name, 'size:large') && '1' || '' }}
+
+  api:
+    name: api (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
+
+  browser:
+    name: browser (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
 
   secrets:
     runs-on: ubuntu-latest

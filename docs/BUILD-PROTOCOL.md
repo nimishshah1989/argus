@@ -269,33 +269,23 @@ The repo is the source of truth: issues for the backlog, one PR per slice, Actio
 
 If an alarm fires, the fix is a ticket, not a conversation.
 
-### DeepSeek Harness specifics
-
-- The repo’s `.claude` hooks and agents are Claude Code-specific: in DSH they do not fire, and `fable`/`opus`/`sonnet` do not exist. I follow their intent with DSH tools: `bash`, `read`/`write`/`edit`, `subagent` for fresh-context planning/review, `workflow` for large audits, `todo_write` for the session, and the `handoff` skill at the context limit.
-- DSH has workspace-write or danger-full-access file policy; I still do not touch production, and I do not create accounts or change GitHub visibility without your go-ahead.
-- The durable memory is the same repo files. DSH can compact or end a session; the files survive.
-- Model routing is recorded in `docs/orchestration.yaml` and `docs/ORCHESTRATION.md` §10: DeepSeek Flash plans and reviews; the hosted free coder (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`) writes product code. The maker and checker are different model families, but both are small enough that fixed checklists, tests and human R3 sign-off remain the real gate.
-- The coder route and its credential are machine-local and session-scoped: run the 1-word probe before the first packet, and start a new session after the profile changes. Do not silently fall back to DeepSeek for code.
-
 ---
 
 ## 10. Skills: what I use, and what they actually do
 
-The repo’s suite is mostly **Matt Pocock’s skills** (`grill-with-docs`, `grilling`, `domain-modeling`, `to-spec`, `to-tickets`, `tdd`, `diagnosing-bugs`), **Superpowers’** `subagent-driven-development`, plus `impeccable` (design) and `office-hours` (product). DSH also has its own native skills with overlapping intent. I use the native one when it matches, and read the repo’s pinned `SKILL.md` when it does not.
+The repo’s suite is mostly **Matt Pocock’s skills** (`grill-with-docs`, `grilling`, `domain-modeling`, `to-spec`, `to-tickets`, `tdd`, `diagnosing-bugs`), **Superpowers’** `subagent-driven-development`, plus `impeccable` (design) and `office-hours` (product).
 
-| Phase            | Skill                                                   | What it enforces                                                              | Source / DSH use                                   |
-| ---------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------- |
-| Product shaping  | `office-hours`                                          | Forcing questions, premise challenge, alternatives                            | Repo only; already done — the spec is the brief    |
-| Requirements     | `grill-with-docs` / `grill-me`                          | Relentless product questions, glossary and decisions                          | both                                               |
-| Spec and tickets | `to-spec`, `to-tickets` / `to-issues`, `to-prd`         | One vertical slice per ticket, acceptance criteria, blocking edges            | both                                               |
-| Architecture     | `architect`, `architecture-reviewer`, `schema-reviewer` | Modular monolith, one interface per module, RLS, keys, indexes, reversibility | Repo agents; emulated with fresh-context subagents |
-| Slice plan       | `slice-planner`, `plan-reviewer`                        | Every file, interface, field and test named; no guessing                      | Repo agents; emulated                              |
-| Build            | `tdd`, `subagent-driven-development`                    | Red → green; fresh implementer per task; task review                          | both                                               |
-| Debug            | `diagnosing-bugs` / `diagnose`                          | Reproduce, minimise, hypothesise, instrument, fix, regression test            | both                                               |
-| Design           | `impeccable`, `DESIGN.md`                               | Clarity, deference, depth; one primary action; accessibility                  | Repo + native design skills                        |
-| Review           | `code-reviewer`                                         | Plan match, no extra, tests first, boundaries, no secrets, green suite        | Repo agent; fresh-context subagent                 |
-| Memory           | `handoff`                                               | Compact the session into a document another agent can pick up                 | native                                             |
-| Audit            | `improve-codebase-architecture`                         | Deepening opportunities, ADR-aligned                                          | later                                              |
+| Phase            | Skill                                                   | What it enforces                                                              | Source                                          |
+| ---------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| Product shaping  | `office-hours`                                          | Forcing questions, premise challenge, alternatives                            | Repo only; already done — the spec is the brief |
+| Requirements     | `grill-with-docs` / `grill-me`                          | Relentless product questions, glossary and decisions                          | Repo                                            |
+| Spec and tickets | `to-spec`, `to-tickets` / `to-issues`, `to-prd`         | One vertical slice per ticket, acceptance criteria, blocking edges            | Repo                                            |
+| Architecture     | `architect`, `architecture-reviewer`, `schema-reviewer` | Modular monolith, one interface per module, RLS, keys, indexes, reversibility | Repo agents                                     |
+| Slice plan       | `slice-planner`, `plan-reviewer`                        | Every file, interface, field and test named; no guessing                      | Repo agents                                     |
+| Build            | `tdd`, `subagent-driven-development`                    | Red → green; fresh implementer per task; task review                          | Repo                                            |
+| Debug            | `diagnosing-bugs` / `diagnose`                          | Reproduce, minimise, hypothesise, instrument, fix, regression test            | Repo                                            |
+| Design           | `impeccable`, `DESIGN.md`                               | Clarity, deference, depth; one primary action; accessibility                  | Repo                                            |
+| Review           | `code-reviewer`                                         | Plan match, no extra, tests first, boundaries, no secrets, green suite        | Repo agent; fresh-context subagent              |
 
 **Three skill/harness conflicts I will resolve once, in `docs/SKILLS.md`:**
 

@@ -20,25 +20,24 @@ No product code before a plan; no merge before tests and review; no production f
 
 ## 2. The single memory system
 
-| Artifact                    | Holds                                                                                                                      |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `docs/HANDOFF.md`           | Live, in flight, next, blocked. Read first, written last. The only status file.                                            |
-| `docs/plan/backlog.md`      | Every ticket, dependencies, verification, status                                                                           |
-| `docs/plan/NEEDS.md`        | Inputs only Nimish or Bhavin can supply                                                                                    |
-| `docs/plan/gates/M<n>.md`   | Gate evidence and the go/no-go question                                                                                    |
-| `docs/spec/parity.yaml`     | One row per parity feature, with test/PR evidence                                                                          |
-| `docs/spec/QUESTIONS.md`    | Conflicts and the resolution followed                                                                                      |
-| `docs/spec/DIFFERENCES.md`  | Deliberate departures from Bhavin’s behaviour                                                                              |
-| `docs/adr/`                 | Irreversible decisions, with what was rejected                                                                             |
-| `docs/slices/`              | One plan per ticket                                                                                                        |
-| `docs/REVIEW-MECHANISMS.md` | The review ladder, risk tiers and CI gates                                                                                 |
-| `docs/LEAN.md`              | The anti-bloat ladder, hard size/complexity/dependency budgets, lean review and gate audit                                 |
-| `docs/QUALITY-BAR.md`       | The 9/10 senior-engineer scorecard used at M1b/M5 and R3 gates                                                             |
-| `docs/ORCHESTRATION.md`     | Goal loop, graph loop, parallel workers, model routing and microtask rules                                                 |
-| `docs/orchestration.yaml`   | Machine-readable model routes, concurrency, microtask limits and milestone budget; validated by `pnpm orchestration:check` |
-| `docs/INFRASTRUCTURE.md`    | AWS-only, low-cost infrastructure                                                                                          |
-| `docs/FRONTEND-STRATEGY.md` | Role-first frontend and design system                                                                                      |
-| `wiki/` + `wiki/log.md`     | Why, not what; append-only session log                                                                                     |
+| Artifact                    | Holds                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `docs/HANDOFF.md`           | Live, in flight, next, blocked. Read first, written last. The only status file.            |
+| `docs/plan/backlog.md`      | Every ticket, dependencies, verification, status                                           |
+| `docs/plan/NEEDS.md`        | Inputs only Nimish or Bhavin can supply                                                    |
+| `docs/plan/gates/M<n>.md`   | Gate evidence and the go/no-go question                                                    |
+| `docs/spec/parity.yaml`     | One row per parity feature, with test/PR evidence                                          |
+| `docs/spec/QUESTIONS.md`    | Conflicts and the resolution followed                                                      |
+| `docs/spec/DIFFERENCES.md`  | Deliberate departures from Bhavin’s behaviour                                              |
+| `docs/adr/`                 | Irreversible decisions, with what was rejected                                             |
+| `docs/slices/`              | One plan per ticket                                                                        |
+| `docs/REVIEW-MECHANISMS.md` | The review ladder, risk tiers and CI gates                                                 |
+| `docs/LEAN.md`              | The anti-bloat ladder, hard size/complexity/dependency budgets, lean review and gate audit |
+| `docs/QUALITY-BAR.md`       | The 9/10 senior-engineer scorecard used at M1b/M5 and R3 gates                             |
+| `docs/ORCHESTRATION.md`     | Goal loop, graph loop, parallel workers, model routing and microtask rules                 |
+| `docs/INFRASTRUCTURE.md`    | AWS-only, low-cost infrastructure                                                          |
+| `docs/FRONTEND-STRATEGY.md` | Role-first frontend and design system                                                      |
+| `wiki/` + `wiki/log.md`     | Why, not what; append-only session log                                                     |
 
 `docs/plan/STATUS.md` is a short session log, not a second handoff: one line per session, then it points at `HANDOFF`. Do not duplicate state across both.
 

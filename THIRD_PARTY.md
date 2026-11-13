@@ -14,7 +14,6 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Zod                                                      | shared schemas      | MIT              |
 | pg-boss 12.38.2                                          | jobs                | MIT              |
 | Pino                                                     | logging             | MIT              |
-| Drizzle ORM                                              | database            | Apache-2.0       |
 | pg (node-postgres)                                       | database driver     | MIT              |
 | React, react-dom                                         | web                 | MIT              |
 | Vite                                                     | web build           | MIT              |

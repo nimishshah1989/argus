@@ -155,13 +155,13 @@ The job queue is the piece Bhavin's Cloudflare Worker does not have: scheduled a
 | `apps/web` | Floor, desk, board, analytics and settings screens; two installable manifests (floor, desk) and a kiosk route for the board; one service worker | Vite, React, React Router, TanStack Query, Tailwind, shadcn/ui, ECharts, vite-plugin-pwa (Workbox) | A static single-page app, as Bhavin's pages are today. No server rendering: every screen is behind a login, and offline-first is simpler without it |
 | `apps/server` | All business logic behind HTTP (auth, tenancy, tickets, config, files, imports, webhooks) and all background jobs | Fastify, Zod, our sessions (ADR 0003), pg-boss, Playwright for PDFs | One Docker image; `ROLE=all` in the pilot, `api` or `worker` when load ever demands two processes |
 | `packages/domain` | Pure functions: ticket state machine, figures, severity, SLA maths, permissions | TypeScript, no I/O, 100% unit-tested | The one place rules live |
-| `packages/db` | Drizzle schema, SQL migrations with RLS policies, seed and import scripts, isolation test | Drizzle ORM on node-postgres | Every table has `tenant_id`; policies in the same migration as the table |
+| `packages/db` | SQL migrations with RLS policies, raw SQL on `pg` (D02), seed and import scripts, isolation test | node-postgres (`pg`) | Every table has `tenant_id`; policies in the same migration as the table |
 | `packages/shared` | Zod request and response schemas, tenant settings schema, i18n messages (en, gu; hi at M5), constants | TypeScript | Imported by web and server; a renamed field fails the build |
 | `packages/engine` (from M4) | Port of the platform's analytics with a legacy profile that reproduces the answer key, then improved models; a Python sidecar for lifelines, statsmodels and PyMC behind one interface | TypeScript; Python 3 in its own container | Runs as jobs; writes result tables |
 | Data stores | Postgres 16 on RDS (data and queue); S3 with versioning for PDFs, photos, voice notes, backups; Secrets Manager | AWS ap-south-1 | Data stays in India |
 | Outside services | WhatsApp Cloud API (Meta), Sarvam speech-to-text, Amazon SES (sends from an AWS region; content is transactional), web push through the phone vendors' push services | HTTPS | Each behind one adapter interface; any error tracker that stores data outside India needs an ADR and PII scrubbing first |
 
-**Verify before relying on:** library names here are ones I am confident exist (Vite, React, Fastify, Drizzle ORM, pg-boss, our sessions (ADR 0003), Zod, ECharts, web-push, vite-plugin-pwa); the Claude Code session must still check current versions and APIs in the official docs rather than from memory.
+**Verify before relying on:** library names here are ones I am confident exist (Vite, React, Fastify, pg-boss, our sessions (ADR 0003), Zod, ECharts, web-push, vite-plugin-pwa); the Claude Code session must still check current versions and APIs in the official docs rather than from memory.
 
 ## 5a. Borrow, don't build
 
@@ -171,9 +171,9 @@ A research pass on 9 November checked about 110 open-source projects and librari
 | --- | --- | --- | --- |
 | CMMS domain | Build it; read Atlas CMMS and Odoo Maintenance schemas as completeness checks | Trudesk (Apache-2.0) for ticket-field ideas | Ideas only |
 | Ticket state machine | A transition table plus Zod in `packages/domain`; XState (MIT) only for timed or approval flows | Robot (BSD-2) | Pattern |
-| Escalation | GoAlert's model (Apache-2.0): policy, steps, delay, repeat, re-implemented on Drizzle | Keep's YAML workflow pattern | Data model |
+| Escalation | GoAlert's model (Apache-2.0): policy, steps, delay, repeat, re-implemented in SQL | Keep's YAML workflow pattern | Data model |
 | Notifications | Uptime Kuma's provider interface pattern (MIT): one adapter per channel |  | Pattern |
-| Multi-tenancy | Postgres RLS with `set_config('app.tenant_id', ..., true)` inside a Drizzle transaction wrapper (copy the wrapper from rphlmr/drizzle-supabase-rls, Apache-2.0); Drizzle `pgPolicy` for policies | Tenant-id discipline without RLS (not recommended) | Code |
+| Multi-tenancy | Postgres RLS with `set_config('app.tenant_id', ..., true)` inside our `withTenant` transaction wrapper (`packages/db/src/tenant.ts`); policies in plain SQL in the migrations | Tenant-id discipline without RLS (not recommended) | Code |
 | Auth | Hand-rolled sessions (ADR 0003): Argon2id, opaque bearer token hashed at rest, 30-day sliding, shared phones and per-device revoke. better-auth was evaluated in the M0 spike and rejected | Lucia's single-file session code as a reference | Code we own |
 | Jobs and SLA timers | pg-boss (MIT) delayed jobs with `singletonKey` as the breach timers, plus a periodic sweep | Graphile Worker | Library; no TypeScript business-hours SLA library exists, so that maths is ours |
 | PM recurrence | croner or cron-parser plus our own interval and meter logic | rrule.js (stale) | Library |
@@ -187,7 +187,7 @@ A research pass on 9 November checked about 110 open-source projects and librari
 | Dashboard layout | react-grid-layout | gridstack.js | Library |
 | Reliability statistics | Written in TypeScript in `packages/engine`: Weibull two-parameter maximum likelihood with censoring, Kaplan-Meier, Crow-AMSAA, Poisson regression (about 250 lines together); stdlib for distributions. JavaScript has none of these ready-made | A Python sidecar from M4 for lifelines (MIT), statsmodels (BSD), ruptures (BSD) and PyMC when the models outgrow TypeScript; the `reliability` package is LGPL (library use only); scikit-survival is GPL (read only) | Code we write, with Python behind an interface |
 | Import | SheetJS Community Edition 0.20.x installed from cdn.sheetjs.com (the npm `xlsx` package is frozen at 0.18.5 with known vulnerabilities); PapaParse; Fuse.js for fuzzy matching; react-spreadsheet-import (MIT) for the mapping wizard | HelloCSV; ExcelJS for exports | Libraries |
-| Admin UI and forms | shadcn/ui, react-hook-form, Zod, drizzle-zod; AutoForm for master-data screens | react-admin `ra-core` (MIT) | Libraries |
+| Admin UI and forms | shadcn/ui, react-hook-form, Zod; AutoForm for master-data screens | react-admin `ra-core` (MIT) | Libraries |
 | Failure-code taxonomy | Our own list structured like ISO 14224 (which is paywalled); vocabulary from the IOF Maintenance Reference Ontology (MIT) and MaintIE (MIT: 224 leaf types, about 1,000 gold and 7,000 silver annotated work orders), which also trains the code suggester | NIST Nestor's tagging approach (public domain, dormant) | Data and definitions |
 
 **Consequences for this spec:** our sessions (ADR 0003) provide 30-day sliding login and shared phones; device revoke arrives in M2; the web app is a Vite build, so the PWA layer is vite-plugin-pwa rather than a Next.js add-on; the Python sidecar is an explicit M4 component; the PM calendar uses FullCalendar's free plugins only; `THIRD_PARTY.md` lists every dependency with its licence and is checked in CI. Library versions move fast; every session verifies the current API in the official docs before use.
@@ -202,7 +202,7 @@ One Fastify server that also runs the job queue, one Postgres, one S3 bucket. Bu
 | --- | --- | --- |
 | Runtime and language | Node 22 LTS, TypeScript strict | One language across the product |
 | HTTP | Fastify with Zod type-provider; schemas shared with the web app from `packages/shared` | Schema-first; the OpenAPI document is generated only when an outside consumer appears |
-| Database | Postgres 16 (RDS), Drizzle ORM, SQL migrations in `packages/db`, policies written in plain SQL | RLS policies live next to the tables |
+| Database | Postgres 16 (RDS), raw SQL on `pg` (D02), SQL migrations in `packages/db`, policies written in plain SQL | RLS policies live next to the tables |
 | Jobs | pg-boss in-process (Postgres-backed queue and scheduler); `ROLE=api`, `worker` or `all` | No Redis; delayed jobs are the SLA timers (`singletonKey` per ticket and timer); cron for nightly jobs |
 | Auth | Hand-rolled sessions (ADR 0003): one mechanism, an opaque bearer token for every client, stored by the web app in IndexedDB; Argon2id; 30-day sliding; device labels and per-device revoke in M2 | One middleware path, works offline with the service worker, matches what users do today |
 | Tenancy | Tenant resolved from the host name (`cosmos.<domain>`, `cosmos.staging.<domain>`), never from a URL parameter or header; the server sets `app.tenant_id` with `set_config(..., true)` inside every transaction before any query | Pre-login screens (brand, login) know the tenant without trusting the client |
@@ -302,7 +302,7 @@ maintenance-os/
   apps/web            Vite + React PWA: floor, desk (with board), analytics, settings
   apps/server         Fastify API + pg-boss jobs (ROLE=api|worker|all)
   packages/domain     state machine, figures, severity, SLA maths, permissions (pure, 100% tested)
-  packages/db         Drizzle schema, SQL migrations with RLS, seeds, import scripts, isolation test
+  packages/db         SQL migrations with RLS, seeds, import scripts, isolation test
   packages/shared     Zod schemas, settings schema, i18n messages, constants
   packages/engine     analytics port (from M4); python/ sidecar beside it
   docs/spec           SPEC.md, DOMAIN.md, PARITY.md, parity.yaml, QUESTIONS.md, DIFFERENCES.md

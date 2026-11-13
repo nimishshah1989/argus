@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test.js';
 import { machineFor, signIn } from './fixtures.js';
 
 /** SPEC 1.3: the technician signs in, picks a machine, describes the problem and sends it. */
