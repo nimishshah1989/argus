@@ -50,3 +50,7 @@ orchestrator. Point a free outside pinger at `site_url/api/v1/health` instead.
 If `docker compose logs caddy` shows an ACME error 10 minutes after the first deploy, set `enable_https = false`
 in `terraform.tfvars`, then `plan` and `apply`. Staging then serves plain HTTP. Certificate issuance for
 `sslip.io` names is unverified.
+
+## Troubleshooting
+
+- InsufficientInstanceCapacity: set `server_az_suffix = "c"` (or b), then plan and apply.
