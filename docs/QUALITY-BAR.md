@@ -6,7 +6,7 @@ The target is **9/10 average, no category below 8**, with evidence. A 10 is not 
 
 - At **M1b** (the soft cutover) and **M5** (plant two), by a human senior engineer plus the lead.
 - At any gate where the change is R3 (schema, auth, tenancy, money, cutover).
-- Every PR gets the small version: the review checklist in `docs/REVIEW-MECHANISMS.md` and the lean pass in `docs/LEAN.md`.
+- Every PR gets the small version: `ponytail-review` and the lean pass in `docs/LEAN.md`.
 
 ## 2. The ten categories
 
