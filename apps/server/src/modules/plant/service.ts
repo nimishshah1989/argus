@@ -5,7 +5,7 @@ import { withTenant } from '../../kernel/index.js';
 // Accepted exception: SLA policies belong to accountability; ticket 04 removes this import.
 import { loadSlaPolicies } from '../../ticket/sla.js';
 import { listPeople, tenantInfo } from '../identity/index.js';
-import { loadPlantRows } from './repo.js';
+import { loadPlantRows } from './repo/config.js';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;

@@ -67,6 +67,14 @@ describe('boundaries check', () => {
     expect(boundaryErrors(root, {})).toEqual([]);
   });
 
+  it("allows the owner's repo/ folder", () => {
+    const sql = "q('SELECT 1 FROM machine');";
+    expect(boundaryErrors(plant({ [`${SRC}/modules/plant/repo/x.ts`]: sql }), {})).toEqual([]);
+    expect(boundaryErrors(plant({ [`${SRC}/modules/tickets/repo/x.ts`]: sql }), {})).toEqual([
+      `${SRC}/modules/tickets/repo/x.ts: SQL names machine (owned by plant); only ${SRC}/modules/plant/repo.ts may`,
+    ]);
+  });
+
   it('ignores comments, unowned tables and test files', () => {
     const root = plant({
       [`${SRC}/a.ts`]: "// read from person\nconst fromPerson = 1;\nq('SELECT * FROM ticket');",

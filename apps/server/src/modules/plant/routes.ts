@@ -18,7 +18,7 @@ import {
   selectSettings,
   updateTranslation,
   upsertSetting,
-} from './repo.js';
+} from './repo/config.js';
 import { fingerprint, loadConfig } from './service.js';
 
 export function canWrite(role: string): boolean {

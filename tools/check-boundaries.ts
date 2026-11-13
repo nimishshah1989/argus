@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
@@ -82,6 +82,10 @@ function ownerOf(table: string): string | undefined {
   return Object.keys(OWNERS).find((m) => OWNERS[m]?.includes(table));
 }
 
+/** The owner's repo.ts, or any file in its repo/ folder (SQL-heavy modules split their repo). */
+const inRepo = (file: string, repo: string): boolean =>
+  file === repo || file.startsWith(`${dirname(repo)}/repo/`);
+
 export function boundaryErrors(root: string, legacy: Baseline = LEGACY): string[] {
   const errors: string[] = [];
   const named = new Map<string, string[]>();
@@ -92,7 +96,7 @@ export function boundaryErrors(root: string, legacy: Baseline = LEGACY): string[
     for (const table of tables) {
       const owner = ownerOf(table);
       const repo = `${SERVER_SRC}/modules/${owner}/repo.ts`;
-      if (owner && file !== repo && !legacy[file]?.includes(table))
+      if (owner && !inRepo(file, repo) && !legacy[file]?.includes(table))
         errors.push(`${file}: SQL names ${table} (owned by ${owner}); only ${repo} may`);
     }
   }

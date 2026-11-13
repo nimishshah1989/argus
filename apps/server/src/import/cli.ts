@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from 'node:fs';
-import { createPool } from '../db.js';
+import { createPool } from '../kernel/index.js';
 import { startJobs } from '../jobs/index.js';
 import { reconcileTicket } from '../ticket/sla.js';
 import type { PgBoss } from 'pg-boss';
