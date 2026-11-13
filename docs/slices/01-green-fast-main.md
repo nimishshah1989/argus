@@ -32,8 +32,8 @@ gets into the repo.
    - The stack's IP-host default becomes the non-existent `e2e-unscoped`. A spec that forgets the per-worker
      `test` fails with 404 "Unknown company"; it cannot share state unnoticed.
 4. **CI shape.** Today one job takes about 6.5 min (vitest 3m42s, Playwright 1m52s; run 43379580801). The new
-   jobs are `static`, `api` (3 vitest shards), `browser` (2 Playwright shards) and the unchanged `secrets`, each
-   with `timeout-minutes: 8`. CI itself therefore enforces "each shard under 8 minutes". There is no branch
+   jobs are `static`, `api` (3 vitest shards), `browser` (2 Playwright shards) and the unchanged `secrets`. The three new
+   jobs each have `timeout-minutes: 8`; `secrets` stays exactly as it is (no timeout added). CI itself therefore enforces "each shard under 8 minutes". There is no branch
    protection on this repo (the API answers 403).
 5. **"Touched-module API tests" and "browser smoke".** Modules arrive in tickets 02 and 03, staging in 13.
    Until then the `api` shards run the whole vitest suite: a superset of any module and of
@@ -79,14 +79,14 @@ gets into the repo.
 | `apps/web/src/components/SlaTimerSummary.tsx`                                  | In `TimerDetails`, prefix both the `timer?.dueAt && timer.state !== 'stopped'` condition and the `timer?.stoppedAt` condition with `timeZone &&`. Nothing else changes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `apps/web/e2e/sla-timers.spec.ts`                                              | Add T1. In "configures policies…", delete line 48 (`const token = …`) and replace line 49 with `const ticket = await prepareStoppedTicket(machine, await apiLogin('admin'));`. In "freezes cached Settings…", before `const before = …`, add `await expect(timerRow(timers, 'Acknowledge').locator('time')).toBeVisible();`. Line 145: `fetch(\`${API_URL}/api/v1/settings/sla-policies\`, …)`becomes`apiFetch('/api/v1/settings/sla-policies', …)`. Imports: see the import table below.                                                                                                                                                                           |
 | `apps/web/e2e/sla-test-helpers.ts`                                             | `apiJson`: `fetch(\`${API_URL}${path}\`, {…})`becomes`apiFetch(path, {…})`, and the `init`parameter type becomes`ApiInit`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `apps/web/e2e/fixtures.ts`                                                     | Add `WORKER`, `scopedId`, `TENANT_WEB_URL`, `API_HOST`, `ApiInit` and `apiFetch` (§4). `TENANT.id`, `SEGMENT.id`, every `MACHINES[].id`, every `PEOPLE[].id`, every `LOGINS[].id` and the shift id `…015` are wrapped in `scopedId('<same literal>')`. `TENANT.slug` becomes `` `e2e-w${WORKER}` ``. The private `apiJson` calls `apiFetch(path, init)` with `init: ApiInit`. `API_URL` and `WEB_URL` stay as they are: they are the stack's own origins, used by `stack.ts`. Update the header comment: "ids are scoped per Playwright worker".                                                                                                                    |
+| `apps/web/e2e/fixtures.ts`                                                     | Add `WORKER`, `scopedId`, `TENANT_WEB_URL`, `API_HOST`, `ApiInit` and `apiFetch` (§4). `TENANT.id`, `SEGMENT.id`, every `MACHINES[].id`, every `PEOPLE[].id`, every `LOGINS[].id` and the shift id `'10000000-0000-0000-0000-000000000015'` (in `seedStatements`) are wrapped in `scopedId('<same literal>')`. `TENANT.slug` becomes `` `e2e-w${WORKER}` ``. The private `apiJson` calls `apiFetch(path, init)` with `init: ApiInit`. `API_URL` and `WEB_URL` stay as they are: they are the stack's own origins, used by `stack.ts`. Update the header comment: "ids are scoped per Playwright worker".                                                            |
 | `apps/web/e2e/test.ts` (new)                                                   | Exports `test` (worker-scoped auto fixture `workerTenant`, plus a `baseURL` override) and `expect` (§4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `apps/web/e2e/tenant.spec.ts` (new)                                            | T5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `apps/web/e2e/stack.ts`                                                        | In `startDatabase`, delete the `seedStatements` loop. After the `ALTER ROLE` line, add `process.env.E2E_ADMIN_DATABASE_URL = container.getConnectionUri();` and `process.env.E2E_PASSWORD_HASH = await hashPassword();` (the existing `const passwordHash` line goes). `startApi` passes `DEFAULT_TENANT_SLUG: 'e2e-unscoped'`. Remove `seedStatements` and `TENANT` from the `./fixtures.js` import. Doc comment lines 20–21 become exactly: ` * Boots the real stack for the e2e run: a postgres:16-alpine Testcontainer, migrated (each Playwright` and ` * worker seeds its own tenant in test.ts), the Fastify API on :3001 and the Vite dev server on :3000.` |
-| `playwright.config.ts`                                                         | Header comment only: "each worker's tenant comes from its host `e2e-w<n>.localhost` (apps/web/e2e/test.ts); the IP base URL maps to no tenant."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `playwright.config.ts`                                                         | Comment only. Lines 4–5 (` * End-to-end harness … Testcontainer, migrates and seeds the fake cosmos, and boots the API (:3001) plus the`) become ` * End-to-end harness for the real stack. globalSetup starts a postgres:16-alpine` / ` * Testcontainer, migrates it, and boots the API (:3001) plus the`. Lines 9–11 become ` * baseURL is 127.0.0.1, which maps to no tenant (DEFAULT_TENANT_SLUG e2e-unscoped): every spec` / ` * imports \`test\` from apps/web/e2e/test.ts, which seeds this worker's tenant e2e-w<n> and points`/` * baseURL at e2e-w<n>.localhost:3000 (the server resolves the tenant from the Host header).` No config change.            |
 | `apps/web/e2e/vite.e2e.config.ts`                                              | Comment only. Line 10 (`* every sign-in 404s; "127.0.0.1:3001" maps to DEFAULT_TENANT_SLUG (cosmos) in tenant.ts.`) becomes ` * every sign-in 404s. IP hosts map to e2e-unscoped; each worker seeds e2e-w<n> (test.ts) and browses e2e-w<n>.localhost.` No config change.                                                                                                                                                                                                                                                                                                                                                                                           |
 | `apps/web/e2e/{admin,board,desk,floor,offline,settings-severity,tags}.spec.ts` | Imports exactly as in the table below. Every `fetch(\`${API_URL}<path>\`, init)`becomes`apiFetch('<path>', init)`; `admin.spec.ts` `apiJson`takes`init: ApiInit = {}`. `desk.spec.ts:39`uses`browser.newContext({ baseURL: TENANT_WEB_URL })`. In `offline.spec.ts`, line 14 becomes `const ASHA_PERSON_ID = scopedId('10000000-0000-0000-0000-000000000009');`, and the comment at lines 9–11 drops "and fixtures.ts is not in this slice's write scope". No assertion changes.                                                                                                                                                                                    |
-| `.github/workflows/ci.yml`                                                     | Replace the `checks` job with `static`, `api` and `browser` (§4). `secrets` is unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `.github/workflows/ci.yml`                                                     | Replace the `checks` job with `static`, `api` and `browser`, each `timeout-minutes: 8` (§4). `secrets` is unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Import lines after the change (exactly these; all other imports unchanged):
 
@@ -101,6 +101,7 @@ Import lines after the change (exactly these; all other imports unchanged):
 | `sla-timers.spec.ts`        | `import { expect, test } from './test.js';` · `import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';` (the helpers import also gains nothing: `prepareStoppedTicket`, `raiseWorkRequest`, `ensureSlaConfiguration`, `timerRow` are already imported) |
 | `tags.spec.ts`              | `import type { Page } from '@playwright/test';` · `import { expect, test } from './test.js';` · `import { apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';`                                                                                     |
 | `sla-test-helpers.ts`       | line 3: `import { apiFetch, apiLogin, raiseTicketViaApi, type ApiInit, type MachineFixture } from './fixtures.js';` (line 2 unchanged)                                                                                                                               |
+| `test.ts` (new)             | `import { expect, test as base } from '@playwright/test';` · `import { Pool } from 'pg';` · `import { TENANT_WEB_URL, seedStatements } from './fixtures.js';`                                                                                                        |
 | `tenant.spec.ts`            | `import { expect, test } from './test.js';` · `import { API_URL, E2E_PASSWORD, TENANT, apiLogin } from './fixtures.js';`                                                                                                                                             |
 
 ### Process goal 2
@@ -122,7 +123,7 @@ Import lines after the change (exactly these; all other imports unchanged):
 | `docs/REVIEW-MECHANISMS.md`               | Line 113 becomes: `- The coder (Sonnet) and the reviewers (Opus, fresh context) are different models, so a fresh context is a real independence boundary. It is still not a senior human: fixed checklists, file:line evidence, the risk tiers, static analysis and a human security review remain mandatory for R3.` |
 | `docs/WORKFLOW.md`                        | Delete line 38 (the `docs/orchestration.yaml` table row).                                                                                                                                                                                                                                                             |
 | `docs/HANDOFF.md`                         | Rewrite in task 15 (§6).                                                                                                                                                                                                                                                                                              |
-| `docs/decisions/D18-one-process.md` (new) | In D02's shape (§3c).                                                                                                                                                                                                                                                                                                 |
+| `docs/decisions/D18-one-process.md` (new) | Exact content in §3c.                                                                                                                                                                                                                                                                                                 |
 | `docs/orchestration.yaml`                 | Delete.                                                                                                                                                                                                                                                                                                               |
 | `tools/check-orchestration.ts`            | Delete.                                                                                                                                                                                                                                                                                                               |
 | `tools/check-changelog.ts` (new)          | The fragment check (§4).                                                                                                                                                                                                                                                                                              |
@@ -155,7 +156,7 @@ Import lines after the change (exactly these; all other imports unchanged):
 
 `docs/BUILD-PROTOCOL.md`:
 
-- Delete lines 272–279 (`### DeepSeek Harness specifics` and its five bullets) and the blank line after them.
+- Delete lines 272–279 only (`### DeepSeek Harness specifics`, its blank line, its five bullets and the blank line 279). Line 280 (`---`) stays.
 - Line 284: delete the two sentences `DSH also has its own native skills with overlapping intent. I use the native one when it matches, and read the repo’s pinned `SKILL.md` when it does not.`
 - Header line 286: `Source / DSH use` becomes `Source`.
 - Last cell on lines 289, 290, 293, 294: `both` becomes `Repo`.
@@ -174,17 +175,30 @@ Import lines after the change (exactly these; all other imports unchanged):
 - Delete the bullets at lines 53 (`- DSH native: …`) and 54 (``- The repo’s `office-hours` …``).
 - Replace the §5 paragraph (line 58) with: `` `model:` pins in `.claude/agents/` and the hooks in `.claude/harness/hooks/` apply as written (Athena v3); R3 still adds a human reviewer. ``
 
-**§3c `docs/decisions/D18-one-process.md`**
+**§3c `docs/decisions/D18-one-process.md`** — the shape of `D02-raw-sql.md` (title, byline, `## Decision`,
+`## Why`, `## Rejected`, closing Revisit paragraph). Exact content:
 
-- Title: `# D18 — One build process: Athena v3`
-- Byline: `Date: 13 November 2026 · Status: accepted (orchestrator, ticket 01)`
-- **Decision:** Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`) is the only build process. The DeepSeek-Harness routing with the hosted free coder (PR #73) is retired. `docs/orchestration.yaml` and `tools/check-orchestration.ts` are deleted. `tools/check-docs.ts` fails CI if an instruction file names that route again.
-- **Why:** BRIEF scope 1 ("one process (Athena v3)") and ROADMAP finding 5 (two contradictory harnesses; the last stretch went into model routing, not product).
-- **Rejected:**
-  - Keeping both routes: agents follow whichever file they read first.
-  - Keeping `orchestration.yaml` as a record: git history keeps it.
-  - A softer check that only warns: the drift returned within days.
-- **Revisit:** only through a new decision and a harness change.
+```
+# D18 — One build process: Athena v3
+
+Date: 13 November 2026 · Status: accepted (orchestrator, ticket 01)
+
+## Decision
+
+Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`) is the only build process. The earlier route (a separate planner/reviewer harness directing a hosted coder, PR #73) is retired: `docs/orchestration.yaml` and `tools/check-orchestration.ts` are deleted, and `tools/check-docs.ts` fails CI when an instruction file names that route again.
+
+## Why
+
+BRIEF scope 1 asks for one process (Athena v3). ROADMAP finding 5 found two contradictory harnesses, and the last stretch went into model routing instead of product.
+
+## Rejected
+
+- Keeping both routes: agents follow whichever file they read first.
+- Keeping `orchestration.yaml` as a record: git history keeps it.
+- A check that only warns: a warning does not stop the drift.
+
+Revisit only through a new decision and a harness change.
+```
 
 ### Process goal 3
 
@@ -229,7 +243,7 @@ export const test; // base.extend<object, { workerTenant: void }>({
 //   seedWorkerTenant(): reads E2E_ADMIN_DATABASE_URL and E2E_PASSWORD_HASH (throws
 //   'e2e: global setup did not publish the database' if either is missing), runs each seedStatements(hash)
 //   statement on new Pool({connectionString, max: 1}), and ends the pool in finally.
-export { expect } from '@playwright/test';
+export { expect }; // re-exported from the `@playwright/test` import above
 ```
 
 ```ts
@@ -252,7 +266,9 @@ export function readDocs(paths: string[], root?: string): DocFile[]; // throws `
 export function processErrors(files: DocFile[]): string[]; // `${path}:${line}: names a process other than Athena v3 (${label})`
 export function drizzleErrors(files: DocFile[]): string[]; // /drizzle/i → `${path}:${line}: names Drizzle; the repo uses raw SQL on pg (D02)`
 // Line rule (both): split text on '\n'; test each line; line numbers start at 1; one error per marker per line.
-// main(): prints `docs: <n> instruction files, <m> stack files, <e> problem(s)`, errors to stderr, exitCode 1 on any.
+// main(): console.log(`docs: ${n} instruction files, ${m} stack files, ${errors.length} problem(s)`);
+//   each error → console.error(`docs: ${error}`); process.exitCode = 1 if any error.
+//   Guarded: `if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();`
 
 // tools/parity.ts: ParityRow gains `ticket?: string`; in evidenceErrors:
 //   row.status === 'in-progress' && !row.evidence?.length && !row.ticket?.trim()
@@ -270,13 +286,14 @@ export function changelogErrors(files: ChangedFile[]): string[];
 //   added.length !== 1: `add exactly one changelog fragment under changes/ (found ${added.length})`
 // main(): runs `git diff --name-status --no-renames <range>` for range origin/main...HEAD, else HEAD~1...HEAD;
 //   if both throw: console.log('changelog: no diff base yet, skipping') and return (check-parity-update.ts pattern).
+//   Guarded: `if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();`
 //   Parse: split output on '\n', drop empty lines, split each line on '\t' → [status, path].
 //   console.log(`changelog: ${files.length} changed files, ${errors.length} problem(s)`);
 //   each error → console.error(`changelog: ${error}`); exitCode 1 if any error.
 
 // tools/pii-sources.ts
 export const SOURCES: { users: string; tickets: string; workbook: string };
-//   'docs/discovery/real-2026-11-13/live/users.json', '…/live/tickets-export.json', '…/cosmos-export-2026-11-11.xlsx'
+//   'docs/discovery/real-2026-11-13/live/users.json', 'docs/discovery/real-2026-11-13/live/tickets-export.json', 'docs/discovery/real-2026-11-13/cosmos-export-2026-11-11.xlsx'
 export interface DenyList {
   names: string[];
   phones: string[];
@@ -298,11 +315,13 @@ export function loadDenyList(root?: string): DenyList; // throws `pii: source li
 export function scannedPaths(paths: string[]): string[]; // drops paths starting 'docs/discovery/' and 'pnpm-lock.yaml'
 export function scanText(path: string, text: string, deny: DenyList): string[];
 export function scanFiles(root: string, paths: string[], deny: DenyList): string[]; // skips a file with a NUL byte in its first 8000 bytes
-// main(): deny = loadDenyList(); paths = scannedPaths(git ls-files -z); prints
-//   `pii: <n> names and <m> phones from the source lists; <f> files scanned; <e> problem(s)`; exitCode 1 on any.
+// main(): deny = loadDenyList(); paths = scannedPaths(`git ls-files -z` split on '\0', empty dropped);
+//   console.log(`pii: ${deny.names.length} names and ${deny.phones.length} phones from the source lists; ${f} files scanned; ${errors.length} problem(s)`);
+//   each error → console.error(`pii: ${error}`) (file, line and kind only, never the value); process.exitCode = 1 if any.
+//   Guarded: `if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();`
 ```
 
-**Deny-list rules (`denyListFromSources`).**
+**Deny-list rules (`denyListFromSources`).** A source text that is `undefined` is skipped: no `JSON.parse` for a missing `users` or `tickets`, and `workbookCells` is never called when `workbook` is `undefined`. Only `loadDenyList` insists that all three files exist.
 
 - **Name candidates.**
   - `JSON.parse(users).users[].name`.
@@ -324,7 +343,7 @@ export function scanFiles(root: string, paths: string[], deny: DenyList): string
 - Phones: each `PHONE` match whose `normalisePhone` is in `deny.phones`.
 - Output: at most one `${path}:${line}: real name from the source lists` and one `${path}:${line}: real phone from the source lists` per line. The value is never printed.
 
-**CI (`.github/workflows/ci.yml`).** Each job starts with the existing setup steps: `checkout@v4` with `fetch-depth: 0`, `pnpm/action-setup@v4` 10.30.3, `setup-node@v4` 24 with the pnpm cache, and `pnpm install --frozen-lockfile`. Each job has `timeout-minutes: 8`; matrices have `fail-fast: false`.
+**CI (`.github/workflows/ci.yml`).** Each new job starts with the existing setup steps: `checkout@v4` with `fetch-depth: 0`, `pnpm/action-setup@v4` 10.30.3, `setup-node@v4` 24 with the pnpm cache, and `pnpm install --frozen-lockfile`. The three new jobs (`static`, `api`, `browser`) each have `timeout-minutes: 8`; matrices have `fail-fast: false`. The `secrets` job is left byte-for-byte unchanged (no timeout added).
 
 - `static`:
   - always: `format:check`, `lint`, `typecheck`, `build`, `parity`, `docs:check`, `pii:scan`, `licences`, `migrations:check`, `audit:lean`;
@@ -366,7 +385,7 @@ in CI. Every `tools/` test is database-free and runs in the stop hook's fast tes
    - **Then:** the timers text is unchanged.
    - The race (config arriving after the snapshot) is not made red separately. **T1 is accepted as its reproduction:** the same root cause, and T2's wait only becomes meaningful once `<time>` means "config loaded".
 3. **T3 — repeat collision.**
-   - **Red first (before the edit):** `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts -g "configures policies" --repeat-each=2 --retries=0 --project=chromium` fails on the second run with `POST /api/v1/tickets failed: 409`. Record it in §8.
+   - **Red first (before the edit):** `pnpm exec playwright test apps/web/e2e/sla-timers.spec.ts -g "configures policies" --repeat-each=2 --retries=0 --project=chromium --workers=1` fails on the second run with `POST /api/v1/tickets failed: 409`. Record it in §8.
    - **After the edit:** the same command passes.
 4. **T4 — 20 in a row.**
    - **Given:** the 7 tests of `sla-timers.spec.ts`.
@@ -378,7 +397,7 @@ in CI. Every `tools/` test is database-free and runs in the stop hook's fast tes
    - `fetch(\`${API_URL}/api/v1/auth/login\`, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({username:'asha', password:E2E_PASSWORD})})`answers 404: an IP host maps to`e2e-unscoped`.
    - Red until task 4 (`stack.ts`).
 6. **T6 — regression.** `pnpm test:e2e` is green on both projects; no assertion changed.
-7. **T7 — CI.** On the PR, `static`, `api (1/2/3)`, `browser (1/2)` and `secrets` are green, each under 8 minutes.
+7. **T7 — CI.** On the PR, `static`, `api (1/2/3)`, `browser (1/2)` and `secrets` are green; `static`, every `api` shard and every `browser` shard finish in under 8 minutes (enforced by their `timeout-minutes: 8`). `secrets` has no timeout (unchanged; it takes about 10 s).
 
 ### Docs (`tools/docs.test.ts`)
 
@@ -470,7 +489,7 @@ No real value goes into an assertion message, and nothing real is written outsid
 process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
 in `docs/plan/MILESTONES.md` is the queue.
 
-- CI: `static`, `api` ×3, `browser` ×2 and `secrets`, each under 8 minutes. Browser tests seed one tenant per
+- CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
   Playwright worker (`apps/web/e2e/test.ts`).
 - Guards: `pnpm docs:check`, `pnpm pii:scan`, `pnpm changelog:check` (one `changes/` fragment per PR).
 
