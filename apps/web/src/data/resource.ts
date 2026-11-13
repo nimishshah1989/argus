@@ -1,8 +1,12 @@
 import {
   useInfiniteQuery,
+  useMutation,
   useQuery,
+  useQueryClient,
   type InfiniteData,
+  type QueryClient,
   type UseInfiniteQueryResult,
+  type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
 import { http } from './client.js';
@@ -33,6 +37,10 @@ export interface Resource<TOne, TItem> {
   useList(
     query?: ListQuery,
   ): UseInfiniteQueryResult<InfiniteData<CursorPage<TItem>, string | undefined>, Error>;
+  /** POST path, JSON body; on success awaits invalidateQueries({ queryKey: [key] }). */
+  useCreate(): UseMutationResult<unknown, Error, unknown>;
+  /** PUT url(id), JSON body; on success awaits invalidateQueries({ queryKey: [key] }). */
+  useUpdate(): UseMutationResult<unknown, Error, { id: string; body: unknown }>;
 }
 
 function search(query: ListQuery): string {
@@ -51,7 +59,7 @@ const json = (method: string, body: unknown, headers?: Record<string, string>): 
   body: JSON.stringify(body),
 });
 
-/** One server resource: the request builders and the two read hooks. Types come from `@uptimo/shared`; the reply is not parsed. */
+/** One server resource: the request builders, two read hooks and two write hooks. Types come from `@uptimo/shared`; the reply is not parsed. */
 export function defineResource<TOne = unknown, TItem = never>(
   spec: ResourceSpec,
 ): Resource<TOne, TItem> {
@@ -64,20 +72,23 @@ export function defineResource<TOne = unknown, TItem = never>(
   };
   const one = (id?: string) => send<TOne>(url(id));
   const list = (query: ListQuery = {}) => send<CursorPage<TItem>>(`${path}${search(query)}`);
+  const create: Resource<TOne, TItem>['create'] = (body, options) =>
+    send(
+      url(options?.id),
+      json(
+        'POST',
+        body,
+        options?.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : undefined,
+      ),
+    );
+  const update: Resource<TOne, TItem>['update'] = (id, body) => send(url(id), json('PUT', body));
+  const settled = (client: QueryClient) => () => client.invalidateQueries({ queryKey: [key] });
   return {
     key,
     one,
     list,
-    create: (body, options) =>
-      send(
-        url(options?.id),
-        json(
-          'POST',
-          body,
-          options?.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : undefined,
-        ),
-      ),
-    update: (id, body) => send(url(id), json('PUT', body)),
+    create,
+    update,
     useOne: (id) => useQuery({ queryKey: [key, 'one', id ?? null], queryFn: () => one(id) }),
     useList: (query) =>
       useInfiniteQuery({
@@ -85,6 +96,16 @@ export function defineResource<TOne = unknown, TItem = never>(
         initialPageParam: undefined as string | undefined,
         queryFn: ({ pageParam }) => list({ ...query, cursor: pageParam }),
         getNextPageParam: (page) => page.nextCursor ?? undefined,
+      }),
+    useCreate: () =>
+      useMutation({
+        mutationFn: (body: unknown) => create(body),
+        onSuccess: settled(useQueryClient()),
+      }),
+    useUpdate: () =>
+      useMutation({
+        mutationFn: (v: { id: string; body: unknown }) => update(v.id, v.body),
+        onSuccess: settled(useQueryClient()),
       }),
   };
 }
