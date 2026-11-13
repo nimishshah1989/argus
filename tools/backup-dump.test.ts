@@ -137,6 +137,61 @@ describe('restore check (infra/instance/restore-check.sh)', () => {
   });
 });
 
+describe('dump restore drill (infra/instance/dump-restore-drill.sh)', () => {
+  const drill = (env: Record<string, string> = {}) => {
+    copyFileSync(
+      join(root, 'infra/instance/dump-restore-drill.sh'),
+      join(dir, 'instance/dump-restore-drill.sh'),
+    );
+    writeFileSync(join(dir, '.env'), 'AWS_REGION=ap-south-1\nECR_REGISTRY=registry.test\n');
+    writeFileSync(join(dir, '.current_tag'), 'abc123\n');
+    stub(
+      'aws',
+      `echo "aws $*" >> "$UPTIMO_DIR/calls.log"
+case "$*" in *list-objects-v2*) echo "\${LATEST_KEY:-dumps/uptimo-2027-01-03T2130Z.dump}" ;; esac`,
+    );
+    stub(
+      'docker',
+      `echo "docker $*" >> "$UPTIMO_DIR/calls.log"
+case "$*" in *pg_restore*) printf '%s' "\${RESTORE_STDERR:-pg_restore: error: could not execute query: ERROR:  schema \\"public\\" already exists}" >&2; exit 1 ;; esac`,
+    );
+    return spawnSync('bash', [join(dir, 'instance/dump-restore-drill.sh')], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        UPTIMO_DIR: dir,
+        BACKUP_BUCKET: 'fake-backups',
+        ...env,
+      },
+    });
+  };
+
+  it('restores the newest dump into a scratch database, counts it, and removes the scratch database', () => {
+    const res = drill();
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain('RESTORED dumps/uptimo-2027-01-03T2130Z.dump');
+    expect(log()).toMatch(/restore-check\.ts/);
+    expect(log()).toMatch(/docker rm -f scratch-pg-/);
+  });
+
+  it('stops on a real restore error but not on "already exists"', () => {
+    const res = drill({
+      RESTORE_STDERR:
+        'pg_restore: error: could not execute query: ERROR:  relation "ticket" is broken',
+    });
+    expect(res.status).toBe(1);
+    expect(res.stdout).toMatch(/STOP: the restore had errors/);
+    expect(log()).not.toMatch(/restore-check\.ts/);
+  });
+
+  it('says so when the bucket holds no dump', () => {
+    const res = drill({ LATEST_KEY: 'None' });
+    expect(res.status).toBe(1);
+    expect(res.stdout).toMatch(/STOP: no dump/);
+  });
+});
+
 describe('weekly dump workflow', () => {
   it('runs weekly and on request, from main only, and skips quietly until the bucket is configured', () => {
     const wf = parse(readFileSync(join(root, '.github/workflows/backup.yml'), 'utf8'));
