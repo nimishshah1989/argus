@@ -5,7 +5,7 @@ Under 50 lines. Read first, rewrite at session end.
 ## RESUME HERE
 
 **State**: `main` has M2-2.2 SLA timers (#74), the milestone plan (#75) and tickets 01 (#145) and 10 (design kit, D20; PR pending). The only build
-process is Athena v3 (`.claude/harness/CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D18). The progress tracker
+process is pstack (`CLAUDE.md`, `docs/plan/ORCHESTRATOR.md`; D23, replacing Athena v3). The progress tracker
 in `docs/plan/MILESTONES.md` is the queue.
 
 - CI: `static`, `api` ×3 and `browser` ×2 (each under 8 minutes), plus `secrets`. Browser tests seed one tenant per
@@ -39,10 +39,12 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
 
+<!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 13:35 UTC on branch `claude/ci-friction`.
-- 84fcc8c CI friction: reformat the slice plan
-- 3085eb6 CI friction: slice plan
-- b7fd65d 04b: Config sends people phones only to a login that manages people (#161)
+Last session ended 2026-11-13 12:46 UTC on branch `claude/orchestrator-ledger`.
+- cb90f34 docs(plan): ledger — 07 schema-review rulings
+- dcd4cbe docs(plan): ledger — 04 rulings, phone-number privacy finding
+- 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
 Uncommitted files: 0
 <!-- end facts -->
+<!-- prettier-ignore-end -->

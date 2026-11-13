@@ -164,4 +164,35 @@ describe('staging deploy', () => {
     expect(calls().join('\n')).toContain('--secret-id uptimo/staging');
     expect(res.stdout + res.stderr).not.toMatch(/fake-/);
   });
+
+  it('copies the optional AI settings from the secret store', () => {
+    const ai = {
+      APP_ENV: 'staging',
+      ANTHROPIC_API_KEY: 'fake-key-for-tests',
+      AI_MODEL: 'fake-model-id',
+      AI_PRICE_INPUT_USD_PER_MTOK: '1',
+      AI_PRICE_OUTPUT_USD_PER_MTOK: '5',
+      AI_MAX_OUTPUT_TOKENS: '512',
+      AI_DEFAULT_MONTHLY_CAP_USD: '20',
+    };
+    const secret = JSON.stringify({
+      DATABASE_URL: 'postgresql://fake-app:fake-pw-1@db.test/uptimo',
+      MIGRATION_DATABASE_URL: 'postgresql://fake-master:fake-pw-2@db.test/uptimo',
+      APP_API_PASSWORD: 'fake-pw-3',
+      ...ai,
+    });
+    stub('aws', `echo '${secret}'`);
+    const res = spawnSync('bash', [script('refresh-env.sh')], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, UPTIMO_DIR: dir },
+    });
+    expect(res.status).toBe(0);
+    const lines = readFileSync(join(dir, 'app.env'), 'utf8').trimEnd().split('\n');
+    expect(lines).toEqual([
+      'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo',
+      ...Object.entries(ai).map(([k, v]) => `${k}=${v}`),
+    ]);
+    expect(statSync(join(dir, 'app.env')).mode & 0o777).toBe(0o600);
+    expect(res.stdout + res.stderr).not.toMatch(/fake-/);
+  });
 });

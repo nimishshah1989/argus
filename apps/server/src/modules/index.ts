@@ -1,5 +1,6 @@
 import type { ModuleDefinition } from '../kernel/index.js';
 import { accountabilityModule } from './accountability/index.js';
+import { aiModule } from './ai/index.js';
 import { filesModule } from './files/index.js';
 import { identityModule } from './identity/index.js';
 import { importsModule } from './imports/index.js';
@@ -19,4 +20,5 @@ export const modules: readonly ModuleDefinition[] = [
   accountabilityModule,
   reportsModule,
   importsModule,
+  aiModule,
 ];

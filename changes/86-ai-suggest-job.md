@@ -1,0 +1,1 @@
+- AI foundation, part 3: the server can now run a background job that sends one ticket's text (names, phone numbers and the plant's name removed) to Claude, stores the answer once, retries failures politely and stops at the monthly spend cap; nothing is shown to users yet.

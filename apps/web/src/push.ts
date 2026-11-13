@@ -6,7 +6,7 @@
  * that person changes, `ensurePushBinding` re-binds the same browser subscription to the new
  * person so the old one is never notified silently.
  */
-import { api } from './api.js';
+import { defineResource } from './data/index.js';
 
 const BOUND_PERSON_KEY = 'uptimo.push.person';
 
@@ -52,16 +52,15 @@ async function activeRegistration(): Promise<ServiceWorkerRegistration | null> {
   return (await navigator.serviceWorker.getRegistration()) ?? null;
 }
 
+const push = defineResource<KeyResponse>({ key: 'push', path: '/api/v1/push' });
+
 async function serverKey(): Promise<Uint8Array<ArrayBuffer>> {
-  const response = await api<KeyResponse>('/api/v1/push/key');
+  const response = await push.one('key');
   return urlBase64ToUint8Array(response.publicKey);
 }
 
 async function bind(subscription: PushSubscription, actingPersonId: string): Promise<void> {
-  await api('/api/v1/push/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ subscription: subscription.toJSON(), actingPersonId }),
-  });
+  await push.create({ subscription: subscription.toJSON(), actingPersonId }, { id: 'subscribe' });
   localStorage.setItem(BOUND_PERSON_KEY, actingPersonId);
 }
 
@@ -100,10 +99,7 @@ export async function disablePush(): Promise<void> {
   const subscription = registration ? await registration.pushManager.getSubscription() : null;
   if (subscription) {
     try {
-      await api('/api/v1/push/unsubscribe', {
-        method: 'POST',
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
-      });
+      await push.create({ endpoint: subscription.endpoint }, { id: 'unsubscribe' });
     } catch {
       // Keep the phone off locally even if the server call fails.
     }

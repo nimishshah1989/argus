@@ -10,9 +10,11 @@ export {
   insertTenant,
   listPeople,
   peopleByIds,
+  redactionTerms,
   resolveTenant,
   tenantInfo,
   type NewPerson,
+  type RedactionTerms,
   type TenantRow,
 } from './repo.js';
 export { hashPassword } from './routes.js';
