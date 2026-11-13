@@ -167,6 +167,15 @@ export interface NewPerson {
   login: { username: string; role: string } | null;
 }
 
+/** Locks a customer's row by slug, whatever its status, until the transaction ends. */
+export async function lockTenantBySlug(
+  tx: Db,
+  slug: string,
+): Promise<{ id: string; status: string } | undefined> {
+  return (await tx.query('SELECT id, status FROM tenant WHERE slug = $1 FOR UPDATE', [slug]))
+    .rows[0];
+}
+
 export async function deleteTenantBySlug(tx: Db, slug: string): Promise<void> {
   await tx.query('DELETE FROM tenant WHERE slug = $1', [slug]);
 }
@@ -246,4 +255,19 @@ export async function ensurePendingPerson(tx: Db, tenantId: string, name: string
     [tenantId, name],
   );
   return inserted.rows[0].id as string;
+}
+
+/** Customers that still hold data (not offboarded): the list a nightly job fans out over. */
+export async function jobTenantIds(pool: Pool): Promise<string[]> {
+  const result = await pool.query('SELECT tenant_id FROM job_tenant_ids()');
+  return result.rows.map((row) => row.tenant_id as string);
+}
+
+/** Retention: sessions dead (expired or revoked, whichever came first) since before `cutoff`. Never a live one. */
+export async function purgeDeadSessions(tx: Db, tenantId: string, cutoff: Date): Promise<number> {
+  const result = await tx.query(
+    'DELETE FROM session WHERE tenant_id = $1 AND LEAST(expires_at, revoked_at) < $2',
+    [tenantId, cutoff],
+  );
+  return result.rowCount ?? 0;
 }

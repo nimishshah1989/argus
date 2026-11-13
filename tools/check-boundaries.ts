@@ -111,9 +111,13 @@ export function boundaryErrors(root: string, legacy: Baseline = LEGACY): string[
 
 type Unit = { kind: 'kernel' | 'seed' | 'root' | 'legacy' } | { kind: 'module'; name: string };
 
-const ROOT_FILES = ['app.ts', 'index.ts', 'modules/index.ts', 'modules/manifest.ts'].map(
-  (file) => `${SERVER_SRC}/${file}`,
-);
+const ROOT_FILES = [
+  'app.ts',
+  'index.ts',
+  'retention.ts',
+  'modules/index.ts',
+  'modules/manifest.ts',
+].map((file) => `${SERVER_SRC}/${file}`);
 
 function unitOf(file: string): Unit {
   if (file.startsWith(`${SERVER_SRC}/kernel/`)) return { kind: 'kernel' };

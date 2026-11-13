@@ -124,3 +124,35 @@ export async function lockBatchRow(
   );
   return result.rows[0];
 }
+
+/**
+ * Retention: drops the source content (`raw`, `canonicalJson`) of rows whose batch finished before `cutoff` (done, failed or
+ * undone: all hold personal data in the raw payload). Keeps what a later replay and undo read: the format, both hashes and the entry type. Marked `purged`,
+ * so a second run finds nothing. The row, its ticket link and the batch stay.
+ */
+export async function stripOldImportPayloads(
+  tx: Db,
+  tenantId: string,
+  cutoff: Date,
+): Promise<number> {
+  const result = await tx.query(
+    `UPDATE import_row r SET updated_at = now(), payload = jsonb_build_object(
+         'format', r.payload -> 'format', 'rawSha256', r.payload -> 'rawSha256',
+         'identitySha256', r.payload -> 'identitySha256',
+         'raw', jsonb_build_object('entryType', r.payload #> '{raw,entryType}'), 'purged', true)
+     FROM import_batch b
+     WHERE r.tenant_id = $1 AND b.id = r.batch_id AND b.tenant_id = r.tenant_id
+       AND b.status IN ('done', 'failed', 'undone') AND b.finished_at < $2
+       AND r.payload ->> 'format' = 'argus.import-raw/v1' AND NOT (r.payload ? 'purged')`,
+    [tenantId, cutoff],
+  );
+  return result.rowCount ?? 0;
+}
+
+export async function countImportBatches(tx: Db, tenantId: string): Promise<number> {
+  const result = await tx.query(
+    'SELECT count(*)::int AS n FROM import_batch WHERE tenant_id = $1',
+    [tenantId],
+  );
+  return result.rows[0].n as number;
+}

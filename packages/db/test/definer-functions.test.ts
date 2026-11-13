@@ -639,4 +639,45 @@ describe('offboard_tenant and audit_purge', () => {
       { tenant_id: B, deleted: '1' },
     ]);
   });
+
+  it('audit_purge never removes the erase and offboard proof rows, however old', async () => {
+    const T = '50000000-0000-0000-0000-000000000009';
+    await tenant(T, 'proof-keeper');
+    for (const action of ['person.erase', 'tenant.offboard', 'ordinary.old']) {
+      await db.query(
+        "INSERT INTO audit_log (tenant_id, action, entity, at) VALUES ($1, $2, 'x', now() - interval '5 years')",
+        [T, action],
+      );
+    }
+    await asRouter(() => db.query("SELECT audit_purge(now() - interval '4 years', 'agent-test')"));
+    const left = await db.query(
+      "SELECT action FROM audit_log WHERE tenant_id = $1 AND at < now() - interval '4 years' ORDER BY action",
+      [T],
+    );
+    expect(left.rows.map((r) => r.action)).toEqual(['person.erase', 'tenant.offboard']);
+    // A second run finds nothing more to remove and writes no second note.
+    const before = await count('audit_log', T);
+    await asRouter(() => db.query("SELECT audit_purge(now() - interval '4 years', 'agent-test')"));
+    expect(await count('audit_log', T)).toBe(before);
+  });
+});
+
+describe('job_tenant_ids', () => {
+  it('lists customers that still hold data, not offboarded ones, and is callable by the application role', async () => {
+    await tenant('60000000-0000-0000-0000-000000000001', 'lister-active');
+    await tenant('60000000-0000-0000-0000-000000000002', 'lister-suspended', 'suspended');
+    await tenant('60000000-0000-0000-0000-000000000003', 'lister-offboarded', 'offboarded');
+    await db.query('BEGIN');
+    try {
+      await db.query('SET LOCAL ROLE app_api');
+      const ids = (await db.query('SELECT tenant_id FROM job_tenant_ids()')).rows.map(
+        (r) => r.tenant_id,
+      );
+      expect(ids).toContain('60000000-0000-0000-0000-000000000001');
+      expect(ids).toContain('60000000-0000-0000-0000-000000000002');
+      expect(ids).not.toContain('60000000-0000-0000-0000-000000000003');
+    } finally {
+      await db.query('ROLLBACK');
+    }
+  });
 });

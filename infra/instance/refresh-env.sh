@@ -15,6 +15,9 @@ jq -er '"DATABASE_URL=" + .DATABASE_URL,
 if ! jq -e 'has("APP_ENV") and .APP_ENV != ""' <<<"$secret" >/dev/null; then
   case "$SECRET_ID" in */staging) echo "APP_ENV=staging" ;; *) echo "APP_ENV=production" ;; esac >> app.env
 fi
-jq -er '"MIGRATION_DATABASE_URL=" + .MIGRATION_DATABASE_URL, "APP_API_PASSWORD=" + .APP_API_PASSWORD' \
+# ROUTER_DATABASE_URL (import undo, D24) is an operator credential: migrate.env only, never app.env. On RDS the
+# master login is the member of app_router, so it is the same login as MIGRATION_DATABASE_URL.
+jq -er '"MIGRATION_DATABASE_URL=" + .MIGRATION_DATABASE_URL, "ROUTER_DATABASE_URL=" + .MIGRATION_DATABASE_URL,
+  "APP_API_PASSWORD=" + .APP_API_PASSWORD' \
   <<<"$secret" > migrate.env
 echo "env refreshed"

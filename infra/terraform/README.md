@@ -4,6 +4,7 @@ Provisions staging in ap-south-1: VPC (public EC2, private RDS), EC2 t4g.medium,
 
 - `main.tf`: network, database, files bucket, server and its role, Elastic IP, DNS.
 - `deploy.tf`: GitHub OIDC trust, the narrow deploy role, the two ECR repositories.
+- `backup.tf`: the backup bucket (weekly dumps, 13 weeks) and the instance's right to add a dump to it. Point-in-time window: `backup_retention_period` in `main.tf`.
 - `secrets.tf`: the database secret the instance reads at deploy time.
 - `alarms.tf`: server log group, error-count alarm, email topic, and the us-east-1 uptime ping.
 

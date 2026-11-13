@@ -10,3 +10,11 @@ export async function initRefCounters(
     [tenantId],
   );
 }
+
+/** How many tickets a customer holds. Run it inside `withTenant`: an owner login is filtered by row security too. */
+export async function countTickets(client: PoolClient, tenantId: string): Promise<number> {
+  const result = await client.query('SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1', [
+    tenantId,
+  ]);
+  return result.rows[0].n as number;
+}
