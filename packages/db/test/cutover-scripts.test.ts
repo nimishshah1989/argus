@@ -313,6 +313,9 @@ describe('cutover scripts, at 0009', () => {
       'Testa Leaver',
     );
 
+    // Erasure drops every cached PDF of the plant, so the first scenario's rows must go first.
+    await db.query('UPDATE breakdown_report SET pdf_file_id = NULL WHERE tenant_id = $1', [ALPHA]);
+    await db.query("DELETE FROM file WHERE tenant_id = $1 AND kind = 'pdf'", [ALPHA]);
     const absolute = join(base, 'absolute.pdf');
     writeFileSync(absolute, 'pdf');
     const other = await leaver('Testa Leaver', [absolute], { phone: '+910000000098' });
