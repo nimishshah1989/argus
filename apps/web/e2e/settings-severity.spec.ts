@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Locator, type Page, type Response } from '@playwright/test';
-import { API_URL, MACHINES, apiLogin, signIn } from './fixtures.js';
+import type { Locator, Page, Response } from '@playwright/test';
+import { expect, test } from './test.js';
+import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
 
 interface RaisedTicket {
   id: string;
@@ -9,7 +10,7 @@ interface RaisedTicket {
 
 /** A machine-less ticket avoids the one-open-ticket-per-machine limit in parallel specs. */
 async function raiseUrgentWorkRequest(token: string, problem: string): Promise<RaisedTicket> {
-  const response = await fetch(`${API_URL}/api/v1/tickets`, {
+  const response = await apiFetch('/api/v1/tickets', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

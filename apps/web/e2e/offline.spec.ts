@@ -1,17 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
-import { API_URL, apiLogin, signIn } from './fixtures.js';
+import type { Page } from '@playwright/test';
+import { expect, test } from './test.js';
+import { apiFetch, apiLogin, scopedId, signIn } from './fixtures.js';
 
 /**
  * AC5b offline outbox (SPEC 1.9): a close made offline is queued and replayed on reconnect;
  * a replayed close whose ticket changed meanwhile becomes a visible draft, never a drop.
  *
  * These specs raise `general` work-request tickets (no machine) because every machine fixture
- * is allocated to floor/desk/board specs, and fixtures.ts is not in this slice's write scope.
+ * is allocated to floor/desk/board specs.
  * The offline mechanism is identical for a `done` close and a `report` close (both queue).
  */
 
-const ASHA_PERSON_ID = '10000000-0000-0000-0000-000000000009';
+const ASHA_PERSON_ID = scopedId('10000000-0000-0000-0000-000000000009');
 
 interface RaisedTicket {
   id: string;
@@ -19,7 +20,7 @@ interface RaisedTicket {
 }
 
 async function raiseWorkRequest(token: string, problem: string): Promise<RaisedTicket> {
-  const res = await fetch(`${API_URL}/api/v1/tickets`, {
+  const res = await apiFetch('/api/v1/tickets', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -34,7 +35,7 @@ async function raiseWorkRequest(token: string, problem: string): Promise<RaisedT
 }
 
 async function closeViaApi(token: string, ticketId: string, personId: string): Promise<void> {
-  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/close`, {
+  const res = await apiFetch(`/api/v1/tickets/${ticketId}/close`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

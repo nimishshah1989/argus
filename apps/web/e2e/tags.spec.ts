@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './test.js';
 import AxeBuilder from '@axe-core/playwright';
-import { API_URL, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 async function expectAccessible(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -39,7 +40,7 @@ async function expectMutationError(page: Page): Promise<void> {
 
 async function setConfiguredTag(code: string, label: string, active: boolean): Promise<void> {
   const token = await apiLogin('admin');
-  const response = await fetch(`${API_URL}/api/v1/lists/work_type/${code}`, {
+  const response = await apiFetch(`/api/v1/lists/work_type/${code}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify({ label, active }),
@@ -48,13 +49,13 @@ async function setConfiguredTag(code: string, label: string, active: boolean): P
 }
 
 async function addPreventive(token: string, ticketId: string): Promise<void> {
-  const catalogue = await fetch(`${API_URL}/api/v1/tags`, {
+  const catalogue = await apiFetch('/api/v1/tags', {
     headers: { authorization: `Bearer ${token}` },
   });
   const tag = (await catalogue.json()).tags.find(
     (item: { code: string }) => item.code === 'preventive',
   );
-  const response = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/tags`, {
+  const response = await apiFetch(`/api/v1/tickets/${ticketId}/tags`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

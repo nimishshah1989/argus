@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
-import { API_URL, MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import type { Page } from '@playwright/test';
+import { expect, test } from './test.js';
+import { MACHINES, apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 interface OpenTicket {
   machineId: string | null;
@@ -14,7 +15,7 @@ function boardMachine(projectName: string) {
 }
 
 async function openTicketFor(token: string, machineId: string): Promise<OpenTicket | null> {
-  const res = await fetch(`${API_URL}/api/v1/state`, {
+  const res = await apiFetch('/api/v1/state', {
     headers: { authorization: `Bearer ${token}` },
   });
   const body = (await res.json()) as { open: OpenTicket[] };

@@ -1,8 +1,8 @@
 # Skills — what is used, where, and what overrides what
 
-The repo ships the Athena v3 suite: **Matt Pocock’s skills** (`grill-with-docs`, `grilling`, `domain-modeling`, `to-spec`, `to-tickets`, `tdd`, `diagnosing-bugs`), **Superpowers’** `subagent-driven-development`, **impeccable** for design, and **office-hours** for the product brief. DeepSeek Harness has native skills with the same intent; use the native one when it exists, read the pinned `SKILL.md` when it does not.
+The repo ships the Athena v3 suite: **Matt Pocock’s skills** (`grill-with-docs`, `grilling`, `domain-modeling`, `to-spec`, `to-tickets`, `tdd`, `diagnosing-bugs`), **Superpowers’** `subagent-driven-development`, **impeccable** for design, and **office-hours** for the product brief.
 
-The skills are written for Claude Code with a human partner, `sonnet`/`opus` model pins and hooks. In DSH the pins and hooks do not apply; follow the **intent**, not the frontmatter. Precedence is in `docs/WORKFLOW.md`.
+The skills are written for Claude Code with a human partner, `sonnet`/`opus` model pins and hooks. Precedence is in `docs/WORKFLOW.md`.
 
 ## 1. The map
 
@@ -19,15 +19,11 @@ The skills are written for Claude Code with a human partner, `sonnet`/`opus` mod
 | Delegation        | `subagent-driven-development`                           | Superpowers                    | Fresh implementer per independent slice, task review, final integration review. See `docs/ORCHESTRATION.md`.                                                      |
 | Debug             | `diagnosing-bugs` / `diagnose`                          | Matt Pocock                    | Reproduce, minimise, hypothesise, instrument, fix, regression test.                                                                                               |
 | Design            | `impeccable` + `docs/DESIGN.md`                         | pbakaus / repo                 | Every user-facing screen; Operate/Read modes, not bolder modes.                                                                                                   |
-| Design system     | `tailwind-design-system`, `ui-ux-pro-max`               | DSH native                     | Tokens, components, palettes, responsive patterns; the output is `docs/DESIGN-SYSTEM.md` and the component library.                                               |
-| Prototype         | `prototype`                                             | DSH native                     | A throwaway floor/desk flow before committing to the screen; test on a phone.                                                                                     |
-| Memory            | `handoff`                                               | DSH native                     | At 50–70% of the context, or the end of a session — never at 99%; the next session starts from the doc.                                                           |
 | Review            | `code-reviewer`                                         | Athena                         | Every PR; fresh context; read-only; `PASS`/`FAIL` with file:line evidence.                                                                                        |
-| Audit             | `improve-codebase-architecture`                         | DSH native                     | Later, at a gate, not during a feature slice.                                                                                                                     |
 
 Not used now: `nextjs-app-router-patterns` (no Next.js), `vercel-react-best-practices` (not Vercel), `orca-cli`/`orchestration` (no Orca layer), `computer-use` (no GUI), `caveman` (not a communication mode we need).
 
-The adapted Ponytail skill is in `.claude/skills/ponytail/SKILL.md`; the project rules are in `docs/LEAN.md`. In DSH it is not a native skill, so the lead applies it manually and the code-reviewer checks it.
+The adapted Ponytail skill is in `.claude/skills/ponytail/SKILL.md`; the project rules are in `docs/LEAN.md`. The code-reviewer checks it.
 
 ## 2. The three conflicts, resolved
 
@@ -50,9 +46,7 @@ For `impeccable`, the checklist is `docs/DESIGN.md` plus the screen spec: role, 
 ## 4. Where the skills live
 
 - Repo: `.claude/skills/<name>/SKILL.md` and `.claude/agents/<name>.md`.
-- DSH native: the session skill catalogue (`tdd`, `diagnose`, `grill-me`, `grill-with-docs`, `to-issues`, `to-prd`, `triage`, `handoff`, `prototype`, `improve-codebase-architecture`, `tailwind-design-system`, `ui-ux-pro-max`, `write-a-skill`).
-- The repo’s `office-hours`, `impeccable`, `domain-modeling`, `to-spec`, `to-tickets` and `subagent-driven-development` have no exact DSH native equivalent; read the `SKILL.md` and follow its intent with DSH tools.
 
 ## 5. Model pins and hooks
 
-`model: sonnet` / `model: opus` / `model: fable` do not resolve in DSH. The hooks in `.claude/harness/hooks/` do not fire. The replacement is the protocol: `HANDOFF` at the start and end, `todo_write` for the session, fresh-context `subagent` reviewers, and the repo as the durable memory. Model diversity for the maker-checker comes from the hosted free coder writing and DeepSeek Flash reviewing (`docs/ORCHESTRATION.md` §10); R3 still adds a human reviewer.
+`model:` pins in `.claude/agents/` and the hooks in `.claude/harness/hooks/` apply as written (Athena v3); R3 still adds a human reviewer.

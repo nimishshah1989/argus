@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { API_URL, MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { expect, test } from './test.js';
+import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
 import {
   FUTURE_PAUSE_COPY,
   POLICIES,
@@ -45,8 +45,7 @@ test('configures policies and future pause rules, then shows ticket timers', asy
 
   const machine = MACHINES[testInfo.project.name === 'phone' ? 9 : 8];
   if (!machine) throw new Error(`No SLA machine for ${testInfo.project.name}`);
-  const token = await apiLogin('asha');
-  const ticket = await raiseTicketViaApi(token, machine.id, `SLA timers on ${machine.code}`);
+  const ticket = await prepareStoppedTicket(machine, await apiLogin('admin'));
   await page.goto('/desk');
   const card = page.getByRole('link', { name: new RegExp(ticket.ref) });
   await expect(card).toContainText('Acknowledge');
@@ -142,7 +141,7 @@ test('gates SLA Settings for technicians without hiding ticket access', async ({
   await page.getByRole('link', { name: 'Back to desk', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tickets', exact: true })).toBeVisible();
 
-  const response = await fetch(`${API_URL}/api/v1/settings/sla-policies`, {
+  const response = await apiFetch('/api/v1/settings/sla-policies', {
     method: 'PUT',
     headers: {
       'content-type': 'application/json',
@@ -168,6 +167,7 @@ test('freezes cached Settings and ticket timers while offline', async ({ page })
   await page.goto(`/desk/${ticket.id}`);
   const timers = page.getByRole('region', { name: 'SLA timers', exact: true });
   await expect(timers).toContainText('Acknowledge');
+  await expect(timerRow(timers, 'Acknowledge').locator('time')).toBeVisible();
   const before = await timers.innerText();
 
   await page.context().setOffline(true);
@@ -255,4 +255,44 @@ test('reprojects overdue, cancelled, and restored timer states', async ({ page }
   await expect(timers.getByText('Ticket cancelled; restore recalculates the clock.')).toHaveCount(
     0,
   );
+});
+
+test.describe('plant time zone', () => {
+  test.use({ timezoneId: 'America/New_York' });
+
+  test('shows no SLA due time until the plant time zone loads', async ({ page }) => {
+    await ensureSlaConfiguration();
+    const ticket = await raiseWorkRequest(await apiLogin('asha'), 'SLA time zone');
+    let releaseConfig!: () => void;
+    const configDelay = new Promise<void>((resolve) => {
+      releaseConfig = resolve;
+    });
+    await page.route(/\/api\/v1\/config(?:\?.*)?$/, async (route) => {
+      await configDelay;
+      await route.continue();
+    });
+    const timers = page.getByRole('region', { name: 'SLA timers', exact: true });
+    try {
+      await signIn(page, 'admin');
+      await page.goto(`/desk/${ticket.id}`);
+      await expect(timers).toContainText('min left');
+      await expect(timers.locator('time')).toHaveCount(0);
+      await expect(timers).not.toContainText('Due');
+    } finally {
+      releaseConfig();
+    }
+
+    const due = timerRow(timers, 'Acknowledge').locator('time');
+    await expect(due).toBeVisible();
+    const iso = await due.getAttribute('datetime');
+    expect(await due.innerText()).toBe(
+      new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+      }).format(new Date(iso ?? '')),
+    );
+  });
 });

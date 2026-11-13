@@ -15,7 +15,7 @@ We are building a maintenance operating system for Indian factories, starting wi
 | --------- | --------------------------------------------------------------------------------------- |
 | Runtime   | Node LTS, TypeScript strict, pnpm workspaces                                            |
 | Server    | Fastify + Zod; pg-boss in the same process (`ROLE=api                                   | worker | all`); Pino |
-| Database  | PostgreSQL 16+ on RDS; Drizzle ORM; SQL migrations with RLS                             |
+| Database  | PostgreSQL 16+ on RDS; raw SQL through `pg` (D02); SQL migrations with RLS              |
 | Web       | Vite + React + React Router + TanStack Query/Table + Tailwind + shadcn/ui; ECharts; PWA |
 | PDFs      | Playwright + Chromium + Noto Gujarati/Devanagari                                        |
 | Files     | S3 with versioning                                                                      |

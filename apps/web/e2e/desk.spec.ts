@@ -1,5 +1,6 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
-import { WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
+import type { Browser, Page } from '@playwright/test';
+import { expect, test } from './test.js';
+import { TENANT_WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
 
 // Both desk tests use the suite's machine for this project, so they run in order.
 test.describe.configure({ mode: 'serial' });
@@ -36,7 +37,7 @@ async function startWorking(page: Page): Promise<void> {
  * browser context. The lifecycle continues on the first page afterwards.
  */
 async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<void> {
-  const context = await browser.newContext({ baseURL: WEB_URL });
+  const context = await browser.newContext({ baseURL: TENANT_WEB_URL });
   try {
     const other = await context.newPage();
     await signIn(other, 'bina');

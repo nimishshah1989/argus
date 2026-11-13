@@ -7,7 +7,7 @@ import { defineConfig } from 'vite';
  * 127.0.0.1 instead of localhost: the server resolves the tenant from the Host header, and
  * Vite's string-proxy shorthand uses `changeOrigin: true`, which rewrites Host to the target.
  * Target "localhost:3001" therefore yields a bare `localhost` host with no tenant slug and
- * every sign-in 404s; "127.0.0.1:3001" maps to DEFAULT_TENANT_SLUG (cosmos) in tenant.ts.
+ * every sign-in 404s. IP hosts map to e2e-unscoped; each worker seeds e2e-w<n> (test.ts) and browses e2e-w<n>.localhost.
  */
 const API_TARGET = process.env.E2E_API_URL ?? 'http://127.0.0.1:3001';
 

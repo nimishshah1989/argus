@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
-import { API_URL, apiLogin, signIn } from './fixtures.js';
+import { expect, test } from './test.js';
+import { apiFetch, apiLogin, signIn, type ApiInit } from './fixtures.js';
 
 interface RaisedTicket {
   id: string;
   ref: string;
 }
 
-async function apiJson<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+async function apiJson<T>(token: string, path: string, init: ApiInit = {}): Promise<T> {
+  const res = await apiFetch(path, {
     ...init,
     headers: {
       'content-type': 'application/json',

@@ -96,4 +96,20 @@ describe('parity ledger', () => {
       'v3.import.01: feature does not match PARITY.md source',
     );
   });
+
+  it('rejects an in-progress row with neither evidence nor a ticket', () => {
+    const row = {
+      id: 'v3.test.04',
+      feature: 'x',
+      disposition: 'keep' as const,
+      milestone: 'M1',
+      status: 'in-progress' as const,
+      evidence: [],
+    };
+    expect(validateParity({ version: 1, rows: [row] })).toContain(
+      'v3.test.04: in-progress without evidence or a ticket',
+    );
+    const ticketed = validateParity({ version: 1, rows: [{ ...row, ticket: '#91' }] });
+    expect(ticketed.filter((error) => error.startsWith('v3.test.04'))).toEqual([]);
+  });
 });
