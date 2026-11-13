@@ -428,10 +428,11 @@ Regression risk:
 
 ## 9. Evidence (filled by the builder)
 
-- Red then green runs for tests 1–12 (commit ids).
-- Output of checks 13–15.
-- Docker Compose plugin version and URL pinned in `user_data`.
-- Run Command parameter limit used in test 8, with the AWS docs link.
+- Tests 1-7 (server) written first: `logging.test.ts` failed on the missing `logging.js`, `health.test.ts` failed (200 instead of 503, and the `rateLimitMax: 1` guard). Green after `logging.ts`, `health.ts`, `app.ts`, `config.ts`, `index.ts`, `auth.ts`. Tests 8-12: all failed with a missing `infra/instance/*.sh` / `deploy.yml` shape, then green. The orchestrator's snapshot commit 11e4366 holds the first versions of tests 1-7.
+- Check 13: `/tmp/tf/terraform fmt -check` exit 0. Check 14: `init -backend=false` then `validate`: "Success! The configuration is valid."
+- Compose plugin pinned in `user_data`: v5.7.1 (newest stable on the docker/compose releases page, 11 Nov 2026; "v2" in section 4.5 is the plugin API, the project is now at 5.x), URL `https://github.com/docker/compose/releases/download/v5.7.1/docker-compose-linux-aarch64` (asset exists; its checksum is not verified in `user_data`).
+- Run Command limit in test 8: 64 KB, `MaxDocumentSizeExceeded` on https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_SendCommand.html (no separate parameter limit is documented).
+- Ruling 1 check (Testcontainer, `postgres:16-alpine`, non-superuser login with CREATEROLE and CREATEDB owning the database): `0001_schema_v1.sql` fails at `CREATE ROLE app_router NOLOGIN BYPASSRLS` ("permission denied to create role"); with `app_router` pre-created and granted, it fails at `ALTER ROLE app_router BYPASSRLS` ("permission denied to alter role"). `rds_superuser` was not available locally.
 
 ## 10. Open items and questions
 

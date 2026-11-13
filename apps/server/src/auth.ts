@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { bearerToken, hashToken, newToken } from './session.js';
+import { bindLog } from './logging.js';
 import { resolveTenant, tenantSlugFromHost } from './tenant.js';
 import type { AppConfig } from './config.js';
 
@@ -55,6 +56,7 @@ export async function requireAuth(
       .send(apiError('unauthenticated', 'Your sign-in has ended. Please sign in again.'));
     return null;
   }
+  bindLog(request, reply, { tenantId: found.tenant_id, loginId: found.login_id });
   await withTenant(pool, found.tenant_id, (client) =>
     client.query(
       "UPDATE session SET last_seen_at = now(), expires_at = now() + interval '30 days' WHERE token_hash = $1",
@@ -140,6 +142,7 @@ async function login(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
+  bindLog(request, reply, { tenantId: tenant.id });
   const { username, password, device, actingPersonId } = parsed.data;
   const loginRow = await findLogin(pool, tenant.id, username);
   const passwordOk =

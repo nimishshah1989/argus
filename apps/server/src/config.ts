@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { FastifyServerOptions } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
 import { severityMatrixSchema, type SeverityMatrix, type SlaPolicy } from '@uptimo/shared';
@@ -122,7 +123,7 @@ export async function loadConfig(pool: Pool, tenantId: string): Promise<ConfigPa
 
 export interface AppConfig {
   pool: Pool;
-  logger?: boolean;
+  logger?: FastifyServerOptions['logger'];
   rateLimitMax?: number;
   /** Local storage root for rendered files; S3 replaces this adapter later. */
   filesDir?: string;

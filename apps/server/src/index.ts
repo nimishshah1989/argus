@@ -1,5 +1,6 @@
 import { buildApp } from './app.js';
 import { createPool } from './db.js';
+import { loggerOptions } from './logging.js';
 import { startJobs, type JobRole } from './jobs/index.js';
 import { reconcileTicket } from './ticket/sla.js';
 import type { SlaTicketReconciler } from './jobs/sla-consistency.js';
@@ -34,7 +35,7 @@ if (role === 'worker') {
 } else {
   const app = await buildApp({
     pool,
-    logger: true,
+    logger: loggerOptions(),
     databaseUrl: url,
     jobBoss: jobs.boss,
     jobsHandle: jobs,

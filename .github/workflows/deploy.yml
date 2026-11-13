@@ -1,65 +1,119 @@
 name: deploy
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Image tag to deploy (default staging)'
-        required: false
-        default: 'staging'
-  push:
-    tags: ['v*']
+      action:
+        description: 'deploy a release, or roll back to the previous one'
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+      tag:
+        description: 'Image tag to deploy (default: this commit)'
+        type: string
+        default: ''
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
-  image:
+  staging:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACTION: ${{ inputs.action || 'deploy' }}
+      TAG: ${{ inputs.tag || github.sha }}
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      APP: uptimo
     steps:
+      - name: Gate
+        id: gate
+        run: |
+          case "$TAG" in *[!A-Za-z0-9._-]*) echo "bad tag"; exit 1 ;; esac
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "staging not provisioned yet"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.ready == 'true'
       - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.ready == 'true'
         with:
           version: 10.30.3
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.ready == 'true'
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build:server
-      - name: Build image
-        run: |
-          TAG="${GITHUB_REF_NAME:-staging}"
-          docker build -f infra/server.Dockerfile -t ghcr.io/nimishshah1989/uptimo-server:"${TAG}" .
-          echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-          docker push ghcr.io/nimishshah1989/uptimo-server:"${TAG}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  deploy:
-    needs: image
-    if: ${{ secrets.AWS_ROLE_ARN != '' }}
-    runs-on: ubuntu-latest
-    steps:
       - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.gate.outputs.ready == 'true'
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ap-south-1
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+        if: steps.gate.outputs.ready == 'true'
+      - name: Is the image already in ECR?
+        id: exists
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy'
+        run: |
+          missing=false
+          for repo in "$APP-server" "$APP-web"; do
+            aws ecr describe-images --repository-name "$repo" --image-ids imageTag="$TAG" >/dev/null 2>&1 || missing=true
+          done
+          if [ "$missing" = true ] && [ "$TAG" != "$GITHUB_SHA" ]; then
+            echo "image $TAG not in ECR"; exit 1
+          fi
+          echo "build=$missing" >> "$GITHUB_OUTPUT"
+      - run: pnpm install --frozen-lockfile
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+      - run: pnpm build:web
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+      - uses: docker/setup-qemu-action@v3
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+      - uses: docker/setup-buildx-action@v3
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+      - name: Build and push the server image
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+        run: docker buildx build --platform linux/arm64 -f infra/server.Dockerfile -t "${{ steps.ecr.outputs.registry }}/$APP-server:$TAG" --push .
+      - name: Build and push the web image
+        if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+        run: docker buildx build --platform linux/arm64 -f infra/web.Dockerfile --build-context dist=apps/web/dist -t "${{ steps.ecr.outputs.registry }}/$APP-web:$TAG" --push infra
       # No public SSH: the instance is reached through SSM only.
-      - name: Deploy via SSM
+      - name: Run the release on the instance
+        if: steps.gate.outputs.ready == 'true'
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=uptimo-server" "Name=instance-state-name,Values=running" \
+            --filters "Name=tag:Name,Values=$APP-server" "Name=instance-state-name,Values=running" \
             --query 'Reservations[0].Instances[0].InstanceId' --output text)
           if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
-            echo "No running uptimo-server instance found"; exit 1
+            echo "no running $APP-server instance"; exit 1
           fi
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "deploy ${GITHUB_REF_NAME:-staging}" \
-            --parameters 'commands=["cd /opt/uptimo && docker compose pull && docker compose up -d server caddy"]' \
-            --query 'Command.CommandId' --output text)
-          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"
-          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query 'StandardOutputContent' --output text
+          if [ "$ACTION" = rollback ]; then RUN="rollback"; else RUN="deploy $TAG"; fi
+          PAYLOAD=$(tar czf - -C infra docker-compose.yml instance | base64 -w0)
+          jq -n --arg cmd "mkdir -p /opt/uptimo && echo $PAYLOAD | base64 -d | tar xz -C /opt/uptimo && chmod +x /opt/uptimo/instance/*.sh && /opt/uptimo/instance/deploy.sh $RUN" \
+            '{commands: [$cmd], executionTimeout: ["900"]}' > params.json
+          COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment "$ACTION $TAG" \
+            --parameters file://params.json --query 'Command.CommandId' --output text)
+          # `aws ssm wait` gives up after about 100 s; pull, migrate and the health probe take longer.
+          for _ in $(seq 1 180); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in Pending|InProgress|Delayed) sleep 5 ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardErrorContent --output text
+          [ "$STATUS" = Success ]

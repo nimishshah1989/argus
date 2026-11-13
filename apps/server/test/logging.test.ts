@@ -23,7 +23,9 @@ beforeAll(async () => {
   db = await startTestDb();
   admin = db.admin;
   const passwordHash = await hash('fake-password-for-tests');
-  await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [TENANT]);
+  await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'cosmos', 'Cosmos')", [
+    TENANT,
+  ]);
   await admin.query(
     "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $2, 'Ravi Test', 'maintenance', 'Technician')",
     [PERSON, TENANT],
