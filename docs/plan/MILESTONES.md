@@ -23,7 +23,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 04  | One contract, reply parts                         | M0        | done        | #160             |
 | 05  | Actions and words from the domain                 | M0        | in progress | —                |
 | 06  | Stop destroying history                           | M0        | in progress | —                |
-| 07  | History cannot be lost (cutover migration)        | M0        | in progress | —                |
+| 07  | History cannot be lost (cutover migration)        | M0        | done        | #169             |
 | 08  | Real plant in                                     | M0        | done        | #150             |
 | 09  | Real tickets in                                   | M0        | todo        | —                |
 | 10  | One design kit                                    | M0        | done        | #147             |
