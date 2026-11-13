@@ -278,12 +278,12 @@ The repo’s suite is mostly **Matt Pocock’s skills** (`grill-with-docs`, `gri
 | Phase            | Skill                                                   | What it enforces                                                              | Source                                          |
 | ---------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
 | Product shaping  | `office-hours`                                          | Forcing questions, premise challenge, alternatives                            | Repo only; already done — the spec is the brief |
-| Requirements     | `grill-with-docs` / `grill-me`                          | Relentless product questions, glossary and decisions                          | both                                            |
-| Spec and tickets | `to-spec`, `to-tickets` / `to-issues`, `to-prd`         | One vertical slice per ticket, acceptance criteria, blocking edges            | both                                            |
+| Requirements     | `grill-with-docs` / `grill-me`                          | Relentless product questions, glossary and decisions                          | Repo                                            |
+| Spec and tickets | `to-spec`, `to-tickets` / `to-issues`, `to-prd`         | One vertical slice per ticket, acceptance criteria, blocking edges            | Repo                                            |
 | Architecture     | `architect`, `architecture-reviewer`, `schema-reviewer` | Modular monolith, one interface per module, RLS, keys, indexes, reversibility | Repo agents                                     |
 | Slice plan       | `slice-planner`, `plan-reviewer`                        | Every file, interface, field and test named; no guessing                      | Repo agents                                     |
-| Build            | `tdd`, `subagent-driven-development`                    | Red → green; fresh implementer per task; task review                          | both                                            |
-| Debug            | `diagnosing-bugs` / `diagnose`                          | Reproduce, minimise, hypothesise, instrument, fix, regression test            | both                                            |
+| Build            | `tdd`, `subagent-driven-development`                    | Red → green; fresh implementer per task; task review                          | Repo                                            |
+| Debug            | `diagnosing-bugs` / `diagnose`                          | Reproduce, minimise, hypothesise, instrument, fix, regression test            | Repo                                            |
 | Design           | `impeccable`, `DESIGN.md`                               | Clarity, deference, depth; one primary action; accessibility                  | Repo                                            |
 | Review           | `code-reviewer`                                         | Plan match, no extra, tests first, boundaries, no secrets, green suite        | Repo agent; fresh-context subagent              |
 

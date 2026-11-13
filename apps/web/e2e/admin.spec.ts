@@ -8,7 +8,7 @@ interface RaisedTicket {
 }
 
 async function apiJson<T>(token: string, path: string, init: ApiInit = {}): Promise<T> {
-  const res = await apiFetch(`${path}`, {
+  const res = await apiFetch(path, {
     ...init,
     headers: {
       'content-type': 'application/json',

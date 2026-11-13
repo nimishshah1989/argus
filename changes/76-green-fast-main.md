@@ -1,4 +1,4 @@
-- SLA due and stopped times wait for the plant time zone (#76).
+- SLA due and stopped times wait for the plant time zone.
 - Browser tests seed one tenant per Playwright worker.
 - CI runs as `static`, `api` ×3 and `browser` ×2, each under 8 minutes.
 - Docs, parity, changelog and PII guards.
