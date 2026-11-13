@@ -91,7 +91,8 @@ Other edits to existing tests, all forced and none weaker: `migration-runner.tes
 
 Plan section 6, numbers 1 to 56. Pass counts at the end of this branch:
 
-- After merging `main` (with `0008_ai_suggestion`), one run each: `packages/db` + `tools` + `scripts`: 24 files, 183
+- After review round 2: `packages/db` + `tools` + `scripts`: 24 files, 202 passed; the five `apps/server` import suites: 120
+  passed. Earlier, after merging `main` (with `0008_ai_suggestion`), one run each: `packages/db` + `tools` + `scripts`: 24 files, 183
   passed; `apps/server`: 43 files, 416 passed. Before the merge the implementer's combined run had one failure, a
   test-order bug in test 56 (a first scenario's PDF rows leaked into the second), fixed; the file then passed twice in a
   row. Fast set (`.claude/harness/fast-tests.sh`): 33 files, 275 passed.
