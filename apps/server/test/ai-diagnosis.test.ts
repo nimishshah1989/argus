@@ -131,7 +131,7 @@ describe('diagnosis feature', () => {
       await ticket(A, m, `2026-08-02T0${i}:00:00Z`, { closeNote: 'Repaired' });
     await ticket(A, S, '2026-07-01T08:00:00Z', { action: 'Spindle bearing noisy, replaced' });
     await ticket(A, M, '2026-11-20T08:00:00Z', { action: 'Future fix' });
-    await ticket(A, M, '2026-10-30T08:00:00Z', { status: 'open' });
+    await ticket(A, M, '2026-10-30T08:00:00Z', { status: 'cancelled' }); // not closed: left out
     return { old1 };
   }
 
@@ -163,6 +163,9 @@ describe('diagnosis feature', () => {
   beforeEach(async () => {
     logs = [];
     await db.admin.query('DELETE FROM ai_suggestion');
+    await db.admin.query(
+      `DELETE FROM breakdown_report WHERE ticket_id IN (SELECT id FROM ticket WHERE ref LIKE 'D-%')`,
+    );
     await db.admin.query(`DELETE FROM ticket WHERE ref LIKE 'D-%'`);
   });
 
@@ -218,6 +221,7 @@ describe('diagnosis feature', () => {
     const provider: AiProvider = {
       modelRef: 'fake',
       async complete() {
+        await db.admin.query('DELETE FROM breakdown_report WHERE ticket_id = $1', [old1]);
         await db.admin.query('DELETE FROM ticket WHERE id = $1', [old1]);
         return {
           output: reply([cand('Bearing', ['T1', foreign])]).output,
