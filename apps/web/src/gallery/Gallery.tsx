@@ -5,7 +5,9 @@ import { useSearchParams } from 'react-router-dom';
 import { setLanguage } from '../i18n/index.js';
 import { Button } from '../ui/button.js';
 import { Inline, Page, Stack } from '../ui/layout.js';
+import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
+import { PatternsSection } from './patterns-section.js';
 import { StatusSection } from './status-section.js';
 import { registerGalleryStrings } from './strings.js';
 import { TokensSection } from './tokens-section.js';
@@ -108,6 +110,8 @@ export default function Gallery() {
         <TokensSection />
         <KitSection />
         <StatusSection />
+        <PatternsSection />
+        <FormSection />
       </Page>
     </div>
   );
