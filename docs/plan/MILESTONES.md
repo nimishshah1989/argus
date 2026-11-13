@@ -24,7 +24,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 05  | Actions and words from the domain                 | M0        | todo        | —    |
 | 06  | Stop destroying history                           | M0        | todo        | —    |
 | 07  | History cannot be lost (cutover migration)        | M0        | todo        | —    |
-| 08  | Real plant in                                     | M0        | in progress | —    |
+| 08  | Real plant in                                     | M0        | done        | #150 |
 | 09  | Real tickets in                                   | M0        | todo        | —    |
 | 10  | One design kit                                    | M0        | done        | #147 |
 | 11  | Page patterns: data, queue, detail, form          | M0        | todo        | —    |
