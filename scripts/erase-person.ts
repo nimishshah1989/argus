@@ -122,7 +122,15 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const { keys, counts } = await erase(pool, tenant.id, args);
-    for (const key of keys) await rm(join(args.filesDir ?? '', key), { force: true });
+    for (const [i, key] of keys.entries()) {
+      try {
+        await rm(join(args.filesDir ?? '', key), { force: true });
+      } catch (error) {
+        // The rows are already gone, so these keys are recorded nowhere else: print what is left.
+        console.error(`erase: could not remove ${keys.slice(i).join(', ')}`);
+        throw error;
+      }
+    }
     console.log(JSON.stringify(counts));
     if (counts.text_searched === true) {
       console.log('erase: complete');

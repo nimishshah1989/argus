@@ -185,12 +185,20 @@ describe('support access', () => {
   it('refuses a grant without an admin approver or longer than 7 days', async () => {
     await asApi(A, async (attempt) => {
       const technician = randomUUID();
-      await attempt(
-        "INSERT INTO login (id, tenant_id, username, password_hash, role, shared) VALUES ($1, $2, 'tech-x', 'h', 'technician', false)",
-        [technician, A],
+      expect(
+        (
+          await attempt(
+            "INSERT INTO login (id, tenant_id, username, password_hash, role, shared) VALUES ($1, $2, 'tech-x', 'h', 'technician', false)",
+            [technician, A],
+          )
+        ).error,
+      ).toBeNull();
+      expect((await attempt(grant, [A, '1', null])).error).toMatch(
+        /the approver must be an active admin login/,
       );
-      expect((await attempt(grant, [A, '1', null])).error).toMatch(/approver/);
-      expect((await attempt(grant, [A, '1', technician])).error).toMatch(/approver/);
+      expect((await attempt(grant, [A, '1', technician])).error).toMatch(
+        /the approver must be an active admin login/,
+      );
       expect((await attempt(grant, [A, '8', A_LOGIN])).error).toMatch(
         /platform_access_expiry_window/,
       );

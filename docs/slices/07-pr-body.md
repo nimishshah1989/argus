@@ -99,6 +99,16 @@ exactly once` failed until `manifest.ts` changed; tests 49 to 52 failed four of 
   - `cutover-scripts.test.ts` (39, 40, 41, 42, 56): 5 of 5 failed (`ENOENT .../0009_history_cannot_be_lost.sql`; the tag
     export still finds 3 rows; `erase_person` missing). Test 15 (preflight) passes there by design: it needs no 0009.
 
+## Code review (one pass, fresh context; the Athena reviewer agents were retired by pstack while this PR was open)
+
+FAIL on first pass. Fixed in this PR: the `CREATE` lent to `app_router` is now taken back on every failure path of the
+runner (new runner test); test 26 asserts the technician insert succeeded and matches the trigger's own message; test 34
+asserts the exact role query; `erase-person.ts` prints the storage keys it could not remove. Deviation recorded:
+`undo.ts` still uses `withTenant` (plan decision 1 needs the tenant-scoped transaction on the router connection; plan §3
+said to delete the import). Waiting on CI for the head commit before the PR leaves draft. Not fixed here (follow-ups):
+the migration scanner still misreads an odd apostrophe inside a dollar-quoted or `E'..'` literal and an `UPDATE` of a
+quoted identifier containing a space; neither is in a real migration.
+
 ## Follow-ups (not in this PR)
 
 - **Raise race:** a second open breakdown raised at the same instant now ends in a unique violation (a 500) instead of a

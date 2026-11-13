@@ -189,15 +189,15 @@ export async function applyAppMigrations(
 ): Promise<void> {
   await pool.query("SELECT pg_advisory_lock(hashtext('uptimo-migrations'))");
   await prepareRoles(pool);
-  await secureAppApiRole(pool);
-  await pool.query(
-    'CREATE TABLE IF NOT EXISTS schema_migration (filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())',
-  );
-  const applied = new Set(
-    (await pool.query('SELECT filename FROM schema_migration')).rows.map((row) => row.filename),
-  );
-  const bypass = await canGrantBypass(pool);
   try {
+    await secureAppApiRole(pool);
+    await pool.query(
+      'CREATE TABLE IF NOT EXISTS schema_migration (filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())',
+    );
+    const applied = new Set(
+      (await pool.query('SELECT filename FROM schema_migration')).rows.map((row) => row.filename),
+    );
+    const bypass = await canGrantBypass(pool);
     for (const file of files)
       if (!applied.has(file)) await applyFile(pool, file, { migrations, adoptThrough, bypass });
   } catch (error) {

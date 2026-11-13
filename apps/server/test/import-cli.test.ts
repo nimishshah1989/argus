@@ -209,6 +209,9 @@ describe('router role guard', () => {
     ]);
     await expect(assertRouterRole(pool)).resolves.toBeUndefined();
     expect(query).toHaveBeenCalledOnce();
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining("pg_has_role(current_user, 'app_router', 'USAGE')"),
+    );
     expect(release).toHaveBeenCalledOnce();
   });
 

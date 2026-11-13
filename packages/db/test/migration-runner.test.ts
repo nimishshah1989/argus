@@ -242,6 +242,18 @@ it('repairs privileged app_api attributes on every migration run', async () => {
   });
 }, 120_000);
 
+it('takes back the CREATE it lent to app_router when a step before the files fails', async () => {
+  await withRunnerDatabases(async (createDatabase) => {
+    const { pool, url } = await createDatabase();
+    await pool.query('CREATE TABLE schema_migration (other integer)'); // the ledger read then fails
+    await expect(runMigration(url)).rejects.toThrow();
+    const lent = await pool.query(
+      "SELECT has_schema_privilege('app_router', 'public', 'CREATE') AS lent",
+    );
+    expect(lent.rows[0].lent).toBe(false);
+  });
+}, 120_000);
+
 it('refuses to ledger incomplete migration artifacts', async () => {
   await withRunnerDatabases(async (createDatabase) => {
     const partials: Array<{ file: string; prepare: (pool: Pool) => Promise<void> }> = [
