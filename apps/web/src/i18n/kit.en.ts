@@ -1,4 +1,4 @@
-/** Kit strings: the status labels and the sheet close button (D19). Merged into `en`. */
+/** Kit strings: the status labels and the sheet close button (D20). Merged into `en`. */
 export const kitEn = {
   'status.ticket.stopped': 'Stopped',
   'status.ticket.inProgress': 'In progress',

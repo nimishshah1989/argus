@@ -3,7 +3,7 @@ import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /**
- * UI guard (ticket 10, D19). Files under faces/ are built from the kit only: no className or
+ * UI guard (ticket 10, D20). Files under faces/ are built from the kit only: no className or
  * style, no raw colour, at most 120 lines per .tsx. lucide-react is imported only by ui/icon.ts.
  */
 

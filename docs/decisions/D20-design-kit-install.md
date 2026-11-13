@@ -1,4 +1,4 @@
-# D19 — Design kit install: packages, five components, accent switch, screenshot image
+# D20 — Design kit install: packages, five components, accent switch, screenshot image
 
 Date: 13 November 2026 · Status: accepted (orchestrator, ticket 10); builds on D04 and D09
 

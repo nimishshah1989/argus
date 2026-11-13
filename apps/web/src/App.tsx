@@ -10,7 +10,7 @@ import { Settings } from './screens/Settings.js';
 import { TicketDetail } from './screens/TicketDetail.js';
 
 // Decided at build time: in a production build without VITE_GALLERY=on this is `false`, so the
-// bundler drops the gallery (D19).
+// bundler drops the gallery (D20).
 const Gallery =
   import.meta.env.DEV || import.meta.env.VITE_GALLERY === 'on'
     ? lazy(() => import('./gallery/Gallery.js'))

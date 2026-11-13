@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Gallery screenshots and axe (ticket 10, D9, D19). No database: two web servers, the dev
+ * Gallery screenshots and axe (ticket 10, D9, D20). No database: two web servers, the dev
  * server (:3100) and the production preview (:3101). Baselines are made in the pinned Playwright
  * image (`pnpm gallery:update:docker`), so they are byte-identical to CI's.
  */

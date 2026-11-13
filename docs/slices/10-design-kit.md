@@ -12,7 +12,7 @@ colours.
 
 ## 2. Decisions (technical; the orchestrator records them)
 
-1. **One ADR, D19.**
+1. **One ADR, D20.**
    - Two runtime packages, pinned exact in `apps/web/package.json`:
      - `radix-ui` **1.8.1** (MIT). It is the unified Radix package, so later primitives need no new
        dependency.
@@ -114,7 +114,7 @@ Per orchestrator ruling, these wiring edits belong to this lane:
 
 **ADR and dependencies**
 
-- `docs/decisions/D19-design-kit-install.md` (new): decisions 1, 2 and 4, plus the image from decision 8,
+- `docs/decisions/D20-design-kit-install.md` (new): decisions 1, 2 and 4, plus the image from decision 8,
   each with what was rejected.
 - `THIRD_PARTY.md`: three rows change.
   - `Radix UI primitives` → ``Radix UI primitives (`radix-ui` 1.8.1)``.
@@ -472,7 +472,7 @@ kit keys included), and `pnpm test:e2e` keeps the screen flows green after the t
 `changes/79-design-kit.md`:
 
 ```
-- One design kit: tokens, five components, Lucide icons and the status vocabulary (D19).
+- One design kit: tokens, five components, Lucide icons and the status vocabulary (D20).
 - `/gallery` (development and staging builds) shows the kit at phone width in English and placeholder Gujarati, with two accent options.
 - CI fails on a changed gallery screenshot and on hand styling or raw colours in `faces/`.
 ```
