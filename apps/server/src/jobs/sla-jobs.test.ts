@@ -66,12 +66,22 @@ async function liveJobs(key: string) {
   return jobs.filter((job) => ['created', 'retry', 'active'].includes(job.state));
 }
 
+// Waits until the injected first failure has happened. The job's `retry` state is transient: the
+// test clock has already passed its start_after, so the worker may re-pick it and complete it
+// before a poll sees `retry`. Later assertions pin attempts === 2 and the completed outcome.
 async function waitForPersistedRetry(jobId: string): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
     const job = await admin.query('SELECT state FROM pgboss.job WHERE id = $1', [jobId]);
     const attempts = await admin.query('SELECT last_value FROM sla_fire_attempt');
-    if (job.rows[0]?.state === 'retry' && attempts.rows[0]?.last_value === '1') return;
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    const state = job.rows[0]?.state;
+    if (
+      ['retry', 'active', 'completed'].includes(state) &&
+      Number(attempts.rows[0]?.last_value) >= 1
+    ) {
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 25));
   }
   throw new Error(`SLA job ${jobId} did not reach retry after its first attempt`);
 }
