@@ -133,7 +133,7 @@ export const personSchema = z
     team: str,
     title: nstr,
     active: z.boolean(),
-    phone: nstr,
+    phone: nstr.optional(),
   })
   .strict();
 export type Person = z.infer<typeof personSchema>;
