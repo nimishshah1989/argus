@@ -30,7 +30,7 @@ board/kiosk, WhatsApp share text and an installable PWA shell are also merged; t
 core-issue fixes are in. `pnpm verify` (143 tests) and `pnpm test:e2e` are green, and CI runs both.
 The M1b remainder (offline outbox, push, day-report PDF, import, Gujarati strings, cutover) and
 M2–M4 are next. Parity stands at 12 done / 34 in-progress / 29 todo / 3 external / 1 waived of 79
-rows — see [docs/plan/STATUS.md](docs/plan/STATUS.md) and [docs/HANDOFF.md](docs/HANDOFF.md).
+rows — see [docs/plan/MILESTONES.md](docs/plan/MILESTONES.md) and [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Layout
 

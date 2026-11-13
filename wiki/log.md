@@ -75,3 +75,5 @@
 - 2026-11-13 11:54 UTC session c23c2255 on `claude/orchestrator-ledger`: 4717d0c docs(plan): ledger — adoption plan landed, 05 merged
 - 2026-11-13 12:16 UTC session c23c2255 on `claude/orchestrator-ledger`: 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
 - 2026-11-13 12:46 UTC session c23c2255 on `claude/orchestrator-ledger`: cb90f34 docs(plan): ledger — 07 schema-review rulings
+- 2026-11-13 13:47 UTC session c23c2255 on `claude/orchestrator-ledger`: 303d079 docs(plan): ledger — #163 merged; one PR at the gate
+- 2026-11-13 14:04 UTC session c23c2255 on `claude/orchestrator-ledger`: 4c24791 docs: session notes (hook)
