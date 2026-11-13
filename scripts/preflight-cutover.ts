@@ -43,7 +43,7 @@ async function preflight(pool: Pool): Promise<number> {
   console.log(
     `preflight: ${total.duplicates} machines with duplicates, ${total.tags} tag rows, ${total.grants} grants`,
   );
-  return total.duplicates > 0 ? 1 : 0;
+  return total.duplicates > 0 ? 3 : 0; // 3: duplicates to resolve; 1 stays for a crash
 }
 
 async function main(): Promise<void> {

@@ -14,6 +14,19 @@ export function csvField(value: string | null): string {
   return value === '' || /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }
 
+/** Never overwrites: `wx` fails on an existing name, and the next free counter is tried instead. */
+function writeNew(dir: string, stamp: string, text: string): string {
+  for (let attempt = 0; ; attempt += 1) {
+    const path = join(dir, `ticket_tag-${stamp}${attempt === 0 ? '' : `-${attempt}`}.csv`);
+    try {
+      writeFileSync(path, text, { flag: 'wx' });
+      return path;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    }
+  }
+}
+
 async function exportTags(out: string): Promise<void> {
   const pool = operatorPool();
   try {
@@ -38,8 +51,7 @@ async function exportTags(out: string): Promise<void> {
     }
     mkdirSync(out, { recursive: true });
     const stamp = new Date().toISOString().replace(/[-:]|\.\d{3}/g, '');
-    const path = join(out, `ticket_tag-${stamp}.csv`);
-    writeFileSync(path, `${[header.join(','), ...lines].join('\n')}\n`);
+    const path = writeNew(out, stamp, `${[header.join(','), ...lines].join('\n')}\n`);
     console.log(`export-tags: ${lines.length} rows written to ${path}`);
     console.log(`export-tags: migrate with PGOPTIONS='-c uptimo.tags_exported=${lines.length}'`);
   } finally {

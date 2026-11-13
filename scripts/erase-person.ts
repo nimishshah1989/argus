@@ -1,5 +1,5 @@
-import { rm } from 'node:fs/promises';
-import { isAbsolute, join } from 'node:path';
+import { lstat, realpath, rm, stat } from 'node:fs/promises';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
@@ -18,14 +18,15 @@ export const HAND_REVIEW: readonly string[] = [
 ];
 
 const USAGE = `usage: erase-person --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>
-       erase-person --tenant <slug> --review-done --request <ref> --operator <who>`;
+       erase-person --tenant <slug> --person <uuid> --request <ref> --operator <who> --review-done
+exit codes: 0 complete, 1 failed or files left behind, 2 bad arguments, 3 hand review still pending`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Args {
   tenant: string;
   request: string;
   operator: string;
-  person?: string;
+  person: string;
   filesDir?: string;
   reviewDone: boolean;
 }
@@ -44,26 +45,60 @@ function parse(argv: string[]): Args | undefined {
       },
     }).values;
     const { tenant, request, operator, person } = v;
-    if (!tenant || !request?.trim() || !operator?.trim()) return undefined;
+    if (!tenant || !request?.trim() || !operator?.trim() || !person || !UUID.test(person)) {
+      return undefined;
+    }
     const reviewDone = v['review-done'] === true;
-    if (!reviewDone && (!person || !UUID.test(person) || !v['files-dir'])) return undefined;
+    if (!reviewDone && !v['files-dir']) return undefined;
     return { tenant, request, operator, person, filesDir: v['files-dir'], reviewDone };
   } catch {
     return undefined;
   }
 }
 
-const isUnsafe = (key: string): boolean => isAbsolute(key) || key.includes('..');
+/** Personal data is never reported erased while a term went unsearched or no text could be searched. */
+const needsReview = (counts: Record<string, unknown>): boolean =>
+  counts.text_searched !== true || Number(counts.skipped_short_terms ?? 0) > 0;
+
+const isUnder = (root: string, path: string): boolean => {
+  const rel = relative(root, path);
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+};
+
+/** The directory the stored files live in, resolved once so a symlinked path cannot move it later. */
+async function filesRoot(dir: string): Promise<string> {
+  try {
+    const real = await realpath(dir);
+    if ((await stat(real)).isDirectory()) return real;
+  } catch {
+    // reported below
+  }
+  throw new Error(`erase: --files-dir ${dir} is not a directory`);
+}
+
+/** A key is unsafe when it is absolute, climbs out, or its folder is a link that leads outside the root. */
+async function isUnsafe(root: string, key: string): Promise<boolean> {
+  if (isAbsolute(key) || key.includes('..')) return true;
+  const target = resolve(root, key);
+  if (!isUnder(root, target)) return true;
+  try {
+    const folder = await realpath(join(target, '..'));
+    return folder !== root && !isUnder(root, folder);
+  } catch {
+    return false; // the folder does not exist, so there is no file to remove
+  }
+}
 
 /** Erases inside one transaction, so an unsafe storage key leaves the database untouched. */
-async function erase(pool: Pool, tenantId: string, args: Args) {
+async function erase(pool: Pool, tenantId: string, args: Args, root: string) {
   return withTenant(pool, tenantId, async (client) => {
-    const found = await client.query('SELECT 1 FROM person WHERE id = $1 AND tenant_id = $2', [
-      args.person,
+    const done = await client.query(
+      "SELECT 1 FROM audit_log WHERE tenant_id = $1 AND action = 'person.erase' AND entity_id = $2",
+      [tenantId, args.person],
+    );
+    if (done.rowCount) throw new Error('erase: this person is already erased');
+    const result = await client.query('SELECT erase_person($1, $2, $3, $4) AS r', [
       tenantId,
-    ]);
-    if (found.rowCount !== 1) throw new Error('erase: person not found in this tenant');
-    const result = await client.query('SELECT erase_person($1, $2, $3) AS r', [
       args.person,
       args.request,
       args.operator,
@@ -72,8 +107,9 @@ async function erase(pool: Pool, tenantId: string, args: Args) {
       string,
       unknown
     >;
-    const unsafe = keys.find(isUnsafe);
-    if (unsafe !== undefined) throw new Error(`erase: unsafe storage key ${unsafe}`);
+    for (const key of keys) {
+      if (await isUnsafe(root, key)) throw new Error(`erase: unsafe storage key ${key}`);
+    }
     return { keys, counts };
   });
 }
@@ -81,17 +117,17 @@ async function erase(pool: Pool, tenantId: string, args: Args) {
 async function recordReview(pool: Pool, tenantId: string, args: Args): Promise<void> {
   await withTenant(pool, tenantId, async (client) => {
     const erased = await client.query(
-      `SELECT entity_id, after FROM audit_log WHERE tenant_id = $1 AND action = 'person.erase'
-        AND after ->> 'request_ref' = $2 ORDER BY at DESC LIMIT 1`,
-      [tenantId, args.request],
+      `SELECT after FROM audit_log WHERE tenant_id = $1 AND action = 'person.erase'
+        AND entity_id = $2 AND after ->> 'request_ref' = $3 ORDER BY at DESC LIMIT 1`,
+      [tenantId, args.person, args.request],
     );
     const row = erased.rows[0];
-    if (!row) throw new Error('no erasure with that request reference');
-    if (row.after.text_searched === true) return;
+    if (!row) throw new Error('no erasure with that request reference for this person');
+    if (!needsReview(row.after)) return;
     const done = await client.query(
       `SELECT 1 FROM audit_log WHERE tenant_id = $1 AND action = 'person.erase.review'
-        AND after ->> 'request_ref' = $2`,
-      [tenantId, args.request],
+        AND entity_id = $2 AND after ->> 'request_ref' = $3`,
+      [tenantId, args.person, args.request],
     );
     if (done.rowCount) return;
     await client.query(
@@ -99,11 +135,43 @@ async function recordReview(pool: Pool, tenantId: string, args: Args): Promise<v
        VALUES ($1, 'person.erase.review', 'person', $2, $3)`,
       [
         tenantId,
-        row.entity_id,
+        args.person,
         JSON.stringify({ request_ref: args.request, operator: args.operator }),
       ],
     );
   });
+}
+
+/** Removes the stored files after the commit, prints what was done, and returns the exit code. */
+async function finish(root: string, keys: string[], counts: Record<string, unknown>) {
+  const left: string[] = [];
+  for (const key of keys) {
+    const path = join(root, key);
+    try {
+      await lstat(path);
+      await rm(path);
+    } catch {
+      left.push(key); // missing or not removable: the rows are gone, so print every key still owed
+    }
+  }
+  console.log(JSON.stringify(counts));
+  const review = needsReview(counts);
+  if (review) {
+    for (const line of HAND_REVIEW) console.log(line);
+    if (counts.text_searched === true) {
+      console.log('erase: a short name or username was not searched; check it by hand too');
+    }
+  }
+  if (left.length > 0) {
+    console.error(`erase: stored files missing or not removed: ${left.join(', ')}`);
+    return 1;
+  }
+  if (review) {
+    console.log('erase: review pending: record it with --review-done');
+    return 3;
+  }
+  console.log('erase: complete');
+  return 0;
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -121,24 +189,9 @@ async function main(argv: string[]): Promise<number> {
       console.log('erase: complete');
       return 0;
     }
-    const { keys, counts } = await erase(pool, tenant.id, args);
-    for (const [i, key] of keys.entries()) {
-      try {
-        await rm(join(args.filesDir ?? '', key), { force: true });
-      } catch (error) {
-        // The rows are already gone, so these keys are recorded nowhere else: print what is left.
-        console.error(`erase: could not remove ${keys.slice(i).join(', ')}`);
-        throw error;
-      }
-    }
-    console.log(JSON.stringify(counts));
-    if (counts.text_searched === true) {
-      console.log('erase: complete');
-      return 0;
-    }
-    for (const line of HAND_REVIEW) console.log(line);
-    console.log('erase: review pending: record it with --review-done');
-    return 3;
+    const root = await filesRoot(args.filesDir ?? '');
+    const { keys, counts } = await erase(pool, tenant.id, args, root);
+    return await finish(root, keys, counts);
   } finally {
     await pool.end();
   }
