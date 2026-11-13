@@ -478,6 +478,11 @@ touch nothing in common.
 **Not verified here:** the Docker suite and e2e (no Docker in planning). Line numbers re-checked on the merged tree
 (`ticket-report.ts` is the only cited file 08/13 changed; it is cited by function name).
 
-**Evidence (builder fills):** red/green per test, R1 counts, R2 outputs, R3 links.
+**Evidence (03a, builder):** red then green: W1-W3 (3 failed, then 3 passed), B9 (red, then green in task 2), P1/P2
+(`machinesByIds is not a function`, then 2 passed), B8-B18 (19 failed with E1-E4, then 26 + 4 passed). R1: `pnpm exec
+vitest run apps/server packages tools` 61 files, 562 tests passed; test-file diff against `origin/main` is import lines
+plus the new files. R2: `pnpm boundaries` exits 0 (81 files, 0 problems); planting `export const x = 'SELECT 1 FROM
+widget w, person p';` in `modules/reports/routes.ts` exits 1 with `apps/server/src/modules/reports/routes.ts: SQL names
+person (owned by identity); only apps/server/src/modules/identity/repo.ts may`. R3 (`pnpm verify`, `pnpm test:e2e`): CI.
 
 No product question for Nimish: nothing a user sees changes.
