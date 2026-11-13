@@ -41,3 +41,4 @@
 2026-11-13 — Ticket 10 One design kit (#79): tokens, five components, Lucide icons, status vocabulary and /gallery in English and placeholder Gujarati with blue or teal accent; faces/ guard (pnpm ui:check); screenshots in the pinned Playwright image (D20).
 2026-11-13 — Ticket 02 Module boundaries: expand (#149): one kernel auth guard (public: health, brand, login); kernel plus ops/identity/plant module folders with repo.ts and the manifest; old paths are one-line shims until 03; pnpm boundaries guards the moved tables (LEGACY baseline: 10 files).
 - 2026-11-13 09:30 UTC session ed456131 on `claude/t13b-server-az`: 5627c02 13b: staging server zone is a setting (server_az_suffix, default b)
+2026-11-13 — Ticket 03c Domain registries and isolation (#81, part): ticket commands and permissions are one file each behind a registry; the isolation test finds tenant tables from the catalogue and fails on a table outside D17's 40.

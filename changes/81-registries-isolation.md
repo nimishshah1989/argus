@@ -1,0 +1,1 @@
+- Ticket commands and permissions are one file each, and the isolation test finds every tenant table itself and fails on a table outside the 40-table budget.
