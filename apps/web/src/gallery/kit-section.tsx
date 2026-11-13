@@ -1,10 +1,9 @@
-/* eslint-disable i18next/no-literal-string -- gallery specimens and switch values are not product copy */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button.js';
 import { Card } from '../ui/card.js';
 import { Input, Label } from '../ui/input.js';
-import { Grid, Inline, Page, Stack } from '../ui/layout.js';
+import { Grid, Inline, Stack } from '../ui/layout.js';
 import { Sheet } from '../ui/sheet.js';
 
 function Box({ label }: { label: string }) {
@@ -22,6 +21,7 @@ export function KitSection() {
             {t('section.components')}
           </h2>
           <Button data-testid="gallery-primary-sample">{t('sample.primary')}</Button>
+          {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
           <Button variant="secondary">{t('sample.secondary')}</Button>
           <Stack gap={1}>
             <Label htmlFor="gallery-machine">{t('sample.label')}</Label>
@@ -32,6 +32,7 @@ export function KitSection() {
           </Card>
           <Button
             data-testid="gallery-sheet-open"
+            // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
             variant="secondary"
             onClick={() => setOpen(true)}
           >
@@ -56,23 +57,20 @@ function LayoutSection() {
         <h2 id="gallery-layout-h" className="text-title3 font-semibold">
           {t('section.layout')}
         </h2>
-        <Card title="Page">
-          <Page title={box} />
-        </Card>
-        <Card title="Stack">
+        <Card title={t('layout.stack')}>
           <Stack gap={2}>
             <Box label={box} />
             <Box label={box} />
           </Stack>
         </Card>
-        <Card title="Inline">
+        <Card title={t('layout.inline')}>
           <Inline gap={2}>
             <Box label={box} />
             <Box label={box} />
             <Box label={box} />
           </Inline>
         </Card>
-        <Card title="Grid">
+        <Card title={t('layout.grid')}>
           <Grid columns={3} gap={2}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <Box key={n} label={box} />

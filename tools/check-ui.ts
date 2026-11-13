@@ -18,7 +18,7 @@ const FACES_RULES: [string, RegExp][] = [
   ['style in faces/', /\bstyle\s*=/],
   ['raw colour in faces/', /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(/],
 ];
-const LUCIDE = /from\s+['"]lucide-react['"]/;
+const LUCIDE = /['"]lucide-react(?:\/[^'"]*)?['"]/;
 
 export function readWebSrc(webSrc: string): UiFile[] {
   const files: UiFile[] = [];

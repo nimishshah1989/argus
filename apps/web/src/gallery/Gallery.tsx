@@ -1,4 +1,4 @@
-/* eslint-disable i18next/no-literal-string -- gallery specimens and switch values are not product copy */
+/* eslint-disable i18next/no-literal-string -- only prop names and switch values (lang/accent ids) remain; every visible string goes through t() */
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -25,27 +25,31 @@ function Switcher({
 }) {
   const [, setParams] = useSearchParams();
   return (
-    <Stack gap={2}>
-      <span className="text-footnote font-medium">{label}</span>
-      <Inline gap={2}>
-        {options.map((o) => (
-          <Button
-            key={o.value}
-            variant={o.value === current ? 'primary' : 'secondary'}
-            aria-pressed={o.value === current}
-            onClick={() =>
-              setParams((p) => {
-                const next = new URLSearchParams(p);
-                next.set(param, o.value);
-                return next;
-              })
-            }
-          >
-            {o.label}
-          </Button>
-        ))}
-      </Inline>
-    </Stack>
+    <div role="group" aria-labelledby={`gallery-${param}-label`}>
+      <Stack gap={2}>
+        <span id={`gallery-${param}-label`} className="text-footnote font-medium">
+          {label}
+        </span>
+        <Inline gap={2}>
+          {options.map((o) => (
+            <Button
+              key={o.value}
+              variant={o.value === current ? 'primary' : 'secondary'}
+              aria-pressed={o.value === current}
+              onClick={() =>
+                setParams((p) => {
+                  const next = new URLSearchParams(p);
+                  next.set(param, o.value);
+                  return next;
+                })
+              }
+            >
+              {o.label}
+            </Button>
+          ))}
+        </Inline>
+      </Stack>
+    </div>
   );
 }
 

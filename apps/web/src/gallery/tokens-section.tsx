@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- gallery specimens and switch values are not product copy */
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/card.js';
 import { Grid, Inline, Stack } from '../ui/layout.js';
@@ -70,7 +69,9 @@ function ShapeCards() {
         {SPACE.map((px) => (
           <Inline key={px} gap={2} wrap={false}>
             <span className="h-3 bg-accent-strong" style={{ width: px }} />
-            <span className="text-caption">{px} px</span>
+            <span className="text-caption">
+              {px} {t('tokens.unitPx')}
+            </span>
           </Inline>
         ))}
       </Card>
@@ -82,23 +83,27 @@ function ShapeCards() {
               className="flex size-16 items-center justify-center border border-neutral-300 text-caption"
               style={{ borderRadius: px }}
             >
-              {px} px
+              {px} {t('tokens.unitPx')}
             </span>
           ))}
         </Inline>
       </Card>
       <Card title={t('tokens.shadow')}>
         <Inline>
-          <span className="rounded-xl bg-surface p-4 text-caption shadow-card">card</span>
-          <span className="rounded-xl bg-surface p-4 text-caption shadow-sheet">sheet</span>
+          <span className="rounded-xl bg-surface p-4 text-caption shadow-card">
+            {t('tokens.shadowCard')}
+          </span>
+          <span className="rounded-xl bg-surface p-4 text-caption shadow-sheet">
+            {t('tokens.shadowSheet')}
+          </span>
         </Inline>
       </Card>
       <Card title={t('tokens.motion')}>
-        <p className="text-footnote">fast 150 ms · slow 250 ms · 0 ms when reduced</p>
+        <p className="text-footnote">{t('tokens.motionNote')}</p>
       </Card>
       <Card title={t('tokens.target')}>
         <span className="flex min-h-target items-center rounded-lg border border-neutral-300 px-3 text-footnote">
-          52 px
+          {t('tokens.targetNote')}
         </span>
       </Card>
     </>

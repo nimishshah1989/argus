@@ -44,8 +44,10 @@ describe('check-ui', () => {
 
   it('flags lucide-react outside ui/icon.ts', () => {
     const line = "import { Ban } from 'lucide-react';";
-    expect(check({ 'screens/x.tsx': line, 'ui/icon.ts': line })).toEqual([
+    const sub = "import Ban from 'lucide-react/icons/ban';";
+    expect(check({ 'screens/x.tsx': line, 'screens/y.tsx': sub, 'ui/icon.ts': line })).toEqual([
       'screens/x.tsx:1: lucide-react outside ui/icon.ts',
+      'screens/y.tsx:1: lucide-react outside ui/icon.ts',
     ]);
   });
 
