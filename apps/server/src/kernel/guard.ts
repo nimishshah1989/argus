@@ -1,6 +1,7 @@
 import type { FastifyInstance, preParsingAsyncHookHandler } from 'fastify';
 import { apiError } from '@uptimo/shared';
 import type { AuthContext } from './context.js';
+import { bindLog } from './logging.js';
 
 export const AUTH_MESSAGES = {
   missing: 'Missing bearer token',
@@ -52,6 +53,7 @@ export function registerAuthGuard(app: FastifyInstance, authenticate: Authentica
     const auth = await authenticate(token);
     if (!auth) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
     request.auth = auth;
+    bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
     return payload;
   };
   app.addHook('onRoute', (route) => {

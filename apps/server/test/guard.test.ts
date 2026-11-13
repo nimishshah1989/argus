@@ -16,7 +16,12 @@ const pool = {
 const UUID = '00000000-0000-4000-8000-000000000000';
 const fill = (url: string) => url.replace(/:[A-Za-z]+/g, UUID);
 const build = (rateLimitMax: number) =>
-  buildApp({ pool, logger: false, jobBoss: {} as PgBoss, rateLimitMax });
+  buildApp({
+    pool,
+    logger: false,
+    jobBoss: { getQueue: async () => ({}) } as unknown as PgBoss,
+    rateLimitMax,
+  });
 
 let app: App;
 let protectedRoutes: ReturnType<typeof routeTable>;

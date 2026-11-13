@@ -1,11 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import type { JobsHandle } from './jobs.js';
 
 export interface AppConfig {
   pool: Pool;
-  logger?: boolean;
+  logger?: FastifyServerOptions['logger'];
   rateLimitMax?: number;
   /** Local storage root for rendered files; S3 replaces this adapter later. */
   filesDir?: string;

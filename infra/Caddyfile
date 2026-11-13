@@ -1,7 +1,7 @@
-# No domain yet: SITE_ADDRESS defaults to :80, so Caddy serves plain HTTP and skips
-# Let's Encrypt. Once a domain exists, set SITE_ADDRESS=cosmos.<domain> for automatic HTTPS.
+# SITE_ADDRESS (a host name for automatic HTTPS, or :80 for plain HTTP) and ACME_EMAIL
+# come from Terraform through /opt/uptimo/.env.
 {
-  email ops@example.com
+  email {$ACME_EMAIL}
 }
 
 {$SITE_ADDRESS} {
