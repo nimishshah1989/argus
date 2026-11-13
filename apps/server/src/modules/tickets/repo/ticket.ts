@@ -18,6 +18,7 @@ import {
   type RaiseExtras,
   type Tx,
 } from '../mapper.js';
+import { endReasonFor, persistSegments } from './segments.js';
 
 export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapshot, location,
   work_type, urgent, problem, problem_lang, reported_at, reported_by_person_id, reported_by_role,
@@ -112,20 +113,7 @@ export async function loadTicketRow(
 }
 
 export { loadEvents, reviveCorrection } from './events.js';
-
-export async function loadSegments(client: PoolClient, ticketId: string): Promise<WorkSegment[]> {
-  const result = await client.query(
-    `SELECT person_id, role, started_at, ended_at FROM work_segment
-       WHERE ticket_id = $1 ORDER BY started_at`,
-    [ticketId],
-  );
-  return result.rows.map((row) => ({
-    personId: row.person_id as string,
-    role: row.role as WorkSegment['role'],
-    startedAt: new Date(row.started_at as string | number | Date),
-    ...(row.ended_at ? { endedAt: new Date(row.ended_at as string | number | Date) } : {}),
-  }));
-}
+export { endReasonFor, loadSegments, persistSegments, type SegmentEndReason } from './segments.js';
 
 export async function loadCrew(client: PoolClient, ticketId: string): Promise<CrewMember[]> {
   const result = await client.query(
@@ -236,29 +224,6 @@ export async function persistEvents(
   }
 }
 
-export async function persistSegments(
-  client: PoolClient,
-  tenantId: string,
-  ticketId: string,
-  segments: WorkSegment[],
-): Promise<void> {
-  await client.query('DELETE FROM work_segment WHERE ticket_id = $1', [ticketId]);
-  for (const segment of segments) {
-    await client.query(
-      `INSERT INTO work_segment (tenant_id, ticket_id, person_id, role, started_at, ended_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        tenantId,
-        ticketId,
-        segment.personId,
-        segment.role,
-        segment.startedAt,
-        segment.endedAt ?? null,
-      ],
-    );
-  }
-}
-
 export async function persistCrew(
   client: PoolClient,
   tenantId: string,
@@ -322,7 +287,10 @@ export async function persistResult(
     payloadFor:
       tx.action === 'cancel' ? () => ({ previousStatus: loaded.ticket.status }) : undefined,
   });
-  await persistSegments(client, tx.tenantId, tx.ticketId, result.segments);
+  await persistSegments(client, tx.tenantId, tx.ticketId, {
+    segments: result.segments,
+    endReason: endReasonFor(tx.action),
+  });
   await persistCrew(client, tx.tenantId, tx.ticketId, {
     crew: result.crew,
     at: newEvents[0]?.at ?? new Date(),

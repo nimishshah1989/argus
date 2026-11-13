@@ -7,7 +7,7 @@ import {
   type ApiInit,
   type MachineFixture,
 } from './fixtures.js';
-import type { ListItem } from '../src/api-types.js';
+import type { ListItem } from '../src/api.js';
 
 export const POLICIES = [
   { severity: 'S1', ackMinutes: '60', restoreMinutes: '240', businessHoursOnly: true },

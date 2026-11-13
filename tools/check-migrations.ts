@@ -1,27 +1,101 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/** Migrations may not lose history (ARCHITECTURE §9 item 22): a guarded statement needs a header approval. */
 
 const DIR = 'packages/db/migrations';
-const DESTRUCTIVE = /^\s*(drop\s+table|drop\s+column|truncate|delete\s+from)\b/im;
-const APPROVED = /--\s*destructive-approved/i;
 
-function main(): void {
-  if (!existsSync(DIR)) {
-    console.log('migrations: none yet');
-    return;
-  }
-  const files = readdirSync(DIR).filter((name) => name.endsWith('.sql'));
-  const bad = files.filter((name) => {
-    const sql = readFileSync(join(DIR, name), 'utf8');
-    return DESTRUCTIVE.test(sql) && !APPROVED.test(sql);
-  });
-  console.log(`migrations: ${files.length} files, ${bad.length} destructive without approval`);
-  for (const name of bad) {
-    console.error(
-      `migrations: ${name} is destructive; add -- destructive-approved and a backup step`,
-    );
-  }
-  if (bad.length) process.exitCode = 1;
+export type RuleName =
+  'DROP' | 'UPDATE' | 'TRUNCATE' | 'DELETE FROM' | 'SET NOT NULL' | 'ALTER TYPE' | 'REVOKE';
+
+export interface Finding {
+  rule: RuleName;
+  line: number;
 }
 
-main();
+export interface MigrationException {
+  file: string;
+  merged: string;
+  reason: string;
+}
+
+const predates = (file: string, merged: string): MigrationException => ({
+  file,
+  merged,
+  reason: 'predates the rule',
+});
+
+/** The seven files merged before this rule; no later file may be added. */
+export const EXCEPTIONS: readonly MigrationException[] = [
+  predates('0001_schema_v1.sql', '2026-11-10'),
+  predates('0002_app_api_role.sql', '2026-11-10'),
+  predates('0003_command_idempotency_binding.sql', '2026-11-10'),
+  predates('0004_cancel_time.sql', '2026-11-11'),
+  predates('0005_ticket_tag.sql', '2026-11-11'),
+  predates('0006_severity_matrix.sql', '2026-11-12'),
+  predates('0007_sla_policy_timer.sql', '2026-11-12'),
+];
+
+const RULES: readonly [RuleName, RegExp][] = [
+  ['DROP', /\bdrop\b/gi],
+  ['UPDATE', /\bupdate\s+(?:only\s+)?[\w."$]+\s+(?:(?:as\s+)?[\w$]+\s+)?set\b/gi],
+  ['TRUNCATE', /\btruncate\b/gi],
+  ['DELETE FROM', /\bdelete\s+from\b/gi],
+  ['SET NOT NULL', /\bset\s+not\s+null\b/gi],
+  ['ALTER TYPE', /\balter\s+(?:type\b|(?:column\s+)?"?[\w$]+"?\s+(?:set\s+data\s+)?type\b)/gi],
+  ['REVOKE', /\brevoke\b/gi],
+];
+
+// `--` to end of line only; string literals are not parsed. Blanks keep offsets, so line numbers hold.
+const blankComments = (sql: string): string =>
+  sql.replace(/--[^\n]*/g, (c) => ' '.repeat(c.length));
+
+/** Every guarded statement in one file's SQL, comments blanked out, line numbers 1-based. */
+export function guardedStatements(sql: string): Finding[] {
+  const clean = blankComments(sql);
+  const found: Finding[] = [];
+  for (const [rule, pattern] of RULES)
+    for (const m of clean.matchAll(pattern))
+      found.push({ rule, line: clean.slice(0, m.index).split('\n').length });
+  return found.sort((a, b) => a.line - b.line);
+}
+
+/** True when the leading comment block carries both `-- approved-by:` and `-- backup:` with text. */
+export function hasApproval(sql: string): boolean {
+  const header: string[] = [];
+  for (const line of sql.split('\n')) {
+    const t = line.trim();
+    if (t !== '' && !t.startsWith('--')) break;
+    header.push(t);
+  }
+  const has = (key: string): boolean =>
+    header.some((t) => new RegExp(String.raw`^--\s*${key}:\s*\S`, 'i').test(t));
+  return has('approved-by') && has('backup');
+}
+
+/** One message per unapproved finding, skipping EXCEPTIONS by file name. */
+export function scanMigrations(dir: string = DIR): string[] {
+  if (!existsSync(dir)) return [];
+  const skip = new Set(EXCEPTIONS.map((e) => e.file));
+  const messages: string[] = [];
+  for (const name of readdirSync(dir).filter((n) => n.endsWith('.sql') && !skip.has(n))) {
+    const sql = readFileSync(join(dir, name), 'utf8');
+    if (hasApproval(sql)) continue;
+    for (const f of guardedStatements(sql))
+      messages.push(
+        `migrations: ${name}:${f.line}: ${f.rule} needs '-- approved-by:' and '-- backup:' in the file header`,
+      );
+  }
+  return messages;
+}
+
+function main(): void {
+  const files = existsSync(DIR) ? readdirSync(DIR).filter((n) => n.endsWith('.sql')).length : 0;
+  const errors = scanMigrations();
+  console.log(`migrations: ${files} files, ${errors.length} findings`);
+  for (const message of errors) console.error(message);
+  if (errors.length > 0) process.exitCode = 1;
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();

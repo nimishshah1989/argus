@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ActionCrewMember, ActorContext } from '@uptimo/domain';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
-import { legalActions } from './actions.js';
+import { actionSpecs } from './actionSpecs.js';
 import { ActionForm } from './ActionForm.js';
 
 const FORM_ACTIONS = new Set<CommandAction>([
@@ -18,17 +19,18 @@ interface Props {
   ticket: Ticket;
   config: Config;
   personId: string;
-  crew: string[];
+  actor: ActorContext;
+  crew: ActionCrewMember[];
   error: string | null;
   pending: boolean;
   onRun: (action: CommandAction, body: CommandBody) => Promise<boolean>;
 }
 
-/** Only the actions legal from this status (DOMAIN.md §2); one of them is primary. */
-export function ActionBar({ ticket, config, personId, crew, error, pending, onRun }: Props) {
+/** Only the actions the server will accept for this actor (domain `availableActions`); the first is primary. */
+export function ActionBar({ ticket, config, personId, actor, crew, error, pending, onRun }: Props) {
   const { t } = useTranslation();
   const [openForm, setOpenForm] = useState<CommandAction | null>(null);
-  const actions = legalActions(ticket, { personId, crew });
+  const actions = actionSpecs(ticket, crew, actor);
   if (actions.length === 0) return null;
 
   function choose(action: CommandAction) {
@@ -55,7 +57,7 @@ export function ActionBar({ ticket, config, personId, crew, error, pending, onRu
                 : 'border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100'
             }`}
           >
-            {item.label}
+            {t(item.label)}
           </button>
         ))}
       </div>

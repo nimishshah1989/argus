@@ -95,8 +95,9 @@ export async function saveListItem(
   );
 }
 
-export async function removeListItem(tx: Db, id: string): Promise<void> {
-  await tx.query('DELETE FROM list_item WHERE id = $1', [id]);
+/** Switches a list entry off; the row, its labels and every history reference stay. */
+export async function deactivateListItem(tx: Db, id: string): Promise<void> {
+  await tx.query('UPDATE list_item SET active = false, updated_at = now() WHERE id = $1', [id]);
 }
 
 export async function selectMissingTranslations(tx: Db): Promise<Rows> {

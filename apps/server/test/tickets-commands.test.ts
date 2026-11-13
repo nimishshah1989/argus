@@ -1,7 +1,9 @@
 import { hash } from '@node-rs/argon2';
 import type { Pool } from 'pg';
+import { withTenant } from '@uptimo/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { loadSegments, persistSegments } from '../src/modules/tickets/repo/segments.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
@@ -22,6 +24,10 @@ const MACHINE_RACE_2 = '10000000-0000-0000-0000-000000000018';
 const MACHINE_RACE_3 = '10000000-0000-0000-0000-000000000019';
 const MACHINE_RACE_4 = '10000000-0000-0000-0000-00000000001a';
 const MACHINE_RACE_5 = '10000000-0000-0000-0000-00000000001b';
+const MACHINE_SEGMENTS = '10000000-0000-0000-0000-00000000001c'; // VC-17, history is kept
+const MACHINE_REVOKED = '10000000-0000-0000-0000-00000000001d'; // VC-18, DELETE revoked
+const MACHINE_WAITING = '10000000-0000-0000-0000-00000000001e'; // VC-19, switched-off list entry
+const MACHINE_GUARD = '10000000-0000-0000-0000-00000000001f'; // VC-20, repo guard
 const ASHA = '10000000-0000-0000-0000-000000000009';
 const BINA = '10000000-0000-0000-0000-00000000000a';
 const OPERATOR = '10000000-0000-0000-0000-00000000000b';
@@ -44,6 +50,7 @@ let binaToken = '';
 let adminToken = '';
 let opToken = '';
 let cancelledTicketId = '';
+let historyTicketId = '';
 
 let keyCounter = 0;
 function nextKey(): string {
@@ -170,6 +177,14 @@ beforeAll(async () => {
       TENANT,
       SEGMENT,
     ],
+  );
+  await admin.query(
+    `INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES
+     ($1, $5, 'VC-17', $6, 'VMC', 'Cell-1'),
+     ($2, $5, 'VC-18', $6, 'VMC', 'Cell-1'),
+     ($3, $5, 'VC-19', $6, 'HMC', 'Cell-2'),
+     ($4, $5, 'VC-20', $6, 'HMC', 'Cell-2')`,
+    [MACHINE_SEGMENTS, MACHINE_REVOKED, MACHINE_WAITING, MACHINE_GUARD, TENANT, SEGMENT],
   );
   await admin.query(
     `INSERT INTO person (id, tenant_id, name, team, title) VALUES
@@ -546,5 +561,162 @@ describe('ticket commands', () => {
     });
     expect(cancel.statusCode).toBe(200);
     expect(cancel.json().ticket.status).toBe('cancelled');
+  });
+});
+
+interface SegmentRow {
+  id: string;
+  person_id: string;
+  role: string;
+  started_at: Date;
+  ended_at: Date | null;
+  end_reason: string | null;
+}
+
+async function segmentRows(ticketId: string): Promise<SegmentRow[]> {
+  const res = await admin.query(
+    `SELECT id, person_id, role, started_at, ended_at, end_reason FROM work_segment
+       WHERE ticket_id = $1 ORDER BY started_at, id`,
+    [ticketId],
+  );
+  return res.rows as SegmentRow[];
+}
+
+async function raiseOn(machineId: string, problem: string): Promise<string> {
+  const raised = await post('/api/v1/tickets', ashaToken, { machineId, problem });
+  expect(raised.statusCode).toBe(201);
+  return ticketOf(raised).id as string;
+}
+
+async function command(id: string, token: string, action: string, body: object): Promise<Res> {
+  const res = await post(`/api/v1/tickets/${id}/${action}`, token, body);
+  expect(res.statusCode, action).toBe(200);
+  return res;
+}
+
+describe('history is kept', () => {
+  it('keeps every work_segment id through pause and resume', async () => {
+    const id = await raiseOn(MACHINE_SEGMENTS, 'Coolant leak');
+    historyTicketId = id;
+    await command(id, ashaToken, 'start', { personId: ASHA });
+    const [first] = await segmentRows(id);
+    await command(id, ashaToken, 'pause', { personId: ASHA, reasonCode: 'spare' });
+    const resume = await command(id, ashaToken, 'resume', { personId: ASHA });
+
+    const rows = await segmentRows(id);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.id).toBe(first?.id);
+    expect(rows[0]?.started_at.getTime()).toBe(first?.started_at.getTime());
+    expect(rows[0]?.ended_at).not.toBeNull();
+    expect(rows[0]?.end_reason).toBe('pause');
+    expect(rows[1]).toMatchObject({
+      person_id: ASHA,
+      role: 'lead',
+      ended_at: null,
+      end_reason: null,
+    });
+    expect(Object.keys(resume.json().ticket.figures.perPerson)).toEqual([ASHA]);
+  });
+
+  it('stamps the end reason of transfer, leave and close in place', async () => {
+    const id = historyTicketId;
+    await command(id, binaToken, 'join', { personId: BINA, role: 'support' });
+    const before = await segmentRows(id);
+    const ids = before.map((r) => r.id);
+    let count = before.length;
+    const step = async (token: string, action: string, body: object) => {
+      await command(id, token, action, body);
+      const now = (await segmentRows(id)).length;
+      expect(now, action).toBeGreaterThanOrEqual(count);
+      count = now;
+    };
+    await step(binaToken, 'leave', { personId: BINA, reason: 'All set' });
+    await step(ashaToken, 'transfer', { personId: ASHA, note: 'Next shift' });
+    await step(ashaToken, 'start', { personId: ASHA });
+    await step(ashaToken, 'close', { personId: ASHA, kind: 'report' });
+
+    const rows = await segmentRows(id);
+    expect(rows.length).toBeGreaterThanOrEqual(before.length);
+    for (const old of ids) expect(rows.some((r) => r.id === old)).toBe(true);
+    expect(rows.map((r) => r.end_reason)).toEqual(['pause', 'transfer', 'leave', 'close']);
+    expect(rows.every((r) => r.ended_at !== null)).toBe(true);
+    expect(rows[2]?.person_id).toBe(BINA);
+  });
+
+  it('runs the lifecycle with DELETE on work_segment revoked', async () => {
+    await admin.query('REVOKE DELETE ON work_segment FROM app_user');
+    try {
+      const id = await raiseOn(MACHINE_REVOKED, 'Door interlock');
+      await command(id, ashaToken, 'start', { personId: ASHA });
+      await command(id, binaToken, 'join', { personId: BINA, role: 'support' });
+      await command(id, binaToken, 'leave', { personId: BINA, reason: 'Called away' });
+      await command(id, ashaToken, 'pause', { personId: ASHA, reasonCode: 'spare' });
+      await command(id, ashaToken, 'resume', { personId: ASHA });
+      await command(id, ashaToken, 'transfer', { personId: ASHA, note: 'Next shift' });
+      await command(id, ashaToken, 'start', { personId: ASHA });
+      await command(id, ashaToken, 'cancel', { personId: ASHA, reason: 'Duplicate job' });
+      await command(id, adminToken, 'restore', { personId: ADMIN_PERSON, reason: 'Wrong cancel' });
+      await command(id, ashaToken, 'close', { personId: ASHA, kind: 'report' });
+      const rows = await segmentRows(id);
+      expect([...new Set(rows.map((r) => r.end_reason))].sort()).toEqual([
+        'cancel',
+        'close',
+        'leave',
+        'pause',
+        'transfer',
+      ]);
+      expect(rows.every((r) => r.ended_at !== null)).toBe(true);
+    } finally {
+      await admin.query('GRANT DELETE ON work_segment TO app_user');
+    }
+  });
+
+  it('refuses to persist fewer stretches than the ticket has, or a close without a reason', async () => {
+    const run = (ticketId: string, endReason: 'close' | null, mutate: 'drop' | 'close') =>
+      withTenant(db.app, TENANT, async (c) => {
+        const segments = await loadSegments(c, ticketId);
+        const next =
+          mutate === 'drop'
+            ? segments.slice(0, 1)
+            : segments.map((s) => ({ ...s, endedAt: s.endedAt ?? new Date() }));
+        await persistSegments(c, TENANT, ticketId, { segments: next, endReason });
+      });
+    const rows = await segmentRows(historyTicketId);
+    expect(rows.length).toBeGreaterThan(1);
+    await expect(run(historyTicketId, null, 'drop')).rejects.toThrow(
+      /work_segment rows would be lost/,
+    );
+    expect(await segmentRows(historyTicketId)).toHaveLength(rows.length);
+
+    const id = await raiseOn(MACHINE_GUARD, 'Chuck wear');
+    await command(id, ashaToken, 'start', { personId: ASHA });
+    await expect(run(id, null, 'close')).rejects.toThrow(/without an end reason/);
+    expect((await segmentRows(id))[0]?.ended_at).toBeNull();
+  });
+
+  it('switches a list entry off instead of deleting it, and old tickets still resolve its label', async () => {
+    const id = await raiseOn(MACHINE_WAITING, 'Pump hum');
+    await command(id, ashaToken, 'start', { personId: ASHA });
+    await command(id, ashaToken, 'pause', { personId: ASHA, reasonCode: 'spare' });
+    const item = await admin.query(
+      "SELECT id, label FROM list_item WHERE list = 'wait_reason' AND code = 'spare'",
+    );
+    const itemId = item.rows[0].id as string;
+
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/lists/wait_reason/${itemId}`,
+      headers: { host: 'cosmos.localhost', authorization: `Bearer ${adminToken}` },
+    });
+    expect(del.statusCode).toBe(200);
+    expect(del.json()).toEqual({ ok: true });
+
+    const row = await admin.query('SELECT active, label FROM list_item WHERE id = $1', [itemId]);
+    expect(row.rows).toEqual([{ active: false, label: item.rows[0].label }]);
+    const config = await get('/api/v1/config', ashaToken);
+    const entry = config.json().lists.wait_reason.find((r: { code: string }) => r.code === 'spare');
+    expect(entry).toMatchObject({ active: false });
+    const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
+    expect(detail.json().ticket.waitReason).toBe('spare');
   });
 });

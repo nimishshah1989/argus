@@ -3,17 +3,19 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { getConfig, getMe, listTickets } from '../../api.js';
-import { canCancelOwn } from '../../components/actions.js';
+import { getConfig, getMe, listTickets, type Ticket } from '../../api.js';
+import { actorFrom, offers } from '../../components/actionSpecs.js';
 import { ShareButton } from '../../components/ShareButton.js';
 import { CancelOwnForm } from './MyComplaints.js';
+
+const CANCEL_ACTION = 'cancel';
 
 function CancelOwnTicket({
   ticket,
   config,
   personId,
 }: {
-  ticket: Parameters<typeof canCancelOwn>[0];
+  ticket: Ticket;
   config: Parameters<typeof CancelOwnForm>[0]['config'];
   personId: string;
 }) {
@@ -48,6 +50,7 @@ export function SentConfirmation({
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const personId = me.data?.user.actingPersonId;
+  const actor = me.data ? actorFrom(me.data.user) : null;
   const raised = useQuery({
     queryKey: ['tickets', 'raised', personId],
     queryFn: () => listTickets({ raisedBy: personId, limit: 50 }),
@@ -55,7 +58,7 @@ export function SentConfirmation({
     staleTime: 0,
   });
   const ticket = raised.data?.items.find((item) => item.ref === sentRef);
-  const canCancel = Boolean(ticket && personId && canCancelOwn(ticket, personId));
+  const canCancel = Boolean(ticket && actor !== null && offers(ticket, actor, CANCEL_ACTION));
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6">

@@ -211,13 +211,9 @@ describe('boundaries check', () => {
 
   it('lists the dated call exceptions, so they can only shrink', () => {
     expect(EXCEPTIONS.map((e) => `${e.file} -> ${e.module}`)).toEqual(
-      [
-        'plant/service.ts -> accountability',
-        'tickets/routes.ts -> accountability',
-        'tickets/list.ts -> accountability',
-        'imports/bhavin.ts -> accountability',
-        'imports/cli.ts -> accountability',
-      ].map((row) => `${SRC}/modules/${row}`),
+      ['imports/bhavin.ts -> accountability', 'imports/cli.ts -> accountability'].map(
+        (row) => `${SRC}/modules/${row}`,
+      ),
     );
   });
 

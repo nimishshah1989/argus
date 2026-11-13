@@ -1,8 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getConfig, getToken } from '../api.js';
-import { en } from './en.js';
-import { gu } from './gu.js';
+import { en, gu } from '@uptimo/shared/i18n';
 
 export const SUPPORTED_LANGUAGES = ['en', 'gu'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];

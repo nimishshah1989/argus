@@ -20,6 +20,11 @@ in `docs/plan/MILESTONES.md` is the queue.
   Views, exact cancel time and per-person minutes, synthetic importer with undo.
 - M2: configurable tags (#71), severity matrix (#72), SLA policies and timers (#74).
 
+## Ticket 05 (in review, branch `claude/t05-actions-words-domain`)
+
+- Ticket buttons come from `availableActions` (`packages/domain/src/actions.ts`); catalogues live in `packages/shared/src/i18n` (D7). Parity drift: until the server calls `availableActions`, a server rule change must update `packages/domain/test/actions.test.ts` T1. Follow-ups (server accepts what the Spec forbids) are in `docs/slices/05-pr-body.md`.
+- Gujarati is still empty (ticket 24): the `gujarati` e2e project proves only the seed and config.
+
 ## Next
 
 - Gate: Nimish opens `/gallery` (dev; staging after ticket 13) and picks blue or deep teal before ticket 15.
@@ -34,13 +39,12 @@ in `docs/plan/MILESTONES.md` is the queue.
 
 One orchestrator. Children use fresh contexts and disjoint files; contract-first and never two writers on one file.
 
+<!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-
-Last session ended 2026-11-13 11:28 UTC on branch `claude/kind-curie-ayp7eq`.
-
-- a6bf2ca D22 and slice 55: refusal is provider_rejected; structured-output request and reply recorded
-- b0869df Slice 55: test 23 split for structured outputs; refusal is provider_rejected
-- 5fa13b0 Slice 55: structured outputs replace the forced tool call
-  Uncommitted files: 0
-
+Last session ended 2026-11-13 12:46 UTC on branch `claude/orchestrator-ledger`.
+- cb90f34 docs(plan): ledger — 07 schema-review rulings
+- dcd4cbe docs(plan): ledger — 04 rulings, phone-number privacy finding
+- 3dbb330 docs(plan): ledger — two parallel chains, 04 dispatched
+Uncommitted files: 0
 <!-- end facts -->
+<!-- prettier-ignore-end -->

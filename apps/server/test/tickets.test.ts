@@ -11,6 +11,8 @@ const MACHINE = '10000000-0000-0000-0000-000000000003'; // VC-1, raise + duplica
 const MACHINE_PERM = '10000000-0000-0000-0000-000000000004'; // VC-2, permissions
 const MACHINE_GET = '10000000-0000-0000-0000-000000000005'; // VC-3, detail projection
 const MACHINE_KEY = '10000000-0000-0000-0000-000000000006'; // VC-4, missing idempotency key
+const MACHINE_DISABLED = '10000000-0000-0000-0000-000000000030'; // VC-5, switched-off login
+const MACHINE_LEGACY = '10000000-0000-0000-0000-000000000031'; // VC-6, legacy tag event
 const ASHA = '10000000-0000-0000-0000-000000000007';
 const BINA = '10000000-0000-0000-0000-000000000008';
 const OPERATOR = '10000000-0000-0000-0000-000000000009';
@@ -136,8 +138,19 @@ beforeAll(async () => {
      ($1, $5, 'VC-1', $6, 'VMC', 'Cell-1'),
      ($2, $5, 'VC-2', $6, 'VMC', 'Cell-1'),
      ($3, $5, 'VC-3', $6, 'HMC', 'Cell-2'),
-     ($4, $5, 'VC-4', $6, 'VMC', 'Cell-2')`,
-    [MACHINE, MACHINE_PERM, MACHINE_GET, MACHINE_KEY, TENANT, SEGMENT],
+     ($4, $5, 'VC-4', $6, 'VMC', 'Cell-2'),
+     ($7, $5, 'VC-5', $6, 'VMC', 'Cell-3'),
+     ($8, $5, 'VC-6', $6, 'VMC', 'Cell-3')`,
+    [
+      MACHINE,
+      MACHINE_PERM,
+      MACHINE_GET,
+      MACHINE_KEY,
+      TENANT,
+      SEGMENT,
+      MACHINE_DISABLED,
+      MACHINE_LEGACY,
+    ],
   );
   await admin.query(
     `INSERT INTO person (id, tenant_id, name, team, title) VALUES
@@ -344,5 +357,83 @@ describe('tickets', () => {
       payload: { machineId: MACHINE, problem: 'X' },
     });
     expect(res.statusCode).toBe(401);
+  });
+});
+
+// Regression guards for ticket 06: these pass today and must keep passing.
+describe('history that outlives its writers', () => {
+  it('keeps a switched-off login and its work on old tickets', async () => {
+    const raised = await post('/api/v1/tickets', binaToken, {
+      machineId: MACHINE_DISABLED,
+      problem: 'Belt slip',
+    });
+    const id = ticketOf(raised).id as string;
+    expect(
+      (await post(`/api/v1/tickets/${id}/start`, binaToken, { personId: BINA })).statusCode,
+    ).toBe(200);
+    await admin.query('UPDATE login SET disabled_at = now() WHERE id = $1', [LOGIN_BINA]);
+    try {
+      const signIn = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { host: 'cosmos.localhost', 'content-type': 'application/json' },
+        payload: { username: 'bina', password: PASSWORD },
+      });
+      expect(signIn.statusCode).toBe(401);
+      expect(signIn.json().error.code).toBe('unauthenticated');
+
+      const logins = await admin.query('SELECT 1 FROM login WHERE id = $1', [LOGIN_BINA]);
+      const people = await admin.query('SELECT 1 FROM person WHERE id = $1', [BINA]);
+      const segments = await admin.query('SELECT 1 FROM work_segment WHERE ticket_id = $1', [id]);
+      expect([logins.rowCount, people.rowCount, segments.rowCount]).toEqual([1, 1, 1]);
+
+      const detail = (await get(`/api/v1/tickets/${id}`, ashaToken)).json();
+      expect(detail.intervals.map((i: { personId: string }) => i.personId)).toContain(BINA);
+      expect(detail.events.some((e: { actingPersonId: string }) => e.actingPersonId === BINA)).toBe(
+        true,
+      );
+      const config = (await get('/api/v1/config', ashaToken)).json();
+      expect(config.people.some((p: { name: string }) => p.name === 'Bina')).toBe(true);
+    } finally {
+      await admin.query('UPDATE login SET disabled_at = NULL WHERE id = $1', [LOGIN_BINA]);
+    }
+  });
+
+  it('still returns a legacy tag event in the timeline', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      machineId: MACHINE_LEGACY,
+      problem: 'Legacy tags',
+    });
+    const id = ticketOf(raised).id as string;
+    const last = await admin.query('SELECT last_event_seq FROM ticket WHERE id = $1', [id]);
+    const seq = (last.rows[0].last_event_seq as number) + 1;
+    await admin.query(
+      `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, payload)
+       VALUES ($1, $2, $3, 'tag_add', '{"code":"M"}')`,
+      [TENANT, id, seq],
+    );
+    await admin.query('UPDATE ticket SET last_event_seq = $2 WHERE id = $1', [id, seq]);
+    const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().events.some((e: { type: string }) => e.type === 'tag_add')).toBe(true);
+  });
+
+  it('answers 404 on the removed tag routes', async () => {
+    const raised = await post('/api/v1/tickets', ashaToken, {
+      machineId: MACHINE_PERM,
+      problem: 'No tags here',
+    });
+    const id = ticketOf(raised).id as string;
+    const headers = { host: 'cosmos.localhost', authorization: `Bearer ${ashaToken}` };
+    const calls: [string, string][] = [
+      ['GET', '/api/v1/tags'],
+      ['GET', `/api/v1/tickets/${id}/tags`],
+      ['POST', `/api/v1/tickets/${id}/tags`],
+      ['DELETE', `/api/v1/tickets/${id}/tags/${ASHA}`],
+    ];
+    for (const [method, url] of calls) {
+      const res = await app.inject({ method: method as 'GET', url, headers });
+      expect(res.statusCode, `${method} ${url}`).toBe(404);
+    }
   });
 });

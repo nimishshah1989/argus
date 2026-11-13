@@ -10,6 +10,17 @@ export {
   type RouteKey,
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
+export {
+  configParts,
+  contributeConfigPart,
+  contributeTicketPart,
+  ticketPartsAfterWrite,
+  withTicketParts,
+  type ConfigPart,
+  type TicketPart,
+  type TicketWrite,
+} from './reply-parts.js';
+export { registerReplyCheck, replyProblem } from './reply-check.js';
 export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
 export { createPool } from './db.js';

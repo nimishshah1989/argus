@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getConfig, getMe, getState, type CommandAction, type Ticket } from '../api.js';
-import { canWork, useTicketCommand } from '../components/actions.js';
+import { actorFrom } from '../components/actionSpecs.js';
+import { useTicketCommand } from '../components/useTicketCommand.js';
 import { AccountSheet } from '../components/AccountSheet.js';
 import { Drafts } from '../components/Drafts.js';
 import { NotificationsToggle } from '../components/NotificationsToggle.js';
@@ -51,7 +52,7 @@ export function Desk() {
   const personId = me.data?.user.actingPersonId;
   const { run, error, pending } = useTicketCommand();
   const machines = config.data?.machines ?? [];
-  const canQuick = canWork(me.data?.user.role);
+  const actor = me.data ? actorFrom(me.data.user) : null;
 
   function quick(ticket: Ticket, action: CommandAction) {
     if (!personId) return;
@@ -89,7 +90,7 @@ export function Desk() {
           state={state}
           people={config.data?.people}
           machines={machines}
-          canQuick={canQuick}
+          actor={actor}
           pending={pending}
           onQuick={quick}
         />

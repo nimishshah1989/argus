@@ -1,0 +1,18 @@
+export const slaEn = {
+  'sla.title': 'SLA timers',
+  'sla.ack': 'Acknowledge',
+  'sla.restore': 'Restore',
+  'sla.notConfigured': 'SLA not configured.',
+  'sla.unavailable': 'SLA status unavailable in this cached view.',
+  'sla.notApplicable': 'Not applicable',
+  'sla.remaining': '{{time}} left',
+  'sla.overdue': '{{time}} overdue',
+  'sla.paused': 'Paused · {{time}} left',
+  'sla.pausedOverdue': 'Paused · {{time}} overdue',
+  'sla.stoppedLeft': 'Stopped · {{time}} left',
+  'sla.stoppedLate': 'Stopped · {{time}} late',
+  'sla.due': 'Due',
+  'sla.stoppedAt': 'Stopped at',
+  'sla.dueAfterResume': 'Deadline recalculates on resume',
+  'sla.cancelledRestore': 'Ticket cancelled; restore recalculates the clock.',
+};

@@ -5,19 +5,13 @@ import {
   type BusinessCalendar,
 } from './business-hours.js';
 import type { Ticket } from './ticket.js';
-import type { Severity, TicketEvent } from './types.js';
+import type { SlaPolicy, SlaTimerState } from '@uptimo/shared';
+import type { TicketEvent } from './types.js';
+
+export type { SlaPolicy, SlaTimerState };
 
 export type SlaTimerKind = 'ack' | 'restore';
-export type SlaTimerState = 'running' | 'paused' | 'stopped';
 export type SlaStopReason = 'acknowledged' | 'started' | 'machine_running' | 'closed' | 'cancelled';
-
-export interface SlaPolicy {
-  id: string;
-  severity: Severity;
-  ackMinutes: number;
-  restoreMinutes: number;
-  businessHoursOnly: boolean;
-}
 
 export interface SlaProjectionInput {
   ticket: Pick<Ticket, 'id' | 'kind' | 'severity' | 'status' | 'reportedAt' | 'closedAt'>;

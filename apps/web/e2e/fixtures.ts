@@ -43,7 +43,7 @@ export interface MachineFixture {
   cell: string;
 }
 
-/** Machine ownership by suite: floor, desk, tags/Settings, board, then SLA. */
+/** Machine ownership by suite: floor, desk, Settings, board, then SLA. */
 export const MACHINES: MachineFixture[] = [
   {
     id: scopedId('10000000-0000-0000-0000-000000000003'),
@@ -193,11 +193,14 @@ export interface SeedStatement {
 }
 
 /** The seeded cosmos: one tenant, one segment, machines, people, logins, lists, BD refs. */
-export function seedStatements(passwordHash: string): SeedStatement[] {
+export function seedStatements(
+  passwordHash: string,
+  language: 'en' | 'gu' = 'en',
+): SeedStatement[] {
   return [
     {
-      text: 'INSERT INTO tenant (id, slug, name) VALUES ($1, $2, $3)',
-      values: [TENANT.id, TENANT.slug, TENANT.name],
+      text: 'INSERT INTO tenant (id, slug, name, language) VALUES ($1, $2, $3, $4)',
+      values: [TENANT.id, TENANT.slug, TENANT.name, language],
     },
     {
       text: 'INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, $3, $4, 0)',
@@ -240,9 +243,8 @@ export function seedStatements(passwordHash: string): SeedStatement[] {
 }
 
 /** One machine per spec per project so both projects can run in parallel. */
-export function machineFor(suite: 'floor' | 'desk' | 'tags', projectName: string): MachineFixture {
-  const index =
-    (suite === 'floor' ? 0 : suite === 'desk' ? 2 : 4) + (projectName === 'phone' ? 1 : 0);
+export function machineFor(suite: 'floor' | 'desk', projectName: string): MachineFixture {
+  const index = (suite === 'floor' ? 0 : 2) + (projectName === 'phone' ? 1 : 0);
   const machine = MACHINES[index];
   if (!machine) throw new Error(`No machine fixture for ${suite}/${projectName}`);
   return machine;

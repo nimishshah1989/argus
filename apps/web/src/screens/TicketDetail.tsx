@@ -14,7 +14,9 @@ import {
   type TicketPerson,
 } from '../api.js';
 import { AdminPanel } from '../components/AdminPanel.js';
-import { canWork, useTicketCommand } from '../components/actions.js';
+import { canWork, type ActorContext } from '@uptimo/domain';
+import { actorFrom, crewFrom } from '../components/actionSpecs.js';
+import { useTicketCommand } from '../components/useTicketCommand.js';
 import { Facts, ReportCard } from '../components/TicketFacts.js';
 import { ReportPanel } from '../components/ReportForm.js';
 import { ShareButton } from '../components/ShareButton.js';
@@ -23,7 +25,6 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
-import { TagsPanel } from '../components/tags/TagsPanel.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -106,6 +107,11 @@ function hasReportContext(
   return Boolean(config && personId);
 }
 
+/** Work actions, the action bar and tags are for work roles only (Q18). */
+function canEditTicket(actor: ActorContext | null): boolean {
+  return actor !== null && canWork(actor);
+}
+
 function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
   const { t } = useTranslation();
   const { ticket, events, people, intervals } = detail;
@@ -113,7 +119,9 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
   const reasonLabels: Record<string, string> = {};
   for (const item of config?.lists.wait_reason ?? []) reasonLabels[item.code] = item.label;
   const personId = me?.actingPersonId;
-  const crew = people.filter((member) => !member.leftAt).map((member) => member.personId);
+  const actor = me ? actorFrom(me) : null;
+  const crew = crewFrom(people);
+  const canEdit = canEditTicket(actor);
   return (
     <>
       <header className="mt-2">
@@ -127,13 +135,14 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         </p>
       </header>
       <SlaTimerSummary ticket={ticket} detailed config={config} />
-      {hasReportContext(config, personId) && (
+      {hasReportContext(config, personId) && actor !== null && (
         <ReportPanel
           ticket={ticket}
           config={config!}
           personId={personId!}
+          actor={actor}
           crew={crew}
-          canEdit={canWork(me?.role)}
+          canEdit={canEdit}
           command={(action, body) => run(ticket.id, action, body)}
           pending={pending}
           error={error}
@@ -144,7 +153,6 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         <ShareButton ticket={ticket} config={config} mode="full" />
       </div>
       <Facts ticket={ticket} config={config} />
-      <TagsPanel ticketId={ticket.id} canEdit={canWork(me?.role)} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
       <Figures figures={ticket.figures} kind={ticket.kind} names={names} />
       <Timeline
