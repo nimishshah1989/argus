@@ -6,8 +6,9 @@ import {
   type SlaConsistencyPayload,
   type SlaTicketReconciler,
 } from './sla-consistency.js';
+import type { JobRole, JobsHandle } from '../kernel/index.js';
 
-export type JobRole = 'all' | 'api' | 'worker';
+export type { JobRole, JobsHandle };
 
 export interface StartJobsOptions {
   connectionString: string;
@@ -22,11 +23,6 @@ export interface StartJobsOptions {
   onBossReady?: (boss: PgBoss) => void | Promise<void>;
   __test__enableSpies?: boolean;
   onError?: (error: Error) => void;
-}
-
-export interface JobsHandle {
-  boss: PgBoss;
-  close: () => Promise<void>;
 }
 
 async function ensureQueue(
