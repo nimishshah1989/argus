@@ -1,88 +1,145 @@
 # CI friction follow-up
 
-No GitHub issue (follow-up to #76) · branch `claude/ci-friction` · one PR · fragment `changes/85-ci-friction.md`
-(85 is the next free number) · this PR itself needs the `no-parity` label or its own `No parity: <reason>` line.
+No GitHub issue (follow-up to #76) · branch `claude/ci-friction` · one PR · fragment `changes/165-ci-friction.md`
+(165 is the next free number after `164-pstack-process.md`) · this PR's own body carries a `No parity:` line (it changes
+`apps/server/test/`, and `apps/`).
+
+Revision 2. Rulings from the orchestrator: no auto-label; the size/parity check moves to its OWN workflow and
+`ci.yml`'s triggers and matrix stay as they are (a later run with jobs `skipped` could replace a red check and
+turn a failing PR green); T17 dropped; two more test files may be guarded (setup and teardown only).
 
 ## 1. Goal
 
 A PR author unblocks the size and parity gates by writing the reason in the PR description instead of hunting for a
-label, runs every static CI check locally with one `pnpm precheck`, and no longer sees a passing test run end in "Unhandled Errors" from a stopped Postgres container.
+label; runs the fast static checks locally with one `pnpm precheck`; and no longer sees a passing test run end in
+"Unhandled Errors" from a stopped Postgres container.
 
-## 2. Decisions (already ruled, technical)
+## 2. Decisions
 
-- **No auto-labelling:** a `GITHUB_TOKEN` `labeled` event does not re-trigger CI, so a labeller would race the check it is meant to satisfy and would need `pull-requests: write`. The body becomes a second accepted proof; the label alone still passes as today, and a missing or too-short reason with no label still fails.
-- The PR body is untrusted input: it is passed as a step `env:` value, never interpolated into a `run:` script.
-- Reason text inside an HTML comment is ignored, so the template's placeholder never counts as a reason.
+- **No auto-labelling.** A `GITHUB_TOKEN` label event does not re-trigger workflows, so a labeller would race the
+  check it serves and would need `pull-requests: write`. The body line is a second accepted proof. The label alone
+  still passes as today; no label and no valid line still fails. The guard is not weakened.
+- **Own workflow.** `.github/workflows/pr-meta.yml`, job `pr-meta`, runs `pnpm parity:update` and `pnpm pr:size`.
+  Triggers `pull_request: [opened, edited, labeled, unlabeled, synchronize, reopened]`. `permissions: contents: read`
+  only (it labels nothing). No `pull_request_target`. `concurrency: pr-meta-${{ github.ref }}`, cancel in progress.
+  Same pinned actions as `ci.yml` (`actions/checkout@v4` with `fetch-depth: 0`, `pnpm/action-setup@v4` 10.30.3,
+  `actions/setup-node@v4` 24 with cache pnpm); no new third-party action. `timeout-minutes: 5`.
+  `ci.yml` loses only its two steps `pnpm parity:update` and `pnpm pr:size` (they now live in `pr-meta`); its
+  triggers, jobs, matrix and every other step are unchanged. An edit to the body re-runs only `pr-meta`.
+- The PR body is untrusted: it reaches the script only through a step `env:` value, never a `run:` script.
+- Reason text inside an HTML comment is ignored, so a template placeholder never counts as a reason.
+- **Root cause (P3), from CI log evidence.** Run 43421128861, `api (3/3)`: "This error originated in
+  apps/server/test/tags.test.ts", client user `app_api`, `_poolUseCount: 76`: a shared-harness pool left an idle client
+  that Postgres shut down at container stop. `api (1/3)` in the same run also failed with all 226 tests passing; its
+  file was not extracted. `tags.test.ts` was deleted by ticket 06, so that emitter is gone from main. Measured here:
+  a `pg.Pool` with an idle client and no `'error'` listener gives vitest "Unhandled Errors", code 57P01, exit 1.
+  The guard prevents any recurrence from a pool in the files it covers. pg-boss is not the surface: it forwards its
+  pool errors to an emitter on which `startJobs` attaches a listener.
+- **Precheck scope.** It runs the fast checks that need neither a build nor Docker nor the PR description. Excluded,
+  with the reason: `format:check` (the prettier `--write` step makes it pass), `build` and `ui:check` (slow),
+  `pr:size` and `parity:update` (need the PR description; they run in `pr-meta`), tests (slow; run on their own).
 
 ## 3. Files
 
-- `tools/pr-reason.ts` — new: `ReasonKey`, `prReason`.
-- `tools/pr-reason.test.ts` — new: T1–T9.
-- `tools/check-pr-size.ts` — add `largePrAllowed`, use it at the HARD gate, new failure message, and guard `main()` with `import.meta.url === pathToFileURL(process.argv[1] ?? '').href` (as in `check-parity-update.ts`) so a test can import it.
-- `tools/check-parity-update.ts` — add `paritySkipAllowed`, use it in `main()`, name both fixes in the skip log and in the `parityUpdateErrors` message (still contains `docs/spec/parity.yaml`, still exactly one error, so the existing assertions pass).
-- `tools/precheck.ts` — new, under 60 lines, node stdlib only: `changedFiles` + `main()`.
-- `tools/precheck.test.ts` — new: T10–T12.
-- `apps/server/test/harness.ts` — add `tolerateShutdown`; attach it to `admin` and `app` in `startTestDb`; `stop()` calls both begins, then ends the pools, then stops the container (existing order kept).
-- `apps/server/test/harness-shutdown.test.ts` — new: T13–T17.
-- `.github/workflows/ci.yml` — `pull_request.types` gains `edited`; `PR_BODY: ${{ github.event.pull_request.body }}` added to the `env:` of the `pnpm parity:update` and the `pnpm pr:size` step.
-- `.github/pull_request_template.md` — the "Label reasons" section documents the two lines with the examples **inside** the HTML comment; the two label bullets name the body line too; one new `pnpm precheck` bullet in Verification.
-- `package.json` — `"precheck": "tsx tools/precheck.ts"`.
-- `docs/BUILD-PROTOCOL.md` — one bullet at the end of "Rules that do not bend": run `pnpm precheck` before every push.
-- `changes/85-ci-friction.md` — new fragment, one user-facing line per part.
+- `tools/pr-reason.ts` new: `ReasonKey`, `prReason`. `tools/pr-reason.test.ts` new: T1–T9.
+- `tools/check-pr-size.ts`: add `largePrAllowed`, use it at the HARD gate, new message, `import.meta.url` main-guard
+  (as `check-parity-update.ts:50`). `tools/check-parity-update.ts`: add `paritySkipAllowed`, use it in `main()`, name
+  both fixes in the skip log and in the one `parityUpdateErrors` message (it still contains `docs/spec/parity.yaml`).
+- `.github/workflows/pr-meta.yml` new; `.github/workflows/ci.yml`: remove the two steps and nothing else.
+- `tools/precheck.ts` new (under 60 lines, stdlib only; ends with `if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();` as `check-parity-update.ts:50`, so the test can import `changedFiles` without running the checks); `tools/precheck.test.ts` new: T10–T12; `package.json`:
+  `"precheck": "tsx tools/precheck.ts"`.
+- `apps/server/test/harness.ts`: add `tolerateShutdown`; attach it to `admin` and `app` in `startTestDb`; `stop()` calls
+  both begins first, then ends the pools, then stops the container. `apps/server/test/harness-shutdown.test.ts` new:
+  T13–T16.
+- `apps/server/test/ticket-pdf.test.ts` (pool `pool`) and
+  `apps/server/src/modules/accountability/test/sla-jobs.test.ts` (pools `admin`, `app`): setup and teardown only, zero
+  assertion changes. Each imports `tolerateShutdown` from the harness (`sla-jobs.test.ts`: `../../../../test/harness.js`; `ticket-pdf.test.ts`: `./harness.js`; `*.test.ts` files are skipped by
+  `pnpm boundaries`), attaches it where the pool is created and calls the returned begin first in `afterAll`, before `boss.stop()`. pg-boss's own pool is not covered (it has its own listener).
+- `docs/LEAN.md`: row at line 33 ends `a size:large label, or a "Large PR: <reason>" line in the PR description`;
+  row at line 62 ends `(or the no-parity label, or a "No parity: <reason>" line in the PR description)`.
+- `CLAUDE.md` section "Git": append one sentence: `Run pnpm precheck before every push.`
+- `.github/pull_request_template.md`: exact text in §4. `changes/165-ci-friction.md`: three one-line user-facing bullets.
 
 ## 4. Interfaces
 
-- `tools/pr-reason.ts`: `export type ReasonKey = 'Large PR' | 'No parity'` and `export function prReason(body: string | undefined, key: ReasonKey): string | null` — strips `<!-- … -->` comments, then scans lines for `^\s*(?:[-*]\s+)?<key>\s*:\s*(.+)$` (key case-insensitive, its space literal); returns the first captured reason, trimmed, with at least 10 non-space characters, else `null`.
-- `tools/check-pr-size.ts`: `export function largePrAllowed(env: NodeJS.ProcessEnv): boolean` = `Boolean(env.LEAN_ALLOW_LARGE) || prReason(env.PR_BODY, 'Large PR') !== null`.
-- `tools/check-parity-update.ts`: `export function paritySkipAllowed(env: NodeJS.ProcessEnv): boolean` = `Boolean(env.PARITY_ALLOW_SKIP) || prReason(env.PR_BODY, 'No parity') !== null`; existing exports unchanged.
-- `tools/precheck.ts`: `export function changedFiles(outputs: string[], exists: (path: string) => boolean): string[]` splits each listing on `\n`, trims, drops blanks, dedupes keeping first order, keeps only existing paths. `main()` collects `git diff --name-only --diff-filter=ACMR origin/main...HEAD` (empty plus a printed note when the base is missing), `git diff --name-only --diff-filter=ACMR HEAD` and `git ls-files --others --exclude-standard`; runs `pnpm exec prettier --write --ignore-unknown --no-error-on-unmatched-pattern <files>` (skipped when empty); then `pnpm run <step>` for `lint`, `typecheck`, `changelog:check`, `docs:check`, `boundaries`, `pii:scan`, `migrations:check` in that order, `stdio: 'inherit'`, failing fast.
-- `apps/server/test/harness.ts`: `export function tolerateShutdown(pool: Pool): () => void` attaches one `'error'` listener that returns when the returned begin function has already been called **and** `(error as { code?: string }).code === '57P01'`, and re-throws otherwise. `TestDb` fields are unchanged.
-- Messages: `pr-size: FAIL over 800 lines; split the PR, add the size:large label, or put a line "Large PR: <reason>" (at least 10 characters) in the PR description`; `parity:update: N product file(s) changed but docs/spec/parity.yaml did not; update the ledger, add the no-parity label, or put a line "No parity: <reason>" (at least 10 characters) in the PR description`; `precheck: FAILED at <step> — fix it, rerun pnpm precheck` then `process.exit(1)`; on success `precheck: OK — <n> file(s) formatted, 7 checks passed`.
+- `prReason(body: string | undefined, key: 'Large PR' | 'No parity'): string | null`: strips comments with `/<!--[\s\S]*?-->/g` (multiline, non-greedy), then scans
+  lines for `^\s*(?:[-*]\s+)?<key>\s*:\s*(.+)$` (key case-insensitive, its space literal); returns the first reason,
+  trimmed, with at least 10 non-space characters, else `null`.
+- `largePrAllowed(env: NodeJS.ProcessEnv): boolean` = `Boolean(env.LEAN_ALLOW_LARGE) || prReason(env.PR_BODY, 'Large PR') !== null`.
+  `paritySkipAllowed(env)` is the same with `PARITY_ALLOW_SKIP` and `'No parity'`.
+- Messages: `pr-size: FAIL over 800 lines; split the PR, add the size:large label, or put a line "Large PR: <reason>" (at least 10 characters) in the PR description`;
+  `parity:update: N product file(s) changed but docs/spec/parity.yaml did not; update the ledger, add the no-parity label, or put a line "No parity: <reason>" (at least 10 characters) in the PR description`.
+- `pr-meta.yml` step env: `PR_BODY: ${{ github.event.pull_request.body }}`; `PARITY_ALLOW_SKIP` and `LEAN_ALLOW_LARGE` exactly as `ci.yml` has them today (label `no-parity` / `size:large`).
+- `tolerateShutdown(pool: Pool): () => void`: attaches one `'error'` listener that returns when the returned `begin` was
+  already called and `(error as { code?: string }).code === '57P01'`; otherwise it re-throws.
+- `changedFiles(outputs: string[], exists: (path: string) => boolean): string[]`: splits each listing on `\n`, trims,
+  drops blanks, dedupes in first-seen order, keeps existing paths.
+- `precheck.ts main()`: lists files with `execFileSync('git', args, { encoding: 'utf8' })`, a non-zero exit counting as
+  an empty list, for `diff --name-only --diff-filter=ACMR origin/main...HEAD`, `diff --name-only --diff-filter=ACMR HEAD`
+  and `ls-files --others --exclude-standard`. If the first fails it prints exactly
+  `precheck: no origin/main to compare with; formatting uncommitted and untracked files only`. Then `prettier` as the
+  step named `prettier`: `execFileSync('pnpm', ['exec','prettier','--write','--ignore-unknown','--no-error-on-unmatched-pattern', ...files], { stdio: 'inherit' })`, skipped when the list is empty. Then `execFileSync('pnpm', ['run', step], { stdio: 'inherit' })` for, in
+  order: `lint`, `typecheck`, `changelog:check`, `docs:check`, `boundaries`, `pii:scan`, `migrations:check`,
+  `migrations:immutable`, `parity`, `licences`, `size`, `deps`, `shortcuts`. Any throw (including prettier) prints
+  `precheck: FAILED at <step> — fix it, rerun pnpm precheck` and `process.exit(1)`. Success prints
+  `precheck: OK — <n> file(s) checked by prettier, <k> checks passed` (`n` = files passed to prettier, `k` = steps run).
+- PR template, exact. Verification list: the parity bullet becomes
+  `- [ ] docs/spec/parity.yaml updated for every apps/ or packages/ change (or the no-parity label, or a "No parity: <reason>" line below)`;
+  the size bullet becomes `- [ ] PR under 800 changed lines (or the size:large label, or a "Large PR: <reason>" line below)`
+  (backticks around code as today); one new first bullet `- [ ] pnpm precheck green before the push` (in backticks).
+  The "Label reasons" section becomes `## Reasons` holding only
+  `<!-- Over 800 lines, or apps/ or packages/ without the parity ledger? Add a line below, for example: Large PR: ports the whole gallery suite  /  No parity: test-only change to the harness  (at least 10 characters; the examples stay inside this comment so they never count). -->`
 
 ## 5. Data
 
-No table, column or migration is read or written, so there is **no schema change** and this slice does not go back
-through the architect or the schema reviewer. Values used: `PR_BODY` (`string | undefined`, step env from
-`github.event.pull_request.body`); `LEAN_ALLOW_LARGE`, `PARITY_ALLOW_SKIP` (`string | undefined`, step env from the
-label check, unchanged); the reason text (`string | null`, lives only in the PR description, never stored); the
-three git listings (`string`, stdout); the pg `'error'` payload `code` (`string`, `'57P01'`, in-process only).
+No table, column or migration is read or written, so no schema change. Values: `PR_BODY`, `LEAN_ALLOW_LARGE`,
+`PARITY_ALLOW_SKIP` (`string | undefined`, step env); the reason text (`string | null`, lives only in the PR
+description); three git listings (`string`); the pg error `code` (`'57P01'`, in-process).
 
 ## 6. Test cases
 
-`tools/pr-reason.test.ts`, `describe('pr reason')`:
+`tools/pr-reason.test.ts`:
 
-- **T1** `reads the reason from a Large PR line` — Given `"intro\nLarge PR: ports the whole gallery suite\n"`, When `prReason(body, 'Large PR')`, Then `'ports the whole gallery suite'`.
-- **T2** `matches the key case-insensitively and after a bullet` — Given `"- large pr: ports the whole gallery suite"`, When the same call, Then the trimmed reason.
-- **T3** `rejects a reason under 10 non-space characters` — Given `"Large PR: too  big"`, When called, Then `null`.
-- **T4** `ignores placeholder text inside an HTML comment` — Given the template text whose comment contains `Large PR: <why this PR is over 800 lines>`, When called for either key, Then `null`.
-- **T5** `does not match the key mid-line` — Given `"this is a Large PR: because I said so and more"`, When called, Then `null`.
-- **T6** `returns null for an undefined or empty body` — Given `undefined` and `''`, When called, Then `null` twice.
-- **T7** `keeps the two keys apart` — Given a body with only a `No parity:` line, When `prReason(body, 'Large PR')` and then `prReason(body, 'No parity')`, Then `null` and the reason.
-- **T8** `allows a large PR by label or by body line` — Given `{ LEAN_ALLOW_LARGE: '1' }`, `{ PR_BODY: 'Large PR: ports the whole gallery suite' }`, `{}` and `{ PR_BODY: 'Large PR: short' }`, When `largePrAllowed(env)`, Then `true, true, false, false`.
-- **T9** `allows a parity skip by label or by body line` — the same four shapes with `PARITY_ALLOW_SKIP` and `No parity:`, When `paritySkipAllowed(env)`, Then `true, true, false, false`.
+- **T1** Given `"intro\nLarge PR: ports the whole gallery suite\n"`, When `prReason(body,'Large PR')`, Then `'ports the whole gallery suite'`.
+- **T2** Given `"- large pr: ports the whole gallery suite"`, When called, Then the trimmed reason.
+- **T3** Given `"Large PR: too  big"` (6 non-space characters), When called, Then `null`.
+- **T4** Given the exact new template text (the comment holds `Large PR: ports the whole gallery suite` and `No parity: test-only change to the harness`), When called for each key, Then `null`.
+- **T5** Given `"this is a Large PR: because I said so and more"`, When called, Then `null`.
+- **T6** Given `undefined` and `''`, When called, Then `null` twice.
+- **T7** Given a body with only a `No parity:` line, When called for `'Large PR'` then `'No parity'`, Then `null` then the reason.
+- **T8** Given `{LEAN_ALLOW_LARGE:'1'}`, `{PR_BODY:'Large PR: ports the whole gallery suite'}`, `{}`, `{PR_BODY:'Large PR: short'}`, When `largePrAllowed`, Then `true,true,false,false`.
+- **T9** The same four shapes for `paritySkipAllowed` with `PARITY_ALLOW_SKIP` and `No parity:`.
 
-`tools/precheck.test.ts`, `describe('precheck changed files')`:
+`tools/precheck.test.ts` (`changedFiles` is the tested seam; `main()` is a thin loop over `execFileSync`, proved by the
+manual runs in §7):
 
-- **T10** `dedupes a path listed by two git commands` — Given `['a.ts\nb.ts\n', 'b.ts\n', '']` and `exists = () => true`, When `changedFiles(...)`, Then `['a.ts', 'b.ts']`.
-- **T11** `drops a path that no longer exists` — Given `['gone.ts\nkept.ts\n']` and `exists = (p) => p === 'kept.ts'`, When called, Then `['kept.ts']`.
-- **T12** `returns nothing for empty output` — Given `['', '\n', '  ']`, When called, Then `[]`.
+- **T10** Given `['a.ts\nb.ts\n','b.ts\n','']`, `exists = () => true`, Then `['a.ts','b.ts']`.
+- **T11** Given `['gone.ts\nkept.ts\n']`, `exists = p => p === 'kept.ts'`, Then `['kept.ts']`.
+- **T12** Given `['','\n','  ']`, Then `[]`.
 
-`apps/server/test/harness-shutdown.test.ts`, `describe('tolerate shutdown')`. Red step: with the listener removed, T13 fails and T16 ends the file in "Unhandled Errors".
+`apps/server/test/harness-shutdown.test.ts` (T17 was dropped; it passed on main):
 
-- **T13** `re-throws 57P01 before shutdown begins` — Given an unconnected `new Pool()` guarded by `tolerateShutdown`, When `pool.emit('error', shutdownError, undefined as never)` where `shutdownError = Object.assign(new Error('terminating connection…'), { code: '57P01' })`, Then it throws; then `await pool.end()`.
-- **T14** `swallows 57P01 once shutdown has begun` — Given the same pool with `begin()` called, When the same emit, Then it does not throw.
-- **T15** `re-throws any other code after shutdown begins` — Given `begin()` called, When emitting an error with `code: '08006'`, Then it throws.
-- **T16** `a stopped container emits 57P01 and the guarded pool still ends` (timeout 60_000) — Given a bare `new PostgreSqlContainer('postgres:16-alpine')` (not `startTestDb`, so there is no second container teardown to manage) and two `max: 1` pools that have each run `select 1`, one `observed` with a plain `'error'` listener and one `guarded` with only `tolerateShutdown`, both begun, When `await container.stop()`, Then `observed` receives `code === '57P01'`, `guarded` reports nothing unhandled, and `await expect(guarded.end()).resolves.toBeUndefined()` and the same for `observed` — pg drops a client whose socket errored, so `end()` has no live client to drain and a hang would show as this test timing out.
-- **T17** `startTestDb teardown is clean` (timeout 60_000) — Given `startTestDb()` with one query on `admin` and one on `app`, When `await db.stop()`, Then it resolves and the file reports no unhandled error.
+- **T13** Given `new Pool()` guarded by `tolerateShutdown`, When `pool.emit('error', e)` with `e = Object.assign(new Error('terminating connection due to administrator command'), {code:'57P01'})` before `begin`, Then it throws; then `await pool.end()`.
+- **T14** Same pool after `begin()`, same emit, Then it does not throw.
+- **T15** After `begin()`, emit an error with `code: '08006'`, Then it throws.
+- **T16** (timeout 60_000) Given `const container = await new PostgreSqlContainer('postgres:16-alpine').start()` and two `max: 1` pools on `container.getConnectionUri()`, each having run `select 1`; `observed` has a plain `'error'` listener: `const seen = new Promise<Error>(r => observed.once('error', r))`; `guarded` has `tolerateShutdown` and `begin()` called. When `await container.stop()`, then `await vi.waitFor(() => expect(guarded.totalCount).toBe(0))` (pg drops the errored client before it emits, so this proves guarded's error was handled before `end()`), Then `((await seen) as {code?:string}).code === '57P01'`, `guarded.listenerCount('error') === 1`, and `await expect(guarded.end()).resolves.toBeUndefined()`, same for `observed`. The absence of "Unhandled Errors" is the red step, run once by hand: with `tolerateShutdown` removed from `guarded`, the vitest run ends with `Errors 1` and exit 1.
 
 ## 7. Regression risk
 
-- `tools/parity-update.test.ts` assertions are untouched: the reworded message still contains the ledger path and still yields exactly one error.
-- `check-pr-size.ts` gains an `import.meta.url` guard; `pnpm pr:size` runs the file directly, so it still executes.
-- `edited` re-runs CI on any title or body edit; the existing concurrency group cancels superseded runs.
-- `tolerateShutdown` must not hide real failures: anything other than 57P01-after-begin is re-thrown (T13, T15).
-- `packages/db` tests already end their pools before `container.stop()`; they need no change and get none.
+- `tools/parity-update.test.ts` assertions are untouched; the message still has the ledger path and still yields one error.
+- `check-pr-size.ts` gains an `import.meta.url` guard; `pnpm pr:size` runs it directly so it still executes.
+- `pr-meta.yml` adds one short job per PR event (install, two tools); `ci.yml`'s matrix does not change. Moving the two
+  steps out means the `static` check no longer fails on size or parity; `pr-meta` does.
+- `tolerateShutdown` re-throws anything but 57P01-after-begin (T13, T15).
+- T16 starts one extra container inside the `api` shards (about one more among about 25 test files that already start
+  one); `maxWorkers: 4` is unchanged.
+- Manual proofs in the PR: `pnpm precheck` green; `pnpm precheck` with a lint error planted in a scratch change, to
+  see `FAILED at lint`; the red run of T16.
+- Required checks: `pr-meta` is a new check name. A repo admin must add it to the required status checks, and the merge rule "all 8 checks green" becomes 9. I cannot do that and do not edit `docs/plan/ledger.md`; the PR body says it.
+- `packages/db` tests already end pools before the container stops and get no change.
 
-## 8. Out of scope / not touched
+## 8. Not touched
 
-No auto-labelling action and no `pull-requests: write`. No change to the 400/800 budgets, the parity rule, the vitest config, `pnpm verify`, the CI job matrix or shard counts, or product code in `apps/server/src`, `apps/web` or `packages/`. No change to `docs/plan/ledger.md`, `docs/plan/MILESTONES.md`, `docs/LEAN.md`, `docs/spec/parity.yaml`, or any existing test assertion.
+`docs/plan/ledger.md`, `docs/plan/MILESTONES.md`, product code under `apps/server/src` (except the setup lines
+of `sla-jobs.test.ts`), `apps/web`, `packages/`, vitest config, `ci.yml` triggers and matrix, the 400/800 budgets,
+any existing test assertion.
