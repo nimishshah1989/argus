@@ -314,3 +314,80 @@ describe('M2-2.1 severity matrix settings', () => {
     expect(put.statusCode).toBe(403);
   });
 });
+
+describe('what /settings/:key accepts', () => {
+  const ROLES = ['admin', 'head', 'plant_head', 'supervisor', 'technician', 'operator', 'board'];
+  const tokens: Record<string, string> = {};
+  const put = (key: string, token: string, value: unknown) =>
+    req('PUT', `/api/v1/settings/${key}`, token, { value });
+
+  beforeAll(async () => {
+    for (const [index, role] of ROLES.entries()) {
+      if (role === 'admin') {
+        tokens[role] = await loginAs('admin');
+        continue;
+      }
+      const personId = `10000000-0000-0000-0000-00000000008${index}`;
+      await admin.query('INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, $4)', [
+        personId,
+        A,
+        `Allow ${role}`,
+        'maintenance',
+      ]);
+      await admin.query(
+        `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
+         SELECT $1, $2, $3, $4, password_hash, $5, false FROM login WHERE id = $6`,
+        [
+          `10000000-0000-0000-0000-00000000009${index}`,
+          A,
+          personId,
+          `allow-${role}`,
+          role,
+          ADMIN_LOGIN,
+        ],
+      );
+      tokens[role] = await loginAs(`allow-${role}`);
+    }
+  });
+
+  it('refuses a key nobody has defined, and a key that only looks like one', async () => {
+    for (const key of ['made_up', 'constructor', '__proto__', 'ai.consent', 'language']) {
+      const res = await put(key, tokens.admin!, 'x');
+      expect(res.statusCode, key).toBe(404);
+      expect(res.json().error.code).toBe('not_found');
+    }
+    const stored = await admin.query('SELECT key FROM setting WHERE key = ANY($1)', [
+      ['made_up', 'constructor', '__proto__', 'ai.consent'],
+    ]);
+    expect(stored.rows).toEqual([]);
+  });
+
+  it('lets only a head or admin switch features on and off', async () => {
+    for (const role of ROLES) {
+      const res = await put('features', tokens[role]!, { general: true, pause: true });
+      expect(res.statusCode, role).toBe(['admin', 'head'].includes(role) ? 200 : 403);
+    }
+  });
+
+  it('refuses a value of the wrong shape and keeps the old one', async () => {
+    for (const value of ['yes', { general: 'yes' }, [], null, 3]) {
+      expect((await put('features', tokens.admin!, value)).statusCode).toBe(422);
+    }
+    const cfg = await req('GET', '/api/v1/config', tokens.admin!);
+    expect(cfg.json().features).toEqual({ general: true, pause: true });
+  });
+
+  it('lets only the admin set the AI monthly cap, and only to a positive number', async () => {
+    for (const role of ROLES) {
+      const res = await put('ai.monthlyCapUsd', tokens[role]!, 50);
+      expect(res.statusCode, role).toBe(role === 'admin' ? 200 : 403);
+    }
+    for (const value of [0, -5, '50', null]) {
+      expect((await put('ai.monthlyCapUsd', tokens.admin!, value)).statusCode).toBe(422);
+    }
+    const rows = await req('GET', '/api/v1/settings', tokens.admin!);
+    expect(rows.json().find((row: { key: string }) => row.key === 'ai.monthlyCapUsd').value).toBe(
+      50,
+    );
+  });
+});

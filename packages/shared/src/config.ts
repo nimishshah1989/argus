@@ -51,6 +51,8 @@ export const listUpsertSchema = z.object({
 });
 export type ListUpsertBody = z.infer<typeof listUpsertSchema>;
 
+export const featuresSchema = z.record(z.boolean());
+
 export const settingsPutSchema = z.object({ value: z.unknown() });
 export type SettingsPutBody = z.infer<typeof settingsPutSchema>;
 
@@ -163,7 +165,7 @@ export const severityMatrixReplySchema = z
 
 export const plantConfigSchema = z
   .object({
-    features: z.record(z.boolean()),
+    features: featuresSchema,
     language: str,
     timeZone: str,
     lists: z.record(z.array(listItemSchema)),
