@@ -74,3 +74,70 @@ export async function setReportPdf(
     [input.fileId, input.payload, input.reportId, input.tenantId],
   );
 }
+
+export interface HistoryRow {
+  id: string;
+  machineId: string;
+  reportedAt: Date;
+  problem: string;
+  closeNote: string | null;
+  action: string | null; // corrective_action of the newest report
+  rootCause: string | null;
+  spare: string | null;
+  code: string | null;
+  category: string | null;
+}
+
+const MACHINE_HISTORY_SQL = `SELECT t.id, t.machine_id AS "machineId", t.reported_at AS "reportedAt", t.problem,
+       t.close_note AS "closeNote", r.corrective_action AS action, r.root_cause AS "rootCause",
+       r.spare_used AS spare, r.maint_code AS code, r.breakdown_category AS category
+  FROM ticket t
+  LEFT JOIN LATERAL (
+    SELECT corrective_action, root_cause, spare_used, maint_code, breakdown_category
+      FROM breakdown_report br
+     WHERE br.tenant_id = t.tenant_id AND br.ticket_id = t.id
+     ORDER BY br.submitted_at DESC LIMIT 1) r ON true
+ WHERE t.tenant_id = $1 AND t.machine_id = ANY($2::uuid[])
+   AND t.status = 'closed' AND t.reported_at < $3
+ ORDER BY t.reported_at DESC, t.ref DESC
+ LIMIT $4`;
+
+/** Closed past tickets of the given machines, newest first. Names (observed_by, handover_name) are never read. */
+export async function machineHistory(
+  tx: Db,
+  tenantId: string,
+  query: { machineIds: readonly string[]; before: Date; limit: number },
+): Promise<HistoryRow[]> {
+  if (query.machineIds.length === 0) return [];
+  return (
+    await tx.query(MACHINE_HISTORY_SQL, [tenantId, query.machineIds, query.before, query.limit])
+  ).rows;
+}
+
+const SEEN_ELSEWHERE_SQL = `SELECT n.note FROM (
+  SELECT lower(regexp_replace(btrim(COALESCE(NULLIF(btrim(r.corrective_action), ''), t.close_note)), '\\s+', ' ', 'g')) AS note,
+         t.machine_id, (t.reported_at AT TIME ZONE 'UTC')::date AS day
+    FROM ticket t
+    LEFT JOIN LATERAL (
+      SELECT corrective_action FROM breakdown_report br
+       WHERE br.tenant_id = t.tenant_id AND br.ticket_id = t.id
+       ORDER BY br.submitted_at DESC LIMIT 1) r ON true
+   WHERE t.tenant_id = $1 AND t.status = 'closed' AND t.machine_id IS NOT NULL
+     AND t.machine_id <> ALL($2::uuid[])
+) n
+ WHERE n.note = ANY($3::text[])
+ GROUP BY n.note, n.day
+HAVING count(DISTINCT n.machine_id) >= 3`;
+
+/** Which of the (normalised) notes are stock phrases: the closing note of closed tickets on 3+ machines outside the family on one UTC day. */
+export async function notesSeenElsewhere(
+  tx: Db,
+  tenantId: string,
+  query: { notes: readonly string[]; outsideMachineIds: readonly string[] },
+): Promise<Set<string>> {
+  if (query.notes.length === 0) return new Set();
+  const rows = (
+    await tx.query(SEEN_ELSEWHERE_SQL, [tenantId, query.outsideMachineIds, query.notes])
+  ).rows;
+  return new Set(rows.map((r: { note: string }) => r.note));
+}

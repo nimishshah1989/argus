@@ -53,3 +53,35 @@ export const AI_ROW_OUTCOMES = [
 ] as const;
 export type AiRowOutcome = (typeof AI_ROW_OUTCOMES)[number];
 export const AI_SUGGESTION_STATUSES = ['running', 'retry_wait', 'ready', 'failed'] as const;
+
+export const diagnosisCoverageSchema = z
+  .object({
+    thisMachine: z.number().int().min(0), // past tickets sent for this machine
+    withNotes: z.number().int().min(0), // of those, with a closing note of 3+ words
+    sameModel: z.number().int().min(0), // past tickets sent from same-model machines
+    sameModelMachines: z.number().int().min(0), // distinct machines among them
+    templatesLeftOut: z.number().int().min(0), // rows left out as template notes
+  })
+  .strict();
+export const diagnosisCandidateV1Schema = z
+  .object({
+    cause: z.string(),
+    firstCheck: z.string(),
+    expectedFix: z.string(),
+    evidenceTicketIds: z.array(z.string().uuid()).max(8),
+    isGuess: z.boolean(),
+  })
+  .strict();
+/** Stored in `ai_suggestion.output` for feature 'diagnosis' (D22). Every number in it is set by code. */
+export const diagnosisOutputV1Schema = z
+  .object({
+    v: z.literal(1),
+    safetyFlagged: z.boolean(),
+    safetyReason: z.string(),
+    safetyWords: z.array(z.string()),
+    candidates: z.array(diagnosisCandidateV1Schema).max(3),
+    coverage: diagnosisCoverageSchema,
+  })
+  .strict();
+export type DiagnosisCoverage = z.infer<typeof diagnosisCoverageSchema>;
+export type DiagnosisOutputV1 = z.infer<typeof diagnosisOutputV1Schema>;
