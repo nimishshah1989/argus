@@ -1,7 +1,8 @@
 # 16 — Desk lists and ticket detail
 
 Issue [#91](https://github.com/nimishshah1989/argus/issues/91) · Blocked by 05, 12, 13, 14 (merged) · Branch `claude/t16-desk-lists`.
-One PR, `Closes #91`. No table, no migration, no new dependency. Layout rule: v3's screen order, button positions and copy stay;
+**Scope change (Nimish, via the orchestrator): this PR is goal 3 only.** No screen is built until the frontend design is approved; the desk lists and detail (goals 1 and 2) are re-dispatched later. The unfinished UI work is parked, unreviewed, on branch `claude/t16-desk-ui-parked`.
+One PR, `Refs #91` (the issue stays open for goals 1 and 2). No table, no migration, no new dependency. Layout rule: v3's screen order, button positions and copy stay;
 the kit changes the look only (accent token, never a colour).
 
 ## 1. Order of work
