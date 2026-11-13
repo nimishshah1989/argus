@@ -1,0 +1,1655 @@
+<script>
+/* Live breakdown tickets (version 3).
+   Everyone signs in with a username and password made by the admin in the platform (Settings > People & access).
+   The login decides the screens: Report (shop floor), Maintenance / Supervisor / Admin (maintenance desk), View board (live status only).
+   A personal login records its own name on every action. A shared login (one phone for a team or cell) asks for the name each time. */
+const AUTH = {cid:'', api:'', tok:'', user:null};
+const LV = {on:false, role:'', state:{open:[],closed:[],now:null}, skew:0, offline:false, cats:[], timer:null, busy:false};
+const A = {view:'', depth:0, st:{cat:'', q:'', machine:'', kind:'stopped', by:'', last:null, filter:'all', liveQ:'', allMine:false, startOff:0, closeOff:0, tid:'', who:'', reason:'', reasonBy:'', closeTs:null, noNav:false}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nowMs = () => Date.now() + LV.skew;
+const tmf = iso => new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+const dur = m => m==null ? '—' : (m<60 ? m+' min' : m<1440 ? Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min' : Math.floor(m/1440)+' d '+Math.floor((m%1440)/60)+' h');
+const minsSince = iso => Math.max(0, Math.floor((nowMs()-Date.parse(iso))/60000));
+const uiState = t => t.status==='working' ? 'working' : t.status==='waiting' ? 'waiting' : t.handedOver ? 'handover' : t.kind==='general' ? 'general' : (t.kind==='support' ? 'support' : 'stopped');
+const SL = {stopped:'Stopped', working:'Work in progress', support:'Needs support', handover:'Transferred', waiting:'Waiting', general:'Work request', running:'Running', follow:'Running · follow-up'};
+const STAG = {stopped:'STOPPED', working:'IN PROGRESS', support:'SUPPORT', handover:'TRANSFERRED', waiting:'WAITING', general:'REQUEST', running:'', follow:'FOLLOW-UP'};
+// machine marked running again while the ticket stays open (waiting for a vendor, a spare...): amber on tiles and the board, downtime stopped
+const isFollow = t => !!(t && t.kind==='stopped' && t.runningAt && ['open','working','waiting'].includes(t.status));
+// machine downtime so far: only the stopped periods
+const typeLine = (t, gen) => { const c = t.parentId ? ['#5B21B6','📌 Pending task of '+t.parentRef+(t.taskExp ? ' · expected '+expNice(t.taskExp) : '')] : t.kind==='stopped' ? (t.runningAt ? ['#14683A','🟢 Machine running again · follow-up pending'] : ['#9B1C1C','🔴 Machine stopped']) : t.kind==='support' ? ['#7A4B00','🟢 Machine running · needs support'] : (gen ? ['#075985','🔧 Work request'] : null); return c ? '<div class="lvtype" style="font-size:13.5px;font-weight:800;color:'+c[0]+'">'+c[1]+'</div>' : ''; };
+const downNow = t => (t.downAcc||0) + (t.runningAt ? 0 : minsSince(t.stopAt || t.downAt));
+// people who joined the job (still on it)
+const crewOn = t => (t.crew||[]).filter(c=>!c.left);
+const myCrew = t => { const me = lvMe(); return me ? crewOn(t).find(c=>c.name===me) : null; };
+const isLead = t => { const me = lvMe(); return !!me && t.startedBy===me; };
+// who may close (the server checks too): the person running the job, a primary who joined, Supervisor / Admin; a shared phone picks the name
+const canCloseT = t => !personal() || ['supervisor','admin'].includes(ME().role) || t.status==='open' || !t.startedBy || isLead(t) || (myCrew(t)||{}).role==='primary';
+const canJoin = t => ['working','waiting'].includes(t.status) && !!t.startedBy && (!personal() || (!isLead(t) && !myCrew(t)));
+const canLeave = t => ['working','waiting'].includes(t.status) && (!personal() ? crewOn(t).length > 0 : (!!myCrew(t) || (isLead(t) && crewOn(t).some(c=>c.role==='primary'))));
+function crewLine(t){
+  const C = crewOn(t); if(!C.length || !t.startedBy) return '';
+  return '<div class="lvcrew"><b>'+esc(t.startedBy)+'</b> <i>running it</i>'+C.map(c=>' · <b>'+esc(c.name)+'</b> <i>'+c.role+'</i>').join('')+'</div>';
+}
+const WAIT_REASONS = ['Waiting for spare','Sent to vendor for repair','Waiting for approval / PO','Waiting for utility (power, air)','Machine not released by production','Other'];
+const WORK_TYPES = ['Electrical','Plumbing / water','Air line','Civil / building','Fabrication / welding','Installation / shifting','Other'];
+const FEAT = k => !CLIENT.features || CLIENT.features[k] !== false;
+const waitReasons = () => (CLIENT.waitReasons && CLIENT.waitReasons.length ? CLIENT.waitReasons : WAIT_REASONS);
+const workTypes = () => (CLIENT.workTypes && CLIENT.workTypes.length ? CLIENT.workTypes : WORK_TYPES);
+const floorLive = () => CLIENT.floorLive === true;
+const place = t => t.kind==='general' ? (t.location || 'Work request') : t.machine;
+// short tag for a waiting ticket, from its reason
+function waitTag(t){ const r = String(t.waitReason||'').toLowerCase(); return /vendor/.test(r) ? 'AT VENDOR' : /spare/.test(r) ? 'WAITING SPARE' : /approval|po\b/.test(r) ? 'WAITING APPROVAL' : /utility|power|air/.test(r) ? 'WAITING UTILITY' : /production|released/.test(r) ? 'NOT RELEASED' : 'WAITING'; }
+const norm = s => String(s||'').toUpperCase().replace(/[\s\-]/g,'');
+const QUICK = ['Not starting','Unusual noise','Alarm on screen','Coolant problem','Oil leak','Tool problem'];
+const I = {
+  back:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+  check:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  checkBig:'<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  mic:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  x:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  add:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/></svg>',
+  grid:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+  team:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.2c2.3.2 4 1.7 4.5 4.3"/></svg>',
+  list:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  wrench:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
+  stop:'<svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" fill="#fff"/></svg>',
+  warn:'<svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="#2B1B00"/><rect x="11" y="9" width="2" height="6" fill="#F2A900"/><rect x="11" y="16.5" width="2" height="2" fill="#F2A900"/></svg>'
+};
+
+/* ---------- storage and server ---------- */
+const ls = k => { try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } };
+const lsSet = (k, v) => { try{ if(v==null || v==='') localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} };
+const ME = () => AUTH.user || {};
+const personal = () => !!AUTH.user && !AUTH.user.shared;
+const ROLE_NAME = {report:'Report', maint:'Maintenance', board:'View board', supervisor:'Supervisor', admin:'Admin'};
+
+function lvGet(k, d){ try{ const v = localStorage.getItem('bd_'+k+'_'+CLIENT.id); return v==null ? d : v; }catch(e){ return d; } }
+function lvSet(k, v){ try{ localStorage.setItem('bd_'+k+'_'+CLIENT.id, v); }catch(e){} }
+const lvMe = () => personal() ? ME().name : lvGet('me', '');
+async function lvApi(path, body){
+  const o = {headers:{'X-Client':AUTH.cid}};
+  if(AUTH.tok) o.headers.Authorization = 'Bearer '+AUTH.tok;
+  if(body){ o.method = 'POST'; o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
+  let r; try{ r = await fetch(AUTH.api.replace(/\/+$/,'')+path, o); }catch(e){ throw {net:true, message:'No internet connection'}; }
+  let j = {}; try{ j = await r.json(); }catch(e){}
+  if(r.status === 401 && path !== '/api/login'){ lvSignedOut('Your sign-in has ended. Please sign in again.'); throw {auth:true, message:'Please sign in again'}; }
+  if(!r.ok) throw {message:j.error||'Something went wrong', status:r.status};
+  return j;
+}
+/* ---------- machine groups ---------- */
+const LV_UTIL = /tank|compressor|dryer|stabili[sz]er|\bups\b|\bdg\b|generator|transformer|chiller/i;
+function lvGroupOf(m){ const g = (CLIENT.groups||{})[m.category]; if(g) return g; return LV_UTIL.test((m.category||'')+' '+m.id) ? 'hidden' : 'cnc'; }
+const lvPre = id => ((String(id).match(/^[A-Za-z]+/)||[''])[0]).toUpperCase();
+const natural = (a,b) => String(a).localeCompare(String(b), undefined, {numeric:true});
+const SEG_ORDER = ['CNC','Conventional','Process','Utility','DG','Robot'];
+const SEG_NAME = {CNC:'CNC machines', Conventional:'Conventional machines', Process:'Process machines', Utility:'Utilities', DG:'DG sets', Robot:'Robots'};
+function lvBuildCats(){
+  const hasSeg = REF.machines.some(m=>m.seg), sections = {}, show = CLIENT.segShow || {}, G = CLIENT.segGroup || {};
+  REF.machines.forEach(m=>{
+    if((CLIENT.groups||{})[m.category]==='hidden') return;
+    const g = hasSeg ? null : lvGroupOf(m), seg = hasSeg ? (m.seg||'CNC') : (g==='hidden' ? null : g==='conventional' ? 'Conventional' : 'CNC');
+    if(!seg || show[seg]===false) return;
+    (sections[seg] = sections[seg]||[]).push(m);
+  });
+  const order = CLIENT.segOrder && CLIENT.segOrder.length ? CLIENT.segOrder : SEG_ORDER, oi = x=>{ const i = order.indexOf(x); return i<0 ? 99 : i; };
+  const cats = [], secs = [];
+  Object.keys(sections).sort((a,b)=>oi(a)-oi(b)).forEach(seg=>{
+    const ms = sections[seg], list = [], byLetters = seg==='CNC' ? G[seg]!=='category' : G[seg]==='letters';
+    if(byLetters){
+      const by = {}, oth = [];
+      ms.forEach(m=>{ const p = lvPre(m.id)||'OTHER'; (by[p] = by[p]||[]).push(m); });
+      Object.keys(by).forEach(p=>{ if(by[p].length < 2){ oth.push(...by[p]); return; } const names = Array.from(new Set(by[p].map(m=>m.category).filter(Boolean)));
+        list.push({k:seg+':'+p, pre:p, label:p, name:(CLIENT.groupNames&&CLIENT.groupNames[p]) || (names.length===1 ? names[0] : p+' machines'), ms:by[p]}); });
+      list.sort((a,b)=>b.ms.length-a.ms.length || natural(a.pre,b.pre));
+      if(oth.length) list.push({k:seg+':OTH', pre:'', label:'Other', name:'Other '+(SEG_NAME[seg]||seg).toLowerCase(), ms:oth});
+    } else {
+      const by = {}; ms.forEach(m=>{ const c = m.category||'Other'; (by[c] = by[c]||[]).push(m); });
+      Object.keys(by).forEach(c=>list.push({k:seg+':'+c, pre:'', label:(CLIENT.groupNames&&CLIENT.groupNames[c]) || c, name:c, ms:by[c], long:true}));
+      list.sort((a,b)=>b.ms.length-a.ms.length || natural(a.name,b.name));
+    }
+    list.forEach(c=>{ c.seg = seg; c.ms.sort((a,b)=>natural(a.id,b.id)); cats.push(c); });
+    secs.push({seg, name:SEG_NAME[seg]||seg, n:ms.length, cats:list});
+  });
+  LV.cats = cats; LV.secs = secs;
+}
+const lvAllMachines = () => LV.cats.reduce((a,c)=>a.concat(c.ms), []);
+const lvMachine = id => REF.machines.find(m=>m.id===id) || {id, category:'', cell:''};
+const lvCatOf = id => LV.cats.find(c=>c.ms.some(m=>m.id===id));
+const tmap = () => { const m = {}; LV.state.open.forEach(t=>{ if(t.kind!=='general' && t.machine) m[t.machine] = t; }); return m; };
+const lvReporters = () => (CLIENT.reporters && CLIENT.reporters.length ? CLIENT.reporters : REF.observedBy);
+const lvTeam = () => REF.team;
+
+/* ---------- shell, routing, toast ---------- */
+function lvShell(){
+  $('lvApp').innerHTML = '<div class="lvbar" id="lvBar"></div><div class="lvbody" id="lvBody"></div><div class="lvfoot" id="lvFoot"></div><div class="lvtabs" id="lvTabs"></div><div class="lvsheetb" id="lvSheetB"><div class="lvsheet" id="lvSheet"></div></div><div id="lvToast" role="status"></div>';
+}
+function lvToast(msg, bad){ const t = $('lvToast'); t.className = (bad?'bad ':'')+'on'; t.innerHTML = (bad?'':I.check)+'<span>'+esc(msg)+'</span>'; clearTimeout(lvToast.h); lvToast.h = setTimeout(()=>{ t.className = ''; }, bad ? 4500 : 2800); }
+const rootOf = () => LV.role==='maint' ? 'open' : LV.role==='board' ? 'live' : 'cat';
+const TAB_OF = {cat:'report', machine:'report', type:'report', problem:'report', general:'report', sent:'report', live:'live', open:'open', mine:'mine', close:'mine', closed:'open', my:'my', team:'team'};
+function lvUnhide(){ const h = document.getElementById('lvHide'); if(h) h.remove(); }
+// the signature box is sized when the form becomes visible (it measures 0 while hidden, so drawing would not show)
+function sigFit(){
+  const c = document.getElementById('sigCanvas'); if(!c || !c.offsetWidth || typeof signaturePad==='undefined' || !signaturePad) return;
+  const r = Math.max(window.devicePixelRatio||1, 1), w = Math.round(c.offsetWidth*r), h = Math.round(c.offsetHeight*r); if(c.width===w && c.height===h) return;
+  const keep = signaturePad.isEmpty() ? null : signaturePad.toData();
+  c.width = w; c.height = h; const g = c.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.scale(r, r);
+  signaturePad.clear(); if(keep){ try{ signaturePad.fromData(keep); }catch(e){} }
+}
+window.addEventListener('resize', ()=>{ if(A.view==='form') sigFit(); });
+function lvShow(){
+  lvUnhide();
+  // the original form nests the "Report generated" screen inside the form, so it vanished with it; move it out once
+  const ss = $('successScreen'), fs = $('formScreen'); if(ss && fs && fs.contains(ss)) fs.parentNode.insertBefore(ss, fs.nextSibling);
+  const form = A.view==='form', success = A.view==='success';
+  if(form) requestAnimationFrame(()=>requestAnimationFrame(sigFit));
+  $('lvApp').classList.toggle('on', !form && !success);
+  $('formScreen').style.display = form ? 'block' : 'none';
+  $('footerBar').style.display = form ? 'block' : 'none';
+  if(!success) $('successScreen').style.display = 'none';
+  if(form) lvBanner();
+  window.scrollTo(0,0);
+}
+function go(view, replace){
+  A.view = view; LV.wkFresh = (view==='mine' || view==='team');   // re-read the closed lists once each time the page is opened
+  if(replace){ history.replaceState({view, d:A.depth}, ''); } else { A.depth++; history.pushState({view, d:A.depth}, ''); }
+  closeSheet(); lvShow(); render();
+}
+function back(){ if(A.depth > 0) history.back(); else go(rootOf(), true); }
+window.addEventListener('popstate', e=>{
+  if(!LV.on) return;
+  A.depth = (e.state && e.state.d) || 0; A.view = (e.state && e.state.view) || rootOf();
+  closeSheet(); lvShow(); render();
+});
+function openSheet(html){ $('lvSheet').innerHTML = html; $('lvSheetB').classList.add('on'); }
+function closeSheet(){ const s = $('lvSheetB'); if(s) s.classList.remove('on'); }
+
+/* ---------- pieces ---------- */
+function spin(on, txt){ return (on ? '<span class="lvspin"></span>' : '') + '<span>'+esc(txt)+'</span>'; }
+function stChip(k){ return '<span class="lvst s-'+k+'">'+SL[k]+'</span>'; }
+function chips(list, sel, act){ return list.map(n=>'<button class="lvchip'+(sel===n?' on':'')+'" data-a="'+act+'" data-v="'+esc(n)+'">'+esc(n)+'</button>').join(''); }
+function barHtml(o){
+  const left = o.back ? '<button class="lvbk" data-a="back" aria-label="Back to '+esc(o.back)+'">'+I.back+'<span>'+esc(o.back)+'</span></button>' : '<div class="t"><b>'+esc(o.title)+'</b><span>'+esc(CLIENT.company||'')+(LV.role==='maint'?' · Maintenance':LV.role==='board'?' · View only':'')+'</span></div>';
+  const u = ME(), me = (u && u.name && (LV.role==='maint' || LV.role==='floor') && !o.notabs && !o.back) ? '<button class="lvme" data-a="meask" aria-label="Me: password, alerts, sign out">'+esc(String(u.name).trim().charAt(0).toUpperCase())+'</button>' : '';
+  return left+'<span class="r">'+esc(o.right||'')+'</span>'+me;
+}
+function sheetMe(){
+  const u = ME();
+  openSheet('<div class="hd"><b>'+esc(u.name||'Me')+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'+acctHtml()+pushHtml(false)
+   +'<a class="lvlink" href="guide.html" style="text-align:center;text-decoration:none;display:block">Open the team guide</a><button class="lvprim" data-a="updnow">Update now</button>');
+}
+function tabT(){
+  if(LV.role==='' || LV.role==='board') return [];
+  const n = LV.state.open, me = lvMe();
+  const opn = n.filter(t=>t.status==='open').length, mine = n.filter(t=>t.status==='working' && (A.st.allMine || !me || t.startedBy===me)).length;
+  return LV.role==='maint'
+    ? [['open','Open',I.list,opn,''],['mine','Mine',I.wrench,mine,' b'],['team','Team',I.team,0,''],['cat','Report',I.add,0,''],['live','Live',I.grid,0,'']]
+    : [['cat','Report',I.add,0,''],['my','My complaints',I.list,myOpen().length,'']].concat(floorLive() ? [['live','Live',I.grid,0,'']] : []);
+}
+function tabsHtml(){
+  const T = tabT(); if(T.length < 2) return '';
+  const cur = TAB_OF[A.view];
+  return '<style>.lvtabs{grid-template-columns:repeat('+T.length+',minmax(0,1fr))}</style>'+T.map(([v,l,ic,c,cl])=>'<button data-a="tab" data-v="'+v+'"'+(cur===(v==='cat'?'report':v)?' class="on"':'')+' aria-label="'+l+'"><span>'+ic+(c?'<span class="bd'+cl+'">'+c+'</span>':'')+'</span><span>'+l+'</span></button>').join('');
+}
+function render(){
+  if(!LV.on || A.view==='form' || A.view==='success') return;
+  const V = {team:vTeam, my:vMy, cat:vCat, machine:vMachine, type:vType, problem:vProblem, general:vGeneral, sent:vSent, live:vLive, open:vOpen, mine:vMine, close:vClose, closed:vClosed}[A.view] || vCat;
+  const o = V(), body = $('lvBody'), keep = body.scrollTop;
+  $('lvBar').innerHTML = barHtml(o); body.innerHTML = o.html;
+  const f = $('lvFoot'); f.className = 'lvfoot'+(o.foot ? ' on' : ''); f.innerHTML = o.foot || '';
+  const tb = o.notabs ? '' : tabsHtml(); $('lvTabs').innerHTML = tb; $('lvTabs').style.display = tb ? 'grid' : 'none';
+  body.scrollTop = o.fresh ? 0 : keep;
+  if(o.after) o.after();
+}
+
+/* ---------- views: role ---------- */
+
+const APP_VER = '10.4 · 6 Nov 2026', APP_BUILD = '__BUILD__';   // shown under the sign-in line so we can tell which pages a phone has
+// new pages deployed? Phones added to the home screen often just resume the old page, so check when the app is opened or comes back to the screen
+let lvUpAt = 0; try{ lvUpAt = +sessionStorage.getItem('lvUpAt') || 0; }catch(e){}   // remembered across the reload, so the notice does not come straight back
+// Update now: refresh the browser's saved copy of this page, drop the app's stored copies, then reload
+async function lvApplyUpdate(){
+  try{ await fetch(location.pathname, {cache:'reload'}); }catch(e){}
+  try{ const g = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(g) await g.update(); }catch(e){}
+  try{ if(window.caches){ const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); } }catch(e){}
+  try{ sessionStorage.setItem('lvUpAt', String(Date.now())); }catch(e){}
+  location.reload();
+}
+async function lvCheckUpdate(){
+  if(APP_BUILD.indexOf('__')===0 || Date.now()-lvUpAt < 10*60000 || document.getElementById('lvUpd')) return; lvUpAt = Date.now(); try{ sessionStorage.setItem('lvUpAt', String(lvUpAt)); }catch(e){}
+  try{
+    const r = await fetch(location.pathname, {cache:'no-store'}); if(!r.ok) return;
+    const m = (await r.text()).match(/APP_BUILD = '([^']+)'/); if(!m || m[1]===APP_BUILD) return;
+    const b = document.createElement('div'); b.id = 'lvUpd';
+    b.setAttribute('style','position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;background:#12161C;color:#fff;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:15px;font-weight:700');
+    b.innerHTML = '<span style="flex:1">A new version of the app is ready.</span><button style="background:#fff;color:#12161C;border:0;border-radius:10px;padding:10px 14px;font-weight:800;font-size:15px">Update now</button>';
+    b.querySelector('button').onclick = ()=>{ b.querySelector('button').textContent = 'Updating...'; lvApplyUpdate(); };
+    document.body.appendChild(b);
+  }catch(e){}
+}
+function acctHtml(){
+  const u = ME(); if(!u.name) return '';
+  return '<div class="lvacct"><span>Signed in as <b>'+esc(u.name)+'</b> · '+esc(ROLE_NAME[u.role]||'')+(u.shared?' · shared phone':'')+'</span><span class="lvwrap" style="justify-content:center;gap:4px"><button class="lvlink" style="width:auto;padding:0 10px" data-a="pwask">Change password</button><button class="lvlink" style="width:auto;padding:0 10px" data-a="signoutask">Sign out</button></span><span style="font-size:12px;color:#6B7280">App version '+APP_VER+'</span></div>';
+}
+/* ---------- share on WhatsApp ---------- */
+function waText(t){
+  const k = uiState(t), m = lvMachine(t.machine), cx = t.status==='cancelled', closed = !cx && (t.status==='closed' || !!t.closedAt), head = cx ? '⚪ CANCELLED' : closed ? '✅ CLOSED'+(t.kind==='general'?' WORK REQUEST':'') : t.kind==='general' ? '🔧 WORK REQUEST'+(t.urgent?' (URGENT)':'') : k==='waiting' ? '🟠 WAITING ('+waitTag(t)+')' : k==='handover' ? '🟣 TRANSFERRED, WAITING TO BE PICKED UP' : k==='support' ? '🟡 NEEDS SUPPORT' : (k==='working' ? '🔵 WORK IN PROGRESS' : '🔴 MACHINE STOPPED');
+  const where = t.kind==='general' ? place(t)+(t.workType?' ('+t.workType+')':'') : t.machine+(m.category ? ' ('+m.category+(m.cell ? ', Cell '+m.cell : '')+')' : '');
+  return (t.ref ? t.ref+' · ' : '')+head+': '+where+'\n'+t.problem+'\nReported by '+t.reportedBy+' at '+tmf(t.downAt)+(closed ? '\nFixed by '+(t.closedBy||t.startedBy||'-')+(t.closedAt?' at '+dnice(t.closedAt):'')+(t.downtimeMin!=null && t.kind==='stopped'?' · down '+dur(t.downtimeMin):'') : t.status==='working' ? '\n'+t.startedBy+' is working on it' : '');
+}
+// from the ticket details: the whole story up to this minute (facts, every step, who worked on it)
+function waFull(T, d){
+  const base = waText(T).split('\n'), out = [base[0], '*Problem:* '+T.problem, ''];
+  const work = T.status==='working' ? activeNow(T) : (T.activeMin||0);
+  out.push('Reported: '+dnice(T.downAt)+' by '+T.reportedBy);
+  if(T.startedAt) out.push('Work started: '+dnice(T.startedAt)+' by '+((d.events.find(e=>e.type==='start')||{}).by || T.startedBy)+(T.responseMin!=null ? ' (response '+dur(T.responseMin)+')' : ''));
+  if(T.startedAt) out.push('Work time: '+dur(work)+(T.status==='working' ? ' so far' : ''));
+  if(T.waitMin) out.push('Waiting: '+dur(T.waitMin));
+  if(T.status==='waiting') out.push('Now waiting: '+(T.waitReason||'')+(T.eta ? ', expected back '+dnice(T.eta) : ''));
+  if(T.kind==='stopped') out.push('Machine downtime: '+(T.status==='closed' ? dur(T.downtimeMin) : T.status==='cancelled' ? '-' : dur(downNow(T))+(T.runningAt ? ' (machine running)' : ' so far')));
+  if(T.closedAt) out.push((T.status==='cancelled' ? 'Cancelled: ' : 'Closed: ')+dnice(T.closedAt)+' by '+(T.closedBy||'-'));
+  if(T.runningAt) out.push('Machine running again: '+dnice(T.runningAt)+(T.status!=='closed' ? ' (follow-up open)' : ''));
+  if(T.followMin!=null) out.push('Follow-up: '+dur(T.followMin));
+  if(T.kind==='support' && !T.parentId) out.push('Type: needs support (machine kept running), no downtime');
+  if(T.parentId) out.push('Pending task of '+T.parentRef+(T.taskExp ? ', expected '+expNice(T.taskExp) : '')+(T.taskWhy ? ' ('+T.taskWhy+')' : '')+(T.taskDownMin!=null && T.status==='closed' ? ', machine stopped '+(T.taskDownMin ? dur(T.taskDownMin) : 'not at all') : ''));
+  (d.tasks||[]).forEach(x=>out.push('Pending task '+x.ref+': '+x.problem+' - '+(x.status==='closed' ? 'done '+dnice(x.closedAt)+(x.closedBy ? ' by '+x.closedBy : '')+(x.taskDownMin ? ', machine stopped '+dur(x.taskDownMin) : '') : 'pending'+(x.taskExp ? ', expected '+expNice(x.taskExp) : ''))));
+  const R = T.report; if(R && T.status==='closed'){ out.push('', '*Report*');
+    [['What was done', R.ca || R.done], ['Done by', R.db], ['Supported by', R.sb], ['Observed by', R.ob], ['Maintenance code', R.mc], ['E / M', R.bc], ['Spare used', R.sp], ['Shift', R.sh], ['Root cause', R.rc]].forEach(([l, v])=>{ if(v) out.push(l+': '+v); }); }
+  else if(T.closeNote && T.status!=='working') out.push((T.status==='cancelled' ? 'Reason: ' : 'Note: ')+T.closeNote);
+  const P = (d.people||[]).filter(p=>p.mins>0 || p.role==='support' || p.role==='primary'); if(P.length) out.push('', 'Who worked: '+P.map(p=>p.by+(p.role && p.role!=='started' ? ' ('+p.role+')' : '')+' '+dur(p.mins)).join(', '));
+  const line = e => { const L = (TL[e.type]||['',e.type])[1], by = e.by ? ' - '+e.by : ''; let x = '';
+    if(e.type==='update') x = (e.text||'')+(e.spare?' · spare: '+e.spare:'')+(e.eta?' · expected '+dnice(e.eta):'');
+    else if(e.type==='transfer') x = (e.spare?'to '+e.spare+': ':'')+(e.text||'');
+    else if(e.type==='pause') x = (e.spare||'')+(e.text?': '+e.text:'')+(e.eta?' · expected '+dnice(e.eta):'');
+    else if(e.type==='resume') x = (e.mins!=null?'after '+dur(e.mins)+' waiting':'')+(e.text?' · '+e.text:'');
+    else if(e.type==='edit') x = edTimes(e.spare)+(e.text?' · reason: '+e.text:'');
+    else if(e.type==='cancel' || e.type==='restore') x = e.text ? 'reason: '+e.text : '';
+    return '• '+dnice(e.at)+' '+L+by+(x ? ': '+x : ''); };
+  let H = (d.events||[]).filter(e=>TL[e.type]).map(line);
+  if(H.length > 25) H = [H[0], '… '+(H.length-24)+' earlier steps …'].concat(H.slice(-23));
+  out.push('', '*History*'); out.push(...H);
+  out.push('', 'As of '+dnice(new Date().toISOString()));
+  let txt = out.join('\n'); if(txt.length > 3500) txt = txt.slice(0, 3480)+'\n…';
+  return txt;
+}
+function waShare(id){
+  const t = LV.state.open.find(x=>x.id===id) || (LV.det && LV.det.ticket && LV.det.ticket.id===id ? LV.det.ticket : null) || findTicket(id) || (A.st.last && A.st.last.id===id ? A.st.last : null);
+  if(!t){ lvToast('Could not find this ticket. Pull down to refresh and try again.', true); return; }
+  // a real link click opens WhatsApp more reliably than window.open (installed apps on iPhone and Android)
+  const det = $('lvDet') && $('lvDet').dataset.id===id && LV.det && LV.det.ticket && LV.det.ticket.id===id && LV.det.events ? LV.det : null;   // sent from the details: the full history
+  const a = document.createElement('a'); a.href = 'https://wa.me/?text='+encodeURIComponent(det ? waFull(Object.assign({}, t, det.ticket), det) : waText(t)); a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(), 500);
+}
+const WA_BTN = id => '<button class="lvsec" style="background:#E7F8EE!important;color:#0B5B2C!important;border:2px solid #25D366!important;min-height:52px;font-weight:800" data-a="wa" data-v="'+esc(id)+'">Send on WhatsApp</button>';
+
+/* ---------- floor: report ---------- */
+function vCat(){
+  const rec = (()=>{ try{ return JSON.parse(lvGet('recent','[]')); }catch(e){ return []; } })().filter(id=>REF.machines.some(m=>m.id===id)).slice(0,3);
+  const tile = c=>'<button class="lvcat'+(c.long?' long':'')+'" data-a="cat" data-v="'+esc(c.k)+'"><span class="a">'+esc(c.label)+'</span>'+(c.long?'':'<span class="n">'+esc(c.name)+'</span>')+'<span class="c">'+c.ms.length+' machine'+(c.ms.length>1?'s':'')+'</span></button>';
+  return {title:LV.role==='maint' ? 'Report' : 'Report a breakdown', right:'Step 1 of 3', fresh:true, html:'<div class="lvcol"><div><h1 class="lvh1">Which machine?</h1><p class="lvp">Type the machine, or tap its group below.</p></div>'
+   +'<div style="display:flex;flex-direction:column;gap:6px"><label class="lvlbl" for="lvsq">Find a machine</label><input id="lvsq" class="lvin" data-i="sq" type="search" autocomplete="off" autocapitalize="characters" enterkeyhint="search" value="'+esc(A.st.sq||'')+'" placeholder="e.g. VC-17 or just 17"></div>'
+   +'<div id="lvsres" style="display:flex;flex-direction:column;gap:8px">'+searchRows()+'</div><div id="lvcatbody" style="display:'+(A.st.sq?'none':'flex')+';flex-direction:column;gap:14px">'
+   +(rec.length ? '<div class="lvwrap"><span class="lvlbl" style="color:#4B5563">Your recent:</span>'+rec.map(id=>'<button class="lvchip" data-a="pickm" data-v="'+esc(id)+'">'+esc(id)+'</button>').join('')+'</div>' : '')
+   +(FEAT('general') ? '<button class="lvgen" data-a="general"><span class="ic">'+I.wrench+'</span><span><b>Other work (not a machine)</b><small>Fan, light, water, air line, shifting, fabrication…</small></span></button>' : '')
+   +(LV.secs||[]).map(sec=>'<div class="lvseg"><b>'+esc(sec.name)+'</b><span>'+sec.n+'</span></div><div class="lvgrid2">'+sec.cats.map(tile).join('')+'</div>').join('')+'</div>'+(LV.role==='floor'?acctHtml():'<button class="lvlink" data-a="moremenu">More: report only, day report</button>')+'</div>'};
+}
+// machines matching the search box, across every group (dashes and spaces do not matter)
+function searchRows(){
+  const q = norm(A.st.sq); if(!q) return '';
+  const tm = tmap(), L = lvAllMachines().filter(m=>norm(m.id).includes(q)).sort((a,b)=>{ const x = norm(a.id), y = norm(b.id); return (x===q?0:x.endsWith(q)?1:2)-(y===q?0:y.endsWith(q)?1:2) || natural(a.id,b.id); }).slice(0, 30);
+  return L.map(m=>{ const t = tm[m.id], k = t ? uiState(t) : 'running';
+    return '<button class="lvrow" data-a="pickm" data-v="'+esc(m.id)+'"><span><span class="id">'+esc(m.id)+'</span><span class="sub">'+(t ? 'Already reported. Tap to view the ticket.' : esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):''))+'</span></span><span class="lvst s-'+k+'">'+(k==='waiting'?esc(waitTag(t)):SL[k])+'</span></button>'; }).join('')
+    || '<div class="lvempty">No machine matches “'+esc(A.st.sq)+'”. Check the number, or pick the group below.</div>';
+}
+function catHint(c){
+  const ex = c.ms[Math.floor(c.ms.length/2)].id, p = lvPre(ex), num = ex.slice(p.length).replace(/^[-\s]+/,'');
+  return c.pre && num ? 'Type only the number, for example '+num+' for '+ex+'. No spaces, no dash needed.' : 'Type the ID with no spaces, for example '+ex+'.';
+}
+function rowsFor(c){
+  const q = norm(A.st.q), tm = tmap(), pre = norm(c.pre||'');
+  return c.ms.filter(m=>{ if(!q) return true; const n = norm(m.id); return n.includes(q) || (pre && n.replace(pre,'').startsWith(q)); }).map(m=>{
+    const t = tm[m.id], k = t ? uiState(t) : 'running';
+    return '<button class="lvrow" data-a="pickm" data-v="'+esc(m.id)+'"><span><span class="id">'+esc(m.id)+'</span><span class="sub">'+(t ? 'Already reported. Tap to view the ticket.' : esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):''))+'</span></span><span class="lvst s-'+k+'">'+(k==='waiting'?esc(waitTag(t)):SL[k])+'</span></button>';
+  }).join('') || '<div class="lvempty">No machine matches. Check that there are no spaces, for example <b>'+esc(c.ms[0].id)+'</b>.</div>';
+}
+function vMachine(){
+  const c = LV.cats.find(x=>x.k===A.st.cat) || LV.cats[0];
+  return {title:'', back:'Groups', right:'Step 1 of 3', fresh:true, html:'<div class="lvcol"><div class="lvwrap"><span style="font-size:'+(c.long?'21':'26')+'px;font-weight:800;color:#1747C9">'+esc(c.label)+'</span>'+(c.long?'':'<span style="font-size:15.5px;font-weight:600;color:#374151">'+esc(c.name)+'</span>')+'</div>'
+   +'<div style="display:flex;flex-direction:column;gap:6px"><label class="lvlbl" for="lvq">Machine ID</label><input id="lvq" class="lvin" data-i="q" type="text" autocomplete="off" autocapitalize="characters" value="'+esc(A.st.q)+'" placeholder="e.g. '+esc(c.ms[Math.floor(c.ms.length/2)].id)+'"><span class="lvhint">'+esc(catHint(c))+'</span></div>'
+   +'<div style="display:flex;flex-direction:column;gap:8px" id="lvrows">'+rowsFor(c)+'</div></div>'};
+}
+function vType(){
+  const m = lvMachine(A.st.machine);
+  return {title:'', back:'Machine', right:'Step 2 of 3', fresh:true, html:'<div class="lvcol"><div class="lvcard"><span style="font-size:13px;font-weight:700;color:#4B5563">Machine</span><span class="big">'+esc(m.id)+'</span><span style="font-size:14px;color:#374151">'+esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):'')+'</span></div>'
+   +'<h1 class="lvh1" style="font-size:23px">What is the situation?</h1>'
+   +'<button class="lvbig" data-a="kind" data-v="stopped" style="background:#C62828!important;color:#fff!important">'+I.stop+'<span><b>Machine has stopped</b><small>Downtime starts the moment you send.</small></span></button>'
+   +'<button class="lvbig" data-a="kind" data-v="support" style="background:#F2A900!important;color:#2B1B00!important">'+I.warn+'<span><b>Running, needs support</b><small>The machine can keep working while maintenance helps.</small></span></button></div>'};
+}
+
+/* ---------- follow-up box: what is still pending after a breakdown was closed with a task ---------- */
+function fuTasks(t){
+  if(t.follow && t.follow.length) return t.follow;
+  const L = ((LV.state && LV.state.open) || []).concat((LV.state && LV.state.closed) || []).filter(x=>x.parentId===t.id);
+  return L.map(x=>({id:x.id, ref:x.ref, status:x.status, text:x.problem, exp:x.taskExp, why:x.taskWhy, startedBy:x.startedBy, startedAt:x.startedAt, closedAt:x.closedAt, closedBy:x.closedBy}));
+}
+function fuBox(t, L){
+  L = (L || fuTasks(t)).filter(x=>x.status!=='cancelled'); if(!L.length) return '';
+  const pend = L.filter(x=>x.status!=='closed'), today = new Date(nowMs()), ymd = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const late = pend.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.exp||'') && x.exp < ymd);
+  if(!pend.length){
+    return '<div class="lvfu ok"><b>✔ FOLLOW-UP DONE</b>'+L.map(x=>'<span>'+esc(x.text)+' · done '+dnice(x.closedAt)+(x.closedBy ? ' by '+esc(x.closedBy) : '')+'</span>').join('')+'</div>';
+  }
+  const allWork = pend.every(x=>x.status==='working'), n = pend.length;
+  const head = late.length ? '⚠ FOLLOW-UP OVERDUE' : allWork ? '🔧 FOLLOW-UP IN PROGRESS' : '⏳ FOLLOW-UP PENDING';
+  return '<div class="lvfu '+(late.length?'late':'wait')+'"><b>'+head+' · '+n+' task'+(n===1?'':'s')+'</b>'
+    +pend.map(x=>{ const bits = [];
+      if(x.why) bits.push('Reason: '+esc(x.why));
+      if(x.exp) bits.push((late.indexOf(x)>=0 ? 'Was expected ' : 'Expected ')+expNice(x.exp));
+      bits.push(x.status==='working' ? 'Started '+(x.startedAt ? dnice(x.startedAt) : '')+(x.startedBy ? ' by '+esc(x.startedBy) : '') : 'Not started');
+      return '<span><u>'+esc(x.text)+'</u><i>'+bits.join(' · ')+'</i></span>'; }).join('')
+    +(L.length>n ? '<span><i>'+(L.length-n)+' earlier task'+(L.length-n===1?'':'s')+' done</i></span>' : '')+'</div>';
+}
+const taskOn = id => (LV.state && LV.state.open || []).filter(t=>t.parentId && (t.location===id || t.machine===id));
+function taskNote(id){
+  const L = taskOn(id); if(!L.length) return '';
+  return '<div class="lvnote" style="background:#F3F0FF;border-color:#C4B5FD"><b>📌 A pending task is open on this machine</b><span>'+L.map(t=>esc(t.problem)+(t.taskExp ? ' (expected '+expNice(t.taskExp)+')' : '')+(t.status==='working' ? ' · work in progress' : '')).join('<br>')+'<br>Report only if this is a new problem.</span></div>';
+}
+function vProblem(){
+  const m = lvMachine(A.st.machine), k = A.st.kind==='support' ? 'support' : 'stopped';
+  return {title:'', back:'Type', right:'Step 3 of 3', fresh:true,
+   html:'<div class="lvcol"><div class="lvcard" style="flex-direction:row;justify-content:space-between;align-items:center"><span class="big">'+esc(m.id)+'</span>'+stChip(k)+'</div>'+taskNote(m.id)
+   +'<div style="display:flex;flex-direction:column;gap:8px"><label class="lvlbl" for="d_problem" style="font-size:17px;font-weight:800">What is wrong?</label><textarea id="d_problem" class="lvta" rows="3" data-i="prob" placeholder="Say it or type it in a few words"></textarea>'
+   +'<button class="lvmic" data-a="mic">'+I.mic+'<span>Speak in '+esc(LN())+'</span></button>'
+   +'<span class="lvhint">Mic not working? Tap the box above, then tap the small mic on your keyboard and speak.</span>'
+   +'<div class="lvwrap">'+(CLIENT.quickProblems||QUICK).map(q=>'<button class="lvchip" data-a="chip" data-v="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div></div>'
+   +whoBlock()+'</div>',
+   foot:(LV.role==='maint' ? '' : '<span class="lvhint" id="lvnote" style="text-align:center">Write what is wrong, type your name and pick your role.</span>')+'<button class="lvprim red'+(LV.role==='maint'?'':' off')+'" id="lvsend" data-a="send">'+(A.st.kind==='support'?'Send: needs support':'Send: machine has stopped')+'</button>',
+   after:()=>{ lvSendState(); }};
+}
+function whoBlock(){
+  const u = ME();
+  if(LV.role==='maint') return (personal() ? meSel('lvnm') : '<div style="display:flex;flex-direction:column;gap:6px"><span class="lvlbl" style="font-size:17px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), lvMe())+'</div>')
+    +'<label class="lvcheck"><input type="checkbox" id="lvnow"'+(A.st.startNow?' checked':'')+'><span>I am starting work on it now</span></label>';
+  if(personal()) return u.title ? '<span class="lvhint">Reporting as <b>'+esc(u.name)+' ('+esc(u.title)+')</b></span>'
+    : '<span class="lvhint">Reporting as <b>'+esc(u.name)+'</b></span><div style="display:flex;flex-direction:column;gap:8px"><span class="lvlbl" style="font-size:17px;font-weight:800">Your role</span><div class="lvwrap" id="lvby">'+chips(lvReporters(), A.st.by, 'by')+'</div></div>';
+  return '<div style="display:flex;flex-direction:column;gap:6px"><label class="lvlbl" for="lvname" style="font-size:17px;font-weight:800">Your name</label><input id="lvname" class="lvin2" data-i="nm" type="text" autocomplete="name" autocapitalize="words" value="'+esc(lvGet('name',''))+'" placeholder="Type your name"></div>'
+   +'<div style="display:flex;flex-direction:column;gap:8px"><span class="lvlbl" style="font-size:17px;font-weight:800">Your role</span><div class="lvwrap" id="lvby">'+chips(lvReporters(), A.st.by, 'by')+'</div></div>';
+}
+// who is raising: [display name, role, name only]; null when something is missing
+function whoRead(){
+  const u = ME();
+  if(LV.role==='maint'){ const n = ($('lvnm')||{}).value||''; if(!n){ need('Select your name'); return null; } return [n+' (Maintenance)', 'maint', n]; }
+  if(personal()){ const r = u.title || A.st.by; if(!r){ need('Pick your role'); return null; } return [u.name+' ('+r+')', 'floor', u.name]; }
+  const nm = (($('lvname')||{}).value||'').trim().replace(/[()]/g,'').slice(0,40), role = A.st.by;
+  if(!nm){ need('Type your name'); return null; } if(!role){ need('Pick your role'); return null; } return [nm+' ('+role+')', 'floor', nm];
+}
+function lvSendState(){
+  if(LV.role==='maint') return;
+  const ta = $('d_problem'), b = $('lvsend'), nm = $('lvname'); if(!b) return;
+  const who = personal() ? !!(ME().title || A.st.by) : !!(A.st.by && nm && nm.value.trim());
+  const ok = !!(ta && ta.value.trim() && who) && !LV.busy;
+  b.classList.toggle('off', !ok && !LV.busy); b.setAttribute('aria-disabled', ok?'false':'true');
+  const n = $('lvnote'); if(n){ n.style.display = ok || LV.busy ? 'none' : 'block'; if(personal()) n.textContent = ME().title ? 'Write what is wrong.' : 'Write what is wrong and pick your role.'; }
+}
+async function doSend(){
+  if(LV.busy) return;
+  const pr = (($('d_problem')||{}).value||'').trim(); if(!pr) return need('Write what is wrong');
+  const w = whoRead(); if(!w) return;
+  const startNow = LV.role==='maint' && $('lvnow') && $('lvnow').checked;
+  LV.busy = true; const b = $('lvsend'); b.innerHTML = spin(true, 'Sending...'); b.classList.remove('off');
+  const m = lvMachine(A.st.machine), label = A.st.kind==='support'?'Send: needs support':'Send: machine has stopped';
+  try{
+    const r = await lvApi('/api/down', {machine:m.id, by:w[0], problem:pr, kind:A.st.kind, cell:m.cell||'', category:m.category||'', role:w[1], startNow, startBy:w[2], byRole:A.st.by||''});
+    LV.busy = false;
+    if(w[1]==='floor'){ lvSet('by', A.st.by); lvSet('name', w[2]); } else lvSet('me', w[2]);
+    if(r.exists){ lvToast(m.id+' was already reported by '+r.ticket.reportedBy+' at '+tmf(r.ticket.downAt)+'.', true); await lvRefresh(); sheetMachine(m.id); return; }
+    A.st.last = r.ticket;
+    try{ const rc = JSON.parse(lvGet('recent','[]')).filter(x=>x!==m.id); rc.unshift(m.id); lvSet('recent', JSON.stringify(rc.slice(0,5))); }catch(e){}
+    await lvRefresh();
+    if(startNow){ pushWho(); go('mine', true); lvToast('Ticket raised. Work started on '+m.id+'.'); } else { go('sent', true); lvToast('Sent. Maintenance is notified.'); }
+  }catch(e){ LV.busy = false; b.innerHTML = spin(false, label); lvToast(e.message+(e.net?'. Nothing was sent. Try again when you have signal.':''), true); lvSendState(); }
+}
+function vGeneral(){
+  const locs = [].concat(REF.locations||[], (REF.cells||[]).map(c=>'Cell '+c)).filter((x,i,a)=>x && a.indexOf(x)===i);
+  return {title:'', back:'Report', right:'Work request', fresh:true,
+   html:'<div class="lvcol"><div><h1 class="lvh1" style="font-size:23px">Other work (not a machine)</h1><p class="lvp">For jobs like a fan, light, water line, air line, shifting or fabrication. It does not count as a machine breakdown.</p></div>'
+   +'<div style="display:flex;flex-direction:column;gap:6px"><span class="lvlbl" style="font-size:17px;font-weight:800">Where?</span>'+(locs.length ? nameSel('lvloc', locs, A.st.loc||'', 'Select the place') : '')+'<input id="lvloc2" class="lvin2" type="text" value="'+esc(A.st.loc2||'')+'" placeholder="'+(locs.length?'Or type the place':'Type the place, e.g. Store, Office, Cell 3')+'"></div>'
+   +'<div style="display:flex;flex-direction:column;gap:6px"><span class="lvlbl" style="font-size:17px;font-weight:800">Type of work</span>'+nameSel('lvwt', workTypes(), A.st.wt||'', 'Select the type of work')+'</div>'
+   +'<div style="display:flex;flex-direction:column;gap:8px"><label class="lvlbl" for="d_problem" style="font-size:17px;font-weight:800">What is needed?</label><textarea id="d_problem" class="lvta" rows="3" data-i="prob" placeholder="e.g. Install a wall fan near the inspection table"></textarea>'
+   +'<button class="lvmic" data-a="mic">'+I.mic+'<span>Speak in '+esc(LN())+'</span></button></div>'
+   +'<div style="display:flex;flex-direction:column;gap:8px"><span class="lvlbl" style="font-size:17px;font-weight:800">How urgent?</span><div class="lv3"><button class="'+(A.st.urgent?'':'mid')+'" data-a="urg" data-v="0">Normal</button><button class="'+(A.st.urgent?'urg':'')+'" data-a="urg" data-v="1">Urgent</button></div></div>'
+   +whoBlock()+'</div>',
+   foot:'<button class="lvprim" id="lvsend" data-a="gensend">Send work request</button>'};
+}
+async function doGeneral(){
+  if(LV.busy) return;
+  const loc = ((($('lvloc2')||{}).value||'').trim()) || (($('lvloc')||{}).value||''), wt = ($('lvwt')||{}).value||'', pr = (($('d_problem')||{}).value||'').trim();
+  if(!loc) return need('Select or type where the work is'); if(!wt) return need('Select the type of work'); if(!pr) return need('Write what is needed');
+  const w = whoRead(); if(!w) return;
+  const startNow = LV.role==='maint' && $('lvnow') && $('lvnow').checked;
+  LV.busy = true; const b = $('lvsend'); b.innerHTML = spin(true, 'Sending...');
+  try{
+    const r = await lvApi('/api/down', {kind:'general', location:loc, workType:wt, urgent:!!A.st.urgent, by:w[0], problem:pr, role:w[1], startNow, startBy:w[2], byRole:A.st.by||''});
+    LV.busy = false; if(w[1]==='floor'){ lvSet('by', A.st.by); lvSet('name', w[2]); } else lvSet('me', w[2]);
+    A.st.last = r.ticket; A.st.loc = ''; A.st.loc2 = ''; A.st.wt = ''; A.st.urgent = false;
+    await lvRefresh();
+    if(startNow){ pushWho(); go('mine', true); lvToast('Work request raised and started.'); } else { go('sent', true); lvToast('Work request sent to maintenance.'); }
+  }catch(e){ LV.busy = false; b.innerHTML = spin(false, 'Send work request'); lvToast(e.message+(e.net?'. Nothing was sent. Try again when you have signal.':''), true); }
+}
+function vSent(){
+  const l = A.st.last || {}, cur = LV.state.open.find(t=>t.id===l.id), k = cur ? uiState(cur) : (l.kind==='general' ? 'general' : l.kind==='support'?'support':'stopped');
+  const gen = l.kind==='general';
+  return {title:gen ? 'Work request' : 'Report a breakdown', fresh:true, html:'<div class="lvcol"><div style="text-align:center"><div class="lvdone">'+I.checkBig+'</div><h1 class="lvh1" style="margin-top:10px">Sent to maintenance</h1><p class="lvp">'+(gen ? 'Your work request is in the maintenance list.' : esc(l.machine)+' now shows on the live board as '+SL[k].toLowerCase()+'.')+'</p></div>'
+   +'<div class="lvcard"><div class="lvwrap" style="justify-content:space-between"><span class="big" style="'+(gen?'font-size:22px':'')+'">'+esc(place(l))+'</span>'+stChip(k)+'</div>'+(l.ref ? '<div style="font-size:15px;font-weight:800;color:#374151">Ticket number '+esc(l.ref)+'</div>' : '')+(gen && l.workType ? '<div style="font-size:14px;color:#374151;font-weight:700">'+esc(l.workType)+(l.urgent?' · URGENT':'')+'</div>' : '')+'<div style="font-size:15.5px;line-height:1.4">'+esc(l.problem)+'</div><div style="font-size:13.5px;color:#4B5563">Reported '+tmf(l.downAt)+' by '+esc(l.reportedBy)+(cur&&cur.startedBy?' · '+esc(cur.startedBy)+' is working on it':'')+(!cur?' · This ticket is no longer open':'')+'</div></div>'
+   +WA_BTN(l.id)+(cur && (LV.role==='maint' || mineToCancel(cur)) ? '<button class="lvsec" style="color:#9B1C1C!important;border:2px solid #C62828!important;background:#fff!important;min-height:52px;font-weight:800" data-a="cancelask" data-v="'+esc(l.id)+'">Cancel this ticket</button>' : '')
+   +'<button class="lvprim" data-a="another">'+(gen ? 'Report something else' : 'Report another machine')+'</button>'+(LV.role==='floor' ? '<button class="lvlink" data-a="tab" data-v="my">See my complaints and their status</button>' : '')+(floorLive() || LV.role==='maint' ? '<button class="lvlink" data-a="tab" data-v="live">See live status</button>' : '')+'</div>'};
+}
+/* ---------- live tiles (both roles) ---------- */
+function liveCounts(){
+  const ids = new Set(lvAllMachines().map(m=>m.id)), c = {stopped:0, working:0, support:0};
+  LV.state.open.forEach(t=>{ if(t.kind==='general' || !ids.has(t.machine)) return; const k = uiState(t); c[isFollow(t) ? 'support' : k==='handover'||k==='waiting' ? (t.kind==='support'?'support':'stopped') : k]++; });
+  const act = LV.state.open.filter(t=>t.kind!=='general' && ids.has(t.machine)).length;
+  return {c, running: Math.max(0, ids.size-act)};
+}
+function tilesHtml(){
+  const tm = tmap(), q = norm(A.st.liveQ);
+  const bucket = m=>{ if(isFollow(tm[m.id])) return 'support'; let k = tm[m.id] ? uiState(tm[m.id]) : 'running'; if(k==='handover'||k==='waiting') k = tm[m.id].kind==='support'?'support':'stopped'; return k; };
+  const out = (LV.secs||[]).map(sec=>{
+    const inner = sec.cats.map(c=>{
+      const t = c.ms.filter(m=>(!q || norm(m.id).includes(q)) && (A.st.filter==='all' || A.st.filter===bucket(m)));
+      if(!t.length) return '';
+      return '<div><div class="lvsect">'+esc(c.long ? c.name : c.name+' ('+c.label+')')+'</div><div class="lvtiles">'+t.map(m=>{ const tk = tm[m.id], k = isFollow(tk) ? 'follow' : tk ? uiState(tk) : 'running'; return '<button class="lvtile t-'+k+'" data-a="tile" data-v="'+esc(m.id)+'" aria-label="'+esc(m.id+', '+SL[k])+'"><span>'+esc(m.id)+'</span><i>'+(k==='waiting'?esc(waitTag(tk)):STAG[k])+'</i>'+(taskOn(m.id).length ? '<em class="tkm" title="Pending task">📌</em>' : '')+'</button>'; }).join('')+'</div></div>';
+    }).join('');
+    return inner ? '<div class="lvseg"><b>'+esc(sec.name)+'</b><span>'+sec.n+'</span></div>'+inner : '';
+  }).join('');
+  const g = LV.state.open.filter(t=>t.kind==='general').length;
+  return (out || '<div class="lvempty">Nothing matches. Clear the search or the filter.</div>') + (g ? '<div class="lvhint" style="text-align:center">Work requests (not machines): '+g+' open</div>' : '');
+}
+function vLive(){
+  const {c, running} = liveCounts(), F = [['all','All'],['stopped','Stopped '+c.stopped],['working','In progress '+c.working],['support','Support '+c.support]];
+  return {title:'Live status', right:'Updated '+(LV.state.now?tmf(LV.state.now):'')+(LV.offline?' · offline':''),
+   html:'<div class="lvcol"><div class="lvcounts" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div class="lvcnt grn"><b>'+running+'</b><span>Running</span></div><div class="lvcnt red"><b>'+c.stopped+'</b><span>Stopped</span></div><div class="lvcnt blue"><b>'+c.working+'</b><span>In progress</span></div><div class="lvcnt amb"><b>'+c.support+'</b><span>Support</span></div></div>'
+   +'<div class="lvwrap">'+F.map(([k,n])=>'<button class="lvchip'+(A.st.filter===k?' on':'')+'" data-a="filter" data-v="'+k+'">'+n+'</button>').join('')+'</div>'
+   +'<div style="display:flex;flex-direction:column;gap:4px"><label class="lvhint" style="font-weight:700" for="lvlq">Find a machine</label><input id="lvlq" class="lvin2" data-i="lq" type="text" autocomplete="off" value="'+esc(A.st.liveQ)+'" placeholder="Type VC-17, no spaces"></div>'
+   +'<div class="lvcol" id="lvtiles">'+tilesHtml()+'</div>'+(LV.role==='maint'?'':acctHtml())+'</div>'};
+}
+function sheetTicket(t){ return sheetDetail(t.id, t); }
+function sheetTicketOld(t){
+  const k = uiState(t);
+  let body = '<div style="font-size:16.5px;line-height:1.45;white-space:pre-wrap">'+esc(t.problem)+'</div><div class="lvtk" style="border:0;padding:12px 14px;background:#EEF0F3"><div style="font-size:14.5px"><b>Reported</b> '+tmf(t.downAt)+' by '+esc(t.reportedBy)+'</div>'
+    +(t.status==='working' ? '<div style="font-size:14.5px"><b>Working:</b> '+esc(t.startedBy)+'</div><div style="font-weight:800;color:#1239A0">Repair running '+dur(activeNow(t))+'</div>'
+      : t.status==='waiting' ? '<div style="font-weight:800;color:#9A3412">'+esc(waitTag(t))+' · '+dur(minsSince(t.waitSince))+'</div>'
+      : '<div style="font-weight:800;color:'+(k==='support'?'#7A4B00':'#9B1C1C')+'">'+(t.kind==='general'?'Open ':'Waiting ')+dur(minsSince(t.downAt))+'</div>')+'</div>';
+  body += infoHtml(t) + WA_BTN(t.id);
+  if(LV.role==='maint') body += actionBtns(t, true);
+  else if(mineToCancel(t)) body += '<button class="lvsec" style="color:#9B1C1C!important;border:2px solid #C62828!important;background:#fff!important" data-a="cancelask" data-v="'+esc(t.id)+'">Cancel ticket</button>';
+  const m = lvMachine(t.machine);
+  openSheet('<div class="hd"><div class="lvwrap"><b>'+esc(place(t))+'</b>'+stChip(k)+'</div><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div><div style="font-size:13.5px;color:#4B5563;margin-top:-6px">'+(t.kind==='general' ? esc(t.workType||'')+(t.urgent?' · URGENT':'') : esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):''))+'</div>'+body);
+}
+// the shop floor can cancel a ticket it raised itself, until maintenance starts on it
+// complaints raised with this login: open ones, and the ones fixed in the last 24 hours
+const myOpen = () => LV.state.open.filter(t=>ME().username && t.raisedUser===ME().username);
+const myFixed = () => (LV.state.closed||[]).concat(LV.state.cancelled||[]).filter(t=>ME().username && t.raisedUser===ME().username);
+function myCard(t){
+  const cx = t.status==='cancelled', fixed = t.status==='closed' || cx, k = fixed ? 'running' : uiState(t);
+  const chip = cx ? 'Cancelled' : fixed ? 'Fixed' : k==='working' ? 'In progress' : k==='waiting' ? waitTag(t) : k==='handover' ? 'Transferred' : 'Booked';
+  const line = cx ? '<b style="color:#374151">Cancelled at '+tmf(t.closedAt)+' by '+esc(t.closedBy)+'</b>'+(t.closeNote?' · '+esc(t.closeNote):'')
+    : fixed ? '<b style="color:#14683A">Fixed at '+tmf(t.closedAt)+' by '+esc(t.closedBy)+'</b>'+(t.kind==='stopped' && t.downtimeMin!=null ? ' · stopped for '+dur(t.downtimeMin) : '')
+    : k==='working' ? '<b style="color:#1239A0">'+esc(t.startedBy)+' is working on it</b> · started '+tmf(t.segStart||t.startedAt)
+    : k==='waiting' ? '<b style="color:#9A3412">'+esc(t.waitReason)+'</b>'+(t.eta ? ' · expected back '+dnice(t.eta) : '')
+    : k==='handover' ? '<b style="color:#6D28D9">Passed to '+esc(t.transferTo||'the next shift')+'</b> · work will continue'
+    : '<b style="color:#9B1C1C">Booked. Waiting for maintenance</b> · '+dur(minsSince(t.downAt))+' so far';
+  const u0 = (t.updates||[])[0], u = u0 && !(u0.type==='pause' && t.status==='waiting') && u0.type!=='pickup' ? u0 : null;
+  return '<div class="lvtk" data-a="openticket" data-v="'+esc(t.id)+'"'+(cx?' style="opacity:.75"':'')+'><div class="hd"><b>'+esc(place(t))+' '+refTag(t)+'</b><span class="lvst s-'+(k==='handover'?'waiting':k==='general'?'stopped':k)+'"'+(cx?' style="background:#EEF0F3;color:#374151"':'')+'>'+esc(chip)+'</span></div>'+typeLine(t, true)
+    +'<div class="pr">'+esc(t.problem)+'</div><div style="font-size:15px;line-height:1.4">'+line+'</div>'
+    +(t.status==='closed' ? fuBox(t) : '')
+    +(u && !fixed ? '<div class="tlw">'+tlLine(u)+'</div>' : '')
+    +'<div class="mt"><span>Reported '+tmf(t.downAt)+(ME().shared ? ' by '+esc(t.reportedBy) : '')+'</span></div>'
+    +(mineToCancel(t) ? '<button class="lvlink red" data-a="cancelask" data-v="'+esc(t.id)+'">Cancel this complaint</button>' : '')+'</div>';
+}
+function vMy(){
+  const o = myOpen().sort((a,b)=>Date.parse(b.downAt)-Date.parse(a.downAt)), f = myFixed().sort((a,b)=>Date.parse(b.closedAt)-Date.parse(a.closedAt));
+  return {title:'My complaints', right:'Updated '+(LV.state.now?tmf(LV.state.now):'')+(LV.offline?' · offline':''),
+   html:'<div class="lvcol">'+pushHtml(true)
+   +'<div class="lvsect">Open ('+o.length+')</div>'+(o.length ? o.map(myCard).join('') : '<div class="lvempty" style="text-align:center">'+(ME().shared ? 'No open complaints from this phone.' : 'You have no open complaints.')+'</div>')
+   +(f.length ? '<div class="lvsect" style="margin-top:8px">'+(f.some(t=>t.status==='cancelled') ? 'Fixed or cancelled' : 'Fixed')+' in the last 24 hours ('+f.length+')</div>'+f.map(myCard).join('') : '')
+   +pushHtml(false)+acctHtml()+'</div>'};
+}
+const mineToCancel = t => LV.role==='floor' && t.status==='open' && !t.startedAt && !!ME().username && t.raisedUser===ME().username;
+function sheetMachine(id){
+  const t = tmap()[id], m = lvMachine(id);
+  if(t) return sheetTicket(t);
+  if(LV.role==='board'){ openSheet('<div class="hd"><div class="lvwrap"><b>'+esc(id)+'</b>'+stChip('running')+'</div><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div><div style="font-size:13.5px;color:#4B5563;margin-top:-6px">'+esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):'')+'</div><span class="lvhint">This machine is running.</span>'); return; }
+  openSheet('<div class="hd"><div class="lvwrap"><b>'+esc(id)+'</b>'+stChip('running')+'</div><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div><div style="font-size:13.5px;color:#4B5563;margin-top:-6px">'+esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):'')+'</div>'
+    +'<span class="lvhint">This machine is running. Report a problem?</span><button class="lvprim red" data-a="rep" data-v="stopped" data-id="'+esc(id)+'">Machine has stopped</button><button class="lvprim" data-a="rep" data-v="support" data-id="'+esc(id)+'" style="background:#F2A900!important;color:#2B1B00!important">Running, needs support</button>');
+}
+/* ---------- phone alerts (maintenance) ---------- */
+const ub64 = x => { x = String(x).replace(/-/g,'+').replace(/_/g,'/'); while(x.length % 4) x += '='; return Uint8Array.from(atob(x), c=>c.charCodeAt(0)); };
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent), isPWA = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+async function pushCheck(){
+  let st = 'none';
+  try{ if('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window){ if(Notification.permission==='denied') st = 'denied'; else { const r = await navigator.serviceWorker.ready; st = (await r.pushManager.getSubscription()) ? 'on' : 'off'; } } else if(isIOS() && !isPWA()) st = 'ios'; }catch(e){}
+  LV.push = st; lvSoftRender();
+}
+async function pushOn(){
+  try{
+    const p = await Notification.requestPermission(); if(p!=='granted'){ LV.push = p==='denied' ? 'denied' : 'off'; render(); lvToast('Alerts were not allowed on this phone.', true); return; }
+    const k = (await lvApi('/api/pushkey')).key, r = await navigator.serviceWorker.ready;
+    let sb = await r.pushManager.getSubscription(); if(!sb) sb = await r.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:ub64(k)});
+    await lvApi('/api/subscribe', {sub:sb.toJSON(), role:LV.role, who:lvMe()}); LV.push = 'on'; render(); lvToast(LV.role==='floor' ? 'Alerts are on. This phone will ring when your complaint is fixed.' : 'Alerts are on. This phone will ring for every new breakdown.');
+  }catch(e){ lvToast(e && e.message ? e.message : 'Could not turn on alerts', true); }
+}
+async function pushOff(){
+  try{ const r = await navigator.serviceWorker.ready, sb = await r.pushManager.getSubscription(); if(sb){ try{ await lvApi('/api/unsubscribe', {endpoint:sb.endpoint}); }catch(e){} await sb.unsubscribe(); } LV.push = 'off'; render(); lvToast('Alerts are off on this phone.'); }
+  catch(e){ lvToast('Could not turn off alerts', true); }
+}
+async function pushTest(){
+  try{ const r = await navigator.serviceWorker.ready, sb = await r.pushManager.getSubscription(); if(!sb){ LV.push = 'off'; render(); return; } await lvApi('/api/pushtest', {endpoint:sb.endpoint}); lvToast('Test alert sent. It should arrive in a few seconds.'); }
+  catch(e){ lvToast(e.message||'Test failed', true); }
+}
+// re-register this phone's alerts under the current name (silent)
+async function pushWho(){ try{ if(LV.push!=='on') return; const r = await navigator.serviceWorker.ready, sb = await r.pushManager.getSubscription(); if(sb) await lvApi('/api/subscribe', {sub:sb.toJSON(), role:LV.role, who:lvMe()}); }catch(e){} }
+function pushHtml(top){
+  const st = LV.push;
+  if(top){
+    if(st==='off') return '<div class="lvnote up" style="flex-direction:row;align-items:center;justify-content:space-between;gap:10px"><span><b>'+(LV.role==='floor' ? 'Get an alert when your complaint is fixed' : 'Get an alert for every new breakdown')+'</b><br>Even when this page is closed.</span><button class="lvchip on" data-a="pushon" style="white-space:nowrap">Turn on</button></div>';
+    if(st==='ios') return '<div class="lvnote up"><b>Alerts on iPhone</b><span>Tap Share, then Add to Home Screen. Open the tool from the new icon and turn on alerts there.</span></div>';
+    return '';
+  }
+  if(st==='on') return '<div class="lvwrap" style="justify-content:center;font-size:14px;color:#14683A;font-weight:700">Alerts are on for this phone. <button class="lvlink" data-a="pushtest" style="width:auto">Send a test</button><button class="lvlink" data-a="pushoff" style="width:auto">Turn off</button></div>';
+  if(st==='denied') return '<span class="lvhint" style="text-align:center">Alerts are blocked for this site. Allow notifications in the phone settings to turn them on.</span>';
+  return '';
+}
+
+/* ---------- name dropdowns: the sheet reads what is on screen when the button is tapped ---------- */
+// a personal login: no name to pick, the server records the signed-in name; a shared login picks from the list
+function meSel(id, list, sel, blank){ if(personal()) return '<input type="hidden" id="'+id+'" value="'+esc(ME().name)+'"><span class="lvhint">Recorded as <b>'+esc(ME().name)+'</b></span>'; return nameSel(id, list, sel, blank); }
+function nameSel(id, list, sel, blank){ if(sel && !list.includes(sel)) sel = ''; return '<select id="'+id+'" class="lvin2 lvsel"><option value="">'+esc(blank||'Select your name')+'</option>'+list.map(n=>'<option value="'+esc(n)+'"'+(n===sel?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'; }
+function sheetRead(){
+  const v = i=>{ const e = $(i); return e ? e.value : null; };
+  let x; if((x = v('lvwhy'))!=null) A.st.reason = x; if((x = v('lvnm'))!=null) A.st.reasonBy = x; if((x = v('lvrn'))!=null) A.st.reasonBy = x.trim();
+  if((x = v('lvwho'))!=null) A.st.who = x; if((x = v('lvto'))!=null) A.st.to = x; if((x = v('lvspare'))!=null) A.st.spare = x; if((x = v('lveta'))!=null) A.st.eta = x;
+  if((x = v('lvrsn'))!=null) A.st.wreason = x;
+}
+function need(msg){ lvToast(msg, true); return false; }
+
+/* ---------- timeline, transfer, pause and resume, updates ---------- */
+const dnice = iso => { const d = new Date(iso); return d.toLocaleDateString([], {day:'numeric', month:'short'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); };
+// active repair time so far: closed segments plus the running one
+const activeNow = t => (t.activeMin||0) + (t.status==='working' && t.segStart ? minsSince(t.segStart) : 0);
+const TL = {update:['#B7791F','Update'], transfer:['#7C3AED','Transferred'], pause:['#EA580C','Paused'], resume:['#15803D','Resumed'], pickup:['#1747C9','Picked up']};
+function tlLine(u){
+  const c = TL[u.type] || ['#6B7280', u.type], tg = u.task ? '<em class="tltk">'+esc(u.task)+'</em> ' : '';
+  if(u.task && u.text) u = Object.assign({}, u, {text:u.text.replace(/^\[[^\]]*\] /,'')});
+  let txt = '';
+  if(u.type==='update') txt = esc(u.text)+(u.spare?' · <b>Spare:</b> '+esc(u.spare):'')+(u.eta?' · <b>Expected:</b> '+dnice(u.eta):'');
+  else if(u.type==='transfer') txt = (u.spare?'to <b>'+esc(u.spare)+'</b>: ':'')+esc(u.text);
+  else if(u.type==='pause') txt = '<b>'+esc(u.spare)+'</b>'+(u.text?': '+esc(u.text):'')+(u.eta?' · <b>Expected:</b> '+dnice(u.eta):'');
+  else if(u.type==='resume') txt = (u.mins!=null?'after '+dur(u.mins)+' waiting':'')+(u.text?' · '+esc(u.text):'');
+  else if(u.type==='edit') txt = esc(edTimes(u.spare))+(u.text?' · <b>Reason:</b> '+esc(u.text):'');
+  else if(u.type==='cancel') txt = u.text ? '<b>Reason:</b> '+esc(u.text) : '';
+  else if(u.type==='join') txt = 'as <b>'+esc(u.spare||'primary')+'</b>'+(u.text?' · '+esc(u.text):'');
+  else if(u.type==='leave') txt = (u.spare==='main' ? 'was running the job' : esc(u.spare||''))+(u.text?' · <b>Reason:</b> '+esc(u.text):'');
+  else if(u.type==='lead') txt = esc(u.text||'');
+  else if(u.type==='running' || u.type==='stopped') txt = (u.eta ? 'since '+dnice(u.eta) : '')+(u.text?' · '+esc(u.text):'');
+  else if(u.type==='restore') txt = (u.text?'<b>Reason:</b> '+esc(u.text):'')+(u.spare?' · was '+esc(u.spare):'');
+  else if(u.type==='task' || u.task) txt = esc(u.text||'');
+  return '<div class="tl"><i style="background:'+c[0]+'"></i><div><span class="tlh">'+tg+'<b style="color:'+c[0]+'">'+c[1]+'</b> · '+esc(u.by)+' · '+dnice(u.at)+'</span>'+(txt?'<span>'+txt+'</span>':'')+'</div></div>';
+}
+function infoHtml(t, all){
+  let h = '';
+  if(t.status==='waiting') h += '<div class="lvnote wt"><b>'+esc(waitTag(t))+(t.eta?' · expected back '+dnice(t.eta):'')+'</b><span>'+esc(t.waitReason)+' · paused by '+esc(t.pausedBy)+' at '+dnice(t.waitSince)+(t.assignedTo?' · assigned to <b>'+esc(t.assignedTo)+'</b>':'')+'</span></div>';
+  else if(t.eta) h += '<div class="lvnote up"><b>Expected back '+dnice(t.eta)+(t.waitSpare?' · waiting spare':'')+'</b></div>';
+  const L = t.updates||[], n = all ? L.length : Math.min(L.length, 3);
+  if(L.length) h += '<div class="tlw">'+L.slice(0, n).map(tlLine).join('')+(L.length>n || (t.updateCount||0)>L.length ? '<span class="lvhint">'+((t.updateCount||L.length)-n)+' earlier '+(((t.updateCount||L.length)-n)===1?'entry':'entries')+(all?'':' · tap the ticket to see more')+'</span>' : '')+'</div>';
+  return h;
+}
+// the buttons for one ticket, depending on its state (maintenance)
+function actionBtns(t, inSheet){
+  const id = esc(t.id), b = (a, txt, cls)=>'<button class="'+(cls||'lvsec')+'" data-a="'+a+'" data-v="'+id+'">'+txt+'</button>';
+  const cancel = '<button class="lvlink red" data-a="cancelask" data-v="'+id+'">Cancel ticket</button>';
+  const run = t.kind!=='stopped' ? '' : t.runningAt ? b('stopask', 'Machine stopped again', 'lvsec lvstopb') : b('runask', 'Machine running again', 'lvsec lvrunb');
+  const join = canJoin(t) ? b('joinask', 'Join this work', 'lvsec lvjoinb') : (isLead(t) && ['working','waiting'].includes(t.status) ? b('joinask', 'Add a person to this job', 'lvsec lvjoinb') : '');
+  const leave = canLeave(t) ? '<button class="lvlink" data-a="leaveask" data-v="'+id+'">Leave this work</button>' : '';
+  if(t.status==='open') return b('startask', t.handedOver ? 'Pick up transferred work' : 'Start work', 'lvprim') + (inSheet || t.handedOver ? b('updask', 'Post update') : '') + cancel;
+  if(t.status==='waiting') return b('resumeask', 'Resume work', 'lvprim') + join + run + b('updask', 'Post update') + leave + cancel;
+  const may = canCloseT(t), close = !may ? '' : t.kind==='general' ? b('doneask', 'Mark done', 'lvprim') : b('toclose', 'Write report and close', 'lvprim');
+  return close + (may ? join : join.replace('lvsec lvjoinb', 'lvprim')) + '<div class="lv3">'+(FEAT('pause') ? '<button data-a="pauseask" data-v="'+id+'">Pause: waiting</button>' : '')+'<button data-a="handask" data-v="'+id+'">Transfer</button></div>'
+    + run + b('updask', 'Post update') + (t.kind==='general' || !may ? '' : b('noreport', 'Close without report')) + leave + cancel;
+}
+/* ---------- join this work, leave it, add a person ---------- */
+function sheetJoin(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const lead = isLead(t), on = new Set([t.startedBy].concat(crewOn(t).map(c=>c.name))), names = lvTeam().filter(n=>!on.has(n));
+  const role = A.st.jrole || 'primary', opt = (r, title, txt) => '<button class="lvjopt'+(role===r?' on':'')+'" data-a="jrole" data-v="'+r+'"><b>'+title+'</b><span>'+txt+'</span></button>';
+  const pick = lead || !personal();
+  openSheet('<div class="hd"><b>'+(lead ? 'Add a person to ' : 'Join work on ')+esc(place(t))+' '+refTag(t)+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">'+esc(t.startedBy)+' is running this job.'+(crewOn(t).length ? ' On it: '+crewOn(t).map(c=>esc(c.name)+' ('+c.role+')').join(', ')+'.' : '')+' Each person\'s work time is counted for them; the job\'s own work time does not double.</span>'
+   +opt('primary', 'Join as primary', 'Share the work. Can close the ticket. Name goes under Done by.')
+   +opt('support', 'Act as support', 'Help with the job. Name goes under Supported by.')
+   +(pick ? '<span class="lvlbl" style="font-size:16px;font-weight:800">Who is joining?</span>'+nameSel('lvjn', names, A.st.jname||'', 'Select the person') : '')
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" data-a="joingo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Joining...' : (role==='primary' ? 'Join as primary' : 'Join as support'))+'</button></div>');
+}
+async function doJoin(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  const el = $('lvjn'); if(el) A.st.jname = el.value;
+  const lead = isLead(t), name = (lead || !personal()) ? A.st.jname : lvMe(), role = A.st.jrole || 'primary';
+  if(!name) return need('Select who is joining');
+  LV.busy = true; sheetJoin();
+  try{ await lvApi('/api/join', {id:t.id, by:lead ? lvMe() : name, name, role}); LV.busy = false; closeSheet(); await lvRefresh(); render(); lvToast(name+' joined '+place(t)+' as '+role+'.'); }
+  catch(e){ LV.busy = false; sheetJoin(); lvToast(e.message, true); }
+}
+function sheetLeave(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const prim = crewOn(t).find(c=>c.role==='primary'), people = (prim ? [t.startedBy] : []).concat(crewOn(t).map(c=>c.name));
+  const me = personal() ? lvMe() : (A.st.reasonBy||''), lead = me && me===t.startedBy;
+  openSheet('<div class="hd"><b>Leave work on '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">'+(lead && prim ? esc(prim.name)+' (primary) will take over the job. ' : '')+'Your work time so far stays counted for you. The reason is kept in the ticket\'s history.</span>'
+   +(personal() ? '' : '<span class="lvlbl" style="font-size:16px;font-weight:800">Who is leaving?</span>'+nameSel('lvnm', people, A.st.reasonBy||'', 'Select the person'))
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Reason</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="e.g. Called to VC-7, shift over">'+esc(A.st.reason)+'</textarea>'
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" data-a="leavego" style="flex:1">'+spin(LV.busy, LV.busy ? 'Leaving...' : 'Leave this work')+'</button></div>');
+}
+async function doLeave(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); const name = personal() ? lvMe() : A.st.reasonBy;
+  if(!name) return need('Select who is leaving'); if(!A.st.reason.trim()) return need('Write why you are leaving');
+  LV.busy = true; sheetLeave();
+  try{ const r = await lvApi('/api/leave', {id:t.id, by:name, name, reason:A.st.reason.trim()}); LV.busy = false; closeSheet(); await lvRefresh(); render();
+    lvToast(name+' left '+place(t)+'.'+(r.ticket && r.ticket.startedBy!==t.startedBy ? ' '+r.ticket.startedBy+' is running it now.' : '')); }
+  catch(e){ LV.busy = false; sheetLeave(); lvToast(e.message, true); }
+}
+/* ---------- machine running again / stopped again (ticket stays open) ---------- */
+function sheetRun(stop){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const v = A.st.runAt || toLocalInput(new Date(nowMs()).toISOString()); A.st.runDef = toLocalInput(new Date(nowMs()).toISOString());
+  openSheet('<div class="hd"><b>'+(stop ? 'Machine stopped again: ' : 'Machine running again: ')+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">'+(stop ? 'The machine is down again. The downtime clock starts again from this time and adds to the earlier stopped time.' : 'The machine is back in production but the job is not finished (waiting for a vendor, a spare, support...). The downtime stops at this time; the ticket stays open for the follow-up and shows amber.')+'</span>'
+   +'<label class="lvlbl" for="lvrat" style="font-size:16px;font-weight:800">'+(stop ? 'Stopped since' : 'Running since')+'</label><input id="lvrat" class="lvin2" type="datetime-local" value="'+esc(v)+'">'
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Note (optional)</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="'+(stop ? 'e.g. Same alarm came back' : 'e.g. Alarm reset, running until the service visit')+'">'+esc(A.st.reason)+'</textarea>'
+   +(personal() ? meSel('lvnm') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), A.st.reasonBy))
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" data-a="'+(stop?'stopgo':'rungo')+'" style="flex:1">'+spin(LV.busy, LV.busy ? 'Saving...' : (stop ? 'Machine stopped again' : 'Machine running again'))+'</button></div>');
+  A.st.rkind = stop ? 'stop' : 'run';
+}
+async function doRun(stop){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); const at = ($('lvrat')||{}).value; A.st.runAt = at;
+  if(!A.st.reasonBy) return need('Select your name');
+  const ts = at && at !== A.st.runDef ? new Date(at).toISOString() : '';   // time not changed: now
+  LV.busy = true; sheetRun(stop);
+  try{ await lvApi(stop ? '/api/stopped' : '/api/running', {id:t.id, by:A.st.reasonBy, ts, note:A.st.reason.trim()}); LV.busy = false; A.st.runAt = ''; closeSheet(); await lvRefresh(); render();
+    lvToast(stop ? place(t)+' is stopped again. Downtime is counting.' : place(t)+' marked running. Downtime stopped; the ticket stays open.'); }
+  catch(e){ LV.busy = false; sheetRun(stop); $('lvrat').value = at; lvToast(e.message, true); }
+}
+function sheetHand(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const ready = !!(A.st.reason.trim() && A.st.reasonBy) && !LV.busy;
+  openSheet('<div class="hd"><b>Transfer '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">Use this when you cannot finish: end of shift, or someone else should take it. The ticket goes back to Open for the next person to pick up. Your work time so far is counted for you.</span>'
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">What was done and what is left?</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="3" data-i="reason" placeholder="e.g. Belt replaced. Check alignment and run trial.">'+esc(A.st.reason)+'</textarea>'
+   +'<span class="lvlbl" style="font-size:16px;font-weight:800">Transfer to (optional)</span>'+nameSel('lvto', ['Next shift'].concat(lvTeam()), A.st.to, 'Anyone (not decided)')
+   +(personal() ? meSel('lvnm') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), A.st.reasonBy))
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" id="lvrgo" data-a="handgo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Working...' : 'Transfer')+'</button></div>');
+  A.st.rkind = 'hand';
+}
+async function doHand(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(!A.st.reason.trim()) return need('Write what was done and what is left'); if(!A.st.reasonBy) return need('Select your name');
+  LV.busy = true; sheetHand();
+  try{ await lvApi('/api/transfer', {id:t.id, by:A.st.reasonBy, to:A.st.to||'', note:A.st.reason.trim()}); LV.busy = false; closeSheet(); await lvRefresh(); go('open', true); lvToast(place(t)+' transferred. It is back under Open.'); }
+  catch(e){ LV.busy = false; sheetHand(); lvToast(e.message, true); }
+}
+function sheetUpd(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const ready = !!(A.st.reason.trim() && A.st.reasonBy) && !LV.busy;
+  openSheet('<div class="hd"><b>Update on '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">For long breakdowns. Everyone watching the live board sees the latest update and the expected date.</span>'
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Update</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="e.g. Spindle bearing damaged. Waiting for the spare from the supplier.">'+esc(A.st.reason)+'</textarea>'
+   +'<label class="lvlbl" for="lvspare" style="font-size:16px;font-weight:800">Spare part waited for (optional)</label><input id="lvspare" class="lvin2" data-i="spare" type="text" value="'+esc(A.st.spare)+'" placeholder="e.g. Spindle bearing 7014, from ABC Traders">'
+   +'<label class="lvlbl" for="lveta" style="font-size:16px;font-weight:800">Expected back running (optional)</label><input id="lveta" class="lvin2" data-i="eta" type="date" value="'+esc(A.st.eta)+'">'
+   +(personal() ? meSel('lvnm') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), A.st.reasonBy))
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" id="lvrgo" data-a="updgo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Posting...' : 'Post update')+'</button></div>');
+  A.st.rkind = 'upd';
+}
+async function doUpd(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(!A.st.reason.trim()) return need('Write the update'); if(!A.st.reasonBy) return need('Select your name');
+  LV.busy = true; sheetUpd();
+  const eta = A.st.eta ? new Date(A.st.eta+'T18:00:00').toISOString() : '';
+  try{ await lvApi('/api/update', {id:t.id, by:A.st.reasonBy, text:A.st.reason.trim(), spare:(A.st.spare||'').trim(), eta}); LV.busy = false; closeSheet(); await lvRefresh(); render(); lvToast('Update posted on '+place(t)+'.'); }
+  catch(e){ LV.busy = false; sheetUpd(); lvToast(e.message, true); }
+}
+
+function sheetPause(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  openSheet('<div class="hd"><b>Pause '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">Use this when the work must wait for something outside your control. Your repair time stops; the machine downtime keeps counting. Anyone in maintenance can resume it later.</span>'
+   +'<span class="lvlbl" style="font-size:16px;font-weight:800">Waiting for</span>'+nameSel('lvrsn', waitReasons(), A.st.wreason||'', 'Select the reason')
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Details (optional)</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="e.g. Pump sent to ABC Engineering, challan 2231">'+esc(A.st.reason)+'</textarea>'
+   +'<label class="lvlbl" for="lveta" style="font-size:16px;font-weight:800">Expected back (optional)</label><input id="lveta" class="lvin2" data-i="eta" type="date" value="'+esc(A.st.eta)+'">'
+   +'<span class="lvlbl" style="font-size:16px;font-weight:800">Assign to (optional)</span>'+nameSel('lvto', lvTeam(), A.st.to, 'Anyone in maintenance')
+   +(personal() ? meSel('lvnm') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), A.st.reasonBy))
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" id="lvrgo" data-a="pausego" style="flex:1">'+spin(LV.busy, LV.busy ? 'Pausing...' : 'Pause work')+'</button></div>');
+}
+async function doPause(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(!A.st.wreason) return need('Select what the work is waiting for'); if(!A.st.reasonBy) return need('Select your name');
+  LV.busy = true; sheetPause();
+  const eta = A.st.eta ? new Date(A.st.eta+'T18:00:00').toISOString() : '';
+  try{ await lvApi('/api/pause', {id:t.id, by:A.st.reasonBy, reason:A.st.wreason, note:A.st.reason.trim(), eta, assign:A.st.to||''}); LV.busy = false; closeSheet(); await lvRefresh(); go('open', true); lvToast(place(t)+' paused. It is under Waiting.'); }
+  catch(e){ LV.busy = false; sheetPause(); lvToast(e.message, true); }
+}
+function sheetResume(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  openSheet('<div class="hd"><b>Resume '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<div class="lvnote wt"><b>'+esc(waitTag(t))+' · '+dur(minsSince(t.waitSince))+'</b><span>'+esc(t.waitReason)+' · paused by '+esc(t.pausedBy)+(t.assignedTo?' · assigned to <b>'+esc(t.assignedTo)+'</b>':'')+'</span></div>'
+   +(personal() ? meSel('lvwho') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Who is resuming the work?</span>'+nameSel('lvwho', lvTeam(), A.st.who, 'Select who is working'))
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Note (optional)</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="e.g. Pump received back from vendor">'+esc(A.st.reason)+'</textarea>'
+   +(A.st.confirmFor ? '<div class="lvnote wt"><b>Assigned to '+esc(t.assignedTo)+'.</b><span>Tap Resume work again to continue anyway.</span></div>' : '')
+   +'<button class="lvprim" id="lvrgo" data-a="resumego">'+spin(LV.busy, LV.busy ? 'Resuming...' : 'Resume work')+'</button>');
+}
+async function doResume(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(!A.st.who) return need('Select who is resuming the work');
+  if(t.assignedTo && t.assignedTo !== A.st.who && A.st.confirmFor !== t.id){ A.st.confirmFor = t.id; sheetResume(); return; }
+  LV.busy = true; sheetResume();
+  try{ await lvApi('/api/resume', {id:t.id, by:A.st.who, note:A.st.reason.trim()}); lvSet('me', A.st.who); pushWho(); LV.busy = false; A.st.confirmFor = ''; closeSheet(); await lvRefresh(); go('mine', true); lvToast('Work resumed on '+place(t)+'.'); }
+  catch(e){ LV.busy = false; sheetResume(); lvToast(e.message, true); }
+}
+function sheetDone(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  openSheet('<div class="hd"><b>Done: '+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<div style="font-size:15px;color:#374151">'+esc(t.problem)+'</div>'
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">What was done?</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="3" data-i="reason" placeholder="e.g. Fan installed and wired to the existing switch board">'+esc(A.st.reason)+'</textarea>'
+   +(t.parentId ? ptaskBlock(true) : '')
+   +(t.parentId ? '<label class="lvlbl" for="lvtkDown" style="font-size:16px;font-weight:800">Did the machine have to stop for this work?</label><input id="lvtkDown" class="lvin2" type="number" inputmode="numeric" min="0" max="1440" placeholder="Minutes the machine was stopped (leave empty if none)" value="'+esc(A.st.tkDown||'')+'" data-i="tkDown">' : '')
+   +(personal() ? meSel('lvnm') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+nameSel('lvnm', lvTeam(), A.st.reasonBy))
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" id="lvrgo" data-a="donego" style="flex:1">'+spin(LV.busy, LV.busy ? 'Saving...' : 'Mark done')+'</button></div>');
+}
+async function doDone(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(t.parentId) ptaskRead(); if(!A.st.reason.trim()) return need('Write what was done'); if(!A.st.reasonBy) return need('Select your name');
+  if(t.parentId && ptaskBad()) return need('Write what is still pending, or untick Task not finished');
+  LV.busy = true; sheetDone();
+  try{ const r = await lvApi('/api/close', {id:t.id, by:A.st.reasonBy, kind:'done', note:A.st.reason.trim(), task:t.parentId ? ptaskOut() : null, taskDown:t.parentId ? (($('lvtkDown')||{}).value || A.st.tkDown || '') : undefined}); lvClosedHere(); A.st.tkDown = ''; A.st.ptask = null; LV.busy = false; closeSheet(); await lvRefresh(); render(); lvToast('Done. Work time '+dur((r.ticket||{}).activeMin||0)+'.'+(r.task ? ' New pending task '+r.task.ref+' saved.' : '')); }
+  catch(e){ LV.busy = false; sheetDone(); lvToast(e.message, true); }
+}
+
+/* ---------- account: sign out, change password ---------- */
+function sheetSignout(){
+  openSheet('<div class="hd"><b>Sign out of this phone?</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">'+(LV.role==='maint' ? 'Alerts stop on this phone. ' : '')+'You need your username and password to sign in again.</span>'
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim red" data-a="signoutgo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Signing out...' : 'Sign out')+'</button></div>');
+}
+async function doSignout(){
+  if(LV.busy) return; LV.busy = true; sheetSignout();
+  try{ if(LV.push==='on'){ const r = await navigator.serviceWorker.ready, sb = await r.pushManager.getSubscription(); if(sb){ try{ await lvApi('/api/unsubscribe', {endpoint:sb.endpoint}); }catch(e){} await sb.unsubscribe(); } } }catch(e){}
+  try{ await lvApi('/api/logout', {}); }catch(e){}
+  lvForget(); location.reload();
+}
+// clears this company's sign-in and the data kept on the phone
+function lvForget(){ ['bd_tok_','bd_user_','bd_state_','bd_cfg_'].forEach(k=>lsSet(k+AUTH.cid, '')); AUTH.tok = ''; AUTH.user = null; }
+function sheetPw(err){
+  openSheet('<div class="hd"><b>Change your password</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<label class="lvlbl" for="lvpo" style="font-size:16px;font-weight:800">Current password</label><input id="lvpo" class="lvin2" type="password" autocomplete="current-password">'
+   +'<label class="lvlbl" for="lvpn" style="font-size:16px;font-weight:800">New password (at least 6 characters)</label><input id="lvpn" class="lvin2" type="password" autocomplete="new-password">'
+   +'<label class="lvlbl" for="lvpn2" style="font-size:16px;font-weight:800">New password again</label><input id="lvpn2" class="lvin2" type="password" autocomplete="new-password">'
+   +'<span class="lvhint">Your other phones and screens are signed out. This one stays signed in.</span>'
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" data-a="pwgo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Saving...' : 'Save password')+'</button></div>');
+}
+async function doPw(){
+  if(LV.busy) return;
+  const o = ($('lvpo')||{}).value||'', n = ($('lvpn')||{}).value||'', n2 = ($('lvpn2')||{}).value||'';
+  if(!o) return need('Enter your current password'); if(n.length < 6) return need('The new password needs at least 6 characters'); if(n !== n2) return need('The two new passwords are not the same');
+  LV.busy = true; const b = document.querySelector('[data-a="pwgo"]'); if(b) b.innerHTML = spin(true, 'Saving...');
+  try{ await lvApi('/api/password', {old:o, password:n}); LV.busy = false; closeSheet(); lvToast('Password changed.'); }
+  catch(e){ LV.busy = false; if(b) b.innerHTML = spin(false, 'Save password'); lvToast(e.message, true); }
+}
+
+/* ---------- team: who is working on what ---------- */
+function vTeam(){
+  const O = LV.state.open, by = {};
+  O.filter(t=>t.status==='working').forEach(t=>{ (by[t.startedBy||'—'] = by[t.startedBy||'—']||[]).push(t); crewOn(t).forEach(c=>{ (by[c.name] = by[c.name]||[]).push(Object.assign({}, t, {_role:c.role, _seg:c.segStart})); }); });
+  const people = Object.keys(by).sort((a,b)=>by[b].length-by[a].length || a.localeCompare(b));
+  const wt = O.filter(t=>t.status==='waiting').sort((a,b)=>Date.parse(a.waitSince)-Date.parse(b.waitSince));
+  const ns = O.filter(t=>t.status==='open').sort((a,b)=>(a.kind==='stopped'?0:1)-(b.kind==='stopped'?0:1) || Date.parse(a.handoverSince||a.downAt)-Date.parse(b.handoverSince||b.downAt));
+  const job = (t, right, sub) => '<div class="lvtm" data-a="openticket" data-v="'+esc(t.id)+'"><div><b>'+esc(place(t))+' '+refTag(t)+'</b><span>'+esc(t.problem)+'</span>'+(sub?'<small>'+sub+'</small>':'')+'</div><em>'+right+'</em></div>';
+  return {title:'Team', right:'Updated '+(LV.state.now?tmf(LV.state.now):'')+(LV.offline?' · offline':''),
+   html:'<div class="lvcol">'+DAY_BTN('team','Download team day report')
+   +'<div class="lvsect">Working now ('+people.length+(people.length===1?' person':' people')+')</div>'
+   +(people.length ? people.map(n=>'<div class="lvtk" style="gap:6px"><div class="hd"><b>'+esc(n)+'</b><span class="lvst s-working">'+by[n].length+' job'+(by[n].length>1?'s':'')+'</span></div>'
+       +by[n].map(t=>job(t, dur(minsSince(t._seg||t.segStart||t.startedAt)), (t._role ? '<b>'+t._role+'</b> on '+esc(t.startedBy)+'\'s job · ' : '')+(t.kind==='general'?'Work request · ':'')+'repair so far '+dur(activeNow(t)))).join('')+'</div>').join('')
+     : '<div class="lvempty" style="text-align:center">Nobody has a job running right now.</div>')
+   +(wt.length ? '<div class="lvsect" style="margin-top:8px">Waiting ('+wt.length+')</div><div class="lvtk" style="gap:6px">'+wt.map(t=>job(t, dur(minsSince(t.waitSince)), esc(waitTag(t))+(t.assignedTo?' · assigned to <b>'+esc(t.assignedTo)+'</b>':' · anyone can resume')+(t.eta?' · back '+dnice(t.eta):''))).join('')+'</div>' : '')
+   +'<div class="lvsect" style="margin-top:8px">Not started ('+ns.length+')</div>'
+   +(ns.length ? '<div class="lvtk" style="gap:6px">'+ns.map(t=>job(t, dur(minsSince(t.handoverSince||t.downAt)), (t.handedOver ? 'Transferred'+(t.transferTo?' to <b>'+esc(t.transferTo)+'</b>':'') : t.kind==='general' ? 'Work request'+(t.urgent?' · <b style="color:#C62828">URGENT</b>':'') : t.kind==='support' ? 'Needs support' : 'Machine stopped')+' · reported by '+esc(t.reportedBy))).join('')+'</div>'
+     : '<div class="lvempty" style="text-align:center;color:#14683A;font-weight:800">Every complaint has someone on it.</div>')
+   +'<span class="lvhint" style="text-align:center">Tap a job to see it and act on it.</span>'+cxHtml()+teamClosedHtml()+'</div>',
+   after:()=>{ const f = !!LV.wkFresh; LV.wkFresh = false; lvTeamWork(f); }};
+}
+
+/* ---------- closed jobs of the last 30 days (Mine) ---------- */
+// a job closed on this phone shows in the closed lists straight away
+function lvClosedHere(){ LV.wkAt = 0; LV.twkAt = 0; }
+const updAt = at => at ? ' · updated '+tmf(at) : '';
+async function lvMyWork(force){
+  if(LV.wkBusy || (!force && LV.wkAt && Date.now()-LV.wkAt < (LV.wk ? 5*60000 : 60000))) return;
+  LV.wkBusy = true;
+  try{ LV.wk = await lvApi('/api/mywork'); }catch(e){}
+  LV.wkAt = Date.now();
+  LV.wkBusy = false; if(A.view==='mine') lvSoftRender();
+}
+function myMinsOn(t){ const me = ME().name; return (t.segments||[]).filter(x=>x.by===me).reduce((a,x)=>a+(x.mins||0),0); }
+// a closed job in a list: machine + number + chip / problem (2 lines) / who closed it, when, who worked how long
+function closedCard(t, who){
+  return '<div class="lvtm lvcl" data-a="openticket" data-v="'+esc(t.id)+'"><div><b>'+esc(place(t))+' '+refTag(t)+'</b><span class="lvclamp2">'+esc(t.problem)+'</span>'
+    +'<small>Closed '+dnice(t.closedAt)+' by '+esc(t.closedBy)+(who?' · '+who:'')+'</small>'+fuBox(t)+'</div><em><span class="lvst s-running" style="font-size:11.5px">Closed</span></em></div>';
+}
+const segWho = t => (t.segments||[]).filter(x=>x.mins>0 || !(t.segments||[]).some(y=>y.mins>0)).map(x=>esc(x.by)+(x.role==='support' ? ' (support)' : '')+' '+dur(x.mins)).join(', ');
+function personSel(id, names, sel){ return '<select id="'+id+'" class="lvin2 lvsel lvpsel" data-i="'+id+'"><option value="">Everyone</option>'+names.map(n=>'<option value="'+esc(n)+'"'+(n===sel?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'; }
+function closedHtml(){
+  if(!LV.wk) return '<div class="lvsect" style="margin-top:8px">Closed in the last 30 days</div><div class="lvempty" style="text-align:center">'+(LV.wkBusy?'Loading…':'Could not load. Pull down or open Mine again.')+'</div>';
+  const all = LV.wk.all, L0 = LV.wk.tickets||[], mo = new Date(nowMs()); mo.setDate(1); mo.setHours(0,0,0,0);
+  const wf = all ? (A.st.wf||'') : '', L = wf ? L0.filter(t=>(t.segments||[]).some(x=>x.by===wf) || t.closedBy===wf) : L0;
+  const mins = t => all && !wf ? (t.segments||[]).reduce((a,x)=>a+(x.mins||0),0) || t.activeMin || 0 : (t.segments||[]).filter(x=>x.by===(wf||ME().name)).reduce((a,x)=>a+(x.mins||0),0);
+  const sup = t => (t.segments||[]).filter(x=>x.by===(wf||ME().name) && x.role==='support').reduce((a,x)=>a+(x.mins||0),0);
+  const thisM = L.filter(t=>Date.parse(t.closedAt) >= mo.getTime()), tot = thisM.reduce((a,t)=>a+mins(t),0), st = (!all || wf) ? thisM.reduce((a,t)=>a+sup(t),0) : 0;
+  const shown = A.st.wkMore ? L : L.slice(0, 15), names = [...new Set(L0.flatMap(t=>(t.segments||[]).map(x=>x.by)).filter(Boolean))].sort();
+  return '<div class="lvsect" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">Closed in the last 30 days ('+L.length+')<button class="lvlink" style="width:auto;min-height:36px;text-transform:none;letter-spacing:0" data-a="wkref">'+(LV.wkBusy?'Refreshing…':'Refresh')+'</button></div>'
+   +'<span class="lvhint" style="margin-top:-6px">Refreshes whenever you open this page'+updAt(LV.wkAt)+'</span>'
+   +(all && names.length ? personSel('wf', names, wf) : '')
+   +'<div class="lvnote up"><b>This month: '+thisM.length+' job'+(thisM.length===1?'':'s')+' · '+dur(tot)+' '+(all && !wf ? 'team work' : wf ? 'work by '+esc(wf) : 'your work')+(st ? ' (support '+dur(st)+')' : '')+'</b></div>'
+   +(L.length ? '<div class="lvtk" style="gap:6px">'+shown.map(t=>closedCard(t, all && !wf ? segWho(t) : (wf ? esc(wf)+' ' : 'your time ')+dur(mins(t)))).join('')+'</div>'
+       +(L.length>15 ? '<button class="lvlink" data-a="wkmore">'+(A.st.wkMore?'Show fewer':'Show all '+L.length)+'</button>' : '')
+     : '<div class="lvempty" style="text-align:center">No closed jobs in the last 30 days.</div>');
+}
+/* ---------- ticket number, full ticket details ---------- */
+const refTag = t => t && t.ref ? '<span class="lvref">'+esc(t.ref)+'</span>' : '';
+function findTicket(id){
+  const L = [LV.state.open, LV.state.closed, LV.state.cancelled, LV.state.needReport, (LV.wk||{}).tickets, (LV.twk||{}).tickets];
+  for(const a of L){ const t = (a||[]).find(x=>x.id===id); if(t) return t; } return null;
+}
+Object.assign(TL, {task:['#5B21B6','Pending task'], join:['#0369A1','Joined'], leave:['#6B7280','Left'], lead:['#1747C9','Took over'], running:['#15803D','Machine running again'], stopped:['#C62828','Machine stopped again'], restore:['#7C3AED','Restored'], edit:['#0F766E','Edited'], down:['#C62828','Reported'], start:['#1747C9','Started'], close:['#15803D','Closed'], cancel:['#6B7280','Cancelled'], report:['#0E7490','Report written']});
+const CLOSE_KIND = {report:'with report', no_report:'without report', done:'done', cancelled:'cancelled'};
+function detailHtml(t, d){
+  const T = Object.assign({}, t||{}, d ? d.ticket : {}), open = LV.state.open.find(x=>x.id===T.id), k = T.status==='closed' ? 'running' : T.status==='cancelled' ? 'running' : uiState(T);
+  const chip = T.status==='closed' ? '<span class="lvst s-running">Closed</span>' : T.status==='cancelled' ? '<span class="lvst" style="background:#EEF0F3;color:#374151">Cancelled</span>' : '<span class="lvst s-'+k+'">'+(k==='waiting'?esc(waitTag(T)):SL[k])+'</span>';
+  const m = lvMachine(T.machine), row = (l, v) => v ? '<div><span>'+l+'</span><b>'+v+'</b></div>' : '';
+  const work = T.status==='working' ? activeNow(T) : (T.activeMin||0);
+  let h = '<div class="hd" id="lvDet" data-id="'+esc(T.id)+'"><div class="lvwrap"><b>'+esc(place(T))+'</b>'+chip+'</div><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+    +'<div style="font-size:13.5px;color:#4B5563;margin-top:-6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+refTag(T)+'<span>'+(T.kind==='general' ? esc(T.workType||'Work request')+(T.urgent?' · URGENT':'') : esc(m.category||'')+(m.cell?' · Cell '+esc(m.cell):''))+'</span></div>'
+    +'<div style="font-size:16.5px;line-height:1.45;white-space:pre-wrap">'+esc(T.problem)+'</div>'
+    +'<div class="lvfacts">'
+    +row('Type', T.parentId ? 'Pending task of '+esc(T.parentRef)+(T.taskWhy ? ' · '+esc(T.taskWhy) : '')+(T.taskExp ? ' · expected '+expNice(T.taskExp) : '') : T.kind==='stopped' ? 'Machine stopped' : T.kind==='support' ? 'Needs support (machine running)' : '')
+    +row('Reported', T.downAt ? dnice(T.downAt)+' by '+esc(T.reportedBy) : '')
+    +row('Work started', T.startedAt ? dnice(T.startedAt)+' by '+esc((d && d.events.find(e=>e.type==='start')||{}).by || T.startedBy) : '')
+    +row('Response', T.responseMin!=null ? dur(T.responseMin) : '')
+    +row('Work time', T.startedAt ? dur(work)+(T.status==='working'?' (running)':'') : '')
+    +row('Waiting', T.waitMin ? dur(T.waitMin)+(T.vendorMin?' · vendor '+dur(T.vendorMin):'') : '')
+    +row('Machine downtime', T.kind==='general' ? '' : T.status==='closed' ? dur(T.downtimeMin) : (T.status!=='cancelled' && T.kind==='stopped' ? dur(downNow(T))+(T.runningAt ? ' (machine running)' : ' so far') : ''))
+    +row('Machine stopped for this work', T.parentId && T.status==='closed' && T.taskDownMin!=null ? (T.taskDownMin ? dur(T.taskDownMin) : 'not stopped') : '')
+    +row('Machine running again', T.runningAt ? dnice(T.runningAt) : '')
+    +row('Follow-up', T.followMin!=null ? dur(T.followMin)+' (running again to closed)' : '')
+    +row(T.status==='cancelled' ? 'Cancelled' : 'Closed', T.closedAt ? dnice(T.closedAt)+' by '+esc(T.closedBy)+(CLOSE_KIND[T.closeKind]&&T.status==='closed'?' · '+CLOSE_KIND[T.closeKind]:'') : '')
+    +'</div>';
+  if(T.status==='waiting') h += '<div class="lvnote wt"><b>'+esc(waitTag(T))+(T.eta?' · expected back '+dnice(T.eta):'')+'</b><span>'+esc(T.waitReason)+' · paused by '+esc(T.pausedBy)+(T.assignedTo?' · assigned to <b>'+esc(T.assignedTo)+'</b>':'')+'</span></div>';
+  if(d && d.people && d.people.length){ const left = {}; (T.crew||[]).forEach(c=>{ if(c.left) left[c.name] = c.leftWhy||''; });
+    h += '<div><span class="lvlbl">Who worked on it</span><div class="lvwrap" style="margin-top:6px">'+d.people.map(p=>'<span class="lvchip" style="min-height:36px;cursor:default">'+esc(p.by)+(p.role && p.role!=='started' ? ' <i style="font-style:normal;color:#0369A1">'+p.role+'</i>' : '')+' · '+dur(p.mins)+(p.by in left && isActiveT(T) ? ' <i style="font-style:normal;color:#6B7280">(left)</i>' : '')+'</span>').join('')+'</div></div>'; }
+  else if(crewOn(T).length) h += crewLine(T);
+  if(T.status==='closed'){ const fb = fuBox(T, d && d.tasks ? d.tasks.map(x=>({id:x.id, ref:x.ref, status:x.status, text:x.problem, exp:x.taskExp, why:x.taskWhy, startedBy:x.startedBy, startedAt:x.startedAt, closedAt:x.closedAt, closedBy:x.closedBy})) : null); if(fb) h += fb; }
+  if(d && d.tasks && d.tasks.length) h += '<div><span class="lvlbl">Pending task'+(d.tasks.length>1?'s':'')+'</span><div class="lvfacts" style="margin-top:6px">'+d.tasks.map(x=>'<div data-a="openticket" data-v="'+esc(x.id)+'" style="cursor:pointer"><span>'+esc(x.ref)+' ▸ · '+(x.status==='closed' ? 'done '+dnice(x.closedAt) : x.status==='cancelled' ? 'cancelled' : x.status==='working' ? 'in progress' : x.status==='waiting' ? 'waiting' : 'pending'+(x.taskExp ? ', expected '+expNice(x.taskExp) : ''))+(x.taskWhy && x.status!=='closed' ? ' · '+esc(x.taskWhy) : '')+'</span><b>'+esc(x.problem)+(x.status==='closed' && x.closedBy ? ' (by '+esc(x.closedBy)+(x.taskDownMin ? ', machine stopped '+dur(x.taskDownMin) : '')+')' : '')+'</b></div>').join('')+'</div></div>';
+  const R = T.report;
+  if(R && T.status==='closed'){
+    const rr = (l, v) => v ? '<div><span>'+l+'</span><b>'+esc(v)+'</b></div>' : '';
+    h += '<div><span class="lvlbl">Report</span><div class="lvfacts" style="margin-top:6px">'+rr('What was done', R.ca || R.done)+rr('Done by', R.db)+rr('Supported by', R.sb)+rr('Observed by', R.ob)+rr('Maintenance code', R.mc)+rr('E / M', R.bc)+rr('Spare used', R.sp)+rr('Shift', R.sh)+'</div></div>';
+  } else if(T.closeNote && T.status!=='working') h += '<div class="lvnote up"><b>'+(T.status==='cancelled'?'Reason':'Note')+'</b><span>'+esc(T.closeNote)+'</span></div>';
+  h += '<div id="lvDetMore">'+(d ? (d.events.length ? '<span class="lvlbl">Full history</span><div class="tlw" style="margin-top:6px">'+d.events.map(e=>tlLine(e.type==='down' && !e.task ? Object.assign({}, e, {text:''}) : e)).join('')+'</div>' : '')
+    : '<span class="lvhint">Loading the full history…</span>')+'</div>';
+  h += WA_BTN(T.id);
+  if(canRestore(T)) h += '<button class="lvsec" data-a="restoreask" data-v="'+esc(T.id)+'" style="border:2px solid #7C3AED!important;color:#6D28D9!important;background:#fff!important;font-weight:800">Restore ticket (admin)</button>';
+  if(canEditTicket(T)) h += '<button class="lvsec" data-a="editask" data-v="'+esc(T.id)+'" style="border:2px solid #0F766E!important;color:#0F766E!important;background:#fff!important;font-weight:800">Edit ticket (admin)</button>';
+  if(open && LV.role==='maint') h += actionBtns(open, true);
+  else if(open && mineToCancel(open)) h += '<button class="lvsec" style="color:#9B1C1C!important;border:2px solid #C62828!important;background:#fff!important" data-a="cancelask" data-v="'+esc(T.id)+'">Cancel ticket</button>';
+  return h;
+}
+const isActiveT = T => ['open','working','waiting'].includes(T.status);
+/* ---------- admin: undo a cancellation made by mistake ---------- */
+const canRestore = T => ME().role==='admin' && T && T.status==='cancelled' && T.closedAt && nowMs()-Date.parse(T.closedAt) < 7*86400000;
+function sheetRestore(id){
+  const T = Object.assign({}, findTicket(id)||{}, LV.det && LV.det.ticket && LV.det.ticket.id===id ? LV.det.ticket : {}); if(!T.id) return;
+  A.st.rsId = id;
+  openSheet('<div class="hd"><b>Restore '+esc(place(T))+' '+refTag(T)+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<div class="lvnote up"><b>Cancelled by '+esc(T.closedBy||'-')+' at '+dnice(T.closedAt)+'</b><span>'+esc(T.closeNote||'')+'</span></div>'
+   +'<span class="lvhint">The ticket goes back to where it was before it was cancelled (open, being worked on, or waiting), as if it had never been cancelled. The time since then counts as usual; correct it afterwards with Edit if needed.</span>'
+   +'<span class="lvlbl" style="font-size:15.5px;font-weight:800">Reason for restoring</span><textarea id="lvrs_r" class="lvta" rows="2" style="border-color:#AEB6C2;font-size:16px" placeholder="e.g. Cancelled by mistake, work was still going on"></textarea>'
+   +'<div class="lv3"><button data-a="editback" data-v="'+esc(id)+'">Go back</button><button class="lvprim" data-a="restorego" style="flex:1;background:#6D28D9!important">'+spin(LV.busy, LV.busy ? 'Restoring...' : 'Restore ticket')+'</button></div>');
+}
+async function doRestore(){
+  const id = A.st.rsId, el = $('lvrs_r'), why = el ? el.value.trim() : ''; if(LV.busy || !id) return;
+  if(!why) return need('Write the reason for restoring');
+  LV.busy = true; sheetRestore(id); $('lvrs_r').value = why;
+  try{ const r = await lvApi('/api/restore', {id, reason:why}); LV.busy = false; LV.det = null; await lvRefresh(); sheetDetail(id); lvToast('Restored. The ticket is '+({open:'open again', working:'back in progress', waiting:'waiting again'}[r.status]||'back')+'.'); }
+  catch(e){ LV.busy = false; sheetRestore(id); $('lvrs_r').value = why; lvToast(e.message, true); }
+}
+/* ---------- admin: correct a ticket (honest mistakes); every change and its reason go into the ticket's history ---------- */
+const canEditTicket = T => ME().role==='admin' && T && T.status!=='cancelled' && (['open','working','waiting'].includes(T.status) || (T.closedAt && nowMs()-Date.parse(T.closedAt) < 7*86400000));
+const toLocalInput = iso => { if(!iso) return ''; const d = new Date(iso), p = n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
+function sheetEdit(id){
+  const T = Object.assign({}, findTicket(id)||{}, LV.det && LV.det.ticket && LV.det.ticket.id===id ? LV.det.ticket : {}); if(!T.id) return;
+  A.st.ed = {id, orig:T};
+  const closed = T.status==='closed', L = (l, html) => '<span class="lvlbl" style="font-size:15.5px;font-weight:800">'+l+'</span>'+html;
+  const dt = (i, v) => '<input id="'+i+'" class="lvin2" type="datetime-local" value="'+esc(toLocalInput(v))+'">';
+  const team = lvTeam(), sel = (i, v) => '<select id="'+i+'" class="lvin2 lvsel"><option value="">—</option>'+[...new Set(team.concat(v ? [v] : []))].map(n=>'<option value="'+esc(n)+'"'+(n===v?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>';
+  openSheet('<div class="hd" id="lvEd"><b>Edit '+esc(place(T))+' '+refTag(T)+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">Correct a mistake. Response, repair and downtime are worked out again from the times. The change and your reason are kept in the ticket\'s history.</span>'
+   +L('Reported at', dt('lved_down', T.downAt))
+   +(T.startedAt ? L('Work started at', dt('lved_start', T.startedAt)) + L('Started by', sel('lved_sby', T.startedBy)) : '')
+   +(closed ? L('Closed at', dt('lved_close', T.closedAt)) + L('Closed by', sel('lved_cby', T.closedBy)) : '')
+   +(T.startedAt ? L('Work time (min)', '<input id="lved_act" class="lvin2" type="number" min="0" inputmode="numeric" value="'+esc(T.activeMin||0)+'">') : '')
+   +(T.waitMin || T.status==='waiting' ? L('Waiting time (min)', '<input id="lved_wait" class="lvin2" type="number" min="0" inputmode="numeric" value="'+esc(T.waitMin||0)+'">') : '')
+   +(closed && T.startedAt ? '<div id="lved_link" class="lvhint" style="background:#ECFDF5;border-radius:10px;padding:8px 10px;color:#065F46">'+edLinkText()+'</div>' : '')
+   +L('Problem', '<textarea id="lved_pr" class="lvta" rows="2" style="border-color:#AEB6C2;font-size:16px">'+esc(T.problem||'')+'</textarea>')
+   +L('Reason for the change', '<textarea id="lved_rs" class="lvta" rows="2" style="border-color:#AEB6C2;font-size:16px" placeholder="e.g. Started at 10:05, tapped Start work late"></textarea>')
+   +'<div class="lv3"><button data-a="editback" data-v="'+esc(id)+'">Go back</button><button class="lvprim" data-a="editgo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Saving...' : 'Save changes')+'</button></div>');
+  edCheck();
+}
+// on opening: say so if the work time does not match the start and closing times
+function edCheck(){
+  const st = $('lved_start'), cl = $('lved_close'), box = $('lved_link'); if(!st || !cl || !box) return;
+  const span = Math.round((Date.parse(cl.value) - Date.parse(st.value))/60000) - edGap(), act = edMin('lved_act');
+  box.innerHTML = edLinkText() + (!isNaN(span) && Math.abs(span - act) > 1 ? '<br><b style="color:#9A3412">Does not match now: start to close is '+dur(Math.max(0, span))+(edGap()?' (after waiting)':'')+', work time says '+dur(act)+'. Fix whichever one is wrong.</b>' : '');
+}
+// closed ticket: start, close and work time stay matched (work = close - start - waiting). Change one and the other follows.
+const edMin = i => { const e = $(i); return e && e.value !== '' ? Math.max(0, Math.round(Number(e.value)||0)) : 0; };
+const edGap = () => edMin('lved_wait') + ((A.st.ed && A.st.ed.orig.handoverWaitMin)||0);
+function edLinkText(warn){ return warn ? '<b>'+warn+'</b>' : 'Start, close and work time are linked: change the work time and the start time moves; change a time and the work time follows.'+(edGap() ? ' Waiting time ('+edGap()+' min) is not counted as work.' : ''); }
+function edLink(id){
+  const st = $('lved_start'), cl = $('lved_close'), ac = $('lved_act'), box = $('lved_link'); if(!st || !cl || !ac || !box) return;
+  const S = Date.parse(st.value), C = Date.parse(cl.value); if(isNaN(C)) return; let warn = '';
+  if(id==='lved_act'){
+    let ns = C - (edMin('lved_act') + edGap())*60000; const D = Date.parse(($('lved_down')||{}).value||'');
+    if(!isNaN(D) && ns < D){ ns = D; warn = 'That work time is longer than the time from reported to closed. Start set to the reported time; change the closing time if the work really took longer.'; }
+    st.value = toLocalInput(new Date(ns).toISOString()); if(warn) ac.value = Math.max(0, Math.round((C - ns)/60000) - edGap());
+  } else if(!isNaN(S)){
+    const w = Math.round((C - S)/60000) - edGap(); ac.value = Math.max(0, w);
+    if(w < 0) warn = 'The closing time is before the work started (plus waiting). Check the times.';
+  }
+  box.innerHTML = edLinkText(warn);
+}
+// times in a correction note are written as @2026-11-03T07:14Z; show them in this phone's local time
+function edTimes(s){ return String(s||'').replace(/@(\d{4}-\d\d-\d\dT\d\d:\d\dZ)/g, (m, x)=>{ const d = new Date(x.replace('Z',':00Z')); return isNaN(d) ? x : dnice(d.toISOString()); }); }
+async function doEdit(){
+  if(LV.busy || !A.st.ed) return; const {id, orig:T} = A.st.ed, v = i=>{ const e = $(i); return e ? e.value : null; }, body = {id};
+  const tIso = x => x ? new Date(x).toISOString() : '', same = (a, b) => Math.abs(Date.parse(a||0) - Date.parse(b||0)) < 60000;
+  const d = v('lved_down'), st = v('lved_start'), cl = v('lved_close');
+  if(d && !same(tIso(d), T.downAt)) body.downAt = tIso(d);
+  if(st && !same(tIso(st), T.startedAt)) body.startedAt = tIso(st);
+  if(cl && !same(tIso(cl), T.closedAt)) body.closedAt = tIso(cl);
+  const a = v('lved_act'), w = v('lved_wait'), pr = v('lved_pr'), sb = v('lved_sby'), cb = v('lved_cby');
+  if(a!=null && Number(a) !== (T.activeMin||0)) body.activeMin = Number(a);
+  if(w!=null && Number(w) !== (T.waitMin||0)) body.waitMin = Number(w);
+  if(pr!=null && pr.trim() !== (T.problem||'')) body.problem = pr.trim();
+  if(sb!=null && sb !== (T.startedBy||'')) body.startedBy = sb;
+  if(cb!=null && cb !== (T.closedBy||'')) body.closedBy = cb;
+  body.reason = (v('lved_rs')||'').trim();
+  if(Object.keys(body).length <= 2) return need('Nothing was changed');
+  if(!body.reason) return need('Write the reason for the change');
+  const keep = {}; ['lved_down','lved_start','lved_close','lved_act','lved_wait','lved_pr','lved_sby','lved_cby','lved_rs'].forEach(i=>{ keep[i] = v(i); }); LV.busy = true; sheetEdit(id); Object.keys(keep).forEach(i=>{ const el = $(i); if(el && keep[i]!=null) el.value = keep[i]; });
+  try{ const r = await lvApi('/api/edit', body); LV.busy = false; LV.det = null; lvToast('Saved: '+edTimes(r.changed.join(', '))+'. Kept in the ticket\'s history.'); LV.wkAt = 0; LV.twkAt = 0; await lvRefresh(); sheetDetail(id); }
+  catch(e){ LV.busy = false; sheetEdit(id); Object.keys(keep).forEach(i=>{ const el = $(i); if(el && keep[i]!=null) el.value = keep[i]; }); lvToast(e.message, true); }
+}
+function sheetDetail(id, t0){
+  A.st.detId = id; const t = LV.state.open.find(x=>x.id===id) || t0 || findTicket(id);
+  const cached = LV.det && LV.det.ticket && LV.det.ticket.id===id ? LV.det : null;
+  openSheet(detailHtml(t, cached));
+  lvApi('/api/ticket?id='+encodeURIComponent(id)).then(d=>{ LV.det = d; const el = $('lvDet');
+    if(el && el.dataset.id===id && $('lvSheetB').classList.contains('on')) openSheet(detailHtml(LV.state.open.find(x=>x.id===id) || t || d.ticket, d)); })
+  .catch(e=>{ const el = $('lvDetMore'); if(el && $('lvDet') && $('lvDet').dataset.id===id) el.innerHTML = '<span class="lvhint">Could not load the full history'+(e.net?' (no internet)':'')+'. The details above are from this phone.</span>'; });
+}
+
+/* ---------- the team's closed jobs of the last 30 days (Team tab) ---------- */
+async function lvTeamWork(force){
+  if(LV.twkBusy || (!force && LV.twkAt && Date.now()-LV.twkAt < (LV.twk ? 5*60000 : 60000))) return;
+  LV.twkBusy = true;
+  try{ LV.twk = await lvApi('/api/mywork?team=1'); }catch(e){}
+  LV.twkAt = Date.now(); LV.twkBusy = false; if(A.view==='team') lvSoftRender();
+}
+const jobPeople = t => { const s = (t.segments||[]).filter(x=>x.by); return s.length ? s : (t.closedBy ? [{by:t.closedBy, mins:t.activeMin||0}] : []); };
+function teamClosedHtml(){
+  const head = '<div class="lvsect" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">Closed in the last 30 days'+(LV.twk ? ' ('+(LV.twk.tickets||[]).length+')' : '')+'<button class="lvlink" style="width:auto;min-height:36px;text-transform:none;letter-spacing:0" data-a="twkref">'+(LV.twkBusy?'Refreshing…':'Refresh')+'</button></div><span class="lvhint" style="margin-top:-6px">Refreshes whenever you open this page'+updAt(LV.twkAt)+'</span>';
+  if(!LV.twk) return head+'<div class="lvempty" style="text-align:center">'+(LV.twkBusy?'Loading…':'Could not load. Open the Team tab again.')+'</div>';
+  const L = LV.twk.tickets||[], mo = new Date(nowMs()); mo.setDate(1); mo.setHours(0,0,0,0);
+  const P = {}; L.filter(t=>Date.parse(t.closedAt) >= mo.getTime()).forEach(t=>jobPeople(t).forEach(x=>{ const o = P[x.by] = P[x.by]||{n:0, m:0, s:0, sj:0}; o.n++; o.m += x.mins||0; if(x.role==='support'){ o.s += x.mins||0; o.sj++; } }));
+  const names = Object.keys(P).sort((a,b)=>P[b].m-P[a].m || a.localeCompare(b)), tf = A.st.tf||'', jm = L.filter(t=>Date.parse(t.closedAt) >= mo.getTime()).length;
+  const V = L.filter(t=>!tf || jobPeople(t).some(x=>x.by===tf)), shown = A.st.twkMore ? V : V.slice(0, 15), open = !!A.st.monOpen;
+  return head
+   +(names.length ? '<div class="lvtk" style="gap:4px;padding:10px 14px"><button class="lvmon" data-a="monopen"><b>This month: '+jm+' job'+(jm===1?'':'s')+' · '+names.length+' '+(names.length===1?'person':'people')+'</b><span>'+(open?'▾':'▸')+'</span></button>'
+       +(open ? names.map(n=>'<div class="lvtm" style="cursor:default"><div><b style="font-size:15.5px">'+esc(n)+'</b>'+(P[n].sj ? '<small>Primary '+dur(P[n].m-P[n].s)+' · Support '+dur(P[n].s)+'</small>' : '')+'</div><em>'+P[n].n+' job'+(P[n].n===1?'':'s')+' · '+dur(P[n].m)+'</em></div>').join('') : '')+'</div>' : '')
+   +(L.length ? personSel('tf', [...new Set(L.flatMap(t=>jobPeople(t).map(x=>x.by)))].sort(), tf) : '')
+   +(V.length ? '<div class="lvtk" style="gap:6px">'+shown.map(t=>closedCard(t, jobPeople(t).map(x=>esc(x.by)+(x.role==='support'?' (support)':'')+' '+dur(x.mins)).join(', '))).join('')+'</div>'
+       +(V.length>15 ? '<button class="lvlink" data-a="twkmore">'+(A.st.twkMore?'Show fewer':'Show all '+V.length)+'</button>' : '')
+     : '<div class="lvempty" style="text-align:center">'+(tf ? 'No closed jobs for '+esc(tf)+' in the last 30 days.' : 'No closed jobs in the last 30 days.')+'</div>');
+}
+/* ---------- day report (PDF): one person's or the whole team's work in a day or a shift ---------- */
+const shiftList = () => (CLIENT.shiftTimes||[]).filter(x=>x && x.name && /^\d{1,2}:\d{2}$/.test(x.start||''));
+const shiftLabel = s => { const x = shiftList().find(y=>String(y.name)===String(s)); return x ? 'Shift '+x.name+' ('+x.start+(x.end?'–'+x.end:'')+')' : ''; };
+function dayWindow(daysAgo, shift){
+  const d = new Date(nowMs()); d.setHours(0,0,0,0); d.setDate(d.getDate()-daysAgo);
+  const x = shiftList().find(y=>String(y.name)===String(shift)), from = new Date(d);
+  if(x){ const [hh, mm] = x.start.split(':').map(Number); from.setHours(hh, mm, 0, 0); }
+  return {from, to:new Date(from.getTime()+24*3600000), day:d, shift:x ? String(x.name) : ''};
+}
+const dLong = d => d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+const dShort = d => d.toLocaleDateString('en-GB', {day:'numeric', month:'short'})+' '+d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+const canPickDay = () => !personal() || ['supervisor','admin'].includes(ME().role);
+function sheetDay(){
+  const D = A.st.dr, team = D.kind==='team', who = D.who || '';
+  const days = [0,1,2,3,4,5,6].map(i=>{ const w = dayWindow(i, ''); return [String(i), i===0 ? 'Today, '+dLong(w.day) : i===1 ? 'Yesterday, '+dLong(w.day) : dLong(w.day)]; });
+  const sh = shiftList(), w = dayWindow(Number(D.days||0), D.shift);
+  openSheet('<div class="hd" id="lvDay"><b>'+(team ? 'Team day report' : 'My day report')+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<span class="lvhint">'+(team ? 'Everyone\'s work in the period, one section per person, with team totals.' : 'Every job worked on in the period, with work time, what was done and what is still pending.')+' Made as a PDF to share on WhatsApp.</span>'
+   +(!team && canPickDay() ? '<span class="lvlbl" style="font-size:16px;font-weight:800">Whose report?</span>'+(personal()
+       ? '<select id="lvdw" class="lvin2 lvsel"><option value="'+esc(ME().name)+'">Me ('+esc(ME().name)+')</option>'+lvTeam().filter(n=>n!==ME().name).map(n=>'<option value="'+esc(n)+'"'+(n===who?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
+       : nameSel('lvdw', lvTeam(), who, 'Select the person')) : '')
+   +'<span class="lvlbl" style="font-size:16px;font-weight:800">Date</span><select id="lvdd" class="lvin2 lvsel" data-i="dr">'+days.map(([v,l])=>'<option value="'+v+'"'+(String(D.days||0)===v?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select>'
+   +'<span class="lvlbl" style="font-size:16px;font-weight:800">Shift</span><select id="lvds" class="lvin2 lvsel" data-i="dr"><option value="">Not set (whole calendar day)</option>'+sh.map(x=>'<option value="'+esc(x.name)+'"'+(String(D.shift||'')===String(x.name)?' selected':'')+'>'+esc(shiftLabel(x.name))+'</option>').join('')+'</select>'
+   +'<span class="lvhint" id="lvdwin">Covers '+esc(dShort(w.from))+' to '+esc(dShort(w.to))+'.</span>'
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim" data-a="daygo" style="flex:1">'+spin(LV.busy, LV.busy ? 'Making the report...' : 'Make PDF')+'</button></div>');
+}
+function dayRead(){ const D = A.st.dr, v = i=>{ const e = $(i); return e ? e.value : null; }; let x;
+  if((x = v('lvdd'))!=null) D.days = Number(x)||0; if((x = v('lvds'))!=null) D.shift = x; if((x = v('lvdw'))!=null){ if(x !== D.who && (CLIENT.teamShifts||{})[x] && !D.shiftTouched) D.shift = String(CLIENT.teamShifts[x]); D.who = x; } }
+function pdfTxt(s){
+  const a = String(s==null?'':s).replace(/[‘’‚′]/g,"'").replace(/[“”„″]/g,'"').replace(/[–—−]/g,'-').replace(/₹/g,'Rs ').replace(/…/g,'...').replace(/ /g,' ');
+  // the PDF font has no Gujarati/Hindi letters: they are left out and marked, so nobody thinks words went missing
+  const lost = /[\u0900-\u0DFF]/.test(a), b = a.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,'').replace(/\s{2,}/g,' ').replace(/\s+-\s*$/,'').trim();
+  return lost ? (b ? b+' ' : '')+'[local-language text]' : b;
+}
+const durS = m => { m = Math.round(m||0); return m<60 ? m+' min' : Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' m'; };
+function loadImg(src){ return new Promise(res=>{ if(!src || !/^data:image\/(png|jpe?g)/i.test(src)) return res(null); const im = new Image(); im.onload = ()=>res(im); im.onerror = ()=>res(null); im.src = src; }); }
+async function buildDayPdf(data, meta){
+  const { jsPDF } = window.jspdf, doc = new jsPDF({unit:'mm', format:'a4'}), M = 14, X2 = 196; let y = 14;
+  const logo = await loadImg(CLIENT.logo);
+  const setF = (sz, b, c) => { doc.setFontSize(sz); doc.setFont('helvetica', b ? 'bold' : 'normal'); doc.setTextColor(...(c||[20,24,31])); };
+  const need = h => { if(y + h > 280){ doc.addPage(); y = 16; return true; } return false; };
+  // header
+  let tx = M; if(logo){ const hh = 13, ww = Math.min(32, hh*logo.width/logo.height); try{ doc.addImage(logo, /png/i.test(CLIENT.logo.slice(0,30)) ? 'PNG' : 'JPEG', M, y-2, ww, hh); tx = M+ww+4; }catch(e){} }
+  setF(15, true); doc.text(pdfTxt(CLIENT.company||''), tx, y+3);
+  setF(12, true, [23,71,201]); doc.text(meta.team ? 'Team Daily Work Report' : 'Daily Work Report', tx, y+9.5);
+  y += 17; setF(10.5, true); doc.text(pdfTxt([meta.team ? 'Whole maintenance team' : meta.who, dLong(meta.day), meta.shift ? shiftLabel(meta.shift) : ''].filter(Boolean).join('   |   ')), M, y);
+  y += 5; setF(8.5, false, [75,85,99]); doc.text('Covers '+dShort(meta.from)+' to '+dShort(meta.to)+'. Work time counts only the time each person worked on the job within this period.', M, y);
+  y += 3; doc.setDrawColor(210,214,220); doc.line(M, y, X2, y); y += 6;
+  const P = data.people||[], J = P.flatMap(p=>p.jobs), uniq = [...new Map(J.map(j=>[j.id, j])).values()];
+  const pend = uniq.filter(j=>['waiting','transferred','working','open'].includes(j.status));
+  const boxes = meta.team
+    ? [['People', P.length], ['Jobs', uniq.length], ['Closed', uniq.filter(j=>j.status==='closed').length], ['Team work time', durS(P.reduce((a,p)=>a+p.mins,0))], ['Pending at end', pend.length]]
+    : [['Jobs worked on', uniq.length], ['Closed by '+(meta.who||'').split(' ')[0], P[0] ? P[0].closed : 0], [P[0] && P[0].supportMins ? 'Work (support '+durS(P[0].supportMins)+')' : 'Work time', durS(P[0] ? P[0].mins : 0)], ['Breakdowns / requests', uniq.filter(j=>j.kind!=='general').length+' / '+uniq.filter(j=>j.kind==='general').length], ['Pending at end', pend.length]];
+  const bw = (X2-M-4*3)/5; boxes.forEach(([l, v], i)=>{ const bx = M+i*(bw+3); doc.setFillColor(243,245,248); doc.roundedRect(bx, y, bw, 15, 2, 2, 'F'); setF(7.5, false, [75,85,99]); doc.text(pdfTxt(l), bx+3, y+5); setF(13, true); doc.text(String(v), bx+3, y+12); });
+  y += 21;
+  const COLS = [['Ticket', 19], ['Machine / place', 25], ['Problem', 40], ['What was done / status', 55], ['Role', 13], ['Work', 18]];
+  const head = () => { doc.setFillColor(31,58,95); doc.rect(M, y, X2-M, 6.5, 'F'); setF(8, true, [255,255,255]); let x = M; COLS.forEach(([t, w])=>{ doc.text(t, x+1.5, y+4.4); x += w; }); y += 6.5; };
+  const status = (j, p) => j.status==='closed' ? 'Closed '+dShort(new Date(j.statusAt))+(j.statusBy && j.statusBy!==p ? ' by '+j.statusBy : '')+(j.done ? ': '+j.done : '')
+    : j.status==='waiting' ? 'Paused, waiting: '+(j.why||'') : j.status==='transferred' ? 'Transferred'+(j.to ? ' to '+j.to : '')+(j.why ? ': '+j.why : '') : j.status==='cancelled' ? 'Cancelled' : j.status==='working' ? 'Still in progress at the end of the period' : 'Not started';
+  const table = (jobs, p) => {
+    if(!jobs.length){ setF(9, false, [75,85,99]); doc.text('No jobs in this period.', M, y+4); y += 8; return; }
+    need(14); head();
+    jobs.forEach((j, i)=>{
+      setF(8.3, false);
+      const cells = [j.ref||'-', j.kind==='general' ? (j.location||'')+(j.workType ? ' ('+j.workType+')' : '') : j.machine, (j.parentRef ? 'Pending task of '+j.parentRef+': ' : '')+j.problem, status(j, p), {started:'Started', primary:'Primary', support:'Support'}[j.role]||'Primary', durS(j.mins)].map((c, k)=>doc.splitTextToSize(pdfTxt(c), COLS[k][1]-3));
+      const h = Math.max(...cells.map(c=>c.length))*3.6+2.4;
+      if(need(h)) head();
+      if(i % 2){ doc.setFillColor(248,249,251); doc.rect(M, y, X2-M, h, 'F'); }
+      let x = M; cells.forEach((c, k)=>{ setF(8.3, k===0 || k===5, k===3 && j.status!=='closed' ? [154,52,18] : k===4 && j.role==='support' ? [3,105,161] : [20,24,31]); doc.text(c, x+1.5, y+3.6); x += COLS[k][1]; });
+      y += h; doc.setDrawColor(229,231,235); doc.line(M, y, X2, y);
+    });
+    y += 4;
+  };
+  if(meta.team && P.length){
+    need(12); setF(11, true); doc.text('Team summary', M, y); y += 2;
+    const TC = [['Person', 52], ['Jobs', 16], ['Closed', 18], ['Work time', 26], ['Primary', 26], ['Support', 26]];
+    doc.setFillColor(31,58,95); doc.rect(M, y, 164, 6.5, 'F'); setF(8, true, [255,255,255]); let x = M; TC.forEach(([t, w])=>{ doc.text(t, x+1.5, y+4.4); x += w; }); y += 6.5;
+    P.forEach(p=>{ need(6); setF(8.8, false); let x2 = M; [pdfTxt(p.name), String(p.jobs.length), String(p.closed), durS(p.mins), durS(p.primaryMins!=null ? p.primaryMins : p.mins), durS(p.supportMins||0)].forEach((v, k)=>{ doc.text(v, x2+1.5, y+4); x2 += TC[k][1]; }); y += 6; doc.setDrawColor(229,231,235); doc.line(M, y, M+164, y); });
+    setF(8.8, true); let x3 = M; ['Team total', String(uniq.length), String(uniq.filter(j=>j.status==='closed').length), durS(P.reduce((a,p)=>a+p.mins,0)), durS(P.reduce((a,p)=>a+(p.primaryMins!=null ? p.primaryMins : p.mins),0)), durS(P.reduce((a,p)=>a+(p.supportMins||0),0))].forEach((v, k)=>{ doc.text(v, x3+1.5, y+4.5); x3 += TC[k][1]; }); y += 11;
+    P.forEach(p=>{ need(20); setF(11, true, [23,71,201]); doc.text(pdfTxt(p.name)+'   ('+p.jobs.length+' job'+(p.jobs.length===1?'':'s')+', '+durS(p.mins)+(p.supportMins ? ': primary '+durS(p.primaryMins)+', support '+durS(p.supportMins) : '')+')', M, y); y += 3; table(p.jobs, p.name); });
+  } else if(P.length){ setF(11, true); doc.text('Jobs', M, y); y += 3; table(P[0].jobs, P[0].name); }
+  else { setF(10, false, [75,85,99]); doc.text('No work was recorded in this period.', M, y+4); y += 10; }
+  if(pend.length){
+    need(16); setF(11, true, [154,52,18]); doc.text('Pending at the end of the period (for the next shift)', M, y); y += 5;
+    pend.forEach(j=>{ const L = doc.splitTextToSize(pdfTxt((j.ref ? j.ref+'  ' : '')+(j.kind==='general' ? j.location : j.machine)+': '+(j.parentRef ? '[Pending task of '+j.parentRef+'] ' : '')+j.problem+(j.taskExp ? '  (expected '+expNice(j.taskExp)+')' : '')+'  ->  '+status(j, '')), X2-M-4); need(L.length*3.8+2); setF(8.6, false); doc.text(L, M+2, y); y += L.length*3.8+1.5; });
+  }
+  const n = doc.getNumberOfPages(), gen = dShort(new Date(nowMs()));
+  for(let i=1;i<=n;i++){ doc.setPage(i); setF(7.5, false, [120,128,140]); doc.text('Made from live tickets on '+gen+'.   Page '+i+' of '+n, M, 290); }
+  const nm = ('Day_report_'+(meta.team ? 'Team' : meta.who)+'_'+meta.day.getFullYear()+'-'+String(meta.day.getMonth()+1).padStart(2,'0')+'-'+String(meta.day.getDate()).padStart(2,'0')+(meta.shift ? '_Shift'+meta.shift : '')).replace(/[^A-Za-z0-9_-]+/g,'_')+'.pdf';
+  return {blob:doc.output('blob'), name:nm};
+}
+async function doDay(){
+  if(LV.busy) return; dayRead(); const D = A.st.dr, team = D.kind==='team', who = team ? '' : (canPickDay() ? (D.who || (personal() ? ME().name : '')) : ME().name);
+  if(!team && !who) return need('Select whose report to make');
+  const w = dayWindow(D.days||0, D.shift);
+  LV.busy = true; sheetDay();
+  try{
+    const data = await lvApi('/api/dayreport?from='+encodeURIComponent(w.from.toISOString())+'&to='+encodeURIComponent(w.to.toISOString())+(team ? '&team=1' : (canPickDay() ? '&who='+encodeURIComponent(who) : '')));
+    const r = await buildDayPdf(data, {team, who, day:w.day, shift:w.shift, from:w.from, to:w.to});
+    LV.busy = false; LV.dayPdf = r;
+    const jobs = new Set((data.people||[]).flatMap(p=>p.jobs.map(j=>j.id))).size;
+    openSheet('<div class="hd"><b>Report ready</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+      +'<div class="lvnote up"><b>'+esc(r.name)+'</b><span>'+(jobs ? jobs+' job'+(jobs===1?'':'s')+(team ? ', '+(data.people||[]).length+' people' : '') : 'No work was recorded in this period. The PDF says so.')+'</span></div>'
+      +'<button class="lvprim" data-a="dayshare" style="background:#25D366!important;color:#06301A!important">Share (WhatsApp, email…)</button><button class="lvsec" data-a="daysave">Save the PDF on this phone</button>');
+  }catch(e){ LV.busy = false; sheetDay(); lvToast(e.message||'Could not make the report', true); }
+}
+function daySave(){ const r = LV.dayPdf; if(!r) return; const a = document.createElement('a'); a.href = URL.createObjectURL(r.blob); a.download = r.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500); lvToast('Saved: '+r.name); }
+async function dayShare(){
+  const r = LV.dayPdf; if(!r) return;
+  try{ const f = new File([r.blob], r.name, {type:'application/pdf'}); if(navigator.canShare && navigator.canShare({files:[f]})){ await navigator.share({files:[f], title:r.name}); return; } }
+  catch(e){ if(e && e.name==='AbortError') return; }
+  daySave(); lvToast('This phone cannot share files directly. The PDF is saved; send it from WhatsApp.', true);
+}
+
+/* ---------- maintenance ---------- */
+function tkCard(t){
+  const k = uiState(t), ho = t.handedOver, gen = t.kind==='general';
+  const time = isFollow(t) ? '<b style="color:#14683A">Running since '+tmf(t.runningAt)+' · down '+dur(downNow(t))+'</b>' : t.status==='waiting' ? '<b style="color:'+(t.kind==='stopped'?'#9A3412':'#7A4B00')+'">'+(t.kind==='stopped' ? 'Down ' : 'Open ')+dur(t.kind==='stopped' ? downNow(t) : minsSince(t.downAt))+'</b>' : '<b style="color:'+(k==='support'?'#7A4B00':gen?'#075985':'#9B1C1C')+'">'+(ho && t.kind==='stopped' ? 'Down ' : (gen || t.kind==='support') ? 'Open ' : 'Waiting ')+dur(t.kind==='stopped' ? downNow(t) : minsSince(t.downAt))+'</b>';
+  return '<div class="lvtk" data-a="openticket" data-v="'+esc(t.id)+'"><div class="hd"><b>'+esc(place(t))+' '+refTag(t)+'</b><span class="lvwrap" style="gap:6px">'+(gen && t.urgent ? '<span class="lvst s-urgent">URGENT</span>' : '')+'<span class="lvst s-'+k+'">'+(k==='waiting'?esc(waitTag(t)):SL[k])+'</span>'+(isFollow(t) ? '<span class="lvst s-follow">Machine running</span>' : '')+'</span></div>'
+    +typeLine(t)
+    +(gen && t.workType ? '<div style="font-size:13.5px;font-weight:700;color:#075985">'+esc(t.workType)+'</div>' : '')
+    +'<div class="pr">'+esc(t.problem)+'</div>'+crewLine(t)+infoHtml(t)+'<div class="mt"><span>Reported '+tmf(t.downAt)+' by '+esc(t.reportedBy)+'</span>'+time+'</div>'+actionBtns(t)+'</div>';
+}
+// status chips: how many machines are down, waiting, need support, or running fine (tap to filter)
+function openChips(){
+  const ids = new Set(lvAllMachines().map(m=>m.id)), c = {down:0, waiting:0, support:0};
+  const M = LV.state.open.filter(t=>t.kind!=='general' && ids.has(t.machine));
+  M.forEach(t=>{ c[chipOf(t)]++; });
+  return {c, running: Math.max(0, ids.size-M.length)};
+}
+const chipOf = t => (t.status==='waiting') ? 'waiting' : (isFollow(t) || t.kind==='support') ? 'support' : 'down';
+function chipsHtml(){
+  const {c, running} = openChips(), f = A.st.openF || '';
+  const ch = (k, ic, n, label)=>'<button class="lvsc'+(f===k?' on':'')+' c-'+k+'" data-a="chipf" data-v="'+k+'" aria-label="'+label+'"><b>'+ic+' '+n+'</b><span>'+label+'</span></button>';
+  return '<div class="lvscs">'+ch('down','🛑',c.down,'Down')+ch('waiting','⏳',c.waiting,'Waiting')+ch('support','🎧',c.support,'Support')+ch('running','✅',running,'Running OK')+'</div>';
+}
+// who is on a job right now (working or paused), nobody listed as free
+function teamNow(){
+  const rows = [];
+  LV.state.open.filter(t=>t.status==='working' || t.status==='waiting').forEach(t=>{
+    const mins = t.status==='working' ? activeNow(t) : (t.activeMin||0), seen = new Set();
+    const add = (name, role)=>{ if(!name || seen.has(name)) return; seen.add(name); rows.push({name, role, t, mins}); };
+    add(t.startedBy, 'LEAD'); (t.crew||[]).filter(x=>!x.left).forEach(x=>add(x.name, x.role==='support' ? 'SUPPORT' : 'LEAD'));
+  });
+  return rows;
+}
+function teamStripHtml(){
+  const R = teamNow(), open = !!A.st.teamOpen, n = new Set(R.map(r=>r.name)).size;
+  return '<div class="lvstrip"><button data-a="teamtog" aria-expanded="'+open+'"><span>👥 Team now: '+(n ? n+' on job'+(n>1?'s':'') : 'nobody on a job')+'</span><span>'+(open?'▾':'▸')+'</span></button>'
+   +(open && R.length ? '<div class="lvstl">'+R.map(r=>'<div><b>'+esc(r.name)+'</b><span class="lvrole '+(r.role==='SUPPORT'?'sup':'lead')+'">'+r.role+'</span><span>'+esc(place(r.t))+' '+refTag(r.t)+'</span><small>'+(r.t.status==='waiting' ? 'paused' : dur(r.mins))+'</small></div>').join('')+'</div>' : '')+'</div>';
+}
+function vOpen(){
+  const O = LV.state.open, nr = LV.state.needReport || [], f = A.st.openF || '', tab = A.st.openTab || 'bd';
+  const byChip = t => !f || f==='running' || chipOf(t)===f;
+  const nw = O.filter(t=>t.status==='open' && t.kind!=='general' && byChip(t)).sort((a,b)=>a.kind===b.kind ? Date.parse(a.downAt)-Date.parse(b.downAt) : (a.kind==='stopped'?-1:1));
+  const wt = O.filter(t=>t.status==='waiting' && t.kind!=='general' && byChip(t)).sort((a,b)=>Date.parse(a.waitSince)-Date.parse(b.waitSince));
+  const tasks = O.filter(t=>t.kind==='general' && t.parentId && (t.status==='open' || t.status==='waiting')).sort((a,b)=>String(a.taskExp||'9').localeCompare(String(b.taskExp||'9')) || Date.parse(a.downAt)-Date.parse(b.downAt));
+  const gw = O.filter(t=>t.status==='open' && t.kind==='general' && !t.parentId).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0) || Date.parse(a.downAt)-Date.parse(b.downAt));
+  const nBd = O.filter(t=>t.kind!=='general' && (t.status==='open' || t.status==='waiting')).length;
+  const seg = (k, l, n)=>'<button class="'+(tab===k?'on':'')+'" data-a="otab" data-v="'+k+'">'+l+' ('+n+')</button>';
+  const filt = f && f!=='running' ? '<button class="lvlink" data-a="chipf" data-v="" style="text-align:left">Showing '+({down:'machines down',waiting:'waiting',support:'support requests'}[f])+'. Tap to show all.</button>' : '';
+  const bdHtml = (nw.length ? '<p class="lvp" style="margin:0">Waiting for someone to start. Longest wait first.</p>'+nw.map(tkCard).join('') : '<div class="lvempty" style="text-align:center;color:#14683A;font-weight:800;font-size:16px">'+(f ? 'Nothing here.' : 'No breakdowns waiting.')+'</div>')
+   +(wt.length ? '<div class="lvsect" style="margin-top:8px">Waiting ('+wt.length+')</div><p class="lvp" style="margin:0">Paused for a spare, vendor, approval or similar. Anyone can resume when it arrives.</p>'+wt.map(tkCard).join('') : '')
+   +(!f && nr.length ? '<div class="lvsect" style="margin-top:8px">Closed without a report ('+nr.length+')</div><p class="lvp" style="margin:0">Last 7 days. Write the report so it reaches the platform.</p>'
+     +nr.map(t=>'<div class="lvtk"><div class="hd"><b>'+esc(t.machine)+'</b><span class="lvst s-stopped">Needs report</span></div><div class="pr">'+esc(t.problem)+'</div><div class="mt"><span>Closed '+dnice(t.closedAt)+' by '+esc(t.closedBy)+(t.closeNote?' · '+esc(t.closeNote):'')+'</span></div><button class="lvprim" data-a="latereport" data-v="'+esc(t.id)+'">Write report</button></div>').join('') : '');
+  const tkHtml = tasks.length ? '<p class="lvp" style="margin:0">Work left after a breakdown was closed. Earliest expected date first.</p>'+tasks.map(tkCard).join('') : '<div class="lvempty" style="text-align:center">No pending tasks.</div>';
+  const wkHtml = gw.length ? '<p class="lvp" style="margin:0">Jobs not on a machine. Urgent first.</p>'+gw.map(tkCard).join('') : '<div class="lvempty" style="text-align:center">No work requests waiting.</div>';
+  return {title:'Open', right:'Updated '+(LV.state.now?tmf(LV.state.now):'')+(LV.offline?' · offline':''),
+   html:'<div class="lvcol">'+pushHtml(true)+chipsHtml()+teamStripHtml()
+   +'<div class="lvseg3">'+seg('bd','Breakdowns',nBd)+seg('tasks','Tasks',tasks.length)+seg('work','Work',gw.length)+'</div>'+filt
+   +(tab==='tasks' ? tkHtml : tab==='work' ? wkHtml : bdHtml)+pushHtml(false)+'</div>'};
+}
+const DAY_BTN = (v, label) => '<button class="lvdaybtn" data-a="dayask" data-v="'+v+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span>'+label+'<small>PDF · share on WhatsApp or save</small></span></button>';
+// cancelled in the last 24 hours (Team tab), greyed out; tap for details (an admin can restore it there)
+function cxHtml(){
+  const C = (LV.state.cancelled||[]).slice().sort((a,b)=>Date.parse(b.closedAt)-Date.parse(a.closedAt)); if(!C.length) return '';
+  const open = !!A.st.cxOpen;
+  return '<button class="lvlink" data-a="cxtog" style="margin-top:8px;text-align:left;width:100%;display:flex;justify-content:space-between;align-items:center;color:#4B5563"><span>Cancelled in the last 24 hours ('+C.length+')</span><span>'+(open ? '▾' : '▸')+'</span></button>'
+    +(open ? '<div class="lvtk" style="gap:6px;opacity:.8">'+C.map(t=>'<div class="lvtm" data-a="openticket" data-v="'+esc(t.id)+'"><div><b>'+esc(place(t))+' '+refTag(t)+'</b><span>'+esc(t.problem)+'</span><small>Cancelled by <b>'+esc(t.closedBy||'-')+'</b> at '+tmf(t.closedAt)+(t.closeNote?' · '+esc(t.closeNote):'')+'</small></div><em style="color:#6B7280">Cancelled</em></div>').join('')+'</div>' : '');
+}
+function vMine(){
+  const me = lvMe(), all = A.st.allMine || !me, l = LV.state.open.filter(t=>t.status==='working' && (all || t.startedBy===me || !!myCrew(t))).sort((a,b)=>Date.parse(a.segStart||a.startedAt)-Date.parse(b.segStart||b.startedAt));
+  const wt = LV.state.open.filter(t=>t.status==='waiting' && me && (t.assignedTo===me || t.startedBy===me || !!myCrew(t)));
+  return {title:'Mine', right:'Updated '+(LV.state.now?tmf(LV.state.now):''),
+   html:'<div class="lvcol">'+DAY_BTN('me', personal() && !canPickDay() ? 'Download my day report' : 'Download day report')+'<p class="lvp" style="margin:0">'+(l.length ? l.length+' in progress'+(all?'':' for '+esc(me))+'. Repair time is running.' : '')+'</p>'
+   +l.map(t=>'<div class="lvtk" data-a="openticket" data-v="'+esc(t.id)+'"><div class="hd"><b>'+esc(place(t))+' '+refTag(t)+'</b>'+stChip('working')+'</div>'+typeLine(t)+(t.kind==='general' && t.workType ? '<div style="font-size:13.5px;font-weight:700;color:#075985">'+esc(t.workType)+'</div>' : '')+(myCrew(t) && !all ? '<div class="lvcrew" style="color:#0369A1"><b>Joined as '+myCrew(t).role+'</b> · your time '+dur(minsSince(myCrew(t).segStart||nowMs()))+'</div>' : '')+'<div class="pr">'+esc(t.problem)+'</div>'+crewLine(t)+(isFollow(t) ? '<div class="lvnote" style="background:#FFF3D1;color:#7A4B00"><b>Machine running since '+tmf(t.runningAt)+'</b><span>Downtime stopped at '+dur(downNow(t))+'. The ticket stays open for the follow-up.</span></div>' : '')+'<div class="box"><span><b style="font-size:inherit">'+esc(t.startedBy)+'</b> '+(t.transfers||t.waitMin||(t.updates||[]).some(u=>u.type==='resume')?'continuing. First started '+tmf(t.startedAt):'started at '+tmf(t.startedAt))+(t.selfStarted?'. Raised by maintenance.':t.responseMin!=null?'. Response '+dur(t.responseMin)+'.':'.')+'</span><b>Repair '+dur(activeNow(t))+(t.waitMin?' · waited '+dur(t.waitMin):'')+'</b></div>'
+     +infoHtml(t)+actionBtns(t)+'</div>').join('')
+   +(l.length ? '' : '<div class="lvempty" style="text-align:center">'+(me ? 'You are not working on anything. ' : '')+'Pick a ticket under Open and tap Start work.</div>')
+   +(wt.length ? '<div class="lvsect" style="margin-top:8px">Waiting: your jobs ('+wt.length+')</div>'+wt.map(tkCard).join('') : '')
+   +(me && !personal() ? '<button class="lvlink" data-a="allmine">'+(A.st.allMine?'Show only mine':'Show everyone\'s work')+'</button>' : '')+closedHtml()+'</div>',
+   after:()=>{ const f = !!LV.wkFresh; LV.wkFresh = false; lvMyWork(f); lvTeamWork(f); }};
+}
+function startBounds(t){ return Math.max(0, Math.floor((nowMs()-Date.parse(t.handoverSince||t.downAt))/60000)); }
+function sheetStart(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const off = Math.min(A.st.startOff, startBounds(t)), at = nowMs()-off*60000, resp = Math.max(0, Math.round((at-Date.parse(t.downAt))/60000)), ready = !!A.st.who && !LV.busy;
+  openSheet('<div class="hd"><b>'+(t.handedOver?'Pick up ':'Start work on ')+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +(personal() ? meSel('lvwho') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Who is working on it?</span>'+nameSel('lvwho', lvTeam(), A.st.who, 'Select who is working'))
+   +'<div class="lvtime" style="border-color:#AEB6C2"><span class="lvlbl" style="font-size:16px;font-weight:800">When did you start?</span><div class="tt"><b>'+tmf(at)+'</b><span>'+(off===0?'Now':off+' min earlier')+'</span></div><div class="lv3"><button data-a="off" data-v="-">5 min earlier</button><button class="mid" data-a="off" data-v="0">Now</button><button data-a="off" data-v="+">5 min later</button></div>'
+   +'<span class="lvhint">'+(t.handedOver ? 'Transferred at '+tmf(t.handoverSince)+'. Your work time is counted from now.' : 'Reported '+tmf(t.downAt)+'. Response time will be '+dur(resp)+'.')+'</span></div>'
+   +'<button class="lvprim" data-a="startgo">'+spin(LV.busy, LV.busy ? 'Starting...' : (t.handedOver ? 'Pick up transferred work' : 'Start work'))+'</button>');
+}
+async function doStart(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(!A.st.who) return need('Select who is working on it');
+  LV.busy = true; sheetStart();
+  try{
+    const off = Math.min(A.st.startOff, startBounds(t));
+    await lvApi('/api/start', {id:t.id, by:A.st.who, ts:new Date(nowMs()-off*60000).toISOString()});
+    lvSet('me', A.st.who); pushWho(); LV.busy = false; closeSheet(); await lvRefresh(); go('mine', true); lvToast('Work started on '+place(t)+' at '+tmf(nowMs()-off*60000));
+  }catch(e){ LV.busy = false; sheetStart(); lvToast(e.message, true); }
+}
+function sheetReason(kind){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t){ closeSheet(); return; }
+  const cancel = kind==='cancel', names = LV.role==='maint' ? lvTeam() : lvReporters(), ready = !!(A.st.reason.trim() && A.st.reasonBy) && !LV.busy;
+  openSheet('<div class="hd"><b>'+(cancel?'Cancel ':'Close without report: ')+esc(place(t))+'</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div>'
+   +'<label class="lvlbl" for="lvwhy" style="font-size:16px;font-weight:800">Reason</label><textarea id="lvwhy" class="lvta" style="border-color:#AEB6C2;font-size:16px" rows="2" data-i="reason" placeholder="'+(cancel?'e.g. Wrong machine':'e.g. Small issue, fixed on the spot')+'">'+esc(A.st.reason)+'</textarea>'
+   +(personal() ? meSel(LV.role==='maint' ? 'lvnm' : 'lvrn') : '<span class="lvlbl" style="font-size:16px;font-weight:800">Your name</span>'+(LV.role==='maint' ? nameSel('lvnm', names, A.st.reasonBy) : '<input id="lvrn" class="lvin2" data-i="rn" type="text" autocomplete="name" autocapitalize="words" value="'+esc(A.st.reasonBy)+'" placeholder="Type your name">'))
+   +(!cancel && t.kind!=='general' ? ptaskBlock() : '')
+   +'<div class="lv3"><button data-a="closesheet">Go back</button><button class="lvprim red" id="lvrgo" data-a="'+(cancel?'cancelgo':'noreportgo')+'" style="flex:1">'+spin(LV.busy, LV.busy ? 'Working...' : (cancel?'Cancel ticket':'Close ticket'))+'</button></div>');
+  A.st.rkind = kind;
+}
+async function doReason(kind){
+  const t = LV.state.open.find(x=>x.id===A.st.tid); if(!t || LV.busy) return;
+  sheetRead(); if(kind!=='cancel') ptaskRead(); if(!A.st.reason.trim()) return need('Write the reason'); if(!A.st.reasonBy) return need(LV.role==='maint' ? 'Select your name' : 'Type your name');
+  if(kind!=='cancel' && ptaskBad()) return need('Write what is pending, or untick Leave a pending task');
+  LV.busy = true; sheetReason(kind);
+  try{
+    if(kind==='cancel') await lvApi('/api/cancel', {id:t.id, by:A.st.reasonBy, reason:A.st.reason.trim()});
+    else{ const rr = await lvApi('/api/close', {id:t.id, by:A.st.reasonBy, kind:'no_report', note:A.st.reason.trim(), task:ptaskOut()}); lvClosedHere(); A.st.ptask = null; if(rr.task) lvToast('Pending task '+rr.task.ref+' saved in the Tasks list.'); }
+    LV.busy = false; if(LV.role==='maint') lvSet('me', A.st.reasonBy); else lvSet('name', A.st.reasonBy); closeSheet(); await lvRefresh(); render();
+    lvToast(kind==='cancel' ? 'Ticket cancelled.'+(t.kind==='general'?'':' '+t.machine+' shows running again.') : t.machine+' closed without a report. It shows running.');
+  }catch(e){ LV.busy = false; sheetReason(kind); lvToast(e.message, true); }
+}
+// downtime up to a moment: the stopped periods only (machine marked running again in between)
+const downAt = (t, at) => t.kind==='stopped' ? (t.downAcc||0) + (t.runningAt ? 0 : Math.max(0, Math.round((at-Date.parse(t.stopAt || t.downAt))/60000))) : Math.max(0, Math.round((at-Date.parse(t.downAt))/60000));
+
+/* ---------- pending task: left when a ticket is closed, done later by anyone from the Tasks list ---------- */
+const PT_WHY = ['Waiting for spare','Waiting for vendor','Needs a planned stop','Other'];
+const expNice = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s||''); return m ? (+m[3])+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2]-1] : ''; };
+function ptaskBlock(again){
+  const d = A.st.ptask || {};
+  return '<div class="lvcard" style="gap:8px"><label style="display:flex;gap:10px;align-items:center;font-size:16px;font-weight:800"><input type="checkbox" id="lvtkOn" style="width:22px;height:22px"'+(d.on?' checked':'')+' onchange="document.getElementById(\'lvtkBox\').style.display=this.checked?\'flex\':\'none\'"> '+(again ? 'Task not finished: leave another pending task' : 'Leave a pending task')+'</label>'
+   +'<span class="lvhint">Use this when the machine is running but something is still to be done, for example when a spare arrives. The ticket closes and the task waits in the Tasks list.</span>'
+   +'<div id="lvtkBox" style="display:'+(d.on?'flex':'none')+';flex-direction:column;gap:8px"><textarea id="lvtkTx" class="lvta" style="font-size:16px" rows="2" placeholder="e.g. Replace coolant pump when the spare arrives">'+esc(d.text||'')+'</textarea>'
+   +'<select id="lvtkWhy" class="lvin2">'+PT_WHY.map(w=>'<option'+(d.why===w?' selected':'')+'>'+w+'</option>').join('')+'</select>'
+   +'<label class="lvhint" for="lvtkExp">Expected date (optional)</label><input id="lvtkExp" type="date" class="lvin2" value="'+esc(d.exp||'')+'"></div></div>';
+}
+function ptaskRead(){
+  const on = $('lvtkOn'); if(!on) return A.st.ptask || null;
+  A.st.ptask = {on:on.checked, text:($('lvtkTx')||{}).value||'', why:($('lvtkWhy')||{}).value||'', exp:($('lvtkExp')||{}).value||''}; return A.st.ptask;
+}
+const ptaskOut = () => { const d = A.st.ptask; return d && d.on && d.text.trim() ? {text:d.text.trim(), why:d.why, exp:d.exp} : null; };
+const ptaskBad = () => { const d = ptaskRead(); return d && d.on && !d.text.trim(); };
+function vClose(){
+  const t = LV.state.open.find(x=>x.id===A.st.tid);
+  if(!t) return {title:'', back:'Mine', fresh:true, html:'<div class="lvempty">This ticket is no longer open.</div>'};
+  const from = Date.parse(t.segStart||t.startedAt||t.downAt), maxOff = Math.max(0, Math.floor((nowMs()-from)/60000)), off = Math.min(A.st.closeOff, maxOff), at = nowMs()-off*60000;
+  // repair = active work time only (paused and transfer waits are not repair)
+  const resp = t.responseMin, rep = (t.activeMin||0) + (t.segStart ? Math.max(0, Math.round((at-Date.parse(t.segStart))/60000)) : 0), down = t.kind==='support' ? 0 : downAt(t, at);
+  A.st.closeTs = at;
+  return {title:'', back:'Mine', right:'Close ticket', fresh:true, html:'<div class="lvcol"><div class="lvcard" style="flex-direction:row;justify-content:space-between;align-items:center"><span class="big">'+esc(t.machine)+'</span>'+stChip('working')+'</div>'
+   +'<div class="lvcard" style="font-size:15px;gap:6px"><span><b>Reported</b> '+tmf(t.downAt)+'</span><span><b>Work started</b> '+tmf(t.startedAt)+' <span style="color:#4B5563">(response '+dur(resp)+')</span></span>'+(t.transfers?'<span><b>Transferred</b> '+t.transfers+' time'+(t.transfers>1?'s':'')+(t.handoverWaitMin?', waited '+dur(t.handoverWaitMin)+' for pick-up':'')+'</span>':'')+(t.waitMin?'<span><b>Waiting</b> '+dur(t.waitMin)+' (not counted as repair)</span>':'')+'</div>'
+   +'<div class="lvtime"><span class="lvlbl" style="font-size:16px;font-weight:800">When did you finish?</span><div class="tt"><b>'+tmf(at)+'</b><span>'+(off===0?'Now':off+' min earlier')+'</span></div><div class="lv3"><button data-a="coff" data-v="-">5 min earlier</button><button class="mid" data-a="coff" data-v="0">Now</button><button data-a="coff" data-v="+">5 min later</button></div><span class="lvhint">Closed the ticket a little late? Set the time the repair really ended.</span></div>'
+   +'<div class="lvstat"><div><span>Response</span><b>'+dur(resp)+'</b></div><div><span>Repair</span><b>'+dur(rep)+'</b></div><div><span>Downtime</span><b>'+dur(down)+'</b></div></div>'
+   +ptaskBlock()
+   +'<span class="lvhint">Next the usual report form opens with the machine, problem, times and downtime already filled in.</span><button class="lvprim" data-a="closego">Continue to report form</button></div>'};
+}
+function vClosed(){
+  const d = A.st.done || {};
+  return {title:'Done', fresh:true, html:'<div class="lvcol"><div style="text-align:center"><div class="lvdone">'+I.checkBig+'</div><h1 class="lvh1" style="margin-top:10px">Ticket closed</h1><p class="lvp">'+esc(d.machine)+' now shows as running on the live board.</p></div><div class="lvstat"><div><span>Response</span><b>'+dur(d.responseMin)+'</b></div><div><span>Repair</span><b>'+dur(d.repairMin)+'</b></div><div><span>Downtime</span><b>'+dur(d.downtimeMin)+'</b></div></div><button class="lvprim" data-a="tab" data-v="open">Back to open breakdowns</button></div>'};
+}
+
+/* ---------- report form hooks ---------- */
+function lvBanner(){
+  let b = $('lvBanner'); if(!b){ b = document.createElement('div'); b.id = 'lvBanner'; b.className = 'lvbanner'; document.querySelector('#formScreen .header').insertAdjacentElement('afterend', b); }
+  const t = LV.ticket;
+  b.style.display = LV.on ? 'block' : 'none';
+  b.innerHTML = '<button class="lv-back" style="background:none;border:none;color:var(--accent);font:inherit;font-weight:700;font-size:15px;padding:6px 0;cursor:pointer" onclick="back()">&larr; Back</button>'
+    + (t && t.status==='closed' ? '<br><b>Report for '+esc(t.machine)+'.</b> The ticket was closed '+dnice(t.closedAt)+' without a report. Saving this sends the report to the platform.' : t ? '<br><b>Closing the ticket for '+esc(t.machine)+'.</b> Reported by '+esc(t.reportedBy)+' at '+tmf(t.downAt)+'. The machine will show running once you generate the report.' : '<br><b>Report only.</b> Use this for a breakdown that was already fixed. No ticket is closed.');
+}
+
+/* ---------- breakdown report PDF: ticket facts block + timeline page (live tickets only) ---------- */
+function pdfFacts(T, d){
+  const P = (d.people||[]).filter(p=>p.by), roleOf = n => { const c = (T.crew||[]).find(x=>x.name===n); return c ? c.role : (n===T.startedBy ? 'primary' : ''); };
+  const done = P.filter(p=>roleOf(p.by)!=='support'), supp = P.filter(p=>roleOf(p.by)==='support'), fmt = p => p.by+' ('+(roleOf(p.by)==='support' ? 'support' : 'primary')+', '+dur(p.mins||0)+')';
+  const L = [];
+  L.push(['PEOPLE', (done.length ? 'Done by '+done.map(fmt).join(', ') : '')+(supp.length ? (done.length?' · ':'')+'Supported by '+supp.map(fmt).join(', ') : '')+((done.length||supp.length)?' · ':'')+'Reported by '+(T.reportedBy||'—')]);
+  const times = ['Reported '+dnice(T.downAt)]; if(T.startedAt) times.push('Started '+dnice(T.startedAt)+(T.responseMin!=null ? ' (response '+dur(T.responseMin)+')' : '')); if(T.runningAt) times.push('Machine running again '+dnice(T.runningAt)); times.push('Closed '+dnice(T.closedAt||new Date().toISOString()));
+  L.push(['TIMES', times.join(' · ')]);
+  const m = ['Hands-on '+dur(T.activeMin||0)]; if(T.waitMin) m.push('Waiting '+dur(T.waitMin)+(T.vendorMin ? ' (vendor '+dur(T.vendorMin)+')' : '')); if(T.followMin!=null) m.push('Follow-up '+dur(T.followMin));
+  L.push(['TIME SPLIT', m.join(' · ')]);
+  L.push(['TYPE', T.parentId ? 'Pending task of '+(T.parentRef||'')+(T.taskDownMin!=null ? ' · machine stopped '+(T.taskDownMin ? dur(T.taskDownMin) : 'not at all') : '') : T.kind==='support' ? 'Needs support (machine kept running) · Downtime: none' : 'Machine stopped']);
+  const V = (d.tasks||[]).map(x=>x.ref+' '+x.problem+' — '+(x.status==='closed' ? 'done '+dnice(x.closedAt)+(x.closedBy ? ' by '+x.closedBy : '')+(x.taskDownMin ? ', machine stopped '+dur(x.taskDownMin) : '') : 'pending'+(x.taskExp ? ', expected '+expNice(x.taskExp) : '')));
+  if(V.length) L.push(['PENDING TASK', V.join(' | ')]);
+  return L;
+}
+function pdfHist(e){ const L = (TL[e.type]||['',e.type])[1], by = e.by ? ' - '+e.by : ''; let x = e.text||'';
+  if(e.type==='pause') x = (e.spare||'')+(e.text?': '+e.text:''); else if(e.type==='transfer') x = (e.spare?'to '+e.spare+': ':'')+(e.text||''); else if(e.type==='update') x = (e.text||'')+(e.spare?' · spare: '+e.spare:'');
+  return dnice(e.at)+'  '+L+by+(x ? ': '+x : ''); }
+const PDF_EV = ['start','pickup','pause','resume','transfer','join','leave','running','stopped','update','task'];
+window.pdfExtra = function(doc, y, pageW){
+  const X = window.LVX; if(!X) return y; const F = pdfFacts(X.t, X.d), ev = (X.d.events||[]).filter(e=>PDF_EV.includes(e.type));
+  const lines = F.map(([k,v])=>doc.splitTextToSize(v, pageW-30-26)); const need = lines.reduce((a,l)=>a+Math.max(1,l.length)*3.9+1.2,0) + 14 + (ev.length && ev.length<=6 ? ev.length*3.8+6 : 0);
+  if(y + need > 272){ X.deferred = true; return y; }
+  doc.setDrawColor(220); doc.line(15, y, pageW-15, y); y += 6; doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(90); doc.text('TICKET DETAILS ('+(X.t.ref||'')+')', 15, y); y += 5;
+  F.forEach(([k,v],i)=>{ doc.setFontSize(7.5); doc.setFont(undefined,'bold'); doc.setTextColor(110); doc.text(k, 15, y); doc.setFontSize(8.5); doc.setFont(undefined,'normal'); doc.setTextColor(0); doc.text(lines[i], 41, y); y += Math.max(1,lines[i].length)*3.9+1.2; });
+  if(ev.length && ev.length<=6){ y += 1; doc.setFontSize(7.5); doc.setFont(undefined,'bold'); doc.setTextColor(110); doc.text('TIMELINE', 15, y); doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(0); ev.forEach(e=>{ doc.text(doc.splitTextToSize(pdfHist(e), pageW-30-26)[0], 41, y); y += 3.8; }); X.timelineShown = true; }
+  return y+3;
+};
+window.pdfTimeline = function(doc){
+  const X = window.LVX; if(!X) return; const ev = (X.d.events||[]).filter(e=>PDF_EV.includes(e.type));
+  if(X.timelineShown || (!ev.length && !X.deferred)) return;
+  doc.addPage(); let y = 18, pageW = 210; doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(0); doc.text('Ticket '+(X.t.ref||'')+' — '+(X.t.machine||''), 15, y); y += 8;
+  if(X.deferred){ pdfFacts(X.t, X.d).forEach(([k,v])=>{ const l = doc.splitTextToSize(v, pageW-30-26); doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(110); doc.text(k, 15, y); doc.setFontSize(9.5); doc.setFont(undefined,'normal'); doc.setTextColor(0); doc.text(l, 41, y); y += l.length*4.4+1.5; }); y += 4; }
+  doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(90); doc.text('WORK TIMELINE', 15, y); y += 6; doc.setFontSize(9.5); doc.setFont(undefined,'normal'); doc.setTextColor(0);
+  ev.forEach(e=>{ const l = doc.splitTextToSize(pdfHist(e), pageW-30); if(y + l.length*4.6 > 285){ doc.addPage(); y = 18; } doc.text(l, 15, y); y += l.length*4.6+1; });
+};
+// fetch the ticket's history while the report form is being filled, so the PDF can carry it
+function lvLoadPdfFacts(t){
+  window.LVX = null; if(!t || !t.id) return;
+  lvApi('/api/ticket?id='+encodeURIComponent(t.id)).then(d=>{ if(LV.ticket && LV.ticket.id===t.id) window.LVX = {id:t.id, t:Object.assign({}, d.ticket||t, {closedAt:(d.ticket||t).closedAt||null}), d}; }).catch(()=>{});
+}
+function lvToForm(t, closeMs){
+  lvClearForm(); LV.ticket = t || null; lvLoadPdfFacts(t);
+  A.view = 'form'; A.depth++; history.pushState({view:'form', d:A.depth}, ''); lvShow(); closeSheet();
+  if(!t) return;
+  const set = (i,v)=>{ const e = $(i); e.value = v; e.dispatchEvent(new Event('change')); };
+  const rep = t.status==='closed' ? (t.activeMin||0) : (t.activeMin||0) + (t.segStart ? Math.max(0, Math.round((closeMs-Date.parse(t.segStart))/60000)) : 0), down = t.kind==='support' ? 0 : downAt(t, closeMs);
+  set('f_machineId', t.machine); $('f_problem').value = t.problem;
+  const d = new Date(t.downAt), p = n=>String(n).padStart(2,'0'); set('f_date', d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()));
+  $('f_downMin').value = t.kind==='support' ? 0 : Math.max(1, down); $('f_respMin').value = t.responseMin==null ? '' : t.responseMin; $('f_repairMin').value = rep; $('f_kind').value = t.kind;
+  const rm = String(t.reportedBy).match(/\(([^)]+)\)\s*$/), rl = rm ? rm[1] : t.reportedBy; if(REF.observedBy.includes(rl)) set('f_observedBy', rl);
+  const C = t.crew||[];
+  lvChipsInit(); lvChipSet('done', [t.startedBy].concat(C.filter(c=>c.role==='primary').map(c=>c.name))); lvChipSet('supp', C.filter(c=>c.role==='support').map(c=>c.name));
+  lvBanner(); window.scrollTo(0,0);
+}
+// ---- report form: Done by / Supported by as chips (any number), a name can be in only one of the two
+const CH = {done:[], supp:[]};
+function lvChipRender(){
+  [['done','lvChDone','Add done by'], ['supp','lvChSupp','Add supported by']].forEach(([k, id, label])=>{
+    const el = document.getElementById(id); if(!el) return;
+    const o = k==='done' ? 'supp' : 'done', left = (REF.team||[]).filter(n=>!CH[k].includes(n)), other = k==='done' ? 'Supported by' : 'Done by';
+    el.innerHTML = CH[k].map(n=>'<span class="lvch">'+esc(n)+'<button type="button" data-chx="'+k+'" data-n="'+esc(n)+'" aria-label="Remove '+esc(n)+'">×</button></span>').join('')
+      +'<label class="lvchadd">➕ '+label+'<select data-chadd="'+k+'"><option value="">'+label+'</option>'+left.map(n=>'<option value="'+esc(n)+'">'+esc(n)+(CH[o].includes(n) ? ' (moves from '+other+')' : '')+'</option>').join('')+'</select></label>';
+  });
+}
+window.lvChipVal = k => CH[k].join(', ');
+window.lvChipSet = (k, list) => { CH[k] = [...new Set((list||[]).filter(Boolean))]; if(k==='done') CH.supp = CH.supp.filter(n=>!CH.done.includes(n)); else CH.done = CH.done.filter(n=>!CH.supp.includes(n)); lvChipRender(); };
+window.lvChipsInit = function(){
+  const box = document.getElementById('lvMan'); if(!box) return;
+  if(!box.dataset.on){ box.dataset.on = '1';
+    box.addEventListener('click', e=>{ const b = e.target.closest('[data-chx]'); if(!b) return; e.preventDefault(); const k = b.dataset.chx; CH[k] = CH[k].filter(n=>n!==b.dataset.n); lvChipRender(); });
+    box.addEventListener('change', e=>{ const s = e.target.closest('[data-chadd]'); if(!s || !s.value) return; const k = s.dataset.chadd, o = k==='done' ? 'supp' : 'done', n = s.value;
+      if(!CH[k].includes(n)) CH[k].push(n); CH[o] = CH[o].filter(x=>x!==n); lvChipRender(); });
+  }
+  lvChipRender();
+};
+function lvClearForm(){ A.st.noNav = true; try{ resetForm(); }finally{ A.st.noNav = false; } }
+window.lvReportSaved = function(){
+  const t = LV.ticket; A.view = 'success'; lvShow(); $('successScreen').style.display = 'block';
+  if(!t) return;
+  const dn = CH.done, by = (dn.includes(t.startedBy) ? t.startedBy : dn[0]) || $('f_observedBy').value || lvMe() || 'Maintenance', file = 'Breakdown_'+(($('f_machineId').value||'').replace(/[^a-zA-Z0-9-]/g,''))+'_'+$('f_date').value+'.pdf', ts = new Date(Math.min(A.st.closeTs||nowMs(), nowMs())).toISOString();
+  const rep = window.LV_LAST || null; LV.ticket = null;
+  if(t.status==='closed') lvLateReport(t.id, by, rep); else lvCloseTicket(t.id, by, file, ts, rep);
+};
+async function lvCloseTicket(id, by, file, ts, report){
+  let m = $('lvDone'); if(!m){ m = document.createElement('div'); m.id = 'lvDone'; m.style.cssText = 'margin:10px 0;font-size:14px;line-height:1.45'; $('successScreen').insertBefore(m, $('successScreen').querySelector('button')); }
+  try{
+    const task = ptaskOut(), r = await lvApi('/api/close', {id, by, kind:'report', file, ts, report, task}), t = r.ticket || {}; lvClosedHere(); A.st.ptask = null;
+    m.style.color = 'var(--green,#14683A)'; m.innerHTML = '<b>Ticket closed. The machine now shows running.</b><br>Response '+dur(t.responseMin)+' · Repair '+dur(t.repairMin)+' · Downtime '+dur(t.downtimeMin)+(r.task ? '<br>📌 Pending task '+esc(r.task.ref)+' saved in the Tasks list.' : '');
+  }catch(e){
+    if(e.net){ lvSetPend(lvPend().concat([{id, by, file, ts, report, task:ptaskOut()}])); m.style.color = 'var(--red,#C62828)'; m.textContent = 'No internet. The report PDF is saved. The ticket will close by itself, with your chosen time, when this phone is online again.'; }
+    else { m.style.color = 'var(--red,#C62828)'; m.textContent = 'The report is saved but the ticket could not be closed: '+e.message; }
+  }
+}
+async function lvLateReport(id, by, report){
+  let m = $('lvDone'); if(!m){ m = document.createElement('div'); m.id = 'lvDone'; m.style.cssText = 'margin:10px 0;font-size:14px;line-height:1.45'; $('successScreen').insertBefore(m, $('successScreen').querySelector('button')); }
+  try{ await lvApi('/api/report', {id, by, report}); m.style.color = 'var(--green,#14683A)'; m.innerHTML = '<b>Report sent. It will show in the platform for approval.</b>'; lvRefresh(); }
+  catch(e){ if(e.net){ lvSetPend(lvPend().concat([{id, by, report, late:true}])); m.style.color = 'var(--red,#C62828)'; m.textContent = 'No internet. The PDF is saved. The report will be sent when this phone is online again.'; } else { m.style.color = 'var(--red,#C62828)'; m.textContent = 'The PDF is saved but the report could not be sent: '+e.message; } }
+}
+function lvPend(){ try{ return JSON.parse(lvGet('pend','[]')); }catch(e){ return []; } }
+function lvSetPend(a){ lvSet('pend', JSON.stringify(a)); }
+async function lvFlush(){
+  const p = lvPend(); if(!p.length) return; const left = [];
+  for(const x of p){ try{ if(x.late) await lvApi('/api/report', {id:x.id, by:x.by, report:x.report}); else{ await lvApi('/api/close', {id:x.id, by:x.by, kind:'report', file:x.file, ts:x.ts, report:x.report, task:x.task||null}); lvClosedHere(); } }catch(e){ if(e.net) left.push(x); } }
+  lvSetPend(left); if(left.length < p.length) lvRefresh();
+}
+
+/* ---------- refresh ---------- */
+async function lvRefresh(){
+
+  try{ const s = await lvApi('/api/state'); LV.state = s;
+ LV.skew = Date.parse(s.now) - Date.now(); LV.offline = false; try{ localStorage.setItem('bd_state_'+CLIENT.id, JSON.stringify(s)); }catch(e){}
+    if(s.config && s.config.fp && s.config.fp !== LV.cfgFp) lvConfigCheck(); }
+  catch(e){
+    if(e.auth) return;
+    LV.offline = true; try{ const c = JSON.parse(localStorage.getItem('bd_state_'+CLIENT.id)||'null'); if(c) LV.state = c; }catch(x){}
+  }
+  lvSoftRender();
+}
+// Company settings sent by the platform (machines, team, lists, logo...). Kept on the phone for offline use.
+async function lvConfigCheck(){
+  try{ const r = await lvApi('/api/config'+(LV.cfgFp ? '?fp='+encodeURIComponent(LV.cfgFp) : ''));
+    if(r.same || !r.config){ if(r.fp) LV.cfgFp = r.fp; return; }
+    lvApplyConfig(r.config, r.fp, true); }catch(e){}
+}
+function lvApplyConfig(cfg, fp, save){
+  const c = Object.assign({}, cfg, {id:AUTH.cid, api:AUTH.api});
+  if(save) lsSet('bd_cfg_'+AUTH.cid, JSON.stringify({fp, cfg}));
+  LV.cfgFp = fp; window.__baseApply(c); lvBuildCats();
+  if(LV.on && !$('lvSheetB').classList.contains('on')) render();
+}
+function lvSoftRender(){
+  if(!LV.on || !['open','mine','live','sent','cat','my','team'].includes(A.view)) return;
+  const ae = document.activeElement; if(ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA')) { $('lvTabs').innerHTML = tabsHtml(); return; }
+  if($('lvSheetB').classList.contains('on')) { $('lvTabs').innerHTML = tabsHtml(); return; }
+  render();
+}
+
+/* ---------- actions ---------- */
+function pickMachine(id){
+  A.st.machine = id; const t = tmap()[id];
+  if(t) sheetTicket(t); else go('type');
+}
+function act(a, v, el){
+  const S = A.st;
+  switch(a){
+    case 'signoutask': closeSheet(); sheetSignout(); break;
+    case 'signoutgo': doSignout(); break;
+    case 'meask': sheetMe(); break;
+    case 'chipf': if(v==='running'){ S.filter = 'running'; go('live'); } else { S.openF = (S.openF===v ? '' : v); S.openTab = 'bd'; render(); } break;
+    case 'teamtog': S.teamOpen = !S.teamOpen; render(); break;
+    case 'otab': S.openTab = v; render(); break;
+    case 'moremenu': openSheet('<div class="hd"><b>More</b><button class="lvx" data-a="closesheet" aria-label="Close">'+I.x+'</button></div><button class="lvprim" data-a="reportonly" style="background:#fff;color:#12161C;border:2px solid #12161C">Write a report only (breakdown already fixed)</button><button class="lvprim" data-a="dayask" data-v="me" style="background:#fff;color:#12161C;border:2px solid #12161C">'+(personal() && !canPickDay() ? 'Download my day report' : 'Download day report')+'</button>'); break;
+    case 'updnow': lvApplyUpdate(); break;
+    case 'pwask': closeSheet(); sheetPw(); break;
+    case 'pwgo': doPw(); break;
+    case 'tab': if(v==='cat'){ S.machine = ''; S.sq = ''; } if(v==='mine') lvMyWork(false); if(v==='team') lvTeamWork(false); go(v, true); break;
+    case 'back': back(); break;
+    case 'cat': S.cat = v; S.q = ''; go('machine'); break;
+    case 'pickm': pickMachine(v); break;
+    case 'kind': S.kind = v; if(!S.by) S.by = lvGet('by',''); S.startNow = false; go('problem'); break;
+    case 'general': S.kind = 'general'; if(!S.by) S.by = lvGet('by',''); S.urgent = false; go('general'); break;
+    case 'urg': S.urgent = v==='1'; document.querySelectorAll('[data-a="urg"]').forEach(x=>{ x.className = x.dataset.v==='1' ? (S.urgent?'urg':'') : (S.urgent?'':'mid'); }); break;
+    case 'gensend': doGeneral(); break;
+    case 'pauseask': S.tid = v; S.reason = ''; S.wreason = ''; S.eta = ''; S.to = ''; S.reasonBy = lvMe(); closeSheet(); sheetPause(); break;
+    case 'pausego': doPause(); break;
+    case 'resumeask': S.tid = v; S.reason = ''; S.who = lvMe(); S.confirmFor = ''; closeSheet(); sheetResume(); break;
+    case 'resumego': doResume(); break;
+    case 'doneask': S.tid = v; S.reason = ''; S.ptask = null; S.tkDown = ''; S.reasonBy = lvMe(); closeSheet(); sheetDone(); break;
+    case 'donego': doDone(); break;
+    case 'chip': { const e = $('d_problem'); e.value = (e.value.trim() ? e.value.trim()+', ' : '')+v.toLowerCase(); lvSendState(); break; }
+    case 'by': S.by = v; if(el) el.parentNode.querySelectorAll('.lvchip').forEach(b=>b.classList.toggle('on', b===el)); lvSendState(); break;
+    case 'mic': guOpen('d_problem', A.view==='general' ? 'What is needed' : 'What is wrong', 'problem'); break;
+    case 'send': doSend(); break;
+    case 'another': S.machine = ''; S.sq = ''; go('cat', true); break;
+    case 'filter': S.filter = v; render(); break;
+    case 'tile': sheetMachine(v); break;
+    case 'rep': S.machine = v==='stopped'||v==='support' ? el.dataset.id : S.machine; S.kind = v; closeSheet(); A.st.by = lvGet('by',''); S.startNow = false; go('problem'); break;
+    case 'wa': waShare(v); break;
+    case 'closesheet': closeSheet(); break;
+    case 'cancelask': S.tid = v; S.reason = ''; S.reasonBy = LV.role==='maint' || personal() ? lvMe() : lvGet('name',''); closeSheet(); sheetReason('cancel'); break;
+    case 'noreport': S.tid = v; S.reason = ''; S.reasonBy = lvMe(); sheetReason('noreport'); break;
+    case 'rby': S.reasonBy = v; sheetReason(S.rkind); break;
+    case 'cancelgo': doReason('cancel'); break;
+    case 'noreportgo': doReason('noreport'); break;
+    case 'startask': S.tid = v; S.who = lvMe(); S.startOff = 0; sheetStart(); break;
+    case 'who': S.who = v; sheetStart(); break;
+    case 'off': { sheetRead(); const t = LV.state.open.find(x=>x.id===S.tid); S.startOff = v==='0' ? 0 : v==='-' ? Math.min(startBounds(t), S.startOff+5) : Math.max(0, S.startOff-5); sheetStart(); break; }
+    case 'startgo': doStart(); break;
+    case 'toclose': S.tid = v; S.closeOff = 0; S.ptask = null; closeSheet(); go('close'); break;
+    case 'coff': { ptaskRead(); const t = LV.state.open.find(x=>x.id===S.tid), mx = Math.max(0, Math.floor((nowMs()-Date.parse(t.segStart||t.startedAt||t.downAt))/60000)); S.closeOff = v==='0' ? 0 : v==='-' ? Math.min(mx, S.closeOff+5) : Math.max(0, S.closeOff-5); render(); break; }
+    case 'closego': { const t = LV.state.open.find(x=>x.id===S.tid); if(ptaskBad()) return need('Write what is pending, or untick Leave a pending task'); if(t) lvToForm(t, S.closeTs); break; }
+    case 'reportonly': closeSheet(); lvToForm(null, 0); break;
+    case 'allmine': S.allMine = !S.allMine; render(); break;
+    case 'wkmore': S.wkMore = !S.wkMore; render(); break;
+    case 'twkmore': S.twkMore = !S.twkMore; render(); break;
+    case 'editask': closeSheet(); sheetEdit(v); break;
+    case 'restoreask': closeSheet(); sheetRestore(v); break;
+    case 'joinask': S.tid = v; S.jrole = 'primary'; S.jname = ''; closeSheet(); sheetJoin(); break;
+    case 'jrole': { const el = $('lvjn'); if(el) S.jname = el.value; S.jrole = v; sheetJoin(); break; }
+    case 'joingo': doJoin(); break;
+    case 'leaveask': S.tid = v; S.reason = ''; S.reasonBy = personal() ? lvMe() : ''; closeSheet(); sheetLeave(); break;
+    case 'leavego': doLeave(); break;
+    case 'runask': S.tid = v; S.reason = ''; S.runAt = ''; S.reasonBy = personal() ? lvMe() : (S.reasonBy||''); closeSheet(); sheetRun(false); break;
+    case 'stopask': S.tid = v; S.reason = ''; S.runAt = ''; S.reasonBy = personal() ? lvMe() : (S.reasonBy||''); closeSheet(); sheetRun(true); break;
+    case 'rungo': doRun(false); break;
+    case 'stopgo': doRun(true); break;
+    case 'restorego': doRestore(); break;
+    case 'editgo': doEdit(); break;
+    case 'editback': sheetDetail(v); break;
+    case 'wkref': lvMyWork(true); render(); break;
+    case 'cxtog': A.st.cxOpen = !A.st.cxOpen; render(); break;
+    case 'twkref': lvTeamWork(true); render(); break;
+    case 'tf': S.tf = v==='*' ? '' : v; S.twkMore = false; render(); break;
+    case 'monopen': S.monOpen = !S.monOpen; render(); break;
+    case 'dayask': S.dr = {kind:v, days:0, shift:v==='team' ? '' : String((CLIENT.teamShifts||{})[lvMe()]||''), who:lvMe()}; closeSheet(); sheetDay(); break;
+    case 'daygo': doDay(); break;
+    case 'dayshare': dayShare(); break;
+    case 'daysave': daySave(); break;
+    case 'pushon': pushOn(); break;
+    case 'pushoff': pushOff(); break;
+    case 'pushtest': pushTest(); break;
+    case 'handask': S.tid = v; S.reason = ''; S.to = ''; S.reasonBy = lvMe(); closeSheet(); sheetHand(); break;
+    case 'to': S.to = v; sheetHand(); break;
+    case 'hby': S.reasonBy = v; sheetHand(); break;
+    case 'handgo': doHand(); break;
+    case 'updask': S.tid = v; S.reason = ''; S.spare = ''; S.eta = ''; S.reasonBy = lvMe(); closeSheet(); sheetUpd(); break;
+    case 'uby': S.reasonBy = v; sheetUpd(); break;
+    case 'updgo': doUpd(); break;
+    case 'latereport': { const t = (LV.state.needReport||[]).find(x=>x.id===v); if(t) lvToForm(t, Date.parse(t.closedAt)); break; }
+  }
+}
+function lvInit(){
+  if(LV.inited || !AUTH.user) return; LV.inited = true;
+  LV.on = true; lvBuildCats(); lvShell();
+  const r = ME().role; LV.role = r==='report' ? 'floor' : r==='board' ? 'board' : 'maint';
+  document.title = (LV.role==='maint' ? 'Maintenance Desk' : LV.role==='board' ? 'Live status' : 'Report a Breakdown') + (CLIENT.company ? ' — '+CLIENT.company : '');
+  const sp = new URLSearchParams(location.search);
+  const app = $('lvApp');
+  // one listener for everything (the sheet sits inside the app)
+  app.addEventListener('click', e=>{ if(e.target.id==='lvSheetB'){ closeSheet(); return; } const b = e.target.closest('[data-a]'); if(!b) return;
+    if(b.dataset.a==='openticket'){ if(e.target.closest('button, a, select, input, textarea')) return; sheetDetail(b.dataset.v); return; }
+    act(b.dataset.a, b.dataset.v, b); });
+  const edIds = ['lved_start','lved_close','lved_act','lved_wait'];
+  app.addEventListener('change', e=>{ if(edIds.includes(e.target.id)) edLink(e.target.id); });
+  app.addEventListener('input', e=>{
+    if(edIds.includes(e.target.id)){ edLink(e.target.id); return; }
+    if(e.target.id==='tf' || e.target.id==='wf'){ A.st[e.target.id] = e.target.value; A.st.twkMore = false; A.st.wkMore = false; render(); return; }
+    if(e.target.id==='lvdw'){ dayRead(); sheetDay(); return; }
+    const i = e.target.dataset && e.target.dataset.i;
+    if(i==='q'){ A.st.q = e.target.value; const c = LV.cats.find(x=>x.k===A.st.cat); if(c) $('lvrows').innerHTML = rowsFor(c); }
+    else if(i==='lq'){ A.st.liveQ = e.target.value; $('lvtiles').innerHTML = tilesHtml(); }
+    else if(i==='dr'){ const D = A.st.dr; if(e.target.id==='lvds') D.shiftTouched = true; dayRead(); const w = dayWindow(D.days||0, D.shift), el = $('lvdwin'); if(el) el.textContent = 'Covers '+dShort(w.from)+' to '+dShort(w.to)+'.'; }
+    else if(i==='sq'){ A.st.sq = e.target.value; $('lvsres').innerHTML = searchRows(); $('lvcatbody').style.display = A.st.sq.trim() ? 'none' : 'flex'; }
+    else if(i==='prob' || i==='nm'){ lvSendState(); }
+    else if(i==='rn'){ A.st.reasonBy = e.target.value.trim(); }
+    else if(i==='spare'){ A.st.spare = e.target.value; }
+    else if(i==='eta'){ A.st.eta = e.target.value; }
+    else if(i==='tkDown'){ A.st.tkDown = e.target.value; }
+    else if(i==='reason'){ A.st.reason = e.target.value; }
+  });
+  const root = rootOf(); A.view = root; A.depth = 0; history.replaceState({view:root, d:0}, ''); lvShow(); render();
+  const m = sp.get('m');
+  if(m && LV.role==='floor' && REF.machines.some(x=>x.id===m)){ A.st.machine = m; if(!tmap()[m]) go('type', true); }
+  lvRefresh().then(()=>{ if(m && LV.role==='floor' && tmap()[m]) sheetMachine(m); });
+  if(LV.role==='maint' || LV.role==='floor') pushCheck();
+  lvFlush(); clearInterval(LV.timer); LV.timer = setInterval(()=>{ if(!document.hidden && LV.on) lvRefresh(); }, 30000);
+  window.addEventListener('online', lvFlush); document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && LV.on) lvRefresh(); if(!document.hidden) lvCheckUpdate(); });
+  setTimeout(lvCheckUpdate, 4000);
+}
+/* ---------- sign-in ---------- */
+// company code and server address: from the link (?c=, ?api=), from the site folder the platform made, or from the last visit
+function lvIds(){
+  const sp = new URLSearchParams(location.search), set = v => v && !/^__/.test(v) ? String(v).trim() : '';
+  let cid = set(sp.get('c')) || set(window.CO_ID) || ls('bd_cid'), api = set(sp.get('api')) || set(window.API_BASE) || ls('bd_api');
+  if(cid && !/^[a-z0-9_-]{1,60}$/i.test(cid)) cid = ''; if(api && !/^https?:\/\/[^\s"'<>]+$/i.test(api)) api = '';
+  AUTH.cid = cid; AUTH.api = api.replace(/\/+$/,''); if(cid) lsSet('bd_cid', cid); if(api) lsSet('bd_api', AUTH.api);
+}
+function lvScreen(html){ lvUnhide(); const a = $('lvApp'); a.innerHTML = '<div class="lvbody lvlogin">'+html+'</div>'; a.classList.add('on'); $('formScreen').style.display = 'none'; $('footerBar').style.display = 'none'; }
+function lvMsg(t){ lvScreen('<div class="lvcol" style="max-width:440px;margin:40px auto 0"><h1 class="lvh1">Maintenance tool</h1><p class="lvp">'+esc(t)+'</p></div>'); }
+async function lvLogin(msg){
+  lvScreen('<form class="lvcol" id="lvLogin" style="max-width:440px;margin:0 auto" autocomplete="on" novalidate>'
+   +'<div class="lvbrand"><img id="lvLogo" alt="" style="display:none"><div><b id="lvCo">'+esc(CLIENT.company||'')+'</b><span>'+(window.PAGE_ROLE==='maint' ? 'Maintenance desk' : window.PAGE_ROLE==='floor' ? 'Report a breakdown' : 'Maintenance tool')+'</span></div></div>'
+   +'<h1 class="lvh1" style="font-size:24px">Sign in</h1>'
+   +(msg ? '<div class="lvnote wt" id="lvLoginMsg"><b>'+esc(msg)+'</b></div>' : '<div id="lvLoginMsg"></div>')
+   +'<label class="lvlbl" for="lvU" style="font-size:16px;font-weight:800">Username</label><input id="lvU" name="username" class="lvin2" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" value="'+esc(ls('bd_lastuser_'+AUTH.cid))+'">'
+   +'<label class="lvlbl" for="lvP" style="font-size:16px;font-weight:800">Password</label><input id="lvP" name="password" class="lvin2" type="password" autocomplete="current-password">'
+   +'<label class="lvcheck"><input type="checkbox" id="lvShowP"><span>Show password</span></label>'
+   +'<button class="lvprim" id="lvGo" type="submit">Sign in</button>'
+   +'<span class="lvhint">Your administrator gives you a username and password. You stay signed in on this phone for 30 days after your last use.</span></form>');
+  const f = $('lvLogin'), u = $('lvU'), pw = $('lvP');
+  $('lvShowP').addEventListener('change', e=>{ pw.type = e.target.checked ? 'text' : 'password'; });
+  (u.value ? pw : u).focus();
+  f.addEventListener('submit', async e=>{
+    e.preventDefault(); const b = $('lvGo'), m = $('lvLoginMsg');
+    const un = u.value.trim(), p = pw.value;
+    if(!un || !p){ m.className = 'lvnote wt'; m.innerHTML = '<b>Enter your username and password.</b>'; return; }
+    b.innerHTML = spin(true, 'Signing in...'); b.disabled = true;
+    try{
+      const r = await lvApi('/api/login', {username:un, password:p, device:navigator.userAgent.slice(0,120)});
+      AUTH.tok = r.token; AUTH.user = r.user; lsSet('bd_tok_'+AUTH.cid, r.token); lsSet('bd_user_'+AUTH.cid, JSON.stringify(r.user)); lsSet('bd_lastuser_'+AUTH.cid, r.user.username);
+      lvStart();
+    }catch(x){ b.innerHTML = '<span>Sign in</span>'; b.disabled = false; m.className = 'lvnote wt'; m.innerHTML = '<b>'+esc(x.net ? 'No internet connection. Try again when you have signal.' : x.message)+'</b>'; pw.select(); }
+  });
+  try{ const r = await fetch(AUTH.api+'/api/brand', {headers:{'X-Client':AUTH.cid}}), j = await r.json();
+    if(j.company && $('lvCo')) $('lvCo').textContent = j.company; if(j.logo && $('lvLogo')){ $('lvLogo').src = j.logo; $('lvLogo').style.display = ''; }
+    if(r.status===401) lvMsg('This link has a company code the server does not know. Ask your administrator for the right link.'); }catch(e){}
+}
+function lvSignedOut(msg){ if(!AUTH.tok) return; lvForget(); LV.on = false; clearInterval(LV.timer); closeSheet(); lvLogin(msg); }
+// loads the company settings (machines, team, lists, logo) for the signed-in person, or the copy kept on this phone when offline
+async function lvStart(){
+  let cached = null; try{ cached = JSON.parse(ls('bd_cfg_'+AUTH.cid)||'null'); }catch(e){}
+  const go = (cfg, fp) => { LV.cfgFp = fp; applyClient(Object.assign({}, cfg, {id:AUTH.cid, api:AUTH.api})); };
+  try{
+    const me = await lvApi('/api/me'); if(me.user){ AUTH.user = me.user; lsSet('bd_user_'+AUTH.cid, JSON.stringify(me.user)); }
+    const r = await lvApi('/api/config');
+    if(!r.config){ lvMsg('The company settings are not on the server yet. Open the platform on the office computer once, with the server connected.'); return; }
+    lsSet('bd_cfg_'+AUTH.cid, JSON.stringify({fp:r.fp, cfg:r.config})); go(r.config, r.fp);
+  }catch(e){
+    if(e.auth) return;
+    if(cached && cached.cfg && AUTH.user){ go(cached.cfg, cached.fp); LV.offline = true; return; }
+    lvMsg(e.net ? 'No internet connection. Connect once to sign in and load the machines, then it also works with weak signal.' : e.message);
+  }
+}
+async function lvBoot(){
+  lvIds();
+  try{ Object.keys(localStorage).forEach(k=>{ if(/^bd_key_/.test(k)) localStorage.removeItem(k); }); }catch(e){} // old access keys are no longer used on phones
+  if(!AUTH.cid || !AUTH.api){ lvMsg('This link is incomplete. Open the link your administrator sent you.'); return; }
+  AUTH.tok = ls('bd_tok_'+AUTH.cid); try{ AUTH.user = JSON.parse(ls('bd_user_'+AUTH.cid)||'null'); }catch(e){ AUTH.user = null; }
+  if(!AUTH.tok || !AUTH.user){ AUTH.tok = ''; lvLogin(); return; }
+  lvStart();
+}
+(function(){
+  const a = applyClient; window.__baseApply = a;
+  applyClient = function(cfg){ a(cfg); lvInit(); };
+  const r = resetForm; resetForm = function(){ r(); LV.ticket = null; if(LV.on && !A.st.noNav){ A.view = rootOf(); go(rootOf(), true); } };
+  window.LV = LV;
+})();
+window.back = back;
+lvBoot();
+</script>
