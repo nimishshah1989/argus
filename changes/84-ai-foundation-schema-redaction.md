@@ -1,0 +1,1 @@
+- AI foundation, part 1: a table to keep AI suggestions, and a redactor that strips names, usernames, phone numbers and the plant name before any text could go to an AI provider (no user-visible change yet).

@@ -36,6 +36,7 @@ const ARTIFACTS: Record<string, string> = {
   '0007_sla_policy_timer.sql': `SELECT to_regclass('public.sla_policy') IS NOT NULL
     AND to_regclass('public.sla_timer') IS NOT NULL
     AND to_regprocedure('tenants_with_sla_policies()') IS NOT NULL AS installed`,
+  '0008_ai_suggestion.sql': "SELECT to_regclass('public.ai_suggestion') IS NOT NULL AS installed",
 };
 
 interface TestDatabase {
@@ -169,9 +170,7 @@ it('refuses to adopt an unledgered 0007 schema even when it is complete', async 
       rolreplication: false,
     });
 
-    expect(await ledger(pool)).toEqual(
-      FILES.filter((file) => file !== '0007_sla_policy_timer.sql'),
-    );
+    expect(await ledger(pool)).toEqual(FILES.filter((file) => file < '0007_sla_policy_timer.sql'));
     await expectInstalled(pool, '0007_sla_policy_timer.sql', true);
   });
 }, 120_000);
