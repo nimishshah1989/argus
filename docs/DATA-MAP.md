@@ -236,7 +236,61 @@ For the schema reviewer; each is one truth per fact. Where this section and `doc
 | A WhatsApp message (M3)                     | Unique per customer and the provider's message id, so a repeat delivery is applied once                                             | —                                                        |
 | A mobile number's format                    | International format enforced on `person.phone` before M3                                                                           | —                                                        |
 
+## 8. Proposed changes for AI and old history (13 November) — waiting for Nimish's approval
+
+Nothing in this section is in force until Nimish approves it. It follows his 13 November decisions in the BRIEF. No new kind of record is added; three existing ones hold a little more.
+
+**What is stored that was not before**
+
+| Thing                                                                | What is added                                                                                                                                                                                                                                                            | Personal data                                                                                                                 | Kept                                                 | Who can change it                                                                  |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Setting (`setting`), owner: plant                                    | **AI consent:** whether the plant has agreed in writing to AI processing outside India, the date signed, a link to the signed paper, which wording was signed, and who recorded it. **AI monthly cap:** the most the plant's AI may cost in a month                      | Yes: who recorded the consent                                                                                                 | While a customer; every change is in the audit trail | Consent: admin only. Cap: maintenance head and admin, like the other spending caps |
+| Suggestion (`ai_suggestion`), owner: ai                              | For each AI call: how much text went in and came out, what it cost, how many tries it took, and how it ended. For a diagnosis: the likely causes, the first check, the expected fix, the past tickets each cause rests on, and whether there is a safety warning and why | No names: people in the text are replaced by placeholders before the AI sees it, and the stored answer keeps the placeholders | 2 years (already decided)                            | Nobody edits it. A person's yes or no is recorded beside it                        |
+| Import batch and rows (`import_batch`, `import_row`), owner: imports | A load of cleaned old history is recorded like a load of Bhavin's tickets, so it can be checked and undone the same way. The stored rows hold codes such as P014 in place of names                                                                                       | No names                                                                                                                      | As today: row content cleared after 1 year           | Only we can load or undo, under support access                                     |
+| File (`file`), owner: files                                          | The plant's signed consent paper                                                                                                                                                                                                                                         | Yes: a signature                                                                                                              | While a customer                                     | Admin                                                                              |
+
+**What leaves India, and what does not**
+
+- Sent to Anthropic: the words of a ticket and of past tickets like it (problem, what was done, root cause, spare used), the machine's code, make and model, dates and durations.
+- Never sent: names, short names, usernames and phone numbers of the plant's people; the plant's name; photos, signatures, scanned pages and voice.
+- The honest gap: a nickname typed inside a note cannot be found by a word list. It may be sent. The consent wording has to say this.
+- Photos are not looked at by the AI for now.
+- No AI call is made for a plant until its consent is recorded and its monthly cap is set. If the plant withdraws, calls stop at once.
+- How long Anthropic keeps what it receives, and that it is not used to train their models, must be confirmed from the terms we sign. No real call is made before that (ADR 0007).
+
+**Cleaning Cosmos's old history**
+
+- Before anyone or anything outside our database reads Bhavin's files, names and phone numbers in them are swapped for codes on our own machine. The list that turns codes back into names never leaves that machine and is deleted after the load.
+- A Claude session tidies the coded copies into one file. Our own code checks that file and refuses it if anything is wrong. The check lists row numbers and counts, never names.
+- The file is loaded on the staging site first, for Nimish to look at. It is loaded on the real site only under time-limited support access that Cosmos's admin approves, after a full backup. One command undoes the whole load.
+- Old history becomes closed tickets, each counted once. A technician's name is linked only where it exactly matches a person the plant already has.
+
+**Who can see or change what (additions to section 4)**
+
+| What                                      | Operator | Technician           | Supervisor | Maint. head | Plant head | Admin | Board |
+| ----------------------------------------- | -------- | -------------------- | ---------- | ----------- | ---------- | ----- | ----- |
+| See the diagnosis on a ticket             | No       | On tickets they work | Yes        | Yes         | No         | Yes   | No    |
+| Record or withdraw the plant's AI consent | No       | No                   | No         | No          | No         | Yes   | No    |
+| See what AI has cost this month           | No       | No                   | No         | Yes         | Yes        | Yes   | No    |
+
+**Section 5 gains one line under "Location":** ticket text sent to the AI is the one thing that leaves India by our choice; it goes without names or numbers, and only for plants that have agreed in writing.
+
 ## Questions for Nimish
+
+**Open, 13 November (AI and old history).** The defaults in brackets are what is built unless you say otherwise.
+
+| #   | Question                                                                                                                                                                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15  | Do you approve section 8 above?                                                                                                                                                                                |
+| 16  | What wording does Cosmos sign for AI processing outside India, and who at Cosmos signs it? It must cover the old-history cleaning and say that a nickname inside a note may be sent.                           |
+| 17  | Who records the consent in Uptimo? (Default: the plant's admin, attaching the signed paper.)                                                                                                                   |
+| 18  | What is the most a plant's AI may cost in a month? (No default: AI stays off until a figure is set. It is held in US dollars because that is how Anthropic bills.)                                             |
+| 19  | Who signs Anthropic's terms for us, and when? No real AI call can be made before then.                                                                                                                         |
+| 20  | What exactly is Bhavin's "fuller history": which files, and is "the last 560" days, tickets or machines?                                                                                                       |
+| 21  | In old history, should a technician's name show where it matches a current person? (Default: yes in the done-by fields, since you chose to rank named technicians. Names inside old notes show as "[person]".) |
+| 22  | Who sees the diagnosis on a ticket? (Default: the technician working it, supervisors, the maintenance head and the admin.)                                                                                     |
+| 23  | Is it acceptable that the AI does not look at photos for now? (Default: yes.)                                                                                                                                  |
+| 24  | If a plant withdraws consent, do its past AI suggestions stay for the usual 2 years or go at once? (Default: stay; they hold no names.)                                                                        |
 
 **Decided 13 November 2026.** Nimish accepted every default proposed.
 
@@ -259,7 +313,7 @@ For the schema reviewer; each is one truth per fact. Where this section and `doc
 | 2   | Mobile numbers      | Collected from M1 for Cosmos staff, on the person record. They are not in any data we hold (live users, live config, platform export, Excel export were checked), so the Cosmos admin enters them in People admin or sends a list. Personal data: shown to admin and supervisors only; erased on leaving (§5)                                                                                                                                                              |
 | 3   | Real Cosmos data    | **Real data everywhere a person tests:** staging holds Cosmos's real machines, people and tickets; the import rehearsal, the analytics answer key and every manual check use it; no synthetic people on staging. **Proposed for automated tests (Nimish to confirm):** committed fixtures and CI use real Cosmos records with names and phone numbers replaced, because the repo forbids real personal data and GitHub's CI runners run outside India (data residency, Q8) |
 | 4   | Ranking technicians | Yes: analytics rank named technicians. The ranking method (which measures, normalised for machine type and workload, over what period, who may see it) is a product definition to agree before the M4 ticket that builds it                                                                                                                                                                                                                                                |
-| 8   | AI and India        | **India only.** No AI call leaves India. Which AI capabilities are possible under that rule is to be aligned with Nimish before M6 is sized                                                                                                                                                                                                                                                                                                                                |
+| 8   | AI and India        | ~~India only.~~ Changed by Nimish the same day (BRIEF): **AI may run outside India on Anthropic's Claude**, with names and phone numbers removed before sending and each plant's written consent first. What this changes in the data map is in section 8 and waits for his approval                                                                                                                                                                                       |
 | 11  | Gujarati wording    | Gujarati is the focus; Cosmos's wording becomes Uptimo's default Gujarati catalogue for every Gujarat plant, each plant may override its own labels                                                                                                                                                                                                                                                                                                                        |
 
 Not for now: the escalation questions (who is on the ladder, delays, repeats, who may acknowledge, what the notification says) wait until two weeks after cutover, as the BRIEF says; and which of Bhavin's analytics screens Cosmos really uses, including the PM, AMC and compliance registers, is settled in the triage with Bhavin before M4a.
