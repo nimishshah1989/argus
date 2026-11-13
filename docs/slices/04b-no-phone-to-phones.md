@@ -33,7 +33,7 @@ people, still does (DATA-MAP §5 "Only what is needed", DPDP Act 2023). Nothing 
 | `apps/server/src/modules/plant/routes.ts` | Import `canSettingsPeople, type ActorContext` from `@uptimo/domain`; add `withoutPhone`; in `handleConfig` strip `people[].phone` for a non-manager, then fingerprint and reply |
 | `packages/shared/src/config.ts`           | `personSchema.phone`: `nstr` → `nstr.optional()` (still `.strict()`)                                                                                                            |
 | `apps/server/test/settings.test.ts`       | One new test (§6, T1) in `describe('settings and config')`                                                                                                                      |
-| `changes/82-no-phone-to-phones.md`   | New changelog fragment, one line (§7)                                                                                                                                           |
+| `changes/82-no-phone-to-phones.md`        | New changelog fragment, one line (§7)                                                                                                                                           |
 
 No migration, no new dependency, no web source change expected (see §4.3).
 
