@@ -15,6 +15,9 @@ function migrationFiles(): string[] {
 /** Test-only credential for the `app_api` login role (set via ALTER ROLE after migration). */
 export const APP_API_PASSWORD = 'app-api-test-password';
 
+/** Test-only credential for `uptimo_router`, a login that is a member of `app_router` and `app_user`. */
+export const ROUTER_PASSWORD = 'router-test-password';
+
 /**
  * A pool whose backend dies with 57P01 ("terminating connection due to administrator command", a
  * Testcontainer stopping) emits 'error'; with no listener vitest reports "Unhandled Errors" after every
@@ -38,6 +41,9 @@ export interface TestDb {
   admin: Pool;
   /** App pool: connects as `app_api` so RLS is actually exercised. Use for buildApp. */
   app: Pool;
+  /** Router pool: a non-superuser member of app_router and app_user (ROUTER_DATABASE_URL, import undo). */
+  router: Pool;
+  routerUrl: string;
   stop: () => Promise<void>;
 }
 
@@ -55,20 +61,30 @@ export async function startTestDb(): Promise<TestDb> {
   }
   await installJobSchema(admin);
   await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
+  await admin.query(`CREATE ROLE uptimo_router LOGIN PASSWORD '${ROUTER_PASSWORD}'`);
+  await admin.query('GRANT app_router, app_user TO uptimo_router');
+  const target = `${container.getHost()}:${container.getPort()}/${container.getDatabase()}`;
   const app = new Pool({
-    connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`,
+    connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${target}`,
     max: 5,
   });
+  const routerUrl = `postgresql://uptimo_router:${ROUTER_PASSWORD}@${target}`;
+  const router = new Pool({ connectionString: routerUrl, max: 5 });
+  const beginRouter = tolerateShutdown(router);
   const beginApp = tolerateShutdown(app);
   return {
     container,
     admin,
     app,
+    router,
+    routerUrl,
     stop: async () => {
       beginAdmin();
       beginApp();
+      beginRouter();
       await admin.end();
       await app.end();
+      await router.end();
       await container.stop();
     },
   };

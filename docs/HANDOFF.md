@@ -40,10 +40,10 @@ orchestrator the number. Agents cannot force-push or delete tests: he deletes te
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 14:41 UTC on branch `claude/orchestrator-ledger`.
-- 3338b8b docs(plan): ledger — 12 merged
-- 35337c2 merge main (#171 merged)
-- 5c13f2c 12: Page patterns: CrudPage, wizard, board, dashboard and one chart layer (#171)
+Last session ended 2026-11-13 15:08 UTC on branch `claude/t07-history-cannot-be-lost`.
+- a9eb35a Merge main into 07
+- c45d417 07: PR body pass counts after round 2
+- de72810 07: docs for review round 2 (signatures, exit codes, router credential, window, follow-ups)
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->

@@ -2,7 +2,7 @@
 
 /** Tables each module owns; only that module's repo.ts (or repo/ folder) may name them in SQL. */
 export const OWNERS: Readonly<Record<string, readonly string[]>> = {
-  ops: ['audit_log'],
+  ops: ['audit_log', 'audit_purge'],
   identity: [
     'tenant',
     'person',
@@ -12,6 +12,10 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'auth_lookup',
     'tenant_by_slug',
     'tenant_info',
+    'erase_person',
+    'erase_json_values',
+    'offboard_tenant',
+    'platform_access_guard',
   ],
   plant: [
     'segment',
@@ -31,7 +35,6 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
   tickets: [
     'ticket',
     'ticket_event',
-    'ticket_tag',
     'crew_member',
     'work_segment',
     'breakdown_report',
@@ -39,7 +42,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'command_idempotency',
     'ref_counter',
   ],
-  imports: ['import_batch', 'import_row'],
+  imports: ['import_batch', 'import_row', 'import_undo'],
   ai: ['ai_suggestion'],
 };
 
@@ -54,7 +57,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   accountability: ['tickets', 'identity', 'plant', 'notifications', 'ops'],
   reports: ['tickets', 'identity', 'plant', 'files'],
   imports: ['tickets', 'identity', 'plant', 'files', 'ops'],
-  ai: ['identity', 'plant'],
+  ai: ['tickets', 'identity', 'plant'],
 };
 
 /** A call outside CALLS that stays until its ticket removes it; `file` is repo-relative. */

@@ -119,7 +119,12 @@ describe('bhavin import', () => {
   });
 
   it('undo removes the imported tickets', async () => {
-    const { deleted } = await undoImport(db.app, syntheticIds.tenant, firstBatchId);
+    const { deleted } = await undoImport(
+      db.router,
+      syntheticIds.tenant,
+      firstBatchId,
+      'agent-test',
+    );
     expect(deleted).toBe(1);
     const remains = await db.admin.query(
       "SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1 AND ref = 'BD-0100'",

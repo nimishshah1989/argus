@@ -154,7 +154,7 @@ describe('staging deploy', () => {
     });
     expect(res.status).toBe(0);
     expect(readFileSync(join(dir, 'app.env'), 'utf8')).toBe(
-      'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo\n',
+      'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo\nAPP_ENV=staging\n',
     );
     expect(readFileSync(join(dir, 'migrate.env'), 'utf8')).toBe(
       'MIGRATION_DATABASE_URL=postgresql://fake-master:fake-pw-2@db.test/uptimo\nAPP_API_PASSWORD=fake-pw-3\n',
@@ -163,6 +163,28 @@ describe('staging deploy', () => {
       expect(statSync(join(dir, f)).mode & 0o777).toBe(0o600);
     expect(calls().join('\n')).toContain('--secret-id uptimo/staging');
     expect(res.stdout + res.stderr).not.toMatch(/fake-/);
+  });
+
+  it('names the environment from the secret when the secret does not, production unless staging', () => {
+    const secret = JSON.stringify({
+      DATABASE_URL: 'postgresql://fake-app:fake-pw-1@db.test/uptimo',
+      MIGRATION_DATABASE_URL: 'postgresql://fake-master:fake-pw-2@db.test/uptimo',
+      APP_API_PASSWORD: 'fake-pw-3',
+    });
+    stub('aws', `echo '${secret}'`);
+    for (const [secretId, expected] of [
+      ['uptimo/staging', 'APP_ENV=staging'],
+      ['uptimo/production', 'APP_ENV=production'],
+      ['something-else', 'APP_ENV=production'],
+    ]) {
+      writeFileSync(join(dir, '.env'), `AWS_REGION=ap-south-1\nSECRET_ID=${secretId}\n`);
+      const res = spawnSync('bash', [script('refresh-env.sh')], {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, UPTIMO_DIR: dir },
+      });
+      expect(res.status).toBe(0);
+      expect(readFileSync(join(dir, 'app.env'), 'utf8').trimEnd().split('\n')).toContain(expected);
+    }
   });
 
   it('copies the optional AI settings from the secret store', () => {

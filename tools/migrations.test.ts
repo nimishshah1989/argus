@@ -78,3 +78,117 @@ describe('migration guard', () => {
     expect(scanMigrations(plant({ '0008_planted.sql': drop }))).toHaveLength(1);
   });
 });
+
+describe('migration guard scanner', () => {
+  const rules = (sql: string) => guardedStatements(sql);
+
+  it('catches statements hidden by block comments', () => {
+    expect(rules("UPDATE ticket/**/SET severity = 'S4';")).toEqual([{ rule: 'UPDATE', line: 1 }]);
+    expect(rules('DELETE/**/FROM ticket;')).toEqual([{ rule: 'DELETE FROM', line: 1 }]);
+    expect(rules('/* one\ntwo */ DROP TABLE x;')).toEqual([{ rule: 'DROP', line: 2 }]);
+  });
+
+  it('does not let -- inside a string hide the rest of the line', () => {
+    expect(rules("SELECT '--'; DROP TABLE ticket;")).toEqual([{ rule: 'DROP', line: 1 }]);
+    expect(rules("-- don't\nDROP TABLE x;")).toEqual([{ rule: 'DROP', line: 2 }]);
+  });
+
+  it('catches UPDATE ONLY t * SET', () => {
+    expect(rules("UPDATE ONLY ticket * SET severity = 'S4';")).toEqual([
+      { rule: 'UPDATE', line: 1 },
+    ]);
+  });
+
+  it('leaves comments and strings that only mention a keyword alone', () => {
+    expect(rules('/* drop later */')).toEqual([]);
+    expect(rules("SELECT 'a -- b';")).toEqual([]);
+  });
+
+  it('does not let a dollar quote or an escaped quote hide a statement', () => {
+    const drop = [{ rule: 'DROP', line: 2 }];
+    expect(rules('SELECT $$--$$;\nDROP TABLE ticket;')).toEqual(drop);
+    expect(rules('SELECT $x$/*$x$;\nDROP TABLE ticket;')).toEqual(drop);
+    expect(rules("SELECT E'\\' -- ';\nDROP TABLE ticket;")).toEqual(drop);
+    expect(rules("SELECT E'it''s \\\\';\nDROP TABLE ticket;")).toEqual(drop);
+    expect(rules('SELECT $x$/*$x$;\nDROP TABLE ticket;\nDELETE FROM audit_log;')).toEqual([
+      { rule: 'DROP', line: 2 },
+      { rule: 'DELETE FROM', line: 3 },
+    ]);
+    // A body is scanned as it is: a comment in it can cost a false positive, never a hidden statement.
+    expect(rules('DO $$ BEGIN\n-- drop later\nEND $$;')).toEqual(drop);
+  });
+
+  it('reads quoted identifiers', () => {
+    expect(rules('UPDATE "my table" SET a = 1;')).toEqual([{ rule: 'UPDATE', line: 1 }]);
+    expect(rules('UPDATE public."my ""t""" AS x SET a = 1;')).toEqual([
+      { rule: 'UPDATE', line: 1 },
+    ]);
+    expect(rules('ALTER TABLE t ALTER COLUMN "my col" TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+    expect(rules('ALTER TABLE t ALTER COLUMN "my col" SET DATA TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+  });
+
+  it('counts dynamic SQL, and only dynamic SQL, as guarded', () => {
+    expect(rules("DO $$ BEGIN\n  EXECUTE 'DR' || 'OP TABLE ticket';\nEND $$;")).toEqual([
+      { rule: 'EXECUTE', line: 2 },
+    ]);
+    expect(rules("DO $$ BEGIN EXECUTE format('ALTER TABLE %I', 'x'); END $$;")).toEqual([
+      { rule: 'EXECUTE', line: 1 },
+    ]);
+    const benign = [
+      'CREATE TRIGGER x BEFORE INSERT ON t FOR EACH ROW EXECUTE FUNCTION f();',
+      'CREATE TRIGGER x BEFORE INSERT ON t FOR EACH ROW EXECUTE PROCEDURE f();',
+      'GRANT EXECUTE ON FUNCTION f() TO app_user;',
+      "SELECT has_function_privilege('app_api', 'f()', 'EXECUTE');",
+    ];
+    for (const sql of benign) expect(rules(sql), sql).toEqual([]);
+  });
+
+  it('does not let non-ASCII names, quoted aliases or unicode-escaped names hide a statement', () => {
+    const drop = [{ rule: 'DROP', line: 1 }];
+    const update = [{ rule: 'UPDATE', line: 1 }];
+    // A non-ASCII letter before $$ is part of a name, so the $$ does not open a quote.
+    expect(rules('SELECT 1 AS é$$, $$ -- $$; DROP TABLE ticket;')).toEqual(drop);
+    expect(rules("DO $$ BEGIN EXECUTE'DR'||'OP TABLE ticket'; END $$;")).toEqual([
+      { rule: 'EXECUTE', line: 1 },
+    ]);
+    expect(rules('UPDATE ticket "x" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE ticket AS "my x" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE ticket é SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE é SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE U&"\\0074icket" SET a = 1;')).toEqual(update);
+    expect(rules('UPDATE u&"\\0074icket" AS x SET a = 1;')).toEqual(update);
+    expect(rules('ALTER TABLE t ALTER COLUMN U&"c\\0301" TYPE text;')).toEqual([
+      { rule: 'ALTER TYPE', line: 1 },
+    ]);
+  });
+
+  it('reports a dollar quote it cannot pair instead of trusting the rest of the file', () => {
+    expect(rules('SELECT 1;\nSELECT $x$ never closed;\nSELECT 2;')).toEqual([
+      { rule: 'UNPAIRED $', line: 2 },
+    ]);
+    expect(rules('SELECT $x$ closed $x$;')).toEqual([]);
+  });
+
+  it('flags the planted bypass files', () => {
+    const planted = [
+      'SELECT $$--$$; DROP TABLE ticket;',
+      'SELECT $x$/*$x$;\nDROP TABLE ticket;\nDELETE FROM audit_log;',
+      "SELECT E'\\' -- '; DROP TABLE ticket;",
+      'UPDATE "my table" SET a = 1;',
+      "DO $$ BEGIN EXECUTE 'DR' || 'OP TABLE ticket'; END $$;",
+      'SELECT 1 AS é$$, $$ -- $$; DROP TABLE ticket;',
+      "DO $$ BEGIN EXECUTE'DR'||'OP TABLE ticket'; END $$;",
+      'UPDATE ticket "x" SET a = 1;',
+      'UPDATE ticket é SET a = 1;',
+      'UPDATE U&"\\0074icket" SET a = 1;',
+      'SELECT $x$ never closed;',
+    ];
+    for (const sql of planted)
+      expect(scanMigrations(plant({ '0008_planted.sql': sql })).length, sql).toBeGreaterThan(0);
+    expect(scanMigrations(plant({ '0008_planted.sql': APPROVED + planted[0] }))).toEqual([]);
+  });
+});
