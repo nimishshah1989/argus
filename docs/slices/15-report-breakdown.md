@@ -1,6 +1,8 @@
 # 15 — Report a breakdown (floor)
 
-Issue [#90](https://github.com/nimishshah1989/argus/issues/90) · M1 · Branch `claude/t15-report-breakdown`. PR body: `Closes #90`.
+Issue [#90](https://github.com/nimishshah1989/argus/issues/90) · M1 · Branch `claude/t15-report-breakdown`. PR body: `Refs #90` (the API-only part; ticket 15 stays open).
+
+> **Status:** only decision 7 (the raise race) is built. Everything else is a draft for Nimish's frontend-design review; no screen is built until he approves it.
 
 ## Goal
 
