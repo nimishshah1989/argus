@@ -27,6 +27,10 @@ export interface ImportedTicketRow {
   location: string | null;
   workType: string | null;
   urgent: boolean;
+  /** The login that recorded it, when a person did (a past breakdown); an import leaves it empty. */
+  raisedLoginId?: string | null;
+  /** Minutes entered by hand, in the figures' own override keys; they mark those figures as set by hand. */
+  overrides?: Record<string, number>;
   problem: string;
   reportedAt: When;
   reportedByPersonId: string | null;
@@ -129,11 +133,12 @@ function whoAndWhat(tenantId: string, row: ImportedTicketRow, severity: string |
     reported_at: row.reportedAt,
     reported_by_person_id: row.reportedByPersonId,
     reported_by_role: row.reportedByRole,
+    raised_login_id: row.raisedLoginId ?? null,
     raised_channel: row.channel,
     severity,
     criticality_snapshot: row.machine?.criticality ?? null,
     last_event_seq: row.events.length - 1,
-    overrides: '{}',
+    overrides: JSON.stringify(row.overrides ?? {}),
   };
 }
 
