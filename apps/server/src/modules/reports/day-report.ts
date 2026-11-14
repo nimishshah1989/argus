@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 import { activePerson, tenantInfo } from '../identity/index.js';
 import { shiftsOf } from '../plant/index.js';
-import { dayJobRows, pendingRows } from '../tickets/index.js';
+import { dayJobRows, pendingRows, type StateAtEnd } from '../tickets/index.js';
 import { withMachines } from './machines.js';
 
 export interface DayReportMachine {
@@ -16,8 +16,15 @@ export interface DayReportJob {
   kind: string;
   status: string;
   problem: string;
-  /** Hands-on minutes for this person inside the window only. */
+  /** Hands-on minutes for this person inside the window only: primary plus support. */
   minutes: number;
+  primaryMinutes: number;
+  supportMinutes: number;
+  /** The roles this person worked the ticket in during the window. */
+  roles: Array<'primary' | 'support'>;
+  closedByPersonId: string | null;
+  /** Closed, cancelled or still pending when the window ended: the same judgement as the pending list. */
+  stateAtEnd: StateAtEnd;
   machine: DayReportMachine;
 }
 
@@ -120,6 +127,11 @@ export async function queryJobs(
     status: row.status as string,
     problem: row.problem as string,
     minutes: row.minutes as number,
+    primaryMinutes: row.primary_minutes as number,
+    supportMinutes: row.support_minutes as number,
+    roles: row.roles as DayReportJob['roles'],
+    closedByPersonId: (row.closed_by_person_id as string | null) ?? null,
+    stateAtEnd: row.state_at_end as StateAtEnd,
     machine: machineOf(row as Record<string, unknown>),
   }));
 }

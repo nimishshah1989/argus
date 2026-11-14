@@ -37,20 +37,25 @@ function summaryTable(data: TeamDayReportData): string {
     (row) => `<tr>
       <td>${esc(row.person.name)}</td>
       <td class="num">${row.jobs.length}</td>
-      <td class="num">${row.jobs.filter((job) => job.status === 'closed').length}</td>
+      <td class="num">${row.closedCount}</td>
+      <td class="num">${esc(minutesLabel(row.primaryMinutes))}</td>
+      <td class="num">${esc(minutesLabel(row.supportMinutes))}</td>
       <td class="num">${esc(minutesLabel(row.totalMinutes))}</td>
     </tr>`,
   );
+  const primary = data.people.reduce((total, row) => total + row.primaryMinutes, 0);
+  const support = data.people.reduce((total, row) => total + row.supportMinutes, 0);
   return `<table>
-    <thead><tr><th>Person</th><th class="num">Jobs</th><th class="num">Closed</th><th class="num">Work</th></tr></thead>
+    <thead><tr><th>Person</th><th class="num">Jobs</th><th class="num">Closed</th><th class="num">Primary</th><th class="num">Support</th><th class="num">Work</th></tr></thead>
     <tbody>${rows.join('')}
-      <tr><td><strong>Team total</strong></td><td class="num" colspan="2"></td><td class="num"><strong>${esc(minutesLabel(data.totalMinutes))}</strong></td></tr>
+      <tr><td><strong>Team total</strong></td><td class="num"><strong>${data.jobCount}</strong></td><td class="num"><strong>${data.closedCount}</strong></td><td class="num"><strong>${esc(minutesLabel(primary))}</strong></td><td class="num"><strong>${esc(minutesLabel(support))}</strong></td><td class="num"><strong>${esc(minutesLabel(data.totalMinutes))}</strong></td></tr>
     </tbody>
   </table>`;
 }
 
 function personSection(row: TeamMemberDay): string {
-  return `<section><h2>${esc(row.person.name)} · ${esc(minutesLabel(row.totalMinutes))}</h2>${jobsTable(row.jobs)}</section>`;
+  const split = `primary ${minutesLabel(row.primaryMinutes)}, support ${minutesLabel(row.supportMinutes)}`;
+  return `<section><h2>${esc(row.person.name)} · ${esc(minutesLabel(row.totalMinutes))} (${esc(split)})</h2>${jobsTable(row.jobs)}</section>`;
 }
 
 /** The server-rendered team day sheet: who worked what in the window, each person's own minutes, and the pending queue. */

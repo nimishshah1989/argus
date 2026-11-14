@@ -28,15 +28,8 @@ const pdf = (query: string, who: string) =>
 
 beforeAll(async () => {
   plant = await startRealPlant();
-  // The real day with the most different people at work in shift 1 (08:00–18:30, Asia/Kolkata).
-  date = (
-    await plant.db.admin.query(
-      `SELECT to_char(started_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') AS date
-         FROM work_segment
-        WHERE (started_at AT TIME ZONE 'Asia/Kolkata')::time BETWEEN '08:00' AND '18:00'
-        GROUP BY 1 ORDER BY count(DISTINCT person_id) DESC, 1 LIMIT 1`,
-    )
-  ).rows[0].date;
+  // A real day (Asia/Kolkata) when production people did hands-on work alongside the maintenance team.
+  date = '2026-11-04';
   for (const role of [
     'plant_head',
     'supervisor',
@@ -54,38 +47,81 @@ afterAll(async () => {
   await plant.stop();
 });
 
+const IST_DAY = (day: string): [string, string] => [
+  new Date(`${day}T00:00:00+05:30`).toISOString(),
+  new Date(new Date(`${day}T00:00:00+05:30`).getTime() + 86_400_000).toISOString(),
+];
+
 describe('the team day report data', () => {
-  it('lists each maintenance person who worked in the window, with the minutes the person’s own report shows', async () => {
-    const data = await team('1');
-    expect(data.people.length).toBeGreaterThan(1);
-    const maintenance = (
+  it('lists everyone who worked in the window, whatever their team, and adds up to each person’s own report', async () => {
+    const data = await team(null);
+    const [start, end] = IST_DAY(date);
+    const worked = (
       await plant.db.admin.query(
-        "SELECT id FROM person WHERE tenant_id = $1 AND active AND team = 'maintenance'",
-        [plant.tenantId],
+        `SELECT person_id AS id FROM work_segment WHERE started_at < $2 AND COALESCE(ended_at, $2) > $1
+         UNION SELECT acting_person_id FROM ticket_event
+          WHERE acting_person_id IS NOT NULL AND at >= $1 AND at < $2`,
+        [start, end],
       )
     ).rows.map((row) => row.id as string);
-    const worked: string[] = [];
-    for (const id of maintenance) {
-      const own = await person(id, '1');
-      if (own !== 'no-shift' && own !== null && own.jobs.length > 0) worked.push(id);
-    }
     expect(data.people.map((row) => row.person.id).sort()).toEqual(worked.sort());
+    const teams = (
+      await plant.db.admin.query('SELECT id, team FROM person WHERE id = ANY($1::uuid[])', [worked])
+    ).rows;
+    const production = teams.filter((row) => row.team === 'production').map((row) => row.id);
+    expect(production.length, 'production people worked this day').toBeGreaterThan(0);
+    let ownTotal = 0;
     for (const row of data.people) {
-      const own = await person(row.person.id, '1');
-      expect(row.totalMinutes).toBe((own as { totalMinutes: number }).totalMinutes);
-      expect(row.jobs).toEqual((own as { jobs: unknown[] }).jobs);
+      const own = (await person(row.person.id, null)) as { totalMinutes: number; jobs: unknown[] };
+      expect(row.totalMinutes).toBe(own.totalMinutes);
+      expect(row.jobs).toEqual(own.jobs);
+      ownTotal += own.totalMinutes;
     }
-    expect(data.totalMinutes).toBe(data.people.reduce((sum, row) => sum + row.totalMinutes, 0));
-    expect(data.jobCount).toBeLessThanOrEqual(
-      data.people.reduce((sum, row) => sum + row.jobs.length, 0),
-    );
-    expect(data.jobCount).toBeGreaterThan(0);
+    expect(data.totalMinutes).toBe(ownTotal);
+    const productionMinutes = data.people
+      .filter((row) => production.includes(row.person.id))
+      .reduce((sum, row) => sum + row.totalMinutes, 0);
+    expect(productionMinutes).toBeGreaterThan(0);
+  });
+
+  it('splits each person’s minutes into primary and support that add up to the same total', async () => {
+    const data = await team(null);
+    for (const row of data.people) {
+      expect(row.primaryMinutes + row.supportMinutes).toBe(row.totalMinutes);
+      for (const job of row.jobs) {
+        expect(job.primaryMinutes + job.supportMinutes).toBe(job.minutes);
+        if (job.minutes > 0) expect(job.roles.length).toBeGreaterThan(0);
+      }
+    }
+    expect(data.people.some((row) => row.supportMinutes > 0)).toBe(true);
+  });
+
+  it('never calls a ticket closed and pending at once, and counts a person’s closes as the ones they closed', async () => {
+    for (const shift of ['1', null]) {
+      const data = await team(shift);
+      const pending = new Set(data.pending.map((row) => row.ticketId));
+      const closed = data.people.flatMap((row) =>
+        row.jobs.filter((job) => job.stateAtEnd === 'closed').map((job) => job.ticketId),
+      );
+      expect(closed.filter((id) => pending.has(id))).toEqual([]);
+      expect(data.closedCount).toBe(new Set(closed).size);
+      const distinct = new Set(data.people.flatMap((row) => row.jobs.map((job) => job.ticketId)));
+      expect(data.jobCount).toBe(distinct.size);
+      for (const row of data.people) {
+        const byThem = (
+          await plant.db.admin.query(
+            `SELECT count(*)::int AS n FROM ticket
+              WHERE id = ANY($1::uuid[]) AND closed_by_person_id = $2 AND closed_at < $3`,
+            [row.jobs.map((job) => job.ticketId), row.person.id, data.window.end],
+          )
+        ).rows[0].n;
+        expect(row.closedCount).toBe(byThem);
+      }
+    }
   });
 
   it('covers the whole calendar day when no shift is chosen, and says no to a shift the plant lacks', async () => {
-    const whole = await team(null);
-    const shift = await team('1');
-    expect(whole.totalMinutes).toBeGreaterThanOrEqual(shift.totalMinutes);
+    expect((await team(null)).totalMinutes).toBeGreaterThanOrEqual((await team('1')).totalMinutes);
     expect(await teamRaw('day')).toBe('no-shift');
   });
 
@@ -96,7 +132,7 @@ describe('the team day report data', () => {
     const data = await withTenant(plant.db.app, other.rows[0].id, (client) =>
       loadTeamDayReport(client, { tenantId: other.rows[0].id, date, shift: null }),
     );
-    expect((data as { people: unknown[]; pending: unknown[] }).people).toEqual([]);
+    expect((data as { people: unknown[] }).people).toEqual([]);
     expect((data as { pending: unknown[] }).pending).toEqual([]);
   });
 });
@@ -131,5 +167,16 @@ describe('the team day report PDF', () => {
     const res = await pdf('team=1&shift=1', 'supervisor');
     expect(res.statusCode).toBe(200);
     expect(pdfShows(res.rawPayload, GUJARATI_NAME)).toBe(true);
+  });
+});
+
+describe('someone switched off since', () => {
+  it('stays in the history of the days they worked', async () => {
+    const before = await team(null);
+    const gone = before.people[0]!.person.id;
+    await plant.db.admin.query('UPDATE person SET active = false WHERE id = $1', [gone]);
+    const after = await team(null);
+    expect(after.people.map((row) => row.person.id)).toContain(gone);
+    expect(after.totalMinutes).toBe(before.totalMinutes);
   });
 });

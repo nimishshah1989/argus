@@ -73,7 +73,8 @@ function jobRow(job: DayReportJob): string {
     <td class="ref">${esc(job.ref)}</td>
     <td>${esc(machineLabel(job.machine))}</td>
     <td>${esc(job.problem)}</td>
-    <td>${esc(job.status)}</td>
+    <td>${esc(job.stateAtEnd)}</td>
+    <td>${esc(job.roles.join(', '))}</td>
     <td class="num">${esc(minutesLabel(job.minutes))}</td>
   </tr>`;
 }
@@ -83,14 +84,14 @@ function pendingRow(row: DayReportPending): string {
     <td class="ref">${esc(row.ref)}</td>
     <td>${esc(machineLabel(row.machine))}</td>
     <td>${esc(row.problem)}</td>
-    <td>${esc(row.status)}</td>
+    <td>${esc(row.status === 'closed' || row.status === 'cancelled' ? `${row.status} later` : row.status)}</td>
   </tr>`;
 }
 
 export function jobsTable(jobs: DayReportJob[]): string {
   if (jobs.length === 0) return '<p class="empty">No tickets worked in this window.</p>';
   return `<table>
-    <thead><tr><th>Ticket</th><th>Machine</th><th>Problem</th><th>Status</th><th class="num">Work</th></tr></thead>
+    <thead><tr><th>Ticket</th><th>Machine</th><th>Problem</th><th>At the end</th><th>Role</th><th class="num">Work</th></tr></thead>
     <tbody>${jobs.map(jobRow).join('')}</tbody>
   </table>`;
 }
@@ -104,7 +105,9 @@ export function pendingTable(pending: DayReportPending[]): string {
 }
 
 function header(data: DayReportData): string {
-  const closed = data.jobs.filter((job) => job.status === 'closed').length;
+  const closed = data.jobs.filter(
+    (job) => job.stateAtEnd === 'closed' && job.closedByPersonId === data.person.id,
+  ).length;
   return `<header>
     <div class="masthead">
       <div class="company">${esc(data.tenant.name)}</div>

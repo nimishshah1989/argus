@@ -89,6 +89,18 @@ describe('who may print a breakdown PDF', () => {
     expect((await pdf(mine.id, 'sharedOtherCell')).statusCode).toBe(403);
   });
 
+  it('says no before it says there is no report: an operator asking for another’s unreported ticket gets 403', async () => {
+    const unreported = (
+      await plant.db.admin.query(
+        `SELECT t.id FROM ticket t
+          WHERE NOT EXISTS (SELECT 1 FROM breakdown_report r WHERE r.ticket_id = t.id)
+          ORDER BY t.ref LIMIT 1`,
+      )
+    ).rows[0].id;
+    expect((await pdf(unreported, 'operator')).statusCode).toBe(403);
+    expect((await pdf(unreported, 'technician')).statusCode).toBe(409);
+  });
+
   it('gives the board login nothing', async () => {
     expect((await pdf(mine.id, 'board')).statusCode).toBe(403);
   });

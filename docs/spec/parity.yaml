@@ -698,8 +698,12 @@ rows:
       - 'apps/server/test/reports-real.test.ts :: lists a ticket still open when the shift ended even
         though it was closed later'
       - 'apps/server/test/day-report.test.ts :: prints a Gujarati name and problem in the PDF'
-      - 'apps/server/test/team-day-report.test.ts :: lists each maintenance person who worked in the
-        window, with the minutes the person’s own report shows'
+      - 'apps/server/test/team-day-report.test.ts :: lists everyone who worked in the window, whatever
+        their team, and adds up to each person’s own report'
+      - 'apps/server/test/team-day-report.test.ts :: splits each person’s minutes into primary and
+        support that add up to the same total'
+      - 'apps/server/test/team-day-report.test.ts :: never calls a ticket closed and pending at once,
+        and counts a person’s closes as the ones they closed'
       - 'apps/server/test/team-day-report.test.ts :: is what the plant head gets by default, as one
         PDF for the whole team'
       - 'apps/server/test/team-day-report.test.ts :: prints Gujarati names'
