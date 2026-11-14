@@ -241,3 +241,8 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - 07:42 Nimish: pace complaint, and "you rebuilt instead of reusing". Checked: from the 13 Nov baseline (eb80a47, 145
   non-test src files) 38 moved, 49 edited, ~23 untouched, 35 deleted, 283 added; one apps/server, one apps/web. Not a
   rewrite. Gap-check agent running over tickets 19/24/26/27/30/31/33/34/66; every new brief starts with "what exists".
+- 07:50 UTC #230 (merged 07:45:56 by the shared account, not by this lane, before CI) review: 2 HIGH (retry dropped
+  under app/DB clock skew; no sweeper so a dead job leaves the row pending until purge deletes it), 2 MEDIUM (test
+  button holds a pooled connection; crash after send double-sends: document), 5 LOW. All sent to builder 32 as the
+  first commits of the trigger PR. #225 (frontend) also merged by the shared account with browser red: both lanes
+  agreed one merge route (orchestrators, covering checks green).
