@@ -1,4 +1,4 @@
-import { forgetWho } from './who.js';
+import { forgetPushBinding, forgetWho } from './who.js';
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
 /** Where a refused session lands; the sign-in screen reads `signedOut`. */
@@ -10,11 +10,13 @@ export function getToken(): string | null {
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  forgetPushBinding();
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   forgetWho();
+  forgetPushBinding();
 }
 
 /** A server `{error:{code,message,field}}` body surfaced to the screen. */

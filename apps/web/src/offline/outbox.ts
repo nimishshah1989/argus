@@ -31,6 +31,8 @@ export interface QueueEntry {
 
 export interface DraftEntry extends QueueEntry {
   reason: string;
+  /** A copy key shown instead of the server's reason (e.g. the permanent 403 refusal). */
+  reasonKey?: string;
   status: 'draft';
 }
 
@@ -141,9 +143,18 @@ export async function removeQueued(id: string): Promise<void> {
   await runRequest(QUEUE_STORE, 'readwrite', (store) => store.delete(id));
 }
 
-/** A queued command the server refused (409): the person sees it and can retry or dismiss it. */
-export async function addDraft(entry: QueueEntry, reason: string): Promise<DraftEntry> {
-  const draft: DraftEntry = { ...entry, reason, status: 'draft' };
+/** A queued command the server refused (409, or 403 for someone else's): the person sees it and can retry or dismiss it. */
+export async function addDraft(
+  entry: QueueEntry,
+  reason: string,
+  reasonKey?: string,
+): Promise<DraftEntry> {
+  const draft: DraftEntry = {
+    ...entry,
+    reason,
+    ...(reasonKey ? { reasonKey } : {}),
+    status: 'draft',
+  };
   await runRequest(DRAFTS_STORE, 'readwrite', (store) => store.put(draft));
   return draft;
 }

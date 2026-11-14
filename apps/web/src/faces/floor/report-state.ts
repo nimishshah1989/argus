@@ -56,7 +56,7 @@ export function useReport(data: FloorData, deepLink: string | null) {
   }
 
   async function upgradeSupport(ticket: Ticket): Promise<void> {
-    const ok = await command.run(ticket.id, 'upgrade-kind', { personId: data.me.actingPersonId });
+    const ok = await command.run(ticket.id, 'upgrade-kind', {});
     if (!ok) throw new Error(command.error ?? 'upgrade-kind failed');
     setSent({ ...ticket, kind: 'stopped' });
   }
@@ -65,7 +65,7 @@ export function useReport(data: FloorData, deepLink: string | null) {
     if (!machine) return false;
     if (upgrade && supportTicket) return upgradeSupport(supportTicket);
     try {
-      const body = { kind, machineId: machine.id, problem: problem.trim(), startNow };
+      const body = raiseBody({ kind, machineId: machine.id, problem }, data.maintenance, startNow);
       const { ticket } = await raiseTicket(body);
       rememberRecent(machine.id);
       setSent(ticket);
@@ -86,3 +86,17 @@ export function useReport(data: FloorData, deepLink: string | null) {
   };
 }
 export type ReportState = ReturnType<typeof useReport>;
+
+/** Only maintenance may start work while raising; everyone else always sends false. */
+export function startsNow(maintenance: boolean, checked: boolean): boolean {
+  return maintenance && checked;
+}
+
+/** The raise body: the problem trimmed, and start-now only ever true for maintenance. */
+export function raiseBody<T extends { problem: string }>(
+  fields: T,
+  maintenance: boolean,
+  checked: boolean,
+) {
+  return { ...fields, problem: fields.problem.trim(), startNow: startsNow(maintenance, checked) };
+}

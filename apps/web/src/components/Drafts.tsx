@@ -45,10 +45,12 @@ export function Drafts() {
           <li key={draft.id} className="rounded-xl border border-neutral-200 p-3">
             <p className="text-base font-semibold tracking-tight">{draft.ref}</p>
             <p className="mt-1 text-sm text-neutral-600">
-              {t('drafts.couldNotApply', {
-                action: actionLabel(draft.action),
-                reason: draft.reason,
-              })}
+              {draft.reasonKey
+                ? t(draft.reasonKey)
+                : t('drafts.couldNotApply', {
+                    action: actionLabel(draft.action),
+                    reason: draft.reason,
+                  })}
             </p>
             <button
               type="button"

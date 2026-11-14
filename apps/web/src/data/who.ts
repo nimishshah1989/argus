@@ -30,6 +30,18 @@ export function currentWho(): Who | null {
   }
 }
 
+/** The person this browser's push subscription was last registered for (push.ts reads and writes it). */
+export const PUSH_BOUND_KEY = 'uptimo.push.person';
+
+/** A session ending removes the phone's push row on the server, so the next open must register again. */
+export function forgetPushBinding(): void {
+  try {
+    localStorage.removeItem(PUSH_BOUND_KEY);
+  } catch {
+    // Nothing stored to forget.
+  }
+}
+
 export function forgetWho(): void {
   try {
     localStorage.removeItem(KEY);

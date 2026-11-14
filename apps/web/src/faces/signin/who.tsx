@@ -2,13 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ApiError, chooseActing, clearToken, getConfig, getMe, signOut } from '../../api.js';
+import { ApiError, chooseActing, clearToken, getActingChoices, getMe, signOut } from '../../api.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
+import { ensurePushBinding } from '../../push.js';
 import { replayOutbox } from '../../offline/replay.js';
 import { Notice } from './parts.js';
 
@@ -31,16 +32,14 @@ function SignedInAs() {
   );
 }
 
-/** "Your name" from the company's active people, by name (the same list on the floor and the desk). */
+/** "Your name" from the people the server lets this phone choose (GET /auth/acting), by name. */
 function NamePicker({ value, set }: { value: string; set: (id: string) => void }) {
   const { t } = useTranslation();
-  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
-  if (config.isError && !config.data)
+  const choices = useQuery({ queryKey: ['acting-choices'], queryFn: getActingChoices });
+  if (choices.isError && !choices.data)
     // eslint-disable-next-line i18next/no-literal-string -- state name, not copy
-    return <StateNotice state="error" empty="" onRetry={() => void config.refetch()} />;
-  const people = (config.data?.people ?? [])
-    .filter((p) => p.active)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    return <StateNotice state="error" empty="" onRetry={() => void choices.refetch()} />;
+  const people = [...(choices.data?.people ?? [])].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Stack gap={2}>
       <Label htmlFor="who-person">{t('signin.yourName')}</Label>
@@ -73,6 +72,8 @@ export function Who() {
       return false;
     }
     await getMe();
+    // A shared phone that already allows alerts follows the person now using it, and only them.
+    await ensurePushBinding(personId).catch(() => undefined);
     // What this person queued earlier on this phone goes now (review of PR 225); others' stays held.
     await replayOutbox().catch(() => undefined);
     for (const key of ['me', 'config', 'state', 'tickets'])

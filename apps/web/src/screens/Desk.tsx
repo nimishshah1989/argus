@@ -81,8 +81,7 @@ function cardContext(
     actor: user ? actorFrom(user) : null,
     pending: command.pending,
     onQuick: (ticket: Ticket, action: CommandAction) => {
-      if (user?.actingPersonId)
-        void command.run(ticket.id, action, { personId: user.actingPersonId });
+      if (user?.actingPersonId) void command.run(ticket.id, action, {});
     },
   };
 }

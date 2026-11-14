@@ -1,5 +1,6 @@
 /** The close flows (ticket 18, slice 2): finish time, breakdown report, close without report, mark done. */
 export const closesEn = {
+  'outbox.queuedForSomeoneElse': 'Could not send: this was queued for someone else',
   'closes.step1.title': 'Close ticket',
   'closes.reportTitle': 'Breakdown report',
   'closes.fact.reported': 'Reported',

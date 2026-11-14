@@ -4,6 +4,7 @@
  *
  * - 2xx: the command landed; drop it.
  * - 409: the ticket changed while the phone was offline; keep it as a draft for the person.
+ * - 403 forbidden (queued for someone else): a draft with its own message, then the next entry.
  * - network error or other failure: stop and keep the rest queued for the next attempt.
  * - made by another login or person on this phone (or before anyone said who is using it): held,
  *   never sent as the current person, never deleted; the banner names who queued it.
@@ -11,6 +12,9 @@
 import { ApiError, isOffline, sendCommand } from '../api.js';
 import { currentWho, isMine } from '../data/index.js';
 import { addDraft, listQueued, removeQueued, type QueueEntry } from './outbox.js';
+
+/** The server refused this person for good (403): it leaves the queue for Drafts, never retried. */
+const FORBIDDEN_KEY = 'outbox.queuedForSomeoneElse';
 
 export interface ReplaySummary {
   attempted: number;
@@ -42,6 +46,12 @@ export async function replayOutbox(): Promise<ReplaySummary> {
     } catch (error) {
       if (error instanceof ApiError && error.code === 'conflict') {
         await addDraft(entry, error.message);
+        await removeQueued(entry.id);
+        summary.drafted += 1;
+        continue;
+      }
+      if (error instanceof ApiError && error.code === 'forbidden') {
+        await addDraft(entry, error.message, FORBIDDEN_KEY);
         await removeQueued(entry.id);
         summary.drafted += 1;
         continue;

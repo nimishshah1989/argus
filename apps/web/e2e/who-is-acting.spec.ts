@@ -189,6 +189,27 @@ test('choosing who is using the phone sends what that person queued earlier', as
   await replay;
 });
 
+test("a queued command the server refuses as someone else's leaves the queue for Drafts", async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await seedQueuedClose(page, { loginId: CELL_PHONE_LOGIN, actingPersonId: OMI, name: 'Omi' });
+  await page.route(/\/api\/v1\/tickets\/[^/]+\/close$/, (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'forbidden', message: 'Not allowed' } }),
+    }),
+  );
+  await signInShared(page);
+  await page.getByLabel('Your name').selectOption({ label: 'Omi' });
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  // The picker opens the floor only after it has replayed what this person queued.
+  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
+  await expect(page.getByText('Could not send: this was queued for someone else')).toBeVisible();
+  expect(await queued(page)).toBe(0);
+});
+
 test('a wrong current password keeps the phone signed in; the "other phones" line shows only after saving', async ({
   page,
 }) => {

@@ -21,7 +21,7 @@ export function CancelComplaint({ data, ticket }: { data: FloorData; ticket: Tic
   const actor = actorFrom(data.me);
   if (!actor || !offers(ticket, actor, CANCEL)) return null;
   async function cancel(): Promise<void> {
-    const body = { personId: data.me.actingPersonId, reason: reason.trim() };
+    const body = { reason: reason.trim() };
     if (await command.run(ticket.id, CANCEL, body)) setOpen(false);
   }
   return (
