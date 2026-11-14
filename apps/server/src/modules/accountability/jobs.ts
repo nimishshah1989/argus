@@ -1,6 +1,6 @@
 import { PgBoss, type Clock, type Queue } from 'pg-boss';
-import type { Pool } from 'pg';
-import { processSlaTimerJob, type SlaTimerPayload } from './repo/timers.js';
+import type { Pool, PoolClient } from 'pg';
+import { processSlaTimerJob, type Breach, type SlaTimerPayload } from './repo/timers.js';
 import {
   processSlaConsistencyJob,
   type SlaConsistencyPayload,
@@ -20,6 +20,7 @@ export interface StartJobsOptions {
   pollingIntervalSeconds?: number;
   dailyConsistency?: boolean;
   bootConsistency?: boolean;
+  onBreach?: (breach: Breach, client: PoolClient) => Promise<void>;
   onBossReady?: (boss: PgBoss) => void | Promise<void>;
   __test__enableSpies?: boolean;
   onError?: (error: Error) => void;
@@ -41,7 +42,12 @@ async function registerWorkers(boss: PgBoss, options: StartJobsOptions): Promise
     { batchSize: 1, pollingIntervalSeconds },
     async ([job]) => {
       if (!job) return false;
-      return processSlaTimerJob(job.data, { pool: options.pool, now, boss });
+      return processSlaTimerJob(job.data, {
+        pool: options.pool,
+        now,
+        boss,
+        onBreach: options.onBreach,
+      });
     },
   );
   await boss.work<SlaConsistencyPayload>(

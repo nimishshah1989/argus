@@ -3,6 +3,9 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
+import { queueOwedBreach, requeueIfEarly, singletonKey } from './timer-jobs.js';
+
+export { singletonKey };
 
 export type SlaTimerKind = 'ack' | 'restore' | 'pause' | 'handback';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
@@ -44,10 +47,6 @@ interface TimerRow {
   state: SlaTimerState;
 }
 
-export function singletonKey(tenantId: string, ticketId: string, kind: SlaTimerKind): string {
-  return `${tenantId}:${ticketId}:${kind}`;
-}
-
 function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
 }
@@ -83,6 +82,19 @@ interface ProjectionMerge {
   revision: number;
   changed: boolean;
   firedAt: Date | null;
+  /** The due time of the stopped episode this change is about to overwrite, when its breach was never fired. */
+  owedDueAt: Date | null;
+}
+
+/**
+ * A clock that ran past its due time, stopped, and has not fired yet owes a breach. The row is one per ticket and
+ * kind, so the next episode overwrites the due time and the stop it was owed by: the breach is queued as its own job
+ * (below) in the transaction that overwrites it, or it is lost.
+ */
+function owedBreach(row: TimerRow, timer: SlaTimerProjection): Date | null {
+  if (!startsNewEpisode(row, timer) || timer.kind === 'handback') return null;
+  if (row.fired_at || row.stop_reason === 'cancelled') return null;
+  return row.due_at && row.stopped_at && row.due_at < row.stopped_at ? row.due_at : null;
 }
 
 async function mergeProjection(
@@ -114,6 +126,7 @@ async function mergeProjection(
       revision: 1,
       changed: false,
       firedAt: null,
+      owedDueAt: null,
     };
   }
   const hasChanged = changed(existing, timer);
@@ -132,6 +145,7 @@ async function mergeProjection(
     revision,
     changed: hasChanged,
     firedAt: startsNewEpisode(existing, timer) ? null : existing.fired_at,
+    owedDueAt: owedBreach(existing, timer),
   };
 }
 
@@ -198,6 +212,15 @@ async function rearmOne(
   if (merge.changed && merge.previousRevision !== null) {
     await cancelRevision(client, boss, key, merge.previousRevision);
   }
+  if (merge.owedDueAt) {
+    const owed = { tenantId: input.tenantId, ticketId: input.ticketId, kind: timer.kind };
+    await queueOwedBreach(client, boss, {
+      ...owed,
+      dueAt: merge.owedDueAt,
+      now: input.now,
+      key: singletonKey(owed.tenantId, owed.ticketId, owed.kind),
+    });
+  }
   if (queueAction(timer, merge.firedAt) !== 'none') {
     await queueJob(client, boss, { input, timer, merge });
     return;
@@ -255,15 +278,32 @@ export interface SlaTimerPayload {
   ticketId: string;
   kind: SlaTimerKind;
   revision: number;
+  /** Set on a breach owed by an earlier episode: that episode's due time, in milliseconds. */
+  owedDueAt?: number;
+}
+
+/** A clock that ran past its due time and was not answered: what whoever reacts to a breach is told. */
+export interface Breach {
+  tenantId: string;
+  ticketId: string;
+  kind: SlaTimerKind;
+  firedAt: Date;
+  /** The due time of the earlier episode this breach was owed by; null for the clock's current episode. */
+  owedDueAt: Date | null;
 }
 
 export interface SlaTimerRuntime {
   pool: Pool;
   now: () => Date;
   boss?: PgBoss;
+  /** Runs in the same transaction as the breach is recorded: a failure puts the breach back and the job retries. */
+  onBreach?: (breach: Breach, client: PoolClient) => Promise<void>;
 }
 
 function assertPayload(payload: SlaTimerPayload): void {
+  if (payload.owedDueAt !== undefined && !Number.isInteger(payload.owedDueAt)) {
+    throw new Error('Invalid SLA timer owed due time');
+  }
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuid.test(payload.tenantId) || !uuid.test(payload.ticketId)) {
     throw new Error('Invalid SLA timer tenant or ticket id');
@@ -285,6 +325,14 @@ export async function processSlaTimerJob(
   return withTenant(runtime.pool, payload.tenantId, async (client) => {
     if (!(await lockTicket(client, payload.tenantId, payload.ticketId))) return false;
     const firedAt = runtime.now();
+    if (payload.owedDueAt !== undefined) {
+      const { tenantId, ticketId, kind } = payload;
+      await runtime.onBreach?.(
+        { tenantId, ticketId, kind, firedAt, owedDueAt: new Date(payload.owedDueAt) },
+        client,
+      );
+      return true;
+    }
     const result = await client.query(
       `UPDATE sla_timer SET fired_at=$4, updated_at=$4
        WHERE tenant_id=$1 AND ticket_id=$2 AND kind=$3 AND revision=$5
@@ -293,37 +341,12 @@ export async function processSlaTimerJob(
        RETURNING id`,
       [payload.tenantId, payload.ticketId, payload.kind, firedAt, payload.revision],
     );
-    if (result.rowCount === 1) return true;
-    const current = await client.query<{
-      revision: number;
-      due_at: Date | null;
-      fired_at: Date | null;
-      stop_reason: string | null;
-    }>(
-      'SELECT revision, due_at, fired_at, stop_reason FROM sla_timer WHERE tenant_id=$1 AND ticket_id=$2 AND kind=$3',
-      [payload.tenantId, payload.ticketId, payload.kind],
-    );
-    const timer = current.rows[0];
-    if (
-      runtime.boss &&
-      timer &&
-      timer.revision === payload.revision &&
-      timer.due_at &&
-      timer.due_at > firedAt &&
-      !timer.fired_at &&
-      timer.stop_reason !== 'cancelled'
-    ) {
-      await runtime.boss.upsert({
-        name: 'sla.timer',
-        data: payload,
-        options: {
-          singletonKey: singletonKey(payload.tenantId, payload.ticketId, payload.kind),
-          startAfter: timer.due_at,
-          db: jobDb(client),
-        },
-      });
+    if (result.rowCount === 1) {
+      const { tenantId, ticketId, kind } = payload;
+      await runtime.onBreach?.({ tenantId, ticketId, kind, firedAt, owedDueAt: null }, client);
+      return true;
     }
-    return false;
+    return requeueIfEarly(client, payload, runtime, firedAt);
   });
 }
 

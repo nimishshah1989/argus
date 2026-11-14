@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { PgBoss, TestClock } from 'pg-boss';
 import { Pool, type PoolClient } from 'pg';
-import { afterAll, beforeAll, expect, it } from 'vitest';
+import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { installJobSchema, withTenant } from '@uptimo/db';
 import { runSlaConsistency } from '../consistency.js';
 import { startJobs } from '../jobs.js';
@@ -520,6 +520,56 @@ it('the real worker fires a pause clock once, on the fake clock', async () => {
     expect(((await timerRow(A, ticketId, 'pause')).fired_at as Date).getTime()).toBe(
       fired.getTime(),
     );
+  } finally {
+    await handle.close();
+  }
+}, 60_000);
+
+it('a breach owed by pause 1 still fires, once, when pause 2 starts before the job runs', async () => {
+  await boss.deleteAllJobs('sla.timer');
+  // Pause 1 is 20 s long at most and runs 25 s; pause 2 starts a second later. No worker runs in between.
+  const second = (n: number) => new Date(START.getTime() + n * 1_000);
+  const clock = new TestClock(second(26));
+  const breaches: { kind: string; firedAt: Date; owedDueAt: Date | null }[] = [];
+  const handle = await startJobs({
+    connectionString: appUrl,
+    pool: app,
+    role: 'worker',
+    clock,
+    reconcileTicket: async () => undefined,
+    pollingIntervalSeconds: 0.5,
+    dailyConsistency: false,
+    bootConsistency: false,
+    onBreach: async (breach) => void breaches.push(breach),
+  });
+  try {
+    const ticketId = await makeTicket();
+    const rearm = (timer: SlaTimerProjection, now: Date) =>
+      withTenant(app, A, (client) =>
+        rearmTicket(client, handle.boss, { tenantId: A, ticketId, timers: [timer], now }),
+      );
+    const pause = (patch: Partial<SlaTimerProjection>) => projection({ kind: 'pause', ...patch });
+    await rearm(pause({ dueAt: second(20) }), second(0));
+    await rearm(
+      pause({
+        state: 'stopped',
+        breached: true,
+        dueAt: second(20),
+        stoppedAt: second(25),
+        stopReason: 'resumed',
+      }),
+      second(25),
+    );
+    await rearm(pause({ dueAt: second(46) }), second(26));
+    await clock.tick(2_000);
+    await vi.waitFor(() => expect(breaches).toHaveLength(1));
+    expect(breaches[0]).toMatchObject({ kind: 'pause', owedDueAt: second(20) });
+    await clock.tick(22_000);
+    await vi.waitFor(() => expect(breaches).toHaveLength(2));
+    expect(breaches[1]!.owedDueAt).toBeNull();
+    expect(breaches[1]!.firedAt.getTime()).toBeGreaterThanOrEqual(second(46).getTime());
+    await clock.tick(6_000);
+    expect(breaches).toHaveLength(2);
   } finally {
     await handle.close();
   }
