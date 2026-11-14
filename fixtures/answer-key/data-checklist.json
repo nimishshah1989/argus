@@ -1,0 +1,14 @@
+{
+  "screen": "data-checklist",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "dc",
+      "title": "Data Checklist",
+      "kpis": [],
+      "tables": [],
+      "charts": [],
+      "text": "Everything that is missing in the Breakdown Log and the machine records. Open an item to enter the data, or mark it as data not available to close it. Nothing is deleted, and every change is in the Log and can be reversed. 245To do 1130Entries updated 0Marked not available 82%Closed To do 245Not available 0Log 1130 All areasBreakdown Log (136)Machines and Utilities (86)Analysis (23) Breakdown Log▸Breakdown entries with no maintenance codeHigh4▸Breakdown entries with no Done ByNormal82▸Breakdown entries with no problem descriptionNormal1▸Breakdown entries with no Observed ByLow36▸Breakdown entries with no Electrical / Mechanical typeLow11▸Days with no entries in the Breakdown LogHigh2Machines and Utilities▸Machines with no purchase date or yearNormal32▸Machines with no length and widthNormal17▸Machines with no power or capacityNormal36▸Machines with no locationNormal1Analysis▸Long breakdowns with no Why-Why analysisNormal23"
+    }
+  ]
+}

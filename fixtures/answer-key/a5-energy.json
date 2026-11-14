@@ -1,0 +1,14 @@
+{
+  "screen": "a5-energy",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "a5",
+      "title": "Energy Heatmap",
+      "kpis": [],
+      "tables": [],
+      "charts": [],
+      "text": "Load by Cell — Connected & Running Connected = total rated Power (KVA) actually wired in. Running = Connected × Efficiency Factor (default 20% as the plant default; a machine with its own factor on its Add/Edit page uses that instead) — a more realistic estimate of actual average draw. Click a tile to see the individual machines behind that number. 1 170.0 Connected KVA Running: 34.0 KVA 8 machines · avg 21.3 2 487.0 Connected KVA Running: 97.4 KVA 25 machines · avg 19.5 3 344.0 Connected KVA Running: 68.8 KVA 15 machines · avg 22.9 4 470.0 Connected KVA Running: 94.0 KVA 15 machines · avg 31.3 5 157.0 Connected KVA Running: 31.4 KVA 6 machines · avg 26.2 6 411.0 Connected KVA Running: 82.2 KVA 19 machines · avg 21.6 7 513.0 Connected KVA Running: 102.6 KVA 25 machines · avg 20.5 8 57.0 Connected KVA Running: 11.4 KVA 3 machines · avg 19.0 9 203.0 Connected KVA Running: 40.6 KVA 10 machines · avg 20.3 57.0 KVA 513.0 KVA Load by Location — Connected & Running Same view, grouped by building/area location instead of cell. Click a tile to drill into its machines. 434 782.0 Connected KVA Running: 156.4 KVA 30 machines · avg 26.1 435/4 46.0 Connected KVA Running: 9.2 KVA 1 machine · avg 46.0 445 416.0 Connected KVA Running: 83.2 KVA 17 machines · avg 24.5 486 365.0 Connected KVA Running: 73.0 KVA 18 machines · avg 20.3 841-A 513.0 Connected KVA Running: 102.6 KVA 25 machines · avg 20.5 841-B 487.0 Connected KVA Running: 97.4 KVA 25 machines · avg 19.5 381 203.0 Connected KVA Running: 40.6 KVA 10 machines · avg 20.3 46.0 KVA 782.0 KVA Avg Connected KVA per Machine — by Cell Normalized view: total Connected Load ÷ machine count in that cell, so a cell with many small machines isn't automatically flagged just for having more equipment. 1 21.3 Connected KVA/machine 8 machines · avg 21.3 2 19.5 Connected KVA/machine 25 machines · avg 19.5 3 22.9 Connected KVA/machine 15 machines · avg 22.9 4 31.3 Connected KVA/machine 15 machines · avg 31.3 5 26.2 Connected KVA/machine 6 machines · avg 26.2 6 21.6 Connected KVA/machine 19 machines · avg 21.6 7 20.5 Connected KVA/machine 25 machines · avg 20.5 8 19.0 Connected KVA/machine 3 machines · avg 19.0 9 20.3 Connected KVA/machine 10 machines · avg 20.3 19.0 KVA 31.3 KVA"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "screen": "monthly-report",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "rep_month",
+      "title": "Monthly Report",
+      "kpis": [],
+      "tables": [
+        {"title":"Where the time went","header":["Machine","Breakdowns","Hours","Prev. hrs","Change"],"rows":[["VC-16 CVM1160","9","25.9","7.9","▲ 18.0"],["VC-22 MILL TAP MT 700","3","17.2","0.9","▲ 16.3"],["TC-13 FTC-20L","3","16.2","0.4","▲ 15.8"],["TC-31 SJE 10LM","3","14.5","2.5","▲ 12.0"],["GRD-2 Earth-6030","4","13.7","0.5","▲ 13.2"]],"rowCount":5},
+        {"title":"Where the time went","header":["Cell","Breakdowns","Hours","Prev. hrs","Change"],"rows":[["Cell 2","45","80.3","29.2","▲ 51.1"],["Cell 7","36","53.6","38.9","▲ 14.7"],["Cell 6","24","45.8","43.2","▲ 2.6"],["Cell 3","33","36.5","31.8","▲ 4.7"],["Cell 9","19","16.3","0.8","▲ 15.6"],["Cell 8","4","9.3","7.3","▲ 2.1"],["Cell 4","18","8.2","16.8","▼ 8.6"],["Cell 5","7","7.3","8.9","▼ 1.6"],["Cell 1","10","2.9","18.8","▼ 15.9"]],"rowCount":9},
+        {"title":"Where the time went","header":["Category","Breakdowns","Hours","Prev. hrs","Change"],"rows":[["Vertical Machining Center","97","109.9","72.9","▲ 37.1"],["Turning Center","44","88.4","45.8","▲ 42.6"],["Horizontal Machining Center","16","17.4","18.7","▼ 1.3"],["CNC Surface Grinding","5","13.7","0.8","▲ 12.9"],["WaterJet CNC","4","11.3","22.8","▼ 11.5"]],"rowCount":5},
+        {"title":"Where the time went","header":["Code","Breakdowns","Hours","Prev. hrs","Change"],"rows":[["M Mechanical","33","57.7","32.0","▲ 25.6"],["E Electronics/Electrical","56","56.4","55.3","▲ 1.0"],["HUM Human Mistake","11","46.3","16.0","▲ 30.3"],["LIK Leakage","19","37.0","33.5","▲ 3.6"],["ATC Automatic Tool Changer","13","27.1","20.3","▲ 6.9"],["TUR Turret","6","14.4","8.3","▲ 6.1"]],"rowCount":6},
+        {
+          "title": "Longest breakdowns this period",
+          "header": ["Date","Machine","Problem","Code","Done by","Hours"],
+          "rows": [
+            ["24-10-2026","VC-22 MILL TAP MT 700","Through coolant issue","LIK","Person 23","16.0"],
+            ["19-10-2026","TC-31 SJE 10LM","Machine accident","HUM","Person 04, Person 23, Person 20","11.0"],
+            ["31-10-2026","TC-13 FTC-20L","Alarm (SV0442 Z-PS charge failure, SP9051 S-PS …","E","Person 21","10.4"],
+            ["09-10-2026","TC-30 SJE 10LM","Machine Accident","HUM","Person 30, Person 25, Person 04","9.0"],
+            ["13-10-2026","WJ-01 Aqua Imple HJ-2…","Heavy water leakage issue from KMT water pump","M","Person 04, Person 23","9.0"],
+            ["12-10-2026","GRD-8 Swift 800 AWH","Z-axis backless issue","M","Person 04, Person 23, Person 20","7.0"],
+            ["22-10-2026","GRD-2 Earth-6030","Alarm (Turret index issue, Tool unclamp)","TUR","Person 12","6.5"],
+            ["09-10-2026","VC-16 CVM1160","Tool clamp-unclamp LS fault","M","Person 25, Person 30","6.3"],
+            ["26-10-2026","VC-16 CVM1160","Tool clamp de clamp issue","M","Person 25, Person 12, Person 04","6.0"],
+            ["25-10-2026","HMC-3 FMH 500","Conveyor motor issue","CON","Person 32, Person 25, Person 13","5.3"]
+          ],
+          "rowCount": 10
+        },
+        {
+          "title": "Maintenance team",
+          "header": ["Name","Breakdowns attended","September","Change","Hours","Prev. hrs","Change","Avg repair (hrs)","Supported","PM visits","Share"],
+          "rows": [
+            ["Person 04","53","32","▲ +21","102.1","51.7","▲ +50.4","1.93","0","2","27.0%"],
+            ["Person 25","41","34","▲ +7","65.9","43.3","▲ +22.7","1.61","0","2","20.9%"],
+            ["Person 32","32","21","▲ +11","21.5","26.3","▼ −4.8","0.67","2","1","16.3%"],
+            ["Person 21","26","39","▼ −13","39.2","48.7","▼ −9.6","1.51","0","1","13.3%"],
+            ["Person 12","22","12","▲ +10","34.9","28.8","▲ +6.0","1.58","3","0","11.2%"],
+            ["Person 20","20","13","▲ +7","40.2","6.9","▲ +33.3","2.01","2","1","10.2%"],
+            ["Person 23","19","4","▲ +15","62.1","13.2","▲ +48.9","3.27","1","0","9.7%"],
+            ["Person 30","16","27","▼ −11","29.7","35.9","▼ −6.2","1.86","1","0","8.2%"],
+            ["Person 13","14","12","▲ +2","15.8","10.4","▲ +5.5","1.13","0","0","7.1%"],
+            ["Person 02","6","2","▲ +4","15.7","0.0","▲ +15.7","2.61","4","0","3.1%"],
+            ["Person 26","1","0","▲ +1","2.8","0.0","▲ +2.8","2.83","0","0","0.5%"],
+            ["Person 16","1","0","▲ +1","1.5","0.0","▲ +1.5","1.50","0","0","0.5%"],
+            ["Person 27","1","2","▼ −1","0.5","1.1","▼ −0.6","0.50","2","0","0.5%"]
+          ],
+          "rowCount": 13
+        },
+        {
+          "title": "Machines added",
+          "header": ["Category","Fleet at start","Added this period","Added September","Change","Fleet at end"],
+          "rows": [
+            ["Vertical Machining Center","49","3","3","no change","52"],
+            ["Turning Center","34","4","1","▲ +3","38"],
+            ["Vertical Turning Lathe","12","0","1","▼ −1","12"],
+            ["Turnmill","5","0","0","no change","5"],
+            ["Horizontal Machining Center","3","0","0","no change","3"],
+            ["CNC Internal Grinding","3","0","0","no change","3"],
+            ["Vertical Double Column Machining Center","2","0","0","no change","2"],
+            ["Cnc Sliding Head Automatic Lathe","2","0","0","no change","2"],
+            ["CNC Surface Grinding","2","0","0","no change","2"],
+            ["CNC Angular Grinding","2","0","0","no change","2"],
+            ["CAM Profile Machine","1","0","0","no change","1"],
+            ["Cylinderical rotary Grinding","1","0","0","no change","1"],
+            ["Centerless Grinding Machine","1","0","0","no change","1"],
+            ["WaterJet CNC","1","0","0","no change","1"],
+            ["Total CNC machines","118","7","5","▲ +2","125"]
+          ],
+          "rowCount": 15
+        },
+        {"title":"","header":["Action","Owner","Due date"],"rows":[["","",""],["","",""],["","",""],["","",""],["","",""]],"rowCount":5}
+      ],
+      "charts": [
+        {"id":"ch-rp-daily","type":"undefined","labels":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],"datasets":[{"label":"October breakdowns","data":[7,6,3,0,9,8,11,4,8,7,1,9,5,6,7,8,4,1,7,0,13,3,3,13,1,16,6,8,8,9,5]},{"label":"October hrs","data":[6.2,2.1,1.5,0,13.4,3.3,14.8,4.1,19,9,1.7,12.4,12.3,2.4,7.2,6,1.5,4,14.3,0,18,7.4,3.2,27.7,5.3,19.3,4.7,9.8,6.5,12.3,10.8]},{"label":"September breakdowns","data":[8,8,10,4,1,2,7,11,6,10,8,4,0,10,7,8,4,3,2,0,3,8,6,8,12,5,0,8,6,6,null]}]},
+        {"id":"ch-rp-12m","type":"undefined","labels":["Jan 26","Feb 26","Mar 26","Apr 26","May 26","Jun 26","Jul 26","Aug 26","Sep 26","Oct 26"],"datasets":[{"label":"Breakdowns","data":[112,119,121,64,31,88,160,155,175,196]},{"label":"Downtime hrs","data":[249,302.8,217.8,377.9,73.9,660.4,300.9,370.7,195.6,260.1]}]}
+      ]
+    }
+  ]
+}

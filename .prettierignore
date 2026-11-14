@@ -16,3 +16,6 @@ docs/spec/PARITY.md
 .agents/
 .pnpm-store/
 docs/archive
+
+# Generated answer key: one row per line, written by tools/answer-key/generate.ts.
+fixtures/answer-key

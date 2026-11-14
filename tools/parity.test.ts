@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { loadParity, parseImportSourceRow, validateParity, type ParityFile } from './parity.js';
+import {
+  keptScreens,
+  loadParity,
+  parseImportSourceRow,
+  validateParity,
+  type ParityFile,
+  type ParityRow,
+} from './parity.js';
 import { syncImportRow } from './sync-parity.js';
 
 const file = loadParity();
@@ -111,5 +118,58 @@ describe('parity ledger', () => {
     );
     const ticketed = validateParity({ version: 1, rows: [{ ...row, ticket: '#91' }] });
     expect(ticketed.filter((error) => error.startsWith('v3.test.04'))).toEqual([]);
+  });
+});
+
+const TRIAGE = [
+  '| id | Screen | Verdict | Ticket | Key | Reason | Cost if wrong |',
+  '| -- | ------ | ------- | ------ | --- | ------ | ------------- |',
+  '| a1-bd-pm | A1 BD % | KEPT | 40 | a1-bd-pm | headline | - |',
+  '| pdf-import | PDF import | DROPPED | 36 | - | tickets make reports | re-key by hand |',
+].join('\n');
+
+const screenRow = (over: Partial<ParityRow> = {}): ParityRow => ({
+  id: 'm4a.a1-bd-pm',
+  feature: 'A1 BD % and PM split',
+  disposition: 'keep',
+  milestone: 'M4a',
+  status: 'todo',
+  evidence: [],
+  screen: 'a1-bd-pm',
+  ticket: '40',
+  ...over,
+});
+
+const problems = (rows: ParityRow[]): string[] =>
+  validateParity({ version: 1, rows }, undefined, TRIAGE).filter((e) => e.includes('a1-bd-pm'));
+
+describe('kept screens need a row and a ticket (ticket 36)', () => {
+  it('reads the kept screens, and only those, from the triage table', () => {
+    expect(keptScreens(TRIAGE)).toEqual([{ id: 'a1-bd-pm', ticket: '40' }]);
+  });
+
+  it('fails a kept screen that has no parity row', () => {
+    expect(problems([])).toContain('screen a1-bd-pm: kept in the M4a triage but has no parity row');
+  });
+
+  it('fails a kept screen whose row names no ticket', () => {
+    expect(problems([screenRow({ ticket: undefined })])).toContain(
+      'screen a1-bd-pm: row m4a.a1-bd-pm has no ticket',
+    );
+  });
+
+  it('fails a row whose ticket is not the one the triage names', () => {
+    expect(problems([screenRow({ ticket: '41' })])).toContain(
+      'screen a1-bd-pm: row m4a.a1-bd-pm names ticket 41 but the triage names 40',
+    );
+  });
+
+  it('passes a kept screen with its row and ticket, and does not ask for a dropped one', () => {
+    expect(problems([screenRow()])).toEqual([]);
+  });
+
+  it('holds on the real ledger and the real triage', () => {
+    expect(validateParity(file).filter((e) => e.startsWith('screen '))).toEqual([]);
+    expect(keptScreens(readFileSync('docs/plan/m4a-triage.md', 'utf8')).length).toBeGreaterThan(25);
   });
 });

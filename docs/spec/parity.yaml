@@ -3,7 +3,7 @@
 # status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
 # A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
 version: 1
-expected_rows: 80
+expected_rows: 118
 rows:
   - id: v3.signin.01
     feature: Username and password; 30-day sliding session; "Show password"; last username remembered
@@ -1085,3 +1085,473 @@ rows:
     status: todo
     evidence: []
     source: PARITY.md §analytics / Forecasting (Forecast Lab and Planning forecast)
+  - id: m4a.dashboard
+    feature: 'Dashboard: KPI tiles, bubble chart, expansion timeline, derived numbers'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/dashboard.json
+    source: docs/plan/m4a-triage.md
+    screen: dashboard
+    ticket: '38'
+  - id: m4a.data-checklist
+    feature: Data Checklist (what is missing or inconsistent)
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/data-checklist.json
+    source: docs/plan/m4a-triage.md
+    screen: data-checklist
+    ticket: '38'
+  - id: m4a.registers
+    feature: CNC, Robots, Conventional, Process, Utilities and DG registers with splits
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/registers.json
+    source: docs/plan/m4a-triage.md
+    screen: registers
+    ticket: '39'
+  - id: m4a.cell-change-log
+    feature: Machine form, move-cell form, Cell Change Log and its sheet
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/registers.json
+      - fixtures/answer-key/input.json
+    source: docs/plan/m4a-triage.md
+    screen: cell-change-log
+    ticket: '39'
+  - id: m4a.footprint
+    feature: 'A7 Footprint: packing, floor area, density'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a7-footprint.json
+    source: docs/plan/m4a-triage.md
+    screen: footprint
+    ticket: '39'
+  - id: m4a.age
+    feature: A8 Age analysis and age drill
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a8-age.json
+    source: docs/plan/m4a-triage.md
+    screen: age
+    ticket: '39'
+  - id: m4a.machine-pages
+    feature: Machine details and Machine breakdowns pages
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/machine-page.json
+    source: docs/plan/m4a-triage.md
+    screen: machine-pages
+    ticket: '39'
+  - id: m4a.amc-warranty
+    feature: AMC & Warranty lines (register and sheet)
+    disposition: keep
+    milestone: M4b
+    milestones:
+      - M4b
+    status: todo
+    evidence:
+      - fixtures/answer-key/input.json
+      - fixtures/answer-key/workbook-export.json
+    source: docs/plan/m4a-triage.md
+    screen: amc-warranty
+    ticket: '51'
+  - id: m4a.legal-compliance
+    feature: Legal Compliance lines (register and sheet)
+    disposition: keep
+    milestone: M4b
+    milestones:
+      - M4b
+    status: todo
+    evidence:
+      - fixtures/answer-key/input.json
+      - fixtures/answer-key/workbook-export.json
+    source: docs/plan/m4a-triage.md
+    screen: legal-compliance
+    ticket: '51'
+  - id: m4a.pm-plan
+    feature: PM Plan and PM Calendar
+    disposition: keep
+    milestone: M4b
+    milestones:
+      - M4b
+    status: todo
+    evidence:
+      - fixtures/answer-key/pm-plan.json
+      - fixtures/answer-key/input.json
+    source: docs/plan/m4a-triage.md
+    screen: pm-plan
+    ticket: '49'
+  - id: m4a.pm-reports
+    feature: PM Reports (checklist ticks and readings per PM)
+    disposition: keep
+    milestone: M4b
+    milestones:
+      - M4b
+    status: todo
+    evidence:
+      - fixtures/answer-key/input.json
+      - fixtures/answer-key/workbook-export.json
+    source: docs/plan/m4a-triage.md
+    screen: pm-reports
+    ticket: '49'
+  - id: m4a.breakdown-log
+    feature: Breakdown Log with filters, NO DT, downtime conversions
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/breakdown-log.json
+      - fixtures/answer-key/input.json
+    source: docs/plan/m4a-triage.md
+    screen: breakdown-log
+    ticket: '40'
+  - id: m4a.a1-bd-pm
+    feature: A1 BD % and PM split by cell and month
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a1-bd-pm.json
+    source: docs/plan/m4a-triage.md
+    screen: a1-bd-pm
+    ticket: '40'
+  - id: m4a.a2-category-cell
+    feature: A2 Category and cell analysis with detail
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a2-category-cell.json
+    source: docs/plan/m4a-triage.md
+    screen: a2-category-cell
+    ticket: '40'
+  - id: m4a.a3-mttr-mtbf
+    feature: A3 MTTR and MTBF with the machine table
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a3-mttr-mtbf.json
+    source: docs/plan/m4a-triage.md
+    screen: a3-mttr-mtbf
+    ticket: '40'
+  - id: m4a.a4-manpower
+    feature: 'A4 Manpower: done, supported, MTTR per person and vendor'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a4-manpower.json
+    source: docs/plan/m4a-triage.md
+    screen: a4-manpower
+    ticket: '41'
+  - id: m4a.a5-energy
+    feature: 'A5 Energy heatmap: connected and running load by cell and location'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a5-energy.json
+    source: docs/plan/m4a-triage.md
+    screen: a5-energy
+    ticket: '41'
+  - id: m4a.a6-why-why
+    feature: 'A6 Why-Why: candidates over 12 hours and saved analyses'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a6-why-why.json
+    source: docs/plan/m4a-triage.md
+    screen: a6-why-why
+    ticket: '41'
+  - id: m4a.a10-problems
+    feature: A10 Problem analysis with charts and sortable tables
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a10-problems.json
+    source: docs/plan/m4a-triage.md
+    screen: a10-problems
+    ticket: '41'
+  - id: m4a.a9-bottleneck-forecast
+    feature: A9 Bottleneck scoring, planning forecast, trend test, repeat faults
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/a9-bottleneck-forecast.json
+    source: docs/plan/m4a-triage.md
+    screen: a9-bottleneck-forecast
+    ticket: '42'
+  - id: m4a.forecast-lab
+    feature: Forecast Lab backtest
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/forecast-lab.json
+    source: docs/plan/m4a-triage.md
+    screen: forecast-lab
+    ticket: '42'
+  - id: m4a.compare
+    feature: Compare machines with the age-adjusted health score
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/compare.json
+    source: docs/plan/m4a-triage.md
+    screen: compare
+    ticket: '43'
+  - id: m4a.team-focus
+    feature: 'Team Focus: ranked actions with owner, status, note'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/team-focus.json
+    source: docs/plan/m4a-triage.md
+    screen: team-focus
+    ticket: '43'
+  - id: m4a.money-matters
+    feature: 'Money Matters: cost per machine-hour, turnover impact'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/money-matters.json
+    source: docs/plan/m4a-triage.md
+    screen: money-matters
+    ticket: '43'
+  - id: m4a.fix-finder
+    feature: Fix Finder ranking of similar past fixes
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/fix-finder.json
+    source: docs/plan/m4a-triage.md
+    screen: fix-finder
+    ticket: '43'
+  - id: m4a.action-center
+    feature: 'Action Center: 13 data rules, good news, AMC and legal reminders'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/action-center.json
+    source: docs/plan/m4a-triage.md
+    screen: action-center
+    ticket: '44'
+  - id: m4a.monthly-report
+    feature: Monthly maintenance report and PDF
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/monthly-report.json
+    source: docs/plan/m4a-triage.md
+    screen: monthly-report
+    ticket: '45'
+  - id: m4a.annual-report
+    feature: Annual maintenance report and PDF
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/annual-report.json
+    source: docs/plan/m4a-triage.md
+    screen: annual-report
+    ticket: '45'
+  - id: m4a.workbook-export
+    feature: Excel export of the whole data set
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/workbook-export.json
+    source: docs/plan/m4a-triage.md
+    screen: workbook-export
+    ticket: '45'
+  - id: m4a.guide
+    feature: 'Guide: how every number is calculated'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/guide.json
+    source: docs/plan/m4a-triage.md
+    screen: guide
+    ticket: '45'
+  - id: m4a.settings
+    feature: 'Platform Settings: hours, days, cost, thresholds, lists, team, codes'
+    disposition: keep
+    milestone: M4a
+    milestones:
+      - M4a
+    status: todo
+    evidence:
+      - fixtures/answer-key/legacy-settings.json
+    source: docs/plan/m4a-triage.md
+    screen: settings
+    ticket: '37'
+  - id: m4a.pdf-import
+    feature: PDF import of a breakdown report by QR (preview, apply)
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason:
+      'Tickets now create the report; the 1,350 rows are already in the workbook. Cost if wrong:
+      Paper reports not in the workbook are re-keyed by hand through the past-breakdown path.'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: pdf-import
+    ticket: '36'
+  - id: m4a.excel-import
+    feature: Restore the whole platform from an Excel file
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason:
+      'History loads through the cleaned-history path (D21); a general importer is M5. Cost
+      if wrong: None for Cosmos; a second plant waits for M5.'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: excel-import
+    ticket: '36'
+  - id: m4a.breakdown-form
+    feature: Typing a breakdown into the log
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason:
+      'New breakdowns are closed tickets; late ones use the past-breakdown path. Cost if wrong:
+      Bhavin types in the old tool during the transition; one admin form.'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: breakdown-form
+    ticket: '36'
+  - id: m4a.general-work
+    feature: General Work page (jobs not on a machine)
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason:
+      'Work requests are tickets; the desk already lists them. Cost if wrong: Jobs by type,
+      place and person are not totalled until built over tickets (small).'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: general-work
+    ticket: '36'
+  - id: m4a.live-status-card
+    feature: Live machine status card on the dashboard
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason: 'The M1 live board is the live view. Cost if wrong: One dashboard card.'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: live-status-card
+    ticket: '36'
+  - id: m4a.settings-sync
+    feature: Settings sync preview and push to the phones
+    disposition: drop
+    milestone: M4a
+    milestones:
+      - M4a
+    status: waived
+    waiver_reason: 'The phones and the analytics are one system now. Cost if wrong: None.'
+    evidence: []
+    source: docs/plan/m4a-triage.md
+    screen: settings-sync
+    ticket: '36'
+  - id: m4a.oem-analytics
+    feature: 'OEM Analytics: new-machine breakdowns, OEM or ours'
+    disposition: keep
+    milestone: M6
+    milestones:
+      - M6
+    status: todo
+    evidence:
+      - fixtures/answer-key/oem-analytics.json
+    source: docs/plan/m4a-triage.md
+    screen: oem-analytics
+    ticket: '36'

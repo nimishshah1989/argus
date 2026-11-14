@@ -1,0 +1,24 @@
+{
+  "screen": "workbook-export",
+  "asOf": "2026-11-11",
+  "sheets": [
+    {"name":"CNC Machine Master","header":["Sr.","Machine ID","Segment","Category","Make","Model","Serial No","Controller","Ctrl Model","Ctrl Sr No","Year","Date of Purchase","Power(KVA)","Location","Cell","Asset Code","Length(mm)","Width(mm)","Conveyor","Age (Yrs)","Efficiency Factor (%)"],"dataRows":126},
+    {"name":"Conventional Machines","header":["Sr.","Machine ID","Category","Make","Model","Serial No","Year","Date of Purchase","Power(KVA)","Location","Cell","Length(mm)","Width(mm)","Age (Yrs)","Efficiency Factor (%)"],"dataRows":16},
+    {"name":"Process Machines","header":["Sr.","Machine ID","Category","Make","Model","Serial No","Year","Date of Purchase","Power(KVA)","Location","Cell","Length(mm)","Width(mm)","Age (Yrs)","Efficiency Factor (%)"],"dataRows":17},
+    {"name":"DG Sets","header":["Sr.","DG ID","Make","Model","Serial No","Year","Date of Purchase","Capacity(KVA)","Location","Cell","Length(mm)","Width(mm)","Age (Yrs)"],"dataRows":3},
+    {"name":"Utilities","header":["Sr.","Machine ID","Category","Make","Model","Serial No","Year","Date of Purchase","Power(KVA)","Location","Cell","Length(mm)","Width(mm)","Age (Yrs)","Efficiency Factor (%)"],"dataRows":30},
+    {"name":"Breakdown Log","header":["Sr.","Machine ID","Date","Month","Shift","Problem Description","Observed By","Corrective Action","Done By","Supported By","Machine downtime (Min)","Machine downtime (Hrs)","Maint Code","E/M","PM(Hrs)","Spare 1","Cost 1","Spare 2","Cost 2","Spare 3","Cost 3","Total Spare Cost","Record ID","Response time (Min)","Repair time (Min)","Section","Ticket ID","Ticket No.","Source","Follow-up (Min)"],"dataRows":1350},
+    {"name":"Cell Change Log","header":["Date","Machine ID","From Cell","To Cell","From Location","To Location","Record ID"],"dataRows":15},
+    {"name":"Why-Why Analysis","header":["Machine ID","Date","Down (Hrs)","Problem","Why 1","Why 2","Why 3","Why 4","Why 5","Root Cause / Conclusion","Completed By","Completed Date"],"dataRows":0},
+    {"name":"Settings","header":["Team Members","Type","Status","Usual shift"],"dataRows":35},
+    {"name":"PM Plan","header":["Sr.","Machine ID","Plan date","Source","Record ID","Done date","Target date","Machine shift","Routine"],"dataRows":427},
+    {"name":"AMC & Warranty","header":["Sr.","Machine ID","Type","Start date","Tenure (months)","End date","Vendor / contract no.","Not renewing"],"dataRows":2},
+    {"name":"Legal Compliance","header":["Sr.","Machine ID","Test / calibration","Form No","Last test date","Valid for (months)","Next due","Certificate / report no."],"dataRows":1},
+    {"name":"PM Reports","header":["Sr.","Machine ID","Actual date","Plan date","Done by","Points","Points not ticked","Measurements","Comments","Remarks","Reviewed by","Prod. supervisor","Maint. supervisor","Record ID","Data"],"dataRows":2},
+    {"name":"App Settings","header":["Key","Part","Value (do not edit)"],"dataRows":52},
+    {"name":"Analytics 1 - BD%","header":["Cell","Machines","Available Hrs","BD Hours","BD %","PM Hours","PM %"],"dataRows":9},
+    {"name":"Analytics 2 - Category-Cell","header":["Category","Machines","# Breakdowns","BD Hours","Avg/Machine","Avg/Breakdown"],"dataRows":25},
+    {"name":"Analytics 3 - MTTR-MTBF","header":["Category","Machines","# Breakdowns","BD Hours","MTTR","MTBF"],"dataRows":159},
+    {"name":"Analytics 4 - Manpower","header":["Name","Type","#BD(Done)","Hrs(Done)","AvgMTTR","#BD(Supported)","Hrs(Supported)","Total Involvement","% of Total"],"dataRows":14}
+  ]
+}

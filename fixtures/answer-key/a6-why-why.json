@@ -1,0 +1,45 @@
+{
+  "screen": "a6-why-why",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "a6",
+      "title": "Why-Why Analysis",
+      "kpis": [],
+      "tables": [
+        {
+          "title": "Why-Why (Root Cause) Analysis",
+          "header": ["Machine","Date","Problem","Down (Hrs)","Status",""],
+          "rows": [
+            ["TMC-2","13-06-2026","geometry problem","238.58","Not Started","Start Why-Why"],
+            ["TC-5","23-04-2026","alarm\" s01 power module over current","154.75","Not Started","Start Why-Why"],
+            ["TC-7","02-06-2026","machine Accident","97.75","Not Started","Start Why-Why"],
+            ["TC-13","04-07-2026","Cable burnning in machine (Chuck clamp/unclamp coil short)","69.80","Not Started","Start Why-Why"],
+            ["TC-10","25-08-2026","Machine accident","60.00","Not Started","Start Why-Why"],
+            ["VC-23","23-08-2026","Lubrication pump issue","59.98","Not Started","Start Why-Why"],
+            ["S-2","18-08-2026","Z-2 Axis jammed due to part stuck","55.00","Not Started","Start Why-Why"],
+            ["TC-24","21-06-2026","turret not clamp/indux time out","49.88","Not Started","Start Why-Why"],
+            ["HMC-2","23-06-2026","y26 FSSB alarm","47.68","Not Started","Start Why-Why"],
+            ["TC-18","06-06-2026","convayor not working","41.17","Not Started","Start Why-Why"],
+            ["TC-3","17-04-2026","Z axis motor humming","33.17","Not Started","Start Why-Why"],
+            ["TMC-2","08-04-2026","Machine Re-installation","28.50","Not Started","Start Why-Why"],
+            ["VC-11","04-04-2026","Machine Re-installation","24.80","Not Started","Start Why-Why"],
+            ["HMC-3","16-04-2026","ATC arm not ready alram","22.50","Not Started","Start Why-Why"],
+            ["VC-27","09-06-2026","coolant leakage","16.58","Not Started","Start Why-Why"],
+            ["VC-29","09-06-2026","coolant leakage","16.58","Not Started","Start Why-Why"],
+            ["VTL-5","05-05-2026","spindle not working in auto cycle","16.42","Not Started","Start Why-Why"],
+            ["VC-22","24-10-2026","Through coolant issue","16.00","Not Started","Start Why-Why"],
+            ["WJ-01","02-09-2026","KMT pump water leakage","15.00","Not Started","Start Why-Why"],
+            ["TMC-4","09-04-2026","live tool barring problem","13.67","Not Started","Start Why-Why"],
+            ["VC-6","08-08-2026","Tool change problem","13.00","Not Started","Start Why-Why"],
+            ["DCMC-02","17-04-2026","Angular Head & axis not working","12.08","Not Started","Start Why-Why"],
+            ["TC-17","07-08-2026","Draw tube broken","12.07","Not Started","Start Why-Why"],
+            ["WJ-01","03-11-2026","KMT service engineer and Phoenix Service engineer visited the machine to check the problem.","12.02","Not Started","Start Why-Why"]
+          ],
+          "rowCount": 24
+        }
+      ],
+      "charts": []
+    }
+  ]
+}

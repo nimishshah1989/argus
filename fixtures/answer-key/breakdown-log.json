@@ -1,0 +1,5 @@
+{
+  "screen": "breakdown-log",
+  "asOf": "2026-11-11",
+  "pages": [{"page":"breakdowns","title":"Breakdown Log","kpis":[],"tables":[{"title":"","header":["","Sr No","Ticket No.","Date","Shift","Machine","Problem","Done By","Downtime (Hrs)","Code"],"rows":[["👁","1357","BD-0151","07-11-2026","2","VC-15","ATC trouble Machine Stop","Person 20","1.83","ATC"],["👁","1356","BD-0143","07-11-2026","2","VC-41","Power interrupt/ phase failure.check & cor","Person 21","0.58","E"],["👁","1355","BD-0144","07-11-2026","2","HMC-2","Atc Arm move to left side time out","Person 21","1.32","E"]],"rowCount":1343,"truncated":true}],"charts":[]}]
+}

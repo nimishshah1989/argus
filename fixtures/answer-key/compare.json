@@ -1,0 +1,48 @@
+{
+  "screen": "compare",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "cmp",
+      "title": "Compare Machines",
+      "kpis": [],
+      "tables": [
+        {
+          "title": "Health scorecard (0–10, adjusted for age)SortDefault orderPartVC-28VC-22↕ Default order",
+          "header": ["Part","VC-28","VC-22"],
+          "rows": [["Breakdown frequencyweight 30%","3.927 breakdowns against 13.2 expected","1.842 breakdowns against 13.2 expected"],["Downtime hoursweight 25%","0.0151.3 hrs against 21.4 expected","0.2112.0 hrs against 21.4 expected"],["Repair time (MTTR)weight 15%","1.25.60 hrs per repair against 1.64 for the category","4.72.67 hrs per repair against 1.64 for the category"],["Recent trendweight 15%","2.75 breakdowns in the last 90 days, 1 in the 90 days before","8.57 breakdowns in the last 90 days, 10 in the 90 days before"],["Repeat & very long faultsweight 10%","7.51 repeat-fault cluster, 0 breakdowns over 12 hrs","0.05 repeat-fault clusters, 1 breakdown over 12 hrs"]],
+          "rowCount": 5
+        },
+        {
+          "title": "Health checkupSortDefault orderParameterVC-28VC-22Category average↕ Default order",
+          "header": ["Parameter","VC-28","VC-22","Category average"],
+          "rows": [
+            ["Health score (0–10, age-adjusted)7 = as expected for its category and age. See the scorecard above for the parts.","2.6","2.7 ✓","—"],
+            ["Availability1 − BD hours ÷ available hours","97.04%","97.81% ✓","99.57%"],
+            ["BreakdownsPM excluded","27 ✓","42","12.4"],
+            ["Breakdowns per month","2.6 ✓","4.1","1.3"],
+            ["BD hoursNO DT entries count as 0 hours","151.3","112.0 ✓","20.3"],
+            ["BD hours per month","14.8","10.9 ✓","2.1"],
+            ["MTTR (hrs per breakdown)How long a repair takes on average","5.60","2.67 ✓","1.33"],
+            ["MTBF (hrs between breakdowns)How long it runs before the next failure","184 ✓","119","574"],
+            ["Longest breakdown (hrs)","11.5 ✓","16.0","5.1"],
+            ["Days since last breakdownCounted to the last entry in the log","0","2 ✓","—"],
+            ["Spares costSum of the three spare cost fields","₹ 0","₹ 0","₹ 0"],
+            ["Spares cost per breakdown","₹ 0","₹ 0","—"],
+            ["Breakdowns, last 90 daysTo the last entry in the log","5 ✓","7","—"],
+            ["Breakdowns, the 90 days beforeShows whether it is getting better or worse","1","10","—"],
+            ["Electrical breakdowns (E)","6","14","—"],
+            ["Mechanical breakdowns (M)","21","27","—"],
+            ["PM entries loggedPreventive maintenance entries in the log","0","2 ✓","—"]
+          ],
+          "rowCount": 17
+        },
+        {"title":"SpecificationsSortDefault orderItemVC-28VC-22↕ Default order","header":["Item","VC-28","VC-22"],"rows":[["Category","Vertical Machining Center","Vertical Machining Center"],["Make","Cosmos","Cosmos"],["Model","CVM-800","MILL TAP MT 700"],["Controller","Mitsubishi M80","Fanuc Oi-MF"],["Control unit","FCA80H-4AV","A02B-0338-B520"],["Age (years)","4.0","5.0"],["Year","2022","2021"],["Power (kW)","21","18"],["Footprint","4.0 × 2.5 m","4.0 × 3.0 m"],["Cell","6","6"],["Location","486","486"]],"rowCount":11},
+        {"title":"VC-28 — longest breakdownsSortDefault orderDateProblemCodeHrs↕ Default order","header":["Date","Problem","Code","Hrs"],"rows":[["09-02-2026","Tool declamp problem","ATC","11.5"],["09-02-2026","Tool declamp problem","ATC","11.5"],["10-02-2026","Tool declamp problem","ATC","11.5"],["11-02-2026","Tool declamp problem","ATC","11.5"],["04-02-2026","Tool declamp problem","M","10.0"]],"rowCount":5},
+        {"title":"VC-22 — longest breakdownsSortDefault orderDateProblemCodeHrs↕ Default order","header":["Date","Problem","Code","Hrs"],"rows":[["24-10-2026","Through coolant issue","LIK","16.0"],["22-01-2026","4th axis not clamped/clamp signal issue","RT","11.5"],["21-01-2026","CTS Coolant Pipe Broken","LIK","10.0"],["23-01-2026","4th axis not clamped/clamp signal issue","RT","10.0"],["22-01-2026","4th axis not clamped/clamp signal issue","RT","9.5"]],"rowCount":5},
+        {"title":"By shift","header":["Shift","VC-28 breakdowns","hrs","VC-22 breakdowns","hrs"],"rows":[["1","14","79.9","31","90.2"],["2","13","71.4","11","21.8"]],"rowCount":2}
+      ],
+      "charts": [{"id":"ch-cmp-code","type":"bar","labels":["ATC","RT","LIK","M","HUM","E","MIS","PNU","HY","NO DT"],"datasets":[{"label":"VC-28","data":[136.7,1.3,0,10,0,2.8,0,0.5,0,0]},{"label":"VC-22","data":[2.4,43.4,31.8,10.2,11.9,9.1,3,0,0.1,0]}]},{"id":"ch-cmp-month","type":"line","labels":["Jan 26","Feb 26","Mar 26","Apr 26","May 26","Jun 26","Jul 26","Aug 26","Sep 26","Oct 26","Nov 26"],"datasets":[{"label":"VC-28","data":[0.8,144.7,1.5,1,0,0,0.5,0,0,0.8,2]},{"label":"VC-22","data":[55.6,9.3,5,2.7,6.6,1,13.8,0,0.9,17.2,0]}]}]
+    }
+  ]
+}

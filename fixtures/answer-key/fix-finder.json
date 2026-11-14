@@ -1,0 +1,36 @@
+{
+  "screen": "fix-finder",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "ff",
+      "title": "Fix Finder",
+      "kpis": [{"label":"Similar cases","value":"57","sub":"Good evidence"},{"label":"On this machine","value":"—","sub":"choose a machine to see its own history"},{"label":"Typical downtime","value":"1.3 hrs","sub":"average 2.3 hrs (NO DT counts as 0)"},{"label":"Last seen","value":"06-11-2026","sub":"most recent similar breakdown"}],
+      "tables": [
+        {
+          "title": "Similar breakdowns across the plant (117)",
+          "header": ["Match","Date","Machine","Problem","What was done","Down (hrs)","Done by"],
+          "rows": [
+            ["100%","26-10-2026","VC-38","Alarm (Spindle fan motor overload)","Reset the MPCB while machine OFF and resolve it","0.17","Person 04"],
+            ["100%","26-10-2026","VC-25","Spindle fan motor overload","Reset the MPCB and turn OFF the machine","0.25","Person 04"],
+            ["100%","12-10-2026","VTL-6","Alarm (Spindle Overload)","Check the machine spindle load and reset the machine","0.32","Person 21"],
+            ["100%","30-09-2026","VTL-6","Spindle motor overload issue","Reset the machine and working ok","0.33","Person 20"],
+            ["100%","23-04-2026","DCMC-01","alarm\"M7059 spindle fan motor overload","due to fen Jam clean it and restart machine","0.37","Person 30"],
+            ["100%","14-02-2026","VC-15","1001 spindle alarm","Spindle motor found heating so removed motor guards, cleaned dust around it properly, removed motor backside fan, found dust accumulated & so not fully functional, cleaned dirt surrounding & made it free, assembled back & took dry trial of it, found ok for 01 hour than handed over machine to production.","3.33",""],
+            ["70%","31-10-2026","TC-13","Alarm (SV0442 Z-PS charge failure, SP9051 S-PS lower voltage, EX-1014 Hydraulic pressure low, EX-1011 Spindle alarm","Check chuck clamp de-clamp coil sort so change it and top up the hydraulic oil","10.35","Person 21"],
+            ["70%","30-10-2026","VC-21","Spindle Orientation issue","Change the spindle belt","2.77","Person 21, Person 20"],
+            ["70%","28-10-2026","TMC-6","Alarm (Spindle oil chiller fault)","Check clean the fan and reset the machine","0.00","Person 13"],
+            ["70%","21-10-2026","VC-8","Alarm (750 Spindle series link error)","Open, clean the spindle drive supply link connector rejoin it and reset the machine","0.27","Person 21"],
+            ["70%","19-10-2026","TMC-5","Alarm (EX 2184I. SUB.SPINDLE cooling unit)","Clean the chiller filter and resolve it","0.42","Person 04"],
+            ["70%","15-10-2026","VC-30","Machine spindle tool de-clamp issue","Change the coil of cylinder clamp un-clamp valve","1.33","Person 21"],
+            ["70%","06-10-2026","VC-22","Alarm (Spindle not orient)","Z-Axis spindle air pipe loose so fix it and reset the alarm","1.17","Person 25"],
+            ["70%","05-10-2026","VTL-6","Alarm (Spindle High speed connector is OFF)","Check the high, low contactor and reset the machine","0.92","Person 21"],
+            ["70%","01-10-2026","VC-24","Spindle belt broken","Change the spindle belt","2.17","Person 04"]
+          ],
+          "rowCount": 15
+        }
+      ],
+      "charts": []
+    }
+  ]
+}
