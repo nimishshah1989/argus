@@ -34,6 +34,8 @@ export interface ActorAuth {
   role: string;
   shared: boolean;
   personId: string | null;
+  /** The cell of this login, null when it has none. */
+  cell: string | null;
 }
 
 /** A ticket_event row rehydrated into a domain event plus the columns the API exposes. */

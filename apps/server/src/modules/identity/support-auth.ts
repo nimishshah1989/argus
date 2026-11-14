@@ -135,6 +135,8 @@ async function judge(tx: PoolClient, attempt: Attempt): Promise<AuthContext | Re
     personName: `${platformUser} (support)`,
     personTitle: null,
     mustChangePassword: false,
+    // Our own staff belong to no plant cell.
+    cell: null,
     supportGrantId: grant.id,
   };
 }

@@ -60,6 +60,7 @@ function userFrom(ctx: Omit<AuthContext, 'token' | 'tenantId'>) {
       ? { id: ctx.personId, name: ctx.personName ?? '', title: ctx.personTitle }
       : null,
     mustChangePassword: ctx.mustChangePassword,
+    cell: ctx.cell,
     ...(ctx.supportGrantId ? { supportGrantId: ctx.supportGrantId } : {}),
   };
 }
@@ -104,6 +105,7 @@ interface NewSession {
     shared: boolean;
     must_change_password: boolean;
     password_hash: string;
+    cell: string | null;
   };
   username: string;
   device: string | undefined;
@@ -137,6 +139,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
       personName: n.person?.name ?? null,
       personTitle: n.person?.title ?? null,
       mustChangePassword: n.loginRow.must_change_password,
+      cell: n.loginRow.cell,
     }),
   });
 }

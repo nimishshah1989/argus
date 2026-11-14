@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { canLiveBoard, dayScore, type DayTicket, type TicketEvent } from '@uptimo/domain';
+import { dayScore, type DayTicket, type TicketEvent } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth, tenantInfo } from '../identity/index.js';
-import { actorOf, forbidden, offBoardMachineIds, setting } from '../plant/index.js';
+import { forbidden, mayViewBoard, offBoardMachineIds } from '../plant/index.js';
 import { figureInput } from './figure-input.js';
 import { rowToTicket } from './mapper.js';
 import { dayTicketRows, dayWindow } from './repo/board.js';
@@ -44,8 +44,7 @@ export async function boardToday(
   if (!ctx) return;
   const now = new Date();
   const today = await withTenant(pool, ctx.tenantId, async (client) => {
-    const features = (await setting(client, ctx.tenantId, 'features')) as Row | undefined;
-    if (!canLiveBoard(actorOf(ctx), features?.floorLive === true)) return null;
+    if (!(await mayViewBoard(client, ctx))) return null;
     const window = await dayWindow(client, (await tenantInfo(client, ctx.tenantId)).time_zone, now);
     const offBoard = await offBoardMachineIds(client, ctx.tenantId);
     const tickets: DayTicket[] = [];

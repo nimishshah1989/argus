@@ -15,6 +15,7 @@ import { startTestDb, type TestDb } from './harness.js';
 
 const A = '34000000-0000-4000-8000-00000000000a';
 const MACHINE = '34000000-0000-4000-8000-000000000101';
+const MACHINE_NO_CELL = '34000000-0000-4000-8000-000000000102';
 const id = (n: number) => `34000000-0000-4000-8000-0000000002${n.toString(16).padStart(2, '0')}`;
 const [REPORTER, LEAD, SUPER, FLOOR2, OUTSIDER] = [id(1), id(2), id(3), id(4), id(5)];
 const PASSWORD = 'correct-horse-battery';
@@ -71,8 +72,9 @@ beforeAll(async () => {
   });
   await admin.query("INSERT INTO tenant (id, slug, name) VALUES ($1, 'hb-a', 'Handback A')", [A]);
   await admin.query(
-    "INSERT INTO machine (id, tenant_id, code, criticality, cell) VALUES ($1, $2, 'VC-HB', 'A', 'C1')",
-    [MACHINE, A],
+    `INSERT INTO machine (id, tenant_id, code, criticality, cell) VALUES
+      ($1, $2, 'VC-HB', 'A', 'C1'), ($3, $2, 'VC-HB-NC', 'A', NULL)`,
+    [MACHINE, A, MACHINE_NO_CELL],
   );
   await admin.query(
     `INSERT INTO person (id, tenant_id, name, team, kind) VALUES
@@ -89,6 +91,7 @@ beforeAll(async () => {
       ($1, NULL, 'cell1', $7, 'operator', true, 'C1'),
       ($1, $5, 'floor2', $7, 'operator', false, 'C1'),
       ($1, $6, 'cell2', $7, 'operator', false, 'C2'),
+      ($1, $6, 'nocell', $7, 'operator', false, NULL),
       ($1, $3, 'boss', $7, 'admin', false, NULL),
       ($1, NULL, 'tv', $7, 'board', true, NULL)`,
     [A, REPORTER, LEAD, SUPER, FLOOR2, OUTSIDER, passwordHash],
@@ -105,7 +108,7 @@ beforeAll(async () => {
   const config: AppConfig = { pool: db.app, logger: false, rateLimitMax: 100000 };
   app = await buildApp(config);
   boss = config.jobBoss!;
-  for (const name of ['rina', 'lal', 'sana', 'cell1', 'floor2', 'cell2', 'boss', 'tv']) {
+  for (const name of ['rina', 'lal', 'sana', 'cell1', 'floor2', 'cell2', 'nocell', 'boss', 'tv']) {
     tokens[name] = await login(name);
   }
 }, 120_000);
@@ -116,9 +119,12 @@ afterAll(async () => {
 });
 
 /** A breakdown reported by Rina, worked by Lal and closed with a report (or as `kind` says). Returns the ticket id. */
-async function closedBreakdown(kind: 'report' | 'no_report' | 'done' = 'report'): Promise<string> {
+async function closedBreakdown(
+  kind: 'report' | 'no_report' | 'done' = 'report',
+  machineId = MACHINE,
+): Promise<string> {
   const raised = await call('POST', '/api/v1/tickets', tokens.rina!, {
-    machineId: MACHINE,
+    machineId,
     problem: 'Spindle stops',
   });
   expect(raised.statusCode).toBe(201);
@@ -557,5 +563,83 @@ describe('after a dispute', () => {
       personId: LEAD,
       reason: 'x',
     });
+  });
+});
+
+describe('refusals the app can tell apart', () => {
+  it('a dispute refused for a new open breakdown names it with a stable code and the new ticket', async () => {
+    const ticketId = await closedBreakdown();
+    const next = await call('POST', '/api/v1/tickets', tokens.rina!, {
+      machineId: MACHINE,
+      problem: 'New stop',
+    });
+    expect(next.statusCode).toBe(201);
+    const res = await answer(ticketId, 'rina', REPORTER, { response: 'disputed', reason: 'Again' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toMatchObject({
+      code: 'reopen_blocked',
+      openTicket: {
+        ticketId: next.json().ticket.id,
+        ref: next.json().ticket.ref,
+        reportedAt: next.json().ticket.reportedAt,
+      },
+    });
+    await call('POST', `/api/v1/tickets/${next.json().ticket.id}/cancel`, tokens.boss!, {
+      personId: LEAD,
+      reason: 'x',
+    });
+  });
+
+  it('an operator from another cell is told which cell the machine is in and which is theirs', async () => {
+    const ticketId = await closedBreakdown();
+    const res = await answer(ticketId, 'cell2', OUTSIDER, { response: 'confirmed' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toMatchObject({
+      code: 'other_cell',
+      machineCell: 'C1',
+      loginCell: 'C2',
+    });
+    expect((await read(ticketId)).ticket.handback.status).toBe('requested');
+  });
+
+  it('a login with no cell, or a machine with no cell, gets the plain refusal, not a cell comparison', async () => {
+    const onCell = await closedBreakdown();
+    const noCellLogin = await answer(onCell, 'nocell', OUTSIDER, { response: 'confirmed' });
+    expect(noCellLogin.statusCode).toBe(403);
+    expect(noCellLogin.json().error).toEqual({
+      code: 'forbidden',
+      message: 'You do not have permission for this action',
+    });
+    const noCellMachine = await closedBreakdown('report', MACHINE_NO_CELL);
+    const fromCell = await answer(noCellMachine, 'cell2', OUTSIDER, { response: 'confirmed' });
+    expect(fromCell.statusCode).toBe(403);
+    expect(fromCell.json().error.code).toBe('forbidden');
+    expect(fromCell.json().error.machineCell).toBeUndefined();
+    expect((await answer(noCellMachine, 'sana', SUPER, { response: 'confirmed' })).statusCode).toBe(
+      200,
+    );
+  });
+
+  it('a role that never answers keeps the plain refusal', async () => {
+    const ticketId = await closedBreakdown();
+    const technician = await answer(ticketId, 'lal', LEAD, { response: 'confirmed' });
+    expect(technician.statusCode).toBe(403);
+    expect(technician.json().error).toEqual({
+      code: 'forbidden',
+      message: 'You do not have permission for this action',
+    });
+  });
+
+  it("a login's cell is on the sign-in reply and on /auth/me, null when it has none", async () => {
+    const shared = await call('GET', '/api/v1/auth/me', tokens.cell1!);
+    expect(shared.json().user.cell).toBe('C1');
+    expect((await call('GET', '/api/v1/auth/me', tokens.floor2!)).json().user.cell).toBe('C1');
+    expect((await call('GET', '/api/v1/auth/me', tokens.cell2!)).json().user.cell).toBe('C2');
+    expect((await call('GET', '/api/v1/auth/me', tokens.rina!)).json().user.cell).toBeNull();
+    const signIn = await call('POST', '/api/v1/auth/login', '', {
+      username: 'cell2',
+      password: PASSWORD,
+    });
+    expect(signIn.json().user.cell).toBe('C2');
   });
 });

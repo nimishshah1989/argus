@@ -32,7 +32,7 @@ import {
 import { resolveActingPerson } from './acting.js';
 import { afterClose, checkTaskInput } from './tasks.js';
 import { checkHandoverTarget } from './targets.js';
-import { loginInTicketCell, reopenConflict } from './handback.js';
+import { loginInTicketCell, otherCellRefusal, reopenConflict } from './handback.js';
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
@@ -84,7 +84,7 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
         ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
         : false,
     pendingLevels: domain.pendingEscalationLevels(events),
-    sameCell: tx.action === 'handback' ? await loginInTicketCell(client, tx, row) : false,
+    sameCell: tx.action === 'handback' ? loginInTicketCell(tx, row) : false,
   };
 }
 
@@ -115,7 +115,7 @@ async function executeCommand(
   if (badTask) return badTask;
   const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
-  if ('status' in result) return result;
+  if ('status' in result) return otherCellRefusal(tx, loaded.row, result);
   const blocked = await reopenConflict(client, tx, loaded.ticket);
   if (blocked) return blocked;
   fillReplacedMinutes(loaded, result.events);

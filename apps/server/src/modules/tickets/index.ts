@@ -39,6 +39,11 @@ export const ticketsModule = defineModule({
   },
 });
 export {
+  closedAwaitingSignoff,
+  type AwaitingSignoffRow,
+  type SignoffCursor,
+} from './repo/signoff.js';
+export {
   dayJobRows,
   machineHistory,
   notesSeenElsewhere,

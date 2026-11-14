@@ -1,5 +1,4 @@
 import type { PoolClient } from 'pg';
-import { loginAdminById } from '../identity/index.js';
 import { apiError } from '@uptimo/shared';
 import type { Outcome, Tx } from './mapper.js';
 import { openTicketOn } from './repo/list.js';
@@ -11,14 +10,29 @@ function cellAtReport(row: Record<string, unknown>): string | null {
 }
 
 /** DOMAIN §3: an operator login whose cell is the cell the machine was reported in may answer for it. */
-export async function loginInTicketCell(
-  client: PoolClient,
-  tx: Tx,
-  row: Record<string, unknown>,
-): Promise<boolean> {
+export function loginInTicketCell(tx: Tx, row: Record<string, unknown>): boolean {
   const cell = cellAtReport(row);
-  if (!cell || tx.auth.role !== 'operator') return false;
-  return (await loginAdminById(client, tx.auth.loginId))?.cell === cell;
+  return cell !== null && tx.auth.role === 'operator' && tx.auth.cell === cell;
+}
+
+/**
+ * A sign-off refused to an operator, who answers only for their own cell, says which cell the machine was in and
+ * which is theirs, so the app can tell them where to go. That needs both cells to be known and to differ; any other
+ * refusal (a login or a machine with no cell, or not an operator) stays the plain one.
+ */
+export function otherCellRefusal(tx: Tx, row: Record<string, unknown>, refused: Outcome): Outcome {
+  if (refused.status !== 403 || tx.action !== 'handback' || tx.auth.role !== 'operator') {
+    return refused;
+  }
+  const machineCell = cellAtReport(row);
+  if (!machineCell || !tx.auth.cell || machineCell === tx.auth.cell) return refused;
+  return {
+    status: 403,
+    body: apiError('other_cell', 'This machine is in another cell', undefined, {
+      machineCell,
+      loginCell: tx.auth.cell,
+    }),
+  };
 }
 
 /**
@@ -37,8 +51,16 @@ export async function reopenConflict(
   return {
     status: 409,
     body: apiError(
-      'conflict',
+      'reopen_blocked',
       `The sign-off cannot reopen this ticket: the machine already has an open ticket, ${other.ref}.`,
+      undefined,
+      {
+        openTicket: {
+          ticketId: other.id,
+          ref: other.ref,
+          reportedAt: other.reportedAt.toISOString(),
+        },
+      },
     ),
   };
 }

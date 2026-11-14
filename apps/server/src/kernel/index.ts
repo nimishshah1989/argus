@@ -13,6 +13,7 @@ export {
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
 export { PUBLIC_READ_PER_MINUTE, publicRouteCap } from './public-cap.js';
+export { publicBaseDomainFromEnv } from './public-domain.js';
 export {
   configParts,
   contributeConfigPart,

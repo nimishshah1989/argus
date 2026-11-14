@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { boardTodayReplySchema } from './board.js';
+import { signoffFeedReplySchema } from './signoff.js';
 import {
   actingChoicesReplySchema,
   brandReplySchema,
@@ -181,6 +182,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
   [`GET ${P}/board/today`]: boardTodayReplySchema,
+  [`GET ${P}/board/signoff`]: signoffFeedReplySchema,
+  [`GET ${P}/tickets/:id/signoff-qr`]: null,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,

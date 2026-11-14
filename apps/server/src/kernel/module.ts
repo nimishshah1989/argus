@@ -7,6 +7,8 @@ export interface AppConfig {
   pool: Pool;
   logger?: FastifyServerOptions['logger'];
   rateLimitMax?: number;
+  /** Where the plants' addresses live (`<slug>.<domain>`); links to the app are built from it, never from a Host header. */
+  publicBaseDomain?: string;
   /** Local storage root for rendered files; S3 replaces this adapter later. */
   filesDir?: string;
   /** Chromium binary for PDF rendering; defaults to CHROMIUM_PATH or the E2E browsers. */
