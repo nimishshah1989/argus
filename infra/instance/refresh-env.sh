@@ -9,7 +9,7 @@ secret="$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --region 
   --query SecretString --output text)"
 umask 077
 jq -er '"DATABASE_URL=" + .DATABASE_URL,
-  (["APP_ENV","ANTHROPIC_API_KEY","AI_MODEL","AI_PRICE_INPUT_USD_PER_MTOK","AI_PRICE_OUTPUT_USD_PER_MTOK","AI_MAX_OUTPUT_TOKENS","AI_DEFAULT_MONTHLY_CAP_USD"][]
+  (["APP_ENV","ANTHROPIC_API_KEY","AI_MODEL","AI_PRICE_INPUT_USD_PER_MTOK","AI_PRICE_OUTPUT_USD_PER_MTOK","AI_MAX_OUTPUT_TOKENS","AI_DEFAULT_MONTHLY_CAP_USD","AI_RESIDENCY_RECORD","VAPID_PUBLIC_KEY","VAPID_PRIVATE_KEY","VAPID_SUBJECT","ERASURE_HASH_KEY","SUPPORT_KEYS","PUBLIC_BASE_DOMAIN"][]
    as $k | select(has($k) and .[$k] != "") | "\($k)=\(.[$k])")' <<<"$secret" > app.env
 # The environment name comes from the secret, else from its id: only ".../staging" is staging.
 if ! jq -e 'has("APP_ENV") and .APP_ENV != ""' <<<"$secret" >/dev/null; then
