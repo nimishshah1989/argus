@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CommandAction, CommandBody, CommandResult, Ticket } from '../api.js';
 import { enqueue, isQueueable } from '../offline/outbox.js';
 import { ApiError, http, idempotencyKey, isOffline } from './client.js';
@@ -45,12 +45,15 @@ export interface CommandHandle {
   run(ticketId: string, action: CommandAction, body: CommandBody): Promise<boolean>;
   error: string | null;
   pending: boolean;
+  /** The error of the latest failed run, for a screen that words some refusals itself. */
+  failure: () => unknown;
 }
 
 /** Runs one command, then refreshes the board and the open detail. Errors stay on the screen. */
 export function useCommand(): CommandHandle {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const failed = useRef<unknown>(null);
   const mutation = useMutation({
     mutationFn: (input: { ticketId: string; action: CommandAction; body: CommandBody }) =>
       runCommand(input.ticketId, input.action, input.body),
@@ -58,9 +61,11 @@ export function useCommand(): CommandHandle {
 
   async function run(ticketId: string, action: CommandAction, body: CommandBody): Promise<boolean> {
     setError(null);
+    failed.current = null;
     try {
       await mutation.mutateAsync({ ticketId, action, body });
     } catch (caught) {
+      failed.current = caught;
       setError(caught instanceof ApiError ? caught.message : 'Could not save. Try again.');
       return false;
     }
@@ -73,5 +78,5 @@ export function useCommand(): CommandHandle {
     return true;
   }
 
-  return { run, error, pending: mutation.isPending };
+  return { run, error, pending: mutation.isPending, failure: () => failed.current };
 }
