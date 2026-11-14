@@ -121,6 +121,10 @@ const TODAY = {
   responseMin: 6,
   repairMin: 22,
   waitingMin: 5,
+  responseCount: 6,
+  responseClosed: 4,
+  repairCount: 5,
+  repairClosed: 3,
 };
 
 /** The day score the server sends (`GET /board/today`), replaced with fixed numbers so the tiles can be read exactly. */
@@ -144,17 +148,26 @@ test('the board shows the plant day score: response today and repair today', asy
   const response = page.getByRole('group', { name: 'Response today' });
   const repair = page.getByRole('group', { name: 'Repair today' });
   await expect(response).toContainText('6 min');
-  await expect(response).toContainText('2 not started');
+  await expect(response).toContainText('average of 6, 4 closed');
   await expect(repair).toContainText('22 min');
-  await expect(repair).toContainText('3 still open');
+  await expect(repair).toContainText('average of 5, 3 closed');
 });
 
 test('a day with nothing to average shows a dash, never 0 min', async ({ page }) => {
-  await serveToday(page, { ...TODAY, responseMin: null, repairMin: null });
+  await serveToday(page, {
+    ...TODAY,
+    responseMin: null,
+    repairMin: null,
+    responseCount: 0,
+    responseClosed: 0,
+    repairCount: 0,
+    repairClosed: 0,
+  });
   await signIn(page, 'asha');
   await openBoard(page, false);
   await expect(page.getByRole('group', { name: 'Response today' })).toContainText('—');
   await expect(page.getByRole('group', { name: 'Repair today' })).not.toContainText('0 min');
+  await expect(page.getByRole('group', { name: 'Response today' })).not.toContainText('average');
 });
 
 test('the TV shows the same two tiles beside open over 1 day', async ({ page }) => {

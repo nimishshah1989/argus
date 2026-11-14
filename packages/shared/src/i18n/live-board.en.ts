@@ -17,7 +17,6 @@ export const liveBoardEn = {
   'live.ages.overDay': 'Over 1 day',
   'live.today.response': 'Response today',
   'live.today.repair': 'Repair today',
-  'live.today.notStarted': '{{count}} not started',
-  'live.today.stillOpen': '{{count}} still open',
+  'live.today.average': 'average of {{count}}, {{closed}} closed',
   'live.ages.line': '{{label}}: {{count}}',
 };

@@ -1,7 +1,13 @@
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { BoardToday } from '../../api.js';
 import { formatMinutes } from '../../components/format.js';
 import type { Scale } from './scale.js';
+
+/** "average of 6, 4 closed": the averages include tickets still being worked, so say how many are finished. */
+function average(t: TFunction, count: number, closed: number): string | undefined {
+  return count > 0 ? t('live.today.average', { count, closed }) : undefined;
+}
 
 /**
  * The plant's day so far, as the server scored it: how long a breakdown waited for someone to start, and how long
@@ -13,12 +19,12 @@ export function DayScore({ today, scale }: { today: BoardToday | undefined; scal
     {
       label: t('live.today.response'),
       minutes: today?.responseMin,
-      note: today && t('live.today.notStarted', { count: today.notStarted }),
+      note: today && average(t, today.responseCount, today.responseClosed),
     },
     {
       label: t('live.today.repair'),
       minutes: today?.repairMin,
-      note: today && t('live.today.stillOpen', { count: today.stillOpen }),
+      note: today && average(t, today.repairCount, today.repairClosed),
     },
   ];
   return (
