@@ -14,6 +14,7 @@ export {
   ChevronRight,
   ChevronUp,
   ChevronsUp,
+  ChevronsUpDown,
   CircleCheck,
   CircleHelp,
   CirclePlus,
