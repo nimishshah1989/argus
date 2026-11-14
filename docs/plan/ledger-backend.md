@@ -3,6 +3,39 @@
 One line per dispatch, ruling or merge. Owner: the backend orchestrator. Frontend lane's ledger: `docs/plan/ledger.md`
 on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost if wrong`.
 
+## RESUME HERE (backend orchestrator; rewrite this block at every restart, 14 Nov 07:57 UTC)
+
+Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLAUDE.md`, backend lane; read this ledger." Model: Sonnet high
+(`.claude/rules/pstack-models.md`). Restart at 60% context (get_session `context_usage`); on restart message every child session with the new parent id.
+
+- **Rules now (Nimish):** merges by orchestrators only, on covering checks green; he no longer merges from the GitHub page.
+  Builders run `pnpm precheck` + only the whole test files they touched before a push; CI runs the full suite once at ready.
+  No test deleted or weakened. Draft PRs run no CI. Never re-run a job more than once. Each new ticket starts in a FRESH session
+  whose first message is `/poteto-mode <brief>`, and the brief begins with a "what already exists on main" check (fill gaps only).
+  One migration in flight across both lanes (lock via FRONTEND). One reviewer per PR; two adversarial reviewers only for
+  migration/auth/tenancy; one fix round; merge main into the PR first when it touches files another merged PR touched.
+- **Merged today (backend):** #195 #199 #204 #206 #210 #211 #212 #216 #217 #220 #227 #228 (migration 0012, lock released) #230 (merged by
+  someone else before CI) + ledger PRs. **Tickets:** 29 done; 32 server half merged (follow-up with fixes + triggers in flight).
+- **In flight:** (a) 35 devices + support access, PR #231 (head f84627f, fixes done locally as 7f8665d, push on my "A sent", already given), builder
+  session_01KEBF27bzgyREScPzFL623W; after push: my scoped check, mark ready, merge. (b) 32 follow-up: #230 review fixes (2 HIGH: clock skew
+  drops retries; no sweeper) FIRST, then notify at raise/close events (new breakdown -> active maint+supervisor people; complaint fixed ->
+  reporter), builder session_01KEBF2AVUMZygMWkC4M5two. (c) 30 pause clock (server), builder session_01KEBF269NGcjLaBDHMKLsLU, branch
+  claude/t30-pause-clock, gap-only brief.
+- **Next (dispatch as slots free; cap 3 backend builders, ask FRONTEND for a 4th):** 31 g2 acknowledge command + roster/ladder API
+  (+ seed ESCALATION_DEFAULTS as editable rows, 1-year roster purge); 33 escalation (needs 31+32); 34 sign-off (handback events, timeout,
+  turnaround); 66 lockout flag; 26 leftovers (/brand rate limit, /state p95 test, stale /files wording); waitingMin on ticket figures (Nimish Q10);
+  erased-stays-erased (keyed hash of normalised name+phone; may need a migration: ask for the lock); push_subscription.session_id (device
+  sign-out drops push); zod 4 migration (lifts D28 exception); then M6 part 1 (55 needs lock, 71, 56, 72 incl. PR #173, 57; gate off until
+  Nimish supplies signed Anthropic terms, Cosmos consent N14, cap figure, threshold) and M4a (36/37, leadership read API).
+- **Answered by Nimish (relayed, "all yes"):** escalation defaults accepted as editable starting settings; support access = read all + change
+  plant settings, no ticket/people writes, admin can end early (machine criticality kept refused: re-arms open tickets); erased person stays erased;
+  PDF access and team day report yes; real Cosmos data in tests, names/phones invented.
+- **Open for Nimish (batch via FRONTEND):** raise backend builder cap from 3 to 5? (recommended); "change plant settings" read as
+  machines/segments/groups/shifts/logo/company/SLA/lists, not criticality; who merged #230/#225 from the GitHub page.
+- **Do not:** edit MILESTONES.md or HANDOFF.md (FRONTEND owns them; if the session-end hook edits HANDOFF.md or wiki/log.md locally, discard);
+  push to main; force-push; skip hooks. Ledger PRs: changes fragment named `changes/<PR#>-<slug>.md`, run `pnpm exec prettier --write`, `pnpm precheck`.
+- **FRONTEND orchestrator:** session_01KEBF28FjJbxz9dfKVhZPSp (asked to restart at 58% context; its new id will be messaged to me).
+
 - 2026-11-14 UTC — RULINGS (Nimish, 14 Nov, "go backend lane"; binding, override CLAUDE.md for the two lanes):
   (1) Two orchestrators; combined cap 5 builders: FRONTEND (session_01KEBF28rZZwgSDVMzdNjw77) up to 3, BACKEND up to 2.
   BACKEND writes `apps/server`, `packages/domain`, `packages/db` (migrations), `packages/shared` contracts, `scripts/`,
