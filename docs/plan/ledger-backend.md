@@ -48,3 +48,16 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   (2) EFFICIENCY: no redundant pushes, batch fixes, affected tests locally, ONE adversarial reviewer unless the ticket
   is a migration or auth-critical (then two). Applied: 21 (auth) keeps two reviewers, 22 gets one; both builders told.
   My ledger pushes batched with real events from now on.
+- 2026-11-14 05:20 UTC — 22 goal 1 server merged as #195 by Nimish himself at 05:16 (head deccf94; 8/9 green at
+  merge, api 2/3 still running). Plant head/admin write API for machines, segments, groups, shifts; criticality
+  audited; dated machine_move + GET /machines/:id/moves; canWrite replaced by canSettingsLists/canSettingsSla;
+  seesAllNeedReport in views.ts. Real Cosmos data test (TC-3 cell 7 -> 2; 30 utility machines hidden via group).
+  Builder rulings accepted: criticality stays on its own route (it must refresh severity/SLA across modules); who-moved
+  lives in the audit row; codes fixed after create; reads open to any signed-in login. One adversarial Opus review
+  running post-merge; findings -> one follow-up PR by the same builder.
+- Ruling: board filtering on group.hidden / segment.show_on_board is FRONTEND's (board is built in the browser); told.
+  Segment/shift switch-off needs an active column: proposed into ticket 29's migration. Cost if wrong: one more
+  migration later.
+- Dispatched 23 server (lists, glossary, company/logo/language/tz/switches, /files/{id} same-tenant check, one
+  switch-off contract matching the generated CrudPage) to the same builder session_01KEBF29YYNjUzx9DSA4QxoC, branch
+  claude/t23-plant-lists-company-api.
