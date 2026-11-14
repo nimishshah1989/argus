@@ -600,14 +600,17 @@ rows:
     feature:
       'Live board: tiles by segment and group, counts, filter chips, search, work-request footer,
       tap for machine sheet'
-    disposition: keep
+    disposition: improve
     milestone: M1
     milestones:
       - M1
     status: in-progress
     evidence:
       - 'PR #36'
-      - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
+      - 'Ticket 25: the board approved on 14 Nov replaces the grid with the pulse, three columns of stopped machines and their ages'
+      - 'apps/web/src/screens/board/data.test.ts :: liveBoard'
+      - 'apps/web/e2e/board.spec.ts :: a breakdown nobody has started shows its machine and age, and the pulse counts it'
+      - 'apps/web/e2e/board.spec.ts :: the TV is dark, has no navigation, and shows the three oldest stops of a column'
       - 'apps/web/e2e/board-hidden.spec.ts :: the board leaves out a hidden group and a segment kept off the board'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
