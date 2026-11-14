@@ -22,4 +22,5 @@ export const handlers: {
   lateReport: commands.lateReport,
   restore: commands.restore,
   correct: commands.correct,
+  confirmLockout: commands.confirmLockout,
 };

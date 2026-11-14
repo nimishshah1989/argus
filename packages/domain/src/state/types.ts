@@ -28,7 +28,9 @@ export type Command =
   | { type: 'upgradeKind'; personId: string }
   | { type: 'lateReport'; personId: string }
   | { type: 'restore'; personId: string; reason: string; toStatus?: RestorableStatus }
-  | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges };
+  | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges }
+  /** `steps`: the texts the person confirmed, kept on the history entry as they were worded then. */
+  | { type: 'confirmLockout'; personId: string; steps: string[] };
 
 export interface CorrectChanges {
   reportedAt?: Date;

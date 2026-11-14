@@ -21,6 +21,7 @@ import {
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
+import { lockoutSchema } from './lockout.js';
 import { slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
@@ -41,7 +42,7 @@ export const healthReplySchema = z.union([
 ]);
 /** A ticket as every reply carries it: tickets' fields, then accountability's `sla` part. */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable() })
+  .extend({ sla: slaProjectionSchema.nullable(), lockout: lockoutSchema.nullable().optional() })
   .strict();
 export const stateReplySchema = z
   .object({

@@ -27,7 +27,8 @@ export type EventType =
   // tag_add / tag_remove: history only, nothing writes them any more (old events still render)
   | 'tag_add'
   | 'tag_remove'
-  | 'acknowledge';
+  | 'acknowledge'
+  | 'lockout_confirmed';
 
 export interface EditChange {
   field: string;

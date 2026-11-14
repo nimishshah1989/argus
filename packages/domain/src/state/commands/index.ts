@@ -1,5 +1,6 @@
 export { cancel } from './cancel.js';
 export { close } from './close.js';
+export { confirmLockout } from './confirm-lockout.js';
 export { correct } from './correct.js';
 export { join } from './join.js';
 export { lateReport } from './late-report.js';
