@@ -90,6 +90,7 @@ function contextOf(token: string, tenantId: string, rows: AuthRows): AuthContext
     personName: rows.person_name,
     personTitle: rows.person_title,
     mustChangePassword: rows.must_change_password,
+    cell: rows.login_cell,
   };
 }
 

@@ -15,6 +15,8 @@ export const errorCodeSchema = z.enum([
   'lockout_required',
   'lockout_steps_missing',
   'steps_changed',
+  'reopen_blocked',
+  'other_cell',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
@@ -29,21 +31,37 @@ export const errorBodySchema = z
         steps: z.array(lockoutStepSchema).optional(),
         /** On a resume refused for the lockout: the people still to confirm. */
         missing: z.array(z.string()).optional(),
+        /** On a dispute refused because the machine has a new open breakdown: that ticket. */
+        openTicket: z
+          .object({ ticketId: z.string(), ref: z.string(), reportedAt: z.string() })
+          .strict()
+          .optional(),
+        /** On a sign-off refused to an operator from another cell: the machine's cell and the login's, null when none. */
+        machineCell: z.string().nullable().optional(),
+        loginCell: z.string().nullable().optional(),
       })
       .strict(),
   })
   .strict();
 export type ErrorBody = z.infer<typeof errorBodySchema>;
 
+export type ErrorExtra = Pick<
+  NonNullable<ErrorBody['error']>,
+  'openTicket' | 'machineCell' | 'loginCell'
+> & { steps?: LockoutStep[]; missing?: string[] };
+
 export function apiError(
   code: ErrorCode,
   message: string,
   field?: string,
-  extra: { steps?: LockoutStep[]; missing?: string[] } = {},
+  extra: ErrorExtra = {},
 ): ErrorBody {
   const error: ErrorBody['error'] = { code, message };
   if (field) error.field = field;
   if (extra.steps) error.steps = extra.steps;
   if (extra.missing) error.missing = extra.missing;
+  if (extra.openTicket) error.openTicket = extra.openTicket;
+  if (extra.machineCell !== undefined) error.machineCell = extra.machineCell;
+  if (extra.loginCell !== undefined) error.loginCell = extra.loginCell;
   return { error };
 }

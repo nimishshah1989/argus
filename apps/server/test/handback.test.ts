@@ -559,3 +559,63 @@ describe('after a dispute', () => {
     });
   });
 });
+
+describe('refusals the app can tell apart', () => {
+  it('a dispute refused for a new open breakdown names it with a stable code and the new ticket', async () => {
+    const ticketId = await closedBreakdown();
+    const next = await call('POST', '/api/v1/tickets', tokens.rina!, {
+      machineId: MACHINE,
+      problem: 'New stop',
+    });
+    expect(next.statusCode).toBe(201);
+    const res = await answer(ticketId, 'rina', REPORTER, { response: 'disputed', reason: 'Again' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toMatchObject({
+      code: 'reopen_blocked',
+      openTicket: {
+        ticketId: next.json().ticket.id,
+        ref: next.json().ticket.ref,
+        reportedAt: next.json().ticket.reportedAt,
+      },
+    });
+    await call('POST', `/api/v1/tickets/${next.json().ticket.id}/cancel`, tokens.boss!, {
+      personId: LEAD,
+      reason: 'x',
+    });
+  });
+
+  it('an operator from another cell is told which cell the machine is in and which is theirs', async () => {
+    const ticketId = await closedBreakdown();
+    const res = await answer(ticketId, 'cell2', OUTSIDER, { response: 'confirmed' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toMatchObject({
+      code: 'other_cell',
+      machineCell: 'C1',
+      loginCell: 'C2',
+    });
+    expect((await read(ticketId)).ticket.handback.status).toBe('requested');
+  });
+
+  it('a role that never answers keeps the plain refusal', async () => {
+    const ticketId = await closedBreakdown();
+    const technician = await answer(ticketId, 'lal', LEAD, { response: 'confirmed' });
+    expect(technician.statusCode).toBe(403);
+    expect(technician.json().error).toEqual({
+      code: 'forbidden',
+      message: 'You do not have permission for this action',
+    });
+  });
+
+  it("a login's cell is on the sign-in reply and on /auth/me, null when it has none", async () => {
+    const shared = await call('GET', '/api/v1/auth/me', tokens.cell1!);
+    expect(shared.json().user.cell).toBe('C1');
+    expect((await call('GET', '/api/v1/auth/me', tokens.floor2!)).json().user.cell).toBe('C1');
+    expect((await call('GET', '/api/v1/auth/me', tokens.cell2!)).json().user.cell).toBe('C2');
+    expect((await call('GET', '/api/v1/auth/me', tokens.rina!)).json().user.cell).toBeNull();
+    const signIn = await call('POST', '/api/v1/auth/login', '', {
+      username: 'cell2',
+      password: PASSWORD,
+    });
+    expect(signIn.json().user.cell).toBe('C2');
+  });
+});

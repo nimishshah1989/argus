@@ -115,14 +115,16 @@ export async function openTicketOn(
   tx: Db,
   tenantId: string,
   machineId: string,
-): Promise<{ id: string; ref: string } | undefined> {
+): Promise<{ id: string; ref: string; reportedAt: Date } | undefined> {
   const row = (
     await tx.query(
-      "SELECT id, ref FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status NOT IN ('closed', 'cancelled') LIMIT 1",
+      "SELECT id, ref, reported_at FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status NOT IN ('closed', 'cancelled') LIMIT 1",
       [tenantId, machineId],
     )
   ).rows[0];
-  return row && { id: row.id as string, ref: row.ref as string };
+  return (
+    row && { id: row.id as string, ref: row.ref as string, reportedAt: row.reported_at as Date }
+  );
 }
 
 export async function openDuplicateId(

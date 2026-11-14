@@ -9,6 +9,8 @@ export interface AuthContext {
   personName: string | null;
   personTitle: string | null;
   mustChangePassword: boolean;
+  /** The cell of this login, null when it has none. */
+  cell: string | null;
 }
 
 declare module 'fastify' {

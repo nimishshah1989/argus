@@ -40,6 +40,7 @@ export interface AuthRows {
   role: string;
   shared: boolean;
   must_change_password: boolean;
+  login_cell: string | null;
   person_id: string | null;
   person_name: string | null;
   person_title: string | null;
@@ -68,7 +69,7 @@ export async function readAuthRows(
 ): Promise<AuthRows | undefined> {
   const result = await withTenant(pool, args.tenantId, (client) =>
     client.query(
-      `SELECT l.id AS login_id, l.username, l.role, l.shared, l.must_change_password,
+      `SELECT l.id AS login_id, l.username, l.role, l.shared, l.must_change_password, l.cell AS login_cell,
               p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active, p.team AS person_team,
               (SELECT t.id FROM tenant_by_slug($4) t) AS host_tenant_id,
               COALESCE((SELECT s.last_seen_at < now() - ${TOUCH_AFTER} FROM session s WHERE s.token_hash = $2), false) AS stale
@@ -109,7 +110,7 @@ export async function findLogin(pool: Pool, tenantId: string, username: string) 
   return (
     await withTenant(pool, tenantId, (client) =>
       client.query(
-        'SELECT id, tenant_id, person_id, password_hash, role, shared, disabled_at, must_change_password FROM login WHERE username = $1',
+        'SELECT id, tenant_id, person_id, password_hash, role, shared, disabled_at, must_change_password, cell FROM login WHERE username = $1',
         [username],
       ),
     )

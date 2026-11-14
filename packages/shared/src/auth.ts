@@ -35,6 +35,8 @@ export const userSchema = z
     shared: z.boolean(),
     actingPersonId: z.string(),
     mustChangePassword: z.boolean().optional(),
+    // The cell this login belongs to (an operator login's cell decides which sign-offs it may answer); null when none.
+    cell: z.string().nullable().optional(),
     // Who is acting now; null on a shared phone whose acting person was switched off, until the app asks again.
     actingPerson: z
       .object({ id: z.string(), name: z.string(), title: z.string().nullable() })
