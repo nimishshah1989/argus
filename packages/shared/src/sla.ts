@@ -1,11 +1,19 @@
 import { z } from 'zod';
 import { severitySchema } from './config.js';
 
+/** 30 days: a longer pause or sign-off wait is a typing mistake, not a plant rule. */
+export const MAX_POLICY_MINUTES = 30 * 24 * 60;
+const optionalLimitMinutes = z.number().int().min(1).max(MAX_POLICY_MINUTES).nullable().optional();
+
 export const slaPolicySchema = z.object({
   id: z.string().uuid(),
   severity: severitySchema,
   ackMinutes: z.number().int().positive(),
   restoreMinutes: z.number().int().positive(),
+  /** Longest a ticket may stay paused; null or absent means no limit. */
+  pauseMaxMinutes: optionalLimitMinutes,
+  /** How long production has to confirm or dispute a fix; null or absent means no limit. */
+  handbackMinutes: optionalLimitMinutes,
   businessHoursOnly: z.boolean(),
 });
 export type SlaPolicy = z.infer<typeof slaPolicySchema>;
@@ -30,6 +38,8 @@ export const slaProjectionSchema = z
   .object({
     ack: slaTimerSchema.nullable(),
     restore: slaTimerSchema.nullable(),
+    /** Present once the ticket has been paused under a policy with a pause maximum. */
+    pause: slaTimerSchema.nullable().optional(),
   })
   .strict();
 export type SlaProjection = z.infer<typeof slaProjectionSchema>;
