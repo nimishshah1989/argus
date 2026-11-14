@@ -57,6 +57,18 @@ function asFigureInput(x: RealTicket): FigureInput {
   };
 }
 
+/**
+ * A ticket that was cancelled and restored does not count the cancelled time (Nimish's ruling, 14 Nov 2026); his app does.
+ * These are the only differences from `worker.js` in his export, each caused by that ruling.
+ */
+const CANCELLED_TIME_RULING: Record<string, string> = {
+  'BD-0077 handoverWaitMin: his 263, ours 11':
+    'cancelled 09:48, restored 14:00: 252 minutes not counted',
+  'BD-0077 downtimeMin: his 366, ours 114': 'the same 252 cancelled minutes',
+  'BD-0077 repairMin: his 366, ours 114':
+    'the same 252 cancelled minutes (repair is wall clock less the cancelled time)',
+};
+
 const FIGURES = {
   responseMin: 'responseMin',
   activeMin: 'activeMin',
@@ -84,6 +96,8 @@ describe('a new ticket gets the minutes his worker.js gives', () => {
       }
     }
     expect(compared).toBeGreaterThan(2000);
-    expect(wrong).toEqual([]);
+    const explained = Object.keys(CANCELLED_TIME_RULING);
+    expect(wrong.filter((line) => !explained.includes(line))).toEqual([]);
+    expect(explained.filter((line) => !wrong.includes(line))).toEqual([]); // a ruling entry that no longer differs is stale
   });
 });

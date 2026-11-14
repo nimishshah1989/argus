@@ -107,6 +107,7 @@ export type MachineRunningBody = z.infer<typeof machineRunningSchema>;
 
 export const machineStoppedSchema = z.object({
   personId: z.string().uuid(),
+  at: iso.optional(),
 });
 export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
 

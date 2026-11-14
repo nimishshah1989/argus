@@ -1,4 +1,5 @@
 import type { TicketEvent, WorkSegment } from '../types.js';
+import { clampFrom } from './internal.js';
 import type { Ticket } from '../ticket.js';
 import type { TransitionInput, TransitionResult } from './types.js';
 
@@ -9,15 +10,16 @@ export class TransitionError extends Error {
   }
 }
 
+/** The latest time on the log (a back-dated start can sit before an earlier-written event). */
 export function lastEventAt(input: TransitionInput): Date {
-  const last = input.events[input.events.length - 1];
-  return last ? last.at : input.ticket.reportedAt;
+  return input.events.reduce(
+    (latest, event) => (event.at.getTime() > latest.getTime() ? event.at : latest),
+    input.ticket.reportedAt,
+  );
 }
 
 export function clampAt(at: Date, input: TransitionInput): Date {
-  const earliest = lastEventAt(input);
-  const time = at.getTime() < earliest.getTime() ? earliest : at;
-  return time.getTime() > input.ctx.now.getTime() ? input.ctx.now : time;
+  return clampFrom(at, lastEventAt(input), input);
 }
 
 export function assertWorking(input: TransitionInput): void {

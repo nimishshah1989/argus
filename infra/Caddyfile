@@ -5,7 +5,11 @@
 }
 
 {$SITE_ADDRESS} {
-  reverse_proxy /api/* server:3001
+  # Caddy runs `handle` before `reverse_proxy`, so the API needs its own handle block;
+  # a bare `reverse_proxy /api/*` is never reached and /api gets the web app's index.html.
+  handle /api/* {
+    reverse_proxy server:3001
+  }
 
   handle {
     root * /srv/web

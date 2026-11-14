@@ -244,6 +244,8 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/server/test/work-the-ticket-replay.test.ts :: give the numbers worker.js gave, or a written-down difference with its cause'
+      - 'apps/server/test/work-the-ticket-commands.test.ts :: a pick-up can be back-dated to the transfer past an update written in between'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.02
     feature: Pick up transferred work (time counted from the transfer)
@@ -269,6 +271,8 @@ rows:
       - 'PR #23'
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
+      - 'apps/server/test/work-the-ticket-replay.test.ts :: give the numbers worker.js gave, or a written-down difference with its cause'
+      - 'apps/server/test/work-the-ticket-commands.test.ts :: who may work a ticket'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.04
     feature: 'Pause: six reasons, note, expected back, assign to; repair stops, downtime continues
@@ -283,6 +287,8 @@ rows:
       - 'PR #23'
       - 'packages/domain/test/figures.test.ts :: computes waiting and vendor subset'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/server/test/work-the-ticket-replay.test.ts :: give the numbers worker.js gave, or a written-down difference with its cause'
+      - 'apps/server/test/work-the-ticket-commands.test.ts :: a second person racing the same action'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.05
     feature: Resume; second tap if assigned to someone else
@@ -326,6 +332,9 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
       - 'apps/web/src/components/actions.test.ts :: offers join only when the person is off the crew'
+      - 'apps/server/test/work-the-ticket-replay.test.ts :: give the numbers worker.js gave, or a written-down difference with its cause'
+      - 'packages/domain/test/work-rules.test.ts :: join'
+      - 'apps/server/test/person-minutes-agree.test.ts :: are the same number on the ticket, the list and the day report'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.08
     feature: Leave with reason; primary takes over if the lead leaves
@@ -343,6 +352,9 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: runs the full happy path and returns non-null
         figures at every step'
       - 'apps/web/src/components/actions.test.ts :: offers leave only when the person is on the crew'
+      - 'apps/server/test/work-the-ticket-replay.test.ts :: give the numbers worker.js gave, or a written-down difference with its cause'
+      - 'packages/domain/test/work-rules.test.ts :: leave'
+      - 'apps/server/test/work-the-ticket-commands.test.ts :: the lead leaves only when a primary takes over; the primary then leads'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.09
     feature:
@@ -776,6 +788,11 @@ rows:
     status: in-progress
     evidence:
       - 'PR #5'
+      - 'apps/server/test/hidden-groups.test.ts :: hides exactly the Cosmos machines Bhavin hides today,
+        machine by machine'
+      - 'apps/server/test/hidden-groups.test.ts :: an admin-hidden group covers what the name guess hid
+        on a plant without segments'
+      - 'tools/no-utility-guess.test.ts :: finds none in apps or packages'
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.import.01
     feature:

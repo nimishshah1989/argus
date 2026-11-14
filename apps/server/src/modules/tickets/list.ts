@@ -57,21 +57,19 @@ async function loadPerPerson(
 ): Promise<Record<string, Record<string, number>>> {
   if (ticketIds.length === 0) return {};
   const rows = await segmentRowsFor(client, tenantId, ticketIds);
-  const byTicket: Record<
-    string,
-    Array<{ personId: string; startedAt: Date; endedAt: Date | null }>
-  > = {};
+  const byTicket: Record<string, domain.WorkSegment[]> = {};
   for (const row of rows) {
     const id = row.ticket_id as string;
     (byTicket[id] ??= []).push({
       personId: row.person_id as string,
+      role: row.role as domain.WorkSegment['role'],
       startedAt: new Date(row.started_at as string | number | Date),
-      endedAt: row.ended_at ? new Date(row.ended_at as string | number | Date) : null,
+      ...(row.ended_at ? { endedAt: new Date(row.ended_at as string | number | Date) } : {}),
     });
   }
   const result: Record<string, Record<string, number>> = {};
   for (const [id, segments] of Object.entries(byTicket)) {
-    result[id] = tm.perPersonFromSegments(segments, now);
+    result[id] = domain.personMinutes(segments, now);
   }
   return result;
 }
