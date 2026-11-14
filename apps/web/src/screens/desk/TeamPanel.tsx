@@ -110,7 +110,7 @@ function NotStarted({ tickets, machines }: { tickets: Ticket[]; machines: Machin
               key={ticket.id}
               ticket={ticket}
               machines={machines}
-              detail={machineLabel(ticket, machines)}
+              detail={ticket.problem}
               time={elapsedLabel(ticket.reportedAt)}
             />
           ))}
