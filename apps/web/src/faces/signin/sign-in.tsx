@@ -26,7 +26,7 @@ export function SignIn() {
       const reply = await signIn({ username: username.trim(), password });
       setToken(reply.token);
       rememberUsername(username.trim());
-      navigate('/floor');
+      navigate(reply.user.shared && !reply.user.actingPersonId ? '/who' : '/floor');
     } catch (caught) {
       if (!(caught instanceof ApiError)) throw caught;
       setError(t(signInError(caught)));

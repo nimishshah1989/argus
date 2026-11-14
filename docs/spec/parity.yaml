@@ -45,6 +45,9 @@ rows:
     evidence:
       - 'PR #9'
       - 'apps/server/test/auth.test.ts :: requires and records the acting person on a shared phone'
+      - 'apps/web/e2e/who-is-acting.spec.ts :: a shared phone asks who is using it once, then the floor
+        works as that person'
+      - 'apps/web/e2e/who-is-acting.spec.ts :: the server asking again who is acting reopens the step'
     source: PARITY.md §v3 / Sign-in, roles, identity
   - id: v3.signin.04
     feature: Change password (min 6); other phones signed out
@@ -57,6 +60,8 @@ rows:
       - 'PR #9'
       - 'apps/server/test/auth.test.ts :: changes the password, keeps the current session and
         revokes the others'
+      - 'apps/web/e2e/who-is-acting.spec.ts :: a login that must change its password goes to that
+        step and checks the two new ones match'
     source: PARITY.md §v3 / Sign-in, roles, identity
   - id: v3.signin.05
     feature: Any 401 signs the phone out with a message
