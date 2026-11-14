@@ -38,6 +38,10 @@ describe('dayScore', () => {
       responseMin: null,
       repairMin: null,
       waitingMin: null,
+      responseCount: 0,
+      responseClosed: 0,
+      repairCount: 0,
+      repairClosed: 0,
     });
   });
 
@@ -72,12 +76,32 @@ describe('dayScore', () => {
       responseMin: null,
       repairMin: null,
       waitingMin: null,
+      responseCount: 0,
+      responseClosed: 0,
+      repairCount: 0,
+      repairClosed: 0,
     });
     expect(dayScore([unstarted, closed(10, 30, 0)], NOW)).toMatchObject({
       tickets: 2,
       notStarted: 1,
       responseMin: 10,
       repairMin: 30,
+    });
+  });
+
+  it('says how many tickets each average is over and how many of them are closed', () => {
+    const working = open('2026-11-14T02:30:00Z', [event('start', '2026-11-14T02:50:00Z')]);
+    const selfStarted = closed(null, 40, 0);
+    const score = dayScore(
+      [closed(5, 15, 0), closed(10, 120, 35), selfStarted, closed(null, null, null), working],
+      NOW,
+    );
+    expect(score).toMatchObject({
+      tickets: 5,
+      responseCount: 3,
+      responseClosed: 2,
+      repairCount: 4,
+      repairClosed: 3,
     });
   });
 

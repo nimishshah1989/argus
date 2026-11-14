@@ -25,6 +25,8 @@ const day = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-14')
   .refine(isRealDay, 'That date does not exist');
+/** The same real calendar date, for the settings contracts of other modules (the duty roster). */
+export { day as calendarDay };
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a time like 08:00');
 
 /** What every settings list returns. Switch-off lists never page: a plant's lists are short. */

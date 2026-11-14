@@ -217,6 +217,7 @@ export async function persistEvents(
           reason: event.reason ?? null,
           isVendor: event.isVendor ?? false,
           pausesSla: event.pausesSla,
+          ...(event.handbackRequested ? { handbackRequested: true } : {}),
           ...(event.changes ? { changes: event.changes } : {}),
           ...payload,
         }),

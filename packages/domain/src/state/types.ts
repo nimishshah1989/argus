@@ -13,6 +13,7 @@ export type Command =
   | { type: 'resume'; personId: string; note?: string }
   | { type: 'transfer'; personId: string; toPersonId?: string; toShift?: string; note: string }
   | { type: 'update'; personId: string; text: string }
+  | { type: 'acknowledge'; personId: string; onRoster: boolean }
   | { type: 'machineRunning'; personId: string; at?: Date }
   | { type: 'machineStopped'; personId: string; at?: Date }
   | {
@@ -26,6 +27,8 @@ export type Command =
   | { type: 'join'; personId: string; role: 'primary' | 'support' }
   | { type: 'leave'; personId: string; reason: string }
   | { type: 'upgradeKind'; personId: string }
+  | { type: 'handbackConfirm'; personId: string; sameCell: boolean }
+  | { type: 'handbackDispute'; personId: string; reason: string; sameCell: boolean }
   | { type: 'lateReport'; personId: string }
   | { type: 'restore'; personId: string; reason: string; toStatus?: RestorableStatus }
   | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges }

@@ -47,6 +47,8 @@ export const COMMAND_ACTIONS = [
   'restore',
   'correct',
   'upgrade-kind',
+  'acknowledge',
+  'handback',
   'lockout-confirm',
 ] as const;
 export type CommandAction = (typeof COMMAND_ACTIONS)[number];
@@ -56,6 +58,9 @@ export const startTicketSchema = z.object({
   at: iso.optional(),
 });
 export type StartTicketBody = z.infer<typeof startTicketSchema>;
+
+export const acknowledgeTicketSchema = z.object({ personId: z.string().uuid() });
+export type AcknowledgeTicketBody = z.infer<typeof acknowledgeTicketSchema>;
 
 export const joinTicketSchema = z.object({
   personId: z.string().uuid(),
@@ -193,6 +198,19 @@ export const cancelTicketSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 export type CancelTicketBody = z.infer<typeof cancelTicketSchema>;
+
+/** Production's answer to a sign-off; a dispute needs its reason. */
+export const handbackTicketSchema = z
+  .object({
+    personId: z.string().uuid(),
+    response: z.enum(['confirmed', 'disputed']),
+    reason: z.string().trim().min(1).max(500).optional(),
+  })
+  .refine((body) => body.response === 'confirmed' || body.reason !== undefined, {
+    message: 'A reason is required',
+    path: ['reason'],
+  });
+export type HandbackTicketBody = z.infer<typeof handbackTicketSchema>;
 
 export const restoreTicketSchema = z.object({
   personId: z.string().uuid(),

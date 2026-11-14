@@ -9,11 +9,13 @@ import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
   AUTH_MESSAGES,
+  isOnRoster,
   ticketPartsAfterWrite,
   withTicketParts,
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
+import { buildCommand } from './builders.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import * as report from './repo/report.js';
@@ -30,6 +32,7 @@ import {
   saveCorrectedMachine,
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
+import { loginInTicketCell, reopenConflict } from './handback.js';
 import { checkLockout, lockoutOf } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
@@ -52,6 +55,8 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   restore: shared.restoreTicketSchema,
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
+  acknowledge: shared.acknowledgeTicketSchema,
+  handback: shared.handbackTicketSchema,
   'lockout-confirm': shared.lockoutConfirmSchema,
 };
 
@@ -61,6 +66,8 @@ interface RaiseTx {
   auth: Auth;
   body: Record<string, unknown>;
 }
+
+const SESSION_PERSON: ReadonlySet<tm.CommandAction> = new Set(['acknowledge', 'handback']);
 
 async function resolveActingPerson(
   client: PoolClient,
@@ -72,7 +79,9 @@ async function resolveActingPerson(
   const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
   const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
     string | undefined;
-  if (!tx.auth.shared) {
+  // An acknowledge or a sign-off answer is judged on who the session says is acting: a shared phone's chosen
+  // person, never one the request merely names (that would borrow someone else's roster line, or their cell).
+  if (!tx.auth.shared || SESSION_PERSON.has(tx.action)) {
     if (bodyPersonId !== tx.auth.personId) {
       return {
         status: 403,
@@ -101,6 +110,11 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
     events: await sql.loadEvents(client, tx.ticketId),
     segments: await sql.loadSegments(client, tx.ticketId),
     crew: await sql.loadCrew(client, tx.ticketId),
+    onRoster:
+      tx.action === 'acknowledge' && tx.actingPersonId !== null
+        ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
+        : false,
+    sameCell: tx.action === 'handback' ? await loginInTicketCell(client, tx, row) : false,
   };
 }
 
@@ -127,9 +141,11 @@ async function executeCommand(
   if (unknown) return unknown;
   const lockout = await checkLockout(client, tx);
   if (lockout) return lockout;
-  const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
+  const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
+  const blocked = await reopenConflict(client, tx, loaded.ticket);
+  if (blocked) return blocked;
   fillReplacedMinutes(loaded, result.events);
   // M2-2.1: a correction or kind upgrade may change the derived severity.
   await refreshSeverity(client, tx, loaded, result.ticket);

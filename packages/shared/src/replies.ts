@@ -8,6 +8,7 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
+import { rosterReplySchema, ruleReplySchema } from './escalation-settings.js';
 import { PEOPLE_REPLIES } from './people.js';
 import {
   glossaryReplySchema,
@@ -22,7 +23,7 @@ import {
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { lockoutSchema } from './lockout.js';
-import { slaPolicySchema, slaProjectionSchema } from './sla.js';
+import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
   isoDateTimeSchema,
@@ -40,9 +41,13 @@ export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
-/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` part. */
+/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` and `handback` parts. */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable(), lockout: lockoutSchema.nullable().optional() })
+  .extend({
+    sla: slaProjectionSchema.nullable(),
+    handback: handbackSchema.nullable(),
+    lockout: lockoutSchema.nullable().optional(),
+  })
   .strict();
 export const stateReplySchema = z
   .object({
@@ -128,6 +133,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
     {},
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
+  ...settingsResource('roster', rosterReplySchema),
+  ...settingsResource('escalation-rules', ruleReplySchema),
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`POST ${P}/tickets/past`]: commandReplySchema,

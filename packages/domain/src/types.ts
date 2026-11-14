@@ -28,6 +28,8 @@ export type EventType =
   | 'tag_add'
   | 'tag_remove'
   | 'acknowledge'
+  | 'handback_confirm'
+  | 'handback_dispute'
   | 'lockout_confirmed';
 
 export interface EditChange {
@@ -47,6 +49,8 @@ export interface TicketEvent {
   status?: RestorableStatus;
   /** Per-field old→new values recorded by a `correct` (`edit`) event. */
   changes?: EditChange[];
+  /** On a `close`: production was asked to sign the fix off. */
+  handbackRequested?: boolean;
 }
 
 export interface WorkSegment {
