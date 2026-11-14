@@ -106,10 +106,10 @@ describe('a stored report in a reply', () => {
   });
 
   it('fails a report that leaves out the display name or the person link', () => {
-    const { handoverName: _name, ...noName } = report;
-    const { handoverPersonId: _id, ...noLink } = report;
-    expect(storedReportSchema.safeParse(noName).success).toBe(false);
-    expect(storedReportSchema.safeParse(noLink).success).toBe(false);
+    const without = (key: string) =>
+      Object.fromEntries(Object.entries(report).filter(([k]) => k !== key));
+    expect(storedReportSchema.safeParse(without('handoverName')).success).toBe(false);
+    expect(storedReportSchema.safeParse(without('handoverPersonId')).success).toBe(false);
   });
 });
 

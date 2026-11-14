@@ -210,20 +210,27 @@ function buildStoredReport(
   };
 }
 
+/** Who the report names (done by, supported by, handed over to) must be people of this plant, and the handover is one or the other. */
+async function checkReportPeople(
+  client: PoolClient,
+  input: ReportStoreInput,
+): Promise<{ done: string[]; supported: string[] }> {
+  const { body, tenantId } = input;
+  const done =
+    body.doneByPersonIds ?? (input.ticket.leadPersonId ? [input.ticket.leadPersonId] : []);
+  const supported = body.supportedByPersonIds ?? [];
+  await assertPeople(client, tenantId, done, 'doneByPersonIds');
+  await assertPeople(client, tenantId, supported, 'supportedByPersonIds');
+  if (body.handoverPersonId && body.handoverName) throw new ReportValidationError('handoverName');
+  await assertPeople(client, tenantId, handoverIds(body), 'handoverPersonId');
+  return { done, supported };
+}
+
 export async function storeBreakdownReport(
   client: PoolClient,
   input: ReportStoreInput,
 ): Promise<StoredReport> {
-  const done =
-    input.body.doneByPersonIds ?? (input.ticket.leadPersonId ? [input.ticket.leadPersonId] : []);
-  const supported = input.body.supportedByPersonIds ?? [];
-  await assertPeople(client, input.tenantId, done, 'doneByPersonIds');
-  await assertPeople(client, input.tenantId, supported, 'supportedByPersonIds');
-
-  if (input.body.handoverPersonId && input.body.handoverName) {
-    throw new ReportValidationError('handoverName');
-  }
-  await assertPeople(client, input.tenantId, handoverIds(input.body), 'handoverPersonId');
+  const { done, supported } = await checkReportPeople(client, input);
   const values = await reportValues(client, input);
   const result = await client.query(INSERT_REPORT_SQL, [
     input.tenantId,
@@ -299,16 +306,18 @@ export async function loadReport(
 ): Promise<StoredReport | null> {
   const row = (
     await client.query(
-      `SELECT r.id, r.ticket_id, r.machine_id, r.date::text AS date, r.shift_code, r.problem, r.observed_by,
-         r.corrective_action, r.downtime_min, r.response_min, r.repair_min, r.breakdown_category, r.maint_code,
-         r.spare_used, r.root_cause, COALESCE(hp.name, r.handover_name) AS handover_name,
-         r.handover_person_id, r.submitted_by_person_id, r.submitted_at
-       FROM breakdown_report r LEFT JOIN person hp ON hp.id = r.handover_person_id
-       WHERE r.ticket_id = $1`,
+      `SELECT id, tenant_id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
+         corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
+         spare_used, root_cause, handover_name, handover_person_id, submitted_by_person_id, submitted_at
+       FROM breakdown_report WHERE ticket_id = $1`,
       [ticketId],
     )
   ).rows[0];
   if (!row) return null;
+  row.handover_name = await handoverDisplay(client, row.tenant_id as string, {
+    handoverPersonId: (row.handover_person_id as string | null) ?? null,
+    handoverName: (row.handover_name as string | null) ?? null,
+  });
   const people = (
     await client.query('SELECT person_id, role FROM breakdown_report_person WHERE report_id = $1', [
       row.id,
