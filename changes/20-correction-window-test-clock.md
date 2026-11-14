@@ -1,0 +1,1 @@
+- No change for users. A test of the 7-day correction window began failing every day after 13:00 UTC because it measured the window from the real clock instead of from the moment the ticket was closed; it now holds at any hour.
