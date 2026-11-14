@@ -11,6 +11,13 @@ import { formatMinutes, formatTime } from './format.js';
 import { SeverityBadge } from './SeverityBadge.js';
 import { SlaTimerSummary } from './SlaTimerSummary.js';
 
+const TIME_TONE = {
+  'deskLists.time.down': 'danger',
+  'deskLists.time.waiting': 'hold',
+  'deskLists.time.open': 'info',
+  'deskLists.time.follow': 'ok',
+} as const;
+
 type ChipId = 'stopped' | 'in_progress' | 'support' | 'waiting' | 'transferred' | 'running';
 
 /** The status chip a card shows (design lock status table). */
@@ -79,12 +86,7 @@ export function TicketCard({
           time: formatMinutes(time.minutes),
           since: time.since ? formatTime(time.since) : '',
         }),
-        tone:
-          ticket.status === 'waiting'
-            ? 'hold'
-            : time.key === 'deskLists.time.follow'
-              ? 'ok'
-              : 'danger',
+        tone: TIME_TONE[time.key],
       }}
       extra={<SlaTimerSummary ticket={ticket} />}
     >

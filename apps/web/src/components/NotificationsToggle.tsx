@@ -12,7 +12,7 @@ import {
 } from '../push.js';
 
 const buttonClass =
-  'min-h-13 shrink-0 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-50';
+  'min-h-13 shrink-0 rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900  disabled:opacity-50';
 
 function statusText(t: TFunction, state: PushState, note: string): string {
   if (state === 'on') return t('notifications.on');
@@ -72,7 +72,7 @@ export function NotificationsToggle() {
     <section
       aria-label={t('notifications.aria')}
       data-testid="notifications-toggle"
-      className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-sm"
+      className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-surface p-3 shadow-sm"
     >
       <p className="text-sm text-neutral-600">{status}</p>
       {state !== 'denied' && (

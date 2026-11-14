@@ -1,8 +1,8 @@
 const TONES: Record<string, string> = {
-  S1: 'bg-red-100 text-red-800',
-  S2: 'bg-orange-100 text-orange-800',
-  S3: 'bg-amber-100 text-amber-800',
-  S4: 'bg-neutral-200 text-neutral-700',
+  S1: 'bg-danger-tint text-danger-ink',
+  S2: 'bg-hold-tint text-hold-ink',
+  S3: 'bg-warning-tint text-warning-ink',
+  S4: 'bg-muted-tint text-muted-ink',
 };
 
 /**
