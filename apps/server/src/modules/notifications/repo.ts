@@ -19,6 +19,8 @@ export async function upsertSubscription(
   s: {
     tenantId: string;
     loginId: string;
+    /** The sign-in that registered the phone: when it ends, so does the registration. */
+    sessionId: string;
     actingPersonId: string;
     endpoint: string;
     keys: string;
@@ -26,12 +28,13 @@ export async function upsertSubscription(
   },
 ): Promise<void> {
   await tx.query(
-    `INSERT INTO push_subscription (tenant_id, login_id, acting_person_id, endpoint, keys, role)
-       VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO push_subscription (tenant_id, login_id, session_id, acting_person_id, endpoint, keys, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (tenant_id, endpoint) DO UPDATE SET
-         login_id = EXCLUDED.login_id, acting_person_id = EXCLUDED.acting_person_id,
+         login_id = EXCLUDED.login_id, session_id = EXCLUDED.session_id,
+         acting_person_id = EXCLUDED.acting_person_id,
          keys = EXCLUDED.keys, role = EXCLUDED.role, updated_at = now()`,
-    [s.tenantId, s.loginId, s.actingPersonId, s.endpoint, s.keys, s.role],
+    [s.tenantId, s.loginId, s.sessionId, s.actingPersonId, s.endpoint, s.keys, s.role],
   );
 }
 

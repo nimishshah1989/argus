@@ -45,6 +45,7 @@ export {
   type LoginChange,
   type PersonFields,
 } from './repo/people.js';
+export { lockLiveSession } from './repo/session.js';
 export { hashPassword } from './routes.js';
 export {
   authenticate,

@@ -4,7 +4,7 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { lockLiveActing, requireAuth } from '../identity/index.js';
+import { hashToken, lockLiveActing, lockLiveSession, requireAuth } from '../identity/index.js';
 import { actingRefusal, AUTH_MESSAGES, type AppConfig } from '../../kernel/index.js';
 import { isPushEndpoint, normalisedEndpoint } from './endpoint.js';
 import { notify } from './notify.js';
@@ -58,15 +58,18 @@ async function subscribeHandler(
       loginId: auth.loginId,
       personId: actingPersonId,
     });
-    if (live === 'ok')
-      await upsertSubscription(client, {
-        tenantId: auth.tenantId,
-        loginId: auth.loginId,
-        actingPersonId,
-        endpoint: normalisedEndpoint(subscription.endpoint),
-        keys: JSON.stringify(subscription.keys),
-        role: auth.role,
-      });
+    if (live !== 'ok') return live;
+    const sessionId = await lockLiveSession(client, hashToken(auth.token));
+    if (!sessionId) return 'login_off';
+    await upsertSubscription(client, {
+      tenantId: auth.tenantId,
+      loginId: auth.loginId,
+      sessionId,
+      actingPersonId,
+      endpoint: normalisedEndpoint(subscription.endpoint),
+      keys: JSON.stringify(subscription.keys),
+      role: auth.role,
+    });
     return live;
   });
   if (check === 'ok') reply.send({ ok: true });
