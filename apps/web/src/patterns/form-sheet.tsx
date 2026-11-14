@@ -3,8 +3,10 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../data/index.js';
 import { Button } from '../ui/button.js';
-import { Input, Label, Textarea } from '../ui/input.js';
+import { ArrowRightLeft } from '../ui/icon.js';
+import { Input, Label, Select, Textarea } from '../ui/input.js';
 import { Grid, Stack } from '../ui/layout.js';
+import { SegmentedBar } from '../ui/segmented-bar.js';
 import { Sheet } from '../ui/sheet.js';
 import { offlineNotice } from './view-state.js';
 
@@ -16,6 +18,9 @@ export interface FormField {
   multiline?: boolean;
   /** Longest text the server accepts; the box stops there so a queued command is never refused. */
   maxLength?: number;
+  /** `choice` picks one of `choices` (a bar for up to four, a menu for more); `time` is HH:MM. */
+  kind?: 'text' | 'time' | 'choice';
+  choices?: { value: string; label: string }[];
 }
 export interface FormSheetProps {
   open: boolean;
@@ -36,6 +41,52 @@ export interface FormSheetProps {
   actingAs?: string;
   /** With it, a "Go back" button sits left of the submit button. */
   backLabel?: string;
+  /** A line shown under the fields, from what they hold now (a cell change says what it will move). */
+  note?: (values: Record<string, string>) => string | null;
+  /** A small line under the button. */
+  footnote?: string;
+}
+
+function Choice(props: { field: FormField; value: string; onChange: (value: string) => void }) {
+  const { field } = props;
+  const choices = field.choices ?? [];
+  if (choices.length > 4)
+    return (
+      <Select
+        id={`form-${field.name}`}
+        required={field.required}
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+      >
+        <option value="" />
+        {choices.map((c) => (
+          <option key={c.value} value={c.value}>
+            {c.label}
+          </option>
+        ))}
+      </Select>
+    );
+  return (
+    <SegmentedBar
+      label={field.label}
+      items={choices.map((c) => ({ id: c.value, label: c.label }))}
+      selected={props.value}
+      onSelect={props.onChange}
+    />
+  );
+}
+
+function Footnote({ text }: { text?: string }) {
+  return text ? <p className="text-center text-caption text-neutral-600">{text}</p> : null;
+}
+
+function NoteLine({ note }: { note: string | null }) {
+  return note ? (
+    <p className="flex items-start gap-2 rounded-xl bg-info-tint p-3 text-footnote text-info-ink">
+      <ArrowRightLeft aria-hidden size={18} className="mt-0.5" />
+      {note}
+    </p>
+  ) : null;
 }
 
 function FieldRow(props: { field: FormField; value: string; onChange: (value: string) => void }) {
@@ -44,13 +95,18 @@ function FieldRow(props: { field: FormField; value: string; onChange: (value: st
   return (
     <Stack gap={1}>
       <Label htmlFor={`form-${field.name}`}>{field.label}</Label>
-      <Control
-        id={`form-${field.name}`}
-        required={field.required}
-        maxLength={field.maxLength}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
+      {field.kind === 'choice' ? (
+        <Choice {...props} />
+      ) : (
+        <Control
+          id={`form-${field.name}`}
+          type={field.kind === 'time' ? 'time' : undefined}
+          required={field.required}
+          maxLength={field.maxLength}
+          value={props.value}
+          onChange={(event) => props.onChange(event.target.value)}
+        />
+      )}
     </Stack>
   );
 }
@@ -61,6 +117,7 @@ export function FormSheet(p: FormSheetProps) {
   const online = useOnline();
   const [values, setValues] = useState<Record<string, string>>(p.initial ?? {});
   const notice = offlineNotice(online, p.offlineAllowed);
+  const note = p.note?.(values) ?? null;
   const missing = p.fields.some((f) => f.required && (values[f.name] ?? '').trim() === '');
 
   async function submit(event: FormEvent): Promise<void> {
@@ -90,6 +147,7 @@ export function FormSheet(p: FormSheetProps) {
               onChange={(value) => setValues({ ...values, [field.name]: value })}
             />
           ))}
+          <NoteLine note={note} />
           {p.actingAs ? <p className="text-footnote text-neutral-600">{p.actingAs}</p> : null}
           {notice ? (
             <p role="status" className="text-footnote text-neutral-600">
@@ -111,6 +169,7 @@ export function FormSheet(p: FormSheetProps) {
           ) : (
             submitButton
           )}
+          <Footnote text={p.footnote} />
         </Stack>
       </form>
     </Sheet>

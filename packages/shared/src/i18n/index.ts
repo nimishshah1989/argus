@@ -46,6 +46,8 @@ import { signinEn } from './signin.en.js';
 import { signinGu } from './signin.gu.js';
 import { signoffEn } from './signoff.en.js';
 import { signoffGu } from './signoff.gu.js';
+import { plantEn } from './plant.en.js';
+import { plantGu } from './plant.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -73,6 +75,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   closes: closesEn,
   signin: signinEn,
   signoff: signoffEn,
+  plant: plantEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -100,7 +103,11 @@ export const en = {
   ...reportFloorEn,
   ...closesEn,
   ...signinEn,
+<<<<<<< HEAD
   ...signoffEn,
+=======
+  ...plantEn,
+>>>>>>> f3aeb37 (22: plant settings screens (machines, groups, shifts) from one CrudPage config)
 };
 
 export type MessageKey = keyof typeof en;
@@ -130,5 +137,9 @@ export const gu = {
   ...reportFloorGu,
   ...closesGu,
   ...signinGu,
+<<<<<<< HEAD
   ...signoffGu,
+=======
+  ...plantGu,
+>>>>>>> f3aeb37 (22: plant settings screens (machines, groups, shifts) from one CrudPage config)
 };
