@@ -7,11 +7,12 @@ also the test of this page.** Where a step says "unverified", paste the exact ou
 
 ## What is kept, and for how long
 
-| Copy                        | Where                                                                               | How far back                              | Restores into                      |
-| --------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
-| RDS automated backup (PITR) | RDS, `backup_retention_period` (14 after the next maintenance window; 7 until then) | any second in the last 14 days            | a new RDS server, minutes to hours |
-| Weekly dump (`pg_dump -Fc`) | S3 `uptimo-…-backups`, `dumps/`                                                     | 13 weeks, one per week (Mon 03:00 Mumbai) | any Postgres 16                    |
-| Files (photos, PDFs)        | S3 `uptimo-…-files`, versioned                                                      | every version                             | the same bucket                    |
+| Copy                        | Where                                                                                                 | How far back                              | Restores into                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
+| RDS automated backup (PITR) | RDS, `backup_retention_period` (14 after the next maintenance window; 7 until then)                   | any second in the last 14 days            | a new RDS server, minutes to hours |
+| Weekly dump (`pg_dump -Fc`) | S3 `uptimo-…-backups`, `dumps/`                                                                       | 13 weeks, one per week (Mon 03:00 Mumbai) | any Postgres 16                    |
+| Files (photos, PDFs)        | S3 `uptimo-…-files`, versioned                                                                        | every version                             | the same bucket                    |
+| Uploaded logos (until S3)   | Docker volume `uptimo_files` on the server; nightly archive in S3 `uptimo-…-backups`, `files-volume/` | 13 weeks, one per night (02:00 Mumbai)    | the volume (Drill C)               |
 
 **What counts as the backup:** point-in-time recovery plus RDS snapshots (one is taken before the first migration, one before the Cosmos
 load, and `deploy.sh` takes `uptimo-pre-<tag>-<time>` before every deploy that migrates). The weekly dump is best effort: RDS's master login may be refused a full dump (section 0, step 4). If so, it is recorded in the
@@ -104,7 +105,57 @@ real problem: paste the lines under it back. (`pg_restore` prints harmless `alre
 the script ignores those and nothing else.) The drill takes 1 to 3 minutes; if `Status` is `InProgress`, run the
 `get-command-invocation` line from Drill A step 2 again.
 
-## 3. A real loss (not a drill)
+## 3. Drill C: restore the files volume
+
+Uploaded company logos live on the server's disk, in the Docker volume `uptimo_files` (mounted at `FILES_DIR=/data/files`), until the S3
+adapter exists. A redeploy keeps the volume. A timer on the instance (`uptimo-files-backup.timer`, every night at 02:00 Mumbai) archives it
+to `s3://uptimo-…-backups/files-volume/files-<date>.tar.gz`. Use `run_on_instance` from Drill A step 2.
+
+1. Check the timer is armed and see its last run:
+
+   ```bash
+   run_on_instance "systemctl list-timers uptimo-files-backup.timer --no-pager; systemctl status uptimo-files-backup.service --no-pager | head -12"
+   ```
+
+   Success: the timer shows a `NEXT` time tonight; the service shows `Deactivated successfully` (or "inactive (dead)") and no `failed`.
+
+2. Take a backup now rather than wait for the night, and look at it:
+
+   ```bash
+   run_on_instance "systemctl start uptimo-files-backup.service && journalctl -u uptimo-files-backup.service -n 3 --no-pager"
+   BUCKET=$(cd infra/terraform && ../../.tools/bin/terraform output -raw backup_bucket)
+   aws s3 ls "s3://$BUCKET/files-volume/"
+   ```
+
+   Success: a line `files backup ok: s3://uptimo-…-backups/files-volume/files-<date>.tar.gz (<bytes> bytes)`, and the same file in the listing.
+   `STOP:` means nothing was uploaded; paste the line back.
+
+3. Restore the newest archive into a throwaway volume and compare it with the live one (the live volume is not touched):
+
+   ```bash
+   run_on_instance "/opt/uptimo/instance/files-restore.sh drill" | tee files-drill.txt
+   ```
+
+   Success: `RESTORED files-volume/files-<date>.tar.gz: <n> files`, then `SAME as the live volume`. `DIFFERENT` is not a failure when a logo was
+   uploaded after the archive was taken; the lines under it show which. Repeat step 2 and 3 to be sure. The throwaway volume is removed at
+   the end. (Takes under a minute; if `Status` is `InProgress`, run the `get-command-invocation` line of Drill A step 2 again.)
+   Before the first upload, the volume is empty: `0 files` and `SAME` is the right answer.
+
+4. The redeploy check, once: upload a logo in the app, run `gh workflow run deploy.yml`, wait for the green tick, open the same logo again.
+   Success: it is still there. (Before this change a redeploy lost it.)
+
+A real loss of the volume (not a drill): stop the server, restore into the live volume, start it again. A specific night: add its key
+(`files-volume/files-<date>.tar.gz`) after `live`.
+
+```bash
+run_on_instance "cd /opt/uptimo && docker compose stop server && /opt/uptimo/instance/files-restore.sh live"
+run_on_instance "cd /opt/uptimo && set -a && . ./.env && set +a && IMAGE_TAG=\$(cat .current_tag) docker compose up -d server"
+```
+
+Success: `RESTORED … into uptimo_files: <n> files`, then the logos show in the app. The restore adds and overwrites files; it does not remove a
+file the archive lacks. If the volume itself is gone (`docker volume ls` shows no `uptimo_files`), the next deploy recreates it empty first.
+
+## 4. A real loss (not a drill)
 
 1. Stop the server so nothing writes: `run_on_instance "cd /opt/uptimo && docker compose stop server"`.
 2. Restore to a new server exactly as Drill A step 3, choosing the time just before the damage: replace
@@ -113,7 +164,7 @@ the script ignores those and nothing else.) The drill takes 1 to 3 minutes; if `
    `DATABASE_URL` and `MIGRATION_DATABASE_URL` in the secret `uptimo/staging` (hosts only), then `gh workflow run deploy.yml`.
 4. Keep the damaged server until the restored one has been used for a day; delete it only with Nimish's go.
 
-## 4. S3 object restore
+## 5. S3 object restore
 
 Versioning is on, so a deleted or overwritten file is recovered by copying its previous version:
 
@@ -122,6 +173,6 @@ aws s3api list-object-versions --bucket <files bucket> --prefix <key>
 aws s3api get-object --bucket <files bucket> --key <key> --version-id <id> /tmp/restored
 ```
 
-## 5. Drill log
+## 6. Drill log
 
 `docs/plan/restore-drill-log.md`: date, who, what was restored, counts compared, minutes taken, result. Empty until the first real run.

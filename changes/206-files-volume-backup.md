@@ -1,0 +1,1 @@
+- Uploaded company logos on staging now sit on a server volume that survives redeploys and rollbacks, and are archived to the backup bucket every night (kept 13 weeks); `infra/RESTORE.md` has a new drill for restoring them.
