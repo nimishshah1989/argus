@@ -22,6 +22,8 @@ export interface MachineRow {
   assetCode: string | null;
   status: 'active' | 'idle' | 'scrapped';
   criticality: 'A' | 'B' | 'C' | null;
+  /** What the plant keeps beside the columns: footprint, conveyor side and the like (ticket 39 reads it). */
+  metadata: Record<string, unknown>;
 }
 
 export interface MoveRow {

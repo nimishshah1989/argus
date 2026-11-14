@@ -1,11 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { apiError, calendarDay, type FiguresReply } from '@uptimo/shared';
-import { canAnalytics, canMoney } from '@uptimo/domain';
+import { canAnalytics, canMoney, FIGURES } from '@uptimo/domain';
 import { withTenant } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday, registerResource } from '../plant/index.js';
-import { FIGURES } from '@uptimo/domain';
 import { profileResource } from './profile.js';
 import { runForTenant } from './service.js';
 

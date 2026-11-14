@@ -39,6 +39,7 @@ const machine = (row: Row): MachineRow => ({
   assetCode: text(row.asset_code),
   status: row.status as MachineRow['status'],
   criticality: row.criticality as MachineRow['criticality'],
+  metadata: row.metadata as Record<string, unknown>,
 });
 
 const ticket = (row: Row): TicketRow => ({

@@ -27,6 +27,7 @@ const machine = (id: string, code: string): MachineRow => ({
   assetCode: null,
   status: 'active',
   criticality: null,
+  metadata: {},
 });
 
 const ticket = (id: string, machineId: string): TicketRow => ({

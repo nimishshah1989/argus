@@ -10,7 +10,7 @@ export async function machinesForEngine(tx: Db): Promise<Row[]> {
     await tx.query(
       `SELECT m.id, m.code, s.code AS segment, m.category, m.cell, m.location, m.make, m.model, m.controller,
               m.year, m.purchased_on::text AS purchased_on, m.power_kw::float8 AS power_kw,
-              m.capacity_kva::float8 AS capacity_kva, m.asset_code, m.status, m.criticality
+              m.capacity_kva::float8 AS capacity_kva, m.asset_code, m.status, m.criticality, m.metadata
          FROM machine m LEFT JOIN segment s ON s.id = m.segment_id
         ORDER BY m.code, m.id`,
     )

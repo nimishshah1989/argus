@@ -132,6 +132,17 @@ describe('the analytics profile and the engine, through HTTP', () => {
     const b = (await f.call('GET', '/api/v1/analytics/figures', f.tokens['b-admin']!)).json();
     expect(b.rows).toMatchObject({ machines: 1, tickets: 0, people: 1 });
     expect(b.profile.costPerHour).toBe(1800);
+    const aRow = await profileRow(f.tokens.head!);
+    const crossEdit = await f.call(
+      'PUT',
+      `/api/v1/analytics-profile/${aRow.id}`,
+      f.tokens['b-admin']!,
+      {
+        costPerHour: 1,
+      },
+    );
+    expect(crossEdit.statusCode).toBe(404);
+    expect((await profileRow(f.tokens.head!)).costPerHour).toBe(2500);
   });
 
   it('answers every registered figure with its owner and a drill type, and defaults the date to the plant today', async () => {
