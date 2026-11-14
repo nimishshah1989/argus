@@ -17,13 +17,13 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   tables needed by 21/22/23 already exist (person, login, session, push_subscription, machine, segment, machine_group,
   shift, machine_move, list_item, glossary_term, setting, audit_log): no migration, no lock needed.
 - 2026-11-14 05:00 UTC — Dispatched A: 21 goal 1 (people/logins admin API, E.164, switch-off ends sessions + push subs
-  + clears phone, audit, must_change_password, common-password refusal, tech replies hold no phone) + 26 goal 1
-  "session cannot cross tenants" -> session_01KEBF287pZfndQ2AUpen69L, branch claude/t21-people-logins-api.
-  Dispatched B: 22 goal 1 server (machines/segments/groups/shifts write API, criticality audited, dated machine_move,
-  board honours group.hidden + segment.show_on_board) + audit 13 (canWrite -> domain) -> session_01KEBF29YYNjUzx9DSA4QxoC,
-  branch claude/t22-plant-settings-api. Disjoint: A new shared/people.ts + identity; B new shared/plant-settings.ts +
-  plant + permissions/settings.ts. Both get the two-reviewer adversarial review (permissions). Model per
-  .claude/rules/pstack-models.md: feature = sonnet high.
+  - clears phone, audit, must_change_password, common-password refusal, tech replies hold no phone) + 26 goal 1
+    "session cannot cross tenants" -> session_01KEBF287pZfndQ2AUpen69L, branch claude/t21-people-logins-api.
+    Dispatched B: 22 goal 1 server (machines/segments/groups/shifts write API, criticality audited, dated machine_move,
+    board honours group.hidden + segment.show_on_board) + audit 13 (canWrite -> domain) -> session_01KEBF29YYNjUzx9DSA4QxoC,
+    branch claude/t22-plant-settings-api. Disjoint: A new shared/people.ts + identity; B new shared/plant-settings.ts +
+    plant + permissions/settings.ts. Both get the two-reviewer adversarial review (permissions). Model per
+    .claude/rules/pstack-models.md: feature = sonnet high.
 - Ruling: merging the 31 pending short-name people is NOT in 21 goal 1 (it rewrites person links on history, D24); it
   needs its own small design later. Why: keep the auth PR reviewable. Cost if wrong: admins see the 31 pending names a
   little longer.
