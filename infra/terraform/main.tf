@@ -338,6 +338,11 @@ resource "aws_instance" "server" {
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   iam_instance_profile        = aws_iam_instance_profile.server.name
+  # Two releases of the server image (Chromium included) plus Docker's layers outgrew the 8 GB default.
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
   user_data                   = <<-EOT
     #!/bin/bash
     set -euo pipefail

@@ -10,6 +10,7 @@ const SECTIONS = [
   'shell',
   'desk',
   'detail-kit',
+  'floor',
 ] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 

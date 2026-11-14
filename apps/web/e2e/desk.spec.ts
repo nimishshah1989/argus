@@ -179,9 +179,10 @@ async function closeWithoutReport(page: Page): Promise<void> {
 }
 
 async function checkFloorComplaints(page: Page, ref: string): Promise<void> {
-  await page.goto('/floor');
+  // Ticket 15: My complaints is its own floor screen; operators read their tickets there, not open the desk.
+  await page.goto('/floor/mine');
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
-  await expect(page.getByRole('link', { name: new RegExp(ref) })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: ref })).toBeVisible();
 }
 
 /** SPEC 1.4: the desk opens the floor ticket and drives every lifecycle step. */

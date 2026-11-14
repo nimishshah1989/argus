@@ -42,10 +42,16 @@ export async function loginById(
   pool: Pool,
   tenantId: string,
   loginId: string,
-): Promise<{ id: string; username: string; role: string; shared: boolean } | undefined> {
+): Promise<
+  | { id: string; username: string; role: string; shared: boolean; must_change_password: boolean }
+  | undefined
+> {
   return (
     await withTenant(pool, tenantId, (client) =>
-      client.query('SELECT id, username, role, shared FROM login WHERE id = $1', [loginId]),
+      client.query(
+        'SELECT id, username, role, shared, must_change_password FROM login WHERE id = $1',
+        [loginId],
+      ),
     )
   ).rows[0];
 }
@@ -54,10 +60,10 @@ export async function findPerson(
   pool: Pool,
   tenantId: string,
   personId: string,
-): Promise<{ id: string; name: string; title: string | null } | undefined> {
+): Promise<{ id: string; name: string; title: string | null; active: boolean } | undefined> {
   return (
     await withTenant(pool, tenantId, (client) =>
-      client.query('SELECT id, name, title FROM person WHERE id = $1', [personId]),
+      client.query('SELECT id, name, title, active FROM person WHERE id = $1', [personId]),
     )
   ).rows[0];
 }
@@ -66,7 +72,7 @@ export async function findLogin(pool: Pool, tenantId: string, username: string) 
   return (
     await withTenant(pool, tenantId, (client) =>
       client.query(
-        'SELECT id, tenant_id, person_id, password_hash, role, shared, disabled_at FROM login WHERE username = $1',
+        'SELECT id, tenant_id, person_id, password_hash, role, shared, disabled_at, must_change_password FROM login WHERE username = $1',
         [username],
       ),
     )
@@ -103,7 +109,10 @@ export async function passwordHashOf(tx: Db, loginId: string): Promise<string> {
 }
 
 export async function setPasswordHash(tx: Db, loginId: string, hash: string): Promise<void> {
-  await tx.query('UPDATE login SET password_hash = $1 WHERE id = $2', [hash, loginId]);
+  await tx.query(
+    'UPDATE login SET password_hash = $1, must_change_password = false, updated_at = now() WHERE id = $2',
+    [hash, loginId],
+  );
 }
 
 export async function revokeOtherSessions(

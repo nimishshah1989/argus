@@ -9,3 +9,4 @@ export * from './state.js';
 export * from './business-hours.js';
 export * from './sla.js';
 export { computeSeverity, defaultSeverityMatrix } from './severity.js';
+export { passwordProblem, type PasswordProblem } from './password-rules.js';

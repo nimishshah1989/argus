@@ -98,11 +98,12 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #26'
-      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
-        reference'
+      - 'apps/web/e2e/floor.spec.ts :: reports a stopped machine found by search in four taps and shows its number'
+      - 'apps/web/e2e/floor.spec.ts :: reports a machine picked inside its group'
+      - 'apps/web/src/faces/floor/machines.test.ts :: ranks the exact code, then codes ending in it'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.02
     feature: '"Already reported. Tap to view the ticket." on a machine with an open ticket'
@@ -110,10 +111,11 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #23'
       - 'apps/server/test/tickets.test.ts :: rejects a duplicate open ticket on the same machine'
+      - 'apps/web/e2e/floor.spec.ts :: a machine already reported opens its ticket instead of a second report'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.03
     feature: 'Step 2 situation: Machine has stopped (downtime starts) or Running, needs support'
@@ -126,8 +128,7 @@ rows:
       - 'PR #23'
       - 'apps/server/test/tickets.test.ts :: raises a stopped ticket with a BD ref and lists it in
         /state'
-      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
-        reference'
+      - 'apps/web/e2e/floor.spec.ts :: reports a stopped machine found by search in four taps and shows its number'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.04
     feature: 'Step 3 problem: textarea, quick chips (six defaults, configurable), mic "Speak in
@@ -139,8 +140,7 @@ rows:
     status: in-progress
     evidence:
       - 'PR #26'
-      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
-        reference'
+      - 'apps/web/e2e/floor.spec.ts :: reports a stopped machine found by search in four taps and shows its number'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.05
     feature: Pending-task warning on a machine that already has a task
@@ -163,6 +163,7 @@ rows:
       - 'PR #23'
       - 'apps/server/test/tickets.test.ts :: raises a general task without a machine and requires
         location and workType'
+      - 'apps/web/e2e/floor.spec.ts :: other work sends a work request with its number'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.07
     feature: Maintenance raising a ticket can say "I am starting work on it now"
@@ -170,12 +171,13 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #41'
       - 'packages/domain/test/state.test.ts :: raises an open ticket and optionally starts it'
       - 'packages/domain/test/state.test.ts :: rejects a second start on a self-started or
         already-led ticket'
+      - 'apps/web/e2e/floor.spec.ts :: maintenance can start work on the ticket it reports'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.08
     feature: Duplicate on send returns the existing ticket
@@ -190,6 +192,7 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: replays a raise idempotently and returns the
         same ref'
       - 'apps/server/test/tickets.test.ts :: rejects a duplicate open ticket on the same machine'
+      - 'apps/web/e2e/floor.spec.ts :: a stopped report on a machine with a support ticket upgrades that ticket'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.09
     feature:
@@ -204,9 +207,9 @@ rows:
       - 'PR #26'
       - 'PR #40'
       - 'PR #52'
-      - 'apps/web/e2e/floor.spec.ts :: raises a stopped ticket from the floor and shows its
-        reference'
       - 'packages/shared/test/share.test.ts :: shows the ref, status, machine and problem'
+      - 'apps/web/e2e/floor.spec.ts :: reports a stopped machine found by search in four taps and shows its number'
+      - 'apps/web/e2e/floor.spec.ts :: My complaints lists what this person reported with the floor words'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.10
     feature: Deep link `?m=VC-17` pre-selects a machine
@@ -215,8 +218,9 @@ rows:
     milestones:
       - M1
       - M3
-    status: todo
-    evidence: []
+    status: done
+    evidence:
+      - 'apps/web/e2e/floor.spec.ts :: a ?m= link opens the situation step for that machine'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.11
     feature:

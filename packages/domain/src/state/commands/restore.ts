@@ -10,7 +10,8 @@ export function restore(
   if (input.ticket.status !== 'cancelled')
     throw new TransitionError('Only a cancelled ticket can be restored');
   const cancel = [...input.events].reverse().find((event) => event.type === 'cancel');
-  if (cancel && input.ctx.now.getTime() - cancel.at.getTime() > SEVEN_DAYS_MS) {
+  const cancelledAt = cancel?.at ?? input.ticket.cancelledAt;
+  if (cancelledAt && input.ctx.now.getTime() - cancelledAt.getTime() > SEVEN_DAYS_MS) {
     throw new TransitionError('Can only restore within 7 days');
   }
   const toStatus: RestorableStatus = cancel?.status ?? command.toStatus ?? 'open';
