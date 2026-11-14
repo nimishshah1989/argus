@@ -1,14 +1,8 @@
 import type { PoolClient } from 'pg';
 import { acknowledgeRefusal, canAcknowledge, type Role } from '@uptimo/domain';
 import type { PartView } from '../../kernel/index.js';
+import { ticketAckFacts } from '../tickets/index.js';
 import { onRosterAt } from './roster.js';
-
-interface AckRow {
-  id: string;
-  status: string;
-  assigned_to_person_id: string | null;
-  acknowledged: boolean;
-}
 
 /**
  * Whether this actor may acknowledge each ticket now: the domain's own rule, so the button and the command never
@@ -32,19 +26,12 @@ export async function loadCanAcknowledge(
   // the role alone rules out an operator, the board and an admin, whatever the roster says
   if (!canAcknowledge(ctx, { onRoster: true, assignedToActor: true })) return answers;
   const onRoster = await onRosterAt(client, tenantId, actor.personId, now);
-  const { rows } = await client.query<AckRow>(
-    `SELECT t.id, t.status, t.assigned_to_person_id,
-            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = 'acknowledge') AS acknowledged
-       FROM ticket t WHERE t.tenant_id = $1 AND t.id = ANY($2::uuid[])`,
-    [tenantId, ticketIds],
-  );
-  for (const row of rows) {
-    const ticket = { status: row.status, assignedToPersonId: row.assigned_to_person_id };
-    const refusal = acknowledgeRefusal(ctx, ticket, {
+  for (const fact of await ticketAckFacts(client, tenantId, ticketIds)) {
+    const refusal = acknowledgeRefusal(ctx, fact, {
       onRoster,
-      alreadyAcknowledged: row.acknowledged,
+      alreadyAcknowledged: fact.acknowledged,
     });
-    answers.set(row.id, refusal === null);
+    answers.set(fact.id, refusal === null);
   }
   return answers;
 }

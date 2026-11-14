@@ -62,3 +62,25 @@ export async function slaActiveIds(tx: Db, tenantId: string): Promise<string[]> 
   );
   return tickets.rows.map((ticket) => ticket.id);
 }
+
+export interface AckFacts {
+  id: string;
+  status: string;
+  assignedToPersonId: string | null;
+  acknowledged: boolean;
+}
+
+/** What deciding whether someone may acknowledge needs of each ticket, in one read: its state, assignee and history. */
+export async function ticketAckFacts(
+  tx: Db,
+  tenantId: string,
+  ticketIds: string[],
+): Promise<AckFacts[]> {
+  const { rows } = await tx.query(
+    `SELECT t.id, t.status, t.assigned_to_person_id AS "assignedToPersonId",
+            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = 'acknowledge') AS acknowledged
+       FROM ticket t WHERE t.tenant_id = $1 AND t.id = ANY($2::uuid[])`,
+    [tenantId, ticketIds],
+  );
+  return rows as AckFacts[];
+}
