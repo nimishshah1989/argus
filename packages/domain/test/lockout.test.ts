@@ -52,6 +52,17 @@ describe('which lockout confirmation still stands', () => {
     expect(standingLockoutConfirmation([ev('lockout_confirmed', 5), ev(type, 6)])).toBeNull();
   });
 
+  it('is not carried over a disputed fix: the work after the reopening was started after it', () => {
+    expect(
+      standingLockoutConfirmation([
+        ev('lockout_confirmed', 5),
+        ev('start', 6),
+        ev('close', 20),
+        ev('handback_dispute', 25),
+      ]),
+    ).toBeNull();
+  });
+
   it('survives a pause and a resume after it, and counts again if confirmed after a start', () => {
     const again = ev('lockout_confirmed', 20);
     expect(
