@@ -125,6 +125,22 @@ export async function openDuplicateId(
   return row?.id;
 }
 
+/** Another breakdown of the machine (any status but cancelled) that overlaps `from` to `to`; touching ends do not. */
+export async function overlappingBreakdownId(
+  tx: Db,
+  tenantId: string,
+  query: { machineId: string; from: Date; to: Date },
+): Promise<string | undefined> {
+  const row = (
+    await tx.query(
+      `SELECT id FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status <> 'cancelled'
+         AND reported_at < $4 AND (closed_at IS NULL OR closed_at > $3) LIMIT 1`,
+      [tenantId, query.machineId, query.from, query.to],
+    )
+  ).rows[0];
+  return row?.id;
+}
+
 /** Any ticket still active on the machine, whatever its kind: a machine with one cannot be switched off. */
 export async function activeTicketId(
   tx: Db,
