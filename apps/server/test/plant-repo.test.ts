@@ -27,7 +27,9 @@ describe('plant machinesByIds', () => {
 
   it('returns the machine row', async () => {
     const rows = await withTenant(db.app, T, (c) => machinesByIds(c, T, [M]));
-    expect(rows).toEqual([{ id: M, code: 'LOCK-1', category: null, cell: null, criticality: 'A' }]);
+    expect(rows).toEqual([
+      { id: M, code: 'LOCK-1', category: null, cell: null, criticality: 'A', status: 'active' },
+    ]);
   });
 
   async function updateWhileHeld(lock?: 'share'): Promise<void> {
