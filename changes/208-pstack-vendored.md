@@ -1,0 +1,1 @@
+- No change for plant users. Every agent session (cloud included) now has the pstack working skills in the repo, so builds and reviews follow the same steps everywhere (MIT licence; source and commit in .claude/vendor/pstack/NOTICE.md).
