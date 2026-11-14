@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
-const SECTIONS = ['tokens', 'components', 'layout', 'status'] as const;
+const SECTIONS = ['tokens', 'components', 'layout', 'status', 'shell'] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -246,4 +246,23 @@ test('@planted a changed token fails the screenshot', async ({ page }, testInfo)
   await expect(
     expect(page.getByTestId('gallery-status')).toHaveScreenshot('status-en.png'),
   ).rejects.toThrow();
+});
+
+test('screen frame: header sync pills, banners, both tab bars and loading shapes', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const shell = page.getByTestId('gallery-shell');
+  for (const word of ['Online', 'Offline', 'Sending', 'Draft'])
+    await expect(shell.locator('header').filter({ hasText: word })).toHaveCount(1);
+  await expect(shell.getByRole('alert')).toContainText('Could not send, try again.');
+  await expect(shell.getByRole('status').filter({ hasText: 'Needs attention' })).toBeVisible();
+  const desk = shell.getByRole('navigation', { name: 'Desk' });
+  await expect(desk.getByRole('link')).toHaveText(['7Open', 'Mine', 'Team', 'Report', 'Live']);
+  await expect(desk.getByRole('link', { name: /Open/ })).toHaveAttribute('aria-current', 'page');
+  const floor = shell.getByRole('navigation', { name: 'Floor' });
+  await expect(floor.getByRole('link')).toHaveText(['Report', 'My complaints']);
+  for (const link of await floor.getByRole('link').all())
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+  await expect(shell.getByRole('status').filter({ hasText: 'Loading…' })).toBeVisible();
 });

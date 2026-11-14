@@ -1,0 +1,43 @@
+import type { ReactNode } from 'react';
+import { Info, TriangleAlert, WifiOff, type IconComponent } from './icon.js';
+
+export type BannerTone = 'offline' | 'info' | 'attention' | 'error';
+
+const TONE: Record<BannerTone, { box: string; title: string; icon: IconComponent }> = {
+  offline: { box: 'bg-muted-tint', title: 'text-neutral-900', icon: WifiOff },
+  info: { box: 'rounded-xl bg-info-tint', title: 'text-info-ink', icon: Info },
+  attention: { box: 'rounded-xl bg-warning-tint', title: 'text-warning-ink', icon: TriangleAlert },
+  error: { box: 'rounded-xl bg-danger-tint', title: 'text-danger-ink', icon: TriangleAlert },
+};
+
+/**
+ * A message about the whole screen. Offline runs edge to edge under the top bar; the others sit in the gutter.
+ * An error is announced at once (role alert); the rest politely (role status).
+ */
+export function Banner({
+  tone,
+  title,
+  children,
+  action,
+}: {
+  tone: BannerTone;
+  title: string;
+  /** The line under the title. */
+  children?: ReactNode;
+  /** One button, e.g. Dismiss or Try again. */
+  action?: ReactNode;
+}) {
+  const { box, title: titleInk, icon: Icon } = TONE[tone];
+  return (
+    <div role={tone === 'error' ? 'alert' : 'status'} className={`flex flex-col gap-3 p-4 ${box}`}>
+      <div className="flex gap-2">
+        <Icon aria-hidden size={20} className={`mt-0.5 shrink-0 ${titleInk}`} />
+        <div className="flex flex-col gap-1">
+          <p className={`text-body font-bold ${titleInk}`}>{title}</p>
+          {children ? <div className="text-footnote text-neutral-900">{children}</div> : null}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
