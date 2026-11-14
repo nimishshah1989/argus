@@ -13,3 +13,8 @@ export function canSettingsPeople(ctx: ActorContext): boolean {
 export function canSettingsSla(ctx: ActorContext): boolean {
   return (HEAD_ADMIN as readonly string[]).includes(ctx.role);
 }
+
+/** AI consent and monthly spending cap (D22): the admin alone, not the head. */
+export function canSettingsAi(ctx: ActorContext): boolean {
+  return ctx.role === 'admin';
+}

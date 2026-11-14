@@ -6,17 +6,17 @@ import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { activePerson, requireAuth } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
+import { isPushEndpoint } from './endpoint.js';
 import {
   deleteSubscription,
   subscriptionsOfLogin,
-  subscriptionsOfPerson,
   upsertSubscription,
   type SubscriptionRow,
 } from './repo.js';
 
 const subscribeSchema = z.object({
   subscription: z.object({
-    endpoint: z.string().min(1),
+    endpoint: z.string().max(2048).refine(isPushEndpoint),
     keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
   }),
   actingPersonId: z.string().uuid(),
@@ -47,10 +47,14 @@ function configureWebPush(vapid: Vapid): void {
   }
 }
 
-async function deliver(subs: SubscriptionRow[], payload: unknown): Promise<void> {
+/** Sends to the subscriptions that name a real push service; returns how many that was. */
+async function deliver(subs: SubscriptionRow[], payload: unknown): Promise<number> {
+  // Rows saved before the address rule may still hold an internal address: never send to those.
+  const safe = subs.filter((sub) => isPushEndpoint(sub.endpoint));
   await Promise.allSettled(
-    subs.map((sub) => webpush.sendNotification(sub, JSON.stringify(payload))),
+    safe.map((sub) => webpush.sendNotification(sub, JSON.stringify(payload))),
   );
+  return safe.length;
 }
 
 async function keyHandler(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -133,8 +137,8 @@ async function testHandler(
   const subs = await withTenant(pool, auth.tenantId, (client) =>
     subscriptionsOfLogin(client, auth.tenantId, auth.loginId),
   );
-  await deliver(subs, { title: 'UPTIMO', body: 'Push works' });
-  reply.send({ sent: subs.length });
+  const sent = await deliver(subs, { title: 'UPTIMO', body: 'Push works' });
+  reply.send({ sent });
 }
 
 export function registerPush(app: FastifyInstance, config: AppConfig): void {
@@ -145,12 +149,4 @@ export function registerPush(app: FastifyInstance, config: AppConfig): void {
     unsubscribeHandler(pool, request, reply),
   );
   app.post('/api/v1/push/test', (request, reply) => testHandler(pool, request, reply));
-}
-
-/** Sends a push to every subscription bound to a person; used by M2 escalation, not wired yet. */
-export async function sendPush(pool: Pool, personId: string, payload: unknown): Promise<void> {
-  const vapid = vapidConfig();
-  if (!vapid.configured) return;
-  configureWebPush(vapid);
-  await deliver(await subscriptionsOfPerson(pool, personId), payload);
 }
