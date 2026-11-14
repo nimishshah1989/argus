@@ -35,6 +35,21 @@ import {
 export { errorBodySchema } from './error.js';
 
 export const okReplySchema = z.object({ ok: z.literal(true) }).strict();
+export const devicesReplySchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          id: z.string().uuid(),
+          device: z.string().nullable(),
+          current: z.boolean(),
+          lastSeenAt: isoDateTimeSchema,
+          createdAt: isoDateTimeSchema,
+        })
+        .strict(),
+    ),
+  })
+  .strict();
 export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
@@ -98,10 +113,12 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/brand`]: brandReplySchema,
   [`POST ${P}/auth/login`]: loginReplySchema,
   [`GET ${P}/auth/me`]: meReplySchema,
+  [`GET ${P}/auth/sessions`]: devicesReplySchema,
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,
     `POST ${P}/auth/acting`,
+    `DELETE ${P}/auth/sessions/:id`,
     `PUT ${P}/settings/:key`,
     `PUT ${P}/settings/sla-policies`,
     `PUT ${P}/machines/:id/criticality`,
