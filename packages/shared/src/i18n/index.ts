@@ -20,6 +20,8 @@ import { adminEn } from './admin.en.js';
 import { adminGu } from './admin.gu.js';
 import { boardEn } from './board.en.js';
 import { boardGu } from './board.gu.js';
+import { appUpdateEn } from './app-update.en.js';
+import { appUpdateGu } from './app-update.gu.js';
 import { liveBoardEn } from './live-board.en.js';
 import { liveBoardGu } from './live-board.gu.js';
 import { settingsEn } from './settings.en.js';
@@ -29,6 +31,8 @@ import { statusSignalGu } from './status-signal.gu.js';
 import { statusFloorEn } from './status-floor.en.js';
 import { statusFloorGu } from './status-floor.gu.js';
 import { statusTaskEn } from './status-task.en.js';
+import { deskWideEn } from './desk-wide.en.js';
+import { deskWideGu } from './desk-wide.gu.js';
 import { statusTaskGu } from './status-task.gu.js';
 import { detailEn } from './detail.en.js';
 import { detailGu } from './detail.gu.js';
@@ -56,11 +60,13 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   admin: adminEn,
   board: boardEn,
   'live-board': liveBoardEn,
+  'app-update': appUpdateEn,
   settings: settingsEn,
   'status-signal': statusSignalEn,
   'status-flow': statusFlowEn,
   'status-floor': statusFloorEn,
   'status-task': statusTaskEn,
+  'desk-wide': deskWideEn,
   'report-floor': reportFloorEn,
   closes: closesEn,
   signin: signinEn,
@@ -81,11 +87,13 @@ export const en = {
   ...adminEn,
   ...boardEn,
   ...liveBoardEn,
+  ...appUpdateEn,
   ...settingsEn,
   ...statusSignalEn,
   ...statusFlowEn,
   ...statusFloorEn,
   ...statusTaskEn,
+  ...deskWideEn,
   ...reportFloorEn,
   ...closesEn,
   ...signinEn,
@@ -108,11 +116,13 @@ export const gu = {
   ...adminGu,
   ...boardGu,
   ...liveBoardGu,
+  ...appUpdateGu,
   ...settingsGu,
   ...statusSignalGu,
   ...statusFlowGu,
   ...statusFloorGu,
   ...statusTaskGu,
+  ...deskWideGu,
   ...reportFloorGu,
   ...closesGu,
   ...signinGu,

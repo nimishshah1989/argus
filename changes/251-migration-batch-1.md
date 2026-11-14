@@ -1,0 +1,2 @@
+- A signed-out phone stops getting push notifications, and the day board's closed-today query uses an index.
+- A person who was erased cannot be created again by the people screen, the import or onboarding; the server needs a secret `ERASURE_HASH_KEY` before it will erase anyone.

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { request } from 'node:http';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * The fake cosmos used by the e2e stack. Every id is fixed so specs can reference
@@ -386,4 +386,13 @@ export async function signIn(page: Page, username = 'asha'): Promise<void> {
   await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
+}
+
+/**
+ * Where the ticket is on screen: its own pane beside the Open list on a wide screen, the whole page on a
+ * phone. The list repeats a ticket's words and buttons, so ticket assertions look inside this.
+ * `.last()` picks by document order: `body` comes first, so the pane wins whenever it exists.
+ */
+export function ticketView(page: Page): Locator {
+  return page.locator('body, section[aria-label="Ticket"]').last();
 }

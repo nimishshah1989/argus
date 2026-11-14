@@ -617,6 +617,9 @@ rows:
       - 'apps/web/e2e/board.spec.ts :: a breakdown nobody has started shows its machine and age, and the pulse counts it'
       - 'apps/web/e2e/board.spec.ts :: the TV is dark, has no navigation, and shows the three oldest stops of a column'
       - 'apps/web/e2e/board-hidden.spec.ts :: the board leaves out a hidden group and a segment kept off the board'
+      - 'apps/web/e2e/board.spec.ts :: the board shows the plant day score: response today and repair today'
+      - 'apps/web/e2e/board.spec.ts :: a day with nothing to average shows a dash, never 0 min'
+      - 'apps/web/e2e/board.spec.ts :: the TV shows the same two tiles beside open over 1 day'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
     feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
@@ -790,12 +793,18 @@ rows:
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.05
     feature: Update banner when a new build is deployed; "Update now" clears caches
-    disposition: keep
+    disposition: improve
     milestone: M1
     milestones:
       - M1
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'Ticket 25 goal 2: the banner waits out the shift changeover; the wall TV updates itself outside it; the new version clears the old caches when it takes over'
+      - 'apps/web/src/app-update.test.ts :: inChangeover'
+      - 'apps/web/e2e/pwa.spec.ts :: a waiting update shows a banner, and Update now asks the new version to take over'
+      - 'apps/web/e2e/pwa.spec.ts :: the update banner waits out the shift changeover'
+      - 'apps/web/e2e/pwa.spec.ts :: the wall TV updates itself, but not during the shift changeover'
+      - 'apps/web/e2e/pwa.spec.ts :: floor and desk install as two apps: each address offers its own app'
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.06
     feature: Config fingerprint check; settings pushed from the desktop platform

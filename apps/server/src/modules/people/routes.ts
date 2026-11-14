@@ -17,7 +17,13 @@ import {
   type AppConfig,
   type AuthContext,
 } from '../../kernel/index.js';
-import { listLoginAdmin, listPersonAdmin, requireAuth } from '../identity/index.js';
+import {
+  ErasedPersonError,
+  ErasureKeyMissing,
+  listLoginAdmin,
+  listPersonAdmin,
+  requireAuth,
+} from '../identity/index.js';
 import { actorOf, forbidden } from '../plant/index.js';
 import { createLogin, patchLogin } from './logins.js';
 import type { Actor, Outcome } from './outcome.js';
@@ -59,7 +65,16 @@ async function write<T>(reply: FastifyReply, work: () => Promise<Outcome<T>>): P
     if (out.ok) reply.code(out.status).send(out.value);
     else reply.code(out.status).send(out.error);
   } catch (error) {
-    const conflict = conflictOf(error);
+    if (error instanceof ErasureKeyMissing) {
+      reply
+        .code(503)
+        .send(apiError('not_configured', 'Creating people is paused until the server is set up'));
+      return;
+    }
+    const conflict =
+      error instanceof ErasedPersonError
+        ? apiError('conflict', error.message, 'name')
+        : conflictOf(error);
     if (!conflict) throw error;
     reply.code(409).send(conflict);
   }

@@ -1,0 +1,1 @@
+- Behind the scenes: pull requests that only change documents no longer run the full test suite, which saves build minutes.

@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import type { LoginAdmin, PersonAdmin } from '@uptimo/shared';
+import { refuseErased } from './erasure.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -69,7 +70,11 @@ export async function insertPerson(
   tx: Db,
   tenantId: string,
   p: PersonFields & { name: unknown; team: unknown },
-): Promise<PersonAdmin> {
+): Promise<{ person: PersonAdmin; possibleErasedMatch: boolean }> {
+  const possibleErasedMatch = await refuseErased(tx, tenantId, {
+    name: String(p.name),
+    phone: p.phone as string | null,
+  });
   const row = (
     await tx.query(
       `INSERT INTO person (tenant_id, name, short_name, phone, team, title, cell, default_shift, active)
@@ -79,7 +84,7 @@ export async function insertPerson(
       ),
     )
   ).rows[0];
-  return toPerson(row);
+  return { person: toPerson(row), possibleErasedMatch };
 }
 
 export async function updatePerson(tx: Db, id: string, fields: PersonFields): Promise<PersonAdmin> {

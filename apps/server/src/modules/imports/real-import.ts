@@ -1,6 +1,11 @@
 import { withTenant } from '@uptimo/db';
 import type { Pool, PoolClient } from 'pg';
-import { activePeople, ensurePendingPerson } from '../identity/index.js';
+import {
+  activePeople,
+  ensurePendingPerson,
+  erasedNamesAmong,
+  normaliseName,
+} from '../identity/index.js';
 import { activeListItems, activeMachineByCode } from '../plant/index.js';
 import {
   importTickets,
@@ -36,6 +41,9 @@ export interface RealImportStats {
   tickets: number;
   imported: number;
   skipped: number;
+  /** Tickets that name a person created by this import whose name matches an erased one: imported, to be looked at. */
+  possiblyErasedMatches: number;
+  possiblyErasedRows: number[];
   events: number;
   crew: number;
   segments: number;
@@ -66,29 +74,36 @@ async function resolvePeople(
   tx: PoolClient,
   tenantId: string,
   tickets: RealTicket[],
-): Promise<{ ids: Map<string, string>; pending: number }> {
+): Promise<{ ids: Map<string, string>; pending: number; created: string[] }> {
   const ids = new Map<string, string>();
   for (const row of await activePeople(tx, tenantId)) {
     const key = normalizeKey(row.name);
     ids.set(key, ids.has(key) ? '' : row.id);
   }
   let pending = 0;
+  const created: string[] = [];
   for (const name of new Set(tickets.flatMap(namesIn))) {
     const key = normalizeKey(name);
     if (ids.get(key) === '') throw new Error('Ambiguous active person in the export');
     if (ids.has(key)) continue;
     ids.set(key, await ensurePendingPerson(tx, tenantId, name));
     pending += 1;
+    created.push(name);
   }
-  return { ids, pending };
+  return { ids, pending, created };
 }
 
 async function context(
   tx: PoolClient,
   tenantId: string,
   tickets: RealTicket[],
-): Promise<{ ctx: RowContext; pending: number; pausesSla: Map<string, boolean> }> {
-  const { ids, pending } = await resolvePeople(tx, tenantId, tickets);
+): Promise<{
+  ctx: RowContext;
+  pending: number;
+  created: string[];
+  pausesSla: Map<string, boolean>;
+}> {
+  const { ids, pending, created } = await resolvePeople(tx, tenantId, tickets);
   const machines = new Map<string, ImportedTicketRow['machine']>();
   for (const code of new Set(tickets.filter((t) => t.kind !== 'general').map((t) => t.machine))) {
     const rows = await activeMachineByCode(tx, tenantId, code.toUpperCase());
@@ -108,7 +123,12 @@ async function context(
     const name = personName(raw);
     return name ? (ids.get(normalizeKey(name)) ?? null) : null;
   };
-  return { ctx: { personOf, machineOf: (code) => machines.get(code) ?? null }, pending, pausesSla };
+  return {
+    ctx: { personOf, machineOf: (code) => machines.get(code) ?? null },
+    pending,
+    created,
+    pausesSla,
+  };
 }
 
 function flagPauses(row: ImportedTicketRow, pausesSla: Map<string, boolean>): void {
@@ -228,6 +248,23 @@ async function importOne(r: Run, t: RealTicket, rowNumber: number): Promise<void
   stats.reports += row.report ? 1 : 0;
 }
 
+/** Rows naming a person this import created whose name matches an erased one: counted, by row number only. */
+async function flagPossiblyErased(
+  tx: PoolClient,
+  tenantId: string,
+  found: { tickets: RealTicket[]; created: string[] },
+  stats: RealImportStats,
+): Promise<void> {
+  const { tickets, created } = found;
+  const erased = await erasedNamesAmong(tx, tenantId, created);
+  if (erased.size === 0) return;
+  for (const [index, t] of tickets.entries()) {
+    if (namesIn(t).some((n) => erased.has(normaliseName(n))))
+      stats.possiblyErasedRows.push(index + 1);
+  }
+  stats.possiblyErasedMatches = stats.possiblyErasedRows.length;
+}
+
 function newStats(tickets: number, pending: number, figures: RealImportStats['figures']) {
   return {
     contract: REAL_SOURCE,
@@ -235,6 +272,8 @@ function newStats(tickets: number, pending: number, figures: RealImportStats['fi
     tickets,
     imported: 0,
     skipped: 0,
+    possiblyErasedMatches: 0,
+    possiblyErasedRows: [],
     events: 0,
     crew: 0,
     segments: 0,
@@ -264,8 +303,9 @@ async function run(
     await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`bhavin-import:${tenantId}`]);
     await lockRefCounter(tx, tenantId, 'BD');
     await lockRefCounter(tx, tenantId, 'WR');
-    const { ctx, pending, pausesSla } = await context(tx, tenantId, tickets);
+    const { ctx, pending, created, pausesSla } = await context(tx, tenantId, tickets);
     const stats: RealImportStats = newStats(tickets.length, pending, figures);
+    await flagPossiblyErased(tx, tenantId, { tickets, created }, stats);
     const known = await ledgerIdentity(tx, tenantId);
     const r: Run = { tx, tenantId, batchId, ctx, pausesSla, known, stats };
     for (const [index, t] of tickets.entries()) await importOne(r, t, index + 1);

@@ -2,7 +2,14 @@ import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getConfig, getState, type Config, type State } from '../api.js';
+import {
+  getBoardToday,
+  getConfig,
+  getState,
+  type BoardToday,
+  type Config,
+  type State,
+} from '../api.js';
 import { errorMessage, formatTime } from '../components/format.js';
 import { SyncStatus } from '../patterns/sync-status.js';
 import { Tv } from '../ui/icon.js';
@@ -80,9 +87,11 @@ interface BodyProps {
   config: Config;
   /** The TV's clock, beside the pulse. */
   clock: ReactNode;
+  /** The day score; none while it loads or if it cannot be read (the tiles show a dash, the board stays up). */
+  today: BoardToday | undefined;
 }
 
-function BoardBody({ tv, state, config, clock }: BodyProps) {
+function BoardBody({ tv, state, config, clock, today }: BodyProps) {
   const board = liveBoard(config, state.open, state.now);
   const scale = scaleFor(tv);
   const pulse = <Pulse board={board} scale={scale} />;
@@ -112,7 +121,7 @@ function BoardBody({ tv, state, config, clock }: BodyProps) {
           />
         ))}
       </div>
-      <Scoreboard ages={board.ages} scale={scale} tv={tv} />
+      <Scoreboard ages={board.ages} today={today} scale={scale} tv={tv} />
     </>
   );
 }
@@ -135,13 +144,22 @@ export function Board() {
   const live = { staleTime: REFETCH_MS, refetchInterval: REFETCH_MS };
   const state = useQuery({ queryKey: ['state'], queryFn: getState, ...live });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig, ...live });
+  const today = useQuery({ queryKey: ['board-today'], queryFn: getBoardToday, ...live });
   const error = state.error ?? config.error;
   const header = (
     <BoardHeader tv={tv} now={state.data?.now} timeZone={config.data?.timeZone ?? undefined} />
   );
   let body: ReactNode = <p className="text-neutral-600">{t('common.loading')}</p>;
   if (state.data && config.data)
-    body = <BoardBody tv={tv} state={state.data} config={config.data} clock={tv ? header : null} />;
+    body = (
+      <BoardBody
+        tv={tv}
+        state={state.data}
+        config={config.data}
+        clock={tv ? header : null}
+        today={today.data}
+      />
+    );
   else if (error)
     body = (
       <p role="alert" className="rounded-xl bg-danger-tint p-3 text-danger-ink">

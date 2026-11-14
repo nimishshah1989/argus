@@ -1,0 +1,1 @@
+- Design: slice 8 (acknowledge, escalation history, roster and ladder, lockout settings) and analytics batch 1 (shell, Dashboard, Today) are locked as approved, with their frames in `docs/design/slices/`.

@@ -1,15 +1,27 @@
 import { useTranslation } from 'react-i18next';
 import { TONE_TEXT } from '../../ui/meaning.js';
+import type { BoardToday } from '../../api.js';
 import type { AgeBuckets } from './data.js';
+import { DayScore } from './DayScore.js';
 import type { Scale } from './scale.js';
 
 const BUCKETS = ['underHour', 'oneToFour', 'fourToDay', 'overDay'] as const;
 
 /**
- * How old the open breakdowns are. The phone shows every bucket; the TV shows the day-old ones big and the
- * rest on one line. Response and repair today wait for a day score from the server (not sent yet).
+ * How old the open breakdowns are, then the plant's day score. The phone shows every age bucket; the TV shows
+ * the day-old ones big and the rest on one line, with the two day tiles beside it.
  */
-export function Scoreboard({ ages, scale, tv }: { ages: AgeBuckets; scale: Scale; tv: boolean }) {
+export function Scoreboard({
+  ages,
+  today,
+  scale,
+  tv,
+}: {
+  ages: AgeBuckets;
+  today: BoardToday | undefined;
+  scale: Scale;
+  tv: boolean;
+}) {
   const { t } = useTranslation();
   const card = `bg-surface shadow-card ${scale.card}`;
   const value = (key: (typeof BUCKETS)[number]) => {
@@ -32,22 +44,28 @@ export function Scoreboard({ ages, scale, tv }: { ages: AgeBuckets; scale: Scale
             <p className={`text-neutral-600 ${scale.sub}`}>{rest}</p>
           </div>
         </div>
+        <DayScore today={today} scale={scale} />
       </section>
     );
   }
   return (
-    <section aria-label={t('live.ages.title')} className={card}>
-      <h2 className="mb-2 text-body font-bold">{t('live.ages.title')}</h2>
-      <dl className={`grid gap-2 ${scale.ageGrid}`}>
-        {BUCKETS.map((key) => (
-          <div key={key} className="flex flex-col-reverse">
-            <dt className="text-footnote">{t(`live.ages.${key}`)}</dt>
-            <dd data-testid={`age-${key}`} className={`${scale.big} ${value(key)}`}>
-              {ages[key]}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <>
+      <section aria-label={t('live.ages.title')} className={card}>
+        <h2 className="mb-2 text-body font-bold">{t('live.ages.title')}</h2>
+        <dl className={`grid gap-2 ${scale.ageGrid}`}>
+          {BUCKETS.map((key) => (
+            <div key={key} className="flex flex-col-reverse">
+              <dt className="text-footnote">{t(`live.ages.${key}`)}</dt>
+              <dd data-testid={`age-${key}`} className={`${scale.big} ${value(key)}`}>
+                {ages[key]}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <div className="grid grid-cols-2 gap-4">
+        <DayScore today={today} scale={scale} />
+      </div>
+    </>
   );
 }
