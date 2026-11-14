@@ -65,6 +65,8 @@ const CANCELLED_TIME_RULING: Record<string, string> = {
   'BD-0077 handoverWaitMin: his 263, ours 11':
     'cancelled 09:48, restored 14:00: 252 minutes not counted',
   'BD-0077 downtimeMin: his 366, ours 114': 'the same 252 cancelled minutes',
+  'BD-0077 repairMin: his 366, ours 114':
+    'the same 252 cancelled minutes (repair is wall clock less the cancelled time)',
 };
 
 const FIGURES = {

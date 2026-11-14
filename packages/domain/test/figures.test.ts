@@ -205,4 +205,25 @@ describe('figures', () => {
     });
     expect(result.waitMin).toBe(30);
   });
+
+  it('does not count the cancelled time in repair or follow-up (Nimish, 14 Nov)', () => {
+    const closedAt = t('2026-01-01T15:00:00Z');
+    const result = figures({
+      ...base,
+      events: [
+        event('start', '2026-01-01T10:00:00Z'),
+        event('cancel', '2026-01-01T10:30:00Z'),
+        event('restore', '2026-01-01T11:00:00Z'),
+        event('running', '2026-01-01T12:00:00Z'),
+        event('cancel', '2026-01-01T13:00:00Z'),
+        event('restore', '2026-01-01T13:30:00Z'),
+      ],
+      now: closedAt,
+      closedAt,
+    });
+    // start 10:00 -> running again 12:00, less the first cancelled half hour
+    expect(result.repairMin).toBe(90);
+    // running 12:00 -> close 15:00, less the second cancelled half hour
+    expect(result.followMin).toBe(150);
+  });
 });

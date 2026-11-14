@@ -1,0 +1,1 @@
+- A ticket that was cancelled and restored no longer counts the cancelled time in repair or follow-up either (Nimish, 14 Nov), the same as waiting, handover wait and downtime.
