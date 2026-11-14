@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canAcknowledge } from '../src/permissions.js';
+import {
+  ACK_CLOCK_STOPS,
+  acknowledgeRefusal,
+  canAcknowledge,
+  offersAcknowledge,
+} from '../src/permissions.js';
 import { raiseTicket, transition, TransitionError } from '../src/state.js';
 import type { ActorContext, Role, TicketEvent } from '../src/types.js';
 
@@ -129,5 +134,49 @@ describe('acknowledge command', () => {
         TransitionError,
       );
     }
+  });
+});
+
+describe('acknowledgeRefusal and offersAcknowledge: one rule for the command and the button', () => {
+  const open = { status: 'open', assignedToPersonId: null };
+  const seen = { onRoster: true, alreadyAcknowledged: false };
+
+  it('says why, in the order the command checks: the person first, then the ticket, then the history', () => {
+    expect(acknowledgeRefusal(actor('operator'), open, seen)).toBe('Not allowed');
+    expect(acknowledgeRefusal(actor('technician'), open, { ...seen, onRoster: false })).toBe(
+      'Not allowed',
+    );
+    expect(acknowledgeRefusal(actor('technician'), { ...open, status: 'closed' }, seen)).toBe(
+      'Ticket is closed: nothing to acknowledge',
+    );
+    expect(
+      acknowledgeRefusal(actor('technician'), open, { ...seen, alreadyAcknowledged: true }),
+    ).toBe('Ticket is already acknowledged');
+    expect(acknowledgeRefusal(actor('technician'), open, seen)).toBeNull();
+  });
+
+  it('lets the assignee in without a roster line, and nobody whose person is unknown', () => {
+    const mine = { status: 'working', assignedToPersonId: 'person-1' };
+    expect(acknowledgeRefusal(actor('technician'), mine, { ...seen, onRoster: false })).toBeNull();
+    const nobody = actor('technician', { personId: null, shared: true });
+    expect(acknowledgeRefusal(nobody, { status: 'open', assignedToPersonId: null }, seen)).toBe(
+      'Not allowed',
+    );
+  });
+
+  it('offers the button only while the acknowledge clock is running', () => {
+    const facts = { onRoster: true, clockStopped: false };
+    expect(offersAcknowledge(actor('technician'), open, facts)).toBe(true);
+    expect(offersAcknowledge(actor('technician'), open, { ...facts, clockStopped: true })).toBe(
+      false,
+    );
+    expect(offersAcknowledge(actor('admin'), open, facts)).toBe(false);
+    expect(offersAcknowledge(actor('technician'), { ...open, status: 'waiting' }, facts)).toBe(
+      false,
+    );
+  });
+
+  it('names the events that stop the clock', () => {
+    expect([...ACK_CLOCK_STOPS].sort()).toEqual(['acknowledge', 'pickup', 'start']);
   });
 });

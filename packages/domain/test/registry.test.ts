@@ -9,6 +9,7 @@ const COMMAND_FILES = [
   'acknowledge-escalation',
   'cancel',
   'close',
+  'confirm-lockout',
   'correct',
   'handback-confirm',
   'handback-dispute',
@@ -37,6 +38,7 @@ describe('domain registries', () => {
         'acknowledgeEscalation',
         'cancel',
         'close',
+        'confirmLockout',
         'correct',
         'handbackConfirm',
         'handbackDispute',
@@ -58,7 +60,7 @@ describe('domain registries', () => {
 
   it('D2: the public API is unchanged', async () => {
     expect(Object.keys(await import('../src/index.js')).sort()).toEqual(
-      `ACTION_ORDER, CLOCK_TRIGGER, ESCALATION_DEFAULTS, SlaInputError, TransitionError, acknowledge, acknowledgeEscalation, addBusinessMinutes, apply, asksSignoff, assertWorking, availableActions, businessMinutesBetween, canAcknowledge, canAnalytics, canAnswerHandback, canAnswerHandbackAtAll, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, chainAcknowledged, clampAt, close, closeSegments, computeSeverity, correct, currentSignoff, dayScore, defaultSeverityMatrix, eventsSinceLastTransfer, figures, handbackConfirm, handbackDispute, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, mayAcknowledgeLevel, nextRef, nextSeq, passwordProblem, pause, pendingEscalationLevels, personMinutes, projectHandbackTimer, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, repeatAfterMinutes, restore, resume, seesAllNeedReport, severityAtLeast, signoffTurnaround, slaBreached, start, transfer, transition, update, upgradeKind`.split(
+      `ACK_CLOCK_STOPS, ACTION_ORDER, CLOCK_TRIGGER, ESCALATION_DEFAULTS, LOCKOUT_EVENT_TYPES, SlaInputError, TransitionError, acknowledge, acknowledgeEscalation, acknowledgeRefusal, addBusinessMinutes, apply, asksSignoff, assertWorking, availableActions, businessMinutesBetween, canAcknowledge, canAnalytics, canAnswerHandback, canAnswerHandbackAtAll, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, chainAcknowledged, clampAt, close, closeSegments, computeSeverity, confirmLockout, correct, currentSignoff, dayScore, defaultSeverityMatrix, eventsSinceLastTransfer, figures, handbackConfirm, handbackDispute, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, mayAcknowledgeLevel, nextRef, nextSeq, offersAcknowledge, passwordProblem, pause, pendingEscalationLevels, personMinutes, projectHandbackTimer, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, repeatAfterMinutes, restore, resume, seesAllNeedReport, severityAtLeast, signoffTurnaround, slaBreached, standingLockoutConfirmations, start, transfer, transition, update, upgradeKind, workersAfterResume`.split(
         ', ',
       ),
     );

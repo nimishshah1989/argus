@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { boardTodayReplySchema } from './board.js';
-import { brandReplySchema, loginReplySchema, meReplySchema } from './auth.js';
+import {
+  actingChoicesReplySchema,
+  brandReplySchema,
+  loginReplySchema,
+  meReplySchema,
+} from './auth.js';
 import {
   LIST_NAMES,
   listRowSchema,
@@ -22,6 +27,7 @@ import {
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
+import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
@@ -40,9 +46,17 @@ export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
-/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` and `handback` parts. */
+/**
+ * A ticket as every reply carries it: tickets' fields, then accountability's `sla`, `handback` and `canAcknowledge`
+ * parts. `canAcknowledge` is about the person using the session: true only when they may acknowledge this ticket now.
+ */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable(), handback: handbackSchema.nullable() })
+  .extend({
+    sla: slaProjectionSchema.nullable(),
+    handback: handbackSchema.nullable(),
+    canAcknowledge: z.boolean(),
+    lockout: lockoutSchema.nullable().optional(),
+  })
   .strict();
 export const stateReplySchema = z
   .object({
@@ -99,6 +113,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/brand`]: brandReplySchema,
   [`POST ${P}/auth/login`]: loginReplySchema,
   [`GET ${P}/auth/me`]: meReplySchema,
+  [`GET ${P}/auth/acting`]: actingChoicesReplySchema,
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,

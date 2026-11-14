@@ -161,6 +161,8 @@ const listFields = {
   isVendor: flag,
   pausesSla: flag,
   tag: z.string().trim().max(40).nullable(),
+  /** Only on a work type or a breakdown category: a ticket carrying it needs the lockout steps confirmed before Start. */
+  needsLockout: flag,
 };
 /** One entry of a list (wait reason, work type, quick problem ...). Its code is fixed once made: tickets keep it. */
 export const listItemCreateSchema = dropBlanks(
@@ -182,6 +184,7 @@ export const listItemReplySchema = z
     sort: z.number(),
     isVendor: z.boolean(),
     pausesSla: z.boolean(),
+    needsLockout: z.boolean(),
     ...activeField,
   })
   .strict();

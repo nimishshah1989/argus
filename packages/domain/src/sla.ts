@@ -4,6 +4,7 @@ import {
   SlaInputError,
   type BusinessCalendar,
 } from './business-hours.js';
+import { ACK_CLOCK_STOPS } from './permissions/ticket.js';
 import type { Ticket } from './ticket.js';
 import type { SlaPolicy, SlaTimerState } from '@uptimo/shared';
 import type { TicketEvent } from './types.js';
@@ -127,9 +128,12 @@ export function eventsSinceLastTransfer<T extends { type: string }>(events: read
 }
 
 function ackTerminal(input: SlaProjectionInput): Terminal | undefined {
+  // which events stop the acknowledge clock is `ACK_CLOCK_STOPS`, the same list the Acknowledge button reads;
+  // only what happened since the last handover counts: a transfer gives the next person a fresh window
   const events = eventsSinceLastTransfer(input.events);
-  const start = events.find((event) => event.type === 'start' || event.type === 'pickup');
-  const acknowledged = events.find((event) => event.type === 'acknowledge');
+  const stopping = events.filter((event) => ACK_CLOCK_STOPS.includes(event.type));
+  const start = stopping.find((event) => event.type !== 'acknowledge');
+  const acknowledged = stopping.find((event) => event.type === 'acknowledge');
   const close = events.find((event) => event.type === 'close');
   return earliest([
     start ? { at: correctedTime(input, 'startedAt', start.at), reason: 'started' } : undefined,

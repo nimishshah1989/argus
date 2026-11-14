@@ -29,6 +29,7 @@ export async function loadEvents(client: PoolClient, ticketId: string): Promise<
       isVendor: payload.isVendor as boolean | undefined,
       pausesSla: payload.pausesSla as boolean | undefined,
       handbackRequested: payload.handbackRequested === true,
+      stepCodes: Array.isArray(payload.stepCodes) ? (payload.stepCodes as string[]) : undefined,
       changes: Array.isArray(payload.changes) ? payload.changes.map(reviveCorrection) : undefined,
       id: row.id as string,
       seq: row.seq as number,

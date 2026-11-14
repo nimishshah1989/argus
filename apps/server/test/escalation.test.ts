@@ -682,6 +682,18 @@ describe('a transferred ticket nobody picks up', () => {
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
+  it('the Acknowledge button comes back after a handover', async () => {
+    const { id } = await raise(A);
+    await command(A, id, 'start', 'asha');
+    await rosterLine(A, 'bina', 'L1');
+    const offered = async () =>
+      (await call(A, 'GET', `/api/v1/tickets/${id}`, 'bina')).json().ticket.canAcknowledge;
+    expect(await offered()).toBe(false);
+    await command(A, id, 'transfer', 'asha', { note: 'end of shift' });
+    expect(await offered()).toBe(true);
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
+  });
+
   it('a chain from before the handover ends when the new acknowledge window starts', async () => {
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));

@@ -80,6 +80,13 @@ const BUILDERS: Record<CommandAction, Builder> = {
     body.response === 'confirmed'
       ? { type: 'handbackConfirm', personId, sameCell }
       : { type: 'handbackDispute', personId, reason: body.reason as string, sameCell },
+  // `steps` is filled in by `checkLockout` from the plant's own wording
+  'lockout-confirm': (body, personId) => ({
+    type: 'confirmLockout',
+    personId,
+    steps: body.steps as string[],
+    stepCodes: body.stepCodes as string[],
+  }),
 };
 
 export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {

@@ -82,7 +82,8 @@
           "remainingMinutes": 110
         }
       },
-      "handback": null
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000022",
@@ -166,7 +167,8 @@
           "remainingMinutes": 180
         }
       },
-      "handback": null
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000024",
@@ -250,7 +252,8 @@
           "remainingMinutes": 360
         }
       },
-      "handback": null
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000025",
@@ -310,7 +313,8 @@
       "expectedBackAt": null,
       "waitingSpare": null,
       "sla": null,
-      "handback": null
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000023",
@@ -389,7 +393,8 @@
           "remainingMinutes": 420
         }
       },
-      "handback": null
+      "handback": null,
+      "canAcknowledge": false
     }
   ],
   "needReport": [],
