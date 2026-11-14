@@ -48,7 +48,8 @@ export async function dayJobRows(
 
 const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id
     FROM ticket t
-   WHERE t.tenant_id = $1 AND t.status IN ('open', 'working', 'waiting') AND t.reported_at < $2
+   WHERE t.tenant_id = $1 AND t.reported_at < $2
+     AND (t.status IN ('open', 'working', 'waiting') OR COALESCE(t.closed_at, t.cancelled_at) >= $2)
    ORDER BY t.reported_at, t.ref`;
 
 export async function pendingRows(

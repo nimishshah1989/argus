@@ -7,9 +7,10 @@ import { hash } from '@node-rs/argon2';
 import { withTenant } from '@uptimo/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { loadDayReport } from '../src/modules/reports/day-report.js';
+import { loadDayReport, type DayReportData } from '../src/modules/reports/day-report.js';
 import { renderDayReportHtml } from '../src/modules/reports/day-report-template.js';
 import { resolveChromium } from '../src/modules/reports/pdf.js';
+import { pdfShows } from './pdf-text.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '10000000-0000-0000-0000-000000000001';
@@ -31,6 +32,12 @@ const T5 = '10000000-0000-0000-0000-00000000000c';
 const T6 = '10000000-0000-0000-0000-00000000000d';
 const TENANT_2 = '20000000-0000-0000-0000-000000000001';
 const PERSON_2 = '20000000-0000-0000-0000-000000000002';
+const GUJ = '10000000-0000-0000-0000-000000000012';
+const BRD = '10000000-0000-0000-0000-000000000013';
+const LOGIN_BRD = '10000000-0000-0000-0000-000000000014';
+const T7 = '10000000-0000-0000-0000-000000000015';
+const GUJ_NAME = 'ગીતા પટેલ';
+const GUJ_PROBLEM = 'સ્પિન્ડલ બેરિંગ બદલવું પડ્યું';
 const PASSWORD = 'correct-horse-battery';
 
 // Day window for 2026-11-10 in Asia/Kolkata (08:00–18:30) is 02:30–13:00 UTC.
@@ -55,6 +62,7 @@ let filesDir = '';
 let ashaToken = '';
 let opToken = '';
 let supToken = '';
+let brdToken = '';
 
 function get(url: string, token?: string): Promise<Res> {
   return app.inject({
@@ -75,10 +83,17 @@ async function login(username: string): Promise<string> {
   return res.json().token as string;
 }
 
-function dayReport(personId: string, date = '2026-11-10', shift: 'day' | 'night' = 'day') {
-  return withTenant(db.app, TENANT, (client) =>
+/** The day report data for a shift code (the plant's own shifts), or the whole calendar day for null. */
+async function dayReport(
+  personId: string,
+  date = '2026-11-10',
+  shift: string | null = '1',
+): Promise<DayReportData | null> {
+  const data = await withTenant(db.app, TENANT, (client) =>
     loadDayReport(client, { tenantId: TENANT, personId, date, shift }),
   );
+  if (data === 'no-shift') throw new Error('no such shift');
+  return data;
 }
 
 async function seed(): Promise<void> {
@@ -93,6 +108,12 @@ async function seed(): Promise<void> {
        ($1, 'cosmos', 'Cosmos'), ($2, 'plant-two', 'Plant Two')`,
     [TENANT, TENANT_2],
   );
+  // The plant's real shifts (Cosmos): shift 2 runs past midnight.
+  await db.admin.query(
+    `INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight) VALUES
+       ($1, '1', 'Shift 1', '08:00', '18:30', false), ($1, '2', 'Shift 2', '18:29', '05:00', true)`,
+    [TENANT],
+  );
   await db.admin.query(
     "INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, 'CNC', 'CNC', 0)",
     [SEGMENT, TENANT],
@@ -106,15 +127,17 @@ async function seed(): Promise<void> {
     `INSERT INTO person (id, tenant_id, name, team) VALUES
        ($1, $3, 'Asha', 'maintenance'), ($2, $3, 'Bina', 'maintenance'),
        ($4, $5, 'Other tech', 'maintenance'), ($6, $3, 'Omi', 'production'),
-       ($7, $3, 'Sami', 'maintenance')`,
-    [ASHA, BINA, TENANT, PERSON_2, TENANT_2, OP, SUP],
+       ($7, $3, 'Sami', 'maintenance'), ($8, $3, $9, 'maintenance'),
+       ($10, $3, 'Bo', 'production')`,
+    [ASHA, BINA, TENANT, PERSON_2, TENANT_2, OP, SUP, GUJ, GUJ_NAME, BRD],
   );
   await db.admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
      VALUES ($1, $2, $3, 'asha', $4, 'technician', false),
             ($5, $2, $6, 'op', $4, 'operator', false),
-            ($7, $2, $8, 'sup', $4, 'supervisor', false)`,
-    [LOGIN_ASHA, TENANT, ASHA, passwordHash, LOGIN_OP, OP, LOGIN_SUP, SUP],
+            ($7, $2, $8, 'sup', $4, 'supervisor', false),
+            ($9, $2, $10, 'brd', $4, 'board', false)`,
+    [LOGIN_ASHA, TENANT, ASHA, passwordHash, LOGIN_OP, OP, LOGIN_SUP, SUP, LOGIN_BRD, BRD],
   );
   await db.admin.query(
     `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at, severity) VALUES
@@ -178,6 +201,25 @@ async function seed(): Promise<void> {
       AT('2026-11-10T05:00:00Z'),
     ],
   );
+  // A job written in Gujarati, by a person with a Gujarati name: both must come out in the PDF.
+  await db.admin.query(
+    `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at, severity)
+     VALUES ($1, $2, 'BD-7', 'stopped', 'closed', $3, $4, $5, $6, $7, 'S3')`,
+    [
+      T7,
+      TENANT,
+      M1,
+      GUJ_PROBLEM,
+      AT('2026-11-10T06:00:00Z'),
+      LOGIN_ASHA,
+      AT('2026-11-10T07:00:00Z'),
+    ],
+  );
+  await db.admin.query(
+    `INSERT INTO work_segment (tenant_id, ticket_id, person_id, role, started_at, ended_at)
+     VALUES ($1, $2, $3, 'primary', $4, $5)`,
+    [TENANT, T7, GUJ, AT('2026-11-10T06:00:00Z'), AT('2026-11-10T07:00:00Z')],
+  );
   // BD-6 has no work segment: the person only touched it through an event.
   await db.admin.query(
     `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, acting_person_id)
@@ -200,6 +242,7 @@ beforeAll(async () => {
   ashaToken = await login('asha');
   opToken = await login('op');
   supToken = await login('sup');
+  brdToken = await login('brd');
 }, 120_000);
 
 afterAll(async () => {
@@ -240,8 +283,8 @@ describe('day report data', () => {
     expect(data.pending[0]!.status).toBe('open');
   });
 
-  it('uses the night window (18:29–05:00 next day)', async () => {
-    const data = (await dayReport(ASHA, '2026-11-10', 'night'))!;
+  it('uses shift 2’s window from the shift table (18:29–05:00 next day)', async () => {
+    const data = (await dayReport(ASHA, '2026-11-10', '2'))!;
     expect(data.window.start.toISOString()).toBe('2026-11-10T12:59:00.000Z');
     expect(data.window.end.toISOString()).toBe('2026-11-10T23:30:00.000Z');
     expect(data.jobs.map((job) => job.ref)).toEqual(['BD-4']);
@@ -267,13 +310,10 @@ describe('day report PDF endpoint', () => {
 
   it.skipIf(!chromiumPath)('returns the caller’s day as a PDF and stores nothing', async () => {
     const before = await db.admin.query('SELECT count(*)::int AS n FROM file');
-    const res = await get(
-      `/api/v1/reports/day.pdf?date=2026-11-10&personId=me&shift=day`,
-      ashaToken,
-    );
+    const res = await get(`/api/v1/reports/day.pdf?date=2026-11-10&personId=me&shift=1`, ashaToken);
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
-    expect(res.headers['content-disposition']).toContain('Day_report_Asha_2026-11-10_day.pdf');
+    expect(res.headers['content-disposition']).toContain('Day_report_Asha_2026-11-10_shift1.pdf');
     expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
     expect(res.rawPayload.length).toBeGreaterThan(5000);
 
@@ -282,7 +322,12 @@ describe('day report PDF endpoint', () => {
     expect(readdirSync(filesDir)).toEqual([]);
   });
 
-  it('defaults personId to the caller and shift to day', async () => {
+  it('defaults personId to the caller and the period to the whole calendar day', async () => {
+    const whole = (await dayReport(ASHA, '2026-11-10', null))!;
+    expect(whole.window.start.toISOString()).toBe('2026-11-09T18:30:00.000Z');
+    expect(whole.window.end.toISOString()).toBe('2026-11-10T18:30:00.000Z');
+    // Asha's BD-4 work (14:00Z, shift 2) and her 02:00Z start both fall in the day: more than shift 1 alone.
+    expect(whole.totalMinutes).toBeGreaterThan((await dayReport(ASHA))!.totalMinutes);
     const res = await get('/api/v1/reports/day.pdf?date=2026-11-10', ashaToken);
     // No Chromium in the sandbox would turn this into a 500, so skip the render-only assertion.
     if (!chromiumPath) {
@@ -290,6 +335,33 @@ describe('day report PDF endpoint', () => {
       return;
     }
     expect(res.statusCode).toBe(200);
+  });
+
+  it.skipIf(!chromiumPath)('prints a Gujarati name and problem in the PDF', async () => {
+    const data = (await dayReport(GUJ))!;
+    const html = renderDayReportHtml(data);
+    expect(html).toContain(GUJ_NAME);
+    expect(html).toContain(GUJ_PROBLEM);
+    const res = await get(
+      `/api/v1/reports/day.pdf?date=2026-11-10&personId=${GUJ}&shift=1`,
+      supToken,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(pdfShows(res.rawPayload, `${GUJ_NAME} ${GUJ_PROBLEM}`)).toBe(true);
+  });
+
+  it('shows one plant only: another tenant’s day lists none of this plant’s pending tickets', async () => {
+    const other = await withTenant(db.app, TENANT_2, (client) =>
+      loadDayReport(client, {
+        tenantId: TENANT_2,
+        personId: PERSON_2,
+        date: '2026-11-10',
+        shift: null,
+      }),
+    );
+    expect(other).not.toBeNull();
+    expect((other as DayReportData).pending).toEqual([]);
+    expect((other as DayReportData).jobs).toEqual([]);
   });
 
   it('rejects an unknown person, a foreign tenant person and a bad query', async () => {
@@ -324,6 +396,12 @@ describe('day report PDF endpoint', () => {
 
   it('forbids an operator from receiving a day report', async () => {
     const res = await get('/api/v1/reports/day.pdf?date=2026-11-10', opToken);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('forbidden');
+  });
+
+  it('forbids the board from receiving a day report', async () => {
+    const res = await get('/api/v1/reports/day.pdf?date=2026-11-10', brdToken);
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('forbidden');
   });

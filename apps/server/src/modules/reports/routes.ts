@@ -119,7 +119,8 @@ function pdfInput(context: PdfContext, svg: string): ReportPdfInput {
 function payloadFor(context: PdfContext): ReturnType<typeof buildQrPayload> {
   const report = context.report as StoredReport;
   return buildQrPayload({
-    machineId: report.machineId,
+    // v3's QR names the machine by its code (`TC-7`), the id its importer looks up; ours is a uuid.
+    machineId: context.ticket.machine.code ?? '',
     date: report.date,
     shiftCode: report.shiftCode,
     problem: report.problem,
@@ -208,12 +209,14 @@ const dayReportQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .refine(isCalendarDate),
   personId: z.union([z.literal('me'), z.string().uuid()]).optional(),
-  shift: z.enum(['day', 'night']).default('day'),
+  /** One of the plant's shift codes; left out, the whole calendar day. */
+  shift: z.string().trim().min(1).max(20).optional(),
 });
 
 function dayReportFileName(data: DayReportData): string {
   const who = data.person.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'person';
-  return `Day_report_${who}_${data.date}_${data.shift}.pdf`;
+  const shift = data.shift ? `_shift${data.shift}`.replace(/[^A-Za-z0-9_-]+/g, '') : '';
+  return `Day_report_${who}_${data.date}${shift}.pdf`;
 }
 
 /** Role gate + own-only rule for the day report (DOMAIN §3). */
@@ -273,9 +276,13 @@ async function sendDayPdf(
       tenantId: auth.tenantId,
       personId: resolved.personId,
       date: parsed.data.date,
-      shift: parsed.data.shift,
+      shift: parsed.data.shift ?? null,
     }),
   );
+  if (data === 'no-shift') {
+    reply.code(422).send(apiError('validation', 'This plant has no such shift', 'shift'));
+    return;
+  }
   if (!data) {
     reply.code(404).send(apiError('not_found', 'Unknown person', 'personId'));
     return;
