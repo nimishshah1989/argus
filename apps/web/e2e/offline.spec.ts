@@ -53,6 +53,8 @@ async function expectStatus(page: Page, label: string): Promise<void> {
 
 async function openAndStart(page: Page, ref: string): Promise<void> {
   await page.goto('/desk');
+  // v3: a work request (a job not on a machine) is under Work
+  await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   await page.getByRole('link', { name: new RegExp(ref) }).click();
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
   await page.getByRole('button', { name: 'Start', exact: true }).click();

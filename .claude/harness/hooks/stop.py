@@ -16,6 +16,11 @@ def main():
     json.load(sys.stdin)
     if not script.is_file():
         return
+    # Only when code changed: a turn that touched docs, or nothing, does not pay for a test run.
+    changed = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout
+    if not any(line[3:].startswith(("apps/", "packages/", "scripts/", "tools/")) for line in changed.splitlines()):
+        counter.unlink(missing_ok=True)
+        return
     try:
         r = subprocess.run(["bash", str(script)], cwd=root, capture_output=True, text=True, timeout=840)
         ok, out = r.returncode == 0, r.stdout + r.stderr

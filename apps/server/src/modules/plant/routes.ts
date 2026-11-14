@@ -7,7 +7,7 @@ import {
   settingsPutSchema,
   translationSchema,
 } from '@uptimo/shared';
-import { canSettingsPeople, type ActorContext } from '@uptimo/domain';
+import { canSettingsLists, canSettingsPeople } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import {
@@ -21,14 +21,8 @@ import {
 } from './repo/config.js';
 import { writableSetting } from './settings.js';
 import { fingerprint, loadConfig } from './service.js';
-
-export function canWrite(role: string): boolean {
-  return role === 'admin' || role === 'head';
-}
-
-export function forbidden(reply: FastifyReply): void {
-  reply.code(403).send(apiError('forbidden', 'You do not have permission for this action'));
-}
+import { actorOf, forbidden } from './actor.js';
+import { registerPlantSettingsRoutes } from './settings-routes.js';
 
 function withoutPhone(p: unknown): Record<string, unknown> {
   const copy = { ...(p as Record<string, unknown>) };
@@ -40,12 +34,7 @@ async function handleConfig(pool: Pool, request: FastifyRequest, reply: FastifyR
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   const full = await loadConfig(pool, ctx.tenantId);
-  const actor: ActorContext = {
-    role: ctx.role as ActorContext['role'],
-    loginId: ctx.loginId,
-    personId: ctx.personId,
-    shared: ctx.shared,
-  };
+  const actor = actorOf(ctx);
   const payload = canSettingsPeople(actor)
     ? full
     : { ...full, people: full.people.map(withoutPhone) };
@@ -74,12 +63,7 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     reply.code(404).send(apiError('not_found', 'Unknown setting'));
     return;
   }
-  const actor: ActorContext = {
-    role: ctx.role as ActorContext['role'],
-    loginId: ctx.loginId,
-    personId: ctx.personId,
-    shared: ctx.shared,
-  };
+  const actor = actorOf(ctx);
   if (!setting.allow(actor)) return forbidden(reply);
   const body = settingsPutSchema.safeParse(request.body);
   const value = body.success ? setting.schema.safeParse(body.data.value) : null;
@@ -108,7 +92,7 @@ async function listItems(pool: Pool, request: FastifyRequest, reply: FastifyRepl
 async function upsertListItem(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  if (!canWrite(ctx.role)) return forbidden(reply);
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const { list, code } = request.params as { list: string; code: string };
   if (!isListName(list)) {
     reply.code(404).send(apiError('not_found', 'Unknown list'));
@@ -129,7 +113,7 @@ async function upsertListItem(pool: Pool, request: FastifyRequest, reply: Fastif
 async function deleteListItem(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  if (!canWrite(ctx.role)) return forbidden(reply);
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const { id } = request.params as { id: string };
   await withTenant(pool, ctx.tenantId, (client) => deactivateListItem(client, id));
   reply.send({ ok: true });
@@ -145,7 +129,7 @@ async function missingTranslations(pool: Pool, request: FastifyRequest, reply: F
 async function putTranslation(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  if (!canWrite(ctx.role)) return forbidden(reply);
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const parsed = translationSchema.safeParse(request.body);
   if (!parsed.success) {
     reply.code(422).send(apiError('validation', 'Invalid translation'));
@@ -170,4 +154,5 @@ export function registerPlantRoutes(app: FastifyInstance, config: AppConfig): vo
     missingTranslations(pool, request, reply),
   );
   app.put('/api/v1/translations/:id', (request, reply) => putTranslation(pool, request, reply));
+  registerPlantSettingsRoutes(app, pool);
 }

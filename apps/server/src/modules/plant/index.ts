@@ -15,6 +15,6 @@ export {
   type MachineFamily,
   type MachineRow,
 } from './repo/reads.js';
-export { canWrite, forbidden } from './routes.js';
+export { actorOf, forbidden } from './actor.js';
 
 export const plantModule = defineModule({ name: 'plant', register: registerPlantRoutes });

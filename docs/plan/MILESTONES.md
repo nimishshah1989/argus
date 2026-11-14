@@ -36,7 +36,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 17  | Work the ticket                                   | M1        | done        | #185             |
 | 18  | Close, report, PDFs                               | M1        | todo        | —                |
 | 19  | Follow-up tasks                                   | M1        | todo        | —                |
-| 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 in review |
+| 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 + #200; screens todo |
 | 21  | People, logins and sign-in                        | M1        | in progress | API: backend lane |
 | 22  | Plant settings: machines, groups, shifts          | M1        | in progress | goal 2 #187; API #195; screens todo |
 | 23  | Plant settings: lists and company                 | M1        | todo        | —                |

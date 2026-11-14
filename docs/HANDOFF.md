@@ -34,6 +34,7 @@ Plan expected after pulling main: `Plan: 1 to add (server_snapshot policy), 1 to
 
 ## Decisions waiting for Nimish
 
+<<<<<<< HEAD
 Screens plan approval + 5 questions in the artifact; 31 status labels; new words (Switch off, Step 1 of 3, Show the numbers), chart style,
 "Show switched off"; DATA-MAP section 5 wording; Q25 offboarding proof; offboarded stub keeps company name; audit.purge also removes
 import.undo rows after 3 years; billing alarm = USD 150 budget; repo admin must add `pr-meta` to required checks; cancel-then-restore gap counted
@@ -57,3 +58,9 @@ Last session ended 2026-11-14 05:25 UTC on branch `claude/orchestrator-m0-gate`.
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
+=======
+Separate NOLOGIN history-owner role before production (26/28); server accepts what the Spec forbids (05);
+raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
+seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
+import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
+>>>>>>> origin/main

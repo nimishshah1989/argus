@@ -19,6 +19,7 @@ import {
   type Tx,
 } from '../mapper.js';
 import { endReasonFor, persistSegments } from './segments.js';
+import { overridesFrom } from '../admin-fixes.js';
 
 export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapshot, location,
   work_type, urgent, problem, problem_lang, reported_at, reported_by_person_id, reported_by_role,
@@ -218,6 +219,7 @@ export async function persistEvents(
           reason: event.reason ?? null,
           isVendor: event.isVendor ?? false,
           pausesSla: event.pausesSla,
+          ...(event.changes ? { changes: event.changes } : {}),
           ...payload,
         }),
       ],
@@ -272,12 +274,18 @@ export async function persistResult(
     last.isVendor = flags.isVendor;
     last.pausesSla = flags.pausesSla;
   }
+  const overrides = overridesFrom(tx, (loaded.row.overrides as Record<string, unknown>) ?? {});
   result.ticket.figures = recomputeFigures(result.ticket, result.events, result.segments, {
-    overrides: (loaded.row.overrides as Record<string, unknown>) ?? {},
+    overrides,
     now: new Date(),
   });
   const newEvents = result.events.slice(loaded.events.length);
   await persistTicket(client, result.ticket, commandExtras(tx.action, tx.body));
+  if (tx.action === 'correct')
+    await client.query('UPDATE ticket SET overrides = $2::jsonb WHERE id = $1', [
+      tx.ticketId,
+      JSON.stringify(overrides),
+    ]);
   await persistEvents(client, tx.tenantId, tx.ticketId, {
     events: newEvents,
     startSeq: loaded.ticket.lastEventSeq + 1,

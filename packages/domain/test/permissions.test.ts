@@ -8,6 +8,7 @@ import {
   canSettingsAi,
   canSettingsLists,
   canSettingsPeople,
+  seesAllNeedReport,
   canWork,
 } from '../src/permissions.js';
 import type { ActorContext, TicketContext } from '../src/types.js';
@@ -79,6 +80,39 @@ describe('permissions', () => {
       'board',
     ] as const) {
       expect(canSettingsAi(actor(role)), role).toBe(false);
+    }
+  });
+});
+
+describe('plant settings and the need-report list', () => {
+  it('lets only head and admin change machines, segments, groups and shifts', () => {
+    const allowed = ['head', 'admin'];
+    for (const role of [
+      'operator',
+      'technician',
+      'supervisor',
+      'head',
+      'plant_head',
+      'admin',
+      'board',
+    ] as const) {
+      expect(canSettingsLists(actor(role)), role).toBe(allowed.includes(role));
+    }
+  });
+
+  it('shows every login’s need-report tickets to supervisor, head and admin only', () => {
+    for (const role of [
+      'operator',
+      'technician',
+      'supervisor',
+      'head',
+      'plant_head',
+      'admin',
+      'board',
+    ] as const) {
+      expect(seesAllNeedReport(actor(role)), role).toBe(
+        ['supervisor', 'head', 'admin'].includes(role),
+      );
     }
   });
 });
