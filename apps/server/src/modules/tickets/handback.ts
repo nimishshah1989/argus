@@ -17,16 +17,19 @@ export function loginInTicketCell(tx: Tx, row: Record<string, unknown>): boolean
 
 /**
  * A sign-off refused to an operator, who answers only for their own cell, says which cell the machine was in and
- * which is theirs, so the app can tell them where to go. Any other refusal stays the plain one.
+ * which is theirs, so the app can tell them where to go. That needs both cells to be known and to differ; any other
+ * refusal (a login or a machine with no cell, or not an operator) stays the plain one.
  */
 export function otherCellRefusal(tx: Tx, row: Record<string, unknown>, refused: Outcome): Outcome {
   if (refused.status !== 403 || tx.action !== 'handback' || tx.auth.role !== 'operator') {
     return refused;
   }
+  const machineCell = cellAtReport(row);
+  if (!machineCell || !tx.auth.cell || machineCell === tx.auth.cell) return refused;
   return {
     status: 403,
     body: apiError('other_cell', 'This machine is in another cell', undefined, {
-      machineCell: cellAtReport(row),
+      machineCell,
       loginCell: tx.auth.cell,
     }),
   };

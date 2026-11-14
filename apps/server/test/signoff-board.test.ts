@@ -13,6 +13,9 @@ const MACHINE_B = '35000000-0000-4000-8000-000000000201';
 const id = (n: number) => `35000000-0000-4000-8000-0000000003${n.toString(16).padStart(2, '0')}`;
 const [REPORTER, LEAD, SUPER, BOB, BSUP, TV] = [id(1), id(2), id(3), id(4), id(5), id(6)];
 const MACHINE_A3 = '35000000-0000-4000-8000-000000000103';
+const MACHINE_HIDDEN = '35000000-0000-4000-8000-000000000104';
+const SEGMENT_A = '35000000-0000-4000-8000-000000000401';
+const GROUP_HIDDEN = '35000000-0000-4000-8000-000000000402';
 const PASSWORD = 'correct-horse-battery';
 const HOST_A = 'sb-a.localhost';
 const HOST_B = 'sb-b.localhost';
@@ -103,8 +106,21 @@ beforeAll(async () => {
   );
   await admin.query(
     `INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes, handback_minutes) VALUES
-      ($1, 'S1', 60, 240, 60), ($1, 'S2', 90, 360, 60), ($1, 'S3', 120, 480, 60), ($1, 'S4', 180, 720, 60)`,
-    [A],
+      ($1, 'S1', 60, 240, 60), ($1, 'S2', 90, 360, 60), ($1, 'S3', 120, 480, 60), ($1, 'S4', 180, 720, 60),
+      ($2, 'S1', 60, 240, 60), ($2, 'S2', 90, 360, 60), ($2, 'S3', 120, 480, 60), ($2, 'S4', 180, 720, 60)`,
+    [A, B],
+  );
+  await admin.query(
+    "INSERT INTO segment (id, tenant_id, code, name, sort) VALUES ($1, $2, 'HID', 'Hidden', 0)",
+    [SEGMENT_A, A],
+  );
+  await admin.query(
+    "INSERT INTO machine_group (id, tenant_id, segment_id, code, name, sort, hidden) VALUES ($1, $2, $3, 'UTIL', 'Utilities', 0, true)",
+    [GROUP_HIDDEN, A, SEGMENT_A],
+  );
+  await admin.query(
+    "INSERT INTO machine (id, tenant_id, code, criticality, cell, segment_id, group_id) VALUES ($1, $2, 'VC-HID', 'A', 'C1', $3, $4)",
+    [MACHINE_HIDDEN, A, SEGMENT_A, GROUP_HIDDEN],
   );
   app = await buildApp({
     pool: db.app,
@@ -292,11 +308,12 @@ describe('the board feed of sign-offs waiting for production', () => {
   });
 
   it('drops a ticket once the time production had to answer has run out', async () => {
+    await db.admin.query('UPDATE sla_policy SET handback_minutes = 60 WHERE tenant_id = $1', [A]);
     const waiting = await closed();
     const idsNow = async () =>
       (await feed()).json().items.map((i: { ticketId: string }) => i.ticketId);
     expect(await idsNow()).toContain(waiting.id);
-    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 3 * 60 * 60_000 });
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 2 * 60 * 60_000 });
     try {
       expect(await idsNow()).not.toContain(waiting.id);
     } finally {
@@ -314,6 +331,17 @@ describe('the board feed of sign-offs waiting for production', () => {
     expect(after).not.toContain(waiting.id);
   });
 
+  it('leaves out a machine kept off the board, whose sign-off stays reachable by its QR', async () => {
+    const hidden = await closed(MACHINE_HIDDEN);
+    const shown = await closed(MACHINE_A);
+    const ids = (await feed()).json().items.map((i: { ticketId: string }) => i.ticketId);
+    expect(ids).toContain(shown.id);
+    expect(ids).not.toContain(hidden.id);
+    expect((await asA('GET', `${ticketUrl(hidden.id)}/signoff-qr`, tokens.sana!)).statusCode).toBe(
+      200,
+    );
+  });
+
   it('is for whoever may see the board, and shows a plant only its own tickets', async () => {
     await closed();
     expect((await feed(tokens.sana!)).statusCode).toBe(200);
@@ -327,5 +355,99 @@ describe('the board feed of sign-offs waiting for production', () => {
     expect(theirs.statusCode).toBe(200);
     expect(theirs.json().items).toEqual([]);
     expect((await feed(tokens.sana!)).json().items.length).toBeGreaterThan(0);
+  });
+});
+
+interface Seed {
+  tag: string;
+  count: number;
+  severity: 'S1' | 'S3' | 'S4';
+  closedAgoMin: number;
+  /** How many of them also have a sign-off clock that has already fired. */
+  fired?: number;
+}
+
+/** Closed tickets in plant B whose sign-off was asked and not answered, written straight in: `count` of them, newest first. */
+async function seedWaiting(seed: Seed): Promise<void> {
+  await db.admin.query(
+    `WITH t AS (
+       INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, closed_at, close_kind,
+           closed_by_person_id, reported_by_person_id, severity, machine_id, machine_snapshot)
+       SELECT gen_random_uuid(), $1, $2 || '-' || g, 'stopped', 'closed', 'Seeded',
+           now() - ($4::int * interval '1 minute') - g * interval '1 second' - interval '1 hour',
+           now() - ($4::int * interval '1 minute') - g * interval '1 second', 'report', $5, $6, $7, $8,
+           jsonb_build_object('code', 'VC-B', 'cell', 'C1')
+       FROM generate_series(1, $3::int) g
+       RETURNING id, ref, closed_at),
+     e AS (
+       INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, acting_person_id, payload)
+       SELECT $1, id, 1, 'close', closed_at, $5, '{"handbackRequested": true}' FROM t)
+     INSERT INTO sla_timer (tenant_id, ticket_id, kind, due_at, fired_at, state)
+     SELECT $1, id, 'handback', closed_at + interval '10 minutes', closed_at + interval '10 minutes', 'running'
+     FROM t WHERE regexp_replace(ref, '^.*-', '')::int <= $9::int`,
+    [
+      B,
+      seed.tag,
+      seed.count,
+      seed.closedAgoMin,
+      BSUP,
+      BOB,
+      seed.severity,
+      MACHINE_B,
+      seed.fired ?? 0,
+    ],
+  );
+}
+
+/** Production answers them all, so they stop waiting (the log is never deleted from). */
+const forgetSeeded = (tag: string) =>
+  db.admin.query(
+    `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, acting_person_id)
+     SELECT $1, id, 2, 'handback_confirm', now(), $3 FROM ticket WHERE tenant_id = $1 AND ref LIKE $2 || '-%'`,
+    [B, tag, BOB],
+  );
+
+describe('the board feed with many tickets', () => {
+  const refsOfB = async () =>
+    (await send({ host: HOST_B, method: 'GET', url: '/api/v1/board/signoff', token: tokens.bea! }))
+      .json()
+      .items.map((i: { ref: string }) => i.ref) as string[];
+
+  it('shows at most 50, newest close first', async () => {
+    await seedWaiting({ tag: 'CAP', count: 51, severity: 'S3', closedAgoMin: 10 });
+    try {
+      const refs = await refsOfB();
+      expect(refs).toHaveLength(50);
+      expect(refs[0]).toBe('CAP-1');
+      expect(refs).toContain('CAP-50');
+      expect(refs).not.toContain('CAP-51');
+    } finally {
+      await forgetSeeded('CAP');
+    }
+  });
+
+  it('does not let a run of timed-out sign-offs hide an older one that is still waiting', async () => {
+    await db.admin.query(
+      "UPDATE sla_policy SET handback_minutes = 10 WHERE tenant_id = $1 AND severity = 'S1'",
+      [B],
+    );
+    await db.admin.query(
+      "UPDATE sla_policy SET handback_minutes = 1440 WHERE tenant_id = $1 AND severity = 'S4'",
+      [B],
+    );
+    // 60 newer sign-offs whose short time has run out (half with the clock's alarm already raised), one older with a long time.
+    await seedWaiting({ tag: 'OUT', count: 60, severity: 'S1', closedAgoMin: 120, fired: 30 });
+    await seedWaiting({ tag: 'LONG', count: 1, severity: 'S4', closedAgoMin: 240 });
+    try {
+      const refs = await refsOfB();
+      expect(refs).toEqual(['LONG-1']);
+    } finally {
+      await forgetSeeded('OUT');
+      await forgetSeeded('LONG');
+      await db.admin.query(
+        "UPDATE sla_policy SET handback_minutes = 60 WHERE tenant_id = $1 AND severity IN ('S1', 'S4')",
+        [B],
+      );
+    }
   });
 });
