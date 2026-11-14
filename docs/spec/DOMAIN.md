@@ -112,7 +112,8 @@ One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report
 | Analytics and scorecard | no | no | read | yes | yes | yes | no |
 | Settings: lists, machines, shifts, translations | no | no | no | yes | no | yes | no |
 | Settings: people and logins, roles | no | no | no | no | no | yes | no |
-| Settings: SLA, escalation, WhatsApp, caps | no | no | no | yes | no | yes | no |
+| Settings: SLA, escalation, WhatsApp, other caps | no | no | no | yes | no | yes | no |
+| Settings: AI monthly cap and consent (D22) | no | no | no | no | no | yes | no |
 
 **Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team. **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
 

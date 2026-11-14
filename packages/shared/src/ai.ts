@@ -23,7 +23,8 @@ export const aiConsentSchema = z.object({
   wordingVersion: z.string().min(1).max(40),
   recordedByLoginId: z.string().uuid(),
 }); // setting key 'ai.consent'
-export const aiMonthlyCapUsdSchema = z.number().positive(); // setting key 'ai.monthlyCapUsd'
+// setting key 'ai.monthlyCapUsd'. Finite and bounded: an overflowed number is stored as null, which turns AI off.
+export const aiMonthlyCapUsdSchema = z.number().positive().finite().max(100_000);
 
 export const AI_OUTCOMES = [
   'ok',
