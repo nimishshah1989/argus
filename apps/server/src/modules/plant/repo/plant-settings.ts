@@ -4,10 +4,25 @@ type Db = Pick<PoolClient, 'query'>;
 export type Row = Record<string, unknown>;
 
 /** The four tables the plant-settings routes write. Names here are ours, never a caller's. */
-export type SettingsTable = 'machine' | 'segment' | 'machine_group' | 'shift';
+export type SettingsTable =
+  'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term';
 
-export async function selectAll(tx: Db, table: SettingsTable, order: string): Promise<Row[]> {
-  return (await tx.query(`SELECT * FROM ${table} ORDER BY ${order}`)).rows;
+/** One table holding several lists: a resource reads and writes only the rows with this column value. */
+export interface Scope {
+  column: string;
+  value: string;
+}
+
+export async function selectAll(
+  tx: Db,
+  table: SettingsTable,
+  order: string,
+  scope?: Scope,
+): Promise<Row[]> {
+  const where = scope ? `WHERE ${scope.column} = $1` : '';
+  return (
+    await tx.query(`SELECT * FROM ${table} ${where} ORDER BY ${order}`, scope ? [scope.value] : [])
+  ).rows;
 }
 
 /** One row of this plant (the tenant policy hides every other plant's), locked for the edit. */
@@ -15,8 +30,12 @@ export async function selectOne(
   tx: Db,
   table: SettingsTable,
   id: string,
+  scope?: Scope,
 ): Promise<Row | undefined> {
-  return (await tx.query(`SELECT * FROM ${table} WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+  const where = scope ? `AND ${scope.column} = $2` : '';
+  const params = scope ? [id, scope.value] : [id];
+  return (await tx.query(`SELECT * FROM ${table} WHERE id = $1 ${where} FOR UPDATE`, params))
+    .rows[0];
 }
 
 export async function exists(tx: Db, table: SettingsTable, id: string): Promise<boolean> {
@@ -46,10 +65,6 @@ export async function updateRow(
   return (await tx.query(sql, [id, ...Object.values(values)])).rows[0];
 }
 
-export async function segmentExists(tx: Db, id: string): Promise<boolean> {
-  return ((await tx.query('SELECT 1 FROM segment WHERE id = $1', [id])).rowCount ?? 0) > 0;
-}
-
 /** The segment a group belongs to; undefined when this plant has no such group. */
 export async function groupSegment(tx: Db, id: string): Promise<string | undefined> {
   const row = (await tx.query('SELECT segment_id FROM machine_group WHERE id = $1', [id])).rows[0];
@@ -69,6 +84,17 @@ export async function insertMove(tx: Db, move: NewMove): Promise<void> {
     'INSERT INTO machine_move (tenant_id, machine_id, from_cell, to_cell, effective_from) VALUES ($1, $2, $3, $4, $5)',
     [move.tenantId, move.machineId, move.fromCell, move.toCell, move.effectiveFrom],
   );
+}
+
+/** The date of the machine's newest cell move, or undefined when it has never moved. */
+export async function latestMoveDate(tx: Db, machineId: string): Promise<string | undefined> {
+  const row = (
+    await tx.query(
+      'SELECT effective_from::text AS day FROM machine_move WHERE machine_id = $1 ORDER BY effective_from DESC LIMIT 1',
+      [machineId],
+    )
+  ).rows[0];
+  return row?.day as string | undefined;
 }
 
 /** A machine's cell moves, newest first. */

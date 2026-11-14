@@ -16,6 +16,7 @@ import {
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
+import { tenantLogoId } from './repo/profile.js';
 import {
   hashToken,
   newToken,
@@ -219,7 +220,10 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
-  reply.send({ company: tenant.name, logo: null });
+  // The file id in the address makes a browser fetch the new logo as soon as one is uploaded.
+  const logoId = await tenantLogoId(pool, tenant.slug);
+  const logo = logoId ? `/api/v1/brand/logo?v=${logoId}` : null;
+  reply.send({ company: tenant.name, logo });
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void {
