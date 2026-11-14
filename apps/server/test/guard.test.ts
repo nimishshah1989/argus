@@ -148,4 +148,51 @@ describe('auth guard', () => {
       await limited.close();
     }
   });
+
+  it('takes the visitor from the end of a longer forwarded chain, so a forged first entry buys nothing', async () => {
+    const limited = await build(1);
+    try {
+      await limited.ready();
+      const call = (forwardedFor: string) =>
+        limited.inject({
+          method: 'GET',
+          url: '/api/v1/auth/me',
+          remoteAddress: '172.18.0.3',
+          headers: { 'x-forwarded-for': forwardedFor },
+        });
+      expect((await call('9.9.9.1, 203.0.113.5')).statusCode).toBe(401);
+      // Same real visitor behind the proxy, different forged lead entries: one budget.
+      expect((await call('9.9.9.2, 8.8.8.8, 203.0.113.5')).statusCode).toBe(429);
+      // A trusted hop after the visitor is skipped; the visitor is the last address that is not ours.
+      expect((await call('203.0.113.5, 10.0.0.7')).statusCode).toBe(429);
+      expect((await call('9.9.9.1, 203.0.113.6')).statusCode).toBe(401);
+    } finally {
+      await limited.close();
+    }
+  });
+
+  it('caps requests to the sign-in route per visitor at 60 a minute', async () => {
+    const plain = await buildApp({
+      pool,
+      logger: false,
+      jobBoss: { getQueue: async () => ({}) } as unknown as PgBoss,
+    });
+    try {
+      await plain.ready();
+      const login = (from: string) =>
+        plain.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          remoteAddress: from,
+          payload: {},
+        });
+      for (let i = 0; i < 60; i++) expect((await login('198.51.100.40')).statusCode).toBe(422);
+      const limited = await login('198.51.100.40');
+      expect(limited.statusCode).toBe(429);
+      expect(limited.json().error.code).toBe('rate_limited');
+      expect((await login('198.51.100.41')).statusCode).toBe(422);
+    } finally {
+      await plain.close();
+    }
+  });
 });

@@ -382,9 +382,25 @@ describe('what /settings/:key accepts', () => {
       const res = await put('ai.monthlyCapUsd', tokens[role]!, 50);
       expect(res.statusCode, role).toBe(role === 'admin' ? 200 : 403);
     }
-    for (const value of [0, -5, '50', null]) {
-      expect((await put('ai.monthlyCapUsd', tokens.admin!, value)).statusCode).toBe(422);
+    for (const value of [0, -5, '50', null, 1e300, 100_001]) {
+      expect((await put('ai.monthlyCapUsd', tokens.admin!, value)).statusCode, `${value}`).toBe(
+        422,
+      );
     }
+    // JSON cannot say Infinity, but 1e400 reads as Infinity and used to be saved as null (AI silently off).
+    const overflow = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/settings/ai.monthlyCapUsd',
+      headers: {
+        host: 'cosmos.localhost',
+        'content-type': 'application/json',
+        authorization: `Bearer ${tokens.admin!}`,
+      },
+      payload: '{"value":1e400}',
+    });
+    expect(overflow.statusCode).toBe(422);
+    expect((await put('ai.monthlyCapUsd', tokens.admin!, 100_000)).statusCode).toBe(200);
+    expect((await put('ai.monthlyCapUsd', tokens.admin!, 50)).statusCode).toBe(200);
     const rows = await req('GET', '/api/v1/settings', tokens.admin!);
     expect(rows.json().find((row: { key: string }) => row.key === 'ai.monthlyCapUsd').value).toBe(
       50,

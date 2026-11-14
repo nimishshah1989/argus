@@ -264,9 +264,9 @@ describe('login guard', () => {
     expect(median(unknown)).toBeGreaterThan(median(wrong) * 0.5);
   });
 
-  it('stops guessing one username after ten misses, but only for that sender and name', async () => {
+  it('stops guessing one username after twenty misses, but only for that sender and name', async () => {
     const from = '198.51.100.21';
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       expect((await attempt('cell-phone', `guess-${i}`, from)).statusCode).toBe(401);
     }
     const blocked = await attempt('cell-phone', PASSWORD, from, { actingPersonId: PERSON_B });
@@ -293,15 +293,67 @@ describe('login guard', () => {
     expect(codes).toEqual(Array(40).fill(200));
   });
 
-  it('caps one sender trying many usernames', async () => {
+  it('does not let one person spraying many names lock the rest of the plant out', async () => {
     const from = '198.51.100.24';
-    let blocked = 0;
-    for (let i = 0; i < 110; i++) {
-      if ((await attempt(`spray-${i}`, 'x', from)).statusCode === 429) blocked++;
+    for (let i = 0; i < 100; i++) {
+      expect((await attempt(`spray-${i}`, 'x', from)).statusCode).toBe(401);
     }
-    expect(blocked).toBeGreaterThan(0);
-    expect(
-      (await attempt('cell-phone', PASSWORD, from, { actingPersonId: PERSON_B })).statusCode,
-    ).toBe(429);
+    const ok = await attempt('cell-phone', PASSWORD, from, { actingPersonId: PERSON_B });
+    expect(ok.statusCode).toBe(200);
+  });
+
+  it('refuses an erased login like any wrong password, in similar time, not with a 500', async () => {
+    await admin.query(
+      `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
+       VALUES (gen_random_uuid(), $1, $2, 'erased', '!', 'technician', false)`,
+      [B, PERSON_B],
+    );
+    const erased: number[] = [];
+    const wrong: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      let t = performance.now();
+      const res = await attempt('erased', PASSWORD, '198.51.100.25');
+      erased.push(performance.now() - t);
+      expect(res.statusCode).toBe(401);
+      expect(res.json().error.code).toBe('unauthenticated');
+      t = performance.now();
+      await attempt('cell-phone', 'wrong-password', '198.51.100.25');
+      wrong.push(performance.now() - t);
+    }
+    expect(median(erased)).toBeGreaterThan(median(wrong) * 0.5);
+  });
+
+  it('limits guessing the old password when changing a password', async () => {
+    const passwordHash = await hash(PASSWORD, {
+      algorithm: 2,
+      memoryCost: 19456,
+      timeCost: 2,
+      parallelism: 1,
+    });
+    await admin.query(
+      `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
+       VALUES (gen_random_uuid(), $1, $2, 'changer', $3, 'technician', false)`,
+      [B, PERSON_B, passwordHash],
+    );
+    const token = (await attempt('changer', PASSWORD, '198.51.100.26')).json().token as string;
+    const change = (old: string, from: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/password',
+        remoteAddress: from,
+        headers: {
+          host: HOST,
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        payload: { old, password: 'a-brand-new-password' },
+      });
+    const from = '198.51.100.27';
+    for (let i = 0; i < 20; i++) expect((await change(`guess-${i}`, from)).statusCode).toBe(401);
+    const blocked = await change(PASSWORD, from);
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json().error.code).toBe('rate_limited');
+    // Another address is not held back, and a right old password gives its attempt back.
+    expect((await change(PASSWORD, '198.51.100.28')).statusCode).toBe(200);
   });
 });
