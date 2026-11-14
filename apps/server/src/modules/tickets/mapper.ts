@@ -2,6 +2,7 @@ import { apiError, type CommandAction } from '@uptimo/shared';
 import {
   canCorrect,
   canLateReport,
+  canRaise,
   canRestore,
   canWork,
   figures as computeFigures,
@@ -233,7 +234,6 @@ const WORK_GATED = new Set<CommandAction>([
   'update',
   'machine-running',
   'machine-stopped',
-  'upgrade-kind',
 ]);
 
 export function gatePermission(
@@ -252,6 +252,8 @@ export function gatePermission(
     body: apiError('forbidden', 'You do not have permission for this action'),
   };
   if (WORK_GATED.has(action) && !canWork(actor)) return denied;
+  // Whoever may raise may also say a support ticket has become a stopped machine (DOMAIN §2).
+  if (action === 'upgrade-kind' && !canRaise(actor)) return denied;
   if (action === 'report' && !canLateReport(actor)) return denied;
   if (action === 'restore' && !canRestore(actor)) return denied;
   if (action === 'correct' && !canCorrect(actor)) return denied; // before any ticket or machine is looked up
