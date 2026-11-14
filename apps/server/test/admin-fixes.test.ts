@@ -292,8 +292,8 @@ describe('correct', () => {
     expect((await correct(id, 'admin', { machineId: null })).statusCode).toBe(409);
   });
 
-  it('sets hands-on and waiting minutes directly, marked as set by hand, and keeps the minutes they replaced', async () => {
-    const id = await ticketIn('working');
+  it('sets hands-on and waiting minutes directly on a closed ticket, marked as set by hand, and null takes them off', async () => {
+    const id = await ticketIn('closed');
     const res = await correct(id, 'admin', { activeMin: 45, waitMin: 12 });
     expect(res.statusCode).toBe(200);
     const figures = (await detail(id)).ticket.figures;
@@ -302,16 +302,22 @@ describe('correct', () => {
     const edit = (await detail(id)).events.find((e: { type: string }) => e.type === 'edit');
     expect(edit.changes).toEqual(
       expect.arrayContaining([
-        { field: 'handsOnOverrideMin', from: 0, to: 45 },
-        { field: 'waitingOverrideMin', from: 0, to: 12 },
+        { field: 'handsOnOverrideMin', from: expect.any(Number), to: 45 },
+        { field: 'waitingOverrideMin', from: expect.any(Number), to: 12 },
       ]),
     );
+    expect((await correct(id, 'admin', { activeMin: null })).statusCode).toBe(200);
+    const after = (await detail(id)).ticket.figures;
+    expect(after.overridden ?? []).not.toContain('activeMin');
+    expect(after.overridden).toContain('waitMin');
+    const live = await ticketIn('working');
+    expect((await correct(live, 'admin', { activeMin: 10 })).statusCode).toBe(409);
   });
 
   it('refuses times out of order, a cancelled ticket, and a ticket closed more than 7 days ago', async () => {
     const id = await ticketIn('working');
     expect((await correct(id, 'admin', { startedAt: '2020-01-01T00:00:00Z' })).statusCode).toBe(
-      409,
+      422,
     );
     const gone = await ticketIn('open');
     await act(gone, 'cancel', 'asha', { reason: 'Mistake' });
@@ -340,5 +346,95 @@ describe('correct', () => {
     expect(
       (await detail(id)).events.filter((e: { type: string }) => e.type === 'edit'),
     ).toHaveLength(2);
+  });
+});
+
+describe('a correction cannot rewrite what happened', () => {
+  const HOUR = 3_600_000;
+  /** Raised 08:00, started 10:00, closed 12:00 (two days ago), then the clock is back at the real time. */
+  async function closedTwoDaysAgo(): Promise<{ id: string; at: (h: number) => string }> {
+    const base = Math.floor((Date.now() - 2 * DAY) / DAY) * DAY + 8 * HOUR;
+    const at = (h: number) => new Date(base + (h - 8) * HOUR).toISOString();
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(at(8)) });
+    try {
+      const id = await raise('asha');
+      vi.setSystemTime(new Date(at(10)));
+      await act(id, 'start', 'asha');
+      vi.setSystemTime(new Date(at(12)));
+      expect((await act(id, 'close', 'asha', { kind: 'no_report', note: 'done' })).statusCode).toBe(
+        200,
+      );
+      return { id, at };
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  it('refuses times that disagree with the work recorded on the ticket, with the reason (422)', async () => {
+    const { id, at } = await closedTwoDaysAgo();
+    for (const changes of [
+      { startedAt: at(9), closedAt: at(9.5) }, // the reviewer's case
+      { startedAt: at(10.5) },
+      { reportedAt: at(10.5) },
+      { closedAt: at(11) },
+    ]) {
+      const res = await correct(id, 'admin', changes);
+      expect(JSON.stringify(changes) + res.statusCode).toBe(JSON.stringify(changes) + 422);
+      expect(res.json().error.message).toMatch(/^Invalid correction/);
+    }
+    expect((await correct(id, 'admin', { startedAt: at(9), closedAt: at(12) })).statusCode).toBe(
+      200,
+    );
+  });
+
+  it('the 7-day window is measured from the close and a correction cannot push it out', async () => {
+    const { id } = await closedTwoDaysAgo();
+    // five days on, it was closed seven days ago: still inside the window, but the close cannot be moved to now
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 5 * DAY - 3_600_000 });
+    try {
+      expect((await correct(id, 'admin', { closedAt: new Date().toISOString() })).statusCode).toBe(
+        422,
+      );
+      expect((await correct(id, 'admin', { problem: 'Inside the window' })).statusCode).toBe(200);
+      vi.setSystemTime(new Date(Date.now() + 2 * DAY));
+      expect((await correct(id, 'admin', { problem: 'Day 9' })).statusCode).toBe(409);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a closing time only on a closed ticket', async () => {
+    const id = await ticketIn('working');
+    expect((await correct(id, 'admin', { closedAt: new Date().toISOString() })).statusCode).toBe(
+      409,
+    );
+  });
+});
+
+describe('answers that do not depend on what the ticket looks like', () => {
+  it('is 403 before 404 for a correction by someone who may not, and for plant head and board cancelling any state', async () => {
+    for (const role of ['technician', 'plant_head', 'board']) {
+      const res = await call('POST', `/api/v1/tickets/${randomUUID()}/correct`, role, {
+        reason: 'x',
+        changes: { machineId: randomUUID() },
+      });
+      expect(`${role} ${res.statusCode}`).toBe(`${role} 403`);
+    }
+    const closed = await ticketIn('closed');
+    for (const role of ['plant_head', 'board'])
+      expect((await act(closed, 'cancel', role, { reason: 'x' })).statusCode).toBe(403);
+  });
+
+  it('an unknown person in a correction is 404, and a corrected machine replaces the machine shown', async () => {
+    const from = machines[nextMachine++];
+    const to = machines[nextMachine++];
+    const id = await raise('asha', from);
+    expect((await correct(id, 'admin', { leadPersonId: randomUUID() })).statusCode).toBe(404);
+    expect((await correct(id, 'admin', { closedByPersonId: randomUUID() })).statusCode).toBe(404);
+    const res = await correct(id, 'admin', { machineId: to });
+    expect(res.json().ticket.machineSnapshot).toMatchObject({ code: expect.stringMatching(/^M-/) });
+    const code = (await db.admin.query('SELECT code FROM machine WHERE id = $1', [to])).rows[0]
+      .code;
+    expect((await detail(id)).ticket.machineSnapshot.code).toBe(code);
   });
 });

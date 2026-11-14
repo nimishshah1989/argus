@@ -657,7 +657,8 @@ describe('SLA ticket integration', () => {
         },
         adminToken,
       );
-      expect(corrected.statusCode).toBe(409);
+      // a start in the future is an invalid time (422); a closing time on a ticket that is not closed is a conflict (409)
+      expect(corrected.statusCode).toBe(field === 'startedAt' ? 422 : 409);
       const after = (
         await admin.query(
           "SELECT state, due_at, revision, fired_at FROM sla_timer WHERE ticket_id = $1 AND kind = 'ack'",

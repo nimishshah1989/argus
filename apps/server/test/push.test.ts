@@ -26,12 +26,17 @@ let token1 = '';
 let token2 = '';
 let vapidPublic = '';
 
-function post(url: string, token: string, payload: unknown): Promise<Res> {
+function post(
+  url: string,
+  token: string,
+  payload: unknown,
+  host = 'cosmos.localhost',
+): Promise<Res> {
   return app.inject({
     method: 'POST',
     url,
     headers: {
-      host: 'cosmos.localhost',
+      host,
       'content-type': 'application/json',
       authorization: `Bearer ${token}`,
     },
@@ -153,10 +158,12 @@ describe('web push', () => {
     expect(rows.rows[0].acting_person_id).toBe(PERSON_1);
 
     // The same endpoint in another tenant is a separate row.
-    await post('/api/v1/push/subscribe', token2, {
-      subscription: SUBSCRIPTION,
-      actingPersonId: PERSON_2,
-    });
+    await post(
+      '/api/v1/push/subscribe',
+      token2,
+      { subscription: SUBSCRIPTION, actingPersonId: PERSON_2 },
+      'plant-two.localhost',
+    );
     const after = await db.admin.query(
       'SELECT tenant_id FROM push_subscription ORDER BY tenant_id',
     );

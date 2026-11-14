@@ -68,6 +68,7 @@ echo fake-password`,
     'docker',
     `echo "IMAGE_TAG=\${IMAGE_TAG:-} docker $*" >> "$UPTIMO_DIR/calls.log"
 if [ "$1" = "login" ]; then cat > /dev/null; fi
+if [ "$1 $2" = "image ls" ]; then printf '%b' "\${IMAGES:-}"; fi
 if [ "$1 $2" = "compose up" ]; then echo "$IMAGE_TAG" > "$UPTIMO_DIR/lastup"; fi
 if [[ "$*" == *"migrate.ts --pending"* ]]; then
   [ -z "\${BAD_STATE:-}" ] || exit 1
@@ -125,6 +126,29 @@ describe('staging deploy', () => {
     expect(up).toBeGreaterThan(migrate);
     expect(state('.current_tag')).toBe('bbb');
     expect(state('.previous_tag')).toBe('aaa');
+  });
+
+  it('frees disk space before pulling, keeping the running and the rollback release', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    writeFileSync(join(dir, '.previous_tag'), 'zzz');
+    const images = [
+      'registry.test/uptimo-server:aaa',
+      'registry.test/uptimo-server:zzz',
+      'registry.test/uptimo-server:old1',
+      'registry.test/uptimo-web:old2',
+      'caddy:2-alpine',
+    ].join('\\n');
+    const res = run(['deploy', 'bbb'], { IMAGES: images });
+    expect(res.status).toBe(0);
+    const log = calls();
+    const removed = log.filter((l) => l.includes('docker image rm')).join(' ');
+    expect(removed).toContain('uptimo-server:old1');
+    expect(removed).toContain('uptimo-web:old2');
+    expect(removed).not.toMatch(/:aaa|:zzz|caddy/);
+    const rm = log.findIndex((l) => l.includes('docker image rm'));
+    const pull = log.findIndex((l) => l.includes('compose pull'));
+    expect(rm).toBeGreaterThanOrEqual(0);
+    expect(pull).toBeGreaterThan(rm);
   });
 
   it('a release that fails its health check is rolled back automatically', () => {
