@@ -1,4 +1,3 @@
-import type { PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import type { AiSuggestPayload } from '@uptimo/shared';
 import { jobDb, type TicketListener } from '../../kernel/index.js';
