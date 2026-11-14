@@ -2,6 +2,7 @@ import { expect, test as base } from '@playwright/test';
 import { Pool } from 'pg';
 import { TENANT_WEB_URL, seedStatements } from './fixtures.js';
 import { actionSeedStatements } from './fixtures-actions.js';
+import { signoffSeedStatements } from './fixtures-signoff.js';
 
 /** Seeds this worker's own tenant (e2e-w<n>) into the run's database. */
 async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
@@ -10,7 +11,11 @@ async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
   if (!connectionString || !hash) throw new Error('e2e: global setup did not publish the database');
   const pool = new Pool({ connectionString, max: 1 });
   try {
-    for (const statement of [...seedStatements(hash, language), ...actionSeedStatements(hash)])
+    for (const statement of [
+      ...seedStatements(hash, language),
+      ...actionSeedStatements(hash),
+      ...signoffSeedStatements(),
+    ])
       await pool.query(statement.text, statement.values);
   } finally {
     await pool.end();

@@ -1,7 +1,8 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
-import { apiLogin, raiseTicketViaApi, signoffMachine } from './fixtures.js';
+import { apiLogin, raiseTicketViaApi } from './fixtures.js';
+import { signoffMachine } from './fixtures-signoff.js';
 
 /** Slice 6 (ticket 34), floor and desk: production is asked "Is it fixed?" after maintenance closes with a report. */
 
