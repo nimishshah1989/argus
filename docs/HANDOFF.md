@@ -20,7 +20,7 @@ logins, 275 tickets, 0 unexplained). Nimish's Mac: ~/argus-staging (tfvars: doma
 external_uptime_ping false, github_sub_prefix set). LEFT for ticket 14: the restore drill (infra/RESTORE.md; log in
 docs/plan/restore-drill-log.md), then the M0 gate (one short report, docs/plan/gates/M0.md).
 
-## pstack (Nimish, 14 Nov)
+## pstack (DONE: #208, vendored in .claude/skills; use /poteto-mode, /interrogate)
 
 Copy pstack into the repo so every session (cloud too) has it, and use it from now on: `add_repo` cursor/plugins
 (read), check its licence allows copying, vendor the pstack skills into `.claude/skills/` (as ponytail is), keep a
