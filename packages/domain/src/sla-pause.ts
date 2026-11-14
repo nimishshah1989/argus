@@ -8,7 +8,7 @@ type PauseEnd = Extract<SlaStopReason, 'resumed' | 'closed' | 'cancelled'>;
 
 interface Episode {
   start: Date;
-  end: { at: Date; reason: PauseEnd } | null;
+  end: { at: Date; reason: PauseEnd; backToWaiting?: boolean } | null;
 }
 
 const ENDS: Partial<Record<TicketEvent['type'], PauseEnd>> = {
@@ -19,11 +19,17 @@ const ENDS: Partial<Record<TicketEvent['type'], PauseEnd>> = {
 
 function step(current: Episode | null, event: TicketEvent): Episode | null {
   const open = current !== null && current.end === null;
-  if (event.type === 'pause') return open ? current : { start: event.at, end: null };
+  if (event.type === 'pause') {
+    // A reason that does not pause the restore clock is production's wait, not maintenance's.
+    return open || !event.pausesSla ? current : { start: event.at, end: null };
+  }
   const reason = ENDS[event.type];
-  if (reason) return open ? { start: current.start, end: { at: event.at, reason } } : current;
-  // A cancelled ticket that was paused comes back paused; the time it was cancelled does not count.
-  if (event.type === 'restore' && current?.end?.reason === 'cancelled') {
+  if (reason && open) {
+    const backToWaiting = event.status === 'waiting';
+    return { start: current.start, end: { at: event.at, reason, backToWaiting } };
+  }
+  // A ticket cancelled while waiting comes back waiting; the time it was cancelled does not count.
+  if (event.type === 'restore' && current?.end?.backToWaiting) {
     return { start: event.at, end: null };
   }
   return current;
@@ -38,8 +44,9 @@ function lastPause(events: readonly TicketEvent[], now: Date): Episode | null {
 
 /**
  * The pause clock: how long a ticket may stay waiting. Runs from the start of the pause, is due after the
- * policy's maximum and stops when work resumes, the ticket closes or it is cancelled. Wall-clock minutes,
- * whatever the policy says about business hours. No clock without a maximum or without a pause.
+ * policy's maximum and stops when work resumes, the ticket closes or it is cancelled. Only a pause whose
+ * reason pauses the SLA counts. Wall-clock minutes, whatever the policy says about business hours.
+ * No clock without a maximum or without a pause.
  */
 export function projectPauseTimer(input: SlaProjectionInput): SlaTimerProjection | null {
   const maxMinutes = input.policy.pauseMaxMinutes;

@@ -319,6 +319,13 @@ describe('pause clock on the fake clock', () => {
         [tenantId, ticketId],
       )
     ).rows[0];
+  const liveJobs = async (tenantId: string, ticketId: string) =>
+    (
+      await admin.query(
+        "SELECT 1 FROM pgboss.job WHERE name = 'sla.timer' AND singleton_key = $1 AND state IN ('created','retry','active')",
+        [`${tenantId}:${ticketId}:pause`],
+      )
+    ).rowCount;
   const fire = async (tenantId: string, ticketId: string, hhmm: string) => {
     const timer = await row(tenantId, ticketId);
     const payload: SlaTimerPayload = {
@@ -385,6 +392,92 @@ describe('pause clock on the fake clock', () => {
     expect(await fire(A, id, '11:29')).toBe(false);
     expect(await fire(A, id, '11:31')).toBe(true);
     expect(await fire(A, id, '11:40')).toBe(false);
+  });
+
+  it('a pause whose reason does not pause the restore clock arms no pause clock', async () => {
+    const id = await makeTicket(A, 'S1', [
+      ['down', '09:00'],
+      ['pause', '09:10', { pausesSla: false }],
+    ]);
+    await arm(A, id, '09:20');
+    expect(await row(A, id)).toBeUndefined();
+  });
+
+  it('removing the maximum while a pause clock runs stops it: no job, no breach', async () => {
+    const id = await makeTicket(A, 'S1', [['down', '09:00'], pause('09:10')]);
+    await arm(A, id, '09:20');
+    const armed = await row(A, id);
+    expect(await liveJobs(A, id)).toBe(1);
+    await admin.query(
+      "UPDATE sla_policy SET pause_max_minutes = NULL WHERE tenant_id = $1 AND severity = 'S1'",
+      [A],
+    );
+    try {
+      await arm(A, id, '09:25');
+      expect(await row(A, id)).toMatchObject({
+        state: 'stopped',
+        stop_reason: 'cancelled',
+        fired_at: null,
+      });
+      expect((await row(A, id)).revision).toBeGreaterThan(armed.revision);
+      expect(await liveJobs(A, id)).toBe(0);
+      const stale: SlaTimerPayload = {
+        tenantId: A,
+        ticketId: id,
+        kind: 'pause',
+        revision: armed.revision,
+      };
+      expect(await processSlaTimerJob(stale, { pool: db.app, now: () => at('10:30'), boss })).toBe(
+        false,
+      );
+      expect(await fire(A, id, '10:30')).toBe(false);
+      expect((await row(A, id)).fired_at).toBeNull();
+    } finally {
+      await admin.query(
+        "UPDATE sla_policy SET pause_max_minutes = 30 WHERE tenant_id = $1 AND severity = 'S1'",
+        [A],
+      );
+    }
+  });
+
+  it('a ticket that moves to a severity with no maximum while paused stops its clock', async () => {
+    const id = await makeTicket(A, 'S1', [['down', '09:00'], pause('09:10')]);
+    await arm(A, id, '09:20');
+    await admin.query("UPDATE ticket SET severity = 'S2' WHERE id = $1", [id]);
+    await arm(A, id, '09:25');
+    expect(await row(A, id)).toMatchObject({
+      state: 'stopped',
+      stop_reason: 'cancelled',
+      fired_at: null,
+    });
+    expect(await liveJobs(A, id)).toBe(0);
+    expect(await fire(A, id, '10:30')).toBe(false);
+  });
+
+  it('cancel then restore after the pause already breached starts a clock that can breach again', async () => {
+    const id = await makeTicket(A, 'S1', [['down', '09:00'], pause('09:10')]);
+    await arm(A, id, '09:20');
+    expect(await fire(A, id, '09:41')).toBe(true);
+    await addEvent(A, id, ['cancel', '10:00', { previousStatus: 'waiting' }]);
+    await arm(A, id, '10:00');
+    expect(await row(A, id)).toMatchObject({ state: 'stopped', stop_reason: 'cancelled' });
+    await addEvent(A, id, ['restore', '10:30']);
+    await arm(A, id, '10:30');
+    expect(await row(A, id)).toMatchObject({ state: 'running', fired_at: null });
+    expect(new Date((await row(A, id)).due_at).toISOString()).toBe(at('11:00').toISOString());
+    expect(await fire(A, id, '10:59')).toBe(false);
+    expect(await fire(A, id, '11:01')).toBe(true);
+    expect(await fire(A, id, '11:30')).toBe(false);
+  });
+
+  it('restoring a ticket that was cancelled in another status starts no pause clock', async () => {
+    const id = await makeTicket(A, 'S1', [['down', '09:00'], pause('09:10')]);
+    await arm(A, id, '09:20');
+    await addEvent(A, id, ['cancel', '09:30', { previousStatus: 'open' }]);
+    await addEvent(A, id, ['restore', '09:40']);
+    await arm(A, id, '09:45');
+    expect(await row(A, id)).toMatchObject({ state: 'stopped', stop_reason: 'cancelled' });
+    expect(await liveJobs(A, id)).toBe(0);
   });
 
   it('a policy with no pause maximum arms no pause clock', async () => {

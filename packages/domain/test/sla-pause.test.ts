@@ -73,11 +73,13 @@ describe('pause clock projection', () => {
     expect(late).toMatchObject({ state: 'running', breached: true, remainingMinutes: 0 });
   });
 
-  it('counts a pause whose reason does not pause the restore clock', () => {
-    const clock = projectPauseTimer(
-      input([pause('2026-01-01T10:10:00Z', false)], '2026-01-01T10:20:00Z'),
+  it('does not count a pause whose reason does not pause the restore clock', () => {
+    const events = [pause('2026-01-01T10:10:00Z', false)];
+    expect(projectPauseTimer(input(events, '2026-01-01T10:20:00Z'))).toBeNull();
+    const later = [...events, pause('2026-01-01T10:30:00Z')];
+    expect(projectPauseTimer(input(later, '2026-01-01T10:40:00Z'))?.dueAt).toEqual(
+      t('2026-01-01T11:30:00Z'),
     );
-    expect(clock?.dueAt).toEqual(t('2026-01-01T11:10:00Z'));
   });
 
   it('stops on resume: in time is not a breach, over the maximum is', () => {
@@ -128,13 +130,26 @@ describe('pause clock projection', () => {
     expect(cancelled).toMatchObject({ state: 'stopped', stopReason: 'cancelled' });
   });
 
-  it('restoring a cancelled ticket that was paused restarts the clock at the restore', () => {
-    const events = [
-      pause('2026-01-01T10:10:00Z'),
-      at('cancel', '2026-01-01T10:30:00Z'),
-      at('restore', '2026-01-01T11:00:00Z'),
-    ];
+  it('restoring a ticket cancelled while waiting restarts the clock at the restore', () => {
+    const cancel: TicketEvent = {
+      type: 'cancel',
+      at: t('2026-01-01T10:30:00Z'),
+      status: 'waiting',
+    };
+    const events = [pause('2026-01-01T10:10:00Z'), cancel, at('restore', '2026-01-01T11:00:00Z')];
     const clock = projectPauseTimer(input(events, '2026-01-01T11:20:00Z'));
     expect(clock).toMatchObject({ state: 'running', dueAt: t('2026-01-01T12:00:00Z') });
+  });
+
+  it('restoring a ticket cancelled in another status, or with no status recorded, starts no clock', () => {
+    const paused = pause('2026-01-01T10:10:00Z');
+    for (const status of [undefined, 'open' as const, 'working' as const]) {
+      const cancel: TicketEvent = { type: 'cancel', at: t('2026-01-01T10:30:00Z'), status };
+      const events = [paused, cancel, at('restore', '2026-01-01T11:00:00Z')];
+      expect(projectPauseTimer(input(events, '2026-01-01T11:20:00Z'))).toMatchObject({
+        state: 'stopped',
+        stopReason: 'cancelled',
+      });
+    }
   });
 });

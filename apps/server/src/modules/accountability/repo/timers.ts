@@ -45,14 +45,9 @@ function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
 }
 
-/** A pause clock that stopped for good and runs again is a new pause: its breach is owed afresh. */
+/** A pause clock that stopped and runs again is a new pause (resumed, restored, or its maximum set again). */
 function startsNewPause(row: TimerRow, timer: SlaTimerProjection): boolean {
-  return (
-    timer.kind === 'pause' &&
-    timer.state === 'running' &&
-    row.state === 'stopped' &&
-    row.stop_reason !== 'cancelled'
-  );
+  return timer.kind === 'pause' && timer.state === 'running' && row.state === 'stopped';
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -202,6 +197,32 @@ async function rearmOne(
     merge.timerId,
     input.now,
   ]);
+}
+
+/** Whether the ticket has a pause clock that has not stopped yet. */
+export async function hasLivePauseClock(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  ticketId: string,
+): Promise<boolean> {
+  const result = await client.query(
+    "SELECT 1 FROM sla_timer WHERE tenant_id = $1 AND ticket_id = $2 AND kind = 'pause' AND state <> 'stopped'",
+    [tenantId, ticketId],
+  );
+  return result.rowCount === 1;
+}
+
+/** What to store when the policy no longer has a pause maximum: stopped, never breached, its job cancelled. */
+export function retiredPauseClock(at: Date): SlaTimerProjection {
+  return {
+    kind: 'pause',
+    state: 'stopped',
+    breached: false,
+    dueAt: at,
+    pausedAt: null,
+    stoppedAt: at,
+    stopReason: 'cancelled',
+  };
 }
 
 export async function rearmTicket(

@@ -5,12 +5,19 @@ import {
   projectSlaTimers,
   type BusinessCalendar,
   type SlaPolicy,
+  type TicketEvent,
   type SlaTimerProjection as DomainTimer,
 } from '@uptimo/domain';
 import type { SlaProjection, SlaTimer } from '@uptimo/shared';
 import { tenantInfo } from '../identity/index.js';
 import { shiftWindows } from '../plant/index.js';
-import { rearmTicket, type SlaTimerKind } from './repo/timers.js';
+import {
+  hasLivePauseClock,
+  rearmTicket,
+  retiredPauseClock,
+  type SlaTimerKind,
+  type SlaTimerProjection,
+} from './repo/timers.js';
 import { tenantPolicies } from './repo/policies.js';
 import {
   loadEvents,
@@ -62,6 +69,7 @@ async function loadEventsByTicket(
       reason: (payload.reason as string | undefined) ?? (row.text as string | undefined),
       isVendor: payload.isVendor as boolean | undefined,
       pausesSla: payload.pausesSla as boolean | undefined,
+      status: payload.previousStatus as TicketEvent['status'],
       changes: Array.isArray(payload.changes) ? payload.changes.map(reviveCorrection) : undefined,
       seq: row.seq,
       loginId: row.login_id,
@@ -186,20 +194,23 @@ export async function reconcileTicket(
   if (!(await lockTicket(client, tenantId, ticketId))) return;
   const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
   if (!context || !boss) return;
-  await rearmTicket(client, boss, {
-    tenantId,
-    ticketId,
-    timers: projectClocks(context, now).map((clock) => ({
-      kind: clock.id.slice(clock.id.lastIndexOf(':') + 1) as SlaTimerKind,
-      state: clock.state,
-      breached: clock.breached,
-      dueAt: clock.dueAt,
-      pausedAt: clock.pausedAt,
-      stoppedAt: clock.stoppedAt,
-      stopReason: clock.stopReason,
-    })),
-    now: effectiveNow(context, now),
-  });
+  const projectionNow = effectiveNow(context, now);
+  const timers: SlaTimerProjection[] = projectClocks(context, now).map((clock) => ({
+    kind: clock.id.slice(clock.id.lastIndexOf(':') + 1) as SlaTimerKind,
+    state: clock.state,
+    breached: clock.breached,
+    dueAt: clock.dueAt,
+    pausedAt: clock.pausedAt,
+    stoppedAt: clock.stoppedAt,
+    stopReason: clock.stopReason,
+  }));
+  // The policy lost its pause maximum (or the ticket moved to one without): a running clock must stop.
+  if (!timers.some((timer) => timer.kind === 'pause')) {
+    if (await hasLivePauseClock(client, tenantId, ticketId)) {
+      timers.push(retiredPauseClock(projectionNow));
+    }
+  }
+  await rearmTicket(client, boss, { tenantId, ticketId, timers, now: projectionNow });
 }
 
 export async function reconcileSlaPolicies(
