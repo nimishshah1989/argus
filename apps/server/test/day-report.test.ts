@@ -385,6 +385,24 @@ async function seedPendingCases(): Promise<Record<string, string>> {
         ['restore', '2026-11-10T04:00:00Z'],
       ],
     ],
+    'closed, sent back by production before the window ended and still worked': [
+      'working',
+      null,
+      null,
+      [
+        ['close', '2026-11-10T10:00:00Z'],
+        ['handback_dispute', '2026-11-10T11:00:00Z'],
+      ],
+    ],
+    'closed, sent back by production only after the window ended': [
+      'working',
+      null,
+      null,
+      [
+        ['close', '2026-11-10T10:00:00Z'],
+        ['handback_dispute', '2026-11-10T14:00:00Z'],
+      ],
+    ],
   };
   const refs: Record<string, string> = {};
   let n = 0;
@@ -427,6 +445,10 @@ describe('pending at the end, judged by what had happened by then', () => {
     expect(pendingOf('cancelled and restored, closed after the window ended')).toBe(true);
     expect(pendingOf('cancelled and restored, closed before the window ended')).toBe(false);
     expect(pendingOf('cancelled, restored before the window ended and still open')).toBe(true);
+    expect(
+      pendingOf('closed, sent back by production before the window ended and still worked'),
+    ).toBe(true);
+    expect(pendingOf('closed, sent back by production only after the window ended')).toBe(false);
   });
 });
 

@@ -47,29 +47,45 @@ export const COMMAND_ACTIONS = [
   'restore',
   'correct',
   'upgrade-kind',
+  'acknowledge',
+  'acknowledge-escalation',
+  'handback',
+  'lockout-confirm',
 ] as const;
 export type CommandAction = (typeof COMMAND_ACTIONS)[number];
 
+/**
+ * Who acts is the session's person, so a command may leave this out. Repeating that person is accepted (older
+ * clients do); naming anyone else is refused with 403 `forbidden`, on a shared phone too.
+ */
+const actingPerson = z.string().uuid().optional();
+
 export const startTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   at: iso.optional(),
 });
 export type StartTicketBody = z.infer<typeof startTicketSchema>;
 
+export const acknowledgeTicketSchema = z.object({ personId: actingPerson });
+export type AcknowledgeTicketBody = z.infer<typeof acknowledgeTicketSchema>;
+
+/** Who acknowledges an escalation is the signed-in person; the body may leave it out or repeat it (checked against the session). */
+export const acknowledgeEscalationSchema = z.object({ personId: actingPerson });
+
 export const joinTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   role: z.enum(['primary', 'support']),
 });
 export type JoinTicketBody = z.infer<typeof joinTicketSchema>;
 
 export const leaveTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   reason: z.string().min(1).max(500),
 });
 export type LeaveTicketBody = z.infer<typeof leaveTicketSchema>;
 
 export const pauseTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   reasonCode: z.string().min(1).max(60),
   note: z.string().max(2000).optional(),
   expectedBackOn: z.string().optional(),
@@ -78,13 +94,13 @@ export const pauseTicketSchema = z.object({
 export type PauseTicketBody = z.infer<typeof pauseTicketSchema>;
 
 export const resumeTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   note: z.string().max(2000).optional(),
 });
 export type ResumeTicketBody = z.infer<typeof resumeTicketSchema>;
 
 export const transferTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   toPersonId: z.string().uuid().optional(),
   toShift: z.string().max(60).optional(),
   note: z.string().min(1).max(2000),
@@ -92,7 +108,7 @@ export const transferTicketSchema = z.object({
 export type TransferTicketBody = z.infer<typeof transferTicketSchema>;
 
 export const updateTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   text: z.string().min(1).max(2000),
   spare: z.string().max(200).optional(),
   expectedOn: z.string().optional(),
@@ -100,13 +116,13 @@ export const updateTicketSchema = z.object({
 export type UpdateTicketBody = z.infer<typeof updateTicketSchema>;
 
 export const machineRunningSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   at: iso.optional(),
 });
 export type MachineRunningBody = z.infer<typeof machineRunningSchema>;
 
 export const machineStoppedSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   at: iso.optional(),
 });
 export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
@@ -173,7 +189,7 @@ export const pastBreakdownSchema = z
 export type PastBreakdownBody = z.infer<typeof pastBreakdownSchema>;
 
 export const closeTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   kind: z.enum(['report', 'no_report', 'done']),
   at: iso.optional(),
   note: z.string().max(2000).optional(),
@@ -182,19 +198,32 @@ export const closeTicketSchema = z.object({
 export type CloseTicketBody = z.infer<typeof closeTicketSchema>;
 
 export const reportTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   report: breakdownReportSchema,
 });
 export type ReportTicketBody = z.infer<typeof reportTicketSchema>;
 
 export const cancelTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   reason: z.string().min(1).max(500),
 });
 export type CancelTicketBody = z.infer<typeof cancelTicketSchema>;
 
+/** Production's answer to a sign-off; a dispute needs its reason. */
+export const handbackTicketSchema = z
+  .object({
+    personId: actingPerson,
+    response: z.enum(['confirmed', 'disputed']),
+    reason: z.string().trim().min(1).max(500).optional(),
+  })
+  .refine((body) => body.response === 'confirmed' || body.reason !== undefined, {
+    message: 'A reason is required',
+    path: ['reason'],
+  });
+export type HandbackTicketBody = z.infer<typeof handbackTicketSchema>;
+
 export const restoreTicketSchema = z.object({
-  personId: z.string().uuid(),
+  personId: actingPerson,
   reason: z.string().min(1).max(500),
 });
 export type RestoreTicketBody = z.infer<typeof restoreTicketSchema>;
@@ -219,9 +248,7 @@ export const correctTicketSchema = z.object({
 export type CorrectTicketBody = z.infer<typeof correctTicketSchema>;
 
 // The domain exposes upgradeKind; the acting person is the session's person, not the body.
-export const upgradeKindSchema = z.object({
-  personId: z.string().uuid().optional(),
-});
+export const upgradeKindSchema = z.object({ personId: actingPerson });
 export type UpgradeKindBody = z.infer<typeof upgradeKindSchema>;
 
 const TICKET_STATUSES: readonly string[] = ['open', 'working', 'waiting', 'closed', 'cancelled'];

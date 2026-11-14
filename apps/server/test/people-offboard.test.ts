@@ -12,7 +12,7 @@ let ticketId: string;
 const tokens: Record<string, string> = {};
 
 async function addPerson(name: string, phone: string): Promise<string> {
-  const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'maintenance', phone });
+  const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'production', phone });
   expect(res.statusCode, res.body).toBe(201);
   return res.json().id;
 }

@@ -1,5 +1,7 @@
 export interface AiConfig {
   production: boolean;
+  /** Reference to the filed residency record (ADR 0007, completed from the signed terms). Null: not filed. */
+  residencyRecord: string | null;
   apiKey: string | null;
   model: string;
   priceInputUsdPerMtok: number;
@@ -51,6 +53,7 @@ export function aiConfigFromEnv(env: Env): AiConfig {
   const listed = PRICES[model];
   return {
     production: present(env.APP_ENV) === 'production',
+    residencyRecord: present(env.AI_RESIDENCY_RECORD),
     apiKey,
     model,
     priceInputUsdPerMtok: price(env, 'AI_PRICE_INPUT_USD_PER_MTOK', listed?.[0], keyed),

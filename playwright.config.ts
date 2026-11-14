@@ -20,7 +20,9 @@ export default defineConfig<object, { uiLanguage: 'en' | 'gu' }>({
   retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   timeout: 90_000,
-  globalTimeout: 300_000,
+  // A shard with retries takes 4 to 5 minutes on CI; at 300 s a slow run died with "2 errors were not a part
+  // of any test". Stays under the job's timeout-minutes (ci.yml), so a hang still ends here, with a clear message.
+  globalTimeout: 480_000,
   expect: { timeout: 10_000 },
   globalSetup: './apps/web/e2e/global-setup.ts',
   globalTeardown: './apps/web/e2e/teardown.ts',

@@ -31,6 +31,7 @@ export const AI_OUTCOMES = [
   'feature_off',
   'no_provider',
   'no_consent',
+  'no_residency',
   'cap_reached',
   'stale',
   'redaction_failed',
