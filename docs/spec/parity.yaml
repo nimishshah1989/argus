@@ -784,6 +784,11 @@ rows:
     status: in-progress
     evidence:
       - 'PR #5'
+      - 'apps/server/test/hidden-groups.test.ts :: hides exactly the Cosmos machines Bhavin hides today,
+        machine by machine'
+      - 'apps/server/test/hidden-groups.test.ts :: an admin-hidden group covers what the name guess hid
+        on a plant without segments'
+      - 'tools/no-utility-guess.test.ts :: finds none in apps or packages'
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.import.01
     feature:
