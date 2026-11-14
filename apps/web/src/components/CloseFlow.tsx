@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody, Config, TicketDetail } from '../api.js';
 import { Banner } from '../ui/banner.js';
@@ -210,6 +210,10 @@ export function CloseFlow(props: CloseFlowProps) {
     );
     setStep(2);
   }
+  // Each screen opens at its top, not where the ticket detail was scrolled to.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
   return (
     <div className="flex min-h-dvh flex-col bg-neutral-100">
       {step === 1 || !values ? (
