@@ -171,18 +171,16 @@ export function ReportPanel({
   return (
     <>
       {canFileLate && <FillReport onOpen={openLate} />}
-      {canEdit && (
-        <ActionBar
-          ticket={ticket}
-          config={config}
-          personId={personId}
-          actor={actor}
-          crew={crew}
-          error={error}
-          pending={pending}
-          onRun={handleAction}
-        />
-      )}
+      <ActionBar
+        ticket={ticket}
+        config={config}
+        personId={personId}
+        actor={actor}
+        crew={crew}
+        error={error}
+        pending={pending}
+        onRun={handleAction}
+      />
     </>
   );
 }

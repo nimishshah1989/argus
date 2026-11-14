@@ -8,7 +8,7 @@ import { BoardSections } from './board/BoardSections.js';
 import { Counts } from './board/Counts.js';
 import { SegmentFilter } from './board/SegmentFilter.js';
 import { WorkFooter } from './board/WorkFooter.js';
-import { boardCounts, buildSections } from './board/data.js';
+import { boardCounts, buildSections, ticketsOnBoard } from './board/data.js';
 
 const REFETCH_MS = 30_000;
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
@@ -77,8 +77,12 @@ function BoardContent({ kiosk, open, config, filter, onFilter, loading, error }:
   const visible = filter === 'all' ? sections : sections.filter((section) => section.id === filter);
   return (
     <>
-      <Counts counts={boardCounts(open)} large={kiosk} />
-      <SegmentFilter segments={config?.segments ?? []} value={filter} onChange={onFilter} />
+      <Counts counts={boardCounts(config ? ticketsOnBoard(open, config) : open)} large={kiosk} />
+      <SegmentFilter
+        segments={(config?.segments ?? []).filter((segment) => segment.show_on_board)}
+        value={filter}
+        onChange={onFilter}
+      />
       <BoardSections sections={visible} large={kiosk} />
       <WorkFooter open={open} machines={config?.machines ?? []} large={kiosk} />
     </>

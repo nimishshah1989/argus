@@ -1,0 +1,1 @@
+- The secrets scan no longer fails on four invented temporary passwords in the people tests; every other file is still scanned with the default rules.

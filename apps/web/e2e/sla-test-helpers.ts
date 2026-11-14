@@ -223,7 +223,7 @@ export async function prepareStoppedTicket(machine: MachineFixture, admin: strin
 }
 
 export async function pauseWithReason(page: Page, reason: 'spare' | 'vendor'): Promise<void> {
-  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.getByRole('button', { name: 'Pause: waiting', exact: true }).click();
   const form = page.getByRole('form', { name: 'Pause the ticket' });
   await form.getByLabel('Waiting for').selectOption(reason);
   await form.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -240,7 +240,7 @@ export async function correctToOverdue(admin: string, ticketId: string): Promise
 }
 
 export async function cancelAndRestore(page: Page, ticketRef: string): Promise<void> {
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel ticket', exact: true }).click();
   const cancel = page.getByRole('form', { name: 'Cancel the ticket' });
   await cancel.getByLabel('Why cancel?').fill('Verify SLA restore');
   await cancel.getByRole('button', { name: 'Cancel ticket', exact: true }).click();
@@ -258,5 +258,5 @@ export async function cancelAndRestore(page: Page, ticketRef: string): Promise<v
   await admin.getByLabel('Why restore it?').fill('Restore SLA browser ticket');
   await admin.getByRole('button', { name: 'Restore', exact: true }).click();
   await expect(page.getByRole('heading', { name: ticketRef })).toBeVisible();
-  await expect(page.locator('header').getByText('Open', { exact: true })).toBeVisible();
+  await expect(page.locator('header').getByText('Booked', { exact: true })).toBeVisible();
 }

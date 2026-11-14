@@ -68,7 +68,7 @@ function TimerRow({ label, timer, detailed, status, timeZone }: RowProps) {
       <dt className="text-xs font-medium text-neutral-600">{label}</dt>
       <dd
         className={`mt-0.5 text-sm tabular-nums ${
-          timer.breached ? 'font-semibold text-red-800' : 'text-neutral-700'
+          timer.breached ? 'font-semibold text-danger-ink' : 'text-neutral-700'
         }`}
       >
         {timerText(t, timer)}
@@ -91,7 +91,7 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
     const message = ticket.sla === undefined ? t('sla.unavailable') : t('sla.notConfigured');
     if (!detailed) return <p className="mt-2 text-xs text-neutral-600">{message}</p>;
     return (
-      <section aria-label={t('sla.title')} className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+      <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
         <h2 className="text-sm font-medium text-neutral-600">{t('sla.title')}</h2>
         <p className="mt-2 text-sm text-neutral-600">{message}</p>
       </section>
@@ -117,7 +117,7 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
   );
   if (!detailed) return <dl className="mt-2 grid grid-cols-2 gap-3 text-sm">{rows}</dl>;
   return (
-    <section aria-label={t('sla.title')} className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
       <h2 className="text-sm font-medium text-neutral-600">{t('sla.title')}</h2>
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">{rows}</dl>
     </section>
