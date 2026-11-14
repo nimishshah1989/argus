@@ -11,6 +11,7 @@
       label, or a `No parity: <reason>` line below)
 - [ ] `docs/HANDOFF.md` updated when a shipped slice changes what the product does
 - [ ] New migration file (never edit a merged one); `tenant_id` + RLS in the same file
+- [ ] Screen PRs: a side-by-side screenshot of the built screen at 360 px next to its mockup PNG (`docs/design/mockups/slice-1/`), and a list of deliberate differences under Reasons
 - [ ] PR under 800 changed lines (or the `size:large` label, or a `Large PR: <reason>` line below)
 
 ## Reasons

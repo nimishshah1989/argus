@@ -6,7 +6,13 @@
      behind white text and as rings/icons alike. The lighter #0d9488 is only 3.74:1 on white: it fails as text. */
   --color-accent: #0f766e;
   --color-accent-strong: #0f766e;
+  /* Text that sits on an accent fill, accent as text, and the soft accent fill behind a tonal button. */
+  --color-accent-ink: #ffffff;
+  --color-accent-text: #0f766e;
+  --color-accent-tint: #e3f2f0;
   --color-surface: #ffffff;
+  /* Border of anything you can tap or type in: 3.26:1 on white (WCAG non-text 3:1). Card edges stay neutral-200. */
+  --color-control: #8e8e93;
 
   /* Neutral scale. */
   --color-neutral-50: #fafafa;
@@ -29,6 +35,24 @@
   --color-ok: #15803d;
   --color-muted: #6e6e73;
 
+  /* Status chips (design lock): ink is the text and icon on the tint behind it. The tones above are kept for
+     borders and icons on white; used as text on a tint they fail 4.5:1 (Stopped 4.23, In progress 4.48, Support
+     4.45, Fixed 4.42, Closed 4.30). The inks below are 5.66 to 7.74:1 on their tints. */
+  --color-danger-ink: #b91c1c;
+  --color-info-ink: #1d4ed8;
+  --color-warning-ink: #92400e;
+  --color-hold-ink: #9a3412;
+  --color-moved-ink: #6d28d9;
+  --color-ok-ink: #166534;
+  --color-muted-ink: #48484a;
+  --color-danger-tint: #fdecec;
+  --color-info-tint: #e8effd;
+  --color-warning-tint: #fbf0dc;
+  --color-hold-tint: #fdeee4;
+  --color-moved-tint: #f1eafd;
+  --color-ok-tint: #e6f4ea;
+  --color-muted-tint: #ececf0;
+
   /* Old status names, kept so existing screens look the same. */
   --color-stopped: var(--color-danger);
   --color-in-progress: var(--color-info);
@@ -48,11 +72,14 @@
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
+  --radius-sheet: 20px;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.1);
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.16);
 
+  /* Tap targets: 52 px for primary and secondary buttons and fields; 44 px is the floor for anything smaller. */
   --spacing-target: 52px;
+  --spacing-target-min: 44px;
 }
 
 :root {
@@ -73,8 +100,58 @@
   }
 }
 
+/* Dark theme (design lock): surfaces and text from the approved mockups. The tones keep their meaning; each
+   ink is light enough for its dark tint. #14b8a6 is the dark accent: dark text on it is 6.86:1, and the light
+   fill #0f766e is only 3.11:1 against a dark card. Only the gallery sets data-theme until a screen asks for it. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-accent: #14b8a6;
+  --color-accent-strong: #14b8a6;
+  --color-accent-ink: #04201d;
+  --color-accent-text: #2dd4bf;
+  --color-accent-tint: #12302c;
+  --color-surface: #1c1c1e;
+  --color-control: #8e8e93;
+
+  --color-neutral-50: #151517;
+  --color-neutral-100: #111214;
+  --color-neutral-200: #2c2c2e;
+  --color-neutral-300: #48484a;
+  --color-neutral-400: #636366;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-600: #a1a1a6;
+  --color-neutral-700: #d2d2d7;
+  --color-neutral-800: #e5e5ea;
+  --color-neutral-900: #f5f5f7;
+
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+  --color-warning: #fbbf24;
+  --color-hold: #fb923c;
+  --color-moved: #a78bfa;
+  --color-ok: #4ade80;
+  --color-muted: #a1a1a6;
+  --color-danger-ink: #f87171;
+  --color-info-ink: #60a5fa;
+  --color-warning-ink: #fbbf24;
+  --color-hold-ink: #fb923c;
+  --color-moved-ink: #a78bfa;
+  --color-ok-ink: #4ade80;
+  --color-muted-ink: #a1a1a6;
+  --color-danger-tint: #3a1d1f;
+  --color-info-tint: #16233d;
+  --color-warning-tint: #33270f;
+  --color-hold-tint: #3a2314;
+  --color-moved-tint: #2a2140;
+  --color-ok-tint: #16301f;
+  --color-muted-tint: #2c2c2e;
+
+  --shadow-card: 0 0 0 1px #2c2c2e;
+  --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.5);
+}
+
 /* The comparison accent (the old default); only the gallery sets data-accent. */
-:root[data-accent='blue'] {
+:root[data-accent='blue']:not([data-theme='dark']) {
   --color-accent: #0a66c2;
   --color-accent-strong: #0a66c2;
 }

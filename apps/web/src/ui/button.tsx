@@ -1,20 +1,24 @@
 import type { ComponentProps } from 'react';
 
 export type ButtonProps = Omit<ComponentProps<'button'>, 'className' | 'style'> & {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'tonal' | 'quiet' | 'quiet-danger';
 };
 
+/** Primary is the one filled button on a screen; tonal is a card's own action; quiet is a text-only extra. */
 const VARIANT = {
-  primary: 'bg-accent-strong text-white',
+  primary: 'min-h-target bg-accent-strong text-accent-ink',
   secondary:
-    'bg-surface border border-neutral-300 text-neutral-900 aria-pressed:ring-2 aria-pressed:ring-accent-strong aria-pressed:text-accent-strong',
+    'min-h-target bg-surface border border-control text-neutral-900 aria-pressed:ring-2 aria-pressed:ring-accent-strong aria-pressed:text-accent-text',
+  tonal: 'min-h-target bg-accent-tint text-accent-text',
+  quiet: 'min-h-target-min text-accent-text',
+  'quiet-danger': 'min-h-target-min text-danger-ink',
 };
 
 export function Button({ variant = 'primary', type = 'button', ...rest }: ButtonProps) {
   return (
     <button
       type={type}
-      className={`min-h-target rounded-xl px-4 text-body font-semibold ${VARIANT[variant]}`}
+      className={`rounded-xl px-4 text-body font-semibold ${VARIANT[variant]}`}
       {...rest}
     />
   );

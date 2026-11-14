@@ -71,12 +71,12 @@ function GuNote() {
   );
 }
 
-export default function Gallery() {
-  const { t } = useTranslation('gallery');
-  const [params] = useSearchParams();
-  const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
-  const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
-
+/** The gallery sets language, accent and theme on <html> and puts them back when you leave. */
+function useDocumentAttributes(
+  lang: 'en' | 'gu',
+  accent: 'blue' | 'teal',
+  theme: 'dark' | 'light',
+) {
   useEffect(() => {
     void setLanguage(lang);
     document.documentElement.lang = lang;
@@ -85,14 +85,29 @@ export default function Gallery() {
     if (accent === 'blue') document.documentElement.dataset.accent = 'blue';
     else delete document.documentElement.dataset.accent;
   }, [accent]);
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+  }, [theme]);
   useEffect(
     () => () => {
       document.documentElement.lang = 'en';
       delete document.documentElement.dataset.accent;
+      delete document.documentElement.dataset.theme;
       void setLanguage('en');
     },
     [],
   );
+}
+
+export default function Gallery() {
+  const { t } = useTranslation('gallery');
+  const [params] = useSearchParams();
+  const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
+  const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
+  const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
+
+  useDocumentAttributes(lang, accent, theme);
 
   return (
     <div data-testid="gallery-root">
@@ -113,6 +128,15 @@ export default function Gallery() {
           options={[
             { value: 'teal', label: t('accent.teal') },
             { value: 'blue', label: t('accent.blue') },
+          ]}
+        />
+        <Switcher
+          label={t('theme')}
+          param="theme"
+          current={theme}
+          options={[
+            { value: 'light', label: t('theme.light') },
+            { value: 'dark', label: t('theme.dark') },
           ]}
         />
         {lang === 'gu' ? <GuNote /> : null}

@@ -16,7 +16,7 @@ export const ticket = {
   support: { tone: 'warning', icon: LifeBuoy, label: 'status.ticket.support' },
   waiting: { tone: 'hold', icon: Hourglass, label: 'status.ticket.waiting' },
   transferred: { tone: 'moved', icon: ArrowRightLeft, label: 'status.ticket.transferred' },
-  running: { tone: 'muted', icon: CircleCheck, label: 'status.ticket.running' },
+  running: { tone: 'ok', icon: CircleCheck, label: 'status.ticket.running' },
   closed: { tone: 'muted', icon: CheckCheck, label: 'status.ticket.closed' },
   cancelled: { tone: 'muted', icon: Ban, label: 'status.ticket.cancelled' },
 } satisfies Record<string, StatusDef>;
