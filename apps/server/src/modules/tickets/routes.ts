@@ -33,7 +33,7 @@ import {
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, reopenConflict } from './handback.js';
-import { checkLockout, lockoutField, workTypeNeedsLockout } from './lockout.js';
+import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -268,11 +268,7 @@ async function executeRaise(
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
-  // A flagged work type is never started at the raise: the ticket stays open until its lockout is confirmed.
-  const { workType } = tx.body as { workType?: string };
-  if (tx.body.startNow && (await workTypeNeedsLockout(client, tx.tenantId, workType))) {
-    tx.body.startNow = false;
-  }
+  await holdStartForLockout(client, tx);
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
   // M2-2.1: load the tenant severity matrix (falls back to the domain default).
@@ -313,15 +309,10 @@ async function executeRaise(
     boss,
     command: 'raise',
   });
+  const lockout = await lockoutField(client, tx, raised.ticket.id);
   const outcome: Outcome = {
     status: 201,
-    body: {
-      ticket: {
-        ...tm.ticketProjection(raised.ticket, extras),
-        ...parts,
-        ...(await lockoutField(client, tx, raised.ticket.id)),
-      },
-    },
+    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts, ...lockout } },
   };
   await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;

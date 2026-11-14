@@ -70,6 +70,17 @@ export async function lockoutOf(
   return (await readLockout(client, who, ticketId))?.lockout ?? null;
 }
 
+/** A flagged work type is never started at the raise: the ticket stays open until its lockout is confirmed. */
+export async function holdStartForLockout(
+  client: PoolClient,
+  tx: { tenantId: string; body: Record<string, unknown> },
+): Promise<void> {
+  const workType = tx.body.workType as string | undefined;
+  if (tx.body.startNow && (await workTypeNeedsLockout(client, tx.tenantId, workType))) {
+    tx.body.startNow = false;
+  }
+}
+
 /** The reply's `lockout` key, for a reply that spreads it in. */
 export async function lockoutField(
   client: PoolClient,
@@ -148,6 +159,15 @@ export async function checkLockout(client: PoolClient, tx: Tx): Promise<Outcome 
   );
   if (!facts) return null; // not a live ticket: the ordinary rules answer
   if (tx.action === 'lockout-confirm') return checkConfirm(tx, facts.lockout);
+  return ownConfirmationProblem(tx, facts, statuses);
+}
+
+/** Start, resume and join: the acting person's own confirmation must stand. */
+function ownConfirmationProblem(
+  tx: Tx,
+  facts: { status: string; lockout: Lockout | null },
+  statuses: string[] | undefined,
+): Outcome | null {
   const { lockout } = facts;
   if (!lockout || !statuses?.includes(facts.status)) return null;
   if (lockout.steps.length === 0) return missingSteps();
