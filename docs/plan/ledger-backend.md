@@ -226,5 +226,5 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - 07:33 UTC MERGED #228 (29 M2 schema, migration 0012) as f89bd7b, 9 green at 4586b2e. MIGRATION LOCK released to
   FRONTEND. Builder 29 session archived. #227 green at 160c5b6 but overlaps 0012 (erase_person replaced,
   pdf-template.ts): builder 21 merges main and re-runs import/report suites before I merge (lesson from #212 x #206).
-- 07:34 UTC DISPATCH 32 notification service (server half of goal 2 too) to session_01KEBF285kYFcRTE81edojYW via
+- 07:34 UTC DISPATCH 32 notification service (server half of goal 2 too) to session_01KEBF2AVUMZygMWkC4M5two (Sonnet high per pstack-models; a first Opus session was archived within a minute) via
   /poteto-mode, branch claude/t32-notification-service. Backend builders now: 21 (#227 finish), 35, 32.
