@@ -203,3 +203,12 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   "poteto-mode loaded (Feature playbook)". FRONTEND adopted the same. Running builders (29, M1 leftovers) finish by hand.
   Merged #220 (d3d03ce, 9/9; small server items). Builder 23 archived. Dispatched 35 goals 2+3 (devices; support access
   with admin approval, 7 days, audited) + auth/password wrong-old = 422 (FRONTEND ask). FRONTEND restore drill A passed.
+- 2026-11-14 07:10 UTC — Reviews: #228 (29) reviewer A FAIL: erase_person misses handover signatures now that reports
+  link handover_person_id (HIGH) + last_error free text, event/ticket mismatch, DELETE grants on segment/shift/glossary
+  (LOW); sent, reviewer B pending. #227 (M1 leftovers) FAIL: re-import after erase writes the erased name back into
+  import_row (HIGH, new leak) + ref check, touch race, SCRAM normalisation, README (LOW); sent. #35 rulings: support
+  access by hashed high-entropy keys (interim, ADR), support grants may read + change plant settings but may NOT write
+  ticket history or people (default for Nimish). Today's cap 6 builders (FRONTEND 3, BACKEND 3). Follow-ups queued:
+  (a) erased person stays erased on re-import: HMAC(server secret, normalised name+phone) record, never the name
+  (FRONTEND ruling; Q13 to Nimish); (b) push_subscription.session_id so signing out a device drops its push (next
+  migration); (c) zod 4 migration to lift the single audit exception (D28).
