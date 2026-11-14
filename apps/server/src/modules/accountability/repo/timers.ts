@@ -4,9 +4,10 @@ import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
 
-export type SlaTimerKind = 'ack' | 'restore';
+export type SlaTimerKind = 'ack' | 'restore' | 'pause';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
-export type SlaStopReason = 'acknowledged' | 'started' | 'machine_running' | 'closed' | 'cancelled';
+export type SlaStopReason =
+  'acknowledged' | 'started' | 'machine_running' | 'resumed' | 'closed' | 'cancelled';
 
 export interface SlaTimerProjection {
   kind: SlaTimerKind;
@@ -42,6 +43,16 @@ export function singletonKey(tenantId: string, ticketId: string, kind: SlaTimerK
 
 function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
+}
+
+/** A pause clock that stopped for good and runs again is a new pause: its breach is owed afresh. */
+function startsNewPause(row: TimerRow, timer: SlaTimerProjection): boolean {
+  return (
+    timer.kind === 'pause' &&
+    timer.state === 'running' &&
+    row.state === 'stopped' &&
+    row.stop_reason !== 'cancelled'
+  );
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -107,9 +118,9 @@ async function mergeProjection(
   if (hasChanged) {
     await client.query(
       `UPDATE sla_timer SET due_at=$4, paused_at=$5, stopped_at=$6, stop_reason=$7,
-         state=$8, revision=$9, updated_at=$10
+         state=$8, revision=$9, updated_at=$10, fired_at = CASE WHEN $12 THEN NULL ELSE fired_at END
        WHERE tenant_id=$1 AND ticket_id=$2 AND kind=$3 AND id=$11`,
-      [...values, revision, input.now, existing.id],
+      [...values, revision, input.now, existing.id, startsNewPause(existing, timer)],
     );
   }
   return {
@@ -117,7 +128,7 @@ async function mergeProjection(
     previousRevision: existing.revision,
     revision,
     changed: hasChanged,
-    firedAt: existing.fired_at,
+    firedAt: startsNewPause(existing, timer) ? null : existing.fired_at,
   };
 }
 
@@ -225,7 +236,7 @@ function assertPayload(payload: SlaTimerPayload): void {
   if (!uuid.test(payload.tenantId) || !uuid.test(payload.ticketId)) {
     throw new Error('Invalid SLA timer tenant or ticket id');
   }
-  if (!['ack', 'restore'].includes(payload.kind) || !Number.isInteger(payload.revision)) {
+  if (!['ack', 'restore', 'pause'].includes(payload.kind) || !Number.isInteger(payload.revision)) {
     throw new Error('Invalid SLA timer kind or revision');
   }
 }

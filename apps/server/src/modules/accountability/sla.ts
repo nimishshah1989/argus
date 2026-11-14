@@ -1,10 +1,16 @@
 import type { PgBoss } from 'pg-boss';
 import type { PoolClient } from 'pg';
-import { projectSlaTimers, type BusinessCalendar, type SlaPolicy } from '@uptimo/domain';
+import {
+  projectPauseTimer,
+  projectSlaTimers,
+  type BusinessCalendar,
+  type SlaPolicy,
+  type SlaTimerProjection as DomainTimer,
+} from '@uptimo/domain';
 import type { SlaProjection, SlaTimer } from '@uptimo/shared';
 import { tenantInfo } from '../identity/index.js';
 import { shiftWindows } from '../plant/index.js';
-import { rearmTicket } from './repo/timers.js';
+import { rearmTicket, type SlaTimerKind } from './repo/timers.js';
 import { tenantPolicies } from './repo/policies.js';
 import {
   loadEvents,
@@ -102,9 +108,7 @@ function effectiveNow(context: SlaContext, now: Date): Date {
   return new Date(Math.max(now.getTime(), ...context.events.map((event) => event.at.getTime())));
 }
 
-function toDto(
-  projection: ReturnType<typeof projectSlaTimers>[keyof ReturnType<typeof projectSlaTimers>],
-): SlaTimer {
+function toDto(projection: DomainTimer): SlaTimer {
   return {
     id: projection.id,
     state: projection.state,
@@ -116,16 +120,9 @@ function toDto(
   };
 }
 
-export async function projectTicketSla(
-  client: PoolClient,
-  tenantId: string,
-  ticketId: string,
-  now: Date,
-): Promise<SlaProjection | null> {
-  const contexts = await loadContexts(client, tenantId, [ticketId]);
-  const context = contexts.get(ticketId);
-  if (!context) return null;
-  const timers = projectSlaTimers({
+/** Every clock the ticket has: acknowledge and restore always, pause once it has been paused under a limit. */
+function projectClocks(context: SlaContext, now: Date): DomainTimer[] {
+  const input = {
     ticket: {
       id: context.row.id,
       kind: context.row.kind,
@@ -138,8 +135,32 @@ export async function projectTicketSla(
     policy: context.policy,
     calendar: context.calendar,
     now: effectiveNow(context, now),
-  });
-  return { ack: toDto(timers.ack), restore: toDto(timers.restore) };
+  };
+  const { ack, restore } = projectSlaTimers(input);
+  const pause = projectPauseTimer(input);
+  return pause ? [ack, restore, pause] : [ack, restore];
+}
+
+function toProjection(clocks: DomainTimer[]): SlaProjection {
+  const named = new Map(
+    clocks.map((clock) => [clock.id.slice(clock.id.lastIndexOf(':') + 1), clock]),
+  );
+  const pause = named.get('pause');
+  return {
+    ack: toDto(named.get('ack')!),
+    restore: toDto(named.get('restore')!),
+    pause: pause ? toDto(pause) : null,
+  };
+}
+
+export async function projectTicketSla(
+  client: PoolClient,
+  tenantId: string,
+  ticketId: string,
+  now: Date,
+): Promise<SlaProjection | null> {
+  const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
+  return context ? toProjection(projectClocks(context, now)) : null;
 }
 
 export async function loadSlaProjections(
@@ -149,30 +170,12 @@ export async function loadSlaProjections(
   now: Date,
 ): Promise<Map<string, SlaProjection | null>> {
   const contexts = await loadContexts(client, tenantId, ticketIds);
-  const projections = new Map<string, SlaProjection | null>();
-  for (const id of ticketIds) {
-    const context = contexts.get(id);
-    if (!context) {
-      projections.set(id, null);
-      continue;
-    }
-    const timers = projectSlaTimers({
-      ticket: {
-        id: context.row.id,
-        kind: context.row.kind,
-        severity: context.row.severity,
-        status: context.row.status,
-        reportedAt: context.row.reported_at,
-        closedAt: context.row.closed_at,
-      },
-      events: context.events,
-      policy: context.policy,
-      calendar: context.calendar,
-      now: effectiveNow(context, now),
-    });
-    projections.set(id, { ack: toDto(timers.ack), restore: toDto(timers.restore) });
-  }
-  return projections;
+  return new Map(
+    ticketIds.map((id) => {
+      const context = contexts.get(id);
+      return [id, context ? toProjection(projectClocks(context, now)) : null];
+    }),
+  );
 }
 
 export async function reconcileTicket(
@@ -182,38 +185,21 @@ export async function reconcileTicket(
   const { tenantId, ticketId, now, boss } = input;
   if (!(await lockTicket(client, tenantId, ticketId))) return;
   const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
-  if (!context) return;
-  const projectionNow = effectiveNow(context, now);
-  const projected = projectSlaTimers({
-    ticket: {
-      id: context.row.id,
-      kind: context.row.kind,
-      severity: context.row.severity,
-      status: context.row.status,
-      reportedAt: context.row.reported_at,
-      closedAt: context.row.closed_at,
-    },
-    events: context.events,
-    policy: context.policy,
-    calendar: context.calendar,
-    now: projectionNow,
+  if (!context || !boss) return;
+  await rearmTicket(client, boss, {
+    tenantId,
+    ticketId,
+    timers: projectClocks(context, now).map((clock) => ({
+      kind: clock.id.slice(clock.id.lastIndexOf(':') + 1) as SlaTimerKind,
+      state: clock.state,
+      breached: clock.breached,
+      dueAt: clock.dueAt,
+      pausedAt: clock.pausedAt,
+      stoppedAt: clock.stoppedAt,
+      stopReason: clock.stopReason,
+    })),
+    now: effectiveNow(context, now),
   });
-  if (boss) {
-    await rearmTicket(client, boss, {
-      tenantId,
-      ticketId,
-      timers: Object.values(projected).map((timer) => ({
-        kind: timer.id.endsWith(':ack') ? 'ack' : 'restore',
-        state: timer.state,
-        breached: timer.breached,
-        dueAt: timer.dueAt,
-        pausedAt: timer.pausedAt,
-        stoppedAt: timer.stoppedAt,
-        stopReason: timer.stopReason,
-      })),
-      now: projectionNow,
-    });
-  }
 }
 
 export async function reconcileSlaPolicies(
