@@ -1,4 +1,4 @@
-# Design slices 5 to 7 (approved 14 Nov 2026)
+# Design slices 5 to 9 (approved 14 Nov 2026)
 
 Mockup frames for three slices, drawn by the design agent and approved by Nimish on 14 Nov 2026. Each file is one
 self-contained HTML page: open it in a browser, no server, no install. Every frame sits in its own `<iframe srcdoc>`
@@ -99,9 +99,82 @@ Choices (recommendation taken for every one):
 3. Only the work type Electrical is flagged "needs lockout" to begin with; the admin can flag more in Lists.
 4. Only the confirmation is saved, as one history entry with who and when; the ticks are not saved.
 
+## Slice 8: acknowledge, escalation history, roster and ladder, lockout settings
+
+- Acknowledge: on duty
+- Acknowledge: acknowledged
+- Acknowledge: not on duty
+- History: escalated and acknowledged
+- History: repeats and levels
+- History: no ladder
+- Settings: duty roster
+- Settings: escalation ladder
+- Settings: edit a rule
+- Settings: rule refused
+- Settings: lists with needs-lockout flags
+- Settings: flag a work type
+- Settings: lockout steps
+- Desktop: acknowledge, on duty · light
+- Desktop: acknowledge, done · light
+- Desktop: acknowledge, not on duty · light
+- Desktop: escalated and acknowledged · light
+- Desktop: escalation repeats and levels · light
+- Desktop: no ladder · light
+- Desktop: duty roster · light
+- Desktop: escalation ladder · light
+- Desktop: rule refused · light
+- Desktop: lockout flags and steps · light
+- Desktop: acknowledge, on duty · dark
+- Desktop: acknowledge, done · dark
+- Desktop: acknowledge, not on duty · dark
+- Desktop: escalated and acknowledged · dark
+- Desktop: escalation repeats and levels · dark
+- Desktop: no ladder · dark
+- Desktop: duty roster · dark
+- Desktop: escalation ladder · dark
+- Desktop: rule refused · dark
+- Desktop: lockout flags and steps · dark
+
+States: Acknowledge on the ticket for the person on duty, once acknowledged, and for someone not on duty; history
+entries for an escalation then its acknowledgement, repeats and climbing levels, and "no ladder" (nobody told); roster
+and ladder settings, a rule edit and a refused rule; Lists with "Needs lockout" flags, flagging a work type, and the
+lockout steps. Settings screens are head and admin only.
+
+Choices (recommendation taken for every one):
+
+1. Acknowledge is the main button while the clock runs and the person is on duty; Start work stays beside it. Anyone else sees no button and who is on duty.
+2. "No ladder" is shown in plain words in the history ("Escalation due, nobody told"); "Set the ladder" shows to head and admin only.
+3. A repeat is its own history entry ("2 of 3"); the next level names the rule that fired.
+4. The ladder refuses a repeat faster than every 15 minutes and a rule with no stop count.
+5. The roster is set per day and shift, with Copy to the next 7 days; the ladder is push only for now.
+6. Lockout is a "Needs lockout" flag on the list entry plus one editable list of steps, at least one.
+
+## Analytics batch 1: shell, Dashboard, Today (tickets 37 and 38)
+
+- Menu drawer
+- Dashboard
+- Today
+- Dashboard · light
+- Today · light
+- Dashboard · dark
+- Today · dark
+
+Every Dashboard figure and chart is the backend answer key (`fixtures/answer-key/dashboard.json`, as of 11 Nov 2026):
+159 machines (126 CNC), 1,279 breakdowns, 3,060.1 hrs, NO DT 209.1 hrs from 140 entries, 4.11 complaints and 9.84 hrs a
+day over 311 days, 24.29 hrs per machine, the 117-machine bubble chart, the timeline split by machine type, and the
+30-day breakdown-free line. These replace the figures first computed from the workbook; the Live machine status card is
+dropped. Today's clock and sign-off items are samples.
+
+Choices (recommendation taken for every one):
+
+1. Menu groups are collapsed except the one you are in.
+2. Dashboard order follows the platform; Fix Finder stays off it.
+3. Head and plant head open on Today; the Dashboard is one tap away.
+4. Money Matters is for heads and admin only and is not on the Dashboard.
+
 ## What builders add to the kit
 
 Built once in `ui/` with a gallery section each, never in `faces/`: an account button (person icon, 44 px) for the top
 bar; a tick row (checkbox row, 52 px) for the lockout steps; the sign-off band with its QR (react-qr-code, already in
 SPEC section 5a). New lucide-react names for `ui/icon.ts`: Bell, BellOff, BellRing, Languages, LogOut, UserRound,
-QrCode, Share. Status words, icons and colours are the locked chips and the slice 4 icon and colour map.
+QrCode, Share, and for slices 8 and 9 ChevronsUp, GripVertical, CalendarDays, Copy, Gauge, ChartColumn, IndianRupee, Target. Status words, icons and colours are the locked chips and the slice 4 icon and colour map.

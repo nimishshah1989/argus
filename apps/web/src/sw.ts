@@ -22,6 +22,10 @@ interface SwFetchEvent extends SwEvent {
   respondWith(response: Promise<Response>): void;
 }
 
+interface SwMessageEvent extends SwEvent {
+  data?: { type?: string };
+}
+
 interface SwPushEvent extends SwEvent {
   data: { json(): unknown } | null;
 }
@@ -54,6 +58,7 @@ interface SwGlobal {
   skipWaiting(): Promise<void>;
   addEventListener(type: 'install' | 'activate', handler: (event: SwEvent) => void): void;
   addEventListener(type: 'fetch', handler: (event: SwFetchEvent) => void): void;
+  addEventListener(type: 'message', handler: (event: SwEvent) => void): void;
   addEventListener(type: 'push', handler: (event: SwPushEvent) => void): void;
   addEventListener(type: 'notificationclick', handler: (event: SwNotificationEvent) => void): void;
 }
@@ -64,12 +69,12 @@ const CACHE = 'uptimo-shell-v1';
 const SHELL: string[] = (self.__WB_MANIFEST ?? []).map((entry) => entry.url);
 
 worker.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => worker.skipWaiting()),
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+});
+
+/** An update waits until a person (or the idle TV) asks for it, so it never lands mid-handover. */
+worker.addEventListener('message', (event) => {
+  if ((event as SwMessageEvent).data?.type === 'SKIP_WAITING') void worker.skipWaiting();
 });
 
 worker.addEventListener('activate', (event) => {

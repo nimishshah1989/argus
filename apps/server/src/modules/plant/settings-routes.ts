@@ -61,6 +61,7 @@ function auditEntry(ctx: Ctx, resource: Resource, action: string, entityId: stri
   return {
     tenantId: ctx.tenantId,
     loginId: ctx.loginId,
+    supportGrantId: ctx.supportGrantId,
     action,
     entity: resource.table,
     entityId,

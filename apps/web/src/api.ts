@@ -8,6 +8,7 @@ import {
   isOffline,
   rememberWho,
 } from './data/index.js';
+import type { BoardToday } from '@uptimo/shared/board';
 import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
@@ -48,6 +49,7 @@ export const tickets = defineResource<TicketDetail, Ticket>({
   key: 'tickets',
   path: '/api/v1/tickets',
 });
+const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
 const login = defineResource({
@@ -92,6 +94,9 @@ export function getState(): Promise<State> {
   });
 }
 
+/** The plant's day score for the live board's Response today and Repair today tiles. */
+export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
+
 export const getTicket = (id: string): Promise<TicketDetail> => tickets.one(id);
 
 /** `GET /tickets` (M1a-5c): cursor-paginated; status/kind serialise as comma-separated subsets. */
@@ -129,6 +134,7 @@ export const signOut = (): Promise<unknown> => logout.create({});
 
 export { ApiError, clearToken, getToken, isOffline, sendCommand, setToken } from './data/index.js';
 
+export type { BoardToday };
 export type {
   BreakdownReport,
   BreakdownReportBody,

@@ -60,11 +60,19 @@ export {
 export { lockLiveSession } from './repo/session.js';
 export { hashPassword } from './routes.js';
 export {
+  SUPPORT_NOT_ALLOWED,
   authenticate,
   hashToken,
   passwordMessage,
+  refuseSupport,
   requireAuth,
   tenantSlugFromHost,
 } from './service.js';
+export {
+  SUPPORT_WRITES,
+  parseSupportKeys,
+  supportAuthenticator,
+  type SupportKeys,
+} from './support-auth.js';
 
 export const identityModule = defineModule({ name: 'identity', register: registerIdentityRoutes });
