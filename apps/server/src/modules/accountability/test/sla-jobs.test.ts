@@ -497,7 +497,7 @@ it('the real worker fires a pause clock once, on the fake clock', async () => {
   try {
     const spy = handle.boss.getSpy<SlaTimerPayload>('sla.timer');
     const ticketId = await makeTicket();
-    const dueAt = new Date(START.getTime() + 30 * 60_000);
+    const dueAt = new Date(START.getTime() + 60_000);
     await withTenant(app, A, (client) =>
       rearmTicket(client, handle.boss, {
         tenantId: A,
@@ -507,15 +507,16 @@ it('the real worker fires a pause clock once, on the fake clock', async () => {
       }),
     );
     const timer = await timerRow(A, ticketId, 'pause');
-    await clock.tick(29 * 60_000);
+    // A tick runs one database round-trip per simulated poll, so keep the simulated span short.
+    await clock.tick(59_000);
     expect((await timerRow(A, ticketId, 'pause')).fired_at).toBeNull();
-    await clock.tick(60_000);
+    await clock.tick(1_000);
     // The last poll landed just before dueAt; advance once more to the next poll.
     await clock.tick(1_000);
     await spy.waitForJobWithId(timer.job_id, 'completed');
     const fired = (await timerRow(A, ticketId, 'pause')).fired_at as Date;
     expect(fired.getTime()).toBeGreaterThanOrEqual(dueAt.getTime());
-    await clock.tick(60 * 60_000);
+    await clock.tick(60_000);
     expect(((await timerRow(A, ticketId, 'pause')).fired_at as Date).getTime()).toBe(
       fired.getTime(),
     );
