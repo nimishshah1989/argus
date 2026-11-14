@@ -40,7 +40,7 @@ function userFrom(ctx: AuthContext) {
   };
 }
 
-// An unknown or switched-off username still pays for one password check, so the answer takes as long.
+// An unknown, switched-off or erased login still pays for one password check, so the answer takes as long.
 const dummyHash = hashPassword(`not-a-real-password-${randomUUID()}`);
 dummyHash.catch(() => undefined);
 
@@ -48,8 +48,29 @@ async function passwordMatches(
   row: { password_hash: string; disabled_at: unknown } | undefined,
   password: string,
 ): Promise<boolean> {
-  const matches = await verify(row?.password_hash ?? (await dummyHash), password);
-  return matches && row !== undefined && !row.disabled_at;
+  // An erased login keeps a placeholder instead of a hash, which `verify` rejects by throwing.
+  const own = row?.password_hash.startsWith('$argon2') ? row.password_hash : undefined;
+  const matches = await verify(own ?? (await dummyHash), password);
+  return matches && own !== undefined && !row?.disabled_at;
+}
+
+type LoginGuard = ReturnType<typeof createLoginGuard>;
+
+/** Counts this attempt; if the sender must wait, answers 429 and returns true. */
+function tooManyAttempts(
+  guard: LoginGuard,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  tenantId: string,
+  username: string,
+): boolean {
+  const wait = guard.take(request.ip, tenantId, username);
+  if (wait <= 0) return false;
+  reply
+    .code(429)
+    .header('retry-after', wait)
+    .send(apiError('rate_limited', 'Too many attempts. Try again in a few minutes'));
+  return true;
 }
 
 interface NewSession {
@@ -85,7 +106,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
 
 async function login(
   pool: Pool,
-  guard: ReturnType<typeof createLoginGuard>,
+  guard: LoginGuard,
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
@@ -103,14 +124,7 @@ async function login(
   }
   bindLog(request, reply, { tenantId: tenant.id });
   const { username, password, device, actingPersonId } = parsed.data;
-  const wait = guard.take(request.ip, tenant.id, username);
-  if (wait > 0) {
-    reply
-      .code(429)
-      .header('retry-after', wait)
-      .send(apiError('rate_limited', 'Too many sign-in attempts. Try again in a few minutes'));
-    return;
-  }
+  if (tooManyAttempts(guard, request, reply, tenant.id, username)) return;
   const loginRow = await findLogin(pool, tenant.id, username);
   const passwordOk = await passwordMatches(loginRow, password);
   if (!loginRow || !passwordOk) {
@@ -153,7 +167,12 @@ async function logout(pool: Pool, request: FastifyRequest, reply: FastifyReply) 
   reply.send({ ok: true });
 }
 
-async function changePassword(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+async function changePassword(
+  pool: Pool,
+  guard: LoginGuard,
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const parsed = changePasswordSchema.safeParse(request.body);
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path.join('.');
@@ -164,6 +183,8 @@ async function changePassword(pool: Pool, request: FastifyRequest, reply: Fastif
   }
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  // Guessing the old password from a stolen session is limited like guessing at sign-in.
+  if (tooManyAttempts(guard, request, reply, ctx.tenantId, ctx.username)) return;
   const ok = await withTenant(pool, ctx.tenantId, async (client) => {
     if (!(await verify(await passwordHashOf(client, ctx.loginId), parsed.data.old))) return false;
     const newHash = await hashPassword(parsed.data.password);
@@ -175,6 +196,7 @@ async function changePassword(pool: Pool, request: FastifyRequest, reply: Fastif
     reply.code(401).send(apiError('unauthenticated', 'Current password is incorrect'));
     return;
   }
+  guard.refund(request.ip, ctx.tenantId, ctx.username);
   reply.send({ ok: true });
 }
 
@@ -192,8 +214,14 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
   const { pool } = config;
   const guard = createLoginGuard();
   app.get('/api/v1/brand', (request, reply) => brand(pool, request, reply));
-  app.post('/api/v1/auth/login', (request, reply) => login(pool, guard, request, reply));
+  // Its own request cap per visitor, tighter than the whole API's; an explicit rateLimitMax overrides it.
+  const loginCap = { rateLimit: { max: config.rateLimitMax ?? 60, timeWindow: '1 minute' } };
+  app.post('/api/v1/auth/login', { config: loginCap }, (request, reply) =>
+    login(pool, guard, request, reply),
+  );
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
   app.post('/api/v1/auth/logout', (request, reply) => logout(pool, request, reply));
-  app.post('/api/v1/auth/password', (request, reply) => changePassword(pool, request, reply));
+  app.post('/api/v1/auth/password', (request, reply) =>
+    changePassword(pool, guard, request, reply),
+  );
 }
