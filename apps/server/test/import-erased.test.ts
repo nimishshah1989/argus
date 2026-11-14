@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { withTenant } from '@uptimo/db';
+import { erasePerson } from '../src/modules/identity/index.js';
 import { importBhavin, undoImport } from '../src/modules/imports/bhavin.js';
 import {
   makeOrdinaryTicket,
@@ -11,6 +13,7 @@ import { startTestDb, type TestDb } from './harness.js';
 let db: TestDb;
 
 beforeAll(async () => {
+  process.env.ERASURE_HASH_KEY = ['erasure', 'test', 'import'].join('-').padEnd(40, 'x');
   db = await startTestDb();
 }, 120_000);
 
@@ -20,6 +23,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  delete process.env.ERASURE_HASH_KEY;
   await db.stop();
 });
 
@@ -35,12 +39,14 @@ async function importThenErase() {
   const input = makeSyntheticExport();
   const first = await importBhavin(db.app, syntheticIds.tenant, input);
   expect(first.stats).toMatchObject({ imported: 1, status: 'done' });
-  await db.router.query('SELECT erase_person($1, $2, $3, $4)', [
-    syntheticIds.tenant,
-    syntheticIds.bina,
-    'request-0001',
-    'agent-test',
-  ]);
+  await withTenant(db.router, syntheticIds.tenant, (tx) =>
+    erasePerson(tx, {
+      tenantId: syntheticIds.tenant,
+      personId: syntheticIds.bina,
+      requestRef: 'request-0001',
+      operator: 'agent-test',
+    }),
+  );
   const raw = await db.admin.query(
     "SELECT payload FROM import_row WHERE batch_id = $1 AND status = 'imported'",
     [first.batchId],

@@ -161,6 +161,15 @@ function chains(events: readonly EscalationHistoryEvent[]): Map<string, Chain> {
   return found;
 }
 
+/**
+ * The moment of the dispute that sent a ticket back to work for the second time or more (the `reopened_twice` rule's
+ * episode), or null while production has sent the fix back fewer than twice. Each later dispute is a new episode.
+ */
+export function reopenEpisode(events: readonly { type: string; at: Date }[]): number | null {
+  const disputes = events.filter((event) => event.type === 'handback_dispute');
+  return disputes.length >= 2 ? disputes[disputes.length - 1]!.at.getTime() : null;
+}
+
 /** Whether someone acknowledged this chain after its first step: its repeats stop. */
 export function chainAcknowledged(
   events: readonly EscalationHistoryEvent[],

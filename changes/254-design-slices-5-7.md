@@ -1,0 +1,1 @@
+- Design: slices 5 to 7 (account sheet and Alerts, production sign-off, lockout before Start) are locked as approved, with their frames in `docs/design/slices/`.

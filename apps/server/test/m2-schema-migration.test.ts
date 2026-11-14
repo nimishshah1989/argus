@@ -66,6 +66,11 @@ const insertNotification = (tenant: string, key: string, personId: string, extra
 
 beforeAll(async () => {
   db = await startTestDb({ through: '0011_tenant_profile.sql' });
+  // The seeding code checks new people against two columns that migration 0013 (after this one) adds; the real
+  // order is always migrate first, so the copy being migrated here carries them already.
+  await db.admin.query(
+    'ALTER TABLE person ADD COLUMN erasure_hash text, ADD COLUMN erasure_name_hash text',
+  );
   await seedCosmos(db.admin, {
     exportPath: doc('source/cosmos-platform-export-2026-10-28.json'),
     livePath: doc('bhavin-v3/live-config-2026-11-09.json'),

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { actionMachines, commandViaApi, getJson } from './fixtures-actions.js';
-import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { apiLogin, raiseTicketViaApi, signIn, ticketView } from './fixtures.js';
 
 /**
  * The ticket detail screen (design lock B2, B3): facts, minutes, crew, history and the action bar.
@@ -77,7 +77,7 @@ async function workingFacts(page: Page): Promise<void> {
     const term = page.getByRole('term').filter({ hasText: new RegExp(`^${row}$`) });
     await expect(term.first()).toBeVisible();
   }
-  await expect(page.getByText('Machine stopped', { exact: true })).toBeVisible();
+  await expect(ticketView(page).getByText('Machine stopped', { exact: true })).toBeVisible();
   await expect(page.getByText('Machine downtime', { exact: true })).toBeVisible();
   await expect(page.getByText(/so far$/)).toBeVisible();
   await expect(page.getByText(/ by Asha$/).first()).toBeVisible();

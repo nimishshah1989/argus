@@ -51,6 +51,16 @@ const ARTIFACTS: Record<string, string> = {
   '0012_m2_schema.sql': `SELECT to_regclass('public.roster_entry') IS NOT NULL
     AND to_regclass('public.escalation_rule') IS NOT NULL
     AND to_regclass('public.notification') IS NOT NULL AS installed`,
+  '0013_batch1.sql': `SELECT to_regclass('public.ticket_closed_idx') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'push_subscription' AND column_name = 'session_id')
+    AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'session_signout_drops_push')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'person' AND column_name = 'erasure_hash')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'person' AND column_name = 'erasure_name_hash')
+    AND to_regprocedure('erase_person(uuid,uuid,text,text,text,text)') IS NOT NULL
+    AND to_regprocedure('erase_person(uuid,uuid,text,text)') IS NULL AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
@@ -119,6 +129,18 @@ async function recordThrough(pool: Pool, lastFile: string): Promise<void> {
 async function ledger(pool: Pool): Promise<string[]> {
   const result = await pool.query('SELECT filename FROM schema_migration ORDER BY filename');
   return result.rows.map((row) => row.filename);
+}
+
+/**
+ * Reverting 0009 on a fully migrated database needs 0013 reverted first: 0013 replaced `erase_person` with a
+ * six-argument version, and 0009's revert drops the four-argument one. 0013 is forgotten by the ledger so the next
+ * run applies it again.
+ */
+async function revertBatch1(pool: Pool): Promise<void> {
+  await pool.query(
+    readFileSync(new URL('../migrations/down/0013_batch1.down.sql', import.meta.url), 'utf8'),
+  );
+  await pool.query("DELETE FROM schema_migration WHERE filename = '0013_batch1.sql'");
 }
 
 async function expectInstalled(pool: Pool, file: string, installed: boolean): Promise<void> {
@@ -611,6 +633,7 @@ it('goes up, down and up again', async () => {
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
 
+    await revertBatch1(pool);
     await pool.query(
       readFileSync(
         new URL('../migrations/down/0009_history_cannot_be_lost.down.sql', import.meta.url),
@@ -652,6 +675,7 @@ it('a revert does not re-open a support grant that 0009 closed', async () => {
       has_table_privilege('app_user', 'import_batch', 'DELETE') AS b`;
     expect((await pool.query(grant)).rows[0]).toEqual({ a: false, b: false });
 
+    await revertBatch1(pool);
     await pool.query(
       readFileSync(
         new URL('../migrations/down/0009_history_cannot_be_lost.down.sql', import.meta.url),
