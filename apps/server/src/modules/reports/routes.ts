@@ -26,7 +26,13 @@ interface PdfTicket {
   reportedAt: Date;
   closedAt: Date | null;
   figures: Figures;
-  machine: { code: string | null; category: string | null; cell: string | null };
+  machine: {
+    code: string | null;
+    /** The code when the ticket was raised: what v3 stored in the QR. */
+    codeAtReport: string | null;
+    category: string | null;
+    cell: string | null;
+  };
 }
 
 interface PdfContext {
@@ -45,6 +51,7 @@ function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
   const snapshot = (row.machine_snapshot ?? {}) as Record<string, string | null>;
   return {
     code: (row.machine_code as string | null) ?? snapshot.code ?? null,
+    codeAtReport: snapshot.code ?? null,
     category: (row.machine_category as string | null) ?? snapshot.category ?? null,
     cell: (row.machine_cell as string | null) ?? snapshot.cell ?? null,
   };
@@ -119,8 +126,8 @@ function pdfInput(context: PdfContext, svg: string): ReportPdfInput {
 function payloadFor(context: PdfContext): ReturnType<typeof buildQrPayload> {
   const report = context.report as StoredReport;
   return buildQrPayload({
-    // v3's QR names the machine by its code (`TC-7`), the id its importer looks up; ours is a uuid.
-    machineId: context.ticket.machine.code ?? '',
+    // v3's QR names the machine by its code (`TC-7`), as it was when the report was made; ours is a uuid.
+    machineId: context.ticket.machine.codeAtReport ?? context.ticket.machine.code ?? '',
     date: report.date,
     shiftCode: report.shiftCode,
     problem: report.problem,
@@ -234,6 +241,10 @@ function resolveDayPerson(
   };
   if (!canDayReport(actor)) {
     return { ok: false, status: 403, message: 'Day reports are unavailable for your role' };
+  }
+  if (auth.role === 'plant_head') {
+    // DOMAIN §3 gives the plant head the team report; until it exists they get a clear no, not one person's day.
+    return { ok: false, status: 403, message: 'The team day report is not available yet' };
   }
   const wantsOther = Boolean(requested && requested !== 'me' && requested !== auth.personId);
   if (auth.role === 'technician' && wantsOther) {

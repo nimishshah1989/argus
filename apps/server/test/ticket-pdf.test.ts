@@ -294,6 +294,17 @@ describe('breakdown report PDF', () => {
     });
   });
 
+  it('keeps the machine code the report was made under when the machine is renamed later', async () => {
+    const id = await raiseWithReport(M1, 'Before the rename');
+    await pool.query("UPDATE machine SET code = 'VC-1-NEW' WHERE id = $1", [M1]);
+    try {
+      expect((await get(`/api/v1/tickets/${id}/pdf`, ashaToken)).statusCode).toBe(200);
+      expect(qrPayloads.at(-1)).toMatchObject({ mid: 'VC-1' });
+    } finally {
+      await pool.query("UPDATE machine SET code = 'VC-1' WHERE id = $1", [M1]);
+    }
+  });
+
   it('builds the v1 QR payload and embeds the QR in the template', async () => {
     const payload = buildQrPayload({
       machineId: M1,

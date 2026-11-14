@@ -38,6 +38,10 @@ const LOGIN_BRD = '10000000-0000-0000-0000-000000000014';
 const T7 = '10000000-0000-0000-0000-000000000015';
 const GUJ_NAME = 'ગીતા પટેલ';
 const GUJ_PROBLEM = 'સ્પિન્ડલ બેરિંગ બદલવું પડ્યું';
+const HEAD = '10000000-0000-0000-0000-000000000016';
+const LOGIN_HEAD = '10000000-0000-0000-0000-000000000017';
+const TENANT_3 = '30000000-0000-0000-0000-000000000001';
+const PERSON_3 = '30000000-0000-0000-0000-000000000002';
 const PASSWORD = 'correct-horse-battery';
 
 // Day window for 2026-11-10 in Asia/Kolkata (08:00–18:30) is 02:30–13:00 UTC.
@@ -63,6 +67,7 @@ let ashaToken = '';
 let opToken = '';
 let supToken = '';
 let brdToken = '';
+let headToken = '';
 
 function get(url: string, token?: string): Promise<Res> {
   return app.inject({
@@ -128,16 +133,30 @@ async function seed(): Promise<void> {
        ($1, $3, 'Asha', 'maintenance'), ($2, $3, 'Bina', 'maintenance'),
        ($4, $5, 'Other tech', 'maintenance'), ($6, $3, 'Omi', 'production'),
        ($7, $3, 'Sami', 'maintenance'), ($8, $3, $9, 'maintenance'),
-       ($10, $3, 'Bo', 'production')`,
-    [ASHA, BINA, TENANT, PERSON_2, TENANT_2, OP, SUP, GUJ, GUJ_NAME, BRD],
+       ($10, $3, 'Bo', 'production'), ($11, $3, 'Hema', 'maintenance')`,
+    [ASHA, BINA, TENANT, PERSON_2, TENANT_2, OP, SUP, GUJ, GUJ_NAME, BRD, HEAD],
   );
   await db.admin.query(
     `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
      VALUES ($1, $2, $3, 'asha', $4, 'technician', false),
             ($5, $2, $6, 'op', $4, 'operator', false),
             ($7, $2, $8, 'sup', $4, 'supervisor', false),
-            ($9, $2, $10, 'brd', $4, 'board', false)`,
-    [LOGIN_ASHA, TENANT, ASHA, passwordHash, LOGIN_OP, OP, LOGIN_SUP, SUP, LOGIN_BRD, BRD],
+            ($9, $2, $10, 'brd', $4, 'board', false),
+            ($11, $2, $12, 'head', $4, 'plant_head', false)`,
+    [
+      LOGIN_ASHA,
+      TENANT,
+      ASHA,
+      passwordHash,
+      LOGIN_OP,
+      OP,
+      LOGIN_SUP,
+      SUP,
+      LOGIN_BRD,
+      BRD,
+      LOGIN_HEAD,
+      HEAD,
+    ],
   );
   await db.admin.query(
     `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_login_id, closed_at, severity) VALUES
@@ -243,6 +262,7 @@ beforeAll(async () => {
   opToken = await login('op');
   supToken = await login('sup');
   brdToken = await login('brd');
+  headToken = await login('head');
 }, 120_000);
 
 afterAll(async () => {
@@ -295,6 +315,118 @@ describe('day report data', () => {
   it('returns null for an unknown or another-tenant person', async () => {
     expect(await dayReport(randomUUID())).toBeNull();
     expect(await dayReport(PERSON_2)).toBeNull();
+  });
+});
+
+/** A third plant, so its tickets cannot change what the first plant's tests count. */
+async function seedPendingCases(): Promise<Record<string, string>> {
+  await db.admin.query(
+    "INSERT INTO tenant (id, slug, name) VALUES ($1, 'plant-three', 'Plant Three')",
+    [TENANT_3],
+  );
+  await db.admin.query(
+    `INSERT INTO shift (tenant_id, code, name, starts_at, ends_at, crosses_midnight)
+     VALUES ($1, '1', 'Shift 1', '08:00', '18:30', false)`,
+    [TENANT_3],
+  );
+  await db.admin.query(
+    "INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, 'Pia', 'maintenance')",
+    [PERSON_3, TENANT_3],
+  );
+  // Window end for shift 1 on 2026-11-10 is 13:00Z. Each case: [status, closed_at, cancelled_at, events].
+  const cases: Record<string, [string, string | null, string | null, Array<[string, string]>]> = {
+    'cancelled before the window ended': [
+      'cancelled',
+      null,
+      '2026-11-10T12:00:00Z',
+      [['cancel', '2026-11-10T12:00:00Z']],
+    ],
+    'cancelled after the window ended': [
+      'cancelled',
+      null,
+      '2026-11-10T14:00:00Z',
+      [['cancel', '2026-11-10T14:00:00Z']],
+    ],
+    'cancelled, then restored after the window ended': [
+      'open',
+      null,
+      null,
+      [
+        ['cancel', '2026-11-10T11:30:00Z'],
+        ['restore', '2026-11-10T15:00:00Z'],
+      ],
+    ],
+    'cancelled and restored, closed after the window ended': [
+      'closed',
+      '2026-11-10T14:00:00Z',
+      null,
+      [
+        ['cancel', '2026-11-10T10:00:00Z'],
+        ['restore', '2026-11-10T11:00:00Z'],
+        ['close', '2026-11-10T14:00:00Z'],
+      ],
+    ],
+    'cancelled and restored, closed before the window ended': [
+      'closed',
+      '2026-11-10T05:00:00Z',
+      null,
+      [
+        ['cancel', '2026-11-10T03:00:00Z'],
+        ['restore', '2026-11-10T04:00:00Z'],
+        ['close', '2026-11-10T05:00:00Z'],
+      ],
+    ],
+    'cancelled, restored before the window ended and still open': [
+      'open',
+      null,
+      null,
+      [
+        ['cancel', '2026-11-10T03:00:00Z'],
+        ['restore', '2026-11-10T04:00:00Z'],
+      ],
+    ],
+  };
+  const refs: Record<string, string> = {};
+  let n = 0;
+  for (const [name, [status, closedAt, cancelledAt, events]] of Object.entries(cases)) {
+    n += 1;
+    const ref = `BD-3${n}`;
+    refs[name] = ref;
+    const id = `30000000-0000-0000-0000-0000000001${String(n).padStart(2, '0')}`;
+    await db.admin.query(
+      `INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, closed_at, cancelled_at, severity)
+       VALUES ($1, $2, $3, 'stopped', $4, 'Case', '2026-11-10T02:40:00Z', $5, $6, 'S3')`,
+      [id, TENANT_3, ref, status, closedAt, cancelledAt],
+    );
+    for (const [seq, [type, at]] of events.entries()) {
+      await db.admin.query(
+        'INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at) VALUES ($1, $2, $3, $4, $5)',
+        [TENANT_3, id, seq + 1, type, at],
+      );
+    }
+  }
+  return refs;
+}
+
+describe('pending at the end, judged by what had happened by then', () => {
+  it('leaves out what was cancelled or closed by the window end and keeps what was not yet', async () => {
+    const refs = await seedPendingCases();
+    const data = await withTenant(db.app, TENANT_3, (client) =>
+      loadDayReport(client, {
+        tenantId: TENANT_3,
+        personId: PERSON_3,
+        date: '2026-11-10',
+        shift: '1',
+      }),
+    );
+    const pending = (data as DayReportData).pending.map((row) => row.ref);
+    const pendingOf = (name: string): boolean => pending.includes(refs[name] as string);
+    expect(pendingOf('cancelled before the window ended')).toBe(false);
+    expect(pendingOf('cancelled after the window ended')).toBe(true);
+    expect(pendingOf('cancelled, then restored after the window ended')).toBe(false);
+    expect(pendingOf('cancelled and restored, closed after the window ended')).toBe(true);
+    expect(pendingOf('cancelled and restored, closed before the window ended')).toBe(false);
+    expect(pendingOf('cancelled, restored before the window ended and still open')).toBe(true);
   });
 });
 
@@ -404,6 +536,13 @@ describe('day report PDF endpoint', () => {
     const res = await get('/api/v1/reports/day.pdf?date=2026-11-10', brdToken);
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('forbidden');
+  });
+
+  it('tells the plant head the team day report is not available yet, rather than showing one person', async () => {
+    const res = await get(`/api/v1/reports/day.pdf?date=2026-11-10&personId=${ASHA}`, headToken);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('forbidden');
+    expect(res.json().error.message).toMatch(/team day report is not available yet/i);
   });
 
   it('lets a technician see only their own day', async () => {
