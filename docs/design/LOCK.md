@@ -134,6 +134,25 @@ status to tone, icon and word; the task chips (Pending, Overdue, Done) are in it
 the left and the ticket detail on the right from 1024 px, same words and actions. Editing opens a side panel, never a
 new page. Live in a browser is the approved board with an "Open TV view" button; Tasks get their own menu item.
 
+## Slice 8 and analytics batch 1: approved (14 Nov 2026)
+
+Nimish approved these on 14 Nov 2026 ("approved") after the design agent listed them as waiting. Frames:
+`docs/design/slices/slice-8-escalation-roster-lockout.html` and `slice-9-analytics-1-dashboard-today.html`; the README lists
+every frame, its states and the choices taken.
+
+- **Acknowledge on the ticket:** the person on duty (canAcknowledge) sees Acknowledge as the main button while the clock
+  runs, with Start work beside it; anyone else sees who is on duty. After it, the card says who and when.
+- **Escalation history entries:** each says level, who was told and the channel; the acknowledgement says who and how fast;
+  a repeat is its own entry; "no ladder" reads "Escalation due, nobody told" with "Set the ladder" for head and admin.
+- **Roster and ladder settings (head, admin):** roster per day and shift with Copy to the next 7 days; ladder rules refuse
+  a repeat under 15 minutes and a rule with no stop count; push only for now.
+- **Lockout settings (head, admin):** a "Needs lockout" flag on work types and breakdown categories, and one editable list
+  of steps (at least one).
+- **Analytics face (heads, plant head, admin; desktop and phone):** left menu in groups, collapsed except the current one,
+  with Guide and Data checklist; Dashboard in the platform's order; head and plant head open on Today; every figure shows
+  its drill target; Money Matters is heads and admin only. The Dashboard figures not read from the platform workbook (NO DT
+  line, per-day averages, bubbles) are computed from its Breakdown Log and must be checked in ticket 38's answer key.
+
 ## Screens: artboard, pattern, parity row, who may open it, states shown
 
 Roles are DOMAIN §3 (operator, technician, supervisor, head, plant_head, admin, board). "Raise" = every role but board.
