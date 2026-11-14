@@ -100,9 +100,8 @@ async function seedPlant(admin: Pool, t: string, ids: string[], cell: string) {
   );
 }
 
-export async function startFixture(filesDir?: string): Promise<Fixture> {
-  const db = await startTestDb();
-  const admin = db.admin;
+/** Two plants and everything the tests read: logins, plants, a machine with a closed ticket, a ticket counter. */
+async function seedAll(admin: Pool): Promise<void> {
   await seedTenant(admin, A, 'plant-a', ROLES);
   await seedTenant(admin, B, 'plant-b', ['admin']);
   // Shared floor logins (one phone, many people): the role alone decides what they may change.
@@ -132,12 +131,15 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 1000)",
     [A],
   );
-  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, filesDir });
-  const host = (slug: string) => ({
-    host: `${slug}.localhost`,
-    'content-type': 'application/json',
-  });
-  const tokens: Record<string, string> = {};
+}
+
+const hostOf = (slug: string) => ({
+  host: `${slug}.localhost`,
+  'content-type': 'application/json',
+});
+
+/** A token for every login the tests use, keyed by role (and 'b-admin', 'shared-*'). */
+async function signInAll(app: App, admin: Pool): Promise<Record<string, string>> {
   const logins: Array<[string, string, string]> = [
     ...ROLES.map((r): [string, string, string] => [r, 'plant-a', `plant-a-${r}`]),
     ['b-admin', 'plant-b', 'plant-b-admin'],
@@ -147,11 +149,12 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
   const acting = (
     await admin.query("SELECT person_id FROM login WHERE username = 'plant-a-operator'")
   ).rows[0].person_id as string;
+  const tokens: Record<string, string> = {};
   for (const [key, slug, username] of logins) {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: host(slug),
+      headers: hostOf(slug),
       payload: {
         username,
         password: PASSWORD,
@@ -162,13 +165,22 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
       throw new Error(`login failed for ${username}: ${res.statusCode} ${res.body}`);
     tokens[key] = res.json().token as string;
   }
+  return tokens;
+}
+
+export async function startFixture(filesDir?: string): Promise<Fixture> {
+  const db = await startTestDb();
+  const admin = db.admin;
+  await seedAll(admin);
+  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, filesDir });
+  const tokens = await signInAll(app, admin);
   const call: Fixture['call'] = (method, url, token, payload) =>
     app.inject({
       method: method as 'GET',
       url,
       // Like the web client: a JSON content type only when there is a body.
       headers: {
-        host: host(token === tokens['b-admin'] ? 'plant-b' : 'plant-a').host,
+        host: hostOf(token === tokens['b-admin'] ? 'plant-b' : 'plant-a').host,
         ...(payload ? { 'content-type': 'application/json' } : {}),
         authorization: `Bearer ${token}`,
       },
