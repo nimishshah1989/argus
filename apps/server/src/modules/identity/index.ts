@@ -21,12 +21,14 @@ export {
   type TenantRow,
 } from './repo.js';
 export {
+  clearActingPerson,
   disableLoginsOfPerson,
   endSessions,
   insertLogin,
   insertPerson,
   listLoginAdmin,
   listPersonAdmin,
+  lockLiveActing,
   lockPeopleWrites,
   loginAdminById,
   loginsOfPerson,
@@ -34,6 +36,7 @@ export {
   personAdminById,
   updateLogin,
   updatePerson,
+  type ActingCheck,
   type LoginChange,
   type PersonFields,
 } from './repo/people.js';

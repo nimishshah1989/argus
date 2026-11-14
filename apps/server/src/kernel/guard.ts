@@ -14,6 +14,16 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   'POST /api/v1/auth/login',
 ]);
 
+/** What a login that still has its temporary password may do: see who it is, change it, sign out. */
+const PASSWORD_SCREENS: ReadonlySet<string> = new Set([
+  'GET /api/v1/auth/me',
+  'POST /api/v1/auth/password',
+  'POST /api/v1/auth/logout',
+]);
+
+/** Whether this customer makes a login with a temporary password change it before anything else. */
+export type PasswordChangeRequired = (auth: AuthContext) => Promise<boolean>;
+
 export interface RouteKey {
   method: string;
   url: string;
@@ -44,7 +54,11 @@ export function routeTable(app: FastifyInstance): readonly RouteKey[] {
  * onRequest hook, so rate limiting still answers 429 before this answers 401, and unmatched URLs
  * (404) never reach it.
  */
-export function registerAuthGuard(app: FastifyInstance, authenticate: Authenticate): void {
+export function registerAuthGuard(
+  app: FastifyInstance,
+  authenticate: Authenticate,
+  enforcePasswordChange?: PasswordChangeRequired,
+): void {
   const table: RouteKey[] = [];
   tables.set(app, table);
   app.decorateRequest('auth', null);
@@ -55,6 +69,15 @@ export function registerAuthGuard(app: FastifyInstance, authenticate: Authentica
     if (!auth) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
     request.auth = auth;
     bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
+    const screen = `${request.method} ${request.routeOptions.url}`;
+    if (
+      auth.mustChangePassword &&
+      !PASSWORD_SCREENS.has(screen) &&
+      (await enforcePasswordChange?.(auth))
+    )
+      return reply
+        .code(403)
+        .send(apiError('must_change_password', 'Change your temporary password to continue'));
     return payload;
   };
   app.addHook('onRoute', (route) => {

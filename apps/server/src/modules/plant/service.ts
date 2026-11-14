@@ -4,6 +4,7 @@ import { severityMatrixSchema, type SeverityMatrix } from '@uptimo/shared';
 import { configParts, withTenant } from '../../kernel/index.js';
 import { listPeople, tenantInfo } from '../identity/index.js';
 import { loadPlantRows } from './repo/config.js';
+import { setting } from './repo/reads.js';
 
 export interface ConfigPayload {
   features: Record<string, boolean>;
@@ -16,6 +17,16 @@ export interface ConfigPayload {
   people: unknown[];
   shifts: unknown[];
   severityMatrix: SeverityMatrix;
+}
+
+/**
+ * The `enforcePasswordChange` switch of the `features` setting, off unless the plant turns it on: a login with a
+ * temporary password then reaches nothing but the password screens. Off by default because the web has no
+ * change-password step yet and the seeded logins would be locked out.
+ */
+export async function passwordChangeEnforced(pool: Pool, tenantId: string): Promise<boolean> {
+  const features = await withTenant(pool, tenantId, (tx) => setting(tx, tenantId, 'features'));
+  return (features as Record<string, unknown> | undefined)?.enforcePasswordChange === true;
 }
 
 export function fingerprint(payload: unknown): string {

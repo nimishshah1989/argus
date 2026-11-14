@@ -20,6 +20,7 @@ import {
   recordAdminFix,
   saveCorrectedMachine,
 } from './admin-fixes.js';
+import { checkHandoverTarget } from './targets.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -101,6 +102,8 @@ async function executeCommand(
   const acting = await resolveActingPerson(client, tx);
   if ('status' in acting) return acting;
   tx.actingPersonId = acting.personId;
+  const badTarget = await checkHandoverTarget(client, tx);
+  if (badTarget) return badTarget;
 
   const denied = tm.gatePermission(tx.action, tx, tx.actingPersonId);
   if (denied) return denied;

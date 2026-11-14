@@ -7,6 +7,7 @@ export {
   registerAuthGuard,
   routeTable,
   type Authenticate,
+  type PasswordChangeRequired,
   type RouteKey,
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';

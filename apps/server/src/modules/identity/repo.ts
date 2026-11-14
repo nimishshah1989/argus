@@ -79,22 +79,34 @@ export async function findLogin(pool: Pool, tenantId: string, username: string) 
   ).rows[0];
 }
 
+/**
+ * Starts a sign-in only while the login is on, its password is the one just checked and the acting person
+ * is on. The rows are locked until commit, so a switch-off or a reset that comes next waits for this insert
+ * and then ends the sign-in it made. Returns false when nothing was inserted.
+ */
 export async function insertSession(
   pool: Pool,
   args: {
     tenantId: string;
     loginId: string;
-    device?: string;
+    passwordHash: string;
     actingPersonId: string;
     tokenHash: string;
+    device?: string;
   },
-): Promise<void> {
-  await withTenant(pool, args.tenantId, (client) =>
+): Promise<boolean> {
+  const result = await withTenant(pool, args.tenantId, (client) =>
     client.query(
-      "INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at, acting_person_id) VALUES ($1, $2, $3, $4, now() + interval '30 days', $5)",
-      [args.tenantId, args.loginId, args.tokenHash, args.device ?? null, args.actingPersonId],
+      `INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at, acting_person_id)
+       SELECT l.tenant_id, l.id, $3, $4, now() + interval '30 days', p.id
+       FROM login l, person p
+       WHERE l.id = $1 AND p.id = $2 AND l.tenant_id = p.tenant_id
+         AND l.disabled_at IS NULL AND p.active AND l.password_hash = $5
+       FOR SHARE OF l, p`,
+      [args.loginId, args.actingPersonId, args.tokenHash, args.device ?? null, args.passwordHash],
     ),
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function revokeSession(pool: Pool, tenantId: string, tokenHash: string) {

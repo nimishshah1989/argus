@@ -39,11 +39,11 @@ function userFrom(ctx: AuthContext) {
   return {
     id: ctx.loginId,
     username: ctx.username,
-    name: ctx.personName,
+    name: ctx.personName ?? '',
     title: ctx.personTitle,
     role: ctx.role,
     shared: ctx.shared,
-    actingPersonId: ctx.personId,
+    actingPersonId: ctx.personId ?? '',
     mustChangePassword: ctx.mustChangePassword,
   };
 }
@@ -82,7 +82,13 @@ function tooManyAttempts(
 
 interface NewSession {
   tenantId: string;
-  loginRow: { id: string; role: string; shared: boolean; must_change_password: boolean };
+  loginRow: {
+    id: string;
+    role: string;
+    shared: boolean;
+    must_change_password: boolean;
+    password_hash: string;
+  };
   username: string;
   device: string | undefined;
   person: { id: string; name: string; title: string | null };
@@ -90,13 +96,18 @@ interface NewSession {
 
 async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
   const token = newToken();
-  await insertSession(pool, {
+  const started = await insertSession(pool, {
     tenantId: n.tenantId,
     loginId: n.loginRow.id,
+    passwordHash: n.loginRow.password_hash,
     device: n.device,
     actingPersonId: n.person.id,
     tokenHash: hashToken(token),
   });
+  if (!started) {
+    reply.code(401).send(apiError('unauthenticated', 'Invalid username or password'));
+    return;
+  }
   reply.send({
     token,
     user: {

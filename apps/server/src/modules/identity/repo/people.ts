@@ -182,25 +182,60 @@ export async function disableLoginsOfPerson(tx: Db, personId: string): Promise<s
   return rows.map((r) => r.username as string).sort();
 }
 
-/** Ends every live sign-in of these logins, and every sign-in on a shared login acting as this person. */
-export async function endSessions(
-  tx: Db,
-  who: { loginIds: readonly string[]; actingPersonId?: string },
-): Promise<number> {
+/** Ends every live sign-in of these logins. */
+export async function endSessions(tx: Db, loginIds: readonly string[]): Promise<number> {
   const result = await tx.query(
-    `UPDATE session SET revoked_at = now(), updated_at = now()
-     WHERE revoked_at IS NULL AND (login_id = ANY($1::uuid[]) OR acting_person_id = $2::uuid)`,
-    [who.loginIds, who.actingPersonId ?? null],
+    'UPDATE session SET revoked_at = now(), updated_at = now() WHERE revoked_at IS NULL AND login_id = ANY($1::uuid[])',
+    [loginIds],
   );
   return result.rowCount ?? 0;
 }
 
-/** Enabled admin logins other than `excluding` whose person (if any) is on: who could still manage people. */
+/**
+ * A shared phone keeps its sign-in when the person it was acting as is switched off, but no longer acts as
+ * them; the app asks who is using it. Returns how many sign-ins were cleared.
+ */
+export async function clearActingPerson(tx: Db, personId: string): Promise<number> {
+  const result = await tx.query(
+    'UPDATE session SET acting_person_id = NULL, updated_at = now() WHERE revoked_at IS NULL AND acting_person_id = $1',
+    [personId],
+  );
+  return result.rowCount ?? 0;
+}
+
+export type ActingCheck = 'ok' | 'login_off' | 'person_off' | 'unknown_person';
+
+/**
+ * Whether this login may register a device as this person right now, with both rows locked until commit so a
+ * switch-off that follows waits for the registration and then removes it.
+ */
+export async function lockLiveActing(
+  tx: Db,
+  who: { tenantId: string; loginId: string; personId: string },
+): Promise<ActingCheck> {
+  const login = (
+    await tx.query('SELECT disabled_at FROM login WHERE id = $1 AND tenant_id = $2 FOR SHARE', [
+      who.loginId,
+      who.tenantId,
+    ])
+  ).rows[0];
+  if (!login || login.disabled_at) return 'login_off';
+  const person = (
+    await tx.query('SELECT active FROM person WHERE id = $1 AND tenant_id = $2 FOR SHARE', [
+      who.personId,
+      who.tenantId,
+    ])
+  ).rows[0];
+  if (!person) return 'unknown_person';
+  return person.active ? 'ok' : 'person_off';
+}
+
+/** Enabled personal admin logins other than `excluding`, whose person is on: who could still manage people. */
 export async function otherAdminCount(tx: Db, excluding: readonly string[]): Promise<number> {
   const row = (
     await tx.query(
       `SELECT count(*)::int AS n FROM login l LEFT JOIN person p ON p.id = l.person_id
-       WHERE l.role = 'admin' AND l.disabled_at IS NULL AND (p.id IS NULL OR p.active)
+       WHERE l.role = 'admin' AND NOT l.shared AND l.disabled_at IS NULL AND (p.id IS NULL OR p.active)
          AND l.id <> ALL($1::uuid[])`,
       [excluding],
     )
