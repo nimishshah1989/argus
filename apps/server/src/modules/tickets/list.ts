@@ -34,6 +34,9 @@ function decodeCursor(cursor: string | undefined): { updatedAt: string; id: stri
   return { updatedAt, id };
 }
 
+/** Imported and backfilled tickets keep Bhavin's stored minutes; they are never recomputed from their events. */
+const KEEPS_STORED_FIGURES = new Set(['import', 'backfill']);
+
 function csv(raw: string | undefined): string[] | null {
   return raw ? raw.split(',').filter(Boolean) : null;
 }
@@ -152,6 +155,23 @@ export async function listNeedReport(
   });
 }
 
+/** Stored minutes for imported tickets, a fresh computation for the rest. */
+function detailFigures(
+  row: Record<string, unknown>,
+  ticket: domain.Ticket,
+  events: Awaited<ReturnType<typeof sql.loadEvents>>,
+  segments: domain.WorkSegment[],
+): domain.Figures {
+  const now = new Date();
+  if (KEEPS_STORED_FIGURES.has(row.raised_channel as string)) {
+    return { ...tm.figuresFromRow(row), perPerson: domain.personMinutes(segments, now) };
+  }
+  return tm.recomputeFigures(ticket, events, segments, {
+    overrides: (row.overrides as Record<string, unknown>) ?? {},
+    now,
+  });
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -167,10 +187,7 @@ export async function detail(
     const events = await sql.loadEvents(client, ticketId);
     const segments = await sql.loadSegments(client, ticketId);
     const crew = await sql.loadCrew(client, ticketId);
-    ticket.figures = tm.recomputeFigures(ticket, events, segments, {
-      overrides: (row.overrides as Record<string, unknown>) ?? {},
-      now: new Date(),
-    });
+    ticket.figures = detailFigures(row as Record<string, unknown>, ticket, events, segments);
     return {
       ticket: (
         await withTicketParts(client, ctx.tenantId, [row], () =>

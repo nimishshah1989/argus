@@ -1,0 +1,1 @@
+- Test teardown waits until every database connection is closed before stopping the test server (fixes the 57P01 'terminating connection' error that failed CI runs).

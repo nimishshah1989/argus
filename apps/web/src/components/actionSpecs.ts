@@ -13,6 +13,8 @@ export interface ActionSpec {
   action: TicketAction;
   label: MessageKey;
   primary: boolean;
+  /** Close only: the way of closing the form opens with (the bar's two close buttons). */
+  preset?: 'report' | 'no_report';
 }
 
 const ROLES: readonly string[] = [
@@ -39,7 +41,7 @@ const LABELS: Record<Exclude<TicketAction, 'cancel'>, MessageKey> = {
 };
 
 function labelFor(action: TicketAction, ticket: Ticket): MessageKey {
-  if (action === 'cancel') return 'action.cancel';
+  if (action === 'cancel') return 'detail.action.cancel';
   if (action === 'start' && ticket.handedOver) return 'action.label.pickUp';
   return LABELS[action];
 }
@@ -64,17 +66,46 @@ export function crewFrom(people: TicketPerson[]): ActionCrewMember[] {
   );
 }
 
-/** The actions the actor may take on the ticket now, labelled; the first one is primary. */
+/** Bar order (design lock B3): the first slot offered is primary; the second close button sits near the end. */
+type Slot = TicketAction | 'close-no-report';
+const ORDER: readonly Slot[] = [
+  'start',
+  'resume',
+  'close',
+  'join',
+  'pause',
+  'transfer',
+  'machine-running',
+  'machine-stopped',
+  'update',
+  'leave',
+  'close-no-report',
+  'cancel',
+];
+
+/** A breakdown or support ticket closes with or without a report (two buttons); a work request just closes. */
+function specFor(slot: Slot, ticket: Ticket): Omit<ActionSpec, 'primary'> {
+  if (slot === 'close-no-report') {
+    return { action: 'close', label: 'detail.action.closeNoReport', preset: 'no_report' };
+  }
+  if (slot === 'close' && ticket.kind !== 'general') {
+    return { action: 'close', label: 'detail.action.closeReport', preset: 'report' };
+  }
+  return { action: slot, label: labelFor(slot, ticket) };
+}
+
+/** The actions the actor may take on the ticket now, labelled; the first one is primary (never Cancel). */
 export function actionSpecs(
   ticket: Ticket,
   crew: ActionCrewMember[],
   actor: ActorContext,
 ): ActionSpec[] {
-  return availableActions({ ...ticket, crew }, actor).map((action, index) => ({
-    action,
-    label: labelFor(action, ticket),
-    primary: index === 0,
-  }));
+  const offered = availableActions({ ...ticket, crew }, actor);
+  return ORDER.filter((slot) =>
+    slot === 'close-no-report'
+      ? offered.includes('close') && ticket.kind !== 'general'
+      : offered.includes(slot),
+  ).map((slot, index) => ({ ...specFor(slot, ticket), primary: index === 0 && slot !== 'cancel' }));
 }
 
 const QUICK: readonly TicketAction[] = ['start', 'resume', 'machine-running'];

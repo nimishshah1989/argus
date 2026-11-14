@@ -1,7 +1,9 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { BreakdownReport, Config, Ticket } from '../api.js';
-import { formatDateTime, formatMinutes, machineLabel } from './format.js';
+import { FactList, SectionTitle, type FactRow } from '../ui/detail-kit.js';
+import { Stack } from '../ui/layout.js';
+import { formatDateTime, formatMinutes } from './format.js';
 
 const CLOSE_LABEL_KEYS = {
   report: 'close.report',
@@ -9,19 +11,19 @@ const CLOSE_LABEL_KEYS = {
   done: 'close.done',
 };
 
+const KIND_KEYS = {
+  stopped: 'detail.kind.stopped',
+  support: 'detail.kind.support',
+  general: 'detail.kind.general',
+} as const;
+
 function waitLabel(code: string, config?: Config): string {
   const item = (config?.lists.wait_reason ?? []).find((entry) => entry.code === code);
   return item?.label ?? code;
 }
 
-interface Fact {
-  label: string;
-  value: string;
-  wide?: boolean;
-}
-
-function fact(label: string, value: string | null | undefined, wide = false): Fact[] {
-  return value ? [{ label, value, ...(wide ? { wide } : {}) }] : [];
+function fact(label: string, value: string | null | undefined): FactRow[] {
+  return value ? [{ label, value }] : [];
 }
 
 /** Severity with the criticality snapshot it was derived from, e.g. "S1 (A)". */
@@ -32,60 +34,109 @@ function severityLabel(ticket: Ticket): string | null {
     : ticket.severity;
 }
 
-function factRows(t: TFunction, ticket: Ticket, config?: Config): Fact[] {
-  const machine =
-    ticket.kind === 'general'
-      ? t('floor.workRequest')
-      : machineLabel(ticket, config?.machines ?? []);
+/** The role's name; the catalogue spells `plant_head` as `plantHead`. */
+function roleLabel(t: TFunction, role: string | null): string | null {
+  if (!role) return null;
+  const camel = role.replace(/_(\w)/g, (_, letter: string) => letter.toUpperCase());
+  return t(`account.role.${camel}`, { defaultValue: role });
+}
+
+/** A time with who did it, e.g. "09:58 by Person 11 (Operator)". */
+function atBy(t: TFunction, time: string, name?: string, role?: string | null): string {
+  if (!name) return time;
+  return role ? t('detail.byRole', { time, name, role }) : t('detail.by', { time, name });
+}
+
+interface FactsProps {
+  ticket: Ticket;
+  config?: Config;
+  names: Record<string, string>;
+  /** An open breakdown's downtime so far. */
+  liveDownMin?: number;
+}
+
+function minutesRows(t: TFunction, ticket: Ticket, liveDownMin?: number): FactRow[] {
+  const figures = ticket.figures;
+  if (!figures) return [];
+  const live = ['open', 'working', 'waiting'].includes(ticket.status);
+  const downtime = figures.downtimeMin ?? (live ? liveDownMin : figures.downAccMin);
+  const minutes = (label: string, value: number | null | undefined): FactRow[] =>
+    value == null ? [] : [{ label, value: formatMinutes(value) }];
+  const work = formatMinutes(figures.activeMin);
+  return [
+    ...minutes(t('detail.fact.response'), figures.responseMin),
+    {
+      label: t('detail.fact.workTime'),
+      value: ticket.status === 'working' ? t('detail.running', { time: work }) : work,
+    },
+    { label: t('detail.fact.waiting'), value: formatMinutes(figures.waitMin) },
+    ...(figures.vendorMin > 0 ? minutes(t('figures.vendorWait'), figures.vendorMin) : []),
+    ...(figures.handoverWaitMin > 0
+      ? minutes(t('figures.handoverWait'), figures.handoverWaitMin)
+      : []),
+    ...minutes(t('figures.followUp'), figures.followMin),
+    ...(ticket.kind === 'stopped' && downtime != null
+      ? [
+          {
+            label: t('detail.fact.downtime'),
+            value: live
+              ? t('detail.soFar', { time: formatMinutes(downtime) })
+              : formatMinutes(downtime),
+          },
+        ]
+      : []),
+  ];
+}
+
+function closeRows(t: TFunction, ticket: Ticket, config?: Config, closer?: string): FactRow[] {
+  const closed = ticket.closedAt ? formatDateTime(ticket.closedAt, config?.timeZone) : null;
+  return [
+    ...fact(t('ticket.fact.closed'), closed && atBy(t, closed, closer)),
+    ...fact(
+      t('ticket.fact.closedAs'),
+      ticket.closeKind ? t(CLOSE_LABEL_KEYS[ticket.closeKind]) : null,
+    ),
+    ...fact(t('ticket.fact.closeNote'), ticket.closeNote),
+  ];
+}
+
+function factRows(t: TFunction, props: FactsProps): FactRow[] {
+  const { ticket, config, names, liveDownMin } = props;
   const lead = (config?.people ?? []).find((person) => person.id === ticket.leadPersonId);
   const time = (iso: string | null) => (iso ? formatDateTime(iso, config?.timeZone) : null);
+  const reporter = ticket.reportedByPersonId ? names[ticket.reportedByPersonId] : undefined;
+  const closer = ticket.closedByPersonId ? names[ticket.closedByPersonId] : undefined;
+  const started = time(ticket.startedAt);
   return [
-    { label: t('ticket.fact.machine'), value: machine },
+    { label: t('detail.fact.type'), value: t(KIND_KEYS[ticket.kind]) },
     {
-      label: t('ticket.fact.reported'),
-      value: formatDateTime(ticket.reportedAt, config?.timeZone),
+      label: t('detail.fact.reported'),
+      value: atBy(
+        t,
+        formatDateTime(ticket.reportedAt, config?.timeZone),
+        reporter,
+        roleLabel(t, ticket.reportedByRole),
+      ),
     },
     ...fact(t('ticket.fact.severity'), severityLabel(ticket)),
     ...fact(t('ticket.fact.lead'), lead?.name),
     ...fact(t('ticket.fact.location'), ticket.location),
     ...fact(t('ticket.fact.workType'), ticket.workType),
-    ...fact(t('ticket.fact.started'), time(ticket.startedAt)),
+    ...fact(t('detail.fact.workStarted'), started && atBy(t, started, lead?.name)),
     ...fact(t('ticket.fact.machineRunning'), time(ticket.machineRunningAt)),
+    ...minutesRows(t, ticket, liveDownMin),
     ...fact(
       t('ticket.fact.pauseReason'),
       ticket.waitReason ? waitLabel(ticket.waitReason, config) : null,
     ),
     ...fact(t('ticket.fact.handover'), ticket.handedOver ? t('ticket.fact.waitingPickup') : null),
-    ...fact(t('ticket.fact.closed'), time(ticket.closedAt)),
-    ...fact(
-      t('ticket.fact.closedAs'),
-      ticket.closeKind ? t(CLOSE_LABEL_KEYS[ticket.closeKind]) : null,
-    ),
-    ...fact(t('ticket.fact.closeNote'), ticket.closeNote, true),
+    ...closeRows(t, ticket, config, closer),
   ];
 }
 
-function FactList({ rows }: { rows: Fact[] }) {
-  return (
-    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-      {rows.map((row) => (
-        <div key={row.label} className={row.wide ? 'col-span-2' : undefined}>
-          <dt className="text-xs text-neutral-500">{row.label}</dt>
-          <dd className="mt-0.5 text-base">{row.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-export function Facts({ ticket, config }: { ticket: Ticket; config?: Config }) {
+export function Facts(props: FactsProps) {
   const { t } = useTranslation();
-  return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('ticket.facts')}</h2>
-      <FactList rows={factRows(t, ticket, config)} />
-    </section>
-  );
+  return <FactList rows={factRows(t, props)} />;
 }
 
 function personList(
@@ -110,9 +161,9 @@ export function ReportCard({
 }) {
   const { t } = useTranslation();
   const rows = [
-    ...fact(t('report.problem'), report.problem, true),
+    ...fact(t('report.problem'), report.problem),
     ...fact(t('report.observedBy'), report.observedBy),
-    ...fact(t('report.correctiveAction'), report.correctiveAction, true),
+    ...fact(t('report.correctiveAction'), report.correctiveAction),
     ...fact(t('report.doneBy'), personList(reportPeople(report, 'done'), names, t)),
     ...fact(t('report.supportedBy'), personList(reportPeople(report, 'supported'), names, t)),
     ...fact(t('report.downtime'), formatMinutes(report.downtimeMin)),
@@ -124,15 +175,15 @@ export function ReportCard({
     ...fact(t('report.category'), report.breakdownCategory),
     ...fact(t('report.maintenanceCode'), report.maintCode),
     ...fact(t('report.spareUsed'), report.spareUsed),
-    ...fact(t('report.rootCause'), report.rootCause, true),
+    ...fact(t('report.rootCause'), report.rootCause),
     ...fact(t('report.handoverTo'), report.handoverName),
     ...fact(t('report.date'), report.date),
     ...fact(t('report.shift'), report.shiftCode),
   ];
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('report.title')}</h2>
+    <Stack gap={2}>
+      <SectionTitle>{t('report.title')}</SectionTitle>
       <FactList rows={rows} />
-    </section>
+    </Stack>
   );
 }

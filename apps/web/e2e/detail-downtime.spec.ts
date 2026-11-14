@@ -20,8 +20,13 @@ test('shows running downtime on an open stopped ticket', async ({ page }, testIn
   try {
     await signIn(page, 'asha');
     await page.goto(`/desk/${ticket.id}`);
-    const tile = page.locator('dt', { hasText: 'Downtime' }).locator('xpath=following-sibling::dd');
+    const tile = page
+      .locator('dt', { hasText: /^Downtime$/ })
+      .locator('xpath=following-sibling::dd')
+      .first();
     await expect(tile).toHaveText('1 h 30 min');
+    // The facts card agrees, while the machine is still stopped.
+    await expect(page.getByText('1 h 30 min so far')).toBeVisible();
   } finally {
     // the machine is shared with the desk journey: leave nothing open on it
     const me = await getJson<{ user: { actingPersonId: string } }>(token, '/api/v1/auth/me');
