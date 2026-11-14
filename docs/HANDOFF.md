@@ -18,7 +18,7 @@ AWS/production actions without him. Orchestrator branch: `claude/orchestrator-m0
 ## In flight (3 builders max)
 
 - Accent deep teal MERGED as #177 (818b3a0; accent #0f766e, 5.47:1 on white; blue stays on /gallery as comparison). Check main CI gallery is green.
-- Hardening (audit 2,3,4,5,10): session_01KEBF28NGDXJg93xZ9TLLyR. HIGH RISK: run adversarial Opus review before merge.
+- Hardening MERGED: #180 (by Nimish) + follow-up #183 (7e62028: push parser bypass fixed, login guard reshaped, erased-login 401, change-password guarded). Open for Nimish: AI cap ceiling 100,000 USD and DOMAIN section 3 cap row split; Apple/Edge push hosts need a real-device check before production.
 - Deploy fixes MERGED as #182 (Chromium in image, snapshot before migrating, PDF bytes direct, render gate, non-root; D25). NEW TERRAFORM: `aws_iam_role_policy.server_snapshot` (instance may create `uptimo-pre-*` snapshots). Nimish MUST apply it in the same apply as `github_sub_prefix`, before the first deploy, else the deploy stops safely at 'snapshot failed; nothing migrated'.
   Children never merge; merge on 9 green checks (static, api x3, browser x2, gallery, secrets, pr-meta), squash, then archive the child.
 
@@ -50,10 +50,10 @@ Do not message old sessions; archive children after merge.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-14 03:53 UTC on branch `claude/orchestrator-m0-gate`.
+Last session ended 2026-11-14 03:59 UTC on branch `claude/orchestrator-m0-gate`.
+- 4eb26e1 docs: session notes (hook)
 - 4ac854e docs(plan): frontend design agent, hardening follow-up
 - 3fdacbd docs: fix duplicate decision numbers (D26, D27)
-- 70f4d20 docs(plan): accent merged, hardening in review
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
