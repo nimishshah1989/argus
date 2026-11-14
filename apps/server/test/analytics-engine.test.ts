@@ -20,7 +20,7 @@ beforeAll(async () => {
   const report = (
     await f.admin.query(
       `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category)
-       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise', 90, 'M') RETURNING id`,
+       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise, told plant-a technician', 90, 'M') RETURNING id`,
       [A, ticket, M_USED],
     )
   ).rows[0].id as string;
@@ -50,27 +50,27 @@ describe('the analytics profile and the engine, through HTTP', () => {
   it('a head sets the value of a machine hour, the engine uses it, an operator cannot, and the change is audited', async () => {
     const row = await profileRow(f.tokens.head!);
     expect(row).toMatchObject({
-      hoursPerDay: 20,
-      daysPerYear: 300,
-      costPerHour: 1800,
-      acSnoozeDays: 7,
+      prodHrsPerDay: 20,
+      workDaysPerYear: 300,
+      mmThroughput: 1800,
+      snoozeDays: 7,
     });
 
     for (const role of ['operator', 'technician', 'supervisor', 'plant_head', 'board']) {
       const list = await f.call('GET', '/api/v1/analytics-profile', f.tokens[role]!);
       expect(list.statusCode, role).toBe(403);
       const edit = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens[role]!, {
-        costPerHour: 1,
+        mmThroughput: 1,
       });
       expect(edit.statusCode, role).toBe(403);
     }
     expect(await auditRows()).toHaveLength(0);
 
     const put = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens.head!, {
-      costPerHour: '2500',
+      mmThroughput: '2500',
     });
     expect(put.statusCode).toBe(200);
-    expect(put.json()).toMatchObject({ id: row.id, costPerHour: 2500, hoursPerDay: 20 });
+    expect(put.json()).toMatchObject({ id: row.id, mmThroughput: 2500, prodHrsPerDay: 20 });
 
     const figures = await f.call(
       'GET',
@@ -78,15 +78,15 @@ describe('the analytics profile and the engine, through HTTP', () => {
       f.tokens.head!,
     );
     expect(figures.statusCode).toBe(200);
-    expect(figures.json()).toMatchObject({ asOf: '2026-11-11', profile: { costPerHour: 2500 } });
+    expect(figures.json()).toMatchObject({ asOf: '2026-11-11', profile: { mmThroughput: 2500 } });
 
     const audit = await auditRows();
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({
       action: 'analytics_profile.update',
       entity_id: row.id,
-      before: { costPerHour: 1800 },
-      after: { costPerHour: 2500 },
+      before: { mmThroughput: 1800 },
+      after: { mmThroughput: 2500 },
     });
   });
 
@@ -94,20 +94,20 @@ describe('the analytics profile and the engine, through HTTP', () => {
     const row = await profileRow(f.tokens.admin!);
     const before = (await auditRows()).length;
     for (const [body, field] of [
-      [{ hoursPerDay: 25 }, 'hoursPerDay'],
-      [{ daysPerYear: 0 }, 'daysPerYear'],
-      [{ costPerHour: -5 }, 'costPerHour'],
-      [{ acFreqMin: 2.5 }, 'acFreqMin'],
-      [{ costPerHour: 'lots' }, 'costPerHour'],
+      [{ prodHrsPerDay: 25 }, 'prodHrsPerDay'],
+      [{ workDaysPerYear: 0 }, 'workDaysPerYear'],
+      [{ mmThroughput: -5 }, 'mmThroughput'],
+      [{ freqMin: 2.5 }, 'freqMin'],
+      [{ mmThroughput: 'lots' }, 'mmThroughput'],
       [{ madeUp: 1 }, 'madeUp'],
     ] as const) {
       const res = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens.admin!, body);
       expect(res.statusCode, JSON.stringify(body)).toBe(422);
       expect(res.json().error.field, JSON.stringify(body)).toBe(field);
     }
-    expect((await profileRow(f.tokens.admin!)).hoursPerDay).toBe(20);
+    expect((await profileRow(f.tokens.admin!)).prodHrsPerDay).toBe(20);
     const same = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens.admin!, {
-      hoursPerDay: 20,
+      prodHrsPerDay: 20,
     });
     expect(same.statusCode).toBe(200);
     expect(await auditRows()).toHaveLength(before);
@@ -118,7 +118,7 @@ describe('the analytics profile and the engine, through HTTP', () => {
 
   it('has one profile row and no way to add another', async () => {
     const res = await f.call('POST', '/api/v1/analytics-profile', f.tokens.head!, {
-      costPerHour: 1,
+      mmThroughput: 1,
     });
     expect(res.statusCode).toBe(404);
     const list = await f.call('GET', '/api/v1/analytics-profile', f.tokens.head!);
@@ -128,21 +128,21 @@ describe('the analytics profile and the engine, through HTTP', () => {
   it('keeps plants apart: a plant sees only its own rows and its own profile', async () => {
     const a = (await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!)).json();
     expect(a.rows).toEqual({ machines: 2, moves: 0, tickets: 1, tasks: 1, reports: 1, people: 7 });
-    expect(a.profile.costPerHour).toBe(2500);
+    expect(a.profile.mmThroughput).toBe(2500);
     const b = (await f.call('GET', '/api/v1/analytics/figures', f.tokens['b-admin']!)).json();
     expect(b.rows).toMatchObject({ machines: 1, tickets: 0, people: 1 });
-    expect(b.profile.costPerHour).toBe(1800);
+    expect(b.profile.mmThroughput).toBe(1800);
     const aRow = await profileRow(f.tokens.head!);
     const crossEdit = await f.call(
       'PUT',
       `/api/v1/analytics-profile/${aRow.id}`,
       f.tokens['b-admin']!,
       {
-        costPerHour: 1,
+        mmThroughput: 1,
       },
     );
     expect(crossEdit.statusCode).toBe(404);
-    expect((await profileRow(f.tokens.head!)).costPerHour).toBe(2500);
+    expect((await profileRow(f.tokens.head!)).mmThroughput).toBe(2500);
   });
 
   it('answers every registered figure with its owner and a drill type, and defaults the date to the plant today', async () => {
@@ -161,7 +161,7 @@ describe('the analytics profile and the engine, through HTTP', () => {
   it('shows money only to heads and admin, and the figures only to those who may read analytics', async () => {
     const supervisor = await f.call('GET', '/api/v1/analytics/figures', f.tokens.supervisor!);
     expect(supervisor.statusCode).toBe(200);
-    expect(supervisor.json().profile.costPerHour).toBeNull();
+    expect(supervisor.json().profile.mmThroughput).toBeNull();
     expect(supervisor.json().figures.map((x: { key: string }) => x.key)).not.toContain(
       'money-matters',
     );
@@ -173,6 +173,69 @@ describe('the analytics profile and the engine, through HTTP', () => {
     }
   });
 
+  it('saves what the generated screen sends: every number as text, and the row switch sent back', async () => {
+    const row = await profileRow(f.tokens.head!);
+    const { id, active, ...numbers } = row;
+    const form = Object.fromEntries(Object.entries(numbers).map(([k, v]) => [k, String(v)]));
+    const before = (await auditRows()).length;
+    const same = await f.call('PUT', `/api/v1/analytics-profile/${id}`, f.tokens.head!, {
+      ...form,
+      active,
+    });
+    expect(same.statusCode).toBe(200);
+    expect(await auditRows()).toHaveLength(before);
+    const edit = await f.call('PUT', `/api/v1/analytics-profile/${id}`, f.tokens.head!, {
+      ...form,
+      snoozeDays: '10',
+      active,
+    });
+    expect(edit.statusCode).toBe(200);
+    expect(edit.json().snoozeDays).toBe(10);
+    const audit = await auditRows();
+    expect(audit).toHaveLength(before + 1);
+    expect(audit.at(-1)).toMatchObject({ before: { snoozeDays: 7 }, after: { snoozeDays: 10 } });
+    const off = await f.call('PUT', `/api/v1/analytics-profile/${id}`, f.tokens.head!, {
+      active: false,
+    });
+    expect(off.statusCode).toBe(422);
+  });
+
+  it('refuses numbers that cannot both be true, naming the field to correct', async () => {
+    const row = await profileRow(f.tokens.head!);
+    const res = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens.head!, {
+      repeatMinDays: 9,
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.field).toBe('repeatMinDays');
+    expect((await profileRow(f.tokens.head!)).repeatMinDays).toBe(2);
+  });
+
+  it('runs the engine as of a past plant date: later tickets, reports and closings are not in it', async () => {
+    // 01:00 IST on 1 Nov is 19:30Z on 31 Oct: it belongs to 1 Nov in this plant.
+    await f.admin.query(
+      `INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity)
+       VALUES ($1, 'BD-0003', 'stopped', 'open', $2, 'Night stop', '2026-10-31T19:30:00Z', 'S3')`,
+      [A, M_USED],
+    );
+    const at = async (asOf: string) =>
+      (await f.call('GET', `/api/v1/analytics/figures?asOf=${asOf}`, f.tokens.head!)).json().rows;
+    expect((await at('2026-10-31')).tickets).toBe(0);
+    expect((await at('2026-11-01')).tickets).toBe(1);
+    expect((await at('2026-10-31')).reports).toBe(0);
+    expect((await at('2026-11-01')).reports).toBe(1);
+  });
+
+  it('shows the money numbers of the profile only to heads and admin', async () => {
+    const money = ['mmThroughput', 'mmTurnover', 'mmSucc'];
+    const head = (await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!)).json().profile;
+    for (const key of money) expect(head[key], key).toEqual(expect.any(Number));
+    const supervisor = (
+      await f.call('GET', '/api/v1/analytics/figures', f.tokens.supervisor!)
+    ).json().profile;
+    for (const key of money) expect(supervisor[key], key).toBeNull();
+    expect(supervisor.snoozeDays).toBe(10);
+  });
+
   it('refuses a date that is not a plant date', async () => {
     const res = await f.call('GET', '/api/v1/analytics/figures?asOf=2026-02-30', f.tokens.head!);
     expect(res.statusCode).toBe(422);
@@ -182,9 +245,9 @@ describe('the analytics profile and the engine, through HTTP', () => {
 
 describe('the data loader', () => {
   it('reads the plant into plain rows: tasks apart from tickets, people as codes, no names or phones', async () => {
-    const data = await withTenant(f.db.app, A, (tx) => loadEngineData(tx));
+    const data = await withTenant(f.db.app, A, (tx) => loadEngineData(tx, A));
     expect(data.machines.map((m) => m.code)).toEqual(['VC-01', 'VC-02']);
-    expect(data.tickets.map((t) => t.ref)).toEqual(['BD-0001']);
+    expect(data.tickets.map((t) => t.ref)).toEqual(['BD-0003', 'BD-0001']);
     expect(data.tasks.map((t) => [t.ref, t.reason])).toEqual([['BD-0002', 'recheck']]);
     expect(data.reports).toHaveLength(1);
     expect(data.reports[0]).toMatchObject({ downtimeMin: 90, category: 'M', shift: 'DAY' });
@@ -195,6 +258,8 @@ describe('the data loader', () => {
     const text = JSON.stringify(data);
     expect(text).not.toMatch(/plant-a|plant-b/);
     expect(text).not.toMatch(/phone/i);
+    expect(data.reports[0]!.problem).toMatch(/^Spindle noise, told \[P\d+\]$/);
+    expect(data.timeZone).toBe('Asia/Kolkata');
     expect(data.people.every((p) => /^P-[0-9a-f]{8}$/.test(p.code))).toBe(true);
   });
 });

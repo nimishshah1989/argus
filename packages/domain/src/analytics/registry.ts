@@ -4,6 +4,10 @@ import type { DrillType } from '@uptimo/shared';
  * Every figure the analytics face can show, with the ticket that computes it and the kind of row it drills to.
  * A figure with no drill type does not compile, and `registry.test.ts` fails on a registered figure that loses
  * one. Engines 38 to 45 add their computations in `computers.ts` under the same keys.
+ *
+ * Owners 43 and 44 split the money tiles of a mixed screen into their own `money` keys, as `compare.spares-cost`,
+ * `team-focus.cost` and `action-center.spares-spend` are here. Owner 45 does the same for the monthly and annual
+ * reports if they carry cost (not checked yet).
  */
 export interface FigureDef {
   key: string;
@@ -11,7 +15,11 @@ export interface FigureDef {
   owner: number;
   label: string;
   drill: DrillType;
-  /** Shown only to heads and admin (DOMAIN §3: money). */
+  /**
+   * Shown only to heads and admin (DOMAIN section 3: money). Set per figure, never per screen: a screen that mixes
+   * money and other numbers keeps the other numbers under its own key and puts each money number under its own
+   * `money` key (see `compare.spares-cost`).
+   */
   money?: true;
 }
 
@@ -32,6 +40,15 @@ const screen = (owner: number, id: string, label: string, drill: DrillType): Fig
   drill,
 });
 
+const moneyTile = (owner: number, id: string, tile: string, label: string): FigureDef => ({
+  key: `${id}.${tile}`,
+  screen: id,
+  owner,
+  label,
+  drill: 'ticket',
+  money: true,
+});
+
 /**
  * The kept screens of `docs/plan/m4a-triage.md` that an engine ticket computes. Left out on purpose: the PM,
  * AMC, legal and PM report registers (loaded by M4b tickets 49 and 51, no rows on main to drill to yet), the
@@ -48,6 +65,8 @@ export const FIGURES: readonly FigureDef[] = [
   dashboard('total-downtime-hours', 'Total downtime', 'ticket'),
   dashboard('pm-hours', 'PM hours', 'ticket'),
   dashboard('no-downtime-hours', 'Breakdown hours with no downtime', 'ticket'),
+  dashboard('bubble-chart', 'Bubble chart', 'machine'),
+  dashboard('expansion-timeline', 'Expansion timeline', 'machine'),
   dashboard('fleet-availability', 'Fleet availability', 'machine'),
   dashboard('plant-bd-pct', 'Plant breakdown percent', 'ticket'),
   dashboard('avg-complaints-per-day', 'Average complaints per day', 'ticket'),
@@ -70,10 +89,13 @@ export const FIGURES: readonly FigureDef[] = [
   screen(42, 'a9-bottleneck-forecast', 'A9 bottleneck and forecast', 'machine'),
   screen(42, 'forecast-lab', 'Forecast Lab', 'machine'),
   screen(43, 'compare', 'Compare machines and health score', 'machine'),
+  moneyTile(43, 'compare', 'spares-cost', 'Compare: spares cost'),
   screen(43, 'team-focus', 'Team Focus', 'machine'),
+  moneyTile(43, 'team-focus', 'cost', 'Team Focus: cost'),
   { ...screen(43, 'money-matters', 'Money Matters', 'ticket'), money: true },
   screen(43, 'fix-finder', 'Fix Finder', 'ticket'),
   screen(44, 'action-center', 'Action Center', 'machine'),
+  moneyTile(44, 'action-center', 'spares-spend', 'Action Center: spares spend nudge'),
   screen(45, 'monthly-report', 'Monthly report', 'ticket'),
   screen(45, 'annual-report', 'Annual report', 'ticket'),
 ];

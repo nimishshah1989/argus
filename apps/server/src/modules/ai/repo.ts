@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 import type { AiFeatureName, AiRowOutcome } from '@uptimo/shared';
 import type { AiUsage } from './provider.js';
-import type { AiJson } from './redact.js';
+import type { AiJson } from '../identity/index.js';
 
 type Db = Pick<PoolClient, 'query'>;
 

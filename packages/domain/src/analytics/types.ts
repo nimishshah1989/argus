@@ -90,6 +90,8 @@ export interface ListRow {
 }
 
 export interface EngineData {
+  /** The plant's IANA time zone. Every date the engines compare is a plant date, made with `plantDay`. */
+  timeZone: string;
   machines: MachineRow[];
   moves: MoveRow[];
   tickets: TicketRow[];
@@ -135,6 +137,6 @@ export interface EngineResult {
   asOf: string;
   profile: AnalyticsProfile;
   /** How many rows of each kind the run was given. */
-  rows: Record<Exclude<keyof EngineData, 'lists'>, number>;
+  rows: Record<Exclude<keyof EngineData, 'lists' | 'timeZone'>, number>;
   figures: FigureResult[];
 }

@@ -1,4 +1,4 @@
-import type { RedactionTerms } from '../identity/index.js';
+import type { RedactionTerms } from './repo.js';
 
 /** Text and structure only: no binary or image member (D22 §6). */
 export type AiJson = string | number | boolean | null | AiJson[] | { [key: string]: AiJson };

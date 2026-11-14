@@ -3,6 +3,7 @@ import {
   DEFAULT_PROFILE,
   PROFILE_KEYS,
   profilePatchSchema,
+  profileRuleProblem,
   type AnalyticsProfile,
 } from '@uptimo/shared';
 import { ensureSettingRow, setting, settingRowStore, type Resource } from '../plant/index.js';
@@ -44,5 +45,7 @@ export const profileResource: Resource = {
     ...Object.fromEntries(PROFILE_KEYS.map((key) => [key, row[key]])),
     active: true,
   }),
+  /** The numbers as they would be after the edit must still make sense together (422 on the field to correct). */
+  check: async (_tx, merged) => profileRuleProblem(merged),
   prepare: (tx, who) => ensureSettingRow(tx, who.tenantId, PROFILE_KEY, DEFAULT_PROFILE),
 };

@@ -1,7 +1,15 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
+import { dataAsOf } from './as-of.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
-import type { Computed, Computer, EngineData, EngineResult, FigureResult } from './types.js';
+import type {
+  Computed,
+  Computer,
+  EngineData,
+  EngineResult,
+  FigureResult,
+  FigureValue,
+} from './types.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -14,10 +22,17 @@ function knownIds(data: EngineData): Record<FigureDef['drill'], Set<string>> {
   };
 }
 
+/** A value that has no rows behind it: nothing, zero, an empty text, list or object. */
+function isEmptyValue(value: FigureValue): boolean {
+  if (value === null || value === 0 || value === '' || value === false) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return typeof value === 'object' && Object.keys(value).length === 0;
+}
+
 /**
- * A computed figure must name rows (possibly none), and every one of them must be a row of its drill type in
- * the data it was computed from. A figure that cannot say where it came from is a bug in the engine, not a
- * value to show.
+ * A computed figure must name the rows it came from, and every one of them must be a row of its drill type in the
+ * data it was computed from. It may name none only when its value is empty or zero. A figure that cannot say where
+ * it came from is a bug in the engine, not a value to show.
  */
 function drillOf(def: FigureDef, computed: Computed, known: Set<string>): string[] {
   const ids = [...new Set(computed.drillIds)].sort();
@@ -26,6 +41,9 @@ function drillOf(def: FigureDef, computed: Computed, known: Set<string>): string
     throw new Error(
       `Figure ${def.key} drills to ${stray}, which is not a ${def.drill} row of its data`,
     );
+  }
+  if (ids.length === 0 && !isEmptyValue(computed.value)) {
+    throw new Error(`Figure ${def.key} has a value but names no rows to drill to`);
   }
   return ids;
 }
@@ -38,9 +56,10 @@ export function runWith(
   computers: Readonly<Record<string, Computer>>,
   input: { data: EngineData; asOf: string; profile: AnalyticsProfile },
 ): EngineResult {
-  const { data, asOf, profile } = input;
+  const { asOf, profile } = input;
   if (!DAY.test(asOf))
     throw new RangeError(`asOf must be a plant date like 2026-11-11, got ${asOf}`);
+  const data = dataAsOf(input.data, asOf);
   const known = knownIds(data);
   const figures = FIGURES.map((def): FigureResult => {
     const base = { key: def.key, screen: def.screen, owner: def.owner };

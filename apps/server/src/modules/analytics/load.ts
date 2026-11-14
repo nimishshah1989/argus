@@ -8,7 +8,13 @@ import type {
   TaskRow,
   TicketRow,
 } from '@uptimo/domain';
-import { peopleForEngine } from '../identity/index.js';
+import {
+  createRedactor,
+  peopleForEngine,
+  redactionTerms,
+  tenantInfo,
+  type Redactor,
+} from '../identity/index.js';
 import { listsForEngine, machinesForEngine, movesForEngine } from '../plant/index.js';
 import { reportsForEngine, ticketsForEngine } from '../tickets/index.js';
 
@@ -63,22 +69,31 @@ const task = (row: Row): TaskRow => ({
   expectedOn: text(row.task_expected_on),
 });
 
+/** Free text may carry a name or a phone number: it passes the plant's redactor before the engine sees it. */
+type Cleaner = (value: string) => string;
+const cleanOrNull = (value: unknown, clean: Cleaner): string | null =>
+  value === null ? null : clean(String(value));
+const cleanerOf =
+  (redactor: Redactor): Cleaner =>
+  (value) =>
+    redactor.redact(value) as string;
+
 const codes = (ids: unknown): string[] => (ids as string[]).map(personCode);
 
-const report = (row: Row): ReportRow => ({
+const report = (row: Row, clean: Cleaner): ReportRow => ({
   id: row.id as string,
   ticketId: text(row.ticket_id),
   machineId: row.machine_id as string,
   date: row.date as string,
   shift: row.shift_code as string,
-  problem: row.problem as string,
+  problem: clean(row.problem as string),
   downtimeMin: row.downtime_min as number,
   responseMin: row.response_min as number | null,
   repairMin: row.repair_min as number | null,
   category: text(row.breakdown_category),
   maintCode: text(row.maint_code),
-  spareUsed: text(row.spare_used),
-  rootCause: text(row.root_cause),
+  spareUsed: cleanOrNull(row.spare_used, clean),
+  rootCause: cleanOrNull(row.root_cause, clean),
   doneBy: codes(row.done_by),
   supportedBy: codes(row.supported_by),
 });
@@ -104,11 +119,14 @@ function listsOf(rows: Row[]): Record<string, ListRow[]> {
 
 /**
  * The plant's rows as the engine's plain `data`, read through the plant, tickets and identity interfaces. The
- * transaction is the tenant's (`withTenant`), so only this plant's rows can be read. A ticket with a parent is a
- * task; the rest are tickets.
+ * transaction is the tenant's (`withTenant`), so only this plant's rows can be read. Everything is loaded, history
+ * included; the engine cuts it at its `asOf`. A ticket with a parent is a task; the rest are tickets. No figure may
+ * echo free text except as a drill label: names and phones in it are replaced before it reaches the engine.
  */
-export async function loadEngineData(tx: Db): Promise<EngineData> {
+export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineData> {
   // One connection runs one query at a time, so these are read in turn.
+  const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
+  const clean = cleanerOf(createRedactor(await redactionTerms(tx, tenantId)));
   const machines = await machinesForEngine(tx);
   const moves = await movesForEngine(tx);
   const tickets = await ticketsForEngine(tx);
@@ -116,6 +134,7 @@ export async function loadEngineData(tx: Db): Promise<EngineData> {
   const people = await peopleForEngine(tx);
   const lists = await listsForEngine(tx);
   return {
+    timeZone,
     machines: machines.map(machine),
     moves: moves.map((row) => ({
       id: row.id as string,
@@ -126,7 +145,7 @@ export async function loadEngineData(tx: Db): Promise<EngineData> {
     })),
     tickets: tickets.filter((row) => row.parent_id === null).map(ticket),
     tasks: tickets.filter((row) => row.parent_id !== null).map(task),
-    reports: reports.map(report),
+    reports: reports.map((row) => report(row, clean)),
     people: people.map(person),
     lists: listsOf(lists),
   };

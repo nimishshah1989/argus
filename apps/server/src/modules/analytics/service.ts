@@ -24,7 +24,7 @@ export async function runForTenant(
   input: { tenantId: string; asOf: string; store?: FigureStore },
 ): Promise<EngineResult> {
   const { tenantId, asOf, store = notStored } = input;
-  const data = await loadEngineData(tx);
+  const data = await loadEngineData(tx, tenantId);
   const profile = await readProfile(tx, tenantId);
   const result = run(data, asOf, profile);
   await store.save(tx, tenantId, result);

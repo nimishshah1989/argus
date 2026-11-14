@@ -1,6 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { apiError, calendarDay, type FiguresReply } from '@uptimo/shared';
+import {
+  apiError,
+  calendarDay,
+  PROFILE_FIELDS,
+  PROFILE_KEYS,
+  type AnalyticsProfile,
+  type FiguresReply,
+} from '@uptimo/shared';
 import { canAnalytics, canMoney, FIGURES } from '@uptimo/domain';
 import { withTenant } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
@@ -10,10 +17,19 @@ import { runForTenant } from './service.js';
 
 const MONEY = new Set(FIGURES.filter((figure) => figure.money).map((figure) => figure.key));
 
+/** The money numbers of the profile are null for anyone but heads and admin. */
+function shownProfile(profile: AnalyticsProfile, money: boolean): FiguresReply['profile'] {
+  return Object.fromEntries(
+    PROFILE_KEYS.map((key) => [key, !money && PROFILE_FIELDS[key].money ? null : profile[key]]),
+  ) as FiguresReply['profile'];
+}
+
 /**
  * `GET /analytics/figures?asOf=YYYY-MM-DD` (default: the plant's today): the registry's figures as of one date,
  * with the profile used. Supervisor, heads and admin read it (DOMAIN §3). Money is for heads and admin: for
- * anyone else the value of one machine hour is null and the money figures are left out.
+ * anyone else the money numbers of the profile are null and the money figures are left out. A kiosk head login
+ * counts as a head, like every other money check. The run is read-only and costs one pass over the plant's rows
+ * per request (see the PR's known follow-ups: serve from `kpi_snapshot` once it exists).
  */
 export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void {
   registerResource(app, pool, profileResource);
@@ -35,7 +51,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void 
     const money = canMoney(actor);
     const body: FiguresReply = {
       ...result,
-      profile: { ...result.profile, costPerHour: money ? result.profile.costPerHour : null },
+      profile: shownProfile(result.profile, money),
       figures: result.figures.filter((figure) => money || !MONEY.has(figure.key)),
     };
     reply.send(body);

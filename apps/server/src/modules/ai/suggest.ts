@@ -8,12 +8,11 @@ import {
   type AiSuggestPayload,
 } from '@uptimo/shared';
 import { jobDb, withTenant } from '../../kernel/index.js';
-import { redactionTerms } from '../identity/index.js';
+import { createRedactor, redactionTerms, type AiJson, type Redactor } from '../identity/index.js';
 import { setting } from '../plant/index.js';
 import type { AiConfig } from './config.js';
 import { costMicroUsd, maxCallCostMicroUsd, monthStartUtc, retryPlan } from './limits.js';
 import { AiProviderError, type AiOutputSchema, type AiProvider, type AiUsage } from './provider.js';
-import { createRedactor, type AiJson, type Redactor } from './redact.js';
 import {
   claimSuggestion,
   markAttempt,

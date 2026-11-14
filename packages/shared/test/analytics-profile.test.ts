@@ -1,39 +1,74 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PROFILE, PROFILE_KEYS, profilePatchSchema } from '../src/analytics.js';
+import {
+  DEFAULT_PROFILE,
+  PROFILE_FIELDS,
+  PROFILE_KEYS,
+  profilePatchSchema,
+  profileRuleProblem,
+} from '../src/analytics.js';
 
 describe('the plant profile', () => {
-  it('starts from the legacy platform constants', () => {
+  it('starts from the legacy platform constants, under the legacy names', () => {
     expect(DEFAULT_PROFILE).toMatchObject({
-      hoursPerDay: 20,
-      daysPerYear: 300,
-      costPerHour: 1800,
-      efficiencyPct: 20,
-      whyWhyHours: 12,
-      acSnoozeDays: 7,
-      acFreqDays: 30,
-      acFreqMin: 4,
+      prodHrsPerDay: 20,
+      workDaysPerYear: 300,
+      efficiencyFactor: 20,
+      whyWhyThresholdHours: 12,
+      flHalfLife: 300,
+      mmThroughput: 1800,
+      mmTurnover: 150,
+      mmSucc: 100,
+      snoozeDays: 7,
+      freqDays: 30,
+      freqMin: 4,
     });
-    expect(PROFILE_KEYS.filter((key) => key.startsWith('ac'))).toHaveLength(26);
+    expect(PROFILE_KEYS).toHaveLength(34);
   });
 
-  it('takes numbers typed into a generated form', () => {
-    expect(profilePatchSchema.parse({ costPerHour: '2500', acMttrMult: '1.5' })).toEqual({
-      costPerHour: 2500,
-      acMttrMult: 1.5,
-    });
+  it('marks the Money Matters numbers as money and gives every key an owner ticket', () => {
+    expect(PROFILE_KEYS.filter((key) => PROFILE_FIELDS[key].money)).toEqual([
+      'mmThroughput',
+      'mmTurnover',
+      'mmSucc',
+    ]);
+    for (const key of PROFILE_KEYS)
+      expect(PROFILE_FIELDS[key].owner, key).toBeGreaterThanOrEqual(38);
+  });
+
+  it('takes what a generated form sends: every number as text, and the row switch sent back', () => {
+    const form = {
+      ...Object.fromEntries(PROFILE_KEYS.map((key) => [key, String(DEFAULT_PROFILE[key])])),
+      mmThroughput: '2500',
+      mttrMult: '1.5',
+      active: true,
+    };
+    const parsed = profilePatchSchema.parse(form);
+    expect(parsed).toMatchObject({ mmThroughput: 2500, mttrMult: 1.5, prodHrsPerDay: 20 });
+    expect(profilePatchSchema.safeParse({ active: 'true' }).success).toBe(true);
   });
 
   it.each([
-    [{ hoursPerDay: 25 }],
-    [{ hoursPerDay: 0 }],
-    [{ daysPerYear: 400 }],
-    [{ costPerHour: -1 }],
-    [{ acFreqMin: 2.5 }],
-    [{ acSnoozeDays: 0 }],
-    [{ efficiencyPct: 101 }],
-    [{ costPerHour: 'lots' }],
+    [{ prodHrsPerDay: 25 }],
+    [{ prodHrsPerDay: 0 }],
+    [{ workDaysPerYear: 400 }],
+    [{ mmThroughput: -1 }],
+    [{ freqMin: 2.5 }],
+    [{ snoozeDays: 0 }],
+    [{ efficiencyFactor: 101 }],
+    [{ mmThroughput: 'lots' }],
+    [{ active: false }],
     [{ unknownKey: 1 }],
   ])('refuses nonsense %j', (patch) => {
     expect(profilePatchSchema.safeParse(patch).success).toBe(false);
+  });
+
+  it('refuses numbers that cannot both be true, naming the field to correct', () => {
+    expect(profileRuleProblem(DEFAULT_PROFILE)).toBeNull();
+    expect(profileRuleProblem({ ...DEFAULT_PROFILE, repeatMinDays: 8 })?.field).toBe(
+      'repeatMinDays',
+    );
+    expect(profileRuleProblem({ ...DEFAULT_PROFILE, oldAge: 1, newMachDays: 400 })?.field).toBe(
+      'newMachDays',
+    );
   });
 });

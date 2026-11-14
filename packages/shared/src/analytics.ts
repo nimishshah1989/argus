@@ -3,9 +3,10 @@ import { num } from './form.js';
 import { settingsPage } from './plant-settings.js';
 
 /**
- * Contracts for the analytics engine shell (ticket 37). The plant profile is the legacy platform's constants
- * (answer key `legacy-settings.json` and `action-center.json`), one row of numbers the plant head edits on a
- * generated settings screen (`/analytics-profile`); the engine reads the same numbers as `AnalyticsProfile`.
+ * Contracts for the analytics engine shell (ticket 37). The plant profile is the legacy platform's own numbers,
+ * under the legacy platform's own key names so the engines read them as the answer key does. It is one row the
+ * maintenance head edits on a settings screen (`/analytics-profile`); the engine reads the same numbers as
+ * `AnalyticsProfile`.
  */
 
 /** The kinds of row a figure can come from; the face turns a drill target into the list of those rows. */
@@ -15,77 +16,94 @@ export type DrillType = z.infer<typeof drillTypeSchema>;
 
 interface ProfileField {
   label: string;
-  group: 'plant' | 'actionCenter';
-  unit: 'hours' | 'days' | 'percent' | 'count' | 'times' | 'years' | 'rupees';
+  group: 'plant' | 'forecast' | 'money' | 'actionCenter';
+  unit: 'hours' | 'days' | 'percent' | 'count' | 'times' | 'years' | 'rupees' | 'number';
   default: number;
   min: number;
   max: number;
   /** A whole number only; the multipliers (twice as slow) may have a fraction. */
   whole: boolean;
+  /** Money (DOMAIN section 3): shown only to heads and admin. */
+  money: boolean;
+  /** The ticket whose engine reads it. */
+  owner: number;
 }
 
-/** `[default, least, most]`: the legacy default and the range a sensible plant stays inside. */
+/** `[default, least, most]`: the legacy default and the range a sensible plant stays inside (the range is ours). */
 type Range = readonly [number, number, number];
+interface Spec {
+  group?: ProfileField['group'];
+  owner?: number;
+  money?: true;
+  fraction?: true;
+}
 const field = (
-  group: ProfileField['group'],
   label: string,
   unit: ProfileField['unit'],
   range: Range,
+  spec: Spec = {},
 ): ProfileField => ({
   label,
-  group,
   unit,
   default: range[0],
   min: range[1],
   max: range[2],
-  whole: true,
+  whole: !spec.fraction,
+  money: spec.money === true,
+  group: spec.group ?? 'actionCenter',
+  owner: spec.owner ?? 44,
 });
-const plant = (label: string, unit: ProfileField['unit'], range: Range) =>
-  field('plant', label, unit, range);
-const ac = (label: string, unit: ProfileField['unit'], range: Range) =>
-  field('actionCenter', label, unit, range);
-const acFraction = (label: string, range: Range): ProfileField => ({
-  ...ac(label, 'times', range),
-  whole: false,
-});
+const plant = (label: string, unit: ProfileField['unit'], range: Range, owner = 38) =>
+  field(label, unit, range, { group: 'plant', owner });
+const money = (label: string, unit: ProfileField['unit'], range: Range) =>
+  field(label, unit, range, { group: 'money', owner: 43, money: true });
 
 /**
- * Every number of the profile, with its legacy default and the range a sensible plant stays inside (the range is
- * ours: 422 on anything outside it). `snoozeDays` is the nudge snooze length. Adding a key is additive: the row
- * reply gains a field and a plant that never set it reads the default.
+ * Every number of the profile, under its legacy key, with its legacy default (answer key) and the range a sensible
+ * plant stays inside (422 outside it). The Action Center keys are the legacy `ac` object, `snoozeDays` the nudge
+ * snooze. Adding a key is additive: the row reply gains a field and a plant that never set it reads the default.
+ * Not sure of their unit (legacy names only): `flHalfLife`, `mmTurnover`, `mmSucc`; their ranges are wide on
+ * purpose and tickets 42 and 43 tighten them.
  */
 export const PROFILE_FIELDS = {
-  hoursPerDay: plant('Production hours per day', 'hours', [20, 1, 24]),
-  daysPerYear: plant('Working days per year', 'days', [300, 1, 366]),
-  costPerHour: plant('Value of one machine hour', 'rupees', [1800, 0, 100_000_000]),
-  efficiencyPct: plant('Energy efficiency factor', 'percent', [20, 0, 100]),
-  whyWhyHours: plant('Why-Why candidate threshold', 'hours', [12, 1, 720]),
-  acRepeatDays: ac('Recurring fault: window', 'days', [7, 1, 366]),
-  acRepeatMinDays: ac('Recurring fault: least days with the fault', 'days', [2, 1, 366]),
-  acFreqDays: ac('Frequent breakdowns: window', 'days', [30, 1, 366]),
-  acFreqMin: ac('Frequent breakdowns: least count', 'count', [4, 1, 1000]),
-  acCellDays: ac('Same cause in a cell: window', 'days', [7, 1, 366]),
-  acCellMin: ac('Same cause in a cell: least count', 'count', [5, 1, 1000]),
-  acLongDays: ac('Long breakdown: window', 'days', [60, 1, 366]),
-  acSpikePct: ac('Plant trend: rise', 'percent', [50, 1, 1000]),
-  acSpikeMinHrs: ac('Plant trend: least hours', 'hours', [10, 0, 100_000]),
-  acMttrMult: acFraction('Slow repairs: times the plant average', [2, 1, 100]),
-  acMttrMin: ac('Slow repairs: least count', 'count', [3, 1, 1000]),
-  acMttrDays: ac('Slow repairs: window', 'days', [90, 1, 366]),
-  acHumShare: ac('Human mistakes: share', 'percent', [15, 1, 100]),
-  acShiftShare: ac('Shift pattern: share', 'percent', [55, 1, 100]),
-  acTeamShare: ac('Team workload: share', 'percent', [30, 1, 100]),
-  acNewMachDays: ac('New machine: age', 'days', [90, 1, 3660]),
-  acNewMachMin: ac('New machine: least count', 'count', [2, 1, 1000]),
-  acSpareDays: ac('Spares spend: window', 'days', [90, 1, 366]),
-  acSpareShare: ac('Spares spend: share', 'percent', [25, 1, 100]),
-  acRiseMult: acFraction('Worsening machine: times the earlier rate', [2, 1, 100]),
-  acRiseMin: ac('Worsening machine: least count', 'count', [3, 1, 1000]),
-  acOldAge: ac('Ageing machines: age', 'years', [15, 1, 100]),
-  acSnoozeDays: ac('Snooze length', 'days', [7, 1, 90]),
-  acPmDays: ac('PM overdue: window', 'days', [90, 1, 366]),
-  acNoCodePct: ac('No maintenance code: share', 'percent', [20, 1, 100]),
-  acGapDays: ac('Data gap: days', 'days', [3, 1, 366]),
+  prodHrsPerDay: plant('Production hours per day', 'hours', [20, 1, 24]),
+  workDaysPerYear: plant('Working days per year', 'days', [300, 1, 366]),
+  efficiencyFactor: plant('Energy efficiency factor', 'percent', [20, 0, 100], 41),
+  whyWhyThresholdHours: plant('Why-Why candidate threshold', 'hours', [12, 1, 720], 41),
+  flHalfLife: field('Forecast half-life', 'days', [300, 1, 3660], { group: 'forecast', owner: 42 }),
+  mmThroughput: money('Throughput per machine hour', 'rupees', [1800, 0, 100_000_000]),
+  mmTurnover: money('Money Matters turnover', 'number', [150, 0, 1_000_000_000]),
+  mmSucc: money('Money Matters success figure', 'number', [100, 0, 1_000_000]),
+  repeatDays: field('Recurring fault: window', 'days', [7, 1, 366]),
+  repeatMinDays: field('Recurring fault: least days with the fault', 'days', [2, 1, 366]),
+  freqDays: field('Frequent breakdowns: window', 'days', [30, 1, 366]),
+  freqMin: field('Frequent breakdowns: least count', 'count', [4, 1, 1000]),
+  cellDays: field('Same cause in a cell: window', 'days', [7, 1, 366]),
+  cellMin: field('Same cause in a cell: least count', 'count', [5, 1, 1000]),
+  longDays: field('Long breakdown: window', 'days', [60, 1, 366]),
+  spikePct: field('Plant trend: rise', 'percent', [50, 1, 1000]),
+  spikeMinHrs: field('Plant trend: least hours', 'hours', [10, 0, 100_000]),
+  mttrMult: field('Slow repairs: times the plant average', 'times', [2, 1, 100], {
+    fraction: true,
+  }),
+  mttrMin: field('Slow repairs: least count', 'count', [3, 1, 1000]),
+  mttrDays: field('Slow repairs: window', 'days', [90, 1, 366]),
+  humShare: field('Human mistakes: share', 'percent', [15, 1, 100]),
+  shiftShare: field('Shift pattern: share', 'percent', [55, 1, 100]),
+  teamShare: field('Team workload: share', 'percent', [30, 1, 100]),
+  newMachDays: field('New machine: age', 'days', [90, 1, 3660]),
+  newMachMin: field('New machine: least count', 'count', [2, 1, 1000]),
+  spareDays: field('Spares spend: window', 'days', [90, 1, 366]),
+  spareShare: field('Spares spend: share', 'percent', [25, 1, 100]),
+  riseMult: field('Worsening machine: times the earlier rate', 'times', [2, 1, 100], {
+    fraction: true,
+  }),
+  riseMin: field('Worsening machine: least count', 'count', [3, 1, 1000]),
+  oldAge: field('Ageing machines: age', 'years', [15, 1, 100]),
+  snoozeDays: field('Snooze length', 'days', [7, 1, 90]),
+  pmDays: field('PM overdue: window', 'days', [90, 1, 366]),
+  noCodePct: field('No maintenance code: share', 'percent', [20, 1, 100]),
+  gapDays: field('Data gap: days', 'days', [3, 1, 366]),
 } as const satisfies Record<string, ProfileField>;
 
 export type ProfileKey = keyof typeof PROFILE_FIELDS;
@@ -105,17 +123,48 @@ const shape = Object.fromEntries(
   PROFILE_KEYS.map((key) => [key, fieldSchema(PROFILE_FIELDS[key])]),
 );
 
-/** The edit a generated form sends: any of the profile's numbers, as text or as numbers. */
-export const profilePatchSchema = z.object(shape).partial().strict();
+/**
+ * The edit a generated form sends: any of the profile's numbers, as text or as numbers. A `CrudPage` Save also sends
+ * the row's `active` back; the profile is one row that is always on, so only `true` is accepted and it changes nothing.
+ */
+export const profilePatchSchema = z
+  .object({ ...shape, active: z.preprocess((v) => (v === 'true' ? true : v), z.literal(true)) })
+  .partial()
+  .strict();
 export type ProfilePatch = z.infer<typeof profilePatchSchema>;
+
+/** A pair of numbers that cannot both be true; names the field to correct. Null when the profile is sensible. */
+export function profileRuleProblem(
+  profile: Readonly<Record<string, unknown>>,
+): { field: ProfileKey; message: string } | null {
+  const n = (key: ProfileKey) => Number(profile[key]);
+  if (n('repeatMinDays') > n('repeatDays')) {
+    return { field: 'repeatMinDays', message: 'Cannot be more than the recurring fault window' };
+  }
+  if (n('newMachDays') >= n('oldAge') * 365) {
+    return { field: 'newMachDays', message: 'A new machine must be younger than an ageing one' };
+  }
+  return null;
+}
 
 const id = z.string().uuid();
 
-/** The one profile row (`GET /analytics-profile` lists it, `PUT /analytics-profile/:id` edits it). */
+/**
+ * The one profile row. This is a SINGLE-ROW settings resource: `GET /analytics-profile` lists that one row,
+ * `PUT /analytics-profile/:id` edits it, and there is no add and no switch off (`POST` is 404, `active: false` 422).
+ */
 export const profileReplySchema = z
   .object({ id, ...shape, active: z.literal(true) } as Record<string, z.ZodTypeAny>)
   .strict();
 export const profilePageSchema = settingsPage(profileReplySchema);
+
+/** The profile as the figures reply carries it: the money numbers are null for anyone but heads and admin. */
+const replyProfile = Object.fromEntries(
+  PROFILE_KEYS.map((key) => [
+    key,
+    PROFILE_FIELDS[key].money ? z.number().nullable() : fieldSchema(PROFILE_FIELDS[key]),
+  ]),
+);
 
 const figureKey = z.string().min(1);
 
@@ -135,8 +184,7 @@ export const figureReplySchema = z
 export const figuresReplySchema = z
   .object({
     asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    /** The value of one machine hour is money: null for anyone but heads and admin. */
-    profile: z.object({ ...shape, costPerHour: z.number().nullable() }).strict(),
+    profile: z.object(replyProfile).strict(),
     rows: z
       .object({
         machines: z.number().int(),
