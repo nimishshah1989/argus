@@ -38,37 +38,37 @@ export function AccountSheet() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={t('account.aria')}
-        className="inline-flex min-h-13 max-w-40 items-center truncate rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+        className="inline-flex min-h-target-min max-w-40 items-center truncate rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
       >
         {user.shared ? user.username : user.name}
       </button>
       {open && (
         <section
           aria-label={t('account.title')}
-          className="absolute right-0 z-10 mt-2 w-72 rounded-2xl border border-neutral-200 bg-white p-4 shadow-lg"
+          className="absolute right-0 z-10 mt-2 w-72 rounded-2xl border border-neutral-200 bg-surface p-4 shadow-lg"
         >
           <p className="text-lg font-semibold tracking-tight">{user.name}</p>
           {user.title && <p className="text-sm text-neutral-600">{user.title}</p>}
           <div className="mt-3">
             <p className={detailRow}>
-              <span className="text-neutral-500">{t('account.role')}</span>
+              <span className="text-neutral-600">{t('account.role')}</span>
               <span className="font-medium">{t(ROLE_KEYS[user.role] ?? user.role)}</span>
             </p>
             {user.shared && (
               <p className={detailRow}>
-                <span className="text-neutral-500">{t('account.login')}</span>
+                <span className="text-neutral-600">{t('account.login')}</span>
                 <span className="font-medium">{user.username}</span>
               </p>
             )}
             <p className={detailRow}>
-              <span className="text-neutral-500">{t('account.actingAs')}</span>
+              <span className="text-neutral-600">{t('account.actingAs')}</span>
               <span className="font-medium">{user.name}</span>
             </p>
           </div>
           <button
             type="button"
             onClick={signOut}
-            className="mt-4 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+            className="mt-4 min-h-13 w-full rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
           >
             {t('account.signOut')}
           </button>

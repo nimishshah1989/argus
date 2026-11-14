@@ -78,6 +78,9 @@ export const getTicket = (id: string): Promise<TicketDetail> => tickets.one(id);
 export const listTickets = (query: TicketListQuery = {}): Promise<TicketPage> =>
   tickets.list(query);
 
+/** The same list as pages, by cursor (`useInfiniteQuery`): the desk lists read every page they need. */
+export const useTicketPages = (query: TicketListQuery) => tickets.useList(query);
+
 export const getMe = (): Promise<{ user: Me }> => me.one();
 
 export const getBrand = (): Promise<{ company: string }> => brand.one();

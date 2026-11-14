@@ -10,13 +10,13 @@ async function expectStatus(page: Page, label: string): Promise<void> {
   await expect(page.locator('header').getByText(label, { exact: true })).toBeVisible();
 }
 
+const deskTab = (page: Page, name: string | RegExp) =>
+  page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name });
+
 async function expectOpenBoard(page: Page, ref: string): Promise<void> {
   await page.goto('/desk');
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(page.getByRole('heading', { name: /^Breakdowns/ })).toBeVisible();
+  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: /^Breakdowns \(\d+\)$/ })).toBeVisible();
   await expect(page.getByRole('link', { name: new RegExp(ref) })).toBeVisible();
 }
 
@@ -41,7 +41,8 @@ async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<voi
   try {
     const other = await context.newPage();
     await signIn(other, 'bina');
-    await other.goto('/desk');
+    // v3: a started job leaves Open's Breakdowns and shows under Team (working now)
+    await other.goto('/desk/team');
     await other.getByRole('link', { name: new RegExp(ref) }).click();
     await expect(other.getByRole('heading', { name: ref })).toBeVisible();
     await other.getByRole('button', { name: 'Add me as support', exact: true }).click();
@@ -66,13 +67,13 @@ async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<voi
 async function checkDeskTabs(page: Page, ref: string): Promise<void> {
   const refLink = page.getByRole('link', { name: new RegExp(ref) });
   await page.getByRole('link', { name: /Open tickets/ }).click();
-  await expect(page.getByRole('button', { name: 'Open', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(refLink).toBeVisible();
+  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-current', 'page');
+  // v3: a started job leaves the Breakdowns list; Team now counts its lead
+  await expect(refLink).toHaveCount(0);
+  await page.getByRole('link', { name: /^Team now: \d+ on/ }).click();
+  await expect(page.getByRole('region', { name: 'Working now' })).toContainText(ref);
 
-  await page.getByRole('button', { name: 'Mine', exact: true }).click();
+  await deskTab(page, 'Mine').click();
   await expect(page.getByRole('region', { name: 'In progress' })).toContainText(ref);
   const dayReport = page.getByRole('link', { name: 'Day report', exact: true });
   await expect(dayReport).toBeVisible();
@@ -81,7 +82,7 @@ async function checkDeskTabs(page: Page, ref: string): Promise<void> {
     /\/api\/v1\/reports\/day\.pdf\?date=\d{4}-\d{2}-\d{2}/,
   );
 
-  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await deskTab(page, 'Team').click();
   await expect(page.getByRole('region', { name: 'Working now' })).toContainText('Asha');
   await expect(page.getByRole('region', { name: 'Waiting' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Not started' })).toBeVisible();
@@ -94,8 +95,7 @@ async function checkDeskTabs(page: Page, ref: string): Promise<void> {
 
 /** The closed-with-report ticket sits in the Team tab's 30-day window. */
 async function checkTeamClosed(page: Page, ref: string): Promise<void> {
-  await page.goto('/desk');
-  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await page.goto('/desk/team');
   const closed = page.getByRole('region', { name: 'Closed, last 30 days' });
   await expect(closed).toBeVisible();
   await expect(closed.getByRole('link', { name: new RegExp(ref) })).toBeVisible();

@@ -7,6 +7,9 @@ export function cancel(
   input: TransitionInput,
   command: Extract<Command, { type: 'cancel' }>,
 ): TransitionResult {
+  // a ticket already closed or cancelled is a conflict for everyone, not a permission question
+  if (!['open', 'working', 'waiting'].includes(input.ticket.status))
+    throw new TransitionError(`Ticket is already ${input.ticket.status}`);
   const actor = {
     role: input.ctx.role,
     loginId: input.ctx.loginId,

@@ -100,6 +100,8 @@ test('admin edits criticality and the matrix, then a ticket shows the custom sev
     `Severity visibility ${testInfo.project.name}`,
   );
   await page.goto('/desk');
+  // v3: a work request (a job not on a machine) is under Work
+  await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   const card = page.getByRole('link', { name: new RegExp(ticket.ref) });
   await expect(card.getByText('S2', { exact: true })).toBeVisible();
   await card.click();

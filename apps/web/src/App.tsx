@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router-dom';
@@ -26,7 +27,9 @@ export function App() {
       <Route path="/floor" element={<Report />} />
       <Route path="/floor/other" element={<OtherWork />} />
       <Route path="/floor/mine" element={<MyComplaints />} />
-      <Route path="/desk" element={<Desk />} />
+      <Route path="/desk" element={<Desk view="open" />} />
+      <Route path="/desk/mine" element={<Desk view="mine" />} />
+      <Route path="/desk/team" element={<Desk view="team" />} />
       <Route path="/desk/board" element={<Board />} />
       <Route path="/desk/settings" element={<Settings />} />
       <Route path="/desk/:id" element={<TicketDetail />} />
