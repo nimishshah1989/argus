@@ -29,13 +29,13 @@ const SHARED_ROLES = [
   'board',
 ];
 const EXPECTED: Record<string, string[]> = {
-  operator: ['floor'],
+  operator: ['floor', 'floor2'],
   technician: ['fitter'],
-  supervisor: ['floor', 'fitter'],
-  head: ['floor', 'fitter'],
-  plant_head: ['floor', 'fitter'],
+  supervisor: ['floor', 'floor2', 'fitter'],
+  head: ['floor', 'floor2', 'fitter'],
+  plant_head: ['floor', 'floor2', 'fitter'],
   admin: [],
-  board: [],
+  board: ['floor', 'floor2', 'fitter'],
 };
 
 const call = (method: 'GET' | 'POST', url: string, token: string | null, payload?: object) =>
@@ -64,6 +64,58 @@ const listed = async (token: string) => {
 };
 
 const ids = (names: string[]) => names.map((name) => people[name]!).sort();
+
+describe('a phone whose chosen person stops being allowed', () => {
+  const phoneActing = async (token: string) =>
+    (await call('GET', '/api/v1/auth/me', token)).json().user.actingPersonId as string;
+
+  it('is asked again on the very next request, and works once a valid person is chosen', async () => {
+    const token = (await signIn('phone-operator', people.floor)).json().token as string;
+    expect(await phoneActing(token)).toBe(people.floor);
+    expect((await call('GET', '/api/v1/state', token)).statusCode).toBe(200);
+    // an admin moves the person to another team while the phone is acting as them
+    await admin.query("UPDATE person SET team = 'maintenance' WHERE id = $1", [people.floor]);
+    try {
+      const refused = await call('GET', '/api/v1/state', token);
+      expect(refused.statusCode, refused.body).toBe(403);
+      expect(refused.json().error.code).toBe('choose_acting_person');
+      expect(await phoneActing(token)).toBe('');
+      expect((await call('GET', '/api/v1/auth/acting', token)).statusCode).toBe(200);
+      const chosen = await call('POST', '/api/v1/auth/acting', token, {
+        actingPersonId: people.floor2,
+      });
+      expect(chosen.statusCode, chosen.body).toBe(200);
+      expect((await call('GET', '/api/v1/state', token)).statusCode).toBe(200);
+    } finally {
+      await admin.query("UPDATE person SET team = 'production' WHERE id = $1", [people.floor]);
+    }
+  });
+
+  it('is asked again when the person was switched off behind its back, instead of the phone losing its sign-in', async () => {
+    const token = (await signIn('phone-operator', people.floor2)).json().token as string;
+    await admin.query('UPDATE person SET active = false WHERE id = $1', [people.floor2]);
+    try {
+      const refused = await call('GET', '/api/v1/state', token);
+      expect(refused.statusCode, refused.body).toBe(403);
+      expect(refused.json().error.code).toBe('choose_acting_person');
+    } finally {
+      await admin.query('UPDATE person SET active = true WHERE id = $1', [people.floor2]);
+    }
+    expect(
+      (await call('POST', '/api/v1/auth/acting', token, { actingPersonId: people.floor }))
+        .statusCode,
+    ).toBe(200);
+  });
+
+  it('leaves a phone whose person is still allowed, and a personal login, exactly as they were', async () => {
+    const phone = (await signIn('phone-head', people.fitter)).json().token as string;
+    expect(await phoneActing(phone)).toBe(people.fitter);
+    expect((await call('GET', '/api/v1/state', phone)).statusCode).toBe(200);
+    const personal = (await signIn('asha')).json().token as string;
+    expect(await phoneActing(personal)).toBe(people.fitter);
+    expect((await call('GET', '/api/v1/state', personal)).statusCode).toBe(200);
+  });
+});
 
 describe('who a shared phone may choose', () => {
   it.each(SHARED_ROLES)(
@@ -162,6 +214,7 @@ beforeAll(async () => {
     );
   };
   await add('floor', 'production');
+  await add('floor2', 'production');
   await add('fitter', 'maintenance');
   await add('vendor', 'vendor');
   await add('retired', 'production', false);

@@ -43,6 +43,7 @@ export interface AuthRows {
   person_name: string | null;
   person_title: string | null;
   person_active: boolean | null;
+  person_team: string | null;
   /** The customer the request's host names, or null when it names none. */
   host_tenant_id: string | null;
   /** Last seen more than five minutes ago: time to slide the session forward. */
@@ -67,7 +68,7 @@ export async function readAuthRows(
   const result = await withTenant(pool, args.tenantId, (client) =>
     client.query(
       `SELECT l.id AS login_id, l.username, l.role, l.shared, l.must_change_password,
-              p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active,
+              p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active, p.team AS person_team,
               (SELECT t.id FROM tenant_by_slug($4) t) AS host_tenant_id,
               COALESCE((SELECT s.last_seen_at < now() - ${TOUCH_AFTER} FROM session s WHERE s.token_hash = $2), false) AS stale
        FROM login l LEFT JOIN person p ON p.id = $3
