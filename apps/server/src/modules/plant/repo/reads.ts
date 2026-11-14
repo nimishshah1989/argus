@@ -26,6 +26,23 @@ export async function machinesByIds(
   ).rows;
 }
 
+/**
+ * The machines the live board leaves out, from the machine's group and segment as they are now: in a hidden group, or in
+ * a segment kept off the board (Settings). The one server-side definition; the board's counts and tiles use it.
+ */
+export async function offBoardMachineIds(tx: Db, tenantId: string): Promise<string[]> {
+  const rows = (
+    await tx.query(
+      `SELECT m.id FROM machine m
+       LEFT JOIN machine_group g ON g.id = m.group_id
+       LEFT JOIN segment s ON s.id = m.segment_id
+       WHERE m.tenant_id = $1 AND (g.hidden OR s.show_on_board = false)`,
+      [tenantId],
+    )
+  ).rows;
+  return rows.map((row) => row.id as string);
+}
+
 /** Every shift, switched off or not: the SLA calendar and past results never depend on what the floor is offered. */
 export async function shiftWindows(tx: Db): Promise<Record<string, unknown>[]> {
   return (

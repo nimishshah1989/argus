@@ -13,6 +13,7 @@ import { registerSettings } from './routes.js';
 export { startJobs } from './jobs.js';
 export type { SlaTicketReconciler } from './consistency.js';
 export { reconcileSlaPolicies, reconcileTicket } from './sla.js';
+export { ensureEscalationDefaults, purgeRoster } from './ladder.js';
 
 export const accountabilityModule = defineModule({
   name: 'accountability',

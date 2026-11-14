@@ -10,7 +10,14 @@ import { requireAuth } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
 import { audit } from '../ops/index.js';
 import { canSettingsLists, canSettingsSla } from '@uptimo/domain';
-import { actorOf, forbidden, hasShifts, setMachineCriticality } from '../plant/index.js';
+import {
+  actorOf,
+  forbidden,
+  hasShifts,
+  registerResource,
+  setMachineCriticality,
+} from '../plant/index.js';
+import { LADDER_RESOURCES } from './settings-resources.js';
 
 function unchangedPolicies(before: Record<string, unknown>[], policies: PolicyInput[]): boolean {
   return (
@@ -143,6 +150,7 @@ export function registerSettings(app: FastifyInstance, config: AppConfig): void 
   app.put('/api/v1/settings/sla-policies', (request, reply) =>
     putSlaPolicies(pool, request, reply, config.jobBoss),
   );
+  for (const resource of LADDER_RESOURCES) registerResource(app, pool, resource);
   app.put('/api/v1/machines/:id/criticality', (request, reply) =>
     putMachineCriticality(pool, request, reply, config.jobBoss),
   );
