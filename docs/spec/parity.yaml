@@ -605,6 +605,7 @@ rows:
     evidence:
       - 'PR #36'
       - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
+      - 'apps/web/e2e/board-hidden.spec.ts :: the board leaves out a hidden group and a segment kept off the board'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
     feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
@@ -668,6 +669,10 @@ rows:
         however often it is asked'
       - 'apps/server/test/ticket-pdf.test.ts :: builds the v1 QR payload and embeds the QR in the
         template'
+      - 'apps/server/test/reports-real.test.ts :: holds exactly what v3 puts in its QR, long, accented
+        and half-empty reports included'
+      - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
+        however often it is asked (Gujarati text in the PDF)'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.03
     feature:
@@ -683,6 +688,14 @@ rows:
       - 'apps/server/test/day-report.test.ts :: lists every ticket the person touched with their own
         clipped minutes'
       - 'apps/server/test/day-report.test.ts :: returns the caller’s day as a PDF and stores nothing'
+      - 'apps/server/test/reports-real.test.ts :: uses the windows in the plant’s shift table: shift 1,
+        shift 2, and the whole day without a shift'
+      - 'apps/server/test/reports-real.test.ts :: follows a change to a shift in the settings'
+      - 'apps/server/test/reports-real.test.ts :: shows each person’s own minutes, the same sum the
+        ticket uses'
+      - 'apps/server/test/reports-real.test.ts :: lists a ticket still open when the shift ended even
+        though it was closed later'
+      - 'apps/server/test/day-report.test.ts :: prints a Gujarati name and problem in the PDF'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name

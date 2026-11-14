@@ -124,3 +124,18 @@ export async function openDuplicateId(
   ).rows[0];
   return row?.id;
 }
+
+/** Any ticket still active on the machine, whatever its kind: a machine with one cannot be switched off. */
+export async function activeTicketId(
+  tx: Db,
+  tenantId: string,
+  machineId: string,
+): Promise<string | undefined> {
+  const row = (
+    await tx.query(
+      "SELECT id FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND status NOT IN ('closed', 'cancelled') LIMIT 1",
+      [tenantId, machineId],
+    )
+  ).rows[0];
+  return row?.id;
+}

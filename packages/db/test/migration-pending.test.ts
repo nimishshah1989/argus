@@ -6,6 +6,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, countPendingMigrations } from '../../../scripts/migrate.js';
+import { endPool } from './end-pool.js';
 
 const run = promisify(execFile);
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -39,7 +40,7 @@ it('says how many migrations are waiting, before and after they are applied', as
     expect(await pending()).toContain('pending: 1');
     expect(await pending()).toContain('pending: 1');
   } finally {
-    await pool.end();
+    await endPool(pool);
     await container.stop();
   }
 }, 180_000);

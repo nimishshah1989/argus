@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
+import { endPool } from './end-pool.js';
 
 const MIGRATIONS = new URL('../migrations/', import.meta.url);
 let container: StartedPostgreSqlContainer;
@@ -35,7 +36,7 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await pool.end();
+  await endPool(pool);
   await container.stop();
 });
 

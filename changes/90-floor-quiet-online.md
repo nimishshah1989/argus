@@ -1,0 +1,1 @@
+- The floor's screens no longer show an "Online" pill in the header while the phone is connected, as the approved mockups draw it. The pill appears only when something needs attention: offline, sending, or a draft.

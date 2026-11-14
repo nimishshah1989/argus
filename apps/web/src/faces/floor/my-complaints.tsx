@@ -57,6 +57,7 @@ export function MyComplaints() {
     <FloorShell>
       <QueuePage
         title={t('floor.complaints')}
+        quietOnline
         resource={tickets}
         query={{ raisedBy: data.me.actingPersonId }}
         row={(ticket) => <Complaint data={data} ticket={ticket} />}

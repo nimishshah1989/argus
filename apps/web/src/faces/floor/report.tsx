@@ -57,6 +57,7 @@ function ReportFlow(p: { data: FloorData; deepLink: string | null; onAnother: ()
     <>
       <WizardPage
         title={t('floor.title')}
+        quietOnline
         steps={steps}
         start={machine ? 1 : 0}
         offlineAllowed={false}
