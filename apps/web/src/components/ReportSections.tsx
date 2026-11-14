@@ -19,6 +19,9 @@ export interface SectionProps {
   config: Config;
 }
 
+/** The server's caps on the report's one-line boxes. */
+const TEXT_MAX = { spareUsed: 200, handoverName: 120 } as const;
+
 interface Option {
   value: string;
   label: string;
@@ -164,18 +167,12 @@ export function WhoDidIt({ values, update, config }: SectionProps) {
 /** The down time (read only), the classification, the spare and the handover. */
 export function Classification({ values, update, config }: SectionProps) {
   const { t } = useTranslation();
-  const field = (
-    id: string,
-    label: string,
-    key: 'spareUsed' | 'handoverName',
-    hint: string,
-    maxLength: number,
-  ) => (
+  const field = (id: string, label: string, key: 'spareUsed' | 'handoverName', hint: string) => (
     <Field id={id} label={label}>
       <Input
         id={id}
         placeholder={hint}
-        maxLength={maxLength}
+        maxLength={TEXT_MAX[key]}
         value={values[key]}
         onChange={(event) => update({ [key]: event.target.value })}
       />
@@ -205,14 +202,12 @@ export function Classification({ values, update, config }: SectionProps) {
         t('closes.form.spare'),
         'spareUsed',
         t('closes.form.sparePlaceholder'),
-        200,
       )}
       {field(
         'report-handover',
         t('closes.form.handover'),
         'handoverName',
         t('closes.form.handoverPlaceholder'),
-        120,
       )}
     </Stack>
   );

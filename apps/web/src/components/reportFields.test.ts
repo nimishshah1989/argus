@@ -89,7 +89,9 @@ describe('initialReportValues date and shift', () => {
 describe('categoryOptions', () => {
   it('uses the plant list, keeping only codes the server accepts', () => {
     const list = ['E', 'M', 'Z'].map((code) => ({ code, label: `L ${code}`, active: true }));
-    expect(categoryOptions(config({ breakdown_category: list }))).toEqual([
+    expect(
+      categoryOptions(config({ breakdown_category: list as unknown as Config['lists'][string] })),
+    ).toEqual([
       { value: 'E', label: 'L E' },
       { value: 'M', label: 'L M' },
     ]);
