@@ -54,6 +54,7 @@ async function handleConfig(pool: Pool, request: FastifyRequest, reply: FastifyR
 async function listSettings(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const rows = await withTenant(pool, ctx.tenantId, async (client) => {
     const tenant = await tenantInfo(client, ctx.tenantId);
     return [
@@ -127,6 +128,7 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
 async function listItems(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const list = (request.params as { list: string }).list;
   if (!isListName(list)) {
     reply.code(404).send(apiError('not_found', 'Unknown list'));
@@ -169,6 +171,7 @@ async function deleteListItem(pool: Pool, request: FastifyRequest, reply: Fastif
 async function missingTranslations(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
   const rows = await withTenant(pool, ctx.tenantId, (client) => selectMissingTranslations(client));
   reply.send(rows);
 }

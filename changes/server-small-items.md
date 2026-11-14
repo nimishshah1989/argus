@@ -1,0 +1,3 @@
+- An operator (and every other role that may raise a problem) can now tell the server that a support ticket on their machine has become a machine stopped; only a board login cannot.
+- Work requests now get their own WR numbers (WR-0001, WR-0002 ...) instead of using up the breakdown numbers (BD-...); each kind counts on its own.
+- The older settings reads (the settings list, a list's entries, and the missing translations) are now for the maintenance head and admin only, like changing them; the floor and the desk read the plant configuration as before.
