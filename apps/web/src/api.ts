@@ -140,7 +140,15 @@ export const changePassword = (body: { old: string; password: string }): Promise
 /** POST /auth/logout: ends this phone's session on the server. */
 export const signOut = (): Promise<unknown> => logout.create({});
 
-export { ApiError, clearToken, getToken, isOffline, sendCommand, setToken } from './data/index.js';
+export {
+  ApiError,
+  askWhoIsActing,
+  clearToken,
+  getToken,
+  isOffline,
+  sendCommand,
+  setToken,
+} from './data/index.js';
 
 export type { BoardToday };
 export type {

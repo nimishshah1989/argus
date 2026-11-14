@@ -71,10 +71,11 @@ test('admin restores a cancelled ticket, corrects it, then signs out', async ({ 
 
   await page.goto('/desk');
   await page.getByRole('button', { name: 'Account', exact: true }).click();
-  const sheet = page.getByRole('region', { name: 'Account' });
+  const sheet = page.getByRole('dialog', { name: 'Account' });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByText('Meera').first()).toBeVisible();
   await sheet.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 

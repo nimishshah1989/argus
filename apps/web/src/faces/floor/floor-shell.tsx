@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
 import { Drafts } from '../../components/Drafts.js';
 import { useOnline } from '../../data/index.js';
 import { PatternFrame, StateNotice } from '../../patterns/frame.js';
@@ -19,12 +20,17 @@ export function FloorShell({ children }: { children: ReactNode }) {
     { to: FLOOR.report, label: t('nav.report'), icon: CirclePlus },
     { to: FLOOR.mine, label: t('floor.complaints'), icon: List },
   ];
+  const [account, setAccount] = useState(false);
   return (
     <Shell bar={<TabBar label={t('reportFloor.tabs')} tabs={tabs} current={current} />}>
       <Page>
+        <div className="flex justify-end">
+          <AccountButton onClick={() => setAccount(true)} />
+        </div>
         <Drafts />
         {children}
       </Page>
+      <AccountSheet open={account} onOpenChange={setAccount} />
     </Shell>
   );
 }

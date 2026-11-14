@@ -1,8 +1,22 @@
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { clearToken, getMe } from '../api.js';
+import { useTranslation } from 'react-i18next';
+import { Link, useNavigate } from 'react-router-dom';
+import { askWhoIsActing, clearToken, getBrand, getMe, signOut, type Me } from '../api.js';
+import { chooseLanguage, type Language } from '../i18n/index.js';
+import { disablePush } from '../push.js';
+import { Button } from '../ui/button.js';
+import {
+  ArrowRightLeft,
+  ChevronRight,
+  KeyRound,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+} from '../ui/icon.js';
+import { Sheet } from '../ui/sheet.js';
+import { AlertsCard, usePushBinding } from './AlertsCard.js';
 
 const ROLE_KEYS: Record<string, string> = {
   operator: 'account.role.operator',
@@ -14,66 +28,200 @@ const ROLE_KEYS: Record<string, string> = {
   board: 'account.role.board',
 };
 
-const detailRow =
-  'flex justify-between gap-3 border-b border-neutral-100 py-2 text-sm last:border-0';
+const LANGUAGES: { id: Language; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'gu', label: 'ગુજરાતી' },
+];
 
-/** Who am I, the acting person, and Sign out — a small panel opened from the desk header. */
-export function AccountSheet() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
-  const [open, setOpen] = useState(false);
-  const user = me.data?.user;
-  if (!user) return null;
+const CHIP = 'inline-block rounded-full px-2.5 py-1 text-caption font-bold';
+const ROW =
+  'flex min-h-target items-center justify-between gap-3 border-t border-neutral-200 text-body';
 
-  function signOut() {
-    clearToken();
-    navigate('/login');
-  }
+/** The signed-in person (or the acting one) for the avatar's name. */
+const shownName = (user: Me) => user.actingPerson?.name ?? user.name;
 
+function Avatar({ size }: { size: number }) {
   return (
-    <div className="relative">
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full bg-accent-tint text-accent-text"
+      style={{ width: size, height: size }}
+    >
+      <UserRound aria-hidden size={size / 2} />
+    </span>
+  );
+}
+
+/** The person button: right of the top bar on a phone, the name at the foot of the left menu on desktop. */
+export function AccountButton({ onClick, named }: { onClick: () => void; named?: boolean }) {
+  const { t } = useTranslation();
+  const user = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user;
+  usePushBinding(user?.actingPersonId || undefined);
+  if (!user) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={t('account.aria')}
+      className={
+        named
+          ? 'flex min-h-target w-full items-center gap-3 rounded-xl px-3 text-footnote font-medium text-neutral-900'
+          : 'flex min-h-target-min min-w-target-min items-center justify-center rounded-full bg-accent-tint text-accent-text'
+      }
+    >
+      <UserRound aria-hidden size={20} />
+      {named ? <span className="truncate">{shownName(user)}</span> : null}
+    </button>
+  );
+}
+
+function Header({ user, company }: { user: Me; company: string }) {
+  const { t } = useTranslation();
+  const grant = Boolean(user.supportGrantId);
+  const role = t(ROLE_KEYS[user.role] ?? user.role);
+  const chip = grant
+    ? t('account.supportRole', { role })
+    : user.shared
+      ? t('account.sharedPhone')
+      : role;
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar size={52} />
+      <div className="min-w-0">
+        <p className="truncate text-title3 font-bold">{user.shared ? user.username : user.name}</p>
+        <p className="text-footnote text-neutral-600">
+          {t('account.signedInAs', { username: user.username, company })}
+        </p>
+        <span
+          className={`mt-1.5 ${CHIP} ${grant || !user.shared ? 'bg-info-tint text-info-ink' : 'bg-muted-tint text-muted-ink'}`}
+        >
+          {chip}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LanguageChoice() {
+  const { t, i18n } = useTranslation();
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-footnote font-semibold text-neutral-600">{t('account.language')}</span>
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1">
+        {LANGUAGES.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={i18n.language === id}
+            onClick={() => void chooseLanguage(id)}
+            className="min-h-target-min rounded-lg text-body font-semibold aria-pressed:bg-surface aria-pressed:text-accent-text aria-pressed:shadow-sm"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
+  const { t } = useTranslation();
+  const company = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company ?? '';
+  const grant = Boolean(user.supportGrantId);
+  return (
+    <>
+      <Header user={user} company={company} />
+      {grant ? (
+        <div role="note" className="flex gap-2 rounded-xl bg-info-tint p-4 text-info-ink">
+          <ShieldCheck aria-hidden size={20} className="mt-0.5 shrink-0" />
+          <div className="flex flex-col gap-1 text-footnote text-neutral-900">
+            <b className="text-body text-info-ink">{t('account.support.title')}</b>
+            {t('account.support.body', { company })}
+          </div>
+        </div>
+      ) : null}
+      {user.shared ? (
+        <div className="flex flex-col gap-2 rounded-2xl border border-neutral-200 p-4">
+          <p className="text-footnote text-neutral-600">{t('account.actingNow')}</p>
+          <p className="text-title3 font-bold">{shownName(user)}</p>
+          <Button variant="tonal" onClick={askWhoIsActing}>
+            <span className="inline-flex items-center justify-center gap-2">
+              <ArrowRightLeft aria-hidden size={20} />
+              {t('account.changePerson')}
+            </span>
+          </Button>
+          <p className="text-footnote text-neutral-600">{t('account.actingNote')}</p>
+        </div>
+      ) : null}
+      <LanguageChoice />
+      <AlertsCard personId={user.actingPersonId || undefined} />
+      {grant ? null : (
+        <Link to="/password" className={ROW}>
+          <span className="flex items-center gap-3">
+            <KeyRound aria-hidden size={20} />
+            {t('account.changePassword')}
+          </span>
+          <ChevronRight aria-hidden size={20} />
+        </Link>
+      )}
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-label={t('account.aria')}
-        className="inline-flex min-h-target-min max-w-40 items-center truncate rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
+        onClick={onSignOut}
+        className="flex min-h-target items-center justify-center gap-2 rounded-xl border border-danger-ink text-body font-semibold text-danger-ink"
       >
-        {user.shared ? user.username : user.name}
+        <LogOut aria-hidden size={20} />
+        {t('account.signOut')}
       </button>
-      {open && (
-        <section
-          aria-label={t('account.title')}
-          className="absolute right-0 z-10 mt-2 w-72 rounded-2xl border border-neutral-200 bg-surface p-4 shadow-lg"
-        >
-          <p className="text-lg font-semibold tracking-tight">{user.name}</p>
-          {user.title && <p className="text-sm text-neutral-600">{user.title}</p>}
-          <div className="mt-3">
-            <p className={detailRow}>
-              <span className="text-neutral-600">{t('account.role')}</span>
-              <span className="font-medium">{t(ROLE_KEYS[user.role] ?? user.role)}</span>
-            </p>
-            {user.shared && (
-              <p className={detailRow}>
-                <span className="text-neutral-600">{t('account.login')}</span>
-                <span className="font-medium">{user.username}</span>
-              </p>
-            )}
-            <p className={detailRow}>
-              <span className="text-neutral-600">{t('account.actingAs')}</span>
-              <span className="font-medium">{user.name}</span>
-            </p>
+    </>
+  );
+}
+
+/** Ending this phone's session also ends its alerts, so a signed-out phone never rings. */
+async function leave(): Promise<void> {
+  await disablePush();
+  await signOut().catch(() => undefined);
+  clearToken();
+}
+
+/** The account sheet (slice 5): a bottom sheet on a phone, a side panel on desktop. Sign out asks first. */
+export function AccountSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const user = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user;
+  const [confirming, setConfirming] = useState(false);
+  if (!user) return null;
+  const close = (next: boolean) => {
+    if (!next) setConfirming(false);
+    onOpenChange(next);
+  };
+  async function signOutNow() {
+    await leave();
+    navigate('/login');
+  }
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={close}
+      title={confirming ? t('account.signOutTitle') : t('account.title')}
+    >
+      {confirming ? (
+        <>
+          <p className="text-footnote text-neutral-600">{t('account.signOutBody')}</p>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setConfirming(false)}>
+              {t('account.goBack')}
+            </Button>
+            <Button onClick={() => void signOutNow()}>{t('account.signOut')}</Button>
           </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="mt-4 min-h-13 w-full rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
-          >
-            {t('account.signOut')}
-          </button>
-        </section>
+        </>
+      ) : (
+        <Body user={user} onSignOut={() => setConfirming(true)} />
       )}
-    </div>
+    </Sheet>
   );
 }
