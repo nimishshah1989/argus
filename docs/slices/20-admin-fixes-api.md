@@ -29,3 +29,13 @@ correction has to move a segment, that is a history-protection change and gets i
 
 BD-0077 (cancelled, restored, picked up, paused, resumed, closed) is now in the worker.js replay; restore goes through the admin
 route. It equals his numbers except the three figures Nimish's ruling changes (cancelled time not counted): handover wait, downtime and repair.
+
+## Review round (orchestrator's adversarial review of #191)
+
+- The 7 days run from the close event, not `ticket.closedAt`; a closing time cannot be moved later than the recorded close.
+- Corrected times must agree with the ticket's events and segments (422 with the reason). The start time moves only the
+  displayed field: response and repair read the start event, history that is not rewritten. Kept editable, validated, and said so in DOMAIN §2.
+- A closing time and minutes set by hand only on a closed ticket; `null` takes minutes set by hand off.
+- 403 before 404 for a correction by someone who may not; plant head and board get 403 on cancel whatever the state.
+- Unknown people in a correction are 404; a corrected machine replaces the machine details the ticket shows.
+- The restore window falls back to the cancelled time when there is no cancel event.
