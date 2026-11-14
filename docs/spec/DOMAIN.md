@@ -180,7 +180,7 @@ Every ticket command acts as the session's person: the login's own, or on a shar
 
 | Endpoint | Request | Response | Bhavin's |
 | --- | --- | --- | --- |
-| `GET /push/key` · `POST /push/subscribe` · `/unsubscribe` · `/test` | `{subscription, actingPersonId}` |  | `/api/pushkey`, `/api/subscribe`, `/api/unsubscribe`, `/api/pushtest` |
+| `GET /push/key` · `POST /push/subscribe` · `/unsubscribe` · `/test` | `{subscription, actingPersonId?}` (the session's person when left out) |  | `/api/pushkey`, `/api/subscribe`, `/api/unsubscribe`, `/api/pushtest` |
 | `GET/POST /whatsapp/webhook` (M3) | Meta verification and inbound events, signature-checked | 200 | new |
 | `GET /notifications` | my recent notices |  | new |
 

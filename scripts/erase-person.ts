@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
 import { withTenant } from '../packages/db/src/tenant.js';
+import { erasePerson } from '../apps/server/src/modules/identity/repo/erasure.js';
 import { listTenants, operatorPool } from './operator-db.js';
 
 /** DATA-MAP §5, last paragraph: what the plant checks by hand when no text could be searched. */
@@ -19,7 +20,8 @@ export const HAND_REVIEW: readonly string[] = [
 
 const USAGE = `usage: erase-person --tenant <slug> --person <uuid> --request <ref> --operator <who> --files-dir <dir>
        erase-person --tenant <slug> --person <uuid> --request <ref> --operator <who> --review-done
-exit codes: 0 complete, 1 failed or files left behind, 2 bad arguments, 3 hand review still pending`;
+exit codes: 0 complete, 1 failed or files left behind, 2 bad arguments, 3 hand review still pending
+needs ERASURE_HASH_KEY (at least 32 characters) in the environment: without it nothing is erased`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Args {
@@ -97,16 +99,12 @@ async function erase(pool: Pool, tenantId: string, args: Args, root: string) {
       [tenantId, args.person],
     );
     if (done.rowCount) throw new Error('erase: this person is already erased');
-    const result = await client.query('SELECT erase_person($1, $2, $3, $4) AS r', [
+    const { s3_keys: keys, ...counts } = await erasePerson(client, {
       tenantId,
-      args.person,
-      args.request,
-      args.operator,
-    ]);
-    const { s3_keys: keys, ...counts } = result.rows[0].r as { s3_keys: string[] } & Record<
-      string,
-      unknown
-    >;
+      personId: args.person,
+      requestRef: args.request,
+      operator: args.operator,
+    });
     for (const key of keys) {
       if (await isUnsafe(root, key)) throw new Error(`erase: unsafe storage key ${key}`);
     }

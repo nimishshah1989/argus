@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { withTenant } from '@uptimo/db';
+import { erasePerson } from '../src/modules/identity/index.js';
 import { buildApp } from '../src/app.js';
 import { ImportFatalError } from '../src/modules/imports/batch.js';
 import { importRealExport } from '../src/modules/imports/real-import.js';
@@ -32,6 +34,7 @@ const count = async (sql: string): Promise<number> =>
   Number((await db.admin.query(sql, [tenantId])).rows[0].n);
 
 beforeAll(async () => {
+  process.env.ERASURE_HASH_KEY = ['erasure', 'test', 'real'].join('-').padEnd(40, 'x');
   db = await startTestDb();
   await seedCosmos(db.admin, paths);
   tenantId = (await db.admin.query("SELECT id FROM tenant WHERE slug = 'cosmos'")).rows[0].id;
@@ -40,6 +43,7 @@ beforeAll(async () => {
 }, 240_000);
 
 afterAll(async () => {
+  delete process.env.ERASURE_HASH_KEY;
   await app.close();
   await db.stop();
 });
@@ -278,13 +282,10 @@ describe('erasing a person from an imported batch', () => {
     personId: string,
     ref: string,
   ): Promise<{ ticket: number; ticket_event: number; breakdown_report: number }> {
-    const out = await db.router.query('SELECT erase_person($1, $2, $3, $4) AS counts', [
-      tenantId,
-      personId,
-      ref,
-      'operator',
-    ]);
-    return out.rows[0].counts as {
+    const out = await withTenant(db.router, tenantId, (tx) =>
+      erasePerson(tx, { tenantId, personId, requestRef: ref, operator: 'operator' }),
+    );
+    return out as unknown as {
       ticket: number;
       ticket_event: number;
       breakdown_report: number;
@@ -328,6 +329,12 @@ describe('erasing a person from an imported batch', () => {
 
     const again = await importRealExport(db.app, tenantId, fixture());
     expect(again.stats).toMatchObject({ status: 'done', imported: 0, skipped: 275 });
+    expect(
+      again.stats.possiblyErasedMatches,
+      'the person the re-import had to create again is listed for a person to look at',
+    ).toBeGreaterThan(0);
+    expect(again.stats.possiblyErasedRows).toHaveLength(again.stats.possiblyErasedMatches);
+    expect(JSON.stringify(again.stats)).not.toContain(name);
     const written = await db.admin.query(
       `SELECT count(*)::int AS n FROM import_row WHERE tenant_id = $1 AND payload::text ILIKE '%' || $2 || '%'`,
       [tenantId, name],

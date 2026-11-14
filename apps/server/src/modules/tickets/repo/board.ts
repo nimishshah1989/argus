@@ -24,7 +24,7 @@ export async function dayWindow(tx: Db, timeZone: string, now: Date): Promise<Da
  * The day's breakdowns, whatever their status (the caller leaves the cancelled out): stopped tickets reported in the
  * window, closed in it, or still open now with any report date. Follow-up task rows (a parent) are not breakdowns, and
  * neither are those on `offBoard` machines (hidden group or segment off the board). A ticket linked to no machine stays.
- * One query; the `closed_at` half has no index yet (a `(tenant_id, closed_at)` index belongs to the next migration batch).
+ * One query; the `closed_at` half reaches `ticket_closed_idx`, the reported half `ticket_reported_idx`, the open half `ticket_open_idx`.
  */
 export async function dayTicketRows(
   tx: Db,
