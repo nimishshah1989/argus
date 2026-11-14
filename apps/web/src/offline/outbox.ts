@@ -6,6 +6,7 @@
  * `close` (report / no_report / done) and `report` (late report).
  */
 import type { CommandAction, CommandBody } from '../api.js';
+import { currentWho, isMine, type Who } from '../data/index.js';
 import { cachedTicketRef } from './cache.js';
 
 const DB_NAME = 'uptimo-offline';
@@ -24,6 +25,8 @@ export interface QueueEntry {
   idempotencyKey: string;
   at: string;
   createdAt: string;
+  /** Who made it (login and acting person); replay sends it only as them. Missing on older entries. */
+  who?: Who;
 }
 
 export interface DraftEntry extends QueueEntry {
@@ -104,6 +107,7 @@ export async function enqueue(input: QueueInput): Promise<QueueEntry> {
     idempotencyKey: input.idempotencyKey,
     at: input.at ?? now,
     createdAt: now,
+    who: currentWho() ?? undefined,
   };
   await runRequest(QUEUE_STORE, 'readwrite', (store) => store.add(entry));
   return entry;
@@ -120,6 +124,17 @@ export async function listQueued(): Promise<QueueEntry[]> {
 /** How many commands are waiting to replay (the offline banner reads this). */
 export async function queueLength(): Promise<number> {
   return (await listQueued()).length;
+}
+
+/** The queue split by owner: this phone's current person, and who else queued what is held ('' = unknown). */
+export async function queueByOwner(): Promise<{ mine: number; heldBy: string[] }> {
+  const now = currentWho();
+  const entries = await listQueued();
+  const held = entries.filter((entry) => !isMine(entry.who, now));
+  return {
+    mine: entries.length - held.length,
+    heldBy: [...new Set(held.map((entry) => entry.who?.name ?? ''))],
+  };
 }
 
 export async function removeQueued(id: string): Promise<void> {

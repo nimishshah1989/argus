@@ -239,6 +239,14 @@ test('sync status: online, offline, sending, then draft after a 409 replay', asy
   );
   await page.context().setOffline(true);
   await expect(pill).toHaveText(/Offline/);
+  // A queued command belongs to whoever this phone is acting as (PR 225); the gallery has no
+  // sign-in, so it acts as one sample person and the entry is theirs to replay.
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'uptimo_who',
+      JSON.stringify({ loginId: 'gallery-login', actingPersonId: 'p-1', name: 'Sample' }),
+    ),
+  );
   await page.evaluate(() =>
     (window as unknown as { outbox: { enqueue: (e: unknown) => Promise<unknown> } }).outbox.enqueue(
       {
