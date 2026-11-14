@@ -22,7 +22,7 @@ import {
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
-import { slaPolicySchema, slaProjectionSchema } from './sla.js';
+import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
   isoDateTimeSchema,
@@ -40,9 +40,9 @@ export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
-/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` part. */
+/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` and `handback` parts. */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable() })
+  .extend({ sla: slaProjectionSchema.nullable(), handback: handbackSchema.nullable() })
   .strict();
 export const stateReplySchema = z
   .object({

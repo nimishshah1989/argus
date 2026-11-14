@@ -4,10 +4,17 @@ import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
 
-export type SlaTimerKind = 'ack' | 'restore' | 'pause';
+export type SlaTimerKind = 'ack' | 'restore' | 'pause' | 'handback';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
 export type SlaStopReason =
-  'acknowledged' | 'started' | 'machine_running' | 'resumed' | 'closed' | 'cancelled';
+  | 'acknowledged'
+  | 'started'
+  | 'machine_running'
+  | 'resumed'
+  | 'confirmed'
+  | 'disputed'
+  | 'closed'
+  | 'cancelled';
 
 export interface SlaTimerProjection {
   kind: SlaTimerKind;
@@ -45,9 +52,10 @@ function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
 }
 
-/** A pause clock that stopped and runs again is a new pause (resumed, restored, or its maximum set again). */
-function startsNewPause(row: TimerRow, timer: SlaTimerProjection): boolean {
-  return timer.kind === 'pause' && timer.state === 'running' && row.state === 'stopped';
+/** A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). */
+function startsNewEpisode(row: TimerRow, timer: SlaTimerProjection): boolean {
+  const repeats = timer.kind === 'pause' || timer.kind === 'handback';
+  return repeats && timer.state === 'running' && row.state === 'stopped';
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -115,7 +123,7 @@ async function mergeProjection(
       `UPDATE sla_timer SET due_at=$4, paused_at=$5, stopped_at=$6, stop_reason=$7,
          state=$8, revision=$9, updated_at=$10, fired_at = CASE WHEN $12 THEN NULL ELSE fired_at END
        WHERE tenant_id=$1 AND ticket_id=$2 AND kind=$3 AND id=$11`,
-      [...values, revision, input.now, existing.id, startsNewPause(existing, timer)],
+      [...values, revision, input.now, existing.id, startsNewEpisode(existing, timer)],
     );
   }
   return {
@@ -123,7 +131,7 @@ async function mergeProjection(
     previousRevision: existing.revision,
     revision,
     changed: hasChanged,
-    firedAt: startsNewPause(existing, timer) ? null : existing.fired_at,
+    firedAt: startsNewEpisode(existing, timer) ? null : existing.fired_at,
   };
 }
 
@@ -144,6 +152,8 @@ async function cancelRevision(
 
 function queueAction(timer: SlaTimerProjection, firedAt: Date | null): 'arm' | 'due' | 'none' {
   if (firedAt) return 'none';
+  // An answered sign-off timed nothing out, however late the answer came.
+  if (timer.kind === 'handback' && timer.state === 'stopped') return 'none';
   if (timer.breached) return timer.stopReason === 'cancelled' ? 'none' : 'due';
   return timer.state === 'running' && timer.dueAt ? 'arm' : 'none';
 }
@@ -199,23 +209,24 @@ async function rearmOne(
   ]);
 }
 
-/** Whether the ticket has a pause clock that has not stopped yet. */
-export async function hasLivePauseClock(
+/** Whether the ticket has a clock of this kind that has not stopped yet. */
+export async function hasLiveClock(
   client: Pick<PoolClient, 'query'>,
   tenantId: string,
   ticketId: string,
+  kind: SlaTimerKind,
 ): Promise<boolean> {
   const result = await client.query(
-    "SELECT 1 FROM sla_timer WHERE tenant_id = $1 AND ticket_id = $2 AND kind = 'pause' AND state <> 'stopped'",
-    [tenantId, ticketId],
+    "SELECT 1 FROM sla_timer WHERE tenant_id = $1 AND ticket_id = $2 AND kind = $3 AND state <> 'stopped'",
+    [tenantId, ticketId, kind],
   );
   return result.rowCount === 1;
 }
 
-/** What to store when the policy no longer has a pause maximum: stopped, never breached, its job cancelled. */
-export function retiredPauseClock(at: Date): SlaTimerProjection {
+/** What to store when the policy no longer has the limit: stopped, never breached, its job cancelled. */
+export function retiredClock(kind: SlaTimerKind, at: Date): SlaTimerProjection {
   return {
-    kind: 'pause',
+    kind,
     state: 'stopped',
     breached: false,
     dueAt: at,
@@ -257,7 +268,10 @@ function assertPayload(payload: SlaTimerPayload): void {
   if (!uuid.test(payload.tenantId) || !uuid.test(payload.ticketId)) {
     throw new Error('Invalid SLA timer tenant or ticket id');
   }
-  if (!['ack', 'restore', 'pause'].includes(payload.kind) || !Number.isInteger(payload.revision)) {
+  if (
+    !['ack', 'restore', 'pause', 'handback'].includes(payload.kind) ||
+    !Number.isInteger(payload.revision)
+  ) {
     throw new Error('Invalid SLA timer kind or revision');
   }
 }

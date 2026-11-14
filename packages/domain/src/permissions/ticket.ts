@@ -94,3 +94,25 @@ export function canBreakdownPdf(
   }
   return BREAKDOWN_PDF_ROLES.includes(ctx.role);
 }
+
+const HANDBACK_ROLES = ['supervisor', 'head', 'plant_head', 'admin'] as const;
+
+/** Technicians and the board never answer a sign-off (DOMAIN §3); this is the check that needs no ticket. */
+export function canAnswerHandbackAtAll(role: string): boolean {
+  return role === 'operator' || (HANDBACK_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * DOMAIN §3: an operator answers for a ticket their login raised, one they reported themselves, or one on a machine
+ * in their login's cell (`sameCell`, decided where the cells are known); supervisors and above answer any.
+ */
+export function canAnswerHandback(
+  ctx: ActorContext,
+  ticket: { raisedLoginId: string | null; reportedByPersonId: string | null },
+  sameCell: boolean,
+): boolean {
+  if ((HANDBACK_ROLES as readonly string[]).includes(ctx.role)) return true;
+  if (ctx.role !== 'operator') return false;
+  const reporter = ctx.personId !== null && ctx.personId === ticket.reportedByPersonId;
+  return ctx.loginId === ticket.raisedLoginId || reporter || sameCell;
+}

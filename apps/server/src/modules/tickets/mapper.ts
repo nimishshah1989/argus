@@ -1,6 +1,7 @@
 import { apiError, type CommandAction } from '@uptimo/shared';
 import {
   canAcknowledge,
+  canAnswerHandbackAtAll,
   canCorrect,
   canLateReport,
   canRaise,
@@ -103,6 +104,8 @@ export interface LoadedCtx {
   crew: CrewMember[];
   /** Set only for an acknowledge: whether the acting person is on the roster for the shift running now. */
   onRoster: boolean;
+  /** Set only for a handback: whether the signed-in login's cell is the cell the machine was in when reported. */
+  sameCell: boolean;
 }
 
 function toDate(value: unknown): Date | null {
@@ -244,6 +247,7 @@ const ROLE_GATES: Partial<Record<CommandAction, (actor: ActorContext) => boolean
   report: canLateReport,
   restore: canRestore,
   correct: canCorrect,
+  handback: (actor) => canAnswerHandbackAtAll(actor.role),
 };
 
 export function gatePermission(

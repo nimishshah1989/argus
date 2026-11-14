@@ -20,6 +20,8 @@ export const handlers: {
   join: commands.join,
   leave: commands.leave,
   upgradeKind: commands.upgradeKind,
+  handbackConfirm: commands.handbackConfirm,
+  handbackDispute: commands.handbackDispute,
   lateReport: commands.lateReport,
   restore: commands.restore,
   correct: commands.correct,

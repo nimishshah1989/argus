@@ -27,6 +27,8 @@ export type Command =
   | { type: 'join'; personId: string; role: 'primary' | 'support' }
   | { type: 'leave'; personId: string; reason: string }
   | { type: 'upgradeKind'; personId: string }
+  | { type: 'handbackConfirm'; personId: string; sameCell: boolean }
+  | { type: 'handbackDispute'; personId: string; reason: string; sameCell: boolean }
   | { type: 'lateReport'; personId: string }
   | { type: 'restore'; personId: string; reason: string; toStatus?: RestorableStatus }
   | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges };

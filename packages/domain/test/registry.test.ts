@@ -9,6 +9,8 @@ const COMMAND_FILES = [
   'cancel',
   'close',
   'correct',
+  'handback-confirm',
+  'handback-dispute',
   'join',
   'late-report',
   'leave',
@@ -34,6 +36,8 @@ describe('domain registries', () => {
         'cancel',
         'close',
         'correct',
+        'handbackConfirm',
+        'handbackDispute',
         'join',
         'lateReport',
         'leave',
@@ -52,7 +56,7 @@ describe('domain registries', () => {
 
   it('D2: the public API is unchanged', async () => {
     expect(Object.keys(await import('../src/index.js')).sort()).toEqual(
-      `ACTION_ORDER, ESCALATION_DEFAULTS, SlaInputError, TransitionError, acknowledge, addBusinessMinutes, apply, assertWorking, availableActions, businessMinutesBetween, canAcknowledge, canAnalytics, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, dayScore, defaultSeverityMatrix, figures, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, passwordProblem, pause, personMinutes, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, seesAllNeedReport, slaBreached, start, transfer, transition, update, upgradeKind`.split(
+      `ACTION_ORDER, ESCALATION_DEFAULTS, SlaInputError, TransitionError, acknowledge, addBusinessMinutes, apply, asksSignoff, assertWorking, availableActions, businessMinutesBetween, canAcknowledge, canAnalytics, canAnswerHandback, canAnswerHandbackAtAll, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, currentSignoff, dayScore, defaultSeverityMatrix, figures, handbackConfirm, handbackDispute, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, passwordProblem, pause, personMinutes, projectHandbackTimer, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, seesAllNeedReport, signoffTurnaround, slaBreached, start, transfer, transition, update, upgradeKind`.split(
         ', ',
       ),
     );
