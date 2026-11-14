@@ -45,6 +45,19 @@ export function canLateReport(ctx: ActorContext): boolean {
   return (WORK_ROLES as readonly string[]).includes(ctx.role);
 }
 
+/** Roles that can sit on a duty roster line (DOMAIN §3: technician L1, supervisor L2, head L3, plant head L4). */
+const ROSTER_ROLES: readonly string[] = ['technician', 'supervisor', 'head', 'plant_head'];
+
+/**
+ * Who may acknowledge a ticket: the acting person who is on the duty roster for the shift now running; an admin
+ * always (the matrix says yes). `onRoster` is the caller's answer for that acting person. A shared login with
+ * no acting person has nobody to look up, so it never passes.
+ */
+export function canAcknowledge(ctx: ActorContext, onRoster: boolean): boolean {
+  if (ctx.role === 'admin') return true;
+  return onRoster && ctx.personId !== null && ROSTER_ROLES.includes(ctx.role);
+}
+
 export function canRestore(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }
