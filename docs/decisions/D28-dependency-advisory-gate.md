@@ -1,4 +1,4 @@
-# D26: a high-severity advisory in a production dependency fails CI
+# D28: a high-severity advisory in a production dependency fails CI
 
 Date: 14 November 2026 · Status: accepted (ticket 26 goal 1, "M1 server leftovers")
 
