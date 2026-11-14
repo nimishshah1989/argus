@@ -173,3 +173,13 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   after the drill). Builder 23 -> next ticket claude/server-small-items: operator upgradeKind, WR refs, POST
   /tickets/past (+ domain function), gate legacy GET /settings, /lists/:list, /translations/missing. Builder 21 ->
   contract commit on #210 using the helpers now on main.
+- 2026-11-14 06:35 UTC — Main red again (api): #212's reports-real shift test read GET /shifts as an array + PATCH;
+  #206 changed it to {items,nextCursor} + PUT. Fixed by me in #217 (d36c1fc, test-only, merged on static/secrets +
+  local run). Lesson: under the pace ruling, merge a PR whose base is stale only after merging main into it when two
+  PRs touch the same contract. Merged #215 (ledger). Merged #210 (a1bdee9, 9/9 green): 21 follow-up = security fixes,
+  shared login without acting person (POST /auth/acting), CrudPage contract for people/logins (reusing #206's
+  helpers), secrets fix (runtime-built test passwords + one fingerprint for d8ef0b7). #216 (team day report + PDF
+  access) review FAIL vs v3 (membership dropped 1,382 real minutes, Closed/Pending contradiction, switched-off people
+  vanish, no Primary/Support split): ruled 'follow v3 exactly', fixed in ba5a51e; merges on static/secrets/api.
+  Builder 21 -> 'M1 server leftovers' (26 dependency advisory in CI, audit 11/12/14/17/19, erase_person import_row).
+  POST /tickets/past final contract sent to FRONTEND (three times reported/workStarted/running; overlap 409).
