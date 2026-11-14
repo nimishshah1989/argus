@@ -30,14 +30,13 @@ const ids = {
   personB: randomUUID(),
 };
 
+type Method = 'GET' | 'POST' | 'PUT';
 function call(
   host: string,
-  method: 'GET' | 'POST' | 'PUT',
-  url: string,
-  token: string,
-  body?: object,
+  request: { method: Method; url: string; token: string; body?: object },
 ) {
   key += 1;
+  const { method, url, token, body } = request;
   return app.inject({
     method,
     url,
@@ -50,11 +49,10 @@ function call(
     ...(body ? { payload: body } : {}),
   });
 }
-const a = (method: 'GET' | 'POST' | 'PUT', url: string, who = 'head', body?: object) =>
-  call('rla', method, url, tokens[who] ?? '', body);
-const b = (method: 'GET' | 'POST' | 'PUT', url: string, who = 'head', body?: object) =>
-  call('rlb', method, url, tokenB[who] ?? '', body);
-
+const a = (method: Method, url: string, who = 'head', body?: object) =>
+  call('rla', { method, url, token: tokens[who] ?? '', body });
+const b = (method: Method, url: string, who = 'head', body?: object) =>
+  call('rlb', { method, url, token: tokenB[who] ?? '', body });
 const dayOffset = async (days: number): Promise<string> =>
   (
     await admin.query("SELECT ((now() AT TIME ZONE 'Asia/Kolkata')::date + $1::int)::text AS d", [
@@ -171,7 +169,9 @@ describe('who may use the roster and the ladder (DOMAIN §3: head and admin)', (
         expect((await a('PUT', `${url}/${someId}`, who, { level: 'L2' })).statusCode).toBe(403);
       }
     }
-    expect((await call('rla', 'GET', '/api/v1/roster', '')).statusCode).toBe(401);
+    expect(
+      (await call('rla', { method: 'GET', url: '/api/v1/roster', token: '' })).statusCode,
+    ).toBe(401);
   });
 });
 
@@ -228,7 +228,12 @@ describe('the duty roster', () => {
       await a('POST', '/api/v1/roster', 'head', line({ personId: ids.personA2 }))
     ).json();
     const before = (await auditActions(A, 'roster_entry')).length;
-    const { id: _id, ...form } = made;
+    const form = {
+      date: made.date,
+      shiftId: made.shiftId,
+      personId: made.personId,
+      level: made.level,
+    };
     const same = await a('PUT', `/api/v1/roster/${made.id}`, 'head', { ...form, active: 'true' });
     expect(same.statusCode, same.body).toBe(200);
     expect((await auditActions(A, 'roster_entry')).length).toBe(before);
