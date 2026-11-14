@@ -20,6 +20,10 @@ describe('PUBLIC_BASE_DOMAIN', () => {
     'a b.com',
     'x..com',
     '.x.com',
+    'plants.example.com.',
+    'someone@plants.example.com',
+    '3.108.95.203',
+    '127.0.0.1',
   ])('refuses %s, because a wrong value would print wrong QR codes', (value) => {
     expect(() => publicBaseDomainFromEnv({ PUBLIC_BASE_DOMAIN: value })).toThrow(/bare host name/);
   });

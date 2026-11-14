@@ -7,11 +7,14 @@ export interface AwaitingSignoffRow {
   machineCode: string | null;
   cell: string | null;
   closedAt: Date;
+  /** The database's own text for `closedAt`, microseconds included: what the next page's cursor must carry. */
+  closedAtText: string;
 }
 
 /** Where the previous page ended: the next one starts after this close. */
 export interface SignoffCursor {
-  closedAt: Date;
+  /** `AwaitingSignoffRow.closedAtText`, not a `Date`: a Date has milliseconds, the database microseconds. */
+  closedAt: string;
   id: string;
 }
 
@@ -26,7 +29,8 @@ export async function closedAwaitingSignoff(
   page: { limit: number; after?: SignoffCursor; offBoard: readonly string[] },
 ): Promise<AwaitingSignoffRow[]> {
   const result = await client.query(
-    `SELECT t.id, t.ref, t.machine_id, t.machine_snapshot, t.closed_at FROM ticket t
+    `SELECT t.id, t.ref, t.machine_id, t.machine_snapshot, t.closed_at, t.closed_at::text AS closed_at_text
+     FROM ticket t
      WHERE t.tenant_id = $1 AND t.status = 'closed' AND t.closed_at IS NOT NULL
        AND (t.machine_id IS NULL OR t.machine_id <> ALL($3::uuid[]))
        AND ($4::timestamptz IS NULL OR (t.closed_at, t.id) < ($4::timestamptz, $5::uuid))
@@ -50,6 +54,7 @@ export async function closedAwaitingSignoff(
       machineCode: snapshot.code ?? null,
       cell: snapshot.cell ?? null,
       closedAt: row.closed_at as Date,
+      closedAtText: row.closed_at_text as string,
     };
   });
 }

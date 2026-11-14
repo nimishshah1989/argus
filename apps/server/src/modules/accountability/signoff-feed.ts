@@ -29,11 +29,12 @@ async function waitingTickets(client: PoolClient, tenantId: string, now: Date): 
     });
     const last = rows.at(-1);
     if (!last) break;
-    after = { closedAt: last.closedAt, id: last.id };
+    after = { closedAt: last.closedAtText, id: last.id };
     const fired = await firedHandbackTickets(
       client,
       tenantId,
       rows.map((row) => row.id),
+      now,
     );
     const live = rows.filter((row) => !fired.has(row.id));
     // The sign-off itself has the final say: only a status of `requested` is shown.

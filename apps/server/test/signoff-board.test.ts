@@ -28,7 +28,7 @@ const tokens: Record<string, string> = {};
 
 interface Req {
   host: string;
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PUT';
   url: string;
   token: string;
   payload?: object;
@@ -97,7 +97,8 @@ beforeAll(async () => {
     `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared, cell) VALUES
       ($1, $2, 'rina', $5, 'operator', false, 'C1'), ($1, $3, 'lal', $5, 'technician', false, NULL),
       ($1, $4, 'sana', $5, 'supervisor', false, NULL), ($1, $9, 'tv', $5, 'board', false, NULL),
-      ($6, $7, 'bob', $5, 'operator', false, 'C1'), ($6, $8, 'bea', $5, 'supervisor', false, NULL)`,
+      ($6, $7, 'bob', $5, 'operator', false, 'C1'), ($6, $8, 'bea', $5, 'supervisor', false, NULL),
+      ($6, $8, 'badmin', $5, 'admin', false, NULL)`,
     [A, REPORTER, LEAD, SUPER, passwordHash, B, BOB, BSUP, TV],
   );
   await admin.query(
@@ -131,6 +132,7 @@ beforeAll(async () => {
   for (const name of ['rina', 'lal', 'sana', 'tv']) tokens[name] = await login(HOST_A, name);
   tokens.bob = await login(HOST_B, 'bob');
   tokens.bea = await login(HOST_B, 'bea');
+  tokens.badmin = await login(HOST_B, 'badmin');
 }, 120_000);
 
 afterAll(async () => {
@@ -362,39 +364,49 @@ interface Seed {
   tag: string;
   count: number;
   severity: 'S1' | 'S3' | 'S4';
-  closedAgoMin: number;
-  /** How many of them also have a sign-off clock that has already fired. */
+  /** When the first one was closed; the next ones follow `stepMicros` earlier each. */
+  closedAt: Date;
+  stepMicros?: number;
+  /** The number of the first one, so that two seeds can continue each other (`TAG-<n>`). */
+  from?: number;
+  /** How many of them also have a sign-off clock that has already fired (the first ones). */
   fired?: number;
 }
 
-/** Closed tickets in plant B whose sign-off was asked and not answered, written straight in: `count` of them, newest first. */
+const minutesAgo = (minutes: number): Date =>
+  new Date(Math.floor(Date.now() / 1000) * 1000 - minutes * 60_000);
+
+/** Closed tickets in plant B whose sign-off was asked and not answered, written straight in, newest first. */
 async function seedWaiting(seed: Seed): Promise<void> {
+  const from = seed.from ?? 1;
   await db.admin.query(
     `WITH t AS (
        INSERT INTO ticket (id, tenant_id, ref, kind, status, problem, reported_at, closed_at, close_kind,
            closed_by_person_id, reported_by_person_id, severity, machine_id, machine_snapshot)
        SELECT gen_random_uuid(), $1, $2 || '-' || g, 'stopped', 'closed', 'Seeded',
-           now() - ($4::int * interval '1 minute') - g * interval '1 second' - interval '1 hour',
-           now() - ($4::int * interval '1 minute') - g * interval '1 second', 'report', $5, $6, $7, $8,
+           $4::timestamptz - g * ($10::int * interval '1 microsecond') - interval '1 hour',
+           $4::timestamptz - g * ($10::int * interval '1 microsecond'), 'report', $5, $6, $7, $8,
            jsonb_build_object('code', 'VC-B', 'cell', 'C1')
-       FROM generate_series(1, $3::int) g
+       FROM generate_series($11::int, $11::int + $3::int - 1) g
        RETURNING id, ref, closed_at),
      e AS (
        INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, acting_person_id, payload)
        SELECT $1, id, 1, 'close', closed_at, $5, '{"handbackRequested": true}' FROM t)
      INSERT INTO sla_timer (tenant_id, ticket_id, kind, due_at, fired_at, state)
      SELECT $1, id, 'handback', closed_at + interval '10 minutes', closed_at + interval '10 minutes', 'running'
-     FROM t WHERE regexp_replace(ref, '^.*-', '')::int <= $9::int`,
+     FROM t WHERE regexp_replace(ref, '^.*-', '')::int - $11::int + 1 <= $9::int`,
     [
       B,
       seed.tag,
       seed.count,
-      seed.closedAgoMin,
+      seed.closedAt,
       BSUP,
       BOB,
       seed.severity,
       MACHINE_B,
       seed.fired ?? 0,
+      seed.stepMicros ?? 1_000_000,
+      from,
     ],
   );
 }
@@ -414,7 +426,7 @@ describe('the board feed with many tickets', () => {
       .items.map((i: { ref: string }) => i.ref) as string[];
 
   it('shows at most 50, newest close first', async () => {
-    await seedWaiting({ tag: 'CAP', count: 51, severity: 'S3', closedAgoMin: 10 });
+    await seedWaiting({ tag: 'CAP', count: 51, severity: 'S3', closedAt: minutesAgo(10) });
     try {
       const refs = await refsOfB();
       expect(refs).toHaveLength(50);
@@ -423,6 +435,84 @@ describe('the board feed with many tickets', () => {
       expect(refs).not.toContain('CAP-51');
     } finally {
       await forgetSeeded('CAP');
+    }
+  });
+
+  it('lists a sign-off whose clock has fired once the plant raises its time limit', async () => {
+    await db.admin.query(
+      "UPDATE sla_policy SET handback_minutes = 10 WHERE tenant_id = $1 AND severity = 'S1'",
+      [B],
+    );
+    await seedWaiting({
+      tag: 'RAISED',
+      count: 1,
+      severity: 'S1',
+      closedAt: minutesAgo(120),
+      fired: 1,
+    });
+    try {
+      expect(await refsOfB()).toEqual([]);
+      const policy = (severity: string, ack: number, restore: number, handback: number) => ({
+        severity,
+        ackMinutes: ack,
+        restoreMinutes: restore,
+        handbackMinutes: handback,
+        businessHoursOnly: false,
+      });
+      const saved = await send({
+        host: HOST_B,
+        method: 'PUT',
+        url: '/api/v1/settings/sla-policies',
+        token: tokens.badmin!,
+        payload: {
+          policies: [
+            policy('S1', 60, 240, 1440),
+            policy('S2', 90, 360, 60),
+            policy('S3', 120, 480, 60),
+            policy('S4', 180, 720, 60),
+          ],
+        },
+      });
+      expect(saved.statusCode, saved.body).toBe(200);
+      expect(await refsOfB()).toEqual(['RAISED-1']);
+    } finally {
+      await forgetSeeded('RAISED');
+      await db.admin.query(
+        "UPDATE sla_policy SET handback_minutes = 60 WHERE tenant_id = $1 AND severity = 'S1'",
+        [B],
+      );
+    }
+  });
+
+  it('does not skip a ticket closed in the same millisecond as the last one on the page before', async () => {
+    await db.admin.query(
+      "UPDATE sla_policy SET handback_minutes = 10 WHERE tenant_id = $1 AND severity = 'S1'",
+      [B],
+    );
+    await db.admin.query(
+      "UPDATE sla_policy SET handback_minutes = 1440 WHERE tenant_id = $1 AND severity = 'S4'",
+      [B],
+    );
+    // A full page of timed-out sign-offs, then ten still waiting, all closed within one millisecond of each other.
+    const at = minutesAgo(120);
+    await seedWaiting({ tag: 'MS', count: 50, severity: 'S1', closedAt: at, stepMicros: 1 });
+    await seedWaiting({
+      tag: 'MS',
+      count: 10,
+      severity: 'S4',
+      closedAt: at,
+      stepMicros: 1,
+      from: 51,
+    });
+    try {
+      const refs = await refsOfB();
+      expect([...refs].sort()).toEqual(Array.from({ length: 10 }, (_, n) => `MS-${51 + n}`).sort());
+    } finally {
+      await forgetSeeded('MS');
+      await db.admin.query(
+        "UPDATE sla_policy SET handback_minutes = 60 WHERE tenant_id = $1 AND severity IN ('S1', 'S4')",
+        [B],
+      );
     }
   });
 
@@ -436,8 +526,14 @@ describe('the board feed with many tickets', () => {
       [B],
     );
     // 60 newer sign-offs whose short time has run out (half with the clock's alarm already raised), one older with a long time.
-    await seedWaiting({ tag: 'OUT', count: 60, severity: 'S1', closedAgoMin: 120, fired: 30 });
-    await seedWaiting({ tag: 'LONG', count: 1, severity: 'S4', closedAgoMin: 240 });
+    await seedWaiting({
+      tag: 'OUT',
+      count: 60,
+      severity: 'S1',
+      closedAt: minutesAgo(120),
+      fired: 30,
+    });
+    await seedWaiting({ tag: 'LONG', count: 1, severity: 'S4', closedAt: minutesAgo(240) });
     try {
       const refs = await refsOfB();
       expect(refs).toEqual(['LONG-1']);
