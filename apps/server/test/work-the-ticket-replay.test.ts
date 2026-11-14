@@ -265,7 +265,7 @@ beforeAll(async () => {
       await hash(PASSWORD, { algorithm: 2, memoryCost: 19456, timeCost: 2, parallelism: 1 }),
     ],
   );
-  app = await buildApp({ pool: db.app, logger: { level: 'error' }, rateLimitMax: 100000 });
+  app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
