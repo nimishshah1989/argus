@@ -1,0 +1,1 @@
+- Behind the scenes: the staging server can now be given its alert keys, the erasure key, the support-access keys and the QR link domain from the secret store.
