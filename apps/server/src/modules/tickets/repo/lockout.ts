@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
-import { LOCKOUT_EVENT_TYPES, type EventType } from '@uptimo/domain';
+import { LOCKOUT_EVENT_TYPES, workersAfterResume, type EventType } from '@uptimo/domain';
+import { loadCrew } from './ticket.js';
 
 /** The status and work type of a ticket that is still live (open, working or waiting); `undefined` otherwise. */
 export async function liveTicket(
@@ -37,9 +38,9 @@ export async function reportCategory(
 export async function lockoutHistory(
   client: PoolClient,
   ticketId: string,
-): Promise<{ type: EventType; at: Date; actingPersonId: string | null }[]> {
+): Promise<{ type: EventType; at: Date; actingPersonId: string | null; stepCodes?: string[] }[]> {
   const { rows } = await client.query(
-    `SELECT type, at, acting_person_id FROM ticket_event
+    `SELECT type, at, acting_person_id, payload->'stepCodes' AS step_codes FROM ticket_event
       WHERE ticket_id = $1 AND type = ANY($2) ORDER BY seq`,
     [ticketId, LOCKOUT_EVENT_TYPES],
   );
@@ -47,5 +48,17 @@ export async function lockoutHistory(
     type: e.type as EventType,
     at: new Date(e.at),
     actingPersonId: e.acting_person_id as string | null,
+    stepCodes: (e.step_codes as string[] | null) ?? undefined,
   }));
+}
+
+/** Everyone who will be working once `resumer` resumes the ticket: its lead after the resume and the crew still on. */
+export async function peopleWorkingAfterResume(
+  client: PoolClient,
+  ticketId: string,
+  resumer: string,
+): Promise<string[]> {
+  const lead = (await client.query('SELECT lead_person_id FROM ticket WHERE id = $1', [ticketId]))
+    .rows[0]?.lead_person_id as string | null | undefined;
+  return workersAfterResume(lead ?? null, await loadCrew(client, ticketId), resumer);
 }

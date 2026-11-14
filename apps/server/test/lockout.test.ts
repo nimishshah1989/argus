@@ -80,6 +80,10 @@ const confirm = (
   as: { token?: string; key?: string } = {},
 ) => act('lockout-confirm', id, personId, { ...as, extra: { stepCodes } });
 
+/** The session's own person confirms: no `personId` in the body. */
+const confirmAsSelf = (id: string, stepCodes: string[], token = f.tokens.technician!) =>
+  send(token, `/api/v1/tickets/${id}/lockout-confirm`, { stepCodes });
+
 const DEFAULT_CODES = DEFAULT_LOCKOUT_STEPS.map((s) => s.code);
 
 let tech: string;
@@ -361,6 +365,84 @@ describe('a confirmation is cleared when the ticket stops being worked or change
   });
 });
 
+describe('a resume needs everyone who will be working afterwards', () => {
+  /** The technician leads and the supervisor is crew; the technician pauses, which takes both locks off. */
+  async function pausedCrew(): Promise<string> {
+    const id = await working();
+    const supAs = { token: f.tokens.supervisor! };
+    await confirm(id, sup, DEFAULT_CODES, supAs);
+    expect((await act('join', id, sup, { ...supAs, extra: { role: 'support' } })).statusCode).toBe(
+      200,
+    );
+    expect((await act('pause', id, tech, { extra: { reasonCode: 'spare' } })).statusCode).toBe(200);
+    return id;
+  }
+
+  it('the lead alone confirming does not restart the crew member: the 409 names who is missing', async () => {
+    const id = await pausedCrew();
+    await confirm(id, tech, DEFAULT_CODES);
+    const refused = await act('resume', id, tech);
+    expect(refused.statusCode, refused.body).toBe(409);
+    expect(refused.json().error).toMatchObject({ code: 'lockout_required', missing: [sup] });
+    expect((await ticketOf(id)).ticket.status).toBe('waiting');
+    await confirm(id, sup, DEFAULT_CODES, { token: f.tokens.supervisor! });
+    expect((await act('resume', id, tech)).statusCode).toBe(200);
+  });
+
+  it('a crew member resuming does not restart the lead unconfirmed', async () => {
+    const id = await pausedCrew();
+    const supAs = { token: f.tokens.supervisor! };
+    await confirm(id, sup, DEFAULT_CODES, supAs);
+    const refused = await act('resume', id, sup, supAs);
+    expect(refused.statusCode, refused.body).toBe(409);
+    expect(refused.json().error).toMatchObject({ code: 'lockout_required', missing: [tech] });
+    await confirm(id, tech, DEFAULT_CODES);
+    expect((await act('resume', id, sup, supAs)).statusCode).toBe(200);
+  });
+
+  it('a crew member who has left does not block the resume', async () => {
+    const id = await working();
+    const supAs = { token: f.tokens.supervisor! };
+    await confirm(id, sup, DEFAULT_CODES, supAs);
+    await act('join', id, sup, { ...supAs, extra: { role: 'support' } });
+    await act('leave', id, sup, { ...supAs, extra: { reason: 'Called away' } });
+    await act('pause', id, tech, { extra: { reasonCode: 'spare' } });
+    await confirm(id, tech, DEFAULT_CODES);
+    expect((await act('resume', id, tech)).statusCode).toBe(200);
+  });
+});
+
+describe('a confirmation must cover the steps as they are now', () => {
+  it('a step added after someone confirmed makes their confirmation stale until they confirm again', async () => {
+    const id = await raiseWork('Electrical');
+    expect((await confirm(id, tech, DEFAULT_CODES)).statusCode).toBe(200);
+    const added = await f.call('POST', `${LISTS}/lockout_step`, f.tokens.head!, {
+      code: 'verify_zero',
+      label: 'Verify zero energy',
+      sort: '9',
+    });
+    expect(added.statusCode, added.body).toBe(201);
+    expect((await lockoutOf(id)).confirmations).toEqual([]);
+    const refused = await act('start', id, tech);
+    expect(refused.json().error.code).toBe('lockout_required');
+    expect((await confirm(id, tech, DEFAULT_CODES)).statusCode).toBe(422);
+    expect((await confirm(id, tech, [...DEFAULT_CODES, 'verify_zero'])).statusCode).toBe(200);
+    expect((await act('start', id, tech)).statusCode).toBe(200);
+    await f.call('PUT', `${LISTS}/lockout_step/${added.json().id}`, f.tokens.head!, {
+      active: false,
+    });
+  });
+});
+
+describe('who is confirming comes from the session', () => {
+  it("a confirmation with no personId is the signed-in person's own", async () => {
+    const id = await raiseWork('Electrical');
+    const res = await confirmAsSelf(id, DEFAULT_CODES);
+    expect(res.statusCode, res.body).toBe(200);
+    expect(await who(id)).toEqual([tech]);
+  });
+});
+
 describe('who may set the flag and edit the steps', () => {
   it('the head sets and clears the flag on a work type, and it is audited', async () => {
     const id = await flag('work_type', 'Crane', false);
@@ -406,7 +488,7 @@ describe('who may set the flag and edit the steps', () => {
         label: string;
         active: boolean;
       }[];
-    const items = await read();
+    const items = (await read()).filter((i) => i.active);
     expect(items.map((i) => i.code)).toEqual(DEFAULT_CODES);
     const first = items[0]!;
     const edit = await f.call('PUT', `${LISTS}/lockout_step/${first.id}`, f.tokens.head!, {
@@ -454,9 +536,9 @@ describe('who may set the flag and edit the steps', () => {
   });
 
   it('with every step switched off a flagged ticket cannot be started or confirmed: it fails closed', async () => {
-    const items = (await f.call('GET', `${LISTS}/lockout_step`, f.tokens.head!)).json().items as {
-      id: string;
-    }[];
+    const items = (await f.call('GET', `${LISTS}/lockout_step`, f.tokens.head!))
+      .json()
+      .items.filter((i: { active: boolean }) => i.active) as { id: string }[];
     for (const item of items) {
       await f.call('PUT', `${LISTS}/lockout_step/${item.id}`, f.tokens.head!, { active: false });
     }

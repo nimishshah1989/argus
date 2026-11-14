@@ -80,6 +80,7 @@ const BUILDERS: Record<CommandAction, Builder> = {
     type: 'confirmLockout',
     personId,
     steps: body.steps as string[],
+    stepCodes: body.stepCodes as string[],
   }),
 };
 

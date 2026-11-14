@@ -45,7 +45,8 @@ export type Lockout = z.infer<typeof lockoutSchema>;
 
 /** Every step is confirmed in one call; the codes must be exactly the plant's active steps. */
 export const lockoutConfirmSchema = z.object({
-  personId: z.string().uuid(),
+  /** The session's own person; naming anyone else is refused (403). */
+  personId: z.string().uuid().optional(),
   stepCodes: z.array(z.string().min(1).max(60)).min(1).max(30),
 });
 export type LockoutConfirmBody = z.infer<typeof lockoutConfirmSchema>;

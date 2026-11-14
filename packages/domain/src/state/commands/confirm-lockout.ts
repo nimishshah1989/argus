@@ -16,7 +16,7 @@ export function confirmLockout(
   }
   const { role, loginId, personId, shared } = input.ctx;
   if (!canWork({ role, loginId, personId, shared })) throw new TransitionError('Not allowed');
-  if (standingLockoutConfirmations(input.events).has(command.personId)) {
+  if (standingLockoutConfirmations(input.events, command.stepCodes).has(command.personId)) {
     throw new TransitionError('Lockout is already confirmed');
   }
   return apply(input, {

@@ -42,6 +42,8 @@ export interface TicketEvent {
   type: EventType;
   /** Set on a history read: who acted (a lockout confirmation belongs to a person). */
   actingPersonId?: string | null;
+  /** On a `lockout_confirmed` read back: the step codes that person confirmed. */
+  stepCodes?: string[];
   at: Date;
   reason?: string;
   isVendor?: boolean;

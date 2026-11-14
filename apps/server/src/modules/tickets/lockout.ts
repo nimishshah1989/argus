@@ -3,7 +3,12 @@ import { apiError, type ErrorCode, type Lockout, type LockoutStep } from '@uptim
 import { canWork, standingLockoutConfirmations, type Role } from '@uptimo/domain';
 import { ensureLockoutSteps, lockoutFlagged, lockoutSteps } from '../plant/index.js';
 import type { Outcome, Tx } from './mapper.js';
-import { liveTicket, lockoutHistory, reportCategory } from './repo/lockout.js';
+import {
+  liveTicket,
+  lockoutHistory,
+  peopleWorkingAfterResume,
+  reportCategory,
+} from './repo/lockout.js';
 
 type Who = { tenantId: string; loginId: string | null };
 
@@ -48,11 +53,16 @@ async function readLockout(
       (await flaggedNames(client, who.tenantId, 'breakdown_category')).has(norm(category)));
   if (!needed) return { status: ticket.status, lockout: null };
   await ensureLockoutSteps(client, who);
-  const standing = standingLockoutConfirmations(await lockoutHistory(client, ticketId));
+  const steps = await lockoutSteps(client, who.tenantId);
+  const history = await lockoutHistory(client, ticketId);
+  const standing = standingLockoutConfirmations(
+    history,
+    steps.map((step) => step.code),
+  );
   return {
     status: ticket.status,
     lockout: {
-      steps: await lockoutSteps(client, who.tenantId),
+      steps,
       confirmations: [...standing.values()].map((e) => ({
         at: e.at.toISOString(),
         byPersonId: e.actingPersonId ?? null,
@@ -96,8 +106,8 @@ const refusal = (
   status: number,
   code: ErrorCode,
   message: string,
-  extra: { field?: string; steps?: LockoutStep[] } = {},
-): Outcome => ({ status, body: apiError(code, message, extra.field, extra.steps) });
+  extra: { field?: string; steps?: LockoutStep[]; missing?: string[] } = {},
+): Outcome => ({ status, body: apiError(code, message, extra.field, extra) });
 
 /** Each of these needs the acting person's own confirmation standing, while the ticket is in one of these statuses. */
 const NEEDS_OWN_CONFIRMATION: Partial<Record<Tx['action'], string[]>> = {
@@ -121,7 +131,9 @@ function checkConfirm(tx: Tx, lockout: Lockout | null): Outcome | null {
   if (sent.size !== steps.length) {
     return refusal(422, 'validation', 'Confirm every lockout step', { field: 'stepCodes', steps });
   }
+  // What the history keeps: the wording today, and the steps this person's confirmation covers.
   tx.body.steps = steps.map((s) => s.label);
+  tx.body.stepCodes = steps.map((s) => s.code);
   return null;
 }
 
@@ -137,7 +149,8 @@ const missingSteps = () =>
 
 /**
  * The lockout rules a command needs the plant's lists for, run inside the command's transaction; `null` lets
- * it go on. Start, a resume and a join each need the acting person's own confirmation standing, or answer 409
+ * it go on. Start and join need the acting person's own confirmation standing, a resume everyone who will be
+ * working after it, or answer 409
  * `lockout_required` (a flagged ticket whose plant has no active step answers `lockout_steps_missing`: it fails
  * closed). A confirmation names every step. A Start dated before the confirmation is refused, so the work
  * cannot be recorded as begun before the lock was on.
@@ -159,27 +172,36 @@ export async function checkLockout(client: PoolClient, tx: Tx): Promise<Outcome 
   );
   if (!facts) return null; // not a live ticket: the ordinary rules answer
   if (tx.action === 'lockout-confirm') return checkConfirm(tx, facts.lockout);
-  return ownConfirmationProblem(tx, facts, statuses);
+  return ownConfirmationProblem(client, tx, facts, statuses);
 }
 
-/** Start, resume and join: the acting person's own confirmation must stand. */
-function ownConfirmationProblem(
+/**
+ * Start and join need the acting person's own confirmation to stand. A resume restarts the lead and every crew
+ * member still on the ticket, so it needs each of them to stand confirmed; the refusal lists who is missing.
+ */
+async function ownConfirmationProblem(
+  client: PoolClient,
   tx: Tx,
   facts: { status: string; lockout: Lockout | null },
   statuses: string[] | undefined,
-): Outcome | null {
+): Promise<Outcome | null> {
   const { lockout } = facts;
   if (!lockout || !statuses?.includes(facts.status)) return null;
   if (lockout.steps.length === 0) return missingSteps();
-  const mine = lockout.confirmations.find((c) => c.byPersonId === tx.actingPersonId);
-  if (!mine) {
+  const acting = tx.actingPersonId ?? '';
+  const needed =
+    tx.action === 'resume' ? await peopleWorkingAfterResume(client, tx.ticketId, acting) : [acting];
+  const missing = needed.filter((p) => !lockout.confirmations.some((c) => c.byPersonId === p));
+  if (missing.length > 0) {
     return refusal(409, 'lockout_required', 'Confirm the lockout steps first', {
       field: 'lockout',
       steps: lockout.steps,
+      missing,
     });
   }
+  const mine = lockout.confirmations.find((c) => c.byPersonId === acting);
   const startedAt = tx.body.at as Date | undefined;
-  if (tx.action === 'start' && startedAt && startedAt < new Date(mine.at)) {
+  if (tx.action === 'start' && startedAt && mine && startedAt < new Date(mine.at)) {
     return refusal(422, 'validation', 'Work cannot start before the lockout was confirmed', {
       field: 'at',
     });

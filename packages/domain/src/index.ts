@@ -6,7 +6,11 @@ export * from './types.js';
 export * from './permissions.js';
 export * from './ticket.js';
 export * from './actions.js';
-export { LOCKOUT_EVENT_TYPES, standingLockoutConfirmations } from './lockout.js';
+export {
+  LOCKOUT_EVENT_TYPES,
+  standingLockoutConfirmations,
+  workersAfterResume,
+} from './lockout.js';
 export * from './state.js';
 export * from './business-hours.js';
 export * from './sla.js';

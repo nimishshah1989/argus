@@ -27,6 +27,8 @@ export const errorBodySchema = z
         field: z.string().optional(),
         /** The plant's current lockout steps, on a refusal that is about them. */
         steps: z.array(lockoutStepSchema).optional(),
+        /** On a resume refused for the lockout: the people still to confirm. */
+        missing: z.array(z.string()).optional(),
       })
       .strict(),
   })
@@ -37,10 +39,11 @@ export function apiError(
   code: ErrorCode,
   message: string,
   field?: string,
-  steps?: LockoutStep[],
+  extra: { steps?: LockoutStep[]; missing?: string[] } = {},
 ): ErrorBody {
   const error: ErrorBody['error'] = { code, message };
   if (field) error.field = field;
-  if (steps) error.steps = steps;
+  if (extra.steps) error.steps = extra.steps;
+  if (extra.missing) error.missing = extra.missing;
   return { error };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { standingLockoutConfirmations } from '../src/lockout.js';
+import { standingLockoutConfirmations, workersAfterResume } from '../src/lockout.js';
 import { transition, TransitionError } from '../src/state.js';
 import type { ActorContext, EventType, TicketEvent } from '../src/types.js';
 import type { Ticket } from '../src/ticket.js';
@@ -10,7 +10,12 @@ const ev = (type: EventType, min: number, who: string | null = null): TicketEven
   at: at(min),
   actingPersonId: who,
 });
-const standing = (events: TicketEvent[]) => [...standingLockoutConfirmations(events).keys()].sort();
+const standing = (events: TicketEvent[], active?: string[]) =>
+  [...standingLockoutConfirmations(events, active).keys()].sort();
+const covering = (who: string, min: number, stepCodes: string[]): TicketEvent => ({
+  ...ev('lockout_confirmed', min, who),
+  stepCodes,
+});
 
 describe('who stands confirmed on a flagged ticket', () => {
   it('is nobody before anyone confirms, and each person who confirms stands on their own', () => {
@@ -70,6 +75,52 @@ describe('who stands confirmed on a flagged ticket', () => {
   });
 });
 
+describe('a confirmation counts only while it covers the active steps', () => {
+  it('a step added since makes it stale until the person confirms again', () => {
+    const old = covering('ann', 1, ['a', 'b']);
+    expect(standing([old], ['a', 'b'])).toEqual(['ann']);
+    expect(standing([old], ['a', 'b', 'c'])).toEqual([]);
+    expect(standing([old, covering('ann', 2, ['a', 'b', 'c'])], ['a', 'b', 'c'])).toEqual(['ann']);
+  });
+
+  it('a step switched off since does not make it stale, and an old entry with no codes never counts', () => {
+    expect(standing([covering('ann', 1, ['a', 'b', 'c'])], ['a', 'b'])).toEqual(['ann']);
+    expect(standing([ev('lockout_confirmed', 1, 'ann')], ['a'])).toEqual([]);
+  });
+
+  it('a later confirmation that no longer covers the steps does not leave an older one standing', () => {
+    expect(standing([covering('ann', 1, ['a']), covering('ann', 2, ['b'])], ['a'])).toEqual([]);
+  });
+});
+
+describe('who works after a resume', () => {
+  const crew = (id: string, left = false) => ({
+    personId: id,
+    role: 'primary' as const,
+    ...(left ? { leftAt: at(5) } : {}),
+  });
+
+  it('is the lead and every crew member still on, whoever resumes', () => {
+    expect(workersAfterResume('lead', [crew('lead'), crew('bob')], 'bob').sort()).toEqual([
+      'bob',
+      'lead',
+    ]);
+    expect(workersAfterResume('lead', [crew('lead'), crew('bob')], 'lead').sort()).toEqual([
+      'bob',
+      'lead',
+    ]);
+  });
+
+  it('leaves out a crew member who left, and makes an outsider the lead', () => {
+    expect(workersAfterResume('lead', [crew('lead'), crew('bob', true)], 'lead')).toEqual(['lead']);
+    expect(workersAfterResume('lead', [crew('lead'), crew('bob')], 'zed').sort()).toEqual([
+      'bob',
+      'lead',
+      'zed',
+    ]);
+  });
+});
+
 const ctx = (role: ActorContext['role'] = 'technician'): ActorContext & { now: Date } => ({
   role,
   loginId: 'login-1',
@@ -98,7 +149,12 @@ const confirm = (
     events,
     segments: [],
     crew: [],
-    command: { type: 'confirmLockout', personId: 'p1', steps: ['Isolate', 'Lock and tag'] },
+    command: {
+      type: 'confirmLockout',
+      personId: 'p1',
+      steps: ['Isolate', 'Lock and tag'],
+      stepCodes: ['isolate', 'lock'],
+    },
     ctx: ctx(role),
   });
 
@@ -125,7 +181,9 @@ describe('confirming the lockout', () => {
 
   it('is refused for a role that may not work tickets, and for a person who already stands confirmed', () => {
     expect(() => confirm({}, [], 'operator')).toThrow('Not allowed');
-    expect(() => confirm({}, [ev('lockout_confirmed', 5, 'p1')])).toThrow('already confirmed');
+    expect(() => confirm({}, [covering('p1', 5, ['isolate', 'lock'])])).toThrow(
+      'already confirmed',
+    );
   });
 
   it('is taken by a second person while the first still stands, and again after a pause', () => {
