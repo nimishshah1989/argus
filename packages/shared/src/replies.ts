@@ -21,6 +21,7 @@ import {
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { slaPolicySchema, slaProjectionSchema } from './sla.js';
+import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
   isoDateTimeSchema,
@@ -117,6 +118,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/push/key`]: pushKeyReplySchema,
   [`POST ${P}/push/test`]: pushSentReplySchema,
   ...PEOPLE_REPLIES,
+  ...SUPPORT_ACCESS_REPLIES,
   ...settingsResource('machines', machineReplySchema),
   ...settingsResource('segments', segmentReplySchema),
   ...settingsResource('groups', groupReplySchema),
