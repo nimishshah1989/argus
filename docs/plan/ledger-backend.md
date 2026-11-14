@@ -101,3 +101,12 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   step (else seeded Cosmos logins are locked out). Cost if wrong: temporary passwords stay usable until then.
   (5) Validation = 422 everywhere. All sent to builder 21 as one follow-up PR (claude/t21-followup), draft until my
   re-check.
+- 2026-11-14 05:40 UTC — RULINGS (Nimish via FRONTEND): (1) MERGES = option A: only the two orchestrators merge;
+  Nimish tests staging. Must be as fast as his own merging: the adversarial review starts the moment a PR opens (in
+  parallel with CI), ~30 min, one fix round, merge within minutes of green + review pass. Builders now report the PR
+  number at first push. (2) Defaults accepted: a shared login cannot hold admin; switching off a person on an open
+  ticket is refused until it is transferred or closed.
+- Migration-runner flake (both lanes, FRONTEND asked): root cause found by me: pg-pool end() resolves before sockets
+  close; container.stop() then killed the still-ending admin-pool backend (57P01, CI dump: database 'test',
+  _poolUseCount 13 = the 13 partial databases). Fix: endPool() waits for every 'remove' event; draft PR #204
+  (test-only), merge on green.
