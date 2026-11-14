@@ -61,7 +61,7 @@ export function SideNav({
   return (
     <nav
       aria-label={label}
-      className="flex w-58 shrink-0 flex-col gap-4 rounded-2xl bg-surface px-3 py-4 shadow-card"
+      className="flex h-full w-58 shrink-0 flex-col gap-4 overflow-y-auto bg-surface px-3 py-4 shadow-card"
     >
       {groups.map((group, index) => (
         <Group key={group.title ?? index} {...group} current={current} />

@@ -12,27 +12,29 @@ export function DesktopView() {
   const here = '/gallery?view=desktop';
   const link = (page: string) => `${here}&page=${page}`;
   return (
-    <div data-testid="gallery-root" className="flex min-h-dvh gap-4 bg-neutral-100 p-4">
-      <SideNav
-        label={t('desktop.nav')}
-        current={here}
-        groups={[
-          {
-            title: t('desktop.nav.settings'),
-            items: [
-              { to: here, label: t('desktop.nav.machines'), icon: Cog },
-              { to: link('people'), label: t('desktop.nav.people'), icon: Users },
-            ],
-          },
-          {
-            title: t('desktop.nav.admin'),
-            items: [
-              { to: link('audit'), label: t('desktop.nav.audit'), icon: FileCheck, badge: 3 },
-            ],
-          },
-        ]}
-      />
-      <main className="flex min-w-0 flex-1 flex-col gap-6">
+    <div data-testid="gallery-root" className="flex min-h-dvh bg-neutral-100">
+      <div className="sticky top-0 h-dvh">
+        <SideNav
+          label={t('desktop.nav')}
+          current={here}
+          groups={[
+            {
+              title: t('desktop.nav.settings'),
+              items: [
+                { to: here, label: t('desktop.nav.machines'), icon: Cog },
+                { to: link('people'), label: t('desktop.nav.people'), icon: Users },
+              ],
+            },
+            {
+              title: t('desktop.nav.admin'),
+              items: [
+                { to: link('audit'), label: t('desktop.nav.audit'), icon: FileCheck, badge: 3 },
+              ],
+            },
+          ]}
+        />
+      </div>
+      <main className="flex min-w-0 flex-1 flex-col gap-6 p-6">
         <QueryClientProvider client={galleryQueries}>
           <div data-testid="gallery-desktop-queue">
             <QueueExample state="ready" />

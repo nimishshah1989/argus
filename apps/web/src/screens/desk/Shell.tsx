@@ -68,7 +68,7 @@ export function DeskFrame({
   if (wide)
     return (
       <div className="flex min-h-dvh bg-neutral-100 text-neutral-900">
-        <div className="sticky top-0 self-start p-4 pr-0">
+        <div className="sticky top-0 h-dvh">
           <SideNav label={t('deskLists.tabs')} groups={[{ items: tabs }]} current={here} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
