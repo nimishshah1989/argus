@@ -1,12 +1,15 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EXCEPTIONS, guardedStatements, scanMigrations } from './check-migrations.js';
 
 function plant(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'migrations-'));
-  for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+  for (const [name, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(dir, name)), { recursive: true });
+    writeFileSync(join(dir, name), text);
+  }
   return dir;
 }
 
@@ -76,6 +79,27 @@ describe('migration guard', () => {
     const drop = 'DROP TABLE ticket_tag;\n';
     expect(scanMigrations(plant({ '0005_ticket_tag.sql': drop }))).toEqual([]);
     expect(scanMigrations(plant({ '0008_planted.sql': drop }))).toHaveLength(1);
+  });
+});
+
+describe('revert files', () => {
+  const down = (n: number): string =>
+    `migrations: down/0008_planted.down.sql:${n}: DROP needs '-- backup:' in the file header`;
+
+  it('need a backup line before a guarded statement, and no approver line', () => {
+    expect(scanMigrations(plant({ 'down/0008_planted.down.sql': DROP }))).toEqual([down(1)]);
+    expect(
+      scanMigrations(plant({ 'down/0008_planted.down.sql': '-- backup: snapshot first\n' + DROP })),
+    ).toEqual([]);
+    for (const sql of ['-- backup:\n' + DROP, DROP + '-- backup: late\n']) {
+      const n = sql.split('\n').findIndex((l) => l.startsWith('ALTER')) + 1;
+      expect(scanMigrations(plant({ 'down/0008_planted.down.sql': sql })), sql).toEqual([down(n)]);
+    }
+  });
+
+  it('are checked next to the migrations they undo', () => {
+    const files = { '0008_planted.sql': APPROVED + DROP, 'down/0008_planted.down.sql': DROP };
+    expect(scanMigrations(plant(files))).toEqual([down(1)]);
   });
 });
 

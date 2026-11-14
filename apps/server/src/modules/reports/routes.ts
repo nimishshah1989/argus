@@ -73,12 +73,7 @@ async function personNames(
   report: StoredReport | null,
 ): Promise<Record<string, string>> {
   if (!report) return {};
-  const ids = [
-    ...new Set([
-      ...report.people.map((person) => person.personId),
-      ...(report.handoverPersonId ? [report.handoverPersonId] : []),
-    ]),
-  ];
+  const ids = [...new Set(report.people.map((person) => person.personId))];
   if (ids.length === 0) return {};
   const rows = await peopleByIds(client, tenantId, ids);
   return Object.fromEntries(rows.map((row) => [row.id as string, row.name as string]));
@@ -113,19 +108,12 @@ function namesFor(context: PdfContext, role: 'done' | 'supported'): string[] {
     .map((person) => context.people[person.personId] ?? person.personId);
 }
 
-/** The person a report is handed over to, by name; null when none is linked (the typed text of imports is used then). */
-function handoverName(context: PdfContext): string | null {
-  const id = (context.report as StoredReport).handoverPersonId;
-  return id ? (context.people[id] ?? null) : null;
-}
-
 function pdfInput(context: PdfContext, svg: string): ReportPdfInput {
   return {
     tenant: context.tenant,
     ticket: context.ticket,
     report: context.report as StoredReport,
     people: { done: namesFor(context, 'done'), supported: namesFor(context, 'supported') },
-    handoverTo: handoverName(context),
     qr: { svg },
     generatedAt: new Date(),
   };

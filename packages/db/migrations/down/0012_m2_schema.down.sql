@@ -1,6 +1,7 @@
 -- Revert of 0012_m2_schema.sql (ticket 29). destructive-approved: drops the three M2 tables and six columns this migration added, removes the pause and handback timers (projections that the ticket history can rebuild), and puts the two narrower CHECK constraints back.
 -- backup: snapshot first (RDS: aws rds create-db-snapshot; elsewhere pg_dump -Fc). Dropping `roster_entry`, `escalation_rule` and `notification` deletes the duty roster, the ladder and every recorded message; dropping `breakdown_report.handover_person_id` loses the person a report was handed to (the typed `handover_name` of imported history stays).
 BEGIN;
+SET LOCAL lock_timeout = '5s';
 -- erase_person goes back to 0009's version (it finds a signature by the typed name only).
 CREATE OR REPLACE FUNCTION erase_person(p_tenant_id uuid, p_person_id uuid, p_request_ref text, p_operator text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$

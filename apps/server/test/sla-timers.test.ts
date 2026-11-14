@@ -558,16 +558,32 @@ describe('SLA ticket integration', () => {
     });
     expect(raised.statusCode, raised.body).toBe(201);
     const id = raised.json().ticket.id as string;
+    const timers = async () =>
+      (
+        await admin.query(
+          `SELECT s.kind, s.revision, s.due_at, t.reported_at, t.severity
+             FROM sla_timer s JOIN ticket t ON t.id = s.ticket_id WHERE s.ticket_id = $1 ORDER BY s.kind`,
+          [id],
+        )
+      ).rows;
+    const before = await timers();
+    expect(before.map((row) => row.severity)).toEqual(['S1', 'S1']);
     const changed = await put(`/api/v1/machines/${CRITICALITY_MACHINE}/criticality`, adminToken, {
       criticality: 'C',
     });
     expect(changed.statusCode).toBe(200);
-    const ticket = await admin.query('SELECT severity FROM ticket WHERE id = $1', [id]);
-    expect(ticket.rows[0].severity).toBe('S3');
-    const timers = await admin.query('SELECT kind, revision FROM sla_timer WHERE ticket_id = $1', [
-      id,
-    ]);
-    expect(timers.rows.length).toBe(2);
+    const after = await timers();
+    // Criticality C makes this S3: the clocks are armed again from the report time with the S3 minutes.
+    const minutesOf = { ack: 120, restore: 480 } as const;
+    expect(after).toHaveLength(2);
+    for (const row of after) {
+      expect(row.severity).toBe('S3');
+      const earlier = before.find((b) => b.kind === row.kind);
+      expect(row.revision, row.kind).toBeGreaterThan(earlier.revision);
+      expect(new Date(row.due_at).getTime(), row.kind).toBe(
+        new Date(row.reported_at).getTime() + minutesOf[row.kind as 'ack' | 'restore'] * 60_000,
+      );
+    }
   });
 
   it('reads SLA history after the ticket lock when a command commits concurrently', async () => {

@@ -129,6 +129,17 @@ async function reportValues(client: PoolClient, input: ReportStoreInput): Promis
   };
 }
 
+/** What replies call the handover: the linked person's name as the person row says it now, else the typed text. */
+async function handoverDisplay(
+  client: PoolClient,
+  tenantId: string,
+  values: { handoverPersonId: string | null; handoverName: string | null },
+): Promise<string | null> {
+  if (!values.handoverPersonId) return values.handoverName;
+  const person = (await peopleByIds(client, tenantId, [values.handoverPersonId]))[0];
+  return person?.name ?? null;
+}
+
 function handoverIds(body: BreakdownReportBody): string[] {
   return body.handoverPersonId ? [body.handoverPersonId] : [];
 }
@@ -209,6 +220,9 @@ export async function storeBreakdownReport(
   await assertPeople(client, input.tenantId, done, 'doneByPersonIds');
   await assertPeople(client, input.tenantId, supported, 'supportedByPersonIds');
 
+  if (input.body.handoverPersonId && input.body.handoverName) {
+    throw new ReportValidationError('handoverName');
+  }
   await assertPeople(client, input.tenantId, handoverIds(input.body), 'handoverPersonId');
   const values = await reportValues(client, input);
   const result = await client.query(INSERT_REPORT_SQL, [
@@ -252,7 +266,7 @@ export async function storeBreakdownReport(
       maint_code: values.maintCode,
       spare_used: values.spareUsed,
       root_cause: values.rootCause,
-      handover_name: values.handoverName,
+      handover_name: await handoverDisplay(client, input.tenantId, values),
       handover_person_id: values.handoverPersonId,
       submitted_by_person_id: input.actingPersonId,
       submitted_at: result.rows[0].submitted_at,
@@ -285,10 +299,12 @@ export async function loadReport(
 ): Promise<StoredReport | null> {
   const row = (
     await client.query(
-      `SELECT id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
-         corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
-         spare_used, root_cause, handover_name, handover_person_id, submitted_by_person_id, submitted_at
-       FROM breakdown_report WHERE ticket_id = $1`,
+      `SELECT r.id, r.ticket_id, r.machine_id, r.date::text AS date, r.shift_code, r.problem, r.observed_by,
+         r.corrective_action, r.downtime_min, r.response_min, r.repair_min, r.breakdown_category, r.maint_code,
+         r.spare_used, r.root_cause, COALESCE(hp.name, r.handover_name) AS handover_name,
+         r.handover_person_id, r.submitted_by_person_id, r.submitted_at
+       FROM breakdown_report r LEFT JOIN person hp ON hp.id = r.handover_person_id
+       WHERE r.ticket_id = $1`,
       [ticketId],
     )
   ).rows[0];

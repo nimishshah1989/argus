@@ -17,7 +17,9 @@ import {
   groupSegment,
   insertMove,
   latestMoveDate,
+  hasOtherActiveShift,
   segmentHasLiveMachines,
+  segmentIsOn,
   type Row,
   type Scope,
   type SettingsTable,
@@ -135,8 +137,19 @@ async function checkMoveDate(tx: Db, edit: Proposed): Promise<Problem | null> {
   return null;
 }
 
+const SEGMENT_OFF: Problem = { field: 'segmentId', message: 'That segment is switched off' };
+
+/** A machine is put in service in a segment (made, moved there, or switched back on) only while it is switched on. */
+async function checkSegmentOn(tx: Db, m: Reply, edit?: Proposed): Promise<Problem | null> {
+  const segmentId = m.segmentId as string | null | undefined;
+  if (!segmentId || m.status === 'scrapped') return null;
+  const switchedOn = edit?.patch.status !== undefined && edit.before.status === 'scrapped';
+  const entering = !edit || 'segmentId' in edit.patch || switchedOn;
+  return entering && !(await segmentIsOn(tx, segmentId)) ? SEGMENT_OFF : null;
+}
+
 async function checkMachine(tx: PoolClient, m: Reply, edit?: Proposed): Promise<Problem | null> {
-  const links = await checkLinks(tx, m, edit?.patch);
+  const links = (await checkLinks(tx, m, edit?.patch)) ?? (await checkSegmentOn(tx, m, edit));
   if (links || !edit) return links;
   if (edit.patch.status === 'scrapped' && edit.before.status !== 'scrapped') {
     const blocker = await machineSwitchOffBlocker(tx, edit.tenantId, edit.before.id as string);
@@ -253,10 +266,14 @@ const groups: Resource = {
   }),
   fixed: ['code', 'segmentId'],
   switchTo: (active) => ({ hidden: !active }),
-  check: async (tx, g) =>
-    (await exists(tx, 'segment', g.segmentId as string))
-      ? null
-      : { field: 'segmentId', message: 'Unknown segment' },
+  check: async (tx, g, edit) => {
+    const segmentId = g.segmentId as string;
+    if (!(await exists(tx, 'segment', segmentId))) {
+      return { field: 'segmentId', message: 'Unknown segment' };
+    }
+    const entering = !edit || edit.patch.hidden === false;
+    return entering && !(await segmentIsOn(tx, segmentId)) ? SEGMENT_OFF : null;
+  },
 };
 
 const shifts: Resource = {
@@ -284,10 +301,19 @@ const shifts: Resource = {
   }),
   fixed: ['code'],
   switchTo: (active) => ({ active }),
-  check: async (_tx, s) =>
-    s.startsAt === s.endsAt
-      ? { field: 'endsAt', message: 'A shift cannot end when it starts' }
-      : null,
+  check: async (tx, s, edit) => {
+    if (s.startsAt === s.endsAt) {
+      return { field: 'endsAt', message: 'A shift cannot end when it starts' };
+    }
+    if (edit?.patch.active !== false || edit.before.active === false) return null;
+    return (await hasOtherActiveShift(tx, edit.before.id as string))
+      ? null
+      : {
+          field: 'active',
+          message: 'A plant keeps at least one shift switched on',
+          conflict: true,
+        };
+  },
   derive: (s) => ({ crosses_midnight: (s.endsAt as string) < (s.startsAt as string) }),
 };
 

@@ -115,6 +115,10 @@ afterAll(async () => {
 });
 
 describe('applying it to the real plant', () => {
+  it('gives up after 5 seconds of waiting for a lock, in both directions, so a stuck deploy fails', () => {
+    for (const sql of [UP, DOWN]) expect(sql).toMatch(/SET LOCAL lock_timeout = '5s'/);
+  });
+
   it('changes no row of the 275 real tickets or anything else the plant holds', async () => {
     expect(Number(before.ticket?.split(':')[0])).toBe(275);
     await db.admin.query(UP);

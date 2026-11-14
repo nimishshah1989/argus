@@ -306,11 +306,11 @@ describe('breakdown report PDF', () => {
     }
   });
 
-  it('names the person the report is handed over to, and falls back on the typed text of imported history', () => {
-    expect(renderReportHtml({ ...qrFixture(), handoverTo: 'Bina' })).toContain('Bina');
-    const typed = renderReportHtml(qrFixture());
-    expect(typed).toContain('Handover to');
-    expect(typed).toContain('Next shift');
+  it('prints the handover as the report names it: a person’s name, or the typed text of imported history', () => {
+    expect(
+      renderReportHtml({ ...qrFixture(), report: { ...qrFixture().report, handoverName: 'Bina' } }),
+    ).toContain('Bina');
+    expect(renderReportHtml(qrFixture())).toContain('Next shift');
   });
 
   it('builds the v1 QR payload and embeds the QR in the template', async () => {

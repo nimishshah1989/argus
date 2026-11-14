@@ -326,6 +326,54 @@ describe('the one contract the generated screen uses (PUT, active, strings)', ()
     });
   });
 
+  it('keeps machines and groups out of a segment that is switched off', async () => {
+    const made = await f.call('POST', '/api/v1/segments', head(), {
+      code: 'CLOSED',
+      name: 'Closed',
+    });
+    const closed = made.json().id as string;
+    expect(
+      (await f.call('PUT', `/api/v1/segments/${closed}`, head(), { active: false })).statusCode,
+    ).toBe(200);
+
+    const create = await f.call('POST', '/api/v1/machines', head(), {
+      code: 'NEW-1',
+      segmentId: closed,
+    });
+    expect(create.statusCode).toBe(422);
+    expect(create.json().error.field).toBe('segmentId');
+    const move = await f.call('PUT', `/api/v1/machines/${M_FREE}`, head(), { segmentId: closed });
+    expect(move.statusCode).toBe(422);
+    const group = await f.call('POST', '/api/v1/groups', head(), {
+      segmentId: closed,
+      code: 'G-OFF',
+      name: 'Off',
+    });
+    expect(group.statusCode).toBe(422);
+
+    // A scrapped machine of that segment cannot be put back in service while the segment is off.
+    await f.call('PUT', `/api/v1/segments/${closed}`, head(), { active: true });
+    const scrapped = await f.call('POST', '/api/v1/machines', head(), {
+      code: 'OLD-1',
+      segmentId: closed,
+      status: 'scrapped',
+    });
+    expect(scrapped.statusCode).toBe(201);
+    await f.call('PUT', `/api/v1/segments/${closed}`, head(), { active: false });
+    const back = await f.call('PUT', `/api/v1/machines/${scrapped.json().id}`, head(), {
+      active: true,
+    });
+    expect(back.statusCode).toBe(422);
+    expect(back.json().error.field).toBe('segmentId');
+
+    // Back on, the segment takes them again.
+    await f.call('PUT', `/api/v1/segments/${closed}`, head(), { active: true });
+    expect(
+      (await f.call('POST', '/api/v1/machines', head(), { code: 'NEW-2', segmentId: closed }))
+        .statusCode,
+    ).toBe(201);
+  });
+
   it('switches a glossary term off and on', async () => {
     const off = await f.call('PUT', `/api/v1/settings/glossary/${TERM_A}`, head(), {
       active: false,

@@ -54,6 +54,20 @@ export async function segmentHasLiveMachines(tx: Db, segmentId: string): Promise
   );
 }
 
+/** Whether the segment is switched on (an unknown id counts as on: unknown ids are refused elsewhere). */
+export async function segmentIsOn(tx: Db, segmentId: string): Promise<boolean> {
+  const row = (await tx.query('SELECT active FROM segment WHERE id = $1', [segmentId])).rows[0];
+  return row ? row.active === true : true;
+}
+
+/** Whether any shift other than this one is still switched on (a plant always keeps one). */
+export async function hasOtherActiveShift(tx: Db, shiftId: string): Promise<boolean> {
+  return (
+    ((await tx.query('SELECT 1 FROM shift WHERE active AND id <> $1 LIMIT 1', [shiftId]))
+      .rowCount ?? 0) > 0
+  );
+}
+
 export async function insertRow(
   tx: Db,
   table: SettingsTable,

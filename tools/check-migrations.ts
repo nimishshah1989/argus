@@ -160,33 +160,61 @@ export function guardedStatements(sql: string): Finding[] {
   return found.sort((a, b) => a.line - b.line);
 }
 
-/** True when the leading comment block carries both `-- approved-by:` and `-- backup:` with text. */
-export function hasApproval(sql: string): boolean {
+/** Which of the named keys (`-- backup: ...`) the leading comment block carries with text after them. */
+function headerKeys(sql: string, keys: readonly string[]): boolean {
   const header: string[] = [];
   for (const line of sql.split('\n')) {
     const t = line.trim();
     if (t !== '' && !t.startsWith('--')) break;
     header.push(t);
   }
-  const has = (key: string): boolean =>
-    header.some((t) => new RegExp(String.raw`^--\s*${key}:\s*\S`, 'i').test(t));
-  return has('approved-by') && has('backup');
+  return keys.every((key) =>
+    header.some((t) => new RegExp(String.raw`^--\s*${key}:\s*\S`, 'i').test(t)),
+  );
 }
 
-/** One message per unapproved finding, skipping EXCEPTIONS by file name. */
-export function scanMigrations(dir: string = DIR): string[] {
+/** True when the leading comment block carries both `-- approved-by:` and `-- backup:` with text. */
+export function hasApproval(sql: string): boolean {
+  return headerKeys(sql, ['approved-by', 'backup']);
+}
+
+/** A revert file is approved by the migration it undoes; it needs only the backup it must be run after. */
+export function hasBackup(sql: string): boolean {
+  return headerKeys(sql, ['backup']);
+}
+
+/** One message per guarded statement in the .sql files of `dir` whose header lacks what `approved` asks for. */
+function scanFiles(
+  dir: string,
+  label: string,
+  skip: ReadonlySet<string>,
+  rule: { approved: (sql: string) => boolean; needs: string },
+): string[] {
   if (!existsSync(dir)) return [];
-  const skip = new Set(EXCEPTIONS.map((e) => e.file));
   const messages: string[] = [];
   for (const name of readdirSync(dir).filter((n) => n.endsWith('.sql') && !skip.has(n))) {
     const sql = readFileSync(join(dir, name), 'utf8');
-    if (hasApproval(sql)) continue;
+    if (rule.approved(sql)) continue;
     for (const f of guardedStatements(sql))
       messages.push(
-        `migrations: ${name}:${f.line}: ${f.rule} needs '-- approved-by:' and '-- backup:' in the file header`,
+        `migrations: ${label}${name}:${f.line}: ${f.rule} needs ${rule.needs} in the file header`,
       );
   }
   return messages;
+}
+
+/** One message per unapproved finding, skipping EXCEPTIONS by file name; revert files in `down/` need a backup line. */
+export function scanMigrations(dir: string = DIR): string[] {
+  return [
+    ...scanFiles(dir, '', new Set(EXCEPTIONS.map((e) => e.file)), {
+      approved: hasApproval,
+      needs: "'-- approved-by:' and '-- backup:'",
+    }),
+    ...scanFiles(join(dir, 'down'), 'down/', new Set(), {
+      approved: hasBackup,
+      needs: "'-- backup:'",
+    }),
+  ];
 }
 
 function main(): void {

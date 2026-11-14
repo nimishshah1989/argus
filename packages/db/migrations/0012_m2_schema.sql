@@ -7,6 +7,9 @@
 
 BEGIN;
 
+-- A stuck deploy must fail, not queue behind a long transaction and block the app behind it.
+SET LOCAL lock_timeout = '5s';
+
 -- Composite keys for the tenant-safe links below (the pattern of 0001): a row can only point at a row of its own plant.
 ALTER TABLE shift ADD CONSTRAINT shift_tenant_id_unique UNIQUE (tenant_id, id);
 -- (An event is only ever named together with its ticket, so a notification cannot cite another ticket's event.)

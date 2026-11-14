@@ -268,17 +268,39 @@ describe('breakdown report', () => {
     expect(detail.json().report).toBeNull();
   });
 
-  it('records who the report is handed over to as a person, with no typed copy of the name', async () => {
+  it('records the handover as a person link, and replies show that person’s name as the handover', async () => {
     const id = await raiseAndStart(M1);
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { handoverPersonId: BINA, handoverName: 'typed as well' },
+      report: { handoverPersonId: BINA },
     });
     expect(close.statusCode).toBe(200);
     const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
     expect(stored.handoverPersonId).toBe(BINA);
-    expect(stored.handoverName).toBeNull();
+    expect(stored.handoverName).toBe('Bina');
+    const typed = await admin.query(
+      'SELECT handover_name FROM breakdown_report WHERE ticket_id = $1',
+      [id],
+    );
+    expect(typed.rows[0].handover_name).toBeNull();
+    // The name follows the person row: after an erasure it reads "Former staff".
+    await admin.query("UPDATE person SET name = 'Former staff' WHERE id = $1", [BINA]);
+    const erased = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(erased.handoverName).toBe('Former staff');
+    expect(erased.handoverPersonId).toBe(BINA);
+    await admin.query("UPDATE person SET name = 'Bina' WHERE id = $1", [BINA]);
+  });
+
+  it('refuses a handover given both as a person and as typed text', async () => {
+    const id = await raiseAndStart(M5);
+    const both = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: BINA, handoverName: 'typed as well' },
+    });
+    expect(both.statusCode).toBe(422);
+    expect(both.json().error.field).toBe('handoverName');
   });
 
   it('keeps a typed handover as text when no person is given, as imported history has it', async () => {
