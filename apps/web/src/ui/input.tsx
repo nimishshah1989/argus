@@ -5,7 +5,7 @@ type Bare<T extends 'input' | 'label'> = Omit<ComponentProps<T>, 'className' | '
 export function Input(props: Bare<'input'>) {
   return (
     <input
-      className="min-h-target w-full rounded-lg border border-neutral-300 bg-surface px-3 text-body"
+      className="min-h-target w-full rounded-lg border border-control bg-surface px-3 text-body"
       {...props}
     />
   );

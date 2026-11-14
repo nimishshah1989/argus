@@ -76,6 +76,7 @@ export default function Gallery() {
   const [params] = useSearchParams();
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
   const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
+  const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
 
   useEffect(() => {
     void setLanguage(lang);
@@ -85,10 +86,15 @@ export default function Gallery() {
     if (accent === 'blue') document.documentElement.dataset.accent = 'blue';
     else delete document.documentElement.dataset.accent;
   }, [accent]);
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+  }, [theme]);
   useEffect(
     () => () => {
       document.documentElement.lang = 'en';
       delete document.documentElement.dataset.accent;
+      delete document.documentElement.dataset.theme;
       void setLanguage('en');
     },
     [],
@@ -113,6 +119,15 @@ export default function Gallery() {
           options={[
             { value: 'teal', label: t('accent.teal') },
             { value: 'blue', label: t('accent.blue') },
+          ]}
+        />
+        <Switcher
+          label={t('theme')}
+          param="theme"
+          current={theme}
+          options={[
+            { value: 'light', label: t('theme.light') },
+            { value: 'dark', label: t('theme.dark') },
           ]}
         />
         {lang === 'gu' ? <GuNote /> : null}
