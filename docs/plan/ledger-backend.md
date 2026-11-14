@@ -212,3 +212,6 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   (a) erased person stays erased on re-import: HMAC(server secret, normalised name+phone) record, never the name
   (FRONTEND ruling; Q13 to Nimish); (b) push_subscription.session_id so signing out a device drops its push (next
   migration); (c) zod 4 migration to lift the single audit exception (D28).
+- 07:20 UTC #227 api(1/3) red: import-real erase test is order-dependent (LIMIT 1 without ORDER BY; the fingerprint
+  now tolerates erased envelopes, so undo refuses only when a fingerprinted ticket column changed). Sent builder 21
+  one fix round: deterministic person + a second case (named only in raw rows → undo succeeds). No job rerun.
