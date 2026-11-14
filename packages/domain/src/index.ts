@@ -33,3 +33,4 @@ export {
   type EscalationTrigger,
 } from './escalation.js';
 export { passwordProblem, type PasswordProblem } from './password-rules.js';
+export * from './analytics/index.js';
