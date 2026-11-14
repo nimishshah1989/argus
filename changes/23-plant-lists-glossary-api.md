@@ -1,0 +1,4 @@
+- The server now has what the generated settings screens need for every list (wait reasons and their flags, work types, quick problems, and the rest) and for the glossary: list, add, edit, switch off and on. Nothing is ever deleted. Only a head or admin can change them, and one plant never sees another's.
+- Machines, segments, groups and shifts now use the same shape: one edit call also switches a row off or on, as the settings page sends it. A segment's switch is "shown on the board", a group's is "not hidden". Shifts and glossary terms cannot be switched off yet (a refusal says so).
+- Every change to the feature switches and the AI cap is now recorded with who made it and the value before and after.
+- Logos and other stored images can be fetched by a signed-in person of the same plant only; another plant's file answers "not found". Stored PDFs are not served: ticket PDFs are made on request.

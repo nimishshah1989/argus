@@ -137,7 +137,9 @@ describe("Cosmos's real lists and glossary through the settings API", () => {
     });
     const legacy = (await call('GET', '/api/v1/lists/wait_reason')).json();
     expect(legacy.find((w: { id: string }) => w.id === target.id).active).toBe(false);
-    const on = await call('PUT', `/api/v1/settings/lists/wait_reason/${target.id}`, { active: true });
+    const on = await call('PUT', `/api/v1/settings/lists/wait_reason/${target.id}`, {
+      active: true,
+    });
     expect(on.json().active).toBe(true);
   });
 
