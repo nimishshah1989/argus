@@ -165,9 +165,11 @@ describe('the day report on the real shifts', () => {
   });
 
   it('follows a change to a shift in the settings', async () => {
-    const shifts = (await get('/api/v1/shifts')).json() as Array<{ id: string; code: string }>;
+    const { items: shifts } = (await get('/api/v1/shifts')).json() as {
+      items: Array<{ id: string; code: string }>;
+    };
     const patched = await app.inject({
-      method: 'PATCH',
+      method: 'PUT',
       url: `/api/v1/shifts/${shifts.find((s) => s.code === '1')!.id}`,
       headers: {
         host: 'cosmos.localhost',

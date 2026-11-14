@@ -1,0 +1,1 @@
+- No change for plant users. The pstack skills now find their Claude Code adapter page, which they tell every agent to read first.
