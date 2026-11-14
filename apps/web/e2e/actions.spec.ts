@@ -207,11 +207,11 @@ test('E2 shows the quick action on the desk card', async ({ page }) => {
 
 test('E3 offers Cancel on My complaints exactly when the server would', async ({ page }) => {
   await signIn(page, 'op');
+  // Ticket 15: My complaints is the floor's second tab; a card names its ticket number in text.
+  await page.getByRole('navigation').getByRole('link', { name: 'My complaints' }).click();
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
   const card = (name: Name) =>
-    page
-      .getByRole('listitem')
-      .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
+    page.getByRole('listitem').filter({ hasText: new RegExp(`${seeded[name].ref}(?!\\d)`) });
   await expect(card('open').getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
   await expect(card('cancelled')).toBeVisible();
   await expect(card('cancelled').getByRole('button', { name: 'Cancel' })).toHaveCount(0);
