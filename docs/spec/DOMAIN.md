@@ -182,21 +182,13 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 
 ## 5. Derived figures: exact definitions
 
-<<<<<<< HEAD
-These reproduce Bhavin's figures, so his stored values and ours agree to the minute on import. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last. All in whole minutes at server time. **Rounding:** v3 floors elapsed minutes in most places and rounds in one (`downAt()` in the close screen); **decided 13 Nov (Nimish): new tickets follow Bhavin's `worker.js` rules exactly** (wall-clock repair, his support/general downtime rule as changed around 6 Nov, his rounding); ticket 16 goal 3 makes `figures()` match his worker on every real ticket. Until then the old floor rules stand.
-=======
 New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026), so a ticket raised on Uptimo and one raised on his app show the same minutes. His stored numbers on imported tickets are kept as recorded and never recomputed (ticket 09); `figures.drift` skips them. The proof is `apps/server/test/figures-worker-parity.test.ts`: `figures()` is run on every ticket of the pseudonymised export and must equal the port of his arithmetic in `imports/real-oracle.ts`. Everything is computed by one pure function `figures(events, segments, overrides, now)` from the event log and the work segments, then cached on the ticket; overrides (set by an admin correction or by a past-breakdown record) are applied last.
 
 **Rounding:** every elapsed time is rounded to the nearest whole minute, never below zero (his `mins()`, `Math.round`). No figure has a one-minute floor.
 
 **Finished stretches only:** hands-on, waiting, handover wait and `down_acc` hold stretches that have ended. A stretch still open (working, paused, transferred, machine down) is shown live from its start time and is added to the figure when it ends or at the close, as `worker.js` does.
 
-<<<<<<< HEAD
-**Cancel and restore follow his app (Nimish's ruling that new tickets follow `worker.js`; the orchestrator is putting the question itself to him):** a cancel and a restore touch no waiting, handover or downtime stretch, so the cancelled gap counts in those figures (BD-0077: 366 minutes of downtime). This is questionable, because a ticket cancelled for a day keeps counting. Hands-on is still the lead's finished segments, and a cancel ends the open one (DOMAIN §2).
->>>>>>> origin/main
-=======
 **Cancel and restore: cancelled time is not counted (Nimish, 14 Nov 2026; differs from Bhavin's `worker.js`).** The time between a `cancel` and its `restore` is not waiting, handover wait, downtime, repair or follow-up, so a ticket cancelled for a day does not keep counting (his app counts it: BD-0077 holds 366 minutes of downtime and of repair, ours 114). Hands-on is still the lead's finished segments, and a cancel ends the open one (DOMAIN §2). Repair is the wall clock from the first start to the close (or to the last `running`) less the cancelled time; follow-up likewise. The worker parity test lists BD-0077 as the explained difference.
->>>>>>> origin/main
 
 | Figure | Definition | Bhavin's field |
 | --- | --- | --- |
