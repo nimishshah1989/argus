@@ -118,6 +118,13 @@ describe('a call that is not let in', () => {
     expect(await trail(grant)).toEqual([]);
   });
 
+  it('answers 401 for a key shorter than 32 random bytes, even one that is on the list', async () => {
+    const grant = await t.approve(admin, { platformUser: 'dev-short' });
+    const res = await t.support(t.keys.short, grant.id, read);
+    expect(res.statusCode).toBe(401);
+    expect(await trail(grant)).toEqual([]);
+  });
+
   it('answers 401 on a host that names no customer, or one we do not know', async () => {
     const grant = await t.approve(admin);
     for (const host of ['localhost', 'nobody.localhost']) {
@@ -353,6 +360,50 @@ describe('the trail the customer sees', () => {
       cursor = page.nextCursor;
     } while (cursor);
     expect(paged).toEqual(all);
+  });
+
+  // No route shows the plant's own audit lines yet (the audit screen is a later milestone), so this one test
+  // reads them where they are kept, as people-api.test.ts does.
+  it('marks a change made under the grant as such, never as the work of the admin who approved it', async () => {
+    const grant = await t.approve(admin);
+    const features = (general: boolean) => ({
+      method: 'PUT' as const,
+      url: FEATURES,
+      payload: { value: { general, pause: false } },
+    });
+    const policies = ['S1', 'S2', 'S3', 'S4'].map((severity, i) => ({
+      severity,
+      ackMinutes: 5 + i,
+      restoreMinutes: 60,
+      businessHoursOnly: false,
+    }));
+    const byStaff: Omit<Send, 'token' | 'grant'>[] = [
+      features(false),
+      {
+        method: 'POST',
+        url: '/api/v1/settings/lists/wait_reason',
+        payload: { code: 'by-staff', label: 'Added by support' },
+      },
+      { method: 'PUT', url: '/api/v1/settings/sla-policies', payload: { policies } },
+    ];
+    for (const call of byStaff) {
+      const res = await t.support(one, grant.id, call);
+      expect(res.statusCode, res.body).toBeLessThan(300);
+    }
+    expect((await t.send({ ...features(true), token: admin })).statusCode).toBe(200);
+    const { rows } = await t.db.admin.query(
+      `SELECT a.action, a.login_id IS NOT NULL AS names_a_login, a.platform_access_id AS grant_id
+       FROM audit_log a JOIN platform_access g ON g.id = $1
+       WHERE a.tenant_id = g.tenant_id AND a.created_at > g.created_at AND a.action NOT LIKE 'support%'
+       ORDER BY a.created_at, a.id`,
+      [grant.id],
+    );
+    expect(rows).toEqual([
+      { action: 'setting.update', names_a_login: false, grant_id: grant.id },
+      { action: expect.stringMatching(/\.create$/), names_a_login: false, grant_id: grant.id },
+      { action: 'sla_policy.update', names_a_login: false, grant_id: grant.id },
+      { action: 'setting.update', names_a_login: true, grant_id: null },
+    ]);
   });
 });
 

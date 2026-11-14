@@ -35,8 +35,8 @@ export interface Grant {
 }
 
 export interface SupportApp extends PeopleApp {
-  /** The keys of our two invented staff, `dev-one` and `dev-two`. */
-  keys: { one: string; two: string };
+  /** The keys of our invented staff `dev-one` and `dev-two`, and of `dev-short`, whose key is too short to issue. */
+  keys: { one: string; two: string; short: string };
   /** Every line the server logged. */
   logged: string[];
   send: (call: Send) => Promise<Res>;
@@ -51,12 +51,13 @@ export interface SupportApp extends PeopleApp {
 export const GRANT = { platformUser: 'dev-one', reason: 'Look at a wrong day report', days: 3 };
 
 export async function startSupportApp(): Promise<SupportApp> {
-  const keys = { one: newKey(), two: newKey() };
+  const keys = { one: newKey(), two: newKey(), short: randomBytes(16).toString('base64url') };
   const logged: string[] = [];
   const t = await startPeopleApp({
     supportKeys: new Map([
       ['dev-one', keyHash(keys.one)],
       ['dev-two', keyHash(keys.two)],
+      ['dev-short', keyHash(keys.short)],
     ]),
     logger: loggerOptions({ write: (line) => logged.push(line) }),
   });
