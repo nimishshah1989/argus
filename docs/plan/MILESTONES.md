@@ -32,7 +32,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 13  | Staging live                                      | M0        | done        | #146             |
 | 14  | Staging holds Cosmos, safe to run                 | M0        | in progress | #176 (code merged; AWS steps, load and restore drill pending) |
 | 15  | Report a breakdown (floor)                        | M1        | in progress | #179, #196, #205; Online pill follow-up |
-| 16  | Desk lists and ticket detail                      | M1        | in progress | #181, #194; #201 open |
+| 16  | Desk lists and ticket detail                      | M1        | in progress | #181, #194, #201, #203 |
 | 17  | Work the ticket                                   | M1        | done        | #185             |
 | 18  | Close, report, PDFs                               | M1        | in progress | goal 1 desk builder (after #201); goal 2 PDFs asked of backend lane |
 | 19  | Follow-up tasks                                   | M1        | todo        | —                |
