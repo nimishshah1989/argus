@@ -72,7 +72,7 @@ const TENANT_FIELD = { name: 'name', language: 'language', timeZone: 'time_zone'
 /** Writes one setting and audits the change (not an unchanged value): to `setting`, or to the plant's own record. */
 async function writeSetting(
   client: PoolClient,
-  ctx: { tenantId: string; loginId: string },
+  ctx: { tenantId: string; loginId: string; supportGrantId?: string | null },
   change: { key: string; setting: NonNullable<ReturnType<typeof writableSetting>>; value: unknown },
 ): Promise<void> {
   const { key, setting, value } = change;
@@ -88,6 +88,7 @@ async function writeSetting(
   await audit.record(client, {
     tenantId: ctx.tenantId,
     loginId: ctx.loginId,
+    supportGrantId: ctx.supportGrantId,
     action: 'setting.update',
     entity: 'setting',
     before: { key, value: before ?? null },

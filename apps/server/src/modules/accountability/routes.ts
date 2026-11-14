@@ -41,6 +41,7 @@ async function upsertSlaPolicies(
   input: {
     tenantId: string;
     loginId: string;
+    supportGrantId?: string | null;
     before: Record<string, unknown>[];
     policies: Array<{
       severity: string;
@@ -50,11 +51,12 @@ async function upsertSlaPolicies(
     }>;
   },
 ): Promise<void> {
-  const { tenantId, loginId, before, policies } = input;
+  const { tenantId, loginId, supportGrantId, before, policies } = input;
   for (const policy of policies) await upsertPolicy(client, tenantId, policy);
   await audit.record(client, {
     tenantId,
     loginId,
+    supportGrantId,
     action: 'sla_policy.update',
     entity: 'sla_policy',
     before,
@@ -96,6 +98,7 @@ async function putSlaPolicies(
     await upsertSlaPolicies(client, {
       tenantId: ctx.tenantId,
       loginId: ctx.loginId,
+      supportGrantId: ctx.supportGrantId,
       before,
       policies,
     });

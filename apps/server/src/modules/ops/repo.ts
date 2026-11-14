@@ -8,14 +8,21 @@ export interface AuditEntry {
   entityId?: string | null;
   before: unknown;
   after: unknown;
+  /**
+   * Pass the caller's `supportGrantId`. When our own staff made the change under a grant (D27) the line names
+   * the grant and no login: the login such a caller carries is the admin who approved the grant, not who acted.
+   */
+  supportGrantId?: string | null;
 }
 
 export async function recordAudit(tx: Pick<PoolClient, 'query'>, entry: AuditEntry): Promise<void> {
+  const grant = entry.supportGrantId ?? null;
   await tx.query(
-    'INSERT INTO audit_log (tenant_id, login_id, action, entity, entity_id, before, after) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    'INSERT INTO audit_log (tenant_id, login_id, platform_access_id, action, entity, entity_id, before, after) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
     [
       entry.tenantId,
-      entry.loginId,
+      grant ? null : entry.loginId,
+      grant,
       entry.action,
       entry.entity,
       entry.entityId ?? null,
