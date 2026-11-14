@@ -3,20 +3,24 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '../../kernel/index.js';
 import { isPushEndpoint } from './endpoint.js';
 import { pushPayload } from './kinds.js';
-import { queueSend } from './notify.js';
+import { queueSends } from './notify.js';
 import { sendPush, type PushResult } from './push.js';
 import {
   deleteSubscription,
-  lockDueNotification,
+  lockPendingNotification,
   recordOutcome,
   subscriptionsOfPerson,
-  type DueNotification,
+  type PendingNotification,
   type Outcome,
 } from './repo.js';
 
 /** Five tries in all, then the row is dead and the admin can see it. */
 export const MAX_ATTEMPTS = 5;
+/** A push test is one try: the person pressing the button is watching, so a retry an hour later is noise. */
+const TEST_ATTEMPTS = 1;
 const FIRST_WAIT_MS = 60_000;
+/** A job that wakes before the app's clock says the row is due waits at least this long before looking again. */
+const RECHECK_MS = 1_000;
 const GROWTH = 4;
 
 /** Wait after failed try number `attempt` (1-based): 1, 4, 16 then 64 minutes. */
@@ -39,9 +43,10 @@ export interface SendResult {
 
 type Attempt = { outcome: Outcome; delivered: number };
 
-function failure(row: DueNotification, code: string, now: Date, retryable: boolean): Outcome {
+function failure(row: PendingNotification, code: string, now: Date, retryable: boolean): Outcome {
   const attempts = row.attempts + 1;
-  if (!retryable || attempts >= MAX_ATTEMPTS) return { status: 'dead', attempts, lastError: code };
+  const allowed = row.kind === 'push.test' ? TEST_ATTEMPTS : MAX_ATTEMPTS;
+  if (!retryable || attempts >= allowed) return { status: 'dead', attempts, lastError: code };
   return {
     status: 'pending',
     attempts,
@@ -54,7 +59,7 @@ function failure(row: DueNotification, code: string, now: Date, retryable: boole
 async function attemptPush(
   tx: PoolClient,
   tenantId: string,
-  row: DueNotification,
+  row: PendingNotification,
   now: Date,
 ): Promise<Attempt> {
   const phones = (await subscriptionsOfPerson(tx, tenantId, row.personId)).filter((s) =>
@@ -78,9 +83,11 @@ async function attemptPush(
 }
 
 /**
- * One attempt at one notification, as the `notify.send` job runs it. Guarded: a row that is not pending, not
- * yet due, or being sent by someone else is left alone. The row, its retry job and any deleted expired phone
- * change in one transaction, so a crash leaves the row as it was and pg-boss tries the job again.
+ * One attempt at one notification, as the `notify.send` job runs it. Guarded: a row that is not pending, or is
+ * being sent by someone else, is left alone. A row not yet due by this clock (pg-boss wakes jobs by the
+ * database's clock, which may be a moment ahead) gets its job queued again, so it is never dropped. The row,
+ * its retry job and any deleted expired phone change in one transaction, so a crash leaves the row as it was
+ * and pg-boss tries the job again.
  */
 export async function processNotification(
   deps: SendDeps,
@@ -88,18 +95,29 @@ export async function processNotification(
 ): Promise<SendResult> {
   const { tenantId, notificationId } = job;
   return withTenant(deps.pool, tenantId, async (tx): Promise<SendResult> => {
-    const row = await lockDueNotification(tx, tenantId, notificationId, deps.now);
+    const row = await lockPendingNotification(tx, tenantId, notificationId);
     if (!row) return { outcome: 'skipped', delivered: 0 };
+    if (row.nextAttemptAt > deps.now) {
+      const wake = Math.max(row.nextAttemptAt.getTime(), deps.now.getTime() + RECHECK_MS);
+      if (deps.boss)
+        await queueSends(
+          tx,
+          deps.boss,
+          [{ tenantId, notificationId, attempt: row.attempts }],
+          new Date(wake),
+        );
+      return { outcome: 'skipped', delivered: 0 };
+    }
     const { outcome, delivered } =
       row.channel === 'push'
         ? await attemptPush(tx, tenantId, row, deps.now)
         : { outcome: failure(row, 'no_sender', deps.now, false), delivered: 0 };
     await recordOutcome(tx, { tenantId, id: notificationId, now: deps.now }, outcome);
     if (outcome.status === 'pending' && deps.boss)
-      await queueSend(
+      await queueSends(
         tx,
         deps.boss,
-        { tenantId, notificationId, attempt: outcome.attempts },
+        [{ tenantId, notificationId, attempt: outcome.attempts }],
         outcome.nextAttemptAt,
       );
     return { outcome: outcome.status === 'pending' ? 'retry' : outcome.status, delivered };

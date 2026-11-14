@@ -14,11 +14,13 @@ export { defineModule, type AppConfig, type ModuleDefinition } from './module.js
 export {
   configParts,
   contributeConfigPart,
+  contributeTicketListener,
   contributeTicketPart,
   ticketPartsAfterWrite,
   withTicketParts,
   type ConfigPart,
   type TicketPart,
+  type TicketListener,
   type TicketWrite,
 } from './reply-parts.js';
 export { fieldProblem, idOrNotFound, refuse, type Refusal } from './contract.js';
