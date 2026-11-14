@@ -1,0 +1,1 @@
+- Hiding a machine from the board and alerts is now a switch on its group, not a guess from the machine's name. Cosmos sees no change: the same machines show as before (none of its machines were hidden, because every machine already sits in a segment). A test now fails if a name list for hiding utility machines comes back into the code.

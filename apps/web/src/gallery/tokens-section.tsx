@@ -5,6 +5,10 @@ import { Grid, Inline, Stack } from '../ui/layout.js';
 const COLOURS = [
   'accent',
   'accent-strong',
+  'accent-text',
+  'accent-ink',
+  'accent-tint',
+  'control',
   'surface',
   ...[50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((n) => `neutral-${n}`),
   'danger',
@@ -14,6 +18,10 @@ const COLOURS = [
   'moved',
   'ok',
   'muted',
+  ...['danger', 'info', 'warning', 'hold', 'moved', 'ok', 'muted'].flatMap((tone) => [
+    `${tone}-ink`,
+    `${tone}-tint`,
+  ]),
 ];
 const TYPE = ['caption', 'footnote', 'body', 'title3', 'title2', 'title1'];
 const TYPE_CLASS: Record<string, string> = {
@@ -104,6 +112,9 @@ function ShapeCards() {
       <Card title={t('tokens.target')}>
         <span className="flex min-h-target items-center rounded-lg border border-neutral-300 px-3 text-footnote">
           {t('tokens.targetNote')}
+        </span>
+        <span className="flex min-h-target-min items-center rounded-lg border border-neutral-300 px-3 text-footnote">
+          {t('tokens.targetMinNote')}
         </span>
       </Card>
     </>

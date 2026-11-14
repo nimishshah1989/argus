@@ -1,4 +1,5 @@
 import type { PoolClient, QueryResult } from 'pg';
+import { personMinutes, type WorkSegment } from '@uptimo/domain';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -9,28 +10,40 @@ const JOBS_SQL = `WITH touched AS (
     UNION
     SELECT ticket_id FROM ticket_event
      WHERE tenant_id = $1 AND acting_person_id = $2 AND at >= $3 AND at < $4
-  ), minutes AS (
-    SELECT ticket_id,
-           SUM(EXTRACT(EPOCH FROM (LEAST(COALESCE(ended_at, $4), $4) - GREATEST(started_at, $3))) / 60)::int
-             AS mins
-      FROM work_segment
-     WHERE tenant_id = $1 AND person_id = $2 AND started_at < $4
-       AND COALESCE(ended_at, $4) > $3
-     GROUP BY ticket_id
   )
-  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.machine_snapshot, t.machine_id,
-         COALESCE(minutes.mins, 0) AS minutes
+  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.machine_snapshot, t.machine_id
     FROM touched
     JOIN ticket t ON t.id = touched.ticket_id AND t.tenant_id = $1
-    LEFT JOIN minutes ON minutes.ticket_id = t.id
    ORDER BY t.reported_at, t.ref`;
 
+const DAY_SEGMENTS_SQL = `SELECT ticket_id, person_id, role, started_at, ended_at FROM work_segment
+   WHERE tenant_id = $1 AND person_id = $2 AND started_at < $4 AND COALESCE(ended_at, $4) > $3`;
+
+/** The tickets a person touched in the window, each with that person's minutes inside it (the one domain function). */
 export async function dayJobRows(
   tx: Db,
   input: { tenantId: string; personId: string; start: Date; end: Date },
 ): Promise<QueryResult['rows']> {
   const { tenantId, personId, start, end } = input;
-  return (await tx.query(JOBS_SQL, [tenantId, personId, start, end])).rows;
+  const rows = (await tx.query(JOBS_SQL, [tenantId, personId, start, end])).rows;
+  const segments = (await tx.query(DAY_SEGMENTS_SQL, [tenantId, personId, start, end])).rows;
+  const now = new Date();
+  return rows.map((row) => ({
+    ...row,
+    minutes:
+      personMinutes(
+        segments
+          .filter((s) => s.ticket_id === row.id)
+          .map((s) => ({
+            personId: s.person_id as string,
+            role: s.role as WorkSegment['role'],
+            startedAt: new Date(s.started_at as string | number | Date),
+            ...(s.ended_at ? { endedAt: new Date(s.ended_at as string | number | Date) } : {}),
+          })),
+        now,
+        { start, end },
+      )[personId] ?? 0,
+  }));
 }
 
 const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id

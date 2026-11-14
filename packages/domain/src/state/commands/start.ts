@@ -1,6 +1,7 @@
 import type { WorkSegment } from '../../types.js';
 import { canWork } from '../../permissions.js';
-import { apply, clampAt, TransitionError } from '../helpers.js';
+import { apply, TransitionError } from '../helpers.js';
+import { clampFrom } from '../internal.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
 export function start(
@@ -21,7 +22,11 @@ export function start(
   ) {
     throw new TransitionError('Not allowed');
   }
-  const at = clampAt(command.at ?? input.ctx.now, input);
+  // back-dating stops at the report time, or at the transfer time when picking up (not at a later update)
+  const floor = input.ticket.handedOver
+    ? (input.ticket.handoverSince ?? input.ticket.reportedAt)
+    : input.ticket.reportedAt;
+  const at = clampFrom(command.at ?? input.ctx.now, floor, input);
   const ticket = {
     status: 'working' as const,
     startedAt: at,

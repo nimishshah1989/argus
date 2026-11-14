@@ -23,6 +23,12 @@ export function KitSection() {
           <Button data-testid="gallery-primary-sample">{t('sample.primary')}</Button>
           {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
           <Button variant="secondary">{t('sample.secondary')}</Button>
+          {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
+          <Button variant="tonal">{t('sample.tonal')}</Button>
+          {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
+          <Button variant="quiet">{t('sample.quiet')}</Button>
+          {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
+          <Button variant="quiet-danger">{t('sample.quietDanger')}</Button>
           <Stack gap={1}>
             <Label htmlFor="gallery-machine">{t('sample.label')}</Label>
             <Input id="gallery-machine" placeholder={t('sample.placeholder')} />

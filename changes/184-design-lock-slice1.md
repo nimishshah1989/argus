@@ -1,0 +1,1 @@
+- The approved slice 1 phone mockups are now the rule the floor and desk screens are built to: status chips use darker, readable text colours, there is a dark theme with its own accent, and the buttons gain the quiet tonal style Nimish chose. The lock page, 53 reference images and a "built like the mockup" check in the PR template are in the repo.

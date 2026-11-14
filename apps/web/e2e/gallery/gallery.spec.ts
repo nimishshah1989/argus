@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
-const SECTIONS = ['tokens', 'components', 'layout', 'status'] as const;
+const SECTIONS = ['tokens', 'components', 'layout', 'status', 'shell'] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -15,7 +15,7 @@ test('gallery en: every section matches its baseline at 360 px', async ({ page }
   await open(page, 'lang=en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const pills = page.getByTestId('gallery-status').locator('[data-status]');
-  await expect(pills).toHaveCount(31);
+  await expect(pills).toHaveCount(36);
   for (const pill of await pills.all()) {
     await expect(pill.locator('svg')).toHaveCount(1);
     await expect(pill).not.toHaveText('');
@@ -65,6 +65,37 @@ for (const lang of ['en', 'gu']) {
     });
   }
 }
+
+for (const lang of ['en', 'gu']) {
+  test(`gallery ${lang} dark: the dark accent, every status chip, axe clean`, async ({ page }) => {
+    await open(page, `lang=${lang}&theme=dark`);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const primary = page.getByTestId('gallery-primary-sample');
+    await expect(primary).toHaveCSS('background-color', 'rgb(20, 184, 166)');
+    await expect(primary).toHaveCSS('color', 'rgb(4, 32, 29)');
+    const pills = page.getByTestId('gallery-status').locator('[data-status]');
+    await expect(pills).toHaveCount(36);
+    for (const pill of await pills.all()) await expect(pill.locator('svg')).toHaveCount(1);
+    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+    expect(axe.violations).toEqual([]);
+    for (const name of SECTIONS)
+      await expect(page.getByTestId(`gallery-${name}`)).toHaveScreenshot(
+        `${name}-${lang}-dark.png`,
+      );
+  });
+}
+
+test('@planted a status ink below 4.5:1 on its tint fails axe', async ({ page }) => {
+  await open(page, 'lang=en');
+  await page.addStyleTag({
+    content: ':root{--color-danger-ink:#dc2626;--color-muted-ink:#8e8e93}',
+  });
+  const axe = await new AxeBuilder({ page })
+    .withTags(AXE_TAGS)
+    .include('[data-testid="gallery-status"]')
+    .analyze();
+  expect(axe.violations.map((v) => v.id)).toEqual(['color-contrast']);
+});
 
 test('accent switcher changes the accent token and leaving resets it', async ({ page }) => {
   await open(page, 'lang=gu');
@@ -211,8 +242,27 @@ test('sync status: online, offline, sending, then draft after a 409 replay', asy
 test('@planted a changed token fails the screenshot', async ({ page }, testInfo) => {
   expect(existsSync(testInfo.snapshotPath('status-en.png'))).toBe(true);
   await open(page, 'lang=en');
-  await page.addStyleTag({ content: ':root{--color-danger:#000}' });
+  await page.addStyleTag({ content: ':root{--color-danger-ink:#000}' });
   await expect(
     expect(page.getByTestId('gallery-status')).toHaveScreenshot('status-en.png'),
   ).rejects.toThrow();
+});
+
+test('screen frame: header sync pills, banners, both tab bars and loading shapes', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const shell = page.getByTestId('gallery-shell');
+  for (const word of ['Online', 'Offline', 'Sending', 'Draft'])
+    await expect(shell.locator('header').filter({ hasText: word })).toHaveCount(1);
+  await expect(shell.getByRole('alert')).toContainText('Could not send, try again.');
+  await expect(shell.getByRole('status').filter({ hasText: 'Needs attention' })).toBeVisible();
+  const desk = shell.getByRole('navigation', { name: 'Desk' });
+  await expect(desk.getByRole('link')).toHaveText(['7Open', 'Mine', 'Team', 'Report', 'Live']);
+  await expect(desk.getByRole('link', { name: /Open/ })).toHaveAttribute('aria-current', 'page');
+  const floor = shell.getByRole('navigation', { name: 'Floor' });
+  await expect(floor.getByRole('link')).toHaveText(['Report', 'My complaints']);
+  for (const link of await floor.getByRole('link').all())
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+  await expect(shell.getByRole('status').filter({ hasText: 'Loading…' })).toBeVisible();
 });

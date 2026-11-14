@@ -1,0 +1,1 @@
+- The server now starts in the production image: its bundled dependencies could not load ('Dynamic require of node:events'), so staging's first deploy restarted in a loop. A test now loads the real bundle.

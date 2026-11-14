@@ -18,6 +18,8 @@ export function join(
     })
   )
     throw new TransitionError('Not allowed');
+  if (command.personId === input.ticket.leadPersonId)
+    throw new TransitionError('Already running this job');
   if (input.crew.some((member) => member.personId === command.personId && !member.leftAt))
     throw new TransitionError('Already on this ticket');
   const at = clampAt(input.ctx.now, input);
