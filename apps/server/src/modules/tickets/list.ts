@@ -3,13 +3,16 @@ import type { Pool, PoolClient } from 'pg';
 import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { withTicketParts } from '../../kernel/index.js';
+import { withTicketParts, type TicketActor } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
+import { toldByEscalationStep } from '../notifications/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
+import { lockoutOf } from './lockout.js';
 import {
   needReportRows,
+  openTicketRows,
   segmentRowsFor,
   selectTicketPage,
   ticketRowById,
@@ -81,6 +84,7 @@ async function queryList(
   client: PoolClient,
   tenantId: string,
   filters: ListFilters,
+  actor: TicketActor,
 ): Promise<{ items: unknown[]; nextCursor: string | null }> {
   const rows = await selectTicketPage(client, tenantId, filters);
 
@@ -91,7 +95,7 @@ async function queryList(
     page.map((row) => row.id as string),
     new Date(),
   );
-  const items = await withTicketParts(client, tenantId, page, (row) =>
+  const items = await withTicketParts(client, { tenantId, actor }, page, (row) =>
     projectTicket(row, perPerson[row.id as string]),
   );
   let nextCursor: string | null = null;
@@ -137,21 +141,29 @@ export async function listTickets(
     limit: q.limit,
   };
   const result = await withTenant(pool, ctx.tenantId, (client) =>
-    queryList(client, ctx.tenantId, filters),
+    queryList(client, ctx.tenantId, filters, ctx),
   );
   reply.send(result);
 }
 
-/** Closed `no_report` tickets from the last 7 days, scoped to the acting person (or all for management). */
-export async function listNeedReport(
+/**
+ * What `/state` carries: the open tickets, and the closed `no_report` ones from the last 7 days (the acting person's
+ * own, or all for management). Both go through the reply parts in one pass, so the parts' reads (the roster, for
+ * one) happen once for the whole reply.
+ */
+export async function loadState(
   pool: Pool,
   tenantId: string,
-  actingPersonId: string | null,
-  role: string,
-): Promise<unknown[]> {
+  actor: TicketActor,
+): Promise<{ open: unknown[]; needReport: unknown[] }> {
   return withTenant(pool, tenantId, async (client) => {
-    const rows = await needReportRows(client, tenantId, actingPersonId, role);
-    return withTicketParts(client, tenantId, rows, (row) => projectTicket(row));
+    const openRows = await openTicketRows(client, tenantId);
+    const reportRows = await needReportRows(client, tenantId, actor.personId, actor.role);
+    const rows = [...openRows, ...reportRows];
+    const all = await withTicketParts(client, { tenantId, actor }, rows, (row) =>
+      projectTicket(row),
+    );
+    return { open: all.slice(0, openRows.length), needReport: all.slice(openRows.length) };
   });
 }
 
@@ -172,6 +184,20 @@ function detailFigures(
   });
 }
 
+/**
+ * An escalation step as the history shows it. Who was told comes from the notifications that point at the event;
+ * once those are purged (90 days) a step that did tell people reads `null`, not an empty list that looks like nobody.
+ */
+function escalationStep(
+  event: { id?: string; payload: Record<string, unknown> },
+  told: Map<string, string[]>,
+): object | null {
+  const step = event.payload.escalation as { toldCount?: number } | undefined;
+  if (!step) return null;
+  const people = told.get(event.id ?? '');
+  return { ...step, toldPersonIds: people ?? ((step.toldCount ?? 0) > 0 ? null : []) };
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -188,12 +214,14 @@ export async function detail(
     const segments = await sql.loadSegments(client, ticketId);
     const crew = await sql.loadCrew(client, ticketId);
     ticket.figures = detailFigures(row as Record<string, unknown>, ticket, events, segments);
+    const told = await toldByEscalationStep(client, ctx.tenantId, ticketId);
+    const projected = (
+      await withTicketParts(client, { tenantId: ctx.tenantId, actor: ctx }, [row], () =>
+        tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
+      )
+    )[0];
     return {
-      ticket: (
-        await withTicketParts(client, ctx.tenantId, [row], () =>
-          tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
-        )
-      )[0],
+      ticket: { ...projected, lockout: await lockoutOf(client, ctx, ticketId) },
       events: events.map((event) => ({
         seq: event.seq,
         type: event.type,
@@ -202,6 +230,7 @@ export async function detail(
         reason: event.reason ?? null,
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
+        escalation: escalationStep(event, told),
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),

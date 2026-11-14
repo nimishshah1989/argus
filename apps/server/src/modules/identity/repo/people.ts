@@ -260,3 +260,24 @@ export async function otherAdminCount(tx: Db, excluding: readonly string[]): Pro
   ).rows[0];
   return row.n as number;
 }
+
+/**
+ * The people in a plant who hold an enabled personal login with one of these roles and are themselves on, one entry
+ * each. A shared phone has no person, so it never appears. Used to decide who an alert goes to.
+ */
+export async function peopleWithRole(
+  tx: Db,
+  tenantId: string,
+  roles: readonly string[],
+): Promise<string[]> {
+  const rows = (
+    await tx.query(
+      `SELECT DISTINCT p.id FROM login l JOIN person p ON p.tenant_id = l.tenant_id AND p.id = l.person_id
+       WHERE l.tenant_id = $1 AND l.role = ANY($2::text[]) AND NOT l.shared
+         AND l.disabled_at IS NULL AND p.active
+       ORDER BY p.id`,
+      [tenantId, roles],
+    )
+  ).rows;
+  return rows.map((r) => r.id as string);
+}

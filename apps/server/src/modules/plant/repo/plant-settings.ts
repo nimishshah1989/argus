@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 type Db = Pick<PoolClient, 'query'>;
 export type Row = Record<string, unknown>;
 
-/** The four tables the plant-settings routes write. Names here are ours, never a caller's. */
+/** The tables the generic settings routes write for this module's own resources. Names here are ours, never a caller's. */
 export type SettingsTable =
   'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term';
 
@@ -91,6 +91,12 @@ export async function updateRow(
   return (await tx.query(sql, [id, ...Object.values(values)])).rows[0];
 }
 
+/** Whether this plant has the shift, and whether it is switched on; undefined when it has no such shift. */
+export async function shiftIsOn(tx: Db, id: string): Promise<boolean | undefined> {
+  const row = (await tx.query('SELECT active FROM shift WHERE id = $1', [id])).rows[0];
+  return row?.active as boolean | undefined;
+}
+
 /** The segment a group belongs to; undefined when this plant has no such group. */
 export async function groupSegment(tx: Db, id: string): Promise<string | undefined> {
   const row = (await tx.query('SELECT segment_id FROM machine_group WHERE id = $1', [id])).rows[0];
@@ -133,3 +139,25 @@ export async function selectMoves(tx: Db, machineId: string): Promise<Row[]> {
     )
   ).rows;
 }
+
+/**
+ * How a resource's rows are read and written. The plant's own resources use `tableStore`; another module's resource
+ * (the duty roster, the ladder) brings a store built in its own repo, so its tables are only ever named there.
+ * `remove`, when a store has it, is what `active: false` does (a roster line has no switch of its own).
+ */
+export interface Store {
+  /** The rows to list; `filter` is what the resource's `listFilter` asked for. */
+  all(tx: Db, filter?: Record<string, unknown>): Promise<Row[]>;
+  /** One row of this plant, locked for the edit. */
+  one(tx: Db, id: string): Promise<Row | undefined>;
+  insert(tx: Db, tenantId: string, values: Record<string, unknown>): Promise<Row>;
+  update(tx: Db, id: string, values: Record<string, unknown>): Promise<Row>;
+  remove?(tx: Db, id: string): Promise<void>;
+}
+
+export const tableStore = (table: SettingsTable, order: string, scope?: Scope): Store => ({
+  all: (tx) => selectAll(tx, table, order, scope),
+  one: (tx, id) => selectOne(tx, table, id, scope),
+  insert: (tx, tenantId, values) => insertRow(tx, table, tenantId, values),
+  update: (tx, id, values) => updateRow(tx, table, id, values),
+});

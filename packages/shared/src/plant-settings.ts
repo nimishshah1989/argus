@@ -25,6 +25,8 @@ const day = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-14')
   .refine(isRealDay, 'That date does not exist');
+/** The same real calendar date, for the settings contracts of other modules (the duty roster). */
+export { day as calendarDay };
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a time like 08:00');
 
 /** What every settings list returns. Switch-off lists never page: a plant's lists are short. */
@@ -159,6 +161,8 @@ const listFields = {
   isVendor: flag,
   pausesSla: flag,
   tag: z.string().trim().max(40).nullable(),
+  /** Only on a work type or a breakdown category: a ticket carrying it needs the lockout steps confirmed before Start. */
+  needsLockout: flag,
 };
 /** One entry of a list (wait reason, work type, quick problem ...). Its code is fixed once made: tickets keep it. */
 export const listItemCreateSchema = dropBlanks(
@@ -180,6 +184,7 @@ export const listItemReplySchema = z
     sort: z.number(),
     isVendor: z.boolean(),
     pausesSla: z.boolean(),
+    needsLockout: z.boolean(),
     ...activeField,
   })
   .strict();

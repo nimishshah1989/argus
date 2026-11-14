@@ -21,20 +21,20 @@ const DAY_SEGMENTS_SQL = `SELECT ticket_id, person_id, role, started_at, ended_a
    WHERE tenant_id = $1 AND person_id = $2 AND started_at < $4 AND COALESCE(ended_at, $4) > $3`;
 
 /**
- * Where each ticket stood at `$2`, judged by what had happened by then, from the history: its last close, cancel or
- * restore before `$2` says closed, cancelled or pending. (A restore clears `cancelled_at`, so the columns alone cannot
- * say.) A ticket with none of those events falls back on its current status and its closing or cancelling time.
+ * Where each ticket stood at `$2`, judged by what had happened by then, from the history: its last close, cancel,
+ * restore or sign-off dispute before `$2` says closed, cancelled or pending. (A restore clears `cancelled_at`, and a
+ * dispute clears `closed_at`, so the columns alone cannot say.) A ticket with none of those events falls back on its current status and its closing or cancelling time.
  */
 const STATE_AT_SQL = `SELECT s.* FROM (
     WITH last_turn AS (
       SELECT DISTINCT ON (ticket_id) ticket_id, type FROM ticket_event
-       WHERE tenant_id = $1 AND type IN ('close', 'cancel', 'restore') AND at < $2
+       WHERE tenant_id = $1 AND type IN ('close', 'cancel', 'restore', 'handback_dispute') AND at < $2
        ORDER BY ticket_id, at DESC, seq DESC
     )
     SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id,
            CASE WHEN l.type = 'close' THEN 'closed'
                 WHEN l.type = 'cancel' THEN 'cancelled'
-                WHEN l.type = 'restore' THEN 'pending'
+                WHEN l.type IN ('restore', 'handback_dispute') THEN 'pending'
                 WHEN t.status IN ('open', 'working', 'waiting') OR COALESCE(t.closed_at, t.cancelled_at) >= $2
                   THEN 'pending'
                 WHEN t.status = 'closed' THEN 'closed'

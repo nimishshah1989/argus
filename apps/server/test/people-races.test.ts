@@ -23,7 +23,7 @@ let n = 0;
 type Lock = Awaited<ReturnType<typeof holdLock>>;
 
 async function addPerson(name: string): Promise<string> {
-  const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'maintenance' });
+  const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'production' });
   expect(res.statusCode, res.body).toBe(201);
   return res.json().id;
 }

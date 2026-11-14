@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import type { Criticality } from '@uptimo/shared';
+import { LOCKOUT_FLAG_LISTS, type Criticality, type LockoutStep } from '@uptimo/shared';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -24,6 +24,23 @@ export async function machinesByIds(
       [tenantId, ids],
     )
   ).rows;
+}
+
+/**
+ * The machines the live board leaves out, from the machine's group and segment as they are now: in a hidden group, or in
+ * a segment kept off the board (Settings). The one server-side definition; the board's counts and tiles use it.
+ */
+export async function offBoardMachineIds(tx: Db, tenantId: string): Promise<string[]> {
+  const rows = (
+    await tx.query(
+      `SELECT m.id FROM machine m
+       LEFT JOIN machine_group g ON g.id = m.group_id
+       LEFT JOIN segment s ON s.id = m.segment_id
+       WHERE m.tenant_id = $1 AND (g.hidden OR s.show_on_board = false)`,
+      [tenantId],
+    )
+  ).rows;
+  return rows.map((row) => row.id as string);
 }
 
 /** Every shift, switched off or not: the SLA calendar and past results never depend on what the floor is offered. */
@@ -55,22 +72,42 @@ export async function listItem(
   ).rows[0];
 }
 
-/** The shift in force at `at` in the tenant zone (switched-off shifts do not count); the later-starting shift owns an overlap. */
+export interface ShiftNow {
+  id: string;
+  code: string;
+  /** The date this shift started on: after midnight inside a night shift it is the day before. */
+  day: string;
+}
+
+/**
+ * The shift in force at `at` in the tenant zone (switched-off shifts do not count; the later-starting shift owns an
+ * overlap), with its own date taken from that same row.
+ */
+export async function shiftNowAt(
+  tx: Db,
+  timeZone: string | null,
+  at: Date,
+): Promise<ShiftNow | undefined> {
+  return (
+    await tx.query(
+      `WITH local AS (SELECT ($2::timestamptz AT TIME ZONE $1) AS ts)
+       SELECT id, code,
+              (CASE WHEN crosses_midnight AND ts::time < ends_at THEN ts::date - 1 ELSE ts::date END)::text AS day
+         FROM shift, local
+        WHERE active AND ((NOT crosses_midnight AND ts::time >= starts_at AND ts::time < ends_at)
+           OR (crosses_midnight AND (ts::time >= starts_at OR ts::time < ends_at)))
+        ORDER BY starts_at DESC LIMIT 1`,
+      [timeZone, at],
+    )
+  ).rows[0];
+}
+
 export async function shiftCodeAt(
   tx: Db,
   timeZone: string | null,
   at: Date,
 ): Promise<string | undefined> {
-  return (
-    await tx.query(
-      `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE $1)::time AS t)
-       SELECT code FROM shift, local_time
-       WHERE active AND ((NOT crosses_midnight AND t >= starts_at AND t < ends_at)
-          OR (crosses_midnight AND (t >= starts_at OR t < ends_at)))
-       ORDER BY starts_at DESC LIMIT 1`,
-      [timeZone, at],
-    )
-  ).rows[0]?.code;
+  return (await shiftNowAt(tx, timeZone, at))?.code;
 }
 
 /**
@@ -166,4 +203,66 @@ export async function machineFamily(
     )
   ).rows;
   return { machine, siblings };
+}
+
+/**
+ * The work types and breakdown categories flagged "needs lockout", by code and by label (the floor sends a work
+ * type's label). A switched-off entry still counts: tickets raised with it are still open.
+ */
+export async function lockoutFlagged(
+  tx: Db,
+  tenantId: string,
+): Promise<{ list: string; names: string[] }[]> {
+  const { rows } = await tx.query(
+    'SELECT list, code, label FROM list_item WHERE tenant_id = $1 AND needs_lockout AND list = ANY($2)',
+    [tenantId, LOCKOUT_FLAG_LISTS],
+  );
+  return LOCKOUT_FLAG_LISTS.map((list) => ({
+    list,
+    names: rows
+      .filter((r) => r.list === list)
+      .flatMap((r) => [r.code as string, r.label as string]),
+  }));
+}
+
+/** The plant's active lockout steps in order. None when the head has switched every one off. */
+export async function lockoutSteps(tx: Db, tenantId: string): Promise<LockoutStep[]> {
+  const { rows } = await tx.query(
+    `SELECT code, label, label_gu, label_hi FROM list_item
+      WHERE tenant_id = $1 AND list = 'lockout_step' AND active ORDER BY sort, code`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    code: r.code,
+    label: r.label,
+    labelGu: r.label_gu ?? null,
+    labelHi: r.label_hi ?? null,
+  }));
+}
+
+/** Two first reads of the lockout steps take turns. */
+export async function lockLockoutSeed(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`lockout-seed:${tenantId}`]);
+}
+
+/** Whether the plant has any lockout step at all (a switched-off one still counts: the head's own choice stands). */
+export async function hasLockoutSteps(tx: Db, tenantId: string): Promise<boolean> {
+  const found = await tx.query(
+    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'lockout_step' LIMIT 1",
+    [tenantId],
+  );
+  return (found.rowCount ?? 0) > 0;
+}
+
+/** One starting step; one that is already there is left alone. */
+export async function insertLockoutStep(
+  tx: Db,
+  tenantId: string,
+  step: { code: string; label: string; sort: number },
+): Promise<void> {
+  await tx.query(
+    `INSERT INTO list_item (tenant_id, list, code, label, sort) VALUES ($1, 'lockout_step', $2, $3, $4)
+     ON CONFLICT (tenant_id, list, code) DO NOTHING`,
+    [tenantId, step.code, step.label, step.sort],
+  );
 }

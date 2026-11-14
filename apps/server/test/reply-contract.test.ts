@@ -38,7 +38,7 @@ describe('reply contract', () => {
       .map((r) => `${r.method} ${r.url}`)
       .sort();
     expect(keys).toEqual(Object.keys(REPLY_SCHEMAS).sort());
-    expect(keys).toHaveLength(95);
+    expect(keys).toHaveLength(110);
   });
 
   it("accepts today's /state reply", () => {
@@ -49,6 +49,9 @@ describe('reply contract', () => {
     const noSla = golden();
     delete noSla.open[0]!.sla;
     expect(replyProblem(STATE, 200, noSla)).toContain('open.0.sla');
+    const noAck = golden();
+    delete noAck.open[0]!.canAcknowledge;
+    expect(replyProblem(STATE, 200, noAck)).toContain('open.0.canAcknowledge');
     const noNow = golden();
     delete noNow.now;
     expect(replyProblem(STATE, 200, noNow)).toContain('now');

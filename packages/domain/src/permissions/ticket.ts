@@ -45,6 +45,60 @@ export function canLateReport(ctx: ActorContext): boolean {
   return (WORK_ROLES as readonly string[]).includes(ctx.role);
 }
 
+/** Roles that can sit on a duty roster line or be given a ticket (DOMAIN §3: technician L1 up to plant head L4). */
+const ACKNOWLEDGE_ROLES: readonly string[] = ['technician', 'supervisor', 'head', 'plant_head'];
+
+/**
+ * Who may acknowledge a ticket (DOMAIN §2: "assignee or any on-duty technician"): the person it is assigned to, or
+ * a person on the duty roster for the shift now running. Nobody else, an admin included (an admin can still start the
+ * ticket, which stops the clock too). A shared login with no acting person has nobody to look up, so it never passes.
+ * The roster side is the caller's answer for the acting person (vendor-level lines do not count).
+ */
+export function canAcknowledge(
+  ctx: ActorContext,
+  facts: { onRoster: boolean; assignedToActor: boolean },
+): boolean {
+  if (ctx.personId === null || !ACKNOWLEDGE_ROLES.includes(ctx.role)) return false;
+  return facts.onRoster || facts.assignedToActor;
+}
+
+/**
+ * Why this person cannot acknowledge this ticket now, or null when they can: the one rule behind the acknowledge
+ * command and the `canAcknowledge` flag on every ticket reply. The permission answer comes before any state check,
+ * so a refusal that is about the person reads the same on every ticket.
+ */
+export function acknowledgeRefusal(
+  ctx: ActorContext,
+  ticket: { status: string; assignedToPersonId: string | null },
+  facts: { onRoster: boolean; alreadyAcknowledged: boolean },
+): string | null {
+  const assignedToActor = ctx.personId !== null && ticket.assignedToPersonId === ctx.personId;
+  if (!canAcknowledge(ctx, { onRoster: facts.onRoster, assignedToActor })) return 'Not allowed';
+  if (!['open', 'working'].includes(ticket.status))
+    return `Ticket is ${ticket.status}: nothing to acknowledge`;
+  return facts.alreadyAcknowledged ? 'Ticket is already acknowledged' : null;
+}
+
+/** The events after which the acknowledge clock has stopped: the first start or pickup, or an acknowledge. */
+export const ACK_CLOCK_STOPS: readonly string[] = ['start', 'pickup', 'acknowledge'];
+
+/**
+ * Whether to offer the Acknowledge button: the command would take it, and the acknowledge clock is still running.
+ * The command itself still takes an acknowledge after a start (a later "seen" is allowed); the button does not
+ * ask for one once the work has begun.
+ */
+export function offersAcknowledge(
+  ctx: ActorContext,
+  ticket: { status: string; assignedToPersonId: string | null },
+  facts: { onRoster: boolean; clockStopped: boolean },
+): boolean {
+  if (facts.clockStopped) return false;
+  return (
+    acknowledgeRefusal(ctx, ticket, { onRoster: facts.onRoster, alreadyAcknowledged: false }) ===
+    null
+  );
+}
+
 export function canRestore(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }
@@ -76,4 +130,26 @@ export function canBreakdownPdf(
     return ctx.shared && ctx.cell != null && ctx.cell === ticket.cell;
   }
   return BREAKDOWN_PDF_ROLES.includes(ctx.role);
+}
+
+const HANDBACK_ROLES = ['supervisor', 'head', 'plant_head', 'admin'] as const;
+
+/** Technicians and the board never answer a sign-off (DOMAIN §3); this is the check that needs no ticket. */
+export function canAnswerHandbackAtAll(role: string): boolean {
+  return role === 'operator' || (HANDBACK_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * DOMAIN §3: an operator answers for a ticket their login raised, one they reported themselves, or one on a machine
+ * in their login's cell (`sameCell`, decided where the cells are known); supervisors and above answer any.
+ */
+export function canAnswerHandback(
+  ctx: ActorContext,
+  ticket: { raisedLoginId: string | null; reportedByPersonId: string | null },
+  sameCell: boolean,
+): boolean {
+  if ((HANDBACK_ROLES as readonly string[]).includes(ctx.role)) return true;
+  if (ctx.role !== 'operator') return false;
+  const reporter = ctx.personId !== null && ctx.personId === ticket.reportedByPersonId;
+  return ctx.loginId === ticket.raisedLoginId || reporter || sameCell;
 }

@@ -1,0 +1,1 @@
+- AI diagnosis, server side: when a machine is reported stopped, Claude now gets the machine's past jobs (names, phone numbers and ids removed first) and the answer, a safety flag and up to three causes each tied to past tickets or marked a guess, is stored but not shown; a real call is refused in production until the residency record is filed.

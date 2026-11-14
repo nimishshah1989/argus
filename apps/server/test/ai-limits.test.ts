@@ -9,6 +9,7 @@ import {
 
 const config = (input: number, output: number, maxOutputTokens = 1024): AiConfig => ({
   production: false,
+  residencyRecord: null,
   apiKey: null,
   model: 'fake',
   priceInputUsdPerMtok: input,

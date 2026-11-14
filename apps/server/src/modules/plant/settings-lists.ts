@@ -1,11 +1,13 @@
 import {
   LIST_NAMES,
+  LOCKOUT_FLAG_LISTS,
   glossaryCreateSchema,
   glossaryPatchSchema,
   listItemCreateSchema,
   listItemPatchSchema,
   type ListName,
 } from '@uptimo/shared';
+import { ensureLockoutSteps } from './lockout.js';
 import type { Resource } from './settings-resources.js';
 
 /** One list (wait reasons, work types ...): rows of `list_item` with this `list` value. */
@@ -26,6 +28,7 @@ function listResource(list: ListName): Resource {
       isVendor: 'is_vendor',
       pausesSla: 'pauses_sla',
       tag: 'tag',
+      needsLockout: 'needs_lockout',
     },
     fixed: ['code'],
     create: listItemCreateSchema,
@@ -40,9 +43,19 @@ function listResource(list: ListName): Resource {
       isVendor: row.is_vendor,
       pausesSla: row.pauses_sla,
       tag: row.tag,
+      needsLockout: row.needs_lockout,
       active: row.active,
     }),
     switchTo: (active) => ({ active }),
+    // The head's first look at the steps finds the starting four to edit, not an empty list.
+    prepare: list === 'lockout_step' ? ensureLockoutSteps : undefined,
+    check: async (_tx, merged) =>
+      merged.needsLockout === true && !(LOCKOUT_FLAG_LISTS as readonly string[]).includes(list)
+        ? {
+            field: 'needsLockout',
+            message: 'Only a work type or a breakdown category needs lockout',
+          }
+        : null,
   };
 }
 

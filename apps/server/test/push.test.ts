@@ -192,6 +192,20 @@ describe('web push', () => {
   });
 });
 
+describe('the test button on a shared phone', () => {
+  it('asks to choose who is using the phone instead of answering "sent: 0"', async () => {
+    await db.admin.query(
+      `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared)
+       SELECT tenant_id, NULL, 'cell-phone', password_hash, 'operator', true FROM login WHERE id = $1`,
+      [LOGIN_1],
+    );
+    const shared = await login('cell-phone', 'cosmos.localhost');
+    const res = await post('/api/v1/push/test', shared, {});
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('choose_acting_person');
+  });
+});
+
 describe('which addresses a push subscription may name', () => {
   const subscribe = (endpoint: string) =>
     post('/api/v1/push/subscribe', token1, {
