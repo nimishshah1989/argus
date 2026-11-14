@@ -379,8 +379,6 @@ describe('GET /api/v1/board/today', () => {
 });
 
 describe('the day score follows what the board shows', () => {
-  const PLANT_NOW = new Date(NOW);
-  const OLD = { tickets: 8, notStarted: 1, stillOpen: 3 };
   const first = async () => (await board('asha')).json();
   const make = async (path: string, payload: object) => {
     const res = await call('POST', `/api/v1/${path}`, 'admin', payload);
@@ -391,17 +389,19 @@ describe('the day score follows what the board shows', () => {
     const res = await call('PUT', `/api/v1/${path}/${id}`, 'admin', payload);
     expect(res.statusCode, res.body).toBe(200);
   };
-  const breakdownOn = async (machineId: string, key: string) => {
-    vi.setSystemTime(PLANT_NOW);
-    const res = await call('POST', '/api/v1/tickets', 'asha', {
-      machineId,
-      problem: `Fault ${key}`,
-    });
-    expect(res.statusCode, res.body).toBeLessThan(300);
-    ids[key] = res.json().ticket.id as string;
+  /** A breakdown reported ten minutes before "now" and started five minutes before it: response 5, repair 5 (to now). */
+  const startedBreakdownOn = async (machineId: string, key: string) => {
+    await play([
+      ['2026-11-14T06:20:00Z', raise(key, machineId)],
+      ['2026-11-14T06:25:00Z', act(key, 'start', 'asha')],
+    ]);
+    vi.setSystemTime(new Date(NOW));
+  };
+  const cancel = async (key: string) => {
+    await play([[NOW, act(key, 'cancel', 'asha', { reason: 'Test over' })]]);
   };
 
-  it('leaves a breakdown on a machine of a hidden group out of the tiles and the counts, and brings it back when the group is shown', async () => {
+  it('leaves a breakdown on a machine of a hidden group out of the tiles, the averages and the counts, and brings it back when the group is shown', async () => {
     const group = await make('groups', {
       segmentId: uuid(1, 2),
       code: 'UTL',
@@ -414,16 +414,22 @@ describe('the day score follows what the board shows', () => {
       groupId: group.id,
     });
     const before = await first();
-    await breakdownOn(machineId, 'H1');
+    await startedBreakdownOn(machineId, 'H1');
     expect(await first()).toEqual(before);
     await edit('groups', group.id, { hidden: false });
-    expect(await first()).toMatchObject({
-      tickets: OLD.tickets + 1,
-      notStarted: OLD.notStarted + 1,
-      stillOpen: OLD.stillOpen + 1,
+    const shown = await first();
+    expect(shown).toMatchObject({
+      tickets: before.tickets + 1,
+      stillOpen: before.stillOpen + 1,
+      notStarted: before.notStarted,
+      responseCount: before.responseCount + 1,
+      repairCount: before.repairCount + 1,
     });
+    expect(shown.responseMin).not.toBe(before.responseMin);
+    expect(shown.repairMin).not.toBe(before.repairMin);
     await edit('groups', group.id, { hidden: true });
     expect(await first()).toEqual(before);
+    await cancel('H1');
   });
 
   it('does the same for a machine whose segment is kept off the board', async () => {
@@ -434,12 +440,18 @@ describe('the day score follows what the board shows', () => {
     });
     const { id: machineId } = await make('machines', { code: 'UT-2', segmentId: segment.id });
     const before = await first();
-    await breakdownOn(machineId, 'H2');
+    await startedBreakdownOn(machineId, 'H2');
     expect(await first()).toEqual(before);
     await edit('segments', segment.id, { showOnBoard: true });
-    expect(await first()).toMatchObject({ tickets: OLD.tickets + 1, stillOpen: OLD.stillOpen + 1 });
+    const shown = await first();
+    expect(shown).toMatchObject({
+      tickets: before.tickets + 1,
+      responseCount: before.responseCount + 1,
+    });
+    expect(shown.responseMin).not.toBe(before.responseMin);
     await edit('segments', segment.id, { showOnBoard: false });
     expect(await first()).toEqual(before);
+    await cancel('H2');
   });
 
   it("uses the machine's group as it is now, not as it was when the ticket was raised", async () => {
@@ -455,27 +467,37 @@ describe('the day score follows what the board shows', () => {
       segmentId: uuid(1, 2),
       groupId: shown.id,
     });
-    await breakdownOn(machineId, 'H3');
+    const without = await first();
+    await startedBreakdownOn(machineId, 'H3');
     const counted = await first();
+    expect(counted.tickets).toBe(without.tickets + 1);
     await edit('machines', machineId, { groupId: hidden.id });
-    expect(await first()).toMatchObject({
-      tickets: counted.tickets - 1,
-      stillOpen: counted.stillOpen - 1,
-    });
+    expect(await first()).toEqual(without);
     await edit('machines', machineId, { groupId: shown.id });
     expect(await first()).toEqual(counted);
+    await cancel('H3');
   });
 
-  it("never lets one plant's hidden groups change another plant's score", async () => {
-    const bobBefore = (await board('bob')).json();
+  it("drops a plant's own tickets when its machines move into a hidden group, and touches no other plant", async () => {
     const group = await make('groups', {
       segmentId: uuid(1, 2),
       code: 'ALL',
       name: 'Everything',
       hidden: true,
     });
+    const before = await first();
+    const bobBefore = (await board('bob')).json();
+    const carlBefore = (await board('carl')).json();
+    // Machines 1 to 3 carry the day's closed A and B and the open, paused C.
     for (const n of [1, 2, 3]) await edit('machines', machine(n), { groupId: group.id });
+    expect(await first()).toMatchObject({
+      tickets: before.tickets - 3,
+      stillOpen: before.stillOpen - 1,
+      repairCount: before.repairCount - 3,
+    });
     expect((await board('bob')).json()).toEqual(bobBefore);
-    expect((await board('carl')).json().tickets).toBe(1);
+    expect((await board('carl')).json()).toEqual(carlBefore);
+    for (const n of [1, 2, 3]) await edit('machines', machine(n), { groupId: null });
+    expect(await first()).toEqual(before);
   });
 });

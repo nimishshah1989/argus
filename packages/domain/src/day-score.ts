@@ -23,12 +23,12 @@ export interface DayScore {
   /** Means over the tickets that have the figure, in whole minutes; null when none does (never 0). */
   responseMin: number | null;
   repairMin: number | null;
-  /** The waiting minutes of the same tickets as `repairMin` (a hand-set figure can put it above repair). */
+  /** Mean waiting minutes over the repaired tickets that have a waiting figure (an import can have repair and no waiting); a hand-set figure can put it above repair. */
   waitingMin: number | null;
   /** How many tickets the response mean is over, and how many of them are closed (the rest are still being worked, measured to now). */
   responseCount: number;
   responseClosed: number;
-  /** The same for repair, which waiting shares. */
+  /** The same for repair (waiting is averaged over its own subset, so it has no count). */
   repairCount: number;
   repairClosed: number;
 }
