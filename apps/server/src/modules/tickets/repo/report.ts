@@ -166,29 +166,34 @@ function peopleFor(done: string[], supported: string[]): StoredReportPerson[] {
   ];
 }
 
+/** A column that may be NULL, read as `null` rather than `undefined` when the row leaves it out. */
+function maybe<T>(row: Record<string, unknown>, column: string): T | null {
+  return (row[column] as T | null | undefined) ?? null;
+}
+
 function buildStoredReport(
   row: Record<string, unknown>,
   people: StoredReportPerson[],
 ): StoredReport {
   return {
     id: row.id as string,
-    ticketId: (row.ticket_id as string | null) ?? null,
+    ticketId: maybe(row, 'ticket_id'),
     machineId: row.machine_id as string,
     date: row.date as string,
     shiftCode: row.shift_code as string,
     problem: row.problem as string,
-    observedBy: (row.observed_by as string | null) ?? null,
-    correctiveAction: (row.corrective_action as string | null) ?? null,
+    observedBy: maybe(row, 'observed_by'),
+    correctiveAction: maybe(row, 'corrective_action'),
     downtimeMin: row.downtime_min as number,
-    responseMin: (row.response_min as number | null) ?? null,
-    repairMin: (row.repair_min as number | null) ?? null,
-    breakdownCategory: (row.breakdown_category as string | null) ?? null,
-    maintCode: (row.maint_code as string | null) ?? null,
-    spareUsed: (row.spare_used as string | null) ?? null,
-    rootCause: (row.root_cause as string | null) ?? null,
-    handoverPersonId: (row.handover_person_id as string | null) ?? null,
-    handoverName: (row.handover_name as string | null) ?? null,
-    submittedByPersonId: (row.submitted_by_person_id as string | null) ?? null,
+    responseMin: maybe(row, 'response_min'),
+    repairMin: maybe(row, 'repair_min'),
+    breakdownCategory: maybe(row, 'breakdown_category'),
+    maintCode: maybe(row, 'maint_code'),
+    spareUsed: maybe(row, 'spare_used'),
+    rootCause: maybe(row, 'root_cause'),
+    handoverPersonId: maybe(row, 'handover_person_id'),
+    handoverName: maybe(row, 'handover_name'),
+    submittedByPersonId: maybe(row, 'submitted_by_person_id'),
     submittedAt: new Date(row.submitted_at as string | number | Date),
     people,
   };
