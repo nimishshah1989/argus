@@ -50,10 +50,10 @@ Do not message old sessions; archive children after merge.
 
 <!-- prettier-ignore-start -->
 <!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 23:16 UTC on branch `claude/orchestrator-m0-gate`.
-- 56e6974 docs(plan): 182 merged, handoff
-- d34d59a docs: handoff for the next orchestrator session
-- 33f14dc docs(plan): 16 goal 3 merged
+Last session ended 2026-11-14 03:53 UTC on branch `claude/orchestrator-m0-gate`.
+- 4ac854e docs(plan): frontend design agent, hardening follow-up
+- 3fdacbd docs: fix duplicate decision numbers (D26, D27)
+- 70f4d20 docs(plan): accent merged, hardening in review
 Uncommitted files: 0
 <!-- end facts -->
 <!-- prettier-ignore-end -->
