@@ -1,6 +1,13 @@
 import type { Browser, Page } from '@playwright/test';
 import { expect, test } from './test.js';
-import { TENANT_WEB_URL, apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
+import {
+  TENANT_WEB_URL,
+  apiLogin,
+  machineFor,
+  raiseTicketViaApi,
+  signIn,
+  ticketView,
+} from './fixtures.js';
 
 // Both desk tests use the suite's machine for this project, so they run in order.
 test.describe.configure({ mode: 'serial' });
@@ -27,7 +34,7 @@ async function openTicket(page: Page, ref: string): Promise<void> {
 }
 
 async function startWorking(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Start work', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Start work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
@@ -102,7 +109,7 @@ async function checkTeamClosed(page: Page, ref: string): Promise<void> {
 }
 
 async function logUpdate(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Post update', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Post update', exact: true }).click();
   const form = page.getByRole('form', { name: 'Log an update' });
   await form.getByLabel('What has changed?').fill('Replaced the drive belt');
   await form.getByRole('button', { name: 'Save update', exact: true }).click();
@@ -112,7 +119,7 @@ async function logUpdate(page: Page): Promise<void> {
 }
 
 async function pauseTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Pause: waiting', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Pause: waiting', exact: true }).click();
   const form = page.getByRole('form', { name: 'Pause the ticket' });
   await form.getByLabel('Waiting for').selectOption('spare');
   await form.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -122,53 +129,61 @@ async function pauseTicket(page: Page): Promise<void> {
 }
 
 async function resumeTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Resume work', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Resume work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
 async function transferTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Transfer', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Transfer', exact: true }).click();
   const form = page.getByRole('form', { name: 'Hand over the ticket' });
   await form.getByLabel('Handover note').fill('Next shift takes over');
   await form.getByRole('button', { name: 'Transfer', exact: true }).click();
   await expect(form).toBeHidden();
   await expectStatus(page, 'Transferred');
   await expect(page.getByText('Waiting for pickup')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pick up', exact: true })).toBeVisible();
+  await expect(
+    ticketView(page).getByRole('button', { name: 'Pick up', exact: true }),
+  ).toBeVisible();
 }
 
 async function pickUpTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Pick up', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Pick up', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
 async function markMachineRunning(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Machine running again', exact: true }).click();
+  await ticketView(page)
+    .getByRole('button', { name: 'Machine running again', exact: true })
+    .click();
   await expect(page.getByText('Machine running since')).toBeVisible();
   await expect(page.locator('ol').getByText('Machine running')).toBeVisible();
 }
 
 async function markMachineStopped(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Machine stopped', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Machine stopped', exact: true }).click();
   await expect(page.locator('ol').getByText('Machine stopped')).toBeVisible();
 }
 
 async function closeWithReport(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Write report and close', exact: true }).click();
+  await ticketView(page)
+    .getByRole('button', { name: 'Write report and close', exact: true })
+    .click();
   // Step 1 of the close asks when the repair ended; step 2 is the breakdown report.
   await expect(page.getByText('When did you finish?')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to report form', exact: true }).click();
+  await ticketView(page)
+    .getByRole('button', { name: 'Continue to report form', exact: true })
+    .click();
   await expect(page.getByRole('heading', { name: 'Breakdown report' })).toBeVisible();
   await page.getByLabel('Breakdown Category').selectOption({ index: 1 });
   await page.getByLabel('Maintenance Code').selectOption({ index: 1 });
-  await page.getByRole('button', { name: 'Close with report', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Close with report', exact: true }).click();
   await expectStatus(page, 'Closed');
   await expect(page.getByText('Closed as')).toBeVisible();
   await expect(page.locator('dd').getByText('With report', { exact: true })).toBeVisible();
 }
 
 async function closeWithoutReport(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Close without report', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Close without report', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: /^Close without report: / });
   // The sheet requires a reason for a without-report close.
   await sheet.getByLabel('Reason').fill('Closed without the report');
@@ -230,7 +245,9 @@ test('keeps a no-report close on Needs report until the report is filed', async 
   await expect(row).toBeVisible();
   await row.click();
 
-  await expect(page.getByRole('button', { name: 'Fill report', exact: true })).toBeVisible();
+  await expect(
+    ticketView(page).getByRole('button', { name: 'Fill report', exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Fill report', exact: true }).click();
   await expect(page.getByRole('button', { name: 'File report', exact: true })).toBeVisible();
   await page.getByLabel('Breakdown Category').selectOption({ index: 1 });

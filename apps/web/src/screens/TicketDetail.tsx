@@ -215,7 +215,7 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
   );
 }
 
-/** `embedded`: inside the desk's right pane, whose frame already shows the sync pill. Back clears the pane. */
+/** `embedded`: inside the desk's right pane, whose frame already shows the sync pill and offline banner. Back clears the pane. */
 export function TicketDetail({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { id = '' } = useParams();
@@ -229,6 +229,9 @@ export function TicketDetail({ embedded = false }: { embedded?: boolean }) {
   const { run, error, pending } = useCommand();
   const [flow, setFlow] = useState<'close' | 'late' | null>(null);
   const personId = me.data?.user.actingPersonId;
+  const chrome = embedded
+    ? { sync: undefined, banner: null }
+    : { sync: <SyncStatus />, banner: <OfflineBanner /> };
 
   if (flow && detail.data && config.data && personId) {
     const ticketId = detail.data.ticket.id;
@@ -248,12 +251,9 @@ export function TicketDetail({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <>
-      <TopBar
-        back={{ to: '/desk', label: t('detail.back') }}
-        trailing={embedded ? undefined : <SyncStatus />}
-      />
+      <TopBar back={{ to: '/desk', label: t('detail.back') }} trailing={chrome.sync} />
       <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-4">
-        <OfflineBanner />
+        {chrome.banner}
         {detail.data ? (
           <TicketView
             detail={detail.data}

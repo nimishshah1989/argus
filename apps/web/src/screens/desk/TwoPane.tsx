@@ -8,7 +8,10 @@ export function TwoPane({ list, ticketId }: { list: ReactNode; ticketId: string 
   return (
     <div className="grid grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start gap-4">
       <div>{list}</div>
-      <section className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl bg-surface shadow-card">
+      <section
+        aria-label={t('deskWide.ticket')}
+        className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl bg-surface shadow-card"
+      >
         {ticketId ? (
           <TicketDetail embedded />
         ) : (

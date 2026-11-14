@@ -10,20 +10,24 @@ test.describe.configure({ mode: 'serial' });
 
 const problem = 'Two-pane: coolant pump is humming';
 const seeded = {} as { id: string; ref: string };
+const request = {} as { id: string; ref: string };
 const tokens = {} as Record<'op' | 'admin', string>;
 
 test.beforeAll(async () => {
   for (const login of ['op', 'admin'] as const) tokens[login] = await apiLogin(login);
   const created = await raiseTicketViaApi(tokens.op, actionMachines().a.id, problem);
   Object.assign(seeded, created);
+  Object.assign(request, await raiseTicketViaApi(tokens.op, null, 'Two-pane: tidy the tool crib'));
 });
 
 test.afterAll(async () => {
   const me = await getJson<{ user: { actingPersonId: string } }>(tokens.admin, '/api/v1/auth/me');
-  await commandViaApi(tokens.admin, seeded.id, 'cancel', {
-    personId: me.user.actingPersonId,
-    reason: 'Two-pane spec cleanup',
-  });
+  for (const ticket of [seeded, request]) {
+    await commandViaApi(tokens.admin, ticket.id, 'cancel', {
+      personId: me.user.actingPersonId,
+      reason: 'Two-pane spec cleanup',
+    });
+  }
 });
 
 test('a ticket opens beside the list on a wide screen and as its own page on a phone', async ({
@@ -56,4 +60,13 @@ test('a ticket opens beside the list on a wide screen and as its own page on a p
   await expect(page).toHaveURL(/\/desk$/);
   await expect(page.getByText('Pick a ticket on the left to see it here.')).toBeVisible();
   await expect(card).not.toHaveAttribute('aria-current', 'page');
+
+  await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
+  await page.getByRole('link', { name: new RegExp(request.ref) }).click();
+  await expect(page).toHaveURL(new RegExp(`/desk/${request.id}$`));
+  await expect(page.getByRole('heading', { name: request.ref })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Work \(\d+\)$/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 });

@@ -27,12 +27,11 @@ export function App() {
       <Route path="/floor" element={<Report />} />
       <Route path="/floor/other" element={<OtherWork />} />
       <Route path="/floor/mine" element={<MyComplaints />} />
-      <Route path="/desk" element={<Desk view="open" />} />
       <Route path="/desk/mine" element={<Desk view="mine" />} />
       <Route path="/desk/team" element={<Desk view="team" />} />
       <Route path="/desk/board" element={<Board />} />
       <Route path="/desk/settings" element={<Settings />} />
-      <Route path="/desk/:id" element={<TicketRoute />} />
+      <Route path="/desk/:id?" element={<TicketRoute />} />
       <Route
         path="/gallery"
         element={
