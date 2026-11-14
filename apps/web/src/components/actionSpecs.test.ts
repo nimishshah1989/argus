@@ -88,20 +88,37 @@ function actions(t: Ticket, who: ActorContext, crew = [] as ReturnType<typeof cr
 }
 
 describe('actionSpecs', () => {
-  it('labels and orders the working bar', () => {
+  it('labels and orders the working bar, close split in two', () => {
     const running = working({ machineRunningAt: STARTED });
     const specs = actionSpecs(running, [support('person-2')], actor({ role: 'supervisor' }));
     expect(specs.map((spec) => spec.label)).toEqual([
-      'action.label.update',
+      'detail.action.closeReport',
       'action.label.pause',
       'action.label.transfer',
       'action.label.machineRunning',
       'action.label.machineStopped',
+      'action.label.update',
       'action.label.leave',
-      'action.label.close',
-      'action.cancel',
+      'detail.action.closeNoReport',
+      'detail.action.cancel',
     ]);
-    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(7).fill(false)]);
+    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(8).fill(false)]);
+    expect(specs.filter((spec) => spec.preset).map((spec) => spec.preset)).toEqual([
+      'report',
+      'no_report',
+    ]);
+  });
+
+  it('makes Join the primary button for a technician who cannot close', () => {
+    const [first] = actionSpecs(working(), [], actor());
+    expect(first?.action).toBe('join');
+  });
+
+  it('keeps one Close for a work request', () => {
+    const specs = actionSpecs(working({ kind: 'general' }), [], actor({ role: 'supervisor' }));
+    expect(specs.filter((spec) => spec.action === 'close')).toEqual([
+      { action: 'close', label: 'action.label.close', primary: true },
+    ]);
   });
 
   it('says Pick up on a handed-over open ticket', () => {

@@ -8,6 +8,7 @@ export {
   CalendarX,
   CheckCheck,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   ChevronsUp,
   CircleCheck,

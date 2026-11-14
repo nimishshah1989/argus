@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router-dom';
+/* eslint-disable i18next/no-literal-string -- route and tone props, not copy */
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,7 +12,6 @@ import {
   type Me,
   type TicketDetail as TicketDetailData,
   type TicketInterval,
-  type TicketPerson,
 } from '../api.js';
 import { AdminPanel } from '../components/AdminPanel.js';
 import { canWork, type ActorContext } from '@uptimo/domain';
@@ -21,18 +21,23 @@ import { Facts, ReportCard } from '../components/TicketFacts.js';
 import { ReportPanel } from '../components/ReportForm.js';
 import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
-import { StatusBadge } from '../components/StatusBadge.js';
+import { KindBadge, ReportBadge, StatusBadge } from '../components/StatusBadge.js';
 import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
 import { downNow } from '../components/liveDowntime.js';
 import {
-  elapsedLabel,
   errorMessage,
   formatMinutes,
   formatTime,
+  machineLabel,
   peopleNames,
 } from '../components/format.js';
+import { SyncStatus } from '../patterns/sync-status.js';
+import { Banner } from '../ui/banner.js';
+import { PersonRows, SectionTitle } from '../ui/detail-kit.js';
+import { Inline, Stack } from '../ui/layout.js';
+import { TopBar } from '../ui/top-bar.js';
 
 const ROLE_LABEL_KEYS: Record<string, string> = {
   lead: 'role.lead',
@@ -46,49 +51,40 @@ function intervalMinutes(interval: TicketInterval): number {
 }
 
 interface PeopleProps {
-  people: TicketPerson[];
-  intervals: TicketInterval[];
+  detail: TicketDetailData;
   names: Record<string, string>;
   timeZone?: string;
 }
 
-function PeopleSection({ people, intervals, names, timeZone }: PeopleProps) {
+function PeopleSection({ detail, names, timeZone }: PeopleProps) {
   const { t } = useTranslation();
-  const byPerson = new Map<string, TicketInterval[]>();
-  for (const interval of intervals) {
-    byPerson.set(interval.personId, [...(byPerson.get(interval.personId) ?? []), interval]);
-  }
+  const { people, intervals, events, ticket } = detail;
+  const rows = people.map((member) => {
+    const own = intervals.filter((interval) => interval.personId === member.personId);
+    const joined =
+      own.map((interval) => interval.startedAt).sort()[0] ??
+      events.find((event) => event.actingPersonId === member.personId)?.at;
+    const minutes =
+      ticket.figures?.perPerson[member.personId] ??
+      own.reduce((sum, interval) => sum + intervalMinutes(interval), 0);
+    const role = t(ROLE_LABEL_KEYS[member.role] ?? member.role);
+    const sub = joined ? t('detail.joined', { role, time: formatTime(joined, timeZone) }) : role;
+    return {
+      key: member.personId,
+      name: names[member.personId] ?? t('common.teamMember'),
+      sub: member.leftAt ? `${sub} · ${t('ticket.left')}` : sub,
+      value: formatMinutes(minutes),
+    };
+  });
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('ticket.people')}</h2>
-      {people.length === 0 ? (
-        <p className="mt-2 text-neutral-500">{t('ticket.peopleEmpty')}</p>
+    <Stack gap={2}>
+      <SectionTitle>{t('detail.people')}</SectionTitle>
+      {rows.length === 0 ? (
+        <p className="text-body text-neutral-600">{t('ticket.peopleEmpty')}</p>
       ) : (
-        <ul className="mt-3 space-y-3">
-          {people.map((member) => (
-            <li key={member.personId}>
-              <p className="text-base">
-                <span className="font-medium">
-                  {names[member.personId] ?? t('common.teamMember')}
-                </span>
-                <span className="text-neutral-600">
-                  {' '}
-                  · {t(ROLE_LABEL_KEYS[member.role] ?? member.role)}
-                </span>
-                {member.leftAt && <span className="text-neutral-500"> · {t('ticket.left')}</span>}
-              </p>
-              {(byPerson.get(member.personId) ?? []).map((interval) => (
-                <p key={interval.startedAt} className="text-sm text-neutral-600">
-                  {formatTime(interval.startedAt, timeZone)}–
-                  {interval.endedAt ? formatTime(interval.endedAt, timeZone) : t('ticket.now')} ·{' '}
-                  {formatMinutes(intervalMinutes(interval))}
-                </p>
-              ))}
-            </li>
-          ))}
-        </ul>
+        <PersonRows rows={rows} />
       )}
-    </section>
+    </Stack>
   );
 }
 
@@ -113,63 +109,107 @@ function canEditTicket(actor: ActorContext | null): boolean {
   return actor !== null && canWork(actor);
 }
 
+/** A closed breakdown or support ticket either has its report or still needs it. */
+function reportState(detail: TicketDetailData): 'with' | 'needs' | null {
+  const { ticket, report } = detail;
+  if (ticket.status !== 'closed' || ticket.kind === 'general') return null;
+  if (report || ticket.closeKind === 'report') return 'with';
+  return ticket.closeKind === 'no_report' ? 'needs' : null;
+}
+
+/** The machine's type and cell, e.g. "Turning Center · Cell 6". */
+function machineLine(detail: TicketDetailData, config?: Config): string {
+  const { ticket } = detail;
+  const machine = config?.machines.find((item) => item.id === ticket.machineId);
+  const category = ticket.machineSnapshot?.category ?? machine?.category;
+  const cell = ticket.machineSnapshot?.cell ?? machine?.cell;
+  return [category, cell].filter(Boolean).join(' · ');
+}
+
+function Header({ detail, config }: { detail: TicketDetailData; config?: Config }) {
+  const { ticket } = detail;
+  const live = ['open', 'working', 'waiting'].includes(ticket.status);
+  const report = reportState(detail);
+  const line = machineLine(detail, config);
+  return (
+    <header>
+      <Stack gap={2}>
+        <h1 className="flex flex-wrap items-center gap-2 text-title1 font-extrabold leading-tight">
+          <span>
+            {ticket.kind === 'general' ? ticket.ref : machineLabel(ticket, config?.machines)}
+          </span>
+          {ticket.kind === 'general' ? null : (
+            <span className="rounded-lg bg-muted-tint px-2 py-0.5 font-mono text-caption font-medium text-muted-ink">
+              {ticket.ref}
+            </span>
+          )}
+        </h1>
+        <Inline gap={2}>
+          {live ? <KindBadge kind={ticket.kind} /> : null}
+          <StatusBadge status={ticket.status} handedOver={ticket.handedOver} />
+          {report ? <ReportBadge state={report} /> : null}
+        </Inline>
+        {line ? <p className="text-footnote text-neutral-600">{line}</p> : null}
+        <p className="text-body">{ticket.problem}</p>
+      </Stack>
+    </header>
+  );
+}
+
+interface ControlsProps extends Omit<ViewProps, 'detail'> {
+  ticket: TicketDetailData['ticket'];
+  people: TicketDetailData['people'];
+}
+
+/** The report form and the action bar. */
+function Controls({ ticket, config, me, run, pending, error, people }: ControlsProps) {
+  const personId = me?.actingPersonId;
+  const actor = me ? actorFrom(me) : null;
+  if (!hasReportContext(config, personId) || actor === null) return null;
+  return (
+    <ReportPanel
+      ticket={ticket}
+      config={config!}
+      personId={personId!}
+      actor={actor}
+      crew={crewFrom(people)}
+      canEdit={canEditTicket(actor)}
+      command={(action, body) => run(ticket.id, action, body)}
+      pending={pending}
+      error={error}
+    />
+  );
+}
+
 function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
-  const { t } = useTranslation();
-  const { ticket, events, people, intervals } = detail;
+  const { ticket, events, people } = detail;
   const names = peopleNames(config?.people);
   const reasonLabels: Record<string, string> = {};
   for (const item of config?.lists.wait_reason ?? []) reasonLabels[item.code] = item.label;
-  const personId = me?.actingPersonId;
-  const actor = me ? actorFrom(me) : null;
-  const crew = crewFrom(people);
-  const canEdit = canEditTicket(actor);
   const liveDown = downNow(ticket, new Date().toISOString());
   return (
-    <>
-      <header className="mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{ticket.ref}</h1>
-          <StatusBadge status={ticket.status} />
-        </div>
-        <p className="mt-2 text-base text-neutral-900">{ticket.problem}</p>
-        <p className="mt-1 text-sm text-neutral-500">
-          {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt) })}
-        </p>
-      </header>
+    <Stack gap={6}>
+      <Header detail={detail} config={config} />
       <SlaTimerSummary ticket={ticket} detailed config={config} />
-      {hasReportContext(config, personId) && actor !== null && (
-        <ReportPanel
-          ticket={ticket}
-          config={config!}
-          personId={personId!}
-          actor={actor}
-          crew={crew}
-          canEdit={canEdit}
-          command={(action, body) => run(ticket.id, action, body)}
-          pending={pending}
-          error={error}
-        />
-      )}
-      <AdminPanel ticket={ticket} config={config} me={me} />
-      <div className="mt-3">
-        <ShareButton ticket={ticket} config={config} mode="full" />
-      </div>
-      <Facts ticket={ticket} config={config} />
+      <Facts ticket={ticket} config={config} names={names} liveDownMin={liveDown} />
       {detail.report && <ReportCard report={detail.report} names={names} />}
-      <Figures figures={ticket.figures} kind={ticket.kind} names={names} liveDownMin={liveDown} />
+      <ShareButton ticket={ticket} config={config} mode="full" />
+      <Figures
+        figures={ticket.figures}
+        kind={ticket.kind}
+        liveDownMin={liveDown}
+        waitingFor={ticket.waitReason ? reasonLabels[ticket.waitReason] : undefined}
+      />
+      <PeopleSection detail={detail} names={names} timeZone={config?.timeZone} />
       <Timeline
         events={events}
         names={names}
         reasonLabels={reasonLabels}
         timeZone={config?.timeZone}
       />
-      <PeopleSection
-        people={people}
-        intervals={intervals}
-        names={names}
-        timeZone={config?.timeZone}
-      />
-    </>
+      <AdminPanel ticket={ticket} config={config} me={me} />
+      <Controls {...{ ticket, config, me, run, pending, error, people }} />
+    </Stack>
   );
 }
 
@@ -186,27 +226,25 @@ export function TicketDetail() {
   const { run, error, pending } = useCommand();
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-6">
-      <Link to="/desk" className="inline-flex min-h-13 items-center font-medium text-accent">
-        {t('ticket.back')}
-      </Link>
-      <OfflineBanner />
-      {detail.data ? (
-        <TicketView
-          detail={detail.data}
-          config={config.data}
-          me={me.data?.user}
-          run={run}
-          pending={pending}
-          error={error}
-        />
-      ) : detail.error ? (
-        <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
-          {errorMessage(detail.error)}
-        </p>
-      ) : (
-        <p className="mt-6 text-neutral-500">{t('common.loading')}</p>
-      )}
-    </main>
+    <>
+      <TopBar back={{ to: '/desk', label: t('detail.back') }} trailing={<SyncStatus />} />
+      <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-4">
+        <OfflineBanner />
+        {detail.data ? (
+          <TicketView
+            detail={detail.data}
+            config={config.data}
+            me={me.data?.user}
+            run={run}
+            pending={pending}
+            error={error}
+          />
+        ) : detail.error ? (
+          <Banner tone="error" title={errorMessage(detail.error)} />
+        ) : (
+          <p className="text-body text-neutral-600">{t('common.loading')}</p>
+        )}
+      </main>
+    </>
   );
 }
