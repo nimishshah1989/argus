@@ -6,6 +6,10 @@ services:
     environment:
       PORT: '3001'
       NODE_ENV: production
+    # Uploaded company logos (FILES_DIR, set in app.env by refresh-env.sh). A named volume outlives the container,
+    # so a redeploy keeps them; nothing in deploy.sh removes volumes. Backed up nightly (files-backup.sh).
+    volumes:
+      - files:/data/files
     expose:
       - '3001'
     logging:
@@ -34,5 +38,7 @@ networks:
   web: {}
 
 volumes:
+  files:
+    name: uptimo_files
   caddy_data: {}
   caddy_config: {}

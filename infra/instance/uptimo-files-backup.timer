@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly backup of the uploaded-files volume
+
+[Timer]
+# 02:00 in Mumbai; the weekly database dump runs Monday 03:00 Mumbai.
+OnCalendar=*-*-* 20:30:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

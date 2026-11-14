@@ -44,7 +44,7 @@ resource "aws_s3_bucket_policy" "backups" {
   })
 }
 
-# Keep 13 weeks of dumps. A replaced or deleted version is kept 30 more days.
+# Keep 13 weeks of dumps and of nightly files-volume archives. A replaced or deleted version is kept 30 more days.
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
   rule {
@@ -54,21 +54,33 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
     expiration { days = 91 }
     noncurrent_version_expiration { noncurrent_days = 30 }
   }
+  rule {
+    id     = "expire-old-files-volume"
+    status = "Enabled"
+    filter { prefix = "files-volume/" }
+    expiration { days = 91 }
+    noncurrent_version_expiration { noncurrent_days = 30 }
+  }
 }
 
-# The instance (its role) writes a dump, reads it back to check it, and lists dumps/ for the restore drill. No delete.
+# The instance (its role) writes a dump or a files-volume archive, reads it back to check it, and lists those two
+# folders for the restore drills. Nothing else in the bucket, no delete.
 resource "aws_iam_role_policy" "server_backup" {
   role = aws_iam_role.server.id
   name = "${var.app}-server-backup"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["s3:PutObject", "s3:GetObject"], Resource = "${aws_s3_bucket.backups.arn}/dumps/*" },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject"]
+        Resource = ["${aws_s3_bucket.backups.arn}/dumps/*", "${aws_s3_bucket.backups.arn}/files-volume/*"]
+      },
       {
         Effect    = "Allow"
         Action    = ["s3:ListBucket"]
         Resource  = aws_s3_bucket.backups.arn
-        Condition = { StringLike = { "s3:prefix" = ["dumps/*"] } }
+        Condition = { StringLike = { "s3:prefix" = ["dumps/*", "files-volume/*"] } }
       },
     ]
   })

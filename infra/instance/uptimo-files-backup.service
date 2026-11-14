@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up the uploaded-files volume to the backup bucket
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/uptimo/instance/files-backup.sh

@@ -11,6 +11,7 @@ set -a; . ./.env; set +a
 current="$(cat .current_tag 2>/dev/null || true)"
 previous="$(cat .previous_tag 2>/dev/null || true)"
 
+FILES_VOLUME="uptimo_files" # the same name as `files:` in docker-compose.yml; never remove it
 up() { IMAGE_TAG="$1" docker compose up -d; }
 
 healthy() {
@@ -65,8 +66,17 @@ free_space() {
   docker image prune -f >/dev/null 2>&1 || true
 }
 
+# The server runs as `node`; a fresh volume belongs to root, so hand it over before the release starts.
+files_volume_ready() {
+  if ! docker run --rm --user root -v "$FILES_VOLUME:/data/files" "$1" chown node:node /data/files; then
+    echo "could not prepare the files volume $FILES_VOLUME; nothing replaced; ${current:-nothing} still running"
+    exit 1
+  fi
+}
+
 prepare() {
   "$UPTIMO_DIR/instance/refresh-env.sh"
+  "$UPTIMO_DIR/instance/install-files-backup.sh"
   aws ecr get-login-password --region "$AWS_REGION" |
     docker login --username AWS --password-stdin "$ECR_REGISTRY"
 }
@@ -83,6 +93,7 @@ deploy() {
     echo "migration failed; ${current:-nothing} still running${snapshot:+; snapshot $snapshot was taken first}"
     exit 1
   fi
+  files_volume_ready "$image"
   up "$tag" || true
   if healthy && pdf_works; then
     if [ -n "$current" ] && [ "$current" != "$tag" ]; then echo "$current" > .previous_tag; fi
@@ -108,6 +119,7 @@ deploy() {
 rollback() {
   prepare
   if [ -z "$previous" ]; then echo "no previous release"; exit 1; fi
+  files_volume_ready "$ECR_REGISTRY/uptimo-server:$previous"
   up "$previous"
   healthy || { echo "health failed after rollback to $previous"; exit 1; }
   echo "$previous" > .current_tag

@@ -11,6 +11,8 @@ umask 077
 jq -er '"DATABASE_URL=" + .DATABASE_URL,
   (["APP_ENV","ANTHROPIC_API_KEY","AI_MODEL","AI_PRICE_INPUT_USD_PER_MTOK","AI_PRICE_OUTPUT_USD_PER_MTOK","AI_MAX_OUTPUT_TOKENS","AI_DEFAULT_MONTHLY_CAP_USD"][]
    as $k | select(has($k) and .[$k] != "") | "\($k)=\(.[$k])")' <<<"$secret" > app.env
+# Uploaded files live on the `uptimo_files` volume, mounted here by docker-compose.yml.
+echo "FILES_DIR=/data/files" >> app.env
 # The environment name comes from the secret, else from its id: only ".../staging" is staging.
 if ! jq -e 'has("APP_ENV") and .APP_ENV != ""' <<<"$secret" >/dev/null; then
   case "$SECRET_ID" in */staging) echo "APP_ENV=staging" ;; *) echo "APP_ENV=production" ;; esac >> app.env
