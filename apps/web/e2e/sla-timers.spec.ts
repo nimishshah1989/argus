@@ -139,7 +139,7 @@ test('gates SLA Settings for technicians without hiding ticket access', async ({
   await expect(page.getByRole('button', { name: 'Save SLA policies', exact: true })).toHaveCount(0);
   await expect(page.getByRole('checkbox', { name: 'Business hours only' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Back to desk', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Tickets', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Open', exact: true, level: 1 })).toBeVisible();
 
   const response = await apiFetch('/api/v1/settings/sla-policies', {
     method: 'PUT',
@@ -229,6 +229,8 @@ test('follows acknowledge and restore clocks through existing ticket actions', a
   await expect(page.getByRole('heading', { name: 'Escalation', exact: true })).toHaveCount(0);
 
   await page.getByRole('link', { name: /Open tickets/ }).click();
+  // v3: a job in progress is under Mine, not Open's Breakdowns
+  await page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name: 'Mine' }).click();
   const card = page.getByRole('link', { name: new RegExp(ticket.ref) });
   await expect(card).toContainText('Acknowledge');
   await expect(timerRow(card, 'Acknowledge')).toContainText('Stopped');

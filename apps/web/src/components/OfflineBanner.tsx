@@ -1,6 +1,8 @@
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { queueLength } from '../offline/outbox.js';
+import { Banner } from '../ui/banner.js';
 
 const POLL_MS = 3_000;
 
@@ -53,12 +55,8 @@ export function OfflineBanner() {
   const message = online ? t('offline.queued', { count: queued }) : t('offline.banner');
 
   return (
-    <div
-      role="status"
-      data-testid="offline-banner"
-      className="mt-3 rounded-xl bg-waiting/10 px-4 py-3 text-sm font-medium text-waiting"
-    >
-      {message}
+    <div data-testid="offline-banner">
+      <Banner tone={online ? 'info' : 'offline'} title={message} />
     </div>
   );
 }

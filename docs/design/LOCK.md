@@ -67,10 +67,11 @@ and forecast keep their groups; no mockup screen shows them.
 
 **Screen frame in the kit** (`ui/`, gallery section "Screen frame"): `TopBar` (title, "Updated" line, sync pill or
 step count), `TabBar` (floor 2 tabs, desk 5, count badge), `Banner` (offline, info, attention, error), `Skeleton` and
-`Loading` (loading shapes).
+`Loading` (loading shapes). **Desk lists in the kit** (gallery "Desk lists"): `CountsStrip`, `SegmentedBar`,
+`TicketCard`.
 
 **Drawn but not yet in the kit** (a ticket that needs it builds it once, in `ui/`, with a gallery section; never in
-`faces/`): counts strip, segmented bar, machine row, group tile, choice card, ticket card, quick-problem chip.
+`faces/`): machine row, group tile, choice card, quick-problem chip.
 
 ## The six decisions (Nimish, 14 Nov 2026, verbatim)
 

@@ -509,10 +509,12 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: in-progress
+    status: done
     evidence:
       - 'PR #27'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/web/e2e/desk-lists.spec.ts :: Open: counts strip, Team now, Breakdowns / Tasks / Work, and a tap on a count filters'
+      - 'apps/web/src/screens/desk/openLists.test.ts :: Open counts (v3.views.01)'
     source: PARITY.md §v3 / Views
   - id: v3.views.02
     feature: 'Ticket card: type line, problem, reported by and when, elapsed, actions by state, WhatsApp'
@@ -524,6 +526,7 @@ rows:
     evidence:
       - 'PR #27'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/web/e2e/actions.spec.ts :: E2 shows the quick action on the desk card'
     source: PARITY.md §v3 / Views
   - id: v3.views.03
     feature: 'Ticket detail sheet: facts, full history, people and minutes, follow-up, WhatsApp full
@@ -575,6 +578,7 @@ rows:
         minutes'
       - 'apps/web/src/screens/desk/views.test.ts :: monthlyTotals'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/web/e2e/desk-paging.spec.ts :: Team lists every closed job of the last 30 days past 200 rows'
     source: PARITY.md §v3 / Views
   - id: v3.views.06
     feature:

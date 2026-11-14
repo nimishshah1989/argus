@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
-import { listTickets, type Config, type Machine } from '../../api.js';
+import type { Config, Machine } from '../../api.js';
+import { Banner } from '../../ui/banner.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -8,6 +9,8 @@ import {
   machineLabel,
 } from '../../components/format.js';
 import {
+  CANCELLED_WINDOW_MS,
+  CLOSED_WINDOW_MS,
   cancelledLast24h,
   closedLast30Days,
   monthlyTotals,
@@ -15,6 +18,7 @@ import {
   type MonthTotals,
 } from './views.js';
 import { Empty, Section, TicketRow } from './parts.js';
+import { useTicketWindow } from './useTicketWindow.js';
 
 function names(config?: Config): Record<string, string> {
   const map: Record<string, string> = {};
@@ -34,14 +38,16 @@ function MonthList({ totals, config }: { totals: MonthTotals[]; config?: Config 
   const { t } = useTranslation();
   const people = names(config);
   return (
-    <div className="mt-4 space-y-3">
-      <h3 className="text-xs font-medium text-neutral-500">{t('desk.view.monthly')}</h3>
+    <div className="flex flex-col gap-3">
+      <h3 className="text-caption font-bold text-neutral-600 uppercase">
+        {t('desk.view.monthly')}
+      </h3>
       {totals.map((month) => (
-        <div key={month.month} className="rounded-xl bg-white p-3 shadow-sm">
-          <p className="text-sm font-medium">{monthLabel(month.month)}</p>
+        <div key={month.month} className="rounded-2xl bg-surface p-4 shadow-card">
+          <p className="text-body font-semibold">{monthLabel(month.month)}</p>
           <ul className="mt-1 space-y-1">
             {month.rows.map((row) => (
-              <li key={row.personId} className="flex justify-between gap-3 text-sm">
+              <li key={row.personId} className="flex justify-between gap-3 text-footnote">
                 <span>{people[row.personId] ?? t('common.teamMember')}</span>
                 <span className="text-right text-neutral-600">
                   <span className="block">
@@ -64,24 +70,20 @@ function MonthList({ totals, config }: { totals: MonthTotals[]; config?: Config 
 
 export function RecentCancelled({ machines }: { machines: Machine[] }) {
   const { t } = useTranslation();
-  const query = useQuery({
-    queryKey: ['tickets', 'team', 'cancelled'],
-    queryFn: () => listTickets({ status: ['cancelled'], limit: 200 }),
-    staleTime: 30_000,
-  });
-  const cancelled = cancelledLast24h(query.data?.items ?? []);
+  const query = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
+  const cancelled = cancelledLast24h(query.items);
   return (
     <Section title={t('desk.view.cancelled24h')}>
-      {query.isLoading ? (
-        <p className="mt-2 text-neutral-500">{t('common.loading')}</p>
-      ) : query.error ? (
-        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
-          {errorMessage(query.error)}
+      {query.loading ? (
+        <p role="status" className="text-body text-neutral-600">
+          {t('common.loading')}
         </p>
+      ) : query.error ? (
+        <Banner tone="error" title={errorMessage(query.error)} />
       ) : cancelled.length === 0 ? (
         <Empty />
       ) : (
-        <ul className="mt-3 grid gap-2">
+        <ul className="flex flex-col gap-2">
           {cancelled.map((ticket) => (
             <TicketRow
               key={ticket.id}
@@ -99,26 +101,22 @@ export function RecentCancelled({ machines }: { machines: Machine[] }) {
 
 export function ClosedTotals({ machines, config }: { machines: Machine[]; config?: Config }) {
   const { t } = useTranslation();
-  const query = useQuery({
-    queryKey: ['tickets', 'team', 'closed'],
-    queryFn: () => listTickets({ status: ['closed'], limit: 200 }),
-    staleTime: 30_000,
-  });
-  const closed = closedLast30Days(query.data?.items ?? []);
+  const query = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
+  const closed = closedLast30Days(query.items);
   const totals = monthlyTotals(closed);
   return (
     <Section title={t('desk.view.closed30d')}>
-      {query.isLoading ? (
-        <p className="mt-2 text-neutral-500">{t('common.loading')}</p>
-      ) : query.error ? (
-        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
-          {errorMessage(query.error)}
+      {query.loading ? (
+        <p role="status" className="text-body text-neutral-600">
+          {t('common.loading')}
         </p>
+      ) : query.error ? (
+        <Banner tone="error" title={errorMessage(query.error)} />
       ) : closed.length === 0 ? (
         <Empty />
       ) : (
         <>
-          <ul className="mt-3 grid gap-2">
+          <ul className="flex flex-col gap-2">
             {closed.map((ticket) => (
               <TicketRow
                 key={ticket.id}
