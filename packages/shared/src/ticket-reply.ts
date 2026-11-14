@@ -104,8 +104,16 @@ export const escalationStepSchema = z
     episode: z.number(),
     level: z.string(),
     attempt: z.number(),
+    /** The channel the rule asks for. */
     channel: z.string(),
-    toldPersonIds: z.array(z.string()),
+    /** Set when that channel has no sender yet (WhatsApp) and the step went out on this one instead. */
+    channelFallback: z.string().optional(),
+    /** How many people the step told. */
+    toldCount: z.number(),
+    /** Nobody was on the ladder for the rule: the plant's heads and admins were told instead. */
+    noLadder: z.boolean().optional(),
+    /** Read from the notifications; `null` once they are purged (90 days) though the step told people. */
+    toldPersonIds: z.array(z.string()).nullable(),
   })
   .strict();
 export type EscalationStep = z.infer<typeof escalationStepSchema>;
@@ -124,7 +132,7 @@ export const ticketEventSchema = z
     changes: z
       .array(z.object({ field: z.string(), from: z.unknown(), to: z.unknown() }))
       .nullable(),
-    /** Set on an `escalated` event; null on every other. */
+    /** Set on an `escalate` event, null on every other; optional so a client that builds a reply by hand may leave it out. */
     escalation: escalationStepSchema.nullable().optional(),
   })
   .strict();

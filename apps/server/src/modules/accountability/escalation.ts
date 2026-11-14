@@ -21,7 +21,8 @@ import {
   type DownFacts,
 } from '../tickets/index.js';
 import { ensureEscalationDefaults } from './ladder.js';
-import { activeRulesFor, clockStillRunning, rosterPersonIds, ruleById } from './repo/escalation.js';
+import { activeRulesFor, clockStateAt, rosterPersonIds, ruleById } from './repo/escalation.js';
+import { plantHasPolicies } from './repo/policies.js';
 import type { RuleRow } from './repo/escalation.js';
 import type { SlaTimerKind } from './repo/timers.js';
 
@@ -64,19 +65,26 @@ async function schedule(client: PoolClient, boss: PgBoss, job: EscalationJob): P
   });
 }
 
+/** Every role that signs in as a person: a roster line or a role names someone only if they have a login of their own. */
+const ALL_ROLES = ['operator', 'technician', 'supervisor', 'head', 'plant_head', 'admin', 'board'];
+
 /**
  * Who is told: a named person if they are still on, otherwise the people on the roster for the shift running now at
- * the rule's level, otherwise every active person with the role who has a personal login. Off or inactive people never.
+ * the rule's level, otherwise every active person with the role. All of them need a login of their own (a push goes
+ * to a person). If that is nobody, the plant's heads and admins are told and the step says there was no ladder: a
+ * critical machine never escalates to nobody.
  */
 async function recipients(
   client: PoolClient,
   tenantId: string,
   rule: RuleRow,
   at: Date,
-): Promise<string[]> {
-  const active = new Set((await activePeople(client, tenantId)).map((person) => person.id));
-  if (rule.notify_person_id)
-    return active.has(rule.notify_person_id) ? [rule.notify_person_id] : [];
+): Promise<{ ids: string[]; noLadder: boolean }> {
+  const withLogin = new Set(await peopleWithRole(client, tenantId, ALL_ROLES));
+  if (rule.notify_person_id) {
+    const active = new Set((await activePeople(client, tenantId)).map((person) => person.id));
+    if (active.has(rule.notify_person_id)) return { ids: [rule.notify_person_id], noLadder: false };
+  }
   const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
   const shift = await shiftNowAt(client, zone, at);
   if (shift) {
@@ -85,34 +93,41 @@ async function recipients(
       shiftId: shift.id,
       level: rule.level,
     });
-    const stillOn = onDuty.filter((id) => active.has(id));
-    if (stillOn.length > 0) return stillOn;
+    const stillOn = onDuty.filter((id) => withLogin.has(id));
+    if (stillOn.length > 0) return { ids: stillOn, noLadder: false };
   }
-  return peopleWithRole(client, tenantId, [rule.notify_role as string]);
+  if (rule.notify_role) {
+    const byRole = await peopleWithRole(client, tenantId, [rule.notify_role]);
+    if (byRole.length > 0) return { ids: byRole, noLadder: false };
+  }
+  return { ids: await peopleWithRole(client, tenantId, ['head', 'admin']), noLadder: true };
 }
 
-/** Whether the condition the rule answers is still true: a clock that has not stopped, a machine still down. */
+type Holds = 'yes' | 'paused' | 'no';
+
+/** Whether the condition the rule answers is still true: a clock still going (or paused), a machine still down. */
 async function conditionHolds(
   client: PoolClient,
   job: EscalationJob,
   rule: RuleRow,
   facts: DownFacts,
-): Promise<boolean> {
-  if (!severityAtLeast(facts.severity, rule.severity_min)) return false;
+): Promise<Holds> {
+  if (!severityAtLeast(facts.severity, rule.severity_min)) return 'no';
   if (job.trigger === 'critical_still_down') {
-    return (
+    const down =
       facts.kind === 'stopped' &&
       ACTIVE.includes(facts.status) &&
       !facts.machineRunning &&
-      facts.downSince.getTime() === job.episode
-    );
+      facts.downSince.getTime() === job.episode;
+    return down ? 'yes' : 'no';
   }
   const kind = CLOCK_OF[job.trigger];
-  if (!kind) return false;
-  return clockStillRunning(client, job.tenantId, job.ticketId, {
+  if (!kind) return 'no';
+  const state = await clockStateAt(client, job.tenantId, job.ticketId, {
     kind,
     firedAt: new Date(job.episode),
   });
+  return state === 'running' ? 'yes' : state === 'paused' ? 'paused' : 'no';
 }
 
 /**
@@ -120,21 +135,60 @@ async function conditionHolds(
  * the history event and queues the repeat. Run twice it does the step once (the event key is unique per ticket and
  * the message key per person). Returns whether it sent.
  */
+/** The rule and whether its condition holds, or null when this step has nothing to do. */
+async function stepGate(
+  client: PoolClient,
+  job: EscalationJob,
+): Promise<{ rule: RuleRow; holds: Holds } | null> {
+  if (!(await lockTicket(client, job.tenantId, job.ticketId))) return null;
+  if (!(await plantHasPolicies(client))) return null;
+  const rule = await ruleById(client, job.ruleId);
+  if (!rule?.active || rule.trigger !== job.trigger) return null;
+  if (await escalationStepDone(client, job.ticketId, stepKey(job))) return null;
+  const facts = await ticketDownFacts(client, job.tenantId, job.ticketId);
+  if (!facts) return null;
+  const holds = await conditionHolds(client, job, rule, facts);
+  if (holds === 'no') return null;
+  const events = await loadEvents(client, job.ticketId);
+  return chainAcknowledged(events, job.ruleId, job.episode) ? null : { rule, holds };
+}
+
 export async function runEscalationStep(
   client: PoolClient,
   boss: PgBoss | null,
   job: EscalationJob,
   now: Date,
 ): Promise<boolean> {
-  if (!(await lockTicket(client, job.tenantId, job.ticketId))) return false;
-  const rule = await ruleById(client, job.ruleId);
-  if (!rule?.active || rule.trigger !== job.trigger) return false;
-  if (await escalationStepDone(client, job.ticketId, stepKey(job))) return false;
-  const facts = await ticketDownFacts(client, job.tenantId, job.ticketId);
-  if (!facts || !(await conditionHolds(client, job, rule, facts))) return false;
-  if (chainAcknowledged(await loadEvents(client, job.ticketId), job.ruleId, job.episode))
+  const gate = await stepGate(client, job);
+  if (!gate) return false;
+  const { rule, holds } = gate;
+  // The first notice honours the rule as it is now: a delay raised since this was queued waits longer.
+  const first = job.episode + rule.delay_minutes * MINUTE_MS;
+  if (job.attempt === 1 && now.getTime() < first) {
+    if (boss) await schedule(client, boss, { ...job, dueAt: first });
     return false;
-  const told = await recipients(client, job.tenantId, rule, now);
+  }
+  if (holds === 'paused') {
+    // Waiting on a part is not the end of the chain: ask again after a repeat's wait, without using up an attempt.
+    if (boss && rule.repeat_minutes !== null)
+      await schedule(client, boss, {
+        ...job,
+        dueAt: now.getTime() + rule.repeat_minutes * MINUTE_MS,
+      });
+    return false;
+  }
+  return sendStep(client, boss, { job, rule, now });
+}
+
+async function sendStep(
+  client: PoolClient,
+  boss: PgBoss | null,
+  step: { job: EscalationJob; rule: RuleRow; now: Date },
+): Promise<boolean> {
+  const { job, rule, now } = step;
+  const { ids: told, noLadder } = await recipients(client, job.tenantId, rule, now);
+  // No WhatsApp sender exists yet: the step goes out as a push and the event says so.
+  const fallback = rule.channel === 'whatsapp';
   const eventId = await appendEscalationEvent(client, {
     tenantId: job.tenantId,
     ticketId: job.ticketId,
@@ -147,6 +201,9 @@ export async function runEscalationStep(
       level: rule.level,
       attempt: job.attempt,
       channel: rule.channel,
+      toldCount: told.length,
+      ...(noLadder ? { noLadder: true } : {}),
+      ...(fallback ? { channelFallback: 'push' } : {}),
     },
   });
   if (!eventId) return false;
@@ -157,7 +214,7 @@ export async function runEscalationStep(
     now,
     to: told,
     kind: 'escalation.step',
-    channels: [rule.channel],
+    channels: ['push'],
     dedupeKey: `${job.ticketId}:${stepKey(job)}`,
   });
   const wait = repeatAfterMinutes(
@@ -178,6 +235,7 @@ export async function startClockEscalation(
   input: { tenantId: string; ticketId: string; kind: SlaTimerKind; firedAt: Date },
 ): Promise<void> {
   const { tenantId, ticketId, firedAt } = input;
+  if (!(await plantHasPolicies(client))) return;
   await ensureEscalationDefaults(client, { tenantId, loginId: null });
   const facts = await ticketDownFacts(client, tenantId, ticketId);
   if (!facts) return;
@@ -212,6 +270,7 @@ export async function armDownEscalation(
   const facts = await ticketDownFacts(client, tenantId, ticketId);
   if (!facts || facts.kind !== 'stopped' || facts.machineRunning || !ACTIVE.includes(facts.status))
     return;
+  if (!(await plantHasPolicies(client))) return;
   await ensureEscalationDefaults(client, { tenantId, loginId: null });
   for (const rule of await activeRulesFor(client, 'critical_still_down')) {
     if (!severityAtLeast(facts.severity, rule.severity_min)) continue;

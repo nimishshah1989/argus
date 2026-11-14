@@ -10,6 +10,7 @@ export function acknowledgeEscalation(
   input: TransitionInput,
   command: Extract<Command, { type: 'acknowledgeEscalation' }>,
 ): TransitionResult {
+  if (input.ticket.status === 'cancelled') throw new TransitionError('Ticket is cancelled');
   const covered = command.pendingLevels.filter((level) =>
     mayAcknowledgeLevel(input.ctx.role, level),
   );

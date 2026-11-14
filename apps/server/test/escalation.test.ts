@@ -9,7 +9,9 @@ import {
   processEscalationJob,
   type EscalationJob,
 } from '../src/modules/accountability/escalation.js';
-import { processNotification } from '../src/modules/notifications/index.js';
+import { withTenant } from '@uptimo/db';
+import { ensureEscalationDefaults } from '../src/modules/accountability/index.js';
+import { reconcileTicket } from '../src/modules/accountability/sla.js';
 import { processSlaTimerJob } from '../src/modules/accountability/repo/timers.js';
 import { startTestDb, type TestDb } from './harness.js';
 
@@ -42,6 +44,9 @@ const PEOPLE: Array<[name: string, role: string, active: boolean]> = [
   ['pravin', 'plant_head', true],
   ['omkar', 'operator', true],
   ['root', 'admin', true],
+  ['boris', 'board', true],
+  // on the roster but with no login of their own: nobody to push
+  ['nologin', '', true],
 ];
 
 function call(
@@ -65,7 +70,7 @@ function call(
   });
 }
 
-async function seedPlant(slug: string, n: number): Promise<Plant> {
+async function seedPlant(slug: string, n: number, withPolicies = true): Promise<Plant> {
   const id = `9${n}000000-0000-0000-0000-000000000001`;
   const plant: Plant = { id, host: `${slug}.localhost`, tokens: {}, people: {}, machines: [] };
   const passwordHash = await hash(PASSWORD, {
@@ -86,6 +91,7 @@ async function seedPlant(slug: string, n: number): Promise<Plant> {
       "INSERT INTO person (id, tenant_id, name, team, active) VALUES ($1, $2, $3, 'maintenance', $4)",
       [plant.people[name], id, name, active],
     );
+    if (!role) continue;
     await admin.query(
       `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared)
        VALUES ($1, $2, $3, $4, $5, false)`,
@@ -104,11 +110,12 @@ async function seedPlant(slug: string, n: number): Promise<Plant> {
     "INSERT INTO list_item (tenant_id, list, code, label, is_vendor, pauses_sla) VALUES ($1, 'wait_reason', 'spare', 'Spare', false, true)",
     [id],
   );
-  await admin.query(
-    `INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes, pause_max_minutes, handback_minutes) VALUES
+  if (withPolicies)
+    await admin.query(
+      `INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes, pause_max_minutes, handback_minutes) VALUES
       ($1, 'S1', 5, 30, 20, 10), ($1, 'S2', 90, 360, 20, 10), ($1, 'S3', 120, 480, 20, 10), ($1, 'S4', 180, 720, 20, 10)`,
-    [id],
-  );
+      [id],
+    );
   for (let i = 0; i < 40; i += 1) {
     const machine = randomUUID();
     plant.machines.push(machine);
@@ -117,8 +124,8 @@ async function seedPlant(slug: string, n: number): Promise<Plant> {
       [machine, id, `VC-${i}`],
     );
   }
-  for (const [name, , active] of PEOPLE) {
-    if (!active) continue;
+  for (const [name, role, active] of PEOPLE) {
+    if (!active || !role) continue;
     const res = await call(plant, 'POST', '/api/v1/auth/login', '', {
       username: name,
       password: PASSWORD,
@@ -137,6 +144,8 @@ async function seedPlant(slug: string, n: number): Promise<Plant> {
 let A: Plant;
 let B: Plant;
 let E: Plant;
+let N: Plant;
+let R: Plant;
 
 beforeAll(async () => {
   db = await startTestDb();
@@ -147,6 +156,8 @@ beforeAll(async () => {
   A = await seedPlant('esc-a', 1);
   B = await seedPlant('esc-b', 2);
   E = await seedPlant('esc-e', 3);
+  N = await seedPlant('esc-n', 4, false);
+  R = await seedPlant('esc-r', 5);
 }, 180_000);
 
 afterAll(async () => {
@@ -201,6 +212,8 @@ async function runDue(plant: Plant, id: string, at: Date, trigger = 'ack_missed'
   let sent = 0;
   for (const job of await queuedSteps(id)) {
     if (job.data.trigger !== trigger || job.data.dueAt > at.getTime()) continue;
+    // a worker has the job active while it runs: a requeue then makes a new job, as in production
+    await admin.query("UPDATE pgboss.job SET state = 'active' WHERE id = $1", [job.id]);
     const ran = await processEscalationJob(job.data, { pool: db.app, now: () => at, boss });
     await admin.query("UPDATE pgboss.job SET state = 'completed' WHERE id = $1", [job.id]);
     if (ran) sent += 1;
@@ -214,19 +227,22 @@ type Step = {
   level: string;
   attempt: number;
   channel: string;
-  toldPersonIds: string[];
+  channelFallback?: string;
+  noLadder?: boolean;
+  toldCount: number;
+  toldPersonIds: string[] | null;
 };
-/** The steps of a ticket as the history holds them; who was told is read from the notifications pointing at each. */
+const plantOf = async (id: string): Promise<Plant> => {
+  const tenant = (await admin.query('SELECT tenant_id FROM ticket WHERE id = $1', [id])).rows[0];
+  return [A, B, E, N, R].find((plant) => plant.id === tenant.tenant_id)!;
+};
+/** The steps of a ticket as the history reply shows them (who was told is read by the server from the notifications). */
 const steps = async (id: string, trigger?: string): Promise<Step[]> => {
-  const { rows } = await admin.query(
-    `SELECT e.payload->'escalation' AS step,
-            COALESCE((SELECT array_agg(DISTINCT n.person_id ORDER BY n.person_id) FROM notification n
-                       WHERE n.event_id = e.id), '{}') AS told
-       FROM ticket_event e WHERE e.ticket_id = $1 AND e.type = 'escalate' ORDER BY e.seq`,
-    [id],
-  );
-  return rows
-    .map((row) => ({ ...row.step, toldPersonIds: row.told as string[] }) as Step)
+  const reply = await call(await plantOf(id), 'GET', `/api/v1/tickets/${id}`, 'hema');
+  expect(reply.statusCode, reply.body).toBe(200);
+  return (reply.json().events as Array<{ type: string; escalation: Step | null }>)
+    .filter((event) => event.type === 'escalate')
+    .map((event) => event.escalation!)
     .filter((step) => !trigger || step.trigger === trigger);
 };
 
@@ -239,6 +255,13 @@ const notices = async (id: string) =>
   ).rows as Array<{ person_id: string; channel: string; status: string }>;
 
 const told = (plant: Plant, ...names: string[]) => names.map((n) => plant.people[n]).sort();
+
+const rosterLine = (plant: Plant, name: string, level: string) =>
+  admin.query(
+    `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
+     SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, $3 FROM shift s WHERE s.tenant_id = $1`,
+    [plant.id, plant.people[name], level],
+  );
 
 describe('missed acknowledge', () => {
   it('a plant that never opened the ladder still escalates: supervisors told once, in the history', async () => {
@@ -256,7 +279,7 @@ describe('missed acknowledge', () => {
     expect(more).toEqual([]);
     expect(step).toMatchObject({ trigger: 'ack_missed', level: 'L2', attempt: 1, channel: 'push' });
     // supervisors with a personal login who are still on: not the inactive one, not the head
-    expect([...step!.toldPersonIds].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...step!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
     expect((await notices(id)).map((n) => n.person_id).sort()).toEqual(told(A, 'sunil', 'sunil2'));
 
     const detail = (await call(A, 'GET', `/api/v1/tickets/${id}`, 'sunil')).json();
@@ -348,7 +371,7 @@ describe('who is told', () => {
     );
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));
-    expect([...(await steps(id))[0]!.toldPersonIds].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
@@ -358,7 +381,7 @@ describe('who is told', () => {
     await breach(A, a.id, 'ack', plus(a.at, 6));
     await breach(B, b.id, 'ack', plus(b.at, 6));
     const toldA = (await steps(a.id))[0]!.toldPersonIds;
-    expect(toldA.every((p) => Object.values(A.people).includes(p))).toBe(true);
+    expect(toldA!.every((p) => Object.values(A.people).includes(p))).toBe(true);
     expect((await steps(b.id))[0]!.toldPersonIds).toEqual(
       expect.arrayContaining(told(B, 'sunil', 'sunil2')),
     );
@@ -451,24 +474,21 @@ describe('the ladder is the head’s to edit', () => {
     expect(await runDue(E, id, plus(at, 15))).toBe(0);
     expect(await runDue(E, id, plus(at, 16))).toBe(1);
     const [step] = await steps(id, 'ack_missed');
-    expect(step).toMatchObject({ level: 'L3', channel: 'whatsapp', attempt: 1 });
+    // no WhatsApp sender exists yet: the step goes out as a push and the event says so, never silently dropped
+    expect(step).toMatchObject({
+      level: 'L3',
+      channel: 'whatsapp',
+      channelFallback: 'push',
+      attempt: 1,
+    });
     expect(step!.toldPersonIds).toEqual(told(E, 'hema'));
-    // no WhatsApp sender exists yet: the message is recorded, and the sender marks it dead, never sent
-    const [row] = await notices(id);
-    expect(row).toMatchObject({ person_id: E.people.hema, channel: 'whatsapp' });
-    const sent = await admin.query(
-      "SELECT id FROM notification WHERE ticket_id = $1 AND kind = 'escalation.step'",
-      [id],
-    );
-    await processNotification(
-      { pool: db.app, boss: null, now: plus(at, 17) },
-      { tenantId: E.id, notificationId: sent.rows[0].id },
-    );
-    expect(await notices(id)).toEqual([{ ...row, status: 'dead' }]);
+    expect(await notices(id)).toEqual([
+      { person_id: E.people.hema, channel: 'push', status: 'pending' },
+    ]);
     expect(await queuedSteps(id, 'ack_missed')).toEqual([]);
   });
 
-  it('a rule for a named person tells that person, and not once they are switched off', async () => {
+  it('a named person who is switched off falls through to the roster, then to the heads and admins, and the event says no ladder', async () => {
     const rule = await ruleFor(E, 'restore_missed');
     expect((await edit(E, rule.id, { active: 'false' })).statusCode).toBe(200);
     const named = await call(E, 'POST', '/api/v1/escalation-rules', 'hema', {
@@ -481,11 +501,24 @@ describe('the ladder is the head’s to edit', () => {
     const first = await raise(E);
     await breach(E, first.id, 'restore', plus(first.at, 31));
     expect((await steps(first.id))[0]!.toldPersonIds).toEqual(told(E, 'pravin'));
+    expect((await steps(first.id))[0]!.noLadder).toBeUndefined();
+
     await admin.query('UPDATE person SET active = false WHERE id = $1', [E.people.pravin]);
-    const second = await raise(E);
-    await breach(E, second.id, 'restore', plus(second.at, 31));
-    expect((await steps(second.id))[0]!.toldPersonIds).toEqual([]);
-    expect(await notices(second.id)).toEqual([]);
+    await admin.query(
+      `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
+       SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L3' FROM shift s WHERE s.tenant_id = $1`,
+      [E.id, E.people.sunil],
+    );
+    const rostered = await raise(E);
+    await breach(E, rostered.id, 'restore', plus(rostered.at, 31));
+    expect((await steps(rostered.id))[0]!.toldPersonIds).toEqual(told(E, 'sunil'));
+
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [E.id]);
+    const nobody = await raise(E);
+    await breach(E, nobody.id, 'restore', plus(nobody.at, 31));
+    const [step] = await steps(nobody.id);
+    expect([...step!.toldPersonIds!].sort()).toEqual(told(E, 'hema', 'root'));
+    expect(step).toMatchObject({ noLadder: true, toldCount: 2 });
     await admin.query('UPDATE person SET active = true WHERE id = $1', [E.people.pravin]);
   });
 
@@ -620,8 +653,8 @@ describe('a transferred ticket nobody picks up', () => {
     expect(at.getTime()).toBeLessThan(handedAt.getTime() + 1);
   });
 
-  it('does not escalate once someone picks it up, and a person may acknowledge it again', async () => {
-    const { id } = await raise(A);
+  it('does not escalate once someone picks it up, even if the clock’s job still comes', async () => {
+    const { id, at } = await raise(A);
     await command(A, id, 'start', 'asha');
     await command(A, id, 'transfer', 'asha', { note: 'end of shift' });
     expect((await command(A, id, 'start', 'bina')).statusCode).toBe(200);
@@ -632,8 +665,21 @@ describe('a transferred ticket nobody picks up', () => {
       )
     ).rows[0];
     expect(timer).toEqual({ state: 'stopped', stop_reason: 'started' });
-    expect(await runDue(A, id, new Date(Date.now() + 600 * MIN))).toBe(0);
+    // the straggler job of the stopped clock runs, and so does everything queued: nothing is told
+    await breach(A, id, 'ack', plus(at, 600));
+    expect(await runDue(A, id, plus(at, 600))).toBe(0);
     expect(await steps(id, 'ack_missed')).toEqual([]);
+  });
+
+  it('after a handover the next person may acknowledge again', async () => {
+    const { id } = await raise(A);
+    await command(A, id, 'start', 'asha');
+    await rosterLine(A, 'bina', 'L1');
+    expect((await command(A, id, 'acknowledge', 'bina')).statusCode).toBe(200);
+    expect((await command(A, id, 'acknowledge', 'bina')).statusCode).toBe(409);
+    await command(A, id, 'transfer', 'asha', { note: 'end of shift' });
+    expect((await command(A, id, 'acknowledge', 'bina')).statusCode).toBe(200);
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
   it('a chain from before the handover ends when the new acknowledge window starts', async () => {
@@ -702,7 +748,7 @@ describe('sign-off unanswered and a pause that ran over', () => {
     expect(await steps(id, 'handback_unanswered')).toEqual([]);
   });
 
-  it('a pause over its maximum tells the supervisors once, and stops when the ticket resumes', async () => {
+  it('a pause over its maximum tells the supervisors once', async () => {
     const { id } = await raise(A);
     await command(A, id, 'start', 'asha');
     expect((await command(A, id, 'pause', 'asha', { reasonCode: 'spare' })).statusCode).toBe(200);
@@ -712,9 +758,19 @@ describe('sign-off unanswered and a pause that ran over', () => {
     expect(await breach(A, id, 'pause', plus(pausedAt, 21))).toBe(true);
     const [step] = await steps(id, 'pause_overrun');
     expect(step).toMatchObject({ level: 'L2', attempt: 1 });
-    expect(
-      await queuedSteps(id).then((jobs) => jobs.filter((j) => j.data.trigger === 'pause_overrun')),
-    ).toEqual([]);
+    expect(await queuedSteps(id, 'pause_overrun')).toEqual([]);
+  });
+
+  it('a pause that ended before its job came escalates nothing', async () => {
+    const { id } = await raise(A);
+    await command(A, id, 'start', 'asha');
+    await command(A, id, 'pause', 'asha', { reasonCode: 'spare' });
+    const pausedAt = (
+      await admin.query("SELECT at FROM ticket_event WHERE ticket_id = $1 AND type = 'pause'", [id])
+    ).rows[0].at as Date;
+    expect((await command(A, id, 'resume', 'asha')).statusCode).toBe(200);
+    await breach(A, id, 'pause', plus(pausedAt, 21));
+    expect(await steps(id, 'pause_overrun')).toEqual([]);
   });
 });
 
@@ -741,5 +797,206 @@ describe('the history', () => {
       at: plus(at, 20).toISOString(),
     });
     expect(closed.statusCode, closed.body).toBe(200);
+  });
+});
+
+describe('review fixes', () => {
+  const ackEsc = (plant: Plant, id: string, as: string, host = plant) =>
+    call(host, 'POST', `/api/v1/tickets/${id}/acknowledge-escalation`, as, {
+      personId: plant.people[as],
+    });
+  const lockOf = (plant: Plant) => `escalation-seed:${plant.id}`;
+
+  it('a plant that already has a ladder never waits on the seed lock', async () => {
+    await raise(A);
+    const holder = await admin.connect();
+    await holder.query('SELECT pg_advisory_lock(hashtext($1))', [lockOf(A)]);
+    try {
+      const done = await Promise.race([
+        withTenant(db.app, A.id, (client) =>
+          ensureEscalationDefaults(client, { tenantId: A.id, loginId: null }),
+        ).then(() => 'done'),
+        new Promise((resolve) => setTimeout(() => resolve('blocked'), 3000)),
+      ]);
+      expect(done).toBe('done');
+    } finally {
+      await holder.query('SELECT pg_advisory_unlock_all()');
+      holder.release();
+    }
+  });
+
+  it('a plant without SLA policies never escalates, seeds nothing and arms nothing', async () => {
+    const { id, at } = await raise(N);
+    expect(await queuedSteps(id)).toEqual([]);
+    await withTenant(db.app, N.id, (client) =>
+      reconcileTicket(client, { tenantId: N.id, ticketId: id, now: plus(at, 90), boss }),
+    );
+    expect(await queuedSteps(id)).toEqual([]);
+    expect(
+      (await admin.query('SELECT 1 FROM escalation_rule WHERE tenant_id = $1', [N.id])).rowCount,
+    ).toBe(0);
+    // a forged step for such a plant does nothing either
+    await withTenant(db.app, N.id, (client) =>
+      ensureEscalationDefaults(client, { tenantId: N.id, loginId: null }),
+    );
+    const rule = (
+      await admin.query(
+        "SELECT id FROM escalation_rule WHERE tenant_id = $1 AND trigger = 'critical_still_down'",
+        [N.id],
+      )
+    ).rows[0].id as string;
+    const forged: EscalationJob = {
+      tenantId: N.id,
+      ticketId: id,
+      ruleId: rule,
+      trigger: 'critical_still_down',
+      episode: at.getTime(),
+      attempt: 1,
+      dueAt: 0,
+    };
+    expect(
+      await processEscalationJob(forged, { pool: db.app, now: () => plus(at, 90), boss }),
+    ).toBe(false);
+    expect(await steps(id)).toEqual([]);
+  });
+
+  it('a chain that meets a pause waits, and goes on when the ticket works again', async () => {
+    const { id, at } = await raise(A);
+    await command(A, id, 'start', 'asha');
+    await breach(A, id, 'restore', plus(at, 31));
+    expect(await steps(id, 'restore_missed')).toHaveLength(1);
+    expect((await command(A, id, 'pause', 'asha', { reasonCode: 'spare' })).statusCode).toBe(200);
+    expect(await runDue(A, id, plus(at, 61), 'restore_missed')).toBe(0);
+    const waiting = await queuedSteps(id, 'restore_missed');
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0]!.data).toMatchObject({ attempt: 2, dueAt: plus(at, 61 + 30).getTime() });
+    expect((await command(A, id, 'resume', 'asha')).statusCode).toBe(200);
+    expect(await runDue(A, id, plus(at, 61 + 30), 'restore_missed')).toBe(1);
+    expect((await steps(id, 'restore_missed')).map((step) => step.attempt)).toEqual([1, 2]);
+  });
+
+  it('a closed or cancelled ticket stops its chain', async () => {
+    const closed = await raise(A);
+    await command(A, closed.id, 'start', 'asha');
+    await breach(A, closed.id, 'restore', plus(closed.at, 31));
+    expect(
+      (await command(A, closed.id, 'close', 'asha', { kind: 'no_report', note: 'done' }))
+        .statusCode,
+    ).toBe(200);
+    expect(await runDue(A, closed.id, plus(closed.at, 61), 'restore_missed')).toBe(0);
+    const cancelled = await raise(A);
+    await breach(A, cancelled.id, 'restore', plus(cancelled.at, 31));
+    expect(
+      (await command(A, cancelled.id, 'cancel', 'asha', { reason: 'duplicate' })).statusCode,
+    ).toBe(200);
+    expect(await runDue(A, cancelled.id, plus(cancelled.at, 61), 'restore_missed')).toBe(0);
+    expect(await steps(cancelled.id, 'restore_missed')).toHaveLength(1);
+  });
+
+  it('survives a short database blip: the queue retries five times with a wait', async () => {
+    const queue = await boss.getQueue('sla.escalate');
+    expect(queue).toMatchObject({ retryLimit: 5, retryDelay: 30, retryBackoff: true });
+  });
+
+  it('who was told is read through the ticket reply; the board and another plant get nothing', async () => {
+    const { id, at } = await raise(A);
+    await breach(A, id, 'restore', plus(at, 31));
+    expect((await steps(id))[0]).toMatchObject({ toldCount: 1, toldPersonIds: told(A, 'hema') });
+    expect((await call(B, 'GET', `/api/v1/tickets/${id}`, 'hema')).statusCode).toBe(404);
+    expect((await ackEsc(B, id, 'hema')).statusCode).toBe(404);
+    expect((await ackEsc(A, id, 'boris')).statusCode).toBe(403);
+  });
+
+  it('the plant head acknowledges an L4 escalation', async () => {
+    const { id, at } = await raise(A);
+    await runDue(A, id, plus(at, 60), 'critical_still_down');
+    expect((await steps(id, 'critical_still_down'))[0]).toMatchObject({ level: 'L4' });
+    expect((await ackEsc(A, id, 'hema')).statusCode).toBe(403);
+    expect((await ackEsc(A, id, 'pravin')).statusCode).toBe(200);
+    expect(await runDue(A, id, plus(at, 120), 'critical_still_down')).toBe(0);
+  });
+
+  it('after the notifications are purged the history says so instead of "nobody told"', async () => {
+    const { id, at } = await raise(A);
+    await breach(A, id, 'restore', plus(at, 31));
+    await admin.query('DELETE FROM notification WHERE ticket_id = $1', [id]);
+    expect((await steps(id))[0]).toMatchObject({ toldCount: 1, toldPersonIds: null });
+  });
+
+  it('an admin may correct a closed ticket whose sign-off was escalated after the close', async () => {
+    const { id } = await raise(A);
+    await command(A, id, 'start', 'asha');
+    expect(
+      (
+        await command(A, id, 'close', 'asha', {
+          kind: 'report',
+          report: { correctiveAction: 'Fixed' },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const due = (
+      await admin.query("SELECT due_at FROM sla_timer WHERE ticket_id = $1 AND kind = 'handback'", [
+        id,
+      ])
+    ).rows[0].due_at as Date;
+    await breach(A, id, 'handback', plus(due, 1));
+    expect(await steps(id, 'handback_unanswered')).toHaveLength(1);
+    const fixed = await command(A, id, 'correct', 'root', {
+      reason: 'typo',
+      changes: { problem: 'Spindle stops' },
+    });
+    expect(fixed.statusCode, fixed.body).toBe(200);
+  });
+
+  it('acknowledging an escalation on a cancelled ticket is refused', async () => {
+    const { id, at } = await raise(A);
+    await breach(A, id, 'restore', plus(at, 31));
+    await command(A, id, 'cancel', 'asha', { reason: 'duplicate' });
+    expect((await ackEsc(A, id, 'hema')).statusCode).toBe(409);
+  });
+
+  it('the roster names only people with a login of their own, as the role does', async () => {
+    await rosterLine(A, 'nologin', 'L2');
+    const { id, at } = await raise(A);
+    await breach(A, id, 'ack', plus(at, 6));
+    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
+  });
+
+  it('seeds the reopened-twice rule switched off: it cannot fire yet', async () => {
+    const rules = (await call(A, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+      trigger: string;
+      active: boolean;
+    }>;
+    expect(rules.filter((rule) => !rule.active).map((rule) => rule.trigger)).toEqual([
+      'reopened_twice',
+    ]);
+  });
+
+  it('saving a ladder rule re-arms the tickets already down, and a changed delay is honoured', async () => {
+    const { id, at } = await raise(R);
+    const rules = (await call(R, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+      id: string;
+      trigger: string;
+    }>;
+    const critical = rules.find((rule) => rule.trigger === 'critical_still_down')!;
+    const dueOf = async () => (await queuedSteps(id, 'critical_still_down'))[0]!.data.dueAt;
+    expect(await dueOf()).toBe(plus(at, 60).getTime());
+    const save = (delay: string) =>
+      call(R, 'PUT', `/api/v1/escalation-rules/${critical.id}`, 'hema', { delayMinutes: delay });
+    expect((await save('10')).statusCode).toBe(200);
+    expect(await dueOf()).toBe(plus(at, 10).getTime());
+    expect((await save('120')).statusCode).toBe(200);
+    expect(await dueOf()).toBe(plus(at, 120).getTime());
+    // a step that still wakes at the old time re-checks the delay and waits
+    const old = {
+      ...(await queuedSteps(id, 'critical_still_down'))[0]!.data,
+      dueAt: plus(at, 60).getTime(),
+    };
+    expect(await processEscalationJob(old, { pool: db.app, now: () => plus(at, 61), boss })).toBe(
+      false,
+    );
+    expect(await steps(id, 'critical_still_down')).toEqual([]);
+    expect(await runDue(R, id, plus(at, 120), 'critical_still_down')).toBe(1);
   });
 });

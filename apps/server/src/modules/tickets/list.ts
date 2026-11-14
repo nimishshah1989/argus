@@ -173,6 +173,20 @@ function detailFigures(
   });
 }
 
+/**
+ * An escalation step as the history shows it. Who was told comes from the notifications that point at the event;
+ * once those are purged (90 days) a step that did tell people reads `null`, not an empty list that looks like nobody.
+ */
+function escalationStep(
+  event: { id?: string; payload: Record<string, unknown> },
+  told: Map<string, string[]>,
+): object | null {
+  const step = event.payload.escalation as { toldCount?: number } | undefined;
+  if (!step) return null;
+  const people = told.get(event.id ?? '');
+  return { ...step, toldPersonIds: people ?? ((step.toldCount ?? 0) > 0 ? null : []) };
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -204,12 +218,7 @@ export async function detail(
         reason: event.reason ?? null,
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
-        escalation: event.payload.escalation
-          ? {
-              ...(event.payload.escalation as object),
-              toldPersonIds: told.get(event.id ?? '') ?? [],
-            }
-          : null,
+        escalation: escalationStep(event, told),
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),

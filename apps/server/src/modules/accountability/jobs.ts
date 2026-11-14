@@ -36,7 +36,14 @@ async function ensureQueue(
 
 const QUEUES: Record<string, Omit<Queue, 'name'>> = {
   'sla.timer': { policy: 'standard', retryLimit: 2, retryDelay: 1, expireInSeconds: 60 },
-  [ESCALATION_QUEUE]: { policy: 'standard', retryLimit: 2, retryDelay: 5, expireInSeconds: 120 },
+  // A chain is a run of single jobs: a short database blip must not end it.
+  [ESCALATION_QUEUE]: {
+    policy: 'standard',
+    retryLimit: 5,
+    retryDelay: 30,
+    retryBackoff: true,
+    expireInSeconds: 120,
+  },
   'sla.consistency': { policy: 'standard', retryLimit: 2, retryDelay: 5, expireInSeconds: 900 },
 };
 

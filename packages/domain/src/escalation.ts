@@ -19,6 +19,8 @@ export interface EscalationRuleDefault {
   delayMinutes: number;
   repeatMinutes: number | null;
   repeatCap: number | null;
+  /** Seeded switched off when nothing can fire it yet (`reopened_twice`). */
+  active?: boolean;
 }
 
 export const ESCALATION_DEFAULTS: readonly EscalationRuleDefault[] = [
@@ -71,6 +73,7 @@ export const ESCALATION_DEFAULTS: readonly EscalationRuleDefault[] = [
     delayMinutes: 0,
     repeatMinutes: null,
     repeatCap: null,
+    active: false,
   },
   {
     trigger: 'handback_unanswered',

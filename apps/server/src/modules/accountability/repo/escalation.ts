@@ -46,17 +46,17 @@ export async function rosterPersonIds(
   return rows.map((row) => row.person_id as string);
 }
 
-/** Whether this episode of the clock is still going: not stopped, not paused, and not a later episode. */
-export async function clockStillRunning(
+/** The state of this episode of the clock (`null` when another episode, or none, is the current one). */
+export async function clockStateAt(
   tx: Db,
   tenantId: string,
   ticketId: string,
   clock: { kind: SlaTimerKind; firedAt: Date },
-): Promise<boolean> {
-  const { rowCount } = await tx.query(
-    `SELECT 1 FROM sla_timer
-      WHERE tenant_id = $1 AND ticket_id = $2 AND kind = $3 AND state = 'running' AND fired_at = $4`,
+): Promise<'running' | 'paused' | 'stopped' | null> {
+  const { rows } = await tx.query(
+    `SELECT state FROM sla_timer
+      WHERE tenant_id = $1 AND ticket_id = $2 AND kind = $3 AND fired_at = $4`,
     [tenantId, ticketId, clock.kind, clock.firedAt],
   );
-  return (rowCount ?? 0) > 0;
+  return rows[0]?.state ?? null;
 }
