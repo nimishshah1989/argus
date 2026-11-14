@@ -17,6 +17,7 @@ import {
   groupSegment,
   insertMove,
   latestMoveDate,
+  segmentHasLiveMachines,
   type Row,
   type Scope,
   type SettingsTable,
@@ -46,7 +47,7 @@ export interface Resource {
   reply: (row: Row) => Reply;
   /** The key a repeated value breaks (a 409 names it); `code` unless the resource has another. */
   uniqueField?: string;
-  /** What `active: true/false` changes for this resource; none when it has no switch yet (ticket 29). */
+  /** What `active: true/false` changes for this resource; none when it has no switch. */
   switchTo?: (active: boolean, before: Reply) => Reply;
   /** The values as they would be after the write; a message when they break a rule of the plant. */
   check?: (tx: PoolClient, merged: Reply, edit?: Proposed) => Promise<Problem | null>;
@@ -206,6 +207,7 @@ const segments: Resource = {
     sort: 'sort',
     showOnBoard: 'show_on_board',
     groupBy: 'group_by',
+    active: 'active',
   },
   create: segmentCreateSchema,
   patch: segmentPatchSchema,
@@ -216,9 +218,20 @@ const segments: Resource = {
     sort: row.sort,
     showOnBoard: row.show_on_board,
     groupBy: row.group_by,
-    active: true,
+    active: row.active,
   }),
   fixed: ['code'],
+  switchTo: (active) => ({ active }),
+  check: async (tx, _merged, edit) => {
+    if (edit?.patch.active !== false || edit.before.active === false) return null;
+    return (await segmentHasLiveMachines(tx, edit.before.id as string))
+      ? {
+          field: 'active',
+          message: 'Move or switch off the machines in this segment first',
+          conflict: true,
+        }
+      : null;
+  },
 };
 
 const groups: Resource = {
@@ -251,7 +264,13 @@ const shifts: Resource = {
   table: 'shift',
   kind: 'shift',
   order: 'code',
-  columns: { code: 'code', name: 'name', startsAt: 'starts_at', endsAt: 'ends_at' },
+  columns: {
+    code: 'code',
+    name: 'name',
+    startsAt: 'starts_at',
+    endsAt: 'ends_at',
+    active: 'active',
+  },
   create: shiftCreateSchema,
   patch: shiftPatchSchema,
   reply: (row) => ({
@@ -261,9 +280,10 @@ const shifts: Resource = {
     startsAt: clock(row.starts_at),
     endsAt: clock(row.ends_at),
     crossesMidnight: row.crosses_midnight,
-    active: true,
+    active: row.active,
   }),
   fixed: ['code'],
+  switchTo: (active) => ({ active }),
   check: async (_tx, s) =>
     s.startsAt === s.endsAt
       ? { field: 'endsAt', message: 'A shift cannot end when it starts' }

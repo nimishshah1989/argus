@@ -20,7 +20,7 @@ export async function loadPlantRows(tx: Db): Promise<PlantRows> {
     'SELECT id, list, code, label, label_gu, label_hi, sort, active, is_vendor, pauses_sla, tag FROM list_item ORDER BY list, sort, code',
   );
   const segments = await tx.query(
-    'SELECT id, code, name, sort, show_on_board, group_by FROM segment ORDER BY sort, code',
+    'SELECT id, code, name, sort, show_on_board, group_by FROM segment WHERE active ORDER BY sort, code',
   );
   const groups = await tx.query(
     'SELECT id, segment_id, code, name, sort, hidden FROM machine_group ORDER BY sort, code',
@@ -29,7 +29,7 @@ export async function loadPlantRows(tx: Db): Promise<PlantRows> {
     "SELECT id, code, category, cell, segment_id, group_id, criticality FROM machine WHERE status <> 'scrapped' ORDER BY code",
   );
   const shifts = await tx.query(
-    'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
+    'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift WHERE active ORDER BY code',
   );
   const settings = await tx.query('SELECT key, value FROM setting');
   return {

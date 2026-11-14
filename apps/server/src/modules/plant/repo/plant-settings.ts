@@ -42,6 +42,18 @@ export async function exists(tx: Db, table: SettingsTable, id: string): Promise<
   return ((await tx.query(`SELECT 1 FROM ${table} WHERE id = $1`, [id])).rowCount ?? 0) > 0;
 }
 
+/** Whether any machine of the segment is still in service (a segment with one cannot be switched off). */
+export async function segmentHasLiveMachines(tx: Db, segmentId: string): Promise<boolean> {
+  return (
+    ((
+      await tx.query(
+        "SELECT 1 FROM machine WHERE segment_id = $1 AND status <> 'scrapped' LIMIT 1",
+        [segmentId],
+      )
+    ).rowCount ?? 0) > 0
+  );
+}
+
 export async function insertRow(
   tx: Db,
   table: SettingsTable,

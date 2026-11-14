@@ -279,24 +279,61 @@ describe('the one contract the generated screen uses (PUT, active, strings)', ()
     expect(rename.json().error.field).toBe('code');
   });
 
-  it('active switches a group to hidden and back, and is refused where no switch exists yet (segment, shift, term)', async () => {
+  it('active switches a group to hidden and back', async () => {
     const group = await f.call('PUT', `/api/v1/groups/${GROUP_A}`, head(), { active: false });
     expect(group.json()).toMatchObject({ hidden: true, active: false });
     const back = await f.call('PUT', `/api/v1/groups/${GROUP_A}`, head(), { active: true });
     expect(back.json()).toMatchObject({ hidden: false, active: true });
-    const shift = await f.call('PUT', `/api/v1/shifts/${SHIFT_A}`, head(), { active: false });
-    expect(shift.statusCode).toBe(422);
-    expect(shift.json().error.field).toBe('active');
-    const segment = await f.call('PUT', `/api/v1/segments/${SEG_A}`, head(), { active: false });
-    expect(segment.statusCode).toBe(422);
-    expect(segment.json().error.field).toBe('active');
-    // The floor still sees the segment: hiding it from the board is the explicit showOnBoard field.
-    const config = (await f.call('GET', '/api/v1/config', f.tokens.operator!)).json();
-    expect(config.segments.find((s: { id: string }) => s.id === SEG_A).show_on_board).toBe(true);
-    const term = await f.call('PUT', `/api/v1/settings/glossary/${TERM_A}`, head(), {
+  });
+
+  it('switches a shift off and on, and the floor’s config stops offering it meanwhile', async () => {
+    const codes = async () =>
+      (await f.call('GET', '/api/v1/config', f.tokens.operator!))
+        .json()
+        .shifts.map((s: { id: string }) => s.id);
+    expect(await codes()).toContain(SHIFT_A);
+    const off = await f.call('PUT', `/api/v1/shifts/${SHIFT_A}`, head(), { active: false });
+    expect(off.statusCode).toBe(200);
+    expect(off.json()).toMatchObject({ active: false });
+    expect(await codes()).not.toContain(SHIFT_A);
+    const on = await f.call('PUT', `/api/v1/shifts/${SHIFT_A}`, head(), { active: true });
+    expect(on.json()).toMatchObject({ active: true });
+    expect(await codes()).toContain(SHIFT_A);
+  });
+
+  it('switches a segment off and on once no machine in it is in service; refuses while one is', async () => {
+    const refused = await f.call('PUT', `/api/v1/segments/${SEG_A}`, head(), { active: false });
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error.field).toBe('active');
+    const made = await f.call('POST', '/api/v1/segments', head(), {
+      code: 'SPARE',
+      name: 'Spare segment',
+    });
+    const id = made.json().id as string;
+    const segmentIds = async () =>
+      (await f.call('GET', '/api/v1/config', f.tokens.operator!))
+        .json()
+        .segments.map((s: { id: string }) => s.id);
+    expect(await segmentIds()).toContain(id);
+    const off = await f.call('PUT', `/api/v1/segments/${id}`, head(), { active: false });
+    expect(off.statusCode).toBe(200);
+    expect(off.json()).toMatchObject({ active: false });
+    expect(await segmentIds()).not.toContain(id);
+    expect(
+      (await f.call('PUT', `/api/v1/segments/${id}`, head(), { active: true })).json(),
+    ).toMatchObject({
+      active: true,
+    });
+  });
+
+  it('switches a glossary term off and on', async () => {
+    const off = await f.call('PUT', `/api/v1/settings/glossary/${TERM_A}`, head(), {
       active: false,
     });
-    expect(term.statusCode).toBe(422);
+    expect(off.statusCode).toBe(200);
+    expect(off.json()).toMatchObject({ active: false });
+    const on = await f.call('PUT', `/api/v1/settings/glossary/${TERM_A}`, head(), { active: true });
+    expect(on.json()).toMatchObject({ active: true });
   });
 });
 
