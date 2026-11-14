@@ -6,6 +6,7 @@ import {
   httpWithoutSession,
   idempotencyKey,
   isOffline,
+  forgetPushBinding,
   rememberWho,
 } from './data/index.js';
 import type { User } from '@uptimo/shared/auth';
@@ -126,7 +127,10 @@ export const chooseActing = (actingPersonId: string): Promise<unknown> =>
 
 /** POST /auth/password; a wrong current password is a 401 ApiError that keeps this phone signed in. */
 export const changePassword = (body: { old: string; password: string }): Promise<unknown> =>
-  password.create(body);
+  password.create(body).then((reply) => {
+    forgetPushBinding();
+    return reply;
+  });
 
 /** POST /auth/logout: ends this phone's session on the server. */
 export const signOut = (): Promise<unknown> => logout.create({});

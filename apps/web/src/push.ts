@@ -6,9 +6,9 @@
  * that person changes, `ensurePushBinding` re-binds the same browser subscription to the new
  * person so the old one is never notified silently.
  */
-import { defineResource } from './data/index.js';
+import { defineResource, PUSH_BOUND_KEY } from './data/index.js';
 
-const BOUND_PERSON_KEY = 'uptimo.push.person';
+const BOUND_PERSON_KEY = PUSH_BOUND_KEY;
 
 export type PushState = 'loading' | 'unsupported' | 'unavailable' | 'off' | 'on' | 'denied';
 
