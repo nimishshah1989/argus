@@ -148,7 +148,8 @@ function chains(events: readonly EscalationHistoryEvent[]): Map<string, Chain> {
         { ruleId: string; episode: number; level: EscalationLevel } | undefined;
       if (!step) continue;
       const key = `${step.ruleId}:${step.episode}`;
-      if (!found.has(key)) found.set(key, { level: step.level, acknowledged: false });
+      // a rule edited mid-chain tells another level: the latest step names the level
+      found.set(key, { level: step.level, acknowledged: found.get(key)?.acknowledged ?? false });
     } else if (event.type === 'escalation_ack') {
       const level = event.payload?.level as EscalationLevel | undefined;
       if (!level) continue;

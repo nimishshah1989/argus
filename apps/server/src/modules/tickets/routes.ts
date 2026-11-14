@@ -176,7 +176,13 @@ async function runCommand(
   if (!key) {
     reply
       .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+      .send(
+        shared.apiError(
+          'validation',
+          'Idempotency-Key header is required (keys starting with esc: are reserved)',
+          'idempotencyKey',
+        ),
+      );
     return;
   }
   const parsed = COMMAND_SCHEMAS[action].safeParse(request.body);
@@ -350,7 +356,13 @@ async function raise(
   if (!key) {
     reply
       .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+      .send(
+        shared.apiError(
+          'validation',
+          'Idempotency-Key header is required (keys starting with esc: are reserved)',
+          'idempotencyKey',
+        ),
+      );
     return;
   }
   const parsed = shared.raiseTicketSchema.safeParse(request.body);

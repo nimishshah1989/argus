@@ -9,7 +9,7 @@ import {
 } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../kernel/index.js';
-import { activePeople, peopleWithRole, tenantInfo } from '../identity/index.js';
+import { peopleWithRole, tenantInfo } from '../identity/index.js';
 import { shiftNowAt } from '../plant/index.js';
 import { notify } from '../notifications/index.js';
 import {
@@ -71,7 +71,7 @@ const ALL_ROLES = ['operator', 'technician', 'supervisor', 'head', 'plant_head',
 /**
  * Who is told: a named person if they are still on, otherwise the people on the roster for the shift running now at
  * the rule's level, otherwise every active person with the role. All of them need a login of their own (a push goes
- * to a person). If that is nobody, the plant's heads and admins are told and the step says there was no ladder: a
+ * to a person). If that is nobody, the plant head, the heads and the admins are told and the step says there was no ladder: a
  * critical machine never escalates to nobody.
  */
 async function recipients(
@@ -81,10 +81,8 @@ async function recipients(
   at: Date,
 ): Promise<{ ids: string[]; noLadder: boolean }> {
   const withLogin = new Set(await peopleWithRole(client, tenantId, ALL_ROLES));
-  if (rule.notify_person_id) {
-    const active = new Set((await activePeople(client, tenantId)).map((person) => person.id));
-    if (active.has(rule.notify_person_id)) return { ids: [rule.notify_person_id], noLadder: false };
-  }
+  if (rule.notify_person_id && withLogin.has(rule.notify_person_id))
+    return { ids: [rule.notify_person_id], noLadder: false };
   const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
   const shift = await shiftNowAt(client, zone, at);
   if (shift) {
@@ -100,7 +98,10 @@ async function recipients(
     const byRole = await peopleWithRole(client, tenantId, [rule.notify_role]);
     if (byRole.length > 0) return { ids: byRole, noLadder: false };
   }
-  return { ids: await peopleWithRole(client, tenantId, ['head', 'admin']), noLadder: true };
+  return {
+    ids: await peopleWithRole(client, tenantId, ['plant_head', 'head', 'admin']),
+    noLadder: true,
+  };
 }
 
 type Holds = 'yes' | 'paused' | 'no';
@@ -169,12 +170,10 @@ export async function runEscalationStep(
     return false;
   }
   if (holds === 'paused') {
-    // Waiting on a part is not the end of the chain: ask again after a repeat's wait, without using up an attempt.
-    if (boss && rule.repeat_minutes !== null)
-      await schedule(client, boss, {
-        ...job,
-        dueAt: now.getTime() + rule.repeat_minutes * MINUTE_MS,
-      });
+    // Waiting on a part is not the end of the chain: ask again after a repeat's wait (a rule that never repeats
+    // waits its own delay, 15 minutes at least), without using up an attempt.
+    const wait = rule.repeat_minutes ?? Math.max(rule.delay_minutes, 15);
+    if (boss) await schedule(client, boss, { ...job, dueAt: now.getTime() + wait * MINUTE_MS });
     return false;
   }
   return sendStep(client, boss, { job, rule, now });

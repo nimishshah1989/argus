@@ -19,10 +19,15 @@ export class IdempotencyKeyReusedError extends Error {
   }
 }
 
+/** Keys the system writes itself (an escalation step is `esc:<rule>:<episode>:<attempt>`): a client may not send one. */
+export const RESERVED_KEY_PREFIX = 'esc:';
+
+/** The client's key, or null when there is none or it starts with the reserved prefix. */
 export function idempotencyKey(headers: Record<string, unknown>): string | null {
   const raw = headers['idempotency-key'];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+  const key = typeof value === 'string' ? value.trim() : '';
+  return key && !key.startsWith(RESERVED_KEY_PREFIX) ? key : null;
 }
 
 /** Deterministic serialisation: stable key order, Dates as ISO, undefined keys dropped. */

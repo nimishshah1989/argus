@@ -47,7 +47,7 @@ export interface EscalationEventInput {
 /** Whether this step already has its history event. */
 export async function escalationStepDone(tx: Db, ticketId: string, key: string): Promise<boolean> {
   const { rowCount } = await tx.query(
-    'SELECT 1 FROM ticket_event WHERE ticket_id = $1 AND idempotency_key = $2',
+    "SELECT 1 FROM ticket_event WHERE ticket_id = $1 AND idempotency_key = $2 AND type = 'escalate'",
     [ticketId, key],
   );
   return (rowCount ?? 0) > 0;

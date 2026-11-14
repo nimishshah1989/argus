@@ -328,7 +328,13 @@ async function recordPast(
   if (!key) {
     reply
       .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+      .send(
+        shared.apiError(
+          'validation',
+          'Idempotency-Key header is required (keys starting with esc: are reserved)',
+          'idempotencyKey',
+        ),
+      );
     return;
   }
   const parsed = shared.pastBreakdownSchema.safeParse(request.body);

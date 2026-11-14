@@ -146,6 +146,7 @@ let B: Plant;
 let E: Plant;
 let N: Plant;
 let R: Plant;
+let P: Plant;
 
 beforeAll(async () => {
   db = await startTestDb();
@@ -158,6 +159,7 @@ beforeAll(async () => {
   E = await seedPlant('esc-e', 3);
   N = await seedPlant('esc-n', 4, false);
   R = await seedPlant('esc-r', 5);
+  P = await seedPlant('esc-p', 6);
 }, 180_000);
 
 afterAll(async () => {
@@ -234,7 +236,7 @@ type Step = {
 };
 const plantOf = async (id: string): Promise<Plant> => {
   const tenant = (await admin.query('SELECT tenant_id FROM ticket WHERE id = $1', [id])).rows[0];
-  return [A, B, E, N, R].find((plant) => plant.id === tenant.tenant_id)!;
+  return [A, B, E, N, R, P].find((plant) => plant.id === tenant.tenant_id)!;
 };
 /** The steps of a ticket as the history reply shows them (who was told is read by the server from the notifications). */
 const steps = async (id: string, trigger?: string): Promise<Step[]> => {
@@ -1010,5 +1012,74 @@ describe('review fixes', () => {
     );
     expect(await steps(id, 'critical_still_down')).toEqual([]);
     expect(await runDue(R, id, plus(at, 120), 'critical_still_down')).toBe(1);
+  });
+
+  it('a client key that looks like a step key is refused and cannot silence the step', async () => {
+    const { id, at } = await raise(A);
+    const [queued] = await queuedSteps(id, 'critical_still_down');
+    const { ruleId, episode } = queued!.data;
+    const forged = await app.inject({
+      method: 'POST',
+      url: `/api/v1/tickets/${id}/update`,
+      headers: {
+        host: A.host,
+        'content-type': 'application/json',
+        authorization: `Bearer ${A.tokens.asha}`,
+        'idempotency-key': `esc:${ruleId}:${episode}:1`,
+      },
+      payload: { personId: A.people.asha, text: 'looking at it' },
+    });
+    expect(forged.statusCode, forged.body).toBe(422);
+    expect(await runDue(A, id, plus(at, 60), 'critical_still_down')).toBe(1);
+    expect(await steps(id, 'critical_still_down')).toHaveLength(1);
+  });
+
+  it('with nobody on the ladder the plant head, the heads and the admins are told', async () => {
+    const rules = (await call(R, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+      id: string;
+      trigger: string;
+    }>;
+    const restore = rules.find((rule) => rule.trigger === 'restore_missed')!;
+    await call(R, 'PUT', `/api/v1/escalation-rules/${restore.id}`, 'hema', { active: 'false' });
+    // a named person with no login of their own is nobody to push
+    const named = await call(R, 'POST', '/api/v1/escalation-rules', 'hema', {
+      trigger: 'restore_missed',
+      severityMin: 'S3',
+      level: 'L3',
+      notifyPersonId: R.people.nologin,
+    });
+    expect(named.statusCode, named.body).toBe(201);
+    const { id, at } = await raise(R);
+    await breach(R, id, 'restore', plus(at, 31));
+    const [step] = await steps(id, 'restore_missed');
+    expect([...step!.toldPersonIds!].sort()).toEqual(told(R, 'hema', 'pravin', 'root'));
+    expect(step).toMatchObject({ noLadder: true, toldCount: 3 });
+  });
+
+  it('a chain that meets a pause is not lost when its rule does not repeat', async () => {
+    const rules = (await call(P, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+      id: string;
+      trigger: string;
+    }>;
+    const restore = rules.find((rule) => rule.trigger === 'restore_missed')!;
+    await call(P, 'PUT', `/api/v1/escalation-rules/${restore.id}`, 'hema', {
+      active: 'true',
+      delayMinutes: '10',
+      repeatMinutes: '',
+      repeatCap: '',
+    });
+    const second = await raise(P);
+    await command(P, second.id, 'start', 'asha');
+    await breach(P, second.id, 'restore', plus(second.at, 31));
+    expect(await steps(second.id, 'restore_missed')).toEqual([]);
+    expect((await command(P, second.id, 'pause', 'asha', { reasonCode: 'spare' })).statusCode).toBe(
+      200,
+    );
+    expect(await runDue(P, second.id, plus(second.at, 41), 'restore_missed')).toBe(0);
+    const waiting = await queuedSteps(second.id, 'restore_missed');
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0]!.data.dueAt).toBe(plus(second.at, 41 + 15).getTime());
+    expect((await command(P, second.id, 'resume', 'asha')).statusCode).toBe(200);
+    expect(await runDue(P, second.id, plus(second.at, 41 + 15), 'restore_missed')).toBe(1);
   });
 });

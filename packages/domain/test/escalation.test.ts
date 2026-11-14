@@ -58,6 +58,11 @@ describe('acknowledging an escalation', () => {
     expect(pendingEscalationLevels(events)).toEqual(['L3', 'L2']);
   });
 
+  it('a rule edited mid-chain: the latest step decides the level', () => {
+    const events = [step('a', 'L2'), step('a', 'L3')];
+    expect(pendingEscalationLevels(events)).toEqual(['L3']);
+  });
+
   it('is by role: technician L1, supervisor L2, head L3, plant head L4, admin all, others none', () => {
     const roles = ['operator', 'board', 'technician', 'supervisor', 'head', 'plant_head', 'admin'];
     expect(roles.map((r) => mayAcknowledgeLevel(r, 'L3'))).toEqual([
