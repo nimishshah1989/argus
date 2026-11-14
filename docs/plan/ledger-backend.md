@@ -166,3 +166,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   browser (it touches sign-in). #206 re-check: A-H fixed; one blocker (logo PUT with a non-image body -> 500) + 2 LOWs
   sent; merge waits for FRONTEND 'drill done'. NEW backlog item: legacy GET /settings, /lists/:list,
   /translations/missing are open to every role (check web callers, then gate to head/admin).
+- 2026-11-14 06:18 UTC — Nimish (direct): "merge 206 now, don't wait for the drill". Merged #206 (0e37df7): 23 server
+  (lists, glossary, company name/language/time zone, logo as DB bytes, /files/:id, /brand/logo, migration 0011
+  additive) + #195 review fixes; re-check PASS after the logo-500 fix (469008b); merged with secrets green and the
+  rest running. MIGRATION LOCK released (told FRONTEND; warned that the next staging deploy applies 0011, so time it
+  after the drill). Builder 23 -> next ticket claude/server-small-items: operator upgradeKind, WR refs, POST
+  /tickets/past (+ domain function), gate legacy GET /settings, /lists/:list, /translations/missing. Builder 21 ->
+  contract commit on #210 using the helpers now on main.
