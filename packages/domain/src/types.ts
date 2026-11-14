@@ -32,6 +32,8 @@ export type EventType =
   | 'handback_dispute'
   | 'escalate'
   | 'escalation_ack'
+  /** Written on a breakdown when a follow-up task is left from it or done; not something the machine did. */
+  | 'task'
   | 'lockout_confirmed';
 
 export interface EditChange {

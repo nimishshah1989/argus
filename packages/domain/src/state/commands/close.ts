@@ -2,11 +2,21 @@ import { canClose } from '../../permissions.js';
 import { asksSignoff } from '../../signoff.js';
 import { apply, assertWorking, clampAt, closeSegments, TransitionError } from '../helpers.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
+import { start } from './start.js';
 
-export function close(
-  input: TransitionInput,
-  command: Extract<Command, { type: 'close' }>,
-): TransitionResult {
+type CloseCommand = Extract<Command, { type: 'close' }>;
+
+/**
+ * A follow-up task is finished in one step: left open, it is started by the person closing it, at the close time,
+ * and then closed. Any other open ticket must be worked first.
+ */
+export function close(input: TransitionInput, command: CloseCommand): TransitionResult {
+  if (!(command.isTask && input.ticket.status === 'open')) return closeWorking(input, command);
+  const started = start(input, { type: 'start', personId: command.personId, at: command.at });
+  return closeWorking({ ...input, ...started }, command);
+}
+
+function closeWorking(input: TransitionInput, command: CloseCommand): TransitionResult {
   assertWorking(input);
   if (
     !canClose(

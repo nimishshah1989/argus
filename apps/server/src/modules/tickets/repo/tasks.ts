@@ -64,10 +64,7 @@ export async function appendParentEvent(
       JSON.stringify({ reason: line.reasonCode, task: line.task }),
     ],
   );
-  await tx.query('UPDATE ticket SET last_event_seq = $2, updated_at = now() WHERE id = $1', [
-    line.parentId,
-    seq,
-  ]);
+  await tx.query('UPDATE ticket SET last_event_seq = $2 WHERE id = $1', [line.parentId, seq]);
   return seq;
 }
 

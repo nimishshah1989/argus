@@ -1,4 +1,5 @@
 import { hash } from '@node-rs/argon2';
+import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import { buildApp } from '../src/app.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -47,6 +48,8 @@ export interface Fixture {
   db: TestDb;
   admin: Pool;
   app: App;
+  /** The job queue the app runs on (timers and escalation chains are armed through it). */
+  boss: PgBoss | undefined;
   tokens: Record<string, string>;
   call: (method: string, url: string, token: string, payload?: object) => Promise<Res>;
   stop: () => Promise<void>;
@@ -172,7 +175,8 @@ export async function startFixture(): Promise<Fixture> {
   const db = await startTestDb();
   const admin = db.admin;
   await seedAll(admin);
-  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+  const config = { pool: db.app, logger: false, rateLimitMax: 100000 };
+  const app = await buildApp(config);
   const tokens = await signInAll(app, admin);
   const call: Fixture['call'] = (method, url, token, payload) =>
     app.inject({
@@ -202,6 +206,7 @@ export async function startFixture(): Promise<Fixture> {
     db,
     admin,
     app,
+    boss: (config as { jobBoss?: PgBoss }).jobBoss,
     tokens,
     call,
     stop: async () => {

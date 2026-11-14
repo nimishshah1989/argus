@@ -11,13 +11,17 @@ export class TransitionError extends Error {
 }
 
 /**
- * The latest time on the log (a back-dated start can sit before an earlier-written event). An escalation notice is
- * the system speaking, not something that happened at the machine: it never raises the floor a person's time may not go below.
+ * The latest time on the log (a back-dated start can sit before an earlier-written event). An escalation notice, and the
+ * line a follow-up task writes on its parent (days after the close, perhaps), are not something that happened at the
+ * machine: they never raise the floor a person's time may not go below.
  */
 export function lastEventAt(input: TransitionInput): Date {
   return input.events.reduce(
     (latest, event) =>
-      event.type !== 'escalate' && event.type !== 'escalation_ack' && event.at > latest
+      event.type !== 'escalate' &&
+      event.type !== 'escalation_ack' &&
+      event.type !== 'task' &&
+      event.at > latest
         ? event.at
         : latest,
     input.ticket.reportedAt,

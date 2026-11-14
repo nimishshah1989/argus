@@ -39,13 +39,14 @@ const BUILDERS: Record<CommandAction, Builder> = {
     personId,
     at: body.at as Date | undefined,
   }),
-  close: (body, personId) => ({
+  close: (body, personId, { row }) => ({
     type: 'close',
     personId,
     kind: body.kind as 'report' | 'no_report' | 'done',
     at: body.at as Date | undefined,
     note: body.note as string | undefined,
     taskDownMin: body.taskDownMin as number | undefined,
+    isTask: row.parent_id != null,
   }),
   report: (_body, personId) => ({ type: 'lateReport', personId }),
   cancel: (body, personId) => ({ type: 'cancel', personId, reason: body.reason as string }),

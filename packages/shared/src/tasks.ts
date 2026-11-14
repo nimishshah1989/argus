@@ -16,7 +16,11 @@ export const taskInputSchema = z
     expectedOn: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), 'Not a date')
+
+      .refine((value) => {
+        const day = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === value;
+      }, 'Not a date')
       .optional(),
   })
   .strict();

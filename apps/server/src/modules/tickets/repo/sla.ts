@@ -48,7 +48,7 @@ export async function lockTicket(tx: Db, tenantId: string, ticketId: string): Pr
 
 export async function slaCandidateIds(tx: Db, tenantId: string): Promise<string[]> {
   const candidates = await tx.query(
-    "SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel <> 'backfill' ORDER BY id",
+    "SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel <> 'backfill' AND parent_id IS NULL ORDER BY id",
     [tenantId],
   );
   return candidates.rows.map((row) => row.id as string);
@@ -58,7 +58,7 @@ export async function slaCandidateIds(tx: Db, tenantId: string): Promise<string[
 export async function slaActiveIds(tx: Db, tenantId: string): Promise<string[]> {
   const tickets = await tx.query<{ id: string }>(
     `SELECT id FROM ticket
-       WHERE tenant_id=$1 AND raised_channel <> 'backfill' AND status IN ('open','working','waiting')
+       WHERE tenant_id=$1 AND raised_channel <> 'backfill' AND parent_id IS NULL AND status IN ('open','working','waiting')
        ORDER BY id`,
     [tenantId],
   );

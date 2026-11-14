@@ -47,6 +47,8 @@ export interface ActionTicket {
   startedAt: Time;
   raisedLoginId: string | null;
   leadPersonId: string | null;
+  /** Set on a follow-up task, which may be closed straight from open. */
+  parentId?: string | null;
   /** Every crew row, left ones included (`canClose` reads them). */
   crew: ActionCrewMember[];
 }
@@ -83,7 +85,10 @@ const RULES: Record<TicketAction, (facts: Facts) => boolean> = {
   join: (facts) => inPlay(facts) && !facts.crewed && !facts.leading,
   // the lead may leave only when a primary is there to take over (his rule); everyone else when on the crew
   leave: (facts) => (live(facts) && facts.crewed) || (inPlay(facts) && canHandOver(facts)),
-  close: (facts) => facts.ticket.status === 'working' && canClose(facts.actor, facts.context),
+  close: (facts) =>
+    (facts.ticket.status === 'working' && canClose(facts.actor, facts.context)) ||
+    // an open task is started by the person closing it, so they need only be allowed to work
+    (facts.ticket.status === 'open' && facts.ticket.parentId != null),
   cancel: (facts) => live(facts) && canCancel(facts.actor, facts.context),
 };
 

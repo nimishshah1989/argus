@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pendingTasksOn } from '@uptimo/shared';
+import { withTenant } from '@uptimo/db';
+import { reconcileTicket } from '../src/modules/accountability/sla.js';
+import { runSlaConsistency } from '../src/modules/accountability/consistency.js';
 import { A, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 interface OpenTicket {
@@ -125,6 +128,16 @@ describe('a job left unfinished at close becomes a child task', () => {
     expect(parent.taskSummary).toMatchObject({ overdue: 1, pending: 0, box: 'overdue' });
   });
 
+  it('a date already past is accepted (a queued entry may arrive late) and shows overdue', async () => {
+    const { id } = await workingBreakdown('FT-3b');
+    const res = await close(id, {
+      kind: 'no_report',
+      note: 'x',
+      task: { ...TASK, expectedOn: '2001-02-03' },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+  });
+
   it('a task already started shows as in progress', async () => {
     const { id } = await workingBreakdown('FT-4');
     const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
@@ -194,6 +207,58 @@ describe('marking a task done asks the machine-stopped minutes', () => {
     expect(
       (await close(left.taskId, { kind: 'done', note: 'ok' })).json().ticket.taskDownMin,
     ).toBeNull();
+  });
+
+  it('a task still open can be closed in one step: the closer starts it at the close', async () => {
+    const { id } = await workingBreakdown('FT-D1');
+    const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
+    const res = await close(made.id, { kind: 'done', note: 'Replaced', taskDownMin: 20 });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().ticket).toMatchObject({
+      status: 'closed',
+      taskDownMin: 20,
+      leadPersonId: tech,
+    });
+    const child = await get(f.tokens.head!, `/api/v1/tickets/${made.id}`);
+    const kinds = child.events.map((e: { type: string }) => e.type);
+    expect(kinds).toEqual(['down', 'start', 'close']);
+    expect(child.events[1].actingPersonId).toBe(tech);
+    const parent = await get(f.tokens.head!, `/api/v1/tickets/${id}`);
+    expect(parent.taskSummary).toMatchObject({ done: 1, box: 'done' });
+  });
+
+  it('an open ticket that is not a task still cannot be closed, and an operator cannot close a task', async () => {
+    const machine = (
+      await f.call('POST', '/api/v1/machines', f.tokens.head!, { code: 'FT-D2' })
+    ).json();
+    const raised = await post(f.tokens.head!, '/api/v1/tickets', {
+      kind: 'stopped',
+      machineId: machine.id,
+      problem: 'Not started',
+    });
+    const plain = await close(raised.json().ticket.id, { kind: 'no_report', note: 'x' });
+    expect(plain.statusCode).toBe(409);
+    const { id } = await workingBreakdown('FT-D3');
+    const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
+    const operator = await post(f.tokens.operator!, `/api/v1/tickets/${made.id}/close`, {
+      kind: 'done',
+      note: 'x',
+    });
+    expect(operator.statusCode).toBe(403);
+    expect((await get(f.tokens.head!, `/api/v1/tickets/${made.id}`)).ticket.status).toBe('open');
+  });
+
+  it('a task finishing writes its line on the parent without making the parent look freshly changed', async () => {
+    const { id, taskId } = await startedTask('FT-D4');
+    const stamp = async () =>
+      (
+        await f.admin.query('SELECT updated_at FROM ticket WHERE id = $1', [id])
+      ).rows[0].updated_at.getTime();
+    const before = await stamp();
+    await close(taskId, { kind: 'done', note: 'ok', taskDownMin: 0 });
+    expect(await stamp()).toBe(before);
+    const parent = await get(f.tokens.head!, `/api/v1/tickets/${id}`);
+    expect(parent.ticket.lastEventSeq).toBe(parent.events.at(-1).seq);
   });
 
   it('minutes outside 0 to 1440, or on a ticket that is not a task, are refused', async () => {
@@ -267,7 +332,7 @@ describe('what a close that leaves a task refuses', () => {
     expect(refused.statusCode).toBe(422);
     expect(refused.json().error.field).toBe('task');
     const { id: other } = await workingBreakdown('FT-14');
-    for (const expectedOn of ['2026-13-45', 'tomorrow']) {
+    for (const expectedOn of ['2026-13-45', '2026-02-31', 'tomorrow']) {
       const res = await close(other, {
         kind: 'no_report',
         note: 'x',
@@ -327,24 +392,67 @@ describe('reporting a machine that already has a pending task', () => {
 });
 
 describe('a follow-up task is no breakdown: no clocks, no escalation, no alerts', () => {
-  it('starting and finishing one leaves it no timer, no notification and no SLA reading', async () => {
+  it('starting, pausing and finishing one, then the nightly sweep, leave it no timer, no alert and no SLA reading', async () => {
     await f.admin.query(
       "INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes) SELECT $1, s, 5, 10 FROM unnest(ARRAY['S1','S2','S3','S4']) s ON CONFLICT DO NOTHING",
       [A],
     );
     const { id } = await workingBreakdown('FT-20');
     const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
-    await post(f.tokens.technician!, `/api/v1/tickets/${made.id}/start`, { personId: tech });
-    await close(made.id, { kind: 'done', note: 'ok', taskDownMin: 5 });
-    const count = async (table: string) =>
+    const act = (action: string, body: object = {}) =>
+      post(f.tokens.technician!, `/api/v1/tickets/${made.id}/${action}`, {
+        personId: tech,
+        ...body,
+      });
+    expect((await act('start')).statusCode).toBe(200);
+    expect((await act('pause', { reasonCode: 'spare' })).statusCode).toBe(200);
+    expect((await act('resume')).statusCode).toBe(200);
+    expect((await act('close', { kind: 'done', note: 'ok', taskDownMin: 5 })).statusCode).toBe(200);
+    const sweep = await runSlaConsistency({
+      pool: f.db.app,
+      tenantId: A,
+      now: new Date(),
+      reconcileTicket: (client, tenantId, ticketId, now) =>
+        reconcileTicket(client, { tenantId, ticketId, now, boss: f.boss }),
+    });
+    expect(sweep.tickets).toBeGreaterThan(0);
+    const count = async (table: string, where = 'ticket_id = $1') =>
       Number(
-        (await f.admin.query(`SELECT count(*) AS n FROM ${table} WHERE ticket_id = $1`, [made.id]))
+        (await f.admin.query(`SELECT count(*) AS n FROM ${table} WHERE ${where}`, [made.id]))
           .rows[0].n,
       );
     expect(await count('sla_timer')).toBe(0);
     expect(await count('notification')).toBe(0);
+    expect(
+      await count('ticket_event', "ticket_id = $1 AND type IN ('escalate', 'escalation_ack')"),
+    ).toBe(0);
+    expect(await count('pgboss.job', "data->>'ticketId' = $1")).toBe(0);
     const child = await get(f.tokens.head!, `/api/v1/tickets/${made.id}`);
     expect(child.ticket.sla).toBeNull();
+    const policies = await withTenant(f.db.app, A, (client) =>
+      client.query('SELECT count(*) AS n FROM sla_policy'),
+    );
+    expect(Number(policies.rows[0].n)).toBe(4);
+  });
+});
+
+describe('plants stay apart on writes too', () => {
+  it("another plant cannot close a plant's task, and nothing of it changes", async () => {
+    const { id } = await workingBreakdown('FT-21');
+    const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
+    const res = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/tickets/${made.id}/close`,
+      headers: {
+        host: 'plant-b.localhost',
+        'content-type': 'application/json',
+        authorization: `Bearer ${f.tokens['b-admin']}`,
+        'idempotency-key': 'cross-tenant-close',
+      },
+      payload: { kind: 'done', note: 'x', taskDownMin: 1 },
+    });
+    expect(res.statusCode).toBe(404);
+    expect((await get(f.tokens.head!, `/api/v1/tickets/${made.id}`)).ticket.status).toBe('open');
   });
 });
 
