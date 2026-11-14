@@ -311,9 +311,10 @@ describe('what a support person may not do', () => {
       if (!refused) reached.push(`${method} ${url} → ${res.statusCode}`);
     }
     expect(reached).toEqual([]);
-    expect([...SUPPORT_WRITES].filter((w) => !/\/(settings|lists|translations)\//.test(w))).toEqual(
-      [],
-    );
+    // Nothing that writes ticket history, people, who can sign in, imports, or a ticket clock is ever listed.
+    const history =
+      /\/(tickets|people|logins|imports?|auth|support-access|push)(\/|$)|\/criticality$/;
+    expect([...SUPPORT_WRITES].filter((w) => history.test(w))).toEqual([]);
   });
 });
 
@@ -459,7 +460,7 @@ describe('when the trail cannot be written', () => {
 });
 
 describe('guessing a key', () => {
-  it('answers 429 after twenty wrong keys from one address, and a right key is never counted', async () => {
+  it('answers 429 after twenty wrong keys from one address, and a right key is never counted or held back', async () => {
     const grant = await t.approve(admin);
     const guesser = '203.0.113.9';
     const staff = '203.0.113.10';
@@ -470,14 +471,15 @@ describe('guessing a key', () => {
     const blocked = await t.support(newKey(), grant.id, { ...read, ip: guesser });
     expect(blocked.statusCode).toBe(429);
     expect(blocked.json().error.code).toBe('rate_limited');
-    expect((await t.support(one, grant.id, { ...read, ip: guesser })).statusCode).toBe(429);
+    // A right key is not counted and not held back: guessing from one address cannot lock the person out.
+    expect((await t.support(one, grant.id, { ...read, ip: guesser })).statusCode).toBe(200);
     expect((await t.support(one, grant.id, { ...read, ip: staff })).statusCode).toBe(200);
     expect((await t.send({ ...read, token: admin, ip: guesser })).statusCode).toBe(200);
   });
 });
 
 describe('what the server logs', () => {
-  it('never writes a key, or the grant a call named, to the log', async () => {
+  it('never writes a key to the log, and a grant only as the field that names it', async () => {
     const grant = await t.approve(admin);
     await t.support(one, grant.id, read);
     await t.support(newKey(), grant.id, read);
@@ -490,7 +492,8 @@ describe('what the server logs', () => {
     const log = t.logged.join('\n');
     expect(t.logged.length).toBeGreaterThan(100);
     expect(log).toContain('audit is down (test)');
-    for (const secret of [one, two, grant.id]) expect(log.includes(secret)).toBe(false);
+    for (const secret of [one, two]) expect(log.includes(secret)).toBe(false);
+    expect(log.replaceAll(`"supportGrantId":"${grant.id}"`, '').includes(grant.id)).toBe(false);
     expect(log.toLowerCase()).not.toContain('x-support-grant');
   });
 });

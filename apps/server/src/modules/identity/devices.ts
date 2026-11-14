@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { apiError } from '@uptimo/shared';
 import { idOrNotFound, withTenant, type AuthContext } from '../../kernel/index.js';
+import { audit } from '../ops/index.js';
 import { endDevice, liveDevices } from './repo/devices.js';
 import { hashToken, refuseSupport, requireAuth } from './service.js';
 
@@ -36,9 +37,21 @@ async function end(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   if (!ctx) return;
   const { id } = request.params as { id: string };
   if (!idOrNotFound(reply, id, 'device')) return;
-  const ended = await withTenant(pool, ctx.tenantId, (client) =>
-    endDevice(client, ctx.loginId, id),
-  );
+  const ended = await withTenant(pool, ctx.tenantId, async (client) => {
+    const device = await endDevice(client, ctx.loginId, id);
+    // Who signed out which device is on the trail; the token never is.
+    if (device)
+      await audit.record(client, {
+        tenantId: ctx.tenantId,
+        loginId: ctx.loginId,
+        action: 'session.revoke',
+        entity: 'session',
+        entityId: id,
+        before: { device: device.device },
+        after: { revoked: true },
+      });
+    return device;
+  });
   if (!ended) {
     reply.code(404).send(apiError('not_found', 'Unknown device', 'id'));
     return;

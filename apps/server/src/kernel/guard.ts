@@ -116,7 +116,14 @@ export function registerAuthGuard(
     if (!auth) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
     if ('status' in auth) return reply.code(auth.status).send(auth.body);
     request.auth = auth;
-    bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
+    // Under a support grant the login is the approving admin's: the log names the grant, not that admin.
+    bindLog(
+      request,
+      reply,
+      auth.supportGrantId
+        ? { tenantId: auth.tenantId, supportGrantId: auth.supportGrantId }
+        : { tenantId: auth.tenantId, loginId: auth.loginId },
+    );
     const screen = `${request.method} ${request.routeOptions.url}`;
     if (needsActingPerson(auth, screen))
       return reply

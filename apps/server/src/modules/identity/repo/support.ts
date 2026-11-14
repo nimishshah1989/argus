@@ -15,12 +15,13 @@ export interface GrantRow {
   /** null only on a grant from before approval was required. */
   approved_by_login_id: string | null;
   approved_by: string | null;
-  /** Approved and not yet run out or ended. */
+  /** Approved, not yet run out or ended, and the admin who approved it is still an active admin. */
   live: boolean;
 }
 
 const GRANT = `g.id, g.platform_user, g.reason, g.created_at, g.expires_at, g.approved_by_login_id,
-  l.username AS approved_by, (g.approved_by_login_id IS NOT NULL AND g.expires_at > now()) AS live`;
+  l.username AS approved_by, COALESCE(g.approved_by_login_id IS NOT NULL AND g.expires_at > now()
+    AND l.role = 'admin' AND l.disabled_at IS NULL, false) AS live`;
 const FROM_GRANT = `FROM platform_access g
   LEFT JOIN login l ON l.tenant_id = g.tenant_id AND l.id = g.approved_by_login_id`;
 

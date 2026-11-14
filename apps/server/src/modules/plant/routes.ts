@@ -10,7 +10,12 @@ import {
 } from '@uptimo/shared';
 import { canSettingsLists, canSettingsPeople } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
-import { requireAuth, tenantInfo, updateTenantProfile } from '../identity/index.js';
+import {
+  SUPPORT_NOT_ALLOWED,
+  requireAuth,
+  tenantInfo,
+  updateTenantProfile,
+} from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import {
   deactivateListItem,
@@ -22,7 +27,7 @@ import {
   updateTranslation,
   upsertSetting,
 } from './repo/config.js';
-import { writableSetting } from './settings.js';
+import { supportMayWrite, writableSetting } from './settings.js';
 import { fingerprint, loadConfig } from './service.js';
 import { actorOf, forbidden } from './actor.js';
 import { registerCompanyRoutes } from './company-routes.js';
@@ -74,17 +79,18 @@ async function writeSetting(
   client: PoolClient,
   ctx: { tenantId: string; loginId: string; supportGrantId?: string | null },
   change: { key: string; setting: NonNullable<ReturnType<typeof writableSetting>>; value: unknown },
-): Promise<void> {
+): Promise<boolean> {
   const { key, setting, value } = change;
   const { profile } = setting;
   const before = profile
     ? (await tenantInfo(client, ctx.tenantId))[TENANT_FIELD[profile]]
     : await selectSetting(client, key);
+  if (ctx.supportGrantId && !supportMayWrite(key, before, value)) return false;
   if (profile) await updateTenantProfile(client, { [profile]: value as string });
   else await upsertSetting(client, ctx.tenantId, key, value);
   // A time zone is stored as the database spells it (`asia/kolkata` is `Asia/Kolkata`): audit what was stored.
   const stored = profile ? (await tenantInfo(client, ctx.tenantId))[TENANT_FIELD[profile]] : value;
-  if (isDeepStrictEqual(before, stored)) return;
+  if (isDeepStrictEqual(before, stored)) return true;
   await audit.record(client, {
     tenantId: ctx.tenantId,
     loginId: ctx.loginId,
@@ -94,6 +100,7 @@ async function writeSetting(
     before: { key, value: before ?? null },
     after: { key, value: stored },
   });
+  return true;
 }
 
 async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
@@ -114,9 +121,10 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     return;
   }
   try {
-    await withTenant(pool, ctx.tenantId, (client) =>
+    const written = await withTenant(pool, ctx.tenantId, (client) =>
       writeSetting(client, ctx, { key, setting, value: value.data }),
     );
+    if (!written) return reply.code(SUPPORT_NOT_ALLOWED.status).send(SUPPORT_NOT_ALLOWED.body);
   } catch (error) {
     // The database is the judge of a time zone or a name it refuses (its own `RAISE`): a bad value, not a fault.
     if ((error as { code?: string }).code !== 'P0001') throw error;

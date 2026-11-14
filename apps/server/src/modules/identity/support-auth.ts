@@ -67,6 +67,15 @@ export const SUPPORT_WRITES: ReadonlySet<string> = new Set([
   'PUT /api/v1/lists/:list/:code',
   'DELETE /api/v1/lists/:list/:id',
   'PUT /api/v1/translations/:id',
+  'POST /api/v1/machines',
+  'PUT /api/v1/machines/:id',
+  'POST /api/v1/segments',
+  'PUT /api/v1/segments/:id',
+  'POST /api/v1/groups',
+  'PUT /api/v1/groups/:id',
+  'POST /api/v1/shifts',
+  'PUT /api/v1/shifts/:id',
+  'PUT /api/v1/company/logo',
   'POST /api/v1/settings/glossary',
   'PUT /api/v1/settings/glossary/:id',
   ...LIST_NAMES.flatMap((list) => [
@@ -147,7 +156,7 @@ const ATTEMPTS = 'support-key';
 
 /**
  * Builds the guard's way in for support calls. Wrong keys from one address are limited like wrong passwords
- * (about 20 in 5 minutes, then 429); a right key gives its attempt back.
+ * (about 20 in 5 minutes, then 429); only a key that matches no one is counted, so guessing never locks out a person with the right key.
  */
 export function supportAuthenticator(pool: Pool, keys: SupportKeys = new Map()) {
   const attempts = createLoginGuard();
@@ -156,10 +165,8 @@ export function supportAuthenticator(pool: Pool, keys: SupportKeys = new Map()) 
     host: string,
     call: SupportCall,
   ): Promise<AuthContext | Refusal | null> => {
-    if (attempts.take(call.ip, ATTEMPTS, ATTEMPTS) > 0) return TOO_MANY;
     const platformUser = platformUserOf(keys, key);
-    if (!platformUser) return null;
-    attempts.refund(call.ip, ATTEMPTS, ATTEMPTS);
+    if (!platformUser) return attempts.take(call.ip, ATTEMPTS, ATTEMPTS) > 0 ? TOO_MANY : null;
     if (!isUuid(call.grantId)) return null;
     const slug = tenantSlugFromHost(host);
     const tenant = slug ? await resolveTenant(pool, slug) : null;

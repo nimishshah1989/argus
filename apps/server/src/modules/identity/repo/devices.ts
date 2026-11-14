@@ -27,12 +27,17 @@ export async function liveDevices(
   return result.rows;
 }
 
-/** Ends one live sign-in of this login. False when it is not theirs, not live, or not there. */
-export async function endDevice(tx: Db, loginId: string, sessionId: string): Promise<boolean> {
+/** Ends one live sign-in of this login: its name. Null when it is not theirs, not live, or not there. */
+export async function endDevice(
+  tx: Db,
+  loginId: string,
+  sessionId: string,
+): Promise<{ device: string | null } | null> {
   const result = await tx.query(
     `UPDATE session SET revoked_at = now(), updated_at = now()
-     WHERE id = $1 AND login_id = $2 AND revoked_at IS NULL AND expires_at > now()`,
+     WHERE id = $1 AND login_id = $2 AND revoked_at IS NULL AND expires_at > now()
+     RETURNING device_label AS device`,
     [sessionId, loginId],
   );
-  return (result.rowCount ?? 0) > 0;
+  return (result.rows[0] as { device: string | null } | undefined) ?? null;
 }

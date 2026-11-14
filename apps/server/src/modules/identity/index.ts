@@ -45,6 +45,7 @@ export {
 } from './repo/people.js';
 export { hashPassword } from './routes.js';
 export {
+  SUPPORT_NOT_ALLOWED,
   authenticate,
   hashToken,
   passwordMessage,

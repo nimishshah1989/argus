@@ -84,6 +84,10 @@ describe('my devices', () => {
   it('shows a device with no name as null, and the most recently used first', async () => {
     const unnamed = await signInOn('head');
     const named = await signInOn('head', 'Desk PC');
+    // A call slides "last seen" only when it is over five minutes old, so age both before using one.
+    await t.db.admin.query(
+      "UPDATE session SET last_seen_at = now() - interval '1 hour' WHERE login_id = (SELECT id FROM login WHERE username = 'head')",
+    );
     await me(unnamed);
     const items = await devices(unnamed);
     expect(items.map((d) => d.device)).toEqual([null, 'Desk PC']);
@@ -217,5 +221,23 @@ describe('a shared login', () => {
     expect(gone.json().error.code).toBe('forbidden');
     expect((await t.call('POST', '/api/v1/auth/logout', shared, {})).statusCode).toBe(200);
     expect((await me(shared)).statusCode).toBe(401);
+  });
+});
+
+describe('the trail of a sign-out', () => {
+  it('records who signed out which device, and never the token', async () => {
+    const phone = await signInOn('technician', 'Trail phone');
+    const other = await signInOn('technician', 'Trail tablet');
+    const target = await deviceLabelled(phone, 'Trail tablet');
+    expect((await del(end(target.id), phone)).statusCode).toBe(200);
+    const { rows } = await t.db.admin.query(
+      `SELECT a.before, a.after, l.username FROM audit_log a JOIN login l ON l.id = a.login_id
+       WHERE a.action = 'session.revoke' AND a.entity_id = $1`,
+      [target.id],
+    );
+    expect(rows).toEqual([
+      { before: { device: 'Trail tablet' }, after: { revoked: true }, username: 'technician' },
+    ]);
+    expect(JSON.stringify(rows)).not.toContain(other);
   });
 });
