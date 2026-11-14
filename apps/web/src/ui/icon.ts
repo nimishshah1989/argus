@@ -47,6 +47,7 @@ export {
   TimerOff,
   TriangleAlert,
   Users,
+  Tv,
   Wifi,
   WifiOff,
   Wrench,

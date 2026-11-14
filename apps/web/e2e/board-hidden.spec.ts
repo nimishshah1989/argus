@@ -42,36 +42,15 @@ test.beforeAll(async () => {
   }
 });
 
-test('the board leaves out a hidden group and a segment kept off the board', async ({ page }) => {
-  await signIn(page, 'asha');
-  await page.goto('/desk/board');
-  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
-  const tiles = page.getByTestId('tile');
-  await expect(tiles.filter({ hasText: MACHINES[0]!.code }).first()).toBeVisible();
-  await expect(tiles.filter({ hasText: 'HID-1' })).toHaveCount(0);
-  await expect(tiles.filter({ hasText: 'OFF-1' })).toHaveCount(0);
-  await expect(page.getByText('Off the board')).toHaveCount(0);
-});
-
-/** The board's counts match what it shows (orchestrator ruling): a breakdown on a hidden machine moves no count. */
-test('a breakdown on a hidden machine changes no board count', async ({ page }) => {
-  const token = await apiLogin('asha');
+/** Raises a breakdown on each machine (a retry finds the first try's ticket still open: 409) and returns the new ids. */
+async function breakDown(token: string, codes: string[]): Promise<string[]> {
   const config = await apiFetch('/api/v1/config', {
     headers: { authorization: `Bearer ${token}` },
   });
   const { machines } = (await config.json()) as { machines: { id: string; code: string }[] };
-  await signIn(page, 'asha');
-  await page.goto('/desk/board');
-  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
-  const read = async () =>
-    Promise.all(
-      ['total', 'stopped'].map(async (k) => page.getByTestId(`count-${k}`).textContent()),
-    );
-  const before = await read();
   const raised: string[] = [];
-  for (const code of ['HID-1', 'OFF-1']) {
+  for (const code of codes) {
     const machine = machines.find((m) => m.code === code)!;
-    // A retry finds the first try's ticket still open (409): that is the same state.
     const ticket = await raiseTicketViaApi(token, machine.id, `Hidden check ${code}`).catch(
       (error: Error) => {
         if (!/409/.test(error.message)) throw error;
@@ -80,14 +59,50 @@ test('a breakdown on a hidden machine changes no board count', async ({ page }) 
     );
     if (ticket) raised.push(ticket.id);
   }
-  await page.reload();
-  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
-  expect(await read()).toEqual(before);
+  return raised;
+}
 
+async function cancelAll(token: string, ids: string[]): Promise<void> {
   const me = await getJson<{ user: { actingPersonId: string } }>(token, '/api/v1/auth/me');
-  for (const id of raised)
+  for (const id of ids)
     await commandViaApi(token, id, 'cancel', {
       personId: me.user.actingPersonId,
       reason: 'Check done',
     });
+}
+
+test('the board leaves out a hidden group and a segment kept off the board', async ({
+  page,
+}, testInfo) => {
+  const shown = MACHINES[testInfo.project.name === 'phone' ? 7 : 6]!;
+  const token = await apiLogin('asha');
+  const raised = await breakDown(token, [shown.code, 'HID-1', 'OFF-1']);
+  await signIn(page, 'asha');
+  await page.goto('/desk/board');
+  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
+  const tiles = page.getByTestId('tile');
+  await expect(tiles.filter({ hasText: shown.code })).toHaveCount(1);
+  await expect(tiles.filter({ hasText: 'HID-1' })).toHaveCount(0);
+  await expect(tiles.filter({ hasText: 'OFF-1' })).toHaveCount(0);
+  await expect(page.getByText('Off the board')).toHaveCount(0);
+  await cancelAll(token, raised);
+});
+
+/** The board's counts match what it shows (orchestrator ruling): a breakdown on a hidden machine moves no count. */
+test('a breakdown on a hidden machine changes no board count', async ({ page }) => {
+  const token = await apiLogin('asha');
+  await signIn(page, 'asha');
+  await page.goto('/desk/board');
+  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
+  const read = async () =>
+    Promise.all([
+      ...['running', 'stopped'].map(async (k) => page.getByTestId(`count-${k}`).textContent()),
+      page.getByText(/of \d+ machines/).textContent(),
+    ]);
+  const before = await read();
+  const raised = await breakDown(token, ['HID-1', 'OFF-1']);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Live board' })).toBeVisible();
+  expect(await read()).toEqual(before);
+  await cancelAll(token, raised);
 });
