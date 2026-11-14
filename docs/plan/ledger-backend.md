@@ -34,7 +34,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   machines/segments/groups/shifts/logo/company/SLA/lists, not criticality; who merged #230/#225 from the GitHub page.
 - **Do not:** edit MILESTONES.md or HANDOFF.md (FRONTEND owns them; if the session-end hook edits HANDOFF.md or wiki/log.md locally, discard);
   push to main; force-push; skip hooks. Ledger PRs: changes fragment named `changes/<PR#>-<slug>.md`, run `pnpm exec prettier --write`, `pnpm precheck`.
-- **FRONTEND orchestrator:** session_01KEBF28FjJbxz9dfKVhZPSp (asked to restart at 58% context; its new id will be messaged to me).
+- **FRONTEND orchestrator:** session_01KEBF27UzWD37VxyiA2gNP7 (fresh Sonnet since 07:56 UTC; its handoff is docs/HANDOFF.md on docs PR #232; it grants the migration lock; the lock is free). Previous: session_01KEBF28FjJbxz9dfKVhZPSp (retired).
 
 - 2026-11-14 UTC — RULINGS (Nimish, 14 Nov, "go backend lane"; binding, override CLAUDE.md for the two lanes):
   (1) Two orchestrators; combined cap 5 builders: FRONTEND (session_01KEBF28rZZwgSDVMzdNjw77) up to 3, BACKEND up to 2.
