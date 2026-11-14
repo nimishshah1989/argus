@@ -94,7 +94,7 @@ function specFor(slot: Slot, ticket: Ticket): Omit<ActionSpec, 'primary'> {
   return { action: slot, label: labelFor(slot, ticket) };
 }
 
-/** The actions the actor may take on the ticket now, labelled; the first one is primary. */
+/** The actions the actor may take on the ticket now, labelled; the first one is primary (never Cancel). */
 export function actionSpecs(
   ticket: Ticket,
   crew: ActionCrewMember[],
@@ -105,7 +105,7 @@ export function actionSpecs(
     slot === 'close-no-report'
       ? offered.includes('close') && ticket.kind !== 'general'
       : offered.includes(slot),
-  ).map((slot, index) => ({ ...specFor(slot, ticket), primary: index === 0 }));
+  ).map((slot, index) => ({ ...specFor(slot, ticket), primary: index === 0 && slot !== 'cancel' }));
 }
 
 const QUICK: readonly TicketAction[] = ['start', 'resume', 'machine-running'];

@@ -32,8 +32,8 @@ interface Props {
 }
 
 function variantOf(spec: ActionSpec) {
-  if (spec.primary) return 'primary';
-  return spec.action === 'cancel' ? 'quiet-danger' : 'secondary';
+  if (spec.action === 'cancel') return 'quiet-danger';
+  return spec.primary ? 'primary' : 'secondary';
 }
 
 /** Pause and Transfer sit side by side (design lock B2-3); every other action has its own row. */

@@ -114,6 +114,13 @@ describe('actionSpecs', () => {
     expect(first?.action).toBe('join');
   });
 
+  it('never makes Cancel the primary button', () => {
+    const operator = actor({ role: 'operator', loginId: 'login-1' });
+    expect(actionSpecs(ticket(), [], operator)).toEqual([
+      { action: 'cancel', label: 'detail.action.cancel', primary: false },
+    ]);
+  });
+
   it('keeps one Close for a work request', () => {
     const specs = actionSpecs(working({ kind: 'general' }), [], actor({ role: 'supervisor' }));
     expect(specs.filter((spec) => spec.action === 'close')).toEqual([
