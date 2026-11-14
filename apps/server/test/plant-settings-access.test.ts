@@ -81,6 +81,17 @@ describe('who may change machines, segments, groups and shifts (DOMAIN §3)', ()
     expect(res.statusCode).toBe(401);
   });
 
+  it.each(ROLES.filter((r) => r !== 'head' && r !== 'admin'))(
+    '%s is refused every settings read (the floor and the desk read /config)',
+    async (role) => {
+      for (const path of [...RESOURCE_PATHS, `machines/${M_FREE}/moves`]) {
+        const res = await f.call('GET', `/api/v1/${path}`, f.tokens[role]!);
+        expect(res.statusCode, `${role} ${path}`).toBe(403);
+      }
+      expect((await f.call('GET', '/api/v1/config', f.tokens[role]!)).statusCode).toBe(200);
+    },
+  );
+
   it.each(['head', 'admin'])('%s may list every resource', async (role) => {
     for (const path of RESOURCE_PATHS) {
       const res = await f.call('GET', `/api/v1/${path}`, f.tokens[role]!);
@@ -145,7 +156,7 @@ describe('tenancy: plant A cannot see or change plant B', () => {
   });
 
   it("plant B's admin cannot see plant A's machine through the other plant's host", async () => {
-    const res = await f.call('PATCH', `/api/v1/machines/${M_FREE}`, f.tokens['b-admin']!, {
+    const res = await f.call('PUT', `/api/v1/machines/${M_FREE}`, f.tokens['b-admin']!, {
       cell: 'X',
     });
     expect(res.statusCode).toBe(404);

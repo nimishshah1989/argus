@@ -44,6 +44,8 @@ export interface Resource {
   patch: ZodTypeAny;
   /** The reply always carries `active`, the one switch the generated screen shows. */
   reply: (row: Row) => Reply;
+  /** The key a repeated value breaks (a 409 names it); `code` unless the resource has another. */
+  uniqueField?: string;
   /** What `active: true/false` changes for this resource; none when it has no switch yet (ticket 29). */
   switchTo?: (active: boolean, before: Reply) => Reply;
   /** The values as they would be after the write; a message when they break a rule of the plant. */
@@ -214,10 +216,9 @@ const segments: Resource = {
     sort: row.sort,
     showOnBoard: row.show_on_board,
     groupBy: row.group_by,
-    active: row.show_on_board,
+    active: true,
   }),
   fixed: ['code'],
-  switchTo: (active) => ({ showOnBoard: active }),
 };
 
 const groups: Resource = {

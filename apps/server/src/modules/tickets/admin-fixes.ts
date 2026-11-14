@@ -16,6 +16,14 @@ type Changes = {
   waitMin?: number | null;
 };
 
+/** A ticket cannot be raised, restored or moved onto a machine that has been switched off. */
+export const machineSwitchedOff = (field: string): Outcome => ({
+  status: 422,
+  body: shared.apiError('validation', 'This machine is switched off', field),
+});
+
+const ACTIVE = ['open', 'working', 'waiting'];
+
 const notFound = (message: string, field: string): Outcome => ({
   status: 404,
   body: shared.apiError('not_found', message, field),
@@ -30,6 +38,7 @@ export async function checkCorrectedRefs(
   tx: Tx,
   loaded: LoadedCtx,
 ): Promise<Outcome | null> {
+  if (tx.action === 'restore') return restoredMachineCheck(client, tx, loaded);
   if (tx.action !== 'correct') return null;
   const changes = (tx.body.changes ?? {}) as Changes;
   for (const field of ['leadPersonId', 'closedByPersonId'] as const) {
@@ -40,9 +49,25 @@ export async function checkCorrectedRefs(
   if (!changes.machineId) return null;
   const machine = (await machinesByIds(client, tx.tenantId, [changes.machineId], 'share'))[0];
   if (!machine) return notFound('Unknown machine', 'changes.machineId');
+  // A closed ticket may be corrected onto a switched-off machine (history); an active one may not.
+  if (machine.status === 'scrapped' && ACTIVE.includes(loaded.ticket.status)) {
+    return machineSwitchedOff('changes.machineId');
+  }
   const { code, category, cell, criticality } = machine;
   loaded.extras.machineSnapshot = { code, category, cell, criticality };
   return null;
+}
+
+/** A restored ticket is active again: its machine must not have been switched off while it was cancelled. */
+async function restoredMachineCheck(
+  client: PoolClient,
+  tx: Tx,
+  loaded: LoadedCtx,
+): Promise<Outcome | null> {
+  const machineId = loaded.row.machine_id as string | null;
+  if (!machineId) return null;
+  const machine = (await machinesByIds(client, tx.tenantId, [machineId], 'share'))[0];
+  return machine?.status === 'scrapped' ? machineSwitchedOff('ticketId') : null;
 }
 
 /** The ticket row keeps the machine details it shows; a corrected machine replaces them. */

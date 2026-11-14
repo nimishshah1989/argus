@@ -1,8 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { apiError, isUuid, type ErrorCode } from '@uptimo/shared';
+import { apiError } from '@uptimo/shared';
 import { canSettingsLists } from '@uptimo/domain';
-import { withTenant } from '../../kernel/index.js';
+import {
+  fieldProblem,
+  idOrNotFound,
+  refuse,
+  withTenant,
+  type Refusal,
+} from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import { actorOf, forbidden } from './actor.js';
@@ -20,15 +26,8 @@ import { RESOURCES, type Problem, type Resource } from './settings-resources.js'
 
 type Ctx = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Reply = Record<string, unknown>;
-interface Outcome {
-  status: number;
-  body: unknown;
-}
+type Outcome = Refusal;
 
-const refuse = (status: number, code: ErrorCode, message: string, field?: string): Outcome => ({
-  status,
-  body: apiError(code, message, field),
-});
 const invalid = ({ field, message, conflict }: Problem) =>
   conflict ? refuse(409, 'conflict', message, field) : refuse(422, 'validation', message, field);
 const notFound = (what: string) => refuse(404, 'not_found', `Unknown ${what}`, 'id');
@@ -143,11 +142,14 @@ async function edit(
   return { status: 200, body: after };
 }
 
-/** Auth, then the permission cell (DOMAIN §3), then the body. Null when the reply is already sent. */
-async function gate(pool: Pool, request: FastifyRequest, reply: FastifyReply, write: boolean) {
+/**
+ * Auth, then the permission cell (DOMAIN §3: settings are head and admin, to read and to write; the floor and
+ * the desk read `/config`), then the body. Null when the reply is already sent.
+ */
+async function gate(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return null;
-  if (write && !canSettingsLists(actorOf(ctx))) {
+  if (!canSettingsLists(actorOf(ctx))) {
     forbidden(reply);
     return null;
   }
@@ -159,31 +161,21 @@ async function run(
   ctx: Ctx,
   reply: FastifyReply,
   work: (tx: PoolClient) => Promise<Outcome>,
+  uniqueField = 'code',
 ): Promise<void> {
   try {
     const outcome = await withTenant(pool, ctx.tenantId, work);
     reply.code(outcome.status).send(outcome.body);
   } catch (error) {
     if ((error as { code?: string }).code !== '23505') throw error;
-    reply.code(409).send(apiError('conflict', 'That code is already used', 'code'));
+    reply.code(409).send(apiError('conflict', `That ${uniqueField} is already used`, uniqueField));
   }
-}
-
-/** A zod failure as a 422 that names the field; a key the screen may not send names that key. */
-function fieldProblem(error: {
-  issues: { code: string; path: PropertyKey[]; message: string; keys?: string[] }[];
-}): Outcome {
-  const issue = error.issues[0]!;
-  if (issue.code === 'unrecognized_keys' && issue.keys?.[0]) {
-    return refuse(422, 'validation', `${issue.keys[0]} cannot be set here`, issue.keys[0]);
-  }
-  return refuse(422, 'validation', issue.message, issue.path.map(String).join('.') || undefined);
 }
 
 function registerResource(app: FastifyInstance, pool: Pool, resource: Resource): void {
   const base = `/api/v1/${resource.path}`;
   app.get(base, async (request, reply) => {
-    const ctx = await gate(pool, request, reply, false);
+    const ctx = await gate(pool, request, reply);
     if (!ctx) return;
     const rows = await withTenant(pool, ctx.tenantId, (tx) =>
       selectAll(tx, resource.table, resource.order, resource.scope),
@@ -191,26 +183,32 @@ function registerResource(app: FastifyInstance, pool: Pool, resource: Resource):
     reply.send({ items: rows.map(resource.reply), nextCursor: null });
   });
   app.post(base, async (request, reply) => {
-    const ctx = await gate(pool, request, reply, true);
+    const ctx = await gate(pool, request, reply);
     if (!ctx) return;
     const parsed = resource.create.safeParse(request.body);
     if (!parsed.success) {
       const { status, body } = fieldProblem(parsed.error);
       return reply.code(status).send(body);
     }
-    await run(pool, ctx, reply, (tx) => create(tx, ctx, resource, parsed.data));
+    await run(
+      pool,
+      ctx,
+      reply,
+      (tx) => create(tx, ctx, resource, parsed.data),
+      resource.uniqueField,
+    );
   });
   // Edit, switch off and switch on are all this one PUT (`active`): the generated screen never sends DELETE.
   app.put(`${base}/:id`, async (request, reply) => {
-    const ctx = await gate(pool, request, reply, true);
+    const ctx = await gate(pool, request, reply);
     if (!ctx) return;
+    const { id } = request.params as { id: string };
+    if (!idOrNotFound(reply, id, resource.kind)) return;
     const parsed = resource.patch.safeParse(request.body);
     if (!parsed.success) {
       const { status, body } = fieldProblem(parsed.error);
       return reply.code(status).send(body);
     }
-    const { id } = request.params as { id: string };
-    if (!isUuid(id)) return reply.code(404).send(notFound(resource.kind).body);
     await run(pool, ctx, reply, (tx) => edit(tx, ctx, resource, { id, patch: parsed.data }));
   });
 }
@@ -218,10 +216,10 @@ function registerResource(app: FastifyInstance, pool: Pool, resource: Resource):
 export function registerPlantSettingsRoutes(app: FastifyInstance, pool: Pool): void {
   for (const resource of [...RESOURCES, ...LIST_RESOURCES]) registerResource(app, pool, resource);
   app.get('/api/v1/machines/:id/moves', async (request, reply) => {
-    const ctx = await gate(pool, request, reply, false);
+    const ctx = await gate(pool, request, reply);
     if (!ctx) return;
     const { id } = request.params as { id: string };
-    if (!isUuid(id)) return reply.code(404).send(notFound('machine').body);
+    if (!idOrNotFound(reply, id, 'machine')) return;
     const moves: Row[] | null = await withTenant(pool, ctx.tenantId, async (tx) =>
       (await exists(tx, 'machine', id)) ? selectMoves(tx, id) : null,
     );

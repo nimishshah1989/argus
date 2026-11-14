@@ -1,27 +1,28 @@
 import type { PoolClient } from 'pg';
 
-/** A module's veto over switching a machine off: returns the reason, or null when it has no objection. */
-export interface MachineGuard {
-  readonly name: string;
-  switchOffBlocker(client: PoolClient, tenantId: string, machineId: string): Promise<string | null>;
+/** Asks the tickets side whether a machine may be switched off: the reason it may not, or null. */
+export type MachineSwitchOffCheck = (
+  client: PoolClient,
+  tenantId: string,
+  machineId: string,
+) => Promise<string | null>;
+
+let check: MachineSwitchOffCheck | null = null;
+
+/** The tickets module registers its check once, when the app is built. */
+export function setMachineSwitchOffCheck(fn: MachineSwitchOffCheck): void {
+  check = fn;
 }
 
-// Module-global like the reply parts; contributing a name again replaces it.
-const machineGuards = new Map<string, MachineGuard>();
-
-export function contributeMachineGuard(guard: MachineGuard): void {
-  machineGuards.set(guard.name, guard);
-}
-
-/** The first reason a module gives against switching this machine off, or null. */
+/**
+ * Why this machine may not be switched off, or null. Fails closed: with no check registered nothing can be
+ * switched off, because a machine with an open ticket would then vanish from the board.
+ */
 export async function machineSwitchOffBlocker(
   client: PoolClient,
   tenantId: string,
   machineId: string,
 ): Promise<string | null> {
-  for (const guard of machineGuards.values()) {
-    const reason = await guard.switchOffBlocker(client, tenantId, machineId);
-    if (reason) return reason;
-  }
-  return null;
+  if (!check) return 'Switching a machine off is not available: the ticket check is not registered';
+  return check(client, tenantId, machineId);
 }

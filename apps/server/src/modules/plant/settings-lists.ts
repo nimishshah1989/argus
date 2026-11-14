@@ -51,6 +51,7 @@ const glossary: Resource = {
   table: 'glossary_term',
   kind: 'glossary',
   order: 'source',
+  uniqueField: 'source',
   columns: { source: 'source', english: 'english', direction: 'direction' },
   create: glossaryCreateSchema,
   patch: glossaryPatchSchema,

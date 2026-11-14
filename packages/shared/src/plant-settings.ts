@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { criticalitySchema } from './config.js';
+import { blank, dropBlanks, flag, num } from './form.js';
 
 /**
  * Contracts for the plant-settings screens (tickets 22 and 23): machines, segments, groups, shifts,
@@ -9,16 +10,10 @@ import { criticalitySchema } from './config.js';
  * id may arrive as text and an empty text means "none". Every key is camelCase.
  */
 
-const blank = (v: unknown) => (v === '' ? null : v);
-const num = (schema: z.ZodTypeAny) =>
-  z.preprocess((v) => (typeof v === 'string' && v.trim() !== '' ? Number(v) : blank(v)), schema);
-const flag = z.preprocess((v) => (v === 'true' ? true : v === 'false' ? false : v), z.boolean());
 const code = z.string().trim().min(1).max(40);
 const name = z.string().trim().min(1).max(120);
 const text = z.string().trim().max(120).nullable();
 const id = z.string().uuid();
-/** A path id that is not a uuid names no row: the routes answer 404 instead of asking the database. */
-export const isUuid = (value: string): boolean => id.safeParse(value).success;
 const nullableId = z.preprocess(blank, id.nullable());
 const sort = num(z.number().int().min(0).max(9999));
 /** A real calendar date: `2026-02-30` is refused, whether the engine rolls it over or calls it invalid. */
@@ -54,11 +49,13 @@ const machineFields = {
 };
 
 /** A new machine. Criticality can be set here; afterwards it changes only through its own route. */
-export const machineCreateSchema = z
-  .object({ code, criticality: criticalitySchema.nullable(), ...machineFields })
-  .partial()
-  .required({ code: true })
-  .strict();
+export const machineCreateSchema = dropBlanks(
+  z
+    .object({ code, criticality: criticalitySchema.nullable(), ...machineFields })
+    .partial()
+    .required({ code: true })
+    .strict(),
+);
 export type MachineCreate = z.infer<typeof machineCreateSchema>;
 
 /**
@@ -102,11 +99,13 @@ const segmentFields = {
   showOnBoard: flag,
   groupBy: z.enum(['letters', 'category']),
 };
-export const segmentCreateSchema = z
-  .object({ code, ...segmentFields })
-  .partial({ sort: true, showOnBoard: true, groupBy: true })
-  .strict();
-/** `active` is "shown on the board": a segment has no other switch yet (ticket 29). */
+export const segmentCreateSchema = dropBlanks(
+  z
+    .object({ code, ...segmentFields })
+    .partial({ sort: true, showOnBoard: true, groupBy: true })
+    .strict(),
+);
+/** A segment has no switch-off column yet (ticket 29): `active: false` is refused, `true` accepted. Hide it from the board with `showOnBoard`. */
 export const segmentPatchSchema = z
   .object({ code, ...segmentFields, active: flag })
   .partial()
@@ -119,10 +118,12 @@ export type SegmentPatch = z.infer<typeof segmentPatchSchema>;
 export type SegmentReply = z.infer<typeof segmentReplySchema>;
 
 const groupFields = { name, sort, hidden: flag };
-export const groupCreateSchema = z
-  .object({ segmentId: id, code, ...groupFields })
-  .partial({ sort: true, hidden: true })
-  .strict();
+export const groupCreateSchema = dropBlanks(
+  z
+    .object({ segmentId: id, code, ...groupFields })
+    .partial({ sort: true, hidden: true })
+    .strict(),
+);
 /** `active` is "not hidden". A group never moves to another segment: its machines would no longer match. */
 export const groupPatchSchema = z
   .object({ segmentId: id, code, ...groupFields, active: flag })
@@ -137,7 +138,7 @@ export type GroupReply = z.infer<typeof groupReplySchema>;
 
 const shiftTimes = { startsAt: clock, endsAt: clock };
 /** `crossesMidnight` is worked out from the two times, never typed. A shift code is fixed once made: history names it. */
-export const shiftCreateSchema = z.object({ code, name, ...shiftTimes }).strict();
+export const shiftCreateSchema = dropBlanks(z.object({ code, name, ...shiftTimes }).strict());
 /** A shift has no switch-off column yet (ticket 29): `active: false` is refused, `true` is accepted. */
 export const shiftPatchSchema = z
   .object({ code, name, ...shiftTimes, active: flag })
@@ -160,11 +161,13 @@ const listFields = {
   tag: z.string().trim().max(40).nullable(),
 };
 /** One entry of a list (wait reason, work type, quick problem ...). Its code is fixed once made: tickets keep it. */
-export const listItemCreateSchema = z
-  .object({ code, ...listFields, active: flag })
-  .partial()
-  .required({ code: true, label: true })
-  .strict();
+export const listItemCreateSchema = dropBlanks(
+  z
+    .object({ code, ...listFields, active: flag })
+    .partial()
+    .required({ code: true, label: true })
+    .strict(),
+);
 export const listItemPatchSchema = z
   .object({ code, ...listFields, active: flag })
   .partial()
@@ -189,7 +192,9 @@ const glossaryFields = {
   english: z.string().trim().min(1).max(200),
   direction: z.enum(['gu', 'gu-Latn', 'en']),
 };
-export const glossaryCreateSchema = z.object(glossaryFields).partial({ direction: true }).strict();
+export const glossaryCreateSchema = dropBlanks(
+  z.object(glossaryFields).partial({ direction: true }).strict(),
+);
 /** A glossary term has no switch-off column yet (ticket 29): `active: false` is refused, `true` accepted. */
 export const glossaryPatchSchema = z
   .object({ ...glossaryFields, active: flag })
