@@ -1,7 +1,8 @@
 /* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { UpdateBanner } from './components/UpdateBanner.js';
 import { Page } from './ui/layout.js';
 import { Board } from './screens/Board.js';
 import { Desk } from './screens/Desk.js';
@@ -23,33 +24,38 @@ const Gallery =
 
 export function App() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const kiosk = location.pathname === '/desk/board' && location.search.includes('kiosk=1');
   return (
-    <Routes>
-      <Route path="/login" element={<SignIn />} />
-      <Route path="/who" element={<Who />} />
-      <Route path="/password" element={<ChangePassword />} />
-      <Route path="/floor" element={<Report />} />
-      <Route path="/floor/other" element={<OtherWork />} />
-      <Route path="/floor/mine" element={<MyComplaints />} />
-      <Route path="/desk" element={<Desk view="open" />} />
-      <Route path="/desk/mine" element={<Desk view="mine" />} />
-      <Route path="/desk/team" element={<Desk view="team" />} />
-      <Route path="/desk/board" element={<Board />} />
-      <Route path="/desk/settings" element={<Settings />} />
-      <Route path="/desk/:id" element={<TicketDetail />} />
-      <Route
-        path="/gallery"
-        element={
-          Gallery ? (
-            <Suspense fallback={null}>
-              <Gallery />
-            </Suspense>
-          ) : (
-            <Page title={t('kit.notFound')} />
-          )
-        }
-      />
-      <Route path="*" element={<Navigate to="/floor" replace />} />
-    </Routes>
+    <>
+      <UpdateBanner auto={kiosk} />
+      <Routes>
+        <Route path="/login" element={<SignIn />} />
+        <Route path="/who" element={<Who />} />
+        <Route path="/password" element={<ChangePassword />} />
+        <Route path="/floor" element={<Report />} />
+        <Route path="/floor/other" element={<OtherWork />} />
+        <Route path="/floor/mine" element={<MyComplaints />} />
+        <Route path="/desk" element={<Desk view="open" />} />
+        <Route path="/desk/mine" element={<Desk view="mine" />} />
+        <Route path="/desk/team" element={<Desk view="team" />} />
+        <Route path="/desk/board" element={<Board />} />
+        <Route path="/desk/settings" element={<Settings />} />
+        <Route path="/desk/:id" element={<TicketDetail />} />
+        <Route
+          path="/gallery"
+          element={
+            Gallery ? (
+              <Suspense fallback={null}>
+                <Gallery />
+              </Suspense>
+            ) : (
+              <Page title={t('kit.notFound')} />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to="/floor" replace />} />
+      </Routes>
+    </>
   );
 }

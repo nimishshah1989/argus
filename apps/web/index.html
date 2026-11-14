@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a66c2" />
     <link rel="icon" type="image/png" href="/icon-192.png" />
-    <link rel="manifest" href="/manifest-floor.webmanifest" />
-    <link rel="manifest" href="/manifest-desk.webmanifest" />
+    <!-- Two apps from one site: the address you install from decides which one (floor or desk). -->
+    <script>
+      document.head.insertAdjacentHTML(
+        'beforeend',
+        '<link rel="manifest" href="/manifest-' +
+          (location.pathname.indexOf('/desk') === 0 ? 'desk' : 'floor') +
+          '.webmanifest" />',
+      );
+    </script>
     <title>Uptimo</title>
   </head>
   <body>
