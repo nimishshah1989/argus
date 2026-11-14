@@ -16,8 +16,10 @@ import {
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import * as report from './repo/report.js';
+import { ALREADY_OPEN, runOutcome } from './outcome.js';
+import { registerPast } from './past.js';
+import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import { openDuplicateId, openTicketRows } from './repo/list.js';
 import {
   checkCorrectedRefs,
@@ -31,11 +33,6 @@ import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } fr
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
-
-const ALREADY_OPEN: Outcome = {
-  status: 409,
-  body: shared.apiError('conflict', 'Already reported', 'machineId'),
-};
 
 const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   start: shared.startTicketSchema,
@@ -66,9 +63,12 @@ async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
 ): Promise<{ personId: string | null } | Outcome> {
-  const useSession = tx.action === 'correct' || tx.action === 'upgrade-kind';
-  if (useSession) return { personId: tx.auth.personId };
-  const bodyPersonId = tx.body.personId as string | undefined;
+  // A correction is the admin's own act; every other command, an upgrade included, names who acts.
+  if (tx.action === 'correct') return { personId: tx.auth.personId };
+  // On an upgrade the person may be left out: a signed-in person then acts as themselves.
+  const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
+  const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
+    string | undefined;
   if (!tx.auth.shared) {
     if (bodyPersonId !== tx.auth.personId) {
       return {
@@ -145,31 +145,6 @@ async function executeCommand(
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
-}
-
-async function runOutcome(
-  pool: Pool,
-  binding: idem.IdempotencyBinding,
-  run: (client: PoolClient) => Promise<Outcome>,
-): Promise<Outcome> {
-  try {
-    return await withTenant(pool, binding.tenantId, run);
-  } catch (error) {
-    if (error instanceof report.ReportValidationError) {
-      return { status: 422, body: shared.apiError('validation', 'Invalid report', error.field) };
-    }
-    if (error instanceof idem.IdempotencyKeyReusedError) return idem.reusedKeyOutcome();
-    if (!idem.isUniqueViolation(error)) throw error;
-    const stored = await withTenant(pool, binding.tenantId, (client) =>
-      idem.getIdempotent(client, binding),
-    );
-    if (stored) return stored;
-    // The database's own one-open-breakdown-per-machine rule: the same answer as the duplicate check.
-    if ((error as { constraint?: string }).constraint === 'ticket_open_breakdown_unique') {
-      return ALREADY_OPEN;
-    }
-    return { status: 500, body: shared.apiError('internal', 'Internal error') };
-  }
 }
 
 async function runCommand(
@@ -265,7 +240,7 @@ async function executeRaise(
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
-  const ref = await sql.allocateRef(client, tx.tenantId);
+  const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
   // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
@@ -362,6 +337,7 @@ async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): 
 export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   app.post('/api/v1/tickets', (request, reply) => raise(pool, request, reply, config.jobBoss));
+  registerPast(app, config);
   app.get('/api/v1/tickets', (request, reply) => listTickets(pool, request, reply));
   app.get('/api/v1/state', (request, reply) => state(pool, request, reply));
   app.get('/api/v1/tickets/:id', (request, reply) => detail(pool, request, reply));

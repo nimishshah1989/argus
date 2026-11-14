@@ -3,7 +3,7 @@ import type { Figures, Ticket, TransitionResult } from '@uptimo/domain';
 import type { BreakdownReportBody } from '@uptimo/shared';
 import type { Tx } from '../mapper.js';
 import { peopleByIds, tenantInfo } from '../../identity/index.js';
-import { shiftCodeAt } from '../../plant/index.js';
+import { productionDateAt, shiftCodeAt } from '../../plant/index.js';
 
 export interface StoredReportPerson {
   personId: string;
@@ -92,11 +92,10 @@ function figureDefaults(input: ReportStoreInput): {
   };
 }
 
-async function tenantDate(client: PoolClient, tenantId: string): Promise<string> {
+/** The calendar date of `at` on the plant's wall clock. */
+export async function plantDateAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {
   const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
-  const row = (await client.query('SELECT (now() AT TIME ZONE $1)::date::text AS today', [zone]))
-    .rows[0];
-  return row.today as string;
+  return productionDateAt(client, zone, at);
 }
 
 export async function shiftAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {
@@ -111,7 +110,7 @@ async function currentShift(client: PoolClient, tenantId: string): Promise<strin
 async function reportValues(client: PoolClient, input: ReportStoreInput): Promise<ReportValues> {
   const b = input.body;
   return {
-    date: b.date ?? (await tenantDate(client, input.tenantId)),
+    date: b.date ?? (await plantDateAt(client, input.tenantId, new Date())),
     shiftCode: b.shiftCode ?? (await currentShift(client, input.tenantId)),
     problem: b.problem ?? input.ticket.problem,
     observedBy: n(b.observedBy),

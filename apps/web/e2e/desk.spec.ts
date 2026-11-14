@@ -155,12 +155,12 @@ async function markMachineStopped(page: Page): Promise<void> {
 
 async function closeWithReport(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Write report and close', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Close the ticket' });
-  await expect(form.getByLabel('How are you closing?')).toHaveValue('report');
-  await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
-  await expect(form).toBeHidden();
-  // AC3a: closing "with report" now opens the breakdown report form first.
-  await expect(page.getByRole('heading', { name: 'Close with breakdown report' })).toBeVisible();
+  // Step 1 of the close asks when the repair ended; step 2 is the breakdown report.
+  await expect(page.getByText('When did you finish?')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to report form', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Breakdown report' })).toBeVisible();
+  await page.getByLabel('Breakdown Category').selectOption({ index: 1 });
+  await page.getByLabel('Maintenance Code').selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Close with report', exact: true }).click();
   await expectStatus(page, 'Closed');
   await expect(page.getByText('Closed as')).toBeVisible();
@@ -169,12 +169,11 @@ async function closeWithReport(page: Page): Promise<void> {
 
 async function closeWithoutReport(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Close without report', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Close the ticket' });
-  await expect(form.getByLabel('How are you closing?')).toHaveValue('no_report');
-  // The Close form requires a reason for a without-report close.
-  await form.getByLabel('Note').fill('Closed without the report');
-  await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
-  await expect(form).toBeHidden();
+  const sheet = page.getByRole('dialog', { name: /^Close without report: / });
+  // The sheet requires a reason for a without-report close.
+  await sheet.getByLabel('Reason').fill('Closed without the report');
+  await sheet.getByRole('button', { name: 'Close ticket', exact: true }).click();
+  await expect(sheet).toBeHidden();
   await expectStatus(page, 'Closed');
 }
 
@@ -234,6 +233,8 @@ test('keeps a no-report close on Needs report until the report is filed', async 
   await expect(page.getByRole('button', { name: 'Fill report', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Fill report', exact: true }).click();
   await expect(page.getByRole('button', { name: 'File report', exact: true })).toBeVisible();
+  await page.getByLabel('Breakdown Category').selectOption({ index: 1 });
+  await page.getByLabel('Maintenance Code').selectOption({ index: 1 });
   await page.getByRole('button', { name: 'File report', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fill report', exact: true })).toHaveCount(0);
 

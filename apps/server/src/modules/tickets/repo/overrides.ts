@@ -30,3 +30,21 @@ export async function setMachineSnapshot(
     JSON.stringify(snapshot),
   ]);
 }
+
+const OVERRIDE_KEYS = {
+  responseMin: 'responseMin',
+  handsOnOverrideMin: 'activeMin',
+  waitingOverrideMin: 'waitMin',
+  downtimeMin: 'downtimeMin',
+  repairMin: 'repairMin',
+} as const;
+
+/** The figures a ticket's stored overrides set by hand. */
+export function overriddenFigures(
+  overrides: unknown,
+): Array<(typeof OVERRIDE_KEYS)[keyof typeof OVERRIDE_KEYS]> {
+  const set = (overrides as Record<string, unknown> | null) ?? {};
+  return Object.entries(OVERRIDE_KEYS)
+    .filter(([key]) => set[key] !== undefined)
+    .map(([, figure]) => figure);
+}

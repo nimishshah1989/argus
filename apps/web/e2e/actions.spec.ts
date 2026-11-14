@@ -29,12 +29,12 @@ const BUTTON: Record<Exclude<TicketAction, 'close'>, string> = {
   leave: 'Leave',
   cancel: 'Cancel ticket',
 };
-/** A breakdown or support ticket closes with or without a report (two buttons); a work request just closes. */
+/** A breakdown or support ticket closes with or without a report (two buttons); a work request is marked done. */
 const CLOSE_BUTTONS = ['Write report and close', 'Close without report'];
 
 function labelsFor(actions: TicketAction[], kind: string, handedOver: boolean): string[] {
   return actions.flatMap((action) => {
-    if (action === 'close') return kind === 'general' ? ['Close'] : CLOSE_BUTTONS;
+    if (action === 'close') return kind === 'general' ? ['Mark done'] : CLOSE_BUTTONS;
     return action === 'start' && handedOver ? ['Pick up'] : [BUTTON[action]];
   });
 }

@@ -1,0 +1,1 @@
+- A technician now closes a breakdown in two clear screens (when you finished, then the report form), closes without a report or marks a work request done from a short sheet that also works offline, and files a late report from the same form.
