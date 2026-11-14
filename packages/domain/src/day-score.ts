@@ -25,6 +25,12 @@ export interface DayScore {
   repairMin: number | null;
   /** The waiting minutes of the same tickets as `repairMin` (a hand-set figure can put it above repair). */
   waitingMin: number | null;
+  /** How many tickets the response mean is over, and how many of them are closed (the rest are still being worked, measured to now). */
+  responseCount: number;
+  responseClosed: number;
+  /** The same for repair, which waiting shares. */
+  repairCount: number;
+  repairClosed: number;
 }
 
 interface Measured {
@@ -72,7 +78,9 @@ export function dayScore(tickets: DayTicket[], now: Date): DayScore {
   const counted = tickets
     .filter((ticket) => ticket.status !== 'cancelled')
     .map((ticket) => measure(ticket as Exclude<DayTicket, { status: 'cancelled' }>, now));
+  const responded = counted.filter((ticket) => ticket.figures.responseMin !== null);
   const repaired = counted.filter((ticket) => ticket.figures.repairMin !== null);
+  const shut = (list: Measured[]) => list.filter((ticket) => !ticket.open).length;
   return {
     tickets: counted.length,
     notStarted: counted.filter((ticket) => ticket.unstarted).length,
@@ -80,5 +88,9 @@ export function dayScore(tickets: DayTicket[], now: Date): DayScore {
     responseMin: mean(counted.map((ticket) => ticket.figures.responseMin)),
     repairMin: mean(repaired.map((ticket) => ticket.figures.repairMin)),
     waitingMin: mean(repaired.map((ticket) => ticket.figures.waitMin)),
+    responseCount: responded.length,
+    responseClosed: shut(responded),
+    repairCount: repaired.length,
+    repairClosed: shut(repaired),
   };
 }

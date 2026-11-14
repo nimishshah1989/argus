@@ -15,6 +15,11 @@ const minutes = z.number().int().min(0).nullable();
  * the same tickets (a hand-set figure can put it above repair). A ticket still being worked is measured to `now`;
  * `notStarted` counts open tickets nobody has started. A ticket's own waiting figure is `figures.waitMin` on the
  * ticket replies.
+ * `responseCount` is how many tickets the response mean is over and `responseClosed` how many of those are closed (the
+ * others are still being worked, measured to now); `repairCount` and `repairClosed` are the same for repair, which
+ * `waitingMin` shares, so the screen can say "average of 6, 4 closed".
+ * Breakdowns on machines the board does not show (a hidden group, or a segment kept off the board in Settings) count in
+ * none of it, the same machines the board leaves out of its tiles.
  */
 export const boardTodayReplySchema = z
   .object({
@@ -27,6 +32,10 @@ export const boardTodayReplySchema = z
     responseMin: minutes,
     repairMin: minutes,
     waitingMin: minutes,
+    responseCount: count,
+    responseClosed: count,
+    repairCount: count,
+    repairClosed: count,
   })
   .strict();
 export type BoardToday = z.infer<typeof boardTodayReplySchema>;
