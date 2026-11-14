@@ -30,10 +30,12 @@ const run = (args: string[], env: Record<string, string> = {}) =>
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
       UPTIMO_DIR: dir,
+      SYSTEMD_DIR: join(dir, 'systemd'),
       HEALTH_TIMEOUT: '2',
       ...env,
     },
   });
+const unitFiles = ['uptimo-files-backup.service', 'uptimo-files-backup.timer'];
 const calls = () => readFileSync(join(dir, 'calls.log'), 'utf8').split('\n').filter(Boolean);
 const state = (name: string) => readFileSync(join(dir, name), 'utf8').trim();
 
@@ -47,7 +49,10 @@ beforeEach(() => {
   bin = join(dir, 'bin');
   mkdirSync(bin);
   mkdirSync(join(dir, 'instance'));
-  copyFileSync(script('deploy.sh'), join(dir, 'instance/deploy.sh'));
+  mkdirSync(join(dir, 'systemd'));
+  for (const f of ['deploy.sh', 'install-files-backup.sh', ...unitFiles])
+    copyFileSync(script(f), join(dir, 'instance', f));
+  stub('systemctl', 'echo "systemctl $*" >> "$UPTIMO_DIR/calls.log"');
   writeFileSync(
     join(dir, 'instance/refresh-env.sh'),
     '#!/usr/bin/env bash\ntouch "$UPTIMO_DIR/app.env" "$UPTIMO_DIR/migrate.env"\n',
@@ -256,6 +261,69 @@ describe('staging deploy', () => {
     expect(state('.previous_tag')).toBe('bbb');
   });
 
+  it('uploaded files sit on a named volume that survives a redeploy', () => {
+    const compose = parse(readFileSync(join(root, 'infra/docker-compose.yml'), 'utf8'));
+    const volume = compose.volumes.files.name;
+    expect(compose.services.server.volumes).toEqual(['files:/data/files']);
+    // The folder the server is told to write to is the folder the volume is mounted at.
+    stub('aws', `echo '{"DATABASE_URL":"x","MIGRATION_DATABASE_URL":"y","APP_API_PASSWORD":"z"}'`);
+    spawnSync('bash', [script('refresh-env.sh')], {
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, UPTIMO_DIR: dir },
+    });
+    expect(readFileSync(join(dir, 'app.env'), 'utf8')).toContain('FILES_DIR=/data/files\n');
+    // A deploy hands that volume to the server's user and never removes it.
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    expect(run(['deploy', 'bbb']).status).toBe(0);
+    const log = calls().join('\n');
+    expect(log).toContain(
+      `-v ${volume}:/data/files registry.test/uptimo-server:bbb chown node:node /data/files`,
+    );
+    expect(log).not.toMatch(/volume (rm|prune)|down|-v\b.*prune/);
+  });
+
+  it('hands the files volume to the server before starting a release, and stops if it cannot', () => {
+    writeFileSync(join(dir, '.current_tag'), 'aaa');
+    run(['deploy', 'bbb']);
+    const log = calls();
+    const chown = log.findIndex((l) => l.includes('chown node:node /data/files'));
+    expect(chown).toBeGreaterThanOrEqual(0);
+    expect(log.findIndex((l) => l.includes('compose up -d'))).toBeGreaterThan(chown);
+
+    writeFileSync(
+      join(bin, 'docker'),
+      readFileSync(join(bin, 'docker'), 'utf8').replace(
+        '#!/usr/bin/env bash\n',
+        '#!/usr/bin/env bash\n[[ "$*" == *chown* ]] && exit 1\n',
+      ),
+    );
+    const res = run(['deploy', 'ccc']);
+    expect(res.status).not.toBe(0);
+    expect(res.stdout + res.stderr).toMatch(/files volume.*nothing replaced.*bbb still running/);
+    expect(state('.current_tag')).toBe('bbb');
+  });
+
+  it('a rollback also prepares the files volume, with the previous release image', () => {
+    writeFileSync(join(dir, '.current_tag'), 'bbb');
+    writeFileSync(join(dir, '.previous_tag'), 'aaa');
+    expect(run(['rollback']).status).toBe(0);
+    const log = calls();
+    const chown = log.findIndex((l) => l.includes('uptimo-server:aaa chown node:node'));
+    expect(chown).toBeGreaterThanOrEqual(0);
+    expect(log.findIndex((l) => l.includes('compose up -d'))).toBeGreaterThan(chown);
+  });
+
+  it('every deploy installs and starts the nightly files-backup timer', () => {
+    expect(run(['deploy', 'bbb']).status).toBe(0);
+    for (const f of unitFiles) expect(existsSync(join(dir, 'systemd', f))).toBe(true);
+    expect(readFileSync(join(dir, 'systemd/uptimo-files-backup.timer'), 'utf8')).toMatch(
+      /OnCalendar=\*-\*-\* \d\d:\d\d:00 UTC[\s\S]*Persistent=true/,
+    );
+    expect(readFileSync(join(dir, 'systemd/uptimo-files-backup.service'), 'utf8')).toContain(
+      'ExecStart=/opt/uptimo/instance/files-backup.sh',
+    );
+    expect(calls()).toContain('systemctl enable --now uptimo-files-backup.timer');
+  });
+
   it('env files come from the secret store and are private', () => {
     const secret = JSON.stringify({
       DATABASE_URL: 'postgresql://fake-app:fake-pw-1@db.test/uptimo',
@@ -269,7 +337,7 @@ describe('staging deploy', () => {
     });
     expect(res.status).toBe(0);
     expect(readFileSync(join(dir, 'app.env'), 'utf8')).toBe(
-      'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo\nAPP_ENV=staging\n',
+      'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo\nFILES_DIR=/data/files\nAPP_ENV=staging\n',
     );
     // D24: the operator credential (migrations, import undo) lives in migrate.env only, never where the server reads.
     expect(readFileSync(join(dir, 'migrate.env'), 'utf8')).toBe(
@@ -332,6 +400,7 @@ describe('staging deploy', () => {
     expect(lines).toEqual([
       'DATABASE_URL=postgresql://fake-app:fake-pw-1@db.test/uptimo',
       ...Object.entries(ai).map(([k, v]) => `${k}=${v}`),
+      'FILES_DIR=/data/files',
     ]);
     expect(statSync(join(dir, 'app.env')).mode & 0o777).toBe(0o600);
     expect(res.stdout + res.stderr).not.toMatch(/fake-/);
