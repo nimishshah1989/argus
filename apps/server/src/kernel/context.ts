@@ -8,6 +8,7 @@ export interface AuthContext {
   personId: string | null;
   personName: string | null;
   personTitle: string | null;
+  mustChangePassword: boolean;
 }
 
 declare module 'fastify' {

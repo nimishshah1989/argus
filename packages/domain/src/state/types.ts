@@ -39,8 +39,9 @@ export interface CorrectChanges {
   kind?: 'stopped' | 'support' | 'general';
   leadPersonId?: string | null;
   closedByPersonId?: string | null;
-  handsOnOverrideMin?: number;
-  waitingOverrideMin?: number;
+  /** A number sets the minutes by hand; null takes the setting off again. */
+  handsOnOverrideMin?: number | null;
+  waitingOverrideMin?: number | null;
 }
 
 export interface TransitionInput {

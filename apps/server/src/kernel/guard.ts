@@ -20,7 +20,8 @@ export interface RouteKey {
   url: string;
 }
 
-export type Authenticate = (token: string) => Promise<AuthContext | null>;
+/** `host` is the request's Host header: a session is only good on its own customer's host. */
+export type Authenticate = (token: string, host: string) => Promise<AuthContext | null>;
 
 const tables = new WeakMap<FastifyInstance, RouteKey[]>();
 
@@ -51,7 +52,7 @@ export function registerAuthGuard(app: FastifyInstance, authenticate: Authentica
   const guard: preParsingAsyncHookHandler = async (request, reply, payload) => {
     const token = bearerToken(request.headers.authorization);
     if (!token) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.missing));
-    const auth = await authenticate(token);
+    const auth = await authenticate(token, request.headers.host ?? '');
     if (!auth) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
     request.auth = auth;
     bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });

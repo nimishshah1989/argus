@@ -56,6 +56,15 @@ snapshot_if_migrating() {
   fi
 }
 
+# The disk holds a few large images (Chromium is in the server image). Before pulling a new release, drop every
+# uptimo image except the running one and the rollback one, then dangling layers; nothing else is touched.
+free_space() {
+  local keep="$1"
+  docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E '/uptimo-(server|web):' |
+    grep -vE ":(${keep})$" | xargs -r docker image rm >/dev/null 2>&1 || true
+  docker image prune -f >/dev/null 2>&1 || true
+}
+
 prepare() {
   "$UPTIMO_DIR/instance/refresh-env.sh"
   aws ecr get-login-password --region "$AWS_REGION" |
@@ -66,6 +75,7 @@ deploy() {
   local tag="$1" image
   image="$ECR_REGISTRY/uptimo-server:$tag"
   prepare
+  free_space "$(printf '%s|%s|%s' "${current:-none}" "${previous:-none}" "$tag")"
   IMAGE_TAG="$tag" docker compose pull
   snapshot_if_migrating "$image" "$tag"
   if ! docker run --rm --env-file "$UPTIMO_DIR/migrate.env" "$image" \

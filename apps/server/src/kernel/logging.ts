@@ -7,6 +7,7 @@ const PERSONAL = [
   'phone',
   'username',
   'password',
+  'temporaryPassword',
   'token',
   'endpoint',
   'text',
