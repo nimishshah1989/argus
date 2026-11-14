@@ -19,6 +19,19 @@ export function sendCommand(
 }
 
 /**
+ * A flagged ticket's Start, Pick up, Resume or Join: the person's own lockout confirmation first, then the
+ * command. Neither is queued offline, because the server decides on the confirmation standing at that moment.
+ */
+export async function confirmLockoutThen(
+  ticketId: string,
+  input: { personId: string; stepCodes: string[]; action: CommandAction; body: CommandBody },
+): Promise<void> {
+  const { personId, stepCodes, action, body } = input;
+  await sendCommand(ticketId, 'lockout-confirm', { personId, stepCodes }, idempotencyKey());
+  await sendCommand(ticketId, action, body, idempotencyKey());
+}
+
+/**
  * Runs one command. Offline, the four offline-writable commands go to the outbox with a fresh
  * Idempotency-Key and resolve as `{ queued: true }`; everything else needs a connection.
  */

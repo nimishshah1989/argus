@@ -19,6 +19,7 @@ export {
   CircleHelp,
   CirclePlus,
   CircleStop,
+  CircleX,
   Clock,
   Cog,
   Drill,

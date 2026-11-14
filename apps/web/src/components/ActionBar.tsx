@@ -4,11 +4,14 @@ import type { ActionCrewMember, ActorContext } from '@uptimo/domain';
 import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
 import { Banner } from '../ui/banner.js';
 import { Button } from '../ui/button.js';
+import { RefreshCw } from '../ui/icon.js';
 import { SectionTitle } from '../ui/detail-kit.js';
 import { Grid, Stack } from '../ui/layout.js';
 import { actionSpecs, type ActionSpec } from './actionSpecs.js';
 import { ActionForm } from './ActionForm.js';
 import { DoneSheet, NoReportSheet } from './closeSheets.js';
+import { useLockoutGate } from './LockoutGate.js';
+import { isGated } from './lockout.js';
 
 const FORM_ACTIONS = new Set<CommandAction>([
   'pause',
@@ -48,11 +51,48 @@ function rowsOf(specs: ActionSpec[]): ActionSpec[][] {
   return rows;
 }
 
+/** One action button; on a flagged ticket Start, Resume and Join wait for the ticks and say why. */
+function ActionButton(props: { spec: ActionSpec; disabled: boolean; onClick: () => void }) {
+  const { spec, disabled, onClick } = props;
+  const { t } = useTranslation();
+  const gate = useLockoutGate();
+  const held = gate.holds(spec.action);
+  const sending = gate.sending(spec.action);
+  return (
+    <>
+      <Button
+        variant={variantOf(spec)}
+        disabled={disabled || (gate.busy && !sending) || held}
+        aria-busy={sending}
+        onClick={() => !gate.busy && onClick()}
+      >
+        {sending ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <RefreshCw aria-hidden size={20} />
+            {t('lockout.confirming')}
+          </span>
+        ) : (
+          t(spec.label)
+        )}
+      </Button>
+      {held && gate.view?.kind === 'ticking' && (
+        <p className="text-center text-footnote text-neutral-600">
+          {t('lockout.tickAll', { count: gate.view.steps.length })}
+        </p>
+      )}
+    </>
+  );
+}
+
 /** Only the actions the server will accept for this actor (domain `availableActions`); the first is primary. */
 export function ActionBar(props: Props) {
-  const { ticket, config, personId, actor, crew, error, pending, onRun } = props;
+  const { ticket, config, personId, actor, crew, error, pending } = props;
   const { t } = useTranslation();
+  const gate = useLockoutGate();
   const [open, setOpen] = useState<ActionSpec | null>(null);
+  // On a flagged ticket Start, Resume and Join confirm the lockout first, then run.
+  const onRun = (action: CommandAction, body: CommandBody) =>
+    isGated(gate.view, action) ? gate.run(action, body) : props.onRun(action, body);
   const specs = actionSpecs(ticket, crew, actor);
   if (specs.length === 0) return null;
 
@@ -63,14 +103,12 @@ export function ActionBar(props: Props) {
   }
 
   const button = (spec: ActionSpec) => (
-    <Button
+    <ActionButton
       key={`${spec.action}-${spec.preset ?? ''}`}
-      variant={variantOf(spec)}
+      spec={spec}
       disabled={pending}
       onClick={() => choose(spec)}
-    >
-      {t(spec.label)}
-    </Button>
+    />
   );
 
   return (

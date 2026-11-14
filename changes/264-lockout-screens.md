@@ -1,0 +1,1 @@
+- A job flagged "needs lockout" (Electrical to begin with) now shows its lockout steps as ticks on the ticket. Start, Pick up, Resume and Add me as support stay off until every step is ticked, then confirm and start in one tap. The confirmation shows on the ticket and in its history. A refused start says so in plain words and clears the ticks.

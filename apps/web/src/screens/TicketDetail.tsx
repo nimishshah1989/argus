@@ -15,7 +15,11 @@ import {
   type TicketInterval,
 } from '../api.js';
 import { AdminPanel } from '../components/AdminPanel.js';
-import { actorFrom, crewFrom } from '../components/actionSpecs.js';
+import { actionSpecs, actorFrom, crewFrom } from '../components/actionSpecs.js';
+import { LockoutCard } from '../components/LockoutCard.js';
+import { LockoutChip } from '../components/LockoutChip.js';
+import { LockoutGate } from '../components/LockoutGate.js';
+import { lockoutView } from '../components/lockout.js';
 import { useCommand } from '../data/index.js';
 import { Facts, ReportCard } from '../components/TicketFacts.js';
 import { CloseFlow } from '../components/CloseFlow.js';
@@ -151,6 +155,7 @@ function Header({ detail, config }: { detail: TicketDetailData; config?: Config 
           {live ? <KindBadge kind={ticket.kind} /> : null}
           <StatusBadge status={ticket.status} handedOver={ticket.handedOver} />
           {report ? <ReportBadge state={report} /> : null}
+          {ticket.lockout ? <LockoutChip /> : null}
         </Inline>
         {line ? <p className="text-footnote text-neutral-600">{line}</p> : null}
         <p className="text-body">{ticket.problem}</p>
@@ -184,6 +189,23 @@ function Controls({ ticket, config, me, run, pending, error, people, onFlow }: C
   );
 }
 
+/** Who is acting and what the lockout card shows them: the ticks before Start, who confirmed, or nothing. */
+function lockoutFor(detail: TicketDetailData, me?: Me) {
+  const { ticket, people } = detail;
+  const personId = me?.actingPersonId ?? '';
+  const actor = me ? actorFrom(me) : null;
+  if (!personId || !actor) return { personId, view: null };
+  const onCrew =
+    ticket.leadPersonId === personId ||
+    people.some((member) => member.personId === personId && !member.leftAt);
+  const offered = actionSpecs(ticket, crewFrom(people), actor).map((spec) => spec.action);
+  const status = ticket.status;
+  return {
+    personId,
+    view: lockoutView({ lockout: ticket.lockout, status, personId, onCrew, offered }),
+  };
+}
+
 function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewProps) {
   const { ticket, events, people } = detail;
   const names = peopleNames(config?.people);
@@ -191,29 +213,32 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
   for (const item of config?.lists.wait_reason ?? []) reasonLabels[item.code] = item.label;
   const liveDown = downNow(ticket, new Date().toISOString());
   return (
-    <Stack gap={6}>
-      <Header detail={detail} config={config} />
-      <SignoffPanel ticket={ticket} config={config} />
-      <SlaTimerSummary ticket={ticket} detailed config={config} />
-      <Facts ticket={ticket} config={config} names={names} liveDownMin={liveDown} />
-      {detail.report && <ReportCard report={detail.report} names={names} />}
-      <ShareButton ticket={ticket} config={config} mode="full" />
-      <Figures
-        figures={ticket.figures}
-        kind={ticket.kind}
-        liveDownMin={liveDown}
-        waitingFor={ticket.waitReason ? reasonLabels[ticket.waitReason] : undefined}
-      />
-      <PeopleSection detail={detail} names={names} timeZone={config?.timeZone} />
-      <Timeline
-        events={events}
-        names={names}
-        reasonLabels={reasonLabels}
-        timeZone={config?.timeZone}
-      />
-      <AdminPanel ticket={ticket} config={config} me={me} />
-      <Controls {...{ ticket, config, me, run, pending, error, people, onFlow }} />
-    </Stack>
+    <LockoutGate key={ticket.id} ticketId={ticket.id} {...lockoutFor(detail, me)}>
+      <Stack gap={6}>
+        <Header detail={detail} config={config} />
+        <SignoffPanel ticket={ticket} config={config} />
+        <SlaTimerSummary ticket={ticket} detailed config={config} />
+        <Facts ticket={ticket} config={config} names={names} liveDownMin={liveDown} />
+        <LockoutCard names={names} timeZone={config?.timeZone} />
+        {detail.report && <ReportCard report={detail.report} names={names} />}
+        <ShareButton ticket={ticket} config={config} mode="full" />
+        <Figures
+          figures={ticket.figures}
+          kind={ticket.kind}
+          liveDownMin={liveDown}
+          waitingFor={ticket.waitReason ? reasonLabels[ticket.waitReason] : undefined}
+        />
+        <PeopleSection detail={detail} names={names} timeZone={config?.timeZone} />
+        <Timeline
+          events={events}
+          names={names}
+          reasonLabels={reasonLabels}
+          timeZone={config?.timeZone}
+        />
+        <AdminPanel ticket={ticket} config={config} me={me} />
+        <Controls {...{ ticket, config, me, run, pending, error, people, onFlow }} />
+      </Stack>
+    </LockoutGate>
   );
 }
 
