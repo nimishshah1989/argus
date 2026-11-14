@@ -24,8 +24,31 @@ describe('passwordProblem', () => {
       expect(passwordProblem(weak, 'asha'), weak).toBe('common');
   });
 
+  it('refuses the usual disguises: punctuation, look-alike characters, spaces', () => {
+    for (const weak of [
+      'Admin@123',
+      'Password@123',
+      'Welcome@123',
+      'India@123',
+      'P@ssw0rd',
+      'Passw0rd!',
+      'p-a-s-s-w-o-r-d-1-2-3',
+    ])
+      expect(passwordProblem(weak, 'asha'), weak).toBe('common');
+  });
+
+  it('counts the length after trimming', () => {
+    expect(passwordProblem('  ab12  ', 'asha')).toBe('too_short');
+    expect(passwordProblem('        a', 'asha')).toBe('too_short');
+  });
+
+  it('accepts a long passphrase that merely contains a common word', () => {
+    expect(passwordProblem('correct-horse-password-staple', 'asha')).toBeNull();
+  });
+
   it('refuses the username, whatever its letter case', () => {
     expect(passwordProblem('Asha.Singh1', 'asha.singh1')).toBe('same_as_username');
+    expect(passwordProblem('ashasingh1', 'asha.singh1')).toBe('same_as_username');
   });
 
   it('carries a list of a few hundred entries, each at least 8 characters, lower case, no duplicates', () => {

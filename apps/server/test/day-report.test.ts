@@ -538,11 +538,14 @@ describe('day report PDF endpoint', () => {
     expect(res.json().error.code).toBe('forbidden');
   });
 
-  it('tells the plant head the team day report is not available yet, rather than showing one person', async () => {
-    const res = await get(`/api/v1/reports/day.pdf?date=2026-11-10&personId=${ASHA}`, headToken);
-    expect(res.statusCode).toBe(403);
-    expect(res.json().error.code).toBe('forbidden');
-    expect(res.json().error.message).toMatch(/team day report is not available yet/i);
+  it('gives the plant head the team report, and refuses them one person’s day', async () => {
+    const person = await get(`/api/v1/reports/day.pdf?date=2026-11-10&personId=${ASHA}`, headToken);
+    expect(person.statusCode).toBe(403);
+    expect(person.json().error.code).toBe('forbidden');
+    expect(person.json().error.message).toMatch(/team day report/i);
+    const team = await get('/api/v1/reports/day.pdf?date=2026-11-10&shift=1', headToken);
+    expect(team.statusCode).toBe(200);
+    expect(team.headers['content-disposition']).toContain('Day_report_Team_2026-11-10_shift1.pdf');
   });
 
   it('lets a technician see only their own day', async () => {

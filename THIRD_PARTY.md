@@ -52,18 +52,19 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 
 ## Tools and infrastructure (not shipped as code)
 
-| Tool                                                                                                                                                                        | Use                       | Licence            |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ |
-| TypeScript, ESLint, Prettier, tsx, yaml                                                                                                                                     | build/dev                 | MIT / ISC          |
-| eslint-plugin-i18next                                                                                                                                                       | lint                      | MIT                |
-| Terraform                                                                                                                                                                   | infrastructure as code    | MPL-2.0            |
-| Caddy                                                                                                                                                                       | TLS and static files      | Apache-2.0         |
-| Docker / Docker Compose                                                                                                                                                     | packaging                 | Apache-2.0         |
-| PostgreSQL                                                                                                                                                                  | database                  | PostgreSQL License |
-| LocalStack (community) or s3rver                                                                                                                                            | local S3                  | Apache-2.0 / MIT   |
-| Ubuntu 24.04 LTS or Amazon Linux 2023                                                                                                                                       | server OS                 | free               |
-| Ponytail skills (core adapted; review and audit as published)                                                                                                               | coding discipline         | MIT                |
-| Anthropic `claude-for-manufacturing` plugin 1.0.0 (text adapted into our prompt files and tests; not installed; each derived file names the source and says it was changed) | AI prompts and test rules | Apache-2.0         |
+| Tool                                                                                                                                                                                               | Use                       | Licence            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ |
+| TypeScript, ESLint, Prettier, tsx, yaml                                                                                                                                                            | build/dev                 | MIT / ISC          |
+| eslint-plugin-i18next                                                                                                                                                                              | lint                      | MIT                |
+| Terraform                                                                                                                                                                                          | infrastructure as code    | MPL-2.0            |
+| Caddy                                                                                                                                                                                              | TLS and static files      | Apache-2.0         |
+| Docker / Docker Compose                                                                                                                                                                            | packaging                 | Apache-2.0         |
+| PostgreSQL                                                                                                                                                                                         | database                  | PostgreSQL License |
+| LocalStack (community) or s3rver                                                                                                                                                                   | local S3                  | Apache-2.0 / MIT   |
+| Ubuntu 24.04 LTS or Amazon Linux 2023                                                                                                                                                              | server OS                 | free               |
+| Ponytail skills (core adapted; review and audit as published)                                                                                                                                      | coding discipline         | MIT                |
+| Anthropic `claude-for-manufacturing` plugin 1.0.0 (text adapted into our prompt files and tests; not installed; each derived file names the source and says it was changed)                        | AI prompts and test rules | Apache-2.0         |
+| SecLists `xato-net-10-million-passwords-1000.txt` and `Pwdb_top-1000.txt` (entries of 8+ characters, lower-cased, profanity removed, in `packages/domain/src/common-passwords.ts`; data, not code) | refusing common passwords | MIT                |
 
 ## Outside services (not code)
 

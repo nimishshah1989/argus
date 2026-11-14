@@ -100,6 +100,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,
+    `POST ${P}/auth/acting`,
     `PUT ${P}/settings/:key`,
     `PUT ${P}/settings/sla-policies`,
     `PUT ${P}/machines/:id/criticality`,

@@ -1,4 +1,12 @@
-export { ApiError, clearToken, getToken, idempotencyKey, isOffline, setToken } from './client.js';
+export {
+  ApiError,
+  clearToken,
+  getToken,
+  httpWithoutSession,
+  idempotencyKey,
+  isOffline,
+  setToken,
+} from './client.js';
 export { defineResource } from './resource.js';
 export type { CursorPage, ListQuery, Resource, ResourceSpec, Transport } from './resource.js';
 export { sendCommand, useCommand } from './command.js';

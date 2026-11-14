@@ -97,6 +97,8 @@ export interface ActorContext {
   loginId: string;
   personId: string | null;
   shared: boolean;
+  /** A shared floor login's cell (its login row); only the breakdown PDF rule reads it. */
+  cell?: string | null;
 }
 
 export interface CrewMember {

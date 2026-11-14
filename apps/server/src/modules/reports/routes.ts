@@ -1,21 +1,17 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { z } from 'zod';
 import type { Figures } from '@uptimo/domain';
-import { canDayReport, type ActorContext } from '@uptimo/domain';
+import { canBreakdownPdf, type ActorContext } from '@uptimo/domain';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { peopleByIds, requireAuth, tenantInfo } from '../identity/index.js';
+import { loginAdminById, peopleByIds, requireAuth, tenantInfo } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
 import { withMachines } from './machines.js';
 import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
-import { RenderBusyError } from './render-gate.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
-import { loadDayReport, type DayReportData } from './day-report.js';
-import { renderDayReportHtml } from './day-report-template.js';
+import { registerDayReports } from './day-routes.js';
+import { renderOrBusy, sendBytes, type PdfDeps } from './pdf-send.js';
 import { figuresFromRow, loadReport, pdfTicketRow, type StoredReport } from '../tickets/index.js';
-
-const PDF_MIME = 'application/pdf';
 
 interface PdfTicket {
   id: string;
@@ -25,6 +21,7 @@ interface PdfTicket {
   problem: string;
   reportedAt: Date;
   closedAt: Date | null;
+  raisedLoginId: string | null;
   figures: Figures;
   machine: {
     code: string | null;
@@ -32,6 +29,8 @@ interface PdfTicket {
     codeAtReport: string | null;
     category: string | null;
     cell: string | null;
+    /** The cell when the ticket was raised: the one a shared floor login is allowed. */
+    cellAtReport: string | null;
   };
 }
 
@@ -42,11 +41,6 @@ interface PdfContext {
   people: Record<string, string>;
 }
 
-interface PdfDeps {
-  pool: Pool;
-  chromiumPath?: string;
-}
-
 function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
   const snapshot = (row.machine_snapshot ?? {}) as Record<string, string | null>;
   return {
@@ -54,6 +48,7 @@ function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
     codeAtReport: snapshot.code ?? null,
     category: (row.machine_category as string | null) ?? snapshot.category ?? null,
     cell: (row.machine_cell as string | null) ?? snapshot.cell ?? null,
+    cellAtReport: snapshot.cell ?? (row.machine_cell as string | null) ?? null,
   };
 }
 
@@ -66,6 +61,7 @@ function ticketOf(row: Record<string, unknown>): PdfTicket {
     problem: row.problem as string,
     reportedAt: new Date(row.reported_at as string),
     closedAt: row.closed_at ? new Date(row.closed_at as string) : null,
+    raisedLoginId: (row.raised_login_id as string | null) ?? null,
     figures: figuresFromRow(row),
     machine: machineOf(row),
   };
@@ -159,28 +155,28 @@ function ticketPdfName(context: PdfContext): string {
   return `Breakdown_${machine}_${date}.pdf`.replace(/[^A-Za-z0-9._-]+/g, '_');
 }
 
-/** A PDF is made when asked for and sent as it is: nothing is stored, so nothing is lost on a deploy. */
-function sendBytes(reply: FastifyReply, bytes: Buffer, fileName: string): void {
-  reply.type(PDF_MIME).header('content-disposition', `inline; filename="${fileName}"`).send(bytes);
-}
-
-/** Runs a render; a full queue becomes a 503 the caller can retry (null: the reply is already sent). */
-async function renderOrBusy(
-  reply: FastifyReply,
-  render: () => Promise<Buffer>,
-): Promise<Buffer | null> {
-  try {
-    return await render();
-  } catch (error) {
-    if (!(error instanceof RenderBusyError)) throw error;
-    reply
-      .code(503)
-      .header('retry-after', '5')
-      .send(
-        apiError('rate_limited', 'Too many reports are being made right now; try again shortly'),
-      );
-    return null;
-  }
+/** DOMAIN §3: who may print a breakdown PDF; a shared floor login's cell comes from its login row. */
+async function mayPrint(
+  pool: Pool,
+  auth: {
+    tenantId: string;
+    role: string;
+    loginId: string;
+    personId: string | null;
+    shared: boolean;
+  },
+  ticket: PdfTicket,
+): Promise<boolean> {
+  const cell =
+    auth.role === 'operator' && auth.shared
+      ? ((await withTenant(pool, auth.tenantId, (client) => loginAdminById(client, auth.loginId)))
+          ?.cell ?? null)
+      : null;
+  const actor = { ...auth, role: auth.role as ActorContext['role'], cell };
+  return canBreakdownPdf(actor, {
+    raisedLoginId: ticket.raisedLoginId,
+    cell: ticket.machine.cellAtReport,
+  });
 }
 
 async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -194,6 +190,10 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
     reply.code(404).send(apiError('not_found', 'Unknown ticket'));
     return;
   }
+  if (!(await mayPrint(deps.pool, auth, context.ticket))) {
+    reply.code(403).send(apiError('forbidden', 'This breakdown report is not yours to print'));
+    return;
+  }
   if (!context.report) {
     reply.code(409).send(apiError('conflict', 'This ticket has no breakdown report'));
     return;
@@ -202,110 +202,8 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
   if (bytes) sendBytes(reply, bytes, ticketPdfName(context));
 }
 
-function isCalendarDate(value: string): boolean {
-  const [year = 0, month = 0, day = 0] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
-
-const dayReportQuerySchema = z.object({
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .refine(isCalendarDate),
-  personId: z.union([z.literal('me'), z.string().uuid()]).optional(),
-  /** One of the plant's shift codes; left out, the whole calendar day. */
-  shift: z.string().trim().min(1).max(20).optional(),
-});
-
-function dayReportFileName(data: DayReportData): string {
-  const who = data.person.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'person';
-  const shift = data.shift ? `_shift${data.shift}`.replace(/[^A-Za-z0-9_-]+/g, '') : '';
-  return `Day_report_${who}_${data.date}${shift}.pdf`;
-}
-
-/** Role gate + own-only rule for the day report (DOMAIN §3). */
-function resolveDayPerson(
-  auth: { role: string; loginId: string; personId: string | null; shared: boolean },
-  requested: string | undefined,
-):
-  | { ok: true; personId: string }
-  | { ok: false; status: 403 | 422; message: string; field?: string } {
-  const actor: ActorContext = {
-    role: auth.role as ActorContext['role'],
-    loginId: auth.loginId,
-    personId: auth.personId,
-    shared: auth.shared,
-  };
-  if (!canDayReport(actor)) {
-    return { ok: false, status: 403, message: 'Day reports are unavailable for your role' };
-  }
-  if (auth.role === 'plant_head') {
-    // DOMAIN §3 gives the plant head the team report; until it exists they get a clear no, not one person's day.
-    return { ok: false, status: 403, message: 'The team day report is not available yet' };
-  }
-  const wantsOther = Boolean(requested && requested !== 'me' && requested !== auth.personId);
-  if (auth.role === 'technician' && wantsOther) {
-    return {
-      ok: false,
-      status: 403,
-      message: 'You can only see your own day report',
-      field: 'personId',
-    };
-  }
-  const personId = !requested || requested === 'me' ? auth.personId : requested;
-  if (!personId) {
-    return { ok: false, status: 422, message: 'No acting person for "me"', field: 'personId' };
-  }
-  return { ok: true, personId };
-}
-
-/** `GET /reports/day.pdf` — the caller's (or a chosen person's) day, rendered to PDF. */
-async function sendDayPdf(
-  deps: PdfDeps,
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<void> {
-  const auth = await requireAuth(deps.pool, request, reply);
-  if (!auth) return;
-  const parsed = dayReportQuerySchema.safeParse(request.query ?? {});
-  if (!parsed.success) {
-    const field = parsed.error.issues[0]?.path.join('.');
-    reply.code(422).send(apiError('validation', 'Invalid day report query', field || undefined));
-    return;
-  }
-  const resolved = resolveDayPerson(auth, parsed.data.personId);
-  if (!resolved.ok) {
-    const code = resolved.status === 403 ? 'forbidden' : 'validation';
-    reply.code(resolved.status).send(apiError(code, resolved.message, resolved.field));
-    return;
-  }
-  const data = await withTenant(deps.pool, auth.tenantId, (client) =>
-    loadDayReport(client, {
-      tenantId: auth.tenantId,
-      personId: resolved.personId,
-      date: parsed.data.date,
-      shift: parsed.data.shift ?? null,
-    }),
-  );
-  if (data === 'no-shift') {
-    reply.code(422).send(apiError('validation', 'This plant has no such shift', 'shift'));
-    return;
-  }
-  if (!data) {
-    reply.code(404).send(apiError('not_found', 'Unknown person', 'personId'));
-    return;
-  }
-  const bytes = await renderOrBusy(reply, () =>
-    renderPdf(renderDayReportHtml(data), deps.chromiumPath),
-  );
-  if (bytes) sendBytes(reply, bytes, dayReportFileName(data));
-}
-
 export function registerReports(app: FastifyInstance, config: AppConfig): void {
   const deps: PdfDeps = { pool: config.pool, chromiumPath: config.chromiumPath };
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
-  app.get('/api/v1/reports/day.pdf', (request, reply) => sendDayPdf(deps, request, reply));
+  registerDayReports(app, deps);
 }

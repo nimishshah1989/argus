@@ -60,12 +60,13 @@ export async function authenticate(
   const tokenHash = hashToken(token);
   const found = await lookupSession(pool, tokenHash);
   if (!found || !(await hostAllows(pool, host, found.tenant_id))) return null;
-  await touchSession(pool, found.tenant_id, tokenHash);
   const login = await loginById(pool, found.tenant_id, found.login_id);
   const person = found.acting_person_id
     ? await findPerson(pool, found.tenant_id, found.acting_person_id)
     : null;
   if (!login || (person && !person.active)) return null;
+  // Only a call that passed every check slides the session; a refused one writes nothing.
+  await touchSession(pool, found.tenant_id, tokenHash);
   return contextOf(token, found.tenant_id, login, person);
 }
 

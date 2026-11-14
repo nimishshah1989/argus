@@ -106,7 +106,8 @@ One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report
 | Acknowledge an escalation (M2) | no | L1 | L2 | L3 | L4 | yes | no |
 | Restore cancelled (7 days) | no | no | no | no | no | yes | no |
 | Correct a ticket (7 days) | no | no | no | no | no | yes | no |
-| Day report | no | own only | any person | any person | team | any | no |
+| Day report | no | own only | any person, or the team | any person, or the team | team | any person, or the team | no |
+| Breakdown PDF | own reports (a shared floor login: its own cell's) | all | all | all | all | all | no |
 | Live board | if enabled for the plant | yes | yes | yes | yes | yes | yes |
 | Money figures (cost, turnover) | no | no | no | yes | yes | yes | no |
 | Analytics and scorecard | no | no | read | yes | yes | yes | no |

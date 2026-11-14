@@ -14,7 +14,6 @@ interface Exception {
 
 /** Dated, shrinking: an exception whose file is clean is itself an error. */
 const EXCEPTIONS: Exception[] = [
-  { file: 'screens/Login.tsx', until: 'ticket 21: sign-in becomes a WizardPage' },
   { file: 'screens/desk/MinePanel.tsx', until: 'ticket 18: the day-report PDF is a blob' },
 ];
 
@@ -84,11 +83,16 @@ describe('fetch guard', () => {
   });
 
   it('honours a dated exception and reports a stale one', () => {
+    // Its own list: the live EXCEPTIONS shrink as tickets land (screens/Login.tsx went with ticket 21).
+    const dated: Exception[] = [
+      { file: 'screens/Login.tsx', until: 'a planted exception' },
+      { file: 'screens/desk/MinePanel.tsx', until: 'a planted exception' },
+    ];
     const files: SrcFile[] = [
       { path: 'screens/Login.tsx', text: "await fetch('/api/v1/auth/login');" },
       { path: 'screens/desk/MinePanel.tsx', text: 'const a = 1;' },
     ];
-    expect(fetchErrors(files, EXCEPTIONS)).toEqual([
+    expect(fetchErrors(files, dated)).toEqual([
       'screens/desk/MinePanel.tsx: EXCEPTIONS lists it but it is clean; remove it',
     ]);
   });
