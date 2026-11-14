@@ -241,32 +241,73 @@ describe('the operator CLI takes his export unchanged', () => {
 });
 
 describe('erasing a person from an imported batch', () => {
+  // Words of the person's name inside the ticket text that erase_person rewrites (and that undo's fingerprint covers).
+  const IN_TICKET_TEXT = String.raw`EXISTS (SELECT 1 FROM ticket t WHERE t.tenant_id = p.tenant_id
+    AND (concat_ws(' ', t.problem, t.close_note, t.waiting_spare, t.task_reason, t.location)
+         ~* ('(^|[[:space:][:punct:]])' || regexp_replace(p.name, '([^[:alnum:][:space:]])', '\\\1', 'g') || '([[:space:][:punct:]]|$)')
+         OR t.overrides::text ILIKE '%' || p.name || '%'))`;
+
+  /** The first person (by id, so the same one every run) named in the raw rows, with or without a ticket's text. */
+  async function personNamedInRawRows(inTicketText: boolean): Promise<string> {
+    const found = await db.admin.query(
+      `SELECT p.id FROM person p
+       WHERE p.tenant_id = $1 AND length(p.name) >= 4 AND p.name <> 'Former staff'
+         AND EXISTS (SELECT 1 FROM import_row r WHERE r.tenant_id = p.tenant_id AND r.payload::text ILIKE '%' || p.name || '%')
+         AND ${inTicketText ? '' : 'NOT '}${IN_TICKET_TEXT}
+       ORDER BY p.id LIMIT 1`,
+      [tenantId],
+    );
+    expect(
+      found.rows,
+      `the fixture has a person named in raw rows, ${inTicketText ? 'and' : 'but not'} in ticket text`,
+    ).toHaveLength(1);
+    return found.rows[0].id as string;
+  }
+
+  async function erase(personId: string, ref: string): Promise<{ ticket: number }> {
+    const out = await db.router.query('SELECT erase_person($1, $2, $3, $4) AS counts', [
+      tenantId,
+      personId,
+      ref,
+      'operator',
+    ]);
+    return out.rows[0].counts as { ticket: number };
+  }
+
+  it('lets undo go ahead when the person was named only in the raw rows', async () => {
+    const batch = await importRealExport(db.app, tenantId, fixture());
+    expect(batch.stats).toMatchObject({ status: 'done', imported: 275, skipped: 0 });
+    const counts = await erase(await personNamedInRawRows(false), 'request-real-0001');
+    expect(counts.ticket, 'no ticket text was rewritten, so history is as imported').toBe(0);
+    expect(
+      await count(
+        `SELECT count(*) n FROM import_row WHERE tenant_id = $1 AND payload = '{}'::jsonb`,
+      ),
+      'erasure emptied at least one raw envelope',
+    ).toBeGreaterThan(0);
+    await expect(undoImport(db.router, tenantId, batch.batchId, 'operator')).resolves.toEqual({
+      deleted: 275,
+    });
+    expect(await count('SELECT count(*) n FROM ticket WHERE tenant_id = $1')).toBe(0);
+  }, 120_000);
+
   it('leaves the export importable again, and refuses an undo it can no longer verify, saying why', async () => {
     const batch = await importRealExport(db.app, tenantId, fixture());
     expect(batch.stats).toMatchObject({ status: 'done', imported: 275, skipped: 0 });
-    const named = await db.admin.query(
-      `SELECT p.id FROM person p
-       WHERE p.tenant_id = $1 AND length(p.name) >= 4
-         AND EXISTS (SELECT 1 FROM import_row r WHERE r.tenant_id = p.tenant_id AND r.payload::text ILIKE '%' || p.name || '%')
-       LIMIT 1`,
-      [tenantId],
-    );
-    expect(named.rows, 'the fixture names a person in its raw rows').toHaveLength(1);
-    await db.router.query('SELECT erase_person($1, $2, $3, $4)', [
-      tenantId,
-      named.rows[0].id,
-      'request-real-0001',
-      'operator',
-    ]);
-    const erased = await count(
-      `SELECT count(*) n FROM import_row WHERE tenant_id = $1 AND payload = '{}'::jsonb`,
-    );
-    expect(erased, 'erasure emptied at least one raw envelope').toBeGreaterThan(0);
+    const personId = await personNamedInRawRows(true);
+    const name = (await db.admin.query('SELECT name FROM person WHERE id = $1', [personId])).rows[0]
+      .name as string;
+    const counts = await erase(personId, 'request-real-0002');
+    expect(counts.ticket, 'erasure rewrote the name inside ticket text').toBeGreaterThan(0);
+    expect(
+      await count(
+        `SELECT count(*) n FROM import_row WHERE tenant_id = $1 AND payload = '{}'::jsonb`,
+      ),
+      'erasure emptied at least one raw envelope',
+    ).toBeGreaterThan(0);
 
     const again = await importRealExport(db.app, tenantId, fixture());
     expect(again.stats).toMatchObject({ status: 'done', imported: 0, skipped: 275 });
-    const name = (await db.admin.query('SELECT name FROM person WHERE id = $1', [named.rows[0].id]))
-      .rows[0].name as string;
     const written = await db.admin.query(
       `SELECT count(*)::int AS n FROM import_row WHERE tenant_id = $1 AND payload::text ILIKE '%' || $2 || '%'`,
       [tenantId, name],
