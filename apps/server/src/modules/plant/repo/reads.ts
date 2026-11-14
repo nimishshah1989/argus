@@ -239,3 +239,30 @@ export async function lockoutSteps(tx: Db, tenantId: string): Promise<LockoutSte
     labelHi: r.label_hi ?? null,
   }));
 }
+
+/** Two first reads of the lockout steps take turns. */
+export async function lockLockoutSeed(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`lockout-seed:${tenantId}`]);
+}
+
+/** Whether the plant has any lockout step at all (a switched-off one still counts: the head's own choice stands). */
+export async function hasLockoutSteps(tx: Db, tenantId: string): Promise<boolean> {
+  const found = await tx.query(
+    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'lockout_step' LIMIT 1",
+    [tenantId],
+  );
+  return (found.rowCount ?? 0) > 0;
+}
+
+/** One starting step; one that is already there is left alone. */
+export async function insertLockoutStep(
+  tx: Db,
+  tenantId: string,
+  step: { code: string; label: string; sort: number },
+): Promise<void> {
+  await tx.query(
+    `INSERT INTO list_item (tenant_id, list, code, label, sort) VALUES ($1, 'lockout_step', $2, $3, $4)
+     ON CONFLICT (tenant_id, list, code) DO NOTHING`,
+    [tenantId, step.code, step.label, step.sort],
+  );
+}

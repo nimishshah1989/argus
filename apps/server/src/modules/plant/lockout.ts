@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { DEFAULT_LOCKOUT_STEPS } from '@uptimo/shared';
 import { audit } from '../ops/index.js';
+import { hasLockoutSteps, insertLockoutStep, lockLockoutSeed } from './repo/reads.js';
 
 /**
  * Gives a plant that has no lockout steps yet the four starting ones (`DEFAULT_LOCKOUT_STEPS`), as ordinary rows
@@ -9,23 +10,15 @@ import { audit } from '../ops/index.js';
  * the steps calls this first, so a plant whose head never opened the list still has a checklist.
  */
 export async function ensureLockoutSteps(
-  tx: Pick<PoolClient, 'query'>,
+  tx: PoolClient,
   who: { tenantId: string; loginId: string | null },
 ): Promise<void> {
-  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`lockout-seed:${who.tenantId}`]);
-  const has = await tx.query(
-    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'lockout_step' LIMIT 1",
-    [who.tenantId],
-  );
-  if ((has.rowCount ?? 0) > 0) return;
+  await lockLockoutSeed(tx, who.tenantId);
+  if (await hasLockoutSteps(tx, who.tenantId)) return;
   for (const [index, step] of DEFAULT_LOCKOUT_STEPS.entries()) {
-    await tx.query(
-      `INSERT INTO list_item (tenant_id, list, code, label, sort) VALUES ($1, 'lockout_step', $2, $3, $4)
-       ON CONFLICT (tenant_id, list, code) DO NOTHING`,
-      [who.tenantId, step.code, step.label, index + 1],
-    );
+    await insertLockoutStep(tx, who.tenantId, { ...step, sort: index + 1 });
   }
-  await audit.record(tx as PoolClient, {
+  await audit.record(tx, {
     tenantId: who.tenantId,
     loginId: who.loginId,
     action: 'lockout_step.seed',
