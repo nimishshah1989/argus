@@ -158,3 +158,11 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   default. NIMISH ANSWERS (via FRONTEND, 'all yes'): breakdown PDF = operator only own reports (shared floor login: its
   cell), technician and above all, board none; team day report for plant_head is M1 (before cutover). Both go to
   builder 18 as a follow-up PR (claude/t18-team-report-pdf-access) after #212 merges; DOMAIN section 3 gains the PDF row.
+- 2026-11-14 06:15 UTC — Merged #212 (cbaaf2a, 18 goal 2 server): QR = v3 (machine code at report time), day report on
+  real shift windows (IST), pending-at-end from events, Gujarati, plant_head interim 403; merged on 8/9 (api 2/3 still
+  running; touched tests green locally) per the pace ruling. Builder 18 started the follow-up (team day report + PDF
+  access per Nimish). #210 (21 follow-up) e6c2bf1: + shared login may sign in without an acting person (FRONTEND
+  request, Nimish's approved flow; POST /auth/acting picks; 403 choose_acting_person until then); merges on api +
+  browser (it touches sign-in). #206 re-check: A-H fixed; one blocker (logo PUT with a non-image body -> 500) + 2 LOWs
+  sent; merge waits for FRONTEND 'drill done'. NEW backlog item: legacy GET /settings, /lists/:list,
+  /translations/missing are open to every role (check web callers, then gate to head/admin).
