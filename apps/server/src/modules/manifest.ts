@@ -50,6 +50,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
   ],
   imports: ['import_batch', 'import_row'],
   ai: ['ai_suggestion'],
+  analytics: [],
 };
 
 /** Which modules each module may call (through their index.ts). Acyclic, bottom-up. */
@@ -65,6 +66,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   reports: ['tickets', 'identity', 'plant', 'files'],
   imports: ['tickets', 'identity', 'plant', 'files', 'ops'],
   ai: ['tickets', 'identity', 'plant'],
+  analytics: ['tickets', 'identity', 'plant'],
 };
 
 /** A call outside CALLS that stays until its ticket removes it; `file` is repo-relative. */
