@@ -204,7 +204,7 @@ test("a queued command the server refuses as someone else's leaves the queue for
   await signInShared(page);
   await page.getByLabel('Your name').selectOption({ label: 'Omi' });
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await page.goto('/desk');
+  await page.goto('/floor');
   await expect(page.getByText('Could not send: this was queued for someone else')).toBeVisible();
   expect(await queued(page)).toBe(0);
 });

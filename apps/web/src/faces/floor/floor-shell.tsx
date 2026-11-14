@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { Drafts } from '../../components/Drafts.js';
 import { PatternFrame } from '../../patterns/frame.js';
 import { CirclePlus, List } from '../../ui/icon.js';
 import { Loading, Skeleton } from '../../ui/loading.js';
@@ -19,7 +20,10 @@ export function FloorShell({ children }: { children: ReactNode }) {
   ];
   return (
     <Shell bar={<TabBar label={t('reportFloor.tabs')} tabs={tabs} current={current} />}>
-      <Page>{children}</Page>
+      <Page>
+        <Drafts />
+        {children}
+      </Page>
     </Shell>
   );
 }
