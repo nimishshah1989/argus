@@ -6,6 +6,10 @@ export const signinEn = {
     'Your administrator gives you a username and password. You stay signed in on this phone for 30 days after your last use.',
   'signin.signedOut': 'You were signed out',
   'signin.signedOutDetail': 'Your session has ended. Sign in again.',
+  'signin.passwordSaved': 'Password changed',
+  'signin.held': 'Not sent: queued by {{name}}',
+  'signin.heldDetail': 'It is sent when {{name}} uses this phone again.',
+  'signin.heldEarlier': 'an earlier sign-in',
   'signin.tooMany': 'Too many attempts. Try again in a few minutes.',
   'signin.unknownCompany':
     'This address does not belong to a company. Check the link you were given.',

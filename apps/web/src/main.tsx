@@ -22,8 +22,12 @@ if (import.meta.env.PROD) {
   navigator.serviceWorker.register('/sw.js').catch(() => undefined);
 }
 
+/** The steps that finish signing in; nothing replays until they are done (review of PR 225). */
+const SIGN_IN_STEPS = ['/login', '/who', '/password'];
+
 /** Replay queued offline commands, then refresh whatever the screens are showing. */
 function replayAndRefresh(): void {
+  if (SIGN_IN_STEPS.includes(window.location.pathname)) return;
   void replayOutbox().then(
     (summary) => {
       if (summary.replayed > 0) void queryClient.invalidateQueries();

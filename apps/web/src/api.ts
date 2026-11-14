@@ -6,6 +6,7 @@ import {
   httpWithoutSession,
   idempotencyKey,
   isOffline,
+  rememberWho,
 } from './data/index.js';
 import type { User } from '@uptimo/shared/auth';
 import type {
@@ -100,7 +101,12 @@ export const listTickets = (query: TicketListQuery = {}): Promise<TicketPage> =>
 /** The same list as pages, by cursor (`useInfiniteQuery`): the desk lists read every page they need. */
 export const useTicketPages = (query: TicketListQuery) => tickets.useList(query);
 
-export const getMe = (): Promise<{ user: Me }> => me.one();
+/** GET /auth/me; also caches who this phone is acting as (offline commands record it). */
+export const getMe = (): Promise<{ user: Me }> =>
+  me.one().then((reply) => {
+    rememberWho(reply.user);
+    return reply;
+  });
 
 export const getBrand = (): Promise<{ company: string }> => brand.one();
 

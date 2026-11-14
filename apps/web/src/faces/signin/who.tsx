@@ -8,6 +8,7 @@ import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
+import { replayOutbox } from '../../offline/replay.js';
 import { Notice } from './parts.js';
 
 /** "Signed in as" the login, and that it is a shared phone. */
@@ -65,6 +66,9 @@ export function Who() {
       setError(t('signin.chooseName'));
       return false;
     }
+    await getMe();
+    // What this person queued earlier on this phone goes now (review of PR 225); others' stays held.
+    await replayOutbox().catch(() => undefined);
     for (const key of ['me', 'config', 'state', 'tickets'])
       await queryClient.invalidateQueries({ queryKey: [key] });
     navigate('/floor');

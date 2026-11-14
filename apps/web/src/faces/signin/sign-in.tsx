@@ -2,13 +2,23 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ApiError, getBrand, setToken, signIn } from '../../api.js';
+import { ApiError, getBrand, getConfig, setToken, signIn } from '../../api.js';
+import { rememberWho } from '../../data/index.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { BrandHeader } from '../../ui/brand-header.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
 import { lastUsername, rememberUsername } from './last-username.js';
 import { Fields, Notice, SIGNED_OUT_PARAM, signInError } from './parts.js';
+
+async function mustChangePasswordFirst(): Promise<boolean> {
+  try {
+    await getConfig();
+    return false;
+  } catch (error) {
+    return error instanceof ApiError && error.code === 'must_change_password';
+  }
+}
 
 /** Sign-in (slice 3, T1): one step, no step counter; a remembered username puts the cursor in the password. */
 export function SignIn() {
@@ -25,7 +35,11 @@ export function SignIn() {
     try {
       const reply = await signIn({ username: username.trim(), password });
       setToken(reply.token);
+      rememberWho(reply.user);
       rememberUsername(username.trim());
+      // A temporary password comes first: /config answers must_change_password before anything else,
+      // and the data layer then opens /password itself.
+      if (await mustChangePasswordFirst()) return false;
       navigate(reply.user.shared && !reply.user.actingPersonId ? '/who' : '/floor');
     } catch (caught) {
       if (!(caught instanceof ApiError)) throw caught;

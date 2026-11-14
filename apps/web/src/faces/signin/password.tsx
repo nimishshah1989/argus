@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, changePassword } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
+import { Button } from '../../ui/button.js';
 import { Input, Label } from '../../ui/input.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
@@ -36,6 +37,20 @@ function Field(p: { id: string; label: string; value: string; set: (v: string) =
   );
 }
 
+/** After the save: only now are the other phones signed out (review of PR 225). The floor asks who next, if needed. */
+function Saved({ onContinue }: { onContinue: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Stack gap={4}>
+      <Text as="h3" size="title2" weight="bold">
+        {t('signin.passwordSaved')}
+      </Text>
+      <Text tone="secondary">{t('signin.passwordHint')}</Text>
+      <Button onClick={onContinue}>{t('signin.continue')}</Button>
+    </Stack>
+  );
+}
+
 /** Change a temporary password (slice 3, T2): opened whenever the server says the login must change it. */
 export function ChangePassword() {
   const { t } = useTranslation();
@@ -45,7 +60,7 @@ export function ChangePassword() {
   const [again, setAgain] = useState('');
   const [error, setError] = useState('');
   const differ = Boolean(next && again && next !== again);
-  async function send(): Promise<false> {
+  async function send(): Promise<void | false> {
     setError('');
     try {
       await changePassword({ old, password: next });
@@ -55,8 +70,6 @@ export function ChangePassword() {
       setError(t(key));
       return false;
     }
-    navigate('/floor');
-    return false;
   }
   const body = (
     <Stack gap={4}>
@@ -72,6 +85,7 @@ export function ChangePassword() {
       {differ ? <Text tone="danger">{t('signin.passwordsDiffer')}</Text> : null}
     </Stack>
   );
+  const toFloor = () => navigate('/floor');
   const ready = Boolean(old) && next.length >= MIN_LENGTH && next === again;
   const step = { title: t('signin.passwordTitle'), body, action: t('signin.savePassword'), ready };
   return (
@@ -83,11 +97,8 @@ export function ChangePassword() {
         steps={[step]}
         offlineAllowed={false}
         onFinish={send}
-        result={null}
+        result={<Saved onContinue={toFloor} />}
       />
-      <Text size="footnote" tone="secondary">
-        {t('signin.passwordHint')}
-      </Text>
     </Page>
   );
 }

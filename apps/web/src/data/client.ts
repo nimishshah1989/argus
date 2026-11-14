@@ -1,3 +1,4 @@
+import { forgetWho } from './who.js';
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
 /** Where a refused session lands; the sign-in screen reads `signedOut`. */
@@ -13,6 +14,7 @@ export function setToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  forgetWho();
 }
 
 /** A server `{error:{code,message,field}}` body surfaced to the screen. */
@@ -72,10 +74,20 @@ export function askWhoIsActing(): void {
   window.location.assign(STEP_FOR.choose_acting_person!);
 }
 
+/**
+ * The one rule for which step a refusal opens: a temporary password comes first, so "choose who is
+ * acting" never moves the phone off the password step (no /who <-> /password reload loop).
+ */
+export function stepFor(code: string, here: string): string | undefined {
+  if (code === 'choose_acting_person' && here === STEP_FOR.must_change_password) return undefined;
+  return STEP_FOR[code];
+}
+
 async function refusal(res: Response): Promise<ApiError> {
   const error = await parseError(res);
-  const step = res.status === 403 ? STEP_FOR[error.code] : undefined;
-  if (step && window.location.pathname !== step) window.location.assign(step);
+  const here = window.location.pathname;
+  const step = res.status === 403 ? stepFor(error.code, here) : undefined;
+  if (step && here !== step) window.location.assign(step);
   return error;
 }
 
