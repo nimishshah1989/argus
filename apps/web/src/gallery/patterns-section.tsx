@@ -1,5 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- prop values and state ids only; every visible string goes through t() */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { OnlineContext } from '../data/index.js';
 import { DetailPage } from '../patterns/detail-page.js';
@@ -29,10 +30,75 @@ function Example({ state, children }: { state: Example; children: React.ReactNod
   );
 }
 
+const title = (t: TFunction<'gallery'>, name: string, state: Example) =>
+  t('example', { name: t(name), state: t(`state.${state}`) });
+
+export function QueueExample({ state }: { state: Example }) {
+  const { t } = useTranslation('gallery');
+  return (
+    <Example state={state}>
+      <QueuePage<GalleryRow>
+        title={title(t, 'queue.name', state)}
+        resource={queueResources[state]}
+        row={(row) => (
+          <Card title={row.ref}>
+            <p className="text-body">{t(row.problemKey)}</p>
+          </Card>
+        )}
+        columns={[
+          { label: t('queue.col.ticket'), cell: (row) => row.ref, sortKey: (row) => row.ref },
+          {
+            label: t('queue.col.machine'),
+            cell: (row) => row.machine,
+            sortKey: (row) => row.machine,
+          },
+          {
+            label: t('queue.col.problem'),
+            cell: (row) => t(row.problemKey),
+            sortKey: (row) => t(row.problemKey),
+          },
+        ]}
+        rowKey={(row) => row.id}
+        empty={t('queue.empty')}
+      />
+    </Example>
+  );
+}
+
+export function DetailExample({ state }: { state: Example }) {
+  const { t } = useTranslation('gallery');
+  return (
+    <Example state={state}>
+      <DetailPage<GalleryDetail>
+        title={title(t, 'detail.name', state)}
+        resource={detailResources[state]}
+        id="gallery-1"
+        facts={(d) => [
+          { label: t('detail.fact.machine'), value: d.machine },
+          { label: t('detail.fact.reported'), value: d.reported },
+          { label: t('detail.fact.problem'), value: t(d.problemKey) },
+        ]}
+        sections={(d) => [
+          {
+            title: t('detail.history'),
+            body: (
+              <ul>
+                {d.historyKeys.map((key) => (
+                  <li key={key}>{t(key)}</li>
+                ))}
+              </ul>
+            ),
+          },
+        ]}
+        actions={() => <Button>{t('detail.action')}</Button>}
+        empty={t('detail.empty')}
+      />
+    </Example>
+  );
+}
+
 function QueueExamples() {
   const { t } = useTranslation('gallery');
-  const title = (name: string, state: Example) =>
-    t('example', { name: t(name), state: t(`state.${state}`) });
   return (
     <section data-testid="gallery-queue" aria-labelledby="gallery-queue-h">
       <Stack>
@@ -41,19 +107,7 @@ function QueueExamples() {
         </h2>
         {EXAMPLES.map((state) => (
           <div key={state} data-testid={`gallery-queue-${state}`}>
-            <Example state={state}>
-              <QueuePage<GalleryRow>
-                title={title('queue.name', state)}
-                resource={queueResources[state]}
-                row={(row) => (
-                  <Card title={row.ref}>
-                    <p className="text-body">{t(row.problemKey)}</p>
-                  </Card>
-                )}
-                rowKey={(row) => row.id}
-                empty={t('queue.empty')}
-              />
-            </Example>
+            <QueueExample state={state} />
           </div>
         ))}
       </Stack>
@@ -63,8 +117,6 @@ function QueueExamples() {
 
 function DetailExamples() {
   const { t } = useTranslation('gallery');
-  const title = (name: string, state: Example) =>
-    t('example', { name: t(name), state: t(`state.${state}`) });
   return (
     <section data-testid="gallery-detail" aria-labelledby="gallery-detail-h">
       <Stack>
@@ -73,32 +125,7 @@ function DetailExamples() {
         </h2>
         {EXAMPLES.map((state) => (
           <div key={state} data-testid={`gallery-detail-${state}`}>
-            <Example state={state}>
-              <DetailPage<GalleryDetail>
-                title={title('detail.name', state)}
-                resource={detailResources[state]}
-                id="gallery-1"
-                facts={(d) => [
-                  { label: t('detail.fact.machine'), value: d.machine },
-                  { label: t('detail.fact.reported'), value: d.reported },
-                  { label: t('detail.fact.problem'), value: t(d.problemKey) },
-                ]}
-                sections={(d) => [
-                  {
-                    title: t('detail.history'),
-                    body: (
-                      <ul>
-                        {d.historyKeys.map((key) => (
-                          <li key={key}>{t(key)}</li>
-                        ))}
-                      </ul>
-                    ),
-                  },
-                ]}
-                actions={() => <Button>{t('detail.action')}</Button>}
-                empty={t('detail.empty')}
-              />
-            </Example>
+            <DetailExample state={state} />
           </div>
         ))}
       </Stack>
