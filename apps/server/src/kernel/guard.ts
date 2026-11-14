@@ -11,6 +11,7 @@ export const AUTH_MESSAGES = {
 export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   'GET /api/v1/health',
   'GET /api/v1/brand',
+  'GET /api/v1/brand/logo',
   'POST /api/v1/auth/login',
 ]);
 

@@ -88,6 +88,7 @@ describe('auth guard', () => {
   it('does not stop the public routes', async () => {
     expect([...PUBLIC_ROUTES].sort()).toEqual([
       'GET /api/v1/brand',
+      'GET /api/v1/brand/logo',
       'GET /api/v1/health',
       'POST /api/v1/auth/login',
     ]);

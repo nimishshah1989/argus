@@ -1,0 +1,1 @@
+- A day-report test follows the settings contract that #206 introduced (shifts listed as items, edited with PUT); main's api job was red from the two merges meeting.

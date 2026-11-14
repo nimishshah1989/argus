@@ -46,6 +46,11 @@ export async function selectSettings(tx: Db): Promise<Rows> {
   return (await tx.query('SELECT key, value FROM setting ORDER BY key')).rows;
 }
 
+/** The stored value of one setting; undefined when the plant never set it. */
+export async function selectSetting(tx: Db, key: string): Promise<unknown> {
+  return (await tx.query('SELECT value FROM setting WHERE key = $1', [key])).rows[0]?.value;
+}
+
 export async function upsertSetting(
   tx: Db,
   tenantId: string,
