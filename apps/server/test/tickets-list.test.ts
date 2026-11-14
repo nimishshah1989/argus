@@ -39,11 +39,11 @@ let app: App;
 let ashaToken = '';
 let otherToken = '';
 
-function get(url: string, token?: string): Promise<Res> {
+function get(url: string, token?: string, host = 'cosmos.localhost'): Promise<Res> {
   return app.inject({
     method: 'GET',
     url,
-    headers: { host: 'cosmos.localhost', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    headers: { host, ...(token ? { authorization: `Bearer ${token}` } : {}) },
   });
 }
 
@@ -249,7 +249,7 @@ describe('ticket list', () => {
     expect(ids1).toHaveLength(8);
     expect(ids1).not.toContain(T_OTHER);
 
-    const list2 = await get('/api/v1/tickets?limit=200', otherToken);
+    const list2 = await get('/api/v1/tickets?limit=200', otherToken, 'plant-two.localhost');
     expect(list2.json().items.map((t: { id: string }) => t.id)).toEqual([T_OTHER]);
   });
 

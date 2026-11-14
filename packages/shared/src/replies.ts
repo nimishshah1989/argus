@@ -6,6 +6,7 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
+import { PEOPLE_REPLIES } from './people.js';
 import {
   groupReplySchema,
   machineMoveReplySchema,
@@ -109,6 +110,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/translations/missing`]: z.array(missingTranslationSchema),
   [`GET ${P}/push/key`]: pushKeyReplySchema,
   [`POST ${P}/push/test`]: pushSentReplySchema,
+  ...PEOPLE_REPLIES,
   ...settingsResource('machines', machineReplySchema),
   ...settingsResource('segments', segmentReplySchema),
   ...settingsResource('groups', groupReplySchema),

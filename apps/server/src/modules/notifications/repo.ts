@@ -71,3 +71,15 @@ export async function subscriptionsOfPerson(
   ).rows;
   return rowsToSubs(rows);
 }
+
+/** Switching a person or login off: every device of these logins, and every device acting as this person. */
+export async function deleteSubscriptionsOf(
+  tx: Db,
+  who: { loginIds: readonly string[]; actingPersonId?: string },
+): Promise<number> {
+  const result = await tx.query(
+    'DELETE FROM push_subscription WHERE login_id = ANY($1::uuid[]) OR acting_person_id = $2::uuid',
+    [who.loginIds, who.actingPersonId ?? null],
+  );
+  return result.rowCount ?? 0;
+}
