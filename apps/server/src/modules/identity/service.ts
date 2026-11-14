@@ -4,7 +4,7 @@ import type { Pool } from 'pg';
 import { apiError } from '@uptimo/shared';
 import { AUTH_MESSAGES, type AuthContext } from '../../kernel/index.js';
 import type { PasswordProblem } from '@uptimo/domain';
-import { findPerson, loginById, lookupSession, resolveTenant, touchSession } from './repo.js';
+import { lookupSession, readAuthRows, touchSession, type AuthRows } from './repo.js';
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -41,16 +41,11 @@ export function passwordMessage(problem: PasswordProblem): string {
   return PASSWORD_MESSAGES[problem];
 }
 
-/** Whether the host names this customer. A host that names no customer (`localhost`) decides nothing. */
-async function hostAllows(pool: Pool, host: string, tenantId: string): Promise<boolean> {
-  const slug = tenantSlugFromHost(host);
-  if (!slug) return true;
-  return (await resolveTenant(pool, slug))?.id === tenantId;
-}
-
 /**
  * Resolve a bearer token to a session context, or null when the sign-in has ended, belongs to another
- * customer than the host names, or acts as a person who has been switched off.
+ * customer than the host names (a host that names none, like `localhost`, decides nothing), or acts as a
+ * person who has been switched off. One lookup by token, one transaction for the rest, and a write only when
+ * the session is due to slide.
  */
 export async function authenticate(
   pool: Pool,
@@ -59,34 +54,34 @@ export async function authenticate(
 ): Promise<AuthContext | null> {
   const tokenHash = hashToken(token);
   const found = await lookupSession(pool, tokenHash);
-  if (!found || !(await hostAllows(pool, host, found.tenant_id))) return null;
-  const login = await loginById(pool, found.tenant_id, found.login_id);
-  const person = found.acting_person_id
-    ? await findPerson(pool, found.tenant_id, found.acting_person_id)
-    : null;
-  if (!login || (person && !person.active)) return null;
+  if (!found) return null;
+  const slug = tenantSlugFromHost(host);
+  const rows = await readAuthRows(pool, {
+    tenantId: found.tenant_id,
+    tokenHash,
+    loginId: found.login_id,
+    actingPersonId: found.acting_person_id,
+    slug,
+  });
+  if (!rows || (slug && rows.host_tenant_id !== found.tenant_id)) return null;
+  if (rows.person_id && !rows.person_active) return null;
   // Only a call that passed every check slides the session; a refused one writes nothing.
-  await touchSession(pool, found.tenant_id, tokenHash);
-  return contextOf(token, found.tenant_id, login, person);
+  if (rows.stale) await touchSession(pool, found.tenant_id, tokenHash);
+  return contextOf(token, found.tenant_id, rows);
 }
 
-function contextOf(
-  token: string,
-  tenantId: string,
-  login: NonNullable<Awaited<ReturnType<typeof loginById>>>,
-  person: Awaited<ReturnType<typeof findPerson>> | null,
-): AuthContext {
+function contextOf(token: string, tenantId: string, rows: AuthRows): AuthContext {
   return {
     token,
     tenantId,
-    loginId: login.id,
-    username: login.username,
-    role: login.role,
-    shared: login.shared,
-    personId: person?.id ?? null,
-    personName: person?.name ?? null,
-    personTitle: person?.title ?? null,
-    mustChangePassword: login.must_change_password,
+    loginId: rows.login_id,
+    username: rows.username,
+    role: rows.role,
+    shared: rows.shared,
+    personId: rows.person_id,
+    personName: rows.person_name,
+    personTitle: rows.person_title,
+    mustChangePassword: rows.must_change_password,
   };
 }
 

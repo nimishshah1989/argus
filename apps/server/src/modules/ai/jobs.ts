@@ -19,7 +19,8 @@ export interface AiJobDeps {
 }
 
 /**
- * Creates the queue for every role (senders need it) and, unless the role is `api`, the worker.
+ * Creates the queue for every role (senders need it) and, unless the role is `api` or no feature is registered,
+ * the worker.
  * `retryDelay` 95 s is above the 90 s claim lease, so pg-boss's own single retry (a crash or an
  * unexpected error) can re-claim a `running` row.
  */
@@ -31,13 +32,15 @@ export async function startAiJobs(boss: PgBoss, deps: AiJobDeps, role: JobRole):
       retryDelay: 95,
       expireInSeconds: 90,
     });
-  if (role === 'api') return;
+  // No feature is registered until M6: a worker would only poll an empty queue every two seconds.
+  const features = deps.features ?? {};
+  if (role === 'api' || Object.keys(features).length === 0) return;
   const runtime = {
     pool: deps.pool,
     boss,
     config: deps.config,
     provider: deps.provider === undefined ? pickProvider(deps.config) : deps.provider,
-    features: deps.features ?? {},
+    features,
     now: deps.now ?? (() => new Date()),
     log: deps.log ?? ((line: AiLogLine) => console.log(JSON.stringify(line))),
   };

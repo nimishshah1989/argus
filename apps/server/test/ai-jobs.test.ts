@@ -141,3 +141,16 @@ it('creates the queue but runs no worker for the api role', async () => {
   expect(state).toBe('created');
   expect(fake.calls).toHaveLength(0);
 });
+
+it('starts no worker while no feature is registered, but still creates the queue', async () => {
+  const fake = createFakeProvider();
+  const b = await newBoss();
+  await startAiJobs(b, { pool: db.app, config, provider: fake }, 'all');
+  expect(await b.getQueue(AI_SUGGEST_QUEUE)).toBeTruthy();
+  const id = await b.send(AI_SUGGEST_QUEUE, payloadFor(await newTicket()));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  const state = (await db.admin.query('SELECT state FROM pgboss.job WHERE id = $1', [id])).rows[0]
+    ?.state;
+  expect(state).toBe('created');
+  expect(fake.calls).toHaveLength(0);
+});

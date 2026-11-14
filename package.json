@@ -29,7 +29,7 @@
     "boundaries": "tsx tools/check-boundaries.ts",
     "audit:lean": "pnpm size && pnpm deps && pnpm shortcuts && pnpm boundaries",
     "precheck": "tsx tools/precheck.ts",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm ui:check && pnpm docs:check && pnpm pii:scan && pnpm audit:lean",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm ui:check && pnpm docs:check && pnpm pii:scan && pnpm audit:deps && pnpm audit:lean",
     "test:e2e": "playwright test",
     "ui:check": "tsx tools/check-ui.ts",
     "gallery:test": "playwright test -c playwright.gallery.config.ts",
@@ -41,7 +41,8 @@
     "import:undo": "tsx tools/import-bhavin.ts undo",
     "audit:purge": "tsx scripts/audit-purge.ts",
     "build:server": "tsx scripts/build-server.ts",
-    "build:web": "pnpm --filter @uptimo/web build"
+    "build:web": "pnpm --filter @uptimo/web build",
+    "audit:deps": "pnpm audit --audit-level high --prod"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
@@ -61,5 +62,12 @@
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0",
     "yaml": "^2.9.1"
+  },
+  "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-mrhx-c7xc-m3w5"
+      ]
+    }
   }
 }
