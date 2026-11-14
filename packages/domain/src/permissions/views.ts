@@ -28,3 +28,8 @@ export function canAnalytics(ctx: ActorContext): boolean {
     ctx.role === 'admin'
   );
 }
+
+/** Who sees every login's closed-without-report tickets; everyone else sees their own (DOMAIN §3). */
+export function seesAllNeedReport(ctx: Pick<ActorContext, 'role'>): boolean {
+  return ctx.role === 'supervisor' || ctx.role === 'head' || ctx.role === 'admin';
+}

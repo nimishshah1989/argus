@@ -26,7 +26,7 @@ export async function loadPlantRows(tx: Db): Promise<PlantRows> {
     'SELECT id, segment_id, code, name, sort, hidden FROM machine_group ORDER BY sort, code',
   );
   const machines = await tx.query(
-    'SELECT id, code, category, cell, segment_id, group_id, criticality FROM machine ORDER BY code',
+    "SELECT id, code, category, cell, segment_id, group_id, criticality FROM machine WHERE status <> 'scrapped' ORDER BY code",
   );
   const shifts = await tx.query(
     'SELECT id, code, name, starts_at, ends_at, crosses_midnight FROM shift ORDER BY code',
@@ -120,16 +120,21 @@ export async function updateTranslation(
   );
 }
 
+/** Sets a machine's importance; returns the value it had, or null when this plant has no such machine. */
 export async function setMachineCriticality(
   tx: Db,
   id: string,
   criticality: Criticality | null,
-): Promise<number> {
-  const machine = await tx.query(
-    'UPDATE machine SET criticality = $2, updated_at = now() WHERE id = $1 RETURNING id',
-    [id, criticality],
-  );
-  return machine.rowCount ?? 0;
+): Promise<{ before: Criticality | null } | null> {
+  const row = (
+    await tx.query(
+      `UPDATE machine m SET criticality = $2, updated_at = now()
+         FROM (SELECT id, criticality FROM machine WHERE id = $1 FOR UPDATE) old
+        WHERE m.id = old.id RETURNING old.criticality AS before`,
+      [id, criticality],
+    )
+  ).rows[0];
+  return row ? { before: row.before } : null;
 }
 
 export async function hasShifts(tx: Db): Promise<boolean> {
