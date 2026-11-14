@@ -1,16 +1,20 @@
 import { z } from 'zod';
 import { brandReplySchema, loginReplySchema, meReplySchema } from './auth.js';
 import {
+  LIST_NAMES,
   listRowSchema,
   missingTranslationSchema,
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
 import {
+  glossaryReplySchema,
   groupReplySchema,
+  listItemReplySchema,
   machineMoveReplySchema,
   machineReplySchema,
   segmentReplySchema,
+  settingsPage,
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
@@ -77,11 +81,11 @@ const commands = Object.fromEntries(
     commandReplySchema,
   ]),
 );
-/** Plant settings (ticket 22): list, create and edit for each resource, and one reply shape for all three. */
+/** Settings screens (tickets 22, 23): list, create and `PUT /:id` (edit, switch off, switch on) share one row shape. */
 const settingsResource = (path: string, schema: z.ZodTypeAny) => ({
-  [`GET ${P}/${path}`]: z.array(schema),
+  [`GET ${P}/${path}`]: settingsPage(schema),
   [`POST ${P}/${path}`]: schema,
-  [`PATCH ${P}/${path}/:id`]: schema,
+  [`PUT ${P}/${path}/:id`]: schema,
 });
 const ok = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, okReplySchema]));
 
@@ -113,7 +117,11 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ...settingsResource('segments', segmentReplySchema),
   ...settingsResource('groups', groupReplySchema),
   ...settingsResource('shifts', shiftReplySchema),
-  [`DELETE ${P}/machines/:id`]: machineReplySchema,
+  ...LIST_NAMES.reduce(
+    (all, list) => ({ ...all, ...settingsResource(`settings/lists/${list}`, listItemReplySchema) }),
+    {},
+  ),
+  ...settingsResource('settings/glossary', glossaryReplySchema),
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`GET ${P}/tickets`]: ticketPageSchema,
@@ -121,4 +129,5 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,
+  [`GET ${P}/files/:id`]: null,
 };

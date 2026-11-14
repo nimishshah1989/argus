@@ -18,3 +18,22 @@ export async function insertFileRow(client: PoolClient, file: NewFile): Promise<
   );
   return result.rows[0].id as string;
 }
+
+export interface StoredFile {
+  id: string;
+  kind: string;
+  key: string;
+  mime: string;
+  sha256: string;
+}
+
+/** One file row of the signed-in plant; another plant's id finds nothing (row security). */
+export async function selectFile(
+  client: Pick<PoolClient, 'query'>,
+  id: string,
+): Promise<StoredFile | undefined> {
+  const row = (
+    await client.query('SELECT id, kind, s3_key, mime, sha256 FROM file WHERE id = $1', [id])
+  ).rows[0];
+  return row && { id: row.id, kind: row.kind, key: row.s3_key, mime: row.mime, sha256: row.sha256 };
+}

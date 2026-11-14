@@ -4,10 +4,25 @@ type Db = Pick<PoolClient, 'query'>;
 export type Row = Record<string, unknown>;
 
 /** The four tables the plant-settings routes write. Names here are ours, never a caller's. */
-export type SettingsTable = 'machine' | 'segment' | 'machine_group' | 'shift';
+export type SettingsTable =
+  'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term';
 
-export async function selectAll(tx: Db, table: SettingsTable, order: string): Promise<Row[]> {
-  return (await tx.query(`SELECT * FROM ${table} ORDER BY ${order}`)).rows;
+/** One table holding several lists: a resource reads and writes only the rows with this column value. */
+export interface Scope {
+  column: string;
+  value: string;
+}
+
+export async function selectAll(
+  tx: Db,
+  table: SettingsTable,
+  order: string,
+  scope?: Scope,
+): Promise<Row[]> {
+  const where = scope ? `WHERE ${scope.column} = $1` : '';
+  return (
+    await tx.query(`SELECT * FROM ${table} ${where} ORDER BY ${order}`, scope ? [scope.value] : [])
+  ).rows;
 }
 
 /** One row of this plant (the tenant policy hides every other plant's), locked for the edit. */
@@ -15,8 +30,12 @@ export async function selectOne(
   tx: Db,
   table: SettingsTable,
   id: string,
+  scope?: Scope,
 ): Promise<Row | undefined> {
-  return (await tx.query(`SELECT * FROM ${table} WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+  const where = scope ? `AND ${scope.column} = $2` : '';
+  const params = scope ? [id, scope.value] : [id];
+  return (await tx.query(`SELECT * FROM ${table} WHERE id = $1 ${where} FOR UPDATE`, params))
+    .rows[0];
 }
 
 export async function exists(tx: Db, table: SettingsTable, id: string): Promise<boolean> {

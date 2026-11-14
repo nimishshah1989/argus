@@ -25,6 +25,12 @@ export const SEG_B = '20000000-0000-0000-0000-000000000101';
 export const GROUP_B = '20000000-0000-0000-0000-000000000102';
 export const M_B = '20000000-0000-0000-0000-000000000103';
 export const SHIFT_B = '20000000-0000-0000-0000-000000000105';
+export const ITEM_A = '10000000-0000-0000-0000-000000000106';
+export const TERM_A = '10000000-0000-0000-0000-000000000107';
+export const LOGO_A = '10000000-0000-0000-0000-000000000108';
+export const ITEM_B = '20000000-0000-0000-0000-000000000106';
+export const TERM_B = '20000000-0000-0000-0000-000000000107';
+export const LOGO_B = '20000000-0000-0000-0000-000000000108';
 
 export type App = Awaited<ReturnType<typeof buildApp>>;
 export type Res = Awaited<ReturnType<App['inject']>>;
@@ -59,7 +65,7 @@ async function seedTenant(admin: Pool, id: string, slug: string, roles: readonly
 }
 
 async function seedPlant(admin: Pool, t: string, ids: string[], cell: string) {
-  const [seg, group, machine, shift] = ids;
+  const [seg, group, machine, shift, item, term] = ids;
   await admin.query(
     "INSERT INTO segment (id, tenant_id, code, name) VALUES ($1, $2, 'CNC', 'CNC')",
     [seg, t],
@@ -76,15 +82,23 @@ async function seedPlant(admin: Pool, t: string, ids: string[], cell: string) {
     "INSERT INTO shift (id, tenant_id, code, name, starts_at, ends_at) VALUES ($1, $2, 'DAY', 'Day', '08:00', '18:30')",
     [shift, t],
   );
+  await admin.query(
+    "INSERT INTO list_item (id, tenant_id, list, code, label) VALUES ($1, $2, 'wait_reason', 'spare', 'Waiting for spare')",
+    [item, t],
+  );
+  await admin.query(
+    "INSERT INTO glossary_term (id, tenant_id, source, english) VALUES ($1, $2, 'ખરાબ', 'broken')",
+    [term, t],
+  );
 }
 
-export async function startFixture(): Promise<Fixture> {
+export async function startFixture(filesDir?: string): Promise<Fixture> {
   const db = await startTestDb();
   const admin = db.admin;
   await seedTenant(admin, A, 'plant-a', ROLES);
   await seedTenant(admin, B, 'plant-b', ['admin']);
-  await seedPlant(admin, A, [SEG_A, GROUP_A, M_FREE, SHIFT_A], 'Cell 1');
-  await seedPlant(admin, B, [SEG_B, GROUP_B, M_B, SHIFT_B], 'Cell 9');
+  await seedPlant(admin, A, [SEG_A, GROUP_A, M_FREE, SHIFT_A, ITEM_A, TERM_A], 'Cell 1');
+  await seedPlant(admin, B, [SEG_B, GROUP_B, M_B, SHIFT_B, ITEM_B, TERM_B], 'Cell 9');
   // A second machine in tenant A that carries a ticket, so switching it off must keep the history.
   await admin.query(
     "INSERT INTO machine (id, tenant_id, code, segment_id, cell) VALUES ($1, $2, 'VC-02', $3, 'Cell 1')",
@@ -94,7 +108,7 @@ export async function startFixture(): Promise<Fixture> {
     "INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity) VALUES ($1, 'BD-0001', 'stopped', 'closed', $2, 'Spindle noise', now(), 'S3')",
     [A, M_USED],
   );
-  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, filesDir });
   const host = (slug: string) => ({
     host: `${slug}.localhost`,
     'content-type': 'application/json',

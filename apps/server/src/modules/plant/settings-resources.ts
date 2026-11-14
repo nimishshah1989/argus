@@ -16,6 +16,7 @@ import {
   insertMove,
   segmentExists,
   type Row,
+  type Scope,
   type SettingsTable,
 } from './repo/plant-settings.js';
 
@@ -27,14 +28,21 @@ export type Problem = { field: string; message: string };
 export interface Resource {
   path: string;
   table: SettingsTable;
+  /** Set when one table holds several lists (`list_item`): only that list's rows are visible and written. */
+  scope?: Scope;
   /** Prefix of the audit action: `machine.create`, `group.update`. */
   kind: string;
   order: string;
   /** Request key to column. A key not listed is never written. */
   columns: Record<string, string>;
+  /** Keys a form may send back unchanged but never change (the code history names, a link with its own route). */
+  fixed?: readonly string[];
   create: ZodTypeAny;
   patch: ZodTypeAny;
+  /** The reply always carries `active`, the one switch the generated screen shows. */
   reply: (row: Row) => Reply;
+  /** What `active: true/false` changes for this resource; none when it has no switch yet (ticket 29). */
+  switchTo?: (active: boolean, before: Reply) => Reply;
   /** The values as they would be after the write; a message when they break a rule of the plant. */
   check?: (tx: Db, merged: Reply, patch?: Reply) => Promise<Problem | null>;
   /** Columns worked out from the values, never typed by a person. */
@@ -69,6 +77,7 @@ function machineReply(row: Row): Reply {
     serial: row.serial,
     year: row.year,
     status: row.status,
+    active: row.status !== 'scrapped',
   };
 }
 
@@ -129,8 +138,12 @@ const machines: Resource = {
     year: 'year',
     status: 'status',
   },
+  fixed: ['criticality'],
   create: machineCreateSchema,
   patch: machinePatchSchema,
+  switchTo: (active, before) => ({
+    status: !active ? 'scrapped' : before.status === 'scrapped' ? 'active' : before.status,
+  }),
   reply: machineReply,
   check: checkMachine,
   actionFor: machineAction,
@@ -158,7 +171,10 @@ const segments: Resource = {
     sort: row.sort,
     showOnBoard: row.show_on_board,
     groupBy: row.group_by,
+    active: row.show_on_board,
   }),
+  fixed: ['code'],
+  switchTo: (active) => ({ showOnBoard: active }),
 };
 
 const groups: Resource = {
@@ -176,7 +192,10 @@ const groups: Resource = {
     name: row.name,
     sort: row.sort,
     hidden: row.hidden,
+    active: !row.hidden,
   }),
+  fixed: ['code', 'segmentId'],
+  switchTo: (active) => ({ hidden: !active }),
   check: async (tx, g) =>
     (await segmentExists(tx, g.segmentId as string))
       ? null
@@ -198,7 +217,9 @@ const shifts: Resource = {
     startsAt: clock(row.starts_at),
     endsAt: clock(row.ends_at),
     crossesMidnight: row.crosses_midnight,
+    active: true,
   }),
+  fixed: ['code'],
   check: async (_tx, s) =>
     s.startsAt === s.endsAt
       ? { field: 'endsAt', message: 'A shift cannot end when it starts' }

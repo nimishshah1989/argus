@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { isDeepStrictEqual } from 'node:util';
 import type { Pool } from 'pg';
 import {
   apiError,
@@ -10,11 +11,13 @@ import {
 import { canSettingsLists, canSettingsPeople } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
+import { audit } from '../ops/index.js';
 import {
   deactivateListItem,
   saveListItem,
   selectListItems,
   selectMissingTranslations,
+  selectSetting,
   selectSettings,
   updateTranslation,
   upsertSetting,
@@ -71,9 +74,19 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     reply.code(422).send(apiError('validation', 'Invalid setting', 'value'));
     return;
   }
-  await withTenant(pool, ctx.tenantId, (client) =>
-    upsertSetting(client, ctx.tenantId, key, value.data),
-  );
+  await withTenant(pool, ctx.tenantId, async (client) => {
+    const before = await selectSetting(client, key);
+    await upsertSetting(client, ctx.tenantId, key, value.data);
+    if (isDeepStrictEqual(before, value.data)) return;
+    await audit.record(client, {
+      tenantId: ctx.tenantId,
+      loginId: ctx.loginId,
+      action: 'setting.update',
+      entity: 'setting',
+      before: { key, value: before ?? null },
+      after: { key, value: value.data },
+    });
+  });
   reply.send({ ok: true });
 }
 
