@@ -1,9 +1,34 @@
 import { personMinutes } from './person-minutes.js';
 import type { FigureInput, Figures, OverridableFigure, TicketEvent } from './types.js';
 
-/** His `mins()`: every elapsed time is rounded to the nearest whole minute, never below zero. */
-function wholeMin(a: Date, b: Date): number {
-  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
+type Gap = [start: number, end: number];
+
+/**
+ * The time a ticket spent cancelled before it was restored. Nimish's ruling (14 Nov 2026, differs from his `worker.js`):
+ * that time is not waiting, handover wait or downtime. A cancel with no restore is not a gap (the ticket stays cancelled).
+ */
+function cancelledGaps(events: TicketEvent[]): Gap[] {
+  const gaps: Gap[] = [];
+  let since: number | null = null;
+  for (const event of events) {
+    if (event.type === 'cancel') since = event.at.getTime();
+    else if (event.type === 'restore' && since !== null) {
+      gaps.push([since, event.at.getTime()]);
+      since = null;
+    }
+  }
+  return gaps;
+}
+
+/** His `mins()`: every elapsed time is rounded to the nearest whole minute, never below zero (less any cancelled time). */
+function wholeMin(a: Date, b: Date, gaps: Gap[] = []): number {
+  const start = a.getTime();
+  const end = b.getTime();
+  const cancelled = gaps.reduce(
+    (sum, [from, to]) => sum + Math.max(0, Math.min(end, to) - Math.max(start, from)),
+    0,
+  );
+  return Math.max(0, Math.round((end - start - cancelled) / 60000));
 }
 
 function sortedEvents(events: TicketEvent[]): TicketEvent[] {
@@ -11,14 +36,14 @@ function sortedEvents(events: TicketEvent[]): TicketEvent[] {
 }
 
 /** His `down_acc` (finished stopped stretches) and the time the current stopped stretch began, if one is open. */
-function downStretches(input: FigureInput): { done: number; openSince: Date | null } {
+function downStretches(input: FigureInput, gaps: Gap[]): { done: number; openSince: Date | null } {
   if (input.kind !== 'stopped') return { done: 0, openSince: null };
   let acc = 0;
   let downStart = input.kindUpgradedAt ?? input.reportedAt;
   let isDown = true;
   const closeDown = (at: Date) => {
     if (!isDown) return;
-    acc += wholeMin(downStart, at);
+    acc += wholeMin(downStart, at, gaps);
     isDown = false;
   };
   const openDown = (at: Date) => {
@@ -63,14 +88,14 @@ function repairMinutes(input: FigureInput, events: TicketEvent[]): number {
   return wholeMin(first.at, runningSince(events) ?? input.closedAt);
 }
 
-function waitingMinutes(events: TicketEvent[]) {
+function waitingMinutes(events: TicketEvent[], gaps: Gap[]) {
   let waitMin = 0;
   let vendorMin = 0;
   let pauseAt: Date | null = null;
   let pauseIsVendor = false;
   const close = (at: Date) => {
     if (!pauseAt) return;
-    const minutes = wholeMin(pauseAt, at);
+    const minutes = wholeMin(pauseAt, at, gaps);
     waitMin += minutes;
     if (pauseIsVendor) vendorMin += minutes;
     pauseAt = null;
@@ -86,12 +111,12 @@ function waitingMinutes(events: TicketEvent[]) {
   return { waitMin, vendorMin };
 }
 
-function handoverAndFollow(events: TicketEvent[], closedAt?: Date) {
+function handoverAndFollow(events: TicketEvent[], gaps: Gap[], closedAt?: Date) {
   let handoverWaitMin = 0;
   let handoverAt: Date | null = null;
   const closeHandover = (at: Date) => {
     if (!handoverAt) return;
-    handoverWaitMin += wholeMin(handoverAt, at);
+    handoverWaitMin += wholeMin(handoverAt, at, gaps);
     handoverAt = null;
   };
   for (const event of events) {
@@ -114,19 +139,20 @@ function applyOverride<T>(
 }
 
 /** Closed minutes by his rule: a stopped machine is the stopped stretches, support none, general the hands-on. */
-function downtimeAtClose(input: FigureInput, handsOnMin: number): number | null {
+function downtimeAtClose(input: FigureInput, handsOnMin: number, gaps: Gap[]): number | null {
   if (!input.closedAt) return null;
   if (input.kind === 'support') return 0;
   if (input.kind === 'general') return handsOnMin;
-  const { done, openSince } = downStretches(input);
-  return done + (openSince ? wholeMin(openSince, input.closedAt) : 0);
+  const { done, openSince } = downStretches(input, gaps);
+  return done + (openSince ? wholeMin(openSince, input.closedAt, gaps) : 0);
 }
 
 export function figures(input: FigureInput): Figures {
   const events = sortedEvents(input.events);
   const overrides = input.overrides ?? {};
-  const { waitMin, vendorMin } = waitingMinutes(events);
-  const { handoverWaitMin, followMin } = handoverAndFollow(events, input.closedAt);
+  const gaps = cancelledGaps(events);
+  const { waitMin, vendorMin } = waitingMinutes(events, gaps);
+  const { handoverWaitMin, followMin } = handoverAndFollow(events, gaps, input.closedAt);
 
   const overridden: OverridableFigure[] = [];
   const response = applyOverride(
@@ -146,7 +172,7 @@ export function figures(input: FigureInput): Figures {
     overridden,
     'downtimeMin',
     overrides.downtimeMin,
-    downtimeAtClose(input, active),
+    downtimeAtClose(input, active, gaps),
   );
   const repair = applyOverride(
     overridden,
@@ -161,7 +187,7 @@ export function figures(input: FigureInput): Figures {
     waitMin: waiting,
     vendorMin,
     handoverWaitMin,
-    downAccMin: downStretches(input).done,
+    downAccMin: downStretches(input, gaps).done,
     downtimeMin: downtime,
     followMin,
     repairMin: repair,

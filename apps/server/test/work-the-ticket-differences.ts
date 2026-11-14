@@ -19,7 +19,7 @@ export const EXPECTED_DIFFS: Record<string, string> = {
 /** Tickets the replay does not run, and why. */
 export const NOT_REPLAYED: Record<string, string> = {
   'BD-0077':
-    'cancelled and restored: our restore reopens a stretch only for a working ticket and the cancelled gap rule is still with Nimish (DOMAIN §5)',
+    'cancelled and restored: restore is an admin command (ticket 20); its figures are covered by figures-worker-parity.test.ts, where the cancelled time is the one ruled difference',
 };
 // A ticket with no `down` event (16 legacy rows: only a `report` event, or none) has no steps to replay.
 
