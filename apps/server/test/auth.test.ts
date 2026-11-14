@@ -1,8 +1,14 @@
-import { hash } from '@node-rs/argon2';
+import { hash, verify } from '@node-rs/argon2';
 import type { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { startTestDb, type TestDb } from './harness.js';
+
+// The real password check, watched: the login tests below count how many run and at what cost, never how long.
+vi.mock('@node-rs/argon2', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@node-rs/argon2')>();
+  return { ...real, verify: vi.fn(real.verify) };
+});
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 type InjectResponse = Awaited<ReturnType<App['inject']>>;
@@ -346,20 +352,24 @@ describe('login guard', () => {
       headers: { host: HOST, 'content-type': 'application/json' },
       payload: { username, password, ...extra },
     });
-  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
 
-  it('takes as long to refuse an unknown username as a wrong password', async () => {
-    const unknown: number[] = [];
-    const wrong: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      let t = performance.now();
-      await attempt(`nobody-${i}`, 'wrong-password', '198.51.100.20');
-      unknown.push(performance.now() - t);
-      t = performance.now();
-      await attempt('cell-phone', 'wrong-password', '198.51.100.20');
-      wrong.push(performance.now() - t);
-    }
-    expect(median(unknown)).toBeGreaterThan(median(wrong) * 0.5);
+  // Time cannot be the evidence: one check takes 13 to 190 ms depending on the load on the machine, so a ratio of
+  // two timings flakes. The answer takes as long when the same work is done, so count it: one password check, at the
+  // same argon2 cost, whether the person is unknown, erased or has a wrong password.
+  const checked = async (username: string, from: string) => {
+    vi.mocked(verify).mockClear();
+    await attempt(username, 'wrong-password', from);
+    return vi.mocked(verify).mock.calls.map(([stored]) => String(stored));
+  };
+  const cost = (stored: string) => stored.split('$').slice(1, 4).join('$');
+
+  it('pays for one password check when the username is unknown, at the cost of a real one', async () => {
+    const [real, ...extra] = await checked('cell-phone', '198.51.100.20');
+    const unknown = await checked('nobody-at-all', '198.51.100.20');
+    expect(extra).toEqual([]);
+    expect(unknown).toHaveLength(1);
+    expect(cost(unknown[0]!)).toBe(cost(real!));
+    expect(cost(real!)).toMatch(/^argon2id\$v=19\$m=19456,t=2,p=1$/);
   });
 
   it('stops guessing one username after twenty misses, but only for that sender and name', async () => {
@@ -400,25 +410,19 @@ describe('login guard', () => {
     expect(ok.statusCode).toBe(200);
   });
 
-  it('refuses an erased login like any wrong password, in similar time, not with a 500', async () => {
+  it('refuses an erased login like any wrong password, with the same password check, not with a 500', async () => {
     await admin.query(
       `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared)
        VALUES (gen_random_uuid(), $1, $2, 'erased', '!', 'technician', false)`,
       [B, PERSON_B],
     );
-    const erased: number[] = [];
-    const wrong: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      let t = performance.now();
-      const res = await attempt('erased', PASSWORD, '198.51.100.25');
-      erased.push(performance.now() - t);
-      expect(res.statusCode).toBe(401);
-      expect(res.json().error.code).toBe('unauthenticated');
-      t = performance.now();
-      await attempt('cell-phone', 'wrong-password', '198.51.100.25');
-      wrong.push(performance.now() - t);
-    }
-    expect(median(erased)).toBeGreaterThan(median(wrong) * 0.5);
+    const [real] = await checked('cell-phone', '198.51.100.25');
+    const res = await attempt('erased', PASSWORD, '198.51.100.25');
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.code).toBe('unauthenticated');
+    const erased = await checked('erased', '198.51.100.25');
+    expect(erased).toHaveLength(1);
+    expect(cost(erased[0]!)).toBe(cost(real!));
   });
 
   it('limits guessing the old password when changing a password', async () => {
