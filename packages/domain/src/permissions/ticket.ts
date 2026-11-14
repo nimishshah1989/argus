@@ -97,7 +97,7 @@ export function canBreakdownPdf(
 
 const HANDBACK_ROLES = ['supervisor', 'head', 'plant_head', 'admin'] as const;
 
-/** Maintenance and the board never sign their own work off; this is the check that needs no ticket. */
+/** Technicians and the board never answer a sign-off (DOMAIN §3); this is the check that needs no ticket. */
 export function canAnswerHandbackAtAll(role: string): boolean {
   return role === 'operator' || (HANDBACK_ROLES as readonly string[]).includes(role);
 }

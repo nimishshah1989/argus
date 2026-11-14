@@ -89,7 +89,8 @@ beforeAll(async () => {
       ($1, NULL, 'cell1', $7, 'operator', true, 'C1'),
       ($1, $5, 'floor2', $7, 'operator', false, 'C1'),
       ($1, $6, 'cell2', $7, 'operator', false, 'C2'),
-      ($1, $3, 'boss', $7, 'admin', false, NULL)`,
+      ($1, $3, 'boss', $7, 'admin', false, NULL),
+      ($1, NULL, 'tv', $7, 'board', true, NULL)`,
     [A, REPORTER, LEAD, SUPER, FLOOR2, OUTSIDER, passwordHash],
   );
   await admin.query(
@@ -104,7 +105,7 @@ beforeAll(async () => {
   const config: AppConfig = { pool: db.app, logger: false, rateLimitMax: 100000 };
   app = await buildApp(config);
   boss = config.jobBoss!;
-  for (const name of ['rina', 'lal', 'sana', 'cell1', 'floor2', 'cell2', 'boss']) {
+  for (const name of ['rina', 'lal', 'sana', 'cell1', 'floor2', 'cell2', 'boss', 'tv']) {
     tokens[name] = await login(name);
   }
 }, 120_000);
@@ -114,25 +115,26 @@ afterAll(async () => {
   await db.stop();
 });
 
-/** A breakdown reported by Rina, worked and closed by Lal. Returns the ticket id. */
-async function closedBreakdown(): Promise<string> {
+/** A breakdown reported by Rina, worked by Lal and closed with a report (or as `kind` says). Returns the ticket id. */
+async function closedBreakdown(kind: 'report' | 'no_report' | 'done' = 'report'): Promise<string> {
   const raised = await call('POST', '/api/v1/tickets', tokens.rina!, {
     machineId: MACHINE,
     problem: 'Spindle stops',
   });
   expect(raised.statusCode).toBe(201);
   const ticketId = raised.json().ticket.id as string;
-  const lal = { personId: LEAD };
-  expect(
-    (await call('POST', `/api/v1/tickets/${ticketId}/start`, tokens.lal!, lal)).statusCode,
-  ).toBe(200);
-  const closed = await call('POST', `/api/v1/tickets/${ticketId}/close`, tokens.lal!, {
-    ...lal,
-    kind: 'done',
-  });
-  expect(closed.statusCode).toBe(200);
+  expect((await work(ticketId, 'start')).statusCode).toBe(200);
+  expect((await closeIt(ticketId, kind)).statusCode).toBe(200);
   return ticketId;
 }
+
+const work = (ticketId: string, action: string, extra: object = {}) =>
+  call('POST', `/api/v1/tickets/${ticketId}/${action}`, tokens.lal!, { personId: LEAD, ...extra });
+const closeIt = (ticketId: string, kind: 'report' | 'no_report' | 'done', note = 'Fixed') =>
+  work(ticketId, 'close', {
+    kind,
+    ...(kind === 'report' ? { report: { correctiveAction: note } } : {}),
+  });
 
 const answer = (ticketId: string, who: string, personId: string | null, body: object) =>
   call('POST', `/api/v1/tickets/${ticketId}/handback`, tokens[who]!, {
@@ -257,10 +259,7 @@ describe('dispute', () => {
       'Still stops',
     );
 
-    const lal = { personId: LEAD, kind: 'done' };
-    expect(
-      (await call('POST', `/api/v1/tickets/${ticketId}/close`, tokens.lal!, lal)).statusCode,
-    ).toBe(200);
+    expect((await closeIt(ticketId, 'report')).statusCode).toBe(200);
     expect((await read(ticketId)).ticket.handback).toMatchObject({
       status: 'requested',
       reopenCount: 1,
@@ -407,6 +406,40 @@ describe('an unanswered sign-off on the fake clock', () => {
     expect((await timer(ticketId)).fired_at).toBeNull();
   });
 
+  it('a late answer does not fire the clock afterwards', async () => {
+    const ticketId = await closedAt9();
+    expect((await answer(ticketId, 'sana', SUPER, { response: 'confirmed' })).statusCode).toBe(200);
+    const live = await admin.query(
+      "SELECT 1 FROM pgboss.job WHERE name = 'sla.timer' AND singleton_key = $1 AND state IN ('created','retry','active')",
+      [`${A}:${ticketId}:handback`],
+    );
+    expect(live.rowCount).toBe(0);
+    expect((await timer(ticketId)).fired_at).toBeNull();
+  });
+
+  it('a dispute and a second close start a new clock that can time out once more', async () => {
+    const ticketId = await closedAt9();
+    expect(await fire(ticketId, '10:01')).toBe(true);
+    const events: Array<[number, string, Date, boolean]> = [
+      [2, 'handback_dispute', at('10:10'), false],
+      [3, 'close', at('10:20'), true],
+    ];
+    for (const [seq, type, when, asks] of events) {
+      await admin.query(
+        'INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, payload) VALUES ($1, $2, $3, $4, $5, $6)',
+        [A, ticketId, seq, type, when, asks ? { handbackRequested: true } : {}],
+      );
+      await withTenant(db.app, A, (client) =>
+        reconcileTicket(client, { tenantId: A, ticketId, now: when, boss }),
+      );
+    }
+    expect(await timer(ticketId)).toMatchObject({ state: 'running', fired_at: null });
+    expect(new Date((await timer(ticketId)).due_at).toISOString()).toBe(at('11:20').toISOString());
+    expect(await fire(ticketId, '11:19')).toBe(false);
+    expect(await fire(ticketId, '11:21')).toBe(true);
+    expect(await fire(ticketId, '11:40')).toBe(false);
+  });
+
   it('a plant with no limit never times out', async () => {
     await admin.query('UPDATE sla_policy SET handback_minutes = NULL WHERE tenant_id = $1', [A]);
     try {
@@ -419,5 +452,108 @@ describe('an unanswered sign-off on the fake clock', () => {
     } finally {
       await admin.query('UPDATE sla_policy SET handback_minutes = 60 WHERE tenant_id = $1', [A]);
     }
+  });
+});
+
+describe('who is not asked, and who is refused', () => {
+  it('a close without a report, a done mark, self-started work and general work ask nobody', async () => {
+    for (const kind of ['no_report', 'done'] as const) {
+      const ticketId = await closedBreakdown(kind);
+      expect((await read(ticketId)).ticket.handback, kind).toBeNull();
+      expect((await answer(ticketId, 'sana', SUPER, { response: 'confirmed' })).statusCode).toBe(
+        409,
+      );
+    }
+    const self = await call('POST', '/api/v1/tickets', tokens.lal!, {
+      machineId: MACHINE,
+      problem: 'Found it myself',
+      startNow: true,
+    });
+    const selfId = self.json().ticket.id as string;
+    expect((await closeIt(selfId, 'report')).statusCode).toBe(200);
+    expect((await read(selfId)).ticket.handback).toBeNull();
+
+    const general = await call('POST', '/api/v1/tickets', tokens.rina!, {
+      kind: 'general',
+      location: 'Yard',
+      workType: 'Civil',
+      problem: 'Gate',
+    });
+    const generalId = general.json().ticket.id as string;
+    await work(generalId, 'start');
+    expect((await closeIt(generalId, 'done')).statusCode).toBe(200);
+    expect((await read(generalId)).ticket.handback).toBeNull();
+  });
+
+  it('the board is refused, a cancelled ticket and a ticket still open are 409', async () => {
+    const ticketId = await closedBreakdown();
+    expect((await answer(ticketId, 'tv', null, { response: 'confirmed' })).statusCode).toBe(403);
+    const raised = await call('POST', '/api/v1/tickets', tokens.rina!, {
+      machineId: MACHINE,
+      problem: 'Never mind',
+    });
+    const open = raised.json().ticket.id as string;
+    await call('POST', `/api/v1/tickets/${open}/cancel`, tokens.boss!, {
+      personId: LEAD,
+      reason: 'x',
+    });
+    expect((await answer(open, 'sana', SUPER, { response: 'confirmed' })).statusCode).toBe(409);
+  });
+
+  it('a shared phone with a person chosen on it answers as that person', async () => {
+    const ticketId = await closedBreakdown();
+    const picked = await call('POST', '/api/v1/auth/acting', tokens.cell1!, {
+      actingPersonId: REPORTER,
+    });
+    expect(picked.statusCode).toBe(200);
+    const res = await answer(ticketId, 'cell1', REPORTER, { response: 'confirmed' });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().ticket.handback.respondedByPersonId).toBe(REPORTER);
+  });
+});
+
+describe('after a dispute', () => {
+  it('a re-close with a new report shows the new report', async () => {
+    const ticketId = await closedBreakdown();
+    await answer(ticketId, 'rina', REPORTER, { response: 'disputed', reason: 'Still stops' });
+    expect((await closeIt(ticketId, 'report', 'Second repair')).statusCode).toBe(200);
+    const rows = await admin.query(
+      'SELECT corrective_action FROM breakdown_report WHERE ticket_id = $1 ORDER BY submitted_at',
+      [ticketId],
+    );
+    expect(rows.rows.map((r) => r.corrective_action)).toEqual(['Fixed', 'Second repair']);
+    // Rewrite the newer row so it sits last on disk: only an explicit order can then pick it.
+    await admin.query(
+      "UPDATE breakdown_report SET updated_at = now() WHERE ticket_id = $1 AND corrective_action = 'Second repair'",
+      [ticketId],
+    );
+    expect((await read(ticketId)).report.correctiveAction).toBe('Second repair');
+  });
+
+  it('is refused, not mistaken for a duplicate, when the machine already has another open breakdown', async () => {
+    const ticketId = await closedBreakdown();
+    const next = await call('POST', '/api/v1/tickets', tokens.rina!, {
+      machineId: MACHINE,
+      problem: 'New stop',
+    });
+    expect(next.statusCode).toBe(201);
+    const res = await answer(ticketId, 'rina', REPORTER, {
+      response: 'disputed',
+      reason: 'Still stops',
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.message).toMatch(/sign-off/i);
+    expect(res.json().error.message).toContain(next.json().ticket.ref);
+    expect((await read(ticketId)).ticket).toMatchObject({
+      status: 'closed',
+      handback: { status: 'requested' },
+    });
+    expect((await answer(ticketId, 'rina', REPORTER, { response: 'confirmed' })).statusCode).toBe(
+      200,
+    );
+    await call('POST', `/api/v1/tickets/${next.json().ticket.id}/cancel`, tokens.boss!, {
+      personId: LEAD,
+      reason: 'x',
+    });
   });
 });

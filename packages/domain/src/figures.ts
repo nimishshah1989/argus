@@ -10,8 +10,12 @@ type Gap = [start: number, end: number];
 function cancelledGaps(events: TicketEvent[]): Gap[] {
   const gaps: Gap[] = [];
   let since: number | null = null;
+  let closedAt = 0;
   for (const event of events) {
-    if (event.type === 'cancel') since = event.at.getTime();
+    if (event.type === 'close') closedAt = event.at.getTime();
+    // production sent a closed ticket back: the time it sat signed off is nobody's repair or downtime
+    else if (event.type === 'handback_dispute') gaps.push([closedAt, event.at.getTime()]);
+    else if (event.type === 'cancel') since = event.at.getTime();
     else if (event.type === 'restore' && since !== null) {
       gaps.push([since, event.at.getTime()]);
       since = null;

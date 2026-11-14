@@ -333,3 +333,74 @@ describe('downtime after a dispute', () => {
     expect(run([...events, closes[0] as TicketEvent]).downtimeMin).toBeNull();
   });
 });
+
+describe('who is asked', () => {
+  const working: Ticket = {
+    ...closed,
+    status: 'working',
+    closedAt: null,
+    closedByPersonId: null,
+    closeKind: null,
+  };
+  const closeWith = (kind: 'report' | 'no_report' | 'done', over: Partial<Ticket> = {}) =>
+    transition({
+      ticket: { ...working, ...over },
+      events: events.slice(0, 3),
+      segments: [{ personId: 'lead', role: 'lead', startedAt: at('10:05') }],
+      crew,
+      command: { type: 'close', personId: 'lead', kind },
+      ctx: actor({ role: 'technician', loginId: 'tech', personId: 'lead' }),
+    }).events.at(-1);
+
+  it('a close with a report of a stopped or support ticket someone else raised', () => {
+    expect(closeWith('report')?.handbackRequested).toBe(true);
+    expect(closeWith('report', { kind: 'support' })?.handbackRequested).toBe(true);
+  });
+
+  it('a close without a report, a done mark, self-started work and general work ask nobody', () => {
+    expect(closeWith('no_report')?.handbackRequested).toBeFalsy();
+    expect(closeWith('done')?.handbackRequested).toBeFalsy();
+    expect(closeWith('report', { selfStarted: true })?.handbackRequested).toBeFalsy();
+    expect(closeWith('report', { kind: 'general' })?.handbackRequested).toBeFalsy();
+  });
+});
+
+describe('turnaround after a dispute', () => {
+  it('the time production took to send it back is production time, not maintenance time', () => {
+    const list: TicketEvent[] = [
+      { type: 'down', at: t('2026-01-01T10:00:00Z') },
+      { type: 'start', at: t('2026-01-01T10:05:00Z') },
+      { type: 'close', at: t('2026-01-01T11:00:00Z'), handbackRequested: true },
+      { type: 'handback_dispute', at: t('2026-01-01T15:00:00Z') },
+      { type: 'close', at: t('2026-01-01T15:30:00Z'), handbackRequested: true },
+      { type: 'handback_confirm', at: t('2026-01-01T15:40:00Z') },
+    ];
+    expect(signoffTurnaround(list, t('2026-01-01T10:00:00Z'), t('2026-01-01T16:00:00Z'))).toEqual({
+      maintenanceMin: 90,
+      productionMin: 240 + 10,
+    });
+  });
+});
+
+describe('repair time after a dispute', () => {
+  it('does not count the stretch between the first close and the dispute', () => {
+    const list: TicketEvent[] = [
+      { type: 'down', at: at('10:00') },
+      { type: 'start', at: at('10:05') },
+      { type: 'close', at: at('11:00'), handbackRequested: true },
+      { type: 'handback_dispute', at: at('15:00') },
+      { type: 'close', at: at('15:30'), handbackRequested: true },
+    ];
+    const result = figures({
+      reportedAt: at('10:00'),
+      kind: 'stopped',
+      selfStarted: false,
+      events: list,
+      segments: [],
+      now: at('16:00'),
+      closedAt: at('15:30'),
+    });
+    expect(result.repairMin).toBe(55 + 30);
+    expect(result.downtimeMin).toBe(60 + 30);
+  });
+});

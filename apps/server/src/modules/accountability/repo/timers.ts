@@ -152,6 +152,8 @@ async function cancelRevision(
 
 function queueAction(timer: SlaTimerProjection, firedAt: Date | null): 'arm' | 'due' | 'none' {
   if (firedAt) return 'none';
+  // An answered sign-off timed nothing out, however late the answer came.
+  if (timer.kind === 'handback' && timer.state === 'stopped') return 'none';
   if (timer.breached) return timer.stopReason === 'cancelled' ? 'none' : 'due';
   return timer.state === 'running' && timer.dueAt ? 'arm' : 'none';
 }

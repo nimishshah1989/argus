@@ -11,11 +11,15 @@ export interface Signoff<E extends TicketEvent = TicketEvent> {
 }
 
 /**
- * Production is asked at a close of a ticket that has a machine and was raised by someone else. Maintenance's own
- * work request (self-started) and general work have nobody to ask.
+ * DOMAIN §2: production is asked when a ticket is closed with a report (`closeWithReport`), and only if it has a
+ * machine and someone else raised it. A close without a report, a done mark, maintenance's own self-started work and
+ * general work have nobody to ask.
  */
-export function asksSignoff(ticket: Pick<Ticket, 'kind' | 'selfStarted'>): boolean {
-  return ticket.kind !== 'general' && !ticket.selfStarted;
+export function asksSignoff(
+  ticket: Pick<Ticket, 'kind' | 'selfStarted'>,
+  closeKind: 'report' | 'no_report' | 'done',
+): boolean {
+  return closeKind === 'report' && ticket.kind !== 'general' && !ticket.selfStarted;
 }
 
 /** The latest sign-off the log holds: the last close that asked, and its answer. Null when nobody was asked. */
@@ -33,6 +37,21 @@ export function currentSignoff<E extends TicketEvent>(
     .slice(index + 1)
     .find((event) => event.type === 'handback_confirm' || event.type === 'handback_dispute');
   return { request: seen[index] as E, answer: answer ?? null };
+}
+
+/** Whole minutes between each earlier sign-off request and the dispute that sent it back (production's time). */
+function disputedMin(events: readonly TicketEvent[], until: Date): number {
+  let total = 0;
+  let asked: Date | null = null;
+  for (const event of events) {
+    if (event.at >= until) break;
+    if (event.type === 'close' && event.handbackRequested) asked = event.at;
+    else if (event.type === 'handback_dispute' && asked) {
+      total += event.at.getTime() - asked.getTime();
+      asked = null;
+    }
+  }
+  return Math.round(total / MINUTE_MS);
 }
 
 /** Whole minutes production kept the machine from maintenance: waits whose reason does not stop the SLA clock. */
@@ -63,7 +82,7 @@ export function signoffTurnaround(
   const signoff = currentSignoff(events, now);
   if (!signoff) return null;
   const asked = signoff.request.at;
-  const wait = productionWaitMin(events, asked);
+  const wait = productionWaitMin(events, asked) + disputedMin(events, asked);
   const toClose = Math.round((asked.getTime() - reportedAt.getTime()) / MINUTE_MS);
   const toAnswer = Math.round(
     ((signoff.answer?.at ?? now).getTime() - asked.getTime()) / MINUTE_MS,

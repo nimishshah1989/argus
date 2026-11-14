@@ -32,7 +32,7 @@ import {
   saveCorrectedMachine,
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
-import { loginInTicketCell } from './handback.js';
+import { loginInTicketCell, reopenConflict } from './handback.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -140,6 +140,8 @@ async function executeCommand(
   const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
+  const blocked = await reopenConflict(client, tx, loaded.ticket);
+  if (blocked) return blocked;
   fillReplacedMinutes(loaded, result.events);
   // M2-2.1: a correction or kind upgrade may change the derived severity.
   await refreshSeverity(client, tx, loaded, result.ticket);

@@ -37,7 +37,11 @@ export function close(
   };
   return apply(input, {
     ticket,
-    event: { type: 'close', reason: command.note, handbackRequested: asksSignoff(input.ticket) },
+    event: {
+      type: 'close',
+      reason: command.note,
+      handbackRequested: asksSignoff(input.ticket, command.kind),
+    },
     at,
     segments: closeSegments(input.segments, at),
   });
