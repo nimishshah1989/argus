@@ -5,6 +5,7 @@ import { audit } from '../ops/index.js';
 import { machinesByIds } from '../plant/index.js';
 import type { LoadedCtx, Outcome, Tx } from './mapper.js';
 import { figuresFromRow } from './mapper.js';
+import { setMachineSnapshot } from './repo/overrides.js';
 import { personExists } from './repo/ticket.js';
 
 type Changes = {
@@ -52,26 +53,7 @@ export async function saveCorrectedMachine(
 ): Promise<void> {
   const changes = (tx.body.changes ?? {}) as Changes;
   if (tx.action !== 'correct' || !changes.machineId) return;
-  await client.query('UPDATE ticket SET machine_snapshot = $2::jsonb WHERE id = $1', [
-    tx.ticketId,
-    JSON.stringify(loaded.extras.machineSnapshot),
-  ]);
-}
-
-/** Minutes set directly by a correction: kept on the ticket so every later recompute applies them; null takes one off. */
-export function overridesFrom(tx: Tx, current: Record<string, unknown>): Record<string, unknown> {
-  if (tx.action !== 'correct') return current;
-  const changes = (tx.body.changes ?? {}) as Changes;
-  const next = { ...current };
-  for (const [field, key] of [
-    ['activeMin', 'handsOnOverrideMin'],
-    ['waitMin', 'waitingOverrideMin'],
-  ] as const) {
-    const value = changes[field];
-    if (value === null) delete next[key];
-    else if (value !== undefined) next[key] = value;
-  }
-  return next;
+  await setMachineSnapshot(client, tx.ticketId, loaded.extras.machineSnapshot);
 }
 
 /** The domain does not know the minutes a direct set replaces; the stored figures do. */
