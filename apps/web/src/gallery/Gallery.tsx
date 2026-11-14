@@ -6,6 +6,7 @@ import { setLanguage } from '../i18n/index.js';
 import { Button } from '../ui/button.js';
 import { Inline, Page, Stack } from '../ui/layout.js';
 import { BoardSection } from './board-section.js';
+import { ClosesSection } from './closes-section.js';
 import { CrudSection } from './crud-section.js';
 import { DashboardSection } from './dashboard-section.js';
 import { DesktopView } from './desktop-section.js';
@@ -161,6 +162,7 @@ export default function Gallery() {
         <ShellSection />
         <DeskKitSection />
         <DetailKitSection />
+        <ClosesSection />
       </Page>
     </div>
   );

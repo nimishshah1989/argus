@@ -81,7 +81,7 @@ export async function insertImportedEvent(tx: Db, values: unknown[]): Promise<vo
   await tx.query(
     `INSERT INTO ticket_event (
          tenant_id, ticket_id, seq, type, idempotency_key, at, login_id, acting_person_id, text, payload
-       ) VALUES ($1,$2,$3,$4,NULL,$5,NULL,$6,$7,$8)`,
+       ) VALUES ($1,$2,$3,$4,NULL,$5,$9,$6,$7,$8)`,
     values,
   );
 }

@@ -161,7 +161,7 @@ export type CommandBody =
   | { personId: string; reasonCode: string; note?: string }
   | { personId: string; text: string }
   | { personId: string; note: string; toPersonId?: string }
-  | { personId: string; kind: CloseKind; note?: string; report?: BreakdownReportBody }
+  | { personId: string; kind: CloseKind; at?: string; note?: string; report?: BreakdownReportBody }
   | { personId: string; report: BreakdownReportBody }
   | { personId: string; reason: string }
   | { personId: string; role: 'primary' | 'support' }
