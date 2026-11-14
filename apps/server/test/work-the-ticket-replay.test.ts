@@ -131,8 +131,15 @@ async function stepFor(x: RealTicket, e: RealEvent, all: RealEvent[]): Promise<S
   }
 }
 
+interface Got {
+  status: string;
+  transfers: number;
+  leadPersonId: string | null;
+  figures: Record<string, number | null> & { perPerson: Record<string, number> };
+}
+
 interface Replayed {
-  ticket: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  ticket: Partial<Got>;
   failed: string[];
 }
 
@@ -190,11 +197,10 @@ function hisPersonMinutes(x: RealTicket): Record<string, number> {
   return out;
 }
 
-function compare(x: RealTicket, got: Record<string, any>): string[] {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+function compare(x: RealTicket, got: Got): string[] {
   const diffs: string[] = [];
   const nameOf = new Map([...people].map(([name, id]) => [id, name]));
-  const f = got.figures as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const f = got.figures;
   const cancelled = x.status === 'cancelled';
   for (const c of checkTicketFigures(x)) {
     compared += 1;
@@ -206,12 +212,12 @@ function compare(x: RealTicket, got: Record<string, any>): string[] {
   if (got.status !== x.status) diffs.push(`${x.ref} status: his ${x.status}, ours ${got.status}`);
   if (got.transfers !== x.transfers)
     diffs.push(`${x.ref} transfers: his ${x.transfers}, ours ${got.transfers}`);
-  const lead = nameOf.get(got.leadPersonId) ?? null;
+  const lead = nameOf.get(got.leadPersonId ?? '') ?? null;
   if (['working', 'waiting', 'closed'].includes(x.status) && x.startedBy && lead !== x.startedBy)
     diffs.push(`${x.ref} lead: his ${x.startedBy}, ours ${lead}`);
   const his = hisPersonMinutes(x);
   const ours = Object.fromEntries(
-    Object.entries(f.perPerson as Record<string, number>)
+    Object.entries(f.perPerson)
       .map(([id, m]) => [nameOf.get(id) as string, m] as const)
       .filter(([, m]) => m > 0),
   );
@@ -292,7 +298,7 @@ describe('his tickets, worked through our commands', () => {
       const { ticket, failed } = await replay(x);
       replayed.push(x.ref);
       for (const f of failed) found.push(`${x.ref} refused: ${f}`);
-      if (ticket.figures) found.push(...compare(x, ticket));
+      if (ticket.figures) found.push(...compare(x, ticket as Got));
     }
     expect(replayed.length).toBeGreaterThan(250);
     expect(compared).toBeGreaterThan(2000);
