@@ -45,6 +45,7 @@ const BUILDERS: Record<CommandAction, Builder> = {
     kind: body.kind as 'report' | 'no_report' | 'done',
     at: body.at as Date | undefined,
     note: body.note as string | undefined,
+    taskDownMin: body.taskDownMin as number | undefined,
   }),
   report: (_body, personId) => ({ type: 'lateReport', personId }),
   cancel: (body, personId) => ({ type: 'cancel', personId, reason: body.reason as string }),

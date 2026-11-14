@@ -8,7 +8,6 @@ import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
   actingRefusal,
-  AUTH_MESSAGES,
   isOnRoster,
   ticketPartsAfterWrite,
   type AppConfig,
@@ -30,6 +29,8 @@ import {
   recordAdminFix,
   saveCorrectedMachine,
 } from './admin-fixes.js';
+import { resolveActingPerson } from './acting.js';
+import { afterClose, checkTaskInput } from './tasks.js';
 import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, reopenConflict } from './handback.js';
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
@@ -65,24 +66,6 @@ interface RaiseTx {
   key: string;
   auth: Auth;
   body: Record<string, unknown>;
-}
-
-/**
- * Who acts is always the session's person (a shared phone's chosen one), never one a request names; a correction
- * is the admin's own act. The read is locked, so a switch-off that is under way finishes first: a person already
- * off is no longer signed in.
- */
-async function resolveActingPerson(
-  client: PoolClient,
-  tx: tm.Tx,
-): Promise<{ personId: string | null } | Outcome> {
-  if (tx.action === 'correct') return { personId: tx.auth.personId };
-  const refused = actingRefusal(tx.auth, tx.body.personId as string | undefined, 'personId');
-  if (refused) return refused;
-  if (!(await sql.personExists(client, tx.tenantId, tx.auth.personId!))) {
-    return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
-  }
-  return { personId: tx.auth.personId };
 }
 
 async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.LoadedCtx | null> {
@@ -128,6 +111,8 @@ async function executeCommand(
   if (unknown) return unknown;
   const lockout = await checkLockout(client, tx);
   if (lockout) return lockout;
+  const badTask = await checkTaskInput(client, tx, loaded);
+  if (badTask) return badTask;
   const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
@@ -140,6 +125,7 @@ async function executeCommand(
   await saveCorrectedMachine(client, tx, loaded);
   await recordAdminFix(client, tx, loaded, result);
   await report.storeReportForTransition(client, tx, result);
+  const left = await afterClose(client, tx, loaded, result.ticket);
   const parts = await ticketPartsAfterWrite(client, {
     tenantId: tx.tenantId,
     ticketId: tx.ticketId,
@@ -157,6 +143,7 @@ async function executeCommand(
         ...parts,
         ...(await lockoutField(client, tx, tx.ticketId)),
       },
+      ...left,
     },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
