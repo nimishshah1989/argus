@@ -6,7 +6,6 @@ export type ButtonProps = Omit<ComponentProps<'button'>, 'className' | 'style'> 
 
 /** Primary is the one filled button on a screen; tonal is a card's own action; quiet is a text-only extra. */
 const VARIANT = {
-  // Disabled is greyed (T2, A1-5): one primary action must not look live until it is.
   primary:
     'min-h-target bg-accent-strong text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600',
   secondary:

@@ -52,3 +52,28 @@ export function canRestore(ctx: ActorContext): boolean {
 export function canCorrect(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }
+
+/** An allow-list: a role added later gets no breakdown PDF until it is named here. */
+const BREAKDOWN_PDF_ROLES: readonly string[] = [
+  'technician',
+  'supervisor',
+  'head',
+  'plant_head',
+  'admin',
+];
+
+/**
+ * Who may print a breakdown PDF (DOMAIN §3). An operator gets the breakdowns they reported; a shared floor login
+ * also gets every breakdown on a machine in its own cell; maintenance, supervisors, heads and admins get all; the
+ * board gets none.
+ */
+export function canBreakdownPdf(
+  ctx: ActorContext,
+  ticket: { raisedLoginId: string | null; cell: string | null },
+): boolean {
+  if (ctx.role === 'operator') {
+    if (isOwn(ctx, { raisedLoginId: ticket.raisedLoginId } as TicketContext)) return true;
+    return ctx.shared && ctx.cell != null && ctx.cell === ticket.cell;
+  }
+  return BREAKDOWN_PDF_ROLES.includes(ctx.role);
+}

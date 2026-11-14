@@ -1,4 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- route and tone props, not copy */
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -14,11 +15,11 @@ import {
   type TicketInterval,
 } from '../api.js';
 import { AdminPanel } from '../components/AdminPanel.js';
-import { canWork, type ActorContext } from '@uptimo/domain';
 import { actorFrom, crewFrom } from '../components/actionSpecs.js';
 import { useCommand } from '../data/index.js';
 import { Facts, ReportCard } from '../components/TicketFacts.js';
-import { ReportPanel } from '../components/ReportForm.js';
+import { CloseFlow } from '../components/CloseFlow.js';
+import { ReportControls } from '../components/ReportControls.js';
 import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
 import { KindBadge, ReportBadge, StatusBadge } from '../components/StatusBadge.js';
@@ -100,6 +101,7 @@ interface ViewProps {
   run: (ticketId: string, action: CommandAction, body: CommandBody) => Promise<boolean>;
   pending: boolean;
   error: string | null;
+  onFlow: (mode: 'close' | 'late') => void;
 }
 
 function hasReportContext(
@@ -107,11 +109,6 @@ function hasReportContext(
   personId: string | null | undefined,
 ): boolean {
   return Boolean(config && personId);
-}
-
-/** Work actions, the action bar and tags are for work roles only (Q18). */
-function canEditTicket(actor: ActorContext | null): boolean {
-  return actor !== null && canWork(actor);
 }
 
 /** A closed breakdown or support ticket either has its report or still needs it. */
@@ -167,26 +164,26 @@ interface ControlsProps extends Omit<ViewProps, 'detail'> {
 }
 
 /** The report form and the action bar. */
-function Controls({ ticket, config, me, run, pending, error, people }: ControlsProps) {
+function Controls({ ticket, config, me, run, pending, error, people, onFlow }: ControlsProps) {
   const personId = me?.actingPersonId;
   const actor = me ? actorFrom(me) : null;
   if (!hasReportContext(config, personId) || actor === null) return null;
   return (
-    <ReportPanel
+    <ReportControls
       ticket={ticket}
       config={config!}
       personId={personId!}
       actor={actor}
       crew={crewFrom(people)}
-      canEdit={canEditTicket(actor)}
       command={(action, body) => run(ticket.id, action, body)}
       pending={pending}
       error={error}
+      onFlow={onFlow}
     />
   );
 }
 
-function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
+function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewProps) {
   const { ticket, events, people } = detail;
   const names = peopleNames(config?.people);
   const reasonLabels: Record<string, string> = {};
@@ -213,7 +210,7 @@ function TicketView({ detail, config, me, run, pending, error }: ViewProps) {
         timeZone={config?.timeZone}
       />
       <AdminPanel ticket={ticket} config={config} me={me} />
-      <Controls {...{ ticket, config, me, run, pending, error, people }} />
+      <Controls {...{ ticket, config, me, run, pending, error, people, onFlow }} />
     </Stack>
   );
 }
@@ -229,6 +226,24 @@ export function TicketDetail() {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const { run, error, pending } = useCommand();
+  const [flow, setFlow] = useState<'close' | 'late' | null>(null);
+  const personId = me.data?.user.actingPersonId;
+
+  if (flow && detail.data && config.data && personId) {
+    const ticketId = detail.data.ticket.id;
+    return (
+      <CloseFlow
+        detail={detail.data}
+        config={config.data}
+        personId={personId}
+        mode={flow}
+        pending={pending}
+        error={error}
+        command={(action, body) => run(ticketId, action, body)}
+        onExit={() => setFlow(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -243,6 +258,7 @@ export function TicketDetail() {
             run={run}
             pending={pending}
             error={error}
+            onFlow={setFlow}
           />
         ) : detail.error ? (
           <Banner tone="error" title={errorMessage(detail.error)} />

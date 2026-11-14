@@ -324,21 +324,27 @@ export async function lockRefCounter(
   ]);
 }
 
-export async function allocateRef(client: PoolClient, tenantId: string): Promise<string> {
-  await lockRefCounter(client, tenantId, 'BD');
+/** A work request (kind `general`) is numbered WR-, everything that stops or needs a machine BD-; each prefix counts on its own. */
+export async function allocateRef(
+  client: PoolClient,
+  tenantId: string,
+  kind: string,
+): Promise<string> {
+  const prefix = kind === 'general' ? 'WR' : 'BD';
+  await lockRefCounter(client, tenantId, prefix);
   const counter = (
     await client.query(
-      "SELECT next_value FROM ref_counter WHERE tenant_id = $1 AND prefix = 'BD' FOR UPDATE",
-      [tenantId],
+      'SELECT next_value FROM ref_counter WHERE tenant_id = $1 AND prefix = $2 FOR UPDATE',
+      [tenantId, prefix],
     )
   ).rows[0];
   const next = counter ? Number(counter.next_value) : 1;
-  if (next > 2_147_483_646) throw new Error('BD reference counter is exhausted');
+  if (next > 2_147_483_646) throw new Error(`${prefix} reference counter is exhausted`);
   await client.query(
-    "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', $2) ON CONFLICT (tenant_id, prefix) DO UPDATE SET next_value = $2",
-    [tenantId, next + 1],
+    'INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, $2, $3) ON CONFLICT (tenant_id, prefix) DO UPDATE SET next_value = $3',
+    [tenantId, prefix, next + 1],
   );
-  return nextRef('BD', next);
+  return nextRef(prefix, next);
 }
 
 export async function waitReasonSlaFlags(

@@ -173,3 +173,27 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   after the drill). Builder 23 -> next ticket claude/server-small-items: operator upgradeKind, WR refs, POST
   /tickets/past (+ domain function), gate legacy GET /settings, /lists/:list, /translations/missing. Builder 21 ->
   contract commit on #210 using the helpers now on main.
+- 2026-11-14 06:35 UTC — Main red again (api): #212's reports-real shift test read GET /shifts as an array + PATCH;
+  #206 changed it to {items,nextCursor} + PUT. Fixed by me in #217 (d36c1fc, test-only, merged on static/secrets +
+  local run). Lesson: under the pace ruling, merge a PR whose base is stale only after merging main into it when two
+  PRs touch the same contract. Merged #215 (ledger). Merged #210 (a1bdee9, 9/9 green): 21 follow-up = security fixes,
+  shared login without acting person (POST /auth/acting), CrudPage contract for people/logins (reusing #206's
+  helpers), secrets fix (runtime-built test passwords + one fingerprint for d8ef0b7). #216 (team day report + PDF
+  access) review FAIL vs v3 (membership dropped 1,382 real minutes, Closed/Pending contradiction, switched-off people
+  vanish, no Primary/Support split): ruled 'follow v3 exactly', fixed in ba5a51e; merges on static/secrets/api.
+  Builder 21 -> 'M1 server leftovers' (26 dependency advisory in CI, audit 11/12/14/17/19, erase_person import_row).
+  POST /tickets/past final contract sent to FRONTEND (three times reported/workStarted/running; overlap 409).
+- 2026-11-14 06:52 UTC — Merged #216 (dd8fab0, 9/9; team day report per v3 + breakdown PDF access) and #218 (ledger).
+  MIGRATION LOCK granted by FRONTEND for 29 (builder 18, claude/t29-m2-schema; conditions: interrogate + schema
+  review before merge, warn if the restore drill still runs, 'released' on merge). #220 (small server items) review
+  FAIL (operator could upgrade closed/cancelled tickets) + 3 MEDIUM/LOW, fixed; builder caught its own import
+  regression (shared event writer) before merge, fixed in dd616cd. Since ~06:47 UTC GitHub Actions starts no jobs
+  (every job fails in 1-2 s, runner_id 0, logs 404) on all branches: likely Actions minutes/spending limit or outage;
+  Nimish asked to check billing. Ruling (both lanes): no merges until CI runs again; builders keep working.
+- 2026-11-14 06:56 UTC — Actions recovered at 06:51 (outage ~4 min; billing check not needed); re-ran failed jobs once
+  on #220 and #223. RULINGS (Nimish): (1) CI cost rules (#224): drafts run no CI; local precheck + touched suites
+  before every push; CI runs once when the orchestrator marks ready; no CI on push to main; one re-run max.
+  (2) "pstack on in the backend sessions": every backend builder runs its ticket through the poteto-mode skill
+  (Skill tool, playbook named in the PR), delegates as poteto-agent subagents, models per
+  .claude/rules/pstack-models.md; my adversarial reviews follow .claude/skills/interrogate/SKILL.md (findings only
+  when proven by a run). All three builders told; each confirms poteto-mode is loaded.
