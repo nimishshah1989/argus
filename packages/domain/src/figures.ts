@@ -82,10 +82,10 @@ function runningSince(events: TicketEvent[]): Date | null {
 }
 
 /** Repair is the wall clock from the first start to the close, or to the time the machine ran again; 0 until the close. */
-function repairMinutes(input: FigureInput, events: TicketEvent[]): number {
+function repairMinutes(input: FigureInput, events: TicketEvent[], gaps: Gap[]): number {
   const first = events.find((event) => event.type === 'start' || event.type === 'pickup');
   if (!first || !input.closedAt) return 0;
-  return wholeMin(first.at, runningSince(events) ?? input.closedAt);
+  return wholeMin(first.at, runningSince(events) ?? input.closedAt, gaps);
 }
 
 function waitingMinutes(events: TicketEvent[], gaps: Gap[]) {
@@ -124,7 +124,7 @@ function handoverAndFollow(events: TicketEvent[], gaps: Gap[], closedAt?: Date) 
     if (event.type === 'pickup' || event.type === 'close') closeHandover(event.at);
   }
   const lastRunningAt = runningSince(events);
-  const followMin = closedAt && lastRunningAt ? wholeMin(lastRunningAt, closedAt) : null;
+  const followMin = closedAt && lastRunningAt ? wholeMin(lastRunningAt, closedAt, gaps) : null;
   return { handoverWaitMin, followMin };
 }
 
@@ -178,7 +178,7 @@ export function figures(input: FigureInput): Figures {
     overridden,
     'repairMin',
     overrides.repairMin,
-    repairMinutes(input, events),
+    repairMinutes(input, events, gaps),
   );
 
   return {

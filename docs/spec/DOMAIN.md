@@ -188,13 +188,13 @@ New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026
 
 **Finished stretches only:** hands-on, waiting, handover wait and `down_acc` hold stretches that have ended. A stretch still open (working, paused, transferred, machine down) is shown live from its start time and is added to the figure when it ends or at the close, as `worker.js` does.
 
-**Cancel and restore: cancelled time is not counted (Nimish, 14 Nov 2026; differs from Bhavin's `worker.js`).** The time between a `cancel` and its `restore` is not waiting, handover wait or downtime, so a ticket cancelled for a day does not keep counting (his app counts it: BD-0077 holds 366 minutes of downtime, ours 114). Hands-on is still the lead's finished segments, and a cancel ends the open one (DOMAIN §2). Repair (the wall clock from the first start to the close) and follow-up are not reduced: not covered by the ruling, to be confirmed. The worker parity test lists BD-0077 as the explained difference.
+**Cancel and restore: cancelled time is not counted (Nimish, 14 Nov 2026; differs from Bhavin's `worker.js`).** The time between a `cancel` and its `restore` is not waiting, handover wait, downtime, repair or follow-up, so a ticket cancelled for a day does not keep counting (his app counts it: BD-0077 holds 366 minutes of downtime and of repair, ours 114). Hands-on is still the lead's finished segments, and a cancel ends the open one (DOMAIN §2). Repair is the wall clock from the first start to the close (or to the last `running`) less the cancelled time; follow-up likewise. The worker parity test lists BD-0077 as the explained difference.
 
 | Figure | Definition | Bhavin's field |
 | --- | --- | --- |
 | Response | first `start` minus `reported_at`; null until started; null for a self-started ticket (as in v3); not changed by later transfers | `responseMin` |
 | Hands-on (active) | the sum of the **lead's** finished work segments (a pickup makes the new person the lead); a joined primary's or supporter's minutes are their own (per-person below) and are not added | `activeMin` (+ `segStart`) |
-| Repair | the wall clock from the first start to the close, or to the last `running` when the machine is running again at the close; pauses and waits are inside it; 0 until the ticket closes | `repairMin` |
+| Repair | the wall clock from the first start to the close, or to the last `running` when the machine is running again at the close, less any cancelled time; pauses and waits are inside it; 0 until the ticket closes | `repairMin` |
 | Waiting | sum of `pause` to `resume` (or to close or cancel) stretches; vendor waiting is the subset whose reason has `is_vendor` | `waitMin`, `vendorMin` |
 | Handover wait | sum of `transfer` to `pickup` stretches | `handoverWaitMin` |
 | Downtime so far (`down_acc`) | `kind=stopped` only: the finished stopped stretches, each from `reported_at` (or `kind_upgraded_at`, or the last `stopped`) to the next `running`; the open stretch is not in it | `downAcc` |
@@ -210,7 +210,7 @@ New tickets follow Bhavin's `worker.js` arithmetic (Nimish's ruling, 13 Nov 2026
 - No command's time may precede the ticket's latest event. Starts may be back-dated to the report time (or the transfer time for a picked-up ticket); closes to the latest event (segment start, join, running-again, whichever is last). A time in the future is clamped to now. The 5-minute step is a client convenience.
 - Expected-back dates are stored as 18:00 local on the chosen day, as today, until the UI offers a time.
 - Admin corrections may move reported, started and closed times, change lead, closed-by, problem, machine and kind, and set hands-on and waiting minutes directly; the arithmetic check warns when hands-on exceeds closed minus started minus waiting minus handover wait, or when the close precedes the start plus waiting. Old and new values live in the `edit` event.
-- Restore reopens no past stretches: a restored working ticket starts a new segment for the previous lead at the restore time; a restored waiting ticket is waiting again; the cancelled gap counts in no waiting, handover wait or downtime figure (§5, Nimish's ruling) and in no hands-on segment.
+- Restore reopens no past stretches: a restored working ticket starts a new segment for the previous lead at the restore time; a restored waiting ticket is waiting again; the cancelled gap counts in no waiting, handover wait, downtime, repair or follow-up figure (§5, Nimish's ruling) and in no hands-on segment.
 - Time zone is the tenant's (Asia/Kolkata for Cosmos); shift 2 (18:29 to 05:00) crosses midnight and its production date is the start date; the one-minute overlap between shift 1's end (18:30) and shift 2's start (18:29) resolves to the later shift.
 - Durations display as `n min`, `h h mm min`, `d d h h`, exactly as today.
 
