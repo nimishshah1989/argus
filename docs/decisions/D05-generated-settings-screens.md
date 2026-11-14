@@ -19,4 +19,4 @@ The BRIEF requires that a new screen is mostly configuration. Today four setting
 
 Both libraries are named in SPEC §5a and are verify in current docs.
 
-Amended 13 November 2026 by D24 (ticket 12): until a resource needs sorting, column choice, virtualised rows or schema field errors, `CrudPage` uses a plain `<table>` and `FormSheet`; TanStack Table and react-hook-form are deferred, not rejected.
+Amended 13 November 2026 by D27 (ticket 12): until a resource needs sorting, column choice, virtualised rows or schema field errors, `CrudPage` uses a plain `<table>` and `FormSheet`; TanStack Table and react-hook-form are deferred, not rejected.

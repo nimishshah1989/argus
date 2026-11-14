@@ -1,4 +1,4 @@
-# D24 — Charts: ECharts 6.1.0, lazy, SVG, two series, token palette
+# D27 — Charts: ECharts 6.1.0, lazy, SVG, two series, token palette
 
 Date: 13 November 2026 · Status: proposed (slice planner, ticket 12); builds on ARCHITECTURE §5 "Charts", D4, D5, D6
 
