@@ -87,7 +87,10 @@ test('writes the report and closes: finish time, then the breakdown report', asy
     const shown = page.getByRole('status', { name: 'Finish time' });
     const before = await shown.textContent();
     await expect(tile(page, 'Repair')).toHaveText(/^(1 h 0|1 h 1) min$/);
+    const nowStep = page.getByRole('button', { name: 'Now', exact: true });
+    await expect(nowStep).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: '5 min earlier', exact: true }).click();
+    await expect(nowStep).toHaveAttribute('aria-pressed', 'false');
     await expect(shown).not.toHaveText(before ?? '');
     await expect(tile(page, 'Repair')).toHaveText(/^(55|56) min$/);
     await expect(page.getByRole('button', { name: '5 min later', exact: true })).toBeEnabled();
@@ -127,7 +130,10 @@ test('closes without a report, then fills the report later', async ({ page }, te
     await expect(sheet.getByText(/listed under Needs report for 7 days/)).toBeVisible();
     const submit = sheet.getByRole('button', { name: 'Close ticket', exact: true });
     await expect(submit).toBeDisabled();
-    await sheet.getByLabel('Reason').fill('Small issue, fixed on the spot');
+    const reason = sheet.getByLabel('Reason');
+    await reason.fill('x'.repeat(2100));
+    await expect(reason).toHaveValue('x'.repeat(2000));
+    await reason.fill('Small issue, fixed on the spot');
     await submit.click();
     await expectStatus(page, 'Closed');
   });

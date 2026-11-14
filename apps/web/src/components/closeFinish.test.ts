@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TicketDetail } from '../api.js';
-import { earliestFinish, finishFigures, stepFinish } from './closeFinish.js';
+import { closeAt, earliestFinish, finishFigures, stepFinish } from './closeFinish.js';
 
 const at = (time: string) => new Date(`2026-11-14T${time}:00.000Z`);
 const floor = at('10:10');
@@ -19,6 +19,18 @@ describe('stepFinish', () => {
   it('never goes before the last event, and lands exactly on it', () => {
     expect(stepFinish(at('10:12'), -5, floor, now)).toEqual(floor);
     expect(stepFinish(floor, -5, floor, now)).toEqual(floor);
+  });
+});
+
+describe('closeAt', () => {
+  const submitted = at('11:20');
+
+  it('sends the moment of submit when the finish is still Now', () => {
+    expect(closeAt(now, now, submitted)).toEqual(submitted);
+  });
+
+  it('keeps a stepped time as chosen', () => {
+    expect(closeAt(at('11:09'), now, submitted)).toEqual(at('11:09'));
   });
 });
 

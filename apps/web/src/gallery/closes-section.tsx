@@ -27,6 +27,7 @@ export function ClosesSection() {
           later={t('closes.finish.later')}
           canEarlier
           canNow={false}
+          isNow
           canLater={false}
           onEarlier={noop}
           onNow={noop}

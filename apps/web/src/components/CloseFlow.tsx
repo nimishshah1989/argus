@@ -6,7 +6,7 @@ import { Button } from '../ui/button.js';
 import { FinishTime, ScreenFooter } from '../ui/close-kit.js';
 import { FactList, MinuteTiles } from '../ui/detail-kit.js';
 import { TopBar } from '../ui/top-bar.js';
-import { earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
+import { closeAt, earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
 import { formatClock, formatMinutes, machineLabel } from './format.js';
 import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
 import { StatusBadge } from './StatusBadge.js';
@@ -60,7 +60,7 @@ function TicketFacts(props: CloseFlowProps & { responseMin: number | null }) {
 }
 
 /** Step 1: when did you finish, and what that does to the figures. */
-function FinishStep(props: CloseFlowProps & { onNext: (finish: Date) => void }) {
+function FinishStep(props: CloseFlowProps & { onNext: (finish: Date, openedAt: Date) => void }) {
   const { t } = useTranslation();
   const { detail, config } = props;
   const [now] = useState(() => new Date());
@@ -93,6 +93,7 @@ function FinishStep(props: CloseFlowProps & { onNext: (finish: Date) => void }) 
           later={t('closes.finish.later')}
           canEarlier={finish > floor}
           canNow={finish < now}
+          isNow={finish >= now}
           canLater={finish < now}
           onEarlier={() => step(-STEP_MIN)}
           onNow={() => setFinish(now)}
@@ -107,21 +108,27 @@ function FinishStep(props: CloseFlowProps & { onNext: (finish: Date) => void }) 
         />
       </main>
       <ScreenFooter hint={t('closes.step1.hint')}>
-        <Button onClick={() => props.onNext(finish)}>{t('closes.step1.next')}</Button>
+        <Button onClick={() => props.onNext(finish, now)}>{t('closes.step1.next')}</Button>
       </ScreenFooter>
     </>
   );
 }
 
+/** The finish chosen on step 1 and the moment that screen opened. */
+interface Opened {
+  at: Date;
+  openedAt: Date;
+}
+
 /** A close dated at the chosen finish, or the late report of a closed ticket. */
-function sendReport(props: CloseFlowProps, values: ReportValues, finish: Date | null) {
+function sendReport(props: CloseFlowProps, values: ReportValues, finish: Opened | null) {
   const { personId } = props;
   const report = buildReportBody(values);
   if (props.mode === 'late') return props.command('report', { personId, report });
   return props.command('close', {
     personId,
     kind: 'report',
-    at: (finish ?? new Date()).toISOString(),
+    at: (finish ? closeAt(finish.at, finish.openedAt, new Date()) : new Date()).toISOString(),
     report,
   });
 }
@@ -130,7 +137,7 @@ function sendReport(props: CloseFlowProps, values: ReportValues, finish: Date | 
 function ReportStep(
   props: CloseFlowProps & {
     values: ReportValues;
-    finish: Date | null;
+    finish: Opened | null;
     onBack: () => void;
     setValues: (values: ReportValues) => void;
   },
@@ -187,17 +194,25 @@ function ReportStep(
 /** The two full screens of Write report and close, or the late report's one (design lock, slice 2). */
 export function CloseFlow(props: CloseFlowProps) {
   const [step, setStep] = useState<1 | 2>(props.mode === 'late' ? 2 : 1);
-  const [finish, setFinish] = useState<Date | null>(null);
+  const [finish, setFinish] = useState<Opened | null>(null);
   const [values, setValues] = useState<ReportValues | null>(() =>
-    props.mode === 'late' ? initialReportValues(props.detail.ticket, props.config) : null,
+    props.mode === 'late'
+      ? initialReportValues(
+          props.detail.ticket,
+          props.config,
+          undefined,
+          props.detail.ticket.closedAt ? new Date(props.detail.ticket.closedAt) : undefined,
+        )
+      : null,
   );
-  function next(chosen: Date) {
+  function next(chosen: Date, openedAt: Date) {
     const fresh = initialReportValues(
       props.detail.ticket,
       props.config,
       finishFigures(props.detail, chosen),
+      chosen,
     );
-    setFinish(chosen);
+    setFinish({ at: chosen, openedAt });
     setValues((prev) =>
       prev
         ? {
@@ -205,6 +220,8 @@ export function CloseFlow(props: CloseFlowProps) {
             downtimeMin: fresh.downtimeMin,
             responseMin: fresh.responseMin,
             repairMin: fresh.repairMin,
+            date: fresh.date,
+            shiftCode: fresh.shiftCode,
           }
         : fresh,
     );

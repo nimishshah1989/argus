@@ -11,6 +11,11 @@ export function stepFinish(finish: Date, deltaMin: number, floor: Date, ceiling:
   return new Date(Math.min(Math.max(moved, floor.getTime()), ceiling.getTime()));
 }
 
+/** A finish still at Now goes out at the moment of submit; a stepped one stays as chosen. */
+export function closeAt(finish: Date, openedAt: Date, submittedAt: Date): Date {
+  return finish.getTime() >= openedAt.getTime() ? submittedAt : finish;
+}
+
 /** The latest time on the ticket's log: the earliest a close can be dated (the domain's `lastEventAt`). */
 export function earliestFinish(detail: TicketDetail): Date {
   const times = [detail.ticket.reportedAt, ...detail.events.map((event) => event.at)];

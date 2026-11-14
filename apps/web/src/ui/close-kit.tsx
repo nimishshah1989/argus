@@ -16,6 +16,8 @@ export interface FinishTimeProps {
   later: string;
   canEarlier: boolean;
   canNow: boolean;
+  /** The finish is the moment the screen opened: the Now step shows as selected. */
+  isNow: boolean;
   canLater: boolean;
   onEarlier: () => void;
   onNow: () => void;
@@ -26,18 +28,21 @@ export interface FinishTimeProps {
 function StepButton({
   label,
   enabled,
+  pressed,
   onClick,
 }: {
   label: string;
   enabled: boolean;
+  pressed: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       disabled={!enabled}
+      aria-pressed={pressed}
       onClick={onClick}
-      className="min-h-target-min rounded-xl border border-control bg-surface px-1 text-footnote font-semibold text-neutral-900 disabled:text-neutral-600"
+      className="min-h-target-min rounded-xl border border-control bg-surface px-1 text-footnote font-semibold text-neutral-900 disabled:text-neutral-600 aria-pressed:border-accent-strong aria-pressed:text-accent-text"
     >
       {label}
     </button>
@@ -56,9 +61,14 @@ export function FinishTime(p: FinishTimeProps) {
         <span className="text-footnote text-neutral-600">{p.status}</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <StepButton label={p.earlier} enabled={p.canEarlier} onClick={p.onEarlier} />
-        <StepButton label={p.now} enabled={p.canNow} onClick={p.onNow} />
-        <StepButton label={p.later} enabled={p.canLater} onClick={p.onLater} />
+        <StepButton
+          label={p.earlier}
+          enabled={p.canEarlier}
+          pressed={false}
+          onClick={p.onEarlier}
+        />
+        <StepButton label={p.now} enabled={p.canNow} pressed={p.isNow} onClick={p.onNow} />
+        <StepButton label={p.later} enabled={p.canLater} pressed={false} onClick={p.onLater} />
       </div>
       <p className="text-footnote text-neutral-600">{p.hint}</p>
     </section>
