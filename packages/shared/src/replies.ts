@@ -11,6 +11,7 @@ import {
   glossaryReplySchema,
   groupReplySchema,
   listItemReplySchema,
+  logoReplySchema,
   machineMoveReplySchema,
   machineReplySchema,
   segmentReplySchema,
@@ -130,4 +131,6 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,
   [`GET ${P}/files/:id`]: null,
+  [`GET ${P}/brand/logo`]: null,
+  [`PUT ${P}/company/logo`]: logoReplySchema,
 };

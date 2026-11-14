@@ -35,7 +35,15 @@ export const LOGO_B = '20000000-0000-0000-0000-000000000108';
 export type App = Awaited<ReturnType<typeof buildApp>>;
 export type Res = Awaited<ReturnType<App['inject']>>;
 
+/** One request the way the browser sends an image: raw bytes and their type, no JSON. */
+export type SendRaw = (
+  url: string,
+  token: string | null,
+  body: { type: string; bytes: Buffer; host?: string },
+) => Promise<Res>;
+
 export interface Fixture {
+  raw: SendRaw;
   db: TestDb;
   admin: Pool;
   app: App;
@@ -97,6 +105,18 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
   const admin = db.admin;
   await seedTenant(admin, A, 'plant-a', ROLES);
   await seedTenant(admin, B, 'plant-b', ['admin']);
+  // Shared floor logins (one phone, many people): the role alone decides what they may change.
+  for (const [username, role] of [
+    ['shared-operator', 'operator'],
+    ['shared-head', 'head'],
+  ]) {
+    await admin.query(
+      `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared)
+       SELECT l.tenant_id, l.person_id, $2, l.password_hash, $3, true FROM login l
+        WHERE l.tenant_id = $1 AND l.username = 'plant-a-operator'`,
+      [A, `plant-a-${username}`, role],
+    );
+  }
   await seedPlant(admin, A, [SEG_A, GROUP_A, M_FREE, SHIFT_A, ITEM_A, TERM_A], 'Cell 1');
   await seedPlant(admin, B, [SEG_B, GROUP_B, M_B, SHIFT_B, ITEM_B, TERM_B], 'Cell 9');
   // A second machine in tenant A that carries a ticket, so switching it off must keep the history.
@@ -108,6 +128,10 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
     "INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity) VALUES ($1, 'BD-0001', 'stopped', 'closed', $2, 'Spindle noise', now(), 'S3')",
     [A, M_USED],
   );
+  await admin.query(
+    "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 1000)",
+    [A],
+  );
   const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, filesDir });
   const host = (slug: string) => ({
     host: `${slug}.localhost`,
@@ -117,14 +141,25 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
   const logins: Array<[string, string, string]> = [
     ...ROLES.map((r): [string, string, string] => [r, 'plant-a', `plant-a-${r}`]),
     ['b-admin', 'plant-b', 'plant-b-admin'],
+    ['shared-operator', 'plant-a', 'plant-a-shared-operator'],
+    ['shared-head', 'plant-a', 'plant-a-shared-head'],
   ];
+  const acting = (
+    await admin.query("SELECT person_id FROM login WHERE username = 'plant-a-operator'")
+  ).rows[0].person_id as string;
   for (const [key, slug, username] of logins) {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
       headers: host(slug),
-      payload: { username, password: PASSWORD },
+      payload: {
+        username,
+        password: PASSWORD,
+        ...(key.startsWith('shared-') ? { actingPersonId: acting } : {}),
+      },
     });
+    if (res.statusCode !== 200)
+      throw new Error(`login failed for ${username}: ${res.statusCode} ${res.body}`);
     tokens[key] = res.json().token as string;
   }
   const call: Fixture['call'] = (method, url, token, payload) =>
@@ -139,7 +174,19 @@ export async function startFixture(filesDir?: string): Promise<Fixture> {
       },
       ...(payload ? { payload } : {}),
     });
+  const raw: SendRaw = (url, token, body) =>
+    app.inject({
+      method: 'PUT',
+      url,
+      headers: {
+        host: `${body.host ?? 'plant-a'}.localhost`,
+        'content-type': body.type,
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      payload: body.bytes,
+    });
   return {
+    raw,
     db,
     admin,
     app,

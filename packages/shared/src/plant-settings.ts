@@ -21,7 +21,15 @@ const id = z.string().uuid();
 export const isUuid = (value: string): boolean => id.safeParse(value).success;
 const nullableId = z.preprocess(blank, id.nullable());
 const sort = num(z.number().int().min(0).max(9999));
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-14');
+/** A real calendar date: `2026-02-30` is refused, whether the engine rolls it over or calls it invalid. */
+const isRealDay = (v: string): boolean => {
+  const date = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === v;
+};
+const day = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-14')
+  .refine(isRealDay, 'That date does not exist');
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a time like 08:00');
 
 /** What every settings list returns. Switch-off lists never page: a plant's lists are short. */
@@ -191,3 +199,22 @@ export const glossaryReplySchema = z.object({ id, ...glossaryFields, ...activeFi
 export type GlossaryCreate = z.infer<typeof glossaryCreateSchema>;
 export type GlossaryPatch = z.infer<typeof glossaryPatchSchema>;
 export type GlossaryReply = z.infer<typeof glossaryReplySchema>;
+
+/** The company profile settings (`PUT /settings/company.*`). The time zone is checked against the real zone list. */
+export const companyNameSchema = z.string().trim().min(1).max(120);
+export const companyLanguageSchema = z.enum(['en', 'gu', 'hi']);
+export const companyTimeZoneSchema = z
+  .string()
+  .regex(/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/, 'Use a zone like Asia/Kolkata')
+  .refine((zone) => {
+    try {
+      new Intl.DateTimeFormat('en', { timeZone: zone });
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Unknown time zone');
+
+/** The logo upload: raw image bytes, PNG, JPEG or WebP, at most 256 KB. */
+export const LOGO_MAX_BYTES = 256 * 1024;
+export const logoReplySchema = z.object({ logo: z.string() }).strict();

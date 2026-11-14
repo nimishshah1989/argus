@@ -20,6 +20,7 @@ export {
   type TicketPart,
   type TicketWrite,
 } from './reply-parts.js';
+export { contributeMachineGuard, machineSwitchOffBlocker, type MachineGuard } from './guards.js';
 export { registerReplyCheck, replyProblem } from './reply-check.js';
 export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';

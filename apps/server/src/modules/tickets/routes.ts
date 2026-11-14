@@ -202,6 +202,13 @@ async function validateMachine(
   )[0];
   if (!machine)
     return { status: 404, body: shared.apiError('not_found', 'Unknown machine', 'machineId') };
+  // A phone holding an old copy of the config may still offer a machine that has since been switched off.
+  if (machine.status === 'scrapped') {
+    return {
+      status: 422,
+      body: shared.apiError('validation', 'This machine is switched off', 'machineId'),
+    };
+  }
   const duplicate = await openDuplicateId(client, tx.tenantId, tx.body.machineId as string);
   if (duplicate) return ALREADY_OPEN;
   const { code, category, cell, criticality } = machine;

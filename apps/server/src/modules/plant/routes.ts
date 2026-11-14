@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { isDeepStrictEqual } from 'node:util';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import {
   apiError,
   isListName,
@@ -10,7 +10,7 @@ import {
 } from '@uptimo/shared';
 import { canSettingsLists, canSettingsPeople } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
-import { requireAuth } from '../identity/index.js';
+import { requireAuth, tenantInfo, updateTenantProfile } from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import {
   deactivateListItem,
@@ -25,6 +25,7 @@ import {
 import { writableSetting } from './settings.js';
 import { fingerprint, loadConfig } from './service.js';
 import { actorOf, forbidden } from './actor.js';
+import { registerCompanyRoutes } from './company-routes.js';
 import { registerPlantSettingsRoutes } from './settings-routes.js';
 
 function withoutPhone(p: unknown): Record<string, unknown> {
@@ -53,8 +54,42 @@ async function handleConfig(pool: Pool, request: FastifyRequest, reply: FastifyR
 async function listSettings(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const rows = await withTenant(pool, ctx.tenantId, (client) => selectSettings(client));
+  const rows = await withTenant(pool, ctx.tenantId, async (client) => {
+    const tenant = await tenantInfo(client, ctx.tenantId);
+    return [
+      ...(await selectSettings(client)),
+      { key: 'company.name', value: tenant.name },
+      { key: 'company.language', value: tenant.language },
+      { key: 'company.timeZone', value: tenant.time_zone },
+    ];
+  });
   reply.send(rows);
+}
+
+const TENANT_FIELD = { name: 'name', language: 'language', timeZone: 'time_zone' } as const;
+
+/** Writes one setting and audits the change (not an unchanged value): to `setting`, or to the plant's own record. */
+async function writeSetting(
+  client: PoolClient,
+  ctx: { tenantId: string; loginId: string },
+  change: { key: string; setting: NonNullable<ReturnType<typeof writableSetting>>; value: unknown },
+): Promise<void> {
+  const { key, setting, value } = change;
+  const { profile } = setting;
+  const before = profile
+    ? (await tenantInfo(client, ctx.tenantId))[TENANT_FIELD[profile]]
+    : await selectSetting(client, key);
+  if (profile) await updateTenantProfile(client, { [profile]: value as string });
+  else await upsertSetting(client, ctx.tenantId, key, value);
+  if (isDeepStrictEqual(before, value)) return;
+  await audit.record(client, {
+    tenantId: ctx.tenantId,
+    loginId: ctx.loginId,
+    action: 'setting.update',
+    entity: 'setting',
+    before: { key, value: before ?? null },
+    after: { key, value },
+  });
 }
 
 async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
@@ -74,19 +109,9 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     reply.code(422).send(apiError('validation', 'Invalid setting', 'value'));
     return;
   }
-  await withTenant(pool, ctx.tenantId, async (client) => {
-    const before = await selectSetting(client, key);
-    await upsertSetting(client, ctx.tenantId, key, value.data);
-    if (isDeepStrictEqual(before, value.data)) return;
-    await audit.record(client, {
-      tenantId: ctx.tenantId,
-      loginId: ctx.loginId,
-      action: 'setting.update',
-      entity: 'setting',
-      before: { key, value: before ?? null },
-      after: { key, value: value.data },
-    });
-  });
+  await withTenant(pool, ctx.tenantId, (client) =>
+    writeSetting(client, ctx, { key, setting, value: value.data }),
+  );
   reply.send({ ok: true });
 }
 
@@ -168,4 +193,5 @@ export function registerPlantRoutes(app: FastifyInstance, config: AppConfig): vo
   );
   app.put('/api/v1/translations/:id', (request, reply) => putTranslation(pool, request, reply));
   registerPlantSettingsRoutes(app, pool);
+  registerCompanyRoutes(app, config);
 }

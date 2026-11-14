@@ -15,6 +15,7 @@ import {
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
+import { tenantLogoId } from './repo/profile.js';
 import { hashToken, newToken, requireAuth, tenantSlugFromHost } from './service.js';
 
 const PASSWORD_OPTS = {
@@ -201,7 +202,8 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
-  reply.send({ company: tenant.name, logo: null });
+  const logo = (await tenantLogoId(pool, tenant.slug)) ? '/api/v1/brand/logo' : null;
+  reply.send({ company: tenant.name, logo });
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void {

@@ -29,7 +29,8 @@ const refuse = (status: number, code: ErrorCode, message: string, field?: string
   status,
   body: apiError(code, message, field),
 });
-const invalid = ({ field, message }: Problem) => refuse(422, 'validation', message, field);
+const invalid = ({ field, message, conflict }: Problem) =>
+  conflict ? refuse(409, 'conflict', message, field) : refuse(422, 'validation', message, field);
 const notFound = (what: string) => refuse(404, 'not_found', `Unknown ${what}`, 'id');
 
 function pick(reply: Reply, keys: string[]): Reply {
@@ -122,7 +123,11 @@ async function edit(
   );
   if (touched.length === 0) return { status: 200, body: before };
   const merged = { ...before, ...fields };
-  const problem = await resource.check?.(tx, merged, fields);
+  const problem = await resource.check?.(tx, merged, {
+    tenantId: ctx.tenantId,
+    before,
+    patch: fields,
+  });
   if (problem) return invalid(problem);
   const values = { ...columnsOf(resource, pick(fields, touched)), ...resource.derive?.(merged) };
   const after = resource.reply(await updateRow(tx, resource.table, target.id, values));

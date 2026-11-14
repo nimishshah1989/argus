@@ -401,3 +401,136 @@ describe('settings writes are audited', () => {
     ]);
   });
 });
+
+/** A raise the way the floor phone sends it: JSON with a repeat-guard key. */
+let keys = 0;
+const raise = (token: string, payload: object) =>
+  f.app.inject({
+    method: 'POST',
+    url: '/api/v1/tickets',
+    headers: {
+      host: 'plant-a.localhost',
+      'content-type': 'application/json',
+      authorization: `Bearer ${token}`,
+      'idempotency-key': `review-${(keys += 1)}`,
+    },
+    payload,
+  });
+const newMachine = async (code: string, extra: object = {}) =>
+  (await f.call('POST', '/api/v1/machines', head(), { code, cell: 'Cell 1', ...extra })).json();
+
+describe('switching a machine off is blocked while it is needed', () => {
+  it('answers 409 while a breakdown is open on it, and works once the ticket is closed', async () => {
+    const machine = await newMachine('SW-1');
+    await f.admin.query(
+      "INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity) VALUES ((SELECT tenant_id FROM machine WHERE id = $1), 'BD-0900', 'stopped', 'open', $1, 'Spindle', now(), 'S3')",
+      [machine.id],
+    );
+    const blocked = await f.call('PUT', `/api/v1/machines/${machine.id}`, head(), {
+      active: false,
+    });
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.json().error).toMatchObject({ code: 'conflict', field: 'active' });
+    const stillOn = (await f.call('GET', '/api/v1/config', f.tokens.operator!)).json().machines;
+    expect(stillOn.map((m: { id: string }) => m.id)).toContain(machine.id);
+    await f.admin.query("UPDATE ticket SET status = 'cancelled' WHERE machine_id = $1", [
+      machine.id,
+    ]);
+    const off = await f.call('PUT', `/api/v1/machines/${machine.id}`, head(), { active: false });
+    expect(off.statusCode).toBe(200);
+  });
+
+  it('a phone that still offers a switched-off machine cannot raise a ticket on it (422), and can once it is back on', async () => {
+    const machine = await newMachine('SW-2');
+    await f.call('PUT', `/api/v1/machines/${machine.id}`, head(), { active: false });
+    const refused = await raise(f.tokens.operator!, { machineId: machine.id, problem: 'Noise' });
+    expect(refused.statusCode).toBe(422);
+    expect(refused.json().error).toMatchObject({ code: 'validation', field: 'machineId' });
+    await f.call('PUT', `/api/v1/machines/${machine.id}`, head(), { active: true });
+    const again = await raise(f.tokens.operator!, { machineId: machine.id, problem: 'Noise' });
+    expect(again.statusCode).toBe(201);
+  });
+});
+
+describe('a cell change keeps the history in order', () => {
+  it('refuses a date that does not exist, a future date, and a date before the last move', async () => {
+    const machine = await newMachine('MV-1');
+    const put = (body: object) => f.call('PUT', `/api/v1/machines/${machine.id}`, head(), body);
+    for (const bad of ['2026-02-30', '2026-13-01', '2026-00-10']) {
+      const res = await put({ cell: 'Cell 2', effectiveFrom: bad });
+      expect(res.statusCode, bad).toBe(422);
+      expect(res.json().error.field).toBe('effectiveFrom');
+    }
+    const future = await put({ cell: 'Cell 2', effectiveFrom: '2999-01-01' });
+    expect(future.statusCode).toBe(422);
+    expect((await put({ cell: 'Cell 2', effectiveFrom: '2026-11-10' })).statusCode).toBe(200);
+    const early = await put({ cell: 'Cell 3', effectiveFrom: '2026-11-01' });
+    expect(early.statusCode).toBe(422);
+    expect(early.json().error.message).toContain('2026-11-10');
+    expect((await put({ cell: 'Cell 3', effectiveFrom: '2026-11-10' })).statusCode).toBe(200);
+    expect(await moves(machine.id)).toHaveLength(2);
+  });
+
+  it('two cell changes at the same moment each write their own move, one after the other', async () => {
+    const machine = await newMachine('MV-2');
+    const put = (cell: string) => f.call('PUT', `/api/v1/machines/${machine.id}`, head(), { cell });
+    const [a, b] = await Promise.all([put('Cell 8'), put('Cell 9')]);
+    expect([a.statusCode, b.statusCode]).toEqual([200, 200]);
+    const list = (await moves(machine.id)) as Array<{ fromCell: string; toCell: string }>;
+    expect(list).toHaveLength(2);
+    const first = list.find((m) => m.fromCell === 'Cell 1')!;
+    const second = list.find((m) => m.fromCell === first.toCell)!;
+    expect(second).toBeDefined();
+    const final = (await f.call('GET', '/api/v1/machines', head()))
+      .json()
+      .items.find((m: { id: string }) => m.id === machine.id);
+    expect(final.cell).toBe(second.toCell);
+  });
+});
+
+describe('links and logins', () => {
+  it('refuses a machine whose group belongs to another segment of the same plant', async () => {
+    const other = (
+      await f.call('POST', '/api/v1/segments', head(), { code: 'ODD', name: 'Odd' })
+    ).json();
+    const group = (
+      await f.call('POST', '/api/v1/groups', head(), {
+        segmentId: other.id,
+        code: 'ODDG',
+        name: 'Odd group',
+      })
+    ).json();
+    const created = await f.call('POST', '/api/v1/machines', head(), {
+      code: 'LK-1',
+      segmentId: SEG_A,
+      groupId: group.id,
+    });
+    expect(created.statusCode).toBe(422);
+    expect(created.json().error.field).toBe('groupId');
+    const m = await newMachine('LK-2', { segmentId: SEG_A });
+    const moved = await f.call('PUT', `/api/v1/machines/${m.id}`, head(), { groupId: group.id });
+    expect(moved.statusCode).toBe(422);
+  });
+
+  it('a shared login follows its role: a shared operator is refused, a shared head may write', async () => {
+    const refused = await f.call('PUT', `/api/v1/segments/${SEG_A}`, f.tokens['shared-operator']!, {
+      name: 'Shared',
+    });
+    expect(refused.statusCode).toBe(403);
+    const allowed = await f.call('PUT', `/api/v1/segments/${SEG_A}`, f.tokens['shared-head']!, {
+      name: 'CNC machines',
+    });
+    expect(allowed.statusCode).toBe(200);
+  });
+
+  it('a malformed id is not found, never a server error', async () => {
+    for (const [method, url, body] of [
+      ['PUT', '/api/v1/machines/not-an-id', { cell: 'x' }],
+      ['GET', '/api/v1/machines/not-an-id/moves', undefined],
+      ['PUT', '/api/v1/segments/12345', { name: 'x' }],
+      ['PUT', '/api/v1/settings/lists/wait_reason/%20', { active: false }],
+    ] as const) {
+      expect((await f.call(method, url, head(), body)).statusCode, url).toBe(404);
+    }
+  });
+});

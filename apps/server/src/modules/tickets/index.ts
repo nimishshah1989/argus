@@ -1,4 +1,5 @@
-import { defineModule } from '../../kernel/index.js';
+import { contributeMachineGuard, defineModule } from '../../kernel/index.js';
+import { openDuplicateId } from './repo/list.js';
 import { registerTickets } from './routes.js';
 
 export { figuresFromRow } from './mapper.js';
@@ -20,6 +21,14 @@ export {
 export const ticketsModule = defineModule({
   name: 'tickets',
   register: (app, config) => {
+    // A machine with a breakdown or support ticket still open cannot be switched off: its tile would leave the board.
+    contributeMachineGuard({
+      name: 'tickets',
+      switchOffBlocker: async (client, tenantId, machineId) =>
+        (await openDuplicateId(client, tenantId, machineId))
+          ? 'This machine has an open ticket; close or cancel it first'
+          : null,
+    });
     registerTickets(app, config);
   },
 });

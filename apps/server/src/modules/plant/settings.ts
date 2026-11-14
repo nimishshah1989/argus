@@ -1,11 +1,20 @@
 import type { z } from 'zod';
-import { aiMonthlyCapUsdSchema, featuresSchema, severityMatrixSchema } from '@uptimo/shared';
+import {
+  aiMonthlyCapUsdSchema,
+  companyLanguageSchema,
+  companyNameSchema,
+  companyTimeZoneSchema,
+  featuresSchema,
+  severityMatrixSchema,
+} from '@uptimo/shared';
 import { canSettingsAi, canSettingsLists, canSettingsSla, type ActorContext } from '@uptimo/domain';
 
 interface WritableSetting {
   schema: z.ZodTypeAny;
   /** The permissions-matrix row that says who may change it (DOMAIN §3). */
   allow: (actor: ActorContext) => boolean;
+  /** Set for a company profile key: the value lives on the plant's own record, not in `setting`. */
+  profile?: 'name' | 'language' | 'timeZone';
 }
 
 /**
@@ -17,6 +26,17 @@ const WRITABLE: Record<string, WritableSetting> = {
   features: { schema: featuresSchema, allow: canSettingsLists },
   severity_matrix: { schema: severityMatrixSchema, allow: canSettingsSla },
   'ai.monthlyCapUsd': { schema: aiMonthlyCapUsdSchema, allow: canSettingsAi },
+  'company.name': { schema: companyNameSchema, allow: canSettingsLists, profile: 'name' },
+  'company.language': {
+    schema: companyLanguageSchema,
+    allow: canSettingsLists,
+    profile: 'language',
+  },
+  'company.timeZone': {
+    schema: companyTimeZoneSchema,
+    allow: canSettingsLists,
+    profile: 'timeZone',
+  },
 };
 
 export function writableSetting(key: string): WritableSetting | undefined {

@@ -3,18 +3,30 @@ import { sha256 } from './store.js';
 
 export interface NewFile {
   tenantId: string;
-  ticketId: string | null;
+  ticketId?: string | null;
   key: string;
   mime: string;
   bytes: Buffer;
+  /** Defaults to a rendered PDF; a logo upload says `logo` and who sent it. */
+  kind?: 'pdf' | 'logo';
+  uploadedBy?: string | null;
 }
 
 /** Insert the `file` row for a rendered PDF and return its id. */
 export async function insertFileRow(client: PoolClient, file: NewFile): Promise<string> {
   const result = await client.query(
-    `INSERT INTO file (tenant_id, kind, s3_key, mime, bytes, sha256, ticket_id)
-     VALUES ($1, 'pdf', $2, $3, $4, $5, $6) RETURNING id`,
-    [file.tenantId, file.key, file.mime, file.bytes.length, sha256(file.bytes), file.ticketId],
+    `INSERT INTO file (tenant_id, kind, s3_key, mime, bytes, sha256, ticket_id, uploaded_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [
+      file.tenantId,
+      file.kind ?? 'pdf',
+      file.key,
+      file.mime,
+      file.bytes.length,
+      sha256(file.bytes),
+      file.ticketId ?? null,
+      file.uploadedBy ?? null,
+    ],
   );
   return result.rows[0].id as string;
 }
