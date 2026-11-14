@@ -32,7 +32,7 @@ export interface DayReportPending {
 }
 
 export interface DayReportData {
-  tenant: { name: string; language: string; timeZone: string };
+  tenant: ReportTenant;
   person: { id: string; name: string };
   date: string;
   /** The plant's shift code, or null for the whole calendar day. */
@@ -102,7 +102,7 @@ async function windowBounds(
   return { start: new Date(row.starts_at as string), end: new Date(row.ends_at as string) };
 }
 
-async function queryJobs(
+export async function queryJobs(
   client: PoolClient,
   tenantId: string,
   personId: string,
@@ -125,7 +125,7 @@ async function queryJobs(
 }
 
 /** Tickets still pending when the window closed; opened after it are not "pending at end". */
-async function queryPending(
+export async function queryPending(
   client: PoolClient,
   tenantId: string,
   windowEnd: Date,
@@ -142,6 +142,28 @@ async function queryPending(
   }));
 }
 
+export interface ReportTenant {
+  name: string;
+  language: string;
+  timeZone: string;
+}
+
+/** The tenant and the window a report covers; 'no-shift' when the plant has no shift with the asked code. */
+export async function resolveWindow(
+  client: PoolClient,
+  query: { tenantId: string; date: string; shift: string | null },
+): Promise<{ tenant: ReportTenant; window: { start: Date; end: Date } } | 'no-shift' | null> {
+  const tenant = await tenantInfo(client, query.tenantId);
+  if (!tenant) return null;
+  const times = await shiftTimes(client, query.tenantId, query.shift);
+  if (!times) return 'no-shift';
+  const timeZone = tenant.time_zone as string;
+  return {
+    tenant: { name: tenant.name as string, language: tenant.language as string, timeZone },
+    window: await windowBounds(client, query.date, times, timeZone),
+  };
+}
+
 /**
  * The day report for one person: every ticket they touched in the window (work segments or
  * events), their own hands-on minutes clipped to the window, and the pending-at-end list.
@@ -152,27 +174,20 @@ export async function loadDayReport(
   client: PoolClient,
   query: DayReportQuery,
 ): Promise<DayReportData | 'no-shift' | null> {
-  const tenant = await tenantInfo(client, query.tenantId);
-  if (!tenant) return null;
   const person = await activePerson(client, query.tenantId, query.personId);
   if (!person) return null;
-  const times = await shiftTimes(client, query.tenantId, query.shift);
-  if (!times) return 'no-shift';
-  const window = await windowBounds(client, query.date, times, tenant.time_zone as string);
-  const jobs = await queryJobs(client, query.tenantId, query.personId, window);
+  const resolved = await resolveWindow(client, query);
+  if (!resolved || resolved === 'no-shift') return resolved;
+  const jobs = await queryJobs(client, query.tenantId, query.personId, resolved.window);
   return {
-    tenant: {
-      name: tenant.name as string,
-      language: tenant.language as string,
-      timeZone: tenant.time_zone as string,
-    },
+    tenant: resolved.tenant,
     person: { id: person.id as string, name: person.name as string },
     date: query.date,
     shift: query.shift,
-    window,
+    window: resolved.window,
     jobs,
     totalMinutes: jobs.reduce((sum, job) => sum + job.minutes, 0),
-    pending: await queryPending(client, query.tenantId, window.end),
+    pending: await queryPending(client, query.tenantId, resolved.window.end),
     generatedAt: new Date(),
   };
 }

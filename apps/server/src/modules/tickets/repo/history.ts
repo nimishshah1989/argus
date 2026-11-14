@@ -75,7 +75,8 @@ export async function pendingRows(
 
 const TICKET_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.closed_at,
     t.machine_snapshot, t.response_min, t.active_min, t.wait_min, t.vendor_min,
-    t.handover_wait_min, t.down_acc_min, t.downtime_min, t.follow_min, t.repair_min, t.machine_id
+    t.handover_wait_min, t.down_acc_min, t.downtime_min, t.follow_min, t.repair_min, t.machine_id,
+    t.raised_login_id
   FROM ticket t
   WHERE t.id = $1 AND t.tenant_id = $2`;
 

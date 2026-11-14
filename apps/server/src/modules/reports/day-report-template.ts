@@ -1,6 +1,6 @@
 import type { DayReportData, DayReportJob, DayReportPending } from './day-report.js';
 
-function esc(value: string): string {
+export function esc(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -9,7 +9,7 @@ function esc(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function minutesLabel(value: number): string {
+export function minutesLabel(value: number): string {
   if (value < 60) return `${value} min`;
   const hours = Math.floor(value / 60);
   const minutes = value % 60;
@@ -20,7 +20,7 @@ function timeFormat(timeZone: string, options: Intl.DateTimeFormatOptions): Intl
   return new Intl.DateTimeFormat('en-GB', { timeZone, ...options });
 }
 
-function formatDateTime(value: Date, timeZone: string): string {
+export function formatDateTime(value: Date, timeZone: string): string {
   return timeFormat(timeZone, {
     day: '2-digit',
     month: 'short',
@@ -31,7 +31,7 @@ function formatDateTime(value: Date, timeZone: string): string {
   }).format(value);
 }
 
-function formatDay(value: Date, timeZone: string): string {
+export function formatDay(value: Date, timeZone: string): string {
   return timeFormat(timeZone, { day: '2-digit', month: 'short', year: 'numeric' }).format(value);
 }
 
@@ -39,12 +39,11 @@ function formatClock(value: Date, timeZone: string): string {
   return timeFormat(timeZone, { hour: '2-digit', minute: '2-digit', hour12: true }).format(value);
 }
 
-function formatWindow(data: DayReportData): string {
-  const tz = data.tenant.timeZone;
-  const startDay = formatDay(data.window.start, tz);
-  const endDay = formatDay(data.window.end, tz);
-  const start = `${startDay}, ${formatClock(data.window.start, tz)}`;
-  const end = `${endDay}, ${formatClock(data.window.end, tz)}`;
+export function formatWindow(window: { start: Date; end: Date }, tz: string): string {
+  const startDay = formatDay(window.start, tz);
+  const endDay = formatDay(window.end, tz);
+  const start = `${startDay}, ${formatClock(window.start, tz)}`;
+  const end = `${endDay}, ${formatClock(window.end, tz)}`;
   return `${start} → ${end}`;
 }
 
@@ -63,7 +62,7 @@ function machineLabel(machine: {
   return meta ? `${machine.code} (${meta})` : machine.code;
 }
 
-function stat(label: string, value: string): string {
+export function stat(label: string, value: string): string {
   return `<div class="stat"><div class="stat-label">${esc(label)}</div><div class="stat-value">${esc(
     value,
   )}</div></div>`;
@@ -88,7 +87,7 @@ function pendingRow(row: DayReportPending): string {
   </tr>`;
 }
 
-function jobsTable(jobs: DayReportJob[]): string {
+export function jobsTable(jobs: DayReportJob[]): string {
   if (jobs.length === 0) return '<p class="empty">No tickets worked in this window.</p>';
   return `<table>
     <thead><tr><th>Ticket</th><th>Machine</th><th>Problem</th><th>Status</th><th class="num">Work</th></tr></thead>
@@ -96,7 +95,7 @@ function jobsTable(jobs: DayReportJob[]): string {
   </table>`;
 }
 
-function pendingTable(pending: DayReportPending[]): string {
+export function pendingTable(pending: DayReportPending[]): string {
   if (pending.length === 0) return '<p class="empty">Nothing pending at the end of the window.</p>';
   return `<table>
     <thead><tr><th>Ticket</th><th>Machine</th><th>Problem</th><th>Status</th></tr></thead>
@@ -111,7 +110,7 @@ function header(data: DayReportData): string {
       <div class="company">${esc(data.tenant.name)}</div>
       <h1>Day report</h1>
       <div class="who">${esc(data.person.name)} · ${esc(formatDay(data.window.start, data.tenant.timeZone))}</div>
-      <div class="window">${esc(data.shift ? `Shift ${data.shift}` : 'Whole day')} · ${esc(formatWindow(data))}</div>
+      <div class="window">${esc(data.shift ? `Shift ${data.shift}` : 'Whole day')} · ${esc(formatWindow(data.window, data.tenant.timeZone))}</div>
     </div>
     <div class="stats">
       ${stat('Jobs worked', String(data.jobs.length))}
@@ -129,7 +128,7 @@ function footer(data: DayReportData): string {
   )} · ${esc(data.date)}</footer>`;
 }
 
-const STYLES = `
+export const STYLES = `
 @page { size: A4; margin: 12mm; }
 * { box-sizing: border-box; }
 body {

@@ -673,6 +673,8 @@ rows:
         and half-empty reports included'
       - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
         however often it is asked (Gujarati text in the PDF)'
+      - 'apps/server/test/ticket-pdf-access.test.ts :: gives an operator the breakdowns they reported,
+        and no one else’s'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.03
     feature:
@@ -696,6 +698,11 @@ rows:
       - 'apps/server/test/reports-real.test.ts :: lists a ticket still open when the shift ended even
         though it was closed later'
       - 'apps/server/test/day-report.test.ts :: prints a Gujarati name and problem in the PDF'
+      - 'apps/server/test/team-day-report.test.ts :: lists each maintenance person who worked in the
+        window, with the minutes the person’s own report shows'
+      - 'apps/server/test/team-day-report.test.ts :: is what the plant head gets by default, as one
+        PDF for the whole team'
+      - 'apps/server/test/team-day-report.test.ts :: prints Gujarati names'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name

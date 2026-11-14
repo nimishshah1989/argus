@@ -252,9 +252,13 @@ export async function activePerson(
 export async function activePeople(
   tx: Db,
   tenantId: string,
-): Promise<{ id: string; name: string }[]> {
-  return (await tx.query('SELECT id, name FROM person WHERE tenant_id = $1 AND active', [tenantId]))
-    .rows;
+): Promise<{ id: string; name: string; team: string }[]> {
+  return (
+    await tx.query(
+      'SELECT id, name, team FROM person WHERE tenant_id = $1 AND active ORDER BY name',
+      [tenantId],
+    )
+  ).rows;
 }
 
 export async function ensurePendingPerson(tx: Db, tenantId: string, name: string): Promise<string> {
