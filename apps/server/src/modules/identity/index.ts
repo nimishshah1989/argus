@@ -22,12 +22,16 @@ export {
 } from './repo.js';
 export { setTenantLogo, tenantLogoId, updateTenantProfile } from './repo/profile.js';
 export {
+  clearActingPerson,
   disableLoginsOfPerson,
   endSessions,
   insertLogin,
   insertPerson,
   listLoginAdmin,
   listPersonAdmin,
+  lockActivePerson,
+  lockLiveActing,
+  lockPerson,
   lockPeopleWrites,
   loginAdminById,
   loginsOfPerson,
@@ -35,6 +39,7 @@ export {
   personAdminById,
   updateLogin,
   updatePerson,
+  type ActingCheck,
   type LoginChange,
   type PersonFields,
 } from './repo/people.js';

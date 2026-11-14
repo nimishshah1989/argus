@@ -1,5 +1,7 @@
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
+/** Where a refused session lands; the sign-in screen reads `signedOut`. */
+export const SIGNED_OUT = '/login?signedOut=1';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -44,15 +46,29 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError('internal', `Request failed: ${res.status}`);
 }
 
-export async function http<T>(path: string, init?: RequestInit): Promise<T> {
+/** A request with the phone's saved session. */
+export function http<T>(path: string, init?: RequestInit): Promise<T> {
+  return send<T>(path, init, getToken());
+}
+
+/** Sign-in itself: never carries the saved session, so a mistyped password cannot sign another person out. */
+export function httpWithoutSession<T>(path: string, init?: RequestInit): Promise<T> {
+  return send<T>(path, init, null);
+}
+
+async function send<T>(
+  path: string,
+  init: RequestInit | undefined,
+  token: string | null,
+): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body !== undefined) headers.set('Content-Type', 'application/json');
-  const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
-  if (res.status === 401) {
+  // A 401 on a signed-in request ends the session (v3.signin.05); sign-in shows why.
+  if (res.status === 401 && token) {
     clearToken();
-    window.location.assign('/login');
+    window.location.assign(SIGNED_OUT);
     throw new ApiError('unauthenticated', 'unauthorized');
   }
   if (!res.ok) throw await parseError(res);
