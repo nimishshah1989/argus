@@ -4,6 +4,7 @@ import {
   SlaInputError,
   type BusinessCalendar,
 } from './business-hours.js';
+import { ACK_CLOCK_STOPS } from './permissions/ticket.js';
 import type { Ticket } from './ticket.js';
 import type { SlaPolicy, SlaTimerState } from '@uptimo/shared';
 import type { TicketEvent } from './types.js';
@@ -118,8 +119,10 @@ function validDate(value: Date): boolean {
 }
 
 function ackTerminal(input: SlaProjectionInput): Terminal | undefined {
-  const start = input.events.find((event) => event.type === 'start' || event.type === 'pickup');
-  const acknowledged = input.events.find((event) => event.type === 'acknowledge');
+  // which events stop the acknowledge clock is `ACK_CLOCK_STOPS`, the same list the Acknowledge button reads
+  const stopping = input.events.filter((event) => ACK_CLOCK_STOPS.includes(event.type));
+  const start = stopping.find((event) => event.type !== 'acknowledge');
+  const acknowledged = stopping.find((event) => event.type === 'acknowledge');
   const close = input.events.find((event) => event.type === 'close');
   return earliest([
     start ? { at: correctedTime(input, 'startedAt', start.at), reason: 'started' } : undefined,

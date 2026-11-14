@@ -6,7 +6,12 @@ import {
   setRosterLookup,
 } from '../../kernel/index.js';
 import { alertOnTicketWrite } from './alerts.js';
-import { handbackTicketPart, slaPoliciesPart, slaTicketPart } from './parts.js';
+import {
+  canAcknowledgeTicketPart,
+  handbackTicketPart,
+  slaPoliciesPart,
+  slaTicketPart,
+} from './parts.js';
 import { onRosterAt } from './roster.js';
 import { registerSettings } from './routes.js';
 
@@ -21,6 +26,7 @@ export const accountabilityModule = defineModule({
     registerSettings(app, config);
     contributeTicketPart(slaTicketPart);
     contributeTicketPart(handbackTicketPart);
+    contributeTicketPart(canAcknowledgeTicketPart);
     contributeConfigPart(slaPoliciesPart);
     contributeTicketListener('alerts', alertOnTicketWrite);
     setRosterLookup(onRosterAt);

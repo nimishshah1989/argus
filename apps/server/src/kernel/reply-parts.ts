@@ -1,5 +1,9 @@
 import type { PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
+import type { AuthContext } from './context.js';
+
+/** Who is asking: the session's login and its acting person. A part may answer for them (what they may do). */
+export type TicketActor = Pick<AuthContext, 'loginId' | 'role' | 'shared' | 'personId'>;
 
 export interface TicketWrite {
   tenantId: string;
@@ -8,10 +12,18 @@ export interface TicketWrite {
   boss?: PgBoss;
   /** What was written: `raise`, `past`, or a command name (`close`, `cancel`, ...). */
   command: string;
+  /** Who wrote it; parts that answer per person read it. */
+  actor?: TicketActor | null;
 }
 
 /** Reacts to a ticket write inside its transaction and adds nothing to the reply (alerts, for one). */
 export type TicketListener = (client: PoolClient, write: TicketWrite) => Promise<void>;
+
+/** When the reply is for, and who asked: parts that answer per person read the actor. */
+export interface PartView {
+  now: Date;
+  actor: TicketActor | null;
+}
 
 export interface TicketPart {
   /** The reply key this part owns, e.g. 'sla'. */
@@ -21,7 +33,7 @@ export interface TicketPart {
     client: PoolClient,
     tenantId: string,
     ticketIds: string[],
-    now: Date,
+    view: PartView,
   ): Promise<Map<string, unknown>>;
   /** Inside a ticket write's transaction, after the row is stored: react, then return the fields for that reply. */
   afterWrite(client: PoolClient, write: TicketWrite): Promise<Record<string, unknown>>;
@@ -52,15 +64,16 @@ export function contributeConfigPart(part: ConfigPart): void {
 /** `project(row)` then each part's value under its name (`?? null`), parts in contribution order. */
 export async function withTicketParts(
   client: PoolClient,
-  tenantId: string,
+  scope: { tenantId: string; actor?: TicketActor | null },
   rows: Record<string, unknown>[],
   project: (row: Record<string, unknown>) => Record<string, unknown>,
 ): Promise<Record<string, unknown>[]> {
+  const { tenantId, actor = null } = scope;
   const now = new Date();
   const ids = rows.map((row) => row.id as string);
   const loaded: Array<[string, Map<string, unknown>]> = [];
   for (const part of ticketParts.values()) {
-    loaded.push([part.name, await part.load(client, tenantId, ids, now)]);
+    loaded.push([part.name, await part.load(client, tenantId, ids, { now, actor })]);
   }
   return rows.map((row) => {
     const out = project(row);

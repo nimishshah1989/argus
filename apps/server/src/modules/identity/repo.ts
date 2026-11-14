@@ -1,3 +1,4 @@
+import { actingTeams } from './repo/acting.js';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '../../kernel/index.js';
 
@@ -42,6 +43,7 @@ export interface AuthRows {
   person_name: string | null;
   person_title: string | null;
   person_active: boolean | null;
+  person_team: string | null;
   /** The customer the request's host names, or null when it names none. */
   host_tenant_id: string | null;
   /** Last seen more than five minutes ago: time to slide the session forward. */
@@ -66,7 +68,7 @@ export async function readAuthRows(
   const result = await withTenant(pool, args.tenantId, (client) =>
     client.query(
       `SELECT l.id AS login_id, l.username, l.role, l.shared, l.must_change_password,
-              p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active,
+              p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active, p.team AS person_team,
               (SELECT t.id FROM tenant_by_slug($4) t) AS host_tenant_id,
               COALESCE((SELECT s.last_seen_at < now() - ${TOUCH_AFTER} FROM session s WHERE s.token_hash = $2), false) AS stale
        FROM login l LEFT JOIN person p ON p.id = $3
@@ -92,10 +94,12 @@ export async function findPerson(
   pool: Pool,
   tenantId: string,
   personId: string,
-): Promise<{ id: string; name: string; title: string | null; active: boolean } | undefined> {
+): Promise<
+  { id: string; name: string; title: string | null; active: boolean; team: string } | undefined
+> {
   return (
     await withTenant(pool, tenantId, (client) =>
-      client.query('SELECT id, name, title, active FROM person WHERE id = $1', [personId]),
+      client.query('SELECT id, name, title, active, team FROM person WHERE id = $1', [personId]),
     )
   ).rows[0];
 }
@@ -124,6 +128,8 @@ export async function insertSession(
     passwordHash: string;
     /** null on a shared phone that has not yet been told who is using it. */
     actingPersonId: string | null;
+    /** The teams a shared phone may choose from (`actingTeams`); left out on a personal login. */
+    teams?: readonly string[];
     tokenHash: string;
     device?: string;
   },
@@ -137,27 +143,42 @@ export async function insertSession(
        SELECT l.tenant_id, l.id, $3, $4, now() + interval '30 days', p.id
        FROM login l LEFT JOIN person p ON p.id = $2 AND p.tenant_id = l.tenant_id AND p.active
        WHERE l.id = $1 AND l.disabled_at IS NULL AND l.password_hash = $5
-         AND ($2::uuid IS NULL OR p.id IS NOT NULL)
+         AND ($2::uuid IS NULL OR (p.id IS NOT NULL AND ($6::text[] IS NULL OR p.team = ANY($6::text[]))))
        FOR SHARE OF l`,
-      [args.loginId, args.actingPersonId, args.tokenHash, args.device ?? null, args.passwordHash],
+      [
+        args.loginId,
+        args.actingPersonId,
+        args.tokenHash,
+        args.device ?? null,
+        args.passwordHash,
+        args.teams ?? null,
+      ],
     );
   });
   return (result.rowCount ?? 0) > 0;
 }
 
-/** A shared phone chooses who is using it, but only an active person of the same company. */
+/** A shared phone chooses who is using it: an active person of the same company and of the teams its role serves. */
 export async function setActingPerson(
   pool: Pool,
   args: { tenantId: string; tokenHash: string; personId: string },
 ): Promise<boolean> {
   const result = await withTenant(pool, args.tenantId, async (client) => {
     await client.query('SELECT 1 FROM person WHERE id = $1 FOR SHARE', [args.personId]);
+    const phone = (
+      await client.query(
+        `SELECT l.role FROM session s JOIN login l ON l.id = s.login_id
+         WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND l.shared`,
+        [args.tokenHash],
+      )
+    ).rows[0];
+    if (!phone) return { rowCount: 0 };
     return client.query(
       `UPDATE session s SET acting_person_id = p.id, updated_at = now()
        FROM person p, login l
        WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND l.id = s.login_id AND l.shared
-         AND p.id = $2 AND p.tenant_id = s.tenant_id AND p.active`,
-      [args.tokenHash, args.personId],
+         AND p.id = $2 AND p.tenant_id = s.tenant_id AND p.active AND p.team = ANY($3::text[])`,
+      [args.tokenHash, args.personId, actingTeams(phone.role)],
     );
   });
   return (result.rowCount ?? 0) > 0;
