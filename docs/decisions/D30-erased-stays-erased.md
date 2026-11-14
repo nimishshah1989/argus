@@ -18,12 +18,15 @@ and can never be equal.
 
 - A creation or edit that gives a person a number, and whose name and number match an erased person's, is refused:
   409 with code `conflict` on field `name`. The message holds no personal data. This covers the people API (create and
-  edit, on the values the person would have after the edit, not counting their own row), onboarding and `ensurePendingPerson`.
+  edit, on the values the person would have after the edit, not counting their own row) and onboarding when the person
+  has a number. A person with no number (`ensurePendingPerson`, which only ever has a name) can never be hard-refused;
+  it is created and, on a name-only match, flagged like an import row.
 - A name with no number, which is all an import ever carries, only _might_ be an erased person (two colleagues can
   share a name). It is never blocked: an import still imports and lists `possible_erased_match` with the row number
   only, plus a count `possiblyErasedMatches`; the people API records `possibleErasedMatch: true` in the audit row of the
   creation. A person at the plant decides; that screen is not built yet.
-- An erased row is "Former staff" for good: its name and number cannot be edited.
+- An erased row is "Former staff" for good: a change to its name or number is refused (409, "An erased person's name
+  and phone cannot be changed"). A form that saves another field and sends the name back unchanged is accepted.
 
 **Normalisation:** Unicode NFKC, lower case, trimmed, runs of white space collapsed; a number keeps only its digits
 (the API enforces E.164 before it gets here).
@@ -50,4 +53,6 @@ person, and nothing notices. Keeping a fingerprint of the key to catch a typo at
 built here. Keep the key with the other secrets in the backup of secrets (RESTORE.md).
 
 **Known limits.** Erased people are matched only by exact normalised name (and number); a different spelling is a
-different person. A number written without its country code is a different number.
+different person. A number written without its country code is a different number. People erased before this change
+have no hash and cannot be protected, and their rows can still be renamed. A creation racing a concurrent erasure of
+the same person can slip through (the check and the erasure do not lock each other).

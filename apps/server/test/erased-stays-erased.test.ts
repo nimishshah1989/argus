@@ -209,6 +209,20 @@ describe('editing a person into an erased identity', () => {
     ).rows[0].id as string;
     const res = await edit(erased, { name: 'A Real Name' });
     expect(res.statusCode, res.body).toBe(409);
+    expect(res.json().error.message).toMatch(/cannot be changed/);
+    const number = await edit(erased, { phone: '+919000000557' });
+    expect(number.statusCode, number.body).toBe(409);
+  });
+
+  it('lets a form save another field of an erased person with the same name resent', async () => {
+    const erased = (
+      await t.db.admin.query(
+        "SELECT id FROM person WHERE tenant_id = $1 AND erasure_hash IS NOT NULL AND name = 'Former staff' LIMIT 1",
+        [A],
+      )
+    ).rows[0].id as string;
+    const res = await edit(erased, { name: 'Former staff', title: 'Fitter' });
+    expect(res.statusCode, res.body).toBe(200);
   });
 });
 

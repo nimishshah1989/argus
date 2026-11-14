@@ -15,8 +15,8 @@ export class ErasureKeyMissing extends Error {
 
 /** A person with this name and number was erased and may not be created again. The message holds no personal data. */
 export class ErasedPersonError extends Error {
-  constructor() {
-    super('This person was erased and cannot be created again');
+  constructor(message = 'This person was erased and cannot be created again') {
+    super(message);
     this.name = 'ErasedPersonError';
   }
 }
@@ -121,7 +121,15 @@ export async function refuseErasedEdit(
     'SELECT 1 FROM person WHERE tenant_id = $1 AND id = $2 AND erasure_hash IS NOT NULL',
     [tenantId, before.id],
   );
-  if (erased.rowCount) throw new ErasedPersonError();
+  if (erased.rowCount) {
+    // A form that saves another field sends the row back as it is: only a real change is refused.
+    const nameChanged = patch.name !== undefined && patch.name !== before.name;
+    const phoneChanged = patch.phone !== undefined && (patch.phone || null) !== before.phone;
+    if (nameChanged || phoneChanged) {
+      throw new ErasedPersonError("An erased person's name and phone cannot be changed");
+    }
+    return;
+  }
   await refuseErased(tx, tenantId, {
     name: patch.name ?? before.name,
     phone: patch.phone === undefined ? before.phone : patch.phone,
