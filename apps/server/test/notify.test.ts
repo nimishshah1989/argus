@@ -7,6 +7,8 @@ import {
   notify,
   processNotification,
   startNotifyJobs,
+  sweepNotifications,
+  type SendJob,
   type NotifyInput,
 } from '../src/modules/notifications/index.js';
 import { runRetentionJob } from '../src/retention.js';
@@ -68,6 +70,14 @@ function toAsha(dedupeKey: string, extra: Partial<NotifyInput> = {}): NotifyInpu
 
 async function tell(input: NotifyInput) {
   return withTenant(db.app, input.tenantId, (client) => notify(client, boss, input));
+}
+
+/** The notify.send jobs waiting for a row, taken off the queue the way a worker would. */
+const taken: SendJob[] = [];
+async function queuedFor(notificationId: string): Promise<SendJob[]> {
+  const jobs = await boss.fetch<SendJob>('notify.send', { batchSize: 100 });
+  taken.push(...jobs.map((j) => j.data));
+  return taken.filter((d) => d.notificationId === notificationId);
 }
 
 const work = (tenantId: string, notificationId: string, now: Date) =>
@@ -133,6 +143,8 @@ afterEach(async () => {
   send.mockReset();
   send.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
   await db.admin.query('DELETE FROM notification');
+  await boss.deleteAllJobs('notify.send');
+  taken.length = 0;
   await resetSubscriptions();
 });
 
@@ -183,13 +195,19 @@ describe('notify writes one row per recipient and channel', () => {
     expect(await rowCount(B)).toBe(0);
   });
 
-  it('queues the first send in the same transaction as the row', async () => {
+  it('queues the first send with the row', async () => {
     const [made] = await tell(toAsha('breakdown:5'));
-    const queued = await db.admin.query(
-      "SELECT 1 FROM pgboss.job WHERE name = 'notify.send' AND data->>'notificationId' = $1",
-      [made?.notificationId],
-    );
-    expect(queued.rowCount).toBe(1);
+    expect(await queuedFor(made!.notificationId)).toEqual([
+      { v: 1, tenantId: A, notificationId: made!.notificationId, attempt: 0 },
+    ]);
+  });
+
+  it('records a person once however the id is spelled', async () => {
+    await tell(toAsha('breakdown:6'));
+    const again = await tell(toAsha('breakdown:6', { to: [ASHA.toUpperCase()] }));
+    expect(again.map((n) => n.created)).toEqual([false]);
+    expect(await rowCount(A)).toBe(1);
+    await expect(tell(toAsha('breakdown:7', { to: ['not-a-person'] }))).rejects.toThrow(/person/);
   });
 });
 
@@ -249,21 +267,40 @@ describe('notify.send', () => {
     expect(send).toHaveBeenCalledTimes(5);
   });
 
-  it('queues each retry for when it is due, and does nothing early', async () => {
+  it('queues each retry, and does nothing early', async () => {
     send.mockRejectedValueOnce(expired(500, ASHA_PHONE_ENDPOINT));
     const [made] = await tell(toAsha('breakdown:13'));
     const id = made!.notificationId;
+    await boss.deleteAllJobs('notify.send');
     await work(A, id, T0);
     const due = (await row(id)).next_attempt_at!;
-    const queued = await db.admin.query(
-      "SELECT start_after FROM pgboss.job WHERE name = 'notify.send' AND data->>'notificationId' = $1 AND data->>'attempt' = '1'",
-      [id],
-    );
-    expect(new Date(queued.rows[0].start_after).getTime()).toBe(due.getTime());
+    expect(await queuedFor(id)).toEqual([{ v: 1, tenantId: A, notificationId: id, attempt: 1 }]);
     send.mockClear();
     expect((await work(A, id, new Date(due.getTime() - 1))).outcome).toBe('skipped');
     expect(send).not.toHaveBeenCalled();
     expect((await work(A, id, due)).outcome).toBe('sent');
+  });
+
+  it('does not lose a row whose job wakes before the clock says it is due', async () => {
+    send.mockRejectedValueOnce(expired(500, ASHA_PHONE_ENDPOINT));
+    const [made] = await tell(toAsha('skew:1'));
+    const id = made!.notificationId;
+    await work(A, id, T0);
+    const due = (await row(id)).next_attempt_at!;
+    await boss.deleteAllJobs('notify.send');
+    expect((await work(A, id, new Date(due.getTime() - 1000))).outcome).toBe('skipped');
+    expect((await row(id)).status).toBe('pending');
+    expect(await queuedFor(id)).toEqual([{ v: 1, tenantId: A, notificationId: id, attempt: 1 }]);
+    expect((await work(A, id, due)).outcome).toBe('sent');
+  });
+
+  it('tries a push test once: a failure is dead at once and nothing is queued', async () => {
+    send.mockRejectedValue(expired(503, ASHA_PHONE_ENDPOINT));
+    const [made] = await tell(toAsha('test:1', { kind: 'push.test' }));
+    await boss.deleteAllJobs('notify.send');
+    expect((await work(A, made!.notificationId, T0)).outcome).toBe('dead');
+    expect(await row(made!.notificationId)).toMatchObject({ status: 'dead', last_error: '503' });
+    expect(await queuedFor(made!.notificationId)).toEqual([]);
   });
 
   it('deletes an expired subscription and records the code', async () => {
@@ -364,6 +401,7 @@ describe('notification.purge keeps rows 90 days', () => {
     personId: string,
     key: string,
     days: number,
+    settle = true,
   ): Promise<void> {
     const made = await tell({
       tenantId,
@@ -372,6 +410,7 @@ describe('notification.purge keeps rows 90 days', () => {
       dedupeKey: key,
       now: T0,
     });
+    if (settle) await work(tenantId, made[0]!.notificationId, T0);
     await db.admin.query('UPDATE notification SET created_at = $2 WHERE id = $1', [
       made[0]?.notificationId,
       new Date(T0.getTime() - days * DAY),
@@ -402,6 +441,70 @@ describe('notification.purge keeps rows 90 days', () => {
       allowFakeClock: true,
     });
     expect(again.affected).toBe(0);
+  });
+
+  it('never deletes a message still waiting to be sent', async () => {
+    await aged(A, ASHA, 'purge:waiting', 120, false);
+    const result = await runRetentionJob(db.app, 'notification.purge', {
+      now: T0,
+      allowFakeClock: true,
+    });
+    expect(result.affected).toBe(0);
+    expect(await rowCount(A)).toBe(1);
+  });
+});
+
+describe('notify.sweep finds messages whose job was lost', () => {
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+
+  it('queues a pending row that is long overdue and has no job, and it is then sent', async () => {
+    const [lost] = await tell(toAsha('sweep:1'));
+    const [fresh] = await tell(toAsha('sweep:2'));
+    await boss.deleteAllJobs('notify.send');
+    await db.admin.query('UPDATE notification SET next_attempt_at = $2 WHERE id = $1', [
+      fresh!.notificationId,
+      new Date(T0.getTime() + 55 * MIN),
+    ]);
+    const swept = await sweepNotifications({
+      pool: db.app,
+      boss,
+      now: new Date(T0.getTime() + HOUR),
+    });
+    expect(swept).toEqual({ requeued: 1, dead: 0 });
+    expect(await queuedFor(fresh!.notificationId)).toEqual([]);
+    expect(await queuedFor(lost!.notificationId)).toEqual([
+      { v: 1, tenantId: A, notificationId: lost!.notificationId, attempt: 0 },
+    ]);
+    expect((await work(A, lost!.notificationId, new Date(T0.getTime() + HOUR))).outcome).toBe(
+      'sent',
+    );
+  });
+
+  it('gives up on a row overdue for over a week and shows it dead, never silently', async () => {
+    const [stuck] = await tell(toAsha('sweep:3'));
+    await boss.deleteAllJobs('notify.send');
+    const swept = await sweepNotifications({
+      pool: db.app,
+      boss,
+      now: new Date(T0.getTime() + 8 * DAY),
+    });
+    expect(swept).toEqual({ requeued: 0, dead: 1 });
+    expect(await row(stuck!.notificationId)).toMatchObject({ status: 'dead', last_error: 'stuck' });
+    expect(await queuedFor(stuck!.notificationId)).toEqual([]);
+  });
+
+  it('leaves another plant alone: its overdue row is swept under its own plant', async () => {
+    await tell({ tenantId: B, to: [OTHER], kind: 'breakdown.new', dedupeKey: 'sweep:b', now: T0 });
+    await boss.deleteAllJobs('notify.send');
+    const swept = await sweepNotifications({
+      pool: db.app,
+      boss,
+      now: new Date(T0.getTime() + HOUR),
+    });
+    expect(swept.requeued).toBe(1);
+    const jobs = await boss.fetch<SendJob>('notify.send', { batchSize: 10 });
+    expect(jobs.map((j) => j.data.tenantId)).toEqual([B]);
   });
 });
 

@@ -14,20 +14,6 @@ function rowsToSubs(rows: unknown[]): SubscriptionRow[] {
   }));
 }
 
-export async function subscriptionsOfLogin(
-  tx: Db,
-  tenantId: string,
-  loginId: string,
-): Promise<SubscriptionRow[]> {
-  const rows = (
-    await tx.query(
-      'SELECT endpoint, keys FROM push_subscription WHERE tenant_id = $1 AND login_id = $2',
-      [tenantId, loginId],
-    )
-  ).rows;
-  return rowsToSubs(rows);
-}
-
 export async function upsertSubscription(
   tx: Db,
   s: {
@@ -138,8 +124,9 @@ export async function notificationIdByKey(
   return found.rows[0].id as string;
 }
 
-export interface DueNotification {
+export interface PendingNotification {
   id: string;
+  nextAttemptAt: Date;
   personId: string;
   channel: Channel;
   kind: string;
@@ -147,29 +134,19 @@ export interface DueNotification {
   attempts: number;
 }
 
-/** The row if it is still pending, due at `now` and nobody else is sending it; locked until the transaction ends. */
-export async function lockDueNotification(
+/** The row if it is still pending and nobody else is sending it; locked until the transaction ends. */
+export async function lockPendingNotification(
   tx: Db,
   tenantId: string,
   id: string,
-  now: Date,
-): Promise<DueNotification | null> {
+): Promise<PendingNotification | null> {
   const found = await tx.query(
-    `SELECT id, person_id, channel, kind, ticket_id, attempts FROM notification
-      WHERE tenant_id = $1 AND id = $2 AND status = 'pending' AND next_attempt_at <= $3
+    `SELECT id, person_id, channel, kind, ticket_id, attempts, next_attempt_at FROM notification
+      WHERE tenant_id = $1 AND id = $2 AND status = 'pending'
       FOR UPDATE SKIP LOCKED`,
-    [tenantId, id, now],
+    [tenantId, id],
   );
-  const r = found.rows[0] as
-    | {
-        id: string;
-        person_id: string;
-        channel: Channel;
-        kind: string;
-        ticket_id: string | null;
-        attempts: number;
-      }
-    | undefined;
+  const r = found.rows[0];
   if (!r) return null;
   return {
     id: r.id,
@@ -178,6 +155,7 @@ export async function lockDueNotification(
     kind: r.kind,
     ticketId: r.ticket_id,
     attempts: r.attempts,
+    nextAttemptAt: r.next_attempt_at,
   };
 }
 
@@ -209,11 +187,42 @@ export async function recordOutcome(
   );
 }
 
-/** Retention: rows created before `cutoff`, whatever their state. */
+/** Retention: rows created before `cutoff` that are settled. A message still waiting is never purged. */
 export async function purgeNotifications(tx: Db, tenantId: string, cutoff: Date): Promise<number> {
   const result = await tx.query(
-    'DELETE FROM notification WHERE tenant_id = $1 AND created_at < $2',
+    "DELETE FROM notification WHERE tenant_id = $1 AND created_at < $2 AND status <> 'pending'",
     [tenantId, cutoff],
+  );
+  return result.rowCount ?? 0;
+}
+
+/** Pending rows that should have been tried before `overdueBefore`, oldest first. */
+export async function overduePending(
+  tx: Db,
+  tenantId: string,
+  overdueBefore: Date,
+  limit: number,
+): Promise<{ id: string; attempts: number }[]> {
+  const found = await tx.query(
+    `SELECT id, attempts FROM notification
+      WHERE tenant_id = $1 AND status = 'pending' AND next_attempt_at < $2
+      ORDER BY next_attempt_at LIMIT $3`,
+    [tenantId, overdueBefore, limit],
+  );
+  return found.rows.map((r) => ({ id: r.id as string, attempts: r.attempts as number }));
+}
+
+/** A pending row nobody got to before `overdueBefore` is shown dead (`stuck`) so a person can see it. */
+export async function markStuckDead(
+  tx: Db,
+  tenantId: string,
+  overdueBefore: Date,
+  now: Date,
+): Promise<number> {
+  const result = await tx.query(
+    `UPDATE notification SET status = 'dead', next_attempt_at = NULL, last_error = 'stuck', updated_at = $3
+      WHERE tenant_id = $1 AND status = 'pending' AND next_attempt_at < $2`,
+    [tenantId, overdueBefore, now],
   );
   return result.rowCount ?? 0;
 }
