@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ApiError, chooseActing, clearToken, getConfig, getMe, signOut } from '../../api.js';
+import { ApiError, chooseActing, clearToken, getActingChoices, getMe, signOut } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
@@ -31,11 +31,11 @@ function SignedInAs() {
   );
 }
 
-/** "Your name" from the company's active people, by name (the same list on the floor and the desk). */
+/** "Your name" from the people the server lets this phone choose (GET /auth/acting), by name. */
 function NamePicker({ value, set }: { value: string; set: (id: string) => void }) {
   const { t } = useTranslation();
-  const all = useQuery({ queryKey: ['config'], queryFn: getConfig }).data?.people ?? [];
-  const people = all.filter((p) => p.active).sort((a, b) => a.name.localeCompare(b.name));
+  const all = useQuery({ queryKey: ['acting-choices'], queryFn: getActingChoices }).data;
+  const people = [...(all?.people ?? [])].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Stack gap={2}>
       <Label htmlFor="who-person">{t('signin.yourName')}</Label>

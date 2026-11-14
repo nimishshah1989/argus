@@ -3,7 +3,6 @@ import { useState } from 'react';
 import type { CommandAction, CommandBody, CommandResult, Ticket } from '../api.js';
 import { enqueue, isQueueable } from '../offline/outbox.js';
 import { ApiError, http, idempotencyKey, isOffline } from './client.js';
-import { currentWho } from './who.js';
 
 /** The raw command POST with a caller-supplied key (the outbox replays with the stored one). */
 export function sendCommand(
@@ -19,12 +18,6 @@ export function sendCommand(
   });
 }
 
-/** The person acting is the one the phone last learned from the session, not what a screen cached. */
-function asActing(action: CommandAction, body: CommandBody): CommandBody {
-  const actor = currentWho()?.actingPersonId;
-  return actor && action !== 'correct' ? { ...body, personId: actor } : body;
-}
-
 /**
  * Runs one command. Offline, the four offline-writable commands go to the outbox with a fresh
  * Idempotency-Key and resolve as `{ queued: true }`; everything else needs a connection.
@@ -32,9 +25,8 @@ function asActing(action: CommandAction, body: CommandBody): CommandBody {
 export async function runCommand(
   ticketId: string,
   action: CommandAction,
-  given: CommandBody,
+  body: CommandBody,
 ): Promise<CommandResult> {
-  const body = asActing(action, given);
   const key = idempotencyKey();
   if (isOffline() && isQueueable(action)) {
     const entry = await enqueue({

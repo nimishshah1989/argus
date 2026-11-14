@@ -7,6 +7,7 @@ import { WizardPage } from '../../patterns/wizard-page.js';
 import { Stack } from '../../ui/layout.js';
 import { FloorLoading, FloorShell } from './floor-shell.js';
 import { EMPTY, Fields, type Form } from './other-work-fields.js';
+import { startsNow } from './report-state.js';
 import { WhoIsReporting } from './problem-step.js';
 import { Sent } from './sent.js';
 import { FLOOR, useFloorData } from './use-floor.js';
@@ -26,6 +27,7 @@ export function OtherWork() {
         <FloorLoading />
       </FloorShell>
     );
+  const maintenance = data.maintenance;
   const location = form.typed.trim() || form.place;
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
   async function send(): Promise<void> {
@@ -34,7 +36,7 @@ export function OtherWork() {
       ...body,
       problem: form.needed.trim(),
       urgent: form.urgent,
-      startNow,
+      startNow: startsNow(maintenance, startNow),
     });
     setSent(reply.ticket);
     await queryClient.invalidateQueries({ queryKey: ['tickets'] });

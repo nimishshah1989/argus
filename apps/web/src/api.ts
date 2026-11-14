@@ -55,7 +55,8 @@ const login = defineResource({
   path: '/api/v1/auth/login',
   transport: httpWithoutSession,
 });
-const acting = defineResource({ key: 'auth', path: '/api/v1/auth/acting' });
+type ActingChoices = { people: { id: string; name: string; team: string }[] };
+const acting = defineResource<ActingChoices>({ key: 'auth', path: '/api/v1/auth/acting' });
 const password = defineResource({
   key: 'auth',
   path: '/api/v1/auth/password',
@@ -115,6 +116,9 @@ export const signIn = (body: {
   username: string;
   password: string;
 }): Promise<{ token: string; user: Me }> => login.create<{ token: string; user: Me }>(body);
+
+/** GET /auth/acting: the people this shared phone may choose (names and teams only). */
+export const getActingChoices = (): Promise<ActingChoices> => acting.one();
 
 /** POST /auth/acting: who is using this shared phone from now on. */
 export const chooseActing = (actingPersonId: string): Promise<unknown> =>
