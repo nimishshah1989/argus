@@ -4,18 +4,21 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 permissions:
   contents: read
   pull-requests: read
 
+# Draft PRs run nothing (builders run pnpm precheck and the suites locally). The suite runs once a PR is
+# marked ready for review, on each later push to it, and on every push to main.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   static:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -47,6 +50,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
   api:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: api (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -60,7 +64,7 @@ jobs:
           fetch-depth: 0
       - id: paths
         # Prose-only PRs (plans, designs, decisions, wiki, changelog, agent skills) skip the install and the
-        # tests; the job still reports, so required checks stay green. Any other changed file runs everything.
+        # tests; the job still reports, so required checks stay green.
         run: |
           run=true
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -85,6 +89,7 @@ jobs:
         if: steps.paths.outputs.run == 'true'
 
   browser:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: browser (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -98,7 +103,7 @@ jobs:
           fetch-depth: 0
       - id: paths
         # Prose-only PRs (plans, designs, decisions, wiki, changelog, agent skills) skip the install and the
-        # tests; the job still reports, so required checks stay green. Any other changed file runs everything.
+        # tests; the job still reports, so required checks stay green.
         run: |
           run=true
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -123,6 +128,7 @@ jobs:
         if: steps.paths.outputs.run == 'true'
 
   gallery:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble
@@ -154,6 +160,7 @@ jobs:
           path: test-results/gallery
 
   secrets:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
