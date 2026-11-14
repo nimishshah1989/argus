@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Contracts for support access (ticket 35, D27): a customer admin lets one named member of our own staff into
+ * Contracts for support access (ticket 35, D29): a customer admin lets one named member of our own staff into
  * the plant's data for a few days, sees what they did, and can end it.
  */
 

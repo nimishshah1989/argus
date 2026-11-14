@@ -46,7 +46,7 @@ export interface RouteKey {
   url: string;
 }
 
-/** The header a call by our own support staff carries: the grant it is made under (D27). */
+/** The header a call by our own support staff carries: the grant it is made under (D29). */
 const SUPPORT_GRANT_HEADER = 'x-support-grant';
 
 /** What the guard knows about a call that names a support grant, so each one can be judged and written down. */

@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 type Db = Pick<PoolClient, 'query'>;
 
 /**
- * Support access (`platform_access`, D27). Every statement names the customer as well as relying on row
+ * Support access (`platform_access`, D29). Every statement names the customer as well as relying on row
  * security, and "live" is always the database's clock against `expires_at`.
  */
 export interface GrantRow {

@@ -15,7 +15,7 @@ import { grantById } from './repo/support.js';
 import { SUPPORT_NOT_ALLOWED, hashToken, tenantSlugFromHost } from './service.js';
 
 /**
- * How one of our own staff gets into a customer's data (D27). A call carries that person's key as the bearer
+ * How one of our own staff gets into a customer's data (D29). A call carries that person's key as the bearer
  * token and names a grant in `X-Support-Grant`. The key says who is calling; the grant, which only the
  * customer's admin can create, says whether they may. Every call is written to the customer's audit trail
  * before it runs, and a call that cannot be written down does not run.

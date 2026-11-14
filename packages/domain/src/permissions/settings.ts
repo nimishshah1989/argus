@@ -21,7 +21,7 @@ export function canSettingsAi(ctx: ActorContext): boolean {
 }
 
 /**
- * Approve, see and end our own staff's access to this customer (D27): the admin on a personal login, so the
+ * Approve, see and end our own staff's access to this customer (D29): the admin on a personal login, so the
  * approval names one person.
  */
 export function canManageSupportAccess(ctx: ActorContext): boolean {

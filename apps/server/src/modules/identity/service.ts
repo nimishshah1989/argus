@@ -104,7 +104,7 @@ export async function requireAuth(
 export const SUPPORT_NOT_ALLOWED = refuse(403, 'forbidden', 'Not allowed under support access');
 
 /**
- * For a route our own support staff must never use, read or write (D27): who has access, the sign-ins of the
+ * For a route our own support staff must never use, read or write (D29): who has access, the sign-ins of the
  * admin who approved it. Answers 403 and returns true when the caller is under a support grant.
  */
 export function refuseSupport(ctx: AuthContext, reply: FastifyReply): boolean {

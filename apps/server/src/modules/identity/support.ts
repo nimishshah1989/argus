@@ -13,7 +13,7 @@ import { endGrant, grantById, insertGrant, listGrants, type GrantRow } from './r
 import { refuseSupport, requireAuth } from './service.js';
 
 /**
- * The customer's side of support access (D27): the admin approves a few days for one named member of our staff,
+ * The customer's side of support access (D29): the admin approves a few days for one named member of our staff,
  * sees every call made under it, and can end it. Our own staff can use none of these routes.
  */
 

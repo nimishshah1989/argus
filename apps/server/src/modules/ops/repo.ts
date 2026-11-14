@@ -9,7 +9,7 @@ export interface AuditEntry {
   before: unknown;
   after: unknown;
   /**
-   * Pass the caller's `supportGrantId`. When our own staff made the change under a grant (D27) the line names
+   * Pass the caller's `supportGrantId`. When our own staff made the change under a grant (D29) the line names
    * the grant and no login: the login such a caller carries is the admin who approved the grant, not who acted.
    */
   supportGrantId?: string | null;

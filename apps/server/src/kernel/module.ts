@@ -16,7 +16,7 @@ export interface AppConfig {
   jobBoss?: PgBoss;
   jobsHandle?: JobsHandle;
   /**
-   * Our own support staff (D27): name → SHA-256 (hex) of that person's key. Only hashes are held, from
+   * Our own support staff (D29): name → SHA-256 (hex) of that person's key. Only hashes are held, from
    * `SUPPORT_KEYS`. Absent or empty: nobody can use support access.
    */
   supportKeys?: ReadonlyMap<string, string>;

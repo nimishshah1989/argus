@@ -1,1 +1,0 @@
-- A person can see the devices they are signed in on and sign one out. The list names each device and marks the one in use, and a device that is signed out is turned away on its very next call. A shared phone does not get the list, so colleagues cannot sign each other out; they still have logout.
