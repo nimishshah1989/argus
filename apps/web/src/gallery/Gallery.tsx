@@ -8,6 +8,7 @@ import { Inline, Page, Stack } from '../ui/layout.js';
 import { BoardSection } from './board-section.js';
 import { CrudSection } from './crud-section.js';
 import { DashboardSection } from './dashboard-section.js';
+import { DeskKitSection } from './desk-kit-section.js';
 import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
 import { PatternsSection } from './patterns-section.js';
@@ -151,6 +152,7 @@ export default function Gallery() {
         <BoardSection />
         <DashboardSection />
         <ShellSection />
+        <DeskKitSection />
       </Page>
     </div>
   );
