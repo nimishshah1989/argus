@@ -61,3 +61,13 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - Dispatched 23 server (lists, glossary, company/logo/language/tz/switches, /files/{id} same-tenant check, one
   switch-off contract matching the generated CrudPage) to the same builder session_01KEBF29YYNjUzx9DSA4QxoC, branch
   claude/t23-plant-lists-company-api.
+- 2026-11-14 05:22 UTC — Ruling (23): company name, language, time zone and logo need a migration (app_user has no
+  write on `tenant`; REVOKE ALL in 0001). Chose (A) a function-only additive migration in 23's PR
+  (tenant_update_profile scoped to app.tenant_id, tenant_logo(slug), owner app_router), not (B) defer to 29. Why: these
+  are cutover settings; 0010 is the precedent. Cost if wrong: one more migration to review now. MIGRATION LOCK
+  requested from FRONTEND; builder holds the migration push until granted; PR gets two adversarial reviewers.
+- Ruling (contract): the generated CrudPage contract is GET {items,nextCursor}, POST, PUT /:id whole form + active,
+  never DELETE, string fields. #195 routes move onto it in 23's PR; lists and glossary get it at new paths
+  /api/v1/settings/lists/<name> and /api/v1/settings/glossary; legacy /lists routes stay until FRONTEND deletes the
+  hand-built screen. Shifts/glossary active=false answer 422 until 29 adds the column; segment/group active map to
+  showOnBoard/hidden as a stated interim.
