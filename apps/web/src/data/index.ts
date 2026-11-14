@@ -1,7 +1,9 @@
 export {
   ApiError,
+  askWhoIsActing,
   clearToken,
   getToken,
+  httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
   isOffline,

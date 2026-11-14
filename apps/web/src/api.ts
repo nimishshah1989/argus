@@ -2,6 +2,7 @@ import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offl
 import {
   ApiError,
   defineResource,
+  httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
   isOffline,
@@ -53,6 +54,13 @@ const login = defineResource({
   path: '/api/v1/auth/login',
   transport: httpWithoutSession,
 });
+const acting = defineResource({ key: 'auth', path: '/api/v1/auth/acting' });
+const password = defineResource({
+  key: 'auth',
+  path: '/api/v1/auth/password',
+  transport: httpKeepSession,
+});
+const logout = defineResource({ key: 'auth', path: '/api/v1/auth/logout' });
 const settings = defineResource({ key: 'settings', path: '/api/v1/settings' });
 const criticality = defineResource({
   key: 'machines',
@@ -101,6 +109,17 @@ export const signIn = (body: {
   username: string;
   password: string;
 }): Promise<{ token: string; user: Me }> => login.create<{ token: string; user: Me }>(body);
+
+/** POST /auth/acting: who is using this shared phone from now on. */
+export const chooseActing = (actingPersonId: string): Promise<unknown> =>
+  acting.create({ actingPersonId });
+
+/** POST /auth/password; a wrong current password is a 401 ApiError that keeps this phone signed in. */
+export const changePassword = (body: { old: string; password: string }): Promise<unknown> =>
+  password.create(body);
+
+/** POST /auth/logout: ends this phone's session on the server. */
+export const signOut = (): Promise<unknown> => logout.create({});
 
 export { ApiError, clearToken, getToken, isOffline, sendCommand, setToken } from './data/index.js';
 
