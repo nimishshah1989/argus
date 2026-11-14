@@ -15,7 +15,7 @@ test('gallery en: every section matches its baseline at 360 px', async ({ page }
   await open(page, 'lang=en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const pills = page.getByTestId('gallery-status').locator('[data-status]');
-  await expect(pills).toHaveCount(31);
+  await expect(pills).toHaveCount(36);
   for (const pill of await pills.all()) {
     await expect(pill.locator('svg')).toHaveCount(1);
     await expect(pill).not.toHaveText('');
@@ -74,7 +74,7 @@ for (const lang of ['en', 'gu']) {
     await expect(primary).toHaveCSS('background-color', 'rgb(20, 184, 166)');
     await expect(primary).toHaveCSS('color', 'rgb(4, 32, 29)');
     const pills = page.getByTestId('gallery-status').locator('[data-status]');
-    await expect(pills).toHaveCount(31);
+    await expect(pills).toHaveCount(36);
     for (const pill of await pills.all()) await expect(pill.locator('svg')).toHaveCount(1);
     const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(axe.violations).toEqual([]);

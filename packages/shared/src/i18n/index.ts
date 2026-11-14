@@ -22,6 +22,8 @@ import { settingsEn } from './settings.en.js';
 import { settingsGu } from './settings.gu.js';
 import { statusSignalEn } from './status-signal.en.js';
 import { statusSignalGu } from './status-signal.gu.js';
+import { statusFloorEn } from './status-floor.en.js';
+import { statusFloorGu } from './status-floor.gu.js';
 import { statusFlowEn } from './status-flow.en.js';
 import { statusFlowGu } from './status-flow.gu.js';
 
@@ -40,6 +42,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   settings: settingsEn,
   'status-signal': statusSignalEn,
   'status-flow': statusFlowEn,
+  'status-floor': statusFloorEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -57,6 +60,7 @@ export const en = {
   ...settingsEn,
   ...statusSignalEn,
   ...statusFlowEn,
+  ...statusFloorEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -76,4 +80,5 @@ export const gu = {
   ...settingsGu,
   ...statusSignalGu,
   ...statusFlowGu,
+  ...statusFloorGu,
 };
