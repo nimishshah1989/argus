@@ -11,6 +11,7 @@ const HOST = 'scale.localhost';
 const MACHINES = 500;
 const BREAKDOWNS_OPEN = 90;
 const BREAKDOWNS_WORKING = 45;
+const BREAKDOWNS_WAITING = 15;
 const CLOSED_NO_REPORT = 30;
 const CALLS = 40;
 const P95_BUDGET_MS = 300;
@@ -53,6 +54,14 @@ async function start(id: string): Promise<void> {
   );
 }
 
+async function pause(id: string): Promise<void> {
+  const res = await send('POST', `/api/v1/tickets/${id}/pause`, {
+    personId: HEAD,
+    reasonCode: 'spare',
+  });
+  expect(res.statusCode, res.body).toBe(200);
+}
+
 beforeAll(async () => {
   db = await startTestDb();
   const passwordHash = await hash(PASSWORD, {
@@ -72,6 +81,19 @@ beforeAll(async () => {
      SELECT ('30000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, $1, 'M-' || lpad(g::text, 3, '0'), $2,
        'VMC', 'Cell-' || (g % 25) FROM generate_series(1, ${MACHINES}) g`,
     [SEGMENT],
+  );
+  await sql(
+    "INSERT INTO list_item (tenant_id, list, code, label, pauses_sla) VALUES ($1, 'wait_reason', 'spare', 'Waiting for spare', false)",
+  );
+  await sql(
+    `INSERT INTO machine_group (id, tenant_id, segment_id, code, name, sort)
+     SELECT ('40000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, $1, $2, 'G' || g, 'Group ' || g, g
+     FROM generate_series(0, 24) g`,
+    [SEGMENT],
+  );
+  await sql(
+    `UPDATE machine SET group_id = ('40000000-0000-0000-0000-' || lpad((substring(cell from 6)::int)::text, 12, '0'))::uuid
+     WHERE tenant_id = $1`,
   );
   await sql(
     "INSERT INTO person (id, tenant_id, name, team) VALUES ($2, $1, 'Head', 'maintenance')",
@@ -95,6 +117,7 @@ beforeAll(async () => {
   for (let n = 1; n <= BREAKDOWNS_OPEN; n++) {
     const id = await raise(n);
     if (n <= BREAKDOWNS_WORKING) await start(id);
+    if (n <= BREAKDOWNS_WAITING) await pause(id);
   }
   for (let n = 101; n <= 100 + CLOSED_NO_REPORT; n++) {
     const id = await raise(n);
@@ -108,6 +131,8 @@ afterAll(async () => {
   await db.stop();
 });
 
+// An early-warning check, not a load test: /state's cost grows with the open and need-report tickets more than with
+// the machine count, so the fixture carries 25 groups, tickets being worked and tickets waiting on a reason.
 describe('GET /state on a 500-machine plant', () => {
   it(`answers with p95 under ${P95_BUDGET_MS} ms while carrying every open and need-report ticket`, async () => {
     for (let i = 0; i < 5; i++) await send('GET', '/api/v1/state');

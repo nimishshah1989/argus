@@ -11,7 +11,7 @@ export {
   type RouteKey,
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
-export { publicRouteCap } from './public-cap.js';
+export { PUBLIC_READ_PER_MINUTE, publicRouteCap } from './public-cap.js';
 export {
   configParts,
   contributeConfigPart,

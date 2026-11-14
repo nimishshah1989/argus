@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { apiError, isUuid } from '@uptimo/shared';
-import { publicRouteCap, withTenant, type AppConfig } from '../../kernel/index.js';
+import {
+  PUBLIC_READ_PER_MINUTE,
+  publicRouteCap,
+  withTenant,
+  type AppConfig,
+} from '../../kernel/index.js';
 import { requireAuth, resolveTenant, tenantLogoId, tenantSlugFromHost } from '../identity/index.js';
 import { selectFile } from './repo.js';
 import { sha256 } from './store.js';
@@ -43,11 +48,15 @@ export function registerFiles(app: FastifyInstance, config: AppConfig): void {
     return sendFile(config, reply, { tenantId: ctx.tenantId, id });
   });
   // Public, with a per-client cap: the sign-in page shows the logo of the company at this address, and of no other.
-  app.get('/api/v1/brand/logo', { config: publicRouteCap(config) }, async (request, reply) => {
-    const slug = tenantSlugFromHost(request.headers.host ?? '');
-    const tenant = slug ? await resolveTenant(config.pool, slug) : null;
-    const id = tenant ? await tenantLogoId(config.pool, tenant.slug) : null;
-    if (!tenant || !id) return reply.code(404).send(apiError('not_found', 'No logo', 'id'));
-    return sendFile(config, reply, { tenantId: tenant.id, id });
-  });
+  app.get(
+    '/api/v1/brand/logo',
+    { config: publicRouteCap(config, PUBLIC_READ_PER_MINUTE) },
+    async (request, reply) => {
+      const slug = tenantSlugFromHost(request.headers.host ?? '');
+      const tenant = slug ? await resolveTenant(config.pool, slug) : null;
+      const id = tenant ? await tenantLogoId(config.pool, tenant.slug) : null;
+      if (!tenant || !id) return reply.code(404).send(apiError('not_found', 'No logo', 'id'));
+      return sendFile(config, reply, { tenantId: tenant.id, id });
+    },
+  );
 }
