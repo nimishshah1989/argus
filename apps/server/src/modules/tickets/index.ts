@@ -1,5 +1,5 @@
 import { defineModule, setMachineSwitchOffCheck } from '../../kernel/index.js';
-import { openDuplicateId } from './repo/list.js';
+import { activeTicketId } from './repo/list.js';
 import { registerTickets } from './routes.js';
 
 export { figuresFromRow } from './mapper.js';
@@ -23,7 +23,7 @@ export const ticketsModule = defineModule({
   register: (app, config) => {
     // A machine with a breakdown or support ticket still open cannot be switched off: its tile would leave the board.
     setMachineSwitchOffCheck(async (client, tenantId, machineId) =>
-      (await openDuplicateId(client, tenantId, machineId))
+      (await activeTicketId(client, tenantId, machineId))
         ? 'This machine has an open ticket; close or cancel it first'
         : null,
     );

@@ -109,9 +109,10 @@ describe('machines', () => {
 describe('a cell change writes one dated machine move', () => {
   it('records from, to and the effective date, and shows it on the moves read', async () => {
     expect(await moves(M_FREE)).toEqual([]);
+    const firstDay = addDays(plantToday(), -13);
     const res = await f.call('PUT', `/api/v1/machines/${M_FREE}`, head(), {
       cell: 'Cell 4',
-      effectiveFrom: '2026-11-01',
+      effectiveFrom: firstDay,
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().cell).toBe('Cell 4');
@@ -119,7 +120,7 @@ describe('a cell change writes one dated machine move', () => {
       expect.objectContaining({
         fromCell: 'Cell 1',
         toCell: 'Cell 4',
-        effectiveFrom: '2026-11-01',
+        effectiveFrom: firstDay,
       }),
     ]);
     const line = (await audits('machine', M_FREE)).find((l) => l.after?.cell === 'Cell 4');
@@ -598,6 +599,21 @@ describe('a machine is not switched off, restored onto or corrected onto while i
       expect(blocked.statusCode, stage).toBe(409);
       expect(blocked.json().error).toMatchObject({ code: 'conflict', field: 'active' });
     }
+  });
+
+  it('answers 409 for an open general work request that names the machine too', async () => {
+    const machine = await newMachine('ST-general');
+    const raised = await raise(f.tokens.operator!, {
+      kind: 'general',
+      machineId: machine.id,
+      problem: 'Clean the guard',
+      location: 'Cell 1',
+      workType: 'cleaning',
+    });
+    expect(raised.statusCode, raised.body).toBe(201);
+    const blocked = await switchOff(machine.id);
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.json().error.field).toBe('active');
   });
 
   it('refuses to restore a cancelled ticket onto a machine switched off meanwhile, and restores once it is back on', async () => {

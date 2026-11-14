@@ -207,11 +207,26 @@ describe('the company logo', () => {
       ['image/svg+xml', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), 415],
       ['text/html', Buffer.from('<script>alert(1)</script>'), 415],
       ['application/octet-stream', PNG, 415],
+      ['application/json', Buffer.from('{"a":1}'), 422],
+      ['application/json', Buffer.from('[]'), 422],
+      ['application/json', Buffer.from('"text"'), 422],
     ];
     for (const [type, bytes, status] of cases) {
       const res = await logo(head(), type, bytes);
       expect(res.statusCode, `${type} ${bytes.length}b`).toBe(status);
     }
+  });
+
+  it('a request with no body, or an empty JSON body, is refused and never a server error', async () => {
+    const none = await f.app.inject({
+      method: 'PUT',
+      url: '/api/v1/company/logo',
+      headers: { host: 'plant-a.localhost', authorization: `Bearer ${head()}` },
+    });
+    expect(none.statusCode).toBe(422);
+    const empty = await logo(head(), 'application/json', Buffer.alloc(0));
+    expect(empty.statusCode).toBeGreaterThanOrEqual(400);
+    expect(empty.statusCode).toBeLessThan(500);
   });
 
   it('refuses a logo over 256 KB and leaves the current one', async () => {

@@ -36,10 +36,11 @@ export function registerCompanyRoutes(app: FastifyInstance, config: AppConfig): 
     const ctx = await requireAuth(config.pool, request, reply);
     if (!ctx) return;
     if (!canSettingsLists(actorOf(ctx))) return forbidden(reply);
-    const bytes = request.body as Buffer;
-    const found = imageType(bytes);
+    // A JSON body or no body at all arrives as something other than bytes: refuse it like any non-image.
+    const bytes = Buffer.isBuffer(request.body) ? request.body : null;
+    const found = bytes && imageType(bytes);
     const declared = String(request.headers['content-type'] ?? '').split(';')[0];
-    if (!found || found.mime !== declared) {
+    if (!bytes || !found || found.mime !== declared) {
       return reply.code(422).send(apiError('validation', 'Send a PNG, JPEG or WebP image', 'logo'));
     }
     // The logo being replaced, for the audit line (the public brand lookup knows the current one).
