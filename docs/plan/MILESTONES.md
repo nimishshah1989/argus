@@ -30,7 +30,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 11  | Page patterns: data, queue, detail, form          | M0        | done        | #162             |
 | 12  | Page patterns: wizard, settings, dashboard, board | M0        | done        | #171             |
 | 13  | Staging live                                      | M0        | done        | #146             |
-| 14  | Staging holds Cosmos, safe to run                 | M0        | in progress | #176 (code merged; AWS steps, load and restore drill pending) |
+| 14  | Staging holds Cosmos, safe to run                 | M0        | done        | #176; drill A passed 14 Nov (weekly dump carried into M1) |
 | 15  | Report a breakdown (floor)                        | M1        | done        | #179, #196, #205, #207 |
 | 16  | Desk lists and ticket detail                      | M1        | in progress | #181, #194, #201, #203 |
 | 17  | Work the ticket                                   | M1        | done        | #185             |
