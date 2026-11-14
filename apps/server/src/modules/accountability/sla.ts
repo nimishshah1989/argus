@@ -157,7 +157,7 @@ function toProjection(clocks: DomainTimer[]): SlaProjection {
   return {
     ack: toDto(named.get('ack')!),
     restore: toDto(named.get('restore')!),
-    pause: pause ? toDto(pause) : null,
+    ...(pause ? { pause: toDto(pause) } : {}),
   };
 }
 

@@ -27,7 +27,7 @@ describe('pause maximum and sign-off time in the policy contract', () => {
     }
   });
 
-  it('a ticket’s clocks may carry a pause clock, and old replies without one still pass', () => {
+  it('a ticket’s clocks may carry a pause clock, which is absent (never null) when there is none', () => {
     const timer = {
       id: 't:pause',
       state: 'running',
@@ -40,7 +40,7 @@ describe('pause maximum and sign-off time in the policy contract', () => {
     const two = { ack: null, restore: null };
     expect(slaProjectionSchema.safeParse(two).success).toBe(true);
     expect(slaProjectionSchema.safeParse({ ...two, pause: timer }).success).toBe(true);
-    expect(slaProjectionSchema.safeParse({ ...two, pause: null }).success).toBe(true);
+    expect(slaProjectionSchema.safeParse({ ...two, pause: null }).success).toBe(false);
     expect(slaProjectionSchema.safeParse({ ...two, other: timer }).success).toBe(false);
   });
 });

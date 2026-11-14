@@ -195,7 +195,7 @@ describe('pause clock on a real ticket', () => {
   it('has no pause clock until the ticket is paused', async () => {
     expect(await pauseRow()).toBeUndefined();
     const ticket = (await call('GET', `/api/v1/tickets/${ticketId}`, techToken)).json().ticket;
-    expect(ticket.sla.pause ?? null).toBeNull();
+    expect(ticket.sla).not.toHaveProperty('pause');
     expect((await command('start')).statusCode).toBe(200);
   });
 

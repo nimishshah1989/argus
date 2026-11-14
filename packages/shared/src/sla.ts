@@ -38,8 +38,8 @@ export const slaProjectionSchema = z
   .object({
     ack: slaTimerSchema.nullable(),
     restore: slaTimerSchema.nullable(),
-    /** Present once the ticket has been paused under a policy with a pause maximum. */
-    pause: slaTimerSchema.nullable().optional(),
+    /** Present once the ticket has been paused under a policy with a pause maximum; absent otherwise. */
+    pause: slaTimerSchema.optional(),
   })
   .strict();
 export type SlaProjection = z.infer<typeof slaProjectionSchema>;
