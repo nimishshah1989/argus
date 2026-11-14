@@ -34,6 +34,7 @@ export function close(
     closedByPersonId: command.personId,
     closeKind: command.kind,
     closeNote: command.note ?? null,
+    ...(command.taskDownMin === undefined ? {} : { taskDownMin: command.taskDownMin }),
   };
   return apply(input, {
     ticket,

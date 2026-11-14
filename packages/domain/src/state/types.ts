@@ -24,6 +24,8 @@ export type Command =
       kind: 'report' | 'no_report' | 'done';
       at?: Date;
       note?: string;
+      /** Closing a follow-up task: the minutes the machine stood still for it (0 to 1440), kept apart from the parent's downtime. */
+      taskDownMin?: number;
     }
   | { type: 'cancel'; personId: string; reason: string }
   | { type: 'join'; personId: string; role: 'primary' | 'support' }
