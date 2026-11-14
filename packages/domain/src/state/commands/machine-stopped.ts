@@ -1,12 +1,19 @@
-import { apply, clampAt, TransitionError } from '../helpers.js';
+import { apply, TransitionError } from '../helpers.js';
+import { clampFrom } from '../internal.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
 export function machineStopped(
   input: TransitionInput,
-  _command: Extract<Command, { type: 'machineStopped' }>,
+  command: Extract<Command, { type: 'machineStopped' }>,
 ): TransitionResult {
-  if (!input.ticket.machineRunningAt) throw new TransitionError('Machine is not running');
-  const at = clampAt(input.ctx.now, input);
+  const running = input.ticket.machineRunningAt;
+  if (
+    !running ||
+    input.ticket.machineStoppedAt ||
+    !['open', 'working', 'waiting'].includes(input.ticket.status)
+  )
+    throw new TransitionError('Machine is not running');
+  const at = clampFrom(command.at ?? input.ctx.now, running, input);
   return apply(input, {
     ticket: { machineStoppedAt: at },
     event: { type: 'stopped' },

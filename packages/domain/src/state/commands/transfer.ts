@@ -1,4 +1,5 @@
 import { apply, assertWorking, clampAt, closeSegments } from '../helpers.js';
+import { activeCrew } from '../internal.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
 export function transfer(
@@ -22,5 +23,11 @@ export function transfer(
     event: { type: 'transfer', reason: command.note },
     at,
     segments: closeSegments(input.segments, at),
+    // his app stops the crew with the job: they are off it until someone joins again
+    crew: input.crew.map((member) =>
+      activeCrew(input).includes(member)
+        ? { ...member, leftAt: at, leftReason: 'job transferred' }
+        : member,
+    ),
   });
 }

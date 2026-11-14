@@ -101,6 +101,7 @@ function toActionTicket(state: State): ActionTicket {
     kind: ticket.kind,
     handedOver: ticket.handedOver,
     machineRunningAt: ticket.machineRunningAt,
+    machineStoppedAt: ticket.machineStoppedAt,
     startedAt: ticket.startedAt,
     raisedLoginId: ticket.raisedLoginId,
     leadPersonId: ticket.leadPersonId,
@@ -186,10 +187,20 @@ function* states(): Generator<[string, State]> {
     for (const kind of ['stopped', 'support', 'general'] as const) {
       const base = build(kind);
       yield [`${name} ${kind}`, base];
-      if (kind === 'stopped') {
+      // the server now takes "running" only while work is going on (his rule), so only those states get the variant
+      if (kind === 'stopped' && inPlay(base)) {
         yield [`${name} ${kind} running`, step(base, { type: 'machineRunning', personId: LEAD })];
       }
     }
+  }
+  // a machine that ran again and then had the job handed over, or was closed or cancelled: running stays set
+  for (const end of [
+    { type: 'transfer', personId: LEAD, note: 'night' },
+    { type: 'close', personId: LEAD, kind: 'report' },
+    { type: 'cancel', personId: LEAD, reason: 'x' },
+  ] as const) {
+    const ran = step(working('stopped'), { type: 'machineRunning', personId: LEAD });
+    yield [`${end.type} after running stopped`, step(ran, end)];
   }
 }
 
@@ -236,7 +247,6 @@ describe('availableActions', () => {
       'update',
       'pause',
       'transfer',
-      'machine-running',
       'machine-stopped',
       'leave',
       'close',
@@ -278,7 +288,8 @@ describe('availableActions', () => {
 
   it('follows the rulings Q1, Q2, Q12, Q13, Q15 and Q16', () => {
     expect(availableActions(pick('open'), tech(OTHER))).not.toContain('join'); // Q1
-    expect(availableActions(pick('working'), tech(LEAD))).not.toContain('leave'); // Q2
+    // Q2 (built as the server): the lead may leave once a primary can take over, so the working fixture offers it
+    expect(availableActions(pick('working'), tech(LEAD))).toContain('leave');
     const unstarted = pick('open');
     const operator: ActorContext = {
       role: 'operator',

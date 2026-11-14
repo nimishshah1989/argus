@@ -208,7 +208,8 @@ export async function persistEvents(
         ticketId,
         opts.startSeq + index,
         event.type,
-        opts.idempotencyKey,
+        // one key per request, one event row per key: a command that writes several events numbers the rest
+        index === 0 ? opts.idempotencyKey : `${opts.idempotencyKey}#${index}`,
         event.at,
         opts.loginId,
         opts.actingPersonId,

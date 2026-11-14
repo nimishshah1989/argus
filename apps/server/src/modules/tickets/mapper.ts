@@ -304,7 +304,11 @@ const BUILDERS: Record<CommandAction, Builder> = {
     personId,
     at: body.at as Date | undefined,
   }),
-  'machine-stopped': (_body, personId) => ({ type: 'machineStopped', personId }),
+  'machine-stopped': (body, personId) => ({
+    type: 'machineStopped',
+    personId,
+    at: body.at as Date | undefined,
+  }),
   close: (body, personId) => ({
     type: 'close',
     personId,
