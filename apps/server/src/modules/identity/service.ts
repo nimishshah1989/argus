@@ -41,19 +41,11 @@ export function passwordMessage(problem: PasswordProblem): string {
   return PASSWORD_MESSAGES[problem];
 }
 
-// A slug names one customer for good, so a short memory saves a lookup on every request.
-const hostTenants = new Map<string, { id: string; until: number }>();
-const HOST_TENANT_MS = 30_000;
-
 /** Whether the host names this customer. A host that names no customer (`localhost`) decides nothing. */
 async function hostAllows(pool: Pool, host: string, tenantId: string): Promise<boolean> {
   const slug = tenantSlugFromHost(host);
   if (!slug) return true;
-  const known = hostTenants.get(slug);
-  if (known && known.until > Date.now()) return known.id === tenantId;
-  const tenant = await resolveTenant(pool, slug);
-  if (tenant) hostTenants.set(slug, { id: tenant.id, until: Date.now() + HOST_TENANT_MS });
-  return tenant?.id === tenantId;
+  return (await resolveTenant(pool, slug))?.id === tenantId;
 }
 
 /**

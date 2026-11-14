@@ -11,7 +11,16 @@ describe('passwordProblem', () => {
   });
 
   it('refuses a common password whatever its letter case', () => {
-    for (const weak of ['password', 'Password', 'PASSWORD', 'qwertyuiop', '12345678', 'Welcome1'])
+    for (const weak of [
+      'password',
+      'Password',
+      'PASSWORD',
+      'qwertyuiop',
+      '12345678',
+      'Welcome1',
+      '  password  ',
+      'password\t',
+    ])
       expect(passwordProblem(weak, 'asha'), weak).toBe('common');
   });
 

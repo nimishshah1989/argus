@@ -11,7 +11,8 @@ const common: ReadonlySet<string> = new Set(COMMON_PASSWORDS);
 /** Why a password may not be used, or null. Letter case never rescues a weak one. */
 export function passwordProblem(password: string, username: string): PasswordProblem | null {
   if (password.length < MIN_PASSWORD_LENGTH) return 'too_short';
-  const lower = password.toLowerCase();
-  if (lower === username.toLowerCase()) return 'same_as_username';
+  // Spaces around a weak password do not make it strong.
+  const lower = password.trim().toLowerCase();
+  if (lower === username.trim().toLowerCase()) return 'same_as_username';
   return common.has(lower) ? 'common' : null;
 }
