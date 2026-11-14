@@ -793,12 +793,18 @@ rows:
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.05
     feature: Update banner when a new build is deployed; "Update now" clears caches
-    disposition: keep
+    disposition: improve
     milestone: M1
     milestones:
       - M1
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'Ticket 25 goal 2: the banner waits out the shift changeover; the wall TV updates itself outside it; the new version clears the old caches when it takes over'
+      - 'apps/web/src/app-update.test.ts :: inChangeover'
+      - 'apps/web/e2e/pwa.spec.ts :: a waiting update shows a banner, and Update now asks the new version to take over'
+      - 'apps/web/e2e/pwa.spec.ts :: the update banner waits out the shift changeover'
+      - 'apps/web/e2e/pwa.spec.ts :: the wall TV updates itself, but not during the shift changeover'
+      - 'apps/web/e2e/pwa.spec.ts :: floor and desk install as two apps: each address offers its own app'
     source: PARITY.md §v3 / Alerts, offline, platform
   - id: v3.alerts.06
     feature: Config fingerprint check; settings pushed from the desktop platform

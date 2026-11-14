@@ -1,4 +1,5 @@
 {
+  "id": "/desk",
   "name": "Maintenance",
   "short_name": "Maintenance",
   "description": "Open tickets and actions for the maintenance team.",
