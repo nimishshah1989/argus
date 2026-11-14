@@ -18,6 +18,7 @@ import {
 } from './repo.js';
 import { registerDeviceRoutes } from './devices.js';
 import { createLoginGuard } from './login-guard.js';
+import { registerSupportRoutes } from './support.js';
 import { tenantLogoId } from './repo/profile.js';
 import {
   hashToken,
@@ -286,4 +287,5 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
     changePassword(pool, guard, request, reply),
   );
   registerDeviceRoutes(app, pool);
+  registerSupportRoutes(app, pool);
 }

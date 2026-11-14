@@ -6,11 +6,14 @@ import {
   type SlaTicketReconciler,
 } from './modules/accountability/index.js';
 import { aiConfigFromEnv, startAiJobs } from './modules/ai/index.js';
+import { parseSupportKeys } from './modules/identity/index.js';
 import { startRetentionJobs } from './retention.js';
 import type { PgBoss } from 'pg-boss';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required');
+// Read before anything starts: a SUPPORT_KEYS value that cannot be read stops the server, loudly.
+const supportKeys = parseSupportKeys(process.env.SUPPORT_KEYS);
 
 const pool = createPool(url);
 const role = (process.env.ROLE as JobRole | undefined) ?? 'all';
@@ -44,6 +47,7 @@ if (role === 'worker') {
     databaseUrl: url,
     jobBoss: jobs.boss,
     jobsHandle: jobs,
+    supportKeys,
   });
   const port = Number(process.env.PORT ?? 3001);
   await app.listen({ port, host: '0.0.0.0' });

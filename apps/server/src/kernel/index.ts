@@ -9,6 +9,7 @@ export {
   type Authenticate,
   type PasswordChangeRequired,
   type RouteKey,
+  type SupportCall,
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
 export {

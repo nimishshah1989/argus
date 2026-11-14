@@ -48,8 +48,15 @@ export {
   authenticate,
   hashToken,
   passwordMessage,
+  refuseSupport,
   requireAuth,
   tenantSlugFromHost,
 } from './service.js';
+export {
+  SUPPORT_WRITES,
+  parseSupportKeys,
+  supportAuthenticator,
+  type SupportKeys,
+} from './support-auth.js';
 
 export const identityModule = defineModule({ name: 'identity', register: registerIdentityRoutes });

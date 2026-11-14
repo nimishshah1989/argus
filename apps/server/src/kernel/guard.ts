@@ -1,6 +1,7 @@
-import type { FastifyInstance, preParsingAsyncHookHandler } from 'fastify';
+import type { FastifyInstance, FastifyRequest, preParsingAsyncHookHandler } from 'fastify';
 import { apiError } from '@uptimo/shared';
 import type { AuthContext } from './context.js';
+import type { Refusal } from './contract.js';
 import { bindLog } from './logging.js';
 
 export const AUTH_MESSAGES = {
@@ -45,8 +46,38 @@ export interface RouteKey {
   url: string;
 }
 
-/** `host` is the request's Host header: a session is only good on its own customer's host. */
-export type Authenticate = (token: string, host: string) => Promise<AuthContext | null>;
+/** The header a call by our own support staff carries: the grant it is made under (D27). */
+const SUPPORT_GRANT_HEADER = 'x-support-grant';
+
+/** What the guard knows about a call that names a support grant, so each one can be judged and written down. */
+export interface SupportCall {
+  grantId: string;
+  method: string;
+  /** The route as registered (`/api/v1/people/:id`), never the address asked for. */
+  route: string;
+  ip: string;
+}
+
+/**
+ * `host` is the request's Host header: a session is only good on its own customer's host. `support` is set
+ * when the call names a support grant. Answers who is calling, null (401), or a refusal to send as it is.
+ */
+export type Authenticate = (
+  token: string,
+  host: string,
+  support?: SupportCall,
+) => Promise<AuthContext | Refusal | null>;
+
+function supportCallOf(request: FastifyRequest): SupportCall | undefined {
+  const grant = request.headers[SUPPORT_GRANT_HEADER];
+  if (grant === undefined) return undefined;
+  return {
+    grantId: String(grant),
+    method: request.method,
+    route: request.routeOptions.url ?? '',
+    ip: request.ip,
+  };
+}
 
 const tables = new WeakMap<FastifyInstance, RouteKey[]>();
 
@@ -81,8 +112,9 @@ export function registerAuthGuard(
   const guard: preParsingAsyncHookHandler = async (request, reply, payload) => {
     const token = bearerToken(request.headers.authorization);
     if (!token) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.missing));
-    const auth = await authenticate(token, request.headers.host ?? '');
+    const auth = await authenticate(token, request.headers.host ?? '', supportCallOf(request));
     if (!auth) return reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
+    if ('status' in auth) return reply.code(auth.status).send(auth.body);
     request.auth = auth;
     bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
     const screen = `${request.method} ${request.routeOptions.url}`;
