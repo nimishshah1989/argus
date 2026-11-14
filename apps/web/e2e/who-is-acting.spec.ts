@@ -218,3 +218,34 @@ test('a wrong current password keeps the phone signed in; the "other phones" lin
   await page.getByRole('button', { name: 'Save password', exact: true }).click();
   await expect(page.getByText('Your other phones and screens are signed out.')).toBeVisible();
 });
+
+test('a wrong current password answered 422 for "old" also keeps the phone signed in', async ({
+  page,
+}) => {
+  await signIn(page, 'op');
+  await page.route(/\/api\/v1\/state(?:\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'must_change_password', message: 'x' } }),
+    }),
+  );
+  await page.goto('/floor');
+  await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
+  await page.route(/\/api\/v1\/auth\/password$/, (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: { code: 'validation', message: 'Current password is incorrect', field: 'old' },
+      }),
+    }),
+  );
+  await page.getByLabel('Current password').fill('not-my-password');
+  await page.getByLabel('New password (at least 8 characters)').fill('a-new-long-phrase');
+  await page.getByLabel('New password again').fill('a-new-long-phrase');
+  await page.getByRole('button', { name: 'Save password', exact: true }).click();
+  await expect(page.getByText('Your current password is not right.')).toBeVisible();
+  await expect(page).toHaveURL(/\/password$/);
+  expect(await page.evaluate(() => localStorage.getItem('uptimo_token'))).not.toBeNull();
+});
