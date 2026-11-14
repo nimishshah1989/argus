@@ -79,6 +79,24 @@ quick-problem chip, loading shapes.
 6. My complaints keeps v3's words (Booked, In progress, Fixed) on the floor; the catalogue gets these as floor
    labels (`status.floor.*`) without renaming the desk's ticket words.
 
+## Slices 2 and 3: approved, decisions recorded (14 Nov 2026)
+
+Nimish approved the slice 2 mockups (https://claude.ai/artifact/3McvVvwWvijMLM6FNcTVLK) and the slice 3 mockups
+(https://claude.ai/artifact/UEwV5m4SdfC3UvUprBy1bG). Their reference PNGs are not in this PR (slice 1 only); each
+slice's screen PR adds its own. Decisions that came with them:
+
+- Mark done works offline like the other closes.
+- Start and close times move in 5-minute steps.
+- The report keeps three "Done by" and one "Supported by".
+- A restored ticket does not count the cancelled gap.
+- The wall TV is signed in once at setup and stays signed in.
+- A shared phone asks "who is acting" once after sign-in, not per sheet.
+- The label is "Alerts".
+- The WhatsApp share keeps v3's details (reporter, who is working, what it waits for) and reads "Cell 4".
+- Live counts use v3's words (Running, Stopped, In progress, Support); a waiting machine counts as Stopped.
+- The Live tab is off for operators by default.
+- **The Live board and TV visual design is not locked**: a leadership dashboard concept is being explored.
+
 ## Screens: artboard, pattern, parity row, who may open it, states shown
 
 Roles are DOMAIN §3 (operator, technician, supervisor, head, plant_head, admin, board). "Raise" = every role but board.
