@@ -1,0 +1,1 @@
+- A high-severity security advisory in a library the server ships now fails the build, so an unpatched hole cannot be merged unnoticed. One known zod advisory is listed as an exception, with the reason and the day it ends written down.
