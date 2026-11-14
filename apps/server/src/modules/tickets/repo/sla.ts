@@ -11,6 +11,8 @@ export interface SlaTicketRow {
   reported_at: Date;
   closed_at: Date | null;
   raised_channel: string;
+  /** Set on a follow-up task, which is no breakdown and runs no clock. */
+  parent_id: string | null;
 }
 
 export async function ticketEventRows(tx: Db, ticketIds: string[]): Promise<QueryResult['rows']> {
@@ -28,7 +30,7 @@ export async function slaTicketRows(
   ticketIds: string[],
 ): Promise<SlaTicketRow[]> {
   const tickets = await tx.query<SlaTicketRow>(
-    `SELECT id, kind, severity, status, reported_at, closed_at, raised_channel
+    `SELECT id, kind, severity, status, reported_at, closed_at, raised_channel, parent_id
      FROM ticket WHERE tenant_id = $1 AND id = ANY($2::uuid[])`,
     [tenantId, ticketIds],
   );

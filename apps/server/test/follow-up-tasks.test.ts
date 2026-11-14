@@ -326,6 +326,28 @@ describe('reporting a machine that already has a pending task', () => {
   });
 });
 
+describe('a follow-up task is no breakdown: no clocks, no escalation, no alerts', () => {
+  it('starting and finishing one leaves it no timer, no notification and no SLA reading', async () => {
+    await f.admin.query(
+      "INSERT INTO sla_policy (tenant_id, severity, ack_minutes, restore_minutes) SELECT $1, s, 5, 10 FROM unnest(ARRAY['S1','S2','S3','S4']) s ON CONFLICT DO NOTHING",
+      [A],
+    );
+    const { id } = await workingBreakdown('FT-20');
+    const made = (await close(id, { kind: 'no_report', note: 'x', task: TASK })).json().task;
+    await post(f.tokens.technician!, `/api/v1/tickets/${made.id}/start`, { personId: tech });
+    await close(made.id, { kind: 'done', note: 'ok', taskDownMin: 5 });
+    const count = async (table: string) =>
+      Number(
+        (await f.admin.query(`SELECT count(*) AS n FROM ${table} WHERE ticket_id = $1`, [made.id]))
+          .rows[0].n,
+      );
+    expect(await count('sla_timer')).toBe(0);
+    expect(await count('notification')).toBe(0);
+    const child = await get(f.tokens.head!, `/api/v1/tickets/${made.id}`);
+    expect(child.ticket.sla).toBeNull();
+  });
+});
+
 describe('plants stay apart', () => {
   it("another plant cannot read a plant's tasks, nor leave one against its ticket", async () => {
     const { id } = await workingBreakdown('FT-19');

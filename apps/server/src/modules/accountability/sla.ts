@@ -117,7 +117,7 @@ export async function loadContexts(
   const calendar = needsCalendar ? await loadCalendar(client, tenantId) : undefined;
   const eventsByTicket = await loadEventsByTicket(client, ticketIds);
   for (const row of tickets) {
-    if (row.raised_channel === 'backfill') continue;
+    if (row.raised_channel === 'backfill' || row.parent_id) continue;
     const policy = bySeverity.get(row.severity) ?? (withoutPolicy ? unlimited(row.severity) : null);
     if (!policy) continue;
     contexts.set(row.id, {
