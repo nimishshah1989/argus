@@ -265,10 +265,23 @@ describe('erasing a person from an imported batch', () => {
 
     const again = await importRealExport(db.app, tenantId, fixture());
     expect(again.stats).toMatchObject({ status: 'done', imported: 0, skipped: 275 });
+    const name = (await db.admin.query('SELECT name FROM person WHERE id = $1', [named.rows[0].id]))
+      .rows[0].name as string;
+    const written = await db.admin.query(
+      `SELECT count(*)::int AS n FROM import_row WHERE tenant_id = $1 AND payload::text ILIKE '%' || $2 || '%'`,
+      [tenantId, name],
+    );
+    expect(written.rows[0].n, 'the re-import wrote the erased name back').toBe(0);
+
+    const moved = fixture();
+    (moved.tickets[0] as { ref: string }).ref = 'BD-9999';
+    await expect(importRealExport(db.app, tenantId, moved)).rejects.toBeInstanceOf(
+      ImportFatalError,
+    );
 
     await expect(undoImport(db.router, tenantId, batch.batchId, 'operator')).rejects.toThrow(
       /erasing a person/i,
     );
     expect(await count('SELECT count(*) n FROM ticket WHERE tenant_id = $1')).toBe(275);
-  });
+  }, 120_000);
 });

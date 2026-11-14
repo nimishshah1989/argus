@@ -57,6 +57,17 @@ describe('a batch whose rows had a person erased from them', () => {
     expect(await tickets()).toBe(1);
   });
 
+  it('keeps no raw text naming the erased person when it is imported again', async () => {
+    const { input } = await importThenErase();
+    await importBhavin(db.app, syntheticIds.tenant, input);
+    const named = await db.admin.query(
+      `SELECT (SELECT count(*)::int FROM import_row WHERE tenant_id = $1 AND payload::text ILIKE '%Bina%') AS rows,
+              (SELECT count(*)::int FROM ticket_event WHERE tenant_id = $1 AND payload::text ILIKE '%Bina%') AS events`,
+      [syntheticIds.tenant],
+    );
+    expect(named.rows[0]).toEqual({ rows: 0, events: 0 });
+  });
+
   it('can still be undone, and the export can be imported afresh afterwards', async () => {
     const { input, first } = await importThenErase();
     const undone = await undoImport(db.router, syntheticIds.tenant, first.batchId, 'agent-test');

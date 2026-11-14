@@ -81,7 +81,8 @@ export async function readAuthRows(
 export async function touchSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void> {
   await withTenant(pool, tenantId, (client) =>
     client.query(
-      "UPDATE session SET last_seen_at = now(), expires_at = now() + interval '30 days' WHERE token_hash = $1",
+      `UPDATE session SET last_seen_at = now(), expires_at = now() + interval '30 days'
+       WHERE token_hash = $1 AND last_seen_at < now() - ${TOUCH_AFTER}`,
       [tokenHash],
     ),
   );

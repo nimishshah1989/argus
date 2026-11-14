@@ -26,6 +26,8 @@ export interface PlannedRow {
   duplicateOf?: number;
   currentParentId?: string | null;
   syntheticExisting?: boolean;
+  /** The earlier import of this ticket had its raw envelope erased with a person: keep no raw text for it again. */
+  erasedBefore?: boolean;
 }
 
 interface Provenance {
@@ -126,7 +128,9 @@ function existingIdentity(
   rawIdentity: string,
   tickets: Map<string, { id: string; parentId: string | null }>,
   provenance: Provenance[],
-): Pick<PlannedRow, 'outcome' | 'existingTicketId' | 'syntheticExisting'> & { error?: string } {
+): Pick<PlannedRow, 'outcome' | 'existingTicketId' | 'syntheticExisting' | 'erasedBefore'> & {
+  error?: string;
+} {
   const identities = provenance.filter((row) => row.legacyId === ticket.legacyId && row.ticketId);
   if (identities.length) {
     const first = identities[0] as Provenance;
@@ -139,7 +143,12 @@ function existingIdentity(
     if ((known !== null && known !== rawIdentity) || first.ref !== ticket.ref) {
       return { outcome: 'error', existingTicketId: null, error: 'changed_payload' };
     }
-    return { outcome: 'skip', existingTicketId: first.ticketId, syntheticExisting: true };
+    return {
+      outcome: 'skip',
+      existingTicketId: first.ticketId,
+      syntheticExisting: true,
+      erasedBefore: known === null,
+    };
   }
   const existing = tickets.get(ticket.ref);
   if (!existing) return { outcome: 'import', existingTicketId: null, syntheticExisting: false };
@@ -178,6 +187,7 @@ function planExisting(
   plan.outcome = existing.outcome;
   plan.existingTicketId = existing.existingTicketId;
   plan.syntheticExisting = existing.syntheticExisting;
+  plan.erasedBefore = existing.erasedBefore ?? false;
   plan.currentParentId = tickets.get(ticket.ref)?.parentId ?? null;
 }
 

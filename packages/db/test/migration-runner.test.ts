@@ -6,7 +6,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Client, Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, withoutBypassGrant } from '../../../scripts/migrate.js';
-import { appApiPasswordStatement } from '../../../scripts/app-api-password.js';
+import { appApiPasswordStatement, scramVerifier } from '../../../scripts/app-api-password.js';
 import { endPool } from './end-pool.js';
 
 const execFileAsync = promisify(execFile);
@@ -678,6 +678,10 @@ it('sets the app_api password from a SCRAM verifier, never from the plain text',
   expect(statement).not.toContain('plain-secret-for-test');
   expect(statement).toMatch(/^ALTER ROLE app_api LOGIN PASSWORD 'SCRAM-SHA-256\$4096:[^']+'$/);
   expect(appApiPasswordStatement('plain-secret-for-test')).not.toBe(statement);
+});
+
+it('refuses an app_api password it cannot hash the way the server would', () => {
+  expect(() => scramVerifier('pässword-for-test')).toThrow(/ASCII/);
 });
 
 it('still lets the app sign in with that password, and only that one', async () => {
