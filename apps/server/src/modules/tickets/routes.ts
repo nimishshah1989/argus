@@ -15,6 +15,7 @@ import {
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
+import { buildCommand } from './builders.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import * as report from './repo/report.js';
@@ -128,7 +129,7 @@ async function executeCommand(
 
   const unknown = await checkCorrectedRefs(client, tx, loaded);
   if (unknown) return unknown;
-  const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
+  const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
   fillReplacedMinutes(loaded, result.events);
