@@ -204,7 +204,8 @@ test("a queued command the server refuses as someone else's leaves the queue for
   await signInShared(page);
   await page.getByLabel('Your name').selectOption({ label: 'Omi' });
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await page.goto('/floor');
+  // The picker opens the floor only after it has replayed what this person queued.
+  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
   await expect(page.getByText('Could not send: this was queued for someone else')).toBeVisible();
   expect(await queued(page)).toBe(0);
 });
