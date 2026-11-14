@@ -246,3 +246,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   button holds a pooled connection; crash after send double-sends: document), 5 LOW. All sent to builder 32 as the
   first commits of the trigger PR. #225 (frontend) also merged by the shared account with browser red: both lanes
   agreed one merge route (orchestrators, covering checks green).
+- 07:52 UTC Gap check at 16384c5 (read-only, tickets 19/24/26/27/30/31/33/34/66): none of the open tickets is mostly
+  built; only schema and constants exist (0012 columns, ESCALATION_DEFAULTS, 0007 pause_max_minutes/handback_minutes
+  never read). T26 g1 nearly done (missing: /brand-specific rate limit, stale /files wording, 500-machine /state p95
+  timing test). Duplication: none found; two notes: T32 must extend the notifications module (done in #230), pause max
+  and handback minutes live in sla_policy columns and sla_timer kinds (use the policy columns, do not add new).
+  DISPATCH 30 (pause clock, server) to session_01KEBF269NGcjLaBDHMKLsLU, branch claude/t30-pause-clock, gap-only brief.
+  Backend builders: 32 (#230 fix round + triggers), 35 (#231 under review), 30.
