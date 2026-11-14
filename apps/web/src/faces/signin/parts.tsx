@@ -1,15 +1,20 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { useState } from 'react';
-import type { ApiError } from '../../api.js';
+import { ApiError } from '../../api.js';
 import { useTranslation } from 'react-i18next';
 import { Banner } from '../../ui/banner.js';
 import { Checkbox, Input, Label } from '../../ui/input.js';
 import { Stack } from '../../ui/layout.js';
 
-/** The server's sign-in refusals in the catalogue's words; anything else reads as a failed sign-in. */
-export function signInError(error: ApiError): MessageKey {
+/**
+ * What happened, in the catalogue's words. Only a refused password reads "Sign-in failed"; a lost
+ * connection and a server fault say so, so they are never mistaken for a wrong password.
+ */
+export function signInError(error: unknown): MessageKey {
+  if (!(error instanceof ApiError)) return 'signin.unreachable';
   if (error.code === 'rate_limited') return 'signin.tooMany';
   if (error.code === 'not_found') return 'signin.unknownCompany';
+  if (error.code === 'internal') return 'signin.serverProblem';
   return 'login.failed';
 }
 

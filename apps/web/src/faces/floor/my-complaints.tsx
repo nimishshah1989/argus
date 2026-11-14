@@ -5,7 +5,7 @@ import { MachineCard } from '../../ui/floor-pieces.js';
 import { StatusPill } from '../../ui/status/status-pill.js';
 import { Text } from '../../ui/text.js';
 import { CancelComplaint } from './cancel-complaint.js';
-import { FloorLoading, FloorShell } from './floor-shell.js';
+import { FloorShell, FloorWaiting } from './floor-shell.js';
 import { floorStatus } from './machines.js';
 import { ticketPlace } from './sent.js';
 import { clock, useFloorData, type FloorData } from './use-floor.js';
@@ -46,11 +46,12 @@ function Complaint({ data, ticket }: { data: FloorData; ticket: Ticket }) {
 /** My complaints: what this person reported, in the floor's words (A2-2, decision 6). */
 export function MyComplaints() {
   const { t } = useTranslation();
-  const data = useFloorData();
+  const load = useFloorData();
+  const data = load.data;
   if (!data)
     return (
       <FloorShell>
-        <FloorLoading title={t('floor.complaints')} />
+        <FloorWaiting title={t('floor.complaints')} load={load} />
       </FloorShell>
     );
   return (
