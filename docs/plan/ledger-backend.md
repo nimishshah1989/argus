@@ -228,3 +228,16 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   pdf-template.ts): builder 21 merges main and re-runs import/report suites before I merge (lesson from #212 x #206).
 - 07:34 UTC DISPATCH 32 notification service (server half of goal 2 too) to session_01KEBF2AVUMZygMWkC4M5two (Sonnet high per pstack-models; a first Opus session was archived within a minute) via
   /poteto-mode, branch claude/t32-notification-service. Backend builders now: 21 (#227 finish), 35, 32.
+- 07:47 UTC MERGED #227 (M1 leftovers) as 16384c5, 9 green at 7d42dad. Builder 21 archived. Nimish "all yes" Q10-Q13
+  (relayed): escalation defaults accepted as editable starting settings; support access = read all + change plant
+  settings, no ticket/people writes, admin can end early; erased person stays erased (keyed hash of normalised
+  name+phone); waitingMin to be exposed on ticket figures (follow-up ticket for the backend lane).
+- 07:44 #230 (32 notify, draft, f5d6e5f): one adversarial reviewer running. Ruling: new breakdown -> active people with
+  login role maint or supervisor in the plant; complaint fixed -> the ticket's reporter (v3 parity row). The trigger is a
+  second small PR from the same builder after #230 merges (cost if wrong: recipient list only).
+- 07:46 #231 (35 devices + support access, draft, f84627f): two reviewers running (Opus guard/tenancy, Sonnet allowlist/
+  lifecycle/devices). Builder's own worries: PUT /settings/:key allowed whole, loginId = approver under a grant, grant
+  outlives approver, ip-only rate limit.
+- 07:42 Nimish: pace complaint, and "you rebuilt instead of reusing". Checked: from the 13 Nov baseline (eb80a47, 145
+  non-test src files) 38 moved, 49 edited, ~23 untouched, 35 deleted, 283 added; one apps/server, one apps/web. Not a
+  rewrite. Gap-check agent running over tickets 19/24/26/27/30/31/33/34/66; every new brief starts with "what exists".
