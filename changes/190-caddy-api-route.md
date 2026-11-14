@@ -1,0 +1,1 @@
+- Staging: API calls reach the server (Caddy sent every /api request to the web app's index page).
