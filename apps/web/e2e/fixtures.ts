@@ -131,6 +131,28 @@ export function floorMachine(slot: number, projectName: string): MachineFixture 
   return machine;
 }
 
+/** The floor group and its machines (ticket 15). */
+function floorSeedStatements(): SeedStatement[] {
+  return [
+    {
+      text: 'INSERT INTO machine_group (id, tenant_id, segment_id, code, name) VALUES ($1, $2, $3, $4, $5)',
+      values: [FLOOR_GROUP.id, TENANT.id, SEGMENT.id, FLOOR_GROUP.code, FLOOR_GROUP.name],
+    },
+    ...FLOOR_MACHINES.map((machine) => ({
+      text: 'INSERT INTO machine (id, tenant_id, code, segment_id, group_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      values: [
+        machine.id,
+        TENANT.id,
+        machine.code,
+        SEGMENT.id,
+        FLOOR_GROUP.id,
+        machine.category,
+        machine.cell,
+      ],
+    })),
+  ];
+}
+
 const PEOPLE = [
   {
     id: scopedId('10000000-0000-0000-0000-000000000009'),
@@ -238,22 +260,7 @@ export function seedStatements(
       text: 'INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6)',
       values: [machine.id, TENANT.id, machine.code, SEGMENT.id, machine.category, machine.cell],
     })),
-    {
-      text: 'INSERT INTO machine_group (id, tenant_id, segment_id, code, name) VALUES ($1, $2, $3, $4, $5)',
-      values: [FLOOR_GROUP.id, TENANT.id, SEGMENT.id, FLOOR_GROUP.code, FLOOR_GROUP.name],
-    },
-    ...FLOOR_MACHINES.map((machine) => ({
-      text: 'INSERT INTO machine (id, tenant_id, code, segment_id, group_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      values: [
-        machine.id,
-        TENANT.id,
-        machine.code,
-        SEGMENT.id,
-        FLOOR_GROUP.id,
-        machine.category,
-        machine.cell,
-      ],
-    })),
+    ...floorSeedStatements(),
     ...PEOPLE.map((person) => ({
       text: 'INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $2, $3, $4, $5)',
       values: [person.id, TENANT.id, person.name, person.team, person.title],

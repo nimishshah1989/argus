@@ -35,7 +35,11 @@ import type {
 
 const config = defineResource<Config>({ key: 'config', path: '/api/v1/config' });
 const state = defineResource<State>({ key: 'state', path: '/api/v1/state' });
-const tickets = defineResource<TicketDetail, Ticket>({ key: 'tickets', path: '/api/v1/tickets' });
+/** Exported for QueuePage lists (floor My complaints). */
+export const tickets = defineResource<TicketDetail, Ticket>({
+  key: 'tickets',
+  path: '/api/v1/tickets',
+});
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
 const settings = defineResource({ key: 'settings', path: '/api/v1/settings' });

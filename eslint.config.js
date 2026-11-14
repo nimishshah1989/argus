@@ -120,6 +120,11 @@ export default tseslint.config(
               'aria-hidden',
               'path',
               'mode',
+              // The kit's Text: typed unions, never copy.
+              'as',
+              'size',
+              'tone',
+              'weight',
             ],
           },
           words: {

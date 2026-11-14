@@ -14,10 +14,10 @@ const GAP: Record<Space, string> = {
 };
 const COLUMNS = { 2: 'grid-cols-2', 3: 'grid-cols-3' };
 
-export function Page({ title, children }: { title: string; children?: ReactNode }) {
+export function Page({ title, children }: { title?: string; children?: ReactNode }) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-      <h1 className="text-title2 font-semibold">{title}</h1>
+      {title ? <h1 className="text-title2 font-semibold">{title}</h1> : null}
       {children}
     </main>
   );

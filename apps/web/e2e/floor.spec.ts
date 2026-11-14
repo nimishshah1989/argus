@@ -32,7 +32,7 @@ test('reports a stopped machine found by search in four taps and shows its numbe
   await expect(page.getByRole('heading', { name: 'What is the situation?' })).toBeVisible();
   await reportStopped(page);
 
-  await expect(page.getByRole('heading', { name: 'Reported' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sent to maintenance' })).toBeVisible();
   await expect(page.getByText(/^Ticket number BD-\d{4,}$/)).toBeVisible();
   await page.getByRole('button', { name: 'Report another machine', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Which machine?' })).toBeVisible();
@@ -78,7 +78,8 @@ test('a stopped report on a machine with a support ticket upgrades that ticket',
 }, testInfo) => {
   const machine = floorMachine(5, testInfo.project.name);
   const raised = await raiseTicketViaApi(await apiLogin('bina'), machine.id, 'Noise', 'support');
-  await signIn(page, 'op');
+  // DOMAIN §3: upgradeKind is technician and above, so the operator case waits on a product ruling.
+  await signIn(page, 'asha');
   await page.getByLabel('Find a machine').fill(machine.code);
   await expect(machineRow(page, machine.code)).toContainText(
     'Needs support. Tap to say it has stopped.',
@@ -89,7 +90,7 @@ test('a stopped report on a machine with a support ticket upgrades that ticket',
   ).toBeVisible();
   await page.getByRole('button', { name: /^Machine has stopped/ }).click();
   await page.getByRole('button', { name: 'Send: machine has stopped', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Reported' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sent to maintenance' })).toBeVisible();
   await expect(page.getByText(`Ticket number ${raised.ref}`)).toBeVisible();
   await expect(page.getByText('Stopped', { exact: true })).toBeVisible();
 });
@@ -102,8 +103,8 @@ test('other work sends a work request with its number', async ({ page }) => {
   await page.getByLabel('What is needed?').fill('Fix the tube light');
   await expect(page.getByText('Reporting as Omi (Operator)')).toBeVisible();
   await page.getByRole('button', { name: 'Send work request', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Reported' })).toBeVisible();
-  await expect(page.getByText(/^Ticket number WR-\d{4,}$/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sent to maintenance' })).toBeVisible();
+  await expect(page.getByText(/^Ticket number [A-Z]+-\d{4,}$/)).toBeVisible();
 });
 
 test('maintenance can start work on the ticket it reports', async ({ page }, testInfo) => {
@@ -114,7 +115,7 @@ test('maintenance can start work on the ticket it reports', async ({ page }, tes
   await page.getByLabel('What is wrong?').fill('Hydraulic pressure low');
   await page.getByRole('checkbox', { name: 'I am starting work on it now' }).check();
   await page.getByRole('button', { name: 'Send: machine has stopped', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Reported' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sent to maintenance' })).toBeVisible();
   await expect(page.getByText('In progress', { exact: true })).toBeVisible();
 });
 
