@@ -1,5 +1,6 @@
 import {
   LIST_NAMES,
+  LOCKOUT_FLAG_LISTS,
   glossaryCreateSchema,
   glossaryPatchSchema,
   listItemCreateSchema,
@@ -26,6 +27,7 @@ function listResource(list: ListName): Resource {
       isVendor: 'is_vendor',
       pausesSla: 'pauses_sla',
       tag: 'tag',
+      needsLockout: 'needs_lockout',
     },
     fixed: ['code'],
     create: listItemCreateSchema,
@@ -40,9 +42,17 @@ function listResource(list: ListName): Resource {
       isVendor: row.is_vendor,
       pausesSla: row.pauses_sla,
       tag: row.tag,
+      needsLockout: row.needs_lockout,
       active: row.active,
     }),
     switchTo: (active) => ({ active }),
+    check: async (_tx, merged) =>
+      merged.needsLockout === true && !(LOCKOUT_FLAG_LISTS as readonly string[]).includes(list)
+        ? {
+            field: 'needsLockout',
+            message: 'Only a work type or a breakdown category needs lockout',
+          }
+        : null,
   };
 }
 

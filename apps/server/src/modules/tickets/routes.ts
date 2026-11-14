@@ -30,6 +30,7 @@ import {
   saveCorrectedMachine,
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
+import { checkLockout, lockoutOf } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -51,6 +52,7 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   restore: shared.restoreTicketSchema,
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
+  'lockout-confirm': shared.lockoutConfirmSchema,
 };
 
 interface RaiseTx {
@@ -123,6 +125,8 @@ async function executeCommand(
 
   const unknown = await checkCorrectedRefs(client, tx, loaded);
   if (unknown) return unknown;
+  const lockout = await checkLockout(client, tx);
+  if (lockout) return lockout;
   const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
@@ -143,7 +147,13 @@ async function executeCommand(
 
   const outcome: Outcome = {
     status: 200,
-    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), ...parts } },
+    body: {
+      ticket: {
+        ...tm.ticketProjection(result.ticket, loaded.extras),
+        ...parts,
+        lockout: await lockoutOf(client, tx.tenantId, tx.ticketId),
+      },
+    },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;

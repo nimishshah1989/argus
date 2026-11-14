@@ -6,6 +6,8 @@ export {
   activeListItems,
   activeMachineByCode,
   listItem,
+  lockoutFlagged,
+  lockoutSteps,
   machineFamily,
   machinesByIds,
   productionDateAt,

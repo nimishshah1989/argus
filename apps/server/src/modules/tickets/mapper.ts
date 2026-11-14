@@ -228,6 +228,7 @@ const WORK_GATED = new Set<CommandAction>([
   'update',
   'machine-running',
   'machine-stopped',
+  'lockout-confirm',
 ]);
 
 export function gatePermission(
@@ -327,6 +328,12 @@ const BUILDERS: Record<CommandAction, Builder> = {
     };
   },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
+  // `steps` is filled in by `checkLockout` from the plant's own wording
+  'lockout-confirm': (body, personId) => ({
+    type: 'confirmLockout',
+    personId,
+    steps: body.steps as string[],
+  }),
 };
 
 export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {

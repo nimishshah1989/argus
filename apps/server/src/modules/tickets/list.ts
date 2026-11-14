@@ -8,6 +8,7 @@ import { requireAuth } from '../identity/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
+import { lockoutOf } from './lockout.js';
 import {
   needReportRows,
   segmentRowsFor,
@@ -188,12 +189,13 @@ export async function detail(
     const segments = await sql.loadSegments(client, ticketId);
     const crew = await sql.loadCrew(client, ticketId);
     ticket.figures = detailFigures(row as Record<string, unknown>, ticket, events, segments);
+    const projected = (
+      await withTicketParts(client, ctx.tenantId, [row], () =>
+        tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
+      )
+    )[0];
     return {
-      ticket: (
-        await withTicketParts(client, ctx.tenantId, [row], () =>
-          tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
-        )
-      )[0],
+      ticket: { ...projected, lockout: await lockoutOf(client, ctx.tenantId, ticketId) },
       events: events.map((event) => ({
         seq: event.seq,
         type: event.type,
