@@ -107,6 +107,30 @@ export const MACHINES: MachineFixture[] = [
   },
 ];
 
+/** The floor spec's own group (ticket 15): one machine per spec slot per project, so nothing else raises on them. */
+export const FLOOR_GROUP = {
+  id: scopedId('10000000-0000-0000-0000-000000000018'),
+  code: 'FL',
+  name: 'Floor line',
+} as const;
+const FLOOR_SLOTS = 8;
+const PROJECTS = ['chromium', 'phone', 'gujarati'];
+
+const FLOOR_MACHINES: MachineFixture[] = Array.from({ length: FLOOR_SLOTS * 3 }, (_, i) => ({
+  id: scopedId(`10000000-0000-0000-0001-${String(i).padStart(12, '0')}`),
+  code: `FL-1${Math.floor(i / 3) + 1}${i % 3}`,
+  category: 'VMC',
+  cell: 'Cell-6',
+}));
+
+/** FL-<slot><project>, e.g. FL-110 is slot 1 for chromium; each code is unique under a search. */
+export function floorMachine(slot: number, projectName: string): MachineFixture {
+  const code = `FL-1${slot}${Math.max(0, PROJECTS.indexOf(projectName))}`;
+  const machine = FLOOR_MACHINES.find((m) => m.code === code);
+  if (!machine) throw new Error(`No floor machine ${code}`);
+  return machine;
+}
+
 const PEOPLE = [
   {
     id: scopedId('10000000-0000-0000-0000-000000000009'),
@@ -214,6 +238,22 @@ export function seedStatements(
       text: 'INSERT INTO machine (id, tenant_id, code, segment_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6)',
       values: [machine.id, TENANT.id, machine.code, SEGMENT.id, machine.category, machine.cell],
     })),
+    {
+      text: 'INSERT INTO machine_group (id, tenant_id, segment_id, code, name) VALUES ($1, $2, $3, $4, $5)',
+      values: [FLOOR_GROUP.id, TENANT.id, SEGMENT.id, FLOOR_GROUP.code, FLOOR_GROUP.name],
+    },
+    ...FLOOR_MACHINES.map((machine) => ({
+      text: 'INSERT INTO machine (id, tenant_id, code, segment_id, group_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      values: [
+        machine.id,
+        TENANT.id,
+        machine.code,
+        SEGMENT.id,
+        FLOOR_GROUP.id,
+        machine.category,
+        machine.cell,
+      ],
+    })),
     ...PEOPLE.map((person) => ({
       text: 'INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $2, $3, $4, $5)',
       values: [person.id, TENANT.id, person.name, person.team, person.title],
@@ -314,6 +354,7 @@ export async function raiseTicketViaApi(
   token: string,
   machineId: string | null,
   problem: string,
+  kind: 'stopped' | 'support' = 'stopped',
 ): Promise<RaisedTicket> {
   const body = await apiJson<{ ticket: RaisedTicket }>('/api/v1/tickets', {
     method: 'POST',
@@ -324,7 +365,7 @@ export async function raiseTicketViaApi(
     },
     body: JSON.stringify(
       machineId
-        ? { machineId, problem }
+        ? { kind, machineId, problem }
         : { kind: 'general', location: 'Workshop', workType: 'Tag test', problem },
     ),
   });
