@@ -249,6 +249,8 @@ async function validateRaisePeople(
   ) {
     return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'startByPersonId') };
   }
+  // Starting at the raise names a person who starts; a flagged work type is held open for its lockout instead.
+  await holdStartForLockout(client, tx);
   return { reportedByPersonId };
 }
 
@@ -268,30 +270,25 @@ async function executeRaise(
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
-  await holdStartForLockout(client, tx);
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
   // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
+  const criticality = machine.criticality as domain.Criticality | null;
   const raised = buildRaised({
     ref,
     body: tx.body,
     loginId: tx.auth.loginId,
     reportedByPersonId: people.reportedByPersonId,
     now,
-    criticality: machine.criticality as domain.Criticality | null,
+    criticality,
     severityMatrix,
   });
   raised.ticket.figures = tm.recomputeFigures(raised.ticket, raised.events, raised.segments, {
     overrides: {},
     now,
   });
-  const extras = buildRaiseExtras(
-    machine.snapshot,
-    tx.body,
-    machine.criticality as domain.Criticality | null,
-    severityMatrix,
-  );
+  const extras = buildRaiseExtras(machine.snapshot, tx.body, criticality, severityMatrix);
   await sql.insertTicket(client, tx.tenantId, raised.ticket, extras);
   await sql.persistEvents(client, tx.tenantId, raised.ticket.id, {
     events: raised.events,
