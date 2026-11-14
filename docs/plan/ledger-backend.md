@@ -41,3 +41,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - Ruling: queue order is now A (M1 leftovers) -> B (M2 server) -> M6 part 1 -> C (M4a engine). Audit finding 11 becomes
   "do not start the ai.suggest poll until a feature is registered" (keep the module; M6 needs it), not "delete". Why:
   Nimish wants diagnosis right after cutover. Cost if wrong: M4a server work starts later.
+- 2026-11-14 05:04 UTC — RULINGS (Nimish via FRONTEND, 14 Nov): (1) REAL DATA: build and test on Cosmos's real plant
+  data (192 machines, groups, faults, 275 real tickets and timings); only names and phones stay coded in anything
+  committed (Nimish may override). 56's evaluation harness runs on Cosmos's real tickets, names/phones redacted per
+  D22. Staging is the real-data copy once Cosmos is loaded; destructive tests only on a restored snapshot.
+  (2) EFFICIENCY: no redundant pushes, batch fixes, affected tests locally, ONE adversarial reviewer unless the ticket
+  is a migration or auth-critical (then two). Applied: 21 (auth) keeps two reviewers, 22 gets one; both builders told.
+  My ledger pushes batched with real events from now on.
