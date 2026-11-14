@@ -1,11 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { gu } from '@uptimo/shared/i18n';
+import { afterEach, describe, expect, it } from 'vitest';
 import i18n, { setLanguage } from './index.js';
 
 describe('i18n catalogue', () => {
+  afterEach(() => setLanguage('en'));
+
   it('falls back to English for an untranslated gu key', async () => {
+    i18n.addResourceBundle('en', 'probe', { 'probe.title': 'Probe in English' });
+    i18n.addResourceBundle('gu', 'probe', { 'probe.title': '' });
     await setLanguage('gu');
-    expect(i18n.t('floor.title')).toBe('Report a problem');
-    await setLanguage('en');
-    expect(i18n.t('floor.title')).toBe('Report a problem');
+    expect(i18n.t('probe.title', { ns: 'probe' })).toBe('Probe in English');
+  });
+
+  it('shows Gujarati to a gu tenant for a translated key', async () => {
+    await setLanguage('gu');
+    const shown = i18n.t('floor.title');
+    expect(shown).toBe(gu['floor.title']);
+    expect(shown).not.toBe('Report a problem');
   });
 });
