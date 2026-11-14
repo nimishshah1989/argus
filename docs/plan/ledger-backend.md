@@ -87,3 +87,17 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   by FRONTEND for 23 (function-only) and relayed. Rule: backend PRs stay DRAFT until the review passes (Nimish has
   merged before reviews finished). 20 goal 1 complete on main (#191 + #200, FRONTEND). Its builder
   session_01KEBF29QyDatvrERY9YAqZk handed to me; held on stand-by (read-only prep for 29) to keep the 2-builder cap.
+- 2026-11-14 05:35 UTC — 21 goal 1 merged as #199 by Nimish at 05:30 (head aa54f05) before the reviews finished; 8/9
+  green, api 1/3 still running. Reviews: auth/tenancy PASS with MEDIUMs (admin re-check after lock, session
+  resurrection race, must_change_password unenforced, push subscribe race); data/privacy FAIL (HIGH: CrudPage contract
+  mismatch; HIGH: switching off a person on an active ticket leaves them on the crew with an open work stretch;
+  MEDIUM: shared phone signed out when its acting person is switched off, shared admin login unaccountable; LOW:
+  password trim/Indian patterns, THIRD_PARTY row, phoneChanged). Held: phones never reach non-admins, E.164, no hard
+  delete, one audit row per change in the same transaction, no test weakened, host rule correct.
+- Rulings: (1) switch-off of a person on an active ticket = 409 "transfer or close first" (rewrites no history);
+  transfer/pause targets must be active. (2) Shared phone keeps its session and push registration, forgets the acting
+  person (D24/0009 precedent). (3) Shared login cannot hold admin (default for Nimish). (4) must_change_password
+  enforced server-side behind `features.enforcePasswordChange`, default OFF until FRONTEND ships the change-password
+  step (else seeded Cosmos logins are locked out). Cost if wrong: temporary passwords stay usable until then.
+  (5) Validation = 422 everywhere. All sent to builder 21 as one follow-up PR (claude/t21-followup), draft until my
+  re-check.
