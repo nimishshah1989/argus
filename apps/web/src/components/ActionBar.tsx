@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ActionCrewMember, ActorContext } from '@uptimo/domain';
@@ -9,12 +8,12 @@ import { SectionTitle } from '../ui/detail-kit.js';
 import { Grid, Stack } from '../ui/layout.js';
 import { actionSpecs, type ActionSpec } from './actionSpecs.js';
 import { ActionForm } from './ActionForm.js';
+import { DoneSheet, NoReportSheet } from './closeSheets.js';
 
 const FORM_ACTIONS = new Set<CommandAction>([
   'pause',
   'update',
   'transfer',
-  'close',
   'cancel',
   'join',
   'leave',
@@ -29,6 +28,8 @@ interface Props {
   error: string | null;
   pending: boolean;
   onRun: (action: CommandAction, body: CommandBody) => Promise<boolean>;
+  /** Write report and close opens the two full screens, which the detail screen owns. */
+  onWriteReport: () => void;
 }
 
 function variantOf(spec: ActionSpec) {
@@ -48,14 +49,16 @@ function rowsOf(specs: ActionSpec[]): ActionSpec[][] {
 }
 
 /** Only the actions the server will accept for this actor (domain `availableActions`); the first is primary. */
-export function ActionBar({ ticket, config, personId, actor, crew, error, pending, onRun }: Props) {
+export function ActionBar(props: Props) {
+  const { ticket, config, personId, actor, crew, error, pending, onRun } = props;
   const { t } = useTranslation();
   const [open, setOpen] = useState<ActionSpec | null>(null);
   const specs = actionSpecs(ticket, crew, actor);
   if (specs.length === 0) return null;
 
   function choose(spec: ActionSpec) {
-    if (FORM_ACTIONS.has(spec.action)) setOpen(spec);
+    if (spec.preset === 'report') props.onWriteReport();
+    else if (spec.action === 'close' || FORM_ACTIONS.has(spec.action)) setOpen(spec);
     else void onRun(spec.action, { personId });
   }
 
@@ -83,12 +86,12 @@ export function ActionBar({ ticket, config, personId, actor, crew, error, pendin
             </Grid>
           ),
         )}
-        {open && (
+        {open?.preset === 'no_report' && <NoReportSheet {...props} onClose={() => setOpen(null)} />}
+        {open?.preset === 'done' && <DoneSheet {...props} onClose={() => setOpen(null)} />}
+        {open && open.action !== 'close' && (
           <ActionForm
             action={open.action}
-            preset={open.preset}
             personId={personId}
-            kind={ticket.kind}
             config={config}
             pending={pending}
             onRun={onRun}

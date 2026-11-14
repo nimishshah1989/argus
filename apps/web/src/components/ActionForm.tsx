@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '../ui/button.js';
-import type { CloseKind, CommandAction, CommandBody, Config, RaiseKind } from '../api.js';
+import type { CommandAction, CommandBody, Config } from '../api.js';
 
 interface FieldSpec {
   name: string;
@@ -16,18 +16,6 @@ interface FieldSpec {
 
 const inputClass =
   'mt-2 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
-
-const CLOSE_OPTION_KEYS: Record<RaiseKind, { value: string; key: string }[]> = {
-  stopped: [
-    { value: 'report', key: 'close.report' },
-    { value: 'no_report', key: 'close.noReport' },
-  ],
-  support: [
-    { value: 'report', key: 'close.report' },
-    { value: 'no_report', key: 'close.noReport' },
-  ],
-  general: [{ value: 'done', key: 'close.done' }],
-};
 
 function listOptions(config: Config, list: string): { value: string; label: string }[] {
   return (config.lists[list] ?? [])
@@ -43,7 +31,6 @@ function peopleOptions(config: Config, personId: string): { value: string; label
 
 interface FieldDeps {
   action: CommandAction;
-  kind: RaiseKind;
   config: Config;
   personId: string;
 }
@@ -70,7 +57,7 @@ function rosterFields(t: TFunction, action: CommandAction): FieldSpec[] | null {
 }
 
 function fieldsFor(t: TFunction, deps: FieldDeps): FieldSpec[] {
-  const { action, kind, config, personId } = deps;
+  const { action, config, personId } = deps;
   const roster = rosterFields(t, action);
   if (roster) return roster;
   if (action === 'pause') {
@@ -99,18 +86,6 @@ function fieldsFor(t: TFunction, deps: FieldDeps): FieldSpec[] {
       },
     ];
   }
-  if (action === 'close') {
-    return [
-      {
-        name: 'kind',
-        label: t('action.howClosing'),
-        type: 'select',
-        required: true,
-        options: CLOSE_OPTION_KEYS[kind].map((option) => ({ ...option, label: t(option.key) })),
-      },
-      { name: 'note', label: t('action.note'), type: 'textarea', hint: t('action.noteRequired') },
-    ];
-  }
   if (action === 'cancel') {
     return [{ name: 'reason', label: t('action.whyCancel'), type: 'textarea', required: true }];
   }
@@ -135,11 +110,6 @@ const BODY_BUILDERS: Partial<Record<CommandAction, BodyBuilder>> = {
     if (!values.note) return null;
     const target = values.toPersonId ? { toPersonId: values.toPersonId } : {};
     return { personId, note: values.note, ...target };
-  },
-  close: (personId, values) => {
-    if (!values.kind) return null;
-    if (values.kind === 'no_report' && !values.note) return null;
-    return { personId, kind: values.kind as CloseKind, ...noteOf(values) };
   },
   cancel: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
   join: (personId, values) =>
@@ -223,10 +193,7 @@ function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
 
 interface Props {
   action: CommandAction;
-  /** Close only: the way of closing the form starts on. */
-  preset?: CloseKind;
   personId: string;
-  kind: RaiseKind;
   config: Config;
   pending: boolean;
   onRun: (action: CommandAction, body: CommandBody) => Promise<boolean>;
@@ -239,7 +206,6 @@ const TITLE_KEYS: Record<string, string> = {
   pause: 'action.pause.title',
   update: 'action.update.title',
   transfer: 'action.transfer.title',
-  close: 'action.close.title',
   cancel: 'action.cancel.title',
 };
 
@@ -249,29 +215,18 @@ const SUBMIT_KEYS: Record<string, string> = {
   pause: 'action.pause.submit',
   update: 'action.update.submit',
   transfer: 'action.transfer.submit',
-  close: 'action.close.submit',
   cancel: 'action.cancel.submit',
 };
 
-/** Join defaults to support, a close starts on the way its button named; every other form starts empty. */
-function initialValues(action: CommandAction, preset?: CloseKind): Record<string, string> {
-  if (action === 'join') return { role: 'support' };
-  return action === 'close' && preset ? { kind: preset } : {};
+/** Join defaults to support; every other form starts empty. */
+function initialValues(action: CommandAction): Record<string, string> {
+  return action === 'join' ? { role: 'support' } : {};
 }
 
-export function ActionForm({
-  action,
-  preset,
-  personId,
-  kind,
-  config,
-  pending,
-  onRun,
-  onDone,
-}: Props) {
+export function ActionForm({ action, personId, config, pending, onRun, onDone }: Props) {
   const { t } = useTranslation();
-  const [values, setValues] = useState<Record<string, string>>(() => initialValues(action, preset));
-  const fields = fieldsFor(t, { action, kind, config, personId });
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(action));
+  const fields = fieldsFor(t, { action, config, personId });
   const body = buildBody(action, personId, trimmed(values));
   const title = t(TITLE_KEYS[action] ?? action);
   const submitLabel = t(SUBMIT_KEYS[action] ?? action);

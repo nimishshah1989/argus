@@ -12,6 +12,7 @@ const SECTIONS = [
   'desk',
   'detail-kit',
   'floor',
+  'closes',
 ] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 

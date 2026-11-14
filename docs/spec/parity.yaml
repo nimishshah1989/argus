@@ -657,6 +657,8 @@ rows:
         detail'
       - 'apps/server/test/ticket-report.test.ts :: applies defaults when report fields are omitted'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/web/e2e/closes.spec.ts :: writes the report and closes: finish time, then the breakdown report'
+      - 'apps/web/e2e/closes.spec.ts :: closes without a report, then fills the report later'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.02
     feature: 'Breakdown PDF: title, QR for the platform, fields, ticket facts block, timeline page,

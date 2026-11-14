@@ -4,7 +4,7 @@ name: pr-meta
 # their own workflow: a re-run of ci.yml on a body edit must never replace a red api or browser result.
 on:
   pull_request:
-    types: [opened, edited, labeled, unlabeled, synchronize, reopened]
+    types: [opened, edited, labeled, unlabeled, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   pr-meta:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
