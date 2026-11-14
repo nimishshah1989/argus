@@ -258,7 +258,9 @@ describe('ai suggest job', () => {
       await db.admin.query(`DELETE FROM setting WHERE key = 'ai.consent'`);
       if (value !== undefined) await setSetting('ai.consent', value);
       const fake = createFakeProvider();
-      const rt = runtime(fake, { config: { ...baseConfig, production: true, residencyRecord: 'record-1' } });
+      const rt = runtime(fake, {
+        config: { ...baseConfig, production: true, residencyRecord: 'record-1' },
+      });
       expect(await runSuggest(payload(await makeTicket()), rt)).toBe('no_consent');
       expect(fake.calls).toHaveLength(0);
     }

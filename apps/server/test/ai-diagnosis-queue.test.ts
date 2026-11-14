@@ -62,11 +62,10 @@ beforeAll(async () => {
      SELECT m, $2, 'DQ-' || n, $3, 'VMC', 'Cell-1' FROM unnest($1::uuid[]) WITH ORDINALITY AS u(m, n)`,
     [MACHINES, A, id(0x20)],
   );
-  await db.admin.query('INSERT INTO person (id, tenant_id, name, active) VALUES ($1, $2, $3, true)', [
-    id(0x10),
-    A,
-    'Opera Testperson',
-  ]);
+  await db.admin.query(
+    'INSERT INTO person (id, tenant_id, name, active) VALUES ($1, $2, $3, true)',
+    [id(0x10), A, 'Opera Testperson'],
+  );
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2,
     memoryCost: 19456,
