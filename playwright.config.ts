@@ -38,12 +38,13 @@ export default defineConfig<object, { uiLanguage: 'en' | 'gu' }>({
       use: { ...devices['Pixel 5'] },
       testIgnore: ['**/gallery/**', '**/actions.spec.ts'],
     },
-    // Journeys with the tenant language set to Gujarati; empty gu values fall back to English
-    // until ticket 24, so this proves the seed, the config and no regressions, not a translation.
+    // The tenant language is Gujarati. The floor journey (ticket 24 goal 2) and the language check run here.
+    // The other journeys still locate English strings and run on chromium and phone until they move to the
+    // `t` fixture (follow-up).
     {
       name: 'gujarati',
       use: { ...devices['Pixel 5'], uiLanguage: 'gu' },
-      testIgnore: ['**/gallery/**', '**/actions.spec.ts'],
+      testMatch: ['**/i18n.spec.ts', '**/floor.spec.ts'],
     },
   ],
 });
