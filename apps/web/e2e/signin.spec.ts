@@ -1,5 +1,5 @@
 import { expect, test } from './test.js';
-import { E2E_PASSWORD } from './fixtures.js';
+import { E2E_PASSWORD, apiLogin } from './fixtures.js';
 
 /** Ticket 21 goal 2 (v3.signin.01, .05): the sign-in screen of slice 3 board T1. */
 const username = (page: import('@playwright/test').Page) =>
@@ -47,4 +47,30 @@ test('a session the server no longer accepts signs the phone out with a message'
   await expect(page.getByRole('status').filter({ hasText: 'You were signed out' })).toContainText(
     'Your session has ended. Sign in again.',
   );
+});
+
+test('a mistyped sign-in on a phone with a saved session says Sign-in failed, not signed out', async ({
+  page,
+}) => {
+  const saved = await apiLogin('asha');
+  await page.addInitScript((value) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('uptimo_token', value);
+  }, saved);
+  await page.goto('/login');
+  await username(page).fill('op');
+  await password(page).fill('not-the-password');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Sign-in failed');
+  await expect(page).not.toHaveURL(/signedOut/);
+  await expect(page.getByText('You were signed out')).toHaveCount(0);
+});
+
+test('Enter on the phone keyboard signs in', async ({ page }) => {
+  await page.goto('/login');
+  await username(page).fill('op');
+  await password(page).fill(E2E_PASSWORD);
+  await password(page).press('Enter');
+  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
 });
