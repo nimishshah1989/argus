@@ -36,6 +36,14 @@ async function devices(token: string, send = t.call): Promise<Device[]> {
 
 const me = (token: string, send = t.call) => send('GET', '/api/v1/auth/me', token);
 
+/** A DELETE has no body, so it carries no content type, as the app's other deletes do. */
+const del = (url: string, token?: string, host = 'cosmos.localhost') =>
+  t.app.inject({
+    method: 'DELETE',
+    url,
+    headers: { host, ...(token ? { authorization: `Bearer ${token}` } : {}) },
+  });
+
 async function deviceLabelled(token: string, label: string, send = t.call): Promise<Device> {
   const found = (await devices(token, send)).find((d) => d.device === label);
   expect(found, `a device called ${label}`).toBeDefined();
@@ -88,15 +96,13 @@ describe('my devices', () => {
     const listed = await t.call('GET', LIST, token);
     expect(listed.body).not.toContain(token);
     const mine = (await devices(token))[0] as Device;
-    const ended = await t.call('DELETE', end(mine.id), token);
+    const ended = await del(end(mine.id), token);
     expect(ended.body).not.toContain(token);
   });
 
   it('answers 401 to a missing or unknown sign-in', async () => {
     expect((await t.call('GET', LIST)).statusCode).toBe(401);
-    expect((await t.call('DELETE', end('10000000-0000-4000-8000-000000000001'))).statusCode).toBe(
-      401,
-    );
+    expect((await del(end('10000000-0000-4000-8000-000000000001'))).statusCode).toBe(401);
     expect((await t.call('GET', LIST, 'not-a-token')).statusCode).toBe(401);
   });
 
@@ -113,7 +119,7 @@ describe('signing a device out', () => {
     const lost = await signInOn('technician', 'Lost phone');
     expect((await me(lost)).statusCode).toBe(200);
     const target = await deviceLabelled(mine, 'Lost phone');
-    const res = await t.call('DELETE', end(target.id), mine);
+    const res = await del(end(target.id), mine);
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ ok: true });
     expect((await me(lost)).statusCode).toBe(401);
@@ -124,7 +130,7 @@ describe('signing a device out', () => {
   it('can end the device I am using, and its next call answers 401', async () => {
     const mine = await signInOn('plant_head', 'Only phone');
     const self = (await devices(mine)).find((d) => d.current) as Device;
-    expect((await t.call('DELETE', end(self.id), mine)).statusCode).toBe(200);
+    expect((await del(end(self.id), mine)).statusCode).toBe(200);
     expect((await me(mine)).statusCode).toBe(401);
     expect((await t.call('GET', LIST, mine)).statusCode).toBe(401);
   });
@@ -133,13 +139,13 @@ describe('signing a device out', () => {
     const mine = await signInOn('board', 'Boardroom');
     const spare = await signInOn('board', 'Spare');
     const target = await deviceLabelled(mine, 'Spare');
-    expect((await t.call('DELETE', end(target.id), mine)).statusCode).toBe(200);
-    const again = await t.call('DELETE', end(target.id), mine);
+    expect((await del(end(target.id), mine)).statusCode).toBe(200);
+    const again = await del(end(target.id), mine);
     expect(again.statusCode).toBe(404);
     expect(again.json().error.code).toBe('not_found');
     expect((await me(spare)).statusCode).toBe(401);
     for (const id of ['not-an-id', '12345', '10000000-0000-4000-8000-00000000ffff'])
-      expect((await t.call('DELETE', end(id), mine)).statusCode, id).toBe(404);
+      expect((await del(end(id), mine)).statusCode, id).toBe(404);
     expect((await me(mine)).statusCode).toBe(200);
   });
 
@@ -153,12 +159,12 @@ describe('signing a device out', () => {
       [forgotten.id],
     );
     const signedOut = await deviceLabelled(mine, 'Signed out phone');
-    await t.call('DELETE', end(signedOut.id), mine);
+    await del(end(signedOut.id), mine);
     const names = (await devices(mine)).map((d) => d.device);
     expect(names).not.toContain('Forgotten phone');
     expect(names).not.toContain('Signed out phone');
     expect(names).toContain('Current one');
-    expect((await t.call('DELETE', end(forgotten.id), mine)).statusCode).toBe(404);
+    expect((await del(end(forgotten.id), mine)).statusCode).toBe(404);
   });
 });
 
@@ -168,7 +174,7 @@ describe('whose devices I can see', () => {
     const colleague = await signInOn('head', 'Head phone');
     const target = await deviceLabelled(mine, 'Supervisor phone');
     expect((await devices(colleague)).map((d) => d.id)).not.toContain(target.id);
-    const res = await t.call('DELETE', end(target.id), colleague);
+    const res = await del(end(target.id), colleague);
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe('not_found');
     expect((await me(mine)).statusCode).toBe(200);
@@ -182,8 +188,8 @@ describe('whose devices I can see', () => {
     const otherTarget = await deviceLabelled(other, 'Other plant phone', t.callB);
     expect((await devices(other, t.callB)).map((d) => d.id)).not.toContain(mineTarget.id);
     expect((await devices(mine)).map((d) => d.id)).not.toContain(otherTarget.id);
-    expect((await t.callB('DELETE', end(mineTarget.id), other)).statusCode).toBe(404);
-    expect((await t.call('DELETE', end(otherTarget.id), mine)).statusCode).toBe(404);
+    expect((await del(end(mineTarget.id), other, B_HOST)).statusCode).toBe(404);
+    expect((await del(end(otherTarget.id), mine)).statusCode).toBe(404);
     expect((await me(mine)).statusCode).toBe(200);
     expect((await me(other, t.callB)).statusCode).toBe(200);
     expect((await t.call('GET', LIST, other)).statusCode).toBe(401);
@@ -206,10 +212,10 @@ describe('a shared login', () => {
     const list = await t.call('GET', LIST, shared);
     expect(list.statusCode).toBe(403);
     expect(list.json().error.code).toBe('forbidden');
-    const gone = await t.call('DELETE', end('10000000-0000-4000-8000-000000000001'), shared);
+    const gone = await del(end('10000000-0000-4000-8000-000000000001'), shared);
     expect(gone.statusCode).toBe(403);
     expect(gone.json().error.code).toBe('forbidden');
-    expect((await t.call('POST', '/api/v1/auth/logout', shared)).statusCode).toBe(200);
+    expect((await t.call('POST', '/api/v1/auth/logout', shared, {})).statusCode).toBe(200);
     expect((await me(shared)).statusCode).toBe(401);
   });
 });
