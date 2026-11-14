@@ -8,7 +8,7 @@ const A = '10000000-0000-0000-0000-000000000001';
 const B = '20000000-0000-0000-0000-000000000001';
 const FUNCTIONS = [
   'import_undo(uuid,uuid,text)',
-  'erase_person(uuid,uuid,text,text)',
+  'erase_person(uuid,uuid,text,text,text,text)',
   'offboard_tenant(uuid,text,text,text)',
   'audit_purge(timestamptz,text)',
   'erase_json_values(jsonb,text)',
@@ -32,15 +32,26 @@ async function asRouter<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-const erase = (tenantId: string, person: string, ref: string, operator = 'agent-test') =>
+/** The server makes this keyed hash; the function only stores it, so any 64 hex characters stand in for it. */
+const TEST_HASH = 'ab'.repeat(32);
+const TEST_NAME_HASH = 'cd'.repeat(32);
+
+const erase = (
+  tenantId: string,
+  person: string,
+  ref: string,
+  extra: { operator?: string; full?: string | null; name?: string | null } = {},
+) =>
   asRouter(
     async () =>
       (
-        await db.query('SELECT erase_person($1, $2, $3, $4) AS r', [
+        await db.query('SELECT erase_person($1, $2, $3, $4, $5, $6) AS r', [
           tenantId,
           person,
           ref,
-          operator,
+          extra.operator ?? 'agent-test',
+          extra.full === undefined ? TEST_HASH : extra.full,
+          extra.name === undefined ? TEST_NAME_HASH : extra.name,
         ])
       ).rows[0].r,
   );
@@ -276,6 +287,30 @@ describe('import_undo', () => {
 });
 
 describe('erase_person', () => {
+  it('refuses an erasure with no valid hash and changes nothing, then stores the hash on the person', async () => {
+    const T = '40000000-0000-0000-0000-0000000000a1';
+    await tenant(T, 'erasure-hash');
+    const leaver = await person(T, 'Hashed Leaver');
+    for (const bad of [null, '', 'not-hex', 'AB'.repeat(32), 'ab'.repeat(31)]) {
+      await expect(erase(T, leaver, 'REQ-H0', { full: bad })).rejects.toThrow(/erasure hash/);
+      await expect(erase(T, leaver, 'REQ-H0', { name: bad })).rejects.toThrow(/erasure hash/);
+    }
+    const before = (await db.query('SELECT name, erasure_hash FROM person WHERE id = $1', [leaver]))
+      .rows[0];
+    expect(before).toEqual({ name: 'Hashed Leaver', erasure_hash: null });
+    const counts = await erase(T, leaver, 'REQ-H1');
+    expect(JSON.stringify(counts)).not.toContain(TEST_HASH);
+    const after = (await db.query('SELECT name, erasure_hash FROM person WHERE id = $1', [leaver]))
+      .rows[0];
+    expect(after).toEqual({ name: 'Former staff', erasure_hash: TEST_HASH });
+    const audit = await db.query(
+      "SELECT after::text AS a FROM audit_log WHERE entity_id = $1 AND action = 'person.erase'",
+      [leaver],
+    );
+    expect(audit.rows[0].a).not.toContain(TEST_HASH);
+    expect(audit.rows[0].a).not.toContain(TEST_NAME_HASH);
+  });
+
   it("leaves the leaver's name in no DATA-MAP §5 place and writes one count-only audit row", async () => {
     const T = '40000000-0000-0000-0000-000000000001';
     await tenant(T, 'erasure');
@@ -484,7 +519,7 @@ describe('erase_person', () => {
     await tenant(T, 'refusals');
     const leaver = await person(T, 'Testa Leaver', { short: 'Testa' });
     await expect(erase(T, leaver, ' ')).rejects.toThrow(/required/);
-    await expect(erase(T, leaver, 'REQ-2', ' ')).rejects.toThrow(/required/);
+    await expect(erase(T, leaver, 'REQ-2', { operator: ' ' })).rejects.toThrow(/required/);
     await expect(erase(T, leaver, 'REQ for Testa Leaver')).rejects.toThrow(
       /must not hold the name/,
     );

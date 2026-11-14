@@ -10,7 +10,7 @@ notification opens the ticket.
 ## Server contract
 
 - `GET /api/v1/push/key` → `{ publicKey }` (the VAPID public key from the environment).
-- `POST /api/v1/push/subscribe` `{ subscription, actingPersonId }` → upsert a `push_subscription`
+- `POST /api/v1/push/subscribe` `{ subscription, actingPersonId? }` (the session's person when left out; naming another is 403) → upsert a `push_subscription`
   row for the current login + acting person (the table already exists).
 - `POST /api/v1/push/unsubscribe` `{ endpoint }` → remove the subscription.
 - `POST /api/v1/push/test` → send one test push to the caller's subscriptions.

@@ -3,12 +3,13 @@ import type { PgBoss } from 'pg-boss';
 import {
   chainAcknowledged,
   CLOCK_TRIGGER,
+  reopenEpisode,
   repeatAfterMinutes,
   severityAtLeast,
   type EscalationTrigger,
 } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { jobDb } from '../../kernel/index.js';
+import { jobDb, type TicketWrite } from '../../kernel/index.js';
 import { peopleWithRole, tenantInfo } from '../identity/index.js';
 import { shiftNowAt } from '../plant/index.js';
 import { notify } from '../notifications/index.js';
@@ -36,6 +37,9 @@ const CLOCK_OF: Partial<Record<EscalationTrigger, SlaTimerKind>> = {
   pause_overrun: 'pause',
   handback_unanswered: 'handback',
 };
+
+/** Triggers raised by something that happened to the ticket, not by a clock. */
+const EVENT_TRIGGERS: readonly EscalationTrigger[] = ['critical_still_down', 'reopened_twice'];
 
 /**
  * One step of one rule on one ticket. `episode` names the run (the moment the clock breached, or the moment the
@@ -106,14 +110,25 @@ async function recipients(
 
 type Holds = 'yes' | 'paused' | 'no';
 
+/** Not a clock: it holds while the ticket is back at work from this very dispute. */
+function reopenHolds(
+  facts: DownFacts,
+  events: readonly { type: string; at: Date }[],
+  episode: number,
+): Holds {
+  return ACTIVE.includes(facts.status) && reopenEpisode(events) === episode ? 'yes' : 'no';
+}
+
 /** Whether the condition the rule answers is still true: a clock still going (or paused), a machine still down. */
 async function conditionHolds(
   client: PoolClient,
   job: EscalationJob,
   rule: RuleRow,
-  facts: DownFacts,
+  seen: { facts: DownFacts; events: readonly { type: string; at: Date }[] },
 ): Promise<Holds> {
+  const { facts, events } = seen;
   if (!severityAtLeast(facts.severity, rule.severity_min)) return 'no';
+  if (job.trigger === 'reopened_twice') return reopenHolds(facts, events, job.episode);
   if (job.trigger === 'critical_still_down') {
     const down =
       facts.kind === 'stopped' &&
@@ -148,9 +163,9 @@ async function stepGate(
   if (await escalationStepDone(client, job.ticketId, stepKey(job))) return null;
   const facts = await ticketDownFacts(client, job.tenantId, job.ticketId);
   if (!facts) return null;
-  const holds = await conditionHolds(client, job, rule, facts);
-  if (holds === 'no') return null;
   const events = await loadEvents(client, job.ticketId);
+  const holds = await conditionHolds(client, job, rule, { facts, events });
+  if (holds === 'no') return null;
   return chainAcknowledged(events, job.ruleId, job.episode) ? null : { rule, holds };
 }
 
@@ -227,6 +242,40 @@ async function sendStep(
   return true;
 }
 
+/** Starts one chain per switched-on rule for `trigger` that covers the ticket's severity; a step due now goes out now. */
+async function startChains(
+  client: PoolClient,
+  boss: PgBoss | null,
+  input: {
+    tenantId: string;
+    ticketId: string;
+    trigger: EscalationTrigger;
+    episode: number;
+    now: Date;
+  },
+): Promise<void> {
+  const { tenantId, ticketId, trigger, episode, now } = input;
+  if (!(await plantHasPolicies(client))) return;
+  await ensureEscalationDefaults(client, { tenantId, loginId: null });
+  const facts = await ticketDownFacts(client, tenantId, ticketId);
+  if (!facts) return;
+  for (const rule of await activeRulesFor(client, trigger)) {
+    if (!severityAtLeast(facts.severity, rule.severity_min)) continue;
+    const dueAt = episode + rule.delay_minutes * MINUTE_MS;
+    const job: EscalationJob = {
+      tenantId,
+      ticketId,
+      ruleId: rule.id,
+      trigger,
+      episode,
+      attempt: 1,
+      dueAt,
+    };
+    if (dueAt <= now.getTime()) await runEscalationStep(client, boss, job, now);
+    else if (boss) await schedule(client, boss, job);
+  }
+}
+
 /** Starts the chains of a clock that just breached: each switched-on rule for it that covers the ticket's severity. */
 export async function startClockEscalation(
   client: PoolClient,
@@ -234,26 +283,37 @@ export async function startClockEscalation(
   input: { tenantId: string; ticketId: string; kind: SlaTimerKind; firedAt: Date },
 ): Promise<void> {
   const { tenantId, ticketId, firedAt } = input;
-  if (!(await plantHasPolicies(client))) return;
-  await ensureEscalationDefaults(client, { tenantId, loginId: null });
-  const facts = await ticketDownFacts(client, tenantId, ticketId);
-  if (!facts) return;
   const trigger = CLOCK_TRIGGER[input.kind];
-  for (const rule of await activeRulesFor(client, trigger)) {
-    if (!severityAtLeast(facts.severity, rule.severity_min)) continue;
-    const dueAt = firedAt.getTime() + rule.delay_minutes * MINUTE_MS;
-    const job: EscalationJob = {
-      tenantId,
-      ticketId,
-      ruleId: rule.id,
-      trigger,
-      episode: firedAt.getTime(),
-      attempt: 1,
-      dueAt,
-    };
-    if (dueAt <= firedAt.getTime()) await runEscalationStep(client, boss, job, firedAt);
-    else if (boss) await schedule(client, boss, job);
-  }
+  await startChains(client, boss, {
+    tenantId,
+    ticketId,
+    trigger,
+    episode: firedAt.getTime(),
+    now: firedAt,
+  });
+}
+
+/**
+ * Production sent the fix back for the second time (or more): the dispute that just happened starts one
+ * `reopened_twice` chain. Only the write of the dispute itself starts it (a replayed command never reaches here), so a
+ * rule switched on later does not reach back to tickets reopened before.
+ */
+export async function startReopenEscalation(client: PoolClient, write: TicketWrite): Promise<void> {
+  if (write.command !== 'handback') return;
+  const events = await loadEvents(client, write.ticketId);
+  const answer = events
+    .filter((e) => e.type === 'handback_dispute' || e.type === 'handback_confirm')
+    .at(-1);
+  const episode = reopenEpisode(events);
+  if (answer?.type !== 'handback_dispute' || episode === null) return;
+  const now = new Date(Math.max(write.now.getTime(), episode));
+  await startChains(client, write.boss ?? null, {
+    tenantId: write.tenantId,
+    ticketId: write.ticketId,
+    trigger: 'reopened_twice',
+    episode,
+    now,
+  });
 }
 
 /**
@@ -297,7 +357,7 @@ function assertJob(job: EscalationJob): void {
     !numbers.every(Number.isFinite) ||
     !Number.isInteger(job.attempt) ||
     job.attempt < 1 ||
-    !(job.trigger in CLOCK_OF || job.trigger === 'critical_still_down')
+    !(job.trigger in CLOCK_OF || EVENT_TRIGGERS.includes(job.trigger))
   )
     throw new Error('Invalid escalation job');
 }

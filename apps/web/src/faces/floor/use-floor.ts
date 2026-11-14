@@ -17,25 +17,40 @@ export interface FloorData {
   who: string;
 }
 
+/** What the floor has so far: the data, or why it has none (`error`, null while it still loads) and how to try again. */
+export interface FloorLoad {
+  data: FloorData | null;
+  error: unknown;
+  retry: () => void;
+}
+
 /**
  * Plant, live state and the acting person. Seam: the person comes from the session (`me`); once
  * sign-in asks a shared phone "who is acting" (decision, slice 2), this stays the only reader.
+ * "Still loading" and "failed" are different answers, so a failed load never waits forever.
  */
-export function useFloorData(): FloorData | null {
+export function useFloorData(): FloorLoad {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
-  if (!config.data || !me.data) return null;
+  const retry = () => {
+    for (const query of [config, state, me]) void query.refetch();
+  };
+  if (!config.data || !me.data) {
+    const error = (config.data ? null : config.error) ?? (me.data ? null : me.error);
+    return { data: null, error, retry };
+  }
   const user = me.data.user;
   const open = new Map<string, Ticket>();
   for (const t of state.data?.open ?? []) if (t.machineId) open.set(t.machineId, t);
-  return {
+  const data: FloorData = {
     config: config.data,
     me: user,
     open,
     maintenance: MAINTENANCE.includes(user.role),
     who: user.title ? `${user.name} (${user.title})` : user.name,
   };
+  return { data, error: null, retry };
 }
 
 /** The last five machines reported from this phone (v3 shows three). */

@@ -20,6 +20,18 @@ export {
   type RedactionTerms,
   type TenantRow,
 } from './repo.js';
+export {
+  ErasedPersonError,
+  ErasureKeyMissing,
+  erasedNamesAmong,
+  erasePerson,
+  erasureHash,
+  erasureNameHash,
+  refuseErasedEdit,
+  normaliseName,
+  normalisePhone,
+  refuseErased,
+} from './repo/erasure.js';
 export { actingTeams, listActingChoices, type ActingChoice } from './repo/acting.js';
 export { setTenantLogo, tenantLogoId, updateTenantProfile } from './repo/profile.js';
 export {
@@ -45,6 +57,7 @@ export {
   type LoginChange,
   type PersonFields,
 } from './repo/people.js';
+export { lockLiveSession } from './repo/session.js';
 export { hashPassword } from './routes.js';
 export {
   SUPPORT_NOT_ALLOWED,

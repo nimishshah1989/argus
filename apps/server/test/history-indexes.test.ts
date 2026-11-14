@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withTenant } from '../src/kernel/index.js';
+import { dayWindow, dayTicketRows } from '../src/modules/tickets/repo/board.js';
 import { dayJobRows } from '../src/modules/tickets/repo/history.js';
 import { selectTicketPage } from '../src/modules/tickets/repo/list.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -43,6 +44,9 @@ beforeAll(async () => {
     FROM ticket t WHERE t.tenant_id = $1`);
   await sql(`INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, acting_person_id)
     SELECT $1, t.id, 1, 'down', t.reported_at, t.reported_by_person_id FROM ticket t WHERE t.tenant_id = $1`);
+  await sql(
+    "UPDATE ticket SET closed_at = reported_at + interval '40 minutes' WHERE tenant_id = $1",
+  );
   await db.admin.query('ANALYZE ticket, work_segment, ticket_event');
 }, 180_000);
 
@@ -89,5 +93,13 @@ describe('history indexes', () => {
       }),
     );
     expect(plan).toContain('"Index Name":"ticket_reported_idx"');
+  });
+
+  it('the day board reaches the tickets closed today through ticket_closed_idx', async () => {
+    const window = await withTenant(db.app, TENANT, (tx) =>
+      dayWindow(tx, 'Asia/Kolkata', new Date('2026-03-05T06:00:00Z')),
+    );
+    const plan = await planOf((tx) => dayTicketRows(tx, TENANT, window, []));
+    expect(plan).toContain('"Index Name":"ticket_closed_idx"');
   });
 });

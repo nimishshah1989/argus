@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
-import { apiFetch, apiLogin, scopedId, signIn } from './fixtures.js';
+import { apiFetch, apiLogin, scopedId, signIn, ticketView } from './fixtures.js';
 
 /**
  * AC5b offline outbox (SPEC 1.9): a close made offline is queued and replayed on reconnect;
@@ -57,12 +57,12 @@ async function openAndStart(page: Page, ref: string): Promise<void> {
   await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   await page.getByRole('link', { name: new RegExp(ref) }).click();
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
-  await page.getByRole('button', { name: 'Start work', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Start work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
 async function closeOffline(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Mark done', exact: true }).click();
+  await ticketView(page).getByRole('button', { name: 'Mark done', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: /^Done: / });
   await sheet.getByLabel('What was done?').fill('Finished while offline');
   await sheet.getByRole('button', { name: 'Mark done', exact: true }).click();

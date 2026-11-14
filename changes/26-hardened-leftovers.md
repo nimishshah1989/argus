@@ -1,0 +1,1 @@
+- The sign-in page's company name and logo addresses now refuse a client that asks for them more than 300 times a minute, so a plant of phones behind one address can load the app at shift start; sign-in keeps its cap of 60 a minute. A test now holds `/state` under 300 ms (measured about 22 ms) on a plant with 500 machines, 90 open breakdowns, 25 groups and 15 waiting tickets.

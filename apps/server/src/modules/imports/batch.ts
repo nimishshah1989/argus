@@ -17,6 +17,7 @@ export function emptyImportStats(ticketCount: number, aliasSha256: string): Impo
     tickets: ticketCount,
     imported: 0,
     skipped: 0,
+    possiblyErasedMatches: 0,
     errored: 0,
     events: 0,
     crew: 0,

@@ -4,7 +4,14 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { passwordProblem } from '@uptimo/domain';
 import { actingPersonSchema, apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
-import { bindLog, withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
+import {
+  PUBLIC_READ_PER_MINUTE,
+  bindLog,
+  publicRouteCap,
+  withTenant,
+  type AppConfig,
+  type AuthContext,
+} from '../../kernel/index.js';
 import {
   findLogin,
   findPerson,
@@ -289,12 +296,10 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   const guard = createLoginGuard();
-  app.get('/api/v1/brand', (request, reply) => brand(pool, request, reply));
-  // Its own request cap per visitor, tighter than the whole API's; an explicit rateLimitMax overrides it.
-  const loginCap = { rateLimit: { max: config.rateLimitMax ?? 60, timeWindow: '1 minute' } };
-  app.post('/api/v1/auth/login', { config: loginCap }, (request, reply) =>
-    login(pool, guard, request, reply),
-  );
+  const readCap = { config: publicRouteCap(config, PUBLIC_READ_PER_MINUTE) };
+  app.get('/api/v1/brand', readCap, (request, reply) => brand(pool, request, reply));
+  const loginCap = { config: publicRouteCap(config) };
+  app.post('/api/v1/auth/login', loginCap, (request, reply) => login(pool, guard, request, reply));
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
   app.get('/api/v1/auth/acting', (request, reply) => actingChoices(pool, request, reply));
   app.post('/api/v1/auth/acting', (request, reply) => chooseActing(pool, request, reply));

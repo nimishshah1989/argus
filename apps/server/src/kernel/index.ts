@@ -12,6 +12,7 @@ export {
   type SupportCall,
 } from './guard.js';
 export { defineModule, type AppConfig, type ModuleDefinition } from './module.js';
+export { PUBLIC_READ_PER_MINUTE, publicRouteCap } from './public-cap.js';
 export {
   configParts,
   contributeConfigPart,
@@ -41,3 +42,4 @@ export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
 export { createPool } from './db.js';
 export { jobDb, type JobRole, type JobsHandle } from './jobs.js';
+export { rateLimitFromEnv } from './rate-limit-env.js';
