@@ -1,0 +1,1 @@
+- Behind the scenes: the automatic checks no longer cut off a slow test run at 8 minutes, so a busy day does not make pull requests fail for no reason.
