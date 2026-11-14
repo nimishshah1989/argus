@@ -95,13 +95,12 @@ describe('actionSpecs', () => {
       'action.label.update',
       'action.label.pause',
       'action.label.transfer',
-      'action.label.machineRunning',
       'action.label.machineStopped',
       'action.label.leave',
       'action.label.close',
       'action.cancel',
     ]);
-    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(7).fill(false)]);
+    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(6).fill(false)]);
   });
 
   it('says Pick up on a handed-over open ticket', () => {

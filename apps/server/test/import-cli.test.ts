@@ -633,7 +633,7 @@ describe('real CLI import and undo (T13–T20)', () => {
       const token = 'synthetic-cli-session';
       await db.admin.query(
         `INSERT INTO login (id, tenant_id, person_id, username, password_hash, role)
-       VALUES ($1, $2, $3, 'synthetic-cli', 'unused', 'technician')`,
+       VALUES ($1, $2, $3, 'synthetic-cli', 'unused', 'admin')`,
         [loginId, syntheticIds.tenant, syntheticIds.asha],
       );
       await db.admin.query(
@@ -642,19 +642,22 @@ describe('real CLI import and undo (T13–T20)', () => {
         [sessionId, syntheticIds.tenant, loginId, hashToken(token), syntheticIds.asha],
       );
       const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-02T00:00:00Z') });
       try {
         const response = await app.inject({
           method: 'POST',
-          url: `/api/v1/tickets/${ticketId}/machine-running`,
+          // any command that appends later work will do; the ticket is closed, so an admin's correction (within 7 days)
+          url: `/api/v1/tickets/${ticketId}/correct`,
           headers: {
             host: 'cosmos.localhost',
             authorization: `Bearer ${token}`,
             'idempotency-key': randomUUID(),
           },
-          payload: { personId: syntheticIds.asha },
+          payload: { reason: 'Typo', changes: { problem: 'Synthetic breakdown, corrected' } },
         });
         expect(response.statusCode).toBe(200);
       } finally {
+        vi.useRealTimers();
         await app.close();
       }
       const refused = runUndo(batchId);

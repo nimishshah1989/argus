@@ -42,6 +42,8 @@ export interface ActionTicket {
   kind: Kind;
   handedOver: boolean;
   machineRunningAt: Time;
+  /** Set when the machine stopped again after running; the pair says whether it is running now. */
+  machineStoppedAt?: Time;
   startedAt: Time;
   raisedLoginId: string | null;
   leadPersonId: string | null;
@@ -62,6 +64,12 @@ const live = ({ ticket }: Facts) => ['open', 'working', 'waiting'].includes(tick
 const inPlay = ({ ticket }: Facts) => ['working', 'waiting'].includes(ticket.status);
 const status = (wanted: Status) => (facts: Facts) => facts.ticket.status === wanted;
 
+const runningNow = (ticket: ActionTicket) =>
+  ticket.machineRunningAt !== null && !ticket.machineStoppedAt;
+const canHandOver = ({ ticket, actor, leading }: Facts) =>
+  leading &&
+  ticket.crew.some((m) => m.role === 'primary' && !m.leftAt && m.personId !== actor.personId);
+
 /** One predicate per action: the server's checks, minus the buttons the product keeps hidden. */
 const RULES: Record<TicketAction, (facts: Facts) => boolean> = {
   start: status('open'),
@@ -69,10 +77,12 @@ const RULES: Record<TicketAction, (facts: Facts) => boolean> = {
   update: (facts) => inPlay(facts) || (facts.ticket.status === 'open' && facts.ticket.handedOver),
   pause: status('working'),
   transfer: status('working'),
-  'machine-running': (facts) => facts.ticket.kind === 'stopped' && inPlay(facts),
-  'machine-stopped': (facts) => facts.ticket.machineRunningAt !== null && inPlay(facts),
+  'machine-running': (facts) =>
+    facts.ticket.kind === 'stopped' && inPlay(facts) && !runningNow(facts.ticket),
+  'machine-stopped': (facts) => runningNow(facts.ticket) && inPlay(facts),
   join: (facts) => inPlay(facts) && !facts.crewed && !facts.leading,
-  leave: (facts) => live(facts) && facts.crewed,
+  // the lead may leave only when a primary is there to take over (his rule); everyone else when on the crew
+  leave: (facts) => (live(facts) && facts.crewed) || (inPlay(facts) && canHandOver(facts)),
   close: (facts) => facts.ticket.status === 'working' && canClose(facts.actor, facts.context),
   cancel: (facts) => live(facts) && canCancel(facts.actor, facts.context),
 };
