@@ -130,6 +130,34 @@ describe('a grant whose approver can no longer approve', () => {
   });
 });
 
+describe('a grant whose approver is no longer an admin', () => {
+  it('stops at once when that admin is demoted, and works again when they are an admin again', async () => {
+    const grant = await t.approve(admin);
+    const read: Omit<Send, 'token' | 'grant'> = { method: 'GET', url: '/api/v1/people' };
+    expect((await t.support(one, grant.id, read)).statusCode).toBe(200);
+    await t.db.admin.query("UPDATE login SET role = 'head' WHERE username = 'admin'");
+    try {
+      const res = await t.support(one, grant.id, read);
+      expect(res.statusCode, res.body).toBe(403);
+      expect(res.json().error.message).toBe('Support access is not approved or has ended');
+    } finally {
+      await t.db.admin.query("UPDATE login SET role = 'admin' WHERE username = 'admin'");
+    }
+  });
+});
+
+describe('who /auth/me says a support caller is', () => {
+  it('names the grant, and an ordinary sign-in carries no such field', async () => {
+    const grant = await t.approve(admin);
+    const call = { method: 'GET' as const, url: '/api/v1/auth/me' };
+    const support = (await t.support(one, grant.id, call)).json().user;
+    expect(support.supportGrantId).toBe(grant.id);
+    expect(support.username).toBe('support:dev-one');
+    const own = (await t.send({ ...call, token: admin })).json().user;
+    expect('supportGrantId' in own).toBe(false);
+  });
+});
+
 describe('guessing a key does not lock out the person who has the right one', () => {
   it('lets a right key through from an address that is being limited', async () => {
     const grant = await t.approve(admin);

@@ -29,6 +29,9 @@ export const userSchema = z
     shared: z.boolean(),
     actingPersonId: z.string(),
     mustChangePassword: z.boolean().optional(),
+    // Set only for our own support staff under a customer-approved grant (D29). `id` is then the approving
+    // admin's login, so a client that asks "is this me" must also look here.
+    supportGrantId: z.string().optional(),
     // Who is acting now; null on a shared phone whose acting person was switched off, until the app asks again.
     actingPerson: z
       .object({ id: z.string(), name: z.string(), title: z.string().nullable() })

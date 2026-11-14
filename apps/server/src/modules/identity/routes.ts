@@ -52,6 +52,7 @@ function userFrom(ctx: Omit<AuthContext, 'token' | 'tenantId'>) {
       ? { id: ctx.personId, name: ctx.personName ?? '', title: ctx.personTitle }
       : null,
     mustChangePassword: ctx.mustChangePassword,
+    ...(ctx.supportGrantId ? { supportGrantId: ctx.supportGrantId } : {}),
   };
 }
 

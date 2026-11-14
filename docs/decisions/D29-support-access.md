@@ -43,6 +43,7 @@ printf %s "<key>" | sha256sum                                                   
 
 ## Open limits
 
+- **`/auth/me` under a grant answers `user.id` = the approving admin's login id**, with `user.supportGrantId` set (only then), so a client that asks "is this me" must look at the grant too. The id is kept so the reply contract does not change type.
 - **`loginId` under a grant is the approving admin's.** Code that asks "who is this" by login sees the admin. Nothing under a grant can now write history with it (point 6), and audit lines name the grant instead (points 5 and 8), but a new write route added to the list must pass the grant to its audit line in the same way.
 - **Some settings stay writable.** Under a grant our staff can still change the severity matrix, the company name, language and time zone, and the other `features` switches. Each change is on the trail with the grant. (`ai.consent` has no write path at all, D22; there is no support-access setting.)
 - **Plain list and translation edits have no line of their own** (`PUT`/`DELETE /lists/…`, `PUT /translations/:id` never wrote one, for the admin either). Under a grant the call line (point 5) is their only record: it says which route, not which value.
