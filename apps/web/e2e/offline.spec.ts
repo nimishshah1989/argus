@@ -55,7 +55,7 @@ async function openAndStart(page: Page, ref: string): Promise<void> {
   await page.goto('/desk');
   await page.getByRole('link', { name: new RegExp(ref) }).click();
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Start work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
