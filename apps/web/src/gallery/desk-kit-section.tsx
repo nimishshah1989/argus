@@ -42,7 +42,7 @@ export function DeskKitSection() {
           ]}
         />
         <TicketCard
-          to="#ticket"
+          to="/gallery/ticket"
           title="VC-17"
           refLabel="BD-0149"
           status={<StatusPill group="ticket" id="stopped" />}

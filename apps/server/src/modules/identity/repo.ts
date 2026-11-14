@@ -1,3 +1,4 @@
+import { refuseErased } from './repo/erasure.js';
 import { actingTeams } from './repo/acting.js';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '../../kernel/index.js';
@@ -295,6 +296,7 @@ export async function insertPeople(
   passwordHash: string,
 ): Promise<void> {
   for (const p of people) {
+    await refuseErased(tx, tenantId, p);
     const row = (
       await tx.query(
         'INSERT INTO person (tenant_id, name, team, title, phone, default_shift, active) VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id',
@@ -348,6 +350,7 @@ export async function activePeople(
 }
 
 export async function ensurePendingPerson(tx: Db, tenantId: string, name: string): Promise<string> {
+  await refuseErased(tx, tenantId, { name });
   const inserted = await tx.query(
     `INSERT INTO person (tenant_id, name, team, active, pending)
        VALUES ($1, $2, 'production', true, true) RETURNING id`,

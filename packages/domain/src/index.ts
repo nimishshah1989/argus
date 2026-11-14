@@ -24,6 +24,7 @@ export {
   chainAcknowledged,
   mayAcknowledgeLevel,
   pendingEscalationLevels,
+  reopenEpisode,
   repeatAfterMinutes,
   severityAtLeast,
   type EscalationHistoryEvent,

@@ -8,6 +8,7 @@ import {
   lockPerson,
   otherAdminCount,
   personAdminById,
+  refuseErasedEdit,
   updatePerson,
 } from '../identity/index.js';
 import { clearSubscriptionPerson, deleteSubscriptionsOf } from '../notifications/index.js';
@@ -44,14 +45,17 @@ export async function createPerson(
 ): Promise<Outcome<PersonAdmin>> {
   const denied = await lockAsAdmin(tx, actor);
   if (denied) return denied;
-  const person = await insertPerson(tx, actor.tenantId, body);
+  const { person, possibleErasedMatch } = await insertPerson(tx, actor.tenantId, body);
   await audit.record(tx, {
     ...actor,
     action: 'person.create',
     entity: 'person',
     entityId: person.id,
     before: null,
-    after: personSnapshot(person),
+    after: {
+      ...personSnapshot(person),
+      ...(possibleErasedMatch ? { possibleErasedMatch: true } : {}),
+    },
   });
   return done(person, 201);
 }
@@ -96,8 +100,9 @@ async function switchOffRefusal(tx: Tx, person: PersonAdmin): Promise<Outcome<ne
 async function endAccess(tx: Tx, personId: string, disable: boolean): Promise<Effects> {
   const loginIds = (await loginsOfPerson(tx, personId)).map((l) => l.id);
   const loginsDisabled = disable ? await disableLoginsOfPerson(tx, personId) : [];
-  const sessionsEnded = await endSessions(tx, loginIds);
+  // Phones first: ending a sign-in also drops its phone (a trigger), and the audit counts what this removes.
   const devicesRemoved = await deleteSubscriptionsOf(tx, loginIds);
+  const sessionsEnded = await endSessions(tx, loginIds);
   const actingCleared = disable ? await clearActingPerson(tx, personId) : 0;
   const devicesDetached = disable ? await clearSubscriptionPerson(tx, personId) : 0;
   return { sessionsEnded, devicesRemoved, actingCleared, devicesDetached, loginsDisabled };
@@ -157,6 +162,7 @@ export async function patchPerson(
     personPatchRefusal(before, patch) ??
     (off && before.active ? await switchOffRefusal(tx, before) : null);
   if (refusal) return refusal;
+  await refuseErasedEdit(tx, actor.tenantId, before, patch);
   const after = await updatePerson(tx, id, off ? { ...patch, phone: null } : patch);
   const effects = off || on ? await endAccess(tx, id, off) : undefined;
   await auditPersonChange(tx, actor, { before, after, patch, effects });

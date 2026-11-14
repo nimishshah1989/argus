@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import type { IconComponent } from './icon.js';
 import type { Tone } from './status/index.js';
 import { TONE_TEXT } from './meaning.js';
@@ -41,8 +41,8 @@ export function TicketCard({
 }) {
   const KindIcon = kind?.icon;
   return (
-    <article className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card">
-      <Link to={to} className="flex flex-col gap-1 rounded-lg">
+    <article className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card has-[a[aria-current=page]]:ring-2 has-[a[aria-current=page]]:ring-accent-strong">
+      <NavLink to={to} className="flex flex-col gap-1 rounded-lg">
         <span className="flex items-start justify-between gap-2">
           <span className="flex items-baseline gap-2">
             <span className="text-title3 font-bold">{title}</span>
@@ -70,7 +70,7 @@ export function TicketCard({
           ) : null}
         </span>
         {extra}
-      </Link>
+      </NavLink>
       {children}
     </article>
   );

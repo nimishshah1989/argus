@@ -31,6 +31,8 @@ import { statusSignalGu } from './status-signal.gu.js';
 import { statusFloorEn } from './status-floor.en.js';
 import { statusFloorGu } from './status-floor.gu.js';
 import { statusTaskEn } from './status-task.en.js';
+import { deskWideEn } from './desk-wide.en.js';
+import { deskWideGu } from './desk-wide.gu.js';
 import { statusTaskGu } from './status-task.gu.js';
 import { detailEn } from './detail.en.js';
 import { detailGu } from './detail.gu.js';
@@ -64,6 +66,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'status-flow': statusFlowEn,
   'status-floor': statusFloorEn,
   'status-task': statusTaskEn,
+  'desk-wide': deskWideEn,
   'report-floor': reportFloorEn,
   closes: closesEn,
   signin: signinEn,
@@ -90,6 +93,7 @@ export const en = {
   ...statusFlowEn,
   ...statusFloorEn,
   ...statusTaskEn,
+  ...deskWideEn,
   ...reportFloorEn,
   ...closesEn,
   ...signinEn,
@@ -118,6 +122,7 @@ export const gu = {
   ...statusFlowGu,
   ...statusFloorGu,
   ...statusTaskGu,
+  ...deskWideGu,
   ...reportFloorGu,
   ...closesGu,
   ...signinGu,

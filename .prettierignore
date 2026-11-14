@@ -16,3 +16,4 @@ docs/spec/PARITY.md
 .agents/
 .pnpm-store/
 docs/archive
+docs/design/slices/*.html

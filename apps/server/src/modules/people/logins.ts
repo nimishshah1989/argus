@@ -116,8 +116,8 @@ async function endLoginAccess(tx: Tx, id: string, patch: LoginPatch) {
   const ends = patch.active === false || patch.temporaryPassword !== undefined;
   if (!ends) return undefined;
   return {
-    sessionsEnded: await endSessions(tx, [id]),
     devicesRemoved: await deleteSubscriptionsOf(tx, [id]),
+    sessionsEnded: await endSessions(tx, [id]),
   };
 }
 
