@@ -61,6 +61,14 @@ const ARTIFACTS: Record<string, string> = {
                 WHERE table_name = 'person' AND column_name = 'erasure_name_hash')
     AND to_regprocedure('erase_person(uuid,uuid,text,text,text,text)') IS NOT NULL
     AND to_regprocedure('erase_person(uuid,uuid,text,text)') IS NULL AS installed`,
+  '0014_m4a_schema.sql': `SELECT to_regclass('public.kpi_snapshot') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'list_item' AND column_name = 'aliases')
+    AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'person_erased_scrubs_notes')
+    AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'person' AND column_name = 'kind')
+    AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'ticket' AND column_name IN ('sla_policy_id', 'handback_status')) AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
@@ -132,11 +140,15 @@ async function ledger(pool: Pool): Promise<string[]> {
 }
 
 /**
- * Reverting 0009 on a fully migrated database needs 0013 reverted first: 0013 replaced `erase_person` with a
- * six-argument version, and 0009's revert drops the four-argument one. 0013 is forgotten by the ledger so the next
- * run applies it again.
+ * Reverting 0009 on a fully migrated database needs 0014 and 0013 reverted first, newest first: 0014's trigger watches
+ * `person.erasure_hash`, which 0013's revert drops, and 0013 replaced `erase_person` with a six-argument version while
+ * 0009's revert drops the four-argument one. Both are forgotten by the ledger so the next run applies them again.
  */
 async function revertBatch1(pool: Pool): Promise<void> {
+  await pool.query(
+    readFileSync(new URL('../migrations/down/0014_m4a_schema.down.sql', import.meta.url), 'utf8'),
+  );
+  await pool.query("DELETE FROM schema_migration WHERE filename = '0014_m4a_schema.sql'");
   await pool.query(
     readFileSync(new URL('../migrations/down/0013_batch1.down.sql', import.meta.url), 'utf8'),
   );

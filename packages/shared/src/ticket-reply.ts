@@ -52,8 +52,6 @@ export const ticketSchema = z
     closeNote: str,
     taskReason: str,
     taskExpectedOn: str,
-    /** Retired (ticket 29): the policy is found by severity. Always absent; dropped from the contract with the column in M4a. */
-    slaPolicyId: str.optional(),
     location: str,
     workType: str,
     problemLang: str,

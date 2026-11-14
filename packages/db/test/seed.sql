@@ -3,9 +3,9 @@ INSERT INTO tenant (id, slug, name) VALUES
   ('10000000-0000-0000-0000-000000000001', 'cosmos', 'Cosmos'),
   ('20000000-0000-0000-0000-000000000001', 'plant-two', 'Plant Two');
 
-INSERT INTO person (id, tenant_id, name, phone, team, title, kind, cell) VALUES
-  ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Asha', '+919000000001', 'maintenance', 'Technician', 'staff', '1'),
-  ('20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Bina', '+919000000002', 'maintenance', 'Technician', 'staff', '2');
+INSERT INTO person (id, tenant_id, name, phone, team, title, cell) VALUES
+  ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Asha', '+919000000001', 'maintenance', 'Technician', '1'),
+  ('20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Bina', '+919000000002', 'maintenance', 'Technician', '2');
 
 INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared, cell) VALUES
   ('10000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'asha', 'hash-a', 'admin', false, '1'),
@@ -107,11 +107,6 @@ INSERT INTO sla_policy (id, tenant_id, severity, ack_minutes, restore_minutes) V
   ('10000000-0000-0000-0000-00000000001d', '10000000-0000-0000-0000-000000000001', 'S1', 5, 30),
   ('20000000-0000-0000-0000-00000000001d', '20000000-0000-0000-0000-000000000001', 'S2', 10, 60);
 
-UPDATE ticket SET sla_policy_id = '10000000-0000-0000-0000-00000000001d'
-  WHERE id = '10000000-0000-0000-0000-00000000000e';
-UPDATE ticket SET sla_policy_id = '20000000-0000-0000-0000-00000000001d'
-  WHERE id = '20000000-0000-0000-0000-00000000000e';
-
 INSERT INTO sla_timer (id, tenant_id, ticket_id, kind, due_at, state, revision) VALUES
   ('10000000-0000-0000-0000-00000000001e', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000e', 'ack', now() + interval '5 minutes', 'running', 1),
   ('20000000-0000-0000-0000-00000000001e', '20000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000e', 'ack', now() + interval '10 minutes', 'running', 1);
@@ -131,3 +126,7 @@ INSERT INTO escalation_rule (id, tenant_id, trigger, severity_min, level, notify
 INSERT INTO notification (id, tenant_id, dedupe_key, kind, person_id, channel, ticket_id, next_attempt_at) VALUES
   ('10000000-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000001', 'seed-1', 'escalation', '10000000-0000-0000-0000-000000000002', 'push', '10000000-0000-0000-0000-00000000000e', now()),
   ('20000000-0000-0000-0000-000000000022', '20000000-0000-0000-0000-000000000001', 'seed-1', 'escalation', '20000000-0000-0000-0000-000000000002', 'push', '20000000-0000-0000-0000-00000000000e', now());
+
+INSERT INTO kpi_snapshot (id, tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of, run_id, value) VALUES
+  ('10000000-0000-0000-0000-000000000023', '10000000-0000-0000-0000-000000000001', 'legacy', 'a3.mttr', 'plant', '', '2026-11-01', '2026-11-30', '2026-11-14', '10000000-0000-0000-0000-0000000000a1', '{"hours": 2.5}'),
+  ('20000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000001', 'legacy', 'a3.mttr', 'plant', '', '2026-11-01', '2026-11-30', '2026-11-14', '20000000-0000-0000-0000-0000000000a1', '{"hours": 4}');

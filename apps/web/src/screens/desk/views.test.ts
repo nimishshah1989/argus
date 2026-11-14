@@ -53,7 +53,6 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     closeNote: null,
     severity: null,
     criticalitySnapshot: null,
-    slaPolicyId: null,
     selfStarted: false,
     segmentStartedAt: null,
     handoverSince: null,

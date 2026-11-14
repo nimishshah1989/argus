@@ -38,7 +38,7 @@ const erase = (...args: string[]) =>
   db.router.query(`SELECT erase_person(${args.map((_, i) => `$${i + 1}`).join(', ')}) AS r`, args);
 
 beforeAll(async () => {
-  db = await startTestDb();
+  db = await startTestDb({ through: '0013_batch1.sql' });
   await seedCosmos(db.admin, {
     exportPath: doc('source/cosmos-platform-export-2026-10-28.json'),
     livePath: doc('bhavin-v3/live-config-2026-11-09.json'),
@@ -69,7 +69,7 @@ beforeAll(async () => {
     "INSERT INTO push_subscription (tenant_id, login_id, acting_person_id, endpoint) VALUES ($1, $2, $3, 'https://push.example/legacy')",
     [cosmos, login, person],
   );
-  // The seeding code already knows the new columns, so the copy is loaded on the full schema and taken back to 0012's.
+  // The seeding code already knows the new columns, so the copy is loaded on 0013's schema and taken back to 0012's.
   await db.admin.query(DOWN);
   const tables = await db.admin.query(
     `SELECT c.table_name AS t, array_agg(c.column_name::text ORDER BY c.ordinal_position) AS cols

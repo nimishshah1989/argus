@@ -18,7 +18,6 @@ interface GoldenTicket {
   status: 'open' | 'working' | 'waiting';
   machine: number | null;
   severity: string;
-  policy: number | null;
   reportedAt: string;
   channel?: string;
   urgent?: boolean;
@@ -54,7 +53,6 @@ const TICKETS: GoldenTicket[] = [
     status: 'open',
     machine: 4,
     severity: 'S1',
-    policy: 11,
     reportedAt: '2026-11-12T05:50:00Z',
     crit: 'A',
     snapshot: snap(4),
@@ -68,7 +66,6 @@ const TICKETS: GoldenTicket[] = [
     status: 'working',
     machine: 5,
     severity: 'S2',
-    policy: 12,
     reportedAt: '2026-11-12T05:00:00Z',
     startedAt: '2026-11-12T05:10:00Z',
     lead: true,
@@ -88,7 +85,6 @@ const TICKETS: GoldenTicket[] = [
     status: 'waiting',
     machine: null,
     severity: 'S3',
-    policy: 13,
     reportedAt: '2026-11-11T22:00:00Z',
     startedAt: '2026-11-11T22:30:00Z',
     lead: true,
@@ -112,7 +108,6 @@ const TICKETS: GoldenTicket[] = [
     status: 'open',
     machine: 6,
     severity: 'S3',
-    policy: 13,
     reportedAt: '2026-11-12T04:00:00Z',
     channel: 'desk',
     crit: 'C',
@@ -127,7 +122,6 @@ const TICKETS: GoldenTicket[] = [
     status: 'open',
     machine: null,
     severity: 'S4',
-    policy: null,
     reportedAt: '2026-11-12T03:00:00Z',
     channel: 'backfill',
     location: 'Canteen',
@@ -177,8 +171,8 @@ async function insertTicket(admin: Pool, t: GoldenTicket): Promise<void> {
     `INSERT INTO ticket (id, tenant_id, ref, kind, status, machine_id, machine_snapshot, location, work_type,
        urgent, problem, reported_at, reported_by_person_id, raised_login_id, raised_channel, started_at,
        lead_person_id, wait_reason, waiting_spare, expected_back_at, severity, criticality_snapshot,
-       sla_policy_id, response_min, last_event_seq)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
+       response_min, last_event_seq)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
     [
       id(t.n),
       TENANT,
@@ -202,7 +196,6 @@ async function insertTicket(admin: Pool, t: GoldenTicket): Promise<void> {
       n(t.expectedBackAt),
       t.severity,
       n(t.crit),
-      t.policy ? id(t.policy) : null,
       n(t.responseMin),
       t.events.length,
     ],
