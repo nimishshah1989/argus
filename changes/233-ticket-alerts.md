@@ -1,0 +1,1 @@
+- A new breakdown now sends a push to the plant's technicians and supervisors (not to whoever reported it), and a closed ticket sends "Complaint fixed" back to the person who reported it (not to someone who closed their own). Support and general tickets, cancellations and past-breakdown records send nothing. The push opens the ticket on tap.

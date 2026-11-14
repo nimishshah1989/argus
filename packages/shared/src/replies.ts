@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { brandReplySchema, loginReplySchema, meReplySchema } from './auth.js';
+import { boardTodayReplySchema } from './board.js';
+import {
+  actingChoicesReplySchema,
+  brandReplySchema,
+  loginReplySchema,
+  meReplySchema,
+} from './auth.js';
 import {
   LIST_NAMES,
   listRowSchema,
@@ -7,6 +13,7 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
+import { rosterReplySchema, ruleReplySchema } from './escalation-settings.js';
 import { PEOPLE_REPLIES } from './people.js';
 import {
   glossaryReplySchema,
@@ -20,7 +27,8 @@ import {
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
-import { slaPolicySchema, slaProjectionSchema } from './sla.js';
+import { lockoutSchema } from './lockout.js';
+import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
@@ -54,9 +62,17 @@ export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
-/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` part. */
+/**
+ * A ticket as every reply carries it: tickets' fields, then accountability's `sla`, `handback` and `canAcknowledge`
+ * parts. `canAcknowledge` is about the person using the session: true only when they may acknowledge this ticket now.
+ */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable() })
+  .extend({
+    sla: slaProjectionSchema.nullable(),
+    handback: handbackSchema.nullable(),
+    canAcknowledge: z.boolean(),
+    lockout: lockoutSchema.nullable().optional(),
+  })
   .strict();
 export const stateReplySchema = z
   .object({
@@ -114,6 +130,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/auth/login`]: loginReplySchema,
   [`GET ${P}/auth/me`]: meReplySchema,
   [`GET ${P}/auth/sessions`]: devicesReplySchema,
+  [`GET ${P}/auth/acting`]: actingChoicesReplySchema,
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,
@@ -145,11 +162,14 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
     {},
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
+  ...settingsResource('roster', rosterReplySchema),
+  ...settingsResource('escalation-rules', ruleReplySchema),
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`POST ${P}/tickets/past`]: commandReplySchema,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
+  [`GET ${P}/board/today`]: boardTodayReplySchema,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,

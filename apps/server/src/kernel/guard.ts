@@ -30,6 +30,7 @@ const PASSWORD_SCREENS: ReadonlySet<string> = new Set([
 const PICKER_SCREENS: ReadonlySet<string> = new Set([
   'GET /api/v1/auth/me',
   'GET /api/v1/config',
+  'GET /api/v1/auth/acting',
   'POST /api/v1/auth/acting',
   'POST /api/v1/push/unsubscribe',
   'POST /api/v1/auth/logout',

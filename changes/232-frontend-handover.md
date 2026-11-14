@@ -1,0 +1,1 @@
+- No change for plant users. Handover notes for the next frontend orchestrator: the rewritten handoff, ledger entries and tracker rows for the live board and sign-in.

@@ -1,11 +1,19 @@
 import { z } from 'zod';
 import { severitySchema } from './config.js';
 
+/** 30 days: a longer pause or sign-off wait is a typing mistake, not a plant rule. */
+export const MAX_POLICY_MINUTES = 30 * 24 * 60;
+const optionalLimitMinutes = z.number().int().min(1).max(MAX_POLICY_MINUTES).nullable().optional();
+
 export const slaPolicySchema = z.object({
   id: z.string().uuid(),
   severity: severitySchema,
   ackMinutes: z.number().int().positive(),
   restoreMinutes: z.number().int().positive(),
+  /** Longest a ticket may stay paused; null or absent means no limit. */
+  pauseMaxMinutes: optionalLimitMinutes,
+  /** How long production has to confirm or dispute a fix; null or absent means no limit. */
+  handbackMinutes: optionalLimitMinutes,
   businessHoursOnly: z.boolean(),
 });
 export type SlaPolicy = z.infer<typeof slaPolicySchema>;
@@ -30,6 +38,8 @@ export const slaProjectionSchema = z
   .object({
     ack: slaTimerSchema.nullable(),
     restore: slaTimerSchema.nullable(),
+    /** Present once the ticket has been paused under a policy with a pause maximum; absent otherwise. */
+    pause: slaTimerSchema.optional(),
   })
   .strict();
 export type SlaProjection = z.infer<typeof slaProjectionSchema>;
@@ -43,3 +53,24 @@ export const slaPoliciesUpdateSchema = z
     'Each severity must appear exactly once',
   );
 export type SlaPoliciesUpdate = z.infer<typeof slaPoliciesUpdateSchema>;
+
+export const handbackStatusSchema = z.enum(['requested', 'confirmed', 'disputed', 'timed_out']);
+
+/** Production's sign-off of a fix, with turnaround both ways. Null on a ticket nobody was asked about. */
+export const handbackSchema = z
+  .object({
+    status: handbackStatusSchema,
+    requestedAt: z.string().datetime({ offset: true }),
+    /** When the sign-off times out; null when the plant sets no limit. */
+    dueAt: z.string().datetime({ offset: true }).nullable(),
+    respondedAt: z.string().datetime({ offset: true }).nullable(),
+    respondedByPersonId: z.string().uuid().nullable(),
+    disputeReason: z.string().nullable(),
+    /** How many times production has sent this ticket back. */
+    reopenCount: z.number().int().nonnegative(),
+    turnaround: z
+      .object({ maintenanceMin: z.number().int(), productionMin: z.number().int() })
+      .strict(),
+  })
+  .strict();
+export type Handback = z.infer<typeof handbackSchema>;

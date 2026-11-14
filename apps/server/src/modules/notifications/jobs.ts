@@ -2,8 +2,11 @@ import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import type { JobRole } from '../../kernel/index.js';
-import { NOTIFY_SEND_QUEUE, NOTIFY_SEND_VERSION } from './notify.js';
+import { markQueueReady, NOTIFY_SEND_QUEUE, NOTIFY_SEND_VERSION, SEND_QUEUE } from './notify.js';
 import { processNotification } from './send.js';
+import { sweepNotifications } from './sweep.js';
+
+export const NOTIFY_SWEEP_QUEUE = 'notify.sweep';
 
 const sendJob = z.object({
   v: z.literal(NOTIFY_SEND_VERSION),
@@ -20,7 +23,7 @@ export interface NotifyJobDeps {
 
 /**
  * Creates the `notify.send` queue for every role (callers of `notify` need it) and, unless the role is `api`,
- * the worker. The retries and their waits are ours (`processNotification` queues each one for when it is due);
+ * the workers (send, and a sweep every five minutes). The retries and their waits are ours (`processNotification` queues each one for when it is due);
  * pg-boss's own two retries only cover a crash or an unexpected error.
  */
 export async function startNotifyJobs(
@@ -29,11 +32,14 @@ export async function startNotifyJobs(
   role: JobRole,
 ): Promise<void> {
   if (!(await boss.getQueue(NOTIFY_SEND_QUEUE)))
-    await boss.createQueue(NOTIFY_SEND_QUEUE, {
+    await boss.createQueue(NOTIFY_SEND_QUEUE, SEND_QUEUE);
+  markQueueReady(boss);
+  if (!(await boss.getQueue(NOTIFY_SWEEP_QUEUE)))
+    await boss.createQueue(NOTIFY_SWEEP_QUEUE, {
       policy: 'standard',
-      retryLimit: 2,
-      retryDelay: 30,
-      expireInSeconds: 120,
+      retryLimit: 1,
+      retryDelay: 60,
+      expireInSeconds: 600,
     });
   if (role === 'api') return;
   const now = deps.now ?? (() => new Date());
@@ -49,4 +55,10 @@ export async function startNotifyJobs(
       );
     },
   );
+  await boss.work(NOTIFY_SWEEP_QUEUE, { batchSize: 1, pollingIntervalSeconds: 30 }, async () => {
+    const swept = await sweepNotifications({ pool: deps.pool, boss, now: now() });
+    if (swept.requeued + swept.dead > 0)
+      console.log(JSON.stringify({ job: NOTIFY_SWEEP_QUEUE, ...swept }));
+  });
+  await boss.schedule(NOTIFY_SWEEP_QUEUE, '*/5 * * * *', {}, { tz: 'UTC' });
 }

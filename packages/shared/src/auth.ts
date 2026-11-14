@@ -14,6 +14,12 @@ export const changePasswordSchema = z.object({
 });
 /** A shared phone says who is using it now. */
 export const actingPersonSchema = z.object({ actingPersonId: z.string().uuid() });
+/** `GET /auth/acting`: who this shared phone may choose, names and teams only (no phone numbers). */
+export const actingChoicesReplySchema = z
+  .object({
+    people: z.array(z.object({ id: z.string(), name: z.string(), team: z.string() }).strict()),
+  })
+  .strict();
 
 export type ChangePasswordBody = z.infer<typeof changePasswordSchema>;
 

@@ -5,22 +5,21 @@ import { apiError, machineCriticalitySchema, slaPoliciesUpdateSchema } from '@up
 import { withTenant } from '@uptimo/db';
 import { lockRefCounter, refreshMachineSeverity } from '../tickets/index.js';
 import { reconcileSlaPolicies } from './sla.js';
-import { currentPolicies, upsertPolicy } from './repo/policies.js';
+import { currentPolicies, upsertPolicy, type PolicyInput } from './repo/policies.js';
 import { requireAuth } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
 import { audit } from '../ops/index.js';
 import { canSettingsLists, canSettingsSla } from '@uptimo/domain';
-import { actorOf, forbidden, hasShifts, setMachineCriticality } from '../plant/index.js';
+import {
+  actorOf,
+  forbidden,
+  hasShifts,
+  registerResource,
+  setMachineCriticality,
+} from '../plant/index.js';
+import { LADDER_RESOURCES } from './settings-resources.js';
 
-function unchangedPolicies(
-  before: Record<string, unknown>[],
-  policies: Array<{
-    severity: string;
-    ackMinutes: number;
-    restoreMinutes: number;
-    businessHoursOnly: boolean;
-  }>,
-): boolean {
+function unchangedPolicies(before: Record<string, unknown>[], policies: PolicyInput[]): boolean {
   return (
     before.length === 4 &&
     before.every((row, index) => {
@@ -30,6 +29,9 @@ function unchangedPolicies(
         row.severity === policy.severity &&
         row.ack_minutes === policy.ackMinutes &&
         row.restore_minutes === policy.restoreMinutes &&
+        (policy.pauseMaxMinutes === undefined ||
+          row.pause_max_minutes === policy.pauseMaxMinutes) &&
+        (policy.handbackMinutes === undefined || row.handback_minutes === policy.handbackMinutes) &&
         row.business_hours_only === policy.businessHoursOnly
       );
     })
@@ -43,12 +45,7 @@ async function upsertSlaPolicies(
     loginId: string;
     supportGrantId?: string | null;
     before: Record<string, unknown>[];
-    policies: Array<{
-      severity: string;
-      ackMinutes: number;
-      restoreMinutes: number;
-      businessHoursOnly: boolean;
-    }>;
+    policies: PolicyInput[];
   },
 ): Promise<void> {
   const { tenantId, loginId, supportGrantId, before, policies } = input;
@@ -156,6 +153,16 @@ export function registerSettings(app: FastifyInstance, config: AppConfig): void 
   app.put('/api/v1/settings/sla-policies', (request, reply) =>
     putSlaPolicies(pool, request, reply, config.jobBoss),
   );
+  for (const resource of LADDER_RESOURCES) {
+    // A saved rule re-arms what it governs (the tickets already down), as saving the clocks' targets does.
+    const afterSave = (tx: PoolClient, tenantId: string) =>
+      reconcileSlaPolicies(tx, tenantId, config.jobBoss);
+    registerResource(
+      app,
+      pool,
+      resource.table === 'escalation_rule' ? { ...resource, afterSave } : resource,
+    );
+  }
   app.put('/api/v1/machines/:id/criticality', (request, reply) =>
     putMachineCriticality(pool, request, reply, config.jobBoss),
   );

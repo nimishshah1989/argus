@@ -15,6 +15,11 @@ describe('ai configuration', () => {
     expect(pickProvider(aiConfigFromEnv({ APP_ENV: 'production' }))).toBeNull();
   });
 
+  it('reads the residency record reference, and a blank one counts as not filed', () => {
+    expect(aiConfigFromEnv({ AI_RESIDENCY_RECORD: ' record-1 ' }).residencyRecord).toBe('record-1');
+    expect(aiConfigFromEnv({ AI_RESIDENCY_RECORD: '  ' }).residencyRecord).toBeNull();
+  });
+
   it('uses the fake provider when no key is set', () => {
     const config = aiConfigFromEnv({ APP_ENV: 'staging' });
     expect(config).toMatchObject({
@@ -25,6 +30,7 @@ describe('ai configuration', () => {
       maxOutputTokens: 1024,
       defaultMonthlyCapUsd: 50,
       production: false,
+      residencyRecord: null,
     });
     expect(pickProvider(config)?.modelRef).toBe('fake');
   });
@@ -37,6 +43,7 @@ describe('ai configuration', () => {
       priceInputUsdPerMtok: 2,
       priceOutputUsdPerMtok: 10,
       production: false,
+      residencyRecord: null,
     });
     expect(pickProvider(config)?.modelRef).toBe('claude-sonnet-5-5');
     const opus = aiConfigFromEnv({ ANTHROPIC_API_KEY: KEY, AI_MODEL: 'claude-opus-5-5' });

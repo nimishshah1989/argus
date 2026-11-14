@@ -1,3 +1,4 @@
+import { cpSync } from 'node:fs';
 import { build } from 'esbuild';
 
 await build({
@@ -15,3 +16,5 @@ await build({
   },
   logLevel: 'info',
 });
+
+cpSync('apps/server/src/modules/ai/prompts', 'apps/server/dist/prompts', { recursive: true });

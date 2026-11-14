@@ -1,0 +1,1 @@
+- A ticket left paused longer than the plant allows is now flagged once. An admin can set a longest pause (and a sign-off time for later) per severity through the SLA policy settings; a ticket paused under it gets a pause clock beside the acknowledge and restore clocks. Nothing is sent to anyone yet. Plants that set no limit see no change.

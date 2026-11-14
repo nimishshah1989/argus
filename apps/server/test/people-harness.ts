@@ -48,8 +48,8 @@ async function seed(db: TestDb, passwordHash: string): Promise<void> {
   for (const [tenant, name, username] of people) {
     const person = (
       await db.admin.query(
-        "INSERT INTO person (tenant_id, name, team, title) VALUES ($1, $2, 'maintenance', 'Staff') RETURNING id",
-        [tenant, name],
+        "INSERT INTO person (tenant_id, name, team, title) VALUES ($1, $2, $3, 'Staff') RETURNING id",
+        [tenant, name, username === 'operator' ? 'production' : 'maintenance'],
       )
     ).rows[0].id as string;
     const role = username === 'b-admin' ? 'admin' : username;

@@ -308,7 +308,7 @@ export async function loadReport(
       `SELECT id, tenant_id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
          corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
          spare_used, root_cause, handover_name, handover_person_id, submitted_by_person_id, submitted_at
-       FROM breakdown_report WHERE ticket_id = $1`,
+       FROM breakdown_report WHERE ticket_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
       [ticketId],
     )
   ).rows[0];

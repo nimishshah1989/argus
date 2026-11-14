@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import { apiError } from '@uptimo/shared';
 import { AUTH_MESSAGES, refuse, type AuthContext } from '../../kernel/index.js';
 import type { PasswordProblem } from '@uptimo/domain';
+import { actingTeams } from './repo/acting.js';
 import { lookupSession, readAuthRows, touchSession, type AuthRows } from './repo.js';
 
 export function hashToken(token: string): string {
@@ -41,6 +42,9 @@ export function passwordMessage(problem: PasswordProblem): string {
   return PASSWORD_MESSAGES[problem];
 }
 
+const stillAllowed = (rows: AuthRows): boolean =>
+  rows.person_active === true && actingTeams(rows.role).includes(rows.person_team ?? '');
+
 /**
  * Resolve a bearer token to a session context, or null when the sign-in has ended, belongs to another
  * customer than the host names (a host that names none, like `localhost`, decides nothing), or acts as a
@@ -64,10 +68,14 @@ export async function authenticate(
     slug,
   });
   if (!rows || (slug && rows.host_tenant_id !== found.tenant_id)) return null;
-  if (rows.person_id && !rows.person_active) return null;
+  // A shared phone whose person is off, or no longer of a team its role serves, is a phone with nobody chosen: the
+  // app asks again. A personal login whose person is off has ended.
+  const lost = rows.shared && rows.person_id !== null && !stillAllowed(rows);
+  if (rows.person_id && !rows.person_active && !lost) return null;
   // Only a call that passed every check slides the session; a refused one writes nothing.
   if (rows.stale) await touchSession(pool, found.tenant_id, tokenHash);
-  return contextOf(token, found.tenant_id, rows);
+  const kept = lost ? { ...rows, person_id: null, person_name: null, person_title: null } : rows;
+  return contextOf(token, found.tenant_id, kept);
 }
 
 function contextOf(token: string, tenantId: string, rows: AuthRows): AuthContext {
