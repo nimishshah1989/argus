@@ -31,6 +31,8 @@ export interface WizardPageProps {
   onFinish: () => Promise<void | false>;
   /** Header text in place of "Step n of total" (a one-step flow names itself). */
   aside?: string;
+  /** Hide the sync pill while online (the floor). */
+  quietOnline?: boolean;
   /** The step to open on (a deep link). */
   start?: number;
   /** Shown alone once onFinish resolves. */
@@ -129,7 +131,7 @@ export function WizardPage(p: WizardPageProps) {
 
   if (done)
     return (
-      <PatternFrame title={title}>
+      <PatternFrame title={title} quietOnline={p.quietOnline}>
         <div ref={w.resultBox} tabIndex={-1}>
           {p.result}
         </div>
@@ -138,6 +140,7 @@ export function WizardPage(p: WizardPageProps) {
   return (
     <PatternFrame
       title={title}
+      quietOnline={p.quietOnline}
       back={canBack ? { label: step.back ?? t('common.back'), onClick: w.back } : undefined}
       aside={p.aside ?? t('kit.wizard.step', { n: index + 1, total: steps.length })}
     >

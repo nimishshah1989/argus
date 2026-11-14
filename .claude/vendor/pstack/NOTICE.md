@@ -5,7 +5,8 @@
 - Licence: MIT, Copyright (c) 2026 Lauren Tan (see LICENSE beside this file).
 - Copied: every skill in `skills/` into `.claude/skills/<name>/`, and `agents/poteto-agent.md`,
   `agents/comment-sicko.md` into `.claude/agents/`.
-- Left out: `skills/statechart/scripts/test/` (3.8 MB test corpus of the upstream tool) and `docs/` (guide images).
+- Copied also: `docs/harness/claude-code.md` into `.claude/docs/harness/` (the skills link to it as `../../docs/harness/claude-code.md`).
+- Left out: `skills/statechart/scripts/test/` (3.8 MB test corpus of the upstream tool) and `docs/guide/` (the long-form guide and its images; the skills only link to the folder).
 - Model choices for Argus stay in `.claude/rules/pstack-models.md` (D23).
 - Vendored as project skills, so the names have no `pstack:` prefix: `/pstack:poteto-mode` in our docs is
   `/poteto-mode` here, `/pstack:interrogate` is `/interrogate`.

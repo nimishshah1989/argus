@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 
 /**
  * The storage adapter. Local disk in development and tests; the S3 adapter will
@@ -11,15 +11,23 @@ export interface ObjectStore {
   get(key: string): Promise<Buffer>;
 }
 
+/** The path of a stored key, refusing any key that would leave the storage folder. */
+function pathOf(root: string, key: string): string {
+  const base = resolve(root);
+  const path = resolve(base, key);
+  if (!path.startsWith(base + sep)) throw new Error('File key outside the storage folder');
+  return path;
+}
+
 export function createLocalFileStore(root: string): ObjectStore {
   return {
     async put(key, bytes) {
-      const path = join(root, key);
+      const path = pathOf(root, key);
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, bytes);
     },
     async get(key) {
-      return readFile(join(root, key));
+      return readFile(pathOf(root, key));
     },
   };
 }

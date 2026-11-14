@@ -6,6 +6,8 @@ pnpm-lock.yaml
 .claude/skills
 .claude/agents
 .claude/harness
+.claude/docs
+.claude/vendor
 
 # Canonical product docs are kept in their authored layout.
 docs/spec/SPEC.md

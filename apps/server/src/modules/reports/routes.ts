@@ -26,7 +26,13 @@ interface PdfTicket {
   reportedAt: Date;
   closedAt: Date | null;
   figures: Figures;
-  machine: { code: string | null; category: string | null; cell: string | null };
+  machine: {
+    code: string | null;
+    /** The code when the ticket was raised: what v3 stored in the QR. */
+    codeAtReport: string | null;
+    category: string | null;
+    cell: string | null;
+  };
 }
 
 interface PdfContext {
@@ -45,6 +51,7 @@ function machineOf(row: Record<string, unknown>): PdfTicket['machine'] {
   const snapshot = (row.machine_snapshot ?? {}) as Record<string, string | null>;
   return {
     code: (row.machine_code as string | null) ?? snapshot.code ?? null,
+    codeAtReport: snapshot.code ?? null,
     category: (row.machine_category as string | null) ?? snapshot.category ?? null,
     cell: (row.machine_cell as string | null) ?? snapshot.cell ?? null,
   };
@@ -119,7 +126,8 @@ function pdfInput(context: PdfContext, svg: string): ReportPdfInput {
 function payloadFor(context: PdfContext): ReturnType<typeof buildQrPayload> {
   const report = context.report as StoredReport;
   return buildQrPayload({
-    machineId: report.machineId,
+    // v3's QR names the machine by its code (`TC-7`), as it was when the report was made; ours is a uuid.
+    machineId: context.ticket.machine.codeAtReport ?? context.ticket.machine.code ?? '',
     date: report.date,
     shiftCode: report.shiftCode,
     problem: report.problem,
@@ -208,12 +216,14 @@ const dayReportQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .refine(isCalendarDate),
   personId: z.union([z.literal('me'), z.string().uuid()]).optional(),
-  shift: z.enum(['day', 'night']).default('day'),
+  /** One of the plant's shift codes; left out, the whole calendar day. */
+  shift: z.string().trim().min(1).max(20).optional(),
 });
 
 function dayReportFileName(data: DayReportData): string {
   const who = data.person.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'person';
-  return `Day_report_${who}_${data.date}_${data.shift}.pdf`;
+  const shift = data.shift ? `_shift${data.shift}`.replace(/[^A-Za-z0-9_-]+/g, '') : '';
+  return `Day_report_${who}_${data.date}${shift}.pdf`;
 }
 
 /** Role gate + own-only rule for the day report (DOMAIN §3). */
@@ -231,6 +241,10 @@ function resolveDayPerson(
   };
   if (!canDayReport(actor)) {
     return { ok: false, status: 403, message: 'Day reports are unavailable for your role' };
+  }
+  if (auth.role === 'plant_head') {
+    // DOMAIN §3 gives the plant head the team report; until it exists they get a clear no, not one person's day.
+    return { ok: false, status: 403, message: 'The team day report is not available yet' };
   }
   const wantsOther = Boolean(requested && requested !== 'me' && requested !== auth.personId);
   if (auth.role === 'technician' && wantsOther) {
@@ -273,9 +287,13 @@ async function sendDayPdf(
       tenantId: auth.tenantId,
       personId: resolved.personId,
       date: parsed.data.date,
-      shift: parsed.data.shift,
+      shift: parsed.data.shift ?? null,
     }),
   );
+  if (data === 'no-shift') {
+    reply.code(422).send(apiError('validation', 'This plant has no such shift', 'shift'));
+    return;
+  }
   if (!data) {
     reply.code(404).send(apiError('not_found', 'Unknown person', 'personId'));
     return;

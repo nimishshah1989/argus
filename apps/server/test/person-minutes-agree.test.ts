@@ -137,9 +137,11 @@ describe("a person's minutes on a ticket", () => {
       figures: { perPerson: Record<string, number> };
     }>;
     const viaList = tickets.map((id) => listed.find((t) => t.id === id)?.figures.perPerson[asha]);
-    const report = await withTenant(db.app, TENANT, (client) =>
-      loadDayReport(client, { tenantId: TENANT, personId: asha, date: '2026-11-10', shift: 'day' }),
+    // No shift chosen: the whole calendar day (the plant's own shift windows are proven in reports-real.test.ts).
+    const loaded = await withTenant(db.app, TENANT, (client) =>
+      loadDayReport(client, { tenantId: TENANT, personId: asha, date: '2026-11-10', shift: null }),
     );
+    const report = loaded === 'no-shift' ? null : loaded;
     const viaReport = tickets.map((id) => report?.jobs.find((j) => j.ticketId === id)?.minutes);
     expect(viaTicket).toEqual([20, 8]);
     expect(viaList).toEqual(viaTicket);
