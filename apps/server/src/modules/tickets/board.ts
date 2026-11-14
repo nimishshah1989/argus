@@ -5,17 +5,25 @@ import { withTenant } from '@uptimo/db';
 import { requireAuth, tenantInfo } from '../identity/index.js';
 import { actorOf, forbidden, setting } from '../plant/index.js';
 import { figureInput } from './figure-input.js';
-import { figuresFromRow, rowToTicket } from './mapper.js';
+import { rowToTicket } from './mapper.js';
 import { dayTicketRows, dayWindow } from './repo/board.js';
 import { loadEvents } from './repo/events.js';
 
 type Row = Record<string, unknown>;
 
-/** A closed ticket is read from the figures stored at its close; an unfinished one is measured from its own events. */
+/** A closed ticket is read from the figures stored at its close (empty ones stay empty); an unfinished one is measured from its own events. */
 async function toDayTicket(client: PoolClient, row: Row, now: Date): Promise<DayTicket> {
   if (row.status === 'cancelled') return { status: 'cancelled' };
   if (row.status === 'closed') {
-    return { status: 'closed', started: row.started_at != null, figures: figuresFromRow(row) };
+    const stored = (value: unknown) => (value as number | null) ?? null;
+    return {
+      status: 'closed',
+      figures: {
+        responseMin: stored(row.response_min),
+        repairMin: stored(row.repair_min),
+        waitMin: stored(row.wait_min),
+      },
+    };
   }
   const ticket = rowToTicket(row);
   const events = (await loadEvents(client, ticket.id)) as unknown as TicketEvent[];

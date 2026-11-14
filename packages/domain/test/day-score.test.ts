@@ -23,11 +23,11 @@ function open(reportedAt: string, events: TicketEvent[]): DayTicket {
   return { status: events.some((e) => e.type === 'pause') ? 'waiting' : 'working', input };
 }
 
-const closed = (responseMin: number | null, repairMin: number, waitMin: number): DayTicket => ({
-  status: 'closed',
-  started: true,
-  figures: { responseMin, repairMin, waitMin },
-});
+const closed = (
+  responseMin: number | null,
+  repairMin: number | null,
+  waitMin: number | null,
+): DayTicket => ({ status: 'closed', figures: { responseMin, repairMin, waitMin } });
 
 describe('dayScore', () => {
   it('is null, not 0, on a day with no tickets', () => {
@@ -49,6 +49,18 @@ describe('dayScore', () => {
   it('leaves cancelled tickets out of every count and average', () => {
     const score = dayScore([{ status: 'cancelled' }, closed(10, 30, 0)], NOW);
     expect(score).toMatchObject({ tickets: 1, responseMin: 10, repairMin: 30 });
+  });
+
+  it('counts a closed record with no figures (a past breakdown without a work start) but averages nothing from it', () => {
+    const score = dayScore([closed(null, null, null), closed(10, 30, 0)], NOW);
+    expect(score).toMatchObject({
+      tickets: 2,
+      notStarted: 0,
+      stillOpen: 0,
+      responseMin: 10,
+      repairMin: 30,
+      waitingMin: 0,
+    });
   });
 
   it('counts an unstarted ticket but gives it no response or repair', () => {
