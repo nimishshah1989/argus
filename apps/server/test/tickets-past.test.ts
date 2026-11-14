@@ -188,10 +188,10 @@ describe('what is recorded', () => {
       date: '2026-03-10',
       shiftCode: '1',
     });
-    // 20:00 UTC is 01:30 the next morning at the plant: shift 2, and the plant's date, not UTC's.
+    // 20:00 UTC is 01:30 the next morning at the plant: shift 2, whose production date is the day it started.
     const night = (await past(tech(), span(freshMachine(), '20:00', '21:00'))).json().ticket.id;
     expect((await get(`/api/v1/tickets/${night}`, tech())).json().report).toMatchObject({
-      date: '2026-03-11',
+      date: '2026-03-10',
       shiftCode: '2',
     });
     const given = (
@@ -230,6 +230,27 @@ describe('what is recorded', () => {
     expect((await past(tech(), span(freshMachine(), '00:30', '01:30'))).statusCode).toBe(422);
     const next = await past(tech(), span(freshMachine(), '04:00', '05:00'));
     expect(next.json().ticket.ref).toBe(`BD-${String(n + 1).padStart(4, '0')}`);
+  });
+
+  it('the down and close events say who entered the record, and who reported and fixed it', async () => {
+    const m = freshMachine();
+    const res = await past(
+      tech(),
+      span(m, '04:00', '05:00', { reportedByPersonId: person(0), closedByPersonId: person(1) }),
+    );
+    expect(res.statusCode).toBe(201);
+    const login = (
+      await admin.query("SELECT id FROM login WHERE tenant_id = $1 AND role = 'technician'", [
+        TENANT,
+      ])
+    ).rows[0].id as string;
+    const events = (await get(`/api/v1/tickets/${res.json().ticket.id}`, tech())).json().events;
+    expect(events.map((e: { type: string }) => e.type)).toEqual(['down', 'close']);
+    expect(events.map((e: { loginId: string }) => e.loginId)).toEqual([login, login]);
+    expect(events.map((e: { actingPersonId: string }) => e.actingPersonId)).toEqual([
+      person(0),
+      person(1),
+    ]);
   });
 
   it('records one audit line', async () => {

@@ -80,6 +80,8 @@ export interface ImportedTicketRow {
     actingPersonId: string | null;
     text: string | null;
     payload: Record<string, unknown>;
+    /** The login that entered the event, when a person did (a past breakdown); an import leaves it empty. */
+    loginId?: string | null;
   }>;
   crew: Array<{
     personId: string;
@@ -238,6 +240,7 @@ async function insertChildren(
       e.actingPersonId,
       e.text,
       JSON.stringify(e.payload),
+      e.loginId ?? null,
     ]);
   }
   for (const c of row.crew) {

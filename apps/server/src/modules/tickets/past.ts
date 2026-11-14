@@ -165,12 +165,14 @@ function pastRow(
     reportedAt: ticket.reportedAt,
     reportedByPersonId: ticket.reportedByPersonId,
     reportedByRole: null,
+    // Who entered the record is the caller's login; the person acting is who reported the stop, then who fixed it.
     events: events.map((event) => ({
       type: event.type,
       at: event.at,
-      actingPersonId: null,
+      actingPersonId: event.type === 'down' ? ticket.reportedByPersonId : ticket.closedByPersonId,
       text: event.type === 'down' ? ticket.problem : null,
       payload: {},
+      loginId: ticket.raisedLoginId,
     })),
     crew: [],
     segments: [],

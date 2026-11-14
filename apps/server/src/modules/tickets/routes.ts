@@ -63,9 +63,12 @@ async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
 ): Promise<{ personId: string | null } | Outcome> {
-  const useSession = tx.action === 'correct' || tx.action === 'upgrade-kind';
-  if (useSession) return { personId: tx.auth.personId };
-  const bodyPersonId = tx.body.personId as string | undefined;
+  // A correction is the admin's own act; every other command, an upgrade included, names who acts.
+  if (tx.action === 'correct') return { personId: tx.auth.personId };
+  // On an upgrade the person may be left out: a signed-in person then acts as themselves.
+  const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
+  const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
+    string | undefined;
   if (!tx.auth.shared) {
     if (bodyPersonId !== tx.auth.personId) {
       return {

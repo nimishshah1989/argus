@@ -3,7 +3,7 @@ import type { Figures, Ticket, TransitionResult } from '@uptimo/domain';
 import type { BreakdownReportBody } from '@uptimo/shared';
 import type { Tx } from '../mapper.js';
 import { peopleByIds, tenantInfo } from '../../identity/index.js';
-import { shiftCodeAt } from '../../plant/index.js';
+import { productionDateAt, shiftCodeAt } from '../../plant/index.js';
 
 export interface StoredReportPerson {
   personId: string;
@@ -95,10 +95,7 @@ function figureDefaults(input: ReportStoreInput): {
 /** The calendar date of `at` on the plant's wall clock. */
 export async function plantDateAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {
   const zone = (await tenantInfo(client, tenantId))?.time_zone ?? null;
-  const row = (
-    await client.query('SELECT ($2::timestamptz AT TIME ZONE $1)::date::text AS day', [zone, at])
-  ).rows[0];
-  return row.day as string;
+  return productionDateAt(client, zone, at);
 }
 
 export async function shiftAt(client: PoolClient, tenantId: string, at: Date): Promise<string> {

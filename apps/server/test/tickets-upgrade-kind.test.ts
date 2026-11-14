@@ -62,3 +62,97 @@ describe('upgrading a support ticket to stopped (DOMAIN §2)', () => {
     ).toBe(409);
   });
 });
+
+describe('only a ticket that is still being worked can be upgraded', () => {
+  const person = async (username: string) =>
+    (await f.admin.query('SELECT person_id FROM login WHERE username = $1', [username])).rows[0]
+      .person_id as string;
+  const kindOf = async (id: string) =>
+    (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().ticket.kind;
+
+  it('a cancelled ticket and a closed ticket refuse the upgrade, and their history is unchanged', async () => {
+    const tech = await person('plant-a-technician');
+    const cancelled = await supportTicket('UP-cancelled');
+    expect(
+      (
+        await post(f.tokens.technician!, `/api/v1/tickets/${cancelled}/cancel`, {
+          personId: tech,
+          reason: 'Mistake',
+        })
+      ).statusCode,
+    ).toBe(200);
+    const closed = await supportTicket('UP-closed');
+    expect(
+      (await post(f.tokens.technician!, `/api/v1/tickets/${closed}/start`, { personId: tech }))
+        .statusCode,
+    ).toBe(200);
+    const done = await post(f.tokens.technician!, `/api/v1/tickets/${closed}/close`, {
+      personId: tech,
+      kind: 'no_report',
+    });
+    expect(done.statusCode, done.body).toBe(200);
+    for (const id of [cancelled, closed]) {
+      const before = (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().events
+        .length;
+      const res = await post(f.tokens.operator!, `/api/v1/tickets/${id}/upgrade-kind`, {});
+      expect(res.statusCode, res.body).toBe(409);
+      expect(await kindOf(id)).toBe('support');
+      expect(
+        (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().events,
+      ).toHaveLength(before);
+    }
+  });
+
+  it('a working and a waiting ticket can still be upgraded', async () => {
+    const tech = await person('plant-a-technician');
+    const working = await supportTicket('UP-working');
+    await post(f.tokens.technician!, `/api/v1/tickets/${working}/start`, { personId: tech });
+    expect(
+      (await post(f.tokens.operator!, `/api/v1/tickets/${working}/upgrade-kind`, {})).statusCode,
+    ).toBe(200);
+  });
+});
+
+describe('who is acting on an upgrade is resolved like every other command', () => {
+  it('a shared login names the person acting in the body, and it is recorded on the event', async () => {
+    const id = await supportTicket('UP-shared');
+    const acting = (
+      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-technician'")
+    ).rows[0].person_id as string;
+    const res = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {
+      personId: acting,
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    const events = (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().events;
+    const upgrade = events.find((e: { type: string }) => e.type === 'upgrade_kind');
+    expect(upgrade.actingPersonId).toBe(acting);
+  });
+
+  it('a shared login that names nobody, or somebody who is not in this plant, is refused', async () => {
+    const id = await supportTicket('UP-shared-none');
+    const none = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {});
+    expect([403, 404]).toContain(none.statusCode);
+    const stranger = await post(
+      f.tokens['shared-operator']!,
+      `/api/v1/tickets/${id}/upgrade-kind`,
+      {
+        personId: '99999999-9999-4999-8999-999999999999',
+      },
+    );
+    expect(stranger.statusCode).toBe(404);
+  });
+
+  it('a signed-in person acts as themselves: no body person, or their own, works; another person is 403', async () => {
+    const id = await supportTicket('UP-self');
+    const other = (
+      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-technician'")
+    ).rows[0].person_id as string;
+    const refused = await post(f.tokens.operator!, `/api/v1/tickets/${id}/upgrade-kind`, {
+      personId: other,
+    });
+    expect(refused.statusCode).toBe(403);
+    expect(
+      (await post(f.tokens.operator!, `/api/v1/tickets/${id}/upgrade-kind`, {})).statusCode,
+    ).toBe(200);
+  });
+});

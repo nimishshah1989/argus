@@ -8,6 +8,7 @@ export {
   listItem,
   machineFamily,
   machinesByIds,
+  productionDateAt,
   setting,
   shiftCodeAt,
   shiftsOf,
