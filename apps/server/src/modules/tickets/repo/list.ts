@@ -110,19 +110,27 @@ export async function openTicketRows(tx: Db, tenantId: string): Promise<Rows> {
   ).rows;
 }
 
-/** An open stopped/support ticket already on the machine, if any. */
+/** The open stopped/support ticket already on the machine, if any. */
+export async function openTicketOn(
+  tx: Db,
+  tenantId: string,
+  machineId: string,
+): Promise<{ id: string; ref: string } | undefined> {
+  const row = (
+    await tx.query(
+      "SELECT id, ref FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status NOT IN ('closed', 'cancelled') LIMIT 1",
+      [tenantId, machineId],
+    )
+  ).rows[0];
+  return row && { id: row.id as string, ref: row.ref as string };
+}
+
 export async function openDuplicateId(
   tx: Db,
   tenantId: string,
   machineId: string,
 ): Promise<string | undefined> {
-  const row = (
-    await tx.query(
-      "SELECT id FROM ticket WHERE tenant_id = $1 AND machine_id = $2 AND kind <> 'general' AND status NOT IN ('closed', 'cancelled') LIMIT 1",
-      [tenantId, machineId],
-    )
-  ).rows[0];
-  return row?.id;
+  return (await openTicketOn(tx, tenantId, machineId))?.id;
 }
 
 /** Another breakdown of the machine (any status but cancelled) that overlaps `from` to `to`; touching ends do not. */

@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { loginAdminById } from '../identity/index.js';
 import { apiError } from '@uptimo/shared';
 import type { Outcome, Tx } from './mapper.js';
+import { openTicketOn } from './repo/list.js';
 
 /** The cell the machine was in when the ticket was reported; what the old machine row says now may have moved on. */
 function cellAtReport(row: Record<string, unknown>): string | null {
@@ -27,24 +28,17 @@ export async function loginInTicketCell(
 export async function reopenConflict(
   client: PoolClient,
   tx: Tx,
-  ticket: { id: string; kind: string; machineId: string | null },
+  ticket: { kind: string; machineId: string | null },
 ): Promise<Outcome | null> {
   if (tx.action !== 'handback' || tx.body.response !== 'disputed') return null;
   if (ticket.kind === 'general' || !ticket.machineId) return null;
-  const other = (
-    await client.query(
-      `SELECT ref FROM ticket
-        WHERE tenant_id = $1 AND machine_id = $2 AND id <> $3 AND kind <> 'general'
-          AND status NOT IN ('closed', 'cancelled')`,
-      [tx.tenantId, ticket.machineId, ticket.id],
-    )
-  ).rows[0];
+  const other = await openTicketOn(client, tx.tenantId, ticket.machineId);
   if (!other) return null;
   return {
     status: 409,
     body: apiError(
       'conflict',
-      `The sign-off cannot reopen this ticket: the machine already has an open ticket, ${other.ref as string}.`,
+      `The sign-off cannot reopen this ticket: the machine already has an open ticket, ${other.ref}.`,
     ),
   };
 }
