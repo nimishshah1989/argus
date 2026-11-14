@@ -13,6 +13,7 @@ import { DetailKitSection } from './detail-kit-section.js';
 import { FloorSection } from './floor-section.js';
 import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
+import { MeaningSection } from './meaning-section.js';
 import { PatternsSection } from './patterns-section.js';
 import { StatusSection } from './status-section.js';
 import { ShellSection } from './shell-section.js';
@@ -147,6 +148,7 @@ export default function Gallery() {
         <TokensSection />
         <KitSection />
         <StatusSection />
+        <MeaningSection />
         <PatternsSection />
         <FormSection />
         <CrudSection />
