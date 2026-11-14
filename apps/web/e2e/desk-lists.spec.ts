@@ -8,7 +8,7 @@ test.describe.configure({ mode: 'serial' });
 
 const tabs = (page: Page) => page.getByRole('navigation', { name: 'Desk' });
 
-test('Open: counts strip, Team now, Breakdowns / Tasks / Work, and a tap on a count filters', async ({
+test('Open: counts strip, Team now, Breakdowns / Tasks / Work, a tap on a count filters; Mine and Team', async ({
   page,
 }, testInfo) => {
   const machine = machineFor('desk', testInfo.project.name);
@@ -59,11 +59,8 @@ test('Open: counts strip, Team now, Breakdowns / Tasks / Work, and a tap on a co
   const personId = me.user.actingPersonId;
   for (const id of [stopped.id, work.id])
     await commandViaApi(token, id, 'cancel', { personId, reason: 'List check done' });
-});
 
-test('Mine and Team open from the tab bar, and the card opens the ticket', async ({ page }) => {
-  await signIn(page, 'asha');
-  await page.goto('/desk');
+  // Mine and Team from the tab bar (same sign-in: the server caps sign-ins per address).
   await tabs(page).getByRole('link', { name: 'Mine' }).click();
   await expect(page).toHaveURL(/\/desk\/mine$/);
   await expect(page.getByRole('heading', { name: 'My tickets', level: 1 })).toBeVisible();
@@ -92,12 +89,9 @@ for (const [login, path] of [
       page.getByText('Your login does not include this screen. If you need it, ask your admin.'),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: /Breakdowns/ })).toHaveCount(0);
+    if (login !== 'op') return;
+    // An operator is offered Report a problem instead.
+    await page.getByRole('link', { name: 'Report a problem' }).click();
+    await expect(page).toHaveURL(/\/floor$/);
   });
 }
-
-test('an operator is offered Report a problem instead', async ({ page }) => {
-  await signIn(page, 'op');
-  await page.goto('/desk');
-  await page.getByRole('link', { name: 'Report a problem' }).click();
-  await expect(page).toHaveURL(/\/floor$/);
-});

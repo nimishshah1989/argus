@@ -61,7 +61,7 @@ test('admin restores a cancelled ticket, corrects it, then signs out', async ({ 
   await admin.getByRole('button', { name: 'Restore ticket', exact: true }).click();
   await admin.getByLabel('Why restore it?').fill('Cancelled by mistake');
   await admin.getByRole('button', { name: 'Restore', exact: true }).click();
-  await expect(page.locator('header').getByText('Open', { exact: true })).toBeVisible();
+  await expect(page.locator('header').getByText('Booked', { exact: true })).toBeVisible();
 
   await admin.getByRole('button', { name: 'Correct ticket', exact: true }).click();
   await admin.getByRole('textbox', { name: 'Reason', exact: true }).fill('Wrong problem text');

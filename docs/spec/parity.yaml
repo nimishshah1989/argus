@@ -552,6 +552,9 @@ rows:
       - 'PR #35'
       - 'PR #40'
       - 'apps/web/e2e/desk.spec.ts :: drives a ticket through the desk lifecycle'
+      - 'apps/web/e2e/desk-detail.spec.ts :: a technician sees the working ticket, its action order, an unstarted and a closed ticket'
+      - 'apps/web/e2e/desk-detail.spec.ts :: an operator sees only Cancel ticket on their own unstarted ticket'
+      - 'apps/server/test/import-real.test.ts :: shows his stored minutes on the ticket detail, not a recompute'
     source: PARITY.md §v3 / Views
   - id: v3.views.04
     feature:

@@ -1,24 +1,40 @@
-import { useTranslation } from 'react-i18next';
-import type { TicketStatus } from '../api.js';
+/* eslint-disable i18next/no-literal-string -- StatusPill ids, not copy */
+import type { RaiseKind, TicketStatus } from '../api.js';
+import { StatusPill } from '../ui/status/status-pill.js';
 
-const TONES: Record<TicketStatus, { key: string; className: string }> = {
-  open: { key: 'status.open', className: 'bg-neutral-200 text-neutral-700' },
-  working: { key: 'status.working', className: 'bg-in-progress/10 text-in-progress' },
-  waiting: { key: 'status.waiting', className: 'bg-waiting/10 text-waiting' },
-  closed: { key: 'status.closed', className: 'bg-running/10 text-running' },
-  cancelled: { key: 'status.cancelled', className: 'bg-neutral-200 text-neutral-500' },
-};
+/** The state chip: colour, icon and word together. An unstarted ticket is "Booked", a handed-over one "Transferred". */
+export function StatusBadge({
+  status,
+  handedOver = false,
+}: {
+  status: TicketStatus;
+  handedOver?: boolean;
+}) {
+  if (status === 'open') {
+    return handedOver ? (
+      <StatusPill group="ticket" id="transferred" />
+    ) : (
+      <StatusPill group="floor" id="booked" />
+    );
+  }
+  if (status === 'working') return <StatusPill group="ticket" id="in_progress" />;
+  if (status === 'waiting') return <StatusPill group="ticket" id="waiting" />;
+  if (status === 'closed') return <StatusPill group="ticket" id="closed" />;
+  return <StatusPill group="ticket" id="cancelled" />;
+}
 
-/** Colour never carries meaning alone: the status label is always with the dot. */
-export function StatusBadge({ status }: { status: TicketStatus }) {
-  const { t } = useTranslation();
-  const tone = TONES[status];
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${tone.className}`}
-    >
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
-      {t(tone.key)}
-    </span>
+/** Whether a closed ticket has its breakdown report, or still needs it. */
+export function ReportBadge({ state }: { state: 'with' | 'needs' }) {
+  return state === 'with' ? (
+    <StatusPill group="report" id="with_report" />
+  ) : (
+    <StatusPill group="report" id="needs_report" />
   );
+}
+
+/** The kind chip: a stopped machine or a support request; a work request has none. */
+export function KindBadge({ kind }: { kind: RaiseKind }) {
+  if (kind === 'stopped') return <StatusPill group="ticket" id="stopped" />;
+  if (kind === 'support') return <StatusPill group="ticket" id="support" />;
+  return null;
 }
