@@ -44,6 +44,9 @@ function userFrom(ctx: AuthContext) {
     role: ctx.role,
     shared: ctx.shared,
     actingPersonId: ctx.personId ?? '',
+    actingPerson: ctx.personId
+      ? { id: ctx.personId, name: ctx.personName ?? '', title: ctx.personTitle }
+      : null,
     mustChangePassword: ctx.mustChangePassword,
   };
 }
@@ -118,6 +121,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
       role: n.loginRow.role,
       shared: n.loginRow.shared,
       actingPersonId: n.person.id,
+      actingPerson: { id: n.person.id, name: n.person.name, title: n.person.title },
       mustChangePassword: n.loginRow.must_change_password,
     },
   });

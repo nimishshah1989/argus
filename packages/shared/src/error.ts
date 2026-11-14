@@ -10,6 +10,7 @@ export const errorCodeSchema = z.enum([
   'not_configured',
   'internal',
   'must_change_password',
+  'choose_acting_person',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 

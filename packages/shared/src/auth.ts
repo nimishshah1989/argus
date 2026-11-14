@@ -26,6 +26,12 @@ export const userSchema = z
     shared: z.boolean(),
     actingPersonId: z.string(),
     mustChangePassword: z.boolean().optional(),
+    // Who is acting now; null on a shared phone whose acting person was switched off, until the app asks again.
+    actingPerson: z
+      .object({ id: z.string(), name: z.string(), title: z.string().nullable() })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 export type User = z.infer<typeof userSchema>;

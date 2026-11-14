@@ -205,7 +205,25 @@ describe('a shared floor phone keeps working when the person it was acting as is
 
     const me = await t.call('GET', '/api/v1/auth/me', asLeaver);
     expect(me.statusCode, me.body).toBe(200);
-    expect(me.json().user).toMatchObject({ actingPersonId: '', name: '' });
+    expect(me.json().user).toMatchObject({ actingPerson: null, actingPersonId: '', name: '' });
+    expect(me.json().user.shared).toBe(true);
+    // The phone can still read (to show who may be chosen) but cannot act until someone is chosen.
+    expect((await t.call('GET', '/api/v1/config', asLeaver)).statusCode).toBe(200);
+    const raise = await t.call('POST', '/api/v1/tickets', asLeaver, {
+      kind: 'general',
+      location: 'Shop floor',
+      workType: 'repair',
+      problem: 'Door hinge',
+      reportedByPersonId: other,
+    });
+    expect(raise.statusCode, raise.body).toBe(403);
+    expect(raise.json().error.code).toBe('choose_acting_person');
+    const push = await t.call('POST', '/api/v1/push/subscribe', asLeaver, {});
+    expect(push.json().error.code).toBe('choose_acting_person');
+    expect((await t.call('GET', '/api/v1/auth/me', asOther)).json().user.actingPerson).toMatchObject({
+      id: other,
+      name: 'Stays On',
+    });
     expect((await t.call('GET', '/api/v1/auth/me', asOther)).json().user.actingPersonId).toBe(
       other,
     );

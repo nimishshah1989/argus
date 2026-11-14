@@ -21,6 +21,12 @@ const PASSWORD_SCREENS: ReadonlySet<string> = new Set([
   'POST /api/v1/auth/logout',
 ]);
 
+/** A shared phone whose acting person was switched off may read, but not act, until the app asks who is using it. */
+function needsActingPerson(auth: AuthContext, method: string, screen: string): boolean {
+  const reads = method === 'GET' || method === 'HEAD';
+  return auth.shared && auth.personId === null && !reads && !PASSWORD_SCREENS.has(screen);
+}
+
 /** Whether this customer makes a login with a temporary password change it before anything else. */
 export type PasswordChangeRequired = (auth: AuthContext) => Promise<boolean>;
 
@@ -70,6 +76,10 @@ export function registerAuthGuard(
     request.auth = auth;
     bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
     const screen = `${request.method} ${request.routeOptions.url}`;
+    if (needsActingPerson(auth, request.method, screen))
+      return reply
+        .code(403)
+        .send(apiError('choose_acting_person', 'Choose who is using this phone to continue'));
     if (
       auth.mustChangePassword &&
       !PASSWORD_SCREENS.has(screen) &&
