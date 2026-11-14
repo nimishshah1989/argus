@@ -10,6 +10,8 @@ export const signinEn = {
   'signin.held': 'Not sent: queued by {{name}}',
   'signin.heldDetail': 'It is sent when {{name}} uses this phone again.',
   'signin.heldEarlier': 'an earlier sign-in',
+  'signin.unreachable': 'Cannot reach the server. Check your connection and try again.',
+  'signin.serverProblem': 'The server had a problem. Try again in a moment.',
   'signin.tooMany': 'Too many attempts. Try again in a few minutes.',
   'signin.unknownCompany':
     'This address does not belong to a company. Check the link you were given.',

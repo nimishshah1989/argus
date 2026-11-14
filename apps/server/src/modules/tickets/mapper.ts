@@ -1,22 +1,27 @@
 import { apiError, type CommandAction } from '@uptimo/shared';
 import {
+  canAcknowledge,
+  canAnswerHandbackAtAll,
   canCorrect,
   canLateReport,
   canRaise,
   canRestore,
   canWork,
   figures as computeFigures,
+  mayAcknowledgeLevel,
   transition,
   TransitionError,
+  type ActorContext,
   type Command,
-  type CorrectChanges,
   type CrewMember,
+  type EscalationLevel,
   type Figures,
   type Role,
   type Ticket,
   type TicketEvent,
   type WorkSegment,
 } from '@uptimo/domain';
+import { figureInput } from './figure-input.js';
 import { overriddenFigures } from './repo/overrides.js';
 
 export type Outcome = { status: number; body: unknown };
@@ -37,6 +42,7 @@ export interface LoadedEvent {
   at: Date;
   reason?: string;
   isVendor?: boolean;
+  id?: string;
   seq: number;
   loginId: string | null;
   actingPersonId: string | null;
@@ -99,6 +105,12 @@ export interface LoadedCtx {
   events: LoadedEvent[];
   segments: WorkSegment[];
   crew: CrewMember[];
+  /** Set only for an acknowledge: whether the acting person is on the roster for the shift running now. */
+  onRoster: boolean;
+  /** Set only for an acknowledge-escalation: the levels of the escalations still waiting for someone. */
+  pendingLevels: EscalationLevel[];
+  /** Set only for a handback: whether the signed-in login's cell is the cell the machine was in when reported. */
+  sameCell: boolean;
 }
 
 function toDate(value: unknown): Date | null {
@@ -199,17 +211,7 @@ export function recomputeFigures(
   segments: WorkSegment[],
   opts: { overrides: Record<string, unknown>; now: Date },
 ): Figures {
-  return computeFigures({
-    reportedAt: ticket.reportedAt,
-    kind: ticket.kind,
-    kindUpgradedAt: ticket.kindUpgradedAt ?? undefined,
-    selfStarted: ticket.selfStarted,
-    events,
-    segments,
-    overrides: opts.overrides,
-    now: opts.now,
-    closedAt: ticket.closedAt ?? undefined,
-  });
+  return computeFigures(figureInput(ticket, events, segments, opts));
 }
 
 export function ticketProjection(ticket: Ticket, extras: TicketExtras): Record<string, unknown> {
@@ -237,7 +239,24 @@ const WORK_GATED = new Set<CommandAction>([
   'update',
   'machine-running',
   'machine-stopped',
+  'lockout-confirm',
 ]);
+
+/**
+ * Role-only checks that run before any ticket or machine is looked up. Whoever may raise may also say a support
+ * ticket has become a stopped machine (DOMAIN §2). An acknowledge is gated here by role alone; the roster line
+ * itself is checked in the command.
+ */
+const ROLE_GATES: Partial<Record<CommandAction, (actor: ActorContext) => boolean>> = {
+  'upgrade-kind': canRaise,
+  acknowledge: (actor) => canAcknowledge(actor, { onRoster: true, assignedToActor: false }),
+  'acknowledge-escalation': (actor) =>
+    actor.personId !== null && mayAcknowledgeLevel(actor.role, 'L1'),
+  report: canLateReport,
+  restore: canRestore,
+  correct: canCorrect,
+  handback: (actor) => canAnswerHandbackAtAll(actor.role),
+};
 
 export function gatePermission(
   action: CommandAction,
@@ -255,91 +274,7 @@ export function gatePermission(
     body: apiError('forbidden', 'You do not have permission for this action'),
   };
   if (WORK_GATED.has(action) && !canWork(actor)) return denied;
-  // Whoever may raise may also say a support ticket has become a stopped machine (DOMAIN §2).
-  if (action === 'upgrade-kind' && !canRaise(actor)) return denied;
-  if (action === 'report' && !canLateReport(actor)) return denied;
-  if (action === 'restore' && !canRestore(actor)) return denied;
-  if (action === 'correct' && !canCorrect(actor)) return denied; // before any ticket or machine is looked up
-  return null;
-}
-
-type Builder = (
-  body: Record<string, unknown>,
-  personId: string,
-  ticket: Ticket,
-  events: LoadedEvent[],
-) => Command;
-
-const BUILDERS: Record<CommandAction, Builder> = {
-  start: (body, personId, ticket) => ({
-    type: 'start',
-    personId,
-    at: body.at as Date | undefined,
-    pickup: ticket.handedOver,
-  }),
-  join: (body, personId) => ({ type: 'join', personId, role: body.role as 'primary' | 'support' }),
-  leave: (body, personId) => ({ type: 'leave', personId, reason: body.reason as string }),
-  pause: (body, personId) => ({
-    type: 'pause',
-    personId,
-    reason: body.reasonCode as string,
-    note: body.note as string | undefined,
-    assignToPersonId: body.assignToPersonId as string | undefined,
-  }),
-  resume: (body, personId) => ({ type: 'resume', personId, note: body.note as string | undefined }),
-  transfer: (body, personId) => ({
-    type: 'transfer',
-    personId,
-    toPersonId: body.toPersonId as string | undefined,
-    toShift: body.toShift as string | undefined,
-    note: body.note as string,
-  }),
-  update: (body, personId) => ({ type: 'update', personId, text: body.text as string }),
-  'machine-running': (body, personId) => ({
-    type: 'machineRunning',
-    personId,
-    at: body.at as Date | undefined,
-  }),
-  'machine-stopped': (body, personId) => ({
-    type: 'machineStopped',
-    personId,
-    at: body.at as Date | undefined,
-  }),
-  close: (body, personId) => ({
-    type: 'close',
-    personId,
-    kind: body.kind as 'report' | 'no_report' | 'done',
-    at: body.at as Date | undefined,
-    note: body.note as string | undefined,
-  }),
-  report: (_body, personId) => ({ type: 'lateReport', personId }),
-  cancel: (body, personId) => ({ type: 'cancel', personId, reason: body.reason as string }),
-  restore: (body, personId, _ticket, events) => {
-    const cancel = [...events].reverse().find((event) => event.type === 'cancel');
-    const toStatus = (cancel?.payload.previousStatus as 'open' | 'working' | 'waiting') ?? 'open';
-    return { type: 'restore', personId, reason: body.reason as string, toStatus };
-  },
-  correct: (body, personId) => {
-    const { activeMin, waitMin, ...rest } = body.changes as CorrectChanges & {
-      activeMin?: number | null;
-      waitMin?: number | null;
-    };
-    return {
-      type: 'correct',
-      personId,
-      reason: body.reason as string,
-      changes: {
-        ...rest,
-        ...(activeMin === undefined ? {} : { handsOnOverrideMin: activeMin }),
-        ...(waitMin === undefined ? {} : { waitingOverrideMin: waitMin }),
-      },
-    };
-  },
-  'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
-};
-
-export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {
-  return BUILDERS[tx.action](tx.body, personId, loaded.ticket, loaded.events);
+  return ROLE_GATES[action]?.(actor) === false ? denied : null;
 }
 
 export function commandExtras(

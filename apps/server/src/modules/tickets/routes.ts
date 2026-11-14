@@ -4,23 +4,25 @@ import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import * as shared from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
-import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
+  actingRefusal,
   AUTH_MESSAGES,
+  isOnRoster,
   ticketPartsAfterWrite,
-  withTicketParts,
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
+import { buildCommand } from './builders.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import * as report from './repo/report.js';
 import { ALREADY_OPEN, runOutcome } from './outcome.js';
+import { boardToday } from './board.js';
 import { registerPast } from './past.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
-import { openDuplicateId, openTicketRows } from './repo/list.js';
+import { detail, listTickets, loadState } from './list.js';
+import { openDuplicateId } from './repo/list.js';
 import {
   checkCorrectedRefs,
   machineSwitchedOff,
@@ -29,6 +31,8 @@ import {
   saveCorrectedMachine,
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
+import { loginInTicketCell, reopenConflict } from './handback.js';
+import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -50,6 +54,10 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   restore: shared.restoreTicketSchema,
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
+  acknowledge: shared.acknowledgeTicketSchema,
+  'acknowledge-escalation': shared.acknowledgeEscalationSchema,
+  handback: shared.handbackTicketSchema,
+  'lockout-confirm': shared.lockoutConfirmSchema,
 };
 
 interface RaiseTx {
@@ -59,45 +67,41 @@ interface RaiseTx {
   body: Record<string, unknown>;
 }
 
+/**
+ * Who acts is always the session's person (a shared phone's chosen one), never one a request names; a correction
+ * is the admin's own act. The read is locked, so a switch-off that is under way finishes first: a person already
+ * off is no longer signed in.
+ */
 async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
 ): Promise<{ personId: string | null } | Outcome> {
-  // A correction is the admin's own act; every other command, an upgrade included, names who acts.
   if (tx.action === 'correct') return { personId: tx.auth.personId };
-  // On an upgrade the person may be left out: a signed-in person then acts as themselves.
-  const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
-  const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
-    string | undefined;
-  if (!tx.auth.shared) {
-    if (bodyPersonId !== tx.auth.personId) {
-      return {
-        status: 403,
-        body: shared.apiError('forbidden', 'You may only act as yourself', 'personId'),
-      };
-    }
-    // Read locked, so a switch-off that is under way finishes first; a person already off is no longer signed in.
-    if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-      return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
-    }
-    return { personId: tx.auth.personId };
+  const refused = actingRefusal(tx.auth, tx.body.personId as string | undefined, 'personId');
+  if (refused) return refused;
+  if (!(await sql.personExists(client, tx.tenantId, tx.auth.personId!))) {
+    return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
   }
-  if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'personId') };
-  }
-  return { personId: bodyPersonId };
+  return { personId: tx.auth.personId };
 }
 
 async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.LoadedCtx | null> {
   const row = await sql.loadTicketRow(client, tx.ticketId, tx.tenantId);
   if (!row) return null;
+  const events = await sql.loadEvents(client, tx.ticketId);
   return {
     row,
     ticket: tm.rowToTicket(row),
     extras: tm.rowExtras(row),
-    events: await sql.loadEvents(client, tx.ticketId),
+    events,
     segments: await sql.loadSegments(client, tx.ticketId),
     crew: await sql.loadCrew(client, tx.ticketId),
+    onRoster:
+      tx.action === 'acknowledge' && tx.actingPersonId !== null
+        ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
+        : false,
+    pendingLevels: domain.pendingEscalationLevels(events),
+    sameCell: tx.action === 'handback' ? await loginInTicketCell(client, tx, row) : false,
   };
 }
 
@@ -122,9 +126,13 @@ async function executeCommand(
 
   const unknown = await checkCorrectedRefs(client, tx, loaded);
   if (unknown) return unknown;
-  const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
+  const lockout = await checkLockout(client, tx);
+  if (lockout) return lockout;
+  const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
+  const blocked = await reopenConflict(client, tx, loaded.ticket);
+  if (blocked) return blocked;
   fillReplacedMinutes(loaded, result.events);
   // M2-2.1: a correction or kind upgrade may change the derived severity.
   await refreshSeverity(client, tx, loaded, result.ticket);
@@ -137,11 +145,19 @@ async function executeCommand(
     ticketId: tx.ticketId,
     now: new Date(),
     boss,
+    command: tx.action,
+    actor: tx.auth,
   });
 
   const outcome: Outcome = {
     status: 200,
-    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), ...parts } },
+    body: {
+      ticket: {
+        ...tm.ticketProjection(result.ticket, loaded.extras),
+        ...parts,
+        ...(await lockoutField(client, tx, tx.ticketId)),
+      },
+    },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
@@ -158,9 +174,7 @@ async function runCommand(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = COMMAND_SCHEMAS[action].safeParse(request.body);
@@ -169,7 +183,11 @@ async function runCommand(
     reply.code(422).send(shared.apiError('validation', 'Invalid request', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [action, parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    action,
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: tm.Tx = {
     tenantId: ctx.tenantId,
     ticketId: (request.params as { id: string }).id,
@@ -204,10 +222,50 @@ async function validateMachine(
   return { snapshot: { code, category, cell, criticality }, criticality };
 }
 
+/**
+ * Who a raise may name. The one who starts the work is the person acting, and only maintenance starts work; a
+ * reporter other than the person acting (a technician taking a call) is for maintenance too, an operator reports as
+ * themselves. Refused before anything is looked up, so a refusal says nothing about who exists.
+ */
+function raiseRefusal(tx: RaiseTx): Outcome | null {
+  const { role, loginId, personId, shared: sharedLogin } = tx.auth;
+  const maintenance = domain.canWork({
+    role: role as domain.Role,
+    loginId,
+    personId,
+    shared: sharedLogin,
+  });
+  if (tx.body.startNow || tx.body.startByPersonId !== undefined) {
+    const named = tx.body.startByPersonId as string | undefined;
+    const refused = actingRefusal(tx.auth, named, 'startByPersonId');
+    if (refused) return refused;
+    if (tx.body.startNow && !maintenance) {
+      return {
+        status: 403,
+        body: shared.apiError(
+          'forbidden',
+          'You do not have permission for this action',
+          'startNow',
+        ),
+      };
+    }
+  }
+  const reporter = tx.body.reportedByPersonId as string | undefined;
+  if (reporter !== undefined && reporter !== personId && !maintenance) {
+    return {
+      status: 403,
+      body: shared.apiError('forbidden', 'You may only report as yourself', 'reportedByPersonId'),
+    };
+  }
+  return null;
+}
+
 async function validateRaisePeople(
   client: PoolClient,
   tx: RaiseTx,
 ): Promise<{ reportedByPersonId: string | null } | Outcome> {
+  const refused = raiseRefusal(tx);
+  if (refused) return refused;
   const reportedByPersonId = (tx.body.reportedByPersonId as string | undefined) ?? tx.auth.personId;
   if (reportedByPersonId && !(await sql.personExists(client, tx.tenantId, reportedByPersonId))) {
     return {
@@ -215,12 +273,8 @@ async function validateRaisePeople(
       body: shared.apiError('not_found', 'Unknown reporter', 'reportedByPersonId'),
     };
   }
-  if (
-    tx.body.startByPersonId &&
-    !(await sql.personExists(client, tx.tenantId, tx.body.startByPersonId as string))
-  ) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'startByPersonId') };
-  }
+  // Starting at the raise names a person who starts; a flagged work type is held open for its lockout instead.
+  await holdStartForLockout(client, tx);
   return { reportedByPersonId };
 }
 
@@ -233,36 +287,28 @@ async function executeRaise(
   const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
   const machine = await validateMachine(client, tx);
-  if ('status' in machine) {
-    // A concurrent same-key raise may have committed between our idempotency check and this
-    // duplicate-machine probe; replay its stored result instead of failing on the duplicate.
-    return (await idem.getIdempotent(client, binding)) ?? machine;
-  }
+  // A same-key raise may have committed in between: replay its stored result, not a duplicate error.
+  if ('status' in machine) return (await idem.getIdempotent(client, binding)) ?? machine;
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
-  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
+  const criticality = machine.criticality as domain.Criticality | null;
   const raised = buildRaised({
     ref,
-    body: tx.body,
+    body: { ...tx.body, startByPersonId: tx.auth.personId ?? undefined },
     loginId: tx.auth.loginId,
     reportedByPersonId: people.reportedByPersonId,
     now,
-    criticality: machine.criticality as domain.Criticality | null,
+    criticality,
     severityMatrix,
   });
   raised.ticket.figures = tm.recomputeFigures(raised.ticket, raised.events, raised.segments, {
     overrides: {},
     now,
   });
-  const extras = buildRaiseExtras(
-    machine.snapshot,
-    tx.body,
-    machine.criticality as domain.Criticality | null,
-    severityMatrix,
-  );
+  const extras = buildRaiseExtras(machine.snapshot, tx.body, criticality, severityMatrix);
   await sql.insertTicket(client, tx.tenantId, raised.ticket, extras);
   await sql.persistEvents(client, tx.tenantId, raised.ticket.id, {
     events: raised.events,
@@ -278,10 +324,13 @@ async function executeRaise(
     ticketId: raised.ticket.id,
     now,
     boss,
+    command: 'raise',
+    actor: tx.auth,
   });
+  const lockout = await lockoutField(client, tx, raised.ticket.id);
   const outcome: Outcome = {
     status: 201,
-    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts } },
+    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts, ...lockout } },
   };
   await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;
@@ -297,9 +346,7 @@ async function raise(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = shared.raiseTicketSchema.safeParse(request.body);
@@ -308,7 +355,11 @@ async function raise(
     reply.code(422).send(shared.apiError('validation', 'Invalid ticket', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, ['raise', parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    'raise',
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: RaiseTx = {
     tenantId: ctx.tenantId,
     key,
@@ -324,13 +375,7 @@ async function raise(
 async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const openRows = await withTenant(pool, ctx.tenantId, (client) =>
-    openTicketRows(client, ctx.tenantId),
-  );
-  const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
-  const open = await withTenant(pool, ctx.tenantId, (client) =>
-    withTicketParts(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
-  );
+  const { open, needReport } = await loadState(pool, ctx.tenantId, ctx);
   reply.send({ open, needReport, now: new Date().toISOString() });
 }
 
@@ -340,6 +385,7 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   registerPast(app, config);
   app.get('/api/v1/tickets', (request, reply) => listTickets(pool, request, reply));
   app.get('/api/v1/state', (request, reply) => state(pool, request, reply));
+  app.get('/api/v1/board/today', (request, reply) => boardToday(pool, request, reply));
   app.get('/api/v1/tickets/:id', (request, reply) => detail(pool, request, reply));
   for (const action of Object.keys(COMMAND_SCHEMAS) as tm.CommandAction[]) {
     app.post(`/api/v1/tickets/:id/${action}`, (request, reply) =>

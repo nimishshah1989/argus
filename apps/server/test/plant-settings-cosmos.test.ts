@@ -104,11 +104,12 @@ describe("Cosmos's real plant through the settings API", () => {
 describe("Cosmos's real lists and glossary through the settings API", () => {
   it('every list returns exactly what the plant holds, with the real flags', async () => {
     for (const list of LIST_NAMES) {
+      // Reading a list can give it its starting rows (the lockout steps), so the plant is counted after the read.
+      const items = (await call('GET', `/api/v1/settings/lists/${list}`)).json().items;
       const stored = await db.admin.query(
         'SELECT count(*)::int AS n, count(*) FILTER (WHERE pauses_sla)::int AS pauses FROM list_item WHERE list = $1',
         [list],
       );
-      const items = (await call('GET', `/api/v1/settings/lists/${list}`)).json().items;
       expect(items, list).toHaveLength(stored.rows[0].n);
       expect(
         items.filter((i: { pausesSla: boolean }) => i.pausesSla),

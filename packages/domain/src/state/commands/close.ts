@@ -1,4 +1,5 @@
 import { canClose } from '../../permissions.js';
+import { asksSignoff } from '../../signoff.js';
 import { apply, assertWorking, clampAt, closeSegments, TransitionError } from '../helpers.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
@@ -36,7 +37,11 @@ export function close(
   };
   return apply(input, {
     ticket,
-    event: { type: 'close', reason: command.note },
+    event: {
+      type: 'close',
+      reason: command.note,
+      handbackRequested: asksSignoff(input.ticket, command.kind),
+    },
     at,
     segments: closeSegments(input.segments, at),
   });

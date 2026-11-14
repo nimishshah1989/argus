@@ -3,10 +3,19 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
+import { startClockEscalation } from '../escalation.js';
 
-export type SlaTimerKind = 'ack' | 'restore';
+export type SlaTimerKind = 'ack' | 'restore' | 'pause' | 'handback';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
-export type SlaStopReason = 'acknowledged' | 'started' | 'machine_running' | 'closed' | 'cancelled';
+export type SlaStopReason =
+  | 'acknowledged'
+  | 'started'
+  | 'machine_running'
+  | 'resumed'
+  | 'confirmed'
+  | 'disputed'
+  | 'closed'
+  | 'cancelled';
 
 export interface SlaTimerProjection {
   kind: SlaTimerKind;
@@ -42,6 +51,19 @@ export function singletonKey(tenantId: string, ticketId: string, kind: SlaTimerK
 
 function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
+}
+
+/**
+ * A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). So is
+ * an acknowledge clock a handover starts again after a start or an acknowledge; one a cancel stopped and a restore
+ * resumed, or a late stop a correction reopened, is still the first and never fires twice.
+ */
+function startsNewEpisode(row: TimerRow, timer: SlaTimerProjection): boolean {
+  if (timer.state !== 'running' || row.state !== 'stopped') return false;
+  if (timer.kind === 'pause' || timer.kind === 'handback') return true;
+  return (
+    timer.kind === 'ack' && (row.stop_reason === 'started' || row.stop_reason === 'acknowledged')
+  );
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -107,9 +129,9 @@ async function mergeProjection(
   if (hasChanged) {
     await client.query(
       `UPDATE sla_timer SET due_at=$4, paused_at=$5, stopped_at=$6, stop_reason=$7,
-         state=$8, revision=$9, updated_at=$10
+         state=$8, revision=$9, updated_at=$10, fired_at = CASE WHEN $12 THEN NULL ELSE fired_at END
        WHERE tenant_id=$1 AND ticket_id=$2 AND kind=$3 AND id=$11`,
-      [...values, revision, input.now, existing.id],
+      [...values, revision, input.now, existing.id, startsNewEpisode(existing, timer)],
     );
   }
   return {
@@ -117,7 +139,7 @@ async function mergeProjection(
     previousRevision: existing.revision,
     revision,
     changed: hasChanged,
-    firedAt: existing.fired_at,
+    firedAt: startsNewEpisode(existing, timer) ? null : existing.fired_at,
   };
 }
 
@@ -138,6 +160,8 @@ async function cancelRevision(
 
 function queueAction(timer: SlaTimerProjection, firedAt: Date | null): 'arm' | 'due' | 'none' {
   if (firedAt) return 'none';
+  // An answered sign-off timed nothing out, however late the answer came.
+  if (timer.kind === 'handback' && timer.state === 'stopped') return 'none';
   if (timer.breached) return timer.stopReason === 'cancelled' ? 'none' : 'due';
   return timer.state === 'running' && timer.dueAt ? 'arm' : 'none';
 }
@@ -193,6 +217,33 @@ async function rearmOne(
   ]);
 }
 
+/** Whether the ticket has a clock of this kind that has not stopped yet. */
+export async function hasLiveClock(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  ticketId: string,
+  kind: SlaTimerKind,
+): Promise<boolean> {
+  const result = await client.query(
+    "SELECT 1 FROM sla_timer WHERE tenant_id = $1 AND ticket_id = $2 AND kind = $3 AND state <> 'stopped'",
+    [tenantId, ticketId, kind],
+  );
+  return result.rowCount === 1;
+}
+
+/** What to store when the policy no longer has the limit: stopped, never breached, its job cancelled. */
+export function retiredClock(kind: SlaTimerKind, at: Date): SlaTimerProjection {
+  return {
+    kind,
+    state: 'stopped',
+    breached: false,
+    dueAt: at,
+    pausedAt: null,
+    stoppedAt: at,
+    stopReason: 'cancelled',
+  };
+}
+
 export async function rearmTicket(
   client: PoolClient,
   boss: PgBoss,
@@ -225,7 +276,10 @@ function assertPayload(payload: SlaTimerPayload): void {
   if (!uuid.test(payload.tenantId) || !uuid.test(payload.ticketId)) {
     throw new Error('Invalid SLA timer tenant or ticket id');
   }
-  if (!['ack', 'restore'].includes(payload.kind) || !Number.isInteger(payload.revision)) {
+  if (
+    !['ack', 'restore', 'pause', 'handback'].includes(payload.kind) ||
+    !Number.isInteger(payload.revision)
+  ) {
     throw new Error('Invalid SLA timer kind or revision');
   }
 }
@@ -247,7 +301,16 @@ export async function processSlaTimerJob(
        RETURNING id`,
       [payload.tenantId, payload.ticketId, payload.kind, firedAt, payload.revision],
     );
-    if (result.rowCount === 1) return true;
+    if (result.rowCount === 1) {
+      // In the same transaction as `fired_at`: a failure here puts the breach back, and the job runs again.
+      await startClockEscalation(client, runtime.boss ?? null, {
+        tenantId: payload.tenantId,
+        ticketId: payload.ticketId,
+        kind: payload.kind,
+        firedAt,
+      });
+      return true;
+    }
     const current = await client.query<{
       revision: number;
       due_at: Date | null;

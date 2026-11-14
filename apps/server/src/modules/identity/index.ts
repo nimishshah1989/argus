@@ -20,6 +20,7 @@ export {
   type RedactionTerms,
   type TenantRow,
 } from './repo.js';
+export { actingTeams, listActingChoices, type ActingChoice } from './repo/acting.js';
 export { setTenantLogo, tenantLogoId, updateTenantProfile } from './repo/profile.js';
 export {
   clearActingPerson,
@@ -36,6 +37,7 @@ export {
   loginAdminById,
   loginsOfPerson,
   otherAdminCount,
+  peopleWithRole,
   personAdminById,
   updateLogin,
   updatePerson,

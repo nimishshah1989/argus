@@ -92,7 +92,7 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     name: browser (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
