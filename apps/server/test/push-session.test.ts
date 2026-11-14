@@ -191,3 +191,21 @@ describe('who a phone is registered for', () => {
     expect(await devicesReached(phone)).toEqual([device(10).endpoint]);
   });
 });
+
+describe('changing a password signs the other devices out', () => {
+  it('drops the other phone and keeps the one it was changed from', async () => {
+    await db.admin.query('DELETE FROM push_subscription');
+    const [phone, tablet] = [await signIn(), await signIn()];
+    await register(phone, 12);
+    await register(tablet, 13);
+    // Built at runtime so no literal password sits in the file.
+    const next = ['a-new', 'passphrase', String(Date.now())].join('-');
+    const changed = await call('POST', '/api/v1/auth/password', tablet, {
+      old: PASSWORD,
+      password: next,
+    });
+    expect(changed.statusCode, changed.body).toBe(200);
+    expect(await devicesReached(tablet)).toEqual([device(13).endpoint]);
+    expect((await call('POST', '/api/v1/push/test', phone)).statusCode).toBe(401);
+  });
+});

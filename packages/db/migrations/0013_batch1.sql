@@ -13,16 +13,12 @@ BEGIN;
 -- A stuck deploy must fail, not queue behind a long transaction and block the app behind it.
 SET LOCAL lock_timeout = '5s';
 
--- 1. The day board filters on the day a breakdown was closed. Closed tickets only: an open ticket has no
--- `closed_at`, so the index stays as narrow as the closed history is long. (The runner wraps a file in one
--- transaction, so it cannot build the index CONCURRENTLY; the build blocks writes to `ticket` for its length.)
-CREATE INDEX ticket_closed_idx ON ticket (tenant_id, closed_at) WHERE closed_at IS NOT NULL;
-
--- 2. A push registration belongs to the sign-in (session) that made it. Every way a sign-in ends sets
--- `revoked_at` (sign out, password change, switch-off, the device list): none deletes the row. So the registration
--- is dropped by a trigger on that one column, which no current or future caller can forget; the foreign key's
--- cascade covers the later purge of old sessions and `erase_person`, which delete the row. A registration with no
--- session (one made before this change) is untouched until its phone registers again, which binds it.
+-- 1. A push registration belongs to the sign-in (session) that made it. Every way a person or the app ends a
+-- sign-in (sign out, password change, switch-off, the device list) sets `revoked_at` and none deletes the row, so
+-- the registration is dropped by a trigger on that one column, which no current or future caller can forget. The
+-- foreign key's cascade covers the later purge of old sessions and `erase_person`, which delete the row. A sign-in
+-- that only expires is not covered until it is purged. A registration with no session (one made before this
+-- change) is untouched until its phone registers again, which binds it.
 ALTER TABLE session ADD CONSTRAINT session_tenant_id_unique UNIQUE (tenant_id, id);
 ALTER TABLE push_subscription ADD COLUMN session_id uuid;
 ALTER TABLE push_subscription ADD CONSTRAINT push_session_tenant_fk
@@ -42,7 +38,7 @@ CREATE TRIGGER session_signout_drops_push AFTER UPDATE OF revoked_at ON session
   FOR EACH ROW WHEN (OLD.revoked_at IS NULL AND NEW.revoked_at IS NOT NULL)
   EXECUTE FUNCTION push_subscription_drop_on_signout();
 
--- 3. Erased stays erased. The person row stays (history names it); this keyed hash of the normalised name and
+-- 2. Erased stays erased. The person row stays (history names it); this keyed hash of the normalised name and
 -- number (HMAC-SHA256, the key lives in the server's environment and never in the database) is what a later create
 -- or import is compared with (the number is part of it). NULL for everyone not erased, and for people erased before this change: their name is
 -- gone, so no hash can be made for them.
@@ -117,12 +113,13 @@ BEGIN
   GET DIAGNOSTICS n = ROW_COUNT;
   counts := counts || jsonb_build_object('login', n);
   -- Their own devices go. A shared floor phone stays signed in; it only forgets who was acting.
-  DELETE FROM session WHERE tenant_id = p.tenant_id AND login_id = ANY(logins);
-  GET DIAGNOSTICS n = ROW_COUNT;
-  counts := counts || jsonb_build_object('session', n);
+  -- Registrations first: deleting a session also deletes the phone registered under it, and the count must see it.
   DELETE FROM push_subscription WHERE tenant_id = p.tenant_id AND login_id = ANY(logins);
   GET DIAGNOSTICS n = ROW_COUNT;
   counts := counts || jsonb_build_object('push_subscription', n);
+  DELETE FROM session WHERE tenant_id = p.tenant_id AND login_id = ANY(logins);
+  GET DIAGNOSTICS n = ROW_COUNT;
+  counts := counts || jsonb_build_object('session', n);
   UPDATE session SET acting_person_id = NULL, updated_at = now()
   WHERE tenant_id = p.tenant_id AND acting_person_id = p.id;
   GET DIAGNOSTICS n = ROW_COUNT;
@@ -240,5 +237,10 @@ END $$;
 DROP FUNCTION erase_person(uuid, uuid, text, text);
 ALTER FUNCTION erase_person(uuid, uuid, text, text, text, text) OWNER TO app_router;
 REVOKE ALL ON FUNCTION erase_person(uuid, uuid, text, text, text, text) FROM PUBLIC;
+
+-- The day board filters on the day a breakdown was closed. Closed tickets only: an open ticket has no
+-- `closed_at`, so the index stays as narrow as the closed history is long. (The runner wraps a file in one
+-- transaction, so it cannot build the index CONCURRENTLY; the build blocks writes to `ticket` for its length.)
+CREATE INDEX ticket_closed_idx ON ticket (tenant_id, closed_at) WHERE closed_at IS NOT NULL;
 
 COMMIT;

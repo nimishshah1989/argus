@@ -27,6 +27,7 @@ export {
   erasePerson,
   erasureHash,
   erasureNameHash,
+  refuseErasedEdit,
   normaliseName,
   normalisePhone,
   refuseErased,

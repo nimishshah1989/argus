@@ -8,6 +8,7 @@ import {
   lockPerson,
   otherAdminCount,
   personAdminById,
+  refuseErasedEdit,
   updatePerson,
 } from '../identity/index.js';
 import { clearSubscriptionPerson, deleteSubscriptionsOf } from '../notifications/index.js';
@@ -161,6 +162,7 @@ export async function patchPerson(
     personPatchRefusal(before, patch) ??
     (off && before.active ? await switchOffRefusal(tx, before) : null);
   if (refusal) return refusal;
+  await refuseErasedEdit(tx, actor.tenantId, before, patch);
   const after = await updatePerson(tx, id, off ? { ...patch, phone: null } : patch);
   const effects = off || on ? await endAccess(tx, id, off) : undefined;
   await auditPersonChange(tx, actor, { before, after, patch, effects });

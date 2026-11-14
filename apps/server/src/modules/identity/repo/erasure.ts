@@ -24,6 +24,8 @@ export class ErasedPersonError extends Error {
 export interface Identity {
   name: string;
   phone?: string | null;
+  /** An edit: this person's own row is not an erased person to compare with. */
+  exceptId?: string;
 }
 
 export const normaliseName = (name: string): string =>
@@ -37,21 +39,28 @@ function keyOrNull(): string | null {
   return key !== undefined && key.length >= 32 ? key : null;
 }
 
-/** One HMAC-SHA256 under the server key. The label keeps the two hashes apart: they can never be equal. */
-function hmac(label: 'full' | 'name', ...parts: string[]): string {
+/**
+ * One HMAC-SHA256 under the server key. The label keeps the two hashes apart (they can never be equal) and the plant
+ * is part of the input, so the same name erased in two plants leaves two different values.
+ */
+function hmac(label: 'full' | 'name', tenantId: string, ...parts: string[]): string {
   const key = keyOrNull();
   if (!key) throw new ErasureKeyMissing();
   return createHmac('sha256', key)
-    .update([label, ...parts].join('\0'))
+    .update([label, tenantId, ...parts].join('\0'))
     .digest('hex');
 }
 
 /** Name and number together: a full match is certain enough to refuse. Throws without the key: no default. */
-export const erasureHash = (name: string, phone: string | null | undefined): string =>
-  hmac('full', normaliseName(name), normalisePhone(phone));
+export const erasureHash = (
+  tenantId: string,
+  name: string,
+  phone: string | null | undefined,
+): string => hmac('full', tenantId, normaliseName(name), normalisePhone(phone));
 
 /** The name alone: what an import can know. A match is only ever a hint for a person to look at. */
-export const erasureNameHash = (name: string): string => hmac('name', normaliseName(name));
+export const erasureNameHash = (tenantId: string, name: string): string =>
+  hmac('name', tenantId, normaliseName(name));
 
 /** Without the key a plant that has erased people cannot be checked, so it is refused; one with none has nothing to match. */
 async function keyGuard(tx: Db, tenantId: string): Promise<boolean> {
@@ -72,7 +81,7 @@ export async function erasedNamesAmong(
 ): Promise<Set<string>> {
   const distinct = [...new Set(names.map(normaliseName))];
   if (distinct.length === 0 || !(await keyGuard(tx, tenantId))) return new Set();
-  const byHash = new Map(distinct.map((n) => [erasureNameHash(n), n]));
+  const byHash = new Map(distinct.map((n) => [erasureNameHash(tenantId, n), n]));
   const hit = await tx.query(
     'SELECT erasure_name_hash FROM person WHERE tenant_id = $1 AND erasure_name_hash = ANY($2::text[])',
     [tenantId, [...byHash.keys()]],
@@ -88,12 +97,36 @@ export async function refuseErased(tx: Db, tenantId: string, who: Identity): Pro
   if (!(await keyGuard(tx, tenantId))) return false;
   if (normalisePhone(who.phone)) {
     const full = await tx.query(
-      'SELECT 1 FROM person WHERE tenant_id = $1 AND erasure_hash = $2 LIMIT 1',
-      [tenantId, erasureHash(who.name, who.phone)],
+      `SELECT 1 FROM person WHERE tenant_id = $1 AND erasure_hash = $2
+         AND ($3::uuid IS NULL OR id <> $3) LIMIT 1`,
+      [tenantId, erasureHash(tenantId, who.name, who.phone), who.exceptId ?? null],
     );
     if (full.rowCount) throw new ErasedPersonError();
   }
   return (await erasedNamesAmong(tx, tenantId, [who.name])).size > 0;
+}
+
+/**
+ * An edit of a person's name or number. An erased person's row keeps neither (it is "Former staff" for good); anyone
+ * else may not be edited into a name and number that match an erased person, on the values they would have after it.
+ */
+export async function refuseErasedEdit(
+  tx: Db,
+  tenantId: string,
+  before: { id: string; name: string; phone: string | null },
+  patch: { name?: string; phone?: string | null },
+): Promise<void> {
+  if (patch.name === undefined && patch.phone === undefined) return;
+  const erased = await tx.query(
+    'SELECT 1 FROM person WHERE tenant_id = $1 AND id = $2 AND erasure_hash IS NOT NULL',
+    [tenantId, before.id],
+  );
+  if (erased.rowCount) throw new ErasedPersonError();
+  await refuseErased(tx, tenantId, {
+    name: patch.name ?? before.name,
+    phone: patch.phone === undefined ? before.phone : patch.phone,
+    exceptId: before.id,
+  });
 }
 
 /** Erases one person: both hashes are made from their current name and number first, then the database does the rest. */
@@ -103,7 +136,7 @@ export async function erasePerson(
 ): Promise<Record<string, unknown> & { s3_keys: string[] }> {
   if (!keyOrNull()) throw new ErasureKeyMissing();
   const row = (
-    await tx.query('SELECT name, phone FROM person WHERE tenant_id = $1 AND id = $2', [
+    await tx.query('SELECT name, phone FROM person WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [
       args.tenantId,
       args.personId,
     ])
@@ -118,8 +151,8 @@ export async function erasePerson(
     args.personId,
     args.requestRef,
     args.operator,
-    erasureHash(name, row.phone as string | null),
-    erasureNameHash(name),
+    erasureHash(args.tenantId, name, row.phone as string | null),
+    erasureNameHash(args.tenantId, name),
   ]);
   return result.rows[0].r;
 }

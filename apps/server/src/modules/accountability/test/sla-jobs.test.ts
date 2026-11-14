@@ -525,12 +525,16 @@ it('the real worker fires a pause clock once, on the fake clock', async () => {
   }
 }, 60_000);
 
-it('a breach owed by pause 1 still fires, once, when pause 2 starts before the job runs', async () => {
+type Seen = { kind: string; firedAt: Date; owedDueAt: Date | null };
+const second = (n: number) => new Date(START.getTime() + n * 1_000);
+
+/**
+ * A worker on a fake clock, and a ticket whose pause 1 (20 s at most) ran 25 s and whose pause 2 started a second
+ * later, with no job run in between: the breach pause 1 owes is queued, pause 2's is armed for second 46.
+ */
+async function ticketWithOwedBreach(onBreach: (breach: Seen) => Promise<void>) {
   await boss.deleteAllJobs('sla.timer');
-  // Pause 1 is 20 s long at most and runs 25 s; pause 2 starts a second later. No worker runs in between.
-  const second = (n: number) => new Date(START.getTime() + n * 1_000);
   const clock = new TestClock(second(26));
-  const breaches: { kind: string; firedAt: Date; owedDueAt: Date | null }[] = [];
   const handle = await startJobs({
     connectionString: appUrl,
     pool: app,
@@ -540,27 +544,30 @@ it('a breach owed by pause 1 still fires, once, when pause 2 starts before the j
     pollingIntervalSeconds: 0.5,
     dailyConsistency: false,
     bootConsistency: false,
-    onBreach: async (breach) => void breaches.push(breach),
+    onBreach,
   });
-  try {
-    const ticketId = await makeTicket();
-    const rearm = (timer: SlaTimerProjection, now: Date) =>
-      withTenant(app, A, (client) =>
-        rearmTicket(client, handle.boss, { tenantId: A, ticketId, timers: [timer], now }),
-      );
-    const pause = (patch: Partial<SlaTimerProjection>) => projection({ kind: 'pause', ...patch });
-    await rearm(pause({ dueAt: second(20) }), second(0));
-    await rearm(
-      pause({
-        state: 'stopped',
-        breached: true,
-        dueAt: second(20),
-        stoppedAt: second(25),
-        stopReason: 'resumed',
-      }),
-      second(25),
+  const ticketId = await makeTicket();
+  const rearm = (timer: SlaTimerProjection, now: Date) =>
+    withTenant(app, A, (client) =>
+      rearmTicket(client, handle.boss, { tenantId: A, ticketId, timers: [timer], now }),
     );
-    await rearm(pause({ dueAt: second(46) }), second(26));
+  const pause = (patch: Partial<SlaTimerProjection>) => projection({ kind: 'pause', ...patch });
+  await rearm(pause({ dueAt: second(20) }), second(0));
+  const resumed = {
+    state: 'stopped',
+    breached: true,
+    stoppedAt: second(25),
+    stopReason: 'resumed',
+  };
+  await rearm(pause({ ...resumed, dueAt: second(20) } as Partial<SlaTimerProjection>), second(25));
+  await rearm(pause({ dueAt: second(46) }), second(26));
+  return { clock, handle, ticketId };
+}
+
+it('a breach owed by pause 1 still fires, once, when pause 2 starts before the job runs', async () => {
+  const breaches: Seen[] = [];
+  const { clock, handle } = await ticketWithOwedBreach(async (b) => void breaches.push(b));
+  try {
     await clock.tick(2_000);
     await vi.waitFor(() => expect(breaches).toHaveLength(1));
     expect(breaches[0]).toMatchObject({ kind: 'pause', owedDueAt: second(20) });
@@ -570,6 +577,26 @@ it('a breach owed by pause 1 still fires, once, when pause 2 starts before the j
     expect(breaches[1]!.firedAt.getTime()).toBeGreaterThanOrEqual(second(46).getTime());
     await clock.tick(6_000);
     expect(breaches).toHaveLength(2);
+  } finally {
+    await handle.close();
+  }
+}, 60_000);
+
+it('a failing reaction to the owed breach puts it back: the job retries and it is delivered', async () => {
+  const delivered: Seen[] = [];
+  let attempts = 0;
+  const { clock, handle } = await ticketWithOwedBreach(async (b) => {
+    attempts += 1;
+    if (attempts === 1) throw new Error('injected failure');
+    delivered.push(b);
+  });
+  try {
+    await clock.tick(8_000);
+    await vi.waitFor(() => expect(delivered).toHaveLength(1));
+    expect(attempts).toBe(2);
+    expect(delivered[0]).toMatchObject({ kind: 'pause', owedDueAt: second(20) });
+    await clock.tick(4_000);
+    expect(delivered).toHaveLength(1);
   } finally {
     await handle.close();
   }

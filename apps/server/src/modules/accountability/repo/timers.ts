@@ -92,6 +92,7 @@ interface ProjectionMerge {
  * (below) in the transaction that overwrites it, or it is lost.
  */
 function owedBreach(row: TimerRow, timer: SlaTimerProjection): Date | null {
+  // A sign-off clock never owes one: stopping it is the answer it waited for, and a late answer timed nothing out.
   if (!startsNewEpisode(row, timer) || timer.kind === 'handback') return null;
   if (row.fired_at || row.stop_reason === 'cancelled') return null;
   return row.due_at && row.stopped_at && row.due_at < row.stopped_at ? row.due_at : null;
@@ -296,7 +297,11 @@ export interface SlaTimerRuntime {
   pool: Pool;
   now: () => Date;
   boss?: PgBoss;
-  /** Runs in the same transaction as the breach is recorded: a failure puts the breach back and the job retries. */
+  /**
+   * Runs in the same transaction as the breach is recorded: a failure puts the breach back and the job retries.
+   * It must be idempotent on (ticket, kind, owedDueAt) for an owed breach and on (ticket, kind, firedAt) for a current
+   * one: the queue may deliver a job twice, and the second delivery must change nothing.
+   */
   onBreach?: (breach: Breach, client: PoolClient) => Promise<void>;
 }
 

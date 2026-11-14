@@ -76,6 +76,7 @@ describe('an erased person stays erased', () => {
       const res = await create(name, PHONE);
       expect(res.statusCode, name).toBe(409);
       expect(res.json().error.code).toBe('conflict');
+      expect(res.json().error.field).toBe('name');
       expect(res.json().error.message).toMatch(REFUSED);
       expect(res.body).not.toMatch(/rajesh|9000000111/i);
     }
@@ -162,6 +163,52 @@ describe('an erased person stays erased', () => {
       );
     await expect(onboard(PHONE)).rejects.toBeInstanceOf(ErasedPersonError);
     await expect(onboard(null)).resolves.toBeUndefined();
+  });
+});
+
+describe('editing a person into an erased identity', () => {
+  const NAME2 = 'Pooja Erased Test';
+  const PHONE2 = '+919000000555';
+  const edit = (id: string, body: object) => t.call('PUT', `/api/v1/people/${id}`, admin, body);
+
+  beforeAll(async () => {
+    const made = await create(NAME2, PHONE2);
+    expect(made.statusCode, made.body).toBe(201);
+    await eraseAs(A, made.json().id, 'request-0200');
+  });
+
+  it('refuses giving someone the erased number when they already have the erased name', async () => {
+    const made = await create(NAME2);
+    expect(made.statusCode, made.body).toBe(201);
+    const res = await edit(made.json().id, { phone: PHONE2 });
+    expect(res.statusCode, res.body).toBe(409);
+    expect(res.json().error.field).toBe('name');
+    expect(res.body).not.toMatch(/pooja|9000000555/i);
+  });
+
+  it('refuses giving someone the erased name when they already have the erased number', async () => {
+    const made = await create('Someone With That Number', PHONE2);
+    expect(made.statusCode, made.body).toBe(201);
+    const res = await edit(made.json().id, { name: NAME2 });
+    expect(res.statusCode, res.body).toBe(409);
+    expect(res.json().error.field).toBe('name');
+  });
+
+  it('still lets an edit through that does not make an erased pair', async () => {
+    const made = await create('Plain Colleague', '+919000000556');
+    const res = await edit(made.json().id, { title: 'Fitter', name: 'Plain Colleague Two' });
+    expect(res.statusCode, res.body).toBe(200);
+  });
+
+  it('does not let an erased person be renamed back to a real name', async () => {
+    const erased = (
+      await t.db.admin.query(
+        "SELECT id FROM person WHERE tenant_id = $1 AND erasure_hash IS NOT NULL AND name = 'Former staff' LIMIT 1",
+        [A],
+      )
+    ).rows[0].id as string;
+    const res = await edit(erased, { name: 'A Real Name' });
+    expect(res.statusCode, res.body).toBe(409);
   });
 });
 

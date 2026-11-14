@@ -1,36 +1,53 @@
-# D30 — An erased person stays erased: a keyed hash on the person row
+# D30 — An erased person stays erased: two keyed hashes on the person row
 
-Date: 14 November 2026. Ruled by Nimish (14 Nov, "erased stays erased").
+Date: 14 November 2026. Ruled by Nimish (14 Nov, "erased stays erased"); the second, name-only hash was ruled by the
+backend orchestrator the same day.
 
 **Decision.** When a person is erased (`erase_person`, DATA-MAP section 5) the person row stays, as it does today,
-and also keeps one value: `person.erasure_hash`, an HMAC-SHA256 (hex) of the normalised name and mobile number.
-The key is `ERASURE_HASH_KEY`, read from the server's environment (Secrets Manager in production). It is never in
-code, tests use their own, and it never reaches the database. Creating a person (people API, onboarding, import)
-whose normalised name and number hash to an erased person's value is refused with 409 `erased_person`; an import
-counts and reports the row as skipped, with its row number and no name.
+and keeps two values, each an HMAC-SHA256 (hex) under the server's key, over the plant and the normalised name:
 
-- **Normalisation:** Unicode NFKC, lower case, trimmed, runs of white space collapsed; a number keeps only its digits.
-- **No key, no erasure.** `erase_person` takes the hash as an argument and refuses a missing or malformed one; the
-  erase script refuses to start without the key. If the key is missing later while erased people exist, creating a
-  person is refused (503) rather than allowed.
-- **The hash is never returned:** not in a reply, a log line or an audit payload.
+- `person.erasure_hash`: name and mobile number together.
+- `person.erasure_name_hash`: the name alone.
 
-**Why a column and not a table.** D17 allows a new table only when no existing one can hold the fact. The erased
-person's row already exists, is already tenant-scoped, and is where the lookup starts. A table would hold one row per
-erased person and nothing else.
+The key is `ERASURE_HASH_KEY` (32 characters or more), read from the server's environment (Secrets Manager in
+production). It is never in code, tests build their own, and it never reaches the database. The plant's id is part of
+the input, so the same name erased in two plants leaves two different values. The two hashes carry different labels
+and can never be equal.
+
+**What each does.**
+
+- A creation or edit that gives a person a number, and whose name and number match an erased person's, is refused:
+  409 with code `conflict` on field `name`. The message holds no personal data. This covers the people API (create and
+  edit, on the values the person would have after the edit, not counting their own row), onboarding and `ensurePendingPerson`.
+- A name with no number, which is all an import ever carries, only _might_ be an erased person (two colleagues can
+  share a name). It is never blocked: an import still imports and lists `possible_erased_match` with the row number
+  only, plus a count `possiblyErasedMatches`; the people API records `possibleErasedMatch: true` in the audit row of the
+  creation. A person at the plant decides; that screen is not built yet.
+- An erased row is "Former staff" for good: its name and number cannot be edited.
+
+**Normalisation:** Unicode NFKC, lower case, trimmed, runs of white space collapsed; a number keeps only its digits
+(the API enforces E.164 before it gets here).
+
+**No key, no erasure.** `erase_person` takes both hashes as arguments and refuses a missing or malformed one; the
+erase script refuses to start without the key and changes nothing. If the key is missing later while erased people
+exist in a plant, creating a person there is refused (503) rather than allowed.
+
+**The hashes are never returned:** not in a reply, a log line, an audit payload or an import report.
+
+**Why columns and not a table.** D17 allows a new table only when no existing one can hold the fact. The erased
+person's row already exists, is tenant-scoped, and is where the lookup starts.
 
 **Rejected.**
 
-- Plain SHA-256 of the name and number: a guessable pair (a phone number has about ten digits) is brute-forced from
-  the hash in minutes. A key makes the hash useless without the server's secret.
-- The key as a database setting or a default in code: a default silently makes every deployment's hashes comparable
-  and guessable.
+- Plain SHA-256 of the name and number: a phone number is about ten digits, so the pair is brute-forced from the hash
+  in minutes. A key makes the hash useless without the server's secret.
+- The key as a database setting or a default in code: a default makes every deployment's hashes comparable.
+- A hard refusal on the name alone: it would turn away a different person who shares a name.
 - Backfilling people erased before this change: their name and number are gone, so no hash can be made.
 
-**Known limit.** A name-only match is not made. An import carries names but no numbers, so a person erased with a
-number is not recognised by an import of their name alone. Ruled as asked (name and number); a name-only second hash
-for imports, with a person at the plant deciding each match, is the proposed next step.
+**Operations rule.** Set the key once and never change or lose it. A lost or changed key silently re-opens every erased
+person, and nothing notices. Keeping a fingerprint of the key to catch a typo at start-up is a known follow-up, not
+built here. Keep the key with the other secrets in the backup of secrets (RESTORE.md).
 
-**Cost if the key is lost or changed.** Every erased person becomes creatable again, silently. The key is part of the
-backup of secrets (RESTORE.md) and is never rotated without re-hashing, which needs the erased names that no longer
-exist, so it is never rotated.
+**Known limits.** Erased people are matched only by exact normalised name (and number); a different spelling is a
+different person. A number written without its country code is a different number.
