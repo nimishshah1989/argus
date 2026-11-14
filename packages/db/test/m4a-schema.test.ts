@@ -251,7 +251,7 @@ describe('erasing a leaver reaches the notes of their Team Focus actions and nud
     await db.query('RESET ROLE');
     const person = (
       await db.query(
-        "INSERT INTO person (tenant_id, name, team) VALUES ($1, 'Ramesh Patel', 'maintenance') RETURNING id",
+        "INSERT INTO person (tenant_id, name, team) VALUES ($1, 'Test Leaver', 'maintenance') RETURNING id",
         [A],
       )
     ).rows[0].id;
@@ -264,11 +264,11 @@ describe('erasing a leaver reaches the notes of their Team Focus actions and nud
     await put(A, 'focus:2026-11|erase', {
       status: 'doing',
       ownerPersonId: person,
-      note: 'Ask Ramesh Patel to check it',
+      note: 'Ask Test Leaver to check it',
     });
-    await put(A, 'nudge:long|erase', { status: 'ack', note: 'ramesh patel is on it' });
-    await put(A, 'company.note', { text: 'Ramesh Patel signs the plant rules' });
-    await put(B, 'focus:2026-11|erase', { note: 'Ask Ramesh Patel to check it' });
+    await put(A, 'nudge:long|erase', { status: 'ack', note: 'test leaver is on it' });
+    await put(A, 'company.note', { text: 'Test Leaver signs the plant rules' });
+    await put(B, 'focus:2026-11|erase', { note: 'Ask Test Leaver to check it' });
 
     await db.query('SELECT erase_person($1, $2, $3, $4, $5, $6)', [
       A,
@@ -291,7 +291,7 @@ describe('erasing a leaver reaches the notes of their Team Focus actions and nud
       status: 'ack',
       note: 'Former staff is on it',
     });
-    expect(await value(A, 'company.note')).toEqual({ text: 'Ramesh Patel signs the plant rules' });
-    expect(await value(B, 'focus:2026-11|erase')).toEqual({ note: 'Ask Ramesh Patel to check it' });
+    expect(await value(A, 'company.note')).toEqual({ text: 'Test Leaver signs the plant rules' });
+    expect(await value(B, 'focus:2026-11|erase')).toEqual({ note: 'Ask Test Leaver to check it' });
   });
 });

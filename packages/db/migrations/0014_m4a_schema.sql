@@ -53,7 +53,7 @@ CREATE TABLE kpi_snapshot (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
   profile text NOT NULL CHECK (profile ~ '^[a-z][a-z0-9_]{0,31}$'),
-  key text NOT NULL CHECK (key ~ '^[a-z][a-z0-9_.]{0,79}$'),
+  key text NOT NULL CHECK (key ~ '^[a-z][a-z0-9_.:-]{0,79}$'),
   subject_kind text NOT NULL
     CHECK (subject_kind IN ('plant', 'segment', 'group', 'cell', 'category', 'machine', 'person')),
   subject_key text NOT NULL DEFAULT '' CHECK (char_length(subject_key) <= 80),
