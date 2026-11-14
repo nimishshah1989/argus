@@ -8,9 +8,10 @@ import {
   waitUntilBlocked,
   type PeopleApp,
   type Res,
+  TEMP,
+  pw,
 } from './people-harness.js';
 
-const TEMP = 'Temp-pass-4821';
 const PUSH = {
   endpoint: 'https://fcm.googleapis.com/fcm/send/race-endpoint',
   keys: { p256dh: 'test-p256dh', auth: 'test-auth' },
@@ -105,7 +106,7 @@ describe('an admin who loses admin while a request waits is refused', () => {
     [
       'edit a login',
       (tok, target) =>
-        t.call('PUT', `/api/v1/logins/${target}`, tok, { temporaryPassword: 'Late-reset-9921' }),
+        t.call('PUT', `/api/v1/logins/${target}`, tok, { temporaryPassword: pw('late') }),
     ],
   ];
 

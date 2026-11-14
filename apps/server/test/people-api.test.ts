@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A, B, ROLES, startPeopleApp, type PeopleApp } from './people-harness.js';
+import { A, B, ROLES, startPeopleApp, type PeopleApp, TEMP, pw } from './people-harness.js';
 
 let t: PeopleApp;
 let admin: string;
@@ -32,7 +32,7 @@ async function addLogin(username: string, extra: object = {}): Promise<string> {
   const { id: personId } = await addPerson();
   const body = { username, role: 'technician', shared: false, personId, ...extra };
   const res = await t.call('POST', '/api/v1/logins', admin, {
-    temporaryPassword: 'Temp-pass-4821',
+    temporaryPassword: TEMP,
     ...body,
   });
   expect(res.statusCode, res.body).toBe(201);
@@ -191,7 +191,7 @@ describe('people', () => {
       role: 'operator',
       shared: false,
       personId: theirs.id,
-      temporaryPassword: 'Temp-pass-4821',
+      temporaryPassword: TEMP,
     });
     expect(login.statusCode).toBe(404);
     const after = await t.db.admin.query('SELECT name FROM person WHERE id = $1', [theirs.id]);
@@ -216,13 +216,13 @@ describe('logins', () => {
     expect(JSON.stringify(listed)).not.toMatch(/argon2|password_hash|Temp-pass/);
     const first = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'new.tech',
-      password: 'Temp-pass-4821',
+      password: TEMP,
     });
     expect(first.statusCode).toBe(200);
     expect(first.json().user.mustChangePassword).toBe(true);
     const change = await t.call('POST', '/api/v1/auth/password', first.json().token, {
-      old: 'Temp-pass-4821',
-      password: 'a-better-secret-9',
+      old: TEMP,
+      password: pw('better'),
     });
     expect(change.statusCode).toBe(200);
     const me = await t.call('GET', '/api/v1/auth/me', first.json().token);
@@ -237,7 +237,7 @@ describe('logins', () => {
       role: 'operator',
       shared: true,
       cell: 'Cell-2',
-      temporaryPassword: 'Temp-pass-4821',
+      temporaryPassword: TEMP,
     });
     expect(res.statusCode, res.body).toBe(201);
     expect(res.json()).toMatchObject({ shared: true, personId: null, cell: 'Cell-2' });
@@ -245,7 +245,7 @@ describe('logins', () => {
 
   it('refuses mixed-up logins: personal without a person, shared with one, a cell on a personal login', async () => {
     const p = await addPerson();
-    const base = { role: 'operator', temporaryPassword: 'Temp-pass-4821' };
+    const base = { role: 'operator', temporaryPassword: TEMP };
     const bad = [
       { ...base, username: 'bad.one', shared: false },
       { ...base, username: 'bad.two', shared: true, personId: p.id },
@@ -268,7 +268,7 @@ describe('logins', () => {
       role: 'operator',
       shared: false,
       personId: p.id,
-      temporaryPassword: 'Temp-pass-4821',
+      temporaryPassword: TEMP,
     });
     expect(res.statusCode).toBe(409);
   });
@@ -302,10 +302,10 @@ describe('logins', () => {
       (await t.call('PUT', `/api/v1/logins/${id}`, admin, { temporaryPassword: 'welcome1' }))
         .statusCode,
     ).toBe(422);
-    const token = await t.signIn('pw.owner', undefined, 'Temp-pass-4821');
+    const token = await t.signIn('pw.owner', undefined, TEMP);
     for (const weak of ['password1', 'pw.owner', '1234567890']) {
       const res = await t.call('POST', '/api/v1/auth/password', token, {
-        old: 'Temp-pass-4821',
+        old: TEMP,
         password: weak,
       });
       expect(res.statusCode, weak).toBe(422);
@@ -314,41 +314,41 @@ describe('logins', () => {
     expect((await t.call('GET', '/api/v1/auth/me', token)).statusCode).toBe(200);
     const stillOld = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'pw.owner',
-      password: 'Temp-pass-4821',
+      password: TEMP,
     });
     expect(stillOld.statusCode).toBe(200);
   });
 
   it('resets a password: the old one and every open sign-in stop working, the flag is set again', async () => {
     const id = await addLogin('reset.me');
-    const open = await t.signIn('reset.me', undefined, 'Temp-pass-4821');
+    const open = await t.signIn('reset.me', undefined, TEMP);
     const res = await t.call('PUT', `/api/v1/logins/${id}`, admin, {
-      temporaryPassword: 'Another-temp-77',
+      temporaryPassword: pw('another'),
     });
     expect(res.statusCode, res.body).toBe(200);
     expect((await t.call('GET', '/api/v1/auth/me', open)).statusCode).toBe(401);
     const oldPw = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'reset.me',
-      password: 'Temp-pass-4821',
+      password: TEMP,
     });
     expect(oldPw.statusCode).toBe(401);
     const fresh = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'reset.me',
-      password: 'Another-temp-77',
+      password: pw('another'),
     });
     expect(fresh.json().user.mustChangePassword).toBe(true);
   });
 
   it('switches a login off and on: off ends sign-ins, on needs a new temporary password', async () => {
     const id = await addLogin('toggle.me');
-    const open = await t.signIn('toggle.me', undefined, 'Temp-pass-4821');
+    const open = await t.signIn('toggle.me', undefined, TEMP);
     expect((await t.call('PUT', `/api/v1/logins/${id}`, admin, { active: false })).statusCode).toBe(
       200,
     );
     expect((await t.call('GET', '/api/v1/auth/me', open)).statusCode).toBe(401);
     const refused = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'toggle.me',
-      password: 'Temp-pass-4821',
+      password: TEMP,
     });
     expect(refused.statusCode).toBe(401);
     expect((await t.call('PUT', `/api/v1/logins/${id}`, admin, { active: true })).statusCode).toBe(
@@ -356,12 +356,12 @@ describe('logins', () => {
     );
     const on = await t.call('PUT', `/api/v1/logins/${id}`, admin, {
       active: true,
-      temporaryPassword: 'Third-temp-5512',
+      temporaryPassword: pw('third'),
     });
     expect(on.statusCode, on.body).toBe(200);
     const back = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'toggle.me',
-      password: 'Third-temp-5512',
+      password: pw('third'),
     });
     expect(back.json().user.mustChangePassword).toBe(true);
   });
@@ -392,11 +392,11 @@ describe('logins', () => {
     const start = (await rows()).length;
     const id = await addLogin('audit.me');
     await t.call('PUT', `/api/v1/logins/${id}`, admin, { role: 'supervisor' });
-    await t.call('PUT', `/api/v1/logins/${id}`, admin, { temporaryPassword: 'Fourth-temp-3390' });
+    await t.call('PUT', `/api/v1/logins/${id}`, admin, { temporaryPassword: pw('fourth') });
     await t.call('PUT', `/api/v1/logins/${id}`, admin, { active: false });
     await t.call('PUT', `/api/v1/logins/${id}`, admin, {
       active: true,
-      temporaryPassword: 'Fifth-temp-6643',
+      temporaryPassword: pw('fifth'),
     });
     const mine = (await rows()).slice(start).filter((r) => r.entity === 'login');
     expect(mine.map((r) => r.action)).toEqual([

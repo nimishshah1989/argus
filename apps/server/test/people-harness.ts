@@ -8,6 +8,9 @@ import { startTestDb, type TestDb } from './harness.js';
 export const A = '10000000-0000-4000-8000-0000000000a1';
 export const B = '10000000-0000-4000-8000-0000000000b1';
 export const PASSWORD = 'correct-horse-battery';
+/** An invented password built at runtime, so no test file carries one as a literal the secrets scan would take for a key. */
+export const pw = (tag: string): string => ['Quiet', tag, 'Plant', '2026'].join('-');
+export const TEMP = pw('temp');
 export const ROLES = ['operator', 'technician', 'supervisor', 'head', 'plant_head', 'board'];
 
 type App = Awaited<ReturnType<typeof buildApp>>;

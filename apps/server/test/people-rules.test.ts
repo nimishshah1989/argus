@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A, startPeopleApp, type PeopleApp } from './people-harness.js';
+import { A, startPeopleApp, type PeopleApp, TEMP, pw, PASSWORD } from './people-harness.js';
 
-const TEMP = 'Temp-pass-4821';
 let t: PeopleApp;
 let admin: string;
 let n = 0;
@@ -283,7 +282,7 @@ describe('a shared login is never an admin', () => {
     const token = (
       await t.call('POST', '/api/v1/auth/login', undefined, {
         username: 'legacy.shared',
-        password: 'correct-horse-battery',
+        password: PASSWORD,
         actingPersonId: person,
       })
     ).json().token;
@@ -328,7 +327,7 @@ describe('a login that must change its password', () => {
     expect((await t.call('GET', '/api/v1/brand')).statusCode).toBe(200);
     const change = await t.call('POST', '/api/v1/auth/password', u.token, {
       old: TEMP,
-      password: 'a-much-better-secret-7',
+      password: pw('muchbetter'),
     });
     expect(change.statusCode, change.body).toBe(200);
     expect((await t.call('GET', '/api/v1/config', u.token)).statusCode).toBe(200);

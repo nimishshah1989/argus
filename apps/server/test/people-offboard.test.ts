@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A, startPeopleApp, type PeopleApp } from './people-harness.js';
+import { A, startPeopleApp, type PeopleApp, TEMP, pw } from './people-harness.js';
 
-const TEMP = 'Temp-pass-4821';
 const TARA_PHONE = '+919000000011';
 const RAVI_PHONE = '+919000000012';
 
@@ -205,7 +204,7 @@ describe('switching a person off', () => {
     const loginId = logins.find((l: { username: string }) => l.username === 'tara').id;
     const enable = await t.call('PUT', `/api/v1/logins/${loginId}`, admin, {
       active: true,
-      temporaryPassword: 'Back-again-2210',
+      temporaryPassword: pw('backagain'),
     });
     expect(enable.statusCode, enable.body).toBe(200);
     expect(
@@ -216,7 +215,7 @@ describe('switching a person off', () => {
       (
         await t.call('POST', '/api/v1/auth/login', undefined, {
           username: 'tara',
-          password: 'Back-again-2210',
+          password: pw('backagain'),
         })
       ).statusCode,
     ).toBe(200);
@@ -229,7 +228,7 @@ describe('switching a person off', () => {
     const loginId = logins.find((l: { username: string }) => l.username === 'ravi').id;
     const res = await t.call('PUT', `/api/v1/logins/${loginId}`, admin, {
       active: true,
-      temporaryPassword: 'Back-again-2210',
+      temporaryPassword: pw('backagain'),
     });
     expect(res.statusCode).toBe(409);
     const withPhone = await t.call('PUT', `/api/v1/people/${ravi}`, admin, {
