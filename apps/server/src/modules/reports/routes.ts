@@ -207,5 +207,5 @@ export function registerReports(app: FastifyInstance, config: AppConfig): void {
   const deps: PdfDeps = { pool: config.pool, chromiumPath: config.chromiumPath };
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
   registerDayReports(app, deps);
-  registerSignoffQr(app, config.pool);
+  registerSignoffQr(app, config);
 }

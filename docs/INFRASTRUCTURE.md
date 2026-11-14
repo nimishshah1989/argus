@@ -111,6 +111,7 @@ Production and staging never share a database or a secret. Staging holds a seede
 - **RDS private**, no public endpoint; security group allows the EC2 only.
 - **No NAT Gateway.** EC2 in a public subnet with an Elastic IP and a tight security group; RDS in a private subnet; S3 gateway endpoint (free).
 - **TLS everywhere** via Caddy/Let’s Encrypt; HSTS; no http.
+- **`PUBLIC_BASE_DOMAIN`** (server setting, a bare host name such as `plants.example.com`; staging `3-108-95-203.sslip.io`): the domain a plant's address sits under, `<slug>.<domain>`. Links the server prints, today the sign-off QR, are built from it and never from the request's Host header, which a caller can choose. Unset, the QR answers 503; a malformed value stops the server starting.
 - **Per-address rate limits** (sign-in 60 a minute, company name and logo 300) key on the address the server reads from Caddy's `X-Forwarded-For`. They assume Caddy is the only proxy in front: a CDN or load balancer in front would make every visitor one address, so add it only together with its own trusted-proxy setting.
 - **Secrets** in Secrets Manager (production) or SSM Parameter Store SecureString (staging), never in git; IAM least privilege; GitHub OIDC, no long-lived AWS keys.
 - **Encryption at rest** on RDS and S3; versioning on S3; lifecycle for voice notes.

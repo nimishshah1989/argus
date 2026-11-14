@@ -16,6 +16,7 @@ const MACHINE_A3 = '35000000-0000-4000-8000-000000000103';
 const PASSWORD = 'correct-horse-battery';
 const HOST_A = 'sb-a.localhost';
 const HOST_B = 'sb-b.localhost';
+const BASE_DOMAIN = 'plants.example.test';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 let db: TestDb;
@@ -105,7 +106,12 @@ beforeAll(async () => {
       ($1, 'S1', 60, 240, 60), ($1, 'S2', 90, 360, 60), ($1, 'S3', 120, 480, 60), ($1, 'S4', 180, 720, 60)`,
     [A],
   );
-  app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+  app = await buildApp({
+    pool: db.app,
+    logger: false,
+    rateLimitMax: 100000,
+    publicBaseDomain: BASE_DOMAIN,
+  });
   for (const name of ['rina', 'lal', 'sana', 'tv']) tokens[name] = await login(HOST_A, name);
   tokens.bob = await login(HOST_B, 'bob');
   tokens.bea = await login(HOST_B, 'bea');
@@ -161,24 +167,53 @@ const setFloorLive = (on: boolean) =>
   );
 
 describe('the sign-off QR', () => {
-  it('encodes this ticket’s sign-off page on the address the request came to, as an SVG image', async () => {
+  const qrUrl = (ticketId: string) => `${ticketUrl(ticketId)}/signoff-qr`;
+  const linkOf = (slug: string, ticketId: string) =>
+    `https://${slug}.${BASE_DOMAIN}/floor/signoff/${ticketId}`;
+
+  it('encodes this ticket’s sign-off page under the company’s own address, as an SVG image', async () => {
     const { id: ticketId } = await closed();
-    const res = await asA('GET', `${ticketUrl(ticketId)}/signoff-qr`, tokens.sana!);
+    const res = await asA('GET', qrUrl(ticketId), tokens.sana!);
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('image/svg+xml');
-    expect(res.body).toBe(await qrSvg(`http://${HOST_A}/floor/signoff/${ticketId}`));
-    const secure = await send({
-      host: HOST_A,
-      method: 'GET',
-      url: `${ticketUrl(ticketId)}/signoff-qr`,
-      token: tokens.sana!,
-      headers: { 'x-forwarded-proto': 'https' },
-    });
-    expect(secure.body).toBe(await qrSvg(`https://${HOST_A}/floor/signoff/${ticketId}`));
-    expect(secure.body).not.toBe(res.body);
+    expect(res.body).toBe(await qrSvg(linkOf('sb-a', ticketId)));
     const other = await closed(MACHINE_A2);
-    const another = await asA('GET', `${ticketUrl(other.id)}/signoff-qr`, tokens.sana!);
+    const another = await asA('GET', qrUrl(other.id), tokens.sana!);
+    expect(another.body).toBe(await qrSvg(linkOf('sb-a', other.id)));
     expect(another.body).not.toBe(res.body);
+  });
+
+  it('takes the domain from the setting, whatever the request says about its own address', async () => {
+    const { id: ticketId } = await closed();
+    const honest = await asA('GET', qrUrl(ticketId), tokens.sana!);
+    const hostile = await send({
+      host: 'sb-a.attacker.test',
+      method: 'GET',
+      url: qrUrl(ticketId),
+      token: tokens.sana!,
+      headers: { 'x-forwarded-host': 'attacker.test', 'x-forwarded-proto': 'http' },
+    });
+    expect(hostile.statusCode).toBe(200);
+    expect(hostile.body).toBe(honest.body);
+    expect(hostile.body).toBe(await qrSvg(linkOf('sb-a', ticketId)));
+    const foreign = await asB('GET', qrUrl(ticketId), tokens.sana!);
+    expect(foreign.statusCode).toBe(401);
+  });
+
+  it('answers 503 until the company address is set up, and never guesses one', async () => {
+    const { id: ticketId } = await closed();
+    const bare = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+    try {
+      const res = await bare.inject({
+        method: 'GET',
+        url: qrUrl(ticketId),
+        headers: { host: HOST_A, authorization: `Bearer ${tokens.sana}` },
+      });
+      expect(res.statusCode).toBe(503);
+      expect(res.json().error.code).toBe('not_configured');
+    } finally {
+      await bare.close();
+    }
   });
 
   it('is for whoever may see the board: the board and a supervisor, an operator only when the floor is live', async () => {
