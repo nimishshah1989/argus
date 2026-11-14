@@ -21,7 +21,7 @@ const json = (token: string, key = randomUUID()) => ({
 async function flaggedTicket(): Promise<{ id: string; ref: string }> {
   const head = await apiLogin('head');
   const workType = `Lockout ${randomUUID().slice(0, 8)}`;
-  const made = await apiFetch('/api/v1/lists/work_type', {
+  const made = await apiFetch('/api/v1/settings/lists/work_type', {
     method: 'POST',
     headers: json(head),
     body: JSON.stringify({ code: workType, label: workType, needsLockout: true }),
