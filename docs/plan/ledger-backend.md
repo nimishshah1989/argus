@@ -135,3 +135,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   infra builder). (2) Settings READ routes are head/admin only (supersedes my 05:35 'reads open'); floor/desk read
   /config. (3) Segment active=false refused (422) until 29, like shifts/glossary. (4) The switch-off guard fails
   closed. (5) Contract helpers exported from one place; people routes adopt them after #206 merges. One fix push.
+- 2026-11-14 06:00 UTC — RULING (Nimish, direct): pace matters as much as green. Do not wait for all 9 checks or rerun
+  the whole suite for a small change. Merge when the checks that cover the change are green (static, secrets, the
+  api shard or browser job that runs the touched tests, plus the touched tests run locally) and the review has no
+  blocker; an unrelated slow or flaky job does not hold a merge, and no full re-run for one flaky test. Builders run
+  only affected tests locally. Applied at once: merged #202 (ledger, docs only) and #204 (test teardown fix: static,
+  secrets, gallery, pr-meta, api 1/3 green; the 7 touched db test files green locally) without waiting for browser.
+  Nimish is not merging himself for now. 21 follow-up #210 (draft, 251e5ab) opened; scoped re-check running.
