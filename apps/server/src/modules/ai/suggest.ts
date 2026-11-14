@@ -289,6 +289,7 @@ async function execute(
 ): Promise<AiOutcome> {
   const feature = rt.features[payload.feature];
   if (!feature || feature.promptVersion !== payload.promptVersion) return 'feature_off';
+  if (rt.config.production && rt.config.residencyRecord === null) return 'no_residency';
   const provider = rt.provider;
   if (!provider) return 'no_provider';
   const prepared = await prepare(payload, feature, rt);

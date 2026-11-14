@@ -48,6 +48,7 @@ const testFeature: AiFeature<{ answer: string }> = {
 
 const baseConfig: AiConfig = {
   production: false,
+  residencyRecord: null,
   apiKey: null,
   model: 'fake',
   priceInputUsdPerMtok: 1,
@@ -257,16 +258,32 @@ describe('ai suggest job', () => {
       await db.admin.query(`DELETE FROM setting WHERE key = 'ai.consent'`);
       if (value !== undefined) await setSetting('ai.consent', value);
       const fake = createFakeProvider();
-      const rt = runtime(fake, { config: { ...baseConfig, production: true } });
+      const rt = runtime(fake, { config: { ...baseConfig, production: true, residencyRecord: 'record-1' } });
       expect(await runSuggest(payload(await makeTicket()), rt)).toBe('no_consent');
       expect(fake.calls).toHaveLength(0);
     }
     expect(await rows()).toHaveLength(0);
   });
 
+  it('makes no call and no row in production until the residency record is filed', async () => {
+    await setSetting('ai.consent', consent);
+    await setSetting('ai.monthlyCapUsd', 50);
+    const fake = createFakeProvider();
+    const unfiled = { ...baseConfig, production: true, residencyRecord: null };
+    const ticket = await makeTicket();
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: unfiled }))).toBe(
+      'no_residency',
+    );
+    expect(fake.calls).toHaveLength(0);
+    expect(await rows()).toHaveLength(0);
+    expect(logs.at(-1)).toMatchObject({ outcome: 'no_residency' });
+    const filed = { ...unfiled, residencyRecord: 'record-1' };
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: filed }))).toBe('ok');
+  });
+
   it('makes no call and no row in production without a cap or over the cap', async () => {
     await setSetting('ai.consent', consent);
-    const production = { ...baseConfig, production: true };
+    const production = { ...baseConfig, production: true, residencyRecord: 'record-1' };
     const fake = createFakeProvider();
     const start = await rows();
     expect(
