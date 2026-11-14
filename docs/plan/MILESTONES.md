@@ -37,11 +37,11 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 18  | Close, report, PDFs                               | M1        | done        | #212, #216, #221 (past breakdown screen with slice 4 build)           |
 | 19  | Follow-up tasks                                   | M1        | todo        | —                                                                     |
 | 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 + #200; screens todo                                  |
-| 21  | People, logins and sign-in                        | M1        | in progress | API #199, #210; sign-in #213; who-is-acting next; people screens todo |
+| 21  | People, logins and sign-in                        | M1        | in progress | API #199, #210; sign-in #213, who-is-acting #225; follow-up PR open soon; people screens todo |
 | 22  | Plant settings: machines, groups, shifts          | M1        | in progress | goal 2 #187; API #195; screens todo                                   |
 | 23  | Plant settings: lists and company                 | M1        | in progress | API #206 (server done); screens todo                                  |
 | 24  | Gujarati                                          | M1        | todo        | —                                                                     |
-| 25  | Live board and alerts                             | M1        | in progress | board build session_01KEBF28GwjEXv9mZoRUHYCf                          |
+| 25  | Live board and alerts                             | M1        | in progress | goal 1 #229 (response/repair-today tiles wait on backend); goal 2 todo |
 | 26  | Hardened                                          | M1        | todo        | —                                                                     |
 | 27  | Usability round                                   | M1        | todo        | —                                                                     |
 | 28  | Cutover                                           | M1        | todo        | —                                                                     |
