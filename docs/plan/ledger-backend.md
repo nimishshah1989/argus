@@ -253,3 +253,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   and handback minutes live in sla_policy columns and sla_timer kinds (use the policy columns, do not add new).
   DISPATCH 30 (pause clock, server) to session_01KEBF269NGcjLaBDHMKLsLU, branch claude/t30-pause-clock, gap-only brief.
   Backend builders: 32 (#230 fix round + triggers), 35 (#231 under review), 30.
+- 07:58 UTC #231 reviews done (Opus guard/tenancy: no HIGH; Sonnet allowlist/devices/lifecycle: no HIGH). Rulings:
+  support may not change ai.monthlyCapUsd or features.enforcePasswordChange; grant checks approver is a live admin per
+  call; machines/segments/groups/shifts/logo added to SUPPORT_WRITES, machine criticality stays refused (re-arms open
+  tickets' SLA clocks = history); wrong-key limiter counts failures only; logs bind the grant; device sign-out audited;
+  /auth/me gains optional supportGrantId; per-grant refusal flood = accepted insider-only nuisance (in D29).
+  Sent to builder 35 for ONE batched push. Product line for Nimish (via FRONTEND, batch): "change plant settings"
+  read as machines/segments/groups/shifts/logo/company/SLA/lists, not machine criticality; say if wrong.
