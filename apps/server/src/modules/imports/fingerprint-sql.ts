@@ -5,13 +5,19 @@ import {
   type BatchTicketSnapshot,
 } from './fingerprint.js';
 import { importedChildren, importedTicketRows } from '../tickets/index.js';
-import { importedRowRows } from './repo.js';
+import { importedRowRows, isErasedPayload } from './repo.js';
 import type { EntryType, StoredRawPayload } from './schema.js';
 
 type Row = Record<string, unknown>;
 type ChildGroups = ReturnType<typeof groupChildren>;
 
-type ImportedRow = { rowNumber: number; legacyId: string; entryType: EntryType; ticketId: string };
+/** `entryType` is null when the row's raw envelope was erased with a person: the ticket's own channel says it then. */
+type ImportedRow = {
+  rowNumber: number;
+  legacyId: string;
+  entryType: EntryType | null;
+  ticketId: string;
+};
 
 function timestamp(value: unknown): string {
   if (!(value instanceof Date)) throw new Error('Fingerprint timestamp is not a Date');
@@ -43,6 +49,12 @@ function readEntryType(payload: StoredRawPayload): EntryType {
   return entryType;
 }
 
+function entryTypeOfChannel(channel: unknown): EntryType {
+  if (channel === 'backfill') return 'pastBreakdown';
+  if (channel === 'import') return 'ordinary';
+  throw new Error('Imported ticket was not raised by an import');
+}
+
 async function loadImportedRows(
   client: PoolClient,
   tenantId: string,
@@ -54,7 +66,9 @@ async function loadImportedRows(
     return {
       rowNumber: row.row_number as number,
       legacyId: row.source_ref as string,
-      entryType: readEntryType(row.payload as StoredRawPayload),
+      entryType: isErasedPayload(row.payload)
+        ? null
+        : readEntryType(row.payload as StoredRawPayload),
       ticketId: row.ticket_id as string,
     };
   });
@@ -200,7 +214,13 @@ export async function loadBatchSnapshot(
     tickets: imported.map((row) => {
       const ticket = ticketRows.get(row.ticketId);
       if (!ticket) throw new Error(`Imported ticket is missing: ${row.ticketId}`);
-      return { ...row, ...childrenFor(row.ticketId, children), ticket: ticketRecord(ticket) };
+      const entryType = row.entryType ?? entryTypeOfChannel(ticket.raised_channel);
+      return {
+        ...row,
+        entryType,
+        ...childrenFor(row.ticketId, children),
+        ticket: ticketRecord(ticket),
+      };
     }),
   };
 }

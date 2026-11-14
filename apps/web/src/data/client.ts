@@ -1,3 +1,4 @@
+import { forgetWho } from './who.js';
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
 /** Where a refused session lands; the sign-in screen reads `signedOut`. */
@@ -13,6 +14,7 @@ export function setToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  forgetWho();
 }
 
 /** A server `{error:{code,message,field}}` body surfaced to the screen. */
@@ -56,22 +58,56 @@ export function httpWithoutSession<T>(path: string, init?: RequestInit): Promise
   return send<T>(path, init, null);
 }
 
+/** A signed-in request whose 401 is a wrong current password for the screen to explain, not an ended session. */
+export function httpKeepSession<T>(path: string, init?: RequestInit): Promise<T> {
+  return send<T>(path, init, getToken(), false);
+}
+
+/** The server's "finish this step first" refusals (403) and the screen that finishes it. */
+const STEP_FOR: Record<string, string> = {
+  choose_acting_person: '/who',
+  must_change_password: '/password',
+};
+
+/** Open "who is using this phone" again (the account sheet's switch). */
+export function askWhoIsActing(): void {
+  window.location.assign(STEP_FOR.choose_acting_person!);
+}
+
+/**
+ * The one rule for which step a refusal opens: a temporary password comes first, so "choose who is
+ * acting" never moves the phone off the password step (no /who <-> /password reload loop).
+ */
+export function stepFor(code: string, here: string): string | undefined {
+  if (code === 'choose_acting_person' && here === STEP_FOR.must_change_password) return undefined;
+  return STEP_FOR[code];
+}
+
+async function refusal(res: Response): Promise<ApiError> {
+  const error = await parseError(res);
+  const here = window.location.pathname;
+  const step = res.status === 403 ? stepFor(error.code, here) : undefined;
+  if (step && here !== step) window.location.assign(step);
+  return error;
+}
+
 async function send<T>(
   path: string,
   init: RequestInit | undefined,
   token: string | null,
+  endsOn401 = true,
 ): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body !== undefined) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
   // A 401 on a signed-in request ends the session (v3.signin.05); sign-in shows why.
-  if (res.status === 401 && token) {
+  if (res.status === 401 && token && endsOn401) {
     clearToken();
     window.location.assign(SIGNED_OUT);
     throw new ApiError('unauthenticated', 'unauthorized');
   }
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok) throw await refusal(res);
   return res.json() as Promise<T>;
 }
 

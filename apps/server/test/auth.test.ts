@@ -212,21 +212,82 @@ describe('auth', () => {
     expect(newLogin.statusCode).toBe(200);
   });
 
-  it('slides the session forward on use', async () => {
+  it('slides the session forward on use, at most once in five minutes', async () => {
     const login = await post('/api/v1/auth/login', 'cosmos.localhost', {
       username: 'asha',
       password: 'new-password-123',
     });
     const token = login.json().token as string;
-    const before = (
-      await admin.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
-    ).rows[0].expires_at as Date;
+    const row = async () =>
+      (
+        await admin.query('SELECT last_seen_at, expires_at FROM session WHERE token_hash = $1', [
+          hashToken(token),
+        ])
+      ).rows[0] as { last_seen_at: Date; expires_at: Date };
+
+    // Seen a minute ago with 20 days left: a burst of reads rewrites nothing.
+    await admin.query(
+      "UPDATE session SET last_seen_at = now() - interval '1 minute', expires_at = now() + interval '20 days' WHERE token_hash = $1",
+      [hashToken(token)],
+    );
+    const fresh = await row();
+    for (let i = 0; i < 5; i += 1)
+      expect((await get('/api/v1/auth/me', 'cosmos.localhost', token)).statusCode).toBe(200);
+    expect(await row()).toEqual(fresh);
+
+    // Last seen ten minutes ago: the next read slides it forward to 30 days, and only that one.
+    await admin.query(
+      "UPDATE session SET last_seen_at = now() - interval '10 minutes' WHERE token_hash = $1",
+      [hashToken(token)],
+    );
     await get('/api/v1/auth/me', 'cosmos.localhost', token);
+    const slid = await row();
+    expect(slid.expires_at.getTime()).toBeGreaterThan(fresh.expires_at.getTime() + 5 * 86400_000);
+    expect(Date.now() - slid.last_seen_at.getTime()).toBeLessThan(60_000);
     await get('/api/v1/auth/me', 'cosmos.localhost', token);
-    const after = (
-      await admin.query('SELECT expires_at FROM session WHERE token_hash = $1', [hashToken(token)])
-    ).rows[0].expires_at as Date;
-    expect(after.getTime()).toBeGreaterThan(before.getTime());
+    expect(await row()).toEqual(slid);
+  });
+
+  it('checks a session in one transaction and writes nothing when it is fresh', async () => {
+    const login = await post('/api/v1/auth/login', 'cosmos.localhost', {
+      username: 'asha',
+      password: 'new-password-123',
+    });
+    const token = login.json().token as string;
+    const statements: string[] = [];
+    const pool = db.app as unknown as {
+      connect: (cb?: unknown) => unknown;
+    };
+    const realConnect = pool.connect.bind(pool);
+    const record = (args: unknown[]) => {
+      const first = args[0] as { text?: string } | string;
+      statements.push(typeof first === 'string' ? first : String(first?.text));
+    };
+    const wrapped = new WeakSet<object>();
+    const counted = (client: { query: (...a: unknown[]) => unknown }) => {
+      if (wrapped.has(client)) return client;
+      wrapped.add(client);
+      const query = client.query.bind(client);
+      client.query = (...args: unknown[]) => {
+        record(args);
+        return query(...args);
+      };
+      return client;
+    };
+    pool.connect = (cb?: unknown) =>
+      typeof cb === 'function'
+        ? realConnect((err: unknown, client: never, done: unknown) =>
+            (cb as (...a: unknown[]) => void)(err, client && counted(client), done),
+          )
+        : (realConnect() as Promise<never>).then(counted);
+    try {
+      const res = await get('/api/v1/auth/me', 'cosmos.localhost', token);
+      expect(res.statusCode).toBe(200);
+    } finally {
+      pool.connect = realConnect;
+    }
+    expect(statements.filter((sql) => /update\s+session/i.test(sql))).toEqual([]);
+    expect(statements.length).toBeLessThanOrEqual(6);
   });
 
   it("refuses a session on another customer's host, and shows nothing of either customer", async () => {

@@ -5,7 +5,9 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Page } from './ui/layout.js';
 import { Board } from './screens/Board.js';
 import { Desk } from './screens/Desk.js';
+import { ChangePassword } from './faces/signin/password.js';
 import { SignIn } from './faces/signin/sign-in.js';
+import { Who } from './faces/signin/who.js';
 import { MyComplaints } from './faces/floor/my-complaints.js';
 import { OtherWork } from './faces/floor/other-work.js';
 import { Report } from './faces/floor/report.js';
@@ -24,6 +26,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<SignIn />} />
+      <Route path="/who" element={<Who />} />
+      <Route path="/password" element={<ChangePassword />} />
       <Route path="/floor" element={<Report />} />
       <Route path="/floor/other" element={<OtherWork />} />
       <Route path="/floor/mine" element={<MyComplaints />} />

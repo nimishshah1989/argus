@@ -42,6 +42,7 @@ jobs:
       - run: pnpm licences
       - run: pnpm migrations:check
       - run: pnpm ui:check
+      - run: pnpm audit:deps
       - run: pnpm audit:lean
       - run: pnpm changelog:check
         if: github.event_name == 'pull_request'

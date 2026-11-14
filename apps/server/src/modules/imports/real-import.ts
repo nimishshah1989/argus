@@ -7,6 +7,7 @@ import {
   lockRefCounter,
   raiseRefCounter,
   refCounterRows,
+  refsByIds,
   setParent,
   ticketParents,
   type ImportedTicketRow,
@@ -20,7 +21,13 @@ import { canonicalSha256, normalizeKey } from './json.js';
 import { checkTicketFigures, type FigureCheck } from './real-oracle.js';
 import { namesIn, toRow, type RowContext } from './real-rows.js';
 import { personName } from './real-people.js';
-import { finishBatch, insertPendingRow, provenanceRows, updateImportRow } from './repo.js';
+import {
+  finishBatch,
+  insertPendingRow,
+  isErasedPayload,
+  provenanceRows,
+  updateImportRow,
+} from './repo.js';
 import { makeRawEnvelope, type CompletionFingerprint } from './schema.js';
 
 export interface RealImportStats {
@@ -137,18 +144,29 @@ async function advanceCounters(tx: PoolClient, tenantId: string, tickets: RealTi
   return next;
 }
 
-async function ledgerIdentity(
-  tx: PoolClient,
-  tenantId: string,
-): Promise<Map<string, { ticketId: string; hash: string }>> {
-  const found = new Map<string, { ticketId: string; hash: string }>();
-  for (const r of await provenanceRows(tx, tenantId, REAL_SOURCE)) {
-    if (r.ticket_id) {
-      found.set(r.source_ref as string, {
-        ticketId: r.ticket_id as string,
-        hash: (r.payload as { identitySha256: string }).identitySha256,
-      });
-    }
+interface Known {
+  ticketId: string;
+  ref: string;
+  /** null: the row's raw envelope was erased with a person, so only the ticket and its ref are known. */
+  hash: string | null;
+}
+
+async function ledgerIdentity(tx: PoolClient, tenantId: string): Promise<Map<string, Known>> {
+  const rows = (await provenanceRows(tx, tenantId, REAL_SOURCE)).filter((r) => r.ticket_id);
+  const refs = await refsByIds(
+    tx,
+    tenantId,
+    rows.map((r) => r.ticket_id as string),
+  );
+  const found = new Map<string, Known>();
+  for (const r of rows) {
+    found.set(r.source_ref as string, {
+      ticketId: r.ticket_id as string,
+      ref: refs.get(r.ticket_id as string) ?? '',
+      hash: isErasedPayload(r.payload)
+        ? null
+        : (r.payload as { identitySha256: string }).identitySha256,
+    });
   }
   return found;
 }
@@ -159,7 +177,7 @@ interface Run {
   batchId: string;
   ctx: RowContext;
   pausesSla: Map<string, boolean>;
-  known: Map<string, { ticketId: string; hash: string }>;
+  known: Map<string, Known>;
   stats: RealImportStats;
 }
 
@@ -167,18 +185,29 @@ interface Run {
 async function importOne(r: Run, t: RealTicket, rowNumber: number): Promise<void> {
   const { tx, tenantId, batchId, stats } = r;
   const envelope = makeRawEnvelope({ ...t, legacyId: t.id, entryType: 'ordinary' }, NO_ALIASES);
+  const before = r.known.get(t.id);
+  if (
+    before &&
+    ((before.hash !== null && before.hash !== envelope.identitySha256) || before.ref !== t.ref)
+  )
+    throw new Error(`Changed payload for ${t.ref}`);
+  // The earlier row was erased with a person: this one names the same people, so it keeps no raw text either.
+  const erased = before !== undefined && before.hash === null;
   const rowId = await insertPendingRow(tx, {
     tenantId,
     batchId,
     rowNumber,
     sourceRef: t.id,
-    payload: JSON.stringify(envelope),
+    payload: erased ? '{}' : JSON.stringify(envelope),
   });
-  const before = r.known.get(t.id);
   if (before) {
-    if (before.hash !== envelope.identitySha256) throw new Error(`Changed payload for ${t.ref}`);
-    const ticketId = before.ticketId;
-    await updateImportRow(tx, { rowId, tenantId, batchId, status: 'skipped', ticketId });
+    await updateImportRow(tx, {
+      rowId,
+      tenantId,
+      batchId,
+      status: 'skipped',
+      ticketId: before.ticketId,
+    });
     stats.skipped += 1;
     return;
   }

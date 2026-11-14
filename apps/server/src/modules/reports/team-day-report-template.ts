@@ -1,6 +1,5 @@
 import {
   STYLES,
-  esc,
   formatDateTime,
   formatDay,
   formatWindow,
@@ -9,6 +8,7 @@ import {
   pendingTable,
   stat,
 } from './day-report-template.js';
+import { esc } from './html.js';
 import type { TeamDayReportData, TeamMemberDay } from './team-report.js';
 
 function header(data: TeamDayReportData): string {

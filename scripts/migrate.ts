@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { Pool } from 'pg';
 import { pathToFileURL } from 'node:url';
 import { installJobSchema } from '../packages/db/src/install-jobs.js';
+import { appApiPasswordStatement } from './app-api-password.js';
 
 // These probes only sanity-check an explicitly declared legacy baseline. Without
 // MIGRATION_ADOPT_THROUGH, every unledgered migration executes or fails; none is adopted.
@@ -251,10 +252,9 @@ async function main(): Promise<void> {
     await applyAppMigrations(pool, files, migrations, adoptThrough);
     await secureAppApiRole(pool);
     await installJobSchema(pool);
-    if (process.env.APP_API_PASSWORD) {
-      const password = process.env.APP_API_PASSWORD.replaceAll("'", "''");
-      await pool.query(`ALTER ROLE app_api LOGIN PASSWORD '${password}'`);
-    }
+    // A verifier, not the plain text: a DDL statement is written to the database log.
+    if (process.env.APP_API_PASSWORD)
+      await pool.query(appApiPasswordStatement(process.env.APP_API_PASSWORD));
     console.log('pg-boss schema and runtime grants ready');
   } catch (error) {
     // Disconnecting releases the session lock; preserve the primary migration error.

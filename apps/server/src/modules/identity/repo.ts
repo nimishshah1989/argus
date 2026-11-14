@@ -29,31 +29,63 @@ export async function lookupSession(
   return (await pool.query('SELECT * FROM auth_lookup($1)', [tokenHash])).rows[0];
 }
 
+/** A session is slid forward at most this often; a burst of reads does not rewrite it each time. */
+const TOUCH_AFTER = "interval '5 minutes'";
+
+export interface AuthRows {
+  login_id: string;
+  username: string;
+  role: string;
+  shared: boolean;
+  must_change_password: boolean;
+  person_id: string | null;
+  person_name: string | null;
+  person_title: string | null;
+  person_active: boolean | null;
+  /** The customer the request's host names, or null when it names none. */
+  host_tenant_id: string | null;
+  /** Last seen more than five minutes ago: time to slide the session forward. */
+  stale: boolean;
+}
+
+/**
+ * Everything a request needs to know about its sign-in beyond the session itself, in one statement inside one
+ * transaction: the login, the acting person, whether the host names this customer and whether the session is due
+ * to slide. Nothing is written here.
+ */
+export async function readAuthRows(
+  pool: Pool,
+  args: {
+    tenantId: string;
+    tokenHash: string;
+    loginId: string;
+    actingPersonId: string | null;
+    slug: string | null;
+  },
+): Promise<AuthRows | undefined> {
+  const result = await withTenant(pool, args.tenantId, (client) =>
+    client.query(
+      `SELECT l.id AS login_id, l.username, l.role, l.shared, l.must_change_password,
+              p.id AS person_id, p.name AS person_name, p.title AS person_title, p.active AS person_active,
+              (SELECT t.id FROM tenant_by_slug($4) t) AS host_tenant_id,
+              COALESCE((SELECT s.last_seen_at < now() - ${TOUCH_AFTER} FROM session s WHERE s.token_hash = $2), false) AS stale
+       FROM login l LEFT JOIN person p ON p.id = $3
+       WHERE l.id = $1`,
+      [args.loginId, args.tokenHash, args.actingPersonId, args.slug],
+    ),
+  );
+  return result.rows[0];
+}
+
+/** Slides the session forward; the caller has checked that it is due. */
 export async function touchSession(pool: Pool, tenantId: string, tokenHash: string): Promise<void> {
   await withTenant(pool, tenantId, (client) =>
     client.query(
-      "UPDATE session SET last_seen_at = now(), expires_at = now() + interval '30 days' WHERE token_hash = $1",
+      `UPDATE session SET last_seen_at = now(), expires_at = now() + interval '30 days'
+       WHERE token_hash = $1 AND last_seen_at < now() - ${TOUCH_AFTER}`,
       [tokenHash],
     ),
   );
-}
-
-export async function loginById(
-  pool: Pool,
-  tenantId: string,
-  loginId: string,
-): Promise<
-  | { id: string; username: string; role: string; shared: boolean; must_change_password: boolean }
-  | undefined
-> {
-  return (
-    await withTenant(pool, tenantId, (client) =>
-      client.query(
-        'SELECT id, username, role, shared, must_change_password FROM login WHERE id = $1',
-        [loginId],
-      ),
-    )
-  ).rows[0];
 }
 
 export async function findPerson(

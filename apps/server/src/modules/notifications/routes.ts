@@ -1,18 +1,17 @@
-import webpush from 'web-push';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
+import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { lockLiveActing, requireAuth } from '../identity/index.js';
 import { AUTH_MESSAGES, type AppConfig } from '../../kernel/index.js';
 import { isPushEndpoint, normalisedEndpoint } from './endpoint.js';
-import {
-  deleteSubscription,
-  subscriptionsOfLogin,
-  upsertSubscription,
-  type SubscriptionRow,
-} from './repo.js';
+import { notify } from './notify.js';
+import { vapidConfig } from './push.js';
+import { deleteSubscription, upsertSubscription } from './repo.js';
+import { processNotification } from './send.js';
 
 const subscribeSchema = z.object({
   subscription: z.object({
@@ -22,40 +21,6 @@ const subscribeSchema = z.object({
   actingPersonId: z.string().uuid(),
 });
 const unsubscribeSchema = z.object({ endpoint: z.string().min(1) });
-
-interface Vapid {
-  configured: boolean;
-  publicKey: string;
-  privateKey: string;
-  subject: string;
-}
-
-function vapidConfig(): Vapid {
-  const publicKey = process.env.VAPID_PUBLIC_KEY ?? '';
-  const privateKey = process.env.VAPID_PRIVATE_KEY ?? '';
-  return {
-    configured: Boolean(publicKey && privateKey),
-    publicKey,
-    privateKey,
-    subject: process.env.VAPID_SUBJECT ?? 'mailto:ops@example.com',
-  };
-}
-
-function configureWebPush(vapid: Vapid): void {
-  if (vapid.configured) {
-    webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
-  }
-}
-
-/** Sends to the subscriptions that name a real push service; returns how many that was. */
-async function deliver(subs: SubscriptionRow[], payload: unknown): Promise<number> {
-  // Rows saved before the address rule may still hold an internal address: never send to those.
-  const safe = subs.filter((sub) => isPushEndpoint(sub.endpoint));
-  await Promise.allSettled(
-    safe.map((sub) => webpush.sendNotification(sub, JSON.stringify(payload))),
-  );
-  return safe.length;
-}
 
 async function keyHandler(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const auth = await requireAuth(pool, request, reply);
@@ -128,24 +93,38 @@ async function unsubscribeHandler(
   reply.send({ ok: true });
 }
 
+/** Sends a test push to the acting person's own phones, through the same path every notification takes. */
 async function testHandler(
   pool: Pool,
+  boss: PgBoss | null,
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
   const auth = await requireAuth(pool, request, reply);
   if (!auth) return;
-  const vapid = vapidConfig();
-  if (!vapid.configured) {
+  if (!vapidConfig().configured) {
     reply.code(503).send(apiError('not_configured', 'Push is not configured'));
     return;
   }
-  configureWebPush(vapid);
-  const subs = await withTenant(pool, auth.tenantId, (client) =>
-    subscriptionsOfLogin(client, auth.tenantId, auth.loginId),
+  if (!auth.personId) {
+    reply.send({ sent: 0 });
+    return;
+  }
+  const now = new Date();
+  const [made] = await withTenant(pool, auth.tenantId, (client) =>
+    notify(client, null, {
+      tenantId: auth.tenantId,
+      to: [auth.personId!],
+      kind: 'push.test',
+      dedupeKey: `push-test:${randomUUID()}`,
+      now,
+    }),
   );
-  const sent = await deliver(subs, { title: 'UPTIMO', body: 'Push works' });
-  reply.send({ sent });
+  const { delivered } = await processNotification(
+    { pool, boss, now },
+    { tenantId: auth.tenantId, notificationId: made!.notificationId },
+  );
+  reply.send({ sent: delivered });
 }
 
 export function registerPush(app: FastifyInstance, config: AppConfig): void {
@@ -155,5 +134,7 @@ export function registerPush(app: FastifyInstance, config: AppConfig): void {
   app.post('/api/v1/push/unsubscribe', (request, reply) =>
     unsubscribeHandler(pool, request, reply),
   );
-  app.post('/api/v1/push/test', (request, reply) => testHandler(pool, request, reply));
+  app.post('/api/v1/push/test', (request, reply) =>
+    testHandler(pool, config.jobBoss ?? null, request, reply),
+  );
 }
