@@ -142,3 +142,13 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   only affected tests locally. Applied at once: merged #202 (ledger, docs only) and #204 (test teardown fix: static,
   secrets, gallery, pr-meta, api 1/3 green; the 7 touched db test files green locally) without waiting for browser.
   Nimish is not merging himself for now. 21 follow-up #210 (draft, 251e5ab) opened; scoped re-check running.
+- 2026-11-14 06:03 UTC — Merged #211 (3d03ad7, builder 21): .gitleaksignore fingerprints for the squash commit of #199
+  (secrets only; with FRONTEND #205 main should be green for new pushes). FRONTEND confirmed: new FRONTEND =
+  session_01KEBF28FjJbxz9dfKVhZPSp; logo volume PR #209 closed; combined builders 5; pstack on main (#208): builds via
+  /poteto-mode, reviews ponytail-review + /interrogate for schema/auth/permissions/tenancy/deletes/history.
+- #210 (21 follow-up) re-check: items 1-3, 5-9 FIXED (sign-in with a stored weak password = 200 verified); item 4 done
+  in 9ebe091 (403 'choose_acting_person'; /auth/me keeps '' plus optional actingPerson). Sent 4 LOWs (lock order
+  deadlock -> 500, join race FOR UPDATE/FOR SHARE, admin count, handover check order). #212 (18 goal 2 server: QR
+  mid = machine code like v3, day-report windows from the shift table, pending-at-end fix; cut: plant_head team report)
+  in one adversarial review. Queued small ticket for FRONTEND asks: POST /tickets/past (no recordPastBreakdown exists
+  in domain; figures stored from entered start/finish), operator upgradeKind, WR refs.
