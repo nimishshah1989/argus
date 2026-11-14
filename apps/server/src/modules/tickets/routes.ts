@@ -225,11 +225,7 @@ async function executeRaise(
   }
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
-  const ref = await sql.allocateRef(
-    client,
-    tx.tenantId,
-    tx.body.kind as 'stopped' | 'support' | 'general',
-  );
+  const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
   // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);

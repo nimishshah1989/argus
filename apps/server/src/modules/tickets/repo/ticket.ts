@@ -324,15 +324,13 @@ export async function lockRefCounter(
   ]);
 }
 
-/** A work request is numbered WR-, everything that stops or needs a machine BD-; each prefix counts on its own. */
-const REF_PREFIX = { stopped: 'BD', support: 'BD', general: 'WR' } as const;
-
+/** A work request (kind `general`) is numbered WR-, everything that stops or needs a machine BD-; each prefix counts on its own. */
 export async function allocateRef(
   client: PoolClient,
   tenantId: string,
-  kind: keyof typeof REF_PREFIX,
+  kind: string,
 ): Promise<string> {
-  const prefix = REF_PREFIX[kind];
+  const prefix = kind === 'general' ? 'WR' : 'BD';
   await lockRefCounter(client, tenantId, prefix);
   const counter = (
     await client.query(
