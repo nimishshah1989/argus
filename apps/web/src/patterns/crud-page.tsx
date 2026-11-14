@@ -24,6 +24,21 @@ function useLookups<Row extends CrudRow>(spec: CrudSpec<Row>): Lookups {
   return Object.fromEntries(entries.map(([name], i) => [name, results[i]?.data ?? []]));
 }
 
+/** The row's own fields first, then each field that has its own route, when it changed. */
+async function saveEdit<Row extends CrudRow>(
+  spec: CrudSpec<Row>,
+  row: Row,
+  values: Record<string, string>,
+  put: (body: Record<string, unknown>) => Promise<unknown>,
+): Promise<void> {
+  const apart = spec.separate ?? {};
+  const own = Object.entries(values).filter(([k]) => !(k in apart));
+  await put({ ...Object.fromEntries(own), active: row.active });
+  for (const [name, send] of Object.entries(apart))
+    if (name in values && values[name] !== String(row[name as keyof Row] ?? ''))
+      await send(row.id, values[name]!);
+}
+
 function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -41,16 +56,9 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   async function save(values: Record<string, string>): Promise<boolean> {
     setError(null);
     const row = sheet?.row;
-    const apart = spec.separate ?? {};
-    const own = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in apart)));
     try {
       if (!row) await create.mutateAsync({ body: values, idempotencyKey: sheet?.key });
-      else {
-        await update.mutateAsync({ id: row.id, body: { ...own, active: row.active } });
-        for (const [name, send] of Object.entries(apart))
-          if (name in values && values[name] !== valuesOf(row)[name])
-            await send(row.id, values[name]!);
-      }
+      else await saveEdit(spec, row, values, (body) => update.mutateAsync({ id: row.id, body }));
       return true;
     } catch {
       setError(t('kit.crud.error'));
