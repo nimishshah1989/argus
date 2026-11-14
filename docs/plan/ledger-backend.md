@@ -315,3 +315,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   fire a DB round-trip per simulated 0.5 s poll, the test simulated ~90 min (about 7,000 polls, 54 s locally); fixed by a
   1-minute pause maximum like the siblings, same assertions (59 s no fire, fire once, 60 s later no second fire).
   Lesson for briefs: a builder must run the files that read what it changes (the /state golden), and keep fake-clock spans short.
+- 08:30 UTC #239 (board today) reviewed: no HIGH; rulings sent: tiles cover kind 'stopped' only (flip = one filter; for Nimish batch:
+  general/support requests are not in Response/Repair today), the day's set = stopped tickets reported today OR closed today OR still
+  open now, child follow-up tasks excluded, closed-without-start tickets use stored figures and are not 'not started'; closed_at
+  index (tenant_id, closed_at) carried to the next migration batch; DOMAIN.md section 4 needs a row for GET /board/today (frontend/docs).
