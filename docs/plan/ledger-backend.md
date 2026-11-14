@@ -124,3 +124,14 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   FRONTEND). Ruling: the shared-phone signal is /auth/me actingPerson null + 403 code 'choose_acting_person' (21
   follow-up). FRONTEND rulings: logo volume = docker named volume + nightly tar to the backup bucket (FRONTEND
   infra PR); board filter = FRONTEND #203.
+- 2026-11-14 06:00 UTC — #206 (23) reviews: reviewer 1 (migration/files) FAIL: logos on disk cannot work on the
+  deployed image (USER node, root-owned /app, no FILES_DIR in refresh-env.sh, no volume) + lowercase/alias time zone
+  -> 500; definer functions, grants, search_path, tenancy, upload limits held. Reviewer 2 (contract/guards) FAIL:
+  restore/correct put an active ticket on a switched-off machine; a tenancy test proved nothing (old PATCH verb);
+  segment active=false leaked to the floor picker; LOWs (blank on create, fail-open guard Map, hard-coded dates,
+  contract helpers private, wrong 409 field). Held: legacy /lists untouched, route count only grew, race safe.
+- Rulings: (1) logos stored as bytes in the database (bytea on `file`, in 0011), no disk, no volume: RDS backups cover
+  them; supersedes the FRONTEND volume plan (told the likely new FRONTEND session_01KEBF28FjJbxz9dfKVhZPSp and its
+  infra builder). (2) Settings READ routes are head/admin only (supersedes my 05:35 'reads open'); floor/desk read
+  /config. (3) Segment active=false refused (422) until 29, like shifts/glossary. (4) The switch-off guard fails
+  closed. (5) Contract helpers exported from one place; people routes adopt them after #206 merges. One fix push.
