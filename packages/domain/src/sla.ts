@@ -11,7 +11,8 @@ import type { TicketEvent } from './types.js';
 export type { SlaPolicy, SlaTimerState };
 
 export type SlaTimerKind = 'ack' | 'restore';
-export type SlaStopReason = 'acknowledged' | 'started' | 'machine_running' | 'closed' | 'cancelled';
+export type SlaStopReason =
+  'acknowledged' | 'started' | 'machine_running' | 'resumed' | 'closed' | 'cancelled';
 
 export interface SlaProjectionInput {
   ticket: Pick<Ticket, 'id' | 'kind' | 'severity' | 'status' | 'reportedAt' | 'closedAt'>;

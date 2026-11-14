@@ -5,22 +5,14 @@ import { apiError, machineCriticalitySchema, slaPoliciesUpdateSchema } from '@up
 import { withTenant } from '@uptimo/db';
 import { lockRefCounter, refreshMachineSeverity } from '../tickets/index.js';
 import { reconcileSlaPolicies } from './sla.js';
-import { currentPolicies, upsertPolicy } from './repo/policies.js';
+import { currentPolicies, upsertPolicy, type PolicyInput } from './repo/policies.js';
 import { requireAuth } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
 import { audit } from '../ops/index.js';
 import { canSettingsLists, canSettingsSla } from '@uptimo/domain';
 import { actorOf, forbidden, hasShifts, setMachineCriticality } from '../plant/index.js';
 
-function unchangedPolicies(
-  before: Record<string, unknown>[],
-  policies: Array<{
-    severity: string;
-    ackMinutes: number;
-    restoreMinutes: number;
-    businessHoursOnly: boolean;
-  }>,
-): boolean {
+function unchangedPolicies(before: Record<string, unknown>[], policies: PolicyInput[]): boolean {
   return (
     before.length === 4 &&
     before.every((row, index) => {
@@ -30,6 +22,9 @@ function unchangedPolicies(
         row.severity === policy.severity &&
         row.ack_minutes === policy.ackMinutes &&
         row.restore_minutes === policy.restoreMinutes &&
+        (policy.pauseMaxMinutes === undefined ||
+          row.pause_max_minutes === policy.pauseMaxMinutes) &&
+        (policy.handbackMinutes === undefined || row.handback_minutes === policy.handbackMinutes) &&
         row.business_hours_only === policy.businessHoursOnly
       );
     })
@@ -42,12 +37,7 @@ async function upsertSlaPolicies(
     tenantId: string;
     loginId: string;
     before: Record<string, unknown>[];
-    policies: Array<{
-      severity: string;
-      ackMinutes: number;
-      restoreMinutes: number;
-      businessHoursOnly: boolean;
-    }>;
+    policies: PolicyInput[];
   },
 ): Promise<void> {
   const { tenantId, loginId, before, policies } = input;
