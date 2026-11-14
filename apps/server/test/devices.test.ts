@@ -241,3 +241,29 @@ describe('the trail of a sign-out', () => {
     expect(JSON.stringify(rows)).not.toContain(other);
   });
 });
+
+describe('a signed-out device stops getting pushes', () => {
+  it('drops the push registration of the device that was signed out, and only that one', async () => {
+    const phone = await signInOn('supervisor', 'Alert phone');
+    const tablet = await signInOn('supervisor', 'Alert tablet');
+    const keys = { p256dh: 'test-p256dh', auth: 'test-auth' };
+    const register = (token: string, endpoint: string) =>
+      t.call('POST', '/api/v1/push/subscribe', token, { subscription: { endpoint, keys } });
+    const phoneEndpoint = 'https://fcm.googleapis.com/fcm/send/alert-phone';
+    const tabletEndpoint = 'https://fcm.googleapis.com/fcm/send/alert-tablet';
+    expect((await register(phone, phoneEndpoint)).statusCode).toBe(200);
+    expect((await register(tablet, tabletEndpoint)).statusCode).toBe(200);
+    const registered = async () =>
+      (
+        await t.db.admin.query('SELECT endpoint FROM push_subscription WHERE endpoint = ANY($1)', [
+          [phoneEndpoint, tabletEndpoint],
+        ])
+      ).rows
+        .map((r) => r.endpoint)
+        .sort();
+    expect(await registered()).toEqual([phoneEndpoint, tabletEndpoint]);
+    const target = await deviceLabelled(phone, 'Alert tablet');
+    expect((await del(end(target.id), phone)).statusCode).toBe(200);
+    expect(await registered()).toEqual([phoneEndpoint]);
+  });
+});
