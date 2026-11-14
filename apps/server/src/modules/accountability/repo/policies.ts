@@ -16,6 +16,11 @@ export async function tenantPolicies(tx: Db, tenantId: string): Promise<SlaPolic
   ).rows;
 }
 
+/** Whether the plant has switched its clocks on (any policy row): escalation follows the clocks, never runs without them. */
+export async function plantHasPolicies(tx: Db): Promise<boolean> {
+  return ((await tx.query('SELECT 1 FROM sla_policy LIMIT 1')).rowCount ?? 0) > 0;
+}
+
 export async function currentPolicies(tx: Db): Promise<Record<string, unknown>[]> {
   return (
     await tx.query(

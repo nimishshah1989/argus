@@ -8,6 +8,7 @@ export const handlers: {
   ) => TransitionResult;
 } = {
   acknowledge: commands.acknowledge,
+  acknowledgeEscalation: commands.acknowledgeEscalation,
   start: commands.start,
   pause: commands.pause,
   resume: commands.resume,
@@ -25,4 +26,5 @@ export const handlers: {
   lateReport: commands.lateReport,
   restore: commands.restore,
   correct: commands.correct,
+  confirmLockout: commands.confirmLockout,
 };

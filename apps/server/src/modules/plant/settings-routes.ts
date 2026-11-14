@@ -80,6 +80,7 @@ async function create(tx: PoolClient, ctx: Ctx, resource: Resource, body: Reply)
   };
   const row = await storeOf(resource).insert(tx, ctx.tenantId, values);
   const reply = resource.reply(row);
+  await resource.afterSave?.(tx, ctx.tenantId);
   await audit.record(tx, {
     ...auditEntry(ctx, resource, `${resource.kind}.create`, reply.id as string),
     before: null,
@@ -163,6 +164,7 @@ async function update(
   const changed = changedKeys(before, after);
   if (changed.length === 0) return { status: 200, body: after };
   await resource.afterEdit?.(tx, { tenantId: ctx.tenantId, before, after, patch: fields });
+  await resource.afterSave?.(tx, ctx.tenantId);
   const action = resource.actionFor?.(before, after) ?? `${resource.kind}.update`;
   await audit.record(tx, {
     ...auditEntry(ctx, resource, action, target.id),

@@ -2,12 +2,14 @@ export {
   ApiError,
   askWhoIsActing,
   clearToken,
+  describeFailure,
   getToken,
   httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
   isOffline,
   setToken,
+  worthRetrying,
 } from './client.js';
 export { defineResource } from './resource.js';
 export type { CursorPage, ListQuery, Resource, ResourceSpec, Transport } from './resource.js';

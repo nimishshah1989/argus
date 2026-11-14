@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, chooseActing, clearToken, getActingChoices, getMe, signOut } from '../../api.js';
+import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
@@ -34,8 +35,11 @@ function SignedInAs() {
 /** "Your name" from the people the server lets this phone choose (GET /auth/acting), by name. */
 function NamePicker({ value, set }: { value: string; set: (id: string) => void }) {
   const { t } = useTranslation();
-  const all = useQuery({ queryKey: ['acting-choices'], queryFn: getActingChoices }).data;
-  const people = [...(all?.people ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const choices = useQuery({ queryKey: ['acting-choices'], queryFn: getActingChoices });
+  if (choices.isError && !choices.data)
+    // eslint-disable-next-line i18next/no-literal-string -- state name, not copy
+    return <StateNotice state="error" empty="" onRetry={() => void choices.refetch()} />;
+  const people = [...(choices.data?.people ?? [])].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Stack gap={2}>
       <Label htmlFor="who-person">{t('signin.yourName')}</Label>

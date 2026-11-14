@@ -219,6 +219,7 @@ export async function persistEvents(
           pausesSla: event.pausesSla,
           ...(event.handbackRequested ? { handbackRequested: true } : {}),
           ...(event.changes ? { changes: event.changes } : {}),
+          ...(event.escalationLevel ? { level: event.escalationLevel } : {}),
           ...payload,
         }),
       ],
@@ -261,6 +262,13 @@ export async function persistCrew(
   }
 }
 
+/** What an event keeps beyond its type: where a cancelled ticket was (to restore it), the steps a lockout covered. */
+function payloadFor(tx: Tx, loaded: LoadedCtx): (() => Record<string, unknown>) | undefined {
+  if (tx.action === 'cancel') return () => ({ previousStatus: loaded.ticket.status });
+  if (tx.action === 'lockout-confirm') return () => ({ stepCodes: tx.body.stepCodes });
+  return undefined;
+}
+
 export async function persistResult(
   client: PoolClient,
   tx: Tx,
@@ -292,8 +300,7 @@ export async function persistResult(
     loginId: tx.auth.loginId,
     actingPersonId: tx.actingPersonId,
     textFor: tx.action === 'pause' ? () => tx.body.note as string | null : undefined,
-    payloadFor:
-      tx.action === 'cancel' ? () => ({ previousStatus: loaded.ticket.status }) : undefined,
+    payloadFor: payloadFor(tx, loaded),
   });
   await persistSegments(client, tx.tenantId, tx.ticketId, {
     segments: result.segments,

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { raiseTicket, type Ticket } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Stack } from '../../ui/layout.js';
-import { FloorLoading, FloorShell } from './floor-shell.js';
+import { FloorShell, FloorWaiting } from './floor-shell.js';
 import { EMPTY, Fields, type Form } from './other-work-fields.js';
 import { startsNow } from './report-state.js';
 import { WhoIsReporting } from './problem-step.js';
@@ -17,14 +17,15 @@ export function OtherWork() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const data = useFloorData();
+  const load = useFloorData();
+  const data = load.data;
   const [form, setForm] = useState<Form>(EMPTY);
   const [startNow, setStartNow] = useState(false);
   const [sent, setSent] = useState<Ticket | null>(null);
   if (!data)
     return (
       <FloorShell>
-        <FloorLoading />
+        <FloorWaiting load={load} />
       </FloorShell>
     );
   const maintenance = data.maintenance;

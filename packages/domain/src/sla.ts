@@ -118,12 +118,23 @@ function validDate(value: Date): boolean {
   return value instanceof Date && !Number.isNaN(value.getTime());
 }
 
+/**
+ * What happened since the ticket was last handed over: a transfer gives the next person a fresh acknowledge window, so
+ * an acknowledge or a start from before it does not count.
+ */
+export function eventsSinceLastTransfer<T extends { type: string }>(events: readonly T[]): T[] {
+  const last = events.map((event) => event.type).lastIndexOf('transfer');
+  return events.slice(last + 1);
+}
+
 function ackTerminal(input: SlaProjectionInput): Terminal | undefined {
-  // which events stop the acknowledge clock is `ACK_CLOCK_STOPS`, the same list the Acknowledge button reads
-  const stopping = input.events.filter((event) => ACK_CLOCK_STOPS.includes(event.type));
+  // which events stop the acknowledge clock is `ACK_CLOCK_STOPS`, the same list the Acknowledge button reads;
+  // only what happened since the last handover counts: a transfer gives the next person a fresh window
+  const events = eventsSinceLastTransfer(input.events);
+  const stopping = events.filter((event) => ACK_CLOCK_STOPS.includes(event.type));
   const start = stopping.find((event) => event.type !== 'acknowledge');
   const acknowledged = stopping.find((event) => event.type === 'acknowledge');
-  const close = input.events.find((event) => event.type === 'close');
+  const close = events.find((event) => event.type === 'close');
   return earliest([
     start ? { at: correctedTime(input, 'startedAt', start.at), reason: 'started' } : undefined,
     acknowledged ? { at: acknowledged.at, reason: 'acknowledged' } : undefined,
@@ -259,6 +270,7 @@ function activeTimeline(
     if (skipEvent(work, event)) continue;
     if (event.type === 'cancel') cancelClock(work, event.at);
     else if (event.type === 'restore') restoreClock(work, event.at);
+    else if (event.type === 'transfer' && kind === 'ack') restartClock(work, event.at);
     else applyWait(work, event, kind);
   }
   closeRunning(work, work.boundary);
@@ -304,6 +316,12 @@ function cancelClock(work: ClockWork, at: Date): void {
   work.pausedAt = null;
   work.cancelled = true;
   work.boundary = cutoff;
+}
+
+/** A handover: the acknowledge clock runs again from here, in full. */
+function restartClock(work: ClockWork, at: Date): void {
+  work.intervals = [];
+  work.runningSince = at;
 }
 
 function restoreClock(work: ClockWork, at: Date): void {

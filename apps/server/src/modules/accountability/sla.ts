@@ -12,6 +12,7 @@ import {
 } from '@uptimo/domain';
 import type { SlaProjection, SlaTimer } from '@uptimo/shared';
 import { tenantInfo } from '../identity/index.js';
+import { armDownEscalation } from './escalation.js';
 import { shiftWindows } from '../plant/index.js';
 import {
   hasLiveClock,
@@ -218,6 +219,7 @@ export async function reconcileTicket(
 ): Promise<void> {
   const { tenantId, ticketId, now, boss } = input;
   if (!(await lockTicket(client, tenantId, ticketId))) return;
+  if (boss) await armDownEscalation(client, boss, { tenantId, ticketId });
   const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
   if (!context || !boss) return;
   const projectionNow = effectiveNow(context, now);

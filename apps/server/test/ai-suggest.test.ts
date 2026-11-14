@@ -48,6 +48,7 @@ const testFeature: AiFeature<{ answer: string }> = {
 
 const baseConfig: AiConfig = {
   production: false,
+  residencyRecord: null,
   apiKey: null,
   model: 'fake',
   priceInputUsdPerMtok: 1,
@@ -257,16 +258,34 @@ describe('ai suggest job', () => {
       await db.admin.query(`DELETE FROM setting WHERE key = 'ai.consent'`);
       if (value !== undefined) await setSetting('ai.consent', value);
       const fake = createFakeProvider();
-      const rt = runtime(fake, { config: { ...baseConfig, production: true } });
+      const rt = runtime(fake, {
+        config: { ...baseConfig, production: true, residencyRecord: 'record-1' },
+      });
       expect(await runSuggest(payload(await makeTicket()), rt)).toBe('no_consent');
       expect(fake.calls).toHaveLength(0);
     }
     expect(await rows()).toHaveLength(0);
   });
 
+  it('makes no call and no row in production until the residency record is filed', async () => {
+    await setSetting('ai.consent', consent);
+    await setSetting('ai.monthlyCapUsd', 50);
+    const fake = createFakeProvider();
+    const unfiled = { ...baseConfig, production: true, residencyRecord: null };
+    const ticket = await makeTicket();
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: unfiled }))).toBe(
+      'no_residency',
+    );
+    expect(fake.calls).toHaveLength(0);
+    expect(await rows()).toHaveLength(0);
+    expect(logs.at(-1)).toMatchObject({ outcome: 'no_residency' });
+    const filed = { ...unfiled, residencyRecord: 'record-1' };
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: filed }))).toBe('ok');
+  });
+
   it('makes no call and no row in production without a cap or over the cap', async () => {
     await setSetting('ai.consent', consent);
-    const production = { ...baseConfig, production: true };
+    const production = { ...baseConfig, production: true, residencyRecord: 'record-1' };
     const fake = createFakeProvider();
     const start = await rows();
     expect(
@@ -282,6 +301,55 @@ describe('ai suggest job', () => {
     expect(fake.calls).toHaveLength(0);
     expect(await rows()).toHaveLength(before.length);
     expect(sent).toHaveLength(0);
+  });
+
+  it('with a real key outside production still sends nothing without consent, and one call with it', async () => {
+    await db.admin.query(`DELETE FROM setting WHERE key = 'ai.consent'`);
+    const staging = { ...baseConfig, apiKey: 'key-placeholder' };
+    const fake = createFakeProvider();
+    const ticket = await makeTicket();
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: staging }))).toBe(
+      'no_consent',
+    );
+    expect(fake.calls).toHaveLength(0);
+    expect(await rows()).toHaveLength(0);
+    await setSetting('ai.consent', consent);
+    expect(await runSuggest(payload(ticket), runtime(fake, { config: staging }))).toBe('ok');
+    expect(fake.calls).toHaveLength(1);
+    await db.admin.query(`UPDATE setting SET value = $1 WHERE key = 'ai.consent'`, [
+      JSON.stringify({ ...consent, status: 'withdrawn' }),
+    ]);
+    expect(await runSuggest(payload(await makeTicket()), runtime(fake, { config: staging }))).toBe(
+      'no_consent',
+    );
+    expect(fake.calls).toHaveLength(1);
+  });
+
+  it('keeps the cost of a paid call when grounding fails, and buys no second call', async () => {
+    const broken: AiFeature<{ answer: string }> = {
+      ...testFeature,
+      async ground(tx) {
+        await tx.query('SELECT 1 / 0');
+        return { output: { answer: 'x' }, evidenceTicketIds: [], dropped: 0 };
+      },
+    };
+    const fake = createFakeProvider([ok('fine', 40, 5)]);
+    const ticket = await makeTicket();
+    const rt = runtime(fake, { features: { diagnosis: broken as AiFeature<unknown> } });
+    expect(await runSuggest(payload(ticket), rt)).toBe('schema_invalid');
+    const [row] = await rows(ticket);
+    expect(row).toMatchObject({
+      status: 'failed',
+      outcome: 'schema_invalid',
+      attempts: 1,
+      input_tokens: 40,
+      output_tokens: 5,
+      cost_micro_usd: '65',
+    });
+    expect(row.output).toBeNull();
+    expect(fake.calls).toHaveLength(1);
+    expect(sent).toHaveLength(0);
+    expect(logs[0]).toMatchObject({ outcome: 'schema_invalid', costMicroUsd: 65 });
   });
 
   it('ignores consent outside production and applies the default cap', async () => {
@@ -409,6 +477,7 @@ describe('ai suggest job', () => {
 
   it('logs one line per job with only the D22 fields', async () => {
     const keyed = { ...baseConfig, apiKey: 'fake-key-for-tests' };
+    await setSetting('ai.consent', consent);
     const leaky: AiFeature<unknown> = {
       ...(testFeature as AiFeature<unknown>),
       load: async () => ({ task: 'Ask Ravi Fake about it.', input: { problem: 'x' } }),

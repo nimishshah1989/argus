@@ -71,10 +71,22 @@ const BUILDERS: Record<CommandAction, Builder> = {
   },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
   acknowledge: (_body, personId, { onRoster }) => ({ type: 'acknowledge', personId, onRoster }),
+  'acknowledge-escalation': (_body, personId, { pendingLevels }) => ({
+    type: 'acknowledgeEscalation',
+    personId,
+    pendingLevels,
+  }),
   handback: (body, personId, { sameCell }) =>
     body.response === 'confirmed'
       ? { type: 'handbackConfirm', personId, sameCell }
       : { type: 'handbackDispute', personId, reason: body.reason as string, sameCell },
+  // `steps` is filled in by `checkLockout` from the plant's own wording
+  'lockout-confirm': (body, personId) => ({
+    type: 'confirmLockout',
+    personId,
+    steps: body.steps as string[],
+    stepCodes: body.stepCodes as string[],
+  }),
 };
 
 export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {
