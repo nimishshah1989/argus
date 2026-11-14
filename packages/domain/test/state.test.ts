@@ -402,8 +402,11 @@ describe('remaining commands', () => {
   });
 
   it('rejects a correction that puts closedAt before startedAt', () => {
+    // a closing time can be corrected only on a closed ticket
     const working = base({
-      status: 'working',
+      status: 'closed',
+      closeKind: 'report',
+      closedAt: t('2026-01-01T11:00:00Z'),
       reportedAt: t('2026-01-01T09:00:00Z'),
       startedAt: t('2026-01-01T10:00:00Z'),
       leadPersonId: 'person-1',
@@ -423,8 +426,11 @@ describe('remaining commands', () => {
   });
 
   it('rejects future correction times and corrections before the report', () => {
+    // closed, so that a corrected closing time is judged by its time and not by the ticket's status
     const working = base({
-      status: 'working',
+      status: 'closed',
+      closeKind: 'report',
+      closedAt: t('2026-01-01T11:00:00Z'),
       reportedAt: t('2026-01-01T10:00:00Z'),
       startedAt: t('2026-01-01T10:30:00Z'),
       leadPersonId: 'person-1',
