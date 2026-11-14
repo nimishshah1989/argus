@@ -88,11 +88,10 @@ function AdminSelect({ name, label, value, options, onChange }: SelectProps) {
 
 interface RestoreProps {
   ticket: Ticket;
-  personId: string;
   onDone: () => void;
 }
 
-function RestoreForm({ ticket, personId, onDone }: RestoreProps) {
+function RestoreForm({ ticket, onDone }: RestoreProps) {
   const { t } = useTranslation();
   const { run, error, pending } = useCommand();
   const [reason, setReason] = useState('');
@@ -100,7 +99,7 @@ function RestoreForm({ ticket, personId, onDone }: RestoreProps) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!reason.trim() || pending) return;
-    if (await run(ticket.id, 'restore', { personId, reason: reason.trim() })) onDone();
+    if (await run(ticket.id, 'restore', { reason: reason.trim() })) onDone();
   }
 
   return (
@@ -265,9 +264,7 @@ export function AdminPanel({ ticket, config, me }: Props) {
           </button>
         </div>
       )}
-      {mode === 'restore' && (
-        <RestoreForm ticket={ticket} personId={me.actingPersonId} onDone={() => setMode(null)} />
-      )}
+      {mode === 'restore' && <RestoreForm ticket={ticket} onDone={() => setMode(null)} />}
       {mode === 'correct' && (
         <CorrectForm ticket={ticket} config={config} onDone={() => setMode(null)} />
       )}

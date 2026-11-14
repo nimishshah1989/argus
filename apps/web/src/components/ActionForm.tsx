@@ -100,29 +100,25 @@ function noteOf(values: Record<string, string>): { note?: string } {
   return values.note ? { note: values.note } : {};
 }
 
-type BodyBuilder = (personId: string, values: Record<string, string>) => CommandBody | null;
+type BodyBuilder = (values: Record<string, string>) => CommandBody | null;
 
 const BODY_BUILDERS: Partial<Record<CommandAction, BodyBuilder>> = {
-  pause: (personId, values) =>
-    values.reasonCode ? { personId, reasonCode: values.reasonCode, ...noteOf(values) } : null,
-  update: (personId, values) => (values.text ? { personId, text: values.text } : null),
-  transfer: (personId, values) => {
+  pause: (values) =>
+    values.reasonCode ? { reasonCode: values.reasonCode, ...noteOf(values) } : null,
+  update: (values) => (values.text ? { text: values.text } : null),
+  transfer: (values) => {
     if (!values.note) return null;
     const target = values.toPersonId ? { toPersonId: values.toPersonId } : {};
-    return { personId, note: values.note, ...target };
+    return { note: values.note, ...target };
   },
-  cancel: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
-  join: (personId, values) =>
-    values.role === 'primary' || values.role === 'support' ? { personId, role: values.role } : null,
-  leave: (personId, values) => (values.reason ? { personId, reason: values.reason } : null),
+  cancel: (values) => (values.reason ? { reason: values.reason } : null),
+  join: (values) =>
+    values.role === 'primary' || values.role === 'support' ? { role: values.role } : null,
+  leave: (values) => (values.reason ? { reason: values.reason } : null),
 };
 
-function buildBody(
-  action: CommandAction,
-  personId: string,
-  values: Record<string, string>,
-): CommandBody | null {
-  return BODY_BUILDERS[action]?.(personId, values) ?? null;
+function buildBody(action: CommandAction, values: Record<string, string>): CommandBody | null {
+  return BODY_BUILDERS[action]?.(values) ?? null;
 }
 
 interface FieldsProps {
@@ -227,7 +223,7 @@ export function ActionForm({ action, personId, config, pending, onRun, onDone }:
   const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(action));
   const fields = fieldsFor(t, { action, config, personId });
-  const body = buildBody(action, personId, trimmed(values));
+  const body = buildBody(action, trimmed(values));
   const title = t(TITLE_KEYS[action] ?? action);
   const submitLabel = t(SUBMIT_KEYS[action] ?? action);
 

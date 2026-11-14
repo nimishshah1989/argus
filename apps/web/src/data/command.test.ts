@@ -61,4 +61,34 @@ describe('runCommand', () => {
     expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/.+/);
     expect(init.body).toBe(JSON.stringify(closeBody));
   });
+
+  it('sends the acting person the phone last learned, not what the screen passed', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    vi.stubGlobal('localStorage', {
+      getItem: () =>
+        JSON.stringify({ loginId: 'l-1', actingPersonId: 'p-new', name: 'New Person' }),
+    });
+    const fetchStub = vi.fn(
+      async () => new Response(JSON.stringify({ ticket: {} }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchStub);
+
+    await runCommand('t-1', 'start', { personId: 'p-old' });
+
+    const [, init] = fetchStub.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ personId: 'p-new' });
+  });
+
+  it('an offline close is queued as the current person too', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    vi.stubGlobal('localStorage', {
+      getItem: () => JSON.stringify({ loginId: 'l-1', actingPersonId: 'p-new', name: 'N' }),
+    });
+
+    await runCommand('t-1', 'close', { kind: 'done' });
+
+    expect(outbox.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ body: { personId: 'p-new', kind: 'done' } }),
+    );
+  });
 });

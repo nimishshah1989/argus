@@ -23,6 +23,7 @@ export const commonEn = {
   'drafts.dismiss': 'Dismiss',
   'drafts.action.close': 'Close',
   'drafts.action.report': 'Report',
+  'drafts.queuedForSomeoneElse': 'Could not send: this was queued for someone else',
   'drafts.couldNotApply': '{{action}} could not be applied — {{reason}}',
   'offline.queued': '{{count}} queued, reconnecting…',
   'offline.banner': 'Offline — closes will be queued',

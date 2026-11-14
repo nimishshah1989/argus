@@ -46,9 +46,7 @@ function CloseSheet(
       offlineAllowed
       pending={p.pending}
       error={p.error}
-      onSubmit={(values) =>
-        p.onRun('close', { personId: p.personId, kind: p.kind, note: (values.note ?? '').trim() })
-      }
+      onSubmit={(values) => p.onRun('close', { kind: p.kind, note: (values.note ?? '').trim() })}
     />
   );
 }

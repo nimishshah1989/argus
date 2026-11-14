@@ -59,7 +59,7 @@ export function ActionBar(props: Props) {
   function choose(spec: ActionSpec) {
     if (spec.preset === 'report') props.onWriteReport();
     else if (spec.action === 'close' || FORM_ACTIONS.has(spec.action)) setOpen(spec);
-    else void onRun(spec.action, { personId });
+    else void onRun(spec.action, {});
   }
 
   const button = (spec: ActionSpec) => (

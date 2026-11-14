@@ -182,14 +182,14 @@ export type TicketListQuery = {
 
 /** The action bodies the desk sends; each command from DOMAIN.md §4. */
 export type CommandBody =
-  | { personId: string }
-  | { personId: string; reasonCode: string; note?: string }
-  | { personId: string; text: string }
-  | { personId: string; note: string; toPersonId?: string }
-  | { personId: string; kind: CloseKind; at?: string; note?: string; report?: BreakdownReportBody }
-  | { personId: string; report: BreakdownReportBody }
-  | { personId: string; reason: string }
-  | { personId: string; role: 'primary' | 'support' }
+  | { personId?: string }
+  | { personId?: string; reasonCode: string; note?: string }
+  | { personId?: string; text: string }
+  | { personId?: string; note: string; toPersonId?: string }
+  | { personId?: string; kind: CloseKind; at?: string; note?: string; report?: BreakdownReportBody }
+  | { personId?: string; report: BreakdownReportBody }
+  | { personId?: string; reason: string }
+  | { personId?: string; role: 'primary' | 'support' }
   | { reason: string; changes: CorrectChanges };
 
 export const putSeverityMatrix = (value: SeverityMatrix): Promise<{ ok: boolean }> =>

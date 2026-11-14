@@ -104,6 +104,24 @@ describe('replayOutbox', () => {
     expect(summary).toEqual({ attempted: 2, replayed: 1, drafted: 1, kept: 0, held: 0 });
   });
 
+  it('a 403 forbidden moves that entry to drafts with a copy key and carries on', async () => {
+    outboxMocks.listQueued.mockResolvedValue([entry('1'), entry('2')]);
+    apiMocks.sendCommand
+      .mockRejectedValueOnce(new ApiError('forbidden', 'Not allowed'))
+      .mockResolvedValueOnce({ ticket: {} });
+
+    const summary = await replayOutbox();
+
+    expect(outboxMocks.addDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ id: '1' }),
+      'Not allowed',
+      'drafts.queuedForSomeoneElse',
+    );
+    expect(outboxMocks.removeQueued.mock.calls.map((call) => call[0])).toEqual(['1', '2']);
+    expect(apiMocks.sendCommand).toHaveBeenCalledTimes(2);
+    expect(summary).toEqual({ attempted: 2, replayed: 1, drafted: 1, kept: 0, held: 0 });
+  });
+
   it('stops on a network error and keeps the rest queued', async () => {
     outboxMocks.listQueued.mockResolvedValue([entry('1'), entry('2')]);
     apiMocks.sendCommand.mockRejectedValueOnce(new TypeError('Failed to fetch'));

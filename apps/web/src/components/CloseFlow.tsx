@@ -122,11 +122,9 @@ interface Opened {
 
 /** A close dated at the chosen finish, or the late report of a closed ticket. */
 function sendReport(props: CloseFlowProps, values: ReportValues, finish: Opened | null) {
-  const { personId } = props;
   const report = buildReportBody(values);
-  if (props.mode === 'late') return props.command('report', { personId, report });
+  if (props.mode === 'late') return props.command('report', { report });
   return props.command('close', {
-    personId,
     kind: 'report',
     at: (finish ? closeAt(finish.at, finish.openedAt, new Date()) : new Date()).toISOString(),
     report,
