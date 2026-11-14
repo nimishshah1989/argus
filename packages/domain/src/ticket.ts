@@ -37,5 +37,4 @@ export interface Ticket {
   figures: Figures | null;
   severity: Severity;
   criticalitySnapshot: Criticality | null;
-  slaPolicyId?: string | null;
 }

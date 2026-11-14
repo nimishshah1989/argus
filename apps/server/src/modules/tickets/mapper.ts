@@ -152,7 +152,6 @@ export function rowToTicket(row: Record<string, unknown>): Ticket {
     lastEventSeq: row.last_event_seq as number,
     severity: row.severity as Ticket['severity'],
     criticalitySnapshot: str(row.criticality_snapshot) as Ticket['criticalitySnapshot'],
-    slaPolicyId: str(row.sla_policy_id),
     figures: null,
   };
 }

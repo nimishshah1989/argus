@@ -35,7 +35,6 @@
       "lastEventSeq": 1,
       "severity": "S1",
       "criticalitySnapshot": "A",
-      "slaPolicyId": "30000000-0000-0000-0000-000000000011",
       "figures": {
         "responseMin": null,
         "activeMin": 0,
@@ -119,7 +118,6 @@
       "lastEventSeq": 2,
       "severity": "S2",
       "criticalitySnapshot": "B",
-      "slaPolicyId": "30000000-0000-0000-0000-000000000012",
       "figures": {
         "responseMin": 10,
         "activeMin": 0,
@@ -203,7 +201,6 @@
       "lastEventSeq": 1,
       "severity": "S3",
       "criticalitySnapshot": "C",
-      "slaPolicyId": "30000000-0000-0000-0000-000000000013",
       "figures": {
         "responseMin": null,
         "activeMin": 0,
@@ -287,7 +284,6 @@
       "lastEventSeq": 1,
       "severity": "S4",
       "criticalitySnapshot": null,
-      "slaPolicyId": null,
       "figures": {
         "responseMin": null,
         "activeMin": 0,
@@ -347,7 +343,6 @@
       "lastEventSeq": 3,
       "severity": "S3",
       "criticalitySnapshot": null,
-      "slaPolicyId": "30000000-0000-0000-0000-000000000013",
       "figures": {
         "responseMin": null,
         "activeMin": 0,

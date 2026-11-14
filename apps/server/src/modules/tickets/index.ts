@@ -11,7 +11,6 @@ export { activeTicketRefsOfPerson } from './repo/people.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
 export {
   lockTicket,
-  setSlaPolicyId,
   slaCandidateIds,
   slaConsistencyIds,
   slaTicketRows,

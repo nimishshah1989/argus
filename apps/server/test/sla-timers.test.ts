@@ -346,8 +346,12 @@ async function runPolicyRaiseRace(
     expect(saved?.statusCode).toBe(200);
     expect(raised?.statusCode).toBe(201);
     const ticketId = raised?.json().ticket.id as string;
-    const bound = await admin.query('SELECT sla_policy_id FROM ticket WHERE id = $1', [ticketId]);
-    expect(bound.rows[0].sla_policy_id).not.toBeNull();
+    const found = await admin.query(
+      `SELECT 1 FROM ticket t JOIN sla_policy p ON p.tenant_id = t.tenant_id AND p.severity = t.severity
+        WHERE t.id = $1`,
+      [ticketId],
+    );
+    expect(found.rows).toHaveLength(1);
     await assertPolicyRaceTimers(ids, ticketId);
   } finally {
     await cleanupPolicyRace(client);
@@ -396,14 +400,9 @@ async function runCriticalityRaiseRace(ids: RaceIds): Promise<void> {
     const [raised] = await Promise.all([raisedResult, criticality]);
     expect(raised?.statusCode).toBe(201);
     const ticketId = raised?.json().ticket.id as string;
-    const ticket = (
-      await admin.query('SELECT severity, sla_policy_id FROM ticket WHERE id = $1', [ticketId])
-    ).rows[0];
+    const ticket = (await admin.query('SELECT severity FROM ticket WHERE id = $1', [ticketId]))
+      .rows[0];
     expect(ticket.severity).toBe('S3');
-    const policy = await admin.query('SELECT severity FROM sla_policy WHERE id = $1', [
-      ticket.sla_policy_id,
-    ]);
-    expect(policy.rows[0].severity).toBe('S3');
     await assertPolicyRaceTimers(ids, ticketId);
   } finally {
     releaseUpdate();
@@ -552,7 +551,7 @@ describe('SLA ticket integration', () => {
     expect(await liveJobKeys(id)).toHaveLength(0);
   });
 
-  it('rebinds and re-arms the matching policy when criticality changes', async () => {
+  it('re-arms the timers of the policy that matches the new severity when criticality changes', async () => {
     const raised = await ticketPost('/api/v1/tickets', {
       machineId: CRITICALITY_MACHINE,
       problem: 'Criticality SLA',
@@ -563,14 +562,8 @@ describe('SLA ticket integration', () => {
       criticality: 'C',
     });
     expect(changed.statusCode).toBe(200);
-    const ticket = await admin.query('SELECT severity, sla_policy_id FROM ticket WHERE id = $1', [
-      id,
-    ]);
-    const policy = await admin.query('SELECT severity FROM sla_policy WHERE id = $1', [
-      ticket.rows[0].sla_policy_id,
-    ]);
+    const ticket = await admin.query('SELECT severity FROM ticket WHERE id = $1', [id]);
     expect(ticket.rows[0].severity).toBe('S3');
-    expect(policy.rows[0].severity).toBe('S3');
     const timers = await admin.query('SELECT kind, revision FROM sla_timer WHERE ticket_id = $1', [
       id,
     ]);

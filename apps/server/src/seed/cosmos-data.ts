@@ -33,15 +33,14 @@ export interface SeedFiles {
 }
 
 export const ROLE_MAP = {
-  maint: { role: 'technician', team: 'maintenance', kind: 'staff' },
-  report: { role: 'operator', team: 'production', kind: 'production' },
-  admin: { role: 'admin', team: 'maintenance', kind: 'staff' },
+  maint: { role: 'technician', team: 'maintenance' },
+  report: { role: 'operator', team: 'production' },
+  admin: { role: 'admin', team: 'maintenance' },
 } as const;
 
 export interface PersonSeed {
   name: string;
   team: string;
-  kind: string;
   title: string | null;
   phone: string | null;
   defaultShift: string | null;
@@ -100,7 +99,6 @@ export function buildPeople(
     people.push({
       name: u.name as string,
       team: map.team,
-      kind: map.kind,
       title: u.title || null,
       phone: u.phone ?? null,
       defaultShift: u.shift ?? null,
@@ -111,7 +109,6 @@ export function buildPeople(
     people.push({
       name: v.name,
       team: 'vendor',
-      kind: 'vendor',
       title: null,
       phone: null,
       defaultShift: null,

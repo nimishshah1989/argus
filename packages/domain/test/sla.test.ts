@@ -798,15 +798,14 @@ describe('SLA timer projection', () => {
   });
 });
 
-describe('SLA policy binding on domain tickets', () => {
-  it('carries an optional policy id through live and past ticket creation', () => {
+describe('the SLA policy of a domain ticket', () => {
+  it('is not carried on the ticket, live or past: the policy is found by the ticket’s severity', () => {
     const common = {
       kind: 'stopped' as const,
       machineId: 'machine-1',
       problem: 'Test',
       raisedLoginId: 'login-1',
       reportedByPersonId: 'person-1',
-      slaPolicyId: 'policy-s3',
     };
     const raised = raiseTicket({
       ...common,
@@ -824,7 +823,9 @@ describe('SLA policy binding on domain tickets', () => {
       closedAt: t('2026-01-01T10:00:00Z'),
       closedByPersonId: 'person-1',
     });
-    expect(raised.ticket.slaPolicyId).toBe('policy-s3');
-    expect(past.ticket.slaPolicyId).toBe('policy-s3');
+    for (const { ticket } of [raised, past]) {
+      expect(ticket.severity).toBeTruthy();
+      expect('slaPolicyId' in ticket).toBe(false);
+    }
   });
 });

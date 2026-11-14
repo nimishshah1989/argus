@@ -21,7 +21,6 @@ export interface RaiseInput {
   machineId: string | null;
   machineCriticality?: Criticality | null;
   severityMatrix?: SeverityMatrix;
-  slaPolicyId?: string | null;
   urgent?: boolean;
   problem: string;
   reportedAt: Date;
@@ -87,7 +86,7 @@ export function raiseTicket(input: RaiseInput): {
     kindUpgradedAt: null,
     lastEventSeq: seq,
     severity: deriveSeverity(input),
-    ...{ criticalitySnapshot, slaPolicyId: input.slaPolicyId ?? null },
+    criticalitySnapshot,
     figures: null,
   };
   return { ticket, events, segments };

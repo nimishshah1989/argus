@@ -44,19 +44,6 @@ export async function lockTicket(tx: Db, tenantId: string, ticketId: string): Pr
   return locked.rowCount === 1;
 }
 
-export async function setSlaPolicyId(
-  tx: Db,
-  tenantId: string,
-  ticketId: string,
-  policyId: string,
-): Promise<void> {
-  await tx.query('UPDATE ticket SET sla_policy_id = $3 WHERE id = $1 AND tenant_id = $2', [
-    ticketId,
-    tenantId,
-    policyId,
-  ]);
-}
-
 export async function slaCandidateIds(tx: Db, tenantId: string): Promise<string[]> {
   const candidates = await tx.query(
     "SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel <> 'backfill' ORDER BY id",
@@ -69,7 +56,8 @@ export async function slaConsistencyIds(tx: Db, tenantId: string): Promise<strin
   const tickets = await tx.query<{ id: string }>(
     `SELECT id FROM ticket
        WHERE tenant_id=$1 AND raised_channel <> 'backfill'
-         AND (sla_policy_id IS NOT NULL OR status IN ('open','working','waiting'))
+         AND (status IN ('open','working','waiting')
+              OR EXISTS (SELECT 1 FROM sla_timer s WHERE s.tenant_id = ticket.tenant_id AND s.ticket_id = ticket.id))
        ORDER BY id`,
     [tenantId],
   );
