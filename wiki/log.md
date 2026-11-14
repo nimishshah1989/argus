@@ -85,3 +85,18 @@
 - 2026-11-13 15:22 UTC session c23c2255 on `claude/orchestrator-ledger`: 298b06b docs: handoff under 50 lines
 - 2026-11-13 15:29 UTC session c23c2255 on `claude/orchestrator-ledger`: f4857a1 docs: session notes (hook)
 - 2026-11-13 15:36 UTC session c23c2255 on `claude/orchestrator-ledger`: 6b4fa1e docs: session notes (hook)
+- 2026-11-13 16:11 UTC session d928e15c on `claude/orchestrator-m0-gate`: e8bbfb4 docs(plan): tracker and ledger for the new orchestrator session
+- 2026-11-13 16:31 UTC session d928e15c on `claude/orchestrator-m0-gate`: c68dc30 docs: session notes (hook)
+- 2026-11-13 16:42 UTC session d928e15c on `claude/orchestrator-m0-gate`: d555082 docs(plan): 09 merged
+- 2026-11-13 17:21 UTC session d928e15c on `claude/orchestrator-m0-gate`: f1362e1 docs(plan): ledger, 14 review
+- 2026-11-13 17:48 UTC session d928e15c on `claude/orchestrator-m0-gate`: 5cc46a0 docs(plan): 14 code merged
+- 2026-11-13 22:11 UTC session d928e15c on `claude/orchestrator-m0-gate`: c55df7d docs(plan): audit, 15 api merged, hardening dispatched
+- 2026-11-13 22:36 UTC session d928e15c on `claude/orchestrator-m0-gate`: 02ff9a5 docs: session notes (hook)
+- 2026-11-13 22:49 UTC session d928e15c on `claude/orchestrator-m0-gate`: d34d59a docs: handoff for the next orchestrator session
+- 2026-11-13 23:16 UTC session d928e15c on `claude/orchestrator-m0-gate`: 56e6974 docs(plan): 182 merged, handoff
+- 2026-11-14 03:53 UTC session d928e15c on `claude/orchestrator-m0-gate`: 4ac854e docs(plan): frontend design agent, hardening follow-up
+- 2026-11-14 03:59 UTC session d928e15c on `claude/orchestrator-m0-gate`: 4eb26e1 docs: session notes (hook)
+- 2026-11-14 04:14 UTC session d928e15c on `claude/orchestrator-m0-gate`: 522af99 docs(plan): slice 1 approved, design lock dispatched
+- 2026-11-14 04:20 UTC session d928e15c on `claude/orchestrator-m0-gate`: 95832a1 docs: session notes (hook)
+- 2026-11-14 04:47 UTC session d928e15c on `claude/orchestrator-m0-gate`: 35ad6db docs(plan): 187 merged, 15 screens dispatched
+- 2026-11-14 05:25 UTC session d928e15c on `claude/orchestrator-m0-gate`: c845d3d docs(plan): status

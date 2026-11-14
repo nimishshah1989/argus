@@ -124,6 +124,8 @@ export const breakdownReportSchema = z.object({
   maintCode: z.string().max(60).optional(),
   spareUsed: z.string().max(200).optional(),
   rootCause: z.string().max(2000).optional(),
+  /** The person the report is handed over to. Typed text (`handoverName`) is for imported history; use this. */
+  handoverPersonId: z.string().uuid().optional(),
   handoverName: z.string().max(120).optional(),
   date: z
     .string()
@@ -132,6 +134,43 @@ export const breakdownReportSchema = z.object({
   shiftCode: z.string().max(60).optional(),
 });
 export type BreakdownReportBody = z.infer<typeof breakdownReportSchema>;
+
+const isoInstant = z
+  .string()
+  .datetime({ offset: true })
+  .transform((value) => new Date(value));
+
+/** A breakdown that already happened: recorded after the fact as a closed ticket with its report. */
+export const pastBreakdownSchema = z
+  .object({
+    machineId: z.string().uuid(),
+    reportedAt: isoInstant,
+    workStartedAt: isoInstant.optional(),
+    runningAt: isoInstant,
+    problem: z.string().min(1).max(2000),
+    reportedByPersonId: z.string().uuid().optional(),
+    closedByPersonId: z.string().uuid().optional(),
+    report: breakdownReportSchema.optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const { reportedAt, workStartedAt, runningAt } = value;
+    if (workStartedAt && workStartedAt < reportedAt) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['workStartedAt'],
+        message: 'Work cannot start before the stop was reported',
+      });
+    }
+    if (runningAt < (workStartedAt ?? reportedAt)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['runningAt'],
+        message: 'The machine cannot run again before work began',
+      });
+    }
+  });
+export type PastBreakdownBody = z.infer<typeof pastBreakdownSchema>;
 
 export const closeTicketSchema = z.object({
   personId: z.string().uuid(),

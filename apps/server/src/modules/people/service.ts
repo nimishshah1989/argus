@@ -29,7 +29,6 @@ function personSnapshot(p: PersonAdmin) {
     name: p.name,
     shortName: p.shortName,
     team: p.team,
-    kind: p.kind,
     title: p.title,
     cell: p.cell,
     defaultShift: p.defaultShift,

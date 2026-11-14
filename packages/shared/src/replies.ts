@@ -128,6 +128,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ...settingsResource('settings/glossary', glossaryReplySchema),
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
+  [`POST ${P}/tickets/past`]: commandReplySchema,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,

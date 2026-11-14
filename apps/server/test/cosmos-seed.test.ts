@@ -106,7 +106,7 @@ describe('cosmos real plant seed', () => {
     const link = await one<{ n: number; people: number; vendors: number }>(
       `SELECT (SELECT count(DISTINCT person_id) FROM login WHERE person_id IS NOT NULL)::int AS n,
               (SELECT count(*) FROM person)::int AS people,
-              (SELECT count(*) FROM person p WHERE kind = 'vendor' AND team = 'vendor'
+              (SELECT count(*) FROM person p WHERE team = 'vendor'
                  AND NOT EXISTS (SELECT 1 FROM login l WHERE l.person_id = p.id))::int AS vendors`,
     );
     expect(link).toEqual({ n: 26, people: 27, vendors: 1 });
@@ -118,7 +118,7 @@ describe('cosmos real plant seed', () => {
     expect(bad.n).toBe(0);
     const names = (
       await db.admin.query(
-        "SELECT p.name, p.phone FROM person p JOIN login l ON l.person_id = p.id WHERE p.kind <> 'vendor'",
+        "SELECT p.name, p.phone FROM person p JOIN login l ON l.person_id = p.id WHERE p.team <> 'vendor'",
       )
     ).rows;
     expect(names).toHaveLength(26);

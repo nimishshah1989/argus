@@ -9,7 +9,6 @@ export interface PastBreakdownInput {
   machineId: string | null;
   machineCriticality?: Criticality | null;
   severityMatrix?: SeverityMatrix;
-  slaPolicyId?: string | null;
   urgent?: boolean;
   problem: string;
   reportedAt: Date;
@@ -60,7 +59,6 @@ export function recordPastBreakdown(input: PastBreakdownInput): {
     lastEventSeq: 2,
     severity: deriveSeverity(input),
     criticalitySnapshot,
-    slaPolicyId: input.slaPolicyId ?? null,
     figures: null,
   };
   return {

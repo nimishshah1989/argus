@@ -52,7 +52,7 @@ const glossary: Resource = {
   kind: 'glossary',
   order: 'source',
   uniqueField: 'source',
-  columns: { source: 'source', english: 'english', direction: 'direction' },
+  columns: { source: 'source', english: 'english', direction: 'direction', active: 'active' },
   create: glossaryCreateSchema,
   patch: glossaryPatchSchema,
   reply: (row) => ({
@@ -60,8 +60,9 @@ const glossary: Resource = {
     source: row.source,
     english: row.english,
     direction: row.direction,
-    active: true,
+    active: row.active,
   }),
+  switchTo: (active) => ({ active }),
 };
 
 export const LIST_RESOURCES: readonly Resource[] = [...LIST_NAMES.map(listResource), glossary];

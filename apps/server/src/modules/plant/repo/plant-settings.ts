@@ -42,6 +42,32 @@ export async function exists(tx: Db, table: SettingsTable, id: string): Promise<
   return ((await tx.query(`SELECT 1 FROM ${table} WHERE id = $1`, [id])).rowCount ?? 0) > 0;
 }
 
+/** Whether any machine of the segment is still in service (a segment with one cannot be switched off). */
+export async function segmentHasLiveMachines(tx: Db, segmentId: string): Promise<boolean> {
+  return (
+    ((
+      await tx.query(
+        "SELECT 1 FROM machine WHERE segment_id = $1 AND status <> 'scrapped' LIMIT 1",
+        [segmentId],
+      )
+    ).rowCount ?? 0) > 0
+  );
+}
+
+/** Whether the segment is switched on (an unknown id counts as on: unknown ids are refused elsewhere). */
+export async function segmentIsOn(tx: Db, segmentId: string): Promise<boolean> {
+  const row = (await tx.query('SELECT active FROM segment WHERE id = $1', [segmentId])).rows[0];
+  return row ? row.active === true : true;
+}
+
+/** Whether any shift other than this one is still switched on (a plant always keeps one). */
+export async function hasOtherActiveShift(tx: Db, shiftId: string): Promise<boolean> {
+  return (
+    ((await tx.query('SELECT 1 FROM shift WHERE active AND id <> $1 LIMIT 1', [shiftId]))
+      .rowCount ?? 0) > 0
+  );
+}
+
 export async function insertRow(
   tx: Db,
   table: SettingsTable,

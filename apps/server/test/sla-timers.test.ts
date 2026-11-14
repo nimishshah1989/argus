@@ -346,8 +346,12 @@ async function runPolicyRaiseRace(
     expect(saved?.statusCode).toBe(200);
     expect(raised?.statusCode).toBe(201);
     const ticketId = raised?.json().ticket.id as string;
-    const bound = await admin.query('SELECT sla_policy_id FROM ticket WHERE id = $1', [ticketId]);
-    expect(bound.rows[0].sla_policy_id).not.toBeNull();
+    const found = await admin.query(
+      `SELECT 1 FROM ticket t JOIN sla_policy p ON p.tenant_id = t.tenant_id AND p.severity = t.severity
+        WHERE t.id = $1`,
+      [ticketId],
+    );
+    expect(found.rows).toHaveLength(1);
     await assertPolicyRaceTimers(ids, ticketId);
   } finally {
     await cleanupPolicyRace(client);
@@ -396,14 +400,9 @@ async function runCriticalityRaiseRace(ids: RaceIds): Promise<void> {
     const [raised] = await Promise.all([raisedResult, criticality]);
     expect(raised?.statusCode).toBe(201);
     const ticketId = raised?.json().ticket.id as string;
-    const ticket = (
-      await admin.query('SELECT severity, sla_policy_id FROM ticket WHERE id = $1', [ticketId])
-    ).rows[0];
+    const ticket = (await admin.query('SELECT severity FROM ticket WHERE id = $1', [ticketId]))
+      .rows[0];
     expect(ticket.severity).toBe('S3');
-    const policy = await admin.query('SELECT severity FROM sla_policy WHERE id = $1', [
-      ticket.sla_policy_id,
-    ]);
-    expect(policy.rows[0].severity).toBe('S3');
     await assertPolicyRaceTimers(ids, ticketId);
   } finally {
     releaseUpdate();
@@ -552,29 +551,39 @@ describe('SLA ticket integration', () => {
     expect(await liveJobKeys(id)).toHaveLength(0);
   });
 
-  it('rebinds and re-arms the matching policy when criticality changes', async () => {
+  it('re-arms the timers of the policy that matches the new severity when criticality changes', async () => {
     const raised = await ticketPost('/api/v1/tickets', {
       machineId: CRITICALITY_MACHINE,
       problem: 'Criticality SLA',
     });
     expect(raised.statusCode, raised.body).toBe(201);
     const id = raised.json().ticket.id as string;
+    const timers = async () =>
+      (
+        await admin.query(
+          `SELECT s.kind, s.revision, s.due_at, t.reported_at, t.severity
+             FROM sla_timer s JOIN ticket t ON t.id = s.ticket_id WHERE s.ticket_id = $1 ORDER BY s.kind`,
+          [id],
+        )
+      ).rows;
+    const before = await timers();
+    expect(before.map((row) => row.severity)).toEqual(['S1', 'S1']);
     const changed = await put(`/api/v1/machines/${CRITICALITY_MACHINE}/criticality`, adminToken, {
       criticality: 'C',
     });
     expect(changed.statusCode).toBe(200);
-    const ticket = await admin.query('SELECT severity, sla_policy_id FROM ticket WHERE id = $1', [
-      id,
-    ]);
-    const policy = await admin.query('SELECT severity FROM sla_policy WHERE id = $1', [
-      ticket.rows[0].sla_policy_id,
-    ]);
-    expect(ticket.rows[0].severity).toBe('S3');
-    expect(policy.rows[0].severity).toBe('S3');
-    const timers = await admin.query('SELECT kind, revision FROM sla_timer WHERE ticket_id = $1', [
-      id,
-    ]);
-    expect(timers.rows.length).toBe(2);
+    const after = await timers();
+    // Criticality C makes this S3: the clocks are armed again from the report time with the S3 minutes.
+    const minutesOf = { ack: 120, restore: 480 } as const;
+    expect(after).toHaveLength(2);
+    for (const row of after) {
+      expect(row.severity).toBe('S3');
+      const earlier = before.find((b) => b.kind === row.kind);
+      expect(row.revision, row.kind).toBeGreaterThan(earlier.revision);
+      expect(new Date(row.due_at).getTime(), row.kind).toBe(
+        new Date(row.reported_at).getTime() + minutesOf[row.kind as 'ack' | 'restore'] * 60_000,
+      );
+    }
   });
 
   it('reads SLA history after the ticket lock when a command commits concurrently', async () => {

@@ -28,6 +28,15 @@ export function formatTime(iso: string, timeZone?: string): string {
   }).format(new Date(iso));
 }
 
+/** A clock time as the close screens show it, e.g. "11:14 AM". */
+export function formatClock(iso: string, timeZone?: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone,
+  }).format(new Date(iso));
+}
+
 export function formatDateTime(iso: string, timeZone?: string): string {
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',

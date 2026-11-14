@@ -40,7 +40,6 @@ const optionalText = (max: number) =>
     .nullable();
 
 const team = z.enum(['maintenance', 'production', 'vendor']);
-const kind = z.enum(['staff', 'production', 'vendor']);
 const nonEmpty = (o: object) => Object.keys(o).length > 0;
 
 const personFields = {
@@ -48,7 +47,6 @@ const personFields = {
   shortName: optionalText(40),
   phone,
   team,
-  kind,
   title: optionalText(60),
   cell: optionalText(60),
   defaultShift: optionalText(20),
@@ -74,7 +72,6 @@ export const personAdminSchema = z
     shortName: z.string().nullable(),
     phone: z.string().nullable(),
     team,
-    kind,
     title: z.string().nullable(),
     cell: z.string().nullable(),
     defaultShift: z.string().nullable(),

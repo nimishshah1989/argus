@@ -62,11 +62,11 @@ async function openAndStart(page: Page, ref: string): Promise<void> {
 }
 
 async function closeOffline(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Close the ticket' });
-  await form.getByLabel('How are you closing?').selectOption('done');
-  await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
-  await expect(form).toBeHidden();
+  await page.getByRole('button', { name: 'Mark done', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: /^Done: / });
+  await sheet.getByLabel('What was done?').fill('Finished while offline');
+  await sheet.getByRole('button', { name: 'Mark done', exact: true }).click();
+  await expect(sheet).toBeHidden();
 }
 
 test('queues an offline close and replays it to Closed', async ({ page }) => {

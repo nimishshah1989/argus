@@ -18,10 +18,12 @@ load, and `deploy.sh` takes `uptimo-pre-<tag>-<time>` before every deploy that m
 drill log and the dump is not relied on. GitHub pauses scheduled workflows in a repository with no activity for 60 days; the drill log
 shows the date of the last dump.
 
+_Run from `~/argus-staging` with `terraform` on your PATH (the Mac install). If `terraform output` fails, the server is `i-0c8debfdec0da8209`._
+
 ## 0. Switch the weekly dump on (once, after Nimish applies the Terraform in `infra/terraform`)
 
-1. `cd infra/terraform && ../../.tools/bin/terraform output -raw backup_bucket` prints the bucket name.
-2. `gh variable set BACKUP_BUCKET --body "$(../../.tools/bin/terraform output -raw backup_bucket)"`
+1. `cd infra/terraform && terraform output -raw backup_bucket` prints the bucket name.
+2. `gh variable set BACKUP_BUCKET --body "$(terraform output -raw backup_bucket)"`
 3. `gh workflow run backup.yml`, then `gh run watch`. Success ends with a line
    `dump ok: s3://uptimo-xxxx-backups/dumps/uptimo-<date>.dump (<bytes> bytes)`.
 4. If it says `STOP: this login is subject to row security`, the weekly dump cannot work with the master login. **On RDS this is the likely
@@ -37,7 +39,7 @@ shows the date of the last dump.
 2. Count what staging holds now:
 
    ```bash
-   IID=$(cd infra/terraform && ../../.tools/bin/terraform output -raw server_instance_id)
+   IID=$(cd infra/terraform && terraform output -raw server_instance_id)
    run_on_instance() {
      CID=$(aws ssm send-command --instance-ids "$IID" --document-name AWS-RunShellScript \
        --parameters "commands=[\"$1\"]" --query Command.CommandId --output text)
@@ -94,7 +96,7 @@ Runs on the instance in a throwaway container that is removed at the end. It nee
 (section 0, step 3).
 
 ```bash
-BUCKET=$(cd infra/terraform && ../../.tools/bin/terraform output -raw backup_bucket)
+BUCKET=$(cd infra/terraform && terraform output -raw backup_bucket)
 run_on_instance "BACKUP_BUCKET=$BUCKET /opt/uptimo/instance/dump-restore-drill.sh" | tee counts-dump.txt
 ```
 

@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '@uptimo/db';
-import { slaConsistencyIds } from '../tickets/index.js';
+import { slaActiveIds } from '../tickets/index.js';
+import { ticketIdsWithTimers } from './repo/timers.js';
 
 export type SlaTicketReconciler = (
   client: PoolClient,
@@ -23,7 +24,13 @@ export interface SlaConsistencyResult {
 
 async function reconcileTenant(options: SlaConsistencyOptions, tenantId: string): Promise<number> {
   return withTenant(options.pool, tenantId, async (client) => {
-    const ticketIds = await slaConsistencyIds(client, tenantId);
+    // The tickets being worked, and any ticket that has clocks (a closed one whose clocks never stopped).
+    const ticketIds = [
+      ...new Set([
+        ...(await slaActiveIds(client, tenantId)),
+        ...(await ticketIdsWithTimers(client, tenantId)),
+      ]),
+    ].sort();
     for (const ticketId of ticketIds) {
       await options.reconcileTicket(client, tenantId, ticketId, options.now);
     }

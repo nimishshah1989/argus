@@ -10,7 +10,6 @@ import {
   loadEvents,
   lockTicket,
   reviveCorrection,
-  setSlaPolicyId,
   slaCandidateIds,
   slaTicketRows,
   ticketEventRows,
@@ -179,11 +178,11 @@ export async function loadSlaProjections(
 export async function reconcileTicket(
   client: PoolClient,
   input: { tenantId: string; ticketId: string; now: Date; boss?: PgBoss },
-): Promise<string | null> {
+): Promise<void> {
   const { tenantId, ticketId, now, boss } = input;
-  if (!(await lockTicket(client, tenantId, ticketId))) return null;
+  if (!(await lockTicket(client, tenantId, ticketId))) return;
   const context = (await loadContexts(client, tenantId, [ticketId])).get(ticketId);
-  if (!context) return null;
+  if (!context) return;
   const projectionNow = effectiveNow(context, now);
   const projected = projectSlaTimers({
     ticket: {
@@ -215,8 +214,6 @@ export async function reconcileTicket(
       now: projectionNow,
     });
   }
-  await setSlaPolicyId(client, tenantId, ticketId, context.policy.id);
-  return context.policy.id;
 }
 
 export async function reconcileSlaPolicies(

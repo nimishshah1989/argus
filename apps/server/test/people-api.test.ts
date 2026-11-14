@@ -457,11 +457,11 @@ describe('what the generated people and logins screens send and expect', () => {
       team: 'vendor',
       phone: '',
       title: '',
-      kind: '',
       cell: '',
     });
     expect(res.statusCode, res.body).toBe(201);
-    expect(res.json()).toMatchObject({ kind: 'staff', phone: null, title: null });
+    expect(res.json()).toMatchObject({ phone: null, title: null });
+    expect(res.json()).not.toHaveProperty('kind');
   });
 
   it('a form that sends the whole row back unchanged changes nothing and writes no audit row', async () => {
@@ -472,7 +472,6 @@ describe('what the generated people and logins screens send and expect', () => {
       shortName: '',
       phone: '+919000000052',
       team: 'maintenance',
-      kind: 'staff',
       title: 'Lead',
       cell: '',
       defaultShift: '',

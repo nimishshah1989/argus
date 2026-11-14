@@ -26,6 +26,7 @@ export async function machinesByIds(
   ).rows;
 }
 
+/** Every shift, switched off or not: the SLA calendar and past results never depend on what the floor is offered. */
 export async function shiftWindows(tx: Db): Promise<Record<string, unknown>[]> {
   return (
     await tx.query(
@@ -54,7 +55,7 @@ export async function listItem(
   ).rows[0];
 }
 
-/** The shift covering `at` in the tenant zone; the later-starting shift owns an overlap. */
+/** The shift in force at `at` in the tenant zone (switched-off shifts do not count); the later-starting shift owns an overlap. */
 export async function shiftCodeAt(
   tx: Db,
   timeZone: string | null,
@@ -64,12 +65,34 @@ export async function shiftCodeAt(
     await tx.query(
       `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE $1)::time AS t)
        SELECT code FROM shift, local_time
-       WHERE (NOT crosses_midnight AND t >= starts_at AND t < ends_at)
-          OR (crosses_midnight AND (t >= starts_at OR t < ends_at))
+       WHERE active AND ((NOT crosses_midnight AND t >= starts_at AND t < ends_at)
+          OR (crosses_midnight AND (t >= starts_at OR t < ends_at)))
        ORDER BY starts_at DESC LIMIT 1`,
       [timeZone, at],
     )
   ).rows[0]?.code;
+}
+
+/**
+ * The production date of a moment: the plant's calendar date, except that a stop after midnight inside a shift
+ * that crosses midnight belongs to the day that shift started (DOMAIN §5). A moment no shift covers keeps its own date.
+ */
+export async function productionDateAt(tx: Db, timeZone: string | null, at: Date): Promise<string> {
+  const row = (
+    await tx.query(
+      `WITH local AS (SELECT ($2::timestamptz AT TIME ZONE $1) AS ts)
+       SELECT (CASE WHEN s.crosses_midnight AND local.ts::time < s.ends_at
+                    THEN local.ts::date - 1 ELSE local.ts::date END)::text AS day
+         FROM local
+         LEFT JOIN LATERAL (
+           SELECT crosses_midnight, ends_at FROM shift
+            WHERE (NOT crosses_midnight AND local.ts::time >= starts_at AND local.ts::time < ends_at)
+               OR (crosses_midnight AND (local.ts::time >= starts_at OR local.ts::time < ends_at))
+            ORDER BY starts_at DESC LIMIT 1) s ON true`,
+      [timeZone, at],
+    )
+  ).rows[0];
+  return row.day as string;
 }
 
 export async function activeMachineByCode(
