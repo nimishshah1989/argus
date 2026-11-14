@@ -171,6 +171,9 @@ test('a command queued by someone else on this phone is held, named, and never s
   await signIn(page, 'bina');
   await page.goto('/desk');
   await expect(page.getByText('Not sent: queued by Asha')).toBeVisible();
+  // Held work is not on its way: the sync pill must not say Sending (review of PR 225, gallery run).
+  await page.waitForTimeout(3500);
+  await expect(page.getByTestId('sync-status').first()).not.toHaveText(/Sending/);
   expect(sent).toEqual([]);
   expect(await queued(page)).toBe(1);
 });
