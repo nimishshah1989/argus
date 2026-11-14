@@ -304,3 +304,10 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   breach). Open for Nimish (batch): overnight vendor waits breach overnight (wall-clock pause limit); alerts reach only
   people with a personal login of the role (Cosmos has shared floor logins). #231 held until the web PR (401 or 422 'old'
   + signIn fixture) lands; #231 browser red = 3 web specs, not server.
+- 08:14 UTC #233 CI at 4549ee8: static, secrets, gallery, pr-meta (after Large PR line), api 2/3, 3/3 green; api 1/3 running;
+  browser 1/2 and 2/2 red = ONLY the two specs red on #231 too (settings-severity.spec.ts:133, sla-timers.spec.ts:64, both
+  at the signIn fixture; 11 + 27 tests did not run as a result): leftover on main from #225, not this PR. Ruling: merge #233
+  on api green; risk: the ticket-event listener is untested by those 38 e2e tests (it is savepoint-isolated, 136 other e2e
+  pass). #234 fix push 85af3f1 checked (retired pause clock stops the armed row; restore = new episode; restart only when
+  previous status waiting; pausesSla=false arms nothing) and marked ready, CI running. Leftover from builder: a breach owed
+  by pause 1 can be lost if pause 2 starts before the job runs (needs a column; 33 must fire it at startsNewPause).
