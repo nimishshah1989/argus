@@ -1,50 +1,98 @@
-import { Link } from 'react-router-dom';
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, Ticket } from '../api.js';
+import { Button } from '../ui/button.js';
+import { Hourglass, LifeBuoy, OctagonX, Wrench, type IconComponent } from '../ui/icon.js';
+import { StatusPill } from '../ui/status/status-pill.js';
+import { TicketCard as Card } from '../ui/ticket-card.js';
+import { timeLine, typeLine } from '../screens/desk/openLists.js';
 import type { ActionSpec } from './actionSpecs.js';
-import { elapsedLabel } from './format.js';
-import { StatusBadge } from './StatusBadge.js';
+import { formatMinutes, formatTime } from './format.js';
 import { SeverityBadge } from './SeverityBadge.js';
 import { SlaTimerSummary } from './SlaTimerSummary.js';
+
+type ChipId = 'stopped' | 'in_progress' | 'support' | 'waiting' | 'transferred' | 'running';
+
+/** The status chip a card shows (design lock status table). */
+export function chipFor(ticket: Ticket): ChipId | null {
+  if (ticket.status === 'waiting') return 'waiting';
+  if (ticket.status === 'working') return 'in_progress';
+  if (ticket.handedOver) return 'transferred';
+  if (ticket.kind === 'support') return 'support';
+  if (ticket.kind === 'stopped') return ticket.machineRunningAt ? 'running' : 'stopped';
+  return null;
+}
+
+const KIND_ICON: Record<string, IconComponent> = {
+  danger: OctagonX,
+  warning: LifeBuoy,
+  ok: Wrench,
+  info: Wrench,
+};
 
 interface Props {
   ticket: Ticket;
   now: string;
   machineCode: string;
+  names?: Record<string, string>;
   quick: ActionSpec | null;
   pending: boolean;
   onQuick: (ticket: Ticket, action: CommandAction) => void;
 }
 
-export function TicketCard({ ticket, now, machineCode, quick, pending, onQuick }: Props) {
+/** A ticket on the desk lists: what kind of job, the problem, who reported it, how long, and its one quick action. */
+export function TicketCard({
+  ticket,
+  now,
+  machineCode,
+  names = {},
+  quick,
+  pending,
+  onQuick,
+}: Props) {
   const { t } = useTranslation();
+  const kind = typeLine(ticket);
+  const time = timeLine(ticket, now);
+  const chip = chipFor(ticket);
+  const who = ticket.reportedByPersonId ? names[ticket.reportedByPersonId] : undefined;
+  const at = formatTime(ticket.reportedAt);
   return (
-    <li className="rounded-2xl bg-white p-4 shadow-sm">
-      <Link to={`/desk/${ticket.id}`} className="block rounded-lg">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-lg font-semibold tracking-tight">{ticket.ref}</p>
-          <div className="flex items-center gap-1.5">
-            <SeverityBadge severity={ticket.severity} />
-            <StatusBadge status={ticket.status} />
-          </div>
-        </div>
-        <p className="mt-1 text-sm font-medium text-neutral-600">{machineCode}</p>
-        <p className="mt-2 line-clamp-2 text-base text-neutral-900">{ticket.problem}</p>
-        <p className="mt-2 text-sm text-neutral-500">
-          {t('ticket.reportedAgo', { time: elapsedLabel(ticket.reportedAt, now) })}
-        </p>
-        <SlaTimerSummary ticket={ticket} />
-      </Link>
-      {quick && (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => onQuick(ticket, quick.action)}
-          className="mt-3 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-50"
-        >
+    <Card
+      to={`/desk/${ticket.id}`}
+      title={machineCode}
+      refLabel={ticket.ref}
+      status={
+        <span className="flex shrink-0 items-center gap-1">
+          <SeverityBadge severity={ticket.severity} />
+          {chip ? <StatusPill group="ticket" id={chip} /> : null}
+        </span>
+      }
+      kind={{
+        text: t(kind.key, { date: kind.date }),
+        tone: kind.tone,
+        icon: ticket.status === 'waiting' ? Hourglass : KIND_ICON[kind.tone],
+      }}
+      problem={ticket.problem}
+      meta={who ? t('deskLists.reportedBy', { at, who }) : t('deskLists.reported', { at })}
+      time={{
+        text: t(time.key, {
+          time: formatMinutes(time.minutes),
+          since: time.since ? formatTime(time.since) : '',
+        }),
+        tone:
+          ticket.status === 'waiting'
+            ? 'hold'
+            : time.key === 'deskLists.time.follow'
+              ? 'ok'
+              : 'danger',
+      }}
+      extra={<SlaTimerSummary ticket={ticket} />}
+    >
+      {quick ? (
+        <Button variant="tonal" disabled={pending} onClick={() => onQuick(ticket, quick.action)}>
           {t(quick.label)}
-        </button>
-      )}
-    </li>
+        </Button>
+      ) : null}
+    </Card>
   );
 }

@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
+import { commandViaApi, getJson } from './fixtures-actions.js';
 
 /** Ticket 16 goal 1: Open, Mine, Team and needs-report from the bottom tab bar, by role (v3.views.01–05). */
 test.describe.configure({ mode: 'serial' });
@@ -52,6 +53,12 @@ test('Open: counts strip, Team now, Breakdowns / Tasks / Work, and a tap on a co
   await expect(page.getByRole('link', { name: new RegExp(stopped.ref) })).toHaveCount(0);
   await counts.getByRole('button', { name: /Down/ }).click();
   await expect(page.getByRole('link', { name: new RegExp(stopped.ref) })).toBeVisible();
+
+  // Free the desk machine for the lifecycle spec.
+  const me = await getJson<{ user: { actingPersonId: string } }>(token, '/api/v1/auth/me');
+  const personId = me.user.actingPersonId;
+  for (const id of [stopped.id, work.id])
+    await commandViaApi(token, id, 'cancel', { personId, reason: 'List check done' });
 });
 
 test('Mine and Team open from the tab bar, and the card opens the ticket', async ({ page }) => {
