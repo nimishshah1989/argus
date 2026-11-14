@@ -96,15 +96,21 @@ type Progress = Pick<
 
 const NO_USAGE: AiUsage = { inputTokens: 0, outputTokens: 0 };
 
-/** Gates inside transaction 1: production consent, then the monthly cap. Null means pass. */
-export async function gateProduction(
+/**
+ * Gates inside transaction 1. Whenever a real provider is in use (a key is set), the plant's consent comes first,
+ * on staging too, because staging holds a real plant's tickets. In production the plant's monthly cap must also be
+ * set; elsewhere the default cap applies (`capReached`). With no key the fake answers and nothing is gated.
+ * Null means pass.
+ */
+export async function gateRealCalls(
   tx: Pick<PoolClient, 'query'>,
   tenantId: string,
   config: AiConfig,
 ): Promise<AiOutcome | null> {
-  if (!config.production) return null;
+  if (!config.production && config.apiKey === null) return null;
   const consent = aiConsentSchema.safeParse(await setting(tx, tenantId, 'ai.consent'));
   if (!consent.success || consent.data.status !== 'granted') return 'no_consent';
+  if (!config.production) return null;
   const cap = aiMonthlyCapUsdSchema.safeParse(await setting(tx, tenantId, 'ai.monthlyCapUsd'));
   return cap.success ? null : 'cap_reached';
 }
@@ -130,7 +136,7 @@ async function prepare(
 ): Promise<Prepared | AiOutcome> {
   const { tenantId } = payload;
   return withTenant(rt.pool, tenantId, async (tx) => {
-    const gated = await gateProduction(tx, tenantId, rt.config);
+    const gated = await gateRealCalls(tx, tenantId, rt.config);
     if (gated) return gated;
     const loaded = await feature.load(tx, tenantId, payload.subjectId);
     if (loaded === 'stale') return 'stale';
@@ -195,6 +201,26 @@ async function claim(
 
 type SettledCall = { output: AiJson; usage: AiUsage; ground?: (tx: Db) => Promise<AiGrounded> };
 
+/**
+ * Grounding runs in a savepoint: if it throws, only its own statements are undone, so the paid call's tokens and
+ * cost are still stored on a `failed` row and no second call is bought for an error a retry would repeat.
+ */
+async function groundIn(tx: Db, result: SettledCall): Promise<AiGrounded | null> {
+  if (!result.ground) return { output: result.output, evidenceTicketIds: [], dropped: 0 };
+  await tx.query('SAVEPOINT ai_ground');
+  try {
+    const grounded = await result.ground(tx);
+    await tx.query('RELEASE SAVEPOINT ai_ground');
+    return grounded;
+  } catch (error) {
+    await tx.query('ROLLBACK TO SAVEPOINT ai_ground');
+    await tx.query('RELEASE SAVEPOINT ai_ground');
+    const reason = (error as { code?: string; name?: string }).code ?? (error as Error).name;
+    console.error(JSON.stringify({ event: 'ai.ground.failed', reason }));
+    return null;
+  }
+}
+
 /** Transaction 3: store the answer, or the failure and, when the table says so, the next try. */
 async function settleCall(
   payload: AiSuggestPayload,
@@ -205,9 +231,16 @@ async function settleCall(
   const { tenantId } = payload;
   return withTenant(rt.pool, tenantId, async (tx) => {
     if (!(result instanceof AiProviderError)) {
-      const grounded = result.ground
-        ? await result.ground(tx)
-        : { output: result.output, evidenceTicketIds: [] };
+      const grounded = await groundIn(tx, result);
+      if (grounded === null) {
+        await settleSuggestion(
+          tx,
+          tenantId,
+          claimed.id,
+          settlement('failed', 'schema_invalid', rt, { usage: result.usage }),
+        );
+        return 'schema_invalid';
+      }
       await settleSuggestion(
         tx,
         tenantId,

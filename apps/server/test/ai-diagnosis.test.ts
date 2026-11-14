@@ -165,6 +165,7 @@ describe('diagnosis feature', () => {
   beforeEach(async () => {
     logs = [];
     await db.admin.query('DELETE FROM ai_suggestion');
+    await db.admin.query(`DELETE FROM setting WHERE key = 'ai.consent'`);
     await db.admin.query(
       `DELETE FROM breakdown_report WHERE ticket_id IN (SELECT id FROM ticket WHERE ref LIKE 'D-%')`,
     );
@@ -216,8 +217,23 @@ describe('diagnosis feature', () => {
     expect(text).toContain('[P1] reset the drive');
   });
 
-  it('through the real Claude adapter: no name, phone or id leaves, the reply is grounded and costed', async () => {
+  it('through the real Claude adapter: the whole request is the redacted input, nothing else leaves', async () => {
+    await db.admin.query(
+      `INSERT INTO person (tenant_id, name, short_name, active) VALUES ($1, 'Kiran Fake', 'Kiran', true)`,
+      [A],
+    );
     const { old1 } = await history();
+    await ticket(A, M, '2026-10-20T08:00:00Z', {
+      closeNote: 'Kiran re-seated the encoder, bypass wire left',
+    });
+    const reference = createFakeProvider();
+    const first = await subject();
+    await runSuggest(payload(first), runtime(reference));
+    const redactedInput = JSON.stringify(reference.calls[0]!.input);
+    expect(redactedInput).toContain('[P');
+    expect(redactedInput).not.toContain('Kiran');
+    await db.admin.query('DELETE FROM ai_suggestion');
+    await db.admin.query('DELETE FROM ticket WHERE id = $1', [first]);
     const id = await subject();
     const sent: { url: string; body: string }[] = [];
     const answer = reply([cand('Bearing failing again', ['T1', 'T9'])]).output;
@@ -236,10 +252,38 @@ describe('diagnosis feature', () => {
       { ...config, apiKey: 'key-placeholder', model: 'claude-sonnet-5-5' },
       fetchImpl,
     )!;
-    expect(await runSuggest(payload(id), runtime(real))).toBe('ok');
+    await db.admin.query(
+      `INSERT INTO setting (tenant_id, key, value) VALUES ($1, 'ai.consent', $2)`,
+      [
+        A,
+        JSON.stringify({
+          status: 'granted',
+          signedOn: '2026-11-01',
+          fileId: '72b00000-0000-4000-8000-0000000000f1',
+          wordingVersion: 'v1',
+          recordedByLoginId: '72b00000-0000-4000-8000-0000000000f2',
+        }),
+      ],
+    );
+    expect(
+      await runSuggest(payload(id), {
+        ...runtime(real),
+        config: { ...config, apiKey: 'key-placeholder' },
+      }),
+    ).toBe('ok');
     expect(sent).toHaveLength(1);
     expect(new URL(sent[0]!.url).host).toBe('api.anthropic.com');
-    for (const secret of ['Ravi Fake', 'Mina Fake', PHONE, 'Test Plant A'])
+    const body = JSON.parse(sent[0]!.body) as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual([
+      'max_tokens',
+      'messages',
+      'model',
+      'output_config',
+      'system',
+    ]);
+    expect(body.system).toBe(DIAGNOSIS_PROMPT.text);
+    expect(body.messages).toEqual([{ role: 'user', content: redactedInput }]);
+    for (const secret of ['Ravi Fake', 'Kiran', PHONE, 'Test Plant A'])
       expect(sent[0]!.body).not.toContain(secret);
     expect(sent[0]!.body).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
     const [row] = await rows(id);
@@ -249,7 +293,7 @@ describe('diagnosis feature', () => {
       model_ref: 'claude-sonnet-5-5',
       cost_micro_usd: '1500',
     });
-    expect(logs[0]).toMatchObject({ evidenceDropped: 1, inputTokens: 900, outputTokens: 120 });
+    expect(logs.at(-1)).toMatchObject({ evidenceDropped: 1, inputTokens: 900, outputTokens: 120 });
   });
 
   it('drops evidence the tenant can no longer see', async () => {

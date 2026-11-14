@@ -4,7 +4,7 @@ import { jobDb, type TicketListener } from '../../kernel/index.js';
 import { ticketAlertFacts } from '../tickets/index.js';
 import type { AiConfig } from './config.js';
 import { DIAGNOSIS_PROMPT } from './diagnosis.js';
-import { AI_SUGGEST_QUEUE, gateProduction } from './suggest.js';
+import { AI_SUGGEST_QUEUE, gateRealCalls } from './suggest.js';
 
 const queueReady = new WeakSet<PgBoss>();
 
@@ -28,14 +28,14 @@ export async function ensureAiQueue(boss: PgBoss): Promise<void> {
 /**
  * A ticket listener: runs inside a ticket write's transaction, so the job exists only if the ticket does. Only a
  * breakdown (`stopped`) that is raised is diagnosed: not an upgrade later, not a past ticket entered after the fact.
- * In production a job nobody could run is not queued: no key, no residency record, or the plant's consent or cap
- * not in place. Staging has no gate (build phase). The job re-checks every gate when it runs.
+ * A job nobody could run is not queued: in production no key or residency record; with a real key anywhere, the
+ * plant's consent (and in production its cap) not in place. The job re-checks every gate when it runs.
  */
 export function diagnosisQueuer(ai: AiConfig): TicketListener {
   return async (client, write) => {
     if (write.command !== 'raise' || !write.boss) return;
     if (ai.production && (ai.apiKey === null || ai.residencyRecord === null)) return;
-    if (await gateProduction(client, write.tenantId, ai)) return;
+    if (await gateRealCalls(client, write.tenantId, ai)) return;
     const facts = await ticketAlertFacts(client, write.tenantId, write.ticketId);
     if (facts?.kind !== 'stopped') return;
     await ensureAiQueue(write.boss);
