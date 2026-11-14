@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Shift } from './api.js';
 
-/** People are handing over around a shift's start and end; an update prompt waits this long either side. */
+/**
+ * People are handing over around a shift's start and end, so an update prompt waits this many minutes
+ * either side. A product number: 15 is a default for Nimish to confirm.
+ */
 const CHANGEOVER_MIN = 15;
 const DAY_MIN = 1440;
 

@@ -36,11 +36,22 @@ function instantWhenPlantReads(hhmm: string, timeZone: string): Date {
   throw new Error(`no instant reads ${hhmm}`);
 }
 
-async function plantTimeZone(): Promise<string> {
+let zone = '';
+
+/** Desktop only, and one API login for the whole file: the API's login rate limit is shared by every spec (see actions.spec.ts). */
+test.beforeAll(async () => {
   const token = await apiLogin('asha');
   const res = await apiFetch('/api/v1/config', { headers: { authorization: `Bearer ${token}` } });
-  return ((await res.json()) as { timeZone: string }).timeZone;
-}
+  zone = ((await res.json()) as { timeZone: string }).timeZone;
+});
+
+// eslint-disable-next-line no-empty-pattern -- Playwright needs the fixtures object before testInfo
+test.beforeEach(({}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'nothing here depends on the phone or the language',
+  );
+});
 
 test('floor and desk install as two apps: each address offers its own app', async ({ page }) => {
   const manifests: Record<string, { id: string; start_url: string }> = {};
@@ -60,7 +71,6 @@ test('floor and desk install as two apps: each address offers its own app', asyn
 test('a waiting update shows a banner, and Update now asks the new version to take over', async ({
   page,
 }) => {
-  const zone = await plantTimeZone();
   await page.clock.setFixedTime(instantWhenPlantReads('12:00', zone));
   await withWaitingUpdate(page);
   await signIn(page, 'asha');
@@ -73,7 +83,6 @@ test('a waiting update shows a banner, and Update now asks the new version to ta
 });
 
 test('the update banner waits out the shift changeover', async ({ page }) => {
-  const zone = await plantTimeZone();
   await page.clock.setFixedTime(instantWhenPlantReads('00:05', zone));
   await withWaitingUpdate(page);
   await signIn(page, 'asha');
@@ -88,7 +97,6 @@ const asked = (page: Page) =>
   page.evaluate(() => (window as unknown as { asked: unknown[] }).asked);
 
 test('the wall TV updates itself, but not during the shift changeover', async ({ page }) => {
-  const zone = await plantTimeZone();
   await withWaitingUpdate(page);
   await signIn(page, 'asha');
   await page.clock.setFixedTime(instantWhenPlantReads('00:05', zone));

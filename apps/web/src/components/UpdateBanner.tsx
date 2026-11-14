@@ -16,7 +16,8 @@ const MINUTE_MS = 60_000;
 export function UpdateBanner({ auto = false }: { auto?: boolean }) {
   const { t } = useTranslation();
   const waiting = useWaitingUpdate();
-  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  // Only an update that is waiting needs the shifts; until then this component asks the server for nothing.
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig, enabled: waiting !== null });
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), MINUTE_MS);
