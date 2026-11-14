@@ -220,7 +220,9 @@ describe('a shared floor phone keeps working when the person it was acting as is
     expect(raise.json().error.code).toBe('choose_acting_person');
     const push = await t.call('POST', '/api/v1/push/subscribe', asLeaver, {});
     expect(push.json().error.code).toBe('choose_acting_person');
-    expect((await t.call('GET', '/api/v1/auth/me', asOther)).json().user.actingPerson).toMatchObject({
+    expect(
+      (await t.call('GET', '/api/v1/auth/me', asOther)).json().user.actingPerson,
+    ).toMatchObject({
       id: other,
       name: 'Stays On',
     });
