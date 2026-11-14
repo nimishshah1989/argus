@@ -14,10 +14,10 @@ const GAP: Record<Space, string> = {
 };
 const COLUMNS = { 2: 'grid-cols-2', 3: 'grid-cols-3' };
 
-export function Page({ title, children }: { title: string; children?: ReactNode }) {
+export function Page({ title, children }: { title?: string; children?: ReactNode }) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-      <h1 className="text-title2 font-semibold">{title}</h1>
+      {title ? <h1 className="text-title2 font-semibold">{title}</h1> : null}
       {children}
     </main>
   );
@@ -51,4 +51,14 @@ export function Grid({
   children: ReactNode;
 }) {
   return <div className={`grid ${COLUMNS[columns]} ${GAP[gap]}`}>{children}</div>;
+}
+
+/** A full-height screen with a bar pinned under its content (the floor's and desk's tab bar). */
+export function Shell({ bar, children }: { bar: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <div className="flex-1">{children}</div>
+      {bar}
+    </div>
+  );
 }
