@@ -3,6 +3,7 @@ import {
   chainAcknowledged,
   mayAcknowledgeLevel,
   pendingEscalationLevels,
+  reopenEpisode,
   projectSlaTimers,
   repeatAfterMinutes,
   severityAtLeast,
@@ -159,5 +160,27 @@ describe('the history floor', () => {
       ctx: { role: 'admin', loginId: 'l', personId: 'p', shared: false, now: t('12:00') },
     });
     expect(result.events.at(-1)).toMatchObject({ type: 'close', at: t('10:30') });
+  });
+});
+
+describe('a ticket reopened twice', () => {
+  const event = (type: string, hhmm: string) => ({ type, at: t(hhmm) });
+
+  it('has no episode until production has sent the fix back a second time', () => {
+    expect(reopenEpisode([])).toBeNull();
+    expect(reopenEpisode([event('close', '09:00'), event('handback_dispute', '09:10')])).toBeNull();
+  });
+
+  it('names the second dispute as the episode, and each later dispute is a new one', () => {
+    const log = [
+      event('close', '09:00'),
+      event('handback_dispute', '09:10'),
+      event('close', '10:00'),
+      event('handback_dispute', '10:10'),
+    ];
+    expect(reopenEpisode(log)).toBe(t('10:10').getTime());
+    expect(
+      reopenEpisode([...log, event('close', '11:00'), event('handback_dispute', '11:10')]),
+    ).toBe(t('11:10').getTime());
   });
 });
