@@ -27,7 +27,7 @@ describe('the login cap production runs with', () => {
     db = await startTestDb();
     // No rateLimitMax: exactly how apps/server/src/index.ts starts in production.
     app = await buildApp({ pool: db.app, logger: false, rateLimitMax: rateLimitFromEnv({}) });
-  });
+  }, 120_000);
   afterAll(async () => {
     await app?.close();
     await db?.stop();

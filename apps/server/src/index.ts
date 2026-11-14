@@ -7,6 +7,7 @@ import {
 } from './modules/accountability/index.js';
 import { aiConfigFromEnv, startAiJobs } from './modules/ai/index.js';
 import { startNotifyJobs } from './modules/notifications/index.js';
+import { rateLimitFromEnv } from './rate-limit-env.js';
 import { startRetentionJobs } from './retention.js';
 import type { PgBoss } from 'pg-boss';
 
@@ -46,6 +47,7 @@ if (role === 'worker') {
     databaseUrl: url,
     jobBoss: jobs.boss,
     jobsHandle: jobs,
+    rateLimitMax: rateLimitFromEnv(process.env),
   });
   const port = Number(process.env.PORT ?? 3001);
   await app.listen({ port, host: '0.0.0.0' });

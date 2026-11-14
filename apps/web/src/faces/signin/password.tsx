@@ -15,7 +15,8 @@ const MIN_LENGTH = 8;
 /** The server's refusals in the catalogue's words; anything else is the wizard's generic error. */
 function refusal(error: unknown): MessageKey | null {
   if (!(error instanceof ApiError)) return null;
-  if (error.code === 'unauthenticated') return 'signin.wrongPassword';
+  // A wrong current password: 401 today, 422 for field "old" once the server stops sharing 401 with ended sessions.
+  if (error.code === 'unauthenticated' || error.field === 'old') return 'signin.wrongPassword';
   if (error.code === 'rate_limited') return 'signin.tooMany';
   if (error.field === 'password') return 'signin.weakPassword';
   return null;
