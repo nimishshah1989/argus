@@ -4,7 +4,8 @@ type Bare<T extends 'input' | 'label' | 'textarea' | 'select'> = Omit<
   ComponentProps<T>,
   'className' | 'style'
 >;
-const FIELD = 'w-full rounded-lg border border-control bg-surface px-3 text-body';
+const FIELD =
+  'w-full rounded-lg border border-control bg-surface px-3 text-body read-only:bg-neutral-200';
 
 export function Input(props: Bare<'input'>) {
   return <input className={`min-h-target ${FIELD}`} {...props} />;
