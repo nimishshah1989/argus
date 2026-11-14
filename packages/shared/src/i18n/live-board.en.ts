@@ -15,5 +15,8 @@ export const liveBoardEn = {
   'live.ages.oneToFour': '1 to 4 h',
   'live.ages.fourToDay': '4 to 24 h',
   'live.ages.overDay': 'Over 1 day',
+  'live.today.response': 'Response today',
+  'live.today.repair': 'Repair today',
+  'live.today.average': 'average of {{count}}, {{closed}} closed',
   'live.ages.line': '{{label}}: {{count}}',
 };
