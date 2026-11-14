@@ -71,7 +71,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
     try {
       if (view?.kind !== 'ticking') return false;
       const stepCodes = view.steps.map((step) => step.code);
-      await confirmLockoutThen(ticketId, { personId, stepCodes, action, body });
+      await confirmLockoutThen(ticketId, { stepCodes, action, body });
       await Promise.all(
         ['state', 'ticket', 'tickets'].map((key) =>
           queryClient.invalidateQueries({ queryKey: [key] }),

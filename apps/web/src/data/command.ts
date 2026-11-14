@@ -24,11 +24,14 @@ export function sendCommand(
  */
 export async function confirmLockoutThen(
   ticketId: string,
-  input: { personId: string; stepCodes: string[]; action: CommandAction; body: CommandBody },
+  input: { stepCodes: string[]; action: CommandAction; body: CommandBody },
 ): Promise<void> {
-  const { personId, stepCodes, action, body } = input;
-  await sendCommand(ticketId, 'lockout-confirm', { personId, stepCodes }, idempotencyKey());
-  await sendCommand(ticketId, action, body, idempotencyKey());
+  const { stepCodes, action, body } = input;
+  // The server acts as the session's own person; a cached id could be stale after a shared phone switches people.
+  const rest: Record<string, unknown> = { ...body };
+  delete rest.personId;
+  await sendCommand(ticketId, 'lockout-confirm', { stepCodes }, idempotencyKey());
+  await sendCommand(ticketId, action, rest, idempotencyKey());
 }
 
 /**

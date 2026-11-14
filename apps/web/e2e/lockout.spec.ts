@@ -67,17 +67,19 @@ test('Start stays off until every lockout step is ticked, then confirms and star
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
   const ticket = await flaggedTicket();
   const asha = await apiLogin('asha');
-  const me = (await (await apiFetch('/api/v1/auth/me', { headers: json(asha) })).json()) as {
-    user: { actingPersonId: string };
+  const read = await apiFetch(`/api/v1/tickets/${ticket.id}`, { headers: json(asha) });
+  const { ticket: full } = (await read.json()) as {
+    ticket: { lockout: { steps: { code: string }[] } };
   };
+  const stepCodes = full.lockout.steps.map((step) => step.code);
   for (const [action, body] of [
-    ['lockout-confirm', { stepCodes: ['isolate', 'lock_tag', 'test_dead', 'tell_nearby'] }],
+    ['lockout-confirm', { stepCodes }],
     ['start', {}],
   ] as const) {
     const sent = await apiFetch(`/api/v1/tickets/${ticket.id}/${action}`, {
       method: 'POST',
       headers: json(asha),
-      body: JSON.stringify({ personId: me.user.actingPersonId, ...body }),
+      body: JSON.stringify(body),
     });
     expect(sent.status).toBe(200);
   }
