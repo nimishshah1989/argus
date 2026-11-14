@@ -1,8 +1,8 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { ApiError, changePassword } from '../../api.js';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { ApiError, changePassword, getToken } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Button } from '../../ui/button.js';
 import { Input, Label } from '../../ui/input.js';
@@ -54,6 +54,7 @@ function Saved({ onContinue }: { onContinue: () => void }) {
 /** Change a temporary password (slice 3, T2): opened whenever the server says the login must change it. */
 export function ChangePassword() {
   const { t } = useTranslation();
+  const signedIn = getToken() !== null;
   const navigate = useNavigate();
   const [old, setOld] = useState('');
   const [next, setNext] = useState('');
@@ -88,6 +89,8 @@ export function ChangePassword() {
   const toFloor = () => navigate('/floor');
   const ready = Boolean(old) && next.length >= MIN_LENGTH && next === again;
   const step = { title: t('signin.passwordTitle'), body, action: t('signin.savePassword'), ready };
+  // No session (a bookmark, or signed out): nothing to change a password for; sign in first.
+  if (!signedIn) return <Navigate to="/login" replace />;
   return (
     <Page>
       <WizardPage

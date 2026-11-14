@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, getBrand, getConfig, setToken, signIn } from '../../api.js';
-import { rememberWho } from '../../data/index.js';
+import { describeFailure, rememberWho } from '../../data/index.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { BrandHeader } from '../../ui/brand-header.js';
 import { Page, Stack } from '../../ui/layout.js';
@@ -44,7 +44,9 @@ export function SignIn() {
       if (asksWho && (await mustChangePasswordFirst())) return false;
       navigate(asksWho ? '/who' : '/floor');
     } catch (caught) {
-      if (!(caught instanceof ApiError)) throw caught;
+      // The screen says what happened; the console keeps the real error for whoever has to find out why.
+      if (!(caught instanceof ApiError && caught.code === 'unauthenticated'))
+        console.error(`sign-in failed: ${describeFailure(caught)}`, caught);
       setError(t(signInError(caught)));
       return false;
     }

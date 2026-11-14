@@ -21,13 +21,31 @@ export function clearToken(): void {
 export class ApiError extends Error {
   code: string;
   field?: string;
+  /** The HTTP status, when the error came from a reply (not from a failed connection). */
+  status?: number;
 
-  constructor(code: string, message: string, field?: string) {
+  constructor(code: string, message: string, field?: string, status?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
+    this.status = status;
   }
+}
+
+/** One line for the console: what failed, with the status and code when there is one. */
+export function describeFailure(error: unknown): string {
+  if (error instanceof ApiError)
+    return `ApiError ${error.code} ${error.status ?? ''} ${error.message}`.replace(/ +/g, ' ');
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+/**
+ * Whether a failed load is worth another try: a lost connection or a server fault may pass; a refusal
+ * (401, 403, 404, 422) will not, and retrying it only leaves the screen on "Loading…".
+ */
+export function worthRetrying(error: unknown): boolean {
+  return !(error instanceof ApiError) || error.code === 'internal';
 }
 
 async function parseError(res: Response): Promise<ApiError> {
@@ -40,27 +58,33 @@ async function parseError(res: Response): Promise<ApiError> {
         body.error.code ?? 'internal',
         body.error.message ?? 'Request failed',
         body.error.field,
+        res.status,
       );
     }
   } catch {
     // Non-JSON error body; fall through to a generic message.
   }
-  return new ApiError('internal', `Request failed: ${res.status}`);
+  return new ApiError('internal', `Request failed: ${res.status}`, undefined, res.status);
 }
+
+/**
+ * How a request treats the phone's saved session. `ends`: any 401 means there is no valid session, so go
+ * to sign-in. `keep`: a 401 is the screen's to explain (a wrong current password). `none`: sign-in itself,
+ * which never carries the saved session, so a mistyped password cannot sign another person out.
+ */
+type Session = 'ends' | 'keep' | 'none';
 
 /** A request with the phone's saved session. */
 export function http<T>(path: string, init?: RequestInit): Promise<T> {
-  return send<T>(path, init, getToken());
+  return send<T>(path, init, 'ends');
 }
 
-/** Sign-in itself: never carries the saved session, so a mistyped password cannot sign another person out. */
 export function httpWithoutSession<T>(path: string, init?: RequestInit): Promise<T> {
-  return send<T>(path, init, null);
+  return send<T>(path, init, 'none');
 }
 
-/** A signed-in request whose 401 is a wrong current password for the screen to explain, not an ended session. */
 export function httpKeepSession<T>(path: string, init?: RequestInit): Promise<T> {
-  return send<T>(path, init, getToken(), false);
+  return send<T>(path, init, 'keep');
 }
 
 /** The server's "finish this step first" refusals (403) and the screen that finishes it. */
@@ -91,21 +115,25 @@ async function refusal(res: Response): Promise<ApiError> {
   return error;
 }
 
-async function send<T>(
-  path: string,
-  init: RequestInit | undefined,
-  token: string | null,
-  endsOn401 = true,
-): Promise<T> {
+/**
+ * No valid session: forget it and go to sign-in (v3.signin.05). With a session that just ended, sign-in
+ * says so; a phone that never signed in just gets the sign-in screen. Already there, stay (no reload loop).
+ */
+function leaveForSignIn(hadSession: boolean): void {
+  clearToken();
+  if (window.location.pathname === '/login') return;
+  window.location.assign(hadSession ? SIGNED_OUT : '/login');
+}
+
+async function send<T>(path: string, init: RequestInit | undefined, session: Session): Promise<T> {
+  const token = session === 'none' ? null : getToken();
   const headers = new Headers(init?.headers);
   if (init?.body !== undefined) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
-  // A 401 on a signed-in request ends the session (v3.signin.05); sign-in shows why.
-  if (res.status === 401 && token && endsOn401) {
-    clearToken();
-    window.location.assign(SIGNED_OUT);
-    throw new ApiError('unauthenticated', 'unauthorized');
+  if (res.status === 401 && session === 'ends') {
+    leaveForSignIn(token !== null);
+    throw new ApiError('unauthenticated', 'unauthorized', undefined, 401);
   }
   if (!res.ok) throw await refusal(res);
   return res.json() as Promise<T>;

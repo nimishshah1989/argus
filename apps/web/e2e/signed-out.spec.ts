@@ -7,7 +7,7 @@ import { E2E_PASSWORD, signIn } from './fixtures.js';
  * a load that fails for another reason says so with "Try again", and a sign-in that fails says what
  * happened instead of one generic message.
  */
-const SIGNED_IN_ONLY = ['/floor', '/desk', '/desk/board'];
+const SIGNED_IN_ONLY = ['/floor', '/desk', '/desk/board', '/who', '/password'];
 
 for (const path of SIGNED_IN_ONLY) {
   test(`a phone that never signed in opens ${path} and lands on sign-in, quietly`, async ({
