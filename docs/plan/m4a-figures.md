@@ -13,7 +13,7 @@ Constraint: D17 caps new tables at 12, and `kpi_snapshot` is the M4a one. Everyt
 5. **Spare cost:** the platform stores spare 1 to 3 and a cost for each; `breakdown_report` has `spare_used` text only. Money Matters and the "spares spend" nudge read the cost. Needs one numeric column (or a list on the row); the schema reviewer decides.
 6. **Machine footprint, conveyor side, efficiency factor:** no column. `machine.metadata` (jsonb) exists and is the cheapest home; no migration unless the reviewer wants columns.
 7. **Move locations:** the cell change log carries from and to location as well as cell; `machine_move` has cells only. Two nullable columns, or fold into `metadata`.
-8. **PDF import by QR:** dropped (triage `pdf-import`). `breakdown_report.qr_payload` stays for printing; nothing is lost. Record it in `DIFFERENCES.md`.
+8. **PDF import by QR:** dropped (triage `pdf-import`). `breakdown_report.qr_payload` stays for printing; nothing is lost. The drop is recorded as DIFFERENCES D21 (PR #268).
 
 **Safe to drop?** `person.kind`, `ticket.sla_policy_id`, `ticket.handback_status`: no product code reads or writes them. `tools/retired-columns.test.ts` fails on any such use in `apps/server/src`, `packages/shared/src`, `packages/domain/src`, `packages/db/src` and `scripts` and passes on main today. It matches the snake_case names only, so the camelCase `slaPolicyId` below is not covered by it. It is **not a blocker**, but the drop must also change these, found by search (not run):
 
