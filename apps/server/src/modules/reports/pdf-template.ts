@@ -1,5 +1,6 @@
 import type { Figures } from '@uptimo/domain';
 import type { StoredReport } from '../tickets/index.js';
+import { esc, machineLabel } from './html.js';
 
 export interface ReportPdfInput {
   tenant: { name: string; language: string; timeZone: string };
@@ -18,15 +19,6 @@ export interface ReportPdfInput {
   people: { done: string[]; supported: string[] };
   qr: { svg: string };
   generatedAt: Date;
-}
-
-function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function field(label: string, value: string | number | null | undefined): string {
@@ -62,17 +54,6 @@ function typeLabel(kind: string): string {
   return 'Machine stopped';
 }
 
-function cellLabel(cell: string | null): string | null {
-  if (!cell) return null;
-  return /^cell[\s-]/i.test(cell) ? cell : `Cell ${cell}`;
-}
-
-function machineLabel(ticket: ReportPdfInput['ticket']): string {
-  const meta = [ticket.machine.category, cellLabel(ticket.machine.cell)].filter(Boolean).join(', ');
-  if (!ticket.machine.code) return '—';
-  return meta ? `${ticket.machine.code} (${meta})` : ticket.machine.code;
-}
-
 function header(input: ReportPdfInput): string {
   return `<header>
     <div class="masthead">
@@ -89,7 +70,7 @@ function header(input: ReportPdfInput): string {
 function ticketFacts(input: ReportPdfInput): string {
   const ticket = input.ticket;
   const rows = [
-    field('Machine', machineLabel(ticket)),
+    field('Machine', machineLabel(ticket.machine)),
     field('Status', ticket.status),
     field('Reported', formatDateTime(ticket.reportedAt, input.tenant.timeZone)),
     field('Closed', formatDateTime(ticket.closedAt, input.tenant.timeZone)),
