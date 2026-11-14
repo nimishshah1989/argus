@@ -7,6 +7,8 @@ export const signinEn = {
   'signin.signedOut': 'You were signed out',
   'signin.signedOutDetail': 'Your session has ended. Sign in again.',
   'signin.tooMany': 'Too many attempts. Try again in a few minutes.',
-  'signin.unknownCompany': 'This address does not belong to a company. Check the link you were given.',
-  'signin.chooseName': 'This login is for a shared phone. Choosing who is using it is not available yet.',
+  'signin.unknownCompany':
+    'This address does not belong to a company. Check the link you were given.',
+  'signin.chooseName':
+    'This login is for a shared phone. Choosing who is using it is not available yet.',
 };
