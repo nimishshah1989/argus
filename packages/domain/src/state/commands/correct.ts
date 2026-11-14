@@ -73,6 +73,8 @@ export function correct(
   }
 
   const merged: Ticket = { ...input.ticket, ...result.patch };
+  if (merged.kind !== 'general' && !merged.machineId)
+    throw new TransitionError('A breakdown or support request needs a machine');
   const at = clampAt(input.ctx.now, input);
   assertCorrectionTimeline(merged, at);
 

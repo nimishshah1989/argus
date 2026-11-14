@@ -1,194 +1,239 @@
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
+import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { UseQueryResult } from '@tanstack/react-query';
-import type { CommandAction, Machine, Person, State, Ticket } from '../../api.js';
 import type { ActorContext } from '@uptimo/domain';
+import type { CommandAction, Machine, State, Ticket } from '../../api.js';
 import { quickSpec } from '../../components/actionSpecs.js';
-import { errorMessage, machineLabel } from '../../components/format.js';
-import { NeedReportList } from '../../components/NeedReportList.js';
+import { machineLabel } from '../../components/format.js';
 import { TicketCard } from '../../components/TicketCard.js';
+import { CountsStrip } from '../../ui/counts-strip.js';
+import { ChevronRight, CircleCheck, Hourglass, LifeBuoy, OctagonX, Users } from '../../ui/icon.js';
+import { SegmentedBar } from '../../ui/segmented-bar.js';
+import { NeedsReport } from './NeedsReport.js';
+import {
+  breakdownCount,
+  notStarted,
+  openCounts,
+  pausedBreakdowns,
+  pendingTasks,
+  workRequests,
+  type ChipFilter,
+} from './openLists.js';
+import { ListHeading } from './parts.js';
 
-export type Tab = 'open' | 'mine' | 'team';
+type Segment = 'breakdowns' | 'tasks' | 'work';
 
-export function Tabs({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
-  const { t } = useTranslation();
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'open', label: t('desk.tab.open') },
-    { id: 'mine', label: t('desk.tab.mine') },
-    { id: 'team', label: t('desk.tab.team') },
-  ];
-  return (
-    <div
-      role="group"
-      aria-label={t('desk.ticketLists')}
-      className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-neutral-200 p-1"
-    >
-      {tabs.map((item) => {
-        const selected = item.id === tab;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onChange(item.id)}
-            className={`min-h-13 rounded-lg px-3 text-base font-semibold ${
-              selected
-                ? 'bg-white text-neutral-900 shadow-sm'
-                : 'text-neutral-600 hover:bg-white/60'
-            }`}
-          >
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Counts({ open }: { open: Ticket[] }) {
-  const { t } = useTranslation();
-  const counts = [
-    { label: t('desk.count.open'), value: open.length },
-    {
-      label: t('desk.count.stopped'),
-      value: open.filter((ticket) => ticket.kind === 'stopped').length,
-    },
-    {
-      label: t('desk.count.support'),
-      value: open.filter((ticket) => ticket.kind === 'support').length,
-    },
-    {
-      label: t('desk.count.general'),
-      value: open.filter((ticket) => ticket.kind === 'general').length,
-    },
-  ];
-  return (
-    <dl className="mt-4 grid grid-cols-4 gap-2">
-      {counts.map((item) => (
-        <div key={item.label} className="rounded-xl bg-white p-3 shadow-sm">
-          <dt className="text-xs text-neutral-500">{item.label}</dt>
-          <dd className="mt-0.5 text-2xl font-semibold tracking-tight">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-function TeamNow({ open, people }: { open: Ticket[]; people: Person[] | undefined }) {
-  const { t } = useTranslation();
-  const leads = new Map<string, string>();
-  for (const ticket of open) {
-    if (ticket.status !== 'working' || !ticket.leadPersonId) continue;
-    const name = people?.find((person) => person.id === ticket.leadPersonId)?.name;
-    if (name) leads.set(ticket.leadPersonId, name);
-  }
-  return (
-    <section aria-label={t('desk.teamNow')} className="mt-6">
-      <h2 className="text-sm font-medium text-neutral-600">{t('desk.teamNow')}</h2>
-      {leads.size === 0 ? (
-        <p className="mt-2 text-neutral-500">
-          {people ? t('desk.teamNowEmpty') : t('common.loading')}
-        </p>
-      ) : (
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {[...leads].map(([id, name]) => (
-            <li key={id} className="rounded-full bg-white px-3 py-2 text-sm font-medium shadow-sm">
-              {name}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-interface ListProps {
-  title: string;
-  empty: string;
-  tickets: Ticket[];
-  machines: Machine[];
+export interface CardContext {
   now: string;
+  machines: Machine[];
+  names: Record<string, string>;
   actor: ActorContext | null;
   pending: boolean;
   onQuick: (ticket: Ticket, action: CommandAction) => void;
 }
 
-function TicketList({ title, empty, tickets, machines, now, actor, pending, onQuick }: ListProps) {
+/** Ticket cards under a hint line, or what to say when there are none. */
+export function CardList({
+  tickets,
+  empty,
+  ctx,
+}: {
+  tickets: Ticket[];
+  empty: string;
+  ctx: CardContext;
+}) {
+  if (tickets.length === 0) return <p className="text-body text-neutral-600">{empty}</p>;
   return (
-    <section>
-      <h2 className="text-sm font-medium text-neutral-600">
-        {title} <span className="text-neutral-400">({tickets.length})</span>
-      </h2>
-      {tickets.length === 0 ? (
-        <p className="mt-2 text-neutral-500">{empty}</p>
-      ) : (
-        <ul className="mt-3 grid gap-3">
-          {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              now={now}
-              machineCode={machineLabel(ticket, machines)}
-              quick={actor ? quickSpec(ticket, actor) : null}
-              pending={pending}
-              onQuick={onQuick}
-            />
-          ))}
-        </ul>
-      )}
-    </section>
+    <ul className="flex flex-col gap-3">
+      {tickets.map((ticket) => (
+        <li key={ticket.id}>
+          <TicketCard
+            ticket={ticket}
+            now={ctx.now}
+            machineCode={machineLabel(ticket, ctx.machines)}
+            names={ctx.names}
+            quick={ctx.actor ? quickSpec(ticket, ctx.actor) : null}
+            pending={ctx.pending}
+            onQuick={ctx.onQuick}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 
-interface BoardProps {
-  state: UseQueryResult<State>;
-  people: Person[] | undefined;
+function Counts({
+  open,
+  machines,
+  filter,
+  onFilter,
+}: {
+  open: Ticket[];
   machines: Machine[];
-  actor: ActorContext | null;
-  pending: boolean;
-  onQuick: (ticket: Ticket, action: CommandAction) => void;
+  filter: ChipFilter;
+  onFilter: (filter: ChipFilter) => void;
+}) {
+  const { t } = useTranslation();
+  const counts = openCounts(open, machines);
+  return (
+    <CountsStrip
+      label={t('deskLists.chips')}
+      selected={filter}
+      onSelect={(id) => onFilter(id as ChipFilter)}
+      items={[
+        {
+          id: 'down',
+          label: t('deskLists.chip.down'),
+          value: counts.down,
+          tone: 'danger',
+          icon: OctagonX,
+        },
+        {
+          id: 'waiting',
+          label: t('deskLists.chip.waiting'),
+          value: counts.waiting,
+          tone: 'hold',
+          icon: Hourglass,
+        },
+        {
+          id: 'support',
+          label: t('deskLists.chip.support'),
+          value: counts.support,
+          tone: 'warning',
+          icon: LifeBuoy,
+        },
+        {
+          id: 'running',
+          label: t('deskLists.chip.running'),
+          value: counts.running,
+          tone: 'ok',
+          icon: CircleCheck,
+        },
+      ]}
+    />
+  );
 }
 
-export function Board({ state, people, machines, actor, pending, onQuick }: BoardProps) {
+function TeamNowLink({ count }: { count: number }) {
   const { t } = useTranslation();
-  const open = state.data?.open ?? [];
-  if (state.isLoading && !state.data)
-    return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
-  if (state.error) {
-    return (
-      <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
-        {errorMessage(state.error)}
-      </p>
-    );
-  }
-  const groups = [
-    {
-      kind: 'stopped' as const,
-      title: t('desk.group.breakdowns'),
-      empty: t('desk.empty.breakdowns'),
-    },
-    { kind: 'general' as const, title: t('desk.group.tasks'), empty: t('desk.empty.tasks') },
-    { kind: 'support' as const, title: t('desk.group.work'), empty: t('desk.empty.work') },
-  ];
+  const key = count === 0 ? 'none' : count === 1 ? 'one' : 'many';
+  return (
+    <Link
+      to="/desk/team"
+      className="flex min-h-target items-center gap-3 rounded-2xl border border-neutral-200 bg-surface px-4 text-body"
+    >
+      <Users aria-hidden size={20} />
+      <span className="flex-1">{t(`deskLists.teamNow.${key}`, { count })}</span>
+      <ChevronRight aria-hidden size={20} className="text-neutral-600" />
+    </Link>
+  );
+}
+
+function Breakdowns({
+  open,
+  filter,
+  ctx,
+}: {
+  open: Ticket[];
+  filter: ChipFilter;
+  ctx: CardContext;
+}) {
+  const { t } = useTranslation();
+  const paused = pausedBreakdowns(open, filter);
   return (
     <>
-      <Counts open={open} />
-      <TeamNow open={open} people={people} />
-      <NeedReportList tickets={state.data?.needReport ?? []} machines={machines} />
-      <div className="mt-6 space-y-6">
-        {groups.map((group) => (
-          <TicketList
-            key={group.kind}
-            title={group.title}
-            empty={group.empty}
-            tickets={open.filter((ticket) => ticket.kind === group.kind)}
-            machines={machines}
-            now={state.data?.now ?? new Date().toISOString()}
-            actor={actor}
-            pending={pending}
-            onQuick={onQuick}
-          />
-        ))}
-      </div>
+      <p className="text-footnote text-neutral-600">{t('deskLists.hint.start')}</p>
+      <CardList tickets={notStarted(open, filter)} empty={t('deskLists.empty.start')} ctx={ctx} />
+      {paused.length > 0 ? (
+        <section aria-label={t('deskLists.chip.waiting')} className="flex flex-col gap-2">
+          <ListHeading>{t('deskLists.pausedSection', { count: paused.length })}</ListHeading>
+          <CardList tickets={paused} empty="" ctx={ctx} />
+        </section>
+      ) : null}
     </>
   );
+}
+
+/** v3's Open screen: counts, who is on a job, then Breakdowns / Tasks / Work and the reports still owed. */
+export function OpenLists({ state, ctx }: { state: State; ctx: CardContext }) {
+  const { t } = useTranslation();
+  const [filter, setFilter] = useState<ChipFilter>('');
+  const [segment, setSegment] = useState<Segment>('breakdowns');
+  const open = state.open;
+  const tasks = pendingTasks(open);
+  const work = workRequests(open);
+  const lists: Record<Segment, ReactNode> = {
+    breakdowns: <Breakdowns open={open} filter={filter} ctx={ctx} />,
+    tasks: (
+      <Hinted
+        hint={t('deskLists.hint.tasks')}
+        tickets={tasks}
+        empty={t('deskLists.empty.tasks')}
+        ctx={ctx}
+      />
+    ),
+    work: (
+      <Hinted
+        hint={t('deskLists.hint.work')}
+        tickets={work}
+        empty={t('deskLists.empty.work')}
+        ctx={ctx}
+      />
+    ),
+  };
+  return (
+    <>
+      <Counts open={open} machines={ctx.machines} filter={filter} onFilter={setFilter} />
+      {filter && filter !== 'running' ? (
+        <p role="status" className="text-footnote font-semibold text-neutral-900">
+          {t('deskLists.showing', { what: t(`deskLists.filter.${filter}`) })}
+        </p>
+      ) : null}
+      <TeamNowLink count={teamNowCount(open)} />
+      <SegmentedBar
+        label={t('deskLists.segments')}
+        selected={segment}
+        onSelect={(id) => setSegment(id as Segment)}
+        items={[
+          {
+            id: 'breakdowns',
+            label: t('deskLists.tab.breakdowns', { count: breakdownCount(open) }),
+          },
+          { id: 'tasks', label: t('deskLists.tab.tasks', { count: tasks.length }) },
+          { id: 'work', label: t('deskLists.tab.work', { count: work.length }) },
+        ]}
+      />
+      {lists[segment]}
+      <NeedsReport tickets={state.needReport} ctx={ctx} />
+    </>
+  );
+}
+
+function Hinted({
+  hint,
+  tickets,
+  empty,
+  ctx,
+}: {
+  hint: string;
+  tickets: Ticket[];
+  empty: string;
+  ctx: CardContext;
+}) {
+  return (
+    <>
+      <p className="text-footnote text-neutral-600">{hint}</p>
+      <CardList tickets={tickets} empty={empty} ctx={ctx} />
+    </>
+  );
+}
+
+/** Leads on a working or paused job, counted once each. */
+function teamNowCount(open: Ticket[]): number {
+  return new Set(
+    open
+      .filter((t) => (t.status === 'working' || t.status === 'waiting') && t.leadPersonId)
+      .map((t) => t.leadPersonId),
+  ).size;
 }

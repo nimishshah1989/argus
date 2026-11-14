@@ -29,10 +29,12 @@ const exported = parseBhavinExport(
 let db: TestDb;
 let app: Awaited<ReturnType<typeof buildApp>>;
 let token = '';
+let adminToken = '';
 let keys = 0;
 let compared = 0;
 const people = new Map<string, string>();
 const machines = new Map<string, string>();
+let adminPerson = '';
 
 async function personId(name: string): Promise<string> {
   const known = people.get(name);
@@ -46,14 +48,14 @@ async function personId(name: string): Promise<string> {
   return id;
 }
 
-async function call(method: 'POST' | 'GET', url: string, payload?: object) {
+async function call(method: 'POST' | 'GET', url: string, payload?: object, bearer: string = token) {
   keys += 1;
   return app.inject({
     method,
     url,
     headers: {
       host: 'cosmos.localhost',
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${bearer}`,
       ...(method === 'POST'
         ? { 'content-type': 'application/json', 'idempotency-key': `replay-${keys}` }
         : {}),
@@ -70,7 +72,7 @@ const byTime = (a: RealEvent, b: RealEvent): number => Date.parse(a.at) - Date.p
 const isStep = (e: RealEvent): boolean =>
   !['segment', 'lead', 'task', 'edit', 'report'].includes(e.type);
 
-type Step = [path: string, body: Record<string, unknown>, now: string | number];
+type Step = [path: string, body: Record<string, unknown>, now: string | number, admin?: true];
 
 /** One of his events as the request that makes our API do the same thing, and the time it was written. */
 async function stepFor(x: RealTicket, e: RealEvent, all: RealEvent[]): Promise<Step | null> {
@@ -115,6 +117,8 @@ async function stepFor(x: RealTicket, e: RealEvent, all: RealEvent[]): Promise<S
       return ['machine-stopped', { ...body, at: e.eta }, e.at];
     case 'cancel':
       return ['cancel', { ...body, reason: e.text || 'cancelled' }, e.at];
+    case 'restore': // only the admin restores; the replay's admin acts in his place
+      return ['restore', { personId: adminPerson, reason: e.text || 'restored' }, e.at, true];
     case 'close':
       return [
         'close',
@@ -166,7 +170,12 @@ async function replay(x: RealTicket): Promise<Replayed> {
     const step = await stepFor(x, e, events);
     if (!step) continue;
     clock(step[2]);
-    const res = await call('POST', `/api/v1/tickets/${id}/${step[0]}`, step[1]);
+    const res = await call(
+      'POST',
+      `/api/v1/tickets/${id}/${step[0]}`,
+      step[1],
+      step[3] ? adminToken : token,
+    );
     if (res.statusCode !== 200)
       failed.push(`${step[0]} ${res.statusCode} ${res.json().error?.message}`);
   }
@@ -265,7 +274,28 @@ beforeAll(async () => {
       await hash(PASSWORD, { algorithm: 2, memoryCost: 19456, timeCost: 2, parallelism: 1 }),
     ],
   );
+  adminPerson = randomUUID();
+  await db.admin.query(
+    "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $2, 'Replay Admin', 'maintenance', 'Head')",
+    [adminPerson, TENANT],
+  );
+  await db.admin.query(
+    "INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, 'admin', $3, 'admin', false)",
+    [
+      TENANT,
+      adminPerson,
+      await hash(PASSWORD, { algorithm: 2, memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+    ],
+  );
   app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+  adminToken = (
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: { host: 'cosmos.localhost', 'content-type': 'application/json' },
+      payload: { username: 'admin', password: PASSWORD },
+    })
+  ).json().token as string;
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',

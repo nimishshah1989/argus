@@ -184,6 +184,7 @@ export async function detail(
         text: event.text,
         reason: event.reason ?? null,
         isVendor: event.isVendor ?? false,
+        changes: (event as { changes?: unknown[] }).changes ?? null,
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),
