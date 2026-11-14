@@ -27,16 +27,21 @@ export const waitedMin = (handback: Handback, nowIso: string): number =>
 
 /** What went wrong when production's answer was refused, in words the screen can pick a message for. */
 export type Refusal =
-  { kind: 'newBreakdown'; ref: string | null } | { kind: 'otherCell' } | { kind: 'other' };
+  | { kind: 'newBreakdown'; ref: string | null }
+  | { kind: 'otherCell' }
+  | { kind: 'notAllowed' }
+  | { kind: 'other' };
 
 /**
  * The one place that reads the server's refusals. Today the server sends a plain 409 for "the machine already
- * has a new open ticket" and a plain 403 for a phone from another cell, so the sentence prefix and the status
- * stand in; the stable codes and their fields (new ticket id, ref, time; both cells) replace this when they ship.
+ * has a new open ticket" and a plain 403 for every refusal of who may answer, so the sentence prefix and the
+ * status stand in; the stable codes and their fields (new ticket id, ref, time; both cells) replace this when they ship.
  */
 export function signoffRefusal(error: unknown, response: 'confirmed' | 'disputed'): Refusal {
   if (!(error instanceof ApiError)) return { kind: 'other' };
-  if (error.code === 'forbidden') return { kind: 'otherCell' };
+  // A 403 is also a switched phone person or a wrong role, so it must not claim "other cell" until the server
+  // sends its own code for that; `otherCell` is ready for it.
+  if (error.code === 'forbidden') return { kind: 'notAllowed' };
   if (
     response === 'disputed' &&
     error.code === 'conflict' &&

@@ -6,6 +6,7 @@ import { Text } from '../../ui/text.js';
 export function RefusalNote({ refusal }: { refusal: Refusal | null }) {
   const { t } = useTranslation();
   if (refusal?.kind === 'otherCell') return <Text tone="danger">{t('signoff.otherCell')}</Text>;
+  if (refusal?.kind === 'notAllowed') return <Text tone="danger">{t('signoff.notAllowed')}</Text>;
   if (refusal?.kind === 'other') return <Text tone="danger">{t('signoff.failed')}</Text>;
   return null;
 }

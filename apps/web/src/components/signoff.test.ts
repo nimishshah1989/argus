@@ -58,9 +58,9 @@ describe('sign-off refusals', () => {
     expect(signoffRefusal(conflict, 'confirmed')).toEqual({ kind: 'other' });
   });
 
-  it('tells a phone from another cell it cannot answer', () => {
+  it('does not blame the cell for a plain 403, which is also a switched person or a wrong role', () => {
     expect(signoffRefusal(new ApiError('forbidden', 'no'), 'confirmed')).toEqual({
-      kind: 'otherCell',
+      kind: 'notAllowed',
     });
   });
 

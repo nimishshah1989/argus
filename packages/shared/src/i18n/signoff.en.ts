@@ -14,6 +14,8 @@ export const signoffEn = {
   'signoff.refusedBody': 'Your problem is handled there, so {{ref}} stays closed.',
   'signoff.otherCell':
     'This phone cannot answer for this machine. Ask the person who reported it, or a supervisor, to answer.',
+  'signoff.notAllowed':
+    'You cannot answer this one from this phone. Ask the person who reported it, or a supervisor, to answer.',
   'signoff.failed': 'Could not send. Try again.',
   'signoff.confirmed': 'Thank you. You said it is fixed at {{time}}.',
   'signoff.turnaround': 'Maintenance took {{maintenance}} · you answered in {{production}}',
