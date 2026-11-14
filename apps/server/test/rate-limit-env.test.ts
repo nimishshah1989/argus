@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { rateLimitFromEnv } from '../src/rate-limit-env.js';
+import { rateLimitFromEnv } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 describe('who may raise the API rate limits', () => {

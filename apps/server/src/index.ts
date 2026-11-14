@@ -1,5 +1,5 @@
 import { buildApp } from './app.js';
-import { createPool, loggerOptions, type JobRole } from './kernel/index.js';
+import { createPool, loggerOptions, rateLimitFromEnv, type JobRole } from './kernel/index.js';
 import {
   startJobs,
   reconcileTicket,
@@ -7,7 +7,6 @@ import {
 } from './modules/accountability/index.js';
 import { aiConfigFromEnv, startAiJobs } from './modules/ai/index.js';
 import { startNotifyJobs } from './modules/notifications/index.js';
-import { rateLimitFromEnv } from './rate-limit-env.js';
 import { startRetentionJobs } from './retention.js';
 import type { PgBoss } from 'pg-boss';
 

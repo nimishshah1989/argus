@@ -102,7 +102,7 @@ function startApi(databaseUrl: string): ChildProcess {
       PORT: String(API_PORT),
       DEFAULT_TENANT_SLUG: 'e2e-unscoped',
       NODE_ENV: 'test',
-      // One browser signs in far more than 60 times a minute; production never reads this (rate-limit-env.ts).
+      // One browser signs in far more than 60 times a minute; production never reads this (kernel/rate-limit-env.ts).
       E2E_RATE_LIMIT_MAX: '100000',
     },
     logFile: API_LOG,
