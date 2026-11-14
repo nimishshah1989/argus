@@ -220,3 +220,6 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   line, not a split (seven separate audit items, each its own commit and test; a split costs seven CI runs; cost if
   wrong: a harder review, already done). Ruling: #227 accepted without a pstack playbook (built before the rule);
   every later backend ticket starts in a /poteto-mode session.
+- 07:27 UTC #228 fix round 4586b2e (A's 4 + B's list + handoverName display ruling; main merged) scoped-checked:
+  criticality test restored and stronger (revision rises, due = reported_at + S3 minutes), lock_timeout 5s,
+  check-migrations scans down/ (backup line required), 409 last active shift, 422 switched-off segment. Marked ready.
