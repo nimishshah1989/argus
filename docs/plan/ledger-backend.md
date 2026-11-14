@@ -152,3 +152,9 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   mid = machine code like v3, day-report windows from the shift table, pending-at-end fix; cut: plant_head team report)
   in one adversarial review. Queued small ticket for FRONTEND asks: POST /tickets/past (no recordPastBreakdown exists
   in domain; figures stored from entered start/finish), operator upgradeKind, WR refs.
+- 2026-11-14 06:05 UTC — #212 review (one Opus): PASS with fixes (QR = v3's own bdQR on real tickets; IST windows;
+  domain minutes; Gujarati read back; #182 kept). Fix push asked: pending-at-end from event history (restore clears
+  cancelled_at), plant_head interim 403, QR mid = machine code at report time (snapshot first), note the whole-day
+  default. NIMISH ANSWERS (via FRONTEND, 'all yes'): breakdown PDF = operator only own reports (shared floor login: its
+  cell), technician and above all, board none; team day report for plant_head is M1 (before cutover). Both go to
+  builder 18 as a follow-up PR (claude/t18-team-report-pdf-access) after #212 merges; DOMAIN section 3 gains the PDF row.
