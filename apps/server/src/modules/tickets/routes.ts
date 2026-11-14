@@ -174,15 +174,7 @@ async function runCommand(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(
-        shared.apiError(
-          'validation',
-          'Idempotency-Key header is required (keys starting with esc: are reserved)',
-          'idempotencyKey',
-        ),
-      );
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = COMMAND_SCHEMAS[action].safeParse(request.body);
@@ -354,15 +346,7 @@ async function raise(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(
-        shared.apiError(
-          'validation',
-          'Idempotency-Key header is required (keys starting with esc: are reserved)',
-          'idempotencyKey',
-        ),
-      );
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = shared.raiseTicketSchema.safeParse(request.body);
