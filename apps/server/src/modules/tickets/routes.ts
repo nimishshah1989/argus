@@ -11,8 +11,9 @@ import { ticketPartsAfterWrite, withTicketParts, type AppConfig } from '../../ke
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import * as report from './repo/report.js';
+import { ALREADY_OPEN, runOutcome } from './outcome.js';
+import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import { openDuplicateId, openTicketRows } from './repo/list.js';
 import {
   checkCorrectedRefs,
@@ -25,11 +26,6 @@ import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } fr
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
-
-const ALREADY_OPEN: Outcome = {
-  status: 409,
-  body: shared.apiError('conflict', 'Already reported', 'machineId'),
-};
 
 const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   start: shared.startTicketSchema,
@@ -133,31 +129,6 @@ async function executeCommand(
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
-}
-
-async function runOutcome(
-  pool: Pool,
-  binding: idem.IdempotencyBinding,
-  run: (client: PoolClient) => Promise<Outcome>,
-): Promise<Outcome> {
-  try {
-    return await withTenant(pool, binding.tenantId, run);
-  } catch (error) {
-    if (error instanceof report.ReportValidationError) {
-      return { status: 422, body: shared.apiError('validation', 'Invalid report', error.field) };
-    }
-    if (error instanceof idem.IdempotencyKeyReusedError) return idem.reusedKeyOutcome();
-    if (!idem.isUniqueViolation(error)) throw error;
-    const stored = await withTenant(pool, binding.tenantId, (client) =>
-      idem.getIdempotent(client, binding),
-    );
-    if (stored) return stored;
-    // The database's own one-open-breakdown-per-machine rule: the same answer as the duplicate check.
-    if ((error as { constraint?: string }).constraint === 'ticket_open_breakdown_unique') {
-      return ALREADY_OPEN;
-    }
-    return { status: 500, body: shared.apiError('internal', 'Internal error') };
-  }
 }
 
 async function runCommand(
