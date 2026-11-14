@@ -45,3 +45,55 @@ The engine is `packages/engine`, pure (`run(profile, input)`); ticket 37 maps ti
 | PM Plan, PM Reports, AMC, Legal (`pm-plan`, `input`)                                                              | 49, 51 | Not on main: `pm_plan`, `asset_register` arrive in M4b (46)                                                                                                                         | M4b tables; only the parity rows and the key are here                           |
 
 **The 13 data rules of the Action Center** (rule key in the platform): `recur` recurring fault, `freq` frequent breakdowns, `rise` worsening machine, `cell` same cause in a cell, `long` long breakdown without Why-Why, `spike` plant trend, `mttr` slow repairs, `hum` human mistakes, `shift` shift pattern, `team` team workload, `newm` new machine, `spares` spares spend, `age` ageing machines. Three more types are not data rules: `good` good news, `amc` AMC or warranty ending, `legal` legal due. Thresholds and the 36 nudges on the real data are in `action-center.json`.
+
+## 3. A9 and Forecast Lab: column names, units and axes
+
+Names are the platform's own header cells (line breaks read as spaces), units from its Guide (section 17 for A9 and the forecast, section 19 for the lab) and from the figures themselves; the matching key is `a9-bottleneck-forecast.json` and `forecast-lab.json` (each chart carries `axes` and `tickLabels`). All are computed by ticket 42; none is a ticket 43 figure. Where the Guide did not say, it is marked **not confirmed**.
+
+**A9 "Highest-risk machines"** (one row per machine, worst first)
+
+| Column                     | Unit and meaning                                                                                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #, Machine, Category, Cell | rank (1 is worst), machine code, category, cell                                                                                                                                          |
+| Same kind                  | count of machines in the same category                                                                                                                                                   |
+| Available                  | percent of machine hours the machine was not down                                                                                                                                        |
+| BD hrs, Breakdowns         | hours of breakdown downtime (PM excluded; NO DT counts as 0 h); number of breakdowns                                                                                                     |
+| Longest                    | hours, the longest single breakdown, written like `15.0 h`                                                                                                                               |
+| Capacity left if down      | percent of the category's capacity left if this machine stops: (same kind minus 1) divided by same kind                                                                                  |
+| Score                      | 0 to 100, higher is worse: 50 percent likelihood (unavailable share minus plant average, divided by 4, capped at 1) plus 50 percent consequence (1 divided by machines of the same kind) |
+| Rating                     | Low, Watch (score 30 or more), High (40 or more), Critical (the only one of its kind and worse than average, or 55 or more with 10 or fewer of its kind)                                 |
+
+**A9 "Capacity by machine category" and "by cell"**: Machines (count); Effective machines (count, fractional); Avg availability (percent); BD hrs (hours); BD % (percent of machine hours); Weakest machine (code and its availability in percent); Capacity left if it stops (percent).
+
+**A9 "Downtime forecast for Planning"** (next calendar month; the page names it, for example December 2026)
+
+| Column                | Unit and meaning                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Expected breakdowns   | count in the planning month                                                                                                     |
+| Chance of at least 1  | percent probability of one or more breakdowns, from the same spread of counts                                                   |
+| Expected hrs          | hours, the routine figure (median of the 2,000 seeded runs; **median versus mean not confirmed**)                               |
+| Plan for (80%)        | hours, the 80th percentile: the machine stayed below it about 4 months in 5                                                     |
+| Worst case (90%)      | hours, the 90th percentile                                                                                                      |
+| Chance of a 8+ hr one | percent probability of at least one breakdown of 8 hours or more (`FC_LONG` = 8)                                                |
+| Band                  | Hot (6 or more expected hours), Likely (3 to 6), Watch (1 to 3), Stable (under 1)                                               |
+| Confidence            | High (6 or more breakdowns and 150 or more days), Medium (2 or more and 90 or more), otherwise Low (**Low rule not confirmed**) |
+| Note                  | text: the recent-rate remark and the trend remark run together in one cell                                                      |
+
+**A9 trend tables ("is it getting worse or better?")**: Breakdowns (count); "Per machine per month before → last 90 days" for categories and "Per month before → last 90 days" for machines, both in **breakdowns per month** (per machine for categories), two numbers joined by an arrow; Test score (the Laplace trend statistic, no unit; beyond plus or minus 1.96 is a clear trend); Verdict (More frequent, Less frequent, No clear trend). **Repeat faults**: Type (Recurring), Code (maintenance code), How often (text: `N separate times in D days`), From – to (dates), Downtime (hrs) (hours), Latest problem logged (text).
+
+**A9 charts.** The scatter map (`ch-a9-map`): the x axis is titled "Unavailable (% of machine hours) — further right = more downtime" (percent). The platform gives the y axis **no title**; each lane is one machine category, labelled `<category> (<machines in it>)` (the list is in `tickLabels`), top to bottom in rank order. Points are machines, coloured by Rating (Low, Watch, High, Critical), radius 4 plus 0.7 times the square root of BD hours, capped at 15; only High and Critical are labelled with the machine code. The bar chart (`ch-fc`): one bar pair per machine labelled `<machine> · <category>` on the y axis (no title); the x axis is titled "Hours of downtime expected in <month>"; series "Expected routine hrs" (coloured by Band) and "Plan for (80%)".
+
+**Forecast Lab "How each method did"** (one row per method: Current model, Age-adjusted, Recent-weighted, Age + recent)
+
+| Column                              | Unit and meaning                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Accuracy score (lower is better)    | **hours**: the average quantile (pinball) loss at the median, 80 and 90 percent points over every machine and month          |
+| Change vs current                   | percent change of that score against the current model (shown as a dash on the current model)                                |
+| Above 80% line (about 20% is right) | percent of machine-months where real downtime beat the 80 percent figure; about 20 is what a correct method gives            |
+| Above 90% line (about 10% is right) | the same for the 90 percent figure; about 10 is correct                                                                      |
+| Plant inside 80% range              | count of months out of the months tested, written `4 of 7`, where the plant total fell inside its 10 to 90 percent range     |
+| Top-10 caught                       | percent: hours really lost by the method's ten highest-ranked machines, over hours lost by the ten that really lost the most |
+| Better than current                 | count of months (shown as a dash on the current model; format **not confirmed**, read the key)                               |
+| Verdict                             | text, with its reason joined on (for example `Baseline` and its sentence)                                                    |
+
+**Forecast Lab "Month detail"**: Month (like `Apr 26`); Actual hrs (hours); one column per method, each `median (low–high)` in hours, where the range is the 80 percent range. **Chart** (`ch-fl`): the y axis is titled "Breakdown hours in the month" (hours); the x axis is the months and has no title; one line for Actual and one per method. The seed scheme for all of it is in `fixtures/answer-key/README.md`.

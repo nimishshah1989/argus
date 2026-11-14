@@ -47,6 +47,12 @@ export async function openPlatform(html: string, sheets: Sheets, asOf: Date): Pr
 interface ChartConfig {
   type: string;
   data: { labels?: unknown[]; datasets?: { label?: string; data: unknown[] }[] };
+  options?: {
+    scales?: Record<
+      string,
+      { title?: { text?: string }; ticks?: { callback?: (value: number) => unknown } }
+    >;
+  };
 }
 
 export interface Figure {
@@ -57,9 +63,42 @@ export interface Figure {
   charts: {
     id: string;
     type: string;
+    axes: Record<string, string>;
+    tickLabels: Record<string, string[]>;
     labels: unknown[];
     datasets: { label: string; data: unknown[] }[];
   }[];
+}
+
+/** The data behind the charts of a page, with their axis titles and the labels their tick callbacks give. */
+async function readCharts(page: Page, name: string): Promise<Figure['charts']> {
+  return page.evaluate((n) => {
+    const root = document.getElementById(`page-${n}`) as HTMLElement;
+    const figures = (window as unknown as { __figures: { config: ChartConfig; canvas: Element }[] })
+      .__figures;
+    return figures
+      .filter((f) => root.contains(f.canvas))
+      .map((f) => ({
+        id: (f.canvas as HTMLElement).id,
+        type: String(f.config.type),
+        axes: Object.fromEntries(
+          Object.entries(f.config.options?.scales ?? {}).map(([k, v]) => [k, v.title?.text ?? '']),
+        ),
+        tickLabels: Object.fromEntries(
+          Object.entries(f.config.options?.scales ?? {}).map(([k, v]) => [
+            k,
+            [...Array(60).keys()]
+              .map((i) => String(v.ticks?.callback?.(i) ?? ''))
+              .filter((t) => t !== '' && !/^[\d.]+%?$/.test(t)),
+          ]),
+        ),
+        labels: f.config.data.labels ?? [],
+        datasets: (f.config.data.datasets ?? []).map((d) => ({
+          label: String(d.label ?? ''),
+          data: d.data,
+        })),
+      }));
+  }, name);
 }
 
 /** What a page shows once opened: its tiles, its tables and the data behind its charts. */
@@ -73,7 +112,7 @@ export async function readPage(page: Page, spec: PageSpec): Promise<Figure> {
     [name, spec.before ?? ''],
   );
   if (spec.wait) await page.waitForFunction(spec.wait);
-  return page.evaluate((n) => {
+  const shown = await page.evaluate((n) => {
     const root = document.getElementById(`page-${n}`) as HTMLElement;
     const text = (el: Element | null | undefined): string =>
       (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -88,8 +127,6 @@ export async function readPage(page: Page, spec: PageSpec): Promise<Figure> {
       const head = el.closest('.card, .tbl-wrap, section')?.querySelector('h3, h2, h4');
       return own(head) || text(head);
     };
-    const figures = (window as unknown as { __figures: { config: ChartConfig; canvas: Element }[] })
-      .__figures;
     return {
       title: text(document.getElementById('pageTitle')),
       kpis: [...root.querySelectorAll('.kpi')].map((el) => ({
@@ -99,23 +136,17 @@ export async function readPage(page: Page, spec: PageSpec): Promise<Figure> {
       })),
       tables: [...root.querySelectorAll('table')].map((table) => ({
         title: titleOf(table),
-        header: [...table.querySelectorAll('thead th')].map((th) => text(th)),
+        header: [...table.querySelectorAll('thead th')].map((th) => {
+          const copy = th.cloneNode(true) as Element;
+          copy.querySelectorAll('br').forEach((br) => br.replaceWith(' '));
+          return text(copy);
+        }),
         rows: [...table.querySelectorAll('tbody tr')].map((tr) =>
           [...tr.children].map((td) => text(td)),
         ),
       })),
       text: text(root).slice(0, 40000),
-      charts: figures
-        .filter((f) => root.contains(f.canvas))
-        .map((f) => ({
-          id: (f.canvas as HTMLElement).id,
-          type: String(f.config.type),
-          labels: f.config.data.labels ?? [],
-          datasets: (f.config.data.datasets ?? []).map((d) => ({
-            label: String(d.label ?? ''),
-            data: d.data,
-          })),
-        })),
     };
   }, name);
+  return { ...shown, charts: await readCharts(page, name) };
 }

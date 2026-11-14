@@ -107,13 +107,13 @@
         },
         {
           "title": "For Maintenance: is it getting worse or better?",
-          "header": ["Category","Machines","Breakdowns","Per machine per monthbefore → last 90 days","Test score","Verdict"],
+          "header": ["Category","Machines","Breakdowns","Per machine per month before → last 90 days","Test score","Verdict"],
           "rows": [["Vertical Machining Center","52","512","0.88 → 1.59","6.24","More frequent"],["Horizontal Machining Center","3","60","1.09 → 4.00","5.06","More frequent"],["Turning Center","38","238","0.64 → 0.92","3.83","More frequent"],["WaterJet CNC","1","19","0.95 → 4.00","3.55","More frequent"],["Cnc Sliding Head Automatic Lathe","2","15","0.27 → 1.83","2.17","More frequent"],["Vertical Double Column Machining Center","2","46","2.24 → 2.17","-0.91","No clear trend"],["Vertical Turning Lathe","12","63","0.54 → 0.67","0.67","No clear trend"],["Turnmill","5","58","1.31 → 1.27","0.18","No clear trend"]],
           "rowCount": 8
         },
         {
           "title": "For Maintenance: is it getting worse or better?",
-          "header": ["Machine","Category","Breakdowns","Per monthbefore → last 90 days","Test score","Verdict"],
+          "header": ["Machine","Category","Breakdowns","Per month before → last 90 days","Test score","Verdict"],
           "rows": [
             ["VC-16","Vertical Machining Center","21","0.81 → 5.00","4.31","More frequent"],
             ["VC-18","Vertical Machining Center","11","0.27 → 3.00","3.66","More frequent"],
@@ -172,6 +172,8 @@
         {
           "id": "ch-a9-map",
           "type": "scatter",
+          "axes": {"x":"Unavailable (% of machine hours) — further right = more downtime","y":""},
+          "tickLabels": {"x":[],"y":["WaterJet CNC (1)","Cylinderical rotary Grinding (1)","Centerless Grinding Machine (1)","CAM Profile Machine (1)","Vertical Double Column Machining Center (2)","Cnc Sliding Head  Automatic Lathe (2)","CNC Surface Grinding (2)","CNC Angular Grinding (2)","Horizontal Machining Center (3)","CNC Internal Grinding (3)","Turnmill (5)","Vertical Turning Lathe (12)","Turning Center (38)","Vertical Machining Center (52)"]},
           "labels": [],
           "datasets": [
             {
@@ -317,6 +319,8 @@
         {
           "id": "ch-fc",
           "type": "bar",
+          "axes": {"x":"Hours of downtime expected in December 2026","y":""},
+          "tickLabels": {"x":[],"y":[]},
           "labels": ["WJ-01 · WaterJet CNC","HMC-2 · Horizontal Machining Center","TMC-2 · Turnmill","DCMC-02 · Vertical Double Column Machining Center","TC-3 · Turning Center","VC-22 · Vertical Machining Center","DCMC-01 · Vertical Double Column Machining Center","VC-8 · Vertical Machining Center","TMC-4 · Turnmill","VC-16 · Vertical Machining Center","TMC-5 · Turnmill","TMC-6 · Turnmill","HMC-3 · Horizontal Machining Center","VC-9 · Vertical Machining Center","TC-13 · Turning Center"],
           "datasets": [{"label":"Expected routine hrs","data":[6.1,5.1,5.1,5.1,4.6,4.4,4.2,4,4,3.9,3.8,3.6,3.3,3.1,3.1]},{"label":"Plan for (80%)","data":[12,12.7,12.1,11.8,10.2,11.6,8.4,8.5,8.1,8.5,9.1,8.3,7.7,9.4,7.5]}]
         }

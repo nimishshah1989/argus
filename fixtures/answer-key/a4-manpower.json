@@ -129,7 +129,7 @@
           "rowCount": 14
         }
       ],
-      "charts": [{"id":"ch-a4-count","type":"bar","labels":["Person 11","Person 79","Person 51","Person 46","Person 21","Person 88","Person 41","Person 49","Person 02","Person 26","Person 55","Imptex Team","Person 53","Person 68"],"datasets":[{"label":"# Breakdowns","data":[197,149,144,133,107,85,71,53,43,36,10,5,4,3]}]}]
+      "charts": [{"id":"ch-a4-count","type":"bar","axes":{"x":"","y":""},"tickLabels":{"x":[],"y":[]},"labels":["Person 11","Person 79","Person 51","Person 46","Person 21","Person 88","Person 41","Person 49","Person 02","Person 26","Person 55","Imptex Team","Person 53","Person 68"],"datasets":[{"label":"# Breakdowns","data":[197,149,144,133,107,85,71,53,43,36,10,5,4,3]}]}]
     }
   ]
 }

@@ -19,10 +19,12 @@
       ],
       "tables": [],
       "charts": [
-        {"id":"ch-a8-combo","type":"undefined","labels":["0-5 yrs","5-10 yrs","10-15 yrs","15-20 yrs","20+ yrs"],"datasets":[{"label":"Machines","data":[77,23,11,10,4]},{"label":"Avg BD hrs per machine","data":[14.8,36,28,36.9,104.7]}]},
+        {"id":"ch-a8-combo","type":"undefined","axes":{"x":"","y":"Machines","y1":"Avg BD hrs per machine"},"tickLabels":{"x":[],"y":[],"y1":[]},"labels":["0-5 yrs","5-10 yrs","10-15 yrs","15-20 yrs","20+ yrs"],"datasets":[{"label":"Machines","data":[77,23,11,10,4]},{"label":"Avg BD hrs per machine","data":[14.8,36,28,36.9,104.7]}]},
         {
           "id": "ch-a8-scatter",
           "type": "scatter",
+          "axes": {"x":"Age (years)","y":"BD hours"},
+          "tickLabels": {"x":[],"y":[]},
           "labels": [],
           "datasets": [
             {
@@ -160,6 +162,8 @@
         {
           "id": "ch-a8-mix",
           "type": "bar",
+          "axes": {"x":"","y":"Machines"},
+          "tickLabels": {"x":[],"y":[]},
           "labels": ["0-5 yrs","5-10 yrs","10-15 yrs","15-20 yrs","20+ yrs"],
           "datasets": [
             {"label":"Turning Center","data":[22,8,2,4,2]},

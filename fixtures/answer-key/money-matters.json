@@ -20,7 +20,7 @@
       "tables": [
         {
           "title": "Where the money could have been more",
-          "header": ["Lever","Machines","Hours(period)","Money(period)","Moneyper year",""],
+          "header": ["Lever","Machines","Hours (period)","Money (period)","Money per year",""],
           "rows": [
             ["Fix repeat problems for goodThe same problem on the same machine four or more times (Problem Analysis). A permanent fix removes these.","39","851","₹ 15.32 lakh","₹ 17.98 lakh","Open"],
             ["Bring poor machines back to normalHours lost beyond what is expected for the machine’s age and category (health score).","39","1,224","₹ 22.03 lakh","₹ 25.85 lakh","Open"],
@@ -32,7 +32,7 @@
         },
         {
           "title": "Where the money was lost",
-          "header": ["Problem","Breakdowns","Hours","Money(period)","Moneyper year","Share"],
+          "header": ["Problem","Breakdowns","Hours","Money (period)","Money per year","Share"],
           "rows": [
             ["Axis motor / drive / encoder / servo","104","484.9","₹ 8.73 lakh","₹ 10.24 lakh","15.8%"],
             ["Machine accident / crash","41","306.5","₹ 5.52 lakh","₹ 6.48 lakh","10.0%"],
@@ -62,7 +62,7 @@
           "rowCount": 24
         }
       ],
-      "charts": [{"id":"ch-mm","type":"bar","labels":["Axis motor / drive / encoder / servo","Machine accident / crash","Home position / geometry / backlash","Coolant leakage","Tool clamp / unclamp / drawbar","4th axis / rotary / angular head","Alarm / PLC / parameter / reset","Tool-change arm stuck (ATC)","Spindle motor / overload / noise","Conveyor / chip jam","Turret clamp / indexing","Installation / relocation / trial"],"datasets":[{"label":"","data":[8.73,5.52,5.33,4.38,3.8,3.67,2.62,2.48,2.37,2.17,1.87,1.63]}]}]
+      "charts": [{"id":"ch-mm","type":"bar","axes":{"x":"Money lost in the period (₹ lakh)","y":""},"tickLabels":{"x":[],"y":[]},"labels":["Axis motor / drive / encoder / servo","Machine accident / crash","Home position / geometry / backlash","Coolant leakage","Tool clamp / unclamp / drawbar","4th axis / rotary / angular head","Alarm / PLC / parameter / reset","Tool-change arm stuck (ATC)","Spindle motor / overload / noise","Conveyor / chip jam","Turret clamp / indexing","Installation / relocation / trial"],"datasets":[{"label":"","data":[8.73,5.52,5.33,4.38,3.8,3.67,2.62,2.48,2.37,2.17,1.87,1.63]}]}]
     }
   ]
 }

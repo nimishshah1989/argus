@@ -465,12 +465,16 @@
         {
           "id": "ch-prob-pareto",
           "type": "bar",
+          "axes": {"x":"Breakdown hours","y":""},
+          "tickLabels": {"x":[],"y":[]},
           "labels": ["Axis motor / drive / encoder / servo  (16%)","Machine accident / crash  (10%)","Home position / geometry / backlash  (10%)","Coolant leakage  (8%)","Tool clamp / unclamp / drawbar  (7%)","4th axis / rotary / angular head  (7%)","Alarm / PLC / parameter / reset  (5%)","Tool-change arm stuck (ATC)  (4%)","Spindle motor / overload / noise  (4%)","Conveyor / chip jam  (4%)","Turret clamp / indexing  (3%)","Installation / relocation / trial  (3%)","Chuck / jaw / collet  (3%)","Push button / switch / cable / panel  (3%)","Tool-change error (general)  (2%)","Air leakage / low air pressure  (2%)"],
           "datasets": [{"label":"","data":[484.9,306.5,296.3,243.2,211,204,145.4,137.7,131.9,120.5,104,90.6,89.7,79.6,73.4,66.6]}]
         },
         {
           "id": "ch-prob-scatter",
           "type": "bubble",
+          "axes": {"x":"How often (number of breakdowns)","y":"How long each one takes (average hrs)"},
+          "tickLabels": {"x":[],"y":[]},
           "labels": [],
           "datasets": [
             {
