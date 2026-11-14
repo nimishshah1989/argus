@@ -81,8 +81,13 @@ export function rowStatus(ticket: Ticket | undefined): RowStatus {
   return ticket.kind === 'support' ? 'support' : 'stopped';
 }
 
-/** The floor's words for a ticket's progress (decision 6). */
-export function floorStatus(ticket: Ticket): 'booked' | 'in_progress' | 'fixed' {
-  if (ticket.status === 'closed') return 'fixed';
-  return ticket.status === 'open' ? 'booked' : 'in_progress';
+/** The floor's words for a ticket's progress (decision 6); a cancelled one keeps the ticket word. */
+export function floorStatus(
+  ticket: Ticket,
+):
+  | { group: 'floor'; id: 'booked' | 'in_progress' | 'fixed' }
+  | { group: 'ticket'; id: 'cancelled' } {
+  if (ticket.status === 'cancelled') return { group: 'ticket', id: 'cancelled' };
+  if (ticket.status === 'closed') return { group: 'floor', id: 'fixed' };
+  return { group: 'floor', id: ticket.status === 'open' ? 'booked' : 'in_progress' };
 }
