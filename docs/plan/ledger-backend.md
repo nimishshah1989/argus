@@ -71,3 +71,12 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   /api/v1/settings/lists/<name> and /api/v1/settings/glossary; legacy /lists routes stay until FRONTEND deletes the
   hand-built screen. Shifts/glossary active=false answer 422 until 29 adds the column; segment/group active map to
   showOnBoard/hidden as a stated interim.
+- 2026-11-14 05:35 UTC — Post-merge adversarial review of #195 (one Opus reviewer, read-only, no Docker): FAIL.
+  Held: role guards exactly DOMAIN section 3 (AI cap/consent still admin-only), tenancy (withTenant, forced RLS,
+  tenant-scoped FKs), no hard delete, move + update in one transaction under FOR UPDATE, pinned lists additive.
+  Findings: (1) HIGH contract mismatch with the generated CrudPage (PUT/active/{items,nextCursor}/string fields);
+  (2) HIGH switching off a machine with an active ticket hides the breakdown from the board, and a raise on a
+  switched-off machine is still accepted; (3) MEDIUM malformed uuid / impossible date -> 500; (4) MEDIUM move date
+  unbounded; (5) MEDIUM tests read tables directly + missing cases (shared login, concurrency, open ticket);
+  (6-9) LOW. All folded into 23's PR (same routes), failing test first. Ruling: settings reads stay open to any
+  signed-in login (same data as /config, no personal data). Cost if wrong: an operator can read nameplate data.
