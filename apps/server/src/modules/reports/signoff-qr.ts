@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Pool } from 'pg';
 import { apiError, isUuid } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import type { AppConfig } from '../../kernel/index.js';
