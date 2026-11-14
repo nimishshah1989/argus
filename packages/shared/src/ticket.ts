@@ -49,6 +49,7 @@ export const COMMAND_ACTIONS = [
   'upgrade-kind',
   'acknowledge',
   'handback',
+  'lockout-confirm',
 ] as const;
 export type CommandAction = (typeof COMMAND_ACTIONS)[number];
 

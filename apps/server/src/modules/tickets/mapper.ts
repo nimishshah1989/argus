@@ -234,6 +234,7 @@ const WORK_GATED = new Set<CommandAction>([
   'update',
   'machine-running',
   'machine-stopped',
+  'lockout-confirm',
 ]);
 
 /**

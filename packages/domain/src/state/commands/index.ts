@@ -1,6 +1,7 @@
 export { acknowledge } from './acknowledge.js';
 export { cancel } from './cancel.js';
 export { close } from './close.js';
+export { confirmLockout } from './confirm-lockout.js';
 export { correct } from './correct.js';
 export { handbackConfirm } from './handback-confirm.js';
 export { handbackDispute } from './handback-dispute.js';

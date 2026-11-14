@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import type { Criticality } from '@uptimo/shared';
+import { LOCKOUT_FLAG_LISTS, type Criticality, type LockoutStep } from '@uptimo/shared';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -203,4 +203,66 @@ export async function machineFamily(
     )
   ).rows;
   return { machine, siblings };
+}
+
+/**
+ * The work types and breakdown categories flagged "needs lockout", by code and by label (the floor sends a work
+ * type's label). A switched-off entry still counts: tickets raised with it are still open.
+ */
+export async function lockoutFlagged(
+  tx: Db,
+  tenantId: string,
+): Promise<{ list: string; names: string[] }[]> {
+  const { rows } = await tx.query(
+    'SELECT list, code, label FROM list_item WHERE tenant_id = $1 AND needs_lockout AND list = ANY($2)',
+    [tenantId, LOCKOUT_FLAG_LISTS],
+  );
+  return LOCKOUT_FLAG_LISTS.map((list) => ({
+    list,
+    names: rows
+      .filter((r) => r.list === list)
+      .flatMap((r) => [r.code as string, r.label as string]),
+  }));
+}
+
+/** The plant's active lockout steps in order. None when the head has switched every one off. */
+export async function lockoutSteps(tx: Db, tenantId: string): Promise<LockoutStep[]> {
+  const { rows } = await tx.query(
+    `SELECT code, label, label_gu, label_hi FROM list_item
+      WHERE tenant_id = $1 AND list = 'lockout_step' AND active ORDER BY sort, code`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    code: r.code,
+    label: r.label,
+    labelGu: r.label_gu ?? null,
+    labelHi: r.label_hi ?? null,
+  }));
+}
+
+/** Two first reads of the lockout steps take turns. */
+export async function lockLockoutSeed(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`lockout-seed:${tenantId}`]);
+}
+
+/** Whether the plant has any lockout step at all (a switched-off one still counts: the head's own choice stands). */
+export async function hasLockoutSteps(tx: Db, tenantId: string): Promise<boolean> {
+  const found = await tx.query(
+    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'lockout_step' LIMIT 1",
+    [tenantId],
+  );
+  return (found.rowCount ?? 0) > 0;
+}
+
+/** One starting step; one that is already there is left alone. */
+export async function insertLockoutStep(
+  tx: Db,
+  tenantId: string,
+  step: { code: string; label: string; sort: number },
+): Promise<void> {
+  await tx.query(
+    `INSERT INTO list_item (tenant_id, list, code, label, sort) VALUES ($1, 'lockout_step', $2, $3, $4)
+     ON CONFLICT (tenant_id, list, code) DO NOTHING`,
+    [tenantId, step.code, step.label, step.sort],
+  );
 }

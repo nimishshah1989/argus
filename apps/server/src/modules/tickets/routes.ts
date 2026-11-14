@@ -32,6 +32,7 @@ import {
 } from './admin-fixes.js';
 import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, reopenConflict } from './handback.js';
+import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -55,6 +56,7 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   'upgrade-kind': shared.upgradeKindSchema,
   acknowledge: shared.acknowledgeTicketSchema,
   handback: shared.handbackTicketSchema,
+  'lockout-confirm': shared.lockoutConfirmSchema,
 };
 
 interface RaiseTx {
@@ -121,6 +123,8 @@ async function executeCommand(
 
   const unknown = await checkCorrectedRefs(client, tx, loaded);
   if (unknown) return unknown;
+  const lockout = await checkLockout(client, tx);
+  if (lockout) return lockout;
   const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
@@ -144,7 +148,13 @@ async function executeCommand(
 
   const outcome: Outcome = {
     status: 200,
-    body: { ticket: { ...tm.ticketProjection(result.ticket, loaded.extras), ...parts } },
+    body: {
+      ticket: {
+        ...tm.ticketProjection(result.ticket, loaded.extras),
+        ...parts,
+        ...(await lockoutField(client, tx, tx.ticketId)),
+      },
+    },
   };
   await idem.storeIdempotent(client, { ...binding, command: tx.action, result: outcome });
   return outcome;
@@ -262,6 +272,8 @@ async function validateRaisePeople(
       body: shared.apiError('not_found', 'Unknown reporter', 'reportedByPersonId'),
     };
   }
+  // Starting at the raise names a person who starts; a flagged work type is held open for its lockout instead.
+  await holdStartForLockout(client, tx);
   return { reportedByPersonId };
 }
 
@@ -281,25 +293,21 @@ async function executeRaise(
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
+  const criticality = machine.criticality as domain.Criticality | null;
   const raised = buildRaised({
     ref,
     body: { ...tx.body, startByPersonId: tx.auth.personId ?? undefined },
     loginId: tx.auth.loginId,
     reportedByPersonId: people.reportedByPersonId,
     now,
-    criticality: machine.criticality as domain.Criticality | null,
+    criticality,
     severityMatrix,
   });
   raised.ticket.figures = tm.recomputeFigures(raised.ticket, raised.events, raised.segments, {
     overrides: {},
     now,
   });
-  const extras = buildRaiseExtras(
-    machine.snapshot,
-    tx.body,
-    machine.criticality as domain.Criticality | null,
-    severityMatrix,
-  );
+  const extras = buildRaiseExtras(machine.snapshot, tx.body, criticality, severityMatrix);
   await sql.insertTicket(client, tx.tenantId, raised.ticket, extras);
   await sql.persistEvents(client, tx.tenantId, raised.ticket.id, {
     events: raised.events,
@@ -318,9 +326,10 @@ async function executeRaise(
     command: 'raise',
     actor: tx.auth,
   });
+  const lockout = await lockoutField(client, tx, raised.ticket.id);
   const outcome: Outcome = {
     status: 201,
-    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts } },
+    body: { ticket: { ...tm.ticketProjection(raised.ticket, extras), ...parts, ...lockout } },
   };
   await idem.storeIdempotent(client, { ...binding, command: 'raise', result: outcome });
   return outcome;
