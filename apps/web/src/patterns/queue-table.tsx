@@ -6,27 +6,29 @@ export interface QueueColumn<Row> {
   label: string;
   cell: (row: Row) => ReactNode;
   /** Makes the column sortable; sorts the rows loaded so far. */
-  sortKey?: (row: Row) => string | number;
+  sortKey?: (row: Row) => SortValue;
 }
 
+export type SortValue = string | number | Date;
 type Direction = 'ascending' | 'descending';
-interface Sort {
+export interface Sort {
   column: number;
   direction: Direction;
 }
 
-function sorted<Row>(rows: Row[], columns: QueueColumn<Row>[], sort: Sort | null): Row[] {
+function compare(x: SortValue, y: SortValue): number {
+  if (typeof x === 'string' || typeof y === 'string')
+    return String(x).localeCompare(String(y), undefined, { numeric: true });
+  const [a, b] = [Number(x), Number(y)];
+  return Number(a > b) - Number(a < b);
+}
+
+/** Sorts a copy; equal rows keep their order in both directions. */
+export function sorted<Row>(rows: Row[], columns: QueueColumn<Row>[], sort: Sort | null): Row[] {
   const key = sort ? columns[sort.column]?.sortKey : undefined;
   if (!sort || !key) return rows;
   const sign = sort.direction === 'ascending' ? 1 : -1;
-  return [...rows].sort((a, b) => {
-    const [x, y] = [key(a), key(b)];
-    const order =
-      typeof x === 'number' && typeof y === 'number'
-        ? x - y
-        : String(x).localeCompare(String(y), undefined, { numeric: true });
-    return sign * order;
-  });
+  return [...rows].sort((a, b) => sign * compare(key(a), key(b)));
 }
 
 const SORT_ICON = { ascending: ChevronUp, descending: ChevronDown, none: ChevronsUpDown };
@@ -87,7 +89,7 @@ export function QueueTable<Row>({
           <tr>
             {columns.map((column, index) => (
               <HeaderCell
-                key={column.label}
+                key={index}
                 column={column}
                 direction={sort?.column === index ? sort.direction : undefined}
                 onSort={() => click(index)}
@@ -100,11 +102,11 @@ export function QueueTable<Row>({
             <tr key={rowKey(row)} className="h-13 border-b border-neutral-200 last:border-b-0">
               {columns.map((column, index) =>
                 index === 0 ? (
-                  <th key={column.label} scope="row" className="px-3 py-2 font-medium">
+                  <th key={index} scope="row" className="px-3 py-2 font-medium">
                     {column.cell(row)}
                   </th>
                 ) : (
-                  <td key={column.label} className="px-3 py-2">
+                  <td key={index} className="px-3 py-2">
                     {column.cell(row)}
                   </td>
                 ),
