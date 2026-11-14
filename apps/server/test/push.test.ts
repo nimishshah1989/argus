@@ -209,6 +209,17 @@ describe('which addresses a push subscription may name', () => {
       'https://notify.windows.com.evil.example/x',
       'ftp://fcm.googleapis.com/x',
       'not a url',
+      // web-push connects with Node's legacy url.parse, which reads these hosts differently from new URL().
+      'https://localhost%2e.push.apple.com/x',
+      'https://127.0.0.1%2e.push.apple.com/x',
+      'https://169.254.169.254%2e.push.apple.com/',
+      'https://evil.com%2e.notify.windows.com/x',
+      'https:/fcm.googleapis.com/x',
+      'https://fcm%2egoogleapis.com/',
+      'https://fcm.googleapis.com\\@evil.example/x',
+      'https://fcm.googleapis.com\\x',
+      'https://fcm.googleapis.com /x',
+      'https://fcm.googleapis.com/x\ny',
     ];
     for (const endpoint of bad) {
       const res = await subscribe(endpoint);
@@ -235,6 +246,9 @@ describe('which addresses a push subscription may name', () => {
     await db.admin.query(
       `INSERT INTO push_subscription (tenant_id, login_id, acting_person_id, endpoint, keys, role)
        VALUES ($1, $2, $3, 'http://169.254.169.254/latest/meta-data/', '{"p256dh":"a","auth":"b"}', 'technician'),
+              ($1, $2, $3, 'https://localhost%2e.push.apple.com/x', '{"p256dh":"a","auth":"b"}', 'technician'),
+              ($1, $2, $3, 'https://169.254.169.254%2e.push.apple.com/', '{"p256dh":"a","auth":"b"}', 'technician'),
+              ($1, $2, $3, 'https:/fcm.googleapis.com/x', '{"p256dh":"a","auth":"b"}', 'technician'),
               ($1, $2, $3, 'https://fcm.googleapis.com/fcm/send/ok', '{"p256dh":"a","auth":"b"}', 'technician')`,
       [TENANT, LOGIN_1, PERSON_1],
     );
@@ -245,5 +259,12 @@ describe('which addresses a push subscription may name', () => {
     expect(send.mock.calls.map(([sub]) => (sub as { endpoint: string }).endpoint)).toEqual([
       'https://fcm.googleapis.com/fcm/send/ok',
     ]);
+  });
+
+  it('stores and sends the one normalised spelling of an address', async () => {
+    await db.admin.query('DELETE FROM push_subscription');
+    expect((await subscribe('HTTPS://FCM.googleapis.com:443/fcm/send/Mixed')).statusCode).toBe(200);
+    const rows = await db.admin.query('SELECT endpoint FROM push_subscription');
+    expect(rows.rows).toEqual([{ endpoint: 'https://fcm.googleapis.com/fcm/send/Mixed' }]);
   });
 });

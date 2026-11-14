@@ -6,7 +6,7 @@ import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { activePerson, requireAuth } from '../identity/index.js';
 import type { AppConfig } from '../../kernel/index.js';
-import { isPushEndpoint } from './endpoint.js';
+import { isPushEndpoint, normalisedEndpoint } from './endpoint.js';
 import {
   deleteSubscription,
   subscriptionsOfLogin,
@@ -89,7 +89,7 @@ async function subscribeHandler(
       tenantId: auth.tenantId,
       loginId: auth.loginId,
       actingPersonId,
-      endpoint: subscription.endpoint,
+      endpoint: normalisedEndpoint(subscription.endpoint),
       keys: JSON.stringify(subscription.keys),
       role: auth.role,
     });
@@ -116,7 +116,13 @@ async function unsubscribeHandler(
     return;
   }
   await withTenant(pool, auth.tenantId, (client) =>
-    deleteSubscription(client, auth.tenantId, parsed.data.endpoint),
+    deleteSubscription(
+      client,
+      auth.tenantId,
+      isPushEndpoint(parsed.data.endpoint)
+        ? normalisedEndpoint(parsed.data.endpoint)
+        : parsed.data.endpoint,
+    ),
   );
   reply.send({ ok: true });
 }
