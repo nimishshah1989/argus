@@ -54,6 +54,8 @@ test.beforeEach(({}, testInfo) => {
 });
 
 test('floor and desk install as two apps: each address offers its own app', async ({ page }) => {
+  // Signed in, as someone installing the app is: a signed-out visitor is sent to the sign-in page first.
+  await signIn(page, 'asha');
   const manifests: Record<string, { id: string; start_url: string }> = {};
   for (const path of ['/floor', '/desk']) {
     await page.goto(path);
