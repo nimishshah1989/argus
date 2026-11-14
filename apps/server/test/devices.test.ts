@@ -60,7 +60,7 @@ beforeAll(async () => {
   });
   await t.db.admin.query(
     'INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, NULL, $2, $3, $4, true)',
-    [A, 'shop-phone', passwordHash, 'operator'],
+    [A, 'shop-phone', passwordHash, 'supervisor'],
   );
 }, 120_000);
 

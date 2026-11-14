@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A, PASSWORD, ROLES } from './people-harness.js';
+import { A, ROLES } from './people-harness.js';
 import {
   DAY_MS,
   GRANT,
   HOST_B,
   NO_SUCH,
+  keyHash,
+  newKey,
   startSupportApp,
   type Send,
   type SupportApp,
@@ -129,21 +131,21 @@ describe('who may manage support access', () => {
        FROM login WHERE tenant_id = $1 AND username = 'admin'`,
       [A],
     );
-    const people = (await t.send({ method: 'GET', url: '/api/v1/people', token: admin })).json();
-    const signIn = await t.send({
-      method: 'POST',
-      url: '/api/v1/auth/login',
-      payload: { username: 'office-phone', password: PASSWORD, actingPersonId: people.items[0].id },
-    });
-    expect(signIn.statusCode, signIn.body).toBe(200);
-    const res = await t.send({
-      method: 'POST',
-      url: URL,
-      token: signIn.json().token,
-      payload: GRANT,
-    });
+    // Sign-in no longer lets a shared admin phone choose anybody, so this state is seeded as an older one.
+    const token = newKey();
+    await t.db.admin.query(
+      `INSERT INTO session (tenant_id, login_id, token_hash, expires_at, acting_person_id)
+       SELECT l.tenant_id, l.id, $2, now() + interval '1 day', p.id
+       FROM login l JOIN person p ON p.tenant_id = l.tenant_id AND p.name = 'Asha Admin'
+       WHERE l.tenant_id = $1 AND l.username = 'office-phone'`,
+      [A, keyHash(token)],
+    );
+    const before = (await t.grants(admin)).length;
+    const res = await t.send({ method: 'POST', url: URL, token, payload: GRANT });
+    // Today the shared-phone rule (an admin phone chooses nobody) stops it first; the permission is the second lock.
     expect(res.statusCode).toBe(403);
-    expect(res.json().error.code).toBe('forbidden');
+    expect(['forbidden', 'choose_acting_person']).toContain(res.json().error.code);
+    expect(await t.grants(admin)).toHaveLength(before);
   });
 });
 
