@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { criticalitySchema, severitySchema } from './config.js';
+import { taskEventSchema } from './tasks.js';
 
 export const isoDateTimeSchema = z.string().datetime({ offset: true });
 const iso = isoDateTimeSchema.nullable();
@@ -134,6 +135,8 @@ export const ticketEventSchema = z
       .nullable(),
     /** Set on an `escalate` event, null on every other; optional so a client that builds a reply by hand may leave it out. */
     escalation: escalationStepSchema.nullable().optional(),
+    /** Set on a `task` event (a follow-up task left, or done); null on every other. */
+    task: taskEventSchema.nullable().optional(),
   })
   .strict();
 export type TicketEvent = z.infer<typeof ticketEventSchema>;

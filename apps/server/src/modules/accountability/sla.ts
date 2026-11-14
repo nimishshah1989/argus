@@ -100,6 +100,11 @@ function unlimited(severity: SlaPolicy['severity']): SlaPolicy {
   };
 }
 
+/** An import of history has no live clocks, and a follow-up task (it has a parent) is no breakdown: neither runs one. */
+function runsNoClock(row: { raised_channel: string; parent_id: string | null }): boolean {
+  return row.raised_channel === 'backfill' || row.parent_id !== null;
+}
+
 /** `withoutPolicy`: keep tickets whose severity has no policy (they get no clocks, only facts read from events). */
 export async function loadContexts(
   client: PoolClient,
@@ -117,7 +122,7 @@ export async function loadContexts(
   const calendar = needsCalendar ? await loadCalendar(client, tenantId) : undefined;
   const eventsByTicket = await loadEventsByTicket(client, ticketIds);
   for (const row of tickets) {
-    if (row.raised_channel === 'backfill') continue;
+    if (runsNoClock(row)) continue;
     const policy = bySeverity.get(row.severity) ?? (withoutPolicy ? unlimited(row.severity) : null);
     if (!policy) continue;
     contexts.set(row.id, {

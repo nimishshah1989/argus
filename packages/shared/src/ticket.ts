@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { taskDownMinSchema, taskInputSchema } from './tasks.js';
 
 // ISO timestamps are coerced to Date so the parsed body matches the domain Command types.
 const iso = z.coerce.date();
@@ -194,6 +195,10 @@ export const closeTicketSchema = z.object({
   at: iso.optional(),
   note: z.string().max(2000).optional(),
   report: breakdownReportSchema.optional(),
+  /** A job left unfinished: becomes a child task of this ticket (not allowed on a plain work request). */
+  task: taskInputSchema.optional(),
+  /** Closing a follow-up task only: the minutes the machine stood still for it. */
+  taskDownMin: taskDownMinSchema.optional(),
 });
 export type CloseTicketBody = z.infer<typeof closeTicketSchema>;
 

@@ -10,6 +10,7 @@ import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
 import { lockoutOf } from './lockout.js';
+import { taskParts } from './tasks.js';
 import {
   needReportRows,
   openTicketRows,
@@ -231,6 +232,7 @@ export async function detail(
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
         escalation: escalationStep(event, told),
+        task: (event.payload?.task as object | undefined) ?? null,
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),
@@ -240,7 +242,7 @@ export async function detail(
         leftAt: member.leftAt ?? null,
         leftReason: member.leftReason ?? null,
       })),
-      tasks: [],
+      ...(await taskParts(client, ctx.tenantId, row)),
       intervals: segments.map((segment: domain.WorkSegment) => ({
         personId: segment.personId,
         role: segment.role,

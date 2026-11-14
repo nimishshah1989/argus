@@ -29,6 +29,7 @@ import {
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
+import { taskParentSchema, taskRowSchema, taskSummarySchema } from './tasks.js';
 import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
@@ -84,13 +85,23 @@ export const stateReplySchema = z
 export const ticketPageSchema = z
   .object({ items: z.array(ticketReplySchema), nextCursor: z.string().nullable() })
   .strict();
-export const commandReplySchema = z.object({ ticket: ticketReplySchema }).strict();
+/** `task` is set only when a close left a follow-up task: the new ticket's id and reference. */
+export const commandReplySchema = z
+  .object({
+    ticket: ticketReplySchema,
+    task: z.object({ id: z.string(), ref: z.string() }).strict().optional(),
+  })
+  .strict();
 export const ticketDetailSchema = z
   .object({
     ticket: ticketReplySchema,
     events: z.array(ticketEventSchema),
     people: z.array(ticketPersonSchema),
-    tasks: z.array(z.never()),
+    /** Follow-up tasks left from this ticket, oldest reference first; cancelled ones are not listed. */
+    tasks: z.array(taskRowSchema),
+    taskSummary: taskSummarySchema,
+    /** Set when this ticket is itself a follow-up task: the breakdown it was left from. */
+    parent: taskParentSchema.nullable(),
     intervals: z.array(ticketIntervalSchema),
     report: storedReportSchema.nullable(),
   })
