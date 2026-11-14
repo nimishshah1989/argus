@@ -70,8 +70,8 @@ function post(url: string, token: string, payload: unknown): Promise<Res> {
   });
 }
 
-function get(url: string, token?: string): Promise<Res> {
-  const headers: Record<string, string> = { host: 'cosmos.localhost' };
+function get(url: string, token?: string, host = 'cosmos.localhost'): Promise<Res> {
+  const headers: Record<string, string> = { host };
   if (token) headers.authorization = `Bearer ${token}`;
   return app.inject({ method: 'GET', url, headers });
 }
@@ -415,7 +415,7 @@ printf '%%PDF-1.4 stand-in' > "$out"
     expect(unknown.statusCode).toBe(404);
 
     const id = await raiseWithReport(M2, 'Cross tenant target');
-    const otherTenant = await get(`/api/v1/tickets/${id}/pdf`, tenant2Token);
+    const otherTenant = await get(`/api/v1/tickets/${id}/pdf`, tenant2Token, 'plant-two.localhost');
     expect(otherTenant.statusCode).toBe(404);
 
     const ownTenant = await get(`/api/v1/tickets/${TICKET_2}/pdf`, ashaToken);

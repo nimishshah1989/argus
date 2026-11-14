@@ -1,5 +1,6 @@
 import { apiError, type CommandAction } from '@uptimo/shared';
 import {
+  canCorrect,
   canLateReport,
   canRestore,
   canWork,
@@ -212,6 +213,9 @@ export function ticketProjection(ticket: Ticket, extras: TicketExtras): Record<s
 }
 
 export function mapTransitionError(error: TransitionError): Outcome {
+  if (error.message.startsWith('Invalid correction')) {
+    return { status: 422, body: apiError('validation', error.message, 'changes') };
+  }
   if (error.message.startsWith('Not allowed')) {
     return {
       status: 403,
@@ -250,6 +254,7 @@ export function gatePermission(
   if (WORK_GATED.has(action) && !canWork(actor)) return denied;
   if (action === 'report' && !canLateReport(actor)) return denied;
   if (action === 'restore' && !canRestore(actor)) return denied;
+  if (action === 'correct' && !canCorrect(actor)) return denied; // before any ticket or machine is looked up
   return null;
 }
 
@@ -311,8 +316,8 @@ const BUILDERS: Record<CommandAction, Builder> = {
   },
   correct: (body, personId) => {
     const { activeMin, waitMin, ...rest } = body.changes as CorrectChanges & {
-      activeMin?: number;
-      waitMin?: number;
+      activeMin?: number | null;
+      waitMin?: number | null;
     };
     return {
       type: 'correct',

@@ -18,6 +18,7 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'offboard_tenant',
     'platform_access_guard',
   ],
+  people: [],
   plant: [
     'segment',
     'machine_group',
@@ -53,6 +54,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   ops: [],
   identity: ['ops'],
   plant: ['identity', 'ops'],
+  people: ['identity', 'notifications', 'plant', 'ops'],
   files: ['ops'],
   notifications: ['identity', 'plant', 'ops'],
   tickets: ['identity', 'plant', 'files', 'ops'],

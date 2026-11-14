@@ -23,6 +23,7 @@ export const userSchema = z
     role: z.string(),
     shared: z.boolean(),
     actingPersonId: z.string(),
+    mustChangePassword: z.boolean().optional(),
   })
   .strict();
 export type User = z.infer<typeof userSchema>;
