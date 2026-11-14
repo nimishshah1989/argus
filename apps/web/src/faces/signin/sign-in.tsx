@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, getBrand, setToken, signIn } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
+import { BrandHeader } from '../../ui/brand-header.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
 import { lastUsername, rememberUsername } from './last-username.js';
-import { Fields, Notice, SIGNED_OUT_PARAM } from './parts.js';
+import { Fields, Notice, SIGNED_OUT_PARAM, signInError } from './parts.js';
 
 /** Sign-in (slice 3, T1): one step, no step counter; a remembered username puts the cursor in the password. */
 export function SignIn() {
@@ -28,21 +29,19 @@ export function SignIn() {
       navigate('/floor');
     } catch (caught) {
       if (!(caught instanceof ApiError)) throw caught;
-      setError(caught.code === 'unauthenticated' ? t('login.failed') : caught.message);
+      setError(t(signInError(caught)));
       return false;
     }
   }
   const body = (
     <Stack gap={4}>
-      <Text size="footnote" tone="secondary">
-        {t('signin.desk')}
-      </Text>
       <Notice error={error} signedOut={params.has(SIGNED_OUT_PARAM) && !error} />
       <Fields form={form} />
     </Stack>
   );
   const ready = Boolean(username.trim() && password);
-  const step = { title: company, body, action: t('login.signIn'), ready };
+  const lead = <BrandHeader name={company} detail={t('signin.desk')} />;
+  const step = { lead, body, action: t('login.signIn'), ready };
   return (
     <Page>
       <WizardPage

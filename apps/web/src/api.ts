@@ -1,5 +1,11 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
-import { ApiError, defineResource, idempotencyKey, isOffline } from './data/index.js';
+import {
+  ApiError,
+  defineResource,
+  httpWithoutSession,
+  idempotencyKey,
+  isOffline,
+} from './data/index.js';
 import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
@@ -42,7 +48,11 @@ export const tickets = defineResource<TicketDetail, Ticket>({
 });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
-const login = defineResource({ key: 'auth', path: '/api/v1/auth/login' });
+const login = defineResource({
+  key: 'auth',
+  path: '/api/v1/auth/login',
+  transport: httpWithoutSession,
+});
 const settings = defineResource({ key: 'settings', path: '/api/v1/settings' });
 const criticality = defineResource({
   key: 'machines',

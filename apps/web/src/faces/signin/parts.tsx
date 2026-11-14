@@ -1,8 +1,18 @@
+import type { MessageKey } from '@uptimo/shared/i18n';
 import { useState } from 'react';
+import type { ApiError } from '../../api.js';
 import { useTranslation } from 'react-i18next';
 import { Banner } from '../../ui/banner.js';
 import { Checkbox, Input, Label } from '../../ui/input.js';
 import { Stack } from '../../ui/layout.js';
+
+/** The server's sign-in refusals in the catalogue's words; anything else reads as a failed sign-in. */
+export function signInError(error: ApiError): MessageKey {
+  if (error.code === 'rate_limited') return 'signin.tooMany';
+  if (error.code === 'not_found') return 'signin.unknownCompany';
+  if (error.field === 'actingPersonId') return 'signin.chooseName';
+  return 'login.failed';
+}
 
 /** `/login?signedOut=1` is where the data layer sends a refused session. */
 export const SIGNED_OUT_PARAM = 'signedOut';
