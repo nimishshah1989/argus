@@ -324,3 +324,10 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   settings API + 1-year roster purge, defaults seeded as editable rows) to session_01KEBF26FLSD7aUqQ4zXwbzo. Carried to the next
   migration batch: index (tenant_id, closed_at) for the board-today query; a column for the pause-episode start (pause 1's owed breach
   can be lost when pause 2 starts before the job runs; 33 must fire it at startsNewPause in repo/timers.ts).
+- 08:47 UTC #240 (31 acknowledge, draft, f?) reviewed: HIGH shared login could acknowledge as any rostered person (body.personId over the
+  chosen acting person); MEDIUM roster date from a different shift than the shift lookup (night shift after a 3x8 -> 2x12 change);
+  MEDIUM which DOMAIN row governs. Rulings: acknowledge = ticket assignee OR the person on the roster for the shift running now (roles
+  technician/supervisor/head/plant_head, vendor level excluded), admin NOT passed (ticket text; cost if wrong: one check in canAcknowledge).
+  FOLLOW-UP TICKET (hardening, backend): all ticket commands on a SHARED login must take the acting person from the session
+  (tx.auth.personId), not body.personId (tickets/routes.ts resolveActingPerson shared branch); today a shared phone can send any active
+  person id. Product note for Nimish via FRONTEND: acknowledge button needs a /state fact (am I rostered/assignee) + the screen.
