@@ -1,6 +1,7 @@
 /** Plant settings (ticket 22, slice 4): the menu, machines, groups and shifts screens. */
 export const plantEn = {
   'plant.menu': 'Settings',
+  'plant.menu.link': 'Plant settings',
   'plant.menu.plant': 'Plant',
   'plant.title': 'Settings',
   'plant.noAccess': 'No settings access',
