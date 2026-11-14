@@ -52,12 +52,11 @@ export async function slaCandidateIds(tx: Db, tenantId: string): Promise<string[
   return candidates.rows.map((row) => row.id as string);
 }
 
-export async function slaConsistencyIds(tx: Db, tenantId: string): Promise<string[]> {
+/** Tickets still being worked (not an import of history): their clocks run and need checking. */
+export async function slaActiveIds(tx: Db, tenantId: string): Promise<string[]> {
   const tickets = await tx.query<{ id: string }>(
     `SELECT id FROM ticket
-       WHERE tenant_id=$1 AND raised_channel <> 'backfill'
-         AND (status IN ('open','working','waiting')
-              OR EXISTS (SELECT 1 FROM sla_timer s WHERE s.tenant_id = ticket.tenant_id AND s.ticket_id = ticket.id))
+       WHERE tenant_id=$1 AND raised_channel <> 'backfill' AND status IN ('open','working','waiting')
        ORDER BY id`,
     [tenantId],
   );

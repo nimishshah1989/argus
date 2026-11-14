@@ -12,7 +12,7 @@ export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
 export {
   lockTicket,
   slaCandidateIds,
-  slaConsistencyIds,
+  slaActiveIds,
   slaTicketRows,
   ticketEventRows,
   type SlaTicketRow,

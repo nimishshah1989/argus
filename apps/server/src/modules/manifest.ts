@@ -34,8 +34,8 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'ui_translation',
   ],
   files: ['file'],
-  notifications: ['push_subscription'],
-  accountability: ['sla_policy', 'sla_timer'],
+  notifications: ['push_subscription', 'notification'],
+  accountability: ['sla_policy', 'sla_timer', 'roster_entry', 'escalation_rule'],
   reports: [],
   tickets: [
     'ticket',

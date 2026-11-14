@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { ESCALATION_DEFAULTS } from '@uptimo/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { importRealExport } from '../src/modules/imports/real-import.js';
 import { seedCosmos } from '../src/seed/cosmos.js';
@@ -218,6 +219,32 @@ describe('the escalation ladder', () => {
       /escalation_rule_repeat_pair/,
     );
     await rule({ level: 'L1', repeat_minutes: 15, repeat_cap: 3 });
+  });
+
+  it('holds every proposed default as a row', async () => {
+    for (const d of ESCALATION_DEFAULTS) {
+      await db.admin.query(
+        `INSERT INTO escalation_rule (tenant_id, trigger, severity_min, level, notify_role, channel,
+           delay_minutes, repeat_minutes, repeat_cap)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          cosmos,
+          d.trigger,
+          d.severityMin,
+          d.level,
+          d.notifyRole,
+          d.channel,
+          d.delayMinutes,
+          d.repeatMinutes,
+          d.repeatCap,
+        ],
+      );
+    }
+    const stored = await db.admin.query(
+      'SELECT count(*)::int AS n FROM escalation_rule WHERE tenant_id = $1 AND delay_minutes >= 0',
+      [cosmos],
+    );
+    expect(stored.rows[0].n).toBeGreaterThanOrEqual(ESCALATION_DEFAULTS.length);
   });
 
   it('does not take the same rule twice', async () => {
