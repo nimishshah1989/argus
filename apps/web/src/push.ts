@@ -59,8 +59,9 @@ async function serverKey(): Promise<Uint8Array<ArrayBuffer>> {
   return urlBase64ToUint8Array(response.publicKey);
 }
 
+/** The server registers the phone for the session's acting person; the id here is only the local note of who. */
 async function bind(subscription: PushSubscription, actingPersonId: string): Promise<void> {
-  await push.create({ subscription: subscription.toJSON(), actingPersonId }, { id: 'subscribe' });
+  await push.create({ subscription: subscription.toJSON() }, { id: 'subscribe' });
   localStorage.setItem(BOUND_PERSON_KEY, actingPersonId);
 }
 
