@@ -20,6 +20,13 @@ logins, 275 tickets, 0 unexplained). Nimish's Mac: ~/argus-staging (tfvars: doma
 external_uptime_ping false, github_sub_prefix set). LEFT for ticket 14: the restore drill (infra/RESTORE.md; log in
 docs/plan/restore-drill-log.md), then the M0 gate (one short report, docs/plan/gates/M0.md).
 
+## pstack (Nimish, 14 Nov)
+
+Copy pstack into the repo so every session (cloud too) has it, and use it from now on: `add_repo` cursor/plugins
+(read), check its licence allows copying, vendor the pstack skills into `.claude/skills/` (as ponytail is), keep a
+NOTICE/licence file, then run builds through `/pstack:poteto-mode` and reviews through `/pstack:interrogate` per
+CLAUDE.md. If the licence forbids copying, say so and keep the fallback.
+
 ## In flight (frontend lane)
 
 - #205 floor fix (builder session_01KEBF28gYoZ8XReuz1auL6F) turns main's browser checks green (main RED since #196/#199).
