@@ -68,7 +68,7 @@ jobs:
         run: |
           run=true
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            if ! git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Evq '^(docs/(plan|design|slices|decisions)/|wiki/|changes/|\.claude/|[^/]+\.md$)'; then run=false; fi
+            if ! git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Evq '^(docs/|wiki/|changes/|\.claude/|[^/]+\.md$)'; then run=false; fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4
@@ -107,7 +107,7 @@ jobs:
         run: |
           run=true
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            if ! git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Evq '^(docs/(plan|design|slices|decisions)/|wiki/|changes/|\.claude/|[^/]+\.md$)'; then run=false; fi
+            if ! git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Evq '^(docs/|wiki/|changes/|\.claude/|[^/]+\.md$)'; then run=false; fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4
