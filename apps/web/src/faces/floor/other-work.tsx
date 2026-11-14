@@ -56,6 +56,7 @@ export function OtherWork() {
     <FloorShell>
       <WizardPage
         title={t('floor.title')}
+        quietOnline
         aside={t('floor.workRequest')}
         steps={[{ ...step, action: t('reportFloor.sendWork'), ready }]}
         offlineAllowed={false}
