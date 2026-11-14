@@ -1,0 +1,1 @@
+- The design kit gains the screen frame both the floor and the desk use: a header with the sync pill, the bottom tab bar (two tabs on the floor, five on the desk), banners for offline, info, needs-attention and error, and grey loading shapes. They are on /gallery in light, dark, English and Gujarati.
