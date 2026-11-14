@@ -6,6 +6,7 @@ export type Example = (typeof EXAMPLES)[number];
 export interface GalleryRow {
   id: string;
   ref: string;
+  machine: string;
   problemKey: string;
 }
 export interface GalleryDetail {
@@ -16,9 +17,11 @@ export interface GalleryDetail {
   historyKeys: string[];
 }
 
+const MACHINES = ['CNC-07', 'LATHE-02', 'DRILL-01', 'CNC-07', 'LATHE-02'];
 const ROWS: GalleryRow[] = [1, 2, 3, 4, 5].map((n) => ({
   id: `gallery-${n}`,
   ref: `BD-010${n}`,
+  machine: MACHINES[n - 1]!,
   problemKey: `queue.problem.${n}`,
 }));
 const DETAIL: GalleryDetail = {

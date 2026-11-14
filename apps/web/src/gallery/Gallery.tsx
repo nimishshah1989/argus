@@ -9,6 +9,7 @@ import { BoardSection } from './board-section.js';
 import { ClosesSection } from './closes-section.js';
 import { CrudSection } from './crud-section.js';
 import { DashboardSection } from './dashboard-section.js';
+import { DesktopView } from './desktop-section.js';
 import { DeskKitSection } from './desk-kit-section.js';
 import { DetailKitSection } from './detail-kit-section.js';
 import { FloorSection } from './floor-section.js';
@@ -114,6 +115,7 @@ export default function Gallery() {
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
 
   useDocumentAttributes(lang, accent, theme);
+  if (params.get('view') === 'desktop') return <DesktopView />;
 
   return (
     <div data-testid="gallery-root">

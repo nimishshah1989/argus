@@ -1,9 +1,10 @@
-/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SyncStatus } from '../../patterns/sync-status.js';
+import { useWide } from '../../patterns/wide.js';
 import { CirclePlus, LayoutGrid, Lock, Menu, Users, Wrench } from '../../ui/icon.js';
+import { SideNav } from '../../ui/side-nav.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { TopBar } from '../../ui/top-bar.js';
 
@@ -38,7 +39,7 @@ export function useSystemTheme(): void {
   }, []);
 }
 
-/** Header with the sync pill, the screen, and the five desk tabs. */
+/** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */
 export function DeskFrame({
   title,
   subtitle,
@@ -53,6 +54,7 @@ export function DeskFrame({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
+  const wide = useWide();
   useSystemTheme();
   const tabs = [
     { to: '/desk', label: t('desk.tab.open'), icon: Menu, badge },
@@ -61,15 +63,27 @@ export function DeskFrame({
     { to: '/floor', label: t('deskLists.tab.report'), icon: CirclePlus },
     { to: '/desk/board', label: t('deskLists.tab.live'), icon: LayoutGrid },
   ];
+  const here = current === 'open' ? '/desk' : `/desk/${current}`;
+  const top = <TopBar title={title} subtitle={subtitle} trailing={<SyncStatus />} />;
+  if (wide)
+    return (
+      <div className="flex min-h-dvh bg-neutral-100 text-neutral-900">
+        <div className="sticky top-0 h-dvh">
+          <SideNav label={t('deskLists.tabs')} groups={[{ items: tabs }]} current={here} />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {top}
+          <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4">
+            {children}
+          </main>
+        </div>
+      </div>
+    );
   return (
     <div className="flex min-h-dvh flex-col bg-neutral-100 text-neutral-900">
-      <TopBar title={title} subtitle={subtitle} trailing={<SyncStatus />} />
+      {top}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">{children}</main>
-      <TabBar
-        label={t('deskLists.tabs')}
-        tabs={tabs}
-        current={current === 'open' ? '/desk' : `/desk/${current}`}
-      />
+      <TabBar label={t('deskLists.tabs')} tabs={tabs} current={here} />
     </div>
   );
 }

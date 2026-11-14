@@ -1,0 +1,1 @@
+- On a computer screen (1024 px and wider) the shared page patterns now use the desktop layout: lists become sortable tables, forms and edits open in a panel on the right instead of a sheet from the bottom, and the desk shows a left menu instead of the bottom tabs. Phones look exactly as before.

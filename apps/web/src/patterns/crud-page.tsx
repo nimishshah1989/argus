@@ -76,17 +76,17 @@ function CrudTableRow<Row extends CrudRow>(p: {
   const [first, ...others] = p.spec.fields;
   const name = String(row[first!.name] ?? '');
   return (
-    <tr className="border-t border-neutral-200">
-      <th scope="row" className="p-2 font-medium">
+    <tr className="border-t border-neutral-200 lg:h-13">
+      <th scope="row" className="p-2 font-medium lg:px-3">
         {name}
       </th>
       {others.map((f) => (
-        <td key={f.name} className="p-2">
+        <td key={f.name} className="p-2 lg:px-3">
           {String(row[f.name] ?? '')}
         </td>
       ))}
-      <td className="p-2">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>
-      <td className="p-2">
+      <td className="p-2 lg:px-3">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>
+      <td className="p-2 lg:px-3">
         <Inline gap={2}>
           <Button
             // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
@@ -120,20 +120,27 @@ function CrudTable<Row extends CrudRow>(p: {
 }) {
   const { t } = useTranslation();
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto lg:rounded-2xl lg:bg-surface lg:shadow-card">
       <table className="w-full text-left text-footnote">
         <thead>
           <tr>
             {p.spec.fields.map((f) => (
-              <th key={f.name} scope="col" className="p-2 font-medium text-neutral-600">
+              <th
+                key={f.name}
+                scope="col"
+                className="p-2 font-medium text-neutral-600 lg:p-3 lg:text-caption lg:font-semibold"
+              >
                 {t(f.labelKey)}
               </th>
             ))}
             {}
-            <th scope="col" className="p-2 font-medium text-neutral-600">
+            <th
+              scope="col"
+              className="p-2 font-medium text-neutral-600 lg:p-3 lg:text-caption lg:font-semibold"
+            >
               {t('kit.crud.status')}
             </th>
-            <th scope="col" className="p-2">
+            <th scope="col" className="p-2 lg:p-3">
               <span className="sr-only">{t('kit.crud.actions')}</span>
             </th>
           </tr>
