@@ -14,6 +14,8 @@ export interface QueuePageProps<Row> {
   rowKey: (item: Row) => string;
   /** Translated. */
   empty: string;
+  /** Hide the sync pill while online (the floor). */
+  quietOnline?: boolean;
 }
 
 /** A cursor-paged list with loading, empty, error and offline states. */
@@ -24,6 +26,7 @@ export function QueuePage<Row>({
   row,
   rowKey,
   empty,
+  quietOnline,
 }: QueuePageProps<Row>) {
   const { t } = useTranslation();
   const online = useOnline();
@@ -36,7 +39,7 @@ export function QueuePage<Row>({
     error: list.error,
   });
   return (
-    <PatternFrame title={title}>
+    <PatternFrame title={title} quietOnline={quietOnline}>
       {state === 'ready' ? (
         <Stack gap={3}>
           <ul className="flex flex-col gap-3">

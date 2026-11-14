@@ -151,7 +151,7 @@ test('My complaints lists what this person reported with the floor words', async
   await expect(card).toContainText('Booked');
 });
 
-test('offline, the problem step says so and Send waits for a connection', async ({
+test('the header pill shows only offline; the problem step says so and Send waits for a connection', async ({
   page,
   context,
 }, testInfo) => {
@@ -160,7 +160,10 @@ test('offline, the problem step says so and Send waits for a connection', async 
   await findMachine(page, machine.code);
   await page.getByRole('button', { name: /^Machine has stopped/ }).click();
   await page.getByLabel('What is wrong?').fill('Spindle alarm');
+  // Online the floor header stays quiet (as the mockups); the pill speaks only when something is wrong.
+  await expect(page.getByTestId('sync-status')).toHaveText('');
   await context.setOffline(true);
+  await expect(page.getByTestId('sync-status')).toHaveText(/Offline/);
   await expect(page.getByText('You are offline. Connect to send this.')).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Send: machine has stopped', exact: true }),

@@ -46,9 +46,23 @@ export async function dayJobRows(
   }));
 }
 
-const PENDING_SQL = `SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id
+/**
+ * Pending at `end` is judged by what had happened by then, from the history: a ticket is finished at `end` when its
+ * last close, cancel or restore before `end` is a close or a cancel. (A restore clears `cancelled_at`, so the
+ * columns alone cannot say.) A ticket with none of those events falls back on its closing or cancelling time.
+ */
+const PENDING_SQL = `WITH last_turn AS (
+    SELECT DISTINCT ON (ticket_id) ticket_id, type FROM ticket_event
+     WHERE tenant_id = $1 AND type IN ('close', 'cancel', 'restore') AND at < $2
+     ORDER BY ticket_id, at DESC, seq DESC
+  )
+  SELECT t.id, t.ref, t.kind, t.status, t.problem, t.reported_at, t.machine_snapshot, t.machine_id
     FROM ticket t
-   WHERE t.tenant_id = $1 AND t.status IN ('open', 'working', 'waiting') AND t.reported_at < $2
+    LEFT JOIN last_turn l ON l.ticket_id = t.id
+   WHERE t.tenant_id = $1 AND t.reported_at < $2
+     AND CASE WHEN l.type IS NOT NULL THEN l.type = 'restore'
+              ELSE t.status IN ('open', 'working', 'waiting') OR COALESCE(t.closed_at, t.cancelled_at) >= $2
+         END
    ORDER BY t.reported_at, t.ref`;
 
 export async function pendingRows(
