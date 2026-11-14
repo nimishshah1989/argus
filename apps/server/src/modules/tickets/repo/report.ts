@@ -26,6 +26,7 @@ export interface StoredReport {
   maintCode: string | null;
   spareUsed: string | null;
   rootCause: string | null;
+  handoverPersonId: string | null;
   handoverName: string | null;
   submittedByPersonId: string | null;
   submittedAt: Date;
@@ -53,14 +54,15 @@ interface ReportValues {
   maintCode: string | null;
   spareUsed: string | null;
   rootCause: string | null;
+  handoverPersonId: string | null;
   handoverName: string | null;
 }
 
 const INSERT_REPORT_SQL = `INSERT INTO breakdown_report
   (tenant_id, ticket_id, machine_id, date, shift_code, problem, observed_by, corrective_action,
    downtime_min, response_min, repair_min, breakdown_category, maint_code, spare_used, root_cause,
-   handover_name, submitted_by_person_id)
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+   handover_name, handover_person_id, submitted_by_person_id)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
   RETURNING id, submitted_at`;
 
 export class ReportValidationError extends Error {
@@ -119,9 +121,26 @@ async function reportValues(client: PoolClient, input: ReportStoreInput): Promis
     maintCode: n(b.maintCode),
     spareUsed: n(b.spareUsed),
     rootCause: n(b.rootCause),
-    handoverName: n(b.handoverName),
+    // One truth: a person link replaces the typed text, which stays only for imported history.
+    handoverPersonId: n(b.handoverPersonId),
+    handoverName: b.handoverPersonId ? null : n(b.handoverName),
     ...figureDefaults(input),
   };
+}
+
+/** What replies call the handover: the linked person's name as the person row says it now, else the typed text. */
+async function handoverDisplay(
+  client: PoolClient,
+  tenantId: string,
+  values: { handoverPersonId: string | null; handoverName: string | null },
+): Promise<string | null> {
+  if (!values.handoverPersonId) return values.handoverName;
+  const person = (await peopleByIds(client, tenantId, [values.handoverPersonId]))[0];
+  return person?.name ?? null;
+}
+
+function handoverIds(body: BreakdownReportBody): string[] {
+  return body.handoverPersonId ? [body.handoverPersonId] : [];
 }
 
 async function assertPeople(
@@ -157,43 +176,60 @@ function peopleFor(done: string[], supported: string[]): StoredReportPerson[] {
   ];
 }
 
+/** A column that may be NULL, read as `null` rather than `undefined` when the row leaves it out. */
+function maybe<T>(row: Record<string, unknown>, column: string): T | null {
+  return (row[column] as T | null | undefined) ?? null;
+}
+
 function buildStoredReport(
   row: Record<string, unknown>,
   people: StoredReportPerson[],
 ): StoredReport {
   return {
     id: row.id as string,
-    ticketId: (row.ticket_id as string | null) ?? null,
+    ticketId: maybe(row, 'ticket_id'),
     machineId: row.machine_id as string,
     date: row.date as string,
     shiftCode: row.shift_code as string,
     problem: row.problem as string,
-    observedBy: (row.observed_by as string | null) ?? null,
-    correctiveAction: (row.corrective_action as string | null) ?? null,
+    observedBy: maybe(row, 'observed_by'),
+    correctiveAction: maybe(row, 'corrective_action'),
     downtimeMin: row.downtime_min as number,
-    responseMin: (row.response_min as number | null) ?? null,
-    repairMin: (row.repair_min as number | null) ?? null,
-    breakdownCategory: (row.breakdown_category as string | null) ?? null,
-    maintCode: (row.maint_code as string | null) ?? null,
-    spareUsed: (row.spare_used as string | null) ?? null,
-    rootCause: (row.root_cause as string | null) ?? null,
-    handoverName: (row.handover_name as string | null) ?? null,
-    submittedByPersonId: (row.submitted_by_person_id as string | null) ?? null,
+    responseMin: maybe(row, 'response_min'),
+    repairMin: maybe(row, 'repair_min'),
+    breakdownCategory: maybe(row, 'breakdown_category'),
+    maintCode: maybe(row, 'maint_code'),
+    spareUsed: maybe(row, 'spare_used'),
+    rootCause: maybe(row, 'root_cause'),
+    handoverPersonId: maybe(row, 'handover_person_id'),
+    handoverName: maybe(row, 'handover_name'),
+    submittedByPersonId: maybe(row, 'submitted_by_person_id'),
     submittedAt: new Date(row.submitted_at as string | number | Date),
     people,
   };
+}
+
+/** Who the report names (done by, supported by, handed over to) must be people of this plant, and the handover is one or the other. */
+async function checkReportPeople(
+  client: PoolClient,
+  input: ReportStoreInput,
+): Promise<{ done: string[]; supported: string[] }> {
+  const { body, tenantId } = input;
+  const done =
+    body.doneByPersonIds ?? (input.ticket.leadPersonId ? [input.ticket.leadPersonId] : []);
+  const supported = body.supportedByPersonIds ?? [];
+  await assertPeople(client, tenantId, done, 'doneByPersonIds');
+  await assertPeople(client, tenantId, supported, 'supportedByPersonIds');
+  if (body.handoverPersonId && body.handoverName) throw new ReportValidationError('handoverName');
+  await assertPeople(client, tenantId, handoverIds(body), 'handoverPersonId');
+  return { done, supported };
 }
 
 export async function storeBreakdownReport(
   client: PoolClient,
   input: ReportStoreInput,
 ): Promise<StoredReport> {
-  const done =
-    input.body.doneByPersonIds ?? (input.ticket.leadPersonId ? [input.ticket.leadPersonId] : []);
-  const supported = input.body.supportedByPersonIds ?? [];
-  await assertPeople(client, input.tenantId, done, 'doneByPersonIds');
-  await assertPeople(client, input.tenantId, supported, 'supportedByPersonIds');
-
+  const { done, supported } = await checkReportPeople(client, input);
   const values = await reportValues(client, input);
   const result = await client.query(INSERT_REPORT_SQL, [
     input.tenantId,
@@ -212,6 +248,7 @@ export async function storeBreakdownReport(
     values.spareUsed,
     values.rootCause,
     values.handoverName,
+    values.handoverPersonId,
     input.actingPersonId,
   ]);
   const reportId = result.rows[0].id as string;
@@ -235,7 +272,8 @@ export async function storeBreakdownReport(
       maint_code: values.maintCode,
       spare_used: values.spareUsed,
       root_cause: values.rootCause,
-      handover_name: values.handoverName,
+      handover_name: await handoverDisplay(client, input.tenantId, values),
+      handover_person_id: values.handoverPersonId,
       submitted_by_person_id: input.actingPersonId,
       submitted_at: result.rows[0].submitted_at,
     },
@@ -267,14 +305,18 @@ export async function loadReport(
 ): Promise<StoredReport | null> {
   const row = (
     await client.query(
-      `SELECT id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
+      `SELECT id, tenant_id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
          corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
-         spare_used, root_cause, handover_name, submitted_by_person_id, submitted_at
+         spare_used, root_cause, handover_name, handover_person_id, submitted_by_person_id, submitted_at
        FROM breakdown_report WHERE ticket_id = $1`,
       [ticketId],
     )
   ).rows[0];
   if (!row) return null;
+  row.handover_name = await handoverDisplay(client, row.tenant_id as string, {
+    handoverPersonId: (row.handover_person_id as string | null) ?? null,
+    handoverName: (row.handover_name as string | null) ?? null,
+  });
   const people = (
     await client.query('SELECT person_id, role FROM breakdown_report_person WHERE report_id = $1', [
       row.id,

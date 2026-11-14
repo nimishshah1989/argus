@@ -8,7 +8,6 @@ const PERSON_COLUMNS = {
   shortName: 'short_name',
   phone: 'phone',
   team: 'team',
-  kind: 'kind',
   title: 'title',
   cell: 'cell',
   defaultShift: 'default_shift',
@@ -18,7 +17,7 @@ const PERSON_COLUMNS = {
 export type PersonFields = Partial<{ [K in keyof typeof PERSON_COLUMNS]: unknown }>;
 
 const PERSON_SELECT =
-  'id, name, short_name, phone, team, kind, title, cell, default_shift, active, pending';
+  'id, name, short_name, phone, team, title, cell, default_shift, active, pending';
 
 function toPerson(r: Record<string, unknown>): PersonAdmin {
   return {
@@ -27,7 +26,6 @@ function toPerson(r: Record<string, unknown>): PersonAdmin {
     shortName: r.short_name,
     phone: r.phone,
     team: r.team,
-    kind: r.kind,
     title: r.title,
     cell: r.cell,
     defaultShift: r.default_shift,
@@ -74,9 +72,9 @@ export async function insertPerson(
 ): Promise<PersonAdmin> {
   const row = (
     await tx.query(
-      `INSERT INTO person (tenant_id, name, short_name, phone, team, kind, title, cell, default_shift, active)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'staff'), $7, $8, $9, true) RETURNING ${PERSON_SELECT}`,
-      [tenantId, p.name, p.shortName, p.phone, p.team, p.kind, p.title, p.cell, p.defaultShift].map(
+      `INSERT INTO person (tenant_id, name, short_name, phone, team, title, cell, default_shift, active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING ${PERSON_SELECT}`,
+      [tenantId, p.name, p.shortName, p.phone, p.team, p.title, p.cell, p.defaultShift].map(
         (v) => v ?? null,
       ),
     )

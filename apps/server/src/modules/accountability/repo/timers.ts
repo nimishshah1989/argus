@@ -280,3 +280,14 @@ export async function processSlaTimerJob(
     return false;
   });
 }
+
+/** Every ticket that has clocks, finished or not: a closed ticket whose clocks never stopped is found here. */
+export async function ticketIdsWithTimers(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+): Promise<string[]> {
+  const rows = (
+    await client.query('SELECT DISTINCT ticket_id FROM sla_timer WHERE tenant_id = $1', [tenantId])
+  ).rows;
+  return rows.map((row) => row.ticket_id as string);
+}

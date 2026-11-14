@@ -527,6 +527,44 @@ describe('erase_person', () => {
     );
     expect(audit.rows[0].after).toMatchObject({ text_searched: false, skipped_short_terms: 1 });
   });
+
+  it.each([
+    ['a name long enough to search', 'Handoverson Leaver', '40000000-0000-0000-0000-0000000000a5'],
+    ['a name too short to search', 'Om', '40000000-0000-0000-0000-0000000000a6'],
+  ])(
+    'removes the signature of a report handed over to the leaver by link, with %s and no typed copy',
+    async (_label, name, T) => {
+      await tenant(T, `handover-${T.slice(-2)}`);
+      const leaver = await person(T, name);
+      const machine = randomUUID();
+      await db.query("INSERT INTO machine (id, tenant_id, code) VALUES ($1, $2, 'M-8')", [
+        machine,
+        T,
+      ]);
+      const ticketId = await ticket(T, 'BD-0001', 'Pump', { machine_id: machine });
+      const signature = randomUUID();
+      await db.query(
+        `INSERT INTO file (id, tenant_id, kind, s3_key, mime, bytes, sha256)
+         VALUES ($1, $2, 'signature', $3, 'image/png', 1, 's1')`,
+        [signature, T, `handover/${T}.png`],
+      );
+      await db.query(
+        `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem,
+           handover_person_id, handover_name, signature_file_id)
+         VALUES ($1, $2, $3, current_date, '1', 'Pump', $4, NULL, $5)`,
+        [T, ticketId, machine, leaver, signature],
+      );
+      const result = await erase(T, leaver, 'REQ-H');
+      expect(result.file).toBe(1);
+      expect(result.s3_keys).toEqual([`handover/${T}.png`]);
+      const report = await db.query(
+        'SELECT signature_file_id FROM breakdown_report WHERE tenant_id = $1',
+        [T],
+      );
+      expect(report.rows[0].signature_file_id).toBeNull();
+      expect((await db.query('SELECT 1 FROM file WHERE id = $1', [signature])).rowCount).toBe(0);
+    },
+  );
 });
 
 describe('offboard_tenant and audit_purge', () => {

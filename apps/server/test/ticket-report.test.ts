@@ -267,4 +267,63 @@ describe('breakdown report', () => {
     const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
     expect(detail.json().report).toBeNull();
   });
+
+  it('records the handover as a person link, and replies show that person’s name as the handover', async () => {
+    const id = await raiseAndStart(M1);
+    const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: BINA },
+    });
+    expect(close.statusCode).toBe(200);
+    const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(stored.handoverPersonId).toBe(BINA);
+    expect(stored.handoverName).toBe('Bina');
+    const typed = await admin.query(
+      'SELECT handover_name FROM breakdown_report WHERE ticket_id = $1',
+      [id],
+    );
+    expect(typed.rows[0].handover_name).toBeNull();
+    // The name follows the person row: after an erasure it reads "Former staff".
+    await admin.query("UPDATE person SET name = 'Former staff' WHERE id = $1", [BINA]);
+    const erased = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(erased.handoverName).toBe('Former staff');
+    expect(erased.handoverPersonId).toBe(BINA);
+    await admin.query("UPDATE person SET name = 'Bina' WHERE id = $1", [BINA]);
+  });
+
+  it('refuses a handover given both as a person and as typed text', async () => {
+    const id = await raiseAndStart(M5);
+    const both = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: BINA, handoverName: 'typed as well' },
+    });
+    expect(both.statusCode).toBe(422);
+    expect(both.json().error.field).toBe('handoverName');
+  });
+
+  it('keeps a typed handover as text when no person is given, as imported history has it', async () => {
+    const id = await raiseAndStart(M2);
+    const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverName: 'Night crew' },
+    });
+    expect(close.statusCode).toBe(200);
+    const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(stored.handoverPersonId).toBeNull();
+    expect(stored.handoverName).toBe('Night crew');
+  });
+
+  it('refuses a handover to someone who is not in this plant', async () => {
+    const id = await raiseAndStart(M3);
+    const refused = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+    });
+    expect(refused.statusCode).toBe(422);
+    expect(refused.json().error.field).toBe('handoverPersonId');
+  });
 });

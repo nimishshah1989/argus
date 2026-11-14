@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { apiError } from '@uptimo/shared';
+import { storedReportSchema } from '@uptimo/shared/ticket-reply';
 import { REPLY_SCHEMAS } from '@uptimo/shared/replies';
 import { buildApp } from '../src/app.js';
 import { registerReplyCheck, replyProblem, routeTable } from '../src/kernel/index.js';
@@ -66,6 +67,49 @@ describe('reply contract', () => {
     expect(replyProblem(STATE, 200, notFound)).not.toBeNull();
     expect(replyProblem(STATE, 422, { message: 'x' })).not.toBeNull();
     expect(replyProblem('GET /api/v1/nope', 200, {})).toContain('has no reply schema');
+  });
+});
+
+describe('a stored report in a reply', () => {
+  const report = {
+    id: 'r1',
+    machineId: 'm1',
+    date: '2026-11-10',
+    shiftCode: '1',
+    problem: 'Pump',
+    ticketId: 't1',
+    observedBy: null,
+    correctiveAction: null,
+    breakdownCategory: null,
+    maintCode: null,
+    spareUsed: null,
+    rootCause: null,
+    handoverPersonId: 'p1',
+    handoverName: 'Bina',
+    submittedByPersonId: null,
+    downtimeMin: 0,
+    responseMin: null,
+    repairMin: null,
+    submittedAt: '2026-11-10T05:00:00.000Z',
+    people: [],
+  };
+
+  it('carries the handover as a display name next to the person it points at', () => {
+    expect(storedReportSchema.safeParse(report).success).toBe(true);
+    expect(
+      storedReportSchema.safeParse({
+        ...report,
+        handoverPersonId: null,
+        handoverName: 'Night crew',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('fails a report that leaves out the display name or the person link', () => {
+    const without = (key: string) =>
+      Object.fromEntries(Object.entries(report).filter(([k]) => k !== key));
+    expect(storedReportSchema.safeParse(without('handoverName')).success).toBe(false);
+    expect(storedReportSchema.safeParse(without('handoverPersonId')).success).toBe(false);
   });
 });
 

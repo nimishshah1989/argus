@@ -105,7 +105,7 @@ export const segmentCreateSchema = dropBlanks(
     .partial({ sort: true, showOnBoard: true, groupBy: true })
     .strict(),
 );
-/** A segment has no switch-off column yet (ticket 29): `active: false` is refused, `true` accepted. Hide it from the board with `showOnBoard`. */
+/** `active: false` switches a segment off (refused while machines in it are in service). Hide it from the board only with `showOnBoard`. */
 export const segmentPatchSchema = z
   .object({ code, ...segmentFields, active: flag })
   .partial()
@@ -139,7 +139,7 @@ export type GroupReply = z.infer<typeof groupReplySchema>;
 const shiftTimes = { startsAt: clock, endsAt: clock };
 /** `crossesMidnight` is worked out from the two times, never typed. A shift code is fixed once made: history names it. */
 export const shiftCreateSchema = dropBlanks(z.object({ code, name, ...shiftTimes }).strict());
-/** A shift has no switch-off column yet (ticket 29): `active: false` is refused, `true` is accepted. */
+/** `active: false` switches a shift off: new reports and the board's config stop using it, history keeps it. */
 export const shiftPatchSchema = z
   .object({ code, name, ...shiftTimes, active: flag })
   .partial()
@@ -195,7 +195,7 @@ const glossaryFields = {
 export const glossaryCreateSchema = dropBlanks(
   z.object(glossaryFields).partial({ direction: true }).strict(),
 );
-/** A glossary term has no switch-off column yet (ticket 29): `active: false` is refused, `true` accepted. */
+/** `active: false` switches a glossary term off. */
 export const glossaryPatchSchema = z
   .object({ ...glossaryFields, active: flag })
   .partial()

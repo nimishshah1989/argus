@@ -6,9 +6,9 @@ import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
 const MIGRATIONS = new URL('../../../packages/db/migrations/', import.meta.url);
 
 /** Every migration file, in filename order (so new migrations are applied automatically). */
-function migrationFiles(): string[] {
+function migrationFiles(through?: string): string[] {
   return readdirSync(MIGRATIONS)
-    .filter((name) => name.endsWith('.sql'))
+    .filter((name) => name.endsWith('.sql') && (through === undefined || name <= through))
     .sort();
 }
 
@@ -48,15 +48,15 @@ export interface TestDb {
 }
 
 /**
- * Boots a Testcontainers Postgres, applies every migration as the superuser, flips
+ * Boots a Testcontainers Postgres, applies every migration (or those up to `through`) as the superuser, flips
  * `app_api` to a login role, and returns two pools: an `admin` pool (seeding/direct
  * assertions) and an `app` pool (the role the server really uses).
  */
-export async function startTestDb(): Promise<TestDb> {
+export async function startTestDb(options: { through?: string } = {}): Promise<TestDb> {
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
   const admin = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
   const beginAdmin = tolerateShutdown(admin);
-  for (const file of migrationFiles()) {
+  for (const file of migrationFiles(options.through)) {
     await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
   }
   await installJobSchema(admin);

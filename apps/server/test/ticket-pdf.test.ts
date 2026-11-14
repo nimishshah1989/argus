@@ -160,6 +160,7 @@ function qrFixture(): ReportPdfInput {
       maintCode: 'SP',
       spareUsed: 'Bearing',
       rootCause: 'Wear',
+      handoverPersonId: null,
       handoverName: 'Next shift',
       submittedByPersonId: ASHA,
       submittedAt: new Date('2026-11-10T05:00:00Z'),
@@ -303,6 +304,13 @@ describe('breakdown report PDF', () => {
     } finally {
       await pool.query("UPDATE machine SET code = 'VC-1' WHERE id = $1", [M1]);
     }
+  });
+
+  it('prints the handover as the report names it: a person’s name, or the typed text of imported history', () => {
+    expect(
+      renderReportHtml({ ...qrFixture(), report: { ...qrFixture().report, handoverName: 'Bina' } }),
+    ).toContain('Bina');
+    expect(renderReportHtml(qrFixture())).toContain('Next shift');
   });
 
   it('builds the v1 QR payload and embeds the QR in the template', async () => {

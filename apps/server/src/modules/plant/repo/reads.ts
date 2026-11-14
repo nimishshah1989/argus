@@ -26,6 +26,7 @@ export async function machinesByIds(
   ).rows;
 }
 
+/** Every shift, switched off or not: the SLA calendar and past results never depend on what the floor is offered. */
 export async function shiftWindows(tx: Db): Promise<Record<string, unknown>[]> {
   return (
     await tx.query(
@@ -54,7 +55,7 @@ export async function listItem(
   ).rows[0];
 }
 
-/** The shift covering `at` in the tenant zone; the later-starting shift owns an overlap. */
+/** The shift in force at `at` in the tenant zone (switched-off shifts do not count); the later-starting shift owns an overlap. */
 export async function shiftCodeAt(
   tx: Db,
   timeZone: string | null,
@@ -64,8 +65,8 @@ export async function shiftCodeAt(
     await tx.query(
       `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE $1)::time AS t)
        SELECT code FROM shift, local_time
-       WHERE (NOT crosses_midnight AND t >= starts_at AND t < ends_at)
-          OR (crosses_midnight AND (t >= starts_at OR t < ends_at))
+       WHERE active AND ((NOT crosses_midnight AND t >= starts_at AND t < ends_at)
+          OR (crosses_midnight AND (t >= starts_at OR t < ends_at)))
        ORDER BY starts_at DESC LIMIT 1`,
       [timeZone, at],
     )

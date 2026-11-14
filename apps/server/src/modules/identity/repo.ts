@@ -203,7 +203,6 @@ export async function redactionTerms(tx: Db, tenantId: string): Promise<Redactio
 export interface NewPerson {
   name: string;
   team: string;
-  kind: string;
   title: string | null;
   phone: string | null;
   defaultShift: string | null;
@@ -245,8 +244,8 @@ export async function insertPeople(
   for (const p of people) {
     const row = (
       await tx.query(
-        'INSERT INTO person (tenant_id, name, team, kind, title, phone, default_shift, active) VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING id',
-        [tenantId, p.name, p.team, p.kind, p.title, p.phone, p.defaultShift],
+        'INSERT INTO person (tenant_id, name, team, title, phone, default_shift, active) VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id',
+        [tenantId, p.name, p.team, p.title, p.phone, p.defaultShift],
       )
     ).rows[0] as { id: string };
     if (p.login)
@@ -297,8 +296,8 @@ export async function activePeople(
 
 export async function ensurePendingPerson(tx: Db, tenantId: string, name: string): Promise<string> {
   const inserted = await tx.query(
-    `INSERT INTO person (tenant_id, name, team, kind, active, pending)
-       VALUES ($1, $2, 'production', 'production', true, true) RETURNING id`,
+    `INSERT INTO person (tenant_id, name, team, active, pending)
+       VALUES ($1, $2, 'production', true, true) RETURNING id`,
     [tenantId, name],
   );
   return inserted.rows[0].id as string;
