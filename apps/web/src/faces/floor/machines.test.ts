@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Group, Machine, Segment } from '../../api.js';
+import type { Group, Machine, Segment, Ticket } from '../../api.js';
 import {
   groupExample,
   groupMachines,
@@ -78,5 +78,19 @@ describe('floor group sections', () => {
       ['VC', 2],
       ['TC', 1],
     ]);
+  });
+});
+
+describe('floor complaint words', () => {
+  it('reads Booked, In progress, Fixed, and a cancelled ticket as Cancelled', async () => {
+    const { floorStatus } = await import('./machines.js');
+    const of = (status: Ticket['status']) => floorStatus({ status } as Ticket);
+    expect([of('open'), of('working'), of('waiting'), of('closed')]).toEqual([
+      { group: 'floor', id: 'booked' },
+      { group: 'floor', id: 'in_progress' },
+      { group: 'floor', id: 'in_progress' },
+      { group: 'floor', id: 'fixed' },
+    ]);
+    expect(of('cancelled')).toEqual({ group: 'ticket', id: 'cancelled' });
   });
 });
