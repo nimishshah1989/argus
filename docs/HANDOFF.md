@@ -1,41 +1,43 @@
 # Where things stand
 
-Under 50 lines. Read first, rewrite at session end.
+Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE
+## RESUME HERE (frontend orchestrator session_01KEBF28FjJbxz9dfKVhZPSp, 14 Nov 2026 ~08:30 UTC)
 
-**Process:** pstack (`CLAUDE.md`, D23). **Plan:** `docs/plan/MILESTONES.md` (68 tickets; tracker at the top wins).
-**Ledger:** `docs/plan/ledger.md` (every dispatch, ruling and merge, one line each). Orchestrator stopped here
-on Nimish's instruction so he can restart on the new harness; no builder session is running.
+**Two lanes (CLAUDE.md):** FRONTEND orchestrator (apps/web, infra, staging, MILESTONES, HANDOFF, `docs/plan/ledger.md`)
+and BACKEND orchestrator session_01KEBF2ANCJYSxcYWMb43Pwz (apps/server, packages, scripts; `ledger-backend.md`).
+One migration in flight across lanes; FRONTEND grants the lock (now held by backend for 29, M2 schema).
+**Merges:** only the orchestrators. **CI cost rule (Nimish, #224):** drafts run no CI; builders run precheck and the
+touched suites locally; CI runs once when the orchestrator marks a PR ready; no CI on main. Actions budget is Nimish's.
+**pstack:** vendored in `.claude/skills` (#208, #214). New tickets start in a fresh session whose first message is
+`/poteto-mode <brief>`; reviews are ponytail-review plus `/interrogate` for schema, auth, tenancy, deletes, history.
+**Screens:** only from approved mockups (`docs/design/LOCK.md`); desktop layouts live in the patterns (#222).
 
-**M0 (14 tickets): 12 merged**: 01–08, 10–13 (+ side PRs 01b, 13b, 04b, CI friction #170).
-**Left in M0:** 09 (real tickets in; blocked by 07 + 08, both merged: READY) and 14 (staging holds Cosmos, safe to
-run; blocked by 09 + 13). Then the M0 gate: `docs/plan/gates/M0.md`, Nimish tests staging on his phone, picks
-the accent, reviews the 31 status labels, then moves `ready-for-agent` from M0 to M1 issues.
-09 may overlap `docs/plan/CLAUDE-ADOPTION.md` (import pack): read it first.
+## M0: gate report written (`docs/plan/gates/M0.md`), waiting for Nimish's go
 
-## Staging (AWS, account 118167167649, ap-south-1)
+Restore drill A passed (11-minute point-in-time restore, counts identical). The weekly dump is carried into M1.
 
-- Server `i-0c8debfdec0da8209`, Elastic IP 3.108.95.203, `m6g.large` in zone c, RDS `uptimo-postgres`,
-  site_url `https://cosmos.3-108-95-203.sslip.io`. Nothing answers until the first deploy.
-- First deploy (ticket 14 owns it; Nimish does the AWS parts, step by step): 1) RDS snapshot first
-  (`aws rds create-db-snapshot`, wait until available); 2) GitHub secret `AWS_ROLE_ARN`; 3) `ROUTER_DATABASE_URL`
-  in `migrate.env` only, never `app.env` (edit `infra/instance/refresh-env.sh`); 4) migration 0009 needs a
-  maintenance window (FK re-validation takes ACCESS EXCLUSIVE locks); 5) `gh workflow run deploy.yml`; 6) free outside uptime pinger. Unverified on real RDS: master-user roles, pg-boss, pgcrypto.
-- Tags: staging has none; otherwise `scripts/export-tags.ts` first, then `PGOPTIONS='-c uptimo.tags_exported=N'`;
-  `scripts/preflight-cutover.ts` must exit 0.
+## In flight (frontend)
 
-## Decisions waiting for Nimish at the gate
+- #222 desktop patterns (side panel, sortable tables, SideNav), ready, one CI run, then merge. Then PR-C, the desk
+  two-pane (builder session_01KEBF26LgQj2ZmZDx8Km8Mi).
+- #225 who-is-acting + change password (builder session_01KEBF28gYoZ8XReuz1auL6F): /interrogate FAIL, fixing the
+  /who-/password reload loop and outbox entries recorded per person.
+- 25 live board (session_01KEBF28GwjEXv9mZoRUHYCf) from the approved combined board, 'now' version.
 
-Accent (blue or deep teal) on `/gallery`; 31 status labels; new words ("Switch off", "Step 1 of 3", "Show the
-numbers"), chart style, a "Show switched off" option; DATA-MAP §5 wording from 07, Q25 default (offboarding proof in
-the audit row, files in the backup bucket), offboarded-tenant stub keeps the company name; `audit_purge` also
-removes offboard/erase proof rows after 3 years; billing alarm = existing USD 150 budget; a repo admin adds the
-`pr-meta` check to the required checks (merge rule: 9 green checks).
+## Next frontend (as slots free, each a fresh /poteto-mode session)
 
-## Follow-ups (not yet tickets)
+22/23 settings screens as CrudPage config, then 20/21 people + audit, then 19 follow-up tasks plus the past-breakdown
+screen (POST /tickets/past contract in the ledger), and the outbox follow-up (any permanent refusal leaves the queue,
+visibly). Slice 4 canvas (phone + desktop + icons): https://claude.ai/artifact/7iLVAMkHLQ8ncGEg5ZWhXL.
+Live board (approved): https://claude.ai/artifact/M3Gc2VpfMqTBrQ6u6MrV6p.
 
-Separate NOLOGIN history-owner role before production (26/28); server accepts what the Spec forbids (05);
-raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
-seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
-import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
+## Waiting on Nimish
+
+M0 go; Q10 repair vs waiting (recommend v3 rule plus a separate waiting figure); Q11 escalation defaults (recommend
+accept); the 31 status labels; the Actions budget alert; the weekly dump (RESTORE.md §0).
+
+## Staging
+
+https://cosmos.3-108-95-203.sslip.io, deploys on every merge to main. Server i-0c8debfdec0da8209, RDS
+uptimo-postgres, ap-south-1. Cosmos loaded (192 machines, 26 logins, 275 tickets).

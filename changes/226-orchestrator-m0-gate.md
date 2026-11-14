@@ -1,0 +1,1 @@
+- No change for plant users. The M0 gate report, the first restore drill (passed: an 11-minute point-in-time restore with identical counts), the fixed restore runbook, and the frontend orchestrator's ledger, tracker and handoff.

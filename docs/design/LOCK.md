@@ -94,7 +94,7 @@ slice's screen PR adds its own. Decisions that came with them:
 - The report keeps three "Done by" and one "Supported by".
 - A restored ticket does not count the cancelled gap.
 - The wall TV is signed in once at setup and stays signed in.
-- A shared phone asks "who is acting" once after sign-in, not per sheet.
+- A shared phone asks "who is acting" once after sign-in, not per sheet. Floor and desk use the same picker: the company's people list (Nimish, 14 Nov, replacing T2's typed name + role chip).
 - The label is "Alerts".
 - The WhatsApp share keeps v3's details (reporter, who is working, what it waits for) and reads "Cell 4".
 - Live counts use v3's words (Running, Stopped, In progress, Support); a waiting machine counts as Stopped.
