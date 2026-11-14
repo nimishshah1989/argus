@@ -1,0 +1,3 @@
+- Reports can be printed on the real server: the server image now has Chromium and the Gujarati and Devanagari fonts, and a release is refused if it cannot make a PDF.
+- The ticket PDF button no longer leaves a file and a database row each time; the PDF is made on the spot and sent straight back. Printing many at once now says "try again shortly" instead of overloading the server.
+- Every deploy that changes the database takes a database snapshot first and says so plainly if it has to roll back after migrating.

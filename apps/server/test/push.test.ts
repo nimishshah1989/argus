@@ -1,5 +1,5 @@
 import { hash } from '@node-rs/argon2';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import webpush from 'web-push';
 import { buildApp } from '../src/app.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -13,7 +13,7 @@ const LOGIN_2 = '20000000-0000-0000-0000-000000000003';
 const PASSWORD = 'correct-horse-battery';
 
 const SUBSCRIPTION = {
-  endpoint: 'https://push.example/endpoint-1',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/endpoint-1',
   keys: { p256dh: 'test-p256dh', auth: 'test-auth' },
 };
 
@@ -72,6 +72,12 @@ async function clearVapid<T>(run: () => Promise<T>): Promise<T> {
 }
 
 beforeAll(async () => {
+  // No test may reach a real push service.
+  vi.spyOn(webpush, 'sendNotification').mockResolvedValue({
+    statusCode: 201,
+    body: '',
+    headers: {},
+  });
   const keys = webpush.generateVAPIDKeys();
   vapidPublic = keys.publicKey;
   process.env.VAPID_PUBLIC_KEY = keys.publicKey;
@@ -176,5 +182,68 @@ describe('web push', () => {
       expect(missing.statusCode).toBe(503);
       expect(missing.json().error.code).toBe('not_configured');
     });
+  });
+});
+
+describe('which addresses a push subscription may name', () => {
+  const subscribe = (endpoint: string) =>
+    post('/api/v1/push/subscribe', token1, {
+      subscription: { endpoint, keys: SUBSCRIPTION.keys },
+      actingPersonId: PERSON_1,
+    });
+
+  it('refuses addresses that are not a real push service, and stores nothing', async () => {
+    await db.admin.query('DELETE FROM push_subscription');
+    const bad = [
+      'http://169.254.169.254/latest/meta-data/',
+      'https://169.254.169.254/',
+      'https://evil.example/endpoint',
+      'https://[::1]/',
+      'http://fcm.googleapis.com/fcm/send/x',
+      'https://fcm.googleapis.com:8443/fcm/send/x',
+      'https://fcm.googleapis.com@evil.example/fcm/send/x',
+      'https://user:secret@fcm.googleapis.com/fcm/send/x',
+      'https://fcm.googleapis.com.evil.example/fcm/send/x',
+      'https://evilpush.apple.com/x',
+      'https://push.apple.com.evil.example/x',
+      'https://notify.windows.com.evil.example/x',
+      'ftp://fcm.googleapis.com/x',
+      'not a url',
+    ];
+    for (const endpoint of bad) {
+      const res = await subscribe(endpoint);
+      expect(res.statusCode, endpoint).toBe(422);
+    }
+    expect((await db.admin.query('SELECT 1 FROM push_subscription')).rows).toEqual([]);
+  });
+
+  it('accepts the real push services', async () => {
+    const good = [
+      'https://fcm.googleapis.com/fcm/send/abc',
+      'https://updates.push.services.mozilla.com/wpush/v2/abc',
+      'https://web.push.apple.com/abc',
+      'https://wns2-par02p.notify.windows.com/w/?token=abc',
+      'https://fcm.googleapis.com:443/fcm/send/abc',
+    ];
+    for (const endpoint of good) {
+      expect((await subscribe(endpoint)).statusCode, endpoint).toBe(200);
+    }
+  });
+
+  it('never sends to an address saved before the rule, such as an internal one', async () => {
+    await db.admin.query('DELETE FROM push_subscription');
+    await db.admin.query(
+      `INSERT INTO push_subscription (tenant_id, login_id, acting_person_id, endpoint, keys, role)
+       VALUES ($1, $2, $3, 'http://169.254.169.254/latest/meta-data/', '{"p256dh":"a","auth":"b"}', 'technician'),
+              ($1, $2, $3, 'https://fcm.googleapis.com/fcm/send/ok', '{"p256dh":"a","auth":"b"}', 'technician')`,
+      [TENANT, LOGIN_1, PERSON_1],
+    );
+    const send = vi.mocked(webpush.sendNotification);
+    send.mockClear();
+    const res = await post('/api/v1/push/test', token1, {});
+    expect(res.json()).toEqual({ sent: 1 });
+    expect(send.mock.calls.map(([sub]) => (sub as { endpoint: string }).endpoint)).toEqual([
+      'https://fcm.googleapis.com/fcm/send/ok',
+    ]);
   });
 });

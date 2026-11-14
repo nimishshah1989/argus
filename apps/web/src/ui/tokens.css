@@ -2,9 +2,10 @@
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Noto Sans Gujarati', sans-serif;
 
-  /* Accent: fills behind white text use accent-strong; rings and icons use accent. */
-  --color-accent: #0a66c2;
-  --color-accent-strong: #0a66c2;
+  /* Accent: deep teal (Nimish, 13 Nov 2026). #0f766e is 5.47:1 on white, so it serves as text, as a fill
+     behind white text and as rings/icons alike. The lighter #0d9488 is only 3.74:1 on white: it fails as text. */
+  --color-accent: #0f766e;
+  --color-accent-strong: #0f766e;
   --color-surface: #ffffff;
 
   /* Neutral scale. */
@@ -72,8 +73,8 @@
   }
 }
 
-/* The second accent option; the gallery sets data-accent. */
-:root[data-accent='teal'] {
-  --color-accent: #0d9488;
-  --color-accent-strong: #0f766e;
+/* The comparison accent (the old default); only the gallery sets data-accent. */
+:root[data-accent='blue'] {
+  --color-accent: #0a66c2;
+  --color-accent-strong: #0a66c2;
 }

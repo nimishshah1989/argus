@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import QRCode from 'qrcode';
+import { createRenderGate } from './render-gate.js';
 
 const exec = promisify(execFile);
 
@@ -177,6 +178,13 @@ export function resolveChromium(override?: string): string {
   throw new Error('Chromium not found: set CHROMIUM_PATH or PLAYWRIGHT_BROWSERS_PATH');
 }
 
+// One Chromium at a time and three waiting (D25): a render is hundreds of MB and seconds of CPU on a 2-vCPU
+// machine that also serves the API. A fifth caller gets RenderBusyError instead of piling up processes.
+const renderGate = createRenderGate(1, 3);
+
+// `--no-sandbox` stays because the Docker default seccomp profile blocks the user namespaces Chromium's own
+// sandbox needs, and the only fix is a looser container for the whole server. What it renders is our own
+// template, every value escaped, no script, no network; the container runs as a non-root user (D25).
 const CHROMIUM_ARGS = [
   '--headless',
   '--disable-gpu',
@@ -187,8 +195,12 @@ const CHROMIUM_ARGS = [
   '--virtual-time-budget=2000',
 ];
 
-/** Render an HTML document to a PDF buffer with headless Chromium. */
-export async function renderPdf(html: string, chromiumPath?: string): Promise<Buffer> {
+/** Render an HTML document to a PDF buffer with headless Chromium (queued: see `renderGate`). */
+export function renderPdf(html: string, chromiumPath?: string): Promise<Buffer> {
+  return renderGate(() => renderNow(html, chromiumPath));
+}
+
+async function renderNow(html: string, chromiumPath?: string): Promise<Buffer> {
   const dir = await mkdtemp(join(tmpdir(), 'uptimo-pdf-'));
   try {
     const htmlPath = join(dir, 'report.html');

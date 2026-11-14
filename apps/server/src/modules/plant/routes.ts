@@ -5,7 +5,6 @@ import {
   isListName,
   listUpsertSchema,
   settingsPutSchema,
-  severityMatrixSchema,
   translationSchema,
 } from '@uptimo/shared';
 import { canSettingsPeople, type ActorContext } from '@uptimo/domain';
@@ -20,6 +19,7 @@ import {
   updateTranslation,
   upsertSetting,
 } from './repo/config.js';
+import { writableSetting } from './settings.js';
 import { fingerprint, loadConfig } from './service.js';
 
 export function canWrite(role: string): boolean {
@@ -68,23 +68,27 @@ async function listSettings(pool: Pool, request: FastifyRequest, reply: FastifyR
 async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  if (!canWrite(ctx.role)) return forbidden(reply);
-  const parsed = settingsPutSchema.safeParse(request.body);
-  if (!parsed.success) {
-    reply.code(422).send(apiError('validation', 'Invalid setting'));
+  const key = (request.params as { key: string }).key;
+  const setting = writableSetting(key);
+  if (!setting) {
+    reply.code(404).send(apiError('not_found', 'Unknown setting'));
     return;
   }
-  const key = (request.params as { key: string }).key;
-  // M2-2.1: validate the severity matrix shape before persisting it.
-  if (key === 'severity_matrix') {
-    const matrix = severityMatrixSchema.safeParse(parsed.data.value);
-    if (!matrix.success) {
-      reply.code(422).send(apiError('validation', 'Invalid severity matrix', 'value'));
-      return;
-    }
+  const actor: ActorContext = {
+    role: ctx.role as ActorContext['role'],
+    loginId: ctx.loginId,
+    personId: ctx.personId,
+    shared: ctx.shared,
+  };
+  if (!setting.allow(actor)) return forbidden(reply);
+  const body = settingsPutSchema.safeParse(request.body);
+  const value = body.success ? setting.schema.safeParse(body.data.value) : null;
+  if (!value?.success) {
+    reply.code(422).send(apiError('validation', 'Invalid setting', 'value'));
+    return;
   }
   await withTenant(pool, ctx.tenantId, (client) =>
-    upsertSetting(client, ctx.tenantId, key, parsed.data.value),
+    upsertSetting(client, ctx.tenantId, key, value.data),
   );
   reply.send({ ok: true });
 }

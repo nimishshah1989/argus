@@ -6,12 +6,15 @@ interface Props {
   figures: TicketFigures | null;
   kind: RaiseKind;
   names: Record<string, string>;
+  /** An open breakdown's downtime so far (the figures hold finished stretches only). */
+  liveDownMin?: number;
 }
 
-export function Figures({ figures, kind, names }: Props) {
+export function Figures({ figures, kind, names, liveDownMin }: Props) {
   const { t } = useTranslation();
   if (!figures) return null;
-  const downtime = kind === 'stopped' ? (figures.downtimeMin ?? figures.downAccMin) : null;
+  const downtime =
+    kind === 'stopped' ? (figures.downtimeMin ?? liveDownMin ?? figures.downAccMin) : null;
   const stats = [
     { label: t('figures.response'), value: formatMinutes(figures.responseMin) },
     { label: t('figures.handsOn'), value: formatMinutes(figures.activeMin) },

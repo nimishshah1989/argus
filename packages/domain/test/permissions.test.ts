@@ -5,6 +5,7 @@ import {
   canCorrect,
   canRaise,
   canRestore,
+  canSettingsAi,
   canSettingsLists,
   canSettingsPeople,
   canWork,
@@ -65,5 +66,19 @@ describe('permissions', () => {
     expect(canSettingsLists(actor('technician'))).toBe(false);
     expect(canSettingsPeople(actor('admin'))).toBe(true);
     expect(canSettingsPeople(actor('head'))).toBe(false);
+  });
+
+  it('keeps the AI consent and spending settings with the admin alone', () => {
+    expect(canSettingsAi(actor('admin'))).toBe(true);
+    for (const role of [
+      'head',
+      'plant_head',
+      'supervisor',
+      'technician',
+      'operator',
+      'board',
+    ] as const) {
+      expect(canSettingsAi(actor(role)), role).toBe(false);
+    }
   });
 });

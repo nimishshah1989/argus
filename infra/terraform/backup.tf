@@ -75,3 +75,26 @@ resource "aws_iam_role_policy" "server_backup" {
 }
 
 output "backup_bucket" { value = aws_s3_bucket.backups.id }
+
+# deploy.sh takes a snapshot of the database before a release that migrates it (CLAUDE.md: back up first).
+# The instance may create snapshots named uptimo-pre-* of this one database and look them up to wait for
+# them: no delete, no restore, no other database, nothing else in RDS. Describe is not scoped to a resource
+# (I could not confirm from the AWS docs that DescribeDBSnapshots accepts one); it only reads.
+resource "aws_iam_role_policy" "server_snapshot" {
+  role = aws_iam_role.server.id
+  name = "${var.app}-server-snapshot"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["rds:CreateDBSnapshot"]
+        Resource = [
+          aws_db_instance.postgres.arn,
+          replace(aws_db_instance.postgres.arn, ":db:${aws_db_instance.postgres.identifier}", ":snapshot:${var.app}-pre-*"),
+        ]
+      },
+      { Effect = "Allow", Action = ["rds:DescribeDBSnapshots"], Resource = "*" },
+    ]
+  })
+}

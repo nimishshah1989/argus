@@ -124,4 +124,28 @@ describe('auth guard', () => {
       await limited.close();
     }
   });
+
+  it('gives each plant visitor behind the proxy their own budget, and ignores a spoofed address from anywhere else', async () => {
+    const limited = await build(1);
+    try {
+      await limited.ready();
+      const call = (remoteAddress: string, forwardedFor: string) =>
+        limited.inject({
+          method: 'GET',
+          url: '/api/v1/auth/me',
+          remoteAddress,
+          headers: { 'x-forwarded-for': forwardedFor },
+        });
+      const caddy = '172.18.0.3';
+      expect((await call(caddy, '203.0.113.5')).statusCode).toBe(401);
+      expect((await call(caddy, '203.0.113.5')).statusCode).toBe(429);
+      expect((await call(caddy, '203.0.113.6')).statusCode).toBe(401);
+      // A header sent by something that is not the proxy is not believed: one budget for the real sender.
+      const stranger = '198.51.100.7';
+      expect((await call(stranger, '10.9.9.1')).statusCode).toBe(401);
+      expect((await call(stranger, '10.9.9.2')).statusCode).toBe(429);
+    } finally {
+      await limited.close();
+    }
+  });
 });

@@ -13,7 +13,7 @@ export const syntheticIds = {
 
 const figures = {
   activeMin: 55,
-  downAccMin: 60,
+  downAccMin: 0, // his `down_acc` holds finished stopped stretches only; this machine never ran again
   downtimeMin: 60,
   followMin: null,
   handoverWaitMin: 0,
