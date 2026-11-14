@@ -47,6 +47,7 @@ export function SignIn() {
       <WizardPage
         title={t('login.signIn')}
         aside=""
+        quietOnline
         steps={[step]}
         offlineAllowed={false}
         onFinish={send}
