@@ -51,4 +51,37 @@ describe('buildSections', () => {
       expect.objectContaining({ id: 'other', label: null, other: true }),
     ]);
   });
+
+  it('leaves out the machines of a hidden group', () => {
+    const hidden: Group = { ...group, id: 'g-2', code: 'AUX', name: 'Auxiliary', hidden: true };
+    const machines = [
+      machine({ id: 'm-1', segment_id: 's-1', group_id: 'g-1' }),
+      machine({ id: 'm-2', code: 'AUX-1', segment_id: 's-1', group_id: 'g-2' }),
+    ];
+    const sections = buildSections(machines, [segment], [group, hidden], []);
+    const codes = sections.flatMap((s) =>
+      s.groups.flatMap((g) => g.tiles.map((t) => t.machine.code)),
+    );
+    expect(codes).toEqual(['VC-1']);
+    expect(sections[0]?.groups.map((g) => g.label)).toEqual(['Vertical']);
+  });
+
+  it('leaves out a segment that is not shown on the board', () => {
+    const offBoard: Segment = {
+      ...segment,
+      id: 's-2',
+      code: 'UTIL',
+      name: 'Utilities',
+      show_on_board: false,
+    };
+    const machines = [
+      machine({ id: 'm-1', segment_id: 's-1' }),
+      machine({ id: 'm-2', code: 'COMP-1', segment_id: 's-2' }),
+    ];
+    const sections = buildSections(machines, [segment, offBoard], [], []);
+    expect(sections.map((s) => s.label)).toEqual(['CNC']);
+    expect(
+      sections.flatMap((s) => s.groups.flatMap((g) => g.tiles.map((t) => t.machine.code))),
+    ).toEqual(['VC-1']);
+  });
 });
