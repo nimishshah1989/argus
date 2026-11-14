@@ -6,7 +6,12 @@ export interface TicketWrite {
   ticketId: string;
   now: Date;
   boss?: PgBoss;
+  /** What was written: `raise`, `past`, or a command name (`close`, `cancel`, ...). */
+  command: string;
 }
+
+/** Reacts to a ticket write inside its transaction and adds nothing to the reply (alerts, for one). */
+export type TicketListener = (client: PoolClient, write: TicketWrite) => Promise<void>;
 
 export interface TicketPart {
   /** The reply key this part owns, e.g. 'sla'. */
@@ -30,9 +35,14 @@ export interface ConfigPart {
 // Module-global; contributing a name again replaces it (one test file may build several apps).
 const ticketParts = new Map<string, TicketPart>();
 const configPartList = new Map<string, ConfigPart>();
+const ticketListeners = new Map<string, TicketListener>();
 
 export function contributeTicketPart(part: TicketPart): void {
   ticketParts.set(part.name, part);
+}
+
+export function contributeTicketListener(name: string, listener: TicketListener): void {
+  ticketListeners.set(name, listener);
 }
 
 export function contributeConfigPart(part: ConfigPart): void {
@@ -59,13 +69,37 @@ export async function withTicketParts(
   });
 }
 
-/** Every part's `afterWrite`, merged in contribution order. */
+/**
+ * A listener (an alert, say) must never fail the ticket write it hangs off. It runs inside a savepoint: on any
+ * error the savepoint is rolled back, so a failed statement does not leave the transaction aborted, and the
+ * ticket is written without whatever the listener tried to add.
+ */
+async function isolated(
+  client: PoolClient,
+  name: string,
+  listener: TicketListener,
+  write: TicketWrite,
+): Promise<void> {
+  await client.query('SAVEPOINT ticket_listener');
+  try {
+    await listener(client, write);
+    await client.query('RELEASE SAVEPOINT ticket_listener');
+  } catch (error) {
+    await client.query('ROLLBACK TO SAVEPOINT ticket_listener');
+    await client.query('RELEASE SAVEPOINT ticket_listener');
+    const reason = (error as { code?: string; name?: string }).code ?? (error as Error).name;
+    console.error(JSON.stringify({ event: 'ticket.listener.failed', listener: name, reason }));
+  }
+}
+
+/** Every part's `afterWrite`, merged in contribution order, then every listener. */
 export async function ticketPartsAfterWrite(
   client: PoolClient,
   write: TicketWrite,
 ): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {};
   for (const part of ticketParts.values()) Object.assign(out, await part.afterWrite(client, write));
+  for (const [name, listener] of ticketListeners) await isolated(client, name, listener, write);
   return out;
 }
 

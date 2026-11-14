@@ -36,6 +36,7 @@ export {
   loginAdminById,
   loginsOfPerson,
   otherAdminCount,
+  peopleWithRole,
   personAdminById,
   updateLogin,
   updatePerson,

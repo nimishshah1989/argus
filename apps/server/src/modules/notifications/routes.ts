@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
-import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
@@ -20,6 +19,7 @@ const subscribeSchema = z.object({
   }),
   actingPersonId: z.string().uuid(),
 });
+const TEST_PUSHES_PER_MINUTE = 10;
 const unsubscribeSchema = z.object({ endpoint: z.string().min(1) });
 
 async function keyHandler(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -96,7 +96,6 @@ async function unsubscribeHandler(
 /** Sends a test push to the acting person's own phones, through the same path every notification takes. */
 async function testHandler(
   pool: Pool,
-  boss: PgBoss | null,
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
@@ -107,7 +106,9 @@ async function testHandler(
     return;
   }
   if (!auth.personId) {
-    reply.send({ sent: 0 });
+    reply
+      .code(403)
+      .send(apiError('choose_acting_person', 'Choose who is using this phone to continue'));
     return;
   }
   const now = new Date();
@@ -121,7 +122,7 @@ async function testHandler(
     }),
   );
   const { delivered } = await processNotification(
-    { pool, boss, now },
+    { pool, boss: null, now },
     { tenantId: auth.tenantId, notificationId: made!.notificationId },
   );
   reply.send({ sent: delivered });
@@ -134,7 +135,10 @@ export function registerPush(app: FastifyInstance, config: AppConfig): void {
   app.post('/api/v1/push/unsubscribe', (request, reply) =>
     unsubscribeHandler(pool, request, reply),
   );
-  app.post('/api/v1/push/test', (request, reply) =>
-    testHandler(pool, config.jobBoss ?? null, request, reply),
+  // The test button sends in this request and holds a database connection while it waits for the push service.
+  app.post(
+    '/api/v1/push/test',
+    { config: { rateLimit: { max: TEST_PUSHES_PER_MINUTE, timeWindow: '1 minute' } } },
+    (request, reply) => testHandler(pool, request, reply),
   );
 }
