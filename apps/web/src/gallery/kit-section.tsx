@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button.js';
+import { BrandHeader } from '../ui/brand-header.js';
 import { Card } from '../ui/card.js';
 import { Input, Label } from '../ui/input.js';
 import { Grid, Inline, Stack } from '../ui/layout.js';
@@ -33,6 +34,7 @@ export function KitSection() {
             <Label htmlFor="gallery-machine">{t('sample.label')}</Label>
             <Input id="gallery-machine" placeholder={t('sample.placeholder')} />
           </Stack>
+          <BrandHeader name={t('sample.brand')} detail={t('sample.brandDetail')} />
           <Card title={t('sample.cardTitle')}>
             <p className="text-body">{t('sample.cardBody')}</p>
           </Card>

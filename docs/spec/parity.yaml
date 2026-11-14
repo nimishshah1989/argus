@@ -11,11 +11,13 @@ rows:
     milestone: M0
     milestones:
       - M0
-    status: in-progress
+    status: done
     evidence:
       - 'PR #9'
       - 'apps/server/test/auth.test.ts :: signs a personal login in and returns the user on /me'
       - 'apps/server/test/auth.test.ts :: slides the session forward on use'
+      - 'apps/web/e2e/signin.spec.ts :: show password reveals it, and the last username is remembered'
+      - 'apps/web/e2e/signin.spec.ts :: a wrong password says so and keeps the person on sign-in'
     source: PARITY.md §v3 / Sign-in, roles, identity
   - id: v3.signin.02
     feature: 'Five roles: report, maint, supervisor, admin, board; role decides the screens'
@@ -62,9 +64,10 @@ rows:
     milestone: M0
     milestones:
       - M0
-    status: in-progress
+    status: done
     evidence:
       - 'PR #26'
+      - 'apps/web/e2e/signin.spec.ts :: a session the server no longer accepts signs the phone out with a message'
     source: PARITY.md §v3 / Sign-in, roles, identity
   - id: v3.signin.06
     feature: Company id and API address from the link or the page, saved on the phone
@@ -673,6 +676,8 @@ rows:
         and half-empty reports included'
       - 'apps/server/test/ticket-pdf.test.ts :: answers with the PDF itself and stores nothing,
         however often it is asked (Gujarati text in the PDF)'
+      - 'apps/server/test/ticket-pdf-access.test.ts :: gives an operator the breakdowns they reported,
+        and no one else’s'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.03
     feature:
@@ -696,6 +701,15 @@ rows:
       - 'apps/server/test/reports-real.test.ts :: lists a ticket still open when the shift ended even
         though it was closed later'
       - 'apps/server/test/day-report.test.ts :: prints a Gujarati name and problem in the PDF'
+      - 'apps/server/test/team-day-report.test.ts :: lists everyone who worked in the window, whatever
+        their team, and adds up to each person’s own report'
+      - 'apps/server/test/team-day-report.test.ts :: splits each person’s minutes into primary and
+        support that add up to the same total'
+      - 'apps/server/test/team-day-report.test.ts :: never calls a ticket closed and pending at once,
+        and counts a person’s closes as the ones they closed'
+      - 'apps/server/test/team-day-report.test.ts :: is what the plant head gets by default, as one
+        PDF for the whole team'
+      - 'apps/server/test/team-day-report.test.ts :: prints Gujarati names'
     source: PARITY.md §v3 / Reports and PDFs
   - id: v3.reports.04
     feature: PDF never uploaded, only its name
