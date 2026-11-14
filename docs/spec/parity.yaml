@@ -598,6 +598,7 @@ rows:
     evidence:
       - 'PR #36'
       - 'apps/web/e2e/board.spec.ts :: shows the live board in kiosk mode with no navigation'
+      - 'apps/web/e2e/board-hidden.spec.ts :: the board leaves out a hidden group and a segment kept off the board'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
     feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'
