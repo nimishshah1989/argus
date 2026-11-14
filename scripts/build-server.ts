@@ -9,5 +9,9 @@ await build({
   outfile: 'apps/server/dist/server.mjs',
   external: ['@node-rs/argon2'],
   sourcemap: true,
+  // Bundled CommonJS dependencies (fastify, avvio, ...) call require(); an ESM bundle has none of its own.
+  banner: {
+    js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);",
+  },
   logLevel: 'info',
 });
