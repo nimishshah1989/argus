@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, chooseActing, clearToken, getConfig, getMe, signOut } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
+import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
@@ -14,7 +15,7 @@ function SignedInAs() {
   const { t } = useTranslation();
   const user = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user;
   return (
-    <Stack gap={1}>
+    <Card>
       <Text size="footnote" tone="secondary">
         {t('signin.signedInAs')}
       </Text>
@@ -24,7 +25,7 @@ function SignedInAs() {
           {t('signin.sharedPhone')}
         </Text>
       ) : null}
-    </Stack>
+    </Card>
   );
 }
 
