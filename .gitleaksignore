@@ -1,5 +1,11 @@
 # Invented temporary passwords in the people API tests (ticket 21), flagged as generic-api-key.
 # They are test inputs, not credentials. Each line is one finding: commit:file:rule:line.
+# The first four are the commit as it was squashed onto main (#199); the last four are the same lines before the
+# squash, for any run that still scans the branch commits.
+9a034f9f4667f73037a402baedd47d2673dca86c:apps/server/test/people-api.test.ts:generic-api-key:359
+9a034f9f4667f73037a402baedd47d2673dca86c:apps/server/test/people-api.test.ts:generic-api-key:364
+9a034f9f4667f73037a402baedd47d2673dca86c:apps/server/test/people-api.test.ts:generic-api-key:395
+9a034f9f4667f73037a402baedd47d2673dca86c:apps/server/test/people-api.test.ts:generic-api-key:399
 ab5a6ec3abed5591ab1052ce1e8cee6ecfda04c0:apps/server/test/people-api.test.ts:generic-api-key:359
 ab5a6ec3abed5591ab1052ce1e8cee6ecfda04c0:apps/server/test/people-api.test.ts:generic-api-key:364
 ab5a6ec3abed5591ab1052ce1e8cee6ecfda04c0:apps/server/test/people-api.test.ts:generic-api-key:395
