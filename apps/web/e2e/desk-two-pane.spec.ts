@@ -54,6 +54,9 @@ test('a ticket opens beside the list on a wide screen and as its own page on a p
   await expect(page.getByText(problem).first()).toBeVisible();
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute('aria-current', 'page');
+  const deskHeader = await page.locator('header').first().boundingBox();
+  const pane = await page.getByRole('region', { name: 'Ticket' }).boundingBox();
+  expect(pane!.y).toBeGreaterThanOrEqual(deskHeader!.y + deskHeader!.height);
   await expect(page.getByText('Pick a ticket on the left to see it here.')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Open tickets' }).click();

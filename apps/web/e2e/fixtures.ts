@@ -391,6 +391,7 @@ export async function signIn(page: Page, username = 'asha'): Promise<void> {
 /**
  * Where the ticket is on screen: its own pane beside the Open list on a wide screen, the whole page on a
  * phone. The list repeats a ticket's words and buttons, so ticket assertions look inside this.
+ * `.last()` picks by document order: `body` comes first, so the pane wins whenever it exists.
  */
 export function ticketView(page: Page): Locator {
   return page.locator('body, section[aria-label="Ticket"]').last();

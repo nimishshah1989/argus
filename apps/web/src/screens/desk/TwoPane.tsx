@@ -6,7 +6,7 @@ import { TicketDetail } from '../TicketDetail.js';
 export function TwoPane({ list, ticketId }: { list: ReactNode; ticketId: string | undefined }) {
   const { t } = useTranslation();
   return (
-    <div className="grid grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start gap-4">
+    <div className="grid grid-cols-[minmax(0,28.75rem)_minmax(0,1fr)] items-start gap-4">
       <div>{list}</div>
       <section
         aria-label={t('deskWide.ticket')}

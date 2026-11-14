@@ -17,6 +17,8 @@ export function TicketRoute() {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const role = me.data?.user.role;
   const beside = wide && role !== undefined && mayOpen('open', role);
+  // Until the role is known a wide screen shows nothing: the page, then the pane, would flash.
+  if (id && wide && me.isPending) return null;
   // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
   return !id || beside ? <Desk view="open" /> : <TicketDetail />;
 }
