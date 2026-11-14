@@ -30,3 +30,14 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - Next queue: 23 server (lists, glossary, company + logo with /files/{id} permission check, language, tz, feature
   switches); audit cleanups 11 (AI idle), 12 (auth 1 query), 14, 15, 17, 19 + erase_person/import_row payload +
   migration-runner tolerateShutdown; then M2 (29 needs MIGRATION LOCK), 32, 30g2, 31g2, 33g1, 34g2, 35g2/3.
+- 2026-11-14 05:02 UTC — RULING (Nimish via FRONTEND, 14 Nov): after the M2 server work, prepare M6 part 1 so diagnosis
+  can switch on straight after cutover: 55 (M6 schema + AI provider; blocked by 28 only per CLAUDE-ADOPTION; needs the
+  MIGRATION LOCK), 71 (real Claude provider: redaction via identity.redactionTerms, consent, monthly cap, failure
+  table, logs, alarms; D22), 56 (evaluation harness and confirm), 72 (diagnosis on the ticket, shadow mode first; review
+  open PR #173 '72b', reuse what fits, close with a note only if superseded), 57 (fix finder with evidence, duplicate
+  detection). Gate stays OFF in production until Nimish supplies signed Anthropic terms, Cosmos's written consent
+  (N14), the monthly cap figure and the diagnosis threshold: those are the only blockers to list. Tests: fixtures
+  pseudonymised, provider mocked. Server-side only; the diagnosis card is FRONTEND's after a mockup.
+- Ruling: queue order is now A (M1 leftovers) -> B (M2 server) -> M6 part 1 -> C (M4a engine). Audit finding 11 becomes
+  "do not start the ai.suggest poll until a feature is registered" (keep the module; M6 needs it), not "delete". Why:
+  Nimish wants diagnosis right after cutover. Cost if wrong: M4a server work starts later.
