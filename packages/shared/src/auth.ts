@@ -18,6 +18,8 @@ export const userSchema = z
   .object({
     id: z.string(),
     username: z.string(),
+    // On a shared phone whose acting person was switched off, `name` and `actingPersonId` are '' until the app
+    // asks who is using it.
     name: z.string(),
     title: z.string().nullable(),
     role: z.string(),

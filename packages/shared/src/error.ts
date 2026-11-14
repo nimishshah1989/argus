@@ -9,6 +9,7 @@ export const errorCodeSchema = z.enum([
   'rate_limited',
   'not_configured',
   'internal',
+  'must_change_password',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
