@@ -9,6 +9,7 @@ import { startTestDb, type TestDb } from './harness.js';
 const TENANT = '10000000-0000-0000-0000-000000000001';
 const PERSON = '10000000-0000-0000-0000-000000000002';
 const LOGIN = '10000000-0000-0000-0000-000000000003';
+const FLOOR_PERSON = '10000000-0000-0000-0000-000000000004';
 const PASSWORD = 'correct-horse-battery';
 const HOST = 'cosmos.localhost';
 
@@ -84,6 +85,14 @@ beforeAll(async () => {
     "INSERT INTO login (id, tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, $3, 'asha', $4, 'technician', false)",
     [LOGIN, TENANT, PERSON, passwordHash],
   );
+  await db.admin.query(
+    "INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, 'Chitra', 'production')",
+    [FLOOR_PERSON, TENANT],
+  );
+  await db.admin.query(
+    "INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, NULL, 'floor', $2, 'operator', true)",
+    [TENANT, passwordHash],
+  );
   app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
 }, 120_000);
 
@@ -139,5 +148,46 @@ describe('a signed-out device stops getting pushes', () => {
       actingPersonId: PERSON,
     });
     expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('who a phone is registered for', () => {
+  const subscribe = (token: string, n: number, who?: string) =>
+    call('POST', '/api/v1/push/subscribe', token, {
+      subscription: device(n),
+      ...(who ? { actingPersonId: who } : {}),
+    });
+
+  beforeEach(async () => {
+    await db.admin.query('DELETE FROM push_subscription');
+  });
+
+  it('is the session person when the request names nobody, and naming them still works', async () => {
+    const token = await signIn();
+    expect((await subscribe(token, 7)).statusCode).toBe(200);
+    expect((await subscribe(token, 8, PERSON)).statusCode).toBe(200);
+    expect(await devicesReached(token)).toEqual([device(7).endpoint, device(8).endpoint]);
+  });
+
+  it('is never anyone else, named or not', async () => {
+    const token = await signIn();
+    const res = await subscribe(token, 9, FLOOR_PERSON);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('forbidden');
+    expect(await devicesReached(token)).toEqual([]);
+  });
+
+  it('on a shared phone is the person chosen on it, and nobody until one is chosen', async () => {
+    const phone = await signIn('floor');
+    const none = await subscribe(phone, 10);
+    expect(none.statusCode).toBe(403);
+    expect(none.json().error.code).toBe('choose_acting_person');
+    expect(
+      (await call('POST', '/api/v1/auth/acting', phone, { actingPersonId: FLOOR_PERSON }))
+        .statusCode,
+    ).toBe(200);
+    expect((await subscribe(phone, 10)).statusCode).toBe(200);
+    expect((await subscribe(phone, 11, PERSON)).statusCode).toBe(403);
+    expect(await devicesReached(phone)).toEqual([device(10).endpoint]);
   });
 });

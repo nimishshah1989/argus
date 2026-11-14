@@ -17,7 +17,7 @@ const subscribeSchema = z.object({
     endpoint: z.string().max(2048).refine(isPushEndpoint),
     keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
   }),
-  actingPersonId: z.string().uuid(),
+  actingPersonId: z.string().uuid().optional(),
 });
 const TEST_PUSHES_PER_MINUTE = 10;
 const unsubscribeSchema = z.object({ endpoint: z.string().min(1) });
@@ -45,13 +45,14 @@ async function subscribeHandler(
     reply.code(422).send(apiError('validation', 'Invalid subscription'));
     return;
   }
-  const { subscription, actingPersonId } = parsed.data;
+  const { subscription } = parsed.data;
   // A phone is registered for the person using it, never for someone whose notifications it would then receive.
-  const refused = actingRefusal(auth, actingPersonId, 'actingPersonId');
+  const refused = actingRefusal(auth, parsed.data.actingPersonId, 'actingPersonId');
   if (refused) {
     reply.code(refused.status).send(refused.body);
     return;
   }
+  const actingPersonId = auth.personId as string;
   const check = await withTenant(pool, auth.tenantId, async (client) => {
     const live = await lockLiveActing(client, {
       tenantId: auth.tenantId,
