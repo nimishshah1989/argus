@@ -56,17 +56,6 @@
           }
         ]
       }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/session_end.py\"",
-            "timeout": 30
-          }
-        ]
-      }
     ]
   }
 }
