@@ -229,29 +229,24 @@ describe('the flag is read when the command is asked for', () => {
   });
 
   it('raising with "start now" on a flagged work type leaves the ticket open and asks for the lockout', async () => {
-    const res = await send(f.tokens.head!, '/api/v1/tickets', {
-      kind: 'general',
-      location: 'Boiler house',
-      workType: 'Electrical',
-      problem: 'Panel humming',
-      startNow: true,
-      startByPersonId: tech,
-    });
+    const raise = (workType: string) =>
+      send(f.tokens.technician!, '/api/v1/tickets', {
+        kind: 'general',
+        location: 'Boiler house',
+        workType,
+        problem: 'Panel humming',
+        startNow: true,
+      });
+    const res = await raise('Electrical');
     expect(res.statusCode, res.body).toBe(201);
     expect(res.json().ticket).toMatchObject({ status: 'open', selfStarted: false });
     expect(res.json().ticket.lockout).toMatchObject({ confirmations: [] });
-    expect(
-      (await ticketOf(res.json().ticket.id)).events.map((e: { type: string }) => e.type),
-    ).not.toContain('start');
+    const types = (await ticketOf(res.json().ticket.id)).events.map(
+      (e: { type: string }) => e.type,
+    );
+    expect(types).not.toContain('start');
 
-    const plain = await send(f.tokens.head!, '/api/v1/tickets', {
-      kind: 'general',
-      location: 'Boiler house',
-      workType: 'Civil',
-      problem: 'Crack',
-      startNow: true,
-      startByPersonId: tech,
-    });
+    const plain = await raise('Civil');
     expect(plain.json().ticket).toMatchObject({ status: 'working', lockout: null });
   });
 });
@@ -496,16 +491,19 @@ describe('who is credited on a shared phone, and across plants', () => {
     return res.json().token as string;
   }
 
-  it('the confirmation is credited to the person chosen on the shared phone', async () => {
+  it('the confirmation is credited to the person signed in on the shared phone, and nobody else', async () => {
     const phone = await sharedTechnicianToken();
     const id = await raiseWork('Electrical');
-    const res = await confirm(id, sup, DEFAULT_CODES, { token: phone });
+    const other = await confirm(id, sup, DEFAULT_CODES, { token: phone });
+    expect(other.statusCode, other.body).toBe(403);
+    expect(await who(id)).toEqual([]);
+    const res = await confirm(id, tech, DEFAULT_CODES, { token: phone });
     expect(res.statusCode, res.body).toBe(200);
-    expect(await who(id)).toEqual([sup]);
+    expect(await who(id)).toEqual([tech]);
     const entry = (await ticketOf(id)).events.find(
       (e: { type: string }) => e.type === 'lockout_confirmed',
     );
-    expect(entry.actingPersonId).toBe(sup);
+    expect(entry.actingPersonId).toBe(tech);
   });
 
   it('a personal login cannot credit the confirmation to someone else', async () => {
