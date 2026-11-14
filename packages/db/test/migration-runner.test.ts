@@ -6,6 +6,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Client, Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, withoutBypassGrant } from '../../../scripts/migrate.js';
+import { endPool } from './end-pool.js';
 
 const execFileAsync = promisify(execFile);
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -69,8 +70,8 @@ async function withRunnerDatabases(
       return { pool, url: url.toString() };
     });
   } finally {
-    await Promise.all(pools.map((pool) => pool.end()));
-    await admin.end();
+    await Promise.all(pools.map(endPool));
+    await endPool(admin);
     await container.stop();
   }
 }
@@ -562,10 +563,10 @@ it('runs every migration as a non-superuser database owner', async () => {
       );
       expect(Number(purged.rows[0].purged)).toBe(0);
     } finally {
-      await pool.end();
+      await endPool(pool);
     }
   } finally {
-    await admin.end();
+    await endPool(admin);
     await container.stop();
   }
 }, 180_000);
