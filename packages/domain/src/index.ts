@@ -18,5 +18,17 @@ export * from './sla-pause.js';
 export * from './sla-handback.js';
 export { asksSignoff, currentSignoff, signoffTurnaround, type Signoff } from './signoff.js';
 export { computeSeverity, defaultSeverityMatrix } from './severity.js';
-export { ESCALATION_DEFAULTS, type EscalationRuleDefault } from './escalation.js';
+export {
+  CLOCK_TRIGGER,
+  ESCALATION_DEFAULTS,
+  chainAcknowledged,
+  mayAcknowledgeLevel,
+  pendingEscalationLevels,
+  repeatAfterMinutes,
+  severityAtLeast,
+  type EscalationHistoryEvent,
+  type EscalationLevel,
+  type EscalationRuleDefault,
+  type EscalationTrigger,
+} from './escalation.js';
 export { passwordProblem, type PasswordProblem } from './password-rules.js';

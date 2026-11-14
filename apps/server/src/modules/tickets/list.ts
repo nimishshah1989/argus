@@ -5,6 +5,7 @@ import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { withTicketParts, type TicketActor } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
+import { toldByEscalationStep } from '../notifications/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
@@ -183,6 +184,20 @@ function detailFigures(
   });
 }
 
+/**
+ * An escalation step as the history shows it. Who was told comes from the notifications that point at the event;
+ * once those are purged (90 days) a step that did tell people reads `null`, not an empty list that looks like nobody.
+ */
+function escalationStep(
+  event: { id?: string; payload: Record<string, unknown> },
+  told: Map<string, string[]>,
+): object | null {
+  const step = event.payload.escalation as { toldCount?: number } | undefined;
+  if (!step) return null;
+  const people = told.get(event.id ?? '');
+  return { ...step, toldPersonIds: people ?? ((step.toldCount ?? 0) > 0 ? null : []) };
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -199,6 +214,7 @@ export async function detail(
     const segments = await sql.loadSegments(client, ticketId);
     const crew = await sql.loadCrew(client, ticketId);
     ticket.figures = detailFigures(row as Record<string, unknown>, ticket, events, segments);
+    const told = await toldByEscalationStep(client, ctx.tenantId, ticketId);
     const projected = (
       await withTicketParts(client, { tenantId: ctx.tenantId, actor: ctx }, [row], () =>
         tm.ticketProjection(ticket, tm.rowExtras(row as Record<string, unknown>)),
@@ -214,6 +230,7 @@ export async function detail(
         reason: event.reason ?? null,
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
+        escalation: escalationStep(event, told),
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),

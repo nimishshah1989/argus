@@ -8,11 +8,13 @@ import {
   canRestore,
   canWork,
   figures as computeFigures,
+  mayAcknowledgeLevel,
   transition,
   TransitionError,
   type ActorContext,
   type Command,
   type CrewMember,
+  type EscalationLevel,
   type Figures,
   type Role,
   type Ticket,
@@ -40,6 +42,7 @@ export interface LoadedEvent {
   at: Date;
   reason?: string;
   isVendor?: boolean;
+  id?: string;
   seq: number;
   loginId: string | null;
   actingPersonId: string | null;
@@ -104,6 +107,8 @@ export interface LoadedCtx {
   crew: CrewMember[];
   /** Set only for an acknowledge: whether the acting person is on the roster for the shift running now. */
   onRoster: boolean;
+  /** Set only for an acknowledge-escalation: the levels of the escalations still waiting for someone. */
+  pendingLevels: EscalationLevel[];
   /** Set only for a handback: whether the signed-in login's cell is the cell the machine was in when reported. */
   sameCell: boolean;
 }
@@ -245,6 +250,8 @@ const WORK_GATED = new Set<CommandAction>([
 const ROLE_GATES: Partial<Record<CommandAction, (actor: ActorContext) => boolean>> = {
   'upgrade-kind': canRaise,
   acknowledge: (actor) => canAcknowledge(actor, { onRoster: true, assignedToActor: false }),
+  'acknowledge-escalation': (actor) =>
+    actor.personId !== null && mayAcknowledgeLevel(actor.role, 'L1'),
   report: canLateReport,
   restore: canRestore,
   correct: canCorrect,

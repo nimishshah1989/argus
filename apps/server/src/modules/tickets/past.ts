@@ -326,9 +326,7 @@ async function recordPast(
   }
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = shared.pastBreakdownSchema.safeParse(request.body);

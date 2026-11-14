@@ -382,7 +382,7 @@ describe('the escalation ladder', () => {
           delayMinutes: d.delayMinutes,
           repeatMinutes: d.repeatMinutes,
           repeatCap: d.repeatCap,
-          active: true,
+          active: d.active ?? true,
         }),
       );
     }
@@ -545,7 +545,11 @@ describe('the escalation ladder', () => {
   it('gives each plant its own ladder: plant A edits never reach plant B', async () => {
     const seeded = (await b('GET', '/api/v1/escalation-rules')).json().items;
     expect(seeded).toHaveLength(ESCALATION_DEFAULTS.length);
-    expect(seeded.every((r: { active: boolean }) => r.active)).toBe(true);
+    expect(
+      seeded
+        .filter((r: { active: boolean }) => !r.active)
+        .map((r: { trigger: string }) => r.trigger),
+    ).toEqual(['reopened_twice']);
     const mine = (await a('GET', '/api/v1/escalation-rules')).json().items[0];
     expect(
       (await b('PUT', `/api/v1/escalation-rules/${mine.id}`, 'head', { delayMinutes: '5' }))

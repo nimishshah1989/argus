@@ -1,4 +1,5 @@
 import { acknowledgeRefusal } from '../../permissions.js';
+import { eventsSinceLastTransfer } from '../../sla.js';
 import { apply, clampAt, TransitionError } from '../helpers.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
@@ -9,7 +10,9 @@ export function acknowledge(
 ): TransitionResult {
   const refusal = acknowledgeRefusal(input.ctx, input.ticket, {
     onRoster: command.onRoster,
-    alreadyAcknowledged: input.events.some((e) => e.type === 'acknowledge'),
+    alreadyAcknowledged: eventsSinceLastTransfer(input.events).some(
+      (e) => e.type === 'acknowledge',
+    ),
   });
   if (refusal) throw new TransitionError(refusal);
   return apply(input, {

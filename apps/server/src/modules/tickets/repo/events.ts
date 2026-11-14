@@ -16,7 +16,7 @@ export function reviveCorrection(change: unknown): unknown {
 /** Load the ordered event history, including correction and pause snapshots. */
 export async function loadEvents(client: PoolClient, ticketId: string): Promise<LoadedEvent[]> {
   const result = await client.query(
-    `SELECT seq, type, at, login_id, acting_person_id, text, payload
+    `SELECT id, seq, type, at, login_id, acting_person_id, text, payload
        FROM ticket_event WHERE ticket_id = $1 ORDER BY seq`,
     [ticketId],
   );
@@ -31,6 +31,7 @@ export async function loadEvents(client: PoolClient, ticketId: string): Promise<
       handbackRequested: payload.handbackRequested === true,
       stepCodes: Array.isArray(payload.stepCodes) ? (payload.stepCodes as string[]) : undefined,
       changes: Array.isArray(payload.changes) ? payload.changes.map(reviveCorrection) : undefined,
+      id: row.id as string,
       seq: row.seq as number,
       loginId: row.login_id as string | null,
       actingPersonId: row.acting_person_id as string | null,

@@ -34,8 +34,18 @@ function assertCorrectionTimeline(ticket: Ticket, at: Date): void {
 }
 
 const INVALID = (reason: string) => new TransitionError(`Invalid correction: ${reason}`);
-// events that are not work: a close, a late report, an earlier correction, a cancel or restore
-const NOT_WORK = new Set(['close', 'report', 'edit', 'cancel', 'restore', 'tag_add', 'tag_remove']);
+// events that are not work: a close, a late report, an earlier correction, a cancel or restore, an escalation notice
+const NOT_WORK = new Set([
+  'close',
+  'report',
+  'edit',
+  'cancel',
+  'restore',
+  'tag_add',
+  'tag_remove',
+  'escalate',
+  'escalation_ack',
+]);
 
 /** The time the close was written (insert-only history), not the editable closedAt, so a correction cannot renew the window. */
 function closeEventAt(input: TransitionInput): Date | null {

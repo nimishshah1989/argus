@@ -6,6 +6,7 @@ import type {
   WorkSegment,
 } from '../types.js';
 import type { Ticket } from '../ticket.js';
+import type { EscalationLevel } from '../escalation.js';
 
 export type Command =
   | { type: 'start'; personId: string; at?: Date; pickup?: boolean }
@@ -14,6 +15,7 @@ export type Command =
   | { type: 'transfer'; personId: string; toPersonId?: string; toShift?: string; note: string }
   | { type: 'update'; personId: string; text: string }
   | { type: 'acknowledge'; personId: string; onRoster: boolean }
+  | { type: 'acknowledgeEscalation'; personId: string; pendingLevels: EscalationLevel[] }
   | { type: 'machineRunning'; personId: string; at?: Date }
   | { type: 'machineStopped'; personId: string; at?: Date }
   | {

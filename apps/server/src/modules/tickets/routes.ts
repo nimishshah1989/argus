@@ -55,6 +55,7 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
   acknowledge: shared.acknowledgeTicketSchema,
+  'acknowledge-escalation': shared.acknowledgeEscalationSchema,
   handback: shared.handbackTicketSchema,
   'lockout-confirm': shared.lockoutConfirmSchema,
 };
@@ -87,17 +88,19 @@ async function resolveActingPerson(
 async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.LoadedCtx | null> {
   const row = await sql.loadTicketRow(client, tx.ticketId, tx.tenantId);
   if (!row) return null;
+  const events = await sql.loadEvents(client, tx.ticketId);
   return {
     row,
     ticket: tm.rowToTicket(row),
     extras: tm.rowExtras(row),
-    events: await sql.loadEvents(client, tx.ticketId),
+    events,
     segments: await sql.loadSegments(client, tx.ticketId),
     crew: await sql.loadCrew(client, tx.ticketId),
     onRoster:
       tx.action === 'acknowledge' && tx.actingPersonId !== null
         ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
         : false,
+    pendingLevels: domain.pendingEscalationLevels(events),
     sameCell: tx.action === 'handback' ? await loginInTicketCell(client, tx, row) : false,
   };
 }
@@ -171,9 +174,7 @@ async function runCommand(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = COMMAND_SCHEMAS[action].safeParse(request.body);
@@ -345,9 +346,7 @@ async function raise(
   if (!ctx) return;
   const key = idem.idempotencyKey(request.headers);
   if (!key) {
-    reply
-      .code(422)
-      .send(shared.apiError('validation', 'Idempotency-Key header is required', 'idempotencyKey'));
+    reply.code(422).send(shared.apiError('validation', idem.KEY_REQUIRED, 'idempotencyKey'));
     return;
   }
   const parsed = shared.raiseTicketSchema.safeParse(request.body);

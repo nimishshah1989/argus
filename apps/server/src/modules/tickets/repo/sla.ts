@@ -71,7 +71,10 @@ export interface AckFacts {
   clockStopped: boolean;
 }
 
-/** What deciding whether to offer the Acknowledge button needs of each ticket, in one read: state, assignee, clock. */
+/**
+ * What deciding whether to offer the Acknowledge button needs of each ticket, in one read: state, assignee, clock.
+ * A handover starts the clock again, so only what happened since the last transfer stops it.
+ */
 export async function ticketAckFacts(
   tx: Db,
   tenantId: string,
@@ -79,7 +82,8 @@ export async function ticketAckFacts(
 ): Promise<AckFacts[]> {
   const { rows } = await tx.query(
     `SELECT t.id, t.status, t.assigned_to_person_id AS "assignedToPersonId",
-            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.tenant_id = t.tenant_id AND e.type = ANY($3::text[])) AS "clockStopped"
+            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.tenant_id = t.tenant_id AND e.type = ANY($3::text[])
+                      AND e.seq > COALESCE((SELECT MAX(x.seq) FROM ticket_event x WHERE x.ticket_id = t.id AND x.type = 'transfer'), -1)) AS "clockStopped"
        FROM ticket t WHERE t.tenant_id = $1 AND t.id = ANY($2::uuid[])`,
     [tenantId, ticketIds, ACK_CLOCK_STOPS],
   );

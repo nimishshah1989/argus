@@ -79,6 +79,8 @@ export interface Resource {
   ) => Promise<Problem | Record<string, unknown>>;
   /** Runs inside the edit's transaction once the row is written. */
   afterEdit?: (tx: Db, edit: Edit) => Promise<void>;
+  /** Runs inside the transaction of a create or an edit that changed something, once the row is written. */
+  afterSave?: (tx: PoolClient, tenantId: string) => Promise<void>;
 }
 
 export interface Edit {

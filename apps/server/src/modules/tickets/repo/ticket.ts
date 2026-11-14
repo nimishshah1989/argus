@@ -219,6 +219,7 @@ export async function persistEvents(
           pausesSla: event.pausesSla,
           ...(event.handbackRequested ? { handbackRequested: true } : {}),
           ...(event.changes ? { changes: event.changes } : {}),
+          ...(event.escalationLevel ? { level: event.escalationLevel } : {}),
           ...payload,
         }),
       ],
