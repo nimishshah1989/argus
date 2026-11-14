@@ -1,6 +1,4 @@
-/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import type { ReactNode } from 'react';
-import { Button } from './button.js';
 import { Label } from './input.js';
 
 /** The pieces of the close screens (design lock slice 2, S3): the finish-time card and the pinned footer. */
@@ -24,6 +22,28 @@ export interface FinishTimeProps {
   onLater: () => void;
 }
 
+/** A step of the finish time: smaller than a Button so "5 min earlier" fits a third of a phone. */
+function StepButton({
+  label,
+  enabled,
+  onClick,
+}: {
+  label: string;
+  enabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={!enabled}
+      onClick={onClick}
+      className="min-h-target-min rounded-xl border border-control bg-surface px-1 text-footnote font-semibold text-neutral-900 disabled:text-neutral-600"
+    >
+      {label}
+    </button>
+  );
+}
+
 /** "When did you finish?": the time large, then three buttons that move it in steps. */
 export function FinishTime(p: FinishTimeProps) {
   return (
@@ -36,15 +56,9 @@ export function FinishTime(p: FinishTimeProps) {
         <span className="text-footnote text-neutral-600">{p.status}</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <Button variant="secondary" disabled={!p.canEarlier} onClick={p.onEarlier}>
-          {p.earlier}
-        </Button>
-        <Button variant="secondary" disabled={!p.canNow} onClick={p.onNow}>
-          {p.now}
-        </Button>
-        <Button variant="secondary" disabled={!p.canLater} onClick={p.onLater}>
-          {p.later}
-        </Button>
+        <StepButton label={p.earlier} enabled={p.canEarlier} onClick={p.onEarlier} />
+        <StepButton label={p.now} enabled={p.canNow} onClick={p.onNow} />
+        <StepButton label={p.later} enabled={p.canLater} onClick={p.onLater} />
       </div>
       <p className="text-footnote text-neutral-600">{p.hint}</p>
     </section>
