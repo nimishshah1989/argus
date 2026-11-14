@@ -130,6 +130,7 @@ Smaller items left out: 3. The no-person path in `needReportRows` returns every 
 Exempt (tests or migrations) over 400: `domain/test/sla.test.ts` 830, `server/test/sla-timers.test.ts` 763, `import-cli.test.ts` 751, `import-schema.test.ts` 740, `tickets-commands.test.ts` 722, `db/test/definer-functions.test.ts` 683, `db/test/migration-runner.test.ts` 667, `import-undo.test.ts` 608, `migrations/0001_schema_v1.sql` 590, `import-reconcile.test.ts` 582, `migrations/0009_history_cannot_be_lost.sql` 576, `import-state.test.ts` 527, `domain/test/state.test.ts` 502, `ticket-severity.test.ts` 488, `sla-jobs.test.ts` 481, `ai-suggest.test.ts` 467, `tickets.test.ts` 439, `cutover-scripts.test.ts` 434, `import-integration.test.ts` 418.
 
 **Functions over 60 lines:** ESLint (counts code lines only) finds 0. Counting raw lines, with blanks and comments:
+
 - `NotificationsToggle`: 66 lines, `apps/web/src/components/NotificationsToggle.tsx:24`
 - `ReportPanel`: 64 lines, `apps/web/src/components/ReportForm.tsx:125`
 - `SlaWaitReasonSettings`: 62 lines, `apps/web/src/components/SlaWaitReasonSettings.tsx:13`
@@ -137,6 +138,7 @@ Exempt (tests or migrations) over 400: `domain/test/sla.test.ts` 830, `server/te
 - At exactly 60: `raiseTicket` (`packages/domain/src/state.ts:35`) and `startJobs` (`accountability/jobs.ts:61`).
 
 **Dependencies without an ADR:**
+
 - `qrcode` (server, `reports/pdf.ts:8`): in THIRD_PARTY.md, but in no ADR.
 - `web-push` (server): ADR 0002 names only "browser push services", not the library.
 
