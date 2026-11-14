@@ -69,7 +69,10 @@ export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
       title: t(LABEL_KEYS[event.type] ?? event.type),
       at: event.at,
       when: formatTime(event.at, timeZone),
-      detail: [actor, event.text, reason].filter(Boolean).join(' · '),
+      // The report event's text is the problem, which the header already shows.
+      detail: [actor, event.type === 'down' ? undefined : event.text, reason]
+        .filter(Boolean)
+        .join(' · '),
     };
   });
   return (

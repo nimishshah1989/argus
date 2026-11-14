@@ -59,7 +59,12 @@ interface PeopleProps {
 function PeopleSection({ detail, names, timeZone }: PeopleProps) {
   const { t } = useTranslation();
   const { people, intervals, events, ticket } = detail;
-  const rows = people.map((member) => {
+  // The lead is not a crew row; the screen lists them first, as the mockup does.
+  const lead = ticket.leadPersonId
+    ? [{ personId: ticket.leadPersonId, role: 'lead', leftAt: null, leftReason: null }]
+    : [];
+  const members = [...lead, ...people.filter((member) => member.personId !== ticket.leadPersonId)];
+  const rows = members.map((member) => {
     const own = intervals.filter((interval) => interval.personId === member.personId);
     const joined =
       own.map((interval) => interval.startedAt).sort()[0] ??
