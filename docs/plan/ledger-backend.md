@@ -310,3 +310,8 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
 - 08:17 UTC MERGED #233 (32 follow-up: notify review fixes + two v3 push triggers) as f5e5e9d on server checks green; browser red =
   the two specs already red on main. Builder 32 session archived. DISPATCH board-today (response/repair/waitingMin day score +
   GET board/today) to session_01KEBF26jsg9UEsX8tryR6QB, branch claude/board-today, gap-only brief.
+- 08:25 UTC #234 round at 6505091: (1) /state golden broke because `sla.pause:null` was emitted -> key now omitted when no
+  pause clock (golden untouched); (2) sla-jobs real-worker pause test timed out at 60 s in CI: root cause = TestClock ticks
+  fire a DB round-trip per simulated 0.5 s poll, the test simulated ~90 min (about 7,000 polls, 54 s locally); fixed by a
+  1-minute pause maximum like the siblings, same assertions (59 s no fire, fire once, 60 s later no second fire).
+  Lesson for briefs: a builder must run the files that read what it changes (the /state golden), and keep fake-clock spans short.
