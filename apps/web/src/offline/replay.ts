@@ -14,7 +14,7 @@ import { currentWho, isMine } from '../data/index.js';
 import { addDraft, listQueued, removeQueued, type QueueEntry } from './outbox.js';
 
 /** The server refused this person for good (403): it leaves the queue for Drafts, never retried. */
-const FORBIDDEN_KEY = 'drafts.queuedForSomeoneElse';
+const FORBIDDEN_KEY = 'outbox.queuedForSomeoneElse';
 
 export interface ReplaySummary {
   attempted: number;

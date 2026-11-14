@@ -115,7 +115,7 @@ describe('replayOutbox', () => {
     expect(outboxMocks.addDraft).toHaveBeenCalledWith(
       expect.objectContaining({ id: '1' }),
       'Not allowed',
-      'drafts.queuedForSomeoneElse',
+      'outbox.queuedForSomeoneElse',
     );
     expect(outboxMocks.removeQueued.mock.calls.map((call) => call[0])).toEqual(['1', '2']);
     expect(apiMocks.sendCommand).toHaveBeenCalledTimes(2);
