@@ -39,4 +39,3 @@ Separate NOLOGIN history-owner role before production (26/28); server accepts wh
 raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
 seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
 import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
-
