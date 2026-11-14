@@ -29,7 +29,7 @@ function loginSnapshot(l: LoginAdmin) {
     shared: l.shared,
     personId: l.personId,
     cell: l.cell,
-    disabled: l.disabled,
+    active: l.active,
     mustChangePassword: l.mustChangePassword,
   };
 }
@@ -70,9 +70,18 @@ export async function createLogin(
 }
 
 function loginAction(before: LoginAdmin, patch: LoginPatch): string {
-  if (patch.disabled === true) return 'login.disable';
-  if (patch.disabled === false && before.disabled) return 'login.enable';
+  if (patch.active === false) return 'login.disable';
+  if (patch.active === true && !before.active) return 'login.enable';
   return patch.temporaryPassword ? 'login.reset_password' : 'login.update';
+}
+
+/** A form sends the fixed fields back; they may be the same, never different. */
+function fixedFieldProblem(before: LoginAdmin, patch: LoginPatch): Outcome<never> | null {
+  const sent = { username: patch.username, shared: patch.shared, personId: patch.personId };
+  for (const [key, value] of Object.entries(sent))
+    if (value !== undefined && value !== before[key as keyof typeof sent])
+      return fail(422, 'validation', `${key} cannot be changed here`, key);
+  return null;
 }
 
 /** What a request may not ask for, judged from the request and the login as it stands. */
@@ -80,7 +89,7 @@ function loginPatchShape(before: LoginAdmin, patch: LoginPatch): Outcome<never> 
   if (before.shared && patch.role === 'admin') return fail(422, 'validation', SHARED_ADMIN, 'role');
   if (patch.cell && !before.shared)
     return fail(422, 'validation', 'Only a shared login has a cell', 'cell');
-  if (patch.disabled === false && before.disabled && !patch.temporaryPassword)
+  if (patch.active === true && !before.active && !patch.temporaryPassword)
     return fail(
       422,
       'validation',
@@ -94,18 +103,17 @@ function loginPatchShape(before: LoginAdmin, patch: LoginPatch): Outcome<never> 
 
 /** What the rest of the plant makes impossible: an off person, or no admin left. */
 async function loginPatchConflict(tx: Tx, before: LoginAdmin, patch: LoginPatch) {
-  const turningOn = patch.disabled === false && before.disabled;
+  const turningOn = patch.active === true && !before.active;
   if (turningOn && before.personId && !(await personAdminById(tx, before.personId))?.active)
-    return fail(409, 'conflict', 'Switch the person on first', 'disabled');
+    return fail(409, 'conflict', 'Switch the person on first', 'active');
   const demoted = patch.role !== undefined && patch.role !== 'admin';
-  const leaves =
-    before.role === 'admin' && !before.disabled && (patch.disabled === true || demoted);
+  const leaves = before.role === 'admin' && before.active && (patch.active === false || demoted);
   return leaves && (await otherAdminCount(tx, [before.id])) === 0 ? lastAdmin() : null;
 }
 
 /** Ends every sign-in and phone of a login that was switched off or got a new password. */
 async function endLoginAccess(tx: Tx, id: string, patch: LoginPatch) {
-  const ends = patch.disabled === true || patch.temporaryPassword !== undefined;
+  const ends = patch.active === false || patch.temporaryPassword !== undefined;
   if (!ends) return undefined;
   return {
     sessionsEnded: await endSessions(tx, [id]),
@@ -148,12 +156,15 @@ export async function patchLogin(
   if (denied) return denied;
   const before = await loginAdminById(tx, id);
   if (!before) return fail(404, 'not_found', 'Unknown login');
-  const refusal = loginPatchShape(before, patch) ?? (await loginPatchConflict(tx, before, patch));
+  const refusal =
+    fixedFieldProblem(before, patch) ??
+    loginPatchShape(before, patch) ??
+    (await loginPatchConflict(tx, before, patch));
   if (refusal) return refusal;
   const after = await updateLogin(tx, id, {
     role: patch.role,
     cell: patch.cell,
-    disabled: patch.disabled,
+    disabled: patch.active === undefined ? undefined : !patch.active,
     passwordHash: patch.temporaryPassword && (await hashPassword(patch.temporaryPassword)),
   });
   // Written first, so a sign-in being made right now has finished and is ended here, whatever it was.

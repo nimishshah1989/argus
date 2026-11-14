@@ -24,7 +24,7 @@ type Lock = Awaited<ReturnType<typeof holdLock>>;
 async function addPerson(name: string): Promise<string> {
   const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'maintenance' });
   expect(res.statusCode, res.body).toBe(201);
-  return res.json().person.id;
+  return res.json().id;
 }
 
 async function addLogin(username: string, extra: object): Promise<string> {
@@ -36,7 +36,7 @@ async function addLogin(username: string, extra: object): Promise<string> {
     ...extra,
   });
   expect(res.statusCode, res.body).toBe(201);
-  return res.json().login.id;
+  return res.json().id;
 }
 
 /** A person with a personal login, signed in. */
@@ -89,7 +89,7 @@ describe('an admin who loses admin while a request waits is refused', () => {
     ['add a person', (tok) => t.call('POST', '/api/v1/people', tok, { name: 'X', team: 'vendor' })],
     [
       'edit a person',
-      (tok, target) => t.call('PATCH', `/api/v1/people/${target}`, tok, { title: 'Changed' }),
+      (tok, target) => t.call('PUT', `/api/v1/people/${target}`, tok, { title: 'Changed' }),
     ],
     [
       'add a login',
@@ -105,7 +105,7 @@ describe('an admin who loses admin while a request waits is refused', () => {
     [
       'edit a login',
       (tok, target) =>
-        t.call('PATCH', `/api/v1/logins/${target}`, tok, { temporaryPassword: 'Late-reset-9921' }),
+        t.call('PUT', `/api/v1/logins/${target}`, tok, { temporaryPassword: 'Late-reset-9921' }),
     ],
   ];
 

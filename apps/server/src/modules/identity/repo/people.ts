@@ -48,7 +48,7 @@ function toLogin(r: Record<string, unknown>): LoginAdmin {
     personId: r.person_id,
     cell: r.cell,
     mustChangePassword: r.must_change_password,
-    disabled: r.disabled_at !== null,
+    active: r.disabled_at === null,
   } as LoginAdmin;
 }
 

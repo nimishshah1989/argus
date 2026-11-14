@@ -13,7 +13,7 @@ async function addPerson(name: string, phone?: string): Promise<string> {
     ...(phone ? { phone } : {}),
   });
   expect(res.statusCode, res.body).toBe(201);
-  return res.json().person.id;
+  return res.json().id;
 }
 
 async function addLogin(username: string, extra: object): Promise<string> {
@@ -25,7 +25,7 @@ async function addLogin(username: string, extra: object): Promise<string> {
     ...extra,
   });
   expect(res.statusCode, res.body).toBe(201);
-  return res.json().login.id;
+  return res.json().id;
 }
 
 async function addUser(role = 'technician') {
@@ -93,13 +93,13 @@ describe('switching off a person who is on a ticket in progress', () => {
       const u = await addUser();
       const ticket = await activeTicket(u.personId, how);
       const audits = (await t.db.admin.query('SELECT 1 FROM audit_log')).rowCount;
-      const res = await t.call('PATCH', `/api/v1/people/${u.personId}`, admin, { active: false });
+      const res = await t.call('PUT', `/api/v1/people/${u.personId}`, admin, { active: false });
       expect(res.statusCode, res.body).toBe(409);
       expect(res.json().error.code).toBe('conflict');
       expect(res.json().error.message).toContain(ticket.ref);
       expect(res.json().error.message).toMatch(/transfer or close/i);
       expect((await t.call('GET', '/api/v1/auth/me', u.token)).statusCode).toBe(200);
-      const people = (await t.call('GET', '/api/v1/people', admin)).json().people;
+      const people = (await t.call('GET', '/api/v1/people', admin)).json().items;
       expect(people.find((p: { id: string }) => p.id === u.personId).active).toBe(true);
       expect((await t.db.admin.query('SELECT 1 FROM audit_log')).rowCount).toBe(audits);
 
@@ -107,7 +107,7 @@ describe('switching off a person who is on a ticket in progress', () => {
         "UPDATE ticket SET status = 'closed', closed_at = now() WHERE id = $1",
         [ticket.id],
       );
-      const later = await t.call('PATCH', `/api/v1/people/${u.personId}`, admin, { active: false });
+      const later = await t.call('PUT', `/api/v1/people/${u.personId}`, admin, { active: false });
       expect(later.statusCode, later.body).toBe(200);
     });
   }
@@ -116,7 +116,7 @@ describe('switching off a person who is on a ticket in progress', () => {
     const u = await addUser();
     const one = await activeTicket(u.personId, 'crew');
     const two = await activeTicket(u.personId, 'lead');
-    const res = await t.call('PATCH', `/api/v1/people/${u.personId}`, admin, { active: false });
+    const res = await t.call('PUT', `/api/v1/people/${u.personId}`, admin, { active: false });
     expect(res.json().error.message).toContain(one.ref);
     expect(res.json().error.message).toContain(two.ref);
   });
@@ -125,7 +125,7 @@ describe('switching off a person who is on a ticket in progress', () => {
     const u = await addUser();
     const ticket = await activeTicket(u.personId, 'crew');
     await t.db.admin.query("UPDATE ticket SET status = 'cancelled' WHERE id = $1", [ticket.id]);
-    const res = await t.call('PATCH', `/api/v1/people/${u.personId}`, admin, { active: false });
+    const res = await t.call('PUT', `/api/v1/people/${u.personId}`, admin, { active: false });
     expect(res.statusCode, res.body).toBe(200);
   });
 });
@@ -147,7 +147,7 @@ describe('a ticket cannot be handed to a person who is switched off', () => {
   it('refuses a transfer to them and a pause assigned to them (422), and accepts an active person', async () => {
     const me = await addUser();
     const off = await addUser();
-    await t.call('PATCH', `/api/v1/people/${off.personId}`, admin, { active: false });
+    await t.call('PUT', `/api/v1/people/${off.personId}`, admin, { active: false });
     const live = await addUser();
     const id = await working(me.token, me.personId);
     const transfer = await t.call('POST', `/api/v1/tickets/${id}/transfer`, me.token, {
@@ -198,7 +198,7 @@ describe('a shared floor phone keeps working when the person it was acting as is
       'https://fcm.googleapis.com/fcm/send/personal-phone',
     );
 
-    const off = await t.call('PATCH', `/api/v1/people/${leaver.personId}`, admin, {
+    const off = await t.call('PUT', `/api/v1/people/${leaver.personId}`, admin, {
       active: false,
     });
     expect(off.statusCode, off.body).toBe(200);
@@ -266,7 +266,7 @@ describe('a shared login is never an admin', () => {
     expect(create.statusCode).toBe(422);
     expect(create.json().error.field).toBe('role');
     const id = await addLogin('shared.floor', { role: 'operator', shared: true });
-    const promote = await t.call('PATCH', `/api/v1/logins/${id}`, admin, { role: 'admin' });
+    const promote = await t.call('PUT', `/api/v1/logins/${id}`, admin, { role: 'admin' });
     expect(promote.statusCode).toBe(422);
     expect(promote.json().error.field).toBe('role');
   });
@@ -279,7 +279,7 @@ describe('a shared login is never an admin', () => {
       "INSERT INTO login (tenant_id, username, password_hash, role, shared) VALUES ($1, 'legacy.shared', $2, 'admin', true)",
       [A, hash],
     );
-    const person = (await t.call('GET', '/api/v1/people', admin)).json().people[0].id;
+    const person = (await t.call('GET', '/api/v1/people', admin)).json().items[0].id;
     const token = (
       await t.call('POST', '/api/v1/auth/login', undefined, {
         username: 'legacy.shared',
@@ -293,7 +293,7 @@ describe('a shared login is never an admin', () => {
     ).toBe(403);
     const adminLogin = (await t.db.admin.query("SELECT id FROM login WHERE username = 'admin'"))
       .rows[0].id;
-    const last = await t.call('PATCH', `/api/v1/logins/${adminLogin}`, admin, { disabled: true });
+    const last = await t.call('PUT', `/api/v1/logins/${adminLogin}`, admin, { active: false });
     expect(last.statusCode, last.body).toBe(409);
   });
 });
@@ -387,8 +387,8 @@ describe('weak passwords in their usual disguises', () => {
 describe('the audit row says when the number changed', () => {
   it('sets phoneChanged although the last four digits are the same', async () => {
     const id = await addPerson('Phone Mover', '+919000000041');
-    await t.call('PATCH', `/api/v1/people/${id}`, admin, { phone: '+929000000041' });
-    await t.call('PATCH', `/api/v1/people/${id}`, admin, { title: 'Lead' });
+    await t.call('PUT', `/api/v1/people/${id}`, admin, { phone: '+929000000041' });
+    await t.call('PUT', `/api/v1/people/${id}`, admin, { title: 'Lead' });
     const rows = (
       await t.db.admin.query(
         "SELECT before, after FROM audit_log WHERE entity_id = $1 AND action = 'person.update' ORDER BY created_at",
@@ -415,7 +415,7 @@ async function phoneWithNobody() {
       actingPersonId: acting,
     });
   const token = (await sign(leaver.personId)).json().token as string;
-  const off = await t.call('PATCH', `/api/v1/people/${leaver.personId}`, admin, { active: false });
+  const off = await t.call('PUT', `/api/v1/people/${leaver.personId}`, admin, { active: false });
   expect(off.statusCode, off.body).toBe(200);
   return { token, other, leaver };
 }
@@ -509,7 +509,7 @@ describe('the last admin is counted by who could actually act', () => {
     ).rows;
     for (const o of others)
       await t.db.admin.query('UPDATE login SET disabled_at = now() WHERE id = $1', [o.id]);
-    const res = await t.call('PATCH', `/api/v1/logins/${adminLogin}`, admin, { disabled: true });
+    const res = await t.call('PUT', `/api/v1/logins/${adminLogin}`, admin, { active: false });
     expect(res.statusCode, res.body).toBe(409);
   });
 });
@@ -519,7 +519,7 @@ describe('who may hand a ticket over is decided before who it is handed to', () 
     const worker = await addUser();
     const id = await workingTicket(worker.token, worker.personId);
     const off = await addUser();
-    await t.call('PATCH', `/api/v1/people/${off.personId}`, admin, { active: false });
+    await t.call('PUT', `/api/v1/people/${off.personId}`, admin, { active: false });
     const operator = await addUser('operator');
     const res = await t.call('POST', `/api/v1/tickets/${id}/transfer`, operator.token, {
       personId: operator.personId,
@@ -570,7 +570,7 @@ describe('signing in to a shared phone without saying who is using it', () => {
 
   it('still checks a person named at sign-in: switched off or unknown is 422, a personal login is unaffected', async () => {
     const off = await addUser();
-    await t.call('PATCH', `/api/v1/people/${off.personId}`, admin, { active: false });
+    await t.call('PUT', `/api/v1/people/${off.personId}`, admin, { active: false });
     for (const bad of [off.personId, '10000000-0000-4000-8000-0000000000ee']) {
       const res = await t.call('POST', '/api/v1/auth/login', undefined, {
         username: 'open.phone',

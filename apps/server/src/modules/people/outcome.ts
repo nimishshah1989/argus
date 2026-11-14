@@ -49,6 +49,6 @@ export async function lockAsAdmin(tx: Tx, actor: Actor): Promise<Outcome<never> 
   await lockPeopleWrites(tx, actor.tenantId);
   const me = await loginAdminById(tx, actor.loginId);
   const person = me?.personId ? await personAdminById(tx, me.personId) : undefined;
-  const stillAdmin = me && !me.disabled && !me.shared && me.role === 'admin' && person?.active;
+  const stillAdmin = me && me.active && !me.shared && me.role === 'admin' && person?.active;
   return stillAdmin ? null : fail(403, 'forbidden', 'You do not have permission for this action');
 }

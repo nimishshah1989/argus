@@ -85,7 +85,7 @@ async function switchOffRefusal(tx: Tx, person: PersonAdmin): Promise<Outcome<ne
       'active',
     );
   const logins = await loginsOfPerson(tx, person.id);
-  const admins = logins.filter((l) => l.role === 'admin' && !l.disabled).map((l) => l.id);
+  const admins = logins.filter((l) => l.role === 'admin' && l.active).map((l) => l.id);
   return admins.length > 0 && (await otherAdminCount(tx, admins)) === 0 ? lastAdmin() : null;
 }
 

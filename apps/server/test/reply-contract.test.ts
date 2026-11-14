@@ -37,7 +37,7 @@ describe('reply contract', () => {
       .map((r) => `${r.method} ${r.url}`)
       .sort();
     expect(keys).toEqual(Object.keys(REPLY_SCHEMAS).sort());
-    expect(keys).toHaveLength(100);
+    expect(keys).toHaveLength(94);
   });
 
   it("accepts today's /state reply", () => {

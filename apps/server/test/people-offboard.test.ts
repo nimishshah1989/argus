@@ -15,7 +15,7 @@ const tokens: Record<string, string> = {};
 async function addPerson(name: string, phone: string): Promise<string> {
   const res = await t.call('POST', '/api/v1/people', admin, { name, team: 'maintenance', phone });
   expect(res.statusCode, res.body).toBe(201);
-  return res.json().person.id;
+  return res.json().id;
 }
 
 async function addLogin(body: object): Promise<void> {
@@ -107,9 +107,9 @@ describe('switching a person off', () => {
   it('clears the number, ends every sign-in and device, disables the logins, keeps the name', async () => {
     const before = (await t.db.admin.query('SELECT 1 FROM audit_log WHERE tenant_id = $1', [A]))
       .rowCount;
-    const res = await t.call('PATCH', `/api/v1/people/${tara}`, admin, { active: false });
+    const res = await t.call('PUT', `/api/v1/people/${tara}`, admin, { active: false });
     expect(res.statusCode, res.body).toBe(200);
-    expect(res.json().person).toMatchObject({ active: false, phone: null, name: 'Tara Test' });
+    expect(res.json()).toMatchObject({ active: false, phone: null, name: 'Tara Test' });
 
     for (const gone of ['taraPhone', 'taraLaptop'])
       expect(await status(tokens[gone]!), gone).toBe(401);
@@ -132,11 +132,9 @@ describe('switching a person off', () => {
       actingPersonId: tara,
     });
     expect(asThem.statusCode).toBe(422);
-    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().logins;
-    expect(logins.find((l: { username: string }) => l.username === 'tara').disabled).toBe(true);
-    expect(logins.find((l: { username: string }) => l.username === 'cell-one').disabled).toBe(
-      false,
-    );
+    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().items;
+    expect(logins.find((l: { username: string }) => l.username === 'tara').active).toBe(false);
+    expect(logins.find((l: { username: string }) => l.username === 'cell-one').active).toBe(true);
 
     const audit = (
       await t.db.admin.query(
@@ -179,20 +177,20 @@ describe('switching a person off', () => {
     const count = async () =>
       (await t.db.admin.query('SELECT 1 FROM audit_log WHERE tenant_id = $1', [A])).rowCount;
     const before = await count();
-    const again = await t.call('PATCH', `/api/v1/people/${tara}`, admin, { active: false });
+    const again = await t.call('PUT', `/api/v1/people/${tara}`, admin, { active: false });
     expect(again.statusCode).toBe(200);
     expect(await count()).toBe(before);
   });
 
   it('refuses a number on a switched-off person unless the same request switches them on', async () => {
-    const res = await t.call('PATCH', `/api/v1/people/${tara}`, admin, { phone: '+919000000013' });
+    const res = await t.call('PUT', `/api/v1/people/${tara}`, admin, { phone: '+919000000013' });
     expect(res.statusCode).toBe(409);
   });
 
   it('switching on brings back neither the number, the devices nor the logins', async () => {
-    const on = await t.call('PATCH', `/api/v1/people/${tara}`, admin, { active: true });
+    const on = await t.call('PUT', `/api/v1/people/${tara}`, admin, { active: true });
     expect(on.statusCode, on.body).toBe(200);
-    expect(on.json().person).toMatchObject({ active: true, phone: null });
+    expect(on.json()).toMatchObject({ active: true, phone: null });
     expect(await endpoints()).toEqual([
       'https://push.test/shared-as-ravi',
       'https://push.test/shared-as-tara',
@@ -203,10 +201,10 @@ describe('switching a person off', () => {
       password: TEMP,
     });
     expect(stillOff.statusCode).toBe(401);
-    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().logins;
+    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().items;
     const loginId = logins.find((l: { username: string }) => l.username === 'tara').id;
-    const enable = await t.call('PATCH', `/api/v1/logins/${loginId}`, admin, {
-      disabled: false,
+    const enable = await t.call('PUT', `/api/v1/logins/${loginId}`, admin, {
+      active: true,
       temporaryPassword: 'Back-again-2210',
     });
     expect(enable.statusCode, enable.body).toBe(200);
@@ -225,19 +223,19 @@ describe('switching a person off', () => {
   });
 
   it('will not switch a login on while its person is off', async () => {
-    const off = await t.call('PATCH', `/api/v1/people/${ravi}`, admin, { active: false });
+    const off = await t.call('PUT', `/api/v1/people/${ravi}`, admin, { active: false });
     expect(off.statusCode).toBe(200);
-    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().logins;
+    const logins = (await t.call('GET', '/api/v1/logins', admin)).json().items;
     const loginId = logins.find((l: { username: string }) => l.username === 'ravi').id;
-    const res = await t.call('PATCH', `/api/v1/logins/${loginId}`, admin, {
-      disabled: false,
+    const res = await t.call('PUT', `/api/v1/logins/${loginId}`, admin, {
+      active: true,
       temporaryPassword: 'Back-again-2210',
     });
     expect(res.statusCode).toBe(409);
-    const withPhone = await t.call('PATCH', `/api/v1/people/${ravi}`, admin, {
+    const withPhone = await t.call('PUT', `/api/v1/people/${ravi}`, admin, {
       active: true,
       phone: '+919000000014',
     });
-    expect(withPhone.json().person.phone).toBe('+919000000014');
+    expect(withPhone.json().phone).toBe('+919000000014');
   });
 });

@@ -14,7 +14,7 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 export type Res = Awaited<ReturnType<App['inject']>>;
 
 type Call = (
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT',
   url: string,
   token?: string,
   payload?: object,
