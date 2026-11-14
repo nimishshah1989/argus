@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { boardTodayReplySchema } from './board.js';
 import { brandReplySchema, loginReplySchema, meReplySchema } from './auth.js';
 import {
   LIST_NAMES,
@@ -134,6 +135,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/tickets/past`]: commandReplySchema,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
+  [`GET ${P}/board/today`]: boardTodayReplySchema,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,

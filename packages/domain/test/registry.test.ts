@@ -5,6 +5,7 @@ import { handlers } from '../src/state/commands/registry.js';
 const here = (path: string) => new URL(path, import.meta.url);
 
 const COMMAND_FILES = [
+  'acknowledge',
   'cancel',
   'close',
   'correct',
@@ -29,6 +30,7 @@ describe('domain registries', () => {
     );
     expect(Object.keys(handlers).sort()).toEqual(
       [
+        'acknowledge',
         'cancel',
         'close',
         'correct',
@@ -50,7 +52,7 @@ describe('domain registries', () => {
 
   it('D2: the public API is unchanged', async () => {
     expect(Object.keys(await import('../src/index.js')).sort()).toEqual(
-      `ACTION_ORDER, ESCALATION_DEFAULTS, SlaInputError, TransitionError, addBusinessMinutes, apply, assertWorking, availableActions, businessMinutesBetween, canAnalytics, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, defaultSeverityMatrix, figures, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, passwordProblem, pause, personMinutes, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, seesAllNeedReport, slaBreached, start, transfer, transition, update, upgradeKind`.split(
+      `ACTION_ORDER, ESCALATION_DEFAULTS, SlaInputError, TransitionError, acknowledge, addBusinessMinutes, apply, assertWorking, availableActions, businessMinutesBetween, canAcknowledge, canAnalytics, canBreakdownPdf, canCancel, canClose, canCorrect, canDayReport, canLateReport, canLiveBoard, canMoney, canRaise, canRestore, canSettingsAi, canSettingsLists, canSettingsPeople, canSettingsSla, canTeamDayReport, canWork, cancel, clampAt, close, closeSegments, computeSeverity, correct, dayScore, defaultSeverityMatrix, figures, join, lastEventAt, lateReport, leave, machineRunning, machineStopped, nextRef, nextSeq, passwordProblem, pause, personMinutes, projectPauseTimer, projectSlaTimers, raiseTicket, recordPastBreakdown, remainingSlaMinutes, restore, resume, seesAllNeedReport, slaBreached, start, transfer, transition, update, upgradeKind`.split(
         ', ',
       ),
     );

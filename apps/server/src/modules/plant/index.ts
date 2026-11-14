@@ -11,9 +11,11 @@ export {
   productionDateAt,
   setting,
   shiftCodeAt,
+  shiftNowAt,
   shiftsOf,
   shiftWindows,
   type MachineFamily,
+  type ShiftNow,
   type MachineRow,
 } from './repo/reads.js';
 export { actorOf, forbidden } from './actor.js';

@@ -1,3 +1,4 @@
+export { acknowledge } from './acknowledge.js';
 export { cancel } from './cancel.js';
 export { close } from './close.js';
 export { correct } from './correct.js';

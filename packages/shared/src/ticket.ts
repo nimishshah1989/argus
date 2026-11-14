@@ -47,6 +47,7 @@ export const COMMAND_ACTIONS = [
   'restore',
   'correct',
   'upgrade-kind',
+  'acknowledge',
 ] as const;
 export type CommandAction = (typeof COMMAND_ACTIONS)[number];
 
@@ -55,6 +56,9 @@ export const startTicketSchema = z.object({
   at: iso.optional(),
 });
 export type StartTicketBody = z.infer<typeof startTicketSchema>;
+
+export const acknowledgeTicketSchema = z.object({ personId: z.string().uuid() });
+export type AcknowledgeTicketBody = z.infer<typeof acknowledgeTicketSchema>;
 
 export const joinTicketSchema = z.object({
   personId: z.string().uuid(),

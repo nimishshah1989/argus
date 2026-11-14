@@ -3,9 +3,11 @@ import {
   contributeTicketListener,
   contributeTicketPart,
   defineModule,
+  setRosterLookup,
 } from '../../kernel/index.js';
 import { alertOnTicketWrite } from './alerts.js';
 import { slaPoliciesPart, slaTicketPart } from './parts.js';
+import { onRosterAt } from './roster.js';
 import { registerSettings } from './routes.js';
 
 export { startJobs } from './jobs.js';
@@ -20,5 +22,6 @@ export const accountabilityModule = defineModule({
     contributeTicketPart(slaTicketPart);
     contributeConfigPart(slaPoliciesPart);
     contributeTicketListener('alerts', alertOnTicketWrite);
+    setRosterLookup(onRosterAt);
   },
 });

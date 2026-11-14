@@ -13,6 +13,7 @@ export type Command =
   | { type: 'resume'; personId: string; note?: string }
   | { type: 'transfer'; personId: string; toPersonId?: string; toShift?: string; note: string }
   | { type: 'update'; personId: string; text: string }
+  | { type: 'acknowledge'; personId: string; onRoster: boolean }
   | { type: 'machineRunning'; personId: string; at?: Date }
   | { type: 'machineStopped'; personId: string; at?: Date }
   | {
