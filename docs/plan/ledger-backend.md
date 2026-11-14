@@ -215,3 +215,8 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
 - 07:20 UTC #227 api(1/3) red: import-real erase test is order-dependent (LIMIT 1 without ORDER BY; the fingerprint
   now tolerates erased envelopes, so undo refuses only when a fingerprinted ticket column changed). Sent builder 21
   one fix round: deterministic person + a second case (named only in raw rows → undo succeeds). No job rerun.
+- 07:24 UTC #227 fix 160c5b6 checked (person ORDER BY id + precondition from erase_person counts; refusal assertion
+  intact; new case: raw-rows-only erasure leaves undo allowed). pr-meta red on size (830 > 800): Ruling: "Large PR"
+  line, not a split (seven separate audit items, each its own commit and test; a split costs seven CI runs; cost if
+  wrong: a harder review, already done). Ruling: #227 accepted without a pstack playbook (built before the rule);
+  every later backend ticket starts in a /poteto-mode session.
