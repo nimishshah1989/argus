@@ -20,6 +20,8 @@ import { adminEn } from './admin.en.js';
 import { adminGu } from './admin.gu.js';
 import { boardEn } from './board.en.js';
 import { boardGu } from './board.gu.js';
+import { liveBoardEn } from './live-board.en.js';
+import { liveBoardGu } from './live-board.gu.js';
 import { settingsEn } from './settings.en.js';
 import { settingsGu } from './settings.gu.js';
 import { statusSignalEn } from './status-signal.en.js';
@@ -53,6 +55,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'status-ticket': statusTicketEn,
   admin: adminEn,
   board: boardEn,
+  'live-board': liveBoardEn,
   settings: settingsEn,
   'status-signal': statusSignalEn,
   'status-flow': statusFlowEn,
@@ -77,6 +80,7 @@ export const en = {
   ...statusTicketEn,
   ...adminEn,
   ...boardEn,
+  ...liveBoardEn,
   ...settingsEn,
   ...statusSignalEn,
   ...statusFlowEn,
@@ -103,6 +107,7 @@ export const gu = {
   ...statusTicketGu,
   ...adminGu,
   ...boardGu,
+  ...liveBoardGu,
   ...settingsGu,
   ...statusSignalGu,
   ...statusFlowGu,
