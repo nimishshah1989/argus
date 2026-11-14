@@ -44,7 +44,7 @@ test('the person who reported says it is fixed and sees the turnaround both ways
   const { ticket } = await closedWithReport(11, testInfo.project.name, 'Noise in the spindle');
   await openMyComplaints(page);
   const card = page.getByRole('listitem').filter({ hasText: ticket.ref });
-  await expect(card.getByText('Is it fixed?').first()).toBeVisible();
+  await expect(card.getByText('Is it fixed?', { exact: true }).first()).toBeVisible();
   await card.getByRole('button', { name: 'Yes, it is fixed' }).click();
   await expect(card.getByText(/Thank you\. You said it is fixed at/)).toBeVisible();
   await expect(card.getByText(/Maintenance took .* · you answered in/)).toBeVisible();

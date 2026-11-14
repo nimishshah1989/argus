@@ -19,9 +19,9 @@ const KIND = {
 
 /** A closed ticket production was asked about shows production's side of it, not just "Fixed". */
 const SIGNOFF_PILL = {
-  requested: 'is_it_fixed',
+  requested: 'requested',
   confirmed: 'confirmed',
-  timed_out: 'no_answer',
+  timed_out: 'timed_out',
   disputed: null,
 } as const;
 
@@ -30,7 +30,7 @@ function ComplaintStatus({ ticket }: { ticket: Ticket }) {
   const sign =
     ticket.status === 'closed' && ticket.handback ? SIGNOFF_PILL[ticket.handback.status] : null;
   /* eslint-disable i18next/no-literal-string -- status groups, not copy */
-  if (sign) return <StatusPill group="floor" id={sign} />;
+  if (sign) return <StatusPill group="handback" id={sign} />;
   return status.group === 'floor' ? (
     <StatusPill group="floor" id={status.id} />
   ) : (
