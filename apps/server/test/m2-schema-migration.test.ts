@@ -186,6 +186,54 @@ describe('notifications', () => {
   });
 });
 
+describe('what a notification may hold', () => {
+  it('keeps only a provider’s error code, never a message that could carry a number or a name', async () => {
+    await insertNotification(cosmos, 'err-ok', person);
+    await db.admin.query(
+      "UPDATE notification SET last_error = 'InvalidToken' WHERE dedupe_key = 'err-ok'",
+    );
+    await expect(
+      db.admin.query(
+        "UPDATE notification SET last_error = 'rejected +919000000001' WHERE dedupe_key = 'err-ok'",
+      ),
+    ).rejects.toThrow(/check/);
+  });
+
+  it('names an event only together with the ticket it belongs to', async () => {
+    const events = (
+      await db.admin.query(
+        'SELECT id, ticket_id FROM ticket_event WHERE tenant_id = $1 ORDER BY ticket_id, seq LIMIT 400',
+        [cosmos],
+      )
+    ).rows;
+    const mine = events[0];
+    const elsewhere = events.find((e) => e.ticket_id !== mine.ticket_id);
+    const make = (key: string, ticketId: string | null, eventId: string) =>
+      db.admin.query(
+        `INSERT INTO notification (tenant_id, dedupe_key, kind, person_id, channel, ticket_id, event_id, next_attempt_at)
+         VALUES ($1, $2, 'escalation', $3, 'push', $4, $5, now())`,
+        [cosmos, key, person, ticketId, eventId],
+      );
+    await make('ev-ok', mine.ticket_id, mine.id);
+    await expect(make('ev-other-ticket', mine.ticket_id, elsewhere.id)).rejects.toThrow(
+      /foreign key/,
+    );
+    await expect(make('ev-no-ticket', null, mine.id)).rejects.toThrow(
+      /notification_event_needs_ticket/,
+    );
+  });
+});
+
+describe('what the application role may delete', () => {
+  it('cannot delete a shift, a segment or a glossary term: they are switched off, never removed', async () => {
+    for (const table of ['shift', 'segment', 'glossary_term']) {
+      await expect(asPlant(cosmos, `DELETE FROM ${table}`), table).rejects.toThrow(
+        /permission denied/,
+      );
+    }
+  });
+});
+
 describe('the escalation ladder', () => {
   const rule = (extra: Record<string, unknown>) => {
     const columns = {
