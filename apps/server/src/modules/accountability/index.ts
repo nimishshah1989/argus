@@ -1,4 +1,10 @@
-import { contributeConfigPart, contributeTicketPart, defineModule } from '../../kernel/index.js';
+import {
+  contributeConfigPart,
+  contributeTicketListener,
+  contributeTicketPart,
+  defineModule,
+} from '../../kernel/index.js';
+import { alertOnTicketWrite } from './alerts.js';
 import { slaPoliciesPart, slaTicketPart } from './parts.js';
 import { registerSettings } from './routes.js';
 
@@ -12,5 +18,6 @@ export const accountabilityModule = defineModule({
     registerSettings(app, config);
     contributeTicketPart(slaTicketPart);
     contributeConfigPart(slaPoliciesPart);
+    contributeTicketListener('alerts', alertOnTicketWrite);
   },
 });
