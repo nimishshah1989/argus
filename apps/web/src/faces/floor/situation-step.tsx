@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { Machine } from '../../api.js';
-import { Card } from '../../ui/card.js';
+import { Banner } from '../../ui/banner.js';
 import { ChoiceCard, MachineCard } from '../../ui/floor-pieces.js';
 import { LifeBuoy, OctagonX } from '../../ui/icon.js';
 import { Stack } from '../../ui/layout.js';
-import { Text } from '../../ui/text.js';
 import type { ReportState } from './report-state.js';
 import type { FloorData } from './use-floor.js';
 
@@ -25,9 +24,9 @@ export function SituationLead(p: { data: FloorData; machine: Machine; report: Re
         detail={machineDetail(p.data, p.machine)}
       />
       {support ? (
-        <Card title={t('reportFloor.kindSupport')}>
-          <Text>{t('reportFloor.supportTicket', { ref: support.ref })}</Text>
-        </Card>
+        <Banner tone="attention" title={t('reportFloor.kindSupport')}>
+          {t('reportFloor.supportTicket', { ref: support.ref })}
+        </Banner>
       ) : null}
     </Stack>
   );

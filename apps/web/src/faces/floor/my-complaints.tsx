@@ -2,9 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { tickets, type Ticket } from '../../api.js';
 import { QueuePage } from '../../patterns/queue-page.js';
 import { MachineCard } from '../../ui/floor-pieces.js';
-import { Page } from '../../ui/layout.js';
 import { StatusPill } from '../../ui/status/status-pill.js';
 import { Text } from '../../ui/text.js';
+import { FloorLoading, FloorShell } from './floor-shell.js';
 import { floorStatus } from './machines.js';
 import { ticketPlace } from './sent.js';
 import { clock, useFloorData, type FloorData } from './use-floor.js';
@@ -38,9 +38,14 @@ function Complaint({ data, ticket }: { data: FloorData; ticket: Ticket }) {
 export function MyComplaints() {
   const { t } = useTranslation();
   const data = useFloorData();
-  if (!data) return <Page />;
+  if (!data)
+    return (
+      <FloorShell>
+        <FloorLoading />
+      </FloorShell>
+    );
   return (
-    <Page>
+    <FloorShell>
       <QueuePage
         title={t('floor.complaints')}
         resource={tickets}
@@ -49,6 +54,6 @@ export function MyComplaints() {
         rowKey={(ticket) => ticket.id}
         empty={t('floor.complaintsEmpty')}
       />
-    </Page>
+    </FloorShell>
   );
 }

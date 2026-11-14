@@ -125,7 +125,7 @@ test('My complaints lists what this person reported with the floor words', async
   const machine = floorMachine(7, testInfo.project.name);
   const raised = await raiseTicketViaApi(await apiLogin('op'), machine.id, 'Chuck not clamping');
   await signIn(page, 'op');
-  await page.goto('/floor/mine');
+  await page.getByRole('navigation').getByRole('link', { name: 'My complaints' }).click();
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
   const card = page.getByRole('listitem').filter({ hasText: raised.ref });
   await expect(card).toContainText(machine.code);

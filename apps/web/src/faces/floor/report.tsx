@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
-import { Page } from '../../ui/layout.js';
+import { FloorLoading, FloorShell } from './floor-shell.js';
 import { MachineStep } from './machine-step.js';
 import { ProblemLead, ProblemStep } from './problem-step.js';
 import { useReport } from './report-state.js';
@@ -73,12 +72,11 @@ function ReportFlow(p: { data: FloorData; deepLink: string | null; onAnother: ()
 
 /** The floor's report screen (ticket 15). "Report another" starts a fresh flow. */
 export function Report() {
-  const { t } = useTranslation();
   const [params] = useSearchParams();
   const [round, setRound] = useState(0);
   const data = useFloorData();
   return (
-    <Page>
+    <FloorShell>
       {data ? (
         <ReportFlow
           key={round}
@@ -87,9 +85,8 @@ export function Report() {
           onAnother={() => setRound((n) => n + 1)}
         />
       ) : (
-        // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
-        <StateNotice state="loading" empty={t('common.loading')} onRetry={() => undefined} />
+        <FloorLoading />
       )}
-    </Page>
+    </FloorShell>
   );
 }

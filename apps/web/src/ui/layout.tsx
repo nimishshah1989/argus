@@ -52,3 +52,13 @@ export function Grid({
 }) {
   return <div className={`grid ${COLUMNS[columns]} ${GAP[gap]}`}>{children}</div>;
 }
+
+/** A full-height screen with a bar pinned under its content (the floor's and desk's tab bar). */
+export function Shell({ bar, children }: { bar: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <div className="flex-1">{children}</div>
+      {bar}
+    </div>
+  );
+}

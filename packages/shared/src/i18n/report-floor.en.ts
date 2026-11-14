@@ -56,4 +56,5 @@ export const reportFloorEn = {
   'reportFloor.sendWork': 'Send work request',
   'reportFloor.kindStopped': 'Machine stopped',
   'reportFloor.kindSupport': 'Needs support',
+  'reportFloor.tabs': 'Floor',
 };
