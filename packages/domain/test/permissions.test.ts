@@ -68,6 +68,18 @@ describe('permissions', () => {
     expect(canSettingsPeople(actor('head'))).toBe(false);
   });
 
+  it('keeps people and logins with the admin alone: every other role is refused', () => {
+    for (const role of [
+      'operator',
+      'technician',
+      'supervisor',
+      'head',
+      'plant_head',
+      'board',
+    ] as const)
+      expect(canSettingsPeople(actor(role)), role).toBe(false);
+  });
+
   it('keeps the AI consent and spending settings with the admin alone', () => {
     expect(canSettingsAi(actor('admin'))).toBe(true);
     for (const role of [
