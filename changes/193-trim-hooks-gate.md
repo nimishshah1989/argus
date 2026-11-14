@@ -1,0 +1,1 @@
+- Harness and gate trimmed (Nimish ruling, 14 Nov).

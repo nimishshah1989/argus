@@ -20,8 +20,8 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
    surface, small ordered commits.
 3. **Review** the PR: `ponytail-review` on the diff, plus `/pstack:interrogate` when the ticket touches the
    schema, auth or permissions, tenancy, or deletes or rewrites data. CI green + no blocking finding: merge.
-4. **Gate** each milestone: full test suite, `ponytail-audit` on the whole repo (what to delete, merge or
-   split), the gate report, then Nimish's go.
+4. **Gate** each milestone: one short gate report (under 30 lines), then Nimish's go. CI already runs the full
+   suite on every PR; run `ponytail-audit` only when the milestone changed schema, auth or tenancy widely.
 
 ## Rules that are not negotiable
 
@@ -32,7 +32,7 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
 - Modules talk only through their published interfaces (`pnpm boundaries`).
 - No secrets and no real personal data anywhere: code, tests, fixtures, screenshots, logs.
 - A migration that alters or deletes existing data needs a backup step run before it.
-- One build at a time per file area; at most three tickets in parallel, each in its own worktree.
+- One build at a time per file area; at most five builders in parallel (two orchestrator lanes), each in its own worktree.
 - Pause for a person before anything irreversible: production deploys, data deletion, messages to customers.
 - When you catch an agent repeating a mistake, run `/pstack:correct` so a check blocks it next time.
 
@@ -43,8 +43,12 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
   Schema-changing tickets run one at a time. Merges go one at a time: CI green, then merge.
 - **Parallel agents** do not message each other. They share the frozen interfaces in each slice plan
   (`docs/slices/<issue>.md`), `main`, and the ledger (`docs/plan/ledger.md`, one line per dispatch, ruling or merge).
-- **Gate:** when a milestone's tickets are merged, run the full suite and `ponytail-audit`, write
-  `docs/plan/gates/<M>.md` (goals, tests, evidence, what Nimish checks), then stop for his go.
+- **Two lanes (Nimish, 14 Nov):** a frontend orchestrator (apps/web, infra, staging, MILESTONES, HANDOFF) with up
+  to three builders and a backend orchestrator (apps/server, packages, scripts) with up to two. One migration in
+  flight across both lanes: the backend lane asks the frontend lane for the lock. Backend work may run ahead of the
+  milestone gates on configurable defaults. Screens are built only from mockups Nimish approved (`docs/design/LOCK.md`).
+- **Gate:** when a milestone's tickets are merged, write `docs/plan/gates/<M>.md` (under 30 lines: goals met, the
+  evidence links, what Nimish checks), then stop for his go.
 - **Timebox:** a ticket reaches its PR in about an hour; past two, cut scope. Record every ruling in the ledger
   (`Ruling: what, why, cost if wrong`).
 - **Resume:** read `docs/HANDOFF.md`, the ledger and `docs/plan/MILESTONES.md`; never re-dispatch a ticket the
@@ -58,7 +62,7 @@ to try the preview. Run `pnpm precheck` before every push.
 
 ## Memory
 
-- `docs/HANDOFF.md`: where things stand, under 50 lines. Rewrite the top part at the end of every session.
+- `docs/HANDOFF.md`: where things stand, under 50 lines. Rewrite it when the state changes.
 - `wiki/`: one page per topic the code cannot say for itself; `wiki/log.md` is append-only.
 - Decisions: `docs/decisions/`, one short file each, with what was rejected and why.
 - `/pstack:recall` to pick up a session; `/pstack:ketchup` to catch Nimish up.
@@ -66,4 +70,4 @@ to try the preview. Run `pnpm precheck` before every push.
 ## Hooks (`.claude/harness/hooks/`)
 
 Session start loads the handoff. Before a tool runs, secrets, pushes to main, force-pushes, `--no-verify` and
-test deletion are blocked. Edits are formatted. Stop runs the fast tests. Session end refreshes the handoff.
+test deletion are blocked. Edits are formatted. Stop runs the fast tests when source files changed.
