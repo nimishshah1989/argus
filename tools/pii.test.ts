@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { scanFiles, scanText, scannedPaths } from './check-pii.js';
-import { SOURCES, denyListFromSources, loadDenyList, workbookCells } from './pii-sources.js';
+import {
+  SOURCES,
+  denyListFromSources,
+  loadDenyList,
+  scanList,
+  workbookCells,
+} from './pii-sources.js';
 
 // No real value goes into an assertion message: every check on a real value is a boolean or a count.
 
@@ -46,6 +52,24 @@ describe('pii deny-list', () => {
     const all = denyListFromSources(texts);
     expect(all.names.length > jsonOnly.names.length).toBe(true);
     expect(() => workbookCells('no sheets')).toThrow(/no readable worksheets/);
+  });
+
+  it('reads people from every column that holds one, observed-by included, and skips the roles', () => {
+    const sheet = (header: string, ...values: string[]) =>
+      '<worksheet>' +
+      `<c r="A1" t="inlineStr"><is><t>${header}</t></is></c>` +
+      values.map((v, i) => `<c r="A${i + 2}" t="inlineStr"><is><t>${v}</t></is></c>`).join('') +
+      '</worksheet>';
+    for (const header of ['Observed By', 'Reviewed by', 'Prod. supervisor', 'Maint. supervisor']) {
+      const deny = denyListFromSources({ workbook: sheet(header, 'Fake Person', 'Operator') });
+      expect(deny.names).toEqual(['fake person']);
+    }
+  });
+
+  it('keeps plain words and project principals out of the repository scan, but not out of the coding list', () => {
+    const deny = { names: ['meet', 'bhavin', 'fake person'], phones: [] };
+    expect(scanList(deny).names).toEqual(['fake person']);
+    expect(deny.names).toHaveLength(3);
   });
 
   it('fails loudly when a source list is missing', () => {
@@ -101,6 +125,6 @@ describe('pii scan', () => {
       maxBuffer: 1 << 26,
     });
     const paths = listed.split('\0').filter(Boolean);
-    expect(scanFiles(process.cwd(), scannedPaths(paths), loadDenyList())).toEqual([]);
+    expect(scanFiles(process.cwd(), scannedPaths(paths), scanList(loadDenyList()))).toEqual([]);
   });
 });

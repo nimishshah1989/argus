@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { closeSync, openSync, readFileSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { PHONE, loadDenyList, normalisePhone, type DenyList } from './pii-sources.js';
+import { PHONE, loadDenyList, normalisePhone, scanList, type DenyList } from './pii-sources.js';
 
 /**
  * PII scan (ticket 01): CI fails when a real Cosmos name or phone number from the source lists appears in a
@@ -53,7 +53,7 @@ export function scanFiles(root: string, paths: string[], deny: DenyList): string
 
 function main(): void {
   const started = performance.now();
-  const deny = loadDenyList();
+  const deny = scanList(loadDenyList());
   const listed = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8', maxBuffer: 1 << 26 });
   const paths = scannedPaths(listed.split('\0').filter(Boolean));
   const errors = scanFiles(process.cwd(), paths, deny);

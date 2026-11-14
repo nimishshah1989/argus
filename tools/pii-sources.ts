@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -33,10 +34,35 @@ const TICKET_NAME_FIELDS = [
   'transferTo',
   'pausedBy',
 ];
-const NAME_HEADERS = new Set(['name', 'done by', 'supported by']);
+const NAME_HEADERS = new Set([
+  'name',
+  'done by',
+  'supported by',
+  'observed by',
+  'reviewed by',
+  'completed by',
+  'prod. supervisor',
+  'maint. supervisor',
+]);
 const NAME_SPLIT = /[,&/+]|\band\b/i;
 const GENERIC =
-  /^(?:operator|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i;
+  /^(?:operator|opeator|opeartor|setter|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i;
+
+/** Plain words and the project's own principals: coded in fixtures, never flagged in prose. */
+const SCAN_WORDS = new Set(['meet', 'bhavin', 'bhavin p', 'bhaven', 'nimish']);
+/** First names that are also fake personas in tests, kept as digests so no real name sits in code. */
+const SCAN_PERSONAS = new Set(['af674ed66a726918', '3a5d591b3b0838fb']);
+
+/** The deny list as the repository scan uses it; fixtures are coded with the whole list. */
+export function scanList(deny: DenyList): DenyList {
+  const digest = (name: string): string =>
+    createHash('sha256').update(name).digest('hex').slice(0, 16);
+  const names = deny.names.filter((n) => !SCAN_WORDS.has(n) && !SCAN_PERSONAS.has(digest(n)));
+  return { ...deny, names };
+}
+
+/** A role or other label that is not a person ("Operator", "Setter", a misspelling of them). */
+export const isGenericLabel = (name: string): boolean => GENERIC.test(name.trim());
 
 export function normalisePhone(value: string): string {
   return value.replace(/\D/g, '').slice(-10);

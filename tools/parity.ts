@@ -16,6 +16,8 @@ export interface ParityRow {
   evidence: string[];
   source?: string;
   ticket?: string;
+  /** The M4a triage id of the screen this row tracks (docs/plan/m4a-triage.md). */
+  screen?: string;
 }
 
 export interface ParityFile {
@@ -109,9 +111,42 @@ function sourceErrors(file: ParityFile, markdown: string): string[] {
   return errors;
 }
 
+const TRIAGE = 'docs/plan/m4a-triage.md';
+
+/** The screens the M4a triage keeps, with the ticket that owns each (columns: id, screen, verdict, ticket). */
+export function keptScreens(triage: string): { id: string; ticket: string }[] {
+  return triage
+    .split('\n')
+    .map((line) => line.split('|').map((cell) => cell.trim()))
+    .filter(
+      (cells) => cells.length > 5 && cells[3] === 'KEPT' && /^[a-z0-9-]+$/.test(cells[1] ?? ''),
+    )
+    .map((cells) => ({ id: cells[1] as string, ticket: cells[4] as string }));
+}
+
+function screenErrors(file: ParityFile, triage: string): string[] {
+  const errors: string[] = [];
+  for (const kept of keptScreens(triage)) {
+    const tracking = file.rows.filter((candidate) => candidate.screen === kept.id);
+    const row = tracking[0];
+    if (tracking.length > 1)
+      errors.push(
+        `screen ${kept.id}: ${tracking.length} rows track it (${tracking.map((r) => r.id).join(', ')}); keep one`,
+      );
+    else if (!row) errors.push(`screen ${kept.id}: kept in the M4a triage but has no parity row`);
+    else if (!row.ticket?.trim()) errors.push(`screen ${kept.id}: row ${row.id} has no ticket`);
+    else if (row.ticket !== kept.ticket)
+      errors.push(
+        `screen ${kept.id}: row ${row.id} names ticket ${row.ticket} but the triage names ${kept.ticket}`,
+      );
+  }
+  return errors;
+}
+
 export function validateParity(
   file: ParityFile,
   markdown = readFileSync('docs/spec/PARITY.md', 'utf8'),
+  triage = readFileSync(TRIAGE, 'utf8'),
 ): string[] {
   const errors: string[] = [];
   if (file.expected_rows !== undefined && file.rows.length !== file.expected_rows) {
@@ -122,7 +157,7 @@ export function validateParity(
     errors.push(...rowErrors(row, seen));
     seen.add(row.id);
   }
-  errors.push(...sourceErrors(file, markdown));
+  errors.push(...sourceErrors(file, markdown), ...screenErrors(file, triage));
   return errors;
 }
 

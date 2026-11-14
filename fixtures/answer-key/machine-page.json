@@ -1,0 +1,58 @@
+{
+  "screen": "machine-page",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "asset",
+      "title": "VC-28",
+      "kpis": [],
+      "tables": [],
+      "charts": [],
+      "text": "← Back to CNC Machines VC-28 Cosmos · CVM-800 CNCVertical Machining CenterCell 6 ⇆ Compare with another machine Record completeness10 of 10 fields Identity Machine IDVC-28 SegmentCNC CategoryVertical Machining Center MakeCosmos ModelCVM-800 Serial No08 3877 Asset Code13000081 Purchase & Age Year of Purchase2022 Date of Purchase01-09-2022 Age4 years Age basisFrom purchase date Location Location486 CellCell 6 ConveyorL Electrical Connected load21.0 KVARunning load (est.)4.20 KVA (20% efficiency factor, default) Dimensions & Footprint Length4000 mm Width2500 mm Floor area10.00 m² Controller ControllerMitsubishi M80 Controller ModelFCA80H-4AV Controller SerialM8015X3222N Breakdown Summary Breakdowns27 (PM excluded) — click to view BD hours151.32 hrs MTTR5.60 hrs MTBF (annual basis)216.6 hrs PM visits / hours0 / 0.0 hrs Last breakdown07-11-2026 Most frequent problemTool declamp problem (18×) View all breakdowns →Download history (Excel) Cell & Location History Moves loggedNone — still in original cell Preventive MaintenanceChoose how often this machine gets PM and plan its dates here. The PM Calendar shows the same dates. FrequencyDefault (2 times a year)2 times a weekOnce a weekEvery 2 weeksOnce a month (12 times a year)Every 2 months (6 times a year)Every 3 months (4 times a year)Every 4 months (3 times a year)Every 6 months (2 times a year)Once a yearCustom (every N days)Re-plan suggested dates Planned PM dates2026 plan · window ±15 days Not marked done SaveMark done removeSuggested · window ±15 days Upcoming SaveMark done removeSuggested · window ±15 days Upcoming SaveMark done remove+ 1 more on the PM Calendar Plan a PM onAdd date Next best date after 16 Sep 2027: Thu 16 Mar 2028 Add this dateIdeal date for the default frequency (2 times a year), and that day is free.AMC / Extended WarrantyExternal AMC or extended warranty, one line per contract. The Action Center reminds you before the end date.No AMC or extended warranty on record.+ Add line Legal Compliance (if any)Statutory tests and calibrations with their Form No. The next due date comes from the last test date and its validity.No legal compliance on record.+ Add line"
+    },
+    {
+      "page": "mdetail",
+      "title": "VC-28",
+      "kpis": [{"label":"Machine","value":"VC-28","sub":"CVM-800 · Age 4 yrs · Cell 6"},{"label":"Breakdowns","value":"27","sub":"PM excluded"},{"label":"BD Hours","value":"151.32 hrs","sub":"NO DT entries count as 0 hrs"},{"label":"MTTR","value":"5.60 hrs","sub":"BD hours ÷ breakdowns"},{"label":"Top 50% of BD Hours","value":"7 of 27","sub":"7 breakdowns = 76.00 hrs (50.22% of total)"}],
+      "tables": [
+        {
+          "title": "Breakdowns — Highest to Lowest Downtime",
+          "header": ["#","Date","Shift","Problem","Code","Done By","Down (Hrs)","% of Machine Total","Cumulative %"],
+          "rows": [
+            ["1","09-02-2026","1","Tool declamp problem","ATC","Maint. Team","11.50","7.60%","7.60%"],
+            ["2","09-02-2026","2","Tool declamp problem","ATC","Maint. Team","11.50","7.60%","15.20%"],
+            ["3","10-02-2026","1","Tool declamp problem","ATC","Maint. Team","11.50","7.60%","22.80%"],
+            ["4","11-02-2026","1","Tool declamp problem","ATC","Maint. Team","11.50","7.60%","30.40%"],
+            ["5","04-02-2026","1","Tool declamp problem","M","—","10.00","6.61%","37.01%"],
+            ["6","04-02-2026","2","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","43.62%"],
+            ["7","05-02-2026","1","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","50.22%"],
+            ["8","05-02-2026","2","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","56.83%"],
+            ["9","06-02-2026","1","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","63.44%"],
+            ["10","06-02-2026","2","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","70.05%"],
+            ["11","07-02-2026","1","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","76.66%"],
+            ["12","07-02-2026","2","Tool declamp problem","ATC","Maint. Team","10.00","6.61%","83.27%"],
+            ["13","02-02-2026","2","Tool declamp problem","ATC","—","7.17","4.74%","88.01%"],
+            ["14","10-02-2026","2","Tool declamp problem","ATC","Maint. Team","6.50","4.30%","92.30%"],
+            ["15","11-02-2026","2","Tool declamp problem","ATC","Maint. Team","3.00","1.98%","94.28%"],
+            ["16","14-02-2026","1","Tool declamp problem","ATC","Maint. Team","2.00","1.32%","95.61%"],
+            ["17","25-04-2026","1","alarm\"Spindle oil chiller faulty\"","E","Person 21","1.03","0.68%","96.29%"],
+            ["18","04-11-2026","2","ATC arm position disturb & Spindle orientation position disturb because of tool break by mistake without coolant mc run & Tool stuck in piece during Z up position it is get disturb","ATC","Person 11","1.02","0.67%","96.96%"],
+            ["19","11-03-2026","1","4th axis clamp/de clamp problem","RT","Maint. Team","1.00","0.66%","97.62%"],
+            ["20","07-11-2026","2","→A0132 M7132 BOTH POT UP & POT DOWN SIGNALS ARE ON. →A0134 M7134 POT UP SIGNAL NOT OFF WITH POT DOWN CMD →40150 M7150 TOOL CHANGE INTERUPTED.EXECUTE M6 IN MDI","E","Person 79","1.00","0.66%","98.28%"],
+            ["21","19-10-2026","2","Alarm (A0041,M7041 Lubrication pressure switch develop issue)","E","Person 46","0.75","0.50%","98.78%"],
+            ["22","23-07-2026","1","Magzine put down alarm (Due to air flow)","ATC","Person 41","0.52","0.34%","99.12%"],
+            ["23","27-01-2026","1","Tool declamp problem","ATC","—","0.50","0.33%","99.45%"],
+            ["24","19-03-2026","2","Air gun not working","PNU","Maint. Team","0.50","0.33%","99.78%"],
+            ["25","29-01-2026","1","Tool declamp problem","RT","—","0.33","0.22%","100.00%"],
+            ["26","08-09-2026","1","Alarm ( SP Rotation NC)","NO DT","Person 88","0.00 (NO DT)","0.00%","100.00%"],
+            ["27","15-10-2026","2","Feed switch and RPM switch issue","NO DT","Person 88","0.00 (NO DT)","0.00%","100.00%"]
+          ],
+          "rowCount": 27
+        },
+        {"title":"By Maintenance Code","header":["Code","Breakdowns","BD Hours","% of Machine Total"],"rows":[["ATC","18","136.71","90.34%"],["M","1","10.00","6.61%"],["E","3","2.78","1.84%"],["RT","2","1.33","0.88%"],["PNU","1","0.50","0.33%"],["NO DT","2","0.00","0.00%"]],"rowCount":6}
+      ],
+      "charts": []
+    }
+  ],
+  "extra": {"machine":{"id":"VC-28","segment":"CNC","category":"Vertical Machining Center","make":"Cosmos","model":"CVM-800","serial":"08 3877","controller":"Mitsubishi M80","ctrlModel":"FCA80H-4AV","ctrlSerial":"M8015X3222N","year":2022,"datePurchase":"2022-09-01","power":21,"location":"486","cell":"6","assetCode":"13000081","length":4000,"width":2500,"conveyor":"L","efficiency":""},"efficiencyPct":20,"breakdowns":27}
+}
