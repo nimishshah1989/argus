@@ -158,11 +158,10 @@ async function gate(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
 
 async function run(
   pool: Pool,
-  ctx: Ctx,
-  reply: FastifyReply,
+  target: { ctx: Ctx; reply: FastifyReply; uniqueField?: string },
   work: (tx: PoolClient) => Promise<Outcome>,
-  uniqueField = 'code',
 ): Promise<void> {
+  const { ctx, reply, uniqueField = 'code' } = target;
   try {
     const outcome = await withTenant(pool, ctx.tenantId, work);
     reply.code(outcome.status).send(outcome.body);
@@ -190,13 +189,8 @@ function registerResource(app: FastifyInstance, pool: Pool, resource: Resource):
       const { status, body } = fieldProblem(parsed.error);
       return reply.code(status).send(body);
     }
-    await run(
-      pool,
-      ctx,
-      reply,
-      (tx) => create(tx, ctx, resource, parsed.data),
-      resource.uniqueField,
-    );
+    const target = { ctx, reply, uniqueField: resource.uniqueField };
+    await run(pool, target, (tx) => create(tx, ctx, resource, parsed.data));
   });
   // Edit, switch off and switch on are all this one PUT (`active`): the generated screen never sends DELETE.
   app.put(`${base}/:id`, async (request, reply) => {
@@ -209,7 +203,7 @@ function registerResource(app: FastifyInstance, pool: Pool, resource: Resource):
       const { status, body } = fieldProblem(parsed.error);
       return reply.code(status).send(body);
     }
-    await run(pool, ctx, reply, (tx) => edit(tx, ctx, resource, { id, patch: parsed.data }));
+    await run(pool, { ctx, reply }, (tx) => edit(tx, ctx, resource, { id, patch: parsed.data }));
   });
 }
 
