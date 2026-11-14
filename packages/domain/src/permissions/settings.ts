@@ -19,3 +19,11 @@ export function canSettingsSla(ctx: ActorContext): boolean {
 export function canSettingsAi(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }
+
+/**
+ * Approve, see and end our own staff's access to this customer (D27): the admin on a personal login, so the
+ * approval names one person.
+ */
+export function canManageSupportAccess(ctx: ActorContext): boolean {
+  return ctx.role === 'admin' && !ctx.shared;
+}
