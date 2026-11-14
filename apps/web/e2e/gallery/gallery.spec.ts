@@ -242,7 +242,7 @@ test('sync status: online, offline, sending, then draft after a 409 replay', asy
 test('@planted a changed token fails the screenshot', async ({ page }, testInfo) => {
   expect(existsSync(testInfo.snapshotPath('status-en.png'))).toBe(true);
   await open(page, 'lang=en');
-  await page.addStyleTag({ content: ':root{--color-danger:#000}' });
+  await page.addStyleTag({ content: ':root{--color-danger-ink:#000}' });
   await expect(
     expect(page.getByTestId('gallery-status')).toHaveScreenshot('status-en.png'),
   ).rejects.toThrow();
