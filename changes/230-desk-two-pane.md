@@ -1,0 +1,1 @@
+- On a computer screen (1024 px and wider), the desk's Open list now shows the ticket you pick beside it, so you can work down the list without leaving it. The picked card is outlined, and "Open tickets" clears the pick. On a phone a ticket still opens as its own page.

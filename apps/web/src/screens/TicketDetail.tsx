@@ -215,7 +215,8 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
   );
 }
 
-export function TicketDetail() {
+/** `embedded`: inside the desk's right pane, whose frame already shows the sync pill. Back clears the pane. */
+export function TicketDetail({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { id = '' } = useParams();
   const detail = useQuery({
@@ -247,7 +248,10 @@ export function TicketDetail() {
 
   return (
     <>
-      <TopBar back={{ to: '/desk', label: t('detail.back') }} trailing={<SyncStatus />} />
+      <TopBar
+        back={{ to: '/desk', label: t('detail.back') }}
+        trailing={embedded ? undefined : <SyncStatus />}
+      />
       <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-4">
         <OfflineBanner />
         {detail.data ? (
