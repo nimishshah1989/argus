@@ -8,6 +8,7 @@ export {
   listItem,
   machineFamily,
   machinesByIds,
+  offBoardMachineIds,
   productionDateAt,
   setting,
   shiftCodeAt,
