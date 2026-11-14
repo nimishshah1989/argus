@@ -23,6 +23,7 @@ import { ReportControls } from '../components/ReportControls.js';
 import { ShareButton } from '../components/ShareButton.js';
 import { Figures } from '../components/Figures.js';
 import { KindBadge, ReportBadge, StatusBadge } from '../components/StatusBadge.js';
+import { SignoffPanel } from '../components/SignoffPanel.js';
 import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
@@ -192,6 +193,7 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
   return (
     <Stack gap={6}>
       <Header detail={detail} config={config} />
+      <SignoffPanel ticket={ticket} config={config} />
       <SlaTimerSummary ticket={ticket} detailed config={config} />
       <Facts ticket={ticket} config={config} names={names} liveDownMin={liveDown} />
       {detail.report && <ReportCard report={detail.report} names={names} />}

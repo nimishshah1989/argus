@@ -5,6 +5,7 @@ import { MachineCard } from '../../ui/floor-pieces.js';
 import { StatusPill } from '../../ui/status/status-pill.js';
 import { Text } from '../../ui/text.js';
 import { CancelComplaint } from './cancel-complaint.js';
+import { SignoffAsk } from './signoff-ask.js';
 import { FloorShell, FloorWaiting } from './floor-shell.js';
 import { floorStatus } from './machines.js';
 import { ticketPlace } from './sent.js';
@@ -16,9 +17,20 @@ const KIND = {
   general: 'floor.workRequest',
 } as const;
 
+/** A closed ticket production was asked about shows production's side of it, not just "Fixed". */
+const SIGNOFF_PILL = {
+  requested: 'is_it_fixed',
+  confirmed: 'confirmed',
+  timed_out: 'no_answer',
+  disputed: null,
+} as const;
+
 function ComplaintStatus({ ticket }: { ticket: Ticket }) {
   const status = floorStatus(ticket);
+  const sign =
+    ticket.status === 'closed' && ticket.handback ? SIGNOFF_PILL[ticket.handback.status] : null;
   /* eslint-disable i18next/no-literal-string -- status groups, not copy */
+  if (sign) return <StatusPill group="floor" id={sign} />;
   return status.group === 'floor' ? (
     <StatusPill group="floor" id={status.id} />
   ) : (
@@ -38,6 +50,7 @@ function Complaint({ data, ticket }: { data: FloorData; ticket: Ticket }) {
       <Text size="footnote" tone="secondary">
         {t('reportFloor.reportedAt', { time: clock(ticket.reportedAt) })}
       </Text>
+      <SignoffAsk data={data} ticket={ticket} />
       <CancelComplaint data={data} ticket={ticket} />
     </MachineCard>
   );

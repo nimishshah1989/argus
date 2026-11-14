@@ -1,0 +1,65 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { Ticket } from '../../api.js';
+import type { Refusal } from '../../components/signoff.js';
+import { Button } from '../../ui/button.js';
+import { Label, Textarea } from '../../ui/input.js';
+import { Stack } from '../../ui/layout.js';
+import { Sheet } from '../../ui/sheet.js';
+import { Text } from '../../ui/text.js';
+import { RefusalNote } from './refusal-note.js';
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  ticket: Ticket;
+  refusal: Refusal | null;
+  pending: boolean;
+  send: (reason: string) => Promise<boolean>;
+}
+
+/** "Not fixed": the required reason, or the refusal when the machine already has a new open breakdown (frames 3 and 4). */
+export function DisputeSheet({ open, onOpenChange, ticket, refusal, pending, send }: Props) {
+  const { t } = useTranslation();
+  const [reason, setReason] = useState('');
+  const refused = refusal?.kind === 'newBreakdown';
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} title={t('signoff.no')}>
+      <Stack gap={3}>
+        {refused ? (
+          <>
+            <Text weight="bold">{t('signoff.refusedTitle')}</Text>
+            <Text size="footnote" tone="secondary">
+              {t('signoff.refusedBody', { ref: ticket.ref })}
+            </Text>
+          </>
+        ) : (
+          <Text>{t('signoff.disputeNote', { ref: ticket.ref })}</Text>
+        )}
+        <Label htmlFor={`signoff-${ticket.id}`}>{t('signoff.reasonLabel')}</Label>
+        <Textarea
+          id={`signoff-${ticket.id}`}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <Text size="footnote" tone="secondary">
+          {t('signoff.reasonHint')}
+        </Text>
+        {refused ? null : <RefusalNote refusal={refusal} />}
+        {refused ? (
+          <Button onClick={() => onOpenChange(false)}>{t('signoff.back')}</Button>
+        ) : (
+          <>
+            <Button disabled={!reason.trim() || pending} onClick={() => void send(reason.trim())}>
+              {t('signoff.send')}
+            </Button>
+            {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
+            <Button variant="quiet" onClick={() => onOpenChange(false)}>
+              {t('signoff.cancel')}
+            </Button>
+          </>
+        )}
+      </Stack>
+    </Sheet>
+  );
+}
