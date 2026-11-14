@@ -56,21 +56,37 @@ export async function listItem(
 }
 
 /** The shift in force at `at` in the tenant zone (switched-off shifts do not count); the later-starting shift owns an overlap. */
-export async function shiftCodeAt(
+async function shiftRowAt(
   tx: Db,
   timeZone: string | null,
   at: Date,
-): Promise<string | undefined> {
+): Promise<{ id: string; code: string } | undefined> {
   return (
     await tx.query(
       `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE $1)::time AS t)
-       SELECT code FROM shift, local_time
+       SELECT id, code FROM shift, local_time
        WHERE active AND ((NOT crosses_midnight AND t >= starts_at AND t < ends_at)
           OR (crosses_midnight AND (t >= starts_at OR t < ends_at)))
        ORDER BY starts_at DESC LIMIT 1`,
       [timeZone, at],
     )
-  ).rows[0]?.code;
+  ).rows[0];
+}
+
+export async function shiftCodeAt(
+  tx: Db,
+  timeZone: string | null,
+  at: Date,
+): Promise<string | undefined> {
+  return (await shiftRowAt(tx, timeZone, at))?.code;
+}
+
+export async function shiftIdAt(
+  tx: Db,
+  timeZone: string | null,
+  at: Date,
+): Promise<string | undefined> {
+  return (await shiftRowAt(tx, timeZone, at))?.id;
 }
 
 /**

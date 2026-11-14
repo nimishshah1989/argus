@@ -11,6 +11,7 @@ export {
   productionDateAt,
   setting,
   shiftCodeAt,
+  shiftIdAt,
   shiftsOf,
   shiftWindows,
   type MachineFamily,

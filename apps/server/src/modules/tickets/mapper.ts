@@ -1,5 +1,6 @@
 import { apiError, type CommandAction } from '@uptimo/shared';
 import {
+  canAcknowledge,
   canCorrect,
   canLateReport,
   canRaise,
@@ -8,6 +9,7 @@ import {
   figures as computeFigures,
   transition,
   TransitionError,
+  type ActorContext,
   type Command,
   type CorrectChanges,
   type CrewMember,
@@ -99,6 +101,8 @@ export interface LoadedCtx {
   events: LoadedEvent[];
   segments: WorkSegment[];
   crew: CrewMember[];
+  /** Set only for an acknowledge: whether the acting person is on the roster for the shift running now. */
+  onRoster: boolean;
 }
 
 function toDate(value: unknown): Date | null {
@@ -239,6 +243,19 @@ const WORK_GATED = new Set<CommandAction>([
   'machine-stopped',
 ]);
 
+/**
+ * Role-only checks that run before any ticket or machine is looked up. Whoever may raise may also say a support
+ * ticket has become a stopped machine (DOMAIN §2). An acknowledge is gated here by role alone; the roster line
+ * itself is checked in the command.
+ */
+const ROLE_GATES: Partial<Record<CommandAction, (actor: ActorContext) => boolean>> = {
+  'upgrade-kind': canRaise,
+  acknowledge: (actor) => canAcknowledge(actor, true),
+  report: canLateReport,
+  restore: canRestore,
+  correct: canCorrect,
+};
+
 export function gatePermission(
   action: CommandAction,
   tx: Tx,
@@ -255,23 +272,13 @@ export function gatePermission(
     body: apiError('forbidden', 'You do not have permission for this action'),
   };
   if (WORK_GATED.has(action) && !canWork(actor)) return denied;
-  // Whoever may raise may also say a support ticket has become a stopped machine (DOMAIN §2).
-  if (action === 'upgrade-kind' && !canRaise(actor)) return denied;
-  if (action === 'report' && !canLateReport(actor)) return denied;
-  if (action === 'restore' && !canRestore(actor)) return denied;
-  if (action === 'correct' && !canCorrect(actor)) return denied; // before any ticket or machine is looked up
-  return null;
+  return ROLE_GATES[action]?.(actor) === false ? denied : null;
 }
 
-type Builder = (
-  body: Record<string, unknown>,
-  personId: string,
-  ticket: Ticket,
-  events: LoadedEvent[],
-) => Command;
+type Builder = (body: Record<string, unknown>, personId: string, loaded: LoadedCtx) => Command;
 
 const BUILDERS: Record<CommandAction, Builder> = {
-  start: (body, personId, ticket) => ({
+  start: (body, personId, { ticket }) => ({
     type: 'start',
     personId,
     at: body.at as Date | undefined,
@@ -314,7 +321,7 @@ const BUILDERS: Record<CommandAction, Builder> = {
   }),
   report: (_body, personId) => ({ type: 'lateReport', personId }),
   cancel: (body, personId) => ({ type: 'cancel', personId, reason: body.reason as string }),
-  restore: (body, personId, _ticket, events) => {
+  restore: (body, personId, { events }) => {
     const cancel = [...events].reverse().find((event) => event.type === 'cancel');
     const toStatus = (cancel?.payload.previousStatus as 'open' | 'working' | 'waiting') ?? 'open';
     return { type: 'restore', personId, reason: body.reason as string, toStatus };
@@ -336,10 +343,11 @@ const BUILDERS: Record<CommandAction, Builder> = {
     };
   },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
+  acknowledge: (_body, personId, { onRoster }) => ({ type: 'acknowledge', personId, onRoster }),
 };
 
 export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {
-  return BUILDERS[tx.action](tx.body, personId, loaded.ticket, loaded.events);
+  return BUILDERS[tx.action](tx.body, personId, loaded);
 }
 
 export function commandExtras(

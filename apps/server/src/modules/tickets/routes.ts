@@ -9,6 +9,7 @@ import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
   AUTH_MESSAGES,
+  isOnRoster,
   ticketPartsAfterWrite,
   withTicketParts,
   type AppConfig,
@@ -50,6 +51,7 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   restore: shared.restoreTicketSchema,
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
+  acknowledge: shared.acknowledgeTicketSchema,
 };
 
 interface RaiseTx {
@@ -98,6 +100,10 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
     events: await sql.loadEvents(client, tx.ticketId),
     segments: await sql.loadSegments(client, tx.ticketId),
     crew: await sql.loadCrew(client, tx.ticketId),
+    onRoster:
+      tx.action === 'acknowledge' && tx.actingPersonId !== null
+        ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
+        : false,
   };
 }
 
