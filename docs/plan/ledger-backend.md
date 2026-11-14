@@ -23,7 +23,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   claude/t30-pause-clock, gap-only brief.
 - **Next (dispatch as slots free; cap 3 backend builders, ask FRONTEND for a 4th):** 31 g2 acknowledge command + roster/ladder API
   (+ seed ESCALATION_DEFAULTS as editable rows, 1-year roster purge); 33 escalation (needs 31+32); 34 sign-off (handback events, timeout,
-  turnaround); 66 lockout flag; 26 leftovers (/brand rate limit, /state p95 test, stale /files wording); waitingMin on ticket figures (Nimish Q10);
+  turnaround); 66 lockout flag; 26 leftovers (/brand rate limit, /state p95 test, stale /files wording); board today (FRONTEND ask 07:55, with waitingMin from Nimish Q10): `GET /api/v1/board/today` or /state returns today's tickets (plant-tz calendar day) + a pure domain day score (response = work start minus report; repair per v3 rules; waitingMin), feeds the board's 'Response today' / 'Repair today' tiles (#229);
   erased-stays-erased (keyed hash of normalised name+phone; may need a migration: ask for the lock); push_subscription.session_id (device
   sign-out drops push); zod 4 migration (lifts D28 exception); then M6 part 1 (55 needs lock, 71, 56, 72 incl. PR #173, 57; gate off until
   Nimish supplies signed Anthropic terms, Cosmos consent N14, cap figure, threshold) and M4a (36/37, leadership read API).
