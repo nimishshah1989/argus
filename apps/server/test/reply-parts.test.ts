@@ -40,7 +40,7 @@ describe('ticket reply parts', () => {
   it('returns the write fields of every part in order', async () => {
     const fake = part('fake', 'x', { b: 2, fake: 'y' });
     contributeTicketPart(fake);
-    const write = { tenantId: 'tenant', ticketId: 't1', now: new Date() };
+    const write = { tenantId: 'tenant', ticketId: 't1', now: new Date(), command: 'raise' };
     const out = await ticketPartsAfterWrite(client, write);
     expect(out).toEqual({ b: 2, fake: 'y' });
     expect(fake.afterWrite).toHaveBeenCalledWith(client, write);

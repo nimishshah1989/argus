@@ -292,7 +292,13 @@ async function executePast(
       runningAt: body.runningAt.toISOString(),
     },
   });
-  const parts = await ticketPartsAfterWrite(client, { tenantId, ticketId, now: tx.now, boss });
+  const parts = await ticketPartsAfterWrite(client, {
+    tenantId,
+    ticketId,
+    now: tx.now,
+    boss,
+    command: 'past',
+  });
   const stored = await ticketRowById(client, tenantId, ticketId);
   const outcome: Outcome = {
     status: 201,

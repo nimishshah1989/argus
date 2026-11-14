@@ -137,6 +137,7 @@ async function executeCommand(
     ticketId: tx.ticketId,
     now: new Date(),
     boss,
+    command: tx.action,
   });
 
   const outcome: Outcome = {
@@ -278,6 +279,7 @@ async function executeRaise(
     ticketId: raised.ticket.id,
     now,
     boss,
+    command: 'raise',
   });
   const outcome: Outcome = {
     status: 201,
