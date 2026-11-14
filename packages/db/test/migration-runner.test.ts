@@ -605,6 +605,22 @@ it('runs every migration as a non-superuser database owner', async () => {
         "SELECT audit_purge(now() - interval '4 years', 'agent-test') AS purged",
       );
       expect(Number(purged.rows[0].purged)).toBe(0);
+      // The production revert path: 0014's revert, run as the same non-superuser owner, with row security forced.
+      await pool.query(
+        readFileSync(
+          new URL('../migrations/down/0014_m4a_schema.down.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+      await pool.query("DELETE FROM schema_migration WHERE filename = '0014_m4a_schema.sql'");
+      await expectInstalled(pool, '0014_m4a_schema.sql', false);
+      const forced = await pool.query(
+        `SELECT relname FROM pg_class WHERE relname IN ('person', 'ticket', 'audit_log', 'sla_policy')
+           AND NOT relforcerowsecurity`,
+      );
+      expect(forced.rows).toEqual([]);
+      await runMigration(url.toString());
+      await expectInstalled(pool, '0014_m4a_schema.sql', true);
     } finally {
       await endPool(pool);
     }
@@ -644,8 +660,10 @@ it('goes up, down and up again', async () => {
     const tags = "SELECT to_regclass('public.ticket_tag') IS NOT NULL AS exists";
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
+    await expectInstalled(pool, '0014_m4a_schema.sql', true);
 
     await revertBatch1(pool);
+    await expectInstalled(pool, '0014_m4a_schema.sql', false);
     await pool.query(
       readFileSync(
         new URL('../migrations/down/0009_history_cannot_be_lost.down.sql', import.meta.url),
@@ -662,6 +680,7 @@ it('goes up, down and up again', async () => {
     expect(await ledger(pool)).toEqual(FILES);
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
+    await expectInstalled(pool, '0014_m4a_schema.sql', true);
   });
 }, 180_000);
 

@@ -1,6 +1,6 @@
 -- Migration 0014: the one M4a schema change. Ticket 36 part B, D17 (the `kpi_snapshot` table), D31 (where each kept
 -- stored item of the analytics face lives).
--- approved-by: orchestrator ruling (backend lane, 14 Nov: ticket 36 part B brief, candidate list in docs/plan/m4a-figures.md §2); reviewed by two agents on the PR
+-- approved-by: orchestrator ruling (backend lane, 14 Nov: ticket 36 part B brief, candidate list in the 36A figure catalogue, PR #267, §2); reviewed by two agents on the PR
 -- backup: full snapshot first (RDS: aws rds create-db-snapshot; elsewhere pg_dump -Fc), its id recorded in the deploy note.
 --   This file DROPS three columns that existed since 0001 and that no code reads or writes (`person.kind`,
 --   `ticket.sla_policy_id`, `ticket.handback_status`; tools/retired-columns.test.ts guards that). Before it drops them it
@@ -43,7 +43,7 @@ ALTER TABLE ticket DROP COLUMN handback_status;
 ALTER TABLE person DROP COLUMN kind;
 
 -- 2. The analytics engine's stored figures (D17: the only new M4a table). One row is one figure: which measure, for which
--- subject (the whole plant, a segment, group, cell, category, machine or person, by id or code, never by name), over which
+-- subject (the whole plant, a segment, group, cell, category or machine, by id or code, never by name; per-person figures wait for a ruling on ranking technicians, DATA-MAP question 4), over which
 -- period, as the engine saw the data on `as_of`, under which rule set (`profile`: Bhavin's legacy rules or ours). `run_id`
 -- groups the rows of one engine run, so there is no table of runs. The same figure for the same as-of day is replaced by
 -- a re-run; a later as-of keeps the series. `value` is the number or the structure the screen shows. The period may end
@@ -55,7 +55,7 @@ CREATE TABLE kpi_snapshot (
   profile text NOT NULL CHECK (profile ~ '^[a-z][a-z0-9_]{0,31}$'),
   key text NOT NULL CHECK (key ~ '^[a-z][a-z0-9_.:-]{0,79}$'),
   subject_kind text NOT NULL
-    CHECK (subject_kind IN ('plant', 'segment', 'group', 'cell', 'category', 'machine', 'person')),
+    CHECK (subject_kind IN ('plant', 'segment', 'group', 'cell', 'category', 'machine')),
   subject_key text NOT NULL DEFAULT '' CHECK (char_length(subject_key) <= 80),
   period_start date NOT NULL,
   period_end date NOT NULL,
@@ -70,7 +70,6 @@ CREATE TABLE kpi_snapshot (
   UNIQUE (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of)
 );
 CREATE INDEX kpi_snapshot_run_idx ON kpi_snapshot (tenant_id, run_id);
-CREATE INDEX kpi_snapshot_key_idx ON kpi_snapshot (tenant_id, profile, key, as_of);
 
 DO $$
 DECLARE t text;
@@ -120,14 +119,16 @@ ALTER TABLE machine_move ADD COLUMN to_location text;
 -- `focus:<period>|<action>` or `nudge:<rule>|<subject>`; no table: D31). Their notes are free text and can name a leaver,
 -- and `erase_person` does not look in `setting`, so when a person is erased (the row gets its erasure hash) this trigger
 -- replaces the person's name, short name, number and own usernames in those rows, with the same whole-word rule as
--- `erase_person`. It runs as the router role, as that function does, so the router role gets exactly this much on `setting`.
-GRANT SELECT ON setting TO app_router;
+-- `erase_person`. It runs as the router role, as that function does, so the router role gets exactly this much on `setting` (it reads three columns and writes one).
+GRANT SELECT (tenant_id, key, value) ON setting TO app_router;
 GRANT UPDATE (value, updated_at) ON setting TO app_router;
 CREATE POLICY router_definer ON setting TO app_router USING (true) WITH CHECK (true);
 CREATE FUNCTION person_erased_scrub_notes() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE pat text;
 BEGIN
+  -- Only an operator in the router role erases a person (D24); a stray write of the hash by the app role scrubs nothing.
+  IF NOT pg_has_role(session_user, 'app_router', 'member') THEN RETURN NEW; END IF;
   SELECT '(?<![^[:space:][:punct:]])(?:' || string_agg(
       regexp_replace(regexp_replace(t, '([^[:alnum:][:space:]])', '\\\1', 'g'), '\s+', '\\s+', 'g'),
       '|' ORDER BY length(t) DESC, t) || ')(?![^[:space:][:punct:]])'

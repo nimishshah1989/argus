@@ -91,6 +91,9 @@ describe('stored figures', () => {
     await expect(figure('a3.mttr', '2026-11-22', 1, ['plant', 'VC-1'])).rejects.toThrow(
       /subject_shape/,
     );
+    await expect(figure('a3.mttr', '2026-11-22', 1, ['person', 'someone'])).rejects.toThrow(
+      /subject_kind_check/,
+    );
     await expect(
       db.query(
         `INSERT INTO kpi_snapshot (tenant_id, profile, key, subject_kind, period_start, period_end, as_of, run_id, value)
@@ -103,6 +106,8 @@ describe('stored figures', () => {
   it('holds a figure for a machine and one for a period that ends after the day it was computed', async () => {
     await asPlant(A);
     await figure('forecast.next_12m', '2026-11-14', { bands: [1, 2] }, ['machine', MACHINE_A]);
+    await figure('a1-bd:pm', '2026-11-14', { pct: 4 });
+    expect((await db.query("SELECT 1 FROM kpi_snapshot WHERE key = 'a1-bd:pm'")).rowCount).toBe(1);
     const found = await db.query('SELECT value FROM kpi_snapshot WHERE subject_key = $1', [
       MACHINE_A,
     ]);
@@ -249,6 +254,8 @@ describe('the homes of the analytics face’s stored items', () => {
 describe('erasing a leaver reaches the notes of their Team Focus actions and nudges', () => {
   it('replaces the name in those notes only, in that plant only, and leaves the rest of the row', async () => {
     await db.query('RESET ROLE');
+    // No plant is set on this session: only the router role's own policy lets the scrub reach the setting rows.
+    await db.query("SELECT set_config('app.tenant_id', '', false)");
     const person = (
       await db.query(
         "INSERT INTO person (tenant_id, name, team) VALUES ($1, 'Test Leaver', 'maintenance') RETURNING id",
@@ -269,6 +276,15 @@ describe('erasing a leaver reaches the notes of their Team Focus actions and nud
     await put(A, 'nudge:long|erase', { status: 'ack', note: 'test leaver is on it' });
     await put(A, 'company.note', { text: 'Test Leaver signs the plant rules' });
     await put(B, 'focus:2026-11|erase', { note: 'Ask Test Leaver to check it' });
+    await put(A, 'focus:2026-11|other', { note: 'Order a bearing' });
+    const stamp = async () =>
+      (
+        await db.query(
+          "SELECT updated_at::text AS t FROM setting WHERE tenant_id = $1 AND key = 'focus:2026-11|other'",
+          [A],
+        )
+      ).rows[0].t;
+    const untouched = await stamp();
 
     await db.query('SELECT erase_person($1, $2, $3, $4, $5, $6)', [
       A,
@@ -293,5 +309,35 @@ describe('erasing a leaver reaches the notes of their Team Focus actions and nud
     });
     expect(await value(A, 'company.note')).toEqual({ text: 'Test Leaver signs the plant rules' });
     expect(await value(B, 'focus:2026-11|erase')).toEqual({ note: 'Ask Test Leaver to check it' });
+    expect(await stamp()).toBe(untouched);
+  });
+
+  it('is not set off by a write of the erasure hash from the app’s own login', async () => {
+    await db.query('RESET ROLE');
+    await db.query("CREATE ROLE stray_app LOGIN PASSWORD 'stray-test-password' IN ROLE app_user");
+    const person = (
+      await db.query(
+        "INSERT INTO person (tenant_id, name, team) VALUES ($1, 'Stray Leaver', 'maintenance') RETURNING id",
+        [A],
+      )
+    ).rows[0].id;
+    await db.query('INSERT INTO setting (tenant_id, key, value) VALUES ($1, $2, $3)', [
+      A,
+      'focus:2026-11|stray',
+      JSON.stringify({ note: 'Ask Stray Leaver' }),
+    ]);
+    const login = new URL(url);
+    login.username = 'stray_app';
+    login.password = 'stray-test-password';
+    const stray = new Client({ connectionString: login.toString() });
+    await stray.connect();
+    try {
+      await stray.query("SELECT set_config('app.tenant_id', $1, false)", [A]);
+      await stray.query('UPDATE person SET erasure_hash = $1 WHERE id = $2', [HASH, person]);
+    } finally {
+      await stray.end();
+    }
+    const note = await db.query("SELECT value FROM setting WHERE key = 'focus:2026-11|stray'");
+    expect(note.rows[0].value).toEqual({ note: 'Ask Stray Leaver' });
   });
 });

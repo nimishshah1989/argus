@@ -1,6 +1,6 @@
 # D31 — The M4a migration: one new table, and where every other stored item of the analytics face lives
 
-Date: 14 November 2026. Ruled by the backend orchestrator (ticket 36 part B brief). Candidate list: `docs/plan/m4a-figures.md` §2.
+Date: 14 November 2026. Ruled by the backend orchestrator (ticket 36 part B brief). Candidate list: the 36A figure catalogue (PR #267), §2.
 Migration: `packages/db/migrations/0014_m4a_schema.sql` (revert in `down/`).
 
 **Decision.** Migration 0014 adds the one M4a table D17 reserved (`kpi_snapshot`) and no other. Every other stored item
@@ -23,6 +23,33 @@ does not look in `setting`. A `BEFORE UPDATE OF erasure_hash` trigger on `person
 role like `erase_person`, replaces the person's name, short name, number and own usernames in `setting` rows whose key starts
 `focus:` or `nudge:`, with the same whole-word rule. For that the router role gets `SELECT` and `UPDATE (value, updated_at)`
 on `setting` and one `router_definer` policy there, nothing more. Every other `setting` row is left alone.
+
+**What `kpi_snapshot` may hold.** `value` holds ids and figures only, never a name (ticket 37 tests it). `subject_kind` has no
+`person` value yet: Nimish ruled that technicians are ranked (DATA-MAP question 4) but the method is not agreed, and a
+per-person figure is personal data. When it is, widening the check is one more migration. Retention: nothing is purged
+now. The rule for ticket 37's engine job is to keep each month's last `as_of` rows forever and the daily rows of the last 90 days.
+
+**Limits of the erasure trigger** (for whoever builds tickets 43 and 44):
+
+- It matches whole words, ignoring case, like `erase_person`, so it over-scrubs a short name across the plant's notes, and it misses a
+  first name when the person has no short name and a phone number written without the +91 prefix.
+- It only fires for an operator in the router role (`session_user` is a member of `app_router`), so a stray write of
+  `person.erasure_hash` from the app's own login scrubs nothing. The router role reads three columns of `setting`
+  (`tenant_id`, `key`, `value`) and writes one (`value`, with `updated_at`).
+- `erase_person`'s audit line does not count the `setting` rows the trigger changed. Follow-up for ticket 43.
+
+**Limits of the alias trigger.**
+
+- A bulk statement that swaps aliases between two entries of one list can fail halfway, because each row is checked as it is
+  written; swap them in two statements. Concurrent bulk updates across lists can take the per-list locks in opposite
+  order and deadlock; one of the two is rolled back and can be retried.
+
+**The revert.**
+
+- It restores a saved `sla_policy_id` only where that policy still exists, and `audit_purge` removes the `migration.0014` line
+  after three years, so after that a revert restores nothing.
+- It runs as the database owner with row security forced, lifting FORCE on `person`, `ticket`, `audit_log` and `sla_policy`
+  for its own transaction, and `migration-runner.test.ts` runs it that way.
 
 **Dropped columns.** `person.kind` (the team is `person.team`), `ticket.sla_policy_id` (the policy is found by severity) and
 `ticket.handback_status` (the answer is the `handback_confirm` and `handback_dispute` history lines) are dropped because

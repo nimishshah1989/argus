@@ -33,7 +33,7 @@ export const figuresSchema = z
   .strict();
 export type Figures = z.infer<typeof figuresSchema>;
 
-/** The 47 keys `ticketProjection` emits; accountability's `sla` part is added in replies.ts. */
+/** The 46 keys `ticketProjection` emits; accountability's `sla` part is added in replies.ts. */
 export const ticketSchema = z
   .object({
     id: z.string(),

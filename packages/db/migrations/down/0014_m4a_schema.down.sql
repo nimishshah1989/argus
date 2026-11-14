@@ -6,12 +6,13 @@ SET LOCAL row_security = off;
 ALTER TABLE person NO FORCE ROW LEVEL SECURITY;
 ALTER TABLE ticket NO FORCE ROW LEVEL SECURITY;
 ALTER TABLE audit_log NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE sla_policy NO FORCE ROW LEVEL SECURITY;  -- read to restore a policy link only where the policy still exists
 
 DROP TRIGGER person_erased_scrubs_notes ON person;
 DROP FUNCTION person_erased_scrub_notes();
 DROP POLICY router_definer ON setting;
 REVOKE UPDATE (value, updated_at) ON setting FROM app_router;
-REVOKE SELECT ON setting FROM app_router;
+REVOKE SELECT (tenant_id, key, value) ON setting FROM app_router;
 
 ALTER TABLE machine_move DROP COLUMN to_location;
 ALTER TABLE machine_move DROP COLUMN from_location;
@@ -46,4 +47,5 @@ ALTER TABLE ticket VALIDATE CONSTRAINT ticket_sla_policy_tenant_fk;
 ALTER TABLE person FORCE ROW LEVEL SECURITY;
 ALTER TABLE ticket FORCE ROW LEVEL SECURITY;
 ALTER TABLE audit_log FORCE ROW LEVEL SECURITY;
+ALTER TABLE sla_policy FORCE ROW LEVEL SECURITY;
 COMMIT;
