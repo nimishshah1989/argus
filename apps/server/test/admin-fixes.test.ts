@@ -352,7 +352,11 @@ describe('correct', () => {
 describe('a correction cannot rewrite what happened', () => {
   const HOUR = 3_600_000;
   /** Raised 08:00, started 10:00, closed 12:00 (two days ago), then the clock is back at the real time. */
-  async function closedTwoDaysAgo(): Promise<{ id: string; at: (h: number) => string }> {
+  async function closedTwoDaysAgo(): Promise<{
+    id: string;
+    at: (h: number) => string;
+    closedAt: number;
+  }> {
     const base = Math.floor((Date.now() - 2 * DAY) / DAY) * DAY + 8 * HOUR;
     const at = (h: number) => new Date(base + (h - 8) * HOUR).toISOString();
     vi.useFakeTimers({ toFake: ['Date'], now: new Date(at(8)) });
@@ -364,7 +368,7 @@ describe('a correction cannot rewrite what happened', () => {
       expect((await act(id, 'close', 'asha', { kind: 'no_report', note: 'done' })).statusCode).toBe(
         200,
       );
-      return { id, at };
+      return { id, at, closedAt: new Date(at(12)).getTime() };
     } finally {
       vi.useRealTimers();
     }
@@ -388,9 +392,10 @@ describe('a correction cannot rewrite what happened', () => {
   });
 
   it('the 7-day window is measured from the close and a correction cannot push it out', async () => {
-    const { id } = await closedTwoDaysAgo();
-    // five days on, it was closed seven days ago: still inside the window, but the close cannot be moved to now
-    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 5 * DAY - 3_600_000 });
+    const { id, closedAt } = await closedTwoDaysAgo();
+    // an hour short of seven days after the close, whatever the hour of the real clock: still inside the window,
+    // but the close cannot be moved to now
+    vi.useFakeTimers({ toFake: ['Date'], now: closedAt + 7 * DAY - 3_600_000 });
     try {
       expect((await correct(id, 'admin', { closedAt: new Date().toISOString() })).statusCode).toBe(
         422,
