@@ -529,3 +529,61 @@ describe('who may hand a ticket over is decided before who it is handed to', () 
     expect(res.statusCode, res.body).toBe(403);
   });
 });
+
+describe('signing in to a shared phone without saying who is using it', () => {
+  it('opens a session with nobody acting; choosing then lets it work', async () => {
+    await addLogin('open.phone', { role: 'operator', shared: true, cell: 'Cell-4' });
+    const who = await addPerson('Chosen Later');
+    const login = await t.call('POST', '/api/v1/auth/login', undefined, {
+      username: 'open.phone',
+      password: TEMP,
+    });
+    expect(login.statusCode, login.body).toBe(200);
+    expect(login.json().user).toMatchObject({
+      shared: true,
+      name: '',
+      actingPersonId: '',
+      actingPerson: null,
+    });
+    const token = login.json().token as string;
+    expect((await t.call('GET', '/api/v1/auth/me', token)).json().user).toMatchObject({
+      name: '',
+      actingPersonId: '',
+    });
+    const raise = () =>
+      t.call('POST', '/api/v1/tickets', token, {
+        kind: 'general',
+        location: 'Shop floor',
+        workType: 'repair',
+        problem: 'Door hinge',
+        reportedByPersonId: who,
+      });
+    const refused = await raise();
+    expect(refused.statusCode, refused.body).toBe(403);
+    expect(refused.json().error.code).toBe('choose_acting_person');
+    expect((await t.call('GET', '/api/v1/config', token)).statusCode).toBe(200);
+    expect(
+      (await t.call('POST', '/api/v1/auth/acting', token, { actingPersonId: who })).statusCode,
+    ).toBe(200);
+    expect((await raise()).statusCode).toBe(201);
+  });
+
+  it('still checks a person named at sign-in: switched off or unknown is 422, a personal login is unaffected', async () => {
+    const off = await addUser();
+    await t.call('PATCH', `/api/v1/people/${off.personId}`, admin, { active: false });
+    for (const bad of [off.personId, '10000000-0000-4000-8000-0000000000ee']) {
+      const res = await t.call('POST', '/api/v1/auth/login', undefined, {
+        username: 'open.phone',
+        password: TEMP,
+        actingPersonId: bad,
+      });
+      expect(res.statusCode, bad).toBe(422);
+    }
+    const mine = await addUser();
+    const personal = await t.call('POST', '/api/v1/auth/login', undefined, {
+      username: mine.username,
+      password: TEMP,
+    });
+    expect(personal.json().user.actingPersonId).toBe(mine.personId);
+  });
+});

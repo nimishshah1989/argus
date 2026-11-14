@@ -36,7 +36,7 @@ export function hashPassword(password: string): Promise<string> {
   return hash(password, PASSWORD_OPTS);
 }
 
-function userFrom(ctx: AuthContext) {
+function userFrom(ctx: Omit<AuthContext, 'token' | 'tenantId'>) {
   return {
     id: ctx.loginId,
     username: ctx.username,
@@ -95,7 +95,8 @@ interface NewSession {
   };
   username: string;
   device: string | undefined;
-  person: { id: string; name: string; title: string | null };
+  /** null on a shared phone that has not yet been told who is using it. */
+  person: { id: string; name: string; title: string | null } | null;
 }
 
 async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
@@ -105,7 +106,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
     loginId: n.loginRow.id,
     passwordHash: n.loginRow.password_hash,
     device: n.device,
-    actingPersonId: n.person.id,
+    actingPersonId: n.person?.id ?? null,
     tokenHash: hashToken(token),
   });
   if (!started) {
@@ -114,21 +115,23 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
   }
   reply.send({
     token,
-    user: {
-      id: n.loginRow.id,
+    user: userFrom({
+      loginId: n.loginRow.id,
       username: n.username,
-      name: n.person.name,
-      title: n.person.title,
       role: n.loginRow.role,
       shared: n.loginRow.shared,
-      actingPersonId: n.person.id,
-      actingPerson: { id: n.person.id, name: n.person.name, title: n.person.title },
+      personId: n.person?.id ?? null,
+      personName: n.person?.name ?? null,
+      personTitle: n.person?.title ?? null,
       mustChangePassword: n.loginRow.must_change_password,
-    },
+    }),
   });
 }
 
-/** Who is signing in: the login's own person, or the one chosen on a shared login; never someone switched off. */
+/**
+ * Who is signing in: the login's own person, or the one chosen on a shared login (null when none is chosen yet,
+ * the app asks next); undefined when the person is unknown or switched off.
+ */
 async function actingPerson(
   pool: Pool,
   tenantId: string,
@@ -136,7 +139,8 @@ async function actingPerson(
   chosen?: string,
 ) {
   const id = row.shared ? chosen : row.person_id;
-  const person = id ? await findPerson(pool, tenantId, id) : undefined;
+  if (!id) return row.shared ? null : undefined;
+  const person = await findPerson(pool, tenantId, id);
   return person?.active ? person : undefined;
 }
 
@@ -164,7 +168,7 @@ async function login(pool: Pool, guard: LoginGuard, request: FastifyRequest, rep
   }
   guard.refund(request.ip, tenant.id, username);
   const person = await actingPerson(pool, tenant.id, loginRow, actingPersonId);
-  if (!person) {
+  if (person === undefined) {
     reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
     return;
   }

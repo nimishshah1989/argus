@@ -90,21 +90,23 @@ export async function insertSession(
     tenantId: string;
     loginId: string;
     passwordHash: string;
-    actingPersonId: string;
+    /** null on a shared phone that has not yet been told who is using it. */
+    actingPersonId: string | null;
     tokenHash: string;
     device?: string;
   },
 ): Promise<boolean> {
   const result = await withTenant(pool, args.tenantId, async (client) => {
     // Person before login, as a switch-off takes them, so the two never wait on each other.
-    await client.query('SELECT 1 FROM person WHERE id = $1 FOR SHARE', [args.actingPersonId]);
+    if (args.actingPersonId)
+      await client.query('SELECT 1 FROM person WHERE id = $1 FOR SHARE', [args.actingPersonId]);
     return client.query(
       `INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at, acting_person_id)
        SELECT l.tenant_id, l.id, $3, $4, now() + interval '30 days', p.id
-       FROM login l, person p
-       WHERE l.id = $1 AND p.id = $2 AND l.tenant_id = p.tenant_id
-         AND l.disabled_at IS NULL AND p.active AND l.password_hash = $5
-       FOR SHARE OF l, p`,
+       FROM login l LEFT JOIN person p ON p.id = $2 AND p.tenant_id = l.tenant_id AND p.active
+       WHERE l.id = $1 AND l.disabled_at IS NULL AND l.password_hash = $5
+         AND ($2::uuid IS NULL OR p.id IS NOT NULL)
+       FOR SHARE OF l`,
       [args.loginId, args.actingPersonId, args.tokenHash, args.device ?? null, args.passwordHash],
     );
   });
