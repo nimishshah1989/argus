@@ -341,7 +341,11 @@ describe('login guard', () => {
         method: 'POST',
         url: '/api/v1/auth/password',
         remoteAddress: from,
-        headers: { host: HOST, 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        headers: {
+          host: HOST,
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
         payload: { old, password: 'a-brand-new-password' },
       });
     const from = '198.51.100.27';

@@ -61,10 +61,9 @@ function tooManyAttempts(
   guard: LoginGuard,
   request: FastifyRequest,
   reply: FastifyReply,
-  tenantId: string,
-  username: string,
+  who: { tenantId: string; username: string },
 ): boolean {
-  const wait = guard.take(request.ip, tenantId, username);
+  const wait = guard.take(request.ip, who.tenantId, who.username);
   if (wait <= 0) return false;
   reply
     .code(429)
@@ -104,12 +103,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
   });
 }
 
-async function login(
-  pool: Pool,
-  guard: LoginGuard,
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+async function login(pool: Pool, guard: LoginGuard, request: FastifyRequest, reply: FastifyReply) {
   const parsed = loginSchema.safeParse(request.body);
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path.join('.');
@@ -124,7 +118,7 @@ async function login(
   }
   bindLog(request, reply, { tenantId: tenant.id });
   const { username, password, device, actingPersonId } = parsed.data;
-  if (tooManyAttempts(guard, request, reply, tenant.id, username)) return;
+  if (tooManyAttempts(guard, request, reply, { tenantId: tenant.id, username })) return;
   const loginRow = await findLogin(pool, tenant.id, username);
   const passwordOk = await passwordMatches(loginRow, password);
   if (!loginRow || !passwordOk) {
@@ -184,7 +178,7 @@ async function changePassword(
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   // Guessing the old password from a stolen session is limited like guessing at sign-in.
-  if (tooManyAttempts(guard, request, reply, ctx.tenantId, ctx.username)) return;
+  if (tooManyAttempts(guard, request, reply, ctx)) return;
   const ok = await withTenant(pool, ctx.tenantId, async (client) => {
     if (!(await verify(await passwordHashOf(client, ctx.loginId), parsed.data.old))) return false;
     const newHash = await hashPassword(parsed.data.password);

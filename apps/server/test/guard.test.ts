@@ -180,7 +180,12 @@ describe('auth guard', () => {
     try {
       await plain.ready();
       const login = (from: string) =>
-        plain.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: from, payload: {} });
+        plain.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          remoteAddress: from,
+          payload: {},
+        });
       for (let i = 0; i < 60; i++) expect((await login('198.51.100.40')).statusCode).toBe(422);
       const limited = await login('198.51.100.40');
       expect(limited.statusCode).toBe(429);
