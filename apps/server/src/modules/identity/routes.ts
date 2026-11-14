@@ -249,7 +249,8 @@ async function changePassword(
     return true;
   });
   if (!ok) {
-    reply.code(401).send(apiError('unauthenticated', 'Current password is incorrect'));
+    // 422, not 401: the sign-in is still good, and the apps read a 401 as an ended session.
+    reply.code(422).send(apiError('validation', 'Current password is incorrect', 'old'));
     return;
   }
   guard.refund(request.ip, ctx.tenantId, ctx.username);
