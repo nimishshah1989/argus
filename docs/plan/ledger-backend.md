@@ -190,3 +190,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   regression (shared event writer) before merge, fixed in dd616cd. Since ~06:47 UTC GitHub Actions starts no jobs
   (every job fails in 1-2 s, runner_id 0, logs 404) on all branches: likely Actions minutes/spending limit or outage;
   Nimish asked to check billing. Ruling (both lanes): no merges until CI runs again; builders keep working.
+- 2026-11-14 06:56 UTC — Actions recovered at 06:51 (outage ~4 min; billing check not needed); re-ran failed jobs once
+  on #220 and #223. RULINGS (Nimish): (1) CI cost rules (#224): drafts run no CI; local precheck + touched suites
+  before every push; CI runs once when the orchestrator marks ready; no CI on push to main; one re-run max.
+  (2) "pstack on in the backend sessions": every backend builder runs its ticket through the poteto-mode skill
+  (Skill tool, playbook named in the PR), delegates as poteto-agent subagents, models per
+  .claude/rules/pstack-models.md; my adversarial reviews follow .claude/skills/interrogate/SKILL.md (findings only
+  when proven by a run). All three builders told; each confirms poteto-mode is loaded.
