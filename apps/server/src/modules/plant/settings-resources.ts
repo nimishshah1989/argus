@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import type { ZodTypeAny } from 'zod';
+import type { ActorContext } from '@uptimo/domain';
 import {
   groupCreateSchema,
   groupPatchSchema,
@@ -49,13 +50,26 @@ export interface Resource {
   reply: (row: Row) => Reply;
   /** The key a repeated value breaks (a 409 names it); `code` unless the resource has another. */
   uniqueField?: string;
+  /** The 409 text for a repeat, when "That code is already used" does not read right for this resource. */
+  taken?: string;
+  /** Who may use it (DOMAIN §3); head and admin (the lists cell) unless the resource has its own cell. */
+  can?: (actor: ActorContext) => boolean;
+  /** `active: false` removes the row (a roster line has no switch of its own); the reply then says `active: false`. */
+  removable?: boolean;
   /** What `active: true/false` changes for this resource; none when it has no switch. */
   switchTo?: (active: boolean, before: Reply) => Reply;
   /** The values as they would be after the write; a message when they break a rule of the plant. */
-  check?: (tx: PoolClient, merged: Reply, edit?: Proposed) => Promise<Problem | null>;
+  check?: (
+    tx: PoolClient,
+    merged: Reply,
+    edit: Proposed | undefined,
+    tenantId: string,
+  ) => Promise<Problem | null>;
   /** Columns worked out from the values, never typed by a person. */
   derive?: (merged: Reply) => Record<string, unknown>;
   actionFor?: (before: Reply, after: Reply) => string;
+  /** Runs before the list is read, inside its transaction (the ladder seeds its starting rules here). */
+  beforeList?: (tx: Db, who: { tenantId: string; loginId: string }) => Promise<void>;
   /** Runs inside the edit's transaction once the row is written. */
   afterEdit?: (tx: Db, edit: Edit) => Promise<void>;
 }
@@ -114,7 +128,7 @@ async function checkLinks(tx: Db, m: Reply, patch?: Reply): Promise<Problem | nu
 }
 
 /** Today in the plant's own time zone, as a date the database and the screens both read. */
-async function plantToday(tx: Db, tenantId: string): Promise<string> {
+export async function plantToday(tx: Db, tenantId: string): Promise<string> {
   const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
   return new Date().toLocaleDateString('en-CA', { timeZone });
 }

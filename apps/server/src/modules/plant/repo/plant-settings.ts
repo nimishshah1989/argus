@@ -3,9 +3,19 @@ import type { PoolClient } from 'pg';
 type Db = Pick<PoolClient, 'query'>;
 export type Row = Record<string, unknown>;
 
-/** The four tables the plant-settings routes write. Names here are ours, never a caller's. */
+/**
+ * The tables the generic settings routes write. Names here are ours, never a caller's. The last two belong to
+ * `accountability`, which defines their resources; the one generic statement only addresses them.
+ */
 export type SettingsTable =
-  'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term';
+  | 'machine'
+  | 'segment'
+  | 'machine_group'
+  | 'shift'
+  | 'list_item'
+  | 'glossary_term'
+  | 'roster_entry'
+  | 'escalation_rule';
 
 /** One table holding several lists: a resource reads and writes only the rows with this column value. */
 export interface Scope {
@@ -89,6 +99,16 @@ export async function updateRow(
   const sets = Object.keys(values).map((column, i) => `${column} = $${i + 2}`);
   const sql = `UPDATE ${table} SET ${[...sets, 'updated_at = now()'].join(', ')} WHERE id = $1 RETURNING *`;
   return (await tx.query(sql, [id, ...Object.values(values)])).rows[0];
+}
+
+export async function deleteRow(tx: Db, table: SettingsTable, id: string): Promise<void> {
+  await tx.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+}
+
+/** Whether this plant has the shift, and whether it is switched on; undefined when it has no such shift. */
+export async function shiftIsOn(tx: Db, id: string): Promise<boolean | undefined> {
+  const row = (await tx.query('SELECT active FROM shift WHERE id = $1', [id])).rows[0];
+  return row?.active as boolean | undefined;
 }
 
 /** The segment a group belongs to; undefined when this plant has no such group. */
