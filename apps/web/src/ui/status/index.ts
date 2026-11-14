@@ -8,6 +8,7 @@ import { pm } from './pm.js';
 import { report } from './report.js';
 import { severity } from './severity.js';
 import { sync } from './sync.js';
+import { task } from './task.js';
 import { ticket } from './ticket.js';
 
 export type Tone = 'danger' | 'info' | 'warning' | 'hold' | 'moved' | 'ok' | 'muted';
@@ -18,6 +19,17 @@ export interface StatusDef {
   label: MessageKey;
 }
 
-export const STATUS = { ticket, floor, report, severity, clock, handback, pm, forecast, sync };
+export const STATUS = {
+  ticket,
+  floor,
+  report,
+  severity,
+  clock,
+  handback,
+  pm,
+  forecast,
+  sync,
+  task,
+};
 export type StatusGroup = keyof typeof STATUS;
 export type StatusId<G extends StatusGroup> = keyof (typeof STATUS)[G] & string;

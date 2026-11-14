@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { IconComponent } from './icon.js';
 import type { Tone } from './status/index.js';
-import { TONE_TEXT } from './tone.js';
+import { TONE_TEXT } from './meaning.js';
 
 export interface ToneLine {
   text: string;
