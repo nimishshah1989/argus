@@ -24,7 +24,7 @@ import { ensureEscalationDefaults } from './ladder.js';
 import { activeRulesFor, clockStateAt, rosterPersonIds, ruleById } from './repo/escalation.js';
 import { plantHasPolicies } from './repo/policies.js';
 import type { RuleRow } from './repo/escalation.js';
-import type { Breach, SlaTimerKind } from './repo/timers.js';
+import type { SlaTimerKind } from './repo/timers.js';
 
 export const ESCALATION_QUEUE = 'sla.escalate';
 const MINUTE_MS = 60_000;
@@ -255,18 +255,6 @@ export async function startClockEscalation(
     else if (boss) await schedule(client, boss, job);
   }
 }
-
-/**
- * What a breach starts: the escalation ladder. A breach owed by an earlier pause is keyed by the due time it was owed
- * from, so a second delivery of its job asks for the same step and escalates once.
- */
-export const escalateBreach = (client: PoolClient, boss: PgBoss | null, breach: Breach) =>
-  startClockEscalation(client, boss, {
-    tenantId: breach.tenantId,
-    ticketId: breach.ticketId,
-    kind: breach.kind,
-    firedAt: breach.owedDueAt ?? breach.firedAt,
-  });
 
 /**
  * A breakdown that is still down is not a clock: it is armed whenever the ticket is written (and by the nightly

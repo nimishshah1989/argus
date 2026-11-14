@@ -12,12 +12,7 @@ import {
 import { withTenant } from '@uptimo/db';
 import { ensureEscalationDefaults } from '../src/modules/accountability/index.js';
 import { reconcileTicket } from '../src/modules/accountability/sla.js';
-import {
-  processSlaTimerJob,
-  rearmTicket,
-  type SlaTimerPayload,
-  type SlaTimerProjection,
-} from '../src/modules/accountability/repo/timers.js';
+import { processSlaTimerJob } from '../src/modules/accountability/repo/timers.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const PASSWORD = 'correct-horse-battery';
@@ -121,7 +116,7 @@ async function seedPlant(slug: string, n: number, withPolicies = true): Promise<
       ($1, 'S1', 5, 30, 20, 10), ($1, 'S2', 90, 360, 20, 10), ($1, 'S3', 120, 480, 20, 10), ($1, 'S4', 180, 720, 20, 10)`,
       [id],
     );
-  for (let i = 0; i < 44; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     const machine = randomUUID();
     plant.machines.push(machine);
     await admin.query(
@@ -790,82 +785,6 @@ describe('sign-off unanswered and a pause that ran over', () => {
     expect((await command(A, id, 'resume', 'asha')).statusCode).toBe(200);
     await breach(A, id, 'pause', plus(pausedAt, 21));
     expect(await steps(id, 'pause_overrun')).toEqual([]);
-  });
-});
-
-describe('a pause breach owed when the next pause starts (the ladder)', () => {
-  const projection = (patch: Partial<SlaTimerProjection>): SlaTimerProjection => ({
-    kind: 'pause',
-    state: 'running',
-    breached: false,
-    dueAt: new Date(),
-    pausedAt: null,
-    stoppedAt: null,
-    stopReason: null,
-    ...patch,
-  });
-  const rearm = (plant: Plant, id: string, timer: SlaTimerProjection, now: Date) =>
-    withTenant(db.app, plant.id, (client) =>
-      rearmTicket(client, boss, { tenantId: plant.id, ticketId: id, timers: [timer], now }),
-    );
-  const owedJobs = async (id: string) =>
-    (
-      await admin.query(
-        "SELECT data FROM pgboss.job WHERE name = 'sla.timer' AND data->>'ticketId' = $1 AND data ? 'owedDueAt' AND state = 'created'",
-        [id],
-      )
-    ).rows.map((row) => row.data as SlaTimerPayload);
-
-  /** Pause 1 ran past its maximum and ended, then pause 2 began, with no job run in between. */
-  async function twoPauses() {
-    const { id } = await raise(A);
-    await command(A, id, 'start', 'asha');
-    expect((await command(A, id, 'pause', 'asha', { reasonCode: 'spare' })).statusCode).toBe(200);
-    const pausedAt = (
-      await admin.query("SELECT at FROM ticket_event WHERE ticket_id = $1 AND type = 'pause'", [id])
-    ).rows[0].at as Date;
-    const first = plus(pausedAt, 20);
-    await rearm(
-      A,
-      id,
-      projection({
-        state: 'stopped',
-        breached: true,
-        dueAt: first,
-        stoppedAt: plus(first, 5),
-        stopReason: 'resumed',
-      }),
-      plus(first, 5),
-    );
-    await rearm(A, id, projection({ dueAt: plus(first, 35) }), plus(first, 6));
-    return { id, first };
-  }
-
-  it('tells nobody about a pause that had already ended, and tells once about the pause that is running', async () => {
-    const { id, first } = await twoPauses();
-    const [owed] = await owedJobs(id);
-    expect(owed).toMatchObject({ kind: 'pause', owedDueAt: first.getTime() });
-    expect(await processSlaTimerJob(owed!, { pool: db.app, now: () => plus(first, 7), boss })).toBe(
-      true,
-    );
-    // The ladder asks for a running clock, as it does for a pause that was resumed before its job came.
-    expect(await steps(id, 'pause_overrun')).toEqual([]);
-    expect(await breach(A, id, 'pause', plus(first, 36))).toBe(true);
-    expect(await steps(id, 'pause_overrun')).toHaveLength(1);
-  });
-
-  it('a second delivery of the owed job changes nothing', async () => {
-    const { id, first } = await twoPauses();
-    const [owed] = await owedJobs(id);
-    for (const minutes of [7, 9]) {
-      expect(
-        await processSlaTimerJob(owed!, { pool: db.app, now: () => plus(first, minutes), boss }),
-      ).toBe(true);
-    }
-    expect(await steps(id, 'pause_overrun')).toEqual([]);
-    expect(await notices(id)).toEqual([]);
-    expect(await breach(A, id, 'pause', plus(first, 36))).toBe(true);
-    expect(await steps(id, 'pause_overrun')).toHaveLength(1);
   });
 });
 

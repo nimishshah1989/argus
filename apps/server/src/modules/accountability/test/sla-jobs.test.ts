@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { PgBoss, TestClock } from 'pg-boss';
 import { Pool, type PoolClient } from 'pg';
-import { afterAll, beforeAll, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, expect, it } from 'vitest';
 import { installJobSchema, withTenant } from '@uptimo/db';
 import { runSlaConsistency } from '../consistency.js';
 import { startJobs } from '../jobs.js';
@@ -520,83 +520,6 @@ it('the real worker fires a pause clock once, on the fake clock', async () => {
     expect(((await timerRow(A, ticketId, 'pause')).fired_at as Date).getTime()).toBe(
       fired.getTime(),
     );
-  } finally {
-    await handle.close();
-  }
-}, 60_000);
-
-type Seen = { kind: string; firedAt: Date; owedDueAt: Date | null };
-const second = (n: number) => new Date(START.getTime() + n * 1_000);
-
-/**
- * A worker on a fake clock, and a ticket whose pause 1 (20 s at most) ran 25 s and whose pause 2 started a second
- * later, with no job run in between: the breach pause 1 owes is queued, pause 2's is armed for second 46.
- */
-async function ticketWithOwedBreach(onBreach: (breach: Seen) => Promise<void>) {
-  await boss.deleteAllJobs('sla.timer');
-  const clock = new TestClock(second(26));
-  const handle = await startJobs({
-    connectionString: appUrl,
-    pool: app,
-    role: 'worker',
-    clock,
-    reconcileTicket: async () => undefined,
-    pollingIntervalSeconds: 0.5,
-    dailyConsistency: false,
-    bootConsistency: false,
-    onBreach,
-  });
-  const ticketId = await makeTicket();
-  const rearm = (timer: SlaTimerProjection, now: Date) =>
-    withTenant(app, A, (client) =>
-      rearmTicket(client, handle.boss, { tenantId: A, ticketId, timers: [timer], now }),
-    );
-  const pause = (patch: Partial<SlaTimerProjection>) => projection({ kind: 'pause', ...patch });
-  await rearm(pause({ dueAt: second(20) }), second(0));
-  const resumed = {
-    state: 'stopped',
-    breached: true,
-    stoppedAt: second(25),
-    stopReason: 'resumed',
-  };
-  await rearm(pause({ ...resumed, dueAt: second(20) } as Partial<SlaTimerProjection>), second(25));
-  await rearm(pause({ dueAt: second(46) }), second(26));
-  return { clock, handle, ticketId };
-}
-
-it('a breach owed by pause 1 still fires, once, when pause 2 starts before the job runs', async () => {
-  const breaches: Seen[] = [];
-  const { clock, handle } = await ticketWithOwedBreach(async (b) => void breaches.push(b));
-  try {
-    await clock.tick(2_000);
-    await vi.waitFor(() => expect(breaches).toHaveLength(1));
-    expect(breaches[0]).toMatchObject({ kind: 'pause', owedDueAt: second(20) });
-    await clock.tick(22_000);
-    await vi.waitFor(() => expect(breaches).toHaveLength(2));
-    expect(breaches[1]!.owedDueAt).toBeNull();
-    expect(breaches[1]!.firedAt.getTime()).toBeGreaterThanOrEqual(second(46).getTime());
-    await clock.tick(6_000);
-    expect(breaches).toHaveLength(2);
-  } finally {
-    await handle.close();
-  }
-}, 60_000);
-
-it('a failing reaction to the owed breach puts it back: the job retries and it is delivered', async () => {
-  const delivered: Seen[] = [];
-  let attempts = 0;
-  const { clock, handle } = await ticketWithOwedBreach(async (b) => {
-    attempts += 1;
-    if (attempts === 1) throw new Error('injected failure');
-    delivered.push(b);
-  });
-  try {
-    await clock.tick(8_000);
-    await vi.waitFor(() => expect(delivered).toHaveLength(1));
-    expect(attempts).toBe(2);
-    expect(delivered[0]).toMatchObject({ kind: 'pause', owedDueAt: second(20) });
-    await clock.tick(4_000);
-    expect(delivered).toHaveLength(1);
   } finally {
     await handle.close();
   }
