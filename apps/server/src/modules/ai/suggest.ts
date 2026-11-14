@@ -97,7 +97,7 @@ type Progress = Pick<
 const NO_USAGE: AiUsage = { inputTokens: 0, outputTokens: 0 };
 
 /** Gates inside transaction 1: production consent, then the monthly cap. Null means pass. */
-async function gateProduction(
+export async function gateProduction(
   tx: Pick<PoolClient, 'query'>,
   tenantId: string,
   config: AiConfig,

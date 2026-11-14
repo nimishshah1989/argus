@@ -1,15 +1,22 @@
 import { hash } from '@node-rs/argon2';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import type { AppConfig } from '../src/kernel/index.js';
-import { aiConfigFromEnv, createFakeProvider, startAiJobs } from '../src/modules/ai/index.js';
+import { contributeTicketListener, type AppConfig } from '../src/kernel/index.js';
+import {
+  aiConfigFromEnv,
+  createFakeProvider,
+  startAiJobs,
+  type AiConfig,
+} from '../src/modules/ai/index.js';
 import { DIAGNOSIS_PROMPT } from '../src/modules/ai/diagnosis.js';
+import { diagnosisQueuer } from '../src/modules/ai/queue.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const A = '73000000-0000-4000-8000-00000000000a';
 const id = (n: number): string =>
   `73000000-0000-4000-8000-0000000000${n.toString(16).padStart(2, '0')}`;
-const MACHINES = Array.from({ length: 8 }, (_, i) => id(0x30 + i));
+const MACHINES = Array.from({ length: 14 }, (_, i) => id(0x30 + i));
 const PASSWORD = 'correct-horse-battery';
 
 let db: TestDb;
@@ -157,6 +164,43 @@ describe('from a report to a stored shadow diagnosis', () => {
     });
     expect(row.output).toMatchObject({ v: 1, candidates: expect.any(Array) });
   }, 30_000);
+});
+
+describe('in production no job is queued that could not run', () => {
+  const production: AiConfig = {
+    ...aiConfigFromEnv({ APP_ENV: 'production' }),
+    apiKey: 'key-placeholder',
+    residencyRecord: 'record-1',
+  };
+  const setting = (key: string, value: unknown) =>
+    db.admin.query('INSERT INTO setting (tenant_id, key, value) VALUES ($1, $2, $3)', [
+      A,
+      key,
+      JSON.stringify(value),
+    ]);
+  const consent = {
+    status: 'granted',
+    signedOn: '2026-11-01',
+    fileId: randomUUID(),
+    wordingVersion: 'v1',
+    recordedByLoginId: randomUUID(),
+  };
+  const useConfig = (ai: AiConfig) => contributeTicketListener('diagnosis', diagnosisQueuer(ai));
+
+  afterAll(() => useConfig(aiConfigFromEnv({})));
+
+  it('queues nothing without a key, a residency record, consent or a cap, and queues once all are in place', async () => {
+    useConfig({ ...production, apiKey: null });
+    expect(await queued(await raise())).toEqual([]);
+    useConfig({ ...production, residencyRecord: null });
+    expect(await queued(await raise())).toEqual([]);
+    useConfig(production);
+    expect(await queued(await raise())).toEqual([]);
+    await setting('ai.consent', consent);
+    expect(await queued(await raise())).toEqual([]);
+    await setting('ai.monthlyCapUsd', 50);
+    expect(await queued(await raise())).toHaveLength(1);
+  });
 });
 
 async function waitFor<T>(read: () => Promise<T | undefined>): Promise<T> {

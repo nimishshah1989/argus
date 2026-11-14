@@ -1,10 +1,11 @@
 import type { PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import type { AiSuggestPayload } from '@uptimo/shared';
-import { jobDb, type TicketWrite } from '../../kernel/index.js';
+import { jobDb, type TicketListener } from '../../kernel/index.js';
 import { ticketAlertFacts } from '../tickets/index.js';
+import type { AiConfig } from './config.js';
 import { DIAGNOSIS_PROMPT } from './diagnosis.js';
-import { AI_SUGGEST_QUEUE } from './suggest.js';
+import { AI_SUGGEST_QUEUE, gateProduction } from './suggest.js';
 
 const queueReady = new WeakSet<PgBoss>();
 
@@ -26,22 +27,27 @@ export async function ensureAiQueue(boss: PgBoss): Promise<void> {
 }
 
 /**
- * Runs inside a ticket write's transaction (a ticket listener), so the job exists only if the ticket does. Only a
+ * A ticket listener: runs inside a ticket write's transaction, so the job exists only if the ticket does. Only a
  * breakdown (`stopped`) that is raised is diagnosed: not an upgrade later, not a past ticket entered after the fact.
- * The job's own gates (feature, residency, consent, cap) decide whether a call is made; this only queues it.
+ * In production a job nobody could run is not queued: no key, no residency record, or the plant's consent or cap
+ * not in place. Staging has no gate (build phase). The job re-checks every gate when it runs.
  */
-export async function queueDiagnosisOnRaise(client: PoolClient, write: TicketWrite): Promise<void> {
-  if (write.command !== 'raise' || !write.boss) return;
-  const facts = await ticketAlertFacts(client, write.tenantId, write.ticketId);
-  if (facts?.kind !== 'stopped') return;
-  await ensureAiQueue(write.boss);
-  const payload: AiSuggestPayload = {
-    v: 1,
-    tenantId: write.tenantId,
-    feature: 'diagnosis',
-    subjectType: 'ticket',
-    subjectId: write.ticketId,
-    promptVersion: DIAGNOSIS_PROMPT.version,
+export function diagnosisQueuer(ai: AiConfig): TicketListener {
+  return async (client, write) => {
+    if (write.command !== 'raise' || !write.boss) return;
+    if (ai.production && (ai.apiKey === null || ai.residencyRecord === null)) return;
+    if (await gateProduction(client, write.tenantId, ai)) return;
+    const facts = await ticketAlertFacts(client, write.tenantId, write.ticketId);
+    if (facts?.kind !== 'stopped') return;
+    await ensureAiQueue(write.boss);
+    const payload: AiSuggestPayload = {
+      v: 1,
+      tenantId: write.tenantId,
+      feature: 'diagnosis',
+      subjectType: 'ticket',
+      subjectId: write.ticketId,
+      promptVersion: DIAGNOSIS_PROMPT.version,
+    };
+    await write.boss.send(AI_SUGGEST_QUEUE, payload, { db: jobDb(client) });
   };
-  await write.boss.send(AI_SUGGEST_QUEUE, payload, { db: jobDb(client) });
 }

@@ -1,5 +1,6 @@
 import { contributeTicketListener, defineModule } from '../../kernel/index.js';
-import { queueDiagnosisOnRaise } from './queue.js';
+import { aiConfigFromEnv } from './config.js';
+import { diagnosisQueuer } from './queue.js';
 
 export { aiConfigFromEnv, type AiConfig } from './config.js';
 export {
@@ -23,6 +24,6 @@ export type { AiFeature } from './suggest.js';
 export const aiModule = defineModule({
   name: 'ai',
   register: () => {
-    contributeTicketListener('diagnosis', queueDiagnosisOnRaise);
+    contributeTicketListener('diagnosis', diagnosisQueuer(aiConfigFromEnv(process.env)));
   },
 });
