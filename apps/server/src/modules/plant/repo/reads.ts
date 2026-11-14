@@ -9,6 +9,7 @@ export interface MachineRow {
   category: string | null;
   cell: string | null;
   criticality: Criticality | null;
+  status: string;
 }
 
 export async function machinesByIds(
@@ -19,7 +20,7 @@ export async function machinesByIds(
 ): Promise<MachineRow[]> {
   return (
     await tx.query(
-      `SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id${lock === 'share' ? ' FOR SHARE' : ''}`,
+      `SELECT id, code, category, cell, criticality, status FROM machine WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id${lock === 'share' ? ' FOR SHARE' : ''}`,
       [tenantId, ids],
     )
   ).rows;

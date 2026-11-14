@@ -21,6 +21,12 @@ export {
   type TicketPart,
   type TicketWrite,
 } from './reply-parts.js';
+export { fieldProblem, idOrNotFound, refuse, type Refusal } from './contract.js';
+export {
+  machineSwitchOffBlocker,
+  setMachineSwitchOffCheck,
+  type MachineSwitchOffCheck,
+} from './guards.js';
 export { registerReplyCheck, replyProblem } from './reply-check.js';
 export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';

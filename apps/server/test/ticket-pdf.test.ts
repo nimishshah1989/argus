@@ -8,6 +8,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { pdfShows } from './pdf-text.js';
 import { buildQrPayload, qrSvg, qrText } from '../src/modules/reports/pdf.js';
 import { renderReportHtml, type ReportPdfInput } from '../src/modules/reports/pdf-template.js';
 import { installJobSchema } from '../../../packages/db/src/install-jobs.js';
@@ -258,7 +259,8 @@ afterAll(async () => {
 
 describe('breakdown report PDF', () => {
   it('answers with the PDF itself and stores nothing, however often it is asked', async () => {
-    const id = await raiseWithReport(M1, 'સ્પિન્ડલ બેરિંગ બદલવું પડ્યું');
+    const gujarati = 'સ્પિન્ડલ બેરિંગ બદલવું પડ્યું';
+    const id = await raiseWithReport(M1, gujarati);
     const res = await get(`/api/v1/tickets/${id}/pdf`, ashaToken);
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
@@ -268,6 +270,8 @@ describe('breakdown report PDF', () => {
     );
     expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
     expect(res.rawPayload.length).toBeGreaterThan(5000);
+    // The Gujarati the technician typed is in the PDF, not a row of blank boxes.
+    expect(pdfShows(res.rawPayload, gujarati)).toBe(true);
 
     // A second tap makes no row and no file: nothing to lose on a deploy, nothing growing.
     expect((await get(`/api/v1/tickets/${id}/pdf`, ashaToken)).statusCode).toBe(200);
@@ -278,7 +282,8 @@ describe('breakdown report PDF', () => {
     // The QR the platform imports carries this report's own numbers and names.
     expect(qrPayloads.at(-1)).toMatchObject({
       v: 1,
-      mid: M1,
+      // v3's QR names the machine by its code, not by an id of ours.
+      mid: 'VC-1',
       d: '2026-11-10',
       sh: '1',
       tk: ticket.ref,
@@ -287,6 +292,17 @@ describe('breakdown report PDF', () => {
       bc: 'M',
       dm: 45,
     });
+  });
+
+  it('keeps the machine code the report was made under when the machine is renamed later', async () => {
+    const id = await raiseWithReport(M1, 'Before the rename');
+    await pool.query("UPDATE machine SET code = 'VC-1-NEW' WHERE id = $1", [M1]);
+    try {
+      expect((await get(`/api/v1/tickets/${id}/pdf`, ashaToken)).statusCode).toBe(200);
+      expect(qrPayloads.at(-1)).toMatchObject({ mid: 'VC-1' });
+    } finally {
+      await pool.query("UPDATE machine SET code = 'VC-1' WHERE id = $1", [M1]);
+    }
   });
 
   it('builds the v1 QR payload and embeds the QR in the template', async () => {

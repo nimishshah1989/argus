@@ -28,7 +28,7 @@ export function FloorShell({ children }: { children: ReactNode }) {
 export function FloorLoading({ title }: { title?: string }) {
   const { t } = useTranslation();
   return (
-    <PatternFrame title={title ?? t('floor.title')}>
+    <PatternFrame title={title ?? t('floor.title')} quietOnline>
       <Loading>
         <Stack gap={3}>
           {/* eslint-disable i18next/no-literal-string -- shape names, not copy */}

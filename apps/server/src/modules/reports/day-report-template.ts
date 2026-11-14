@@ -111,7 +111,7 @@ function header(data: DayReportData): string {
       <div class="company">${esc(data.tenant.name)}</div>
       <h1>Day report</h1>
       <div class="who">${esc(data.person.name)} · ${esc(formatDay(data.window.start, data.tenant.timeZone))}</div>
-      <div class="window">${esc(data.shift === 'day' ? 'Day shift' : 'Night shift')} · ${esc(formatWindow(data))}</div>
+      <div class="window">${esc(data.shift ? `Shift ${data.shift}` : 'Whole day')} · ${esc(formatWindow(data))}</div>
     </div>
     <div class="stats">
       ${stat('Jobs worked', String(data.jobs.length))}

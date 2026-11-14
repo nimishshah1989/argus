@@ -41,4 +41,7 @@ export type User = z.infer<typeof userSchema>;
 
 export const loginReplySchema = z.object({ token: z.string(), user: userSchema }).strict();
 export const meReplySchema = z.object({ user: userSchema }).strict();
-export const brandReplySchema = z.object({ company: z.string(), logo: z.null() }).strict();
+/** `logo` is the public path of the company's logo, or null when it has none. */
+export const brandReplySchema = z
+  .object({ company: z.string(), logo: z.string().nullable() })
+  .strict();

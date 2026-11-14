@@ -20,6 +20,7 @@ export {
   type RedactionTerms,
   type TenantRow,
 } from './repo.js';
+export { setTenantLogo, tenantLogoId, updateTenantProfile } from './repo/profile.js';
 export {
   clearActingPerson,
   disableLoginsOfPerson,
