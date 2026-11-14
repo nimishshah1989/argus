@@ -456,11 +456,7 @@ describe('recording a past breakdown', () => {
 describe('registering a phone for push', () => {
   const subscription = (n: number) => ({
     endpoint: `https://fcm.googleapis.com/fcm/send/acting-${n}`,
-    keys: {
-      p256dh:
-        'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM',
-      auth: 'tBHItJI5svbpez7KI4CCXg',
-    },
+    keys: { p256dh: 'test-p256dh', auth: 'test-auth' },
   });
   const rows = async () =>
     (
