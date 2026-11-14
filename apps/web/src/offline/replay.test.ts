@@ -19,12 +19,19 @@ const outboxMocks = vi.hoisted(() => ({
   addDraft: vi.fn(),
 }));
 
+// The phone is acting as person-1; entries record who made them (review of PR 225).
+const ME = { loginId: 'login-1', actingPersonId: 'person-1', name: 'Person 01' };
+vi.mock('../data/index.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../data/index.js')>();
+  return { ...original, currentWho: () => ME };
+});
+
 vi.mock('./outbox.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('./outbox.js')>();
   return { ...original, ...outboxMocks };
 });
 
-function entry(id: string, action: QueueEntry['action'] = 'close'): QueueEntry {
+function entry(id: string, action: QueueEntry['action'] = 'close', who = ME): QueueEntry {
   return {
     id,
     action,
@@ -34,6 +41,7 @@ function entry(id: string, action: QueueEntry['action'] = 'close'): QueueEntry {
     idempotencyKey: `key-${id}`,
     at: '2026-11-10T09:30:00.000Z',
     createdAt: `2026-11-10T09:30:0${id}.000Z`,
+    who,
   };
 }
 
@@ -57,7 +65,7 @@ describe('replayOutbox', () => {
       'ticket-2',
     ]);
     expect(outboxMocks.removeQueued.mock.calls.map((call) => call[0])).toEqual(['1', '2']);
-    expect(summary).toEqual({ attempted: 2, replayed: 2, drafted: 0, kept: 0 });
+    expect(summary).toEqual({ attempted: 2, replayed: 2, drafted: 0, kept: 0, held: 0 });
   });
 
   it('keeps the chosen close time in the replayed body', async () => {
@@ -93,7 +101,7 @@ describe('replayOutbox', () => {
     );
     expect(outboxMocks.removeQueued).toHaveBeenCalledWith('1');
     expect(outboxMocks.removeQueued).toHaveBeenCalledWith('2');
-    expect(summary).toEqual({ attempted: 2, replayed: 1, drafted: 1, kept: 0 });
+    expect(summary).toEqual({ attempted: 2, replayed: 1, drafted: 1, kept: 0, held: 0 });
   });
 
   it('stops on a network error and keeps the rest queued', async () => {
@@ -105,7 +113,7 @@ describe('replayOutbox', () => {
     expect(apiMocks.sendCommand).toHaveBeenCalledTimes(1);
     expect(outboxMocks.removeQueued).not.toHaveBeenCalled();
     expect(outboxMocks.addDraft).not.toHaveBeenCalled();
-    expect(summary).toEqual({ attempted: 1, replayed: 0, drafted: 0, kept: 2 });
+    expect(summary).toEqual({ attempted: 1, replayed: 0, drafted: 0, kept: 2, held: 0 });
   });
 
   it('stops on a non-conflict server error rather than dropping the entry', async () => {
@@ -118,6 +126,18 @@ describe('replayOutbox', () => {
     expect(summary.kept).toBe(1);
   });
 
+  it('holds what another login or person queued on this phone: never sent, never removed', async () => {
+    const other = { loginId: 'login-2', actingPersonId: 'person-2', name: 'Person 02' };
+    const legacy = { ...entry('3'), who: undefined };
+    outboxMocks.listQueued.mockResolvedValue([entry('1', 'close', other), entry('2'), legacy]);
+
+    const summary = await replayOutbox();
+
+    expect(apiMocks.sendCommand.mock.calls.map((call) => call[0])).toEqual(['ticket-2']);
+    expect(outboxMocks.removeQueued.mock.calls.map((call) => call[0])).toEqual(['2']);
+    expect(summary).toEqual({ attempted: 1, replayed: 1, drafted: 0, kept: 0, held: 2 });
+  });
+
   it('does nothing when offline', async () => {
     apiMocks.isOffline.mockReturnValue(true);
     outboxMocks.listQueued.mockResolvedValue([entry('1')]);
@@ -125,7 +145,7 @@ describe('replayOutbox', () => {
     const summary = await replayOutbox();
 
     expect(outboxMocks.listQueued).not.toHaveBeenCalled();
-    expect(summary).toEqual({ attempted: 0, replayed: 0, drafted: 0, kept: 0 });
+    expect(summary).toEqual({ attempted: 0, replayed: 0, drafted: 0, kept: 0, held: 0 });
   });
 });
 

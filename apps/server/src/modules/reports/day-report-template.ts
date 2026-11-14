@@ -1,13 +1,5 @@
 import type { DayReportData, DayReportJob, DayReportPending } from './day-report.js';
-
-export function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+import { esc, machineLabel } from './html.js';
 
 export function minutesLabel(value: number): string {
   if (value < 60) return `${value} min`;
@@ -45,21 +37,6 @@ export function formatWindow(window: { start: Date; end: Date }, tz: string): st
   const start = `${startDay}, ${formatClock(window.start, tz)}`;
   const end = `${endDay}, ${formatClock(window.end, tz)}`;
   return `${start} → ${end}`;
-}
-
-function cellLabel(cell: string | null): string | null {
-  if (!cell) return null;
-  return /^cell[\s-]/i.test(cell) ? cell : `Cell ${cell}`;
-}
-
-function machineLabel(machine: {
-  code: string | null;
-  category: string | null;
-  cell: string | null;
-}): string {
-  const meta = [machine.category, cellLabel(machine.cell)].filter(Boolean).join(', ');
-  if (!machine.code) return '—';
-  return meta ? `${machine.code} (${meta})` : machine.code;
 }
 
 export function stat(label: string, value: string): string {

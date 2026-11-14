@@ -3,6 +3,7 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant, type JobRole } from './kernel/index.js';
 import { jobTenantIds, purgeDeadSessions } from './modules/identity/index.js';
 import { stripOldImportPayloads } from './modules/imports/index.js';
+import { purgeNotifications } from './modules/notifications/index.js';
 import { figureDrift, purgeIdempotencyKeys, type DriftLine } from './modules/tickets/index.js';
 
 /**
@@ -45,6 +46,10 @@ const JOBS = {
   'import.purge': {
     cron: '30 2 * * *',
     run: async (c, t, now) => count(await stripOldImportPayloads(c, t, before(now, 365))),
+  },
+  'notification.purge': {
+    cron: '40 2 * * *',
+    run: async (c, t, now) => count(await purgeNotifications(c, t, before(now, 90))),
   },
   'figures.drift': {
     cron: '0 3 * * *',

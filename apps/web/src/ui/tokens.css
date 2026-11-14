@@ -68,6 +68,13 @@
   --text-title3: 20px;
   --text-title2: 24px;
   --text-title1: 32px;
+  /* The live board on a wall TV only (Nimish, 14 Nov 2026): 32 is title1, 160 is the hero number. */
+  --text-tv-40: 40px;
+  --text-tv-48: 48px;
+  --text-tv-64: 64px;
+  --text-tv-80: 80px;
+  --text-tv-120: 120px;
+  --text-tv-160: 160px;
 
   --radius-lg: 8px;
   --radius-xl: 12px;

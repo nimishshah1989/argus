@@ -40,7 +40,7 @@ apps/server         Fastify API: auth, settings/config, tickets, reports, PDF
 packages/domain     state machine, figures, severity, SLA maths, permissions (pure, tested)
 packages/db         plain-SQL migrations with forced RLS, `withTenant()`, Cosmos seed, isolation test
 packages/shared     Zod schemas, settings schema, share text, constants
-packages/engine     analytics port (from M4); python/ sidecar beside it
+packages/engine     planned (M4): analytics port; python/ sidecar beside it
 docs/spec           live SPEC, DOMAIN, PARITY, parity.yaml, QUESTIONS, DIFFERENCES
 docs/plan           backlog, NEEDS, STATUS, gates/M0.md ...
 docs/adr            decisions

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
-import { listDrafts, queueLength } from '../offline/outbox.js';
+import { listDrafts, queueByOwner } from '../offline/outbox.js';
 
 export type SyncId = 'online' | 'offline' | 'sending' | 'draft';
 
@@ -35,7 +35,10 @@ export function useOnline(): boolean {
 
 const REFRESH_MS = 3000;
 
-/** Reads the outbox on mount, on connection change and every 3 s; a storage failure counts as 0. */
+/**
+ * Reads the outbox on mount, on connection change and every 3 s; a storage failure counts as 0. Only the
+ * current person's queued work is "sending": what someone else queued is held, never sent from here.
+ */
 export function useSyncStatus(): SyncId {
   const online = useOnline();
   const [counts, setCounts] = useState({ queued: 0, drafts: 0 });
@@ -43,7 +46,10 @@ export function useSyncStatus(): SyncId {
     let alive = true;
     const refresh = async (): Promise<void> => {
       const [queued, drafts] = await Promise.all([
-        queueLength().catch(() => 0),
+        queueByOwner().then(
+          (split) => split.mine,
+          () => 0,
+        ),
         listDrafts().then(
           (list) => list.length,
           () => 0,

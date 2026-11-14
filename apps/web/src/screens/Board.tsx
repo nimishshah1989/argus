@@ -1,128 +1,158 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getConfig, getState, type Config, type Ticket } from '../api.js';
+import { getConfig, getState, type Config, type State } from '../api.js';
 import { errorMessage, formatTime } from '../components/format.js';
-import { BoardSections } from './board/BoardSections.js';
-import { Counts } from './board/Counts.js';
-import { SegmentFilter } from './board/SegmentFilter.js';
-import { WorkFooter } from './board/WorkFooter.js';
-import { boardCounts, buildSections, ticketsOnBoard } from './board/data.js';
+import { SyncStatus } from '../patterns/sync-status.js';
+import { Tv } from '../ui/icon.js';
+import { COLUMNS, liveBoard } from './board/data.js';
+import { Pulse } from './board/Pulse.js';
+import { scaleFor } from './board/scale.js';
+import { Scoreboard } from './board/Scoreboard.js';
+import { StopColumn } from './board/StopColumn.js';
+import { useSystemTheme } from './desk/Shell.js';
 
 const REFETCH_MS = 30_000;
+const KIOSK = '/desk/board?kiosk=1';
 const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
 function BoardNav() {
   const { t } = useTranslation();
   return (
-    <nav className="mb-6 flex gap-2">
+    <nav className="flex flex-wrap gap-2">
       <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
         {t('nav.report')}
       </Link>
       <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
         {t('nav.desk')}
       </Link>
+      <Link
+        to={KIOSK}
+        className="ml-auto hidden min-h-target items-center gap-2 rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 sm:inline-flex"
+      >
+        <Tv aria-hidden size={20} />
+        {t('live.openTv')}
+      </Link>
     </nav>
   );
 }
 
-function BoardHeader({
-  kiosk,
-  now,
-  timeZone,
-}: {
-  kiosk: boolean;
-  now?: string;
-  timeZone?: string;
-}) {
+function dayLabel(iso: string, timeZone?: string): string {
+  const day = { weekday: 'short', day: 'numeric', month: 'short', timeZone } as const;
+  return new Intl.DateTimeFormat('en-GB', day).format(new Date(iso)).replace(',', '');
+}
+
+/** The phone and desktop say when the board last changed; the TV is a wall clock. */
+function BoardHeader({ tv, now, timeZone }: { tv: boolean; now?: string; timeZone?: string }) {
   const { t } = useTranslation();
+  if (tv) {
+    return (
+      <header className="text-right">
+        <h1 className="sr-only">{t('board.title')}</h1>
+        {now ? (
+          <p className="text-tv-80 font-bold leading-none">{formatTime(now, timeZone)}</p>
+        ) : null}
+        {now ? (
+          <p className="mt-2 text-title1 text-neutral-600">{dayLabel(now, timeZone)}</p>
+        ) : null}
+      </header>
+    );
+  }
   return (
-    <header>
-      <h1 className={kiosk ? 'text-4xl font-semibold tracking-tight' : 'text-2xl font-semibold'}>
-        {t('board.title')}
-      </h1>
-      {now && (
-        <p className={`mt-1 text-neutral-500 ${kiosk ? 'text-lg' : 'text-sm'}`}>
-          {t('board.updated', { time: formatTime(now, timeZone) })}
-        </p>
-      )}
+    <header className="flex items-center justify-between gap-4">
+      <div>
+        <h1 className="text-title3 font-bold">{t('board.title')}</h1>
+        {now ? (
+          <p className="text-footnote text-neutral-600">
+            {t('board.updated', { time: formatTime(now, timeZone) })}
+          </p>
+        ) : null}
+      </div>
+      <SyncStatus />
     </header>
   );
 }
 
-interface ContentProps {
-  kiosk: boolean;
-  open: Ticket[];
-  config: Config | undefined;
-  filter: string;
-  onFilter: (id: string) => void;
-  loading: boolean;
-  error: unknown;
+interface BodyProps {
+  tv: boolean;
+  state: State;
+  config: Config;
+  /** The TV's clock, beside the pulse. */
+  clock: ReactNode;
 }
 
-function BoardContent({ kiosk, open, config, filter, onFilter, loading, error }: ContentProps) {
-  const { t } = useTranslation();
-  if (loading) return <p className="mt-6 text-neutral-500">{t('common.loading')}</p>;
-  if (error) {
-    return (
-      <p role="alert" className="mt-6 rounded-xl bg-stopped/10 p-3 text-stopped">
-        {errorMessage(error)}
-      </p>
-    );
-  }
-  const sections = config
-    ? buildSections(config.machines, config.segments, config.groups, open)
-    : [];
-  const visible = filter === 'all' ? sections : sections.filter((section) => section.id === filter);
+function BoardBody({ tv, state, config, clock }: BodyProps) {
+  const board = liveBoard(config, state.open, state.now);
+  const scale = scaleFor(tv);
+  const pulse = <Pulse board={board} scale={scale} />;
   return (
     <>
-      <Counts counts={boardCounts(config ? ticketsOnBoard(open, config) : open)} large={kiosk} />
-      <SegmentFilter
-        segments={(config?.segments ?? []).filter((segment) => segment.show_on_board)}
-        value={filter}
-        onChange={onFilter}
-      />
-      <BoardSections sections={visible} large={kiosk} />
-      <WorkFooter open={open} machines={config?.machines ?? []} large={kiosk} />
+      {tv ? (
+        <div className="flex items-start justify-between gap-12">
+          {pulse}
+          {clock}
+        </div>
+      ) : (
+        <section className={`bg-surface shadow-card ${scale.card}`}>{pulse}</section>
+      )}
+      <div
+        className={
+          tv ? 'grid min-h-0 flex-1 grid-cols-3 gap-6' : 'grid gap-4 lg:grid-cols-3 lg:items-start'
+        }
+      >
+        {COLUMNS.map((column) => (
+          <StopColumn
+            key={column}
+            column={column}
+            stops={board.columns[column]}
+            config={config}
+            scale={scale}
+            tv={tv}
+          />
+        ))}
+      </div>
+      <Scoreboard ages={board.ages} scale={scale} tv={tv} />
     </>
   );
 }
 
-/** SPEC 1.7: a read-only live board of the plant, also opened as a kiosk on a wall TV. */
-export function Board() {
-  const [params] = useSearchParams();
-  const kiosk = params.get('kiosk') === '1';
-  const [filter, setFilter] = useState('all');
-  const state = useQuery({
-    queryKey: ['state'],
-    queryFn: getState,
-    staleTime: REFETCH_MS,
-    refetchInterval: REFETCH_MS,
-  });
-  const config = useQuery({
-    queryKey: ['config'],
-    queryFn: getConfig,
-    staleTime: REFETCH_MS,
-    refetchInterval: REFETCH_MS,
-  });
-  const loading = (state.isLoading && !state.data) || (config.isLoading && !config.data);
-
+function Frame({ tv, children }: { tv: boolean; children: ReactNode }) {
+  const tvFrame = 'flex h-dvh flex-col gap-6 overflow-hidden px-10 py-10';
   return (
-    <main
-      className={kiosk ? 'min-h-screen px-4 py-4 sm:px-6' : 'mx-auto w-full max-w-7xl px-4 py-6'}
-    >
-      {!kiosk && <BoardNav />}
-      <BoardHeader kiosk={kiosk} now={state.data?.now} timeZone={config.data?.timeZone} />
-      <BoardContent
-        kiosk={kiosk}
-        open={state.data?.open ?? []}
-        config={config.data}
-        filter={filter}
-        onFilter={setFilter}
-        loading={loading}
-        error={state.error ?? config.error}
-      />
+    <main className={tv ? tvFrame : 'mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4'}>
+      {children}
     </main>
+  );
+}
+
+/** SPEC 1.7: the plant at a glance, on a phone, a desktop, and as a kiosk on a wall TV. */
+export function Board() {
+  const { t } = useTranslation();
+  const [params] = useSearchParams();
+  const tv = params.get('kiosk') === '1';
+  useSystemTheme(tv);
+  const live = { staleTime: REFETCH_MS, refetchInterval: REFETCH_MS };
+  const state = useQuery({ queryKey: ['state'], queryFn: getState, ...live });
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig, ...live });
+  const error = state.error ?? config.error;
+  const header = (
+    <BoardHeader tv={tv} now={state.data?.now} timeZone={config.data?.timeZone ?? undefined} />
+  );
+  let body: ReactNode = <p className="text-neutral-600">{t('common.loading')}</p>;
+  if (state.data && config.data)
+    body = <BoardBody tv={tv} state={state.data} config={config.data} clock={tv ? header : null} />;
+  else if (error)
+    body = (
+      <p role="alert" className="rounded-xl bg-danger-tint p-3 text-danger-ink">
+        {errorMessage(error)}
+      </p>
+    );
+  return (
+    <Frame tv={tv}>
+      {tv ? null : <BoardNav />}
+      {tv ? null : header}
+      {body}
+    </Frame>
   );
 }

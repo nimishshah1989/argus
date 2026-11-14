@@ -1,7 +1,9 @@
 export {
   ApiError,
+  askWhoIsActing,
   clearToken,
   getToken,
+  httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
   isOffline,
@@ -13,3 +15,5 @@ export { sendCommand, useCommand } from './command.js';
 export type { CommandHandle } from './command.js';
 export { OnlineContext, syncId, useOnline, useSyncStatus } from './sync.js';
 export type { SyncId } from './sync.js';
+export { currentWho, isMine, rememberWho } from './who.js';
+export type { Who } from './who.js';

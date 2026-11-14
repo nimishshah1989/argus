@@ -176,8 +176,6 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
-  packages/engine: {}
-
   packages/shared:
     dependencies:
       zod:
