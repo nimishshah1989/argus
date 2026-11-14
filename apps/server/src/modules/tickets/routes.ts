@@ -14,6 +14,7 @@ import * as idem from './repo/idempotency.js';
 import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import * as report from './repo/report.js';
 import { openDuplicateId, openTicketRows } from './repo/list.js';
+import { fillReplacedMinutes, recordAdminFix, unknownCorrectedMachine } from './admin-fixes.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -101,12 +102,16 @@ async function executeCommand(
   const loaded = await loadTicketContext(client, tx);
   if (!loaded) return { status: 404, body: shared.apiError('not_found', 'Unknown ticket') };
 
+  const unknown = await unknownCorrectedMachine(client, tx);
+  if (unknown) return unknown;
   const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
+  fillReplacedMinutes(loaded, result.events);
   // M2-2.1: a correction or kind upgrade may change the derived severity.
   await refreshSeverity(client, tx, loaded, result.ticket);
   await sql.persistResult(client, tx, loaded, result);
+  await recordAdminFix(client, tx, loaded, result);
   await report.storeReportForTransition(client, tx, result);
   const parts = await ticketPartsAfterWrite(client, {
     tenantId: tx.tenantId,

@@ -1,19 +1,31 @@
-import { useState } from 'react';
+/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getConfig, getMe, getState, type CommandAction, type Ticket } from '../api.js';
+import {
+  getConfig,
+  getMe,
+  getState,
+  type CommandAction,
+  type Config,
+  type Me,
+  type State,
+  type Ticket,
+} from '../api.js';
 import { actorFrom } from '../components/actionSpecs.js';
+import { formatTime, peopleNames } from '../components/format.js';
 import { useCommand } from '../data/index.js';
 import { AccountSheet } from '../components/AccountSheet.js';
 import { Drafts } from '../components/Drafts.js';
 import { NotificationsToggle } from '../components/NotificationsToggle.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
-import { Board, Tabs, type Tab } from './desk/Board.js';
+import { Banner } from '../ui/banner.js';
+import { Loading, Skeleton } from '../ui/loading.js';
+import { OpenLists, type CardContext } from './desk/Board.js';
 import { MinePanel } from './desk/MinePanel.js';
+import { breakdownCount } from './desk/openLists.js';
+import { DeskFrame, NotAvailable, mayOpen, type DeskView } from './desk/Shell.js';
 import { TeamPanel } from './desk/TeamPanel.js';
-
-const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
 
 /** Settings is an admin/head surface; other roles never see the link. */
 function SettingsLink({ role }: { role?: string }) {
@@ -22,79 +34,94 @@ function SettingsLink({ role }: { role?: string }) {
   return (
     <Link
       to="/desk/settings"
-      className="inline-flex min-h-13 items-center rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+      className="inline-flex min-h-target-min items-center rounded-xl border border-control bg-surface px-4 text-body font-semibold"
     >
       {t('settings.title')}
     </Link>
   );
 }
 
-function DeskNav() {
+function DeskBody({
+  view,
+  state,
+  config,
+  ctx,
+}: {
+  view: DeskView;
+  state: UseQueryResult<State>;
+  config?: Config;
+  ctx: CardContext;
+}) {
   const { t } = useTranslation();
+  if (view === 'mine') return <MinePanel ctx={ctx} />;
+  if (view === 'team') return <TeamPanel state={state} config={config} machines={ctx.machines} />;
+  if (state.data) return <OpenLists state={state.data} ctx={ctx} />;
+  if (state.error) return <Banner tone="error" title={t('kit.pattern.error')} />;
   return (
-    <nav className="mb-6 flex gap-2">
-      <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
-        {t('nav.report')}
-      </Link>
-      <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
-        {t('nav.desk')}
-      </Link>
-    </nav>
+    <Loading>
+      <Skeleton shape="tile" />
+      <Skeleton shape="row" />
+      <Skeleton shape="tile" />
+    </Loading>
   );
 }
 
-export function Desk() {
+function cardContext(
+  state: State | undefined,
+  config: Config | undefined,
+  user: Me | undefined,
+  command: { pending: boolean; run: ReturnType<typeof useCommand>['run'] },
+): CardContext {
+  return {
+    now: state?.now ?? new Date().toISOString(),
+    machines: config?.machines ?? [],
+    names: peopleNames(config?.people),
+    actor: user ? actorFrom(user) : null,
+    pending: command.pending,
+    onQuick: (ticket: Ticket, action: CommandAction) => {
+      if (user?.actingPersonId)
+        void command.run(ticket.id, action, { personId: user.actingPersonId });
+    },
+  };
+}
+
+function roleLabel(role: string, t: (key: string) => string): string {
+  return t(`account.role.${role === 'plant_head' ? 'plantHead' : role}`);
+}
+
+const TITLE = { open: 'desk.tab.open', mine: 'desk.mineTitle', team: 'desk.teamNow' } as const;
+
+/** One desk screen (Open, Mine or Team) inside the header and tab bar, for the roles that may open it. */
+export function Desk({ view }: { view: DeskView }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('open');
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
-  const personId = me.data?.user.actingPersonId;
   const { run, error, pending } = useCommand();
-  const machines = config.data?.machines ?? [];
-  const actor = me.data ? actorFrom(me.data.user) : null;
+  const user = me.data?.user;
+  if (user && !mayOpen(view, user.role))
+    return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
 
-  function quick(ticket: Ticket, action: CommandAction) {
-    if (!personId) return;
-    void run(ticket.id, action, { personId });
-  }
-
+  const ctx = cardContext(state.data, config.data, user, { pending, run });
+  const updated = state.dataUpdatedAt
+    ? t('deskLists.updated', { time: formatTime(new Date(state.dataUpdatedAt).toISOString()) })
+    : undefined;
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-6">
-      <DeskNav />
-
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t('desk.title')}</h1>
-        <div className="flex items-center gap-2">
-          <SettingsLink role={me.data?.user.role} />
-          <AccountSheet />
-        </div>
+    <DeskFrame
+      title={t(TITLE[view])}
+      subtitle={updated}
+      current={view}
+      badge={breakdownCount(state.data?.open ?? [])}
+    >
+      <div className="flex items-center justify-end gap-2">
+        <SettingsLink role={user?.role} />
+        <AccountSheet />
       </div>
       <OfflineBanner />
       <NotificationsToggle />
       <Drafts />
-      <Tabs tab={tab} onChange={setTab} />
-
-      {error && (
-        <p role="alert" className="mt-4 rounded-xl bg-stopped/10 p-3 text-stopped">
-          {error}
-        </p>
-      )}
-
-      {tab === 'mine' ? (
-        <MinePanel machines={machines} />
-      ) : tab === 'team' ? (
-        <TeamPanel state={state} config={config.data} machines={machines} />
-      ) : (
-        <Board
-          state={state}
-          people={config.data?.people}
-          machines={machines}
-          actor={actor}
-          pending={pending}
-          onQuick={quick}
-        />
-      )}
-    </main>
+      {error ? <Banner tone="error" title={error} /> : null}
+      <DeskBody view={view} state={state} config={config.data} ctx={ctx} />
+    </DeskFrame>
   );
 }

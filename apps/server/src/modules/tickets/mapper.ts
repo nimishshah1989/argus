@@ -309,12 +309,22 @@ const BUILDERS: Record<CommandAction, Builder> = {
     const toStatus = (cancel?.payload.previousStatus as 'open' | 'working' | 'waiting') ?? 'open';
     return { type: 'restore', personId, reason: body.reason as string, toStatus };
   },
-  correct: (body, personId) => ({
-    type: 'correct',
-    personId,
-    reason: body.reason as string,
-    changes: body.changes as CorrectChanges,
-  }),
+  correct: (body, personId) => {
+    const { activeMin, waitMin, ...rest } = body.changes as CorrectChanges & {
+      activeMin?: number;
+      waitMin?: number;
+    };
+    return {
+      type: 'correct',
+      personId,
+      reason: body.reason as string,
+      changes: {
+        ...rest,
+        ...(activeMin === undefined ? {} : { handsOnOverrideMin: activeMin }),
+        ...(waitMin === undefined ? {} : { waitingOverrideMin: waitMin }),
+      },
+    };
+  },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
 };
 

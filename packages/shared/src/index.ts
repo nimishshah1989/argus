@@ -6,3 +6,4 @@ export * from './share.js';
 export * from './sla.js';
 export * from './ai.js';
 export * from './people.js';
+export * from './plant-settings.js';

@@ -77,15 +77,16 @@ export function MyComplaints({ machines }: { machines: Machine[] }) {
       ) : (
         <ul className="mt-3 grid gap-3">
           {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              now={now}
-              machineCode={machineLabel(ticket, machines)}
-              quick={actor !== null && offers(ticket, actor, CANCEL_ACTION) ? CANCEL_SPEC : null}
-              pending={false}
-              onQuick={() => setCancelTicket(ticket)}
-            />
+            <li key={ticket.id}>
+              <TicketCard
+                ticket={ticket}
+                now={now}
+                machineCode={machineLabel(ticket, machines)}
+                quick={actor !== null && offers(ticket, actor, CANCEL_ACTION) ? CANCEL_SPEC : null}
+                pending={false}
+                onQuick={() => setCancelTicket(ticket)}
+              />
+            </li>
           ))}
         </ul>
       )}

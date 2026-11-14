@@ -7,6 +7,13 @@ import {
   settingRowSchema,
 } from './config.js';
 import { PEOPLE_REPLIES } from './people.js';
+import {
+  groupReplySchema,
+  machineMoveReplySchema,
+  machineReplySchema,
+  segmentReplySchema,
+  shiftReplySchema,
+} from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
@@ -71,6 +78,12 @@ const commands = Object.fromEntries(
     commandReplySchema,
   ]),
 );
+/** Plant settings (ticket 22): list, create and edit for each resource, and one reply shape for all three. */
+const settingsResource = (path: string, schema: z.ZodTypeAny) => ({
+  [`GET ${P}/${path}`]: z.array(schema),
+  [`POST ${P}/${path}`]: schema,
+  [`PATCH ${P}/${path}/:id`]: schema,
+});
 const ok = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, okReplySchema]));
 
 /** `METHOD /fastify/url` → schema of a non-error reply; `null` = binary success body. */
@@ -98,6 +111,12 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/push/key`]: pushKeyReplySchema,
   [`POST ${P}/push/test`]: pushSentReplySchema,
   ...PEOPLE_REPLIES,
+  ...settingsResource('machines', machineReplySchema),
+  ...settingsResource('segments', segmentReplySchema),
+  ...settingsResource('groups', groupReplySchema),
+  ...settingsResource('shifts', shiftReplySchema),
+  [`DELETE ${P}/machines/:id`]: machineReplySchema,
+  [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,

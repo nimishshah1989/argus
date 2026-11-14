@@ -38,7 +38,7 @@ export function Drafts() {
   if (drafts.length === 0) return null;
 
   return (
-    <section data-testid="drafts" className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <section data-testid="drafts" className="mt-4 rounded-2xl bg-surface p-4 shadow-sm">
       <h2 className="text-sm font-medium text-neutral-600">{t('drafts.title')}</h2>
       <ul className="mt-3 space-y-3">
         {drafts.map((draft) => (
@@ -53,7 +53,7 @@ export function Drafts() {
             <button
               type="button"
               onClick={() => void dismiss(draft.id)}
-              className="mt-3 min-h-13 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+              className="mt-3 min-h-13 rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
             >
               {t('drafts.dismiss')}
             </button>

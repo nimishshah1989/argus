@@ -104,6 +104,10 @@ export const ticketEventSchema = z
     actingPersonId: str,
     loginId: str,
     isVendor: z.boolean(),
+    /** A correction's old and new values, field by field; null on every other event. */
+    changes: z
+      .array(z.object({ field: z.string(), from: z.unknown(), to: z.unknown() }))
+      .nullable(),
   })
   .strict();
 export type TicketEvent = z.infer<typeof ticketEventSchema>;

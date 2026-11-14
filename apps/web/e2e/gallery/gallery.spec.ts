@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
-const SECTIONS = ['tokens', 'components', 'layout', 'status', 'shell'] as const;
+const SECTIONS = ['tokens', 'components', 'layout', 'status', 'shell', 'desk'] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -265,4 +265,26 @@ test('screen frame: header sync pills, banners, both tab bars and loading shapes
   for (const link of await floor.getByRole('link').all())
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(56);
   await expect(shell.getByRole('status').filter({ hasText: 'Loading…' })).toBeVisible();
+});
+
+test('desk lists kit: a count toggles its filter, the list switch moves, the card opens', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const desk = page.getByTestId('gallery-desk');
+  const down = desk
+    .getByRole('group', { name: 'Machine status' })
+    .getByRole('button', { name: /Down/ });
+  await down.click();
+  await expect(down).toHaveAttribute('aria-pressed', 'true');
+  await down.click();
+  await expect(down).toHaveAttribute('aria-pressed', 'false');
+  const tasks = desk
+    .getByRole('group', { name: 'Open lists' })
+    .getByRole('button', { name: 'Tasks (2)' });
+  await tasks.click();
+  await expect(tasks).toHaveAttribute('aria-pressed', 'true');
+  await expect(desk.getByRole('link', { name: /VC-17.*BD-0149.*Stopped/ })).toBeVisible();
+  for (const button of await desk.getByRole('button').all())
+    expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
