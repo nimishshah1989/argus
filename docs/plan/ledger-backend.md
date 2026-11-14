@@ -117,3 +117,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   next free slot (FRONTEND request, from approved mockups): operator may upgradeKind support->stopped (DOMAIN section 3
   change + test); work requests get WR refs not BD (ref-counter bug + test). Infra (FRONTEND): logos on server disk
   FILES_DIR need a persistent, backed-up volume until S3.
+- 2026-11-14 05:52 UTC — FRONTEND #205 merged (8de140e): main's browser part fixed; builder 21's fix narrows to #199's
+  secrets part. FRONTEND asked: 18 goal 2 server (breakdown PDF with v3 QR, day report on real shifts, Gujarati) before
+  29 (M1, blocks cutover). The stand-by session had ended; dispatched a fresh builder session_01KEBF2AEVwnmoe18e8BYdfW,
+  branch claude/t18-pdfs-day-report. Backend at 3 builders for now, counted against the combined cap of 5 (told
+  FRONTEND). Ruling: the shared-phone signal is /auth/me actingPerson null + 403 code 'choose_acting_person' (21
+  follow-up). FRONTEND rulings: logo volume = docker named volume + nightly tar to the backup bucket (FRONTEND
+  infra PR); board filter = FRONTEND #203.
