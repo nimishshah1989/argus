@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { refsByIds, ticketParents } from '../tickets/index.js';
 import type { ImportCtx } from './batch.js';
-import { provenanceRows } from './repo.js';
+import { isErasedPayload, provenanceRows } from './repo.js';
 import { canonicalJson, canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
 import {
   makeRawEnvelope,
@@ -32,7 +32,8 @@ interface Provenance {
   legacyId: string;
   ticketId: string | null;
   ref: string;
-  identitySha256: string;
+  /** null when the row's raw envelope was erased with a person: only the ref can be compared then. */
+  identitySha256: string | null;
   status: 'imported' | 'skipped';
 }
 
@@ -103,7 +104,8 @@ async function provenance(ctx: ImportCtx): Promise<Provenance[]> {
   );
   return rows.map((row) => {
     const payload = row.payload as StoredRawPayload;
-    if (payload?.format !== 'argus.import-raw/v1' || !payload.identitySha256) {
+    const erased = isErasedPayload(payload);
+    if (!erased && (payload?.format !== 'argus.import-raw/v1' || !payload.identitySha256)) {
       throw new Error('Legacy import identity envelope is invalid');
     }
     if (!row.ticket_id && row.status === 'imported') {
@@ -113,7 +115,7 @@ async function provenance(ctx: ImportCtx): Promise<Provenance[]> {
       legacyId: row.source_ref as string,
       ticketId: row.ticket_id as string | null,
       ref: refs.get(row.ticket_id as string) ?? '',
-      identitySha256: payload.identitySha256,
+      identitySha256: erased ? null : payload.identitySha256,
       status: row.status as 'imported' | 'skipped',
     };
   });
@@ -128,12 +130,13 @@ function existingIdentity(
   const identities = provenance.filter((row) => row.legacyId === ticket.legacyId && row.ticketId);
   if (identities.length) {
     const first = identities[0] as Provenance;
-    const inconsistent = identities.some(
-      (row) => row.identitySha256 !== first.identitySha256 || row.ref !== first.ref,
-    );
+    // A row whose envelope was erased has no hash to compare; the others and the ref still must agree.
+    const hashes = new Set(identities.map((row) => row.identitySha256).filter(Boolean));
+    const inconsistent = hashes.size > 1 || identities.some((row) => row.ref !== first.ref);
     if (inconsistent)
       return { outcome: 'error', existingTicketId: null, error: 'ambiguous_legacy' };
-    if (first.identitySha256 !== rawIdentity || first.ref !== ticket.ref) {
+    const known = hashes.size ? [...hashes][0] : null;
+    if ((known !== null && known !== rawIdentity) || first.ref !== ticket.ref) {
       return { outcome: 'error', existingTicketId: null, error: 'changed_payload' };
     }
     return { outcome: 'skip', existingTicketId: first.ticketId, syntheticExisting: true };

@@ -239,3 +239,36 @@ describe('the operator CLI takes his export unchanged', () => {
     expect(JSON.parse(undone.stdout.trim())).toEqual({ batchId: out.batchId, deleted: 275 });
   }, 240_000);
 });
+
+describe('erasing a person from an imported batch', () => {
+  it('leaves the export importable again, and refuses an undo it can no longer verify, saying why', async () => {
+    const batch = await importRealExport(db.app, tenantId, fixture());
+    expect(batch.stats).toMatchObject({ status: 'done', imported: 275, skipped: 0 });
+    const named = await db.admin.query(
+      `SELECT p.id FROM person p
+       WHERE p.tenant_id = $1 AND length(p.name) >= 4
+         AND EXISTS (SELECT 1 FROM import_row r WHERE r.tenant_id = p.tenant_id AND r.payload::text ILIKE '%' || p.name || '%')
+       LIMIT 1`,
+      [tenantId],
+    );
+    expect(named.rows, 'the fixture names a person in its raw rows').toHaveLength(1);
+    await db.router.query('SELECT erase_person($1, $2, $3, $4)', [
+      tenantId,
+      named.rows[0].id,
+      'request-real-0001',
+      'operator',
+    ]);
+    const erased = await count(
+      `SELECT count(*) n FROM import_row WHERE tenant_id = $1 AND payload = '{}'::jsonb`,
+    );
+    expect(erased, 'erasure emptied at least one raw envelope').toBeGreaterThan(0);
+
+    const again = await importRealExport(db.app, tenantId, fixture());
+    expect(again.stats).toMatchObject({ status: 'done', imported: 0, skipped: 275 });
+
+    await expect(undoImport(db.router, tenantId, batch.batchId, 'operator')).rejects.toThrow(
+      /erasing a person/i,
+    );
+    expect(await count('SELECT count(*) n FROM ticket WHERE tenant_id = $1')).toBe(275);
+  });
+});

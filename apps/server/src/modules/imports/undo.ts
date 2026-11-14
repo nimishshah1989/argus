@@ -6,7 +6,7 @@ import {
   type BatchSnapshot,
 } from './fingerprint.js';
 import { removeImported } from '../tickets/index.js';
-import { lockBatchRow } from './repo.js';
+import { erasedRowCount, lockBatchRow } from './repo.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { REAL_SOURCE } from './bhavin-export.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
@@ -105,6 +105,23 @@ function assertCompletion(expected: CompletionFingerprint, actual: BatchSnapshot
   }
 }
 
+/**
+ * Erasing a person rewrites their name inside the tickets themselves (the one permitted edit of history), so the
+ * batch no longer matches the fingerprint taken when it finished. Say that, instead of a bare digest mismatch.
+ */
+async function explainErasure(
+  client: PoolClient,
+  batch: { tenantId: string; batchId: string },
+  error: unknown,
+): Promise<Error | null> {
+  if (!(error instanceof Error) || !error.message.includes('fingerprint mismatch')) return null;
+  if ((await erasedRowCount(client, batch.tenantId, batch.batchId)) === 0) return null;
+  return new Error(
+    'Undo refused: a person was erased from this batch (erasing a person rewrites names inside its tickets), ' +
+      'so it can no longer be matched to what was imported. Nothing was deleted.',
+  );
+}
+
 /** `router` connects as a member of app_router and app_user (ROUTER_DATABASE_URL). */
 export async function undoImport(
   router: Pool,
@@ -117,7 +134,12 @@ export async function undoImport(
     await client.query('SET LOCAL ROLE app_user');
     const batch = await lockBatch(client, tenantId, batchId);
     const completion = parseCompletion((batch.stats as { completion?: unknown }).completion);
-    assertCompletion(completion, await loadBatchSnapshot(client, tenantId, batchId, true));
+    const snapshot = await loadBatchSnapshot(client, tenantId, batchId, true);
+    try {
+      assertCompletion(completion, snapshot);
+    } catch (error) {
+      throw (await explainErasure(client, { tenantId, batchId }, error)) ?? error;
+    }
     await client.query('RESET ROLE');
     return { deleted: await removeImported(client, { tenantId, batchId, operator }) };
   });
