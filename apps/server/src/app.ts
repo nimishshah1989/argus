@@ -49,7 +49,7 @@ export async function buildApp(config: AppConfig) {
   if (process.env.CHECK_REPLIES === '1') registerReplyCheck(app);
   app.addHook('onClose', async () => jobs.close());
   // The guard must stay registered before any route: a route added earlier escapes it.
-  registerAuthGuard(app, (token) => authenticate(config.pool, token));
+  registerAuthGuard(app, (token, host) => authenticate(config.pool, token, host));
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });
   registerHealth(app, config);
   for (const mod of modules) mod.register(app, config);

@@ -6,6 +6,7 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
+import { PEOPLE_REPLIES } from './people.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
@@ -96,6 +97,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/translations/missing`]: z.array(missingTranslationSchema),
   [`GET ${P}/push/key`]: pushKeyReplySchema,
   [`POST ${P}/push/test`]: pushSentReplySchema,
+  ...PEOPLE_REPLIES,
   ...commands,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
