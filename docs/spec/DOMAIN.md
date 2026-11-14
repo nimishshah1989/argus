@@ -94,7 +94,7 @@ Every transition is a command handled by `transition(ticket, events, command, ct
 
 ## 3. Permissions matrix
 
-One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report), `technician` (maint), `supervisor`, `head` (maintenance head, new), `plant_head` (new), `admin`, `board`. Our own staff are not a tenant role: a `platform_access` grant gives a named platform user time-limited admin-equivalent access to one tenant, every action logged. Every cell below is a server-side check in `packages/domain` and a test case. "Own" means raised from this login, or on a shared login, raised from the same login.
+One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report), `technician` (maint), `supervisor`, `head` (maintenance head, new), `plant_head` (new), `admin`, `board`. Our own staff are not a tenant role: a `platform_access` grant, which only that tenant's admin can create, lets a named platform user read one tenant's data and change its plant settings and lists for at most 7 days, every call logged (D29). Every cell below is a server-side check in `packages/domain` and a test case. "Own" means raised from this login, or on a shared login, raised from the same login.
 
 | Action | operator | technician | supervisor | head | plant\_head | admin | board |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -117,7 +117,7 @@ One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report
 | Settings: SLA, escalation, WhatsApp, other caps | no | no | no | yes | no | yes | no |
 | Settings: AI monthly cap and consent (D22) | no | no | no | no | no | yes | no |
 
-**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team: a floor (operator) phone offers production, a technician phone maintenance, a supervisor, head, plant head or board phone either, never a vendor and never someone switched off, and a phone whose person stops qualifying (switched off, or moved to another team) is asked again on its next request (`GET /auth/acting` lists them, and `POST /auth/acting` and the sign-in accept only those). **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
+**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team: a floor (operator) phone offers production, a technician phone maintenance, a supervisor, head, plant head or board phone either, never a vendor and never someone switched off, and a phone whose person stops qualifying (switched off, or moved to another team) is asked again on its next request (`GET /auth/acting` lists them, and `POST /auth/acting` and the sign-in accept only those). **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is approved by the tenant's admin for one named person, with a reason, for 1 to 7 days; it reads with admin permissions, writes only plant settings and lists (never tickets, people or logins), writes every call to the tenant's audit log before the call runs, and the admin can see those calls and end the access at any time (D29); tenant creation and billing live in a separate platform surface outside any tenant.
 
 ## 4. API contract (v1)
 
@@ -133,6 +133,11 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 | `POST /auth/logout` |  |  | `/api/logout` |
 | `POST /auth/password` | `{old, password}` |  | `/api/password` |
 | `GET /auth/sessions` · `DELETE /auth/sessions/{id}` |  | device list; revoke | new |
+| `POST /support-access` (admin) | `{platformUser, reason, days: 1..7}` | `201 {id, platformUser, reason, createdAt, expiresAt, approvedBy}` | new |
+| `GET /support-access` (admin) |  | `{items:[{id, platformUser, reason, createdAt, expiresAt, approvedBy, status:'active'\|'ended'}]}`, newest first | new |
+| `DELETE /support-access/{id}` (admin) |  | `{ok:true}`; ends a live grant now; `404` once it has ended | new |
+| `GET /support-access/{id}/actions` (admin) | `?cursor=&limit=` | `{items:[{id, at, kind:'request'\|'refused', method, route, ip}], nextCursor}` | new |
+| any route, called by our staff | `Authorization: Bearer <support key>` and `X-Support-Grant: <grant id>` | `401` unknown key; `403` grant not usable here, or a write that is not a plant setting or list; `429` after repeated wrong keys | new |
 | `GET /brand?tenant=slug` |  | `{company, logo}` by host (public, rate-limited); no tenant parameter | `/api/brand` |
 
 **Configuration**

@@ -15,7 +15,7 @@ import {
   type AppConfig,
 } from './kernel/index.js';
 import { modules } from './modules/index.js';
-import { authenticate } from './modules/identity/index.js';
+import { authenticate, supportAuthenticator } from './modules/identity/index.js';
 import { passwordChangeEnforced } from './modules/plant/index.js';
 
 const TRUSTED_PROXIES = ['loopback', 'linklocal', 'uniquelocal'];
@@ -50,9 +50,11 @@ export async function buildApp(config: AppConfig) {
   if (process.env.CHECK_REPLIES === '1') registerReplyCheck(app);
   app.addHook('onClose', async () => jobs.close());
   // The guard must stay registered before any route: a route added earlier escapes it.
+  const support = supportAuthenticator(config.pool, config.supportKeys);
   registerAuthGuard(
     app,
-    (token, host) => authenticate(config.pool, token, host),
+    (token, host, call) =>
+      call ? support(token, host, call) : authenticate(config.pool, token, host),
     (auth) => passwordChangeEnforced(config.pool, auth.tenantId),
   );
   await app.register(rateLimit, { max: config.rateLimitMax ?? 1000, timeWindow: '1 minute' });

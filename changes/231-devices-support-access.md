@@ -1,0 +1,3 @@
+- A person can see the devices they are signed in on and sign one out; a device that is signed out is turned away on its very next call. A shared phone does not get the list, so colleagues cannot sign each other out; they still have logout.
+- Our own support staff can get into one customer's data only after that customer's admin approves it for up to 7 days. The admin sees every call made under it and can end it at once. Support staff can read and change plant settings and lists, but cannot touch tickets, people or logins. An ended grant is refused.
+- A wrong current password when changing a password is now a validation error on that field, so the app no longer signs the person out.

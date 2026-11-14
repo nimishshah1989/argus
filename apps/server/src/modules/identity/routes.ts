@@ -23,7 +23,9 @@ import {
   setActingPerson,
   setPasswordHash,
 } from './repo.js';
+import { registerDeviceRoutes } from './devices.js';
 import { createLoginGuard } from './login-guard.js';
+import { registerSupportRoutes } from './support.js';
 import { actingTeams, listActingChoices } from './repo/acting.js';
 import { tenantLogoId } from './repo/profile.js';
 import {
@@ -58,6 +60,7 @@ function userFrom(ctx: Omit<AuthContext, 'token' | 'tenantId'>) {
       ? { id: ctx.personId, name: ctx.personName ?? '', title: ctx.personTitle }
       : null,
     mustChangePassword: ctx.mustChangePassword,
+    ...(ctx.supportGrantId ? { supportGrantId: ctx.supportGrantId } : {}),
   };
 }
 
@@ -269,7 +272,8 @@ async function changePassword(
     return true;
   });
   if (!ok) {
-    reply.code(401).send(apiError('unauthenticated', 'Current password is incorrect'));
+    // 422, not 401: the sign-in is still good, and the apps read a 401 as an ended session.
+    reply.code(422).send(apiError('validation', 'Current password is incorrect', 'old'));
     return;
   }
   guard.refund(request.ip, ctx.tenantId, ctx.username);
@@ -303,4 +307,6 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
   app.post('/api/v1/auth/password', (request, reply) =>
     changePassword(pool, guard, request, reply),
   );
+  registerDeviceRoutes(app, pool);
+  registerSupportRoutes(app, pool);
 }

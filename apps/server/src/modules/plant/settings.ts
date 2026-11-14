@@ -39,6 +39,20 @@ const WRITABLE: Record<string, WritableSetting> = {
   },
 };
 
+const enforcesPasswordChange = (features: unknown): boolean =>
+  (features as { enforcePasswordChange?: unknown } | null | undefined)?.enforcePasswordChange ===
+  true;
+
+/**
+ * What our own support staff may not write under a grant (D29): the AI monthly cap, and the plant's temporary-password
+ * rule, which they could otherwise use to lock the plant's own logins out. Every other setting is theirs to change.
+ */
+export function supportMayWrite(key: string, before: unknown, value: unknown): boolean {
+  if (key === 'ai.monthlyCapUsd') return false;
+  if (key === 'features') return enforcesPasswordChange(before) === enforcesPasswordChange(value);
+  return true;
+}
+
 export function writableSetting(key: string): WritableSetting | undefined {
   return Object.hasOwn(WRITABLE, key) ? WRITABLE[key] : undefined;
 }

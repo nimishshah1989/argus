@@ -3,6 +3,7 @@ import {
   canCancel,
   canClose,
   canCorrect,
+  canManageSupportAccess,
   canRaise,
   canRestore,
   canSettingsAi,
@@ -98,6 +99,26 @@ describe('permissions', () => {
     ] as const) {
       expect(canSettingsAi(actor(role)), role).toBe(false);
     }
+  });
+});
+
+describe('support access', () => {
+  it('lets only the admin approve, see and end support access', () => {
+    for (const role of [
+      'operator',
+      'technician',
+      'supervisor',
+      'head',
+      'plant_head',
+      'admin',
+      'board',
+    ] as const) {
+      expect(canManageSupportAccess(actor(role)), role).toBe(role === 'admin');
+    }
+  });
+
+  it('refuses an admin on a shared login: the approval must name one person', () => {
+    expect(canManageSupportAccess(actor('admin', { shared: true }))).toBe(false);
   });
 });
 
