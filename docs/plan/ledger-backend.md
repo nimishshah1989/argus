@@ -16,11 +16,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   migration/auth/tenancy; one fix round; merge main into the PR first when it touches files another merged PR touched.
 - **Merged today (backend):** #195 #199 #204 #206 #210 #211 #212 #216 #217 #220 #227 #228 (migration 0012, lock released) #230 (merged by
   someone else before CI) + ledger PRs. **Tickets:** 29 done; 32 server half merged (follow-up with fixes + triggers in flight).
-- **In flight:** (a) 35 devices + support access, PR #231 (head f84627f, fixes done locally as 7f8665d, push on my "A sent", already given), builder
-  session_01KEBF27bzgyREScPzFL623W; after push: my scoped check, mark ready, merge. (b) 32 follow-up: #230 review fixes (2 HIGH: clock skew
-  drops retries; no sweeper) FIRST, then notify at raise/close events (new breakdown -> active maint+supervisor people; complaint fixed ->
-  reporter), builder session_01KEBF2AVUMZygMWkC4M5two. (c) 30 pause clock (server), builder session_01KEBF269NGcjLaBDHMKLsLU, branch
-  claude/t30-pause-clock, gap-only brief.
+- **In flight:** (a) 35 devices + support access, PR #231 (head 889def0; server checks green; browser red on 3 web specs: 'who-is-acting wrong current password' needs the web to accept 422 field 'old' (frontend web PR, number pending) and 2 specs red on main at the signIn fixture); held until that web PR merges, then builder (session_01KEBF27bzgyREScPzFL623W) merges main in, I merge. (b) 30 pause clock, PR #234 (head 85af3f1, ready, CI running), builder session_01KEBF269NGcjLaBDHMKLsLU; merge on server checks green. (c) board today + day score + waitingMin (draft PR pending), builder session_01KEBF26jsg9UEsX8tryR6QB, branch claude/board-today. MERGED since: #233 (32 follow-up) as f5e5e9d.
 - **Next (dispatch as slots free; cap 3 backend builders, ask FRONTEND for a 4th):** 31 g2 acknowledge command + roster/ladder API
   (+ seed ESCALATION_DEFAULTS as editable rows, 1-year roster purge); 33 escalation (needs 31+32); 34 sign-off (handback events, timeout,
   turnaround); 66 lockout flag; 26 leftovers (/brand rate limit, /state p95 test, stale /files wording); board today (FRONTEND ask 07:55, with waitingMin from Nimish Q10): `GET /api/v1/board/today` or /state returns today's tickets (plant-tz calendar day) + a pure domain day score (response = work start minus report; repair per v3 rules; waitingMin), feeds the board's 'Response today' / 'Repair today' tiles (#229);
@@ -303,7 +299,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   clock is NOT armed for reasons with pausesSla=false (production's wait, 34's handback clock; cost if wrong: a missing
   breach). Open for Nimish (batch): overnight vendor waits breach overnight (wall-clock pause limit); alerts reach only
   people with a personal login of the role (Cosmos has shared floor logins). #231 held until the web PR (401 or 422 'old'
-  + signIn fixture) lands; #231 browser red = 3 web specs, not server.
+  - signIn fixture) lands; #231 browser red = 3 web specs, not server.
 - 08:14 UTC #233 CI at 4549ee8: static, secrets, gallery, pr-meta (after Large PR line), api 2/3, 3/3 green; api 1/3 running;
   browser 1/2 and 2/2 red = ONLY the two specs red on #231 too (settings-severity.spec.ts:133, sla-timers.spec.ts:64, both
   at the signIn fixture; 11 + 27 tests did not run as a result): leftover on main from #225, not this PR. Ruling: merge #233
@@ -311,3 +307,6 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   pass). #234 fix push 85af3f1 checked (retired pause clock stops the armed row; restore = new episode; restart only when
   previous status waiting; pausesSla=false arms nothing) and marked ready, CI running. Leftover from builder: a breach owed
   by pause 1 can be lost if pause 2 starts before the job runs (needs a column; 33 must fire it at startsNewPause).
+- 08:17 UTC MERGED #233 (32 follow-up: notify review fixes + two v3 push triggers) as f5e5e9d on server checks green; browser red =
+  the two specs already red on main. Builder 32 session archived. DISPATCH board-today (response/repair/waitingMin day score +
+  GET board/today) to session_01KEBF26jsg9UEsX8tryR6QB, branch claude/board-today, gap-only brief.
