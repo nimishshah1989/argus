@@ -47,7 +47,8 @@ export interface Resource {
   columns: Record<string, string>;
   /** Keys a form may send back unchanged but never change (the code history names, a link with its own route). */
   fixed?: readonly string[];
-  create: ZodTypeAny;
+  /** Absent for a resource that is one row made by its first read: it has no POST. */
+  create?: ZodTypeAny;
   patch: ZodTypeAny;
   /** The reply always carries `active`, the one switch the generated screen shows. */
   reply: (row: Row) => Reply;

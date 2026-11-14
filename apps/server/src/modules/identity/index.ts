@@ -12,6 +12,7 @@ export {
   lockTenantBySlug,
   listPeople,
   peopleByIds,
+  peopleForEngine,
   purgeDeadSessions,
   redactionTerms,
   resolveTenant,

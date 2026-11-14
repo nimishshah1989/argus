@@ -227,17 +227,20 @@ export function registerResource(app: FastifyInstance, pool: Pool, resource: Res
     });
     reply.code(outcome.status).send(outcome.body);
   });
-  app.post(base, async (request, reply) => {
-    const ctx = await gate(pool, request, reply, resource.can);
-    if (!ctx) return;
-    const parsed = resource.create.safeParse(request.body);
-    if (!parsed.success) {
-      const { status, body } = fieldProblem(parsed.error);
-      return reply.code(status).send(body);
-    }
-    const target = { ctx, reply, uniqueField: resource.uniqueField, taken: resource.taken };
-    await run(pool, target, (tx) => create(tx, ctx, resource, parsed.data));
-  });
+  // A resource with no `create` is one row that exists from its first read (the analytics profile): no POST.
+  const createSchema = resource.create;
+  if (createSchema)
+    app.post(base, async (request, reply) => {
+      const ctx = await gate(pool, request, reply, resource.can);
+      if (!ctx) return;
+      const parsed = createSchema.safeParse(request.body);
+      if (!parsed.success) {
+        const { status, body } = fieldProblem(parsed.error);
+        return reply.code(status).send(body);
+      }
+      const target = { ctx, reply, uniqueField: resource.uniqueField, taken: resource.taken };
+      await run(pool, target, (tx) => create(tx, ctx, resource, parsed.data));
+    });
   // Edit, switch off and switch on are all this one PUT (`active`): the generated screen never sends DELETE.
   app.put(`${base}/:id`, async (request, reply) => {
     const ctx = await gate(pool, request, reply, resource.can);

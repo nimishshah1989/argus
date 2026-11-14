@@ -72,3 +72,4 @@ export {
 } from './repo/imported.js';
 export { countTickets, initRefCounters } from './repo/seed.js';
 export { importTickets, type ImportedTicketRow } from './import.js';
+export { reportsForEngine, ticketsForEngine } from './repo/analytics.js';

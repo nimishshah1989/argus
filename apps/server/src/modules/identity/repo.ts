@@ -374,3 +374,10 @@ export async function purgeDeadSessions(tx: Db, tenantId: string, cutoff: Date):
   );
   return result.rowCount ?? 0;
 }
+
+/** What the analytics engine needs of a person: the id, the team and whether they are on. Never a name or a phone. */
+export async function peopleForEngine(
+  tx: Db,
+): Promise<{ id: string; team: string; active: boolean }[]> {
+  return (await tx.query('SELECT id, team, active FROM person ORDER BY created_at, id')).rows;
+}
