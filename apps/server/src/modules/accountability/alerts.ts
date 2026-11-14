@@ -18,7 +18,7 @@ async function tellMaintenance(
 ): Promise<void> {
   if (facts.kind !== 'stopped') return;
   const to = (await peopleWithRole(client, write.tenantId, BREAKDOWN_ROLES)).filter(
-    (person) => person !== facts.reportedByPersonId,
+    (person) => person !== facts.raisedByPersonId,
   );
   await notify(client, write.boss ?? null, {
     tenantId: write.tenantId,
@@ -61,8 +61,10 @@ async function tellLead(client: PoolClient, write: TicketWrite, facts: Facts): P
 }
 
 /**
- * The two v3 pushes, and one more when production sends a fix back. A new breakdown goes to the active technicians and supervisors of the plant, except the
- * person who reported it; a closed ticket goes back to the person who reported it, unless they closed it
+ * The two v3 pushes, and one more when production sends a fix back. A new breakdown goes to the active technicians and
+ * supervisors of the plant, except the person who raised it (who wrote its first line, never a reporter they named);
+ * a support ticket upgraded to a breakdown tells the same people and still skips whoever raised it, not the person who
+ * upgraded it; a closed ticket goes back to the person who reported it, unless they closed it
  * themselves; a disputed fix goes back to its lead. Alerts go to people with a personal login of the right role who are still on; a shared phone with
  * nobody acting is not a person. A repeated alert for one ticket is the same message (same key). Runs inside the ticket write's transaction, so the message exists only if the write does.
  */

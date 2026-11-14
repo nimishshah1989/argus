@@ -62,8 +62,8 @@ async function seedTenant(admin: Pool, id: string, slug: string, roles: readonly
   await admin.query('INSERT INTO tenant (id, slug, name) VALUES ($1, $2, $2)', [id, slug]);
   for (const role of roles) {
     const person = await admin.query(
-      "INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, 'maintenance') RETURNING id",
-      [id, `${slug} ${role}`],
+      'INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, $3) RETURNING id',
+      [id, `${slug} ${role}`, role === 'operator' ? 'production' : 'maintenance'],
     );
     await admin.query(
       'INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared) VALUES ($1, $2, $3, $4, $5, false)',

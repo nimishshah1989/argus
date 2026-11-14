@@ -285,6 +285,8 @@ async function executePast(
     entityId: ticketId,
     before: null,
     after: {
+      // the people the breakdown names are history; this is who recorded it
+      actingPersonId: tx.auth.personId,
       ref: row.ref,
       machineId: body.machineId,
       reportedAt: body.reportedAt.toISOString(),
@@ -298,6 +300,7 @@ async function executePast(
     now: tx.now,
     boss,
     command: 'past',
+    actor: tx.auth,
   });
   const stored = await ticketRowById(client, tenantId, ticketId);
   const outcome: Outcome = {
@@ -340,7 +343,11 @@ async function recordPast(
     reply.code(late.status).send(late.body);
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, ['past', parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    'past',
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: PastTx = { tenantId: ctx.tenantId, auth: ctx, body: parsed.data, now };
   const outcome = await runOutcome(config.pool, binding, (client) =>
     executePast(client, tx, binding, config.jobBoss),

@@ -15,6 +15,7 @@ export {
   slaCandidateIds,
   slaActiveIds,
   slaTicketRows,
+  ticketAckFacts,
   ticketEventRows,
   type SlaTicketRow,
 } from './repo/sla.js';

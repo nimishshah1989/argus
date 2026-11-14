@@ -62,6 +62,43 @@ export function canAcknowledge(
   return facts.onRoster || facts.assignedToActor;
 }
 
+/**
+ * Why this person cannot acknowledge this ticket now, or null when they can: the one rule behind the acknowledge
+ * command and the `canAcknowledge` flag on every ticket reply. The permission answer comes before any state check,
+ * so a refusal that is about the person reads the same on every ticket.
+ */
+export function acknowledgeRefusal(
+  ctx: ActorContext,
+  ticket: { status: string; assignedToPersonId: string | null },
+  facts: { onRoster: boolean; alreadyAcknowledged: boolean },
+): string | null {
+  const assignedToActor = ctx.personId !== null && ticket.assignedToPersonId === ctx.personId;
+  if (!canAcknowledge(ctx, { onRoster: facts.onRoster, assignedToActor })) return 'Not allowed';
+  if (!['open', 'working'].includes(ticket.status))
+    return `Ticket is ${ticket.status}: nothing to acknowledge`;
+  return facts.alreadyAcknowledged ? 'Ticket is already acknowledged' : null;
+}
+
+/** The events after which the acknowledge clock has stopped: the first start or pickup, or an acknowledge. */
+export const ACK_CLOCK_STOPS: readonly string[] = ['start', 'pickup', 'acknowledge'];
+
+/**
+ * Whether to offer the Acknowledge button: the command would take it, and the acknowledge clock is still running.
+ * The command itself still takes an acknowledge after a start (a later "seen" is allowed); the button does not
+ * ask for one once the work has begun.
+ */
+export function offersAcknowledge(
+  ctx: ActorContext,
+  ticket: { status: string; assignedToPersonId: string | null },
+  facts: { onRoster: boolean; clockStopped: boolean },
+): boolean {
+  if (facts.clockStopped) return false;
+  return (
+    acknowledgeRefusal(ctx, ticket, { onRoster: facts.onRoster, alreadyAcknowledged: false }) ===
+    null
+  );
+}
+
 export function canRestore(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }

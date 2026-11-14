@@ -29,6 +29,9 @@ export interface NewLogin {
 }
 
 /** Cosmos's real plant (machines, shifts) with the 275 real pseudonymised tickets in; names and phones are invented. */
+/** A floor phone is used by production people, every other login by maintenance (DOMAIN §3). */
+const teamOf = (role: string) => (role === 'operator' ? 'production' : 'maintenance');
+
 export async function startRealPlant(): Promise<RealPlant> {
   const db = await startTestDb();
   await seedCosmos(db.admin, {
@@ -50,8 +53,8 @@ export async function startRealPlant(): Promise<RealPlant> {
     // A login of one person has its own (invented) person; a shared one names who is acting at sign-in.
     const own = (
       await db.admin.query(
-        "INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, 'maintenance') RETURNING id",
-        [tenantId, `Test ${login.username}`],
+        'INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, $3) RETURNING id',
+        [tenantId, `Test ${login.username}`, teamOf(login.role)],
       )
     ).rows[0].id as string;
     await db.admin.query(

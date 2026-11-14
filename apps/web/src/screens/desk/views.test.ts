@@ -77,6 +77,7 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     waitingSpare: null,
     sla: null,
     handback: null,
+    canAcknowledge: false,
     figures: null,
     ...overrides,
   };
