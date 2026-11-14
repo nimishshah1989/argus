@@ -136,13 +136,14 @@ describe('auth', () => {
     expect(wrong.json().error.code).toBe('unauthenticated');
   });
 
-  it('requires and records the acting person on a shared phone', async () => {
-    const missing = await post('/api/v1/auth/login', 'plant-two.localhost', {
+  it('records the acting person on a shared phone when one is chosen, and checks it', async () => {
+    const unknown = await post('/api/v1/auth/login', 'plant-two.localhost', {
       username: 'cell-phone',
       password: PASSWORD,
+      actingPersonId: PERSON_A,
     });
-    expect(missing.statusCode).toBe(422);
-    expect(missing.json().error.field).toBe('actingPersonId');
+    expect(unknown.statusCode).toBe(422);
+    expect(unknown.json().error.field).toBe('actingPersonId');
     const ok = await post('/api/v1/auth/login', 'plant-two.localhost', {
       username: 'cell-phone',
       password: PASSWORD,

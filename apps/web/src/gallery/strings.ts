@@ -20,6 +20,8 @@ export const galleryEn: Record<string, string> = {
   'meaning.all': 'All',
   'meaning.cnc': 'CNC',
   'section.floor': 'Floor pieces',
+  'sample.brand': 'Sample Plant',
+  'sample.brandDetail': 'Maintenance desk',
   'floor.machine': 'Machine',
   'floor.detail': 'Vertical Machining Center · Cell 4',
   'floor.needsSupport': 'Needs support. Tap to say it has stopped.',

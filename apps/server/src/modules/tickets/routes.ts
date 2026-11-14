@@ -7,7 +7,12 @@ import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
-import { ticketPartsAfterWrite, withTicketParts, type AppConfig } from '../../kernel/index.js';
+import {
+  AUTH_MESSAGES,
+  ticketPartsAfterWrite,
+  withTicketParts,
+  type AppConfig,
+} from '../../kernel/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
@@ -21,6 +26,7 @@ import {
   recordAdminFix,
   saveCorrectedMachine,
 } from './admin-fixes.js';
+import { checkHandoverTarget } from './targets.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
@@ -70,6 +76,10 @@ async function resolveActingPerson(
         body: shared.apiError('forbidden', 'You may only act as yourself', 'personId'),
       };
     }
+    // Read locked, so a switch-off that is under way finishes first; a person already off is no longer signed in.
+    if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
+      return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
+    }
     return { personId: tx.auth.personId };
   }
   if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
@@ -105,6 +115,8 @@ async function executeCommand(
 
   const denied = tm.gatePermission(tx.action, tx, tx.actingPersonId);
   if (denied) return denied;
+  const badTarget = await checkHandoverTarget(client, tx);
+  if (badTarget) return badTarget;
   const loaded = await loadTicketContext(client, tx);
   if (!loaded) return { status: 404, body: shared.apiError('not_found', 'Unknown ticket') };
 
