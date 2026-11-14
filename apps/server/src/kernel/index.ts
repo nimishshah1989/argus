@@ -25,9 +25,12 @@ export {
 } from './reply-parts.js';
 export { fieldProblem, idOrNotFound, refuse, type Refusal } from './contract.js';
 export {
+  isOnRoster,
   machineSwitchOffBlocker,
   setMachineSwitchOffCheck,
+  setRosterLookup,
   type MachineSwitchOffCheck,
+  type RosterLookup,
 } from './guards.js';
 export { registerReplyCheck, replyProblem } from './reply-check.js';
 export { registerHealth } from './health.js';

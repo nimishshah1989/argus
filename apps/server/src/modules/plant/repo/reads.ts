@@ -55,22 +55,42 @@ export async function listItem(
   ).rows[0];
 }
 
-/** The shift in force at `at` in the tenant zone (switched-off shifts do not count); the later-starting shift owns an overlap. */
+export interface ShiftNow {
+  id: string;
+  code: string;
+  /** The date this shift started on: after midnight inside a night shift it is the day before. */
+  day: string;
+}
+
+/**
+ * The shift in force at `at` in the tenant zone (switched-off shifts do not count; the later-starting shift owns an
+ * overlap), with its own date taken from that same row.
+ */
+export async function shiftNowAt(
+  tx: Db,
+  timeZone: string | null,
+  at: Date,
+): Promise<ShiftNow | undefined> {
+  return (
+    await tx.query(
+      `WITH local AS (SELECT ($2::timestamptz AT TIME ZONE $1) AS ts)
+       SELECT id, code,
+              (CASE WHEN crosses_midnight AND ts::time < ends_at THEN ts::date - 1 ELSE ts::date END)::text AS day
+         FROM shift, local
+        WHERE active AND ((NOT crosses_midnight AND ts::time >= starts_at AND ts::time < ends_at)
+           OR (crosses_midnight AND (ts::time >= starts_at OR ts::time < ends_at)))
+        ORDER BY starts_at DESC LIMIT 1`,
+      [timeZone, at],
+    )
+  ).rows[0];
+}
+
 export async function shiftCodeAt(
   tx: Db,
   timeZone: string | null,
   at: Date,
 ): Promise<string | undefined> {
-  return (
-    await tx.query(
-      `WITH local_time AS (SELECT ($2::timestamptz AT TIME ZONE $1)::time AS t)
-       SELECT code FROM shift, local_time
-       WHERE active AND ((NOT crosses_midnight AND t >= starts_at AND t < ends_at)
-          OR (crosses_midnight AND (t >= starts_at OR t < ends_at)))
-       ORDER BY starts_at DESC LIMIT 1`,
-      [timeZone, at],
-    )
-  ).rows[0]?.code;
+  return (await shiftNowAt(tx, timeZone, at))?.code;
 }
 
 /**

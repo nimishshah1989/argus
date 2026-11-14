@@ -7,6 +7,7 @@ export const handlers: {
     command: Extract<Command, { type: K }>,
   ) => TransitionResult;
 } = {
+  acknowledge: commands.acknowledge,
   start: commands.start,
   pause: commands.pause,
   resume: commands.resume,

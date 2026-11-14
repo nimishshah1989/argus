@@ -9,11 +9,13 @@ import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
   AUTH_MESSAGES,
+  isOnRoster,
   ticketPartsAfterWrite,
   withTicketParts,
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
+import { buildCommand } from './builders.js';
 import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import * as report from './repo/report.js';
@@ -51,6 +53,7 @@ const COMMAND_SCHEMAS: Record<tm.CommandAction, z.ZodTypeAny> = {
   restore: shared.restoreTicketSchema,
   correct: shared.correctTicketSchema,
   'upgrade-kind': shared.upgradeKindSchema,
+  acknowledge: shared.acknowledgeTicketSchema,
 };
 
 interface RaiseTx {
@@ -70,7 +73,9 @@ async function resolveActingPerson(
   const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
   const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
     string | undefined;
-  if (!tx.auth.shared) {
+  // An acknowledge is judged on who the session says is acting: a shared phone's chosen person, never one the
+  // request merely names (that would borrow someone else's roster line).
+  if (!tx.auth.shared || tx.action === 'acknowledge') {
     if (bodyPersonId !== tx.auth.personId) {
       return {
         status: 403,
@@ -99,6 +104,10 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
     events: await sql.loadEvents(client, tx.ticketId),
     segments: await sql.loadSegments(client, tx.ticketId),
     crew: await sql.loadCrew(client, tx.ticketId),
+    onRoster:
+      tx.action === 'acknowledge' && tx.actingPersonId !== null
+        ? await isOnRoster(client, tx.tenantId, tx.actingPersonId, new Date())
+        : false,
   };
 }
 
@@ -123,7 +132,7 @@ async function executeCommand(
 
   const unknown = await checkCorrectedRefs(client, tx, loaded);
   if (unknown) return unknown;
-  const command = tm.buildCommand(tx, tx.actingPersonId ?? '', loaded);
+  const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return result;
   fillReplacedMinutes(loaded, result.events);
