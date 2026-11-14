@@ -14,7 +14,7 @@ export interface ActionSpec {
   label: MessageKey;
   primary: boolean;
   /** Close only: the way of closing the form opens with (the bar's two close buttons). */
-  preset?: 'report' | 'no_report';
+  preset?: 'report' | 'no_report' | 'done';
 }
 
 const ROLES: readonly string[] = [
@@ -83,13 +83,15 @@ const ORDER: readonly Slot[] = [
   'cancel',
 ];
 
-/** A breakdown or support ticket closes with or without a report (two buttons); a work request just closes. */
+/** A breakdown or support ticket closes with or without a report (two buttons); a work request is marked done. */
 function specFor(slot: Slot, ticket: Ticket): Omit<ActionSpec, 'primary'> {
   if (slot === 'close-no-report') {
     return { action: 'close', label: 'detail.action.closeNoReport', preset: 'no_report' };
   }
-  if (slot === 'close' && ticket.kind !== 'general') {
-    return { action: 'close', label: 'detail.action.closeReport', preset: 'report' };
+  if (slot === 'close') {
+    return ticket.kind === 'general'
+      ? { action: 'close', label: 'closes.action.markDone', preset: 'done' }
+      : { action: 'close', label: 'detail.action.closeReport', preset: 'report' };
   }
   return { action: slot, label: labelFor(slot, ticket) };
 }
