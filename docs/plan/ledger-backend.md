@@ -3,7 +3,7 @@
 One line per dispatch, ruling or merge. Owner: the backend orchestrator. Frontend lane's ledger: `docs/plan/ledger.md`
 on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost if wrong`.
 
-## RESUME HERE (backend orchestrator; rewritten at restart #2, 14 Nov 09:10 UTC)
+## RESUME HERE (backend orchestrator; restart #3 session_01KEBF2A79g1EjjKrbU4mw4v, 14 Nov 09:10 UTC)
 
 Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLAUDE.md`, backend lane; read `docs/plan/ledger-backend.md`, RESUME HERE block first." Model: Sonnet high (`.claude/rules/pstack-models.md`). Restart at 60% context (get_session `context_usage.used_tokens` > 600000; set a send_later check every ~12 min). On restart message every child session and the frontend orchestrator with the new parent id.
 
@@ -336,3 +336,4 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   FOLLOW-UP TICKET (hardening, backend): all ticket commands on a SHARED login must take the acting person from the session
   (tx.auth.personId), not body.personId (tickets/routes.ts resolveActingPerson shared branch); today a shared phone can send any active
   person id. Product note for Nimish via FRONTEND: acknowledge button needs a /state fact (am I rostered/assignee) + the screen.
+- 09:10 UTC RESTART #3 (orchestrator session_01KEBF2A79g1EjjKrbU4mw4v): told builders 31 (session_01KEBF26FLSD7aUqQ4zXwbzo, 'main moved' for #240) and 35 (session_01KEBF27bzgyREScPzFL623W, held for #238) and FRONTEND the new parent id; archived the board-today builder. DISPATCH 34 sign-off server half to session_01KEBF2AcM6Y76S8SYWfhzrz, branch claude/t34-signoff, gap-only brief. Backend builders now: 31, 35, 34. Next free slot: hardening (after #240 merges: both touch tickets/routes.ts), then 66.
