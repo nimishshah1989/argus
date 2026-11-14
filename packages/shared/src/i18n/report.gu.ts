@@ -1,4 +1,36 @@
-import { blank } from './blank.js';
+import { gujarati } from './blank.js';
 import { reportEn } from './report.en.js';
 
-export const reportGu = blank(reportEn);
+export const reportGu = gujarati(reportEn, {
+  'report.fill': 'બ્રેકડાઉન રિપોર્ટ ભરો',
+  'report.closeWith': 'બ્રેકડાઉન રિપોર્ટ સાથે ક્લોઝ કરો',
+  'report.fileReport': 'રિપોર્ટ જમા કરો',
+  'report.closeWithReport': 'રિપોર્ટ સાથે ક્લોઝ કરો',
+  'report.whatHappened': 'શું થયું',
+  'report.whoDidWork': 'કામ કોણે કર્યું',
+  'report.doneBy': 'કામ કરનાર',
+  'report.supportedBy': 'મદદ કરનાર',
+  'report.classification': 'વર્ગીકરણ',
+  'report.when': 'ક્યારે',
+  'report.title': 'બ્રેકડાઉન રિપોર્ટ',
+  'report.fillPrompt': 'આ ટિકિટ રિપોર્ટ વગર ક્લોઝ થઈ હતી. રેકોર્ડ પૂરો કરવા હમણાં રિપોર્ટ જમા કરો.',
+  'report.fillButton': 'રિપોર્ટ ભરો',
+  'report.problem': 'સમસ્યા',
+  'report.observedBy': 'કોણે જોયું',
+  'report.correctiveAction': 'સુધારાનું કામ',
+  'report.downtime': 'ડાઉનટાઇમ',
+  'report.downtimeMin': 'ડાઉનટાઇમ (મિનિટ)',
+  'report.response': 'રિસ્પોન્સ',
+  'report.responseMin': 'રિસ્પોન્સ (મિનિટ)',
+  'report.repair': 'રિપેર',
+  'report.repairMin': 'રિપેર (મિનિટ)',
+  'report.category': 'કેટેગરી',
+  'report.breakdownCategory': 'બ્રેકડાઉન કેટેગરી',
+  'report.maintenanceCode': 'મેન્ટેનન્સ કોડ',
+  'report.spareUsed': 'વાપરેલો સ્પેર',
+  'report.rootCause': 'મૂળ કારણ',
+  'report.handoverTo': 'સોંપણી કોને',
+  'report.date': 'તારીખ',
+  'report.shift': 'શિફ્ટ',
+  'report.observedPlaceholder': 'નામ કે ભૂમિકા',
+});
