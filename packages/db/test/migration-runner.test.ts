@@ -47,6 +47,9 @@ const ARTIFACTS: Record<string, string> = {
     AND to_regprocedure('tenant_logo(text)') IS NOT NULL
     AND EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_name = 'file' AND column_name = 'content') AS installed`,
+  '0012_m2_schema.sql': `SELECT to_regclass('public.roster_entry') IS NOT NULL
+    AND to_regclass('public.escalation_rule') IS NOT NULL
+    AND to_regclass('public.notification') IS NOT NULL AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
