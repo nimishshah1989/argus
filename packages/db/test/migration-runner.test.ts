@@ -6,6 +6,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Client, Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, withoutBypassGrant } from '../../../scripts/migrate.js';
+import { appApiPasswordStatement, scramVerifier } from '../../../scripts/app-api-password.js';
 import { endPool } from './end-pool.js';
 
 const execFileAsync = promisify(execFile);
@@ -674,3 +675,37 @@ it('withoutBypassGrant swaps exactly one statement', () => {
     withoutBypassGrant('ALTER ROLE app_router BYPASSRLS;\nALTER ROLE app_router BYPASSRLS;'),
   ).toThrow(message);
 });
+
+it('sets the app_api password from a SCRAM verifier, never from the plain text', async () => {
+  const statement = appApiPasswordStatement('plain-secret-for-test');
+  expect(statement).not.toContain('plain-secret-for-test');
+  expect(statement).toMatch(/^ALTER ROLE app_api LOGIN PASSWORD 'SCRAM-SHA-256\$4096:[^']+'$/);
+  expect(appApiPasswordStatement('plain-secret-for-test')).not.toBe(statement);
+});
+
+it('refuses an app_api password it cannot hash the way the server would', () => {
+  expect(() => scramVerifier('pässword-for-test')).toThrow(/ASCII/);
+});
+
+it('still lets the app sign in with that password, and only that one', async () => {
+  await withRunnerDatabases(async (createDatabase) => {
+    const { pool, url } = await createDatabase();
+    await runMigration(url, undefined, { APP_API_PASSWORD: 'plain-secret-for-test' });
+    const as = (password: string) => {
+      const login = new URL(url);
+      login.username = 'app_api';
+      login.password = password;
+      return new Pool({ connectionString: login.toString(), max: 1 });
+    };
+    const ok = as('plain-secret-for-test');
+    try {
+      expect((await ok.query('SELECT 1 AS one')).rows[0]?.one).toBe(1);
+    } finally {
+      await endPool(ok);
+    }
+    const wrong = as('another-password');
+    await expect(wrong.query('SELECT 1')).rejects.toThrow(/password authentication failed/);
+    await endPool(wrong);
+    expect(pool).toBeTruthy();
+  });
+}, 120_000);

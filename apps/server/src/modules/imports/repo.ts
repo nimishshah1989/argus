@@ -90,6 +90,24 @@ export async function insertErrorRow(tx: Db, row: NewImportRow): Promise<void> {
   );
 }
 
+/**
+ * `erase_person` empties the stored raw envelope of any row that named the person (`{}`): the source text is the
+ * personal data. Retention's purge keeps the format and hashes, so this is the only shape with no keys. Such a row
+ * still says which ticket it made and which source id it came from, and nothing else.
+ */
+export const isErasedPayload = (payload: unknown): boolean =>
+  typeof payload !== 'object' || payload === null || Object.keys(payload).length === 0;
+
+/** How many rows of a batch had their raw envelope erased with a person. */
+export async function erasedRowCount(tx: Db, tenantId: string, batchId: string): Promise<number> {
+  const result = await tx.query(
+    `SELECT count(*)::int AS n FROM import_row
+     WHERE tenant_id = $1 AND batch_id = $2 AND payload = '{}'::jsonb`,
+    [tenantId, batchId],
+  );
+  return result.rows[0].n as number;
+}
+
 export async function importedRowRows(tx: Db, tenantId: string, batchId: string): Promise<Rows> {
   const result = await tx.query(
     `SELECT row_number, source_ref, ticket_id, payload FROM import_row

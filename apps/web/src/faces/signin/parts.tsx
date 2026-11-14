@@ -10,7 +10,6 @@ import { Stack } from '../../ui/layout.js';
 export function signInError(error: ApiError): MessageKey {
   if (error.code === 'rate_limited') return 'signin.tooMany';
   if (error.code === 'not_found') return 'signin.unknownCompany';
-  if (error.field === 'actingPersonId') return 'signin.chooseName';
   return 'login.failed';
 }
 

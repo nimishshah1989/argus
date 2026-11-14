@@ -22,12 +22,15 @@ export function mayOpen(view: DeskView, role: string): boolean {
   return MAY_OPEN[view].includes(role);
 }
 
-/** The desk follows the phone's light or dark setting (design lock B6) and gives it back when it closes. */
-export function useSystemTheme(): void {
+/**
+ * The desk follows the phone's light or dark setting (design lock B6) and gives it back when it closes.
+ * `alwaysDark` is the wall TV, which is dark whatever the device says.
+ */
+export function useSystemTheme(alwaysDark = false): void {
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      if (query.matches) document.documentElement.dataset.theme = 'dark';
+      if (alwaysDark || query.matches) document.documentElement.dataset.theme = 'dark';
       else delete document.documentElement.dataset.theme;
     };
     apply();
@@ -36,7 +39,7 @@ export function useSystemTheme(): void {
       query.removeEventListener('change', apply);
       delete document.documentElement.dataset.theme;
     };
-  }, []);
+  }, [alwaysDark]);
 }
 
 /** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */

@@ -150,7 +150,7 @@ async function insertRaw(ctx: ImportCtx, batchId: string, row: PlannedRow): Prom
     batchId,
     rowNumber: row.rowNumber,
     sourceRef: sourceRef(row),
-    payload: JSON.stringify(row.envelope),
+    payload: row.erasedBefore ? '{}' : JSON.stringify(row.envelope),
   });
 }
 

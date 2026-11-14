@@ -1,0 +1,19 @@
+/** The live board (ticket 25), approved 14 Nov 2026. `board.title` and `board.updated` stay in board. */
+export const liveBoardEn = {
+  'live.openTv': 'Open TV view',
+  'live.pulse.aria': 'Machines running and stopped',
+  'live.pulse.running': 'running',
+  'live.pulse.of': 'of {{count}} machines',
+  'live.pulse.stopped': 'stopped',
+  'live.column.notStarted': 'Nobody has started',
+  'live.column.repairing': 'Being repaired',
+  'live.column.waiting': 'Paused and waiting',
+  'live.more': 'and {{count}} more',
+  'live.ages.title': 'Open breakdowns by age',
+  'live.ages.overDayTitle': 'Open over 1 day',
+  'live.ages.underHour': 'Under 1 h',
+  'live.ages.oneToFour': '1 to 4 h',
+  'live.ages.fourToDay': '4 to 24 h',
+  'live.ages.overDay': 'Over 1 day',
+  'live.ages.line': '{{label}}: {{count}}',
+};
