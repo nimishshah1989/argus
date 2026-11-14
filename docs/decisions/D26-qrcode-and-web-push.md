@@ -1,4 +1,4 @@
-# D25 — Two runtime dependencies: `qrcode` and `web-push`
+# D26 — Two runtime dependencies: `qrcode` and `web-push`
 
 Date: 13 November 2026 · Status: accepted (M0 audit); records dependencies already in `apps/server/package.json` and `THIRD_PARTY.md`
 

@@ -206,6 +206,7 @@ async function insertEvents(
             }
           : event.payload,
       ),
+      null, // no login: an import is not entered by a person
     ]);
   }
 }
