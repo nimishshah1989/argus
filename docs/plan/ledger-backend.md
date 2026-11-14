@@ -80,3 +80,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   unbounded; (5) MEDIUM tests read tables directly + missing cases (shared login, concurrency, open ticket);
   (6-9) LOW. All folded into 23's PR (same routes), failing test first. Ruling: settings reads stay open to any
   signed-in login (same data as /config, no personal data). Cost if wrong: an operator can read nameplate data.
+- 2026-11-14 05:30 UTC — 21 PR #199 (draft, head 03e3c5a) up; two adversarial Opus reviewers running (auth/sessions/
+  tenancy; data/privacy/audit/tests). Builder rulings under review: token on another tenant's host = 401 (replaced the
+  old "trusts the token, not the host" test); last enabled admin protected (409); must_change_password returned, not
+  enforced server-side (would lock seeded logins); 400 vs the API's 422 (likely ruled to 422). MIGRATION LOCK granted
+  by FRONTEND for 23 (function-only) and relayed. Rule: backend PRs stay DRAFT until the review passes (Nimish has
+  merged before reviews finished). 20 goal 1 complete on main (#191 + #200, FRONTEND). Its builder
+  session_01KEBF29QyDatvrERY9YAqZk handed to me; held on stand-by (read-only prep for 29) to keep the 2-builder cap.
