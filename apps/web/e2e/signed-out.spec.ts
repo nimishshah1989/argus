@@ -90,3 +90,33 @@ test('sign-in the server could not answer says the server had a problem, not wro
   await expect(page.getByText('Sign-in failed')).toHaveCount(0);
   expect(logged.join('\n')).toContain('502');
 });
+
+test('when several calls are refused at once the sign-in screen still says the session ended', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('uptimo_token', 'expired-long-ago');
+  });
+  const refused = (delay: number) => async (route: import('@playwright/test').Route) => {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: '{"error":{"code":"unauthenticated","message":"ended"}}',
+    });
+  };
+  // The first refusal starts the move to sign-in; the sign-in page is slow to arrive, so the later
+  // refusals land while it is still on its way and must not send it somewhere else.
+  await page.route(/\/api\/v1\/config(?:\?.*)?$/, refused(0));
+  await page.route(/\/api\/v1\/state(?:\?.*)?$/, refused(250));
+  await page.route(/\/api\/v1\/auth\/me(?:\?.*)?$/, refused(400));
+  await page.route(/\/login\?signedOut=1$/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await route.continue();
+  });
+  await page.goto('/floor');
+  await expect(page).toHaveURL(/\/login\?signedOut=1$/, { timeout: 15_000 });
+  await expect(page.getByText('Your session has ended. Sign in again.')).toBeVisible();
+});

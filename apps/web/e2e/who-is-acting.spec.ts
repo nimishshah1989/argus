@@ -222,6 +222,12 @@ test('a wrong current password keeps the phone signed in; the "other phones" lin
 test('a wrong current password answered 422 for "old" also keeps the phone signed in', async ({
   page,
 }) => {
+  // The app must not log this as a failure; the browser's own "Failed to load resource" lines are not the app's.
+  const logged: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && !/Failed to load resource/.test(message.text()))
+      logged.push(message.text());
+  });
   await signIn(page, 'op');
   await page.route(/\/api\/v1\/state(?:\?.*)?$/, (route) =>
     route.fulfill({
@@ -248,4 +254,5 @@ test('a wrong current password answered 422 for "old" also keeps the phone signe
   await expect(page.getByText('Your current password is not right.')).toBeVisible();
   await expect(page).toHaveURL(/\/password$/);
   expect(await page.evaluate(() => localStorage.getItem('uptimo_token'))).not.toBeNull();
+  expect(logged).toEqual([]);
 });
