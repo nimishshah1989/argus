@@ -159,9 +159,11 @@ Choices (recommendation taken for every one):
 - Dashboard · dark
 - Today · dark
 
-Totals (1,279 breakdowns, 3,060.1 hrs, 759.3 PM hrs, BD % 0.54%, availability 99.32%) are read from the 11 Nov platform
-workbook. The NO DT line (141 entries, 210.6 hrs), complaints and hours per day and the bubbles are computed from its
-Breakdown Log and must be checked against the platform. Banner counts and Today's clock and sign-off items are samples.
+Every Dashboard figure and chart is the backend answer key (`fixtures/answer-key/dashboard.json`, as of 11 Nov 2026):
+159 machines (126 CNC), 1,279 breakdowns, 3,060.1 hrs, NO DT 209.1 hrs from 140 entries, 4.11 complaints and 9.84 hrs a
+day over 311 days, 24.29 hrs per machine, the 117-machine bubble chart, the timeline split by machine type, and the
+30-day breakdown-free line. These replace the figures first computed from the workbook; the Live machine status card is
+dropped. Today's clock and sign-off items are samples.
 
 Choices (recommendation taken for every one):
 
