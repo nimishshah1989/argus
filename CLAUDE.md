@@ -15,10 +15,10 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
 
 1. **Shape** (new feature or open product question): `grill-with-docs`, product questions only, then
    `to-spec` and `to-tickets`. The existing backlog in `docs/plan/MILESTONES.md` is already shaped.
-2. **Build** one ticket: `/pstack:poteto-mode` with the ticket. It runs the Feature, Bug fix or Refactoring
+2. **Build** one ticket: `/poteto-mode` with the ticket. It runs the Feature, Bug fix or Refactoring
    playbook: understand (`how`), design from the data shape (`architect`), delegate code, verify on the real
    surface, small ordered commits.
-3. **Review** the PR: `ponytail-review` on the diff, plus `/pstack:interrogate` when the ticket touches the
+3. **Review** the PR: `ponytail-review` on the diff, plus `/interrogate` when the ticket touches the
    schema, auth or permissions, tenancy, or deletes or rewrites data. CI green + no blocking finding: merge.
 4. **Gate** each milestone: one short gate report (under 30 lines), then Nimish's go. CI already runs the full
    suite on every PR; run `ponytail-audit` only when the milestone changed schema, auth or tenancy widely.
@@ -34,7 +34,7 @@ new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: 
 - A migration that alters or deletes existing data needs a backup step run before it.
 - One build at a time per file area; at most five builders in parallel (two orchestrator lanes), each in its own worktree.
 - Pause for a person before anything irreversible: production deploys, data deletion, messages to customers.
-- When you catch an agent repeating a mistake, run `/pstack:correct` so a check blocks it next time.
+- When you catch an agent repeating a mistake, run `/correct` so a check blocks it next time.
 
 ## Orchestrating the plan
 
@@ -65,7 +65,7 @@ to try the preview. Run `pnpm precheck` before every push.
 - `docs/HANDOFF.md`: where things stand, under 50 lines. Rewrite it when the state changes.
 - `wiki/`: one page per topic the code cannot say for itself; `wiki/log.md` is append-only.
 - Decisions: `docs/decisions/`, one short file each, with what was rejected and why.
-- `/pstack:recall` to pick up a session; `/pstack:ketchup` to catch Nimish up.
+- `/recall` to pick up a session; `/ketchup` to catch Nimish up.
 
 ## Hooks (`.claude/harness/hooks/`)
 

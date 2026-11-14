@@ -1,0 +1,1 @@
+- The live board leaves out machines in a group marked hidden and in a segment set not to show on the board; such a segment no longer appears among the board's filter chips.
