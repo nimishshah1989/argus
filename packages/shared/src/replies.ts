@@ -27,6 +27,7 @@ import {
   shiftReplySchema,
 } from './plant-settings.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
+import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
@@ -54,6 +55,7 @@ export const ticketReplySchema = ticketSchema
     sla: slaProjectionSchema.nullable(),
     handback: handbackSchema.nullable(),
     canAcknowledge: z.boolean(),
+    lockout: lockoutSchema.nullable().optional(),
   })
   .strict();
 export const stateReplySchema = z

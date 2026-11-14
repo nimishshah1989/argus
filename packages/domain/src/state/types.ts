@@ -6,6 +6,7 @@ import type {
   WorkSegment,
 } from '../types.js';
 import type { Ticket } from '../ticket.js';
+import type { EscalationLevel } from '../escalation.js';
 
 export type Command =
   | { type: 'start'; personId: string; at?: Date; pickup?: boolean }
@@ -14,6 +15,7 @@ export type Command =
   | { type: 'transfer'; personId: string; toPersonId?: string; toShift?: string; note: string }
   | { type: 'update'; personId: string; text: string }
   | { type: 'acknowledge'; personId: string; onRoster: boolean }
+  | { type: 'acknowledgeEscalation'; personId: string; pendingLevels: EscalationLevel[] }
   | { type: 'machineRunning'; personId: string; at?: Date }
   | { type: 'machineStopped'; personId: string; at?: Date }
   | {
@@ -31,7 +33,9 @@ export type Command =
   | { type: 'handbackDispute'; personId: string; reason: string; sameCell: boolean }
   | { type: 'lateReport'; personId: string }
   | { type: 'restore'; personId: string; reason: string; toStatus?: RestorableStatus }
-  | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges };
+  | { type: 'correct'; personId: string; reason: string; changes: CorrectChanges }
+  /** `steps`: the texts the person confirmed, kept on the history entry as they were worded then; `stepCodes`: the plant's active steps they cover. */
+  | { type: 'confirmLockout'; personId: string; steps: string[]; stepCodes: string[] };
 
 export interface CorrectChanges {
   reportedAt?: Date;

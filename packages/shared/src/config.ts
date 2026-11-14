@@ -10,6 +10,7 @@ export const LIST_NAMES = [
   'location',
   'cell',
   'task_reason',
+  'lockout_step',
 ] as const;
 export type ListName = (typeof LIST_NAMES)[number];
 

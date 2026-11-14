@@ -420,14 +420,16 @@ describe('an unanswered sign-off on the fake clock', () => {
   it('a dispute and a second close start a new clock that can time out once more', async () => {
     const ticketId = await closedAt9();
     expect(await fire(ticketId, '10:01')).toBe(true);
-    const events: Array<[number, string, Date, boolean]> = [
-      [2, 'handback_dispute', at('10:10'), false],
-      [3, 'close', at('10:20'), true],
+    const events: Array<[string, Date, boolean]> = [
+      ['handback_dispute', at('10:10'), false],
+      ['close', at('10:20'), true],
     ];
-    for (const [seq, type, when, asks] of events) {
+    for (const [type, when, asks] of events) {
+      // the breach just now put an escalation step in the history: number the next event after whatever is there
       await admin.query(
-        'INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, payload) VALUES ($1, $2, $3, $4, $5, $6)',
-        [A, ticketId, seq, type, when, asks ? { handbackRequested: true } : {}],
+        `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, payload)
+         VALUES ($1, $2, (SELECT MAX(seq) + 1 FROM ticket_event WHERE ticket_id = $2), $3, $4, $5)`,
+        [A, ticketId, type, when, asks ? { handbackRequested: true } : {}],
       );
       await withTenant(db.app, A, (client) =>
         reconcileTicket(client, { tenantId: A, ticketId, now: when, boss }),

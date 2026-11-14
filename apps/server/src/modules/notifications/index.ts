@@ -1,7 +1,12 @@
 import { defineModule } from '../../kernel/index.js';
 import { registerPush } from './routes.js';
 
-export { clearSubscriptionPerson, deleteSubscriptionsOf, purgeNotifications } from './repo.js';
+export {
+  clearSubscriptionPerson,
+  deleteSubscriptionsOf,
+  purgeNotifications,
+  toldByEscalationStep,
+} from './repo.js';
 export { KINDS, type NotifyKind } from './kinds.js';
 export {
   NOTIFY_SEND_QUEUE,

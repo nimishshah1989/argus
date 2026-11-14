@@ -3,6 +3,7 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
+import { escalateBreach } from '../escalation.js';
 import { queueOwedBreach, requeueIfEarly, singletonKey } from './timer-jobs.js';
 
 export { singletonKey };
@@ -51,10 +52,17 @@ function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
 }
 
-/** A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). */
+/**
+ * A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). So is
+ * an acknowledge clock a handover starts again after a start or an acknowledge; one a cancel stopped and a restore
+ * resumed, or a late stop a correction reopened, is still the first and never fires twice.
+ */
 function startsNewEpisode(row: TimerRow, timer: SlaTimerProjection): boolean {
-  const repeats = timer.kind === 'pause' || timer.kind === 'handback';
-  return repeats && timer.state === 'running' && row.state === 'stopped';
+  if (timer.state !== 'running' || row.state !== 'stopped') return false;
+  if (timer.kind === 'pause' || timer.kind === 'handback') return true;
+  return (
+    timer.kind === 'ack' && (row.stop_reason === 'started' || row.stop_reason === 'acknowledged')
+  );
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -298,7 +306,8 @@ export interface SlaTimerRuntime {
   now: () => Date;
   boss?: PgBoss;
   /**
-   * Runs in the same transaction as the breach is recorded: a failure puts the breach back and the job retries.
+   * What reacts to a breach; the default starts the escalation ladder, a test passes its own. Runs in the same
+   * transaction as the breach is recorded: a failure puts the breach back and the job retries.
    * It must be idempotent on (ticket, kind, owedDueAt) for an owed breach and on (ticket, kind, firedAt) for a current
    * one: the queue may deliver a job twice, and the second delivery must change nothing.
    */
@@ -330,9 +339,12 @@ export async function processSlaTimerJob(
   return withTenant(runtime.pool, payload.tenantId, async (client) => {
     if (!(await lockTicket(client, payload.tenantId, payload.ticketId))) return false;
     const firedAt = runtime.now();
+    const react =
+      runtime.onBreach ??
+      ((b: Breach, c: PoolClient) => escalateBreach(c, runtime.boss ?? null, b));
     if (payload.owedDueAt !== undefined) {
       const { tenantId, ticketId, kind } = payload;
-      await runtime.onBreach?.(
+      await react(
         { tenantId, ticketId, kind, firedAt, owedDueAt: new Date(payload.owedDueAt) },
         client,
       );
@@ -348,7 +360,7 @@ export async function processSlaTimerJob(
     );
     if (result.rowCount === 1) {
       const { tenantId, ticketId, kind } = payload;
-      await runtime.onBreach?.({ tenantId, ticketId, kind, firedAt, owedDueAt: null }, client);
+      await react({ tenantId, ticketId, kind, firedAt, owedDueAt: null }, client);
       return true;
     }
     return requeueIfEarly(client, payload, runtime, firedAt);

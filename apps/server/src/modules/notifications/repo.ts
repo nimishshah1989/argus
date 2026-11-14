@@ -194,6 +194,22 @@ export async function recordOutcome(
 }
 
 /** Retention: rows created before `cutoff` that are settled. A message still waiting is never purged. */
+/** For each escalation step of a ticket (by its history event), the people the step told. */
+export async function toldByEscalationStep(
+  tx: Db,
+  tenantId: string,
+  ticketId: string,
+): Promise<Map<string, string[]>> {
+  const { rows } = await tx.query(
+    `SELECT event_id, array_agg(DISTINCT person_id ORDER BY person_id) AS people
+       FROM notification
+      WHERE tenant_id = $1 AND ticket_id = $2 AND kind = 'escalation.step' AND event_id IS NOT NULL
+      GROUP BY event_id`,
+    [tenantId, ticketId],
+  );
+  return new Map(rows.map((row) => [row.event_id as string, row.people as string[]]));
+}
+
 export async function purgeNotifications(tx: Db, tenantId: string, cutoff: Date): Promise<number> {
   const result = await tx.query(
     "DELETE FROM notification WHERE tenant_id = $1 AND created_at < $2 AND status <> 'pending'",
