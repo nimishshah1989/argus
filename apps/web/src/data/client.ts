@@ -121,9 +121,14 @@ async function refusal(res: Response): Promise<ApiError> {
  */
 function leaveForSignIn(hadSession: boolean): void {
   clearToken();
-  if (window.location.pathname === '/login') return;
+  // Several calls are usually refused together. The first starts the move; later ones find the token
+  // already gone and must not start another that would replace it and lose "You were signed out".
+  if (leaving || window.location.pathname === '/login') return;
+  leaving = true;
   window.location.assign(hadSession ? SIGNED_OUT : '/login');
 }
+
+let leaving = false;
 
 async function send<T>(path: string, init: RequestInit | undefined, session: Session): Promise<T> {
   const token = session === 'none' ? null : getToken();
