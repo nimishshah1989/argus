@@ -23,11 +23,11 @@ async function expectOpenBoard(page: Page, ref: string): Promise<void> {
 async function openTicket(page: Page, ref: string): Promise<void> {
   await page.getByRole('link', { name: new RegExp(ref) }).click();
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
-  await expectStatus(page, 'Open');
+  await expectStatus(page, 'Booked');
 }
 
 async function startWorking(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Start work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
@@ -102,7 +102,7 @@ async function checkTeamClosed(page: Page, ref: string): Promise<void> {
 }
 
 async function logUpdate(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await page.getByRole('button', { name: 'Post update', exact: true }).click();
   const form = page.getByRole('form', { name: 'Log an update' });
   await form.getByLabel('What has changed?').fill('Replaced the drive belt');
   await form.getByRole('button', { name: 'Save update', exact: true }).click();
@@ -112,7 +112,7 @@ async function logUpdate(page: Page): Promise<void> {
 }
 
 async function pauseTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.getByRole('button', { name: 'Pause: waiting', exact: true }).click();
   const form = page.getByRole('form', { name: 'Pause the ticket' });
   await form.getByLabel('Waiting for').selectOption('spare');
   await form.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -122,7 +122,7 @@ async function pauseTicket(page: Page): Promise<void> {
 }
 
 async function resumeTicket(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume work', exact: true }).click();
   await expectStatus(page, 'In progress');
 }
 
@@ -132,7 +132,7 @@ async function transferTicket(page: Page): Promise<void> {
   await form.getByLabel('Handover note').fill('Next shift takes over');
   await form.getByRole('button', { name: 'Transfer', exact: true }).click();
   await expect(form).toBeHidden();
-  await expectStatus(page, 'Open');
+  await expectStatus(page, 'Transferred');
   await expect(page.getByText('Waiting for pickup')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pick up', exact: true })).toBeVisible();
 }
@@ -143,7 +143,7 @@ async function pickUpTicket(page: Page): Promise<void> {
 }
 
 async function markMachineRunning(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Machine running', exact: true }).click();
+  await page.getByRole('button', { name: 'Machine running again', exact: true }).click();
   await expect(page.getByText('Machine running since')).toBeVisible();
   await expect(page.locator('ol').getByText('Machine running')).toBeVisible();
 }
@@ -154,9 +154,9 @@ async function markMachineStopped(page: Page): Promise<void> {
 }
 
 async function closeWithReport(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Write report and close', exact: true }).click();
   const form = page.getByRole('form', { name: 'Close the ticket' });
-  await form.getByLabel('How are you closing?').selectOption('report');
+  await expect(form.getByLabel('How are you closing?')).toHaveValue('report');
   await form.getByRole('button', { name: 'Close ticket', exact: true }).click();
   await expect(form).toBeHidden();
   // AC3a: closing "with report" now opens the breakdown report form first.
@@ -164,13 +164,13 @@ async function closeWithReport(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Close with report', exact: true }).click();
   await expectStatus(page, 'Closed');
   await expect(page.getByText('Closed as')).toBeVisible();
-  await expect(page.getByText('With report', { exact: true })).toBeVisible();
+  await expect(page.locator('dd').getByText('With report', { exact: true })).toBeVisible();
 }
 
 async function closeWithoutReport(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Close without report', exact: true }).click();
   const form = page.getByRole('form', { name: 'Close the ticket' });
-  await form.getByLabel('How are you closing?').selectOption('no_report');
+  await expect(form.getByLabel('How are you closing?')).toHaveValue('no_report');
   // The Close form requires a reason for a without-report close.
   await form.getByLabel('Note').fill('Closed without the report');
   await form.getByRole('button', { name: 'Close ticket', exact: true }).click();

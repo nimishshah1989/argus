@@ -199,27 +199,27 @@ test('follows acknowledge and restore clocks through existing ticket actions', a
   await expect(acknowledge).toContainText('min left');
   await expect(restore).toContainText('min left');
 
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Start work', exact: true }).click();
   await expect(acknowledge).toContainText('Stopped');
   await expect(restore).toContainText('min left');
 
   await pauseWithReason(page, 'vendor');
   await expect(restore).not.toContainText('Paused');
   await expect(restore).toContainText('min left');
-  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume work', exact: true }).click();
   await pauseWithReason(page, 'spare');
   await expect(restore).toContainText('Paused');
   await expect(restore).toContainText('Deadline recalculates on resume');
-  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume work', exact: true }).click();
   await expect(restore).toContainText('min left');
 
   await correctToOverdue(admin, ticket.id);
   await pauseWithReason(page, 'spare');
   await expect(restore).toContainText(/Paused · .+ overdue/);
-  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume work', exact: true }).click();
   await expect(restore).toContainText('overdue');
 
-  await page.getByRole('button', { name: 'Machine running', exact: true }).click();
+  await page.getByRole('button', { name: 'Machine running again', exact: true }).click();
   await expect(restore).toContainText('Stopped');
   await expect(page.locator('header').getByText('In progress', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Machine stopped', exact: true }).click();
