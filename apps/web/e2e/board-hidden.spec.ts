@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { commandViaApi, getJson } from './fixtures-actions.js';
 import { expect, test } from './test.js';
 import {
   MACHINES,

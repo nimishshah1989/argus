@@ -150,7 +150,23 @@ function groupBySegment(groups: Group[]): Map<string, Group[]> {
   return bySegment;
 }
 
-/** Segments kept off the board and hidden groups (Settings) take their machines off it. */
+/** The machines the board shows: not in a hidden group, not in a segment kept off the board (Settings). */
+function onBoard(machines: Machine[], segments: Segment[], groups: Group[]): Machine[] {
+  const offBoard = new Set(segments.filter((s) => !s.show_on_board).map((s) => s.id));
+  const hidden = new Set(groups.filter((group) => group.hidden).map((group) => group.id));
+  return machines.filter((m) => !offBoard.has(m.segment_id ?? '') && !hidden.has(m.group_id ?? ''));
+}
+
+/** The open tickets the board counts: every ticket except those on a machine the board leaves out. */
+export function ticketsOnBoard(
+  open: Ticket[],
+  config: { machines: Machine[]; segments: Segment[]; groups: Group[] },
+): Ticket[] {
+  const shown = new Set(onBoard(config.machines, config.segments, config.groups).map((m) => m.id));
+  const left = new Set(config.machines.map((m) => m.id).filter((id) => !shown.has(id)));
+  return open.filter((ticket) => !ticket.machineId || !left.has(ticket.machineId));
+}
+
 export function buildSections(
   machines: Machine[],
   segments: Segment[],
@@ -158,14 +174,11 @@ export function buildSections(
   open: Ticket[],
 ): SegmentSection[] {
   const index = ticketIndex(open);
-  const offBoard = new Set(segments.filter((s) => !s.show_on_board).map((s) => s.id));
-  const hidden = new Set(groups.filter((group) => group.hidden).map((group) => group.id));
-  const shown = segments.filter((segment) => !offBoard.has(segment.id));
+  const shown = segments.filter((segment) => segment.show_on_board);
   const segmentIds = new Set(shown.map((segment) => segment.id));
-  const segmentGroups = groupBySegment(groups.filter((group) => !hidden.has(group.id)));
+  const segmentGroups = groupBySegment(groups.filter((group) => !group.hidden));
   const buckets = new Map<string, Map<string, Tile[]>>();
-  for (const machine of machines) {
-    if (offBoard.has(machine.segment_id ?? '') || hidden.has(machine.group_id ?? '')) continue;
+  for (const machine of onBoard(machines, segments, groups)) {
     const segmentKey = segmentKeyFor(machine, segmentIds);
     const groupKey = groupFor(machine, segmentGroups.get(segmentKey) ?? []);
     addTile(buckets, segmentKey, groupKey, { machine, ticket: ticketFor(machine, index) });
