@@ -53,6 +53,7 @@ describe('what every report PDF shares', () => {
         spareUsed: HOSTILE,
         rootCause: HOSTILE,
         handoverName: HOSTILE,
+        handoverPersonId: null,
         submittedByPersonId: null,
         submittedAt: new Date('2026-11-01T05:30:00Z'),
         people: [],
