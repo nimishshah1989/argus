@@ -7,6 +7,7 @@ import {
   listItemPatchSchema,
   type ListName,
 } from '@uptimo/shared';
+import { ensureLockoutSteps } from './lockout.js';
 import type { Resource } from './settings-resources.js';
 
 /** One list (wait reasons, work types ...): rows of `list_item` with this `list` value. */
@@ -46,6 +47,8 @@ function listResource(list: ListName): Resource {
       active: row.active,
     }),
     switchTo: (active) => ({ active }),
+    // The head's first look at the steps finds the starting four to edit, not an empty list.
+    prepare: list === 'lockout_step' ? ensureLockoutSteps : undefined,
     check: async (_tx, merged) =>
       merged.needsLockout === true && !(LOCKOUT_FLAG_LISTS as readonly string[]).includes(list)
         ? {

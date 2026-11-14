@@ -195,7 +195,7 @@ export async function detail(
       )
     )[0];
     return {
-      ticket: { ...projected, lockout: await lockoutOf(client, ctx.tenantId, ticketId) },
+      ticket: { ...projected, lockout: await lockoutOf(client, ctx, ticketId) },
       events: events.map((event) => ({
         seq: event.seq,
         type: event.type,

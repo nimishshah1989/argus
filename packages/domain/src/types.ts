@@ -40,6 +40,8 @@ export interface EditChange {
 
 export interface TicketEvent {
   type: EventType;
+  /** Set on a history read: who acted (a lockout confirmation belongs to a person). */
+  actingPersonId?: string | null;
   at: Date;
   reason?: string;
   isVendor?: boolean;

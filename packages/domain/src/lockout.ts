@@ -1,20 +1,37 @@
 import type { EventType } from './types.js';
 
-/** Work starting or the ticket leaving and re-entering the queue uses up a lockout confirmation. */
-const USES_UP: ReadonlySet<EventType> = new Set(['start', 'pickup', 'cancel', 'restore']);
+/** The ticket stops being worked, changes hands, or ends: every lock taken off goes with it. */
+const CLEARS_ALL: ReadonlySet<EventType> = new Set([
+  'pause',
+  'transfer',
+  'close',
+  'cancel',
+  'restore',
+  'handback_confirm',
+  'handback_dispute',
+]);
+
+/** The history entries `standingLockoutConfirmations` reads; a store may fetch only these. */
+export const LOCKOUT_EVENT_TYPES: readonly EventType[] = [
+  'lockout_confirmed',
+  'leave',
+  ...CLEARS_ALL,
+];
 
 /**
- * The lockout confirmation that still counts, from the ticket's history in order: the last `lockout_confirmed`
- * that no later Start, pickup, cancel or restore has used up. A pause and resume never touch it, so a lockout is
- * confirmed once per start; a handed-over ticket and a restored one ask again.
+ * Who stands confirmed on a flagged ticket, from its history in order, and by which entry: a `lockout_confirmed`
+ * by a person stands until the ticket is paused, handed over, closed, cancelled, restored or reopened, or that
+ * person leaves it. Each person confirms their own lock; Start, pickup, join and resume need the acting person's.
  */
-export function standingLockoutConfirmation<T extends { type: EventType }>(
-  events: readonly T[],
-): T | null {
-  let standing: T | null = null;
+export function standingLockoutConfirmations<
+  T extends { type: EventType; actingPersonId?: string | null },
+>(events: readonly T[]): Map<string, T> {
+  const standing = new Map<string, T>();
   for (const event of events) {
-    if (event.type === 'lockout_confirmed') standing = event;
-    else if (USES_UP.has(event.type)) standing = null;
+    const who = event.actingPersonId;
+    if (event.type === 'lockout_confirmed' && who) standing.set(who, event);
+    else if (CLEARS_ALL.has(event.type)) standing.clear();
+    else if (event.type === 'leave' && who) standing.delete(who);
   }
   return standing;
 }

@@ -21,6 +21,7 @@ export {
   type ShiftNow,
   type MachineRow,
 } from './repo/reads.js';
+export { ensureLockoutSteps } from './lockout.js';
 export { actorOf, forbidden } from './actor.js';
 export { registerResource } from './settings-routes.js';
 export { plantToday, type Problem, type Resource } from './settings-resources.js';

@@ -1,22 +1,20 @@
 import type { PoolClient } from 'pg';
-import type { EventType } from '@uptimo/domain';
+import { LOCKOUT_EVENT_TYPES, type EventType } from '@uptimo/domain';
 
-/** The history that decides whether a lockout confirmation still stands. */
-const LOCKOUT_EVENTS = ['lockout_confirmed', 'start', 'pickup', 'cancel', 'restore'];
-
-/** The work type of the ticket when it is open; `undefined` when it is not open (or not this plant's). */
-export async function openTicketWorkType(
+/** The status and work type of a ticket that is still live (open, working or waiting); `undefined` otherwise. */
+export async function liveTicket(
   client: PoolClient,
   tenantId: string,
   ticketId: string,
-): Promise<{ workType: string | null } | undefined> {
+): Promise<{ status: string; workType: string | null } | undefined> {
   const row = (
     await client.query(
-      "SELECT work_type FROM ticket WHERE tenant_id = $1 AND id = $2 AND status = 'open'",
+      `SELECT status, work_type FROM ticket
+        WHERE tenant_id = $1 AND id = $2 AND status IN ('open', 'working', 'waiting')`,
       [tenantId, ticketId],
     )
   ).rows[0];
-  return row && { workType: row.work_type as string | null };
+  return row && { status: row.status as string, workType: row.work_type as string | null };
 }
 
 /** The breakdown category on the ticket's latest stored report, if it has a report. */
@@ -43,7 +41,7 @@ export async function lockoutHistory(
   const { rows } = await client.query(
     `SELECT type, at, acting_person_id FROM ticket_event
       WHERE ticket_id = $1 AND type = ANY($2) ORDER BY seq`,
-    [ticketId, LOCKOUT_EVENTS],
+    [ticketId, LOCKOUT_EVENT_TYPES],
   );
   return rows.map((e) => ({
     type: e.type as EventType,

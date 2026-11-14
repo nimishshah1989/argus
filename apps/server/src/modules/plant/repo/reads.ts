@@ -1,10 +1,5 @@
 import type { PoolClient } from 'pg';
-import {
-  DEFAULT_LOCKOUT_STEPS,
-  LOCKOUT_FLAG_LISTS,
-  type Criticality,
-  type LockoutStep,
-} from '@uptimo/shared';
+import { LOCKOUT_FLAG_LISTS, type Criticality, type LockoutStep } from '@uptimo/shared';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -230,16 +225,13 @@ export async function lockoutFlagged(
   }));
 }
 
-/** The plant's active lockout steps in order; the four defaults while it has none. */
+/** The plant's active lockout steps in order. None when the head has switched every one off. */
 export async function lockoutSteps(tx: Db, tenantId: string): Promise<LockoutStep[]> {
   const { rows } = await tx.query(
     `SELECT code, label, label_gu, label_hi FROM list_item
       WHERE tenant_id = $1 AND list = 'lockout_step' AND active ORDER BY sort, code`,
     [tenantId],
   );
-  if (rows.length === 0) {
-    return DEFAULT_LOCKOUT_STEPS.map((s) => ({ ...s, labelGu: null, labelHi: null }));
-  }
   return rows.map((r) => ({
     code: r.code,
     label: r.label,
