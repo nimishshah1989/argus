@@ -30,9 +30,15 @@ table entry that no longer differs. Zero unexplained.
 | start    | back-dating stops at the report time (or the transfer time when picking up)                        | stopped at the latest event (an update blocked it)       | report or transfer time                                |
 | running  | only while working or waiting; once                                                                | any status; repeated                                     | as his                                                 |
 | stopped  | back-dated like running                                                                            | no time                                                  | optional `at`, not before the running time             |
-| pause    | a "spare" reason flags the ticket as waiting for a spare                                           | not flagged                                              | flagged (cleared at resume)                            |
+
+Also fixed on the way: a raise with "starting now" wrote two events under one idempotency key and failed with 500
+(the replay found it); `availableActions` follows the new running/stopped/leave rules (one source for the bar);
+`machine-stopped` takes the optional `at` that `machine-running` already had.
 
 ## 4. Differences kept on purpose (not ported)
+
+- Pause on a "spare" reason does not flag the ticket as waiting for a spare (`waiting_spare` is free text kept by
+  `COALESCE`, so it could not be cleared at resume). No figure depends on it. Follow-up.
 
 - A time earlier than allowed is clamped (DOMAIN §5), his app answers 400. A start more than a day old is accepted.
 - `start` on a ticket already working is `409` (his app answers `ok, already`): DOMAIN §2, the second person gets the

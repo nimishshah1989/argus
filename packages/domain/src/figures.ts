@@ -1,3 +1,4 @@
+import { personMinutes } from './person-minutes.js';
 import type { FigureInput, Figures, OverridableFigure, TicketEvent } from './types.js';
 
 /** His `mins()`: every elapsed time is rounded to the nearest whole minute, never below zero. */
@@ -102,15 +103,6 @@ function handoverAndFollow(events: TicketEvent[], closedAt?: Date) {
   return { handoverWaitMin, followMin };
 }
 
-function perPerson(input: FigureInput): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const segment of input.segments) {
-    const minutes = wholeMin(segment.startedAt, segment.endedAt ?? input.now);
-    result[segment.personId] = (result[segment.personId] ?? 0) + minutes;
-  }
-  return result;
-}
-
 function applyOverride<T>(
   overridden: OverridableFigure[],
   key: OverridableFigure,
@@ -173,7 +165,7 @@ export function figures(input: FigureInput): Figures {
     downtimeMin: downtime,
     followMin,
     repairMin: repair,
-    perPerson: perPerson(input),
+    perPerson: personMinutes(input.segments, input.now),
     overridden,
   };
 }

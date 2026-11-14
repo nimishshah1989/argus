@@ -57,7 +57,7 @@ export async function selectTicketPage(
 export async function segmentRowsFor(tx: Db, tenantId: string, ticketIds: string[]): Promise<Rows> {
   return (
     await tx.query(
-      'SELECT ticket_id, person_id, started_at, ended_at FROM work_segment WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])',
+      'SELECT ticket_id, person_id, role, started_at, ended_at FROM work_segment WHERE tenant_id = $1 AND ticket_id = ANY($2::uuid[])',
       [tenantId, ticketIds],
     )
   ).rows;
