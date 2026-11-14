@@ -11,8 +11,12 @@ interface Me {
   user: { actingPersonId: string };
 }
 
+/** One API sign-in per worker: the server caps sign-ins per address, and every worker shares one. */
+let ashaToken: Promise<string> | undefined;
+const asha = (): Promise<string> => (ashaToken ??= apiLogin('asha'));
+
 async function startedTicket(machineId: string, problem: string, startedMinAgo = 60) {
-  const token = await apiLogin('asha');
+  const token = await asha();
   const ticket = await raiseTicketViaApi(token, machineId, problem);
   const pool = new Pool({ connectionString: process.env.E2E_ADMIN_DATABASE_URL, max: 1 });
   try {
@@ -37,7 +41,7 @@ async function startedTicket(machineId: string, problem: string, startedMinAgo =
 }
 
 async function raiseWorkRequest(problem: string): Promise<{ id: string; ref: string }> {
-  const token = await apiLogin('asha');
+  const token = await asha();
   const res = await apiFetch('/api/v1/tickets', {
     method: 'POST',
     headers: {
