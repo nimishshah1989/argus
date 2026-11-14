@@ -24,6 +24,7 @@ import {
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
+import { actingTeams, listActingChoices } from './repo/acting.js';
 import { tenantLogoId } from './repo/profile.js';
 import {
   hashToken,
@@ -115,6 +116,7 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
     passwordHash: n.loginRow.password_hash,
     device: n.device,
     actingPersonId: n.person?.id ?? null,
+    ...(n.loginRow.shared ? { teams: actingTeams(n.loginRow.role) } : {}),
     tokenHash: hashToken(token),
   });
   if (!started) {
@@ -143,12 +145,13 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
 async function actingPerson(
   pool: Pool,
   tenantId: string,
-  row: { shared: boolean; person_id: string | null },
+  row: { shared: boolean; person_id: string | null; role: string },
   chosen?: string,
 ) {
   const id = row.shared ? chosen : row.person_id;
   if (!id) return row.shared ? null : undefined;
   const person = await findPerson(pool, tenantId, id);
+  if (row.shared && person && !actingTeams(row.role).includes(person.team)) return undefined;
   return person?.active ? person : undefined;
 }
 
@@ -217,6 +220,17 @@ async function chooseActing(pool: Pool, request: FastifyRequest, reply: FastifyR
   reply.send({ ok: true });
 }
 
+/** The people this shared phone may choose from: the same rule `POST /auth/acting` checks, names and teams only. */
+async function actingChoices(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!ctx.shared) {
+    reply.code(403).send(apiError('forbidden', 'Only a shared phone chooses who is using it'));
+    return;
+  }
+  reply.send({ people: await listActingChoices(pool, ctx.tenantId, ctx.role) });
+}
+
 async function logout(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
@@ -283,6 +297,7 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
   const loginCap = { config: publicRouteCap(config) };
   app.post('/api/v1/auth/login', loginCap, (request, reply) => login(pool, guard, request, reply));
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
+  app.get('/api/v1/auth/acting', (request, reply) => actingChoices(pool, request, reply));
   app.post('/api/v1/auth/acting', (request, reply) => chooseActing(pool, request, reply));
   app.post('/api/v1/auth/logout', (request, reply) => logout(pool, request, reply));
   app.post('/api/v1/auth/password', (request, reply) =>

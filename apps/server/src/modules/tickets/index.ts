@@ -9,12 +9,19 @@ export { loadEvents, lockRefCounter, reviveCorrection } from './repo/ticket.js';
 export { loadReport, type StoredReport } from './repo/report.js';
 export { activeTicketRefsOfPerson } from './repo/people.js';
 export { ticketAlertFacts, type AlertFacts } from './repo/alerts.js';
+export {
+  appendEscalationEvent,
+  escalationStepDone,
+  ticketDownFacts,
+  type DownFacts,
+} from './repo/escalation.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
 export {
   lockTicket,
   slaCandidateIds,
   slaActiveIds,
   slaTicketRows,
+  ticketAckFacts,
   ticketEventRows,
   type SlaTicketRow,
 } from './repo/sla.js';

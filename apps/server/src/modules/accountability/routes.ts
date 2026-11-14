@@ -150,7 +150,16 @@ export function registerSettings(app: FastifyInstance, config: AppConfig): void 
   app.put('/api/v1/settings/sla-policies', (request, reply) =>
     putSlaPolicies(pool, request, reply, config.jobBoss),
   );
-  for (const resource of LADDER_RESOURCES) registerResource(app, pool, resource);
+  for (const resource of LADDER_RESOURCES) {
+    // A saved rule re-arms what it governs (the tickets already down), as saving the clocks' targets does.
+    const afterSave = (tx: PoolClient, tenantId: string) =>
+      reconcileSlaPolicies(tx, tenantId, config.jobBoss);
+    registerResource(
+      app,
+      pool,
+      resource.table === 'escalation_rule' ? { ...resource, afterSave } : resource,
+    );
+  }
   app.put('/api/v1/machines/:id/criticality', (request, reply) =>
     putMachineCriticality(pool, request, reply, config.jobBoss),
   );

@@ -58,6 +58,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     expectedBackAt: null,
     waitingSpare: null,
     sla: null,
+    handback: null,
+    canAcknowledge: false,
     figures: null,
     ...overrides,
   };

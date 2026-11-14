@@ -13,7 +13,10 @@ export function activeCrew(input: TransitionInput): CrewMember[] {
 
 /** His rule at resume: the lead stays lead when the lead or someone on the crew resumes; anyone else takes over. */
 export function leadAfterResume(input: TransitionInput, resumer: string): string {
-  const lead = input.ticket.leadPersonId;
-  const onJob = resumer === lead || activeCrew(input).some((m) => m.personId === resumer);
+  return resumeLead(input.ticket.leadPersonId, activeCrew(input), resumer);
+}
+
+export function resumeLead(lead: string | null, crew: CrewMember[], resumer: string): string {
+  const onJob = resumer === lead || crew.some((m) => m.personId === resumer && !m.leftAt);
   return onJob && lead ? lead : resumer;
 }

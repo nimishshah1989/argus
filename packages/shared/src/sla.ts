@@ -53,3 +53,24 @@ export const slaPoliciesUpdateSchema = z
     'Each severity must appear exactly once',
   );
 export type SlaPoliciesUpdate = z.infer<typeof slaPoliciesUpdateSchema>;
+
+export const handbackStatusSchema = z.enum(['requested', 'confirmed', 'disputed', 'timed_out']);
+
+/** Production's sign-off of a fix, with turnaround both ways. Null on a ticket nobody was asked about. */
+export const handbackSchema = z
+  .object({
+    status: handbackStatusSchema,
+    requestedAt: z.string().datetime({ offset: true }),
+    /** When the sign-off times out; null when the plant sets no limit. */
+    dueAt: z.string().datetime({ offset: true }).nullable(),
+    respondedAt: z.string().datetime({ offset: true }).nullable(),
+    respondedByPersonId: z.string().uuid().nullable(),
+    disputeReason: z.string().nullable(),
+    /** How many times production has sent this ticket back. */
+    reopenCount: z.number().int().nonnegative(),
+    turnaround: z
+      .object({ maintenanceMin: z.number().int(), productionMin: z.number().int() })
+      .strict(),
+  })
+  .strict();
+export type Handback = z.infer<typeof handbackSchema>;
