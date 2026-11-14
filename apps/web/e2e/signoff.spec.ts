@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
-import { apiLogin, floorMachine, raiseTicketViaApi } from './fixtures.js';
+import { apiLogin, raiseTicketViaApi, signoffMachine } from './fixtures.js';
 
 /** Slice 6 (ticket 34), floor and desk: production is asked "Is it fixed?" after maintenance closes with a report. */
 
@@ -16,8 +16,8 @@ const token = (username: string): Promise<string> => {
 };
 
 /** The operator reports, maintenance (asha) starts and closes with a report: a sign-off is now asked of the operator. */
-async function closedWithReport(slot: number, project: string, problem: string) {
-  const machine = floorMachine(slot, project);
+async function closedWithReport(slot: 'A' | 'B' | 'C', project: string, problem: string) {
+  const machine = signoffMachine(slot, project);
   const operator = await token('op');
   const maintenance = await token('asha');
   const ticket = await raiseTicketViaApi(operator, machine.id, problem);
@@ -41,7 +41,7 @@ async function openMyComplaints(page: Page): Promise<void> {
 test('the person who reported says it is fixed and sees the turnaround both ways', async ({
   page,
 }, testInfo) => {
-  const { ticket } = await closedWithReport(11, testInfo.project.name, 'Noise in the spindle');
+  const { ticket } = await closedWithReport('A', testInfo.project.name, 'Noise in the spindle');
   await openMyComplaints(page);
   const card = page.getByRole('listitem').filter({ hasText: ticket.ref });
   await expect(card.getByText('Is it fixed?', { exact: true }).first()).toBeVisible();
@@ -54,7 +54,7 @@ test('the person who reported says it is fixed and sees the turnaround both ways
 test('"Not fixed" needs a reason, then the same ticket is open again', async ({
   page,
 }, testInfo) => {
-  const { ticket } = await closedWithReport(12, testInfo.project.name, 'Chuck loose');
+  const { ticket } = await closedWithReport('B', testInfo.project.name, 'Chuck loose');
   await openMyComplaints(page);
   const card = page.getByRole('listitem').filter({ hasText: ticket.ref });
   await card.getByRole('button', { name: 'Not fixed' }).click();
@@ -71,12 +71,12 @@ test('"Not fixed" needs a reason, then the same ticket is open again', async ({
 });
 
 test('the desk ticket shows the sign-off and both turnarounds', async ({ page }, testInfo) => {
-  const { ticket } = await closedWithReport(13, testInfo.project.name, 'Coolant pump noise');
+  const { ticket } = await closedWithReport('C', testInfo.project.name, 'Coolant pump noise');
   const session = await token('asha');
   await page.addInitScript((value) => localStorage.setItem('uptimo_token', value), session);
   await page.goto(`/desk/${ticket.id}`);
   const panel = page.getByRole('region', { name: "Waiting for production's OK" });
-  await expect(panel).toContainText('times out after');
+  await expect(panel).toContainText('Asked at');
   await expect(panel).toContainText('Maintenance turnaround');
   await expect(panel).toContainText('Production answer');
   await expect(panel).toContainText('Waiting');

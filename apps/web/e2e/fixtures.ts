@@ -131,14 +131,30 @@ export function floorMachine(slot: number, projectName: string): MachineFixture 
   return machine;
 }
 
-/** The floor group and its machines (ticket 15). */
+/** Three machines per project for the sign-off spec (ticket 34), lettered so no floor search by number finds them. */
+const SIGNOFF_MACHINES: MachineFixture[] = Array.from({ length: 9 }, (_, i) => ({
+  id: scopedId(`10000000-0000-0000-0002-${String(i).padStart(12, '0')}`),
+  code: `SO-${'ABC'[Math.floor(i / 3)]}${i % 3}`,
+  category: 'VMC',
+  cell: 'Cell-6',
+}));
+
+/** SO-<A to C><project>: one machine per sign-off test per project, so nothing else raises on them. */
+export function signoffMachine(test: 'A' | 'B' | 'C', projectName: string): MachineFixture {
+  const code = `SO-${test}${Math.max(0, PROJECTS.indexOf(projectName))}`;
+  const machine = SIGNOFF_MACHINES.find((m) => m.code === code);
+  if (!machine) throw new Error(`No sign-off machine ${code}`);
+  return machine;
+}
+
+/** The floor group and its machines (ticket 15), then the sign-off spec's machines. */
 function floorSeedStatements(): SeedStatement[] {
   return [
     {
       text: 'INSERT INTO machine_group (id, tenant_id, segment_id, code, name) VALUES ($1, $2, $3, $4, $5)',
       values: [FLOOR_GROUP.id, TENANT.id, SEGMENT.id, FLOOR_GROUP.code, FLOOR_GROUP.name],
     },
-    ...FLOOR_MACHINES.map((machine) => ({
+    ...[...FLOOR_MACHINES, ...SIGNOFF_MACHINES].map((machine) => ({
       text: 'INSERT INTO machine (id, tenant_id, code, segment_id, group_id, category, cell) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       values: [
         machine.id,
