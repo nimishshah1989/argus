@@ -301,7 +301,7 @@ test('dashboard: a KPI tile drills down to its target', async ({ page }) => {
 
 test('dashboard: chart colours come from the tokens', async ({ page }) => {
   for (const [accent, hex] of [
-    ['teal', '#0d9488'],
+    ['teal', '#0f766e'],
     ['blue', '#0a66c2'],
   ]) {
     await open(page, `lang=en&accent=${accent}`);

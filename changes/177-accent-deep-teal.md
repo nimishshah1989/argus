@@ -1,0 +1,1 @@
+- The app's accent colour is now deep teal instead of blue (Nimish's choice); buttons, links and chart lines all stay readable (WCAG AA).
