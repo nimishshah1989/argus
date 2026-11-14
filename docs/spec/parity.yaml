@@ -617,6 +617,9 @@ rows:
       - 'apps/web/e2e/board.spec.ts :: a breakdown nobody has started shows its machine and age, and the pulse counts it'
       - 'apps/web/e2e/board.spec.ts :: the TV is dark, has no navigation, and shows the three oldest stops of a column'
       - 'apps/web/e2e/board-hidden.spec.ts :: the board leaves out a hidden group and a segment kept off the board'
+      - 'apps/web/e2e/board.spec.ts :: the board shows the plant day score: response today and repair today'
+      - 'apps/web/e2e/board.spec.ts :: a day with nothing to average shows a dash, never 0 min'
+      - 'apps/web/e2e/board.spec.ts :: the TV shows the same two tiles beside open over 1 day'
     source: PARITY.md §v3 / Views
   - id: v3.views.07
     feature: 'My complaints (floor): open with status chips, fixed or cancelled 24 hours, cancel'

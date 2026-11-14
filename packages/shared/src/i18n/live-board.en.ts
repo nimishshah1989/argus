@@ -15,5 +15,9 @@ export const liveBoardEn = {
   'live.ages.oneToFour': '1 to 4 h',
   'live.ages.fourToDay': '4 to 24 h',
   'live.ages.overDay': 'Over 1 day',
+  'live.today.response': 'Response today',
+  'live.today.repair': 'Repair today',
+  'live.today.notStarted': '{{count}} not started',
+  'live.today.stillOpen': '{{count}} still open',
   'live.ages.line': '{{label}}: {{count}}',
 };

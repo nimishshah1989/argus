@@ -113,3 +113,62 @@ test('keeps the app navigation outside kiosk mode, and a wide screen opens the T
   await expect(page).toHaveURL(/\/desk\/board\?kiosk=1$/);
   await expect(page.getByRole('link')).toHaveCount(0);
 });
+
+const TODAY = {
+  tickets: 7,
+  notStarted: 2,
+  stillOpen: 3,
+  responseMin: 6,
+  repairMin: 22,
+  waitingMin: 5,
+};
+
+/** The day score the server sends (`GET /board/today`), replaced with fixed numbers so the tiles can be read exactly. */
+async function serveToday(page: Page, today: Record<string, number | null>): Promise<void> {
+  await page.route('**/api/v1/board/today', (route) =>
+    route.fulfill({
+      json: {
+        now: new Date().toISOString(),
+        from: '2026-11-14T00:00:00+05:30',
+        to: '2026-11-15T00:00:00+05:30',
+        ...today,
+      },
+    }),
+  );
+}
+
+test('the board shows the plant day score: response today and repair today', async ({ page }) => {
+  await serveToday(page, TODAY);
+  await signIn(page, 'asha');
+  await openBoard(page, false);
+  const response = page.getByRole('group', { name: 'Response today' });
+  const repair = page.getByRole('group', { name: 'Repair today' });
+  await expect(response).toContainText('6 min');
+  await expect(response).toContainText('2 not started');
+  await expect(repair).toContainText('22 min');
+  await expect(repair).toContainText('3 still open');
+});
+
+test('a day with nothing to average shows a dash, never 0 min', async ({ page }) => {
+  await serveToday(page, { ...TODAY, responseMin: null, repairMin: null });
+  await signIn(page, 'asha');
+  await openBoard(page, false);
+  await expect(page.getByRole('group', { name: 'Response today' })).toContainText('—');
+  await expect(page.getByRole('group', { name: 'Repair today' })).not.toContainText('0 min');
+});
+
+test('the TV shows the same two tiles beside open over 1 day', async ({ page }) => {
+  await serveToday(page, TODAY);
+  await signIn(page, 'asha');
+  await openBoard(page, true);
+  await expect(page.getByRole('group', { name: 'Response today' })).toContainText('6 min');
+  await expect(page.getByRole('group', { name: 'Repair today' })).toContainText('22 min');
+  await expect(page.getByTestId('age-overDay')).toBeVisible();
+});
+
+test('the tiles come from the real server when nothing is replaced', async ({ page }) => {
+  await signIn(page, 'asha');
+  await openBoard(page, false);
+  await expect(page.getByRole('group', { name: 'Response today' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Repair today' })).toContainText(/—|\d+ (min|h)/);
+});
