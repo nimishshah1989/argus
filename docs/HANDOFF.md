@@ -13,7 +13,7 @@ touched suites locally; CI runs once when the orchestrator marks a PR ready; no 
 `/poteto-mode <brief>`; reviews are ponytail-review plus `/interrogate` for schema, auth, tenancy, deletes, history.
 **Screens:** only from approved mockups (`docs/design/LOCK.md`); desktop layouts live in the patterns (#222).
 
-## M0: gate report written (`docs/plan/gates/M0.md`), waiting for Nimish's go
+## M0: CLOSED (Nimish: "GO - IT WORKED", 14 Nov; signed in on staging as the admin)
 
 Restore drill A passed (11-minute point-in-time restore, counts identical). The weekly dump is carried into M1.
 
