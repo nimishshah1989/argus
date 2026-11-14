@@ -1,6 +1,7 @@
 export * from './refs.js';
 export * from './figures.js';
 export { personMinutes } from './person-minutes.js';
+export { dayScore, type DayScore, type DayTicket } from './day-score.js';
 export * from './types.js';
 export * from './permissions.js';
 export * from './ticket.js';
