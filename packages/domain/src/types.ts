@@ -27,7 +27,9 @@ export type EventType =
   // tag_add / tag_remove: history only, nothing writes them any more (old events still render)
   | 'tag_add'
   | 'tag_remove'
-  | 'acknowledge';
+  | 'acknowledge'
+  | 'handback_confirm'
+  | 'handback_dispute';
 
 export interface EditChange {
   field: string;
@@ -46,6 +48,8 @@ export interface TicketEvent {
   status?: RestorableStatus;
   /** Per-field old→new values recorded by a `correct` (`edit`) event. */
   changes?: EditChange[];
+  /** On a `close`: production was asked to sign the fix off. */
+  handbackRequested?: boolean;
 }
 
 export interface WorkSegment {

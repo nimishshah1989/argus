@@ -41,6 +41,7 @@ function downStretches(input: FigureInput, gaps: Gap[]): { done: number; openSin
   let acc = 0;
   let downStart = input.kindUpgradedAt ?? input.reportedAt;
   let isDown = true;
+  let closedAt = input.reportedAt;
   const closeDown = (at: Date) => {
     if (!isDown) return;
     acc += wholeMin(downStart, at, gaps);
@@ -54,6 +55,12 @@ function downStretches(input: FigureInput, gaps: Gap[]): { done: number; openSin
     if (event.type === 'running') closeDown(event.at);
     else if (event.type === 'stopped' && !isDown) openDown(event.at);
     else if (event.type === 'upgrade_kind') openDown(event.at);
+    else if (event.type === 'close') closedAt = event.at;
+    else if (event.type === 'handback_dispute') {
+      // production said it is not fixed: the machine was up until now (or since the close, if never marked running)
+      closeDown(closedAt);
+      openDown(event.at);
+    }
   }
   return { done: acc, openSince: isDown ? downStart : null };
 }
@@ -76,7 +83,7 @@ function runningSince(events: TicketEvent[]): Date | null {
   let since: Date | null = null;
   for (const event of events) {
     if (event.type === 'running') since = event.at;
-    else if (event.type === 'stopped') since = null;
+    else if (event.type === 'stopped' || event.type === 'handback_dispute') since = null;
   }
   return since;
 }
