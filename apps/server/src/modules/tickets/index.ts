@@ -37,7 +37,9 @@ export {
   notesSeenElsewhere,
   pdfTicketRow,
   pendingRows,
+  peopleWhoWorked,
   type HistoryRow,
+  type StateAtEnd,
 } from './repo/history.js';
 export {
   importedChildren,
