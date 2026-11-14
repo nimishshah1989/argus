@@ -16,6 +16,7 @@ import {
   type TicketEvent,
   type WorkSegment,
 } from '@uptimo/domain';
+import { overriddenFigures } from './repo/overrides.js';
 
 export type Outcome = { status: number; body: unknown };
 
@@ -174,20 +175,9 @@ export function rowExtras(row: Record<string, unknown>): TicketExtras {
   };
 }
 
-const OVERRIDE_KEYS = {
-  responseMin: 'responseMin',
-  handsOnOverrideMin: 'activeMin',
-  waitingOverrideMin: 'waitMin',
-  downtimeMin: 'downtimeMin',
-  repairMin: 'repairMin',
-} as const;
-
 /** The figures as stored, marking the ones set by hand (the ticket's own overrides). */
 export function figuresFromRow(row: Record<string, unknown>): Figures {
-  const overrides = (row.overrides as Record<string, unknown> | null) ?? {};
-  const overridden = Object.entries(OVERRIDE_KEYS)
-    .filter(([key]) => overrides[key] !== undefined)
-    .map(([, figure]) => figure);
+  const overridden = overriddenFigures(row.overrides);
   return {
     responseMin: num(row.response_min),
     activeMin: num0(row.active_min),
