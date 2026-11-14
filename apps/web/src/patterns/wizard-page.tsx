@@ -7,7 +7,8 @@ import { PatternFrame } from './frame.js';
 import { offlineNotice } from './view-state.js';
 
 export interface WizardStep {
-  title: string;
+  /** The step's question; omitted when the lead already says what the step is (sign-in). */
+  title?: string;
   /** Shown above the title (the machine the step is about). */
   lead?: ReactNode;
   /** A function gets `next()`, for a step whose own tap moves on (no primary button). */
@@ -30,6 +31,8 @@ export interface WizardPageProps {
   onFinish: () => Promise<void | false>;
   /** Header text in place of "Step n of total" (a one-step flow names itself). */
   aside?: string;
+  /** Hide the sync pill while online (the floor). */
+  quietOnline?: boolean;
   /** The step to open on (a deep link). */
   start?: number;
   /** Shown alone once onFinish resolves. */
@@ -74,13 +77,21 @@ function useWizardFlow(p: WizardPageProps) {
   return { index, last, pending, failed, done, stepHeading, resultBox, primary, back };
 }
 
+/** The primary may run: the step has one, it is ready, nothing is sending, and it may go offline. */
+function canSubmit(
+  step: WizardStep,
+  pending: boolean,
+  notice: ReturnType<typeof offlineNotice>,
+): boolean {
+  return Boolean(step.action && step.ready && !pending && notice !== 'kit.form.needsConnection');
+}
+
 /** The offline notice, the send error and the step's one primary button. */
 function StepFooter(p: {
   step: WizardStep;
   notice: ReturnType<typeof offlineNotice>;
   failed: boolean;
   pending: boolean;
-  primary: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const { step, notice, pending } = p;
@@ -98,10 +109,7 @@ function StepFooter(p: {
       ) : null}
       {step.action ? (
         <div className="flex flex-col">
-          <Button
-            disabled={!step.ready || pending || notice === 'kit.form.needsConnection'}
-            onClick={() => void p.primary()}
-          >
+          <Button type="submit" disabled={!canSubmit(step, pending, notice)}>
             {pending ? t('common.sending') : step.action}
           </Button>
         </div>
@@ -123,7 +131,7 @@ export function WizardPage(p: WizardPageProps) {
 
   if (done)
     return (
-      <PatternFrame title={title}>
+      <PatternFrame title={title} quietOnline={p.quietOnline}>
         <div ref={w.resultBox} tabIndex={-1}>
           {p.result}
         </div>
@@ -132,23 +140,29 @@ export function WizardPage(p: WizardPageProps) {
   return (
     <PatternFrame
       title={title}
+      quietOnline={p.quietOnline}
       back={canBack ? { label: step.back ?? t('common.back'), onClick: w.back } : undefined}
       aside={p.aside ?? t('kit.wizard.step', { n: index + 1, total: steps.length })}
     >
-      <Stack gap={4}>
-        {step.lead}
-        <h3 ref={w.stepHeading} tabIndex={-1} className="text-title2 font-bold">
-          {step.title}
-        </h3>
-        {typeof step.body === 'function' ? step.body(() => void w.primary()) : step.body}
-        <StepFooter
-          step={step}
-          notice={notice}
-          failed={w.failed}
-          pending={pending}
-          primary={w.primary}
-        />
-      </Stack>
+      {/* A real form: Go/Enter on the phone keyboard sends, and password managers see the fields. */}
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (canSubmit(step, pending, notice)) void w.primary();
+        }}
+      >
+        <Stack gap={4}>
+          {step.lead}
+          {step.title ? (
+            <h3 ref={w.stepHeading} tabIndex={-1} className="text-title2 font-bold">
+              {step.title}
+            </h3>
+          ) : null}
+          {typeof step.body === 'function' ? step.body(() => void w.primary()) : step.body}
+          <StepFooter step={step} notice={notice} failed={w.failed} pending={pending} />
+        </Stack>
+      </form>
     </PatternFrame>
   );
 }

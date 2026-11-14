@@ -1,6 +1,5 @@
 import {
   availableActions,
-  canWork,
   type ActionCrewMember,
   type ActorContext,
   type TicketAction,
@@ -18,19 +17,27 @@ import { actionMachines, commandViaApi, getJson } from './fixtures-actions.js';
 test.describe.configure({ mode: 'serial' });
 
 const LOGINS = ['asha', 'bina', 'op', 'sup', 'head', 'ph', 'brd', 'admin'] as const;
-const BUTTON: Record<TicketAction, string> = {
-  start: 'Start',
-  resume: 'Resume',
-  update: 'Update',
-  pause: 'Pause',
+const BUTTON: Record<Exclude<TicketAction, 'close'>, string> = {
+  start: 'Start work',
+  resume: 'Resume work',
+  update: 'Post update',
+  pause: 'Pause: waiting',
   transfer: 'Transfer',
-  'machine-running': 'Machine running',
+  'machine-running': 'Machine running again',
   'machine-stopped': 'Machine stopped',
   join: 'Add me as support',
   leave: 'Leave',
-  close: 'Close',
-  cancel: 'Cancel',
+  cancel: 'Cancel ticket',
 };
+/** A breakdown or support ticket closes with or without a report (two buttons); a work request just closes. */
+const CLOSE_BUTTONS = ['Write report and close', 'Close without report'];
+
+function labelsFor(actions: TicketAction[], kind: string, handedOver: boolean): string[] {
+  return actions.flatMap((action) => {
+    if (action === 'close') return kind === 'general' ? ['Close'] : CLOSE_BUTTONS;
+    return action === 'start' && handedOver ? ['Pick up'] : [BUTTON[action]];
+  });
+}
 
 interface Seeded {
   id: string;
@@ -45,7 +52,7 @@ interface MeReply {
   user: { id: string; role: ActorContext['role']; shared: boolean; actingPersonId: string };
 }
 interface DetailReply {
-  ticket: Parameters<typeof availableActions>[0] & { handedOver: boolean };
+  ticket: Parameters<typeof availableActions>[0] & { handedOver: boolean; kind: string };
   people: { personId: string; role: string; leftAt: string | null }[];
 }
 
@@ -103,9 +110,25 @@ test.afterAll(async () => {
 
 /** The literal bars three rows must show, so one wrong rule cannot hide behind the shared function. */
 const LITERAL: Partial<Record<`${string}/${Name}`, string[]>> = {
-  'asha/working': ['Update', 'Pause', 'Transfer', 'Machine running', 'Close', 'Cancel'],
-  'bina/working': ['Update', 'Pause', 'Transfer', 'Machine running', 'Leave', 'Cancel'],
-  'asha/open': ['Start', 'Cancel'],
+  'asha/working': [
+    'Post update',
+    'Pause: waiting',
+    'Transfer',
+    'Machine running again',
+    'Write report and close',
+    'Close without report',
+    'Cancel ticket',
+  ],
+  'bina/working': [
+    'Post update',
+    'Pause: waiting',
+    'Transfer',
+    'Machine running again',
+    'Leave',
+    'Cancel ticket',
+  ],
+  'asha/open': ['Start work', 'Cancel ticket'],
+  'op/open': ['Cancel ticket'],
 };
 
 /**
@@ -151,21 +174,23 @@ async function expectBar(
       ? [{ personId: member.personId, role: member.role, leftAt: member.leftAt }]
       : [],
   );
-  // Operator, plant head and board never get the action bar on the ticket page.
-  const expected = canWork(actor)
-    ? availableActions({ ...detail.ticket, crew }, actor).map((action) =>
-        action === 'start' && detail.ticket.handedOver ? 'Pick up' : BUTTON[action],
-      )
-    : [];
+  // The bar is the domain's list for this login, whoever they are: an operator gets Cancel on their own
+  // unstarted ticket, plant head and board get nothing.
+  const offered = availableActions({ ...detail.ticket, crew }, actor);
+  const expected = labelsFor(offered, detail.ticket.kind, detail.ticket.handedOver);
   const literal = LITERAL[`${login}/${name}`];
-  if (literal) expect(expected).toEqual(literal);
+  if (literal) expect([...expected].sort()).toEqual([...literal].sort());
 
   await page.goto(`/desk/${id}`);
   await expect(page.getByRole('heading', { name: ref })).toBeVisible();
   await page.waitForLoadState('networkidle');
   const region = page.getByRole('region', { name: 'Actions', exact: true });
   if (expected.length === 0) await expect(region).toHaveCount(0);
-  else await expect(region.getByRole('button')).toHaveText(expected);
+  else {
+    // Same buttons as the domain offers; the screen orders them (the primary first), the domain does not.
+    await expect(region.getByRole('button')).toHaveCount(expected.length);
+    expect((await region.getByRole('button').allInnerTexts()).sort()).toEqual([...expected].sort());
+  }
 }
 
 for (const login of LOGINS) {
@@ -197,21 +222,21 @@ test('E2 shows the quick action on the desk card', async ({ page }) => {
       .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
     await expect(card.getByRole('button', { name: label, exact: true })).toBeVisible();
   };
-  await expectQuick('open', 'Start');
+  await expectQuick('open', 'Start work');
   await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   await expectQuick('handed over', 'Pick up');
   await page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name: 'Mine' }).click();
-  await expectQuick('waiting', 'Resume');
-  await expectQuick('working', 'Machine running');
+  await expectQuick('waiting', 'Resume work');
+  await expectQuick('working', 'Machine running again');
 });
 
 test('E3 offers Cancel on My complaints exactly when the server would', async ({ page }) => {
   await signIn(page, 'op');
+  // Ticket 15: My complaints is the floor's second tab; a card names its ticket number in text.
+  await page.getByRole('navigation').getByRole('link', { name: 'My complaints' }).click();
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
   const card = (name: Name) =>
-    page
-      .getByRole('listitem')
-      .filter({ has: page.getByRole('link', { name: new RegExp(seeded[name].ref) }) });
+    page.getByRole('listitem').filter({ hasText: new RegExp(`${seeded[name].ref}(?!\\d)`) });
   await expect(card('open').getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
   await expect(card('cancelled')).toBeVisible();
   await expect(card('cancelled').getByRole('button', { name: 'Cancel' })).toHaveCount(0);

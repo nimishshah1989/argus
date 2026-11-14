@@ -1,4 +1,5 @@
-import { defineModule } from '../../kernel/index.js';
+import { defineModule, setMachineSwitchOffCheck } from '../../kernel/index.js';
+import { activeTicketId } from './repo/list.js';
 import { registerTickets } from './routes.js';
 
 export { figuresFromRow } from './mapper.js';
@@ -6,6 +7,7 @@ export { figureDrift, type DriftLine } from './drift.js';
 export { purgeIdempotencyKeys } from './repo/idempotency.js';
 export { loadEvents, lockRefCounter, reviveCorrection } from './repo/ticket.js';
 export { loadReport, type StoredReport } from './repo/report.js';
+export { activeTicketRefsOfPerson } from './repo/people.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
 export {
   lockTicket,
@@ -20,6 +22,12 @@ export {
 export const ticketsModule = defineModule({
   name: 'tickets',
   register: (app, config) => {
+    // A machine with a breakdown or support ticket still open cannot be switched off: its tile would leave the board.
+    setMachineSwitchOffCheck(async (client, tenantId, machineId) =>
+      (await activeTicketId(client, tenantId, machineId))
+        ? 'This machine has an open ticket; close or cancel it first'
+        : null,
+    );
     registerTickets(app, config);
   },
 });
@@ -29,7 +37,9 @@ export {
   notesSeenElsewhere,
   pdfTicketRow,
   pendingRows,
+  peopleWhoWorked,
   type HistoryRow,
+  type StateAtEnd,
 } from './repo/history.js';
 export {
   importedChildren,

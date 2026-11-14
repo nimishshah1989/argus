@@ -26,10 +26,16 @@ import { statusSignalEn } from './status-signal.en.js';
 import { statusSignalGu } from './status-signal.gu.js';
 import { statusFloorEn } from './status-floor.en.js';
 import { statusFloorGu } from './status-floor.gu.js';
+import { statusTaskEn } from './status-task.en.js';
+import { statusTaskGu } from './status-task.gu.js';
+import { detailEn } from './detail.en.js';
+import { detailGu } from './detail.gu.js';
 import { statusFlowEn } from './status-flow.en.js';
 import { statusFlowGu } from './status-flow.gu.js';
 import { reportFloorEn } from './report-floor.en.js';
 import { reportFloorGu } from './report-floor.gu.js';
+import { signinEn } from './signin.en.js';
+import { signinGu } from './signin.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -38,6 +44,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'desk-lists': deskListsEn,
   floor: floorEn,
   ticket: ticketEn,
+  detail: detailEn,
   sla: slaEn,
   actions: actionsEn,
   report: reportEn,
@@ -48,7 +55,9 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'status-signal': statusSignalEn,
   'status-flow': statusFlowEn,
   'status-floor': statusFloorEn,
+  'status-task': statusTaskEn,
   'report-floor': reportFloorEn,
+  signin: signinEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -58,6 +67,7 @@ export const en = {
   ...deskListsEn,
   ...floorEn,
   ...ticketEn,
+  ...detailEn,
   ...slaEn,
   ...actionsEn,
   ...reportEn,
@@ -68,7 +78,9 @@ export const en = {
   ...statusSignalEn,
   ...statusFlowEn,
   ...statusFloorEn,
+  ...statusTaskEn,
   ...reportFloorEn,
+  ...signinEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -80,6 +92,7 @@ export const gu = {
   ...deskListsGu,
   ...floorGu,
   ...ticketGu,
+  ...detailGu,
   ...slaGu,
   ...actionsGu,
   ...reportGu,
@@ -90,5 +103,7 @@ export const gu = {
   ...statusSignalGu,
   ...statusFlowGu,
   ...statusFloorGu,
+  ...statusTaskGu,
   ...reportFloorGu,
+  ...signinGu,
 };

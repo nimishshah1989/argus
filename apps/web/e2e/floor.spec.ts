@@ -1,11 +1,29 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
-import { apiLogin, floorMachine, raiseTicketViaApi, signIn } from './fixtures.js';
+import { apiLogin, floorMachine, raiseTicketViaApi } from './fixtures.js';
 
 /**
  * Ticket 15: the floor reports a problem in v3's order (machine, situation, problem, Send) and sees the
  * ticket number. Every test owns one FL machine per project (fixtures.ts), so they run in any order.
  */
+/** One API sign-in per user per worker: the login route allows 60 a minute per visitor. */
+const tokens = new Map<string, Promise<string>>();
+const token = (username: string): Promise<string> => {
+  if (!tokens.has(username)) tokens.set(username, apiLogin(username));
+  return tokens.get(username)!;
+};
+
+/**
+ * Signed in with this worker's one API session for the user (the login screen itself is covered by the
+ * other specs), then on the floor.
+ */
+async function openFloor(page: Page, username: string): Promise<void> {
+  const session = await token(username);
+  await page.addInitScript((value) => localStorage.setItem('uptimo_token', value), session);
+  await page.goto('/floor');
+  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
+}
+
 const machineRow = (page: Page, code: string) =>
   page.getByRole('button', { name: new RegExp(`^${code}\\b`) });
 
@@ -25,7 +43,7 @@ test('reports a stopped machine found by search in four taps and shows its numbe
   page,
 }, testInfo) => {
   const machine = floorMachine(1, testInfo.project.name);
-  await signIn(page, 'op');
+  await openFloor(page, 'op');
   await expect(page.getByRole('heading', { name: 'Which machine?' })).toBeVisible();
 
   await findMachine(page, machine.code);
@@ -41,7 +59,7 @@ test('reports a stopped machine found by search in four taps and shows its numbe
 
 test('reports a machine picked inside its group', async ({ page }, testInfo) => {
   const machine = floorMachine(2, testInfo.project.name);
-  await signIn(page, 'op');
+  await openFloor(page, 'op');
   await page.getByRole('button', { name: /^FL Floor line/ }).click();
   await expect(page.getByLabel('Machine ID')).toBeVisible();
   await machineRow(page, machine.code).click();
@@ -52,7 +70,7 @@ test('reports a machine picked inside its group', async ({ page }, testInfo) => 
 
 test('a ?m= link opens the situation step for that machine', async ({ page }, testInfo) => {
   const machine = floorMachine(3, testInfo.project.name);
-  await signIn(page, 'op');
+  await openFloor(page, 'op');
   await page.goto(`/floor?m=${machine.code.toLowerCase().replace('-', ' ')}`);
   await expect(page.getByRole('heading', { name: 'What is the situation?' })).toBeVisible();
   await expect(page.getByText(machine.code, { exact: true })).toBeVisible();
@@ -62,8 +80,8 @@ test('a machine already reported opens its ticket instead of a second report', a
   page,
 }, testInfo) => {
   const machine = floorMachine(4, testInfo.project.name);
-  const raised = await raiseTicketViaApi(await apiLogin('bina'), machine.id, 'Coolant leak');
-  await signIn(page, 'op');
+  const raised = await raiseTicketViaApi(await token('bina'), machine.id, 'Coolant leak');
+  await openFloor(page, 'op');
   await page.getByLabel('Find a machine').fill(machine.code);
   const row = machineRow(page, machine.code);
   await expect(row).toContainText('Already reported. Tap to view the ticket.');
@@ -77,9 +95,9 @@ test('a stopped report on a machine with a support ticket upgrades that ticket',
   page,
 }, testInfo) => {
   const machine = floorMachine(5, testInfo.project.name);
-  const raised = await raiseTicketViaApi(await apiLogin('bina'), machine.id, 'Noise', 'support');
+  const raised = await raiseTicketViaApi(await token('bina'), machine.id, 'Noise', 'support');
   // DOMAIN §3: upgradeKind is technician and above, so the operator case waits on a product ruling.
-  await signIn(page, 'asha');
+  await openFloor(page, 'asha');
   await page.getByLabel('Find a machine').fill(machine.code);
   await expect(machineRow(page, machine.code)).toContainText(
     'Needs support. Tap to say it has stopped.',
@@ -96,7 +114,7 @@ test('a stopped report on a machine with a support ticket upgrades that ticket',
 });
 
 test('other work sends a work request with its number', async ({ page }) => {
-  await signIn(page, 'op');
+  await openFloor(page, 'op');
   await page.getByRole('button', { name: /^Other work \(not a machine\)/ }).click();
   await page.getByLabel('Or type the place').fill('Store room');
   await page.getByLabel('Type of work').selectOption({ label: 'Preventive' });
@@ -109,7 +127,7 @@ test('other work sends a work request with its number', async ({ page }) => {
 
 test('maintenance can start work on the ticket it reports', async ({ page }, testInfo) => {
   const machine = floorMachine(6, testInfo.project.name);
-  await signIn(page, 'asha');
+  await openFloor(page, 'asha');
   await findMachine(page, machine.code);
   await page.getByRole('button', { name: /^Machine has stopped/ }).click();
   await page.getByLabel('What is wrong?').fill('Hydraulic pressure low');
@@ -123,8 +141,8 @@ test('My complaints lists what this person reported with the floor words', async
   page,
 }, testInfo) => {
   const machine = floorMachine(7, testInfo.project.name);
-  const raised = await raiseTicketViaApi(await apiLogin('op'), machine.id, 'Chuck not clamping');
-  await signIn(page, 'op');
+  const raised = await raiseTicketViaApi(await token('op'), machine.id, 'Chuck not clamping');
+  await openFloor(page, 'op');
   await page.getByRole('navigation').getByRole('link', { name: 'My complaints' }).click();
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
   const card = page.getByRole('listitem').filter({ hasText: raised.ref });
@@ -133,16 +151,19 @@ test('My complaints lists what this person reported with the floor words', async
   await expect(card).toContainText('Booked');
 });
 
-test('offline, the problem step says so and Send waits for a connection', async ({
+test('the header pill shows only offline; the problem step says so and Send waits for a connection', async ({
   page,
   context,
 }, testInfo) => {
   const machine = floorMachine(8, testInfo.project.name);
-  await signIn(page, 'op');
+  await openFloor(page, 'op');
   await findMachine(page, machine.code);
   await page.getByRole('button', { name: /^Machine has stopped/ }).click();
   await page.getByLabel('What is wrong?').fill('Spindle alarm');
+  // Online the floor header stays quiet (as the mockups); the pill speaks only when something is wrong.
+  await expect(page.getByTestId('sync-status')).toHaveText('');
   await context.setOffline(true);
+  await expect(page.getByTestId('sync-status')).toHaveText(/Offline/);
   await expect(page.getByText('You are offline. Connect to send this.')).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Send: machine has stopped', exact: true }),

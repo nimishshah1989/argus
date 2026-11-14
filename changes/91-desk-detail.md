@@ -1,0 +1,1 @@
+- The ticket detail now looks like the approved mockups: facts, minutes, who worked on it and the full history, with an action bar that shows only what your role may do in v3's words (Start work, Write report and close, Close without report, Cancel ticket). An imported ticket shows the minutes it was imported with. The gallery gains the desk list and detail pieces.

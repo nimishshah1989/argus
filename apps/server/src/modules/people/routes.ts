@@ -10,39 +10,34 @@ import {
   personCreateSchema,
   personPatchSchema,
 } from '@uptimo/shared';
-import { withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
-import { listLoginAdmin, listPersonAdmin, requireAuth } from '../identity/index.js';
-import { forbidden } from '../plant/index.js';
 import {
-  createLogin,
-  createPerson,
-  patchLogin,
-  patchPerson,
-  type Actor,
-  type Outcome,
-} from './service.js';
+  fieldProblem,
+  idOrNotFound,
+  withTenant,
+  type AppConfig,
+  type AuthContext,
+} from '../../kernel/index.js';
+import { listLoginAdmin, listPersonAdmin, requireAuth } from '../identity/index.js';
+import { actorOf, forbidden } from '../plant/index.js';
+import { createLogin, patchLogin } from './logins.js';
+import type { Actor, Outcome } from './outcome.js';
+import { createPerson, patchPerson } from './service.js';
 
 /** The signed-in admin, or null after answering 401 or 403. Everyone else gets 403 on every route here. */
 async function adminOnly(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return null;
-  const actor = {
-    role: ctx.role as Parameters<typeof canSettingsPeople>[0]['role'],
-    loginId: ctx.loginId,
-    personId: ctx.personId,
-    shared: ctx.shared,
-  };
-  if (canSettingsPeople(actor)) return ctx;
+  if (canSettingsPeople(actorOf(ctx))) return ctx;
   forbidden(reply);
   return null;
 }
 
+/** The body as the schema reads it, or a 422 that names the field (sent here), or null. */
 function parse<T>(schema: ZodType<T, z.ZodTypeDef, unknown>, body: unknown, reply: FastifyReply) {
   const parsed = schema.safeParse(body);
   if (parsed.success) return parsed.data;
-  const issue = parsed.error.issues[0];
-  const field = issue?.path.join('.') || undefined;
-  reply.code(400).send(apiError('validation', issue?.message ?? 'Invalid request', field));
+  const { status, body: error } = fieldProblem(parsed.error);
+  reply.code(status).send(error);
   return null;
 }
 
@@ -58,14 +53,10 @@ function conflictOf(error: unknown) {
   return hit && apiError('conflict', hit[1], hit[0]);
 }
 
-async function write<T>(
-  reply: FastifyReply,
-  work: () => Promise<Outcome<T>>,
-  key: string,
-): Promise<void> {
+async function write<T>(reply: FastifyReply, work: () => Promise<Outcome<T>>): Promise<void> {
   try {
     const out = await work();
-    if (out.ok) reply.code(out.status).send({ [key]: out.value });
+    if (out.ok) reply.code(out.status).send(out.value);
     else reply.code(out.status).send(out.error);
   } catch (error) {
     const conflict = conflictOf(error);
@@ -74,12 +65,7 @@ async function write<T>(
   }
 }
 
-const actorOf = (ctx: AuthContext): Actor => ({ tenantId: ctx.tenantId, loginId: ctx.loginId });
-const uuid = z.string().uuid();
-
-function unknownId(reply: FastifyReply, what: string): void {
-  reply.code(404).send(apiError('not_found', `Unknown ${what}`));
-}
+const auditActor = (ctx: AuthContext): Actor => ({ tenantId: ctx.tenantId, loginId: ctx.loginId });
 
 export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
@@ -88,59 +74,58 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
     () =>
       withTenant(pool, ctx.tenantId, work);
 
-  const list = (url: string, key: string, read: (tx: PoolClient) => Promise<unknown>) =>
+  const list = (url: string, read: (tx: PoolClient) => Promise<unknown[]>) =>
     app.get(url, async (request, reply) => {
       const ctx = await adminOnly(pool, request, reply);
-      if (ctx) reply.send({ [key]: await withTenant(pool, ctx.tenantId, read) });
+      if (ctx) reply.send({ items: await withTenant(pool, ctx.tenantId, read), nextCursor: null });
     });
-  list('/api/v1/people', 'people', listPersonAdmin);
-  list('/api/v1/logins', 'logins', listLoginAdmin);
+  list('/api/v1/people', listPersonAdmin);
+  list('/api/v1/logins', listLoginAdmin);
 
-  app.post('/api/v1/people', async (request, reply) => {
-    const ctx = await adminOnly(pool, request, reply);
-    const body = ctx && parse(personCreateSchema, request.body, reply);
-    if (!ctx || !body) return;
-    await write(
-      reply,
-      run(ctx, (tx) => createPerson(tx, actorOf(ctx), body)),
-      'person',
-    );
-  });
+  const create = <B>(
+    url: string,
+    schema: ZodType<B, z.ZodTypeDef, unknown>,
+    make: (tx: PoolClient, actor: Actor, body: B) => Promise<Outcome<unknown>>,
+  ) =>
+    app.post(url, async (request, reply) => {
+      const ctx = await adminOnly(pool, request, reply);
+      const body = ctx && parse(schema, request.body, reply);
+      if (ctx && body)
+        await write(
+          reply,
+          run(ctx, (tx) => make(tx, auditActor(ctx), body)),
+        );
+    });
+  create('/api/v1/people', personCreateSchema, createPerson);
+  create('/api/v1/logins', loginCreateSchema, createLogin);
 
-  app.patch('/api/v1/people/:id', async (request, reply) => {
-    const ctx = await adminOnly(pool, request, reply);
-    const body = ctx && parse(personPatchSchema, request.body, reply);
-    if (!ctx || !body) return;
-    const id = uuid.safeParse((request.params as { id: string }).id);
-    if (!id.success) return unknownId(reply, 'person');
-    await write(
-      reply,
-      run(ctx, (tx) => patchPerson(tx, actorOf(ctx), id.data, body)),
-      'person',
-    );
-  });
-
-  app.post('/api/v1/logins', async (request, reply) => {
-    const ctx = await adminOnly(pool, request, reply);
-    const body = ctx && parse(loginCreateSchema, request.body, reply);
-    if (!ctx || !body) return;
-    await write(
-      reply,
-      run(ctx, (tx) => createLogin(tx, actorOf(ctx), body)),
-      'login',
-    );
-  });
-
-  app.patch('/api/v1/logins/:id', async (request, reply) => {
-    const ctx = await adminOnly(pool, request, reply);
-    const body = ctx && parse(loginPatchSchema, request.body, reply);
-    if (!ctx || !body) return;
-    const id = uuid.safeParse((request.params as { id: string }).id);
-    if (!id.success) return unknownId(reply, 'login');
-    await write(
-      reply,
-      run(ctx, (tx) => patchLogin(tx, actorOf(ctx), id.data, body)),
-      'login',
-    );
-  });
+  // Edit, switch off and switch on are all this one PUT (`active`): the generated screen never sends DELETE.
+  const edit = <B>(
+    url: string,
+    what: string,
+    schema: ZodType<B, z.ZodTypeDef, unknown>,
+    change: (
+      tx: PoolClient,
+      actor: Actor,
+      target: { id: string; body: B },
+    ) => Promise<Outcome<unknown>>,
+  ) =>
+    app.put(`${url}/:id`, async (request, reply) => {
+      const ctx = await adminOnly(pool, request, reply);
+      if (!ctx) return;
+      const { id } = request.params as { id: string };
+      if (!idOrNotFound(reply, id, what)) return;
+      const body = parse(schema, request.body, reply);
+      if (body)
+        await write(
+          reply,
+          run(ctx, (tx) => change(tx, auditActor(ctx), { id, body })),
+        );
+    });
+  edit('/api/v1/people', 'person', personPatchSchema, (tx, actor, t) =>
+    patchPerson(tx, actor, t.id, t.body),
+  );
+  edit('/api/v1/logins', 'login', loginPatchSchema, (tx, actor, t) =>
+    patchLogin(tx, actor, t.id, t.body),
+  );
 }

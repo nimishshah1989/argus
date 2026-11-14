@@ -1,0 +1,1 @@
+- On the floor, My complaints offers Cancel again on your own ticket while nobody has started it, and a cancelled ticket now reads Cancelled instead of In progress. "Report a problem" shows its header while the plant is still loading.

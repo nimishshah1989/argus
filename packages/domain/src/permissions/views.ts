@@ -12,6 +12,16 @@ export function canDayReport(ctx: ActorContext): boolean {
   return false;
 }
 
+/** The team day report (DOMAIN §3): the plant head's view, and an option for supervisors, heads and admins. */
+export function canTeamDayReport(ctx: ActorContext): boolean {
+  return (
+    ctx.role === 'supervisor' ||
+    ctx.role === 'head' ||
+    ctx.role === 'plant_head' ||
+    ctx.role === 'admin'
+  );
+}
+
 export function canLiveBoard(ctx: ActorContext, floorLive: boolean): boolean {
   return ctx.role === 'operator' ? floorLive : true;
 }

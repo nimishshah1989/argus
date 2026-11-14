@@ -3,7 +3,7 @@ import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { passwordProblem } from '@uptimo/domain';
-import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
+import { actingPersonSchema, apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
 import { bindLog, withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
 import {
   findLogin,
@@ -13,9 +13,11 @@ import {
   resolveTenant,
   revokeOtherSessions,
   revokeSession,
+  setActingPerson,
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
+import { tenantLogoId } from './repo/profile.js';
 import {
   hashToken,
   newToken,
@@ -35,15 +37,18 @@ export function hashPassword(password: string): Promise<string> {
   return hash(password, PASSWORD_OPTS);
 }
 
-function userFrom(ctx: AuthContext) {
+function userFrom(ctx: Omit<AuthContext, 'token' | 'tenantId'>) {
   return {
     id: ctx.loginId,
     username: ctx.username,
-    name: ctx.personName,
+    name: ctx.personName ?? '',
     title: ctx.personTitle,
     role: ctx.role,
     shared: ctx.shared,
-    actingPersonId: ctx.personId,
+    actingPersonId: ctx.personId ?? '',
+    actingPerson: ctx.personId
+      ? { id: ctx.personId, name: ctx.personName ?? '', title: ctx.personTitle }
+      : null,
     mustChangePassword: ctx.mustChangePassword,
   };
 }
@@ -82,37 +87,52 @@ function tooManyAttempts(
 
 interface NewSession {
   tenantId: string;
-  loginRow: { id: string; role: string; shared: boolean; must_change_password: boolean };
+  loginRow: {
+    id: string;
+    role: string;
+    shared: boolean;
+    must_change_password: boolean;
+    password_hash: string;
+  };
   username: string;
   device: string | undefined;
-  person: { id: string; name: string; title: string | null };
+  /** null on a shared phone that has not yet been told who is using it. */
+  person: { id: string; name: string; title: string | null } | null;
 }
 
 async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
   const token = newToken();
-  await insertSession(pool, {
+  const started = await insertSession(pool, {
     tenantId: n.tenantId,
     loginId: n.loginRow.id,
+    passwordHash: n.loginRow.password_hash,
     device: n.device,
-    actingPersonId: n.person.id,
+    actingPersonId: n.person?.id ?? null,
     tokenHash: hashToken(token),
   });
+  if (!started) {
+    reply.code(401).send(apiError('unauthenticated', 'Invalid username or password'));
+    return;
+  }
   reply.send({
     token,
-    user: {
-      id: n.loginRow.id,
+    user: userFrom({
+      loginId: n.loginRow.id,
       username: n.username,
-      name: n.person.name,
-      title: n.person.title,
       role: n.loginRow.role,
       shared: n.loginRow.shared,
-      actingPersonId: n.person.id,
+      personId: n.person?.id ?? null,
+      personName: n.person?.name ?? null,
+      personTitle: n.person?.title ?? null,
       mustChangePassword: n.loginRow.must_change_password,
-    },
+    }),
   });
 }
 
-/** Who is signing in: the login's own person, or the one chosen on a shared login; never someone switched off. */
+/**
+ * Who is signing in: the login's own person, or the one chosen on a shared login (null when none is chosen yet,
+ * the app asks next); undefined when the person is unknown or switched off.
+ */
 async function actingPerson(
   pool: Pool,
   tenantId: string,
@@ -120,7 +140,8 @@ async function actingPerson(
   chosen?: string,
 ) {
   const id = row.shared ? chosen : row.person_id;
-  const person = id ? await findPerson(pool, tenantId, id) : undefined;
+  if (!id) return row.shared ? null : undefined;
+  const person = await findPerson(pool, tenantId, id);
   return person?.active ? person : undefined;
 }
 
@@ -148,7 +169,7 @@ async function login(pool: Pool, guard: LoginGuard, request: FastifyRequest, rep
   }
   guard.refund(request.ip, tenant.id, username);
   const person = await actingPerson(pool, tenant.id, loginRow, actingPersonId);
-  if (!person) {
+  if (person === undefined) {
     reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
     return;
   }
@@ -165,6 +186,28 @@ async function me(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
   reply.send({ user: userFrom(ctx) });
+}
+
+async function chooseActing(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!ctx.shared) {
+    reply.code(403).send(apiError('forbidden', 'Only a shared phone chooses who is using it'));
+    return;
+  }
+  const parsed = actingPersonSchema.safeParse(request.body);
+  const chosen =
+    parsed.success &&
+    (await setActingPerson(pool, {
+      tenantId: ctx.tenantId,
+      tokenHash: hashToken(ctx.token),
+      personId: parsed.data.actingPersonId,
+    }));
+  if (!chosen) {
+    reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
+    return;
+  }
+  reply.send({ ok: true });
 }
 
 async function logout(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
@@ -219,7 +262,10 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
-  reply.send({ company: tenant.name, logo: null });
+  // The file id in the address makes a browser fetch the new logo as soon as one is uploaded.
+  const logoId = await tenantLogoId(pool, tenant.slug);
+  const logo = logoId ? `/api/v1/brand/logo?v=${logoId}` : null;
+  reply.send({ company: tenant.name, logo });
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig): void {
@@ -232,6 +278,7 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
     login(pool, guard, request, reply),
   );
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
+  app.post('/api/v1/auth/acting', (request, reply) => chooseActing(pool, request, reply));
   app.post('/api/v1/auth/logout', (request, reply) => logout(pool, request, reply));
   app.post('/api/v1/auth/password', (request, reply) =>
     changePassword(pool, guard, request, reply),

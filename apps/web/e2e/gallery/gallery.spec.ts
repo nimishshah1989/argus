@@ -2,7 +2,17 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
-const SECTIONS = ['tokens', 'components', 'layout', 'status', 'shell', 'desk', 'floor'] as const;
+const SECTIONS = [
+  'tokens',
+  'components',
+  'layout',
+  'status',
+  'meaning',
+  'shell',
+  'desk',
+  'detail-kit',
+  'floor',
+] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -15,7 +25,7 @@ test('gallery en: every section matches its baseline at 360 px', async ({ page }
   await open(page, 'lang=en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const pills = page.getByTestId('gallery-status').locator('[data-status]');
-  await expect(pills).toHaveCount(36);
+  await expect(pills).toHaveCount(40);
   for (const pill of await pills.all()) {
     await expect(pill.locator('svg')).toHaveCount(1);
     await expect(pill).not.toHaveText('');
@@ -74,7 +84,7 @@ for (const lang of ['en', 'gu']) {
     await expect(primary).toHaveCSS('background-color', 'rgb(20, 184, 166)');
     await expect(primary).toHaveCSS('color', 'rgb(4, 32, 29)');
     const pills = page.getByTestId('gallery-status').locator('[data-status]');
-    await expect(pills).toHaveCount(36);
+    await expect(pills).toHaveCount(40);
     for (const pill of await pills.all()) await expect(pill.locator('svg')).toHaveCount(1);
     const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(axe.violations).toEqual([]);
@@ -84,6 +94,26 @@ for (const lang of ['en', 'gu']) {
       );
   });
 }
+
+test('a filter chip says its state without colour: pressed shows a tick, tap again clears it', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const chips = page.getByRole('group', { name: 'Filter machines' });
+  const stopped = chips.getByRole('button', { name: 'Stopped 2' });
+  const cnc = chips.getByRole('button', { name: 'CNC 125' });
+  await expect(stopped).toHaveAttribute('aria-pressed', 'true');
+  await expect(stopped.locator('svg')).toHaveCount(2);
+  await expect(cnc).toHaveAttribute('aria-pressed', 'false');
+  await expect(cnc.locator('svg')).toHaveCount(1);
+  await cnc.click();
+  await expect(cnc).toHaveAttribute('aria-pressed', 'true');
+  await expect(stopped).toHaveAttribute('aria-pressed', 'false');
+  await expect(chips.getByRole('button', { name: 'Overdue 1' })).toBeVisible();
+  await expect(chips.getByRole('button', { name: 'All 192' })).toBeVisible();
+  await cnc.click();
+  await expect(chips.locator('[aria-pressed="true"]')).toHaveCount(0);
+});
 
 test('@planted a status ink below 4.5:1 on its tint fails axe', async ({ page }) => {
   await open(page, 'lang=en');

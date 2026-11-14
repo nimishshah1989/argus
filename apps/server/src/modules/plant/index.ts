@@ -16,5 +16,6 @@ export {
   type MachineRow,
 } from './repo/reads.js';
 export { actorOf, forbidden } from './actor.js';
+export { passwordChangeEnforced } from './service.js';
 
 export const plantModule = defineModule({ name: 'plant', register: registerPlantRoutes });

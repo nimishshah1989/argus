@@ -1,6 +1,27 @@
 import { useTranslation } from 'react-i18next';
 import type { TicketEvent } from '../api.js';
+import { HistoryList, SectionTitle } from '../ui/detail-kit.js';
+import { Stack } from '../ui/layout.js';
+import type { Tone } from '../ui/status/index.js';
 import { formatTime } from './format.js';
+
+/** The dot colour of each kind of event (the word beside it says the same thing). */
+const TONES: Record<string, Tone> = {
+  down: 'danger',
+  stopped: 'danger',
+  upgrade_kind: 'danger',
+  start: 'info',
+  pickup: 'info',
+  resume: 'info',
+  join: 'info',
+  lead: 'info',
+  restore: 'info',
+  pause: 'hold',
+  transfer: 'moved',
+  running: 'ok',
+  close: 'ok',
+  report: 'ok',
+};
 
 const LABEL_KEYS: Record<string, string> = {
   down: 'timeline.down',
@@ -36,37 +57,32 @@ interface Props {
 
 export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
   const { t } = useTranslation();
+  const items = events.map((event) => {
+    const actor = event.actingPersonId ? names[event.actingPersonId] : undefined;
+    const reason =
+      event.reason && event.reason !== event.text
+        ? t('timeline.reason', { reason: reasonLabels[event.reason] ?? event.reason })
+        : undefined;
+    return {
+      key: event.seq,
+      tone: TONES[event.type] ?? 'muted',
+      title: t(LABEL_KEYS[event.type] ?? event.type),
+      at: event.at,
+      when: formatTime(event.at, timeZone),
+      // The report event's text is the problem, which the header already shows.
+      detail: [actor, event.type === 'down' ? undefined : event.text, reason]
+        .filter(Boolean)
+        .join(' · '),
+    };
+  });
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('timeline.title')}</h2>
-      {events.length === 0 ? (
-        <p className="mt-2 text-neutral-500">{t('timeline.empty')}</p>
+    <Stack gap={2}>
+      <SectionTitle>{t('detail.history')}</SectionTitle>
+      {items.length === 0 ? (
+        <p className="text-body text-neutral-600">{t('timeline.empty')}</p>
       ) : (
-        <ol className="mt-3 space-y-3">
-          {events.map((event) => {
-            const actor = event.actingPersonId ? names[event.actingPersonId] : undefined;
-            return (
-              <li key={event.seq} className="flex gap-3">
-                <time dateTime={event.at} className="w-12 shrink-0 pt-0.5 text-sm text-neutral-500">
-                  {formatTime(event.at, timeZone)}
-                </time>
-                <div className="min-w-0">
-                  <p className="text-base font-medium">
-                    {t(LABEL_KEYS[event.type] ?? event.type)}
-                    {actor && <span className="font-normal text-neutral-600"> · {actor}</span>}
-                  </p>
-                  {event.text && <p className="mt-0.5 text-sm text-neutral-600">{event.text}</p>}
-                  {event.reason && event.reason !== event.text && (
-                    <p className="mt-0.5 text-sm text-neutral-500">
-                      {t('timeline.reason', { reason: reasonLabels[event.reason] ?? event.reason })}
-                    </p>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <HistoryList items={items} />
       )}
-    </section>
+    </Stack>
   );
 }

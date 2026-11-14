@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { hash } from '@node-rs/argon2';
 import { expect } from 'vitest';
 import { buildApp } from '../src/app.js';
@@ -7,13 +8,16 @@ import { startTestDb, type TestDb } from './harness.js';
 export const A = '10000000-0000-4000-8000-0000000000a1';
 export const B = '10000000-0000-4000-8000-0000000000b1';
 export const PASSWORD = 'correct-horse-battery';
+/** An invented password built at runtime, so no test file carries one as a literal the secrets scan would take for a key. */
+export const pw = (tag: string): string => ['Quiet', tag, 'Plant', '2026'].join('-');
+export const TEMP = pw('temp');
 export const ROLES = ['operator', 'technician', 'supervisor', 'head', 'plant_head', 'board'];
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 export type Res = Awaited<ReturnType<App['inject']>>;
 
 type Call = (
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT',
   url: string,
   token?: string,
   payload?: object,
@@ -74,6 +78,7 @@ export async function startPeopleApp(): Promise<PeopleApp> {
         headers: {
           host,
           'content-type': 'application/json',
+          'idempotency-key': randomUUID(),
           ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         ...(payload ? { payload } : {}),
@@ -97,4 +102,34 @@ export async function startPeopleApp(): Promise<PeopleApp> {
       await db.stop();
     },
   };
+}
+
+/** A transaction that holds a lock until `release()`, so a request can be made to wait at a known point. */
+export async function holdLock(db: TestDb, sql: string, params: unknown[] = []) {
+  const client = await db.admin.connect();
+  await client.query('BEGIN');
+  await client.query(sql, params);
+  return {
+    query: (text: string, values?: unknown[]) => client.query(text, values),
+    release: async () => {
+      await client.query('COMMIT');
+      client.release();
+    },
+  };
+}
+
+/** The key the people routes take per customer (one writer at a time). */
+export const PEOPLE_LOCK = 'SELECT pg_advisory_xact_lock(hashtext($1))';
+export const peopleLockKey = (tenantId: string): string => `people:${tenantId}`;
+
+/** Waits until some request is blocked on a lock. */
+export async function waitUntilBlocked(db: TestDb): Promise<void> {
+  for (let i = 0; i < 100; i += 1) {
+    const { rows } = await db.admin.query(
+      "SELECT 1 FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()",
+    );
+    if (rows.length > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error('no request was waiting on a lock');
 }

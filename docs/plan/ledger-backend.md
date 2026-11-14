@@ -87,3 +87,99 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   by FRONTEND for 23 (function-only) and relayed. Rule: backend PRs stay DRAFT until the review passes (Nimish has
   merged before reviews finished). 20 goal 1 complete on main (#191 + #200, FRONTEND). Its builder
   session_01KEBF29QyDatvrERY9YAqZk handed to me; held on stand-by (read-only prep for 29) to keep the 2-builder cap.
+- 2026-11-14 05:35 UTC — 21 goal 1 merged as #199 by Nimish at 05:30 (head aa54f05) before the reviews finished; 8/9
+  green, api 1/3 still running. Reviews: auth/tenancy PASS with MEDIUMs (admin re-check after lock, session
+  resurrection race, must_change_password unenforced, push subscribe race); data/privacy FAIL (HIGH: CrudPage contract
+  mismatch; HIGH: switching off a person on an active ticket leaves them on the crew with an open work stretch;
+  MEDIUM: shared phone signed out when its acting person is switched off, shared admin login unaccountable; LOW:
+  password trim/Indian patterns, THIRD_PARTY row, phoneChanged). Held: phones never reach non-admins, E.164, no hard
+  delete, one audit row per change in the same transaction, no test weakened, host rule correct.
+- Rulings: (1) switch-off of a person on an active ticket = 409 "transfer or close first" (rewrites no history);
+  transfer/pause targets must be active. (2) Shared phone keeps its session and push registration, forgets the acting
+  person (D24/0009 precedent). (3) Shared login cannot hold admin (default for Nimish). (4) must_change_password
+  enforced server-side behind `features.enforcePasswordChange`, default OFF until FRONTEND ships the change-password
+  step (else seeded Cosmos logins are locked out). Cost if wrong: temporary passwords stay usable until then.
+  (5) Validation = 422 everywhere. All sent to builder 21 as one follow-up PR (claude/t21-followup), draft until my
+  re-check.
+- 2026-11-14 05:40 UTC — RULINGS (Nimish via FRONTEND): (1) MERGES = option A: only the two orchestrators merge;
+  Nimish tests staging. Must be as fast as his own merging: the adversarial review starts the moment a PR opens (in
+  parallel with CI), ~30 min, one fix round, merge within minutes of green + review pass. Builders now report the PR
+  number at first push. (2) Defaults accepted: a shared login cannot hold admin; switching off a person on an open
+  ticket is refused until it is transferred or closed.
+- Migration-runner flake (both lanes, FRONTEND asked): root cause found by me: pg-pool end() resolves before sockets
+  close; container.stop() then killed the still-ending admin-pool backend (57P01, CI dump: database 'test',
+  _poolUseCount 13 = the 13 partial databases). Fix: endPool() waits for every 'remove' event; draft PR #204
+  (test-only), merge on green.
+- 2026-11-14 05:48 UTC — FRONTEND orchestrator handed over: new FRONTEND = session_01KEBF29s188PmJ6P6e68eEZ (old
+  session_01KEBF28rZZwgSDVMzdNjw77 ended). The MIGRATION LOCK for 23 stays granted. 23 draft PR #206 opened; two
+  adversarial reviewers started in parallel with CI (migration/files; contract/guards). Main red since #196/#199:
+  FRONTEND's #205 fixes #196's browser part; builder 21 fixes #199's part (secrets, sign-in refusals). Queued for the
+  next free slot (FRONTEND request, from approved mockups): operator may upgradeKind support->stopped (DOMAIN section 3
+  change + test); work requests get WR refs not BD (ref-counter bug + test). Infra (FRONTEND): logos on server disk
+  FILES_DIR need a persistent, backed-up volume until S3.
+- 2026-11-14 05:52 UTC — FRONTEND #205 merged (8de140e): main's browser part fixed; builder 21's fix narrows to #199's
+  secrets part. FRONTEND asked: 18 goal 2 server (breakdown PDF with v3 QR, day report on real shifts, Gujarati) before
+  29 (M1, blocks cutover). The stand-by session had ended; dispatched a fresh builder session_01KEBF2AEVwnmoe18e8BYdfW,
+  branch claude/t18-pdfs-day-report. Backend at 3 builders for now, counted against the combined cap of 5 (told
+  FRONTEND). Ruling: the shared-phone signal is /auth/me actingPerson null + 403 code 'choose_acting_person' (21
+  follow-up). FRONTEND rulings: logo volume = docker named volume + nightly tar to the backup bucket (FRONTEND
+  infra PR); board filter = FRONTEND #203.
+- 2026-11-14 06:00 UTC — #206 (23) reviews: reviewer 1 (migration/files) FAIL: logos on disk cannot work on the
+  deployed image (USER node, root-owned /app, no FILES_DIR in refresh-env.sh, no volume) + lowercase/alias time zone
+  -> 500; definer functions, grants, search_path, tenancy, upload limits held. Reviewer 2 (contract/guards) FAIL:
+  restore/correct put an active ticket on a switched-off machine; a tenancy test proved nothing (old PATCH verb);
+  segment active=false leaked to the floor picker; LOWs (blank on create, fail-open guard Map, hard-coded dates,
+  contract helpers private, wrong 409 field). Held: legacy /lists untouched, route count only grew, race safe.
+- Rulings: (1) logos stored as bytes in the database (bytea on `file`, in 0011), no disk, no volume: RDS backups cover
+  them; supersedes the FRONTEND volume plan (told the likely new FRONTEND session_01KEBF28FjJbxz9dfKVhZPSp and its
+  infra builder). (2) Settings READ routes are head/admin only (supersedes my 05:35 'reads open'); floor/desk read
+  /config. (3) Segment active=false refused (422) until 29, like shifts/glossary. (4) The switch-off guard fails
+  closed. (5) Contract helpers exported from one place; people routes adopt them after #206 merges. One fix push.
+- 2026-11-14 06:00 UTC — RULING (Nimish, direct): pace matters as much as green. Do not wait for all 9 checks or rerun
+  the whole suite for a small change. Merge when the checks that cover the change are green (static, secrets, the
+  api shard or browser job that runs the touched tests, plus the touched tests run locally) and the review has no
+  blocker; an unrelated slow or flaky job does not hold a merge, and no full re-run for one flaky test. Builders run
+  only affected tests locally. Applied at once: merged #202 (ledger, docs only) and #204 (test teardown fix: static,
+  secrets, gallery, pr-meta, api 1/3 green; the 7 touched db test files green locally) without waiting for browser.
+  Nimish is not merging himself for now. 21 follow-up #210 (draft, 251e5ab) opened; scoped re-check running.
+- 2026-11-14 06:03 UTC — Merged #211 (3d03ad7, builder 21): .gitleaksignore fingerprints for the squash commit of #199
+  (secrets only; with FRONTEND #205 main should be green for new pushes). FRONTEND confirmed: new FRONTEND =
+  session_01KEBF28FjJbxz9dfKVhZPSp; logo volume PR #209 closed; combined builders 5; pstack on main (#208): builds via
+  /poteto-mode, reviews ponytail-review + /interrogate for schema/auth/permissions/tenancy/deletes/history.
+- #210 (21 follow-up) re-check: items 1-3, 5-9 FIXED (sign-in with a stored weak password = 200 verified); item 4 done
+  in 9ebe091 (403 'choose_acting_person'; /auth/me keeps '' plus optional actingPerson). Sent 4 LOWs (lock order
+  deadlock -> 500, join race FOR UPDATE/FOR SHARE, admin count, handover check order). #212 (18 goal 2 server: QR
+  mid = machine code like v3, day-report windows from the shift table, pending-at-end fix; cut: plant_head team report)
+  in one adversarial review. Queued small ticket for FRONTEND asks: POST /tickets/past (no recordPastBreakdown exists
+  in domain; figures stored from entered start/finish), operator upgradeKind, WR refs.
+- 2026-11-14 06:05 UTC — #212 review (one Opus): PASS with fixes (QR = v3's own bdQR on real tickets; IST windows;
+  domain minutes; Gujarati read back; #182 kept). Fix push asked: pending-at-end from event history (restore clears
+  cancelled_at), plant_head interim 403, QR mid = machine code at report time (snapshot first), note the whole-day
+  default. NIMISH ANSWERS (via FRONTEND, 'all yes'): breakdown PDF = operator only own reports (shared floor login: its
+  cell), technician and above all, board none; team day report for plant_head is M1 (before cutover). Both go to
+  builder 18 as a follow-up PR (claude/t18-team-report-pdf-access) after #212 merges; DOMAIN section 3 gains the PDF row.
+- 2026-11-14 06:15 UTC — Merged #212 (cbaaf2a, 18 goal 2 server): QR = v3 (machine code at report time), day report on
+  real shift windows (IST), pending-at-end from events, Gujarati, plant_head interim 403; merged on 8/9 (api 2/3 still
+  running; touched tests green locally) per the pace ruling. Builder 18 started the follow-up (team day report + PDF
+  access per Nimish). #210 (21 follow-up) e6c2bf1: + shared login may sign in without an acting person (FRONTEND
+  request, Nimish's approved flow; POST /auth/acting picks; 403 choose_acting_person until then); merges on api +
+  browser (it touches sign-in). #206 re-check: A-H fixed; one blocker (logo PUT with a non-image body -> 500) + 2 LOWs
+  sent; merge waits for FRONTEND 'drill done'. NEW backlog item: legacy GET /settings, /lists/:list,
+  /translations/missing are open to every role (check web callers, then gate to head/admin).
+- 2026-11-14 06:18 UTC — Nimish (direct): "merge 206 now, don't wait for the drill". Merged #206 (0e37df7): 23 server
+  (lists, glossary, company name/language/time zone, logo as DB bytes, /files/:id, /brand/logo, migration 0011
+  additive) + #195 review fixes; re-check PASS after the logo-500 fix (469008b); merged with secrets green and the
+  rest running. MIGRATION LOCK released (told FRONTEND; warned that the next staging deploy applies 0011, so time it
+  after the drill). Builder 23 -> next ticket claude/server-small-items: operator upgradeKind, WR refs, POST
+  /tickets/past (+ domain function), gate legacy GET /settings, /lists/:list, /translations/missing. Builder 21 ->
+  contract commit on #210 using the helpers now on main.
+- 2026-11-14 06:35 UTC — Main red again (api): #212's reports-real shift test read GET /shifts as an array + PATCH;
+  #206 changed it to {items,nextCursor} + PUT. Fixed by me in #217 (d36c1fc, test-only, merged on static/secrets +
+  local run). Lesson: under the pace ruling, merge a PR whose base is stale only after merging main into it when two
+  PRs touch the same contract. Merged #215 (ledger). Merged #210 (a1bdee9, 9/9 green): 21 follow-up = security fixes,
+  shared login without acting person (POST /auth/acting), CrudPage contract for people/logins (reusing #206's
+  helpers), secrets fix (runtime-built test passwords + one fingerprint for d8ef0b7). #216 (team day report + PDF
+  access) review FAIL vs v3 (membership dropped 1,382 real minutes, Closed/Pending contradiction, switched-off people
+  vanish, no Primary/Support split): ruled 'follow v3 exactly', fixed in ba5a51e; merges on static/secrets/api.
+  Builder 21 -> 'M1 server leftovers' (26 dependency advisory in CI, audit 11/12/14/17/19, erase_person import_row).
+  POST /tickets/past final contract sent to FRONTEND (three times reported/workStarted/running; overlap 409).

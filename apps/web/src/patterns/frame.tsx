@@ -19,11 +19,14 @@ export function PatternFrame({
   title,
   back,
   aside,
+  quietOnline,
   children,
 }: {
   title: string;
   back?: FrameBack;
   aside?: string;
+  /** Hide the sync pill while online (the floor's mockups). */
+  quietOnline?: boolean;
   children: ReactNode;
 }) {
   const headingId = useId();
@@ -46,7 +49,7 @@ export function PatternFrame({
           </h2>
           <Inline gap={2}>
             {aside ? <span className="text-footnote text-neutral-600">{aside}</span> : null}
-            <SyncStatus />
+            <SyncStatus quietOnline={quietOnline} />
           </Inline>
         </div>
         {children}

@@ -6,6 +6,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Client, Pool } from 'pg';
 import { expect, it } from 'vitest';
 import { applyAppMigrations, withoutBypassGrant } from '../../../scripts/migrate.js';
+import { endPool } from './end-pool.js';
 
 const execFileAsync = promisify(execFile);
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -41,6 +42,11 @@ const ARTIFACTS: Record<string, string> = {
     AND to_regclass('public.ticket_tag') IS NULL AS installed`,
   '0010_retention_support.sql':
     "SELECT to_regprocedure('job_tenant_ids()') IS NOT NULL AS installed",
+  '0011_tenant_profile.sql': `SELECT to_regprocedure('tenant_update_profile(text,text,text)') IS NOT NULL
+    AND to_regprocedure('tenant_set_logo(uuid)') IS NOT NULL
+    AND to_regprocedure('tenant_logo(text)') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'file' AND column_name = 'content') AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
@@ -69,8 +75,8 @@ async function withRunnerDatabases(
       return { pool, url: url.toString() };
     });
   } finally {
-    await Promise.all(pools.map((pool) => pool.end()));
-    await admin.end();
+    await Promise.all(pools.map(endPool));
+    await endPool(admin);
     await container.stop();
   }
 }
@@ -562,10 +568,10 @@ it('runs every migration as a non-superuser database owner', async () => {
       );
       expect(Number(purged.rows[0].purged)).toBe(0);
     } finally {
-      await pool.end();
+      await endPool(pool);
     }
   } finally {
-    await admin.end();
+    await endPool(admin);
     await container.stop();
   }
 }, 180_000);

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { PatternFrame } from '../../patterns/frame.js';
 import { CirclePlus, List } from '../../ui/icon.js';
 import { Loading, Skeleton } from '../../ui/loading.js';
 import { Page, Shell, Stack } from '../../ui/layout.js';
@@ -23,19 +24,22 @@ export function FloorShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Step 1's shape while the plant loads (A3-1). */
-export function FloorLoading() {
+/** The screen's header and Step 1's shape while the plant loads (A3-1). */
+export function FloorLoading({ title }: { title?: string }) {
+  const { t } = useTranslation();
   return (
-    <Loading>
-      <Stack gap={3}>
-        {/* eslint-disable i18next/no-literal-string -- shape names, not copy */}
-        <Skeleton shape="title" />
-        <Skeleton shape="line" />
-        <Skeleton shape="row" />
-        <Skeleton shape="tile" />
-        <Skeleton shape="tile" />
-        {/* eslint-enable i18next/no-literal-string */}
-      </Stack>
-    </Loading>
+    <PatternFrame title={title ?? t('floor.title')} quietOnline>
+      <Loading>
+        <Stack gap={3}>
+          {/* eslint-disable i18next/no-literal-string -- shape names, not copy */}
+          <Skeleton shape="title" />
+          <Skeleton shape="line" />
+          <Skeleton shape="row" />
+          <Skeleton shape="tile" />
+          <Skeleton shape="tile" />
+          {/* eslint-enable i18next/no-literal-string */}
+        </Stack>
+      </Loading>
+    </PatternFrame>
   );
 }
