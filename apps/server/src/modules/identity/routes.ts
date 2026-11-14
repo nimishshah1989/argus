@@ -3,7 +3,7 @@ import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { passwordProblem } from '@uptimo/domain';
-import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
+import { actingPersonSchema, apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
 import { bindLog, withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
 import {
   findLogin,
@@ -13,6 +13,7 @@ import {
   resolveTenant,
   revokeOtherSessions,
   revokeSession,
+  setActingPerson,
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
@@ -182,6 +183,28 @@ async function me(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   reply.send({ user: userFrom(ctx) });
 }
 
+async function chooseActing(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!ctx.shared) {
+    reply.code(403).send(apiError('forbidden', 'Only a shared phone chooses who is using it'));
+    return;
+  }
+  const parsed = actingPersonSchema.safeParse(request.body);
+  const chosen =
+    parsed.success &&
+    (await setActingPerson(pool, {
+      tenantId: ctx.tenantId,
+      tokenHash: hashToken(ctx.token),
+      personId: parsed.data.actingPersonId,
+    }));
+  if (!chosen) {
+    reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
+    return;
+  }
+  reply.send({ ok: true });
+}
+
 async function logout(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
@@ -247,6 +270,7 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
     login(pool, guard, request, reply),
   );
   app.get('/api/v1/auth/me', (request, reply) => me(pool, request, reply));
+  app.post('/api/v1/auth/acting', (request, reply) => chooseActing(pool, request, reply));
   app.post('/api/v1/auth/logout', (request, reply) => logout(pool, request, reply));
   app.post('/api/v1/auth/password', (request, reply) =>
     changePassword(pool, guard, request, reply),

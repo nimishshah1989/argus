@@ -401,3 +401,131 @@ describe('the audit row says when the number changed', () => {
     expect(JSON.stringify(rows)).not.toContain('9000000041');
   });
 });
+
+/** A shared phone signed in as `leaver`, whose person was then switched off: nobody is acting on it. */
+async function phoneWithNobody() {
+  const leaver = await addUser();
+  const other = await addPerson(`Picks Up ${(n += 1)}`);
+  const username = `phone.${n}`;
+  await addLogin(username, { role: 'operator', shared: true, cell: 'Cell-3' });
+  const sign = (acting: string) =>
+    t.call('POST', '/api/v1/auth/login', undefined, {
+      username,
+      password: TEMP,
+      actingPersonId: acting,
+    });
+  const token = (await sign(leaver.personId)).json().token as string;
+  const off = await t.call('PATCH', `/api/v1/people/${leaver.personId}`, admin, { active: false });
+  expect(off.statusCode, off.body).toBe(200);
+  return { token, other, leaver };
+}
+
+const workingTicket = async (token: string, personId: string): Promise<string> => {
+  const res = await t.call('POST', '/api/v1/tickets', token, {
+    kind: 'general',
+    location: 'Shop floor',
+    workType: 'repair',
+    problem: 'Door hinge',
+    startNow: true,
+    startByPersonId: personId,
+  });
+  expect(res.statusCode, res.body).toBe(201);
+  return res.json().ticket.id;
+};
+
+describe('a phone with nobody acting on it', () => {
+  it('is refused on every route but the picker and signing out', async () => {
+    const { token } = await phoneWithNobody();
+    for (const [method, url] of [
+      ['GET', '/api/v1/tickets'],
+      ['GET', '/api/v1/state'],
+      ['POST', '/api/v1/tickets'],
+      ['POST', '/api/v1/push/subscribe'],
+      ['GET', '/api/v1/people'],
+    ] as const) {
+      const res = await t.call(method, url, token, method === 'POST' ? {} : undefined);
+      expect(res.statusCode, `${method} ${url}`).toBe(403);
+      expect(res.json().error.code, url).toBe('choose_acting_person');
+    }
+    expect(
+      (await t.call('GET', '/api/v1/config', token)).statusCode,
+      'the picker lists people',
+    ).toBe(200);
+    expect((await t.call('GET', '/api/v1/auth/me', token)).statusCode).toBe(200);
+    const off = await t.call('POST', '/api/v1/push/unsubscribe', token, {
+      endpoint: 'https://x.test/e',
+    });
+    expect(off.statusCode).toBe(200);
+    expect((await t.call('POST', '/api/v1/auth/logout', token, {})).statusCode).toBe(200);
+  });
+
+  it('can choose who is using it, and then works: raising a ticket is 201', async () => {
+    const { token, other, leaver } = await phoneWithNobody();
+    const raise = (by: string) =>
+      t.call('POST', '/api/v1/tickets', token, {
+        kind: 'general',
+        location: 'Shop floor',
+        workType: 'repair',
+        problem: 'Door hinge',
+        reportedByPersonId: by,
+      });
+    expect((await raise(other)).statusCode).toBe(403);
+    for (const bad of [leaver.personId, '10000000-0000-4000-8000-0000000000ff']) {
+      const res = await t.call('POST', '/api/v1/auth/acting', token, { actingPersonId: bad });
+      expect(res.statusCode, bad).toBe(422);
+    }
+    const choose = await t.call('POST', '/api/v1/auth/acting', token, { actingPersonId: other });
+    expect(choose.statusCode, choose.body).toBe(200);
+    const me = (await t.call('GET', '/api/v1/auth/me', token)).json().user;
+    expect(me.actingPerson).toMatchObject({ id: other });
+    expect(me.actingPersonId).toBe(other);
+    expect((await raise(other)).statusCode).toBe(201);
+  });
+
+  it('is not how a personal login changes who it is: 403', async () => {
+    const u = await addUser();
+    const res = await t.call('POST', '/api/v1/auth/acting', u.token, {
+      actingPersonId: u.personId,
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('the last admin is counted by who could actually act', () => {
+  it('does not count a personal admin login whose person is gone', async () => {
+    const hash = (
+      await t.db.admin.query("SELECT password_hash FROM login WHERE username = 'admin'")
+    ).rows[0].password_hash;
+    await t.db.admin.query(
+      "INSERT INTO login (tenant_id, username, password_hash, role, shared, person_id) VALUES ($1, 'orphan.admin', $2, 'admin', false, NULL)",
+      [A, hash],
+    );
+    const adminLogin = (await t.db.admin.query("SELECT id FROM login WHERE username = 'admin'"))
+      .rows[0].id;
+    const others = (
+      await t.db.admin.query(
+        "SELECT id FROM login WHERE role = 'admin' AND username NOT IN ('admin', 'orphan.admin') AND NOT shared AND disabled_at IS NULL",
+      )
+    ).rows;
+    for (const o of others)
+      await t.db.admin.query('UPDATE login SET disabled_at = now() WHERE id = $1', [o.id]);
+    const res = await t.call('PATCH', `/api/v1/logins/${adminLogin}`, admin, { disabled: true });
+    expect(res.statusCode, res.body).toBe(409);
+  });
+});
+
+describe('who may hand a ticket over is decided before who it is handed to', () => {
+  it('answers 403, not 422, to a caller without transfer permission naming a switched-off person', async () => {
+    const worker = await addUser();
+    const id = await workingTicket(worker.token, worker.personId);
+    const off = await addUser();
+    await t.call('PATCH', `/api/v1/people/${off.personId}`, admin, { active: false });
+    const operator = await addUser('operator');
+    const res = await t.call('POST', `/api/v1/tickets/${id}/transfer`, operator.token, {
+      personId: operator.personId,
+      toPersonId: off.personId,
+      note: 'Next shift',
+    });
+    expect(res.statusCode, res.body).toBe(403);
+  });
+});

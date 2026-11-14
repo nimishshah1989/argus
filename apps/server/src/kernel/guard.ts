@@ -21,11 +21,20 @@ const PASSWORD_SCREENS: ReadonlySet<string> = new Set([
   'POST /api/v1/auth/logout',
 ]);
 
-/** A shared phone whose acting person was switched off may read, but not act, until the app asks who is using it. */
-function needsActingPerson(auth: AuthContext, method: string, screen: string): boolean {
-  const reads = method === 'GET' || method === 'HEAD';
-  return auth.shared && auth.personId === null && !reads && !PASSWORD_SCREENS.has(screen);
-}
+/**
+ * What a shared phone with nobody acting on it may still do: say who it is, list the people to choose from,
+ * choose, drop its push registration, sign out. Everything else waits until the app has asked who is using it.
+ */
+const PICKER_SCREENS: ReadonlySet<string> = new Set([
+  'GET /api/v1/auth/me',
+  'GET /api/v1/config',
+  'POST /api/v1/auth/acting',
+  'POST /api/v1/push/unsubscribe',
+  'POST /api/v1/auth/logout',
+]);
+
+const needsActingPerson = (auth: AuthContext, screen: string): boolean =>
+  auth.shared && auth.personId === null && !PICKER_SCREENS.has(screen);
 
 /** Whether this customer makes a login with a temporary password change it before anything else. */
 export type PasswordChangeRequired = (auth: AuthContext) => Promise<boolean>;
@@ -76,7 +85,7 @@ export function registerAuthGuard(
     request.auth = auth;
     bindLog(request, reply, { tenantId: auth.tenantId, loginId: auth.loginId });
     const screen = `${request.method} ${request.routeOptions.url}`;
-    if (needsActingPerson(auth, request.method, screen))
+    if (needsActingPerson(auth, screen))
       return reply
         .code(403)
         .send(apiError('choose_acting_person', 'Choose who is using this phone to continue'));

@@ -282,3 +282,66 @@ describe('a refused call changes nothing about the sign-in', () => {
     expect(after).toEqual(before);
   });
 });
+
+describe('locks are taken person first, then login, everywhere', () => {
+  it('a push registration waiting behind a switch-off does not deadlock with it', async () => {
+    const u = await addUser();
+    const lock = await holdLock(t.db, 'SELECT 1 FROM person WHERE id = $1 FOR UPDATE', [
+      u.personId,
+    ]);
+    const res = await race(
+      lock,
+      () =>
+        t.call('POST', '/api/v1/push/subscribe', u.token, {
+          subscription: PUSH,
+          actingPersonId: u.personId,
+        }),
+      (l) => l.query('UPDATE login SET disabled_at = now() WHERE id = $1', [u.loginId]),
+    );
+    expect(res.statusCode, res.body).toBe(401);
+  });
+
+  it('a sign-in waiting behind a switch-off does not deadlock with it', async () => {
+    const u = await addUser();
+    const lock = await holdLock(t.db, 'SELECT 1 FROM person WHERE id = $1 FOR UPDATE', [
+      u.personId,
+    ]);
+    const res = await race(
+      lock,
+      () =>
+        t.call('POST', '/api/v1/auth/login', undefined, { username: u.username, password: TEMP }),
+      (l) => l.query('UPDATE login SET disabled_at = now() WHERE id = $1', [u.loginId]),
+    );
+    expect(res.statusCode, res.body).toBe(401);
+  });
+});
+
+describe('a person is not switched off while they are being put on a ticket', () => {
+  it('a handover to them that waits behind the switch-off is refused once they are off', async () => {
+    const worker = await addUser();
+    const target = await addUser();
+    const ticket = await t.call('POST', '/api/v1/tickets', worker.token, {
+      kind: 'general',
+      location: 'Shop floor',
+      workType: 'repair',
+      problem: 'Door hinge',
+      startNow: true,
+      startByPersonId: worker.personId,
+    });
+    const id = ticket.json().ticket.id;
+    const lock = await holdLock(t.db, 'SELECT 1 FROM person WHERE id = $1 FOR UPDATE', [
+      target.personId,
+    ]);
+    const res = await race(
+      lock,
+      () =>
+        t.call('POST', `/api/v1/tickets/${id}/pause`, worker.token, {
+          personId: worker.personId,
+          reasonCode: 'spare',
+          assignToPersonId: target.personId,
+        }),
+      (l) => l.query('UPDATE person SET active = false WHERE id = $1', [target.personId]),
+    );
+    expect(res.statusCode, res.body).toBe(422);
+  });
+});

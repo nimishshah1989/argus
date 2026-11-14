@@ -5,6 +5,7 @@ import {
   endSessions,
   insertPerson,
   loginsOfPerson,
+  lockPerson,
   otherAdminCount,
   personAdminById,
   updatePerson,
@@ -147,6 +148,8 @@ export async function patchPerson(
 ): Promise<Outcome<PersonAdmin>> {
   const denied = await lockAsAdmin(tx, actor);
   if (denied) return denied;
+  // Held until commit: a command putting this person on a ticket has finished (or waits) before we look.
+  await lockPerson(tx, id);
   const before = await personAdminById(tx, id);
   if (!before) return fail(404, 'not_found', 'Unknown person');
   const off = patch.active === false;

@@ -12,6 +12,9 @@ export const changePasswordSchema = z.object({
   old: z.string().min(1),
   password: z.string().min(8),
 });
+/** A shared phone says who is using it now. */
+export const actingPersonSchema = z.object({ actingPersonId: z.string().uuid() });
+
 export type ChangePasswordBody = z.infer<typeof changePasswordSchema>;
 
 export const userSchema = z

@@ -213,6 +213,13 @@ export async function lockLiveActing(
   tx: Db,
   who: { tenantId: string; loginId: string; personId: string },
 ): Promise<ActingCheck> {
+  // Person before login, as a switch-off takes them, so the two never wait on each other.
+  const person = (
+    await tx.query('SELECT active FROM person WHERE id = $1 AND tenant_id = $2 FOR SHARE', [
+      who.personId,
+      who.tenantId,
+    ])
+  ).rows[0];
   const login = (
     await tx.query('SELECT disabled_at FROM login WHERE id = $1 AND tenant_id = $2 FOR SHARE', [
       who.loginId,
@@ -220,22 +227,35 @@ export async function lockLiveActing(
     ])
   ).rows[0];
   if (!login || login.disabled_at) return 'login_off';
-  const person = (
-    await tx.query('SELECT active FROM person WHERE id = $1 AND tenant_id = $2 FOR SHARE', [
-      who.personId,
-      who.tenantId,
-    ])
-  ).rows[0];
   if (!person) return 'unknown_person';
   return person.active ? 'ok' : 'person_off';
+}
+
+/** Writes to a person take this first, so anything that is putting them on a ticket finishes before it looks. */
+export async function lockPerson(tx: Db, personId: string): Promise<void> {
+  await tx.query('SELECT 1 FROM person WHERE id = $1 FOR UPDATE', [personId]);
+}
+
+/** A person who is on, locked until commit: whoever adds them to a ticket reads them this way. */
+export async function lockActivePerson(
+  tx: Db,
+  tenantId: string,
+  personId: string,
+): Promise<{ id: string; name: string } | undefined> {
+  return (
+    await tx.query(
+      'SELECT id, name FROM person WHERE tenant_id = $1 AND id = $2 AND active FOR SHARE',
+      [tenantId, personId],
+    )
+  ).rows[0];
 }
 
 /** Enabled personal admin logins other than `excluding`, whose person is on: who could still manage people. */
 export async function otherAdminCount(tx: Db, excluding: readonly string[]): Promise<number> {
   const row = (
     await tx.query(
-      `SELECT count(*)::int AS n FROM login l LEFT JOIN person p ON p.id = l.person_id
-       WHERE l.role = 'admin' AND NOT l.shared AND l.disabled_at IS NULL AND (p.id IS NULL OR p.active)
+      `SELECT count(*)::int AS n FROM login l JOIN person p ON p.id = l.person_id
+       WHERE l.role = 'admin' AND NOT l.shared AND l.disabled_at IS NULL AND p.active
          AND l.id <> ALL($1::uuid[])`,
       [excluding],
     )
