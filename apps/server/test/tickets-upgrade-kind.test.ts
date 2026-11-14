@@ -117,7 +117,7 @@ describe('who is acting on an upgrade is resolved like every other command', () 
   it('a shared login acts as the person chosen on the phone, and that person is on the event', async () => {
     const id = await supportTicket('UP-shared');
     const acting = (
-      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-technician'")
+      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-operator'")
     ).rows[0].person_id as string;
     const chosen = await f.call('POST', '/api/v1/auth/acting', f.tokens['shared-operator']!, {
       actingPersonId: acting,
@@ -136,11 +136,11 @@ describe('who is acting on an upgrade is resolved like every other command', () 
       (await f.admin.query('SELECT person_id FROM login WHERE username = $1', [username])).rows[0]
         .person_id as string;
     const chosen = await f.call('POST', '/api/v1/auth/acting', f.tokens['shared-operator']!, {
-      actingPersonId: await person('plant-a-technician'),
+      actingPersonId: await person('plant-a-operator'),
     });
     expect(chosen.statusCode, chosen.body).toBe(200);
     for (const personId of [
-      await person('plant-a-operator'),
+      await person('plant-a-technician'),
       '99999999-9999-4999-8999-999999999999',
     ]) {
       const res = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {

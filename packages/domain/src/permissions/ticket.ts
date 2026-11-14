@@ -79,6 +79,26 @@ export function acknowledgeRefusal(
   return facts.alreadyAcknowledged ? 'Ticket is already acknowledged' : null;
 }
 
+/** The events after which the acknowledge clock has stopped: the first start or pickup, or an acknowledge. */
+export const ACK_CLOCK_STOPS: readonly string[] = ['start', 'pickup', 'acknowledge'];
+
+/**
+ * Whether to offer the Acknowledge button: the command would take it, and the acknowledge clock is still running.
+ * The command itself still takes an acknowledge after a start (a later "seen" is allowed); the button does not
+ * ask for one once the work has begun.
+ */
+export function offersAcknowledge(
+  ctx: ActorContext,
+  ticket: { status: string; assignedToPersonId: string | null },
+  facts: { onRoster: boolean; clockStopped: boolean },
+): boolean {
+  if (facts.clockStopped) return false;
+  return (
+    acknowledgeRefusal(ctx, ticket, { onRoster: facts.onRoster, alreadyAcknowledged: false }) ===
+    null
+  );
+}
+
 export function canRestore(ctx: ActorContext): boolean {
   return ctx.role === 'admin';
 }

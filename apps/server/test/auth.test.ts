@@ -68,7 +68,7 @@ beforeAll(async () => {
     [A, B],
   );
   await admin.query(
-    "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $3, 'Asha', 'maintenance', 'Technician'), ($2, $4, 'Bina', 'maintenance', 'Technician')",
+    "INSERT INTO person (id, tenant_id, name, team, title) VALUES ($1, $3, 'Asha', 'maintenance', 'Technician'), ($2, $4, 'Bina', 'production', 'Operator')",
     [PERSON_A, PERSON_B, A, B],
   );
   await admin.query(

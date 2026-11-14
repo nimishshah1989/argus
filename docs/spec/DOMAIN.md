@@ -116,7 +116,7 @@ One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report
 | Settings: SLA, escalation, WhatsApp, other caps | no | no | no | yes | no | yes | no |
 | Settings: AI monthly cap and consent (D22) | no | no | no | no | no | yes | no |
 
-**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team. **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
+**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team: a floor (operator) phone offers production, a technician phone maintenance, a supervisor, head or plant head phone either, never a vendor and never someone switched off (`GET /auth/acting` lists them, and `POST /auth/acting` and the sign-in accept only those). **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
 
 ## 4. API contract (v1)
 
@@ -128,6 +128,7 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 | --- | --- | --- | --- |
 | `POST /auth/login` | `{username, password, device}` | `{token, user:{id, username, name, role, shared, title}}` | `/api/login` |
 | `GET /auth/me` |  | `{user}` | `/api/me` |
+| `GET /auth/acting` (shared logins only) | no parameters | `{people:[{id, name, team}]}`: who this phone may choose, names and teams only | new |
 | `POST /auth/logout` |  |  | `/api/logout` |
 | `POST /auth/password` | `{old, password}` |  | `/api/password` |
 | `GET /auth/sessions` · `DELETE /auth/sessions/{id}` |  | device list; revoke | new |

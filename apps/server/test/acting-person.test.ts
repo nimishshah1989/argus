@@ -65,38 +65,59 @@ const act = async (id: string, as: string, action: string, body: object = {}) =>
   expect(res.statusCode, `${action}: ${res.body}`).toBe(200);
 };
 
-/** Everything a refused command must leave alone: the history, the ticket's own row and its clocks. */
+const detailOf = async (id: string) => (await call('GET', `/api/v1/tickets/${id}`, 'asha')).json();
+
+type Clock = {
+  state: string;
+  dueAt: string | null;
+  stoppedAt: string | null;
+  pausedAt: string | null;
+};
+
+/** Everything a refused command must leave alone, read through the API: the ticket, its history, crew and clocks. */
 async function snapshot(id: string) {
-  const events = await admin.query(
-    'SELECT seq, type, acting_person_id FROM ticket_event WHERE ticket_id = $1 ORDER BY seq',
-    [id],
+  const { ticket, events, people: crew, intervals, report } = await detailOf(id);
+  const clocks = Object.fromEntries(
+    Object.entries((ticket.sla ?? {}) as Record<string, Clock | null>).map(([name, clock]) => [
+      name,
+      clock && {
+        state: clock.state,
+        dueAt: clock.dueAt,
+        stoppedAt: clock.stoppedAt,
+        pausedAt: clock.pausedAt,
+      },
+    ]),
   );
-  const ticket = await admin.query(
-    'SELECT status, lead_person_id, assigned_to_person_id, last_event_seq, closed_by_person_id FROM ticket WHERE id = $1',
-    [id],
-  );
-  const timers = await admin.query(
-    'SELECT kind, state, revision FROM sla_timer WHERE ticket_id = $1 ORDER BY kind',
-    [id],
-  );
-  const crew = await admin.query(
-    'SELECT person_id, role, left_at FROM crew_member WHERE ticket_id = $1 ORDER BY person_id',
-    [id],
-  );
-  return { events: events.rows, ticket: ticket.rows, timers: timers.rows, crew: crew.rows };
+  return {
+    status: ticket.status,
+    lead: ticket.leadPersonId,
+    assignee: ticket.assignedToPersonId,
+    closedBy: ticket.closedByPersonId,
+    lastEventSeq: ticket.lastEventSeq,
+    events: events.map((e: { seq: number; type: string; actingPersonId: string | null }) => [
+      e.seq,
+      e.type,
+      e.actingPersonId,
+    ]),
+    crew,
+    intervals,
+    clocks,
+    report,
+  };
 }
 
 const eventsAfter = async (id: string, seq: number) =>
   (
-    await admin.query(
-      'SELECT type, acting_person_id FROM ticket_event WHERE ticket_id = $1 AND seq > $2 ORDER BY seq',
-      [id, seq],
-    )
-  ).rows as Array<{ type: string; acting_person_id: string | null }>;
+    (await detailOf(id)).events as Array<{
+      seq: number;
+      type: string;
+      actingPersonId: string | null;
+    }>
+  )
+    .filter((event) => event.seq > seq)
+    .map(({ type, actingPersonId }) => ({ type, actingPersonId }));
 
-const lastSeq = async (id: string) =>
-  (await admin.query('SELECT last_event_seq AS n FROM ticket WHERE id = $1', [id])).rows[0]
-    .n as number;
+const lastSeq = async (id: string) => (await detailOf(id)).ticket.lastEventSeq as number;
 
 /** One command per family: how to get a ticket ready, and the body the command carries besides who acts. */
 interface Family {
@@ -107,8 +128,7 @@ interface Family {
   credited?: (id: string) => Promise<unknown>;
 }
 
-const leadOf = async (id: string) =>
-  (await admin.query('SELECT lead_person_id AS p FROM ticket WHERE id = $1', [id])).rows[0].p;
+const leadOf = async (id: string) => (await detailOf(id)).ticket.leadPersonId;
 
 const working = async (kind: 'stopped' | 'support' = 'stopped') => {
   const id = await ticketIn(kind);
@@ -223,9 +243,7 @@ describe.each(FAMILIES)('$action', (family) => {
       expect(res.statusCode, res.body).toBe(200);
       const written = await eventsAfter(id, seq);
       expect(written.length).toBeGreaterThan(0);
-      expect(written.map((event) => event.acting_person_id)).toEqual(
-        written.map(() => people.bina),
-      );
+      expect(written.map((event) => event.actingPersonId)).toEqual(written.map(() => people.bina));
       if (family.credited) expect(await family.credited(id)).toBe(people.bina);
     }
   });
@@ -247,7 +265,7 @@ describe('restore and correct (admin only)', () => {
       reason: 'Needed after all',
     });
     expect(ok.statusCode, ok.body).toBe(200);
-    expect((await eventsAfter(id, seq)).map((e) => e.acting_person_id)).toEqual([people.root]);
+    expect((await eventsAfter(id, seq)).map((e) => e.actingPersonId)).toEqual([people.root]);
   });
 
   it('a correction is the admin’s own act, whatever the body says', async () => {
@@ -259,25 +277,21 @@ describe('restore and correct (admin only)', () => {
       changes: { problem: 'Spindle noise' },
     });
     expect(res.statusCode, res.body).toBe(200);
-    expect((await eventsAfter(id, seq)).map((e) => e.acting_person_id)).toEqual([people.root]);
+    expect((await eventsAfter(id, seq)).map((e) => e.actingPersonId)).toEqual([people.root]);
   });
 });
 
 describe('raising a ticket', () => {
   const ticketCount = async () =>
-    (await admin.query('SELECT count(*)::int AS n FROM ticket WHERE tenant_id = $1', [TENANT]))
-      .rows[0].n as number;
+    ((await call('GET', '/api/v1/tickets?limit=200', 'asha')).json().items as unknown[]).length;
+  const raiseAs = (as: string, body: object) =>
+    call('POST', '/api/v1/tickets', as, { machineId: machines[0], problem: 'Spindle', ...body });
 
   it('refuses a start naming someone else and creates nothing, on a shared and a personal login', async () => {
     await choose('shared', 'bina');
     for (const as of ['shared', 'bina']) {
       const before = await ticketCount();
-      const res = await call('POST', '/api/v1/tickets', as, {
-        machineId: machines[0],
-        problem: 'Spindle',
-        startNow: true,
-        startByPersonId: people.asha,
-      });
+      const res = await raiseAs(as, { startNow: true, startByPersonId: people.asha });
       expect(res.statusCode, `${as}: ${res.body}`).toBe(403);
       expect(res.json().error).toMatchObject({ code: 'forbidden', field: 'startByPersonId' });
       expect(await ticketCount()).toBe(before);
@@ -286,22 +300,126 @@ describe('raising a ticket', () => {
 
   it('starts the work as the chosen person, even when the report names another reporter', async () => {
     await choose('shared', 'bina');
-    const res = await call('POST', '/api/v1/tickets', 'shared', {
-      machineId: machines.shift(),
-      problem: 'Spindle',
-      startNow: true,
-      reportedByPersonId: people.asha,
-    });
+    const res = await raiseAs('shared', { startNow: true, reportedByPersonId: people.asha });
+    machines.shift();
     expect(res.statusCode, res.body).toBe(201);
     const ticket = res.json().ticket;
     expect(ticket.leadPersonId).toBe(people.bina);
     expect(ticket.reportedByPersonId).toBe(people.asha);
     const events = await eventsAfter(ticket.id, -1);
-    expect(events.map((event) => event.acting_person_id)).toEqual(events.map(() => people.bina));
-    const segments = await admin.query('SELECT person_id FROM work_segment WHERE ticket_id = $1', [
-      ticket.id,
-    ]);
-    expect(segments.rows).toEqual([{ person_id: people.bina }]);
+    expect(events.map((event) => event.actingPersonId)).toEqual(events.map(() => people.bina));
+    const { intervals } = await detailOf(ticket.id);
+    expect(intervals.map((i: { personId: string }) => i.personId)).toEqual([people.bina]);
+  });
+
+  it('does not let an operator start work by raising: refused, and nothing is created', async () => {
+    await choose('floor', 'omkar');
+    for (const as of ['omkar', 'floor']) {
+      const before = await ticketCount();
+      const res = await raiseAs(as, { startNow: true });
+      expect(res.statusCode, `${as}: ${res.body}`).toBe(403);
+      expect(res.json().error).toMatchObject({ code: 'forbidden', field: 'startNow' });
+      expect(await ticketCount()).toBe(before);
+    }
+    const plain = await raiseAs('omkar', {});
+    machines.shift();
+    expect(plain.statusCode, plain.body).toBe(201);
+    expect(plain.json().ticket.status).toBe('open');
+  });
+
+  it('lets only maintenance name a reporter other than themselves; an operator reports as themselves', async () => {
+    await choose('floor', 'omkar');
+    for (const as of ['omkar', 'floor']) {
+      const before = await ticketCount();
+      const res = await raiseAs(as, { reportedByPersonId: people.asha });
+      expect(res.statusCode, `${as}: ${res.body}`).toBe(403);
+      expect(res.json().error).toMatchObject({ code: 'forbidden', field: 'reportedByPersonId' });
+      expect(await ticketCount()).toBe(before);
+    }
+    const own = await raiseAs('omkar', { reportedByPersonId: people.omkar });
+    machines.shift();
+    expect(own.statusCode, own.body).toBe(201);
+    expect(own.json().ticket.reportedByPersonId).toBe(people.omkar);
+    await choose('shared', 'bina');
+    const named = await raiseAs('shared', { reportedByPersonId: people.asha });
+    machines.shift();
+    expect(named.statusCode, named.body).toBe(201);
+    expect(named.json().ticket.reportedByPersonId).toBe(people.asha);
+  });
+
+  describe('who hears about a new breakdown', () => {
+    const told = async (ticketId: string) =>
+      (
+        await admin.query(
+          "SELECT person_id FROM notification WHERE ticket_id = $1 AND kind = 'breakdown.new'",
+          [ticketId],
+        )
+      ).rows.map((row: { person_id: string }) => row.person_id);
+
+    it('skips the person who raised it, not a reporter they named', async () => {
+      await choose('shared', 'bina');
+      const named = await raiseAs('shared', { reportedByPersonId: people.asha });
+      machines.shift();
+      expect(named.statusCode, named.body).toBe(201);
+      expect(await told(named.json().ticket.id)).toEqual([people.asha]);
+      const own = await raiseAs('asha', {});
+      machines.shift();
+      expect(await told(own.json().ticket.id)).toEqual([people.bina]);
+    });
+  });
+
+  it('answers a replay with the first reply only to the person who sent it', async () => {
+    await choose('shared', 'bina');
+    const machineId = machines.shift();
+    const send = (idem: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/tickets',
+        headers: {
+          host: HOST,
+          'content-type': 'application/json',
+          authorization: `Bearer ${tokens.shared}`,
+          'idempotency-key': idem,
+        },
+        payload: { machineId, problem: 'Spindle' },
+      });
+    const first = await send('raise-switch');
+    expect(first.statusCode, first.body).toBe(201);
+    expect((await send('raise-switch')).json()).toEqual(first.json());
+    await choose('shared', 'asha');
+    const other = await send('raise-switch');
+    expect(other.statusCode, other.body).toBe(422);
+    expect(other.json().error).toMatchObject({ code: 'validation', field: 'idempotencyKey' });
+  });
+});
+
+describe('a command replayed after the phone changed hands', () => {
+  const start = (id: string, idem: string) =>
+    app.inject({
+      method: 'POST',
+      url: `/api/v1/tickets/${id}/start`,
+      headers: {
+        host: HOST,
+        'content-type': 'application/json',
+        authorization: `Bearer ${tokens.shared}`,
+        'idempotency-key': idem,
+      },
+      payload: {},
+    });
+
+  it('is not answered with the first person’s reply, and writes nothing; the same person still gets the replay', async () => {
+    const id = await ticketIn();
+    await choose('shared', 'bina');
+    const first = await start(id, 'start-switch');
+    expect(first.statusCode, first.body).toBe(200);
+    await choose('shared', 'asha');
+    const before = await snapshot(id);
+    const other = await start(id, 'start-switch');
+    expect(other.statusCode, other.body).toBe(422);
+    expect(other.json().error).toMatchObject({ code: 'validation', field: 'idempotencyKey' });
+    expect(await snapshot(id)).toEqual(before);
+    await choose('shared', 'bina');
+    expect((await start(id, 'start-switch')).json()).toEqual(first.json());
   });
 });
 
@@ -318,11 +436,8 @@ describe('recording a past breakdown', () => {
     expect(res.statusCode, res.body).toBe(201);
     const id = res.json().ticket.id as string;
     expect(res.json().ticket.reportedByPersonId).toBe(people.asha);
-    const report = await admin.query(
-      'SELECT submitted_by_person_id AS p FROM breakdown_report WHERE ticket_id = $1',
-      [id],
-    );
-    expect(report.rows[0].p).toBe(people.bina);
+    expect((await detailOf(id)).report.submittedByPersonId).toBe(people.bina);
+    // the audit trail has no read API yet, so this one reads its table
     const audit = await admin.query(
       "SELECT after FROM audit_log WHERE action = 'ticket.past' AND entity_id = $1",
       [id],
@@ -395,15 +510,19 @@ beforeAll(async () => {
     ['asha', 'technician', 'asha', false],
     ['bina', 'technician', 'bina', false],
     ['root', 'admin', 'root', false],
+    ['omkar', 'operator', 'omkar', false],
     ['shared', 'technician', null, true],
+    ['floor', 'operator', null, true],
   ];
   for (const [, , person] of logins) {
     if (!person) continue;
     people[person] = randomUUID();
-    await admin.query(
-      "INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, 'maintenance')",
-      [people[person], TENANT, person],
-    );
+    await admin.query('INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, $4)', [
+      people[person],
+      TENANT,
+      person,
+      person === 'omkar' ? 'production' : 'maintenance',
+    ]);
   }
   for (const [username, role, person, shared] of logins) {
     await admin.query(

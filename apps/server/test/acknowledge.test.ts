@@ -7,7 +7,9 @@ import { buildApp } from '../src/app.js';
 import type { AppConfig } from '../src/kernel/index.js';
 import { withTenant } from '@uptimo/db';
 import { processSlaTimerJob } from '../src/modules/accountability/repo/timers.js';
+import { onRosterAt } from '../src/modules/accountability/roster.js';
 import { reconcileTicket } from '../src/modules/accountability/sla.js';
+import { setRosterLookup } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '81000000-0000-0000-0000-000000000001';
@@ -386,7 +388,7 @@ describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
       expect(await flagIn(who, id), who).toBe(false);
   });
 
-  it('is false for a vendor-level roster line, and true for the assignee without any line', async () => {
+  it('is false for a vendor-level roster line, and false for the assignee once work has started, though the command still takes it', async () => {
     const id = await raise();
     await rosterLine('bina', { level: 'vendor' });
     expect(await flagIn('bina', id)).toBe(false);
@@ -399,11 +401,49 @@ describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
       reasonCode: 'spare',
       assignToPersonId: people.bina,
     });
-    // a paused ticket is waiting: there is nothing to acknowledge until it is worked again
-    expect(await flagIn('bina', id)).toBe(false);
     await step('resume', { personId: people.asha });
-    expect(await flagIn('bina', id)).toBe(true);
+    expect(await flagIn('bina', id)).toBe(false);
     expect(await flagIn('pooja', id)).toBe(false);
+    expect((await acknowledge(id, 'bina')).statusCode).toBe(200);
+  });
+
+  it('goes false for everyone the moment someone starts the ticket: the clock has stopped', async () => {
+    const id = await raise();
+    for (const who of ['asha', 'sunil']) expect(await flagIn(who, id), who).toBe(true);
+    const started = await call('POST', `/api/v1/tickets/${id}/start`, tokens.sunil!, {
+      personId: people.sunil,
+    });
+    expect(started.statusCode, started.body).toBe(200);
+    expect(started.json().ticket.canAcknowledge).toBe(false);
+    for (const who of ['asha', 'sunil', 'hema', 'pravin'])
+      expect(await flagIn(who, id), who).toBe(false);
+  });
+
+  it('reads the roster once per request, however many tickets the reply carries, and not at all for a role that cannot acknowledge', async () => {
+    for (let i = 0; i < 4; i += 1) await raise();
+    let reads = 0;
+    setRosterLookup((...args) => {
+      reads += 1;
+      return onRosterAt(...args);
+    });
+    try {
+      const withReads = async (url: string, as: string) => {
+        reads = 0;
+        const res = await call('GET', url, tokens[as]!);
+        expect(res.statusCode, res.body).toBe(200);
+        return { body: res.json(), reads };
+      };
+      const state = await withReads('/api/v1/state', 'asha');
+      expect(state.body.open.length).toBeGreaterThan(3);
+      expect(state.reads).toBe(1);
+      const list = await withReads('/api/v1/tickets', 'asha');
+      expect(list.body.items.length).toBeGreaterThan(3);
+      expect(list.reads).toBe(1);
+      expect((await withReads('/api/v1/state', 'omkar')).reads).toBe(0);
+      expect((await withReads('/api/v1/state', 'board')).reads).toBe(0);
+    } finally {
+      setRosterLookup(onRosterAt);
+    }
   });
 
   it('follows the person chosen on a shared phone, and goes false once the ticket is acknowledged', async () => {

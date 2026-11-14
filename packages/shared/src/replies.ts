@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { boardTodayReplySchema } from './board.js';
-import { brandReplySchema, loginReplySchema, meReplySchema } from './auth.js';
+import {
+  actingChoicesReplySchema,
+  brandReplySchema,
+  loginReplySchema,
+  meReplySchema,
+} from './auth.js';
 import {
   LIST_NAMES,
   listRowSchema,
@@ -106,6 +111,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/brand`]: brandReplySchema,
   [`POST ${P}/auth/login`]: loginReplySchema,
   [`GET ${P}/auth/me`]: meReplySchema,
+  [`GET ${P}/auth/acting`]: actingChoicesReplySchema,
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,

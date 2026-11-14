@@ -1,12 +1,11 @@
 import type { PoolClient } from 'pg';
-import { acknowledgeRefusal, canAcknowledge, type Role } from '@uptimo/domain';
-import type { PartView } from '../../kernel/index.js';
+import { canAcknowledge, offersAcknowledge, type Role } from '@uptimo/domain';
+import { isOnRoster, type PartView } from '../../kernel/index.js';
 import { ticketAckFacts } from '../tickets/index.js';
-import { onRosterAt } from './roster.js';
 
 /**
- * Whether this actor may acknowledge each ticket now: the domain's own rule, so the button and the command never
- * disagree. One roster read for the whole reply (the answer is about the actor, not the ticket), and none at all
+ * Whether to offer this actor the Acknowledge button on each ticket: the domain's own rule, the one the command is
+ * built on, plus the clock still running. One roster read for the whole reply (the answer is about the actor, not the ticket), and none at all
  * for a role that can never acknowledge. A shared phone with nobody chosen has nobody to look up: false everywhere.
  */
 export async function loadCanAcknowledge(
@@ -25,13 +24,12 @@ export async function loadCanAcknowledge(
   };
   // the role alone rules out an operator, the board and an admin, whatever the roster says
   if (!canAcknowledge(ctx, { onRoster: true, assignedToActor: true })) return answers;
-  const onRoster = await onRosterAt(client, tenantId, actor.personId, now);
+  const onRoster = await isOnRoster(client, tenantId, actor.personId, now);
   for (const fact of await ticketAckFacts(client, tenantId, ticketIds)) {
-    const refusal = acknowledgeRefusal(ctx, fact, {
-      onRoster,
-      alreadyAcknowledged: fact.acknowledged,
-    });
-    answers.set(fact.id, refusal === null);
+    answers.set(
+      fact.id,
+      offersAcknowledge(ctx, fact, { onRoster, clockStopped: fact.clockStopped }),
+    );
   }
   return answers;
 }

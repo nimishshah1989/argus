@@ -172,7 +172,11 @@ async function runCommand(
     reply.code(422).send(shared.apiError('validation', 'Invalid request', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [action, parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    action,
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: tm.Tx = {
     tenantId: ctx.tenantId,
     ticketId: (request.params as { id: string }).id,
@@ -207,25 +211,56 @@ async function validateMachine(
   return { snapshot: { code, category, cell, criticality }, criticality };
 }
 
+/**
+ * Who a raise may name. The one who starts the work is the person acting, and only maintenance starts work; a
+ * reporter other than the person acting (a technician taking a call) is for maintenance too, an operator reports as
+ * themselves. Refused before anything is looked up, so a refusal says nothing about who exists.
+ */
+function raiseRefusal(tx: RaiseTx): Outcome | null {
+  const { role, loginId, personId, shared: sharedLogin } = tx.auth;
+  const maintenance = domain.canWork({
+    role: role as domain.Role,
+    loginId,
+    personId,
+    shared: sharedLogin,
+  });
+  if (tx.body.startNow || tx.body.startByPersonId !== undefined) {
+    const named = tx.body.startByPersonId as string | undefined;
+    const refused = actingRefusal(tx.auth, named, 'startByPersonId');
+    if (refused) return refused;
+    if (tx.body.startNow && !maintenance) {
+      return {
+        status: 403,
+        body: shared.apiError(
+          'forbidden',
+          'You do not have permission for this action',
+          'startNow',
+        ),
+      };
+    }
+  }
+  const reporter = tx.body.reportedByPersonId as string | undefined;
+  if (reporter !== undefined && reporter !== personId && !maintenance) {
+    return {
+      status: 403,
+      body: shared.apiError('forbidden', 'You may only report as yourself', 'reportedByPersonId'),
+    };
+  }
+  return null;
+}
+
 async function validateRaisePeople(
   client: PoolClient,
   tx: RaiseTx,
 ): Promise<{ reportedByPersonId: string | null } | Outcome> {
+  const refused = raiseRefusal(tx);
+  if (refused) return refused;
   const reportedByPersonId = (tx.body.reportedByPersonId as string | undefined) ?? tx.auth.personId;
   if (reportedByPersonId && !(await sql.personExists(client, tx.tenantId, reportedByPersonId))) {
     return {
       status: 404,
       body: shared.apiError('not_found', 'Unknown reporter', 'reportedByPersonId'),
     };
-  }
-  // The reporter may be someone else (a technician takes the call), but whoever starts the work is the one acting.
-  if (tx.body.startNow || tx.body.startByPersonId !== undefined) {
-    const refused = actingRefusal(
-      tx.auth,
-      tx.body.startByPersonId as string | undefined,
-      'startByPersonId',
-    );
-    if (refused) return refused;
   }
   return { reportedByPersonId };
 }
@@ -312,7 +347,11 @@ async function raise(
     reply.code(422).send(shared.apiError('validation', 'Invalid ticket', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, ['raise', parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    'raise',
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: RaiseTx = {
     tenantId: ctx.tenantId,
     key,

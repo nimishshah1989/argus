@@ -18,7 +18,7 @@ async function tellMaintenance(
 ): Promise<void> {
   if (facts.kind !== 'stopped') return;
   const to = (await peopleWithRole(client, write.tenantId, BREAKDOWN_ROLES)).filter(
-    (person) => person !== facts.reportedByPersonId,
+    (person) => person !== facts.raisedByPersonId,
   );
   await notify(client, write.boss ?? null, {
     tenantId: write.tenantId,

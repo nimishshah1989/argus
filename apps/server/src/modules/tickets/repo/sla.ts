@@ -1,5 +1,5 @@
 import type { PoolClient, QueryResult } from 'pg';
-import type { SlaPolicy } from '@uptimo/domain';
+import { ACK_CLOCK_STOPS, type SlaPolicy } from '@uptimo/domain';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -67,10 +67,11 @@ export interface AckFacts {
   id: string;
   status: string;
   assignedToPersonId: string | null;
-  acknowledged: boolean;
+  /** The acknowledge clock has stopped: someone started the ticket or acknowledged it. */
+  clockStopped: boolean;
 }
 
-/** What deciding whether someone may acknowledge needs of each ticket, in one read: its state, assignee and history. */
+/** What deciding whether to offer the Acknowledge button needs of each ticket, in one read: state, assignee, clock. */
 export async function ticketAckFacts(
   tx: Db,
   tenantId: string,
@@ -78,9 +79,9 @@ export async function ticketAckFacts(
 ): Promise<AckFacts[]> {
   const { rows } = await tx.query(
     `SELECT t.id, t.status, t.assigned_to_person_id AS "assignedToPersonId",
-            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = 'acknowledge') AS acknowledged
+            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = ANY($3::text[])) AS "clockStopped"
        FROM ticket t WHERE t.tenant_id = $1 AND t.id = ANY($2::uuid[])`,
-    [tenantId, ticketIds],
+    [tenantId, ticketIds, ACK_CLOCK_STOPS],
   );
   return rows as AckFacts[];
 }
