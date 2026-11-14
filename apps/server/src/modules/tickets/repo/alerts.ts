@@ -8,6 +8,8 @@ export interface AlertFacts {
   reportedByPersonId: string | null;
   closedByPersonId: string | null;
   closedAt: Date | null;
+  leadPersonId: string | null;
+  lastEventSeq: number;
 }
 
 /** What an alert about a ticket needs to know: its kind, state, who reported it and who closed it. */
@@ -18,7 +20,7 @@ export async function ticketAlertFacts(
 ): Promise<AlertFacts | null> {
   const row = (
     await tx.query(
-      `SELECT kind, status, reported_by_person_id, closed_by_person_id, closed_at
+      `SELECT kind, status, reported_by_person_id, closed_by_person_id, closed_at, lead_person_id, last_event_seq
          FROM ticket WHERE tenant_id = $1 AND id = $2`,
       [tenantId, ticketId],
     )
@@ -30,5 +32,7 @@ export async function ticketAlertFacts(
     reportedByPersonId: row.reported_by_person_id,
     closedByPersonId: row.closed_by_person_id,
     closedAt: row.closed_at,
+    leadPersonId: row.lead_person_id,
+    lastEventSeq: row.last_event_seq,
   };
 }

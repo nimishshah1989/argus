@@ -6,6 +6,7 @@
 export const KINDS = {
   'breakdown.new': 'New breakdown',
   'complaint.fixed': 'Complaint fixed',
+  'handback.disputed': 'Fix sent back',
   'push.test': 'Push works',
 } as const;
 

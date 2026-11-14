@@ -71,6 +71,10 @@ const BUILDERS: Record<CommandAction, Builder> = {
   },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
   acknowledge: (_body, personId, { onRoster }) => ({ type: 'acknowledge', personId, onRoster }),
+  handback: (body, personId, { sameCell }) =>
+    body.response === 'confirmed'
+      ? { type: 'handbackConfirm', personId, sameCell }
+      : { type: 'handbackDispute', personId, reason: body.reason as string, sameCell },
 };
 
 export function buildCommand(tx: Tx, personId: string, loaded: LoadedCtx): Command {
