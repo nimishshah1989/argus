@@ -35,6 +35,25 @@ let compared = 0;
 const people = new Map<string, string>();
 const machines = new Map<string, string>();
 let adminPerson = '';
+let phoneDefault = '';
+let chosen = '';
+
+/** The phone is one shared login: before each step, the person who did it in his app is chosen on it, as on the floor. */
+async function chooseOnPhone(person: string): Promise<void> {
+  if (chosen === person) return;
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/acting',
+    headers: {
+      host: 'cosmos.localhost',
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/json',
+    },
+    payload: { actingPersonId: person },
+  });
+  if (res.statusCode !== 200) throw new Error('choose acting person ' + res.body);
+  chosen = person;
+}
 
 async function personId(name: string): Promise<string> {
   const known = people.get(name);
@@ -50,6 +69,10 @@ async function personId(name: string): Promise<string> {
 
 async function call(method: 'POST' | 'GET', url: string, payload?: object, bearer: string = token) {
   keys += 1;
+  if (method === 'POST' && bearer === token) {
+    const body = (payload ?? {}) as { personId?: string; startByPersonId?: string };
+    await chooseOnPhone(body.personId ?? body.startByPersonId ?? phoneDefault);
+  }
   return app.inject({
     method,
     url,
@@ -302,6 +325,7 @@ beforeAll(async () => {
     headers: { host: 'cosmos.localhost', 'content-type': 'application/json' },
     payload: { username: 'phone', password: PASSWORD, actingPersonId: await personId('Person 01') },
   });
+  phoneDefault = chosen = await personId('Person 01');
   token = res.json().token as string;
   if (!token) throw new Error('login failed ' + res.body);
   vi.useFakeTimers({ toFake: ['Date'] });

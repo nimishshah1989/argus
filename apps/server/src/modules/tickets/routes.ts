@@ -8,6 +8,7 @@ import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
+  actingRefusal,
   AUTH_MESSAGES,
   isOnRoster,
   ticketPartsAfterWrite,
@@ -65,37 +66,22 @@ interface RaiseTx {
   body: Record<string, unknown>;
 }
 
-const SESSION_PERSON: ReadonlySet<tm.CommandAction> = new Set(['acknowledge', 'handback']);
-
+/**
+ * Who acts is always the session's person (a shared phone's chosen one), never one a request names; a correction
+ * is the admin's own act. The read is locked, so a switch-off that is under way finishes first: a person already
+ * off is no longer signed in.
+ */
 async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
 ): Promise<{ personId: string | null } | Outcome> {
-  // A correction is the admin's own act; every other command, an upgrade included, names who acts.
   if (tx.action === 'correct') return { personId: tx.auth.personId };
-  // On an upgrade the person may be left out: a signed-in person then acts as themselves.
-  const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
-  const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
-    string | undefined;
-  // An acknowledge or a sign-off answer is judged on who the session says is acting: a shared phone's chosen
-  // person, never one the request merely names (that would borrow someone else's roster line, or their cell).
-  if (!tx.auth.shared || SESSION_PERSON.has(tx.action)) {
-    if (bodyPersonId !== tx.auth.personId) {
-      return {
-        status: 403,
-        body: shared.apiError('forbidden', 'You may only act as yourself', 'personId'),
-      };
-    }
-    // Read locked, so a switch-off that is under way finishes first; a person already off is no longer signed in.
-    if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-      return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
-    }
-    return { personId: tx.auth.personId };
+  const refused = actingRefusal(tx.auth, tx.body.personId as string | undefined, 'personId');
+  if (refused) return refused;
+  if (!(await sql.personExists(client, tx.tenantId, tx.auth.personId!))) {
+    return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
   }
-  if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'personId') };
-  }
-  return { personId: bodyPersonId };
+  return { personId: tx.auth.personId };
 }
 
 async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.LoadedCtx | null> {
@@ -233,11 +219,14 @@ async function validateRaisePeople(
       body: shared.apiError('not_found', 'Unknown reporter', 'reportedByPersonId'),
     };
   }
-  if (
-    tx.body.startByPersonId &&
-    !(await sql.personExists(client, tx.tenantId, tx.body.startByPersonId as string))
-  ) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'startByPersonId') };
+  // The reporter may be someone else (a technician takes the call), but whoever starts the work is the one acting.
+  if (tx.body.startNow || tx.body.startByPersonId !== undefined) {
+    const refused = actingRefusal(
+      tx.auth,
+      tx.body.startByPersonId as string | undefined,
+      'startByPersonId',
+    );
+    if (refused) return refused;
   }
   return { reportedByPersonId };
 }
@@ -264,7 +253,7 @@ async function executeRaise(
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
   const raised = buildRaised({
     ref,
-    body: tx.body,
+    body: { ...tx.body, startByPersonId: tx.auth.personId ?? undefined },
     loginId: tx.auth.loginId,
     reportedByPersonId: people.reportedByPersonId,
     now,

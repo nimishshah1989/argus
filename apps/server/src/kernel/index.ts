@@ -24,6 +24,7 @@ export {
   type TicketWrite,
 } from './reply-parts.js';
 export { fieldProblem, idOrNotFound, refuse, type Refusal } from './contract.js';
+export { actingRefusal } from './acting.js';
 export {
   isOnRoster,
   machineSwitchOffBlocker,

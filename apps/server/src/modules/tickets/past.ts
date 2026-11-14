@@ -285,6 +285,8 @@ async function executePast(
     entityId: ticketId,
     before: null,
     after: {
+      // the people the breakdown names are history; this is who recorded it
+      actingPersonId: tx.auth.personId,
       ref: row.ref,
       machineId: body.machineId,
       reportedAt: body.reportedAt.toISOString(),
