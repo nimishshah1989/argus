@@ -132,7 +132,7 @@ beforeAll(async () => {
   const logins: Array<[string, string, string | null, boolean]> = [
     ['asha', 'technician', 'asha', false],
     ['bina', 'technician', 'bina', false],
-    ['sunil', 'supervisor', 'sunil', false],
+    ['tester', 'supervisor', 'tester', false],
     ['hema', 'head', 'hema', false],
     ['pravin', 'plant_head', 'pravin', false],
     ['pooja', 'plant_head', 'pooja', false],
@@ -177,7 +177,7 @@ beforeAll(async () => {
       [id, TENANT, `VC-${i}`],
     );
   }
-  for (const person of ['asha', 'sunil', 'hema', 'pravin', 'omkar', 'boris']) {
+  for (const person of ['asha', 'tester', 'hema', 'pravin', 'omkar', 'boris']) {
     await rosterLine(person);
   }
   const config: AppConfig = { pool: db.app, logger: false, rateLimitMax: 100000 };
@@ -219,7 +219,7 @@ describe('POST /tickets/:id/acknowledge', () => {
   });
 
   it('lets a rostered supervisor, head and plant head acknowledge', async () => {
-    for (const who of ['sunil', 'hema', 'pravin']) {
+    for (const who of ['tester', 'hema', 'pravin']) {
       const id = await raise();
       const res = await acknowledge(id, who);
       expect(res.statusCode, `${who}: ${res.body}`).toBe(200);
@@ -322,7 +322,7 @@ describe('POST /tickets/:id/acknowledge', () => {
     const replay = await acknowledge(id, 'asha', 'asha', 'ack-replay');
     expect(replay.statusCode).toBe(200);
     expect(replay.json()).toEqual(first.json());
-    const again = await acknowledge(id, 'sunil');
+    const again = await acknowledge(id, 'tester');
     expect(again.statusCode).toBe(409);
     expect(await ackEvents(id)).toHaveLength(1);
   });
@@ -381,7 +381,7 @@ describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
 
   it('is true for a rostered technician, supervisor, head and plant head, and false for the rest of the plant', async () => {
     const id = await raise();
-    for (const who of ['asha', 'sunil', 'hema', 'pravin'])
+    for (const who of ['asha', 'tester', 'hema', 'pravin'])
       expect(await flagIn(who, id), who).toBe(true);
     // not on the roster, an operator or the board even with a roster line, and an admin
     for (const who of ['bina', 'pooja', 'omkar', 'board', 'root'])
@@ -409,13 +409,13 @@ describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
 
   it('goes false for everyone the moment someone starts the ticket: the clock has stopped', async () => {
     const id = await raise();
-    for (const who of ['asha', 'sunil']) expect(await flagIn(who, id), who).toBe(true);
-    const started = await call('POST', `/api/v1/tickets/${id}/start`, tokens.sunil!, {
-      personId: people.sunil,
+    for (const who of ['asha', 'tester']) expect(await flagIn(who, id), who).toBe(true);
+    const started = await call('POST', `/api/v1/tickets/${id}/start`, tokens.tester!, {
+      personId: people.tester,
     });
     expect(started.statusCode, started.body).toBe(200);
     expect(started.json().ticket.canAcknowledge).toBe(false);
-    for (const who of ['asha', 'sunil', 'hema', 'pravin'])
+    for (const who of ['asha', 'tester', 'hema', 'pravin'])
       expect(await flagIn(who, id), who).toBe(false);
   });
 
@@ -458,7 +458,7 @@ describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
     expect(done.statusCode, done.body).toBe(200);
     expect(done.json().ticket.canAcknowledge).toBe(false);
     expect(await flagIn('shared', id)).toBe(false);
-    expect(await flagIn('sunil', id)).toBe(false);
+    expect(await flagIn('tester', id)).toBe(false);
   });
 
   it('is on the detail, the list and the command reply too, and false once the ticket is no longer open or working', async () => {

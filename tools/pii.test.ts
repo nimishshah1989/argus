@@ -66,10 +66,18 @@ describe('pii deny-list', () => {
     }
   });
 
-  it('keeps plain words and project principals out of the repository scan, but not out of the coding list', () => {
-    const deny = { names: ['meet', 'bhavin', 'fake person'], phones: [] };
+  it('keeps only the project principals out of the repository scan, and keeps them in the coding list', () => {
+    const deny = { names: ['nimish', 'bhavin', 'fake person'], phones: [] };
     expect(scanList(deny).names).toEqual(['fake person']);
     expect(deny.names).toHaveLength(3);
+  });
+
+  it('flags a name that is also an English word only when it is written as a name', () => {
+    const deny = { names: ['meet'], phones: [] };
+    expect(scanText('a.md', 'The jobs meet the target', deny)).toEqual([]);
+    expect(
+      scanText('a.md', `Reported by ${'meet'.replace(/^./, (c) => c.toUpperCase())}`, deny),
+    ).toEqual(['a.md:1: real name from the source lists']);
   });
 
   it('fails loudly when a source list is missing', () => {

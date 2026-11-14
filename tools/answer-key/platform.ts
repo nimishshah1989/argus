@@ -36,6 +36,8 @@ export async function openPlatform(html: string, sheets: Sheets, asOf: Date): Pr
   await page.addInitScript(`window.__sheets = ${JSON.stringify(sheets)}; ${SHIM}`);
   await page.goto(pathToFileURL(html).href);
   // The shim is installed before the page's own scripts, which replace window.Chart/XLSX only when the CDN loads.
+  // The platform loads its own built-in data when its start-up finishes; importing earlier would be overwritten.
+  await page.waitForFunction('state.machines.length > 0');
   await page.evaluate(() => {
     const w = window as unknown as { importFromExcel: (file: File) => void };
     w.importFromExcel(new File(['x'], 'cosmos-export.xlsx'));

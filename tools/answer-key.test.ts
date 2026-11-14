@@ -1,6 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { scanText } from './check-pii.js';
 import { keptScreens } from './parity.js';
+import { loadDenyList } from './pii-sources.js';
+import { namesIn } from './answer-key/generate.js';
 import { readWorkbook, type Cell } from './answer-key/xlsx.js';
 
 const KEY = 'fixtures/answer-key';
@@ -96,5 +99,46 @@ describe('the answer key', () => {
       .tables[0]!.rows.filter((r) => r[1] === 'Team' || r[1] === 'Vendor')
       .map((r) => `${r[2]}|${r[3]}`);
     expect(shown.sort()).toEqual(wanted.sort());
+  });
+
+  it('holds no real name or phone from the source lists, not even a principal or an English-word name', () => {
+    const deny = loadDenyList();
+    const hits = readdirSync(KEY)
+      .filter((file) => file.endsWith('.json'))
+      .flatMap((file) => scanText(file, readFileSync(`${KEY}/${file}`, 'utf8'), deny));
+    expect(hits).toEqual([]);
+  });
+
+  it('keeps a model number that looks like a phone number, and codes a real phone', () => {
+    const registers = readFileSync(`${KEY}/registers.json`, 'utf8');
+    expect(registers.includes('+9199999')).toBe(false);
+  });
+});
+
+describe('the names the generator codes', () => {
+  const people = {
+    breakdowns: [{ observedBy: 'Fake Person', doneBy: 'Operator, Other Fake' }],
+    otherBD: [],
+    pmReports: [{ reviewedBy: 'Third Fake' }],
+    settings: {
+      team: [{ name: 'Fourth Fake' }],
+      gwLog: [{ doneBy: 'Fifth Fake', reportedBy: 'Sixth Fake' }],
+      acAcks: { 'freq|VC-1': { owner: 'Seventh Fake' } },
+    },
+  };
+
+  it('takes every people field wherever it sits, observed-by included, and skips roles', () => {
+    const names = namesIn(people as never);
+    for (const name of [
+      'fake person',
+      'other fake',
+      'third fake',
+      'fourth fake',
+      'fifth fake',
+      'sixth fake',
+      'seventh fake',
+    ])
+      expect(names).toContain(name);
+    expect(names).not.toContain('operator');
   });
 });

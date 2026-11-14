@@ -32,4 +32,29 @@ describe('the pseudonymised copy of Bhavin export', () => {
     expect(out.b).toBe('Person 01 said call +919999900000 now');
     expect(out.c).toBe('Operator');
   });
+
+  it('codes a word before an honorific even when no list names it, and the same word gets the same number', () => {
+    const out = pseudonymise(
+      {
+        a: 'Fakeword Bhai arrived',
+        b: 'Dear Sir, thanks',
+        c: 'with fakeword bhai at 3, Qxzy sir too',
+      },
+      { names: [], phones: [] },
+    ).value as Record<string, string>;
+    expect(out.a).toBe('Person 01 Bhai arrived');
+    expect(out.b).toBe('Dear Sir, thanks');
+    expect(out.c).toBe('with Person 01 bhai at 3, Person 02 sir too');
+  });
+
+  it('leaves no name before an honorific in the pseudonymised copy', () => {
+    const left = [...text.matchAll(/([\p{L}]+)\s+(?:bhai|sir|ji|madam|saheb)\b/giu)]
+      .map((m) => m[1] as string)
+      .filter(
+        (word) =>
+          !/^(?:person|dear|yes|no|hello|ok|okay|thanks|please|sorry|good)$/i.test(word) &&
+          !/^\d+$/.test(word),
+      );
+    expect(left).toEqual([]);
+  });
 });

@@ -2,7 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { closeSync, openSync, readFileSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { PHONE, loadDenyList, normalisePhone, scanList, type DenyList } from './pii-sources.js';
+import {
+  ENGLISH_WORDS,
+  PHONE,
+  loadDenyList,
+  normalisePhone,
+  scanList,
+  type DenyList,
+} from './pii-sources.js';
 
 /**
  * PII scan (ticket 01): CI fails when a real Cosmos name or phone number from the source lists appears in a
@@ -21,13 +28,23 @@ function nameRegex(names: string[]): RegExp | undefined {
   return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${parts.join('|')})(?![\\p{L}\\p{N}_])`, 'iu');
 }
 
+/** A name that is also an English word counts only when written with a capital, as a name is. */
+function wordRegex(names: string[]): RegExp | undefined {
+  const words = names.filter((name) => ENGLISH_WORDS.has(name));
+  if (words.length === 0) return undefined;
+  const capitalised = words.map((name) => name[0]!.toUpperCase() + name.slice(1));
+  return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${capitalised.join('|')})(?![\\p{L}\\p{N}_])`, 'u');
+}
+
 export function scanText(path: string, text: string, deny: DenyList): string[] {
-  const names = nameRegex(deny.names);
+  const names = nameRegex(deny.names.filter((name) => !ENGLISH_WORDS.has(name)));
+  const words = wordRegex(deny.names);
   const phones = new Set(deny.phones);
   const errors: string[] = [];
   text.split('\n').forEach((line, index) => {
     const at = `${path}:${index + 1}`;
-    if (names?.test(line)) errors.push(`${at}: real name from the source lists`);
+    if (names?.test(line) || words?.test(line))
+      errors.push(`${at}: real name from the source lists`);
     if ([...line.matchAll(PHONE)].some((m) => phones.has(normalisePhone(m[0]))))
       errors.push(`${at}: real phone from the source lists`);
   });

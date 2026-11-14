@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Page } from '@playwright/test';
 import { pseudonymise } from '../../scripts/pseudonymise-export.js';
-import { isGenericLabel, loadDenyList } from '../pii-sources.js';
+import { PHONE, isGenericLabel, loadDenyList } from '../pii-sources.js';
 import { openPlatform, readPage, type Figure } from './platform.js';
 import { SCREENS, type ScreenSpec } from './screens.js';
 import { readWorkbook, type Sheets } from './xlsx.js';
@@ -48,10 +48,8 @@ const INPUT_STATE =
   'settings:Object.fromEntries(Object.entries(state.settings).filter(([k])=>!["dcLog","dcSnap"].includes(k)&&!/^bt/.test(k)))})';
 
 interface InputState {
-  breakdowns: Record<string, string>[];
-  otherBD: Record<string, string>[];
-  pmReports: Record<string, string>[];
-  settings: { team: { name: string }[]; machAmc: { id?: string }[]; machLegal: { id?: string }[] };
+  settings: { machAmc: { id?: string }[]; machLegal: { id?: string }[] };
+  [key: string]: unknown;
 }
 
 /** The platform numbers some lines with a fresh random id on every load; the key keeps none, so a regeneration is identical. */
@@ -62,19 +60,65 @@ function stable(input: Json): Json {
   return input;
 }
 
-/** Every person the data names, taken from the people columns of the log, the PM reports and the team list. */
-function namesIn(input: Json): string[] {
-  const state = input as unknown as InputState;
-  const logs = [...state.breakdowns, ...state.otherBD].flatMap((b) =>
-    ['observedBy', 'doneBy', 'supportedBy'].map((f) => b[f] ?? ''),
-  );
-  const reports = state.pmReports.flatMap((r) =>
-    ['doneBy', 'reviewedBy', 'prodSup', 'maintSup'].map((f) => r[f] ?? ''),
-  );
-  return [...state.settings.team.map((t) => t.name), ...logs, ...reports]
+/** Fields that hold a person, wherever they sit in the data (the log, the PM reports, the general-work log, acknowledgements). */
+const PEOPLE_KEYS = new Set([
+  'observedBy',
+  'doneBy',
+  'supportedBy',
+  'reportedBy',
+  'startedBy',
+  'closedBy',
+  'owner',
+  'reviewedBy',
+  'prodSup',
+  'maintSup',
+  'completedBy',
+]);
+
+/** Every person the data names, from the people fields anywhere in it and the team list; roles are not people. */
+export function namesIn(input: Json): string[] {
+  const found: string[] = [];
+  const walk = (value: Json, key = ''): void => {
+    if (typeof value === 'string') {
+      if (PEOPLE_KEYS.has(key)) found.push(value);
+    } else if (Array.isArray(value)) value.forEach((v) => walk(v, key));
+    else if (value !== null && typeof value === 'object')
+      for (const [k, v] of Object.entries(value)) walk(v, k);
+  };
+  walk(input);
+  const team = (input as { settings?: { team?: { name: string }[] } }).settings?.team ?? [];
+  return [...team.map((t) => t.name), ...found]
     .flatMap((n) => String(n).split(/[,&/+]|\band\b/i))
     .map((n) => n.trim().replace(/\s+/g, ' ').toLowerCase())
     .filter((n) => n.length >= 3 && !isGenericLabel(n));
+}
+
+/**
+ * A model or serial number in a machine register can look like a phone number. Those strings are swapped for
+ * markers before coding and put back after, so a dryer's model stays what it is while real phones are still coded.
+ */
+function shield(files: Record<string, Json>): {
+  shielded: Record<string, Json>;
+  restore: (v: Json) => Json;
+} {
+  const state = files.input as unknown as Record<string, Record<string, unknown>[]>;
+  const keep = new Set<string>();
+  for (const list of ['machines', 'convMachines', 'procMachines', 'utilMachines', 'dgMachines'])
+    for (const machine of state[list] ?? [])
+      for (const field of ['make', 'model', 'serial', 'ctrlModel', 'ctrlSerial', 'assetCode'])
+        for (const hit of String(machine[field] ?? '').matchAll(PHONE)) keep.add(hit[0]);
+  const marks = [...keep].sort().map((text, i) => [text, `\uE000${i}\uE001`] as const);
+  const swap = (from: 0 | 1, to: 0 | 1) => {
+    const walk = (v: Json): Json => {
+      if (typeof v === 'string') return marks.reduce((t, m) => t.split(m[from]).join(m[to]), v);
+      if (Array.isArray(v)) return v.map(walk);
+      if (v !== null && typeof v === 'object')
+        return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+      return v;
+    };
+    return walk;
+  };
+  return { shielded: swap(0, 1)(files) as Record<string, Json>, restore: swap(1, 0) };
 }
 
 /** A company named after a person ("Kailash industries") is coded like a person: Vendor 01, 02, in order of first appearance. */
@@ -152,9 +196,12 @@ async function main(): Promise<void> {
   const chrome = `Chromium ${page.context().browser()?.version() ?? 'unknown'}`;
   await page.context().browser()?.close();
   const deny = loadDenyList();
-  const coded = pseudonymise(files, { ...deny, names: [...deny.names, ...extra] });
+  const { shielded, restore } = shield(files);
+  const coded = pseudonymise(shielded, { ...deny, names: [...deny.names, ...extra] });
   mkdirSync(OUT, { recursive: true });
-  for (const [id, value] of Object.entries(codeVendors(coded.value as Record<string, Json>))) {
+  for (const [id, value] of Object.entries(
+    codeVendors(restore(coded.value as Json) as Record<string, Json>),
+  )) {
     writeFileSync(join(OUT, `${id}.json`), `${render(value)}\n`);
   }
   writeFileSync(join(OUT, 'README.md'), readme(chrome));

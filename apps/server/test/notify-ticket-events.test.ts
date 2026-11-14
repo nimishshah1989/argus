@@ -12,7 +12,7 @@ const id = (n: number): string =>
   `33000000-0000-4000-8000-0000000000${n.toString(16).padStart(2, '0')}`;
 const ASHA = id(0x10);
 const BINA = id(0x11);
-const SUNIL = id(0x12);
+const TESTER = id(0x12);
 const OPERA = id(0x13);
 const HEAD = id(0x14);
 const GONE = id(0x15);
@@ -102,7 +102,7 @@ beforeAll(async () => {
   const people: [string, string, string, string, boolean][] = [
     [ASHA, A, 'asha', 'technician', true],
     [BINA, A, 'bina', 'technician', true],
-    [SUNIL, A, 'sunil', 'supervisor', true],
+    [TESTER, A, 'tester', 'supervisor', true],
     [OPERA, A, 'opera', 'operator', true],
     [HEAD, A, 'head', 'head', true],
     [GONE, A, 'gone', 'technician', false],
@@ -145,7 +145,7 @@ describe('a new breakdown tells the maintenance side', () => {
   it('tells every active technician and supervisor of the plant, never the reporter, a head, a switched-off or another plant', async () => {
     const ticketId = await raise(tokens.opera!);
     expect(await told(ticketId)).toEqual(
-      [ASHA, BINA, SUNIL].sort().map((person_id) => ({
+      [ASHA, BINA, TESTER].sort().map((person_id) => ({
         person_id,
         kind: 'breakdown.new',
         channel: 'push',
@@ -156,7 +156,7 @@ describe('a new breakdown tells the maintenance side', () => {
 
   it('does not tell the reporter, even a technician', async () => {
     const ticketId = await raise(tokens.asha!);
-    expect((await told(ticketId)).map((n) => n.person_id)).toEqual([BINA, SUNIL].sort());
+    expect((await told(ticketId)).map((n) => n.person_id)).toEqual([BINA, TESTER].sort());
   });
 
   it('is a push that arrives on the technician phone with the ticket to open', async () => {
@@ -237,7 +237,7 @@ describe('an upgrade to a breakdown is a new breakdown', () => {
     expect(await told(ticketId)).toEqual([]);
     const res = await post(`/api/v1/tickets/${ticketId}/upgrade-kind`, tokens.opera!, {});
     expect(res.statusCode, res.body).toBe(200);
-    expect((await told(ticketId)).map((n) => n.person_id)).toEqual([ASHA, BINA, SUNIL].sort());
+    expect((await told(ticketId)).map((n) => n.person_id)).toEqual([ASHA, BINA, TESTER].sort());
   });
 });
 

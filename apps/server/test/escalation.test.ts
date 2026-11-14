@@ -37,8 +37,8 @@ interface Plant {
 const PEOPLE: Array<[name: string, role: string, active: boolean]> = [
   ['asha', 'technician', true],
   ['bina', 'technician', true],
-  ['sunil', 'supervisor', true],
-  ['sunil2', 'supervisor', true],
+  ['tester', 'supervisor', true],
+  ['tester2', 'supervisor', true],
   ['gone', 'supervisor', false],
   ['hema', 'head', true],
   ['pravin', 'plant_head', true],
@@ -281,13 +281,15 @@ describe('missed acknowledge', () => {
     expect(more).toEqual([]);
     expect(step).toMatchObject({ trigger: 'ack_missed', level: 'L2', attempt: 1, channel: 'push' });
     // supervisors with a personal login who are still on: not the inactive one, not the head
-    expect([...step!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
-    expect((await notices(id)).map((n) => n.person_id).sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...step!.toldPersonIds!].sort()).toEqual(told(A, 'tester', 'tester2'));
+    expect((await notices(id)).map((n) => n.person_id).sort()).toEqual(
+      told(A, 'tester', 'tester2'),
+    );
 
-    const detail = (await call(A, 'GET', `/api/v1/tickets/${id}`, 'sunil')).json();
+    const detail = (await call(A, 'GET', `/api/v1/tickets/${id}`, 'tester')).json();
     const event = detail.events.find((e: { type: string }) => e.type === 'escalate');
     expect(event.escalation).toMatchObject({ level: 'L2', attempt: 1, trigger: 'ack_missed' });
-    expect([...event.escalation.toldPersonIds].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...event.escalation.toldPersonIds].sort()).toEqual(told(A, 'tester', 'tester2'));
     expect(event.actingPersonId).toBeNull();
   });
 
@@ -357,11 +359,11 @@ describe('who is told', () => {
     await admin.query(
       `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
        SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L2' FROM shift s WHERE s.tenant_id = $1`,
-      [A.id, A.people.sunil2],
+      [A.id, A.people.tester2],
     );
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));
-    expect((await steps(id))[0]!.toldPersonIds).toEqual(told(A, 'sunil2'));
+    expect((await steps(id))[0]!.toldPersonIds).toEqual(told(A, 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
@@ -373,7 +375,7 @@ describe('who is told', () => {
     );
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));
-    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'tester', 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
@@ -385,7 +387,7 @@ describe('who is told', () => {
     const toldA = (await steps(a.id))[0]!.toldPersonIds;
     expect(toldA!.every((p) => Object.values(A.people).includes(p))).toBe(true);
     expect((await steps(b.id))[0]!.toldPersonIds).toEqual(
-      expect.arrayContaining(told(B, 'sunil', 'sunil2')),
+      expect.arrayContaining(told(B, 'tester', 'tester2')),
     );
     const bRule = (
       await admin.query(
@@ -509,11 +511,11 @@ describe('the ladder is the head’s to edit', () => {
     await admin.query(
       `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
        SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L3' FROM shift s WHERE s.tenant_id = $1`,
-      [E.id, E.people.sunil],
+      [E.id, E.people.tester],
     );
     const rostered = await raise(E);
     await breach(E, rostered.id, 'restore', plus(rostered.at, 31));
-    expect((await steps(rostered.id))[0]!.toldPersonIds).toEqual(told(E, 'sunil'));
+    expect((await steps(rostered.id))[0]!.toldPersonIds).toEqual(told(E, 'tester'));
 
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [E.id]);
     const nobody = await raise(E);
@@ -574,7 +576,7 @@ describe('acknowledge an escalation', () => {
 
   it('the head covers an L3 escalation and its repeats stop; nobody below may', async () => {
     const { id, at } = await restoreMissed(A);
-    for (const who of ['omkar', 'asha', 'sunil']) {
+    for (const who of ['omkar', 'asha', 'tester']) {
       const res = await ackEsc(A, id, who);
       expect(res.statusCode, `${who}: ${res.body}`).toBe(403);
     }
@@ -613,7 +615,7 @@ describe('acknowledge an escalation', () => {
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));
     await breach(A, id, 'restore', plus(at, 31));
-    expect((await ackEsc(A, id, 'sunil')).statusCode).toBe(200);
+    expect((await ackEsc(A, id, 'tester')).statusCode).toBe(200);
     expect(await runDue(A, id, plus(at, 31 + 30), 'restore_missed')).toBe(1);
     expect(await steps(id, 'ack_missed')).toHaveLength(1);
     expect(await steps(id, 'restore_missed')).toHaveLength(2);
@@ -741,7 +743,7 @@ describe('sign-off unanswered and a pause that ran over', () => {
     const due = (await signoffClock(id))!;
     expect(await breach(A, id, 'handback', plus(due, 1))).toBe(true);
     expect(await steps(id, 'handback_unanswered')).toHaveLength(1);
-    expect((await command(A, id, 'handback', 'sunil', { response: 'confirmed' })).statusCode).toBe(
+    expect((await command(A, id, 'handback', 'tester', { response: 'confirmed' })).statusCode).toBe(
       200,
     );
     expect(await runDue(A, id, plus(due, 60), 'handback_unanswered')).toBe(0);
@@ -753,7 +755,7 @@ describe('sign-off unanswered and a pause that ran over', () => {
     await command(A, id, 'start', 'asha');
     await closeIt(A, id);
     const due = (await signoffClock(id))!;
-    expect((await command(A, id, 'handback', 'sunil', { response: 'confirmed' })).statusCode).toBe(
+    expect((await command(A, id, 'handback', 'tester', { response: 'confirmed' })).statusCode).toBe(
       200,
     );
     expect(await queuedSteps(id, 'handback_unanswered')).toEqual([]);
@@ -973,7 +975,7 @@ describe('review fixes', () => {
     await rosterLine(A, 'nologin', 'L2');
     const { id, at } = await raise(A);
     await breach(A, id, 'ack', plus(at, 6));
-    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'sunil', 'sunil2'));
+    expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'tester', 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
