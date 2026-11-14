@@ -14,14 +14,22 @@ export function machineDetail(data: FloorData, machine: Machine): string {
 }
 
 /** The card above Step 2: which machine this is (A1-4). */
-export function SituationLead({ data, machine }: { data: FloorData; machine: Machine }) {
+export function SituationLead(p: { data: FloorData; machine: Machine; report: ReportState }) {
   const { t } = useTranslation();
+  const support = p.report.supportTicket;
   return (
-    <MachineCard
-      label={t('reportFloor.machine')}
-      code={machine.code}
-      detail={machineDetail(data, machine)}
-    />
+    <Stack gap={4}>
+      <MachineCard
+        label={t('reportFloor.machine')}
+        code={p.machine.code}
+        detail={machineDetail(p.data, p.machine)}
+      />
+      {support ? (
+        <Card title={t('reportFloor.kindSupport')}>
+          <Text>{t('reportFloor.supportTicket', { ref: support.ref })}</Text>
+        </Card>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -41,11 +49,6 @@ export function SituationStep({ report, next }: { report: ReportState; next: () 
   };
   return (
     <Stack gap={3}>
-      {support ? (
-        <Card title={t('reportFloor.kindSupport')}>
-          <Text>{t('reportFloor.supportTicket', { ref })}</Text>
-        </Card>
-      ) : null}
       <ChoiceCard
         icon={OctagonX}
         tone="danger"

@@ -42,7 +42,7 @@ function ReportFlow(p: { data: FloorData; deepLink: string | null; onAnother: ()
     {
       title: t(report.supportTicket ? 'reportFloor.situationNow' : 'reportFloor.situation'),
       back: t('reportFloor.machine'),
-      lead: machine ? <SituationLead data={data} machine={machine} /> : null,
+      lead: machine ? <SituationLead data={data} machine={machine} report={report} /> : null,
       body: (next: () => void) => <SituationStep report={report} next={next} />,
     },
     {
