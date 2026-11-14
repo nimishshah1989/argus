@@ -65,9 +65,12 @@ and forecast keep their groups; no mockup screen shows them.
 (report steps, other work). `PatternFrame` puts the sync pill in the header on every one. Kit: `Button` (`primary`,
 `secondary`, `tonal` for a card's own action, `quiet`, `quiet-danger`), `Input`/`Label`, `Card`, `Sheet`, `StatusPill`.
 
+**Screen frame in the kit** (`ui/`, gallery section "Screen frame"): `TopBar` (title, "Updated" line, sync pill or
+step count), `TabBar` (floor 2 tabs, desk 5, count badge), `Banner` (offline, info, attention, error), `Skeleton` and
+`Loading` (loading shapes).
+
 **Drawn but not yet in the kit** (a ticket that needs it builds it once, in `ui/`, with a gallery section; never in
-`faces/`): bottom tab bar, counts strip, segmented bar, machine row, group tile, choice card, banner, ticket card,
-quick-problem chip, loading shapes.
+`faces/`): counts strip, segmented bar, machine row, group tile, choice card, ticket card, quick-problem chip.
 
 ## The six decisions (Nimish, 14 Nov 2026, verbatim)
 

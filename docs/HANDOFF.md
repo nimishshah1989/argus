@@ -39,13 +39,3 @@ Separate NOLOGIN history-owner role before production (26/28); server accepts wh
 raise-race 500 → 'already open' (15); admin phones on the people screen (21); `must_change_password` (21);
 seed fixture mode wipes tenant (14); tags digest gate; erase dry-run; `ai_suggestion` decision vs undo lock;
 import_row delete; PR #158's `ai_suggestion` vs `erase_person`; e2e API rate limit.
-
-<!-- prettier-ignore-start -->
-<!-- facts: written by the session-end hook -->
-Last session ended 2026-11-13 15:36 UTC on branch `claude/orchestrator-ledger`.
-- 6b4fa1e docs: session notes (hook)
-- f4857a1 docs: session notes (hook)
-- 298b06b docs: handoff under 50 lines
-Uncommitted files: 0
-<!-- end facts -->
-<!-- prettier-ignore-end -->

@@ -13,6 +13,7 @@ import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
 import { PatternsSection } from './patterns-section.js';
 import { StatusSection } from './status-section.js';
+import { ShellSection } from './shell-section.js';
 import { registerGalleryStrings } from './strings.js';
 import { TokensSection } from './tokens-section.js';
 import { WizardSection } from './wizard-section.js';
@@ -151,6 +152,7 @@ export default function Gallery() {
         <FloorSection />
         <BoardSection />
         <DashboardSection />
+        <ShellSection />
       </Page>
     </div>
   );
