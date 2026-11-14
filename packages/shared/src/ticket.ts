@@ -172,8 +172,9 @@ export const correctTicketSchema = z.object({
     leadPersonId: z.string().uuid().nullable().optional(),
     closedByPersonId: z.string().uuid().nullable().optional(),
     // set directly, as the admin's correction of his app did; kept as overrides and marked in the figures
-    activeMin: z.number().int().min(0).max(100000).optional(),
-    waitMin: z.number().int().min(0).max(100000).optional(),
+    // null takes the minutes set by hand off again
+    activeMin: z.number().int().min(0).max(100000).nullable().optional(),
+    waitMin: z.number().int().min(0).max(100000).nullable().optional(),
   }),
 });
 export type CorrectTicketBody = z.infer<typeof correctTicketSchema>;
