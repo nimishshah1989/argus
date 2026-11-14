@@ -49,15 +49,23 @@ test.afterAll(async () => {
   }
 });
 
-async function openDetail(page: Page, login: string, ticket: Seeded): Promise<void> {
-  await signIn(page, login);
+/** One sign-in per login: the server caps sign-ins per address, and every worker shares one. */
+async function openDetail(page: Page, login: string | null, ticket: Seeded): Promise<void> {
+  if (login) await signIn(page, login);
   await page.goto(`/desk/${ticket.id}`);
   await expect(page.getByRole('heading', { name: ticket.ref })).toBeVisible();
 }
 
-test('a technician sees the facts, minutes, crew and history of a working ticket', async ({
+test('a technician sees the working ticket, its action order, an unstarted and a closed ticket', async ({
   page,
 }) => {
+  await test.step('facts, minutes, crew and history of a working ticket', () => workingFacts(page));
+  await test.step('the lead has Write report and close first', () => leadActions(page));
+  await test.step('Start work first on an unstarted ticket', () => unstartedActions(page));
+  await test.step('a closed ticket shows no Actions section', () => closedNoActions(page));
+});
+
+async function workingFacts(page: Page): Promise<void> {
   await openDetail(page, 'asha', seeded.working);
   await expect(page.getByRole('link', { name: 'Open tickets' })).toBeVisible();
   const header = page.locator('header').last();
@@ -89,28 +97,26 @@ test('a technician sees the facts, minutes, crew and history of a working ticket
   await expect(history.getByText('Reported', { exact: true })).toBeVisible();
   await expect(history.getByText('Started', { exact: true })).toBeVisible();
   await expect(history.getByText('Joined', { exact: true })).toBeVisible();
-});
+}
 
-test('the lead of a working ticket has Write report and close as the first action', async ({
-  page,
-}) => {
-  await openDetail(page, 'asha', seeded.working);
+async function leadActions(page: Page): Promise<void> {
+  await openDetail(page, null, seeded.working);
   const buttons = page.getByRole('region', { name: 'Actions', exact: true }).getByRole('button');
   await expect(buttons.first()).toHaveText('Write report and close');
   await expect(buttons.nth(1)).toHaveText('Pause: waiting');
   await expect(buttons.nth(2)).toHaveText('Transfer');
   await expect(buttons.last()).toHaveText('Cancel ticket');
   await expect(page.getByRole('button', { name: 'Close without report' })).toBeVisible();
-});
+}
 
-test('a technician sees Start work first on an unstarted ticket', async ({ page }) => {
-  await openDetail(page, 'asha', seeded.unstarted);
+async function unstartedActions(page: Page): Promise<void> {
+  await openDetail(page, null, seeded.unstarted);
   const header = page.locator('header').last();
   await expect(header.getByText('Booked', { exact: true })).toBeVisible();
   const buttons = page.getByRole('region', { name: 'Actions', exact: true }).getByRole('button');
   await expect(buttons.first()).toHaveText('Start work');
   await expect(buttons.last()).toHaveText('Cancel ticket');
-});
+}
 
 test('an operator sees only Cancel ticket on their own unstarted ticket', async ({ page }) => {
   await openDetail(page, 'op', seeded.unstarted);
@@ -118,9 +124,9 @@ test('an operator sees only Cancel ticket on their own unstarted ticket', async 
   await expect(buttons).toHaveText(['Cancel ticket']);
 });
 
-test('a closed ticket shows no Actions section', async ({ page }) => {
-  await openDetail(page, 'asha', seeded.closed);
+async function closedNoActions(page: Page): Promise<void> {
+  await openDetail(page, null, seeded.closed);
   await expect(page.locator('header').last().getByText('Closed', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Actions', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Cancel ticket' })).toHaveCount(0);
-});
+}
