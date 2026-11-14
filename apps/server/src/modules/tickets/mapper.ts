@@ -249,7 +249,7 @@ const WORK_GATED = new Set<CommandAction>([
  */
 const ROLE_GATES: Partial<Record<CommandAction, (actor: ActorContext) => boolean>> = {
   'upgrade-kind': canRaise,
-  acknowledge: (actor) => canAcknowledge(actor, true),
+  acknowledge: (actor) => canAcknowledge(actor, { onRoster: true, assignedToActor: false }),
   report: canLateReport,
   restore: canRestore,
   correct: canCorrect,

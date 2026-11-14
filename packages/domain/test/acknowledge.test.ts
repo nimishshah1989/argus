@@ -41,30 +41,40 @@ function acknowledge(
   });
 }
 
-describe('who may acknowledge (DOMAIN §3)', () => {
+const ROSTER_ROLES = ['technician', 'supervisor', 'head', 'plant_head'] as const;
+const rostered = { onRoster: true, assignedToActor: false };
+const assignee = { onRoster: false, assignedToActor: true };
+const neither = { onRoster: false, assignedToActor: false };
+
+describe('who may acknowledge (DOMAIN §2: the assignee or an on-duty person)', () => {
   it('passes a technician, supervisor, head or plant head who is on the roster', () => {
-    for (const role of ['technician', 'supervisor', 'head', 'plant_head'] as const) {
-      expect(canAcknowledge(actor(role), true), role).toBe(true);
-    }
+    for (const role of ROSTER_ROLES) expect(canAcknowledge(actor(role), rostered), role).toBe(true);
   });
 
-  it('refuses the same roles when they are not on the roster', () => {
-    for (const role of ['technician', 'supervisor', 'head', 'plant_head'] as const) {
-      expect(canAcknowledge(actor(role), false), role).toBe(false);
-    }
+  it('passes the ticket assignee without a roster line', () => {
+    for (const role of ROSTER_ROLES) expect(canAcknowledge(actor(role), assignee), role).toBe(true);
+  });
+
+  it('refuses the same roles when they are neither on the roster nor the assignee', () => {
+    for (const role of ROSTER_ROLES) expect(canAcknowledge(actor(role), neither), role).toBe(false);
   });
 
   it('refuses an operator and the board even when a roster line names them', () => {
-    expect(canAcknowledge(actor('operator'), true)).toBe(false);
-    expect(canAcknowledge(actor('board'), true)).toBe(false);
+    for (const role of ['operator', 'board'] as const) {
+      expect(canAcknowledge(actor(role), rostered), role).toBe(false);
+      expect(canAcknowledge(actor(role), assignee), role).toBe(false);
+    }
   });
 
-  it('lets an admin acknowledge without a roster line (the matrix says yes)', () => {
-    expect(canAcknowledge(actor('admin', { personId: null }), false)).toBe(true);
+  it('gives an admin no pass: only the roster or the assignment lets them acknowledge', () => {
+    expect(canAcknowledge(actor('admin'), neither)).toBe(false);
+    expect(canAcknowledge(actor('admin'), rostered)).toBe(false);
   });
 
   it('refuses a shared login with no acting person, rostered or not', () => {
-    expect(canAcknowledge(actor('technician', { shared: true, personId: null }), true)).toBe(false);
+    const nobody = actor('technician', { shared: true, personId: null });
+    expect(canAcknowledge(nobody, rostered)).toBe(false);
+    expect(canAcknowledge(nobody, assignee)).toBe(false);
   });
 });
 
@@ -74,6 +84,22 @@ describe('acknowledge command', () => {
     expect(result.ticket.status).toBe('open');
     expect(result.events.at(-1)).toMatchObject({ type: 'acknowledge', at: now });
     expect(result.ticket.lastEventSeq).toBe(1);
+  });
+
+  it('lets the assignee acknowledge without a roster line, and not someone else', () => {
+    const raised = ticket();
+    const assigned = { ...raised.ticket, assignedToPersonId: 'person-1' };
+    const run = (who: ActorContext) =>
+      transition({
+        ticket: assigned,
+        events: raised.events,
+        segments: [],
+        crew: [],
+        command: { type: 'acknowledge', personId: who.personId ?? '', onRoster: false },
+        ctx: { ...who, now },
+      });
+    expect(run(actor('technician')).events.at(-1)?.type).toBe('acknowledge');
+    expect(() => run(actor('technician', { personId: 'person-2' }))).toThrow(/^Not allowed/);
   });
 
   it('is allowed while the ticket is being worked', () => {

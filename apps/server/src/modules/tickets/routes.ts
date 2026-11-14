@@ -72,7 +72,9 @@ async function resolveActingPerson(
   const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
   const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
     string | undefined;
-  if (!tx.auth.shared) {
+  // An acknowledge is judged on who the session says is acting: a shared phone's chosen person, never one the
+  // request merely names (that would borrow someone else's roster line).
+  if (!tx.auth.shared || tx.action === 'acknowledge') {
     if (bodyPersonId !== tx.auth.personId) {
       return {
         status: 403,

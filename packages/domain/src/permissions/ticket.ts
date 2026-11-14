@@ -45,17 +45,21 @@ export function canLateReport(ctx: ActorContext): boolean {
   return (WORK_ROLES as readonly string[]).includes(ctx.role);
 }
 
-/** Roles that can sit on a duty roster line (DOMAIN §3: technician L1, supervisor L2, head L3, plant head L4). */
-const ROSTER_ROLES: readonly string[] = ['technician', 'supervisor', 'head', 'plant_head'];
+/** Roles that can sit on a duty roster line or be given a ticket (DOMAIN §3: technician L1 up to plant head L4). */
+const ACKNOWLEDGE_ROLES: readonly string[] = ['technician', 'supervisor', 'head', 'plant_head'];
 
 /**
- * Who may acknowledge a ticket: the acting person who is on the duty roster for the shift now running; an admin
- * always (the matrix says yes). `onRoster` is the caller's answer for that acting person. A shared login with
- * no acting person has nobody to look up, so it never passes.
+ * Who may acknowledge a ticket (DOMAIN §2: "assignee or any on-duty technician"): the person it is assigned to, or
+ * a person on the duty roster for the shift now running. Nobody else, an admin included (an admin can still start the
+ * ticket, which stops the clock too). A shared login with no acting person has nobody to look up, so it never passes.
+ * The roster side is the caller's answer for the acting person (vendor-level lines do not count).
  */
-export function canAcknowledge(ctx: ActorContext, onRoster: boolean): boolean {
-  if (ctx.role === 'admin') return true;
-  return onRoster && ctx.personId !== null && ROSTER_ROLES.includes(ctx.role);
+export function canAcknowledge(
+  ctx: ActorContext,
+  facts: { onRoster: boolean; assignedToActor: boolean },
+): boolean {
+  if (ctx.personId === null || !ACKNOWLEDGE_ROLES.includes(ctx.role)) return false;
+  return facts.onRoster || facts.assignedToActor;
 }
 
 export function canRestore(ctx: ActorContext): boolean {

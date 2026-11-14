@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 
 type Db = Pick<PoolClient, 'query'>;
 
-/** Whether the person has a roster line for this plant date and shift (any level). */
+/** Whether the person has a roster line for this plant date and shift, at a level L1 to L4 (not vendor). */
 export async function onRosterLine(
   tx: Db,
   tenantId: string,
@@ -10,7 +10,7 @@ export async function onRosterLine(
 ): Promise<boolean> {
   const { rowCount } = await tx.query(
     `SELECT 1 FROM roster_entry
-      WHERE tenant_id = $1 AND person_id = $2 AND date = $3::date AND shift_id = $4 LIMIT 1`,
+      WHERE tenant_id = $1 AND person_id = $2 AND date = $3::date AND shift_id = $4 AND level <> 'vendor' LIMIT 1`,
     [tenantId, line.personId, line.date, line.shiftId],
   );
   return (rowCount ?? 0) > 0;

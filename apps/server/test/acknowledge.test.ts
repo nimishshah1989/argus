@@ -98,10 +98,13 @@ async function expectRefused(id: string, res: Awaited<ReturnType<typeof acknowle
   expect(await liveAckJobs(id)).toBe(1);
 }
 
-const rosterLine = (person: string, over: { date?: string; shiftId?: string } = {}) =>
+const rosterLine = (
+  person: string,
+  over: { date?: string; shiftId?: string; level?: string } = {},
+) =>
   admin.query(
-    "INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level) VALUES ($1, $2, $3, $4, 'L1')",
-    [TENANT, over.date ?? today, over.shiftId ?? SHIFT, people[person]],
+    'INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level) VALUES ($1, $2, $3, $4, $5)',
+    [TENANT, over.date ?? today, over.shiftId ?? SHIFT, people[person], over.level ?? 'L1'],
   );
 
 beforeAll(async () => {
@@ -153,6 +156,10 @@ beforeAll(async () => {
   }
   await admin.query(
     "INSERT INTO ref_counter (tenant_id, prefix, next_value) VALUES ($1, 'BD', 1)",
+    [TENANT],
+  );
+  await admin.query(
+    "INSERT INTO list_item (tenant_id, list, code, label, is_vendor, pauses_sla) VALUES ($1, 'wait_reason', 'spare', 'Spare part', false, true)",
     [TENANT],
   );
   await admin.query(
@@ -209,13 +216,44 @@ describe('POST /tickets/:id/acknowledge', () => {
     expect(detail.json().events.map((e: { type: string }) => e.type)).toContain('acknowledge');
   });
 
-  it('lets a rostered supervisor, head and plant head acknowledge, and the admin without a line', async () => {
-    for (const who of ['sunil', 'hema', 'pravin', 'root']) {
+  it('lets a rostered supervisor, head and plant head acknowledge', async () => {
+    for (const who of ['sunil', 'hema', 'pravin']) {
       const id = await raise();
       const res = await acknowledge(id, who);
       expect(res.statusCode, `${who}: ${res.body}`).toBe(200);
       expect((await ackTimer(id)).state).toBe('stopped');
     }
+  });
+
+  it('gives the admin no pass: without a roster line the admin is refused', async () => {
+    const id = await raise();
+    await expectRefused(id, await acknowledge(id, 'root'));
+  });
+
+  it('refuses a vendor-level roster line: a vendor is told, but does not stop the clock', async () => {
+    const id = await raise();
+    await rosterLine('bina', { level: 'vendor' });
+    await expectRefused(id, await acknowledge(id, 'bina'));
+    await admin.query('DELETE FROM roster_entry WHERE person_id = $1', [people.bina]);
+  });
+
+  it('lets the ticket assignee acknowledge without a roster line', async () => {
+    const id = await raise();
+    const step = (action: string, body: object) =>
+      call('POST', `/api/v1/tickets/${id}/${action}`, tokens.asha!, body);
+    expect((await step('start', { personId: people.asha })).statusCode).toBe(200);
+    const paused = await step('pause', {
+      personId: people.asha,
+      reasonCode: 'spare',
+      assignToPersonId: people.bina,
+    });
+    expect(paused.statusCode, paused.body).toBe(200);
+    expect((await step('resume', { personId: people.asha })).statusCode).toBe(200);
+    const res = await acknowledge(id, 'bina');
+    expect(res.statusCode, res.body).toBe(200);
+    expect((await ackEvents(id))[0]?.acting_person_id).toBe(people.bina);
+    const other = await acknowledge(id, 'pooja');
+    expect(other.statusCode).toBe(403);
   });
 
   it('refuses a technician who is not on the roster, and the clock keeps running', async () => {
@@ -258,6 +296,8 @@ describe('POST /tickets/:id/acknowledge', () => {
       call('POST', '/api/v1/auth/acting', tokens.shared!, { actingPersonId: people[who] });
     expect((await choose('bina')).statusCode).toBe(200);
     await expectRefused(id, await acknowledge(id, 'shared', 'bina'));
+    // the phone has bina chosen: it cannot borrow asha's roster line by naming her in the request
+    await expectRefused(id, await acknowledge(id, 'shared', 'asha'));
     expect((await choose('asha')).statusCode).toBe(200);
     const ok = await acknowledge(id, 'shared', 'asha');
     expect(ok.statusCode, ok.body).toBe(200);
