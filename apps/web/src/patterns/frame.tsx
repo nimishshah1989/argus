@@ -1,22 +1,54 @@
 import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button.js';
+import { ChevronLeft } from '../ui/icon.js';
 import { Inline, Stack } from '../ui/layout.js';
 import { SyncStatus } from './sync-status.js';
 import type { ViewState } from './view-state.js';
 
-/** A section, not a `<main>`: the face wraps patterns in `Page`. */
-export function PatternFrame({ title, children }: { title: string; children: ReactNode }) {
+export interface FrameBack {
+  label: string;
+  onClick: () => void;
+}
+
+/**
+ * A section, not a `<main>`: the face wraps patterns in `Page`. With `back` the header shows a back
+ * link in the title's place (the title stays for screen readers); `aside` sits beside the sync pill.
+ */
+export function PatternFrame({
+  title,
+  back,
+  aside,
+  children,
+}: {
+  title: string;
+  back?: FrameBack;
+  aside?: string;
+  children: ReactNode;
+}) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId}>
       <Stack gap={3}>
-        <Inline gap={2}>
-          <h2 id={headingId} className="text-title3 font-semibold">
+        <div className="flex items-center justify-between gap-2">
+          {back ? (
+            <button
+              type="button"
+              onClick={back.onClick}
+              className="-ml-2 flex min-h-target-min items-center gap-1 rounded-xl px-2 text-body font-semibold text-neutral-900"
+            >
+              <ChevronLeft aria-hidden size={20} />
+              {back.label}
+            </button>
+          ) : null}
+          <h2 id={headingId} className={back ? 'sr-only' : 'text-title3 font-semibold'}>
             {title}
           </h2>
-          <SyncStatus />
-        </Inline>
+          <Inline gap={2}>
+            {aside ? <span className="text-footnote text-neutral-600">{aside}</span> : null}
+            <SyncStatus />
+          </Inline>
+        </div>
         {children}
       </Stack>
     </section>

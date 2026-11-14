@@ -19,7 +19,7 @@ import {
   type Tx,
 } from '../mapper.js';
 import { endReasonFor, persistSegments } from './segments.js';
-import { overridesFrom } from '../admin-fixes.js';
+import { overridesFrom } from './overrides.js';
 
 export const TICKET_COLUMNS = `id, ref, kind, status, machine_id, machine_snapshot, location,
   work_type, urgent, problem, problem_lang, reported_at, reported_by_person_id, reported_by_role,

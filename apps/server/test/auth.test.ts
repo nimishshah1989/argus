@@ -226,15 +226,51 @@ describe('auth', () => {
     expect(after.getTime()).toBeGreaterThan(before.getTime());
   });
 
-  it('trusts the token, not the host, after login', async () => {
-    const login = await post('/api/v1/auth/login', 'cosmos.localhost', {
-      username: 'asha',
-      password: 'new-password-123',
-    });
-    const token = login.json().token as string;
-    const me = await get('/api/v1/auth/me', 'plant-two.localhost', token);
-    expect(me.statusCode).toBe(200);
-    expect(me.json().user.username).toBe('asha');
+  it("refuses a session on another customer's host, and shows nothing of either customer", async () => {
+    const asha = (
+      await post('/api/v1/auth/login', 'cosmos.localhost', {
+        username: 'asha',
+        password: 'new-password-123',
+      })
+    ).json().token as string;
+    const cell = (
+      await post('/api/v1/auth/login', 'plant-two.localhost', {
+        username: 'cell-phone',
+        password: PASSWORD,
+        actingPersonId: PERSON_B,
+      })
+    ).json().token as string;
+    expect((await get('/api/v1/auth/me', 'cosmos.localhost', asha)).statusCode).toBe(200);
+    expect((await get('/api/v1/auth/me', 'plant-two.localhost', cell)).statusCode).toBe(200);
+    for (const [token, host] of [
+      [asha, 'plant-two.localhost'],
+      [cell, 'cosmos.localhost'],
+      [asha, 'plant-two.example.com'],
+    ] as const) {
+      for (const url of ['/api/v1/auth/me', '/api/v1/config']) {
+        const res = await get(url, host, token);
+        expect(res.statusCode, `${url} on ${host}`).toBe(401);
+        expect(res.body).not.toMatch(/Asha|Bina/);
+      }
+    }
+  });
+
+  it('applies the default customer to a bare IP address, so the other customer is refused there', async () => {
+    const asha = (
+      await post('/api/v1/auth/login', 'cosmos.localhost', {
+        username: 'asha',
+        password: 'new-password-123',
+      })
+    ).json().token as string;
+    const cell = (
+      await post('/api/v1/auth/login', 'plant-two.localhost', {
+        username: 'cell-phone',
+        password: PASSWORD,
+        actingPersonId: PERSON_B,
+      })
+    ).json().token as string;
+    expect((await get('/api/v1/auth/me', '10.0.0.7:3001', asha)).statusCode).toBe(200);
+    expect((await get('/api/v1/auth/me', '10.0.0.7:3001', cell)).statusCode).toBe(401);
   });
 });
 

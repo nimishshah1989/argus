@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Algorithm, hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
+import { passwordProblem } from '@uptimo/domain';
 import { apiError, changePasswordSchema, loginSchema } from '@uptimo/shared';
 import { bindLog, withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
 import {
@@ -15,7 +16,13 @@ import {
   setPasswordHash,
 } from './repo.js';
 import { createLoginGuard } from './login-guard.js';
-import { hashToken, newToken, requireAuth, tenantSlugFromHost } from './service.js';
+import {
+  hashToken,
+  newToken,
+  passwordMessage,
+  requireAuth,
+  tenantSlugFromHost,
+} from './service.js';
 
 const PASSWORD_OPTS = {
   algorithm: Algorithm.Argon2id,
@@ -37,6 +44,7 @@ function userFrom(ctx: AuthContext) {
     role: ctx.role,
     shared: ctx.shared,
     actingPersonId: ctx.personId,
+    mustChangePassword: ctx.mustChangePassword,
   };
 }
 
@@ -74,7 +82,7 @@ function tooManyAttempts(
 
 interface NewSession {
   tenantId: string;
-  loginRow: { id: string; role: string; shared: boolean };
+  loginRow: { id: string; role: string; shared: boolean; must_change_password: boolean };
   username: string;
   device: string | undefined;
   person: { id: string; name: string; title: string | null };
@@ -99,8 +107,21 @@ async function startSession(pool: Pool, reply: FastifyReply, n: NewSession) {
       role: n.loginRow.role,
       shared: n.loginRow.shared,
       actingPersonId: n.person.id,
+      mustChangePassword: n.loginRow.must_change_password,
     },
   });
+}
+
+/** Who is signing in: the login's own person, or the one chosen on a shared login; never someone switched off. */
+async function actingPerson(
+  pool: Pool,
+  tenantId: string,
+  row: { shared: boolean; person_id: string | null },
+  chosen?: string,
+) {
+  const id = row.shared ? chosen : row.person_id;
+  const person = id ? await findPerson(pool, tenantId, id) : undefined;
+  return person?.active ? person : undefined;
 }
 
 async function login(pool: Pool, guard: LoginGuard, request: FastifyRequest, reply: FastifyReply) {
@@ -126,15 +147,7 @@ async function login(pool: Pool, guard: LoginGuard, request: FastifyRequest, rep
     return;
   }
   guard.refund(request.ip, tenant.id, username);
-  let acting = loginRow.person_id;
-  if (loginRow.shared) {
-    if (!actingPersonId) {
-      reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
-      return;
-    }
-    acting = actingPersonId;
-  }
-  const person = await findPerson(pool, tenant.id, acting);
+  const person = await actingPerson(pool, tenant.id, loginRow, actingPersonId);
   if (!person) {
     reply.code(422).send(apiError('validation', 'Choose your name', 'actingPersonId'));
     return;
@@ -177,6 +190,11 @@ async function changePassword(
   }
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
+  const problem = passwordProblem(parsed.data.password, ctx.username);
+  if (problem) {
+    reply.code(422).send(apiError('validation', passwordMessage(problem), 'password'));
+    return;
+  }
   // Guessing the old password from a stolen session is limited like guessing at sign-in.
   if (tooManyAttempts(guard, request, reply, ctx)) return;
   const ok = await withTenant(pool, ctx.tenantId, async (client) => {
