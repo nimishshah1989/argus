@@ -1,0 +1,2 @@
+- Phone alerts: closed a gap where a specially spelled address could still make the server contact the wrong machine. An address is now accepted only when both ways the server reads it agree on a real push service, and it is saved in one normalised spelling.
+- The AI monthly cap now refuses numbers that overflow or are absurdly large, instead of saving nothing and silently switching the AI off. The cap and consent are admin only in the permissions table.
