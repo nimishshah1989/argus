@@ -71,7 +71,7 @@ Every transition is a command handled by `transition(ticket, events, command, ct
 | `raise` | — | open | operator, technician, supervisor, head, admin; a WhatsApp sender matched to a person; an unknown floor name creates a pending production person | problem required; machine required unless `kind=general` (then location and work type); duplicate: an open non-general ticket on the same machine returns the existing ticket (`conflict`) | event `down`; `self_started` if raised by maintenance with "starting now" (then also `start`) |
 | `upgradeKind` | open, working, waiting (`kind=support`) | same status, `kind=stopped` | every role that may raise (all but `board`), an operator included (approved mockup A3-6); offered when someone tries to raise a stopped ticket on a machine with an open support ticket |  | event `upgrade_kind`; downtime counts from this time |
 | `start` / pick up | open | working | technician and above; on a shared phone the acting person is chosen | `at` between reported\_at (or handover\_since) and now, whatever was written in between; one lead only | event `start` or `pickup`; `work_segment` opened for the lead; `response_min` = first start minus reported (null while self-started tickets are not started by anyone else; a self-started ticket's response is null, as in v3) |
-| `join` | working, waiting | same | technician and above, not already on the ticket and not the person running it (409); the lead may add anyone (shared login only until the contract carries who adds) | role primary or support | event `join`; `crew_member`; a `work_segment` opens only while the ticket is working |
+| `join` | working, waiting | same | technician and above, not already on the ticket and not the person running it (409); a person joins as themselves (adding someone else needs a contract field that names them, not built yet) | role primary or support | event `join`; `crew_member`; a `work_segment` opens only while the ticket is working |
 | `leave` | working, waiting | same | the crew member, or the lead when a primary exists to take over (409 when none does) | reason required | event `leave` (and `lead` if the lead changed: the earliest-joined primary takes over, their own segment closes and a lead segment opens at the same minute); the person's segment closes; `crew_member.left_at` |
 | `pause` | working | waiting | technician and above (feature flag `pause`) | reason from the list; optional note, expected back (stored 18:00 local on the chosen day, as today), assignee | event `pause`; every open segment closes; the pause is the interval from this event to `resume` |
 | `resume` | waiting | working | technician and above; if `assigned_to` is someone else, the client asks for a second confirmation |  | event `resume` with minutes waited; the lead stays lead when the lead or someone on the crew resumes (anyone else who resumes becomes lead and gets a new segment); every crew member who has not left gets a new segment at the resume time, as in `worker.js` |
@@ -116,7 +116,7 @@ One role vocabulary everywhere (code, API, screens): `operator` (Bhavin's report
 | Settings: SLA, escalation, WhatsApp, other caps | no | no | no | yes | no | yes | no |
 | Settings: AI monthly cap and consent (D22) | no | no | no | no | no | yes | no |
 
-**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team. **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
+**Shared logins** carry a role like any other login; every action also records the acting person chosen on the phone, and the person list offered is the plant's active people for that team: a floor (operator) phone offers production, a technician phone maintenance, a supervisor, head, plant head or board phone either, never a vendor and never someone switched off, and a phone whose person stops qualifying (switched off, or moved to another team) is asked again on its next request (`GET /auth/acting` lists them, and `POST /auth/acting` and the sign-in accept only those). **WhatsApp senders** are matched to a person by phone number; an unknown number gets a polite refusal and the admin a notice. **Platform access** (our staff) is granted per tenant with an expiry and a reason, acts with admin permissions, and writes every action to the tenant's audit log; tenant creation and billing live in a separate platform surface outside any tenant.
 
 ## 4. API contract (v1)
 
@@ -128,6 +128,7 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 | --- | --- | --- | --- |
 | `POST /auth/login` | `{username, password, device}` | `{token, user:{id, username, name, role, shared, title}}` | `/api/login` |
 | `GET /auth/me` |  | `{user}` | `/api/me` |
+| `GET /auth/acting` (shared logins only) | no parameters | `{people:[{id, name, team}]}`: who this phone may choose, names and teams only | new |
 | `POST /auth/logout` |  |  | `/api/logout` |
 | `POST /auth/password` | `{old, password}` |  | `/api/password` |
 | `GET /auth/sessions` · `DELETE /auth/sessions/{id}` |  | device list; revoke | new |
@@ -142,6 +143,8 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 | `GET/POST/PATCH /machines`, `/people`, `/logins`, `/lists/{list}`, `/shifts`, `/segments`, `/groups` |  | master data CRUD, admin and head only | platform push |
 
 **Tickets**
+
+Every ticket command acts as the session's person: the login's own, or on a shared phone the one chosen on it. `personId` may be left out or repeat that person; naming anyone else is `403 forbidden`, and a shared phone with nobody chosen is `403 choose_acting_person`. People a command only names (`toPersonId`, `assignToPersonId`, a reporter, the crew on a report) are not the actor and stay as sent. Every ticket in a reply carries `canAcknowledge`: true when the person using the session may acknowledge it now (assignee or on today's roster for the shift running, ticket open or working, not yet acknowledged).
 
 | Endpoint | Request | Response | Bhavin's |
 | --- | --- | --- | --- |

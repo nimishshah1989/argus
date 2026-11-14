@@ -4,14 +4,13 @@ import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import * as shared from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
-import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
+  actingRefusal,
   AUTH_MESSAGES,
   isOnRoster,
   ticketPartsAfterWrite,
-  withTicketParts,
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
@@ -22,8 +21,8 @@ import * as report from './repo/report.js';
 import { ALREADY_OPEN, runOutcome } from './outcome.js';
 import { boardToday } from './board.js';
 import { registerPast } from './past.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
-import { openDuplicateId, openTicketRows } from './repo/list.js';
+import { detail, listTickets, loadState } from './list.js';
+import { openDuplicateId } from './repo/list.js';
 import {
   checkCorrectedRefs,
   machineSwitchedOff,
@@ -65,37 +64,22 @@ interface RaiseTx {
   body: Record<string, unknown>;
 }
 
-const SESSION_PERSON: ReadonlySet<tm.CommandAction> = new Set(['acknowledge', 'handback']);
-
+/**
+ * Who acts is always the session's person (a shared phone's chosen one), never one a request names; a correction
+ * is the admin's own act. The read is locked, so a switch-off that is under way finishes first: a person already
+ * off is no longer signed in.
+ */
 async function resolveActingPerson(
   client: PoolClient,
   tx: tm.Tx,
 ): Promise<{ personId: string | null } | Outcome> {
-  // A correction is the admin's own act; every other command, an upgrade included, names who acts.
   if (tx.action === 'correct') return { personId: tx.auth.personId };
-  // On an upgrade the person may be left out: a signed-in person then acts as themselves.
-  const alone = tx.action === 'upgrade-kind' && !tx.auth.shared;
-  const bodyPersonId = (tx.body.personId ?? (alone ? tx.auth.personId : undefined)) as
-    string | undefined;
-  // An acknowledge or a sign-off answer is judged on who the session says is acting: a shared phone's chosen
-  // person, never one the request merely names (that would borrow someone else's roster line, or their cell).
-  if (!tx.auth.shared || SESSION_PERSON.has(tx.action)) {
-    if (bodyPersonId !== tx.auth.personId) {
-      return {
-        status: 403,
-        body: shared.apiError('forbidden', 'You may only act as yourself', 'personId'),
-      };
-    }
-    // Read locked, so a switch-off that is under way finishes first; a person already off is no longer signed in.
-    if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-      return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
-    }
-    return { personId: tx.auth.personId };
+  const refused = actingRefusal(tx.auth, tx.body.personId as string | undefined, 'personId');
+  if (refused) return refused;
+  if (!(await sql.personExists(client, tx.tenantId, tx.auth.personId!))) {
+    return { status: 401, body: shared.apiError('unauthenticated', AUTH_MESSAGES.ended) };
   }
-  if (!bodyPersonId || !(await sql.personExists(client, tx.tenantId, bodyPersonId))) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'personId') };
-  }
-  return { personId: bodyPersonId };
+  return { personId: tx.auth.personId };
 }
 
 async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.LoadedCtx | null> {
@@ -155,6 +139,7 @@ async function executeCommand(
     now: new Date(),
     boss,
     command: tx.action,
+    actor: tx.auth,
   });
 
   const outcome: Outcome = {
@@ -187,7 +172,11 @@ async function runCommand(
     reply.code(422).send(shared.apiError('validation', 'Invalid request', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [action, parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    action,
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: tm.Tx = {
     tenantId: ctx.tenantId,
     ticketId: (request.params as { id: string }).id,
@@ -222,22 +211,56 @@ async function validateMachine(
   return { snapshot: { code, category, cell, criticality }, criticality };
 }
 
+/**
+ * Who a raise may name. The one who starts the work is the person acting, and only maintenance starts work; a
+ * reporter other than the person acting (a technician taking a call) is for maintenance too, an operator reports as
+ * themselves. Refused before anything is looked up, so a refusal says nothing about who exists.
+ */
+function raiseRefusal(tx: RaiseTx): Outcome | null {
+  const { role, loginId, personId, shared: sharedLogin } = tx.auth;
+  const maintenance = domain.canWork({
+    role: role as domain.Role,
+    loginId,
+    personId,
+    shared: sharedLogin,
+  });
+  if (tx.body.startNow || tx.body.startByPersonId !== undefined) {
+    const named = tx.body.startByPersonId as string | undefined;
+    const refused = actingRefusal(tx.auth, named, 'startByPersonId');
+    if (refused) return refused;
+    if (tx.body.startNow && !maintenance) {
+      return {
+        status: 403,
+        body: shared.apiError(
+          'forbidden',
+          'You do not have permission for this action',
+          'startNow',
+        ),
+      };
+    }
+  }
+  const reporter = tx.body.reportedByPersonId as string | undefined;
+  if (reporter !== undefined && reporter !== personId && !maintenance) {
+    return {
+      status: 403,
+      body: shared.apiError('forbidden', 'You may only report as yourself', 'reportedByPersonId'),
+    };
+  }
+  return null;
+}
+
 async function validateRaisePeople(
   client: PoolClient,
   tx: RaiseTx,
 ): Promise<{ reportedByPersonId: string | null } | Outcome> {
+  const refused = raiseRefusal(tx);
+  if (refused) return refused;
   const reportedByPersonId = (tx.body.reportedByPersonId as string | undefined) ?? tx.auth.personId;
   if (reportedByPersonId && !(await sql.personExists(client, tx.tenantId, reportedByPersonId))) {
     return {
       status: 404,
       body: shared.apiError('not_found', 'Unknown reporter', 'reportedByPersonId'),
     };
-  }
-  if (
-    tx.body.startByPersonId &&
-    !(await sql.personExists(client, tx.tenantId, tx.body.startByPersonId as string))
-  ) {
-    return { status: 404, body: shared.apiError('not_found', 'Unknown person', 'startByPersonId') };
   }
   return { reportedByPersonId };
 }
@@ -251,20 +274,16 @@ async function executeRaise(
   const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
   const machine = await validateMachine(client, tx);
-  if ('status' in machine) {
-    // A concurrent same-key raise may have committed between our idempotency check and this
-    // duplicate-machine probe; replay its stored result instead of failing on the duplicate.
-    return (await idem.getIdempotent(client, binding)) ?? machine;
-  }
+  // A same-key raise may have committed in between: replay its stored result, not a duplicate error.
+  if ('status' in machine) return (await idem.getIdempotent(client, binding)) ?? machine;
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
-  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
   const raised = buildRaised({
     ref,
-    body: tx.body,
+    body: { ...tx.body, startByPersonId: tx.auth.personId ?? undefined },
     loginId: tx.auth.loginId,
     reportedByPersonId: people.reportedByPersonId,
     now,
@@ -297,6 +316,7 @@ async function executeRaise(
     now,
     boss,
     command: 'raise',
+    actor: tx.auth,
   });
   const outcome: Outcome = {
     status: 201,
@@ -327,7 +347,11 @@ async function raise(
     reply.code(422).send(shared.apiError('validation', 'Invalid ticket', field || undefined));
     return;
   }
-  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, ['raise', parsed.data]);
+  const binding = idem.computeBinding(ctx.tenantId, ctx.loginId, key, [
+    'raise',
+    parsed.data,
+    idem.phoneActor(ctx),
+  ]);
   const tx: RaiseTx = {
     tenantId: ctx.tenantId,
     key,
@@ -343,13 +367,7 @@ async function raise(
 async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const openRows = await withTenant(pool, ctx.tenantId, (client) =>
-    openTicketRows(client, ctx.tenantId),
-  );
-  const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
-  const open = await withTenant(pool, ctx.tenantId, (client) =>
-    withTicketParts(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
-  );
+  const { open, needReport } = await loadState(pool, ctx.tenantId, ctx);
   reply.send({ open, needReport, now: new Date().toISOString() });
 }
 

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { lockLiveActing, requireAuth } from '../identity/index.js';
-import { AUTH_MESSAGES, type AppConfig } from '../../kernel/index.js';
+import { actingRefusal, AUTH_MESSAGES, type AppConfig } from '../../kernel/index.js';
 import { isPushEndpoint, normalisedEndpoint } from './endpoint.js';
 import { notify } from './notify.js';
 import { vapidConfig } from './push.js';
@@ -46,6 +46,12 @@ async function subscribeHandler(
     return;
   }
   const { subscription, actingPersonId } = parsed.data;
+  // A phone is registered for the person using it, never for someone whose notifications it would then receive.
+  const refused = actingRefusal(auth, actingPersonId, 'actingPersonId');
+  if (refused) {
+    reply.code(refused.status).send(refused.body);
+    return;
+  }
   const check = await withTenant(pool, auth.tenantId, async (client) => {
     const live = await lockLiveActing(client, {
       tenantId: auth.tenantId,

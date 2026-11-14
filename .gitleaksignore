@@ -13,3 +13,6 @@ ab5a6ec3abed5591ab1052ce1e8cee6ecfda04c0:apps/server/test/people-api.test.ts:gen
 # One finding in the PR-branch commit d8ef0b7 of #210 (an invented password in a test, since replaced by a runtime-built one).
 # A later commit cannot remove it from that commit's diff. After the squash the line no longer exists on main.
 d8ef0b71534ae90e15efe58b48d29cf0ba624a03:apps/server/test/people-api.test.ts:generic-api-key:395
+# One finding in the early PR-branch commit f0a1d96 of #246: a public Web Push sample key pair used as a test input
+# (since replaced by the 'test-p256dh' / 'test-auth' placeholders). A later commit cannot remove it from that commit's diff.
+f0a1d96fffdb21bbd9f4a1dc8e9bb74619202cd9:apps/server/test/acting-person.test.ts:generic-api-key:340

@@ -7,7 +7,9 @@ import { buildApp } from '../src/app.js';
 import type { AppConfig } from '../src/kernel/index.js';
 import { withTenant } from '@uptimo/db';
 import { processSlaTimerJob } from '../src/modules/accountability/repo/timers.js';
+import { onRosterAt } from '../src/modules/accountability/roster.js';
 import { reconcileTicket } from '../src/modules/accountability/sla.js';
+import { setRosterLookup } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const TENANT = '81000000-0000-0000-0000-000000000001';
@@ -167,7 +169,7 @@ beforeAll(async () => {
       ($1, 'S1', 60, 240), ($1, 'S2', 90, 360), ($1, 'S3', 120, 480), ($1, 'S4', 180, 720)`,
     [TENANT],
   );
-  for (let i = 0; i < 24; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     const id = randomUUID();
     machines.push(id);
     await admin.query(
@@ -365,5 +367,121 @@ describe('POST /tickets/:id/acknowledge', () => {
     expect(after.state).toBe('stopped');
     expect(after.fired_at?.toISOString()).toBe(breached.fired_at?.toISOString());
     expect(res.json().ticket.sla.ack.breached).toBe(true);
+  });
+});
+
+describe('canAcknowledge on the ticket reply (the Acknowledge button)', () => {
+  const flagIn = async (as: string, id: string): Promise<unknown> => {
+    const state = await call('GET', '/api/v1/state', tokens[as]!);
+    expect(state.statusCode, state.body).toBe(200);
+    const ticket = state.json().open.find((t: { id: string }) => t.id === id);
+    expect(ticket, `${as} sees the ticket`).toBeDefined();
+    return ticket.canAcknowledge;
+  };
+
+  it('is true for a rostered technician, supervisor, head and plant head, and false for the rest of the plant', async () => {
+    const id = await raise();
+    for (const who of ['asha', 'sunil', 'hema', 'pravin'])
+      expect(await flagIn(who, id), who).toBe(true);
+    // not on the roster, an operator or the board even with a roster line, and an admin
+    for (const who of ['bina', 'pooja', 'omkar', 'board', 'root'])
+      expect(await flagIn(who, id), who).toBe(false);
+  });
+
+  it('is false for a vendor-level roster line, and false for the assignee once work has started, though the command still takes it', async () => {
+    const id = await raise();
+    await rosterLine('bina', { level: 'vendor' });
+    expect(await flagIn('bina', id)).toBe(false);
+    await admin.query('DELETE FROM roster_entry WHERE person_id = $1', [people.bina]);
+    const step = (action: string, body: object) =>
+      call('POST', `/api/v1/tickets/${id}/${action}`, tokens.asha!, body);
+    await step('start', { personId: people.asha });
+    await step('pause', {
+      personId: people.asha,
+      reasonCode: 'spare',
+      assignToPersonId: people.bina,
+    });
+    await step('resume', { personId: people.asha });
+    expect(await flagIn('bina', id)).toBe(false);
+    expect(await flagIn('pooja', id)).toBe(false);
+    expect((await acknowledge(id, 'bina')).statusCode).toBe(200);
+  });
+
+  it('goes false for everyone the moment someone starts the ticket: the clock has stopped', async () => {
+    const id = await raise();
+    for (const who of ['asha', 'sunil']) expect(await flagIn(who, id), who).toBe(true);
+    const started = await call('POST', `/api/v1/tickets/${id}/start`, tokens.sunil!, {
+      personId: people.sunil,
+    });
+    expect(started.statusCode, started.body).toBe(200);
+    expect(started.json().ticket.canAcknowledge).toBe(false);
+    for (const who of ['asha', 'sunil', 'hema', 'pravin'])
+      expect(await flagIn(who, id), who).toBe(false);
+  });
+
+  it('reads the roster once per request, however many tickets the reply carries, and not at all for a role that cannot acknowledge', async () => {
+    for (let i = 0; i < 4; i += 1) await raise();
+    let reads = 0;
+    setRosterLookup((...args) => {
+      reads += 1;
+      return onRosterAt(...args);
+    });
+    try {
+      const withReads = async (url: string, as: string) => {
+        reads = 0;
+        const res = await call('GET', url, tokens[as]!);
+        expect(res.statusCode, res.body).toBe(200);
+        return { body: res.json(), reads };
+      };
+      const state = await withReads('/api/v1/state', 'asha');
+      expect(state.body.open.length).toBeGreaterThan(3);
+      expect(state.reads).toBe(1);
+      const list = await withReads('/api/v1/tickets', 'asha');
+      expect(list.body.items.length).toBeGreaterThan(3);
+      expect(list.reads).toBe(1);
+      expect((await withReads('/api/v1/state', 'omkar')).reads).toBe(0);
+      expect((await withReads('/api/v1/state', 'board')).reads).toBe(0);
+    } finally {
+      setRosterLookup(onRosterAt);
+    }
+  });
+
+  it('follows the person chosen on a shared phone, and goes false once the ticket is acknowledged', async () => {
+    const id = await raise();
+    const choose = (who: string) =>
+      call('POST', '/api/v1/auth/acting', tokens.shared!, { actingPersonId: people[who] });
+    expect((await choose('bina')).statusCode).toBe(200);
+    expect(await flagIn('shared', id)).toBe(false);
+    expect((await choose('asha')).statusCode).toBe(200);
+    expect(await flagIn('shared', id)).toBe(true);
+    const done = await acknowledge(id, 'shared', 'asha');
+    expect(done.statusCode, done.body).toBe(200);
+    expect(done.json().ticket.canAcknowledge).toBe(false);
+    expect(await flagIn('shared', id)).toBe(false);
+    expect(await flagIn('sunil', id)).toBe(false);
+  });
+
+  it('is on the detail, the list and the command reply too, and false once the ticket is no longer open or working', async () => {
+    const id = await raise();
+    const detail = await call('GET', `/api/v1/tickets/${id}`, tokens.asha!);
+    expect(detail.json().ticket.canAcknowledge).toBe(true);
+    const list = await call('GET', '/api/v1/tickets', tokens.asha!);
+    expect(list.json().items.find((t: { id: string }) => t.id === id).canAcknowledge).toBe(true);
+    const update = await call('POST', `/api/v1/tickets/${id}/cancel`, tokens.asha!, {
+      personId: people.asha,
+      reason: 'Duplicate',
+    });
+    expect(update.json().ticket.canAcknowledge).toBe(false);
+    const after = await call('GET', `/api/v1/tickets/${id}`, tokens.asha!);
+    expect(after.json().ticket.canAcknowledge).toBe(false);
+  });
+
+  it('is asked for by nobody on a shared phone with no one chosen: the app must ask who is using it first', async () => {
+    await admin.query(
+      "UPDATE session SET acting_person_id = NULL WHERE login_id = (SELECT id FROM login WHERE username = 'shared')",
+    );
+    const state = await call('GET', '/api/v1/state', tokens.shared!);
+    expect(state.statusCode).toBe(403);
+    expect(state.json().error.code).toBe('choose_acting_person');
   });
 });

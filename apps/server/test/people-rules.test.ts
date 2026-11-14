@@ -8,7 +8,7 @@ let n = 0;
 async function addPerson(name: string, phone?: string): Promise<string> {
   const res = await t.call('POST', '/api/v1/people', admin, {
     name,
-    team: 'maintenance',
+    team: 'production',
     ...(phone ? { phone } : {}),
   });
   expect(res.statusCode, res.body).toBe(201);
@@ -283,9 +283,13 @@ describe('a shared login is never an admin', () => {
       await t.call('POST', '/api/v1/auth/login', undefined, {
         username: 'legacy.shared',
         password: PASSWORD,
-        actingPersonId: person,
       })
     ).json().token;
+    // an admin phone can no longer choose anyone, so give it a person by hand to reach the permission check
+    await t.db.admin.query(
+      `UPDATE session SET acting_person_id = $1 WHERE login_id = (SELECT id FROM login WHERE username = 'legacy.shared')`,
+      [person],
+    );
     expect((await t.call('GET', '/api/v1/people', token)).statusCode).toBe(403);
     expect(
       (await t.call('POST', '/api/v1/people', token, { name: 'Z', team: 'vendor' })).statusCode,
