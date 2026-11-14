@@ -117,10 +117,20 @@ function validDate(value: Date): boolean {
   return value instanceof Date && !Number.isNaN(value.getTime());
 }
 
+/**
+ * What happened since the ticket was last handed over: a transfer gives the next person a fresh acknowledge window, so
+ * an acknowledge or a start from before it does not count.
+ */
+export function eventsSinceLastTransfer<T extends { type: string }>(events: readonly T[]): T[] {
+  const last = events.map((event) => event.type).lastIndexOf('transfer');
+  return events.slice(last + 1);
+}
+
 function ackTerminal(input: SlaProjectionInput): Terminal | undefined {
-  const start = input.events.find((event) => event.type === 'start' || event.type === 'pickup');
-  const acknowledged = input.events.find((event) => event.type === 'acknowledge');
-  const close = input.events.find((event) => event.type === 'close');
+  const events = eventsSinceLastTransfer(input.events);
+  const start = events.find((event) => event.type === 'start' || event.type === 'pickup');
+  const acknowledged = events.find((event) => event.type === 'acknowledge');
+  const close = events.find((event) => event.type === 'close');
   return earliest([
     start ? { at: correctedTime(input, 'startedAt', start.at), reason: 'started' } : undefined,
     acknowledged ? { at: acknowledged.at, reason: 'acknowledged' } : undefined,
@@ -256,6 +266,7 @@ function activeTimeline(
     if (skipEvent(work, event)) continue;
     if (event.type === 'cancel') cancelClock(work, event.at);
     else if (event.type === 'restore') restoreClock(work, event.at);
+    else if (event.type === 'transfer' && kind === 'ack') restartClock(work, event.at);
     else applyWait(work, event, kind);
   }
   closeRunning(work, work.boundary);
@@ -301,6 +312,12 @@ function cancelClock(work: ClockWork, at: Date): void {
   work.pausedAt = null;
   work.cancelled = true;
   work.boundary = cutoff;
+}
+
+/** A handover: the acknowledge clock runs again from here, in full. */
+function restartClock(work: ClockWork, at: Date): void {
+  work.intervals = [];
+  work.runningSince = at;
 }
 
 function restoreClock(work: ClockWork, at: Date): void {

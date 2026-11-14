@@ -1,6 +1,7 @@
 import { PgBoss, type Clock, type Queue } from 'pg-boss';
 import type { Pool } from 'pg';
 import { processSlaTimerJob, type SlaTimerPayload } from './repo/timers.js';
+import { ESCALATION_QUEUE, processEscalationJob, type EscalationJob } from './escalation.js';
 import {
   processSlaConsistencyJob,
   type SlaConsistencyPayload,
@@ -33,6 +34,16 @@ async function ensureQueue(
   if (!(await boss.getQueue(name))) await boss.createQueue(name, options);
 }
 
+const QUEUES: Record<string, Omit<Queue, 'name'>> = {
+  'sla.timer': { policy: 'standard', retryLimit: 2, retryDelay: 1, expireInSeconds: 60 },
+  [ESCALATION_QUEUE]: { policy: 'standard', retryLimit: 2, retryDelay: 5, expireInSeconds: 120 },
+  'sla.consistency': { policy: 'standard', retryLimit: 2, retryDelay: 5, expireInSeconds: 900 },
+};
+
+async function ensureQueues(boss: PgBoss): Promise<void> {
+  for (const [name, options] of Object.entries(QUEUES)) await ensureQueue(boss, name, options);
+}
+
 async function registerWorkers(boss: PgBoss, options: StartJobsOptions): Promise<void> {
   const now = options.now ?? (() => new Date(options.clock?.now() ?? Date.now()));
   const pollingIntervalSeconds = options.pollingIntervalSeconds ?? 2;
@@ -42,6 +53,14 @@ async function registerWorkers(boss: PgBoss, options: StartJobsOptions): Promise
     async ([job]) => {
       if (!job) return false;
       return processSlaTimerJob(job.data, { pool: options.pool, now, boss });
+    },
+  );
+  await boss.work<EscalationJob>(
+    ESCALATION_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds },
+    async ([job]) => {
+      if (!job) return false;
+      return processEscalationJob(job.data, { pool: options.pool, now, boss });
     },
   );
   await boss.work<SlaConsistencyPayload>(
@@ -73,18 +92,7 @@ export async function startJobs(options: StartJobsOptions): Promise<JobsHandle> 
   await boss.start();
   await options.onBossReady?.(boss);
   try {
-    await ensureQueue(boss, 'sla.timer', {
-      policy: 'standard',
-      retryLimit: 2,
-      retryDelay: 1,
-      expireInSeconds: 60,
-    });
-    await ensureQueue(boss, 'sla.consistency', {
-      policy: 'standard',
-      retryLimit: 2,
-      retryDelay: 5,
-      expireInSeconds: 900,
-    });
+    await ensureQueues(boss);
     if (role !== 'api') {
       await registerWorkers(boss, options);
       if (options.dailyConsistency ?? true) {

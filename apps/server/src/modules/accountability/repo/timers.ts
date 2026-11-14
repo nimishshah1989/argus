@@ -3,6 +3,7 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '@uptimo/db';
 import { jobDb } from '../../../kernel/index.js';
 import { lockTicket } from '../../tickets/index.js';
+import { startClockEscalation } from '../escalation.js';
 
 export type SlaTimerKind = 'ack' | 'restore' | 'pause' | 'handback';
 export type SlaTimerState = 'running' | 'paused' | 'stopped';
@@ -52,10 +53,17 @@ function sameInstant(left: Date | null, right: Date | null): boolean {
   return left?.getTime() === right?.getTime();
 }
 
-/** A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). */
+/**
+ * A pause or sign-off clock that stopped and runs again is a new episode (a resume, a restore, the next close). So is
+ * an acknowledge clock a handover starts again after a start or an acknowledge; one a cancel stopped and a restore
+ * resumed, or a late stop a correction reopened, is still the first and never fires twice.
+ */
 function startsNewEpisode(row: TimerRow, timer: SlaTimerProjection): boolean {
-  const repeats = timer.kind === 'pause' || timer.kind === 'handback';
-  return repeats && timer.state === 'running' && row.state === 'stopped';
+  if (timer.state !== 'running' || row.state !== 'stopped') return false;
+  if (timer.kind === 'pause' || timer.kind === 'handback') return true;
+  return (
+    timer.kind === 'ack' && (row.stop_reason === 'started' || row.stop_reason === 'acknowledged')
+  );
 }
 
 function changed(row: TimerRow, timer: SlaTimerProjection): boolean {
@@ -293,7 +301,16 @@ export async function processSlaTimerJob(
        RETURNING id`,
       [payload.tenantId, payload.ticketId, payload.kind, firedAt, payload.revision],
     );
-    if (result.rowCount === 1) return true;
+    if (result.rowCount === 1) {
+      // In the same transaction as `fired_at`: a failure here puts the breach back, and the job runs again.
+      await startClockEscalation(client, runtime.boss ?? null, {
+        tenantId: payload.tenantId,
+        ticketId: payload.ticketId,
+        kind: payload.kind,
+        firedAt,
+      });
+      return true;
+    }
     const current = await client.query<{
       revision: number;
       due_at: Date | null;

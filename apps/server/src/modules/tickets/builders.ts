@@ -71,6 +71,11 @@ const BUILDERS: Record<CommandAction, Builder> = {
   },
   'upgrade-kind': (_body, personId) => ({ type: 'upgradeKind', personId }),
   acknowledge: (_body, personId, { onRoster }) => ({ type: 'acknowledge', personId, onRoster }),
+  'acknowledge-escalation': (_body, personId, { pendingLevels }) => ({
+    type: 'acknowledgeEscalation',
+    personId,
+    pendingLevels,
+  }),
   handback: (body, personId, { sameCell }) =>
     body.response === 'confirmed'
       ? { type: 'handbackConfirm', personId, sameCell }

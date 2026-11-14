@@ -48,6 +48,7 @@ export const COMMAND_ACTIONS = [
   'correct',
   'upgrade-kind',
   'acknowledge',
+  'acknowledge-escalation',
   'handback',
 ] as const;
 export type CommandAction = (typeof COMMAND_ACTIONS)[number];
@@ -60,6 +61,9 @@ export type StartTicketBody = z.infer<typeof startTicketSchema>;
 
 export const acknowledgeTicketSchema = z.object({ personId: z.string().uuid() });
 export type AcknowledgeTicketBody = z.infer<typeof acknowledgeTicketSchema>;
+
+/** Who acknowledges an escalation is the signed-in person; the body only repeats it (checked against the session). */
+export const acknowledgeEscalationSchema = z.object({ personId: z.string().uuid() });
 
 export const joinTicketSchema = z.object({
   personId: z.string().uuid(),

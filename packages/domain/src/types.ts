@@ -29,7 +29,9 @@ export type EventType =
   | 'tag_remove'
   | 'acknowledge'
   | 'handback_confirm'
-  | 'handback_dispute';
+  | 'handback_dispute'
+  | 'escalate'
+  | 'escalation_ack';
 
 export interface EditChange {
   field: string;
@@ -50,6 +52,8 @@ export interface TicketEvent {
   changes?: EditChange[];
   /** On a `close`: production was asked to sign the fix off. */
   handbackRequested?: boolean;
+  /** On an `escalation_ack`: the highest escalation level it covers. */
+  escalationLevel?: string;
 }
 
 export interface WorkSegment {

@@ -5,6 +5,7 @@ import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { withTicketParts } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
+import { toldByEscalationStep } from '../notifications/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
@@ -188,6 +189,7 @@ export async function detail(
     const segments = await sql.loadSegments(client, ticketId);
     const crew = await sql.loadCrew(client, ticketId);
     ticket.figures = detailFigures(row as Record<string, unknown>, ticket, events, segments);
+    const told = await toldByEscalationStep(client, ctx.tenantId, ticketId);
     return {
       ticket: (
         await withTicketParts(client, ctx.tenantId, [row], () =>
@@ -202,6 +204,12 @@ export async function detail(
         reason: event.reason ?? null,
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
+        escalation: event.payload.escalation
+          ? {
+              ...(event.payload.escalation as object),
+              toldPersonIds: told.get(event.id ?? '') ?? [],
+            }
+          : null,
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,
       })),

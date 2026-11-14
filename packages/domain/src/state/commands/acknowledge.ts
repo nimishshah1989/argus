@@ -1,4 +1,5 @@
 import { canAcknowledge } from '../../permissions.js';
+import { eventsSinceLastTransfer } from '../../sla.js';
 import { apply, clampAt, TransitionError } from '../helpers.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
@@ -13,7 +14,7 @@ export function acknowledge(
     throw new TransitionError('Not allowed');
   if (!['open', 'working'].includes(input.ticket.status))
     throw new TransitionError(`Ticket is ${input.ticket.status}: nothing to acknowledge`);
-  if (input.events.some((event) => event.type === 'acknowledge'))
+  if (eventsSinceLastTransfer(input.events).some((event) => event.type === 'acknowledge'))
     throw new TransitionError('Ticket is already acknowledged');
   return apply(input, {
     ticket: {},

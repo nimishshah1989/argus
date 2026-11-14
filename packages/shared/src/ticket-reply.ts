@@ -95,6 +95,21 @@ export const ticketSchema = z
   })
   .strict();
 
+/** One step of an escalation, as the history shows it: which rule, at what level, who was told, the attempt. */
+export const escalationStepSchema = z
+  .object({
+    ruleId: z.string(),
+    trigger: z.string(),
+    /** Names one run of a rule on this ticket (a breach, a stretch of downtime): repeats share it. */
+    episode: z.number(),
+    level: z.string(),
+    attempt: z.number(),
+    channel: z.string(),
+    toldPersonIds: z.array(z.string()),
+  })
+  .strict();
+export type EscalationStep = z.infer<typeof escalationStepSchema>;
+
 export const ticketEventSchema = z
   .object({
     seq: z.number(),
@@ -109,6 +124,8 @@ export const ticketEventSchema = z
     changes: z
       .array(z.object({ field: z.string(), from: z.unknown(), to: z.unknown() }))
       .nullable(),
+    /** Set on an `escalated` event; null on every other. */
+    escalation: escalationStepSchema.nullable().optional(),
   })
   .strict();
 export type TicketEvent = z.infer<typeof ticketEventSchema>;
