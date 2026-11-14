@@ -397,12 +397,12 @@ describe('plants stay apart', () => {
 
 describe('notification.purge keeps rows 90 days', () => {
   async function aged(
-    tenantId: string,
-    personId: string,
+    who: { tenantId: string; personId: string },
     key: string,
     days: number,
     settle = true,
   ): Promise<void> {
+    const { tenantId, personId } = who;
     const made = await tell({
       tenantId,
       to: [personId],
@@ -418,9 +418,9 @@ describe('notification.purge keeps rows 90 days', () => {
   }
 
   it('removes older rows and keeps younger ones, for the named plant only', async () => {
-    await aged(A, ASHA, 'purge:old', 91);
-    await aged(A, ASHA, 'purge:young', 89);
-    await aged(B, OTHER, 'purge:other-plant-old', 120);
+    await aged({ tenantId: A, personId: ASHA }, 'purge:old', 91);
+    await aged({ tenantId: A, personId: ASHA }, 'purge:young', 89);
+    await aged({ tenantId: B, personId: OTHER }, 'purge:other-plant-old', 120);
     const first = await runRetentionJob(db.app, 'notification.purge', {
       now: T0,
       tenantId: A,
@@ -444,7 +444,7 @@ describe('notification.purge keeps rows 90 days', () => {
   });
 
   it('never deletes a message still waiting to be sent', async () => {
-    await aged(A, ASHA, 'purge:waiting', 120, false);
+    await aged({ tenantId: A, personId: ASHA }, 'purge:waiting', 120, false);
     const result = await runRetentionJob(db.app, 'notification.purge', {
       now: T0,
       allowFakeClock: true,

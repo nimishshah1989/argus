@@ -24,7 +24,7 @@ const PHONE = 'https://fcm.googleapis.com/fcm/send/asha-phone';
 type App = Awaited<ReturnType<typeof buildApp>>;
 let db: TestDb;
 let app: App;
-let tokens: Record<string, string> = {};
+const tokens: Record<string, string> = {};
 let nextMachine = 0;
 let keys = 0;
 const send = vi.spyOn(webpush, 'sendNotification');
