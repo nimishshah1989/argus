@@ -50,12 +50,13 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
         for (const [name, send] of Object.entries(apart))
           if (name in values && values[name] !== valuesOf(row)[name])
             await send(row.id, values[name]!);
-        await client.invalidateQueries({ queryKey: [spec.key] });
       }
       return true;
     } catch {
       setError(t('kit.crud.error'));
       return false;
+    } finally {
+      if (row) await client.invalidateQueries({ queryKey: [spec.key] });
     }
   }
   async function toggle(row: Row): Promise<void> {

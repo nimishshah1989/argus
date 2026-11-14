@@ -83,3 +83,22 @@ test('a technician who opens plant settings is told they have no access', async 
   ).toBeVisible();
   await expect(page.getByRole('button', { name: /^Edit / })).toHaveCount(0);
 });
+
+test('a failed criticality save still shows the cell move that was saved', async ({
+  page,
+}, testInfo) => {
+  const machine = MACHINES[testInfo.project.name === 'chromium' ? 6 : 7]!;
+  await signIn(page, 'admin');
+  await page.goto('/settings/machines');
+  await page.route(`**/api/v1/machines/${machine.id}/criticality`, (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+  );
+  await page.getByRole('button', { name: `Edit ${machine.code}`, exact: true }).click();
+  const form = page.getByRole('form', { name: `Edit ${machine.code}` });
+  await form.getByLabel('Cell', { exact: true }).fill('Cell-8');
+  await form.getByRole('button', { name: 'C', exact: true }).click();
+  await form.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(form.getByRole('alert')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText(/Cell-8/).first()).toBeVisible();
+});
