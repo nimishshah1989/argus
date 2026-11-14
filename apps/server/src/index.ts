@@ -1,5 +1,5 @@
 import { buildApp } from './app.js';
-import { createPool, loggerOptions, type JobRole } from './kernel/index.js';
+import { createPool, loggerOptions, rateLimitFromEnv, type JobRole } from './kernel/index.js';
 import {
   startJobs,
   reconcileTicket,
@@ -46,6 +46,7 @@ if (role === 'worker') {
     databaseUrl: url,
     jobBoss: jobs.boss,
     jobsHandle: jobs,
+    rateLimitMax: rateLimitFromEnv(process.env),
   });
   const port = Number(process.env.PORT ?? 3001);
   await app.listen({ port, host: '0.0.0.0' });
