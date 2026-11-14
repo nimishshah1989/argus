@@ -16,6 +16,8 @@ export const galleryEn: Record<string, string> = {
   'section.layout': 'Layout',
   'section.status': 'Status',
   'section.floor': 'Floor pieces',
+  'sample.brand': 'Sample Plant',
+  'sample.brandDetail': 'Maintenance desk',
   'floor.machine': 'Machine',
   'floor.detail': 'Vertical Machining Center · Cell 4',
   'floor.needsSupport': 'Needs support. Tap to say it has stopped.',

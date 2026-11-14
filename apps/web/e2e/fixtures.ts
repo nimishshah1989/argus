@@ -382,8 +382,8 @@ export async function raiseTicketViaApi(
 /** Signs in through the real login screen and waits until the floor is rendered. */
 export async function signIn(page: Page, username = 'asha'): Promise<void> {
   await page.goto('/login');
-  await page.getByPlaceholder('Username').fill(username);
-  await page.getByPlaceholder('Password').fill(E2E_PASSWORD);
+  await page.getByLabel('Username', { exact: true }).fill(username);
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
 }
