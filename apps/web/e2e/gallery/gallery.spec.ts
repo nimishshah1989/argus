@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { existsSync } from 'node:fs';
 
 const SECTIONS = [
@@ -15,6 +16,10 @@ const SECTIONS = [
   'closes',
 ] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
+type Catalogue = Record<MessageKey, string>;
+const catalogue = (lang: string): Catalogue => (lang === 'gu' ? gu : en);
+const literal = (text: string): RegExp => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
 async function open(page: Page, query: string): Promise<void> {
   await page.goto(`/gallery?${query}`);
@@ -35,10 +40,10 @@ test('gallery en: every section matches its baseline at 360 px', async ({ page }
     await expect(page.getByTestId(`gallery-${name}`)).toHaveScreenshot(`${name}-en.png`);
 });
 
-test('gallery gu: placeholder Gujarati renders and matches its baseline', async ({ page }) => {
+test('gallery gu: Gujarati renders and matches its baseline', async ({ page }) => {
   await open(page, 'lang=gu');
   await expect(page.locator('html')).toHaveAttribute('lang', 'gu');
-  await expect(page.getByText('Gujarati placeholder')).toBeVisible();
+  await expect(page.getByText('Real Gujarati: components show the live catalogue')).toBeVisible();
   await expect(page.getByTestId('gallery-gu-specimen')).toContainText('ક');
   await expect(page.getByTestId('gallery-gu-specimen')).toContainText('૯');
   await expect(page.getByTestId('gallery-primary-sample')).toHaveText(/^ક ખ ગ ·/);
@@ -150,22 +155,27 @@ for (const lang of ['en', 'gu']) {
     page,
   }) => {
     await open(page, `lang=${lang}`);
+    const cat = catalogue(lang);
     const at = (id: string) => page.getByTestId(id);
     await expect(at('gallery-queue-ready').locator('li')).toHaveCount(3);
     await expect(
-      at('gallery-queue-ready').getByRole('button', { name: /Load more/ }),
+      at('gallery-queue-ready').getByRole('button', { name: literal(cat['kit.pattern.more']) }),
     ).toBeVisible();
     for (const id of ['gallery-queue-loading', 'gallery-detail-loading'])
-      await expect(at(id)).toContainText('Loading…');
+      await expect(at(id)).toContainText(cat['common.loading']);
     await expect(at('gallery-queue-empty')).toContainText('No open tickets.');
     await expect(at('gallery-detail-empty')).toContainText('This ticket no longer exists.');
     for (const id of ['gallery-queue-error', 'gallery-detail-error']) {
-      await expect(at(id).getByRole('alert')).toContainText('Could not load. Try again.');
-      await expect(at(id).getByRole('button', { name: /Try again/ })).toBeVisible();
+      await expect(at(id).getByRole('alert')).toContainText(cat['kit.pattern.error']);
+      await expect(
+        at(id).getByRole('button', { name: literal(cat['kit.pattern.retry']) }),
+      ).toBeVisible();
     }
     for (const id of ['gallery-queue-offline', 'gallery-detail-offline']) {
-      await expect(at(id)).toContainText('You are offline. This will load when you reconnect.');
-      await expect(at(id).getByTestId('sync-status')).toHaveText(/Offline/);
+      await expect(at(id)).toContainText(cat['kit.pattern.offline']);
+      await expect(at(id).getByTestId('sync-status')).toHaveText(
+        literal(cat['status.sync.offline']),
+      );
     }
     await expect(at('gallery-detail-ready')).toContainText('CNC-07');
     await expect(at('gallery-detail-ready')).toContainText('Reported from the floor');
@@ -178,21 +188,21 @@ for (const lang of ['en', 'gu']) {
   for (const state of ['loading', 'empty', 'error', 'offline']) {
     test(`form sheet ${state} ${lang}`, async ({ page }) => {
       await open(page, `lang=${lang}`);
+      const cat = catalogue(lang);
       await page.getByTestId(`gallery-form-open-${state}`).click();
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
       expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
       const submit = dialog.locator('button[type="submit"]');
       if (state === 'loading') {
-        await expect(submit).toHaveText(/Sending…/);
+        await expect(submit).toHaveText(literal(cat['common.sending']));
         await expect(submit).toBeDisabled();
       }
       if (state === 'error')
         await expect(dialog.getByRole('alert')).toContainText(
           'The ticket changed while you were away.',
         );
-      if (state === 'offline')
-        await expect(dialog).toContainText('You are offline. This will send when you reconnect.');
+      if (state === 'offline') await expect(dialog).toContainText(cat['kit.form.offlineQueued']);
       if (state === 'empty') await expect(submit).toBeDisabled();
       await expect(page).toHaveScreenshot(`form-${state}-${lang}.png`);
       const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();

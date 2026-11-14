@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { readFileSync } from 'node:fs';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
@@ -24,6 +25,12 @@ const crudRow = (page: Page, code: string) =>
 
 const writes = async (page: Page) => (await crudRequests(page)).filter((r) => r.method !== 'GET');
 const SAVE_ERROR = 'Could not save. Check the details and try again.';
+
+type Catalogue = Record<MessageKey, string>;
+const catalogue = (lang: string): Catalogue => (lang === 'gu' ? gu : en);
+const fill = (text: string, vars: Record<string, string | number> = {}): string =>
+  text.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(vars[name]));
+const literal = (text: string): RegExp => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
 test('crud: one short spec lists the machines and adds one through the API', async ({ page }) => {
   expect(
@@ -128,8 +135,11 @@ for (const lang of ['en', 'gu']) {
     page,
   }) => {
     await open(page, `lang=${lang}`);
+    const cat = catalogue(lang);
     const crud = page.getByTestId('gallery-crud');
-    await expect(crud.getByRole('button', { name: 'Add', exact: true })).toBeVisible();
+    await expect(
+      crud.getByRole('button', { name: cat['kit.crud.add'], exact: true }),
+    ).toBeVisible();
     await expect(crud.getByRole('columnheader').first()).toContainText(
       lang === 'en' ? 'Code' : 'ક ખ ગ · Code',
     );
@@ -142,26 +152,28 @@ for (const lang of ['en', 'gu']) {
     page,
   }) => {
     await open(page, `lang=${lang}`);
+    const cat = catalogue(lang);
+    const step = (n: number) => fill(cat['kit.wizard.step'], { n, total: 3 });
     const w = page.getByTestId('gallery-wizard-ready');
     const btn = (name: string | RegExp) => w.getByRole('button', { name });
     await expect(page.getByTestId('gallery-wizard')).toHaveScreenshot(`wizard-${lang}.png`);
     const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(axe.violations).toEqual([]);
-    await expect(w).toContainText('Step 1 of 3');
+    await expect(w).toContainText(step(1));
     await expect(btn(/Next/)).toBeDisabled();
     await btn('CNC-07').click();
     await expect(btn('CNC-07')).toHaveAttribute('aria-pressed', 'true');
     await expect(btn(/Next/)).toBeEnabled();
     await btn(/Next/).click();
-    await expect(w).toContainText('Step 2 of 3');
+    await expect(w).toContainText(step(2));
     await expect(w.getByRole('heading', { name: /What is wrong\?/ })).toBeFocused();
-    await btn(/Back/).click();
-    await expect(w).toContainText('Step 1 of 3');
+    await btn(literal(cat['common.back'])).click();
+    await expect(w).toContainText(step(1));
     await expect(btn('CNC-07')).toHaveAttribute('aria-pressed', 'true');
     await btn(/Next/).click();
     await btn(/Spindle noise on start-up/).click();
     await btn(/Next/).click();
-    await expect(w).toContainText('Step 3 of 3');
+    await expect(w).toContainText(step(3));
     await expect(w).toContainText('CNC-07 ·');
     await expect(w).toContainText('Spindle noise on start-up');
     await btn(/Send/).click();
@@ -188,30 +200,37 @@ test('wizard: a refused send shows the error; offline it needs a connection', as
 for (const lang of ['en', 'gu']) {
   test(`board ${lang}: groups, tiles and every state at 360 px, axe clean`, async ({ page }) => {
     await open(page, `lang=${lang}`);
+    const cat = catalogue(lang);
     const at = (id: string) => page.getByTestId(id);
     const ready = at('gallery-board-ready');
-    for (const name of ['Stopped (2)', 'In progress (2)', 'Waiting (1)'])
+    const group = (key: MessageKey, count: number) =>
+      fill(cat['kit.board.group'], { title: cat[key], count });
+    for (const name of [
+      group('status.ticket.stopped', 2),
+      group('status.ticket.inProgress', 2),
+      group('status.ticket.waiting', 1),
+    ])
       await expect(ready.getByRole('heading', { name })).toBeVisible();
     await expect(ready.locator('li')).toHaveCount(5);
     await expect(ready.getByRole('button', { name: /All segments/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    await expect(at('gallery-board-loading')).toContainText('Loading…');
+    await expect(at('gallery-board-loading')).toContainText(cat['common.loading']);
     await expect(at('gallery-board-empty')).toContainText('No machines need attention.');
     await expect(
       at('gallery-board-empty').getByRole('button', { name: /All segments/ }),
     ).toBeVisible();
     await expect(at('gallery-board-error').getByRole('alert')).toContainText(
-      'Could not load. Try again.',
+      cat['kit.pattern.error'],
     );
     await expect(
-      at('gallery-board-error').getByRole('button', { name: /Try again/ }),
+      at('gallery-board-error').getByRole('button', { name: literal(cat['kit.pattern.retry']) }),
     ).toBeVisible();
-    await expect(at('gallery-board-offline')).toContainText(
-      'You are offline. This will load when you reconnect.',
+    await expect(at('gallery-board-offline')).toContainText(cat['kit.pattern.offline']);
+    await expect(at('gallery-board-offline').getByTestId('sync-status')).toHaveText(
+      literal(cat['status.sync.offline']),
     );
-    await expect(at('gallery-board-offline').getByTestId('sync-status')).toHaveText(/Offline/);
     await expect(at('gallery-board')).toHaveScreenshot(`board-${lang}.png`);
     const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(axe.violations).toEqual([]);
@@ -243,6 +262,7 @@ for (const lang of ['en', 'gu']) {
     page,
   }) => {
     await open(page, `lang=${lang}`);
+    const cat = catalogue(lang);
     const at = (id: string) => page.getByTestId(id);
     const d = at('gallery-dashboard-ready');
     await expect(d.getByRole('link', { name: /Open tickets/ })).toContainText('5');
@@ -251,16 +271,16 @@ for (const lang of ['en', 'gu']) {
     await expect(d.locator('[data-chart-state="ready"]')).toHaveCount(2, { timeout: 10_000 });
     await expect(d.getByRole('img', { name: /Breakdowns by segment this week/ })).toBeVisible();
     await expect(d.getByRole('img', { name: /Downtime hours per week/ })).toBeVisible();
-    await expect(at('gallery-dashboard-loading')).toContainText('Loading…');
+    await expect(at('gallery-dashboard-loading')).toContainText(cat['common.loading']);
     await expect(at('gallery-dashboard-error').getByRole('alert')).toContainText(
-      'Could not load. Try again.',
+      cat['kit.pattern.error'],
     );
     await expect(
-      at('gallery-dashboard-error').getByRole('button', { name: /Try again/ }),
+      at('gallery-dashboard-error').getByRole('button', {
+        name: literal(cat['kit.pattern.retry']),
+      }),
     ).toBeVisible();
-    await expect(at('gallery-dashboard-offline')).toContainText(
-      'You are offline. This will load when you reconnect.',
-    );
+    await expect(at('gallery-dashboard-offline')).toContainText(cat['kit.pattern.offline']);
     await expect(at('gallery-dashboard')).toHaveScreenshot(`dashboard-${lang}.png`);
     const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(axe.violations).toEqual([]);
