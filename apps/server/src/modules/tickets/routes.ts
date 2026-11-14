@@ -18,6 +18,7 @@ import * as sql from './repo/ticket.js';
 import * as idem from './repo/idempotency.js';
 import * as report from './repo/report.js';
 import { ALREADY_OPEN, runOutcome } from './outcome.js';
+import { boardToday } from './board.js';
 import { registerPast } from './past.js';
 import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
 import { openDuplicateId, openTicketRows } from './repo/list.js';
@@ -342,6 +343,7 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   registerPast(app, config);
   app.get('/api/v1/tickets', (request, reply) => listTickets(pool, request, reply));
   app.get('/api/v1/state', (request, reply) => state(pool, request, reply));
+  app.get('/api/v1/board/today', (request, reply) => boardToday(pool, request, reply));
   app.get('/api/v1/tickets/:id', (request, reply) => detail(pool, request, reply));
   for (const action of Object.keys(COMMAND_SCHEMAS) as tm.CommandAction[]) {
     app.post(`/api/v1/tickets/:id/${action}`, (request, reply) =>

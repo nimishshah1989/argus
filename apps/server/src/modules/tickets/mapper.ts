@@ -17,6 +17,7 @@ import {
   type TicketEvent,
   type WorkSegment,
 } from '@uptimo/domain';
+import { figureInput } from './figure-input.js';
 import { overriddenFigures } from './repo/overrides.js';
 
 export type Outcome = { status: number; body: unknown };
@@ -199,17 +200,7 @@ export function recomputeFigures(
   segments: WorkSegment[],
   opts: { overrides: Record<string, unknown>; now: Date },
 ): Figures {
-  return computeFigures({
-    reportedAt: ticket.reportedAt,
-    kind: ticket.kind,
-    kindUpgradedAt: ticket.kindUpgradedAt ?? undefined,
-    selfStarted: ticket.selfStarted,
-    events,
-    segments,
-    overrides: opts.overrides,
-    now: opts.now,
-    closedAt: ticket.closedAt ?? undefined,
-  });
+  return computeFigures(figureInput(ticket, events, segments, opts));
 }
 
 export function ticketProjection(ticket: Ticket, extras: TicketExtras): Record<string, unknown> {
