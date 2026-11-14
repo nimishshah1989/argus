@@ -432,6 +432,8 @@ rows:
         un-started ticket'
       - 'apps/server/test/tickets-commands.test.ts :: lets an operator cancel their own
         not-yet-started ticket'
+      - 'apps/server/test/admin-fixes.test.ts :: the desk cancels any live ticket; the floor only its own, not yet started'
+      - 'apps/server/test/admin-fixes.test.ts :: needs a reason, refuses a closed ticket, and a second person racing it gets 409'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.14
     feature: Admin restore within 7 days
@@ -449,6 +451,8 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: restores a cancelled ticket to its previous
         status'
       - 'apps/web/e2e/admin.spec.ts :: restores a cancelled ticket as an admin'
+      - 'apps/server/test/admin-fixes.test.ts :: is for the admin only'
+      - 'apps/server/test/admin-fixes.test.ts :: works within 7 days of the cancel and not after'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.15
     feature:
@@ -468,6 +472,8 @@ rows:
       - 'apps/server/test/tickets-commands.test.ts :: corrects a ticket as admin'
       - 'apps/web/src/components/actions.test.ts :: buildCorrectChanges'
       - 'apps/web/e2e/admin.spec.ts :: corrects the problem text as an admin'
+      - 'apps/server/test/admin-fixes.test.ts :: changes the machine and the kind, and keeps old and new with the reason in the history and the audit trail'
+      - 'apps/server/test/admin-fixes.test.ts :: sets hands-on and waiting minutes directly, marked as set by hand, and keeps the minutes they replaced'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.16
     feature: Report only (PDF without a ticket)

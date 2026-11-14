@@ -3,6 +3,12 @@
  * that is not listed here and on a listed one that no longer happens. Key: the line the test prints.
  */
 export const EXPECTED_DIFFS: Record<string, string> = {
+  // Cancelled 09:48, restored 14:00 (252 minutes): Nimish's ruling of 14 Nov, a restored ticket does not count the time
+  // it was cancelled. His app counts it. Everything else of this ticket, hands-on and every person's minutes included, equals his.
+  'BD-0077 handoverWaitMin: his 263, ours 11': 'cancelled time not counted (Nimish, 14 Nov)',
+  'BD-0077 downtimeMin: his 366, ours 114': 'cancelled time not counted (Nimish, 14 Nov)',
+  'BD-0077 repairMin: his 366, ours 114':
+    'cancelled time not counted in repair either (Nimish, 14 Nov)',
   // Closed 29 Oct, before his app wrote `segment` rows: his hands-on is 0 and the one person's minutes are 0 although the
   // ticket ran 115 minutes from start to close. Our figure follows the work segment, 115. He stored 0 and the importer keeps it.
   'BD-0023 activeMin: his 0, ours 115': 'closed before his app wrote segment rows (stored 0)',
@@ -17,10 +23,7 @@ export const EXPECTED_DIFFS: Record<string, string> = {
 };
 
 /** Tickets the replay does not run, and why. */
-export const NOT_REPLAYED: Record<string, string> = {
-  'BD-0077':
-    'cancelled and restored: restore is an admin command (ticket 20); its figures are covered by figures-worker-parity.test.ts, where the cancelled time is the one ruled difference',
-};
+export const NOT_REPLAYED: Record<string, string> = {};
 // A ticket with no `down` event (16 legacy rows: only a `report` event, or none) has no steps to replay.
 
 /**
