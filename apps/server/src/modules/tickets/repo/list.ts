@@ -1,4 +1,5 @@
 import type { PoolClient, QueryResult } from 'pg';
+import { seesAllNeedReport, type Role } from '@uptimo/domain';
 import { TICKET_COLUMNS } from './ticket.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -70,7 +71,7 @@ export async function needReportRows(
   actingPersonId: string | null,
   role: string,
 ): Promise<Rows> {
-  const seesAll = ['supervisor', 'head', 'admin'].includes(role);
+  const seesAll = seesAllNeedReport({ role: role as Role });
   const params: unknown[] = [tenantId];
   let where =
     "tenant_id = $1 AND status = 'closed' AND close_kind = 'no_report' AND closed_at > now() - interval '7 days'";
