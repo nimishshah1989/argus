@@ -1,0 +1,1 @@
+- Staging: deploy pulls no longer fill the disk (old images removed first; 30 GB root volume).
