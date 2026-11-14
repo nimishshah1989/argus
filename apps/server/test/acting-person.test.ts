@@ -88,7 +88,14 @@ async function snapshot(id: string) {
       },
     ]),
   );
+  // the timer revision is not in any reply, and a refused command must not even re-arm a clock: one direct read
+  const timers = (
+    await admin.query('SELECT kind, revision FROM sla_timer WHERE ticket_id = $1 ORDER BY kind', [
+      id,
+    ])
+  ).rows;
   return {
+    timers,
     status: ticket.status,
     lead: ticket.leadPersonId,
     assignee: ticket.assignedToPersonId,

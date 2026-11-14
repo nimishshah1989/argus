@@ -24,7 +24,7 @@ export async function ticketAlertFacts(
     await tx.query(
       `SELECT t.kind, t.status, t.reported_by_person_id, t.closed_by_person_id, t.closed_at, t.lead_person_id,
               t.last_event_seq,
-              (SELECT e.acting_person_id FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = 'down'
+              (SELECT e.acting_person_id FROM ticket_event e WHERE e.ticket_id = t.id AND e.tenant_id = t.tenant_id AND e.type = 'down'
                 ORDER BY e.seq LIMIT 1) AS raised_by_person_id
          FROM ticket t WHERE t.tenant_id = $1 AND t.id = $2`,
       [tenantId, ticketId],

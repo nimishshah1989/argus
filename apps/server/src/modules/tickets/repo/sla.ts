@@ -79,7 +79,7 @@ export async function ticketAckFacts(
 ): Promise<AckFacts[]> {
   const { rows } = await tx.query(
     `SELECT t.id, t.status, t.assigned_to_person_id AS "assignedToPersonId",
-            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.type = ANY($3::text[])) AS "clockStopped"
+            EXISTS (SELECT 1 FROM ticket_event e WHERE e.ticket_id = t.id AND e.tenant_id = t.tenant_id AND e.type = ANY($3::text[])) AS "clockStopped"
        FROM ticket t WHERE t.tenant_id = $1 AND t.id = ANY($2::uuid[])`,
     [tenantId, ticketIds, ACK_CLOCK_STOPS],
   );
