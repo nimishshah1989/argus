@@ -3,7 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { canLiveBoard, dayScore, type DayTicket, type TicketEvent } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { requireAuth, tenantInfo } from '../identity/index.js';
-import { actorOf, forbidden, setting } from '../plant/index.js';
+import { actorOf, forbidden, offBoardMachineIds, setting } from '../plant/index.js';
 import { figureInput } from './figure-input.js';
 import { rowToTicket } from './mapper.js';
 import { dayTicketRows, dayWindow } from './repo/board.js';
@@ -47,8 +47,9 @@ export async function boardToday(
     const features = (await setting(client, ctx.tenantId, 'features')) as Row | undefined;
     if (!canLiveBoard(actorOf(ctx), features?.floorLive === true)) return null;
     const window = await dayWindow(client, (await tenantInfo(client, ctx.tenantId)).time_zone, now);
+    const offBoard = await offBoardMachineIds(client, ctx.tenantId);
     const tickets: DayTicket[] = [];
-    for (const row of await dayTicketRows(client, ctx.tenantId, window)) {
+    for (const row of await dayTicketRows(client, ctx.tenantId, window, offBoard)) {
       tickets.push(await toDayTicket(client, row, now));
     }
     return { window, score: dayScore(tickets, now) };
