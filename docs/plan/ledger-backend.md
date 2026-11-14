@@ -297,3 +297,10 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   draft, 2a5b3d3) opened; one Opus reviewer each running. #231 (35) CI running at 889def0. New FRONTEND orchestrator
   session_01KEBF27UzWD37VxyiA2gNP7. Rulings accepted: breakdown push -> technician+supervisor, only kind 'stopped'; fixed ->
   reporter unless they closed it; any pause arms the pause clock (reviewer to judge pausesSla=false).
+- 08:12 UTC #233 fix push 4549ee8 (savepoint per listener, sweep claim, upgrade-kind alert, batched fan-out) checked and
+  marked ready (CI running). #234 reviewed: 1 HIGH (clearing the pause max leaves an armed clock that still breaches),
+  1 MEDIUM (cancel/restore after a fired pause can never breach again), 4 LOW; sent for one fix push. Ruling: the pause
+  clock is NOT armed for reasons with pausesSla=false (production's wait, 34's handback clock; cost if wrong: a missing
+  breach). Open for Nimish (batch): overnight vendor waits breach overnight (wall-clock pause limit); alerts reach only
+  people with a personal login of the role (Cosmos has shared floor logins). #231 held until the web PR (401 or 422 'old'
+  + signIn fixture) lands; #231 browser red = 3 web specs, not server.
