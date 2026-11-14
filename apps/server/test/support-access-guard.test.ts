@@ -243,6 +243,14 @@ describe('what a support person may not do', () => {
     expect(await t.signIn('admin')).toEqual(expect.any(String));
   });
 
+  it("cannot list the approving admin's signed-in devices", async () => {
+    const grant = await t.approve(admin);
+    await expectRefused(
+      await t.support(one, grant.id, { method: 'GET', url: '/api/v1/auth/sessions' }),
+      WRITE_REFUSED,
+    );
+  });
+
   it('cannot write tickets, people or logins, and nothing changes', async () => {
     const grant = await t.approve(admin);
     const before = (await t.send({ ...read, token: admin })).json();

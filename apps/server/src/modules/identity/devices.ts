@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import { apiError } from '@uptimo/shared';
 import { idOrNotFound, withTenant, type AuthContext } from '../../kernel/index.js';
 import { endDevice, liveDevices } from './repo/devices.js';
-import { hashToken, requireAuth } from './service.js';
+import { hashToken, refuseSupport, requireAuth } from './service.js';
 
 /** A shared phone's colleagues must not sign each other out; they have logout. */
 async function ownDevicesCaller(
@@ -12,7 +12,7 @@ async function ownDevicesCaller(
   reply: FastifyReply,
 ): Promise<AuthContext | null> {
   const ctx = await requireAuth(pool, request, reply);
-  if (!ctx) return null;
+  if (!ctx || refuseSupport(ctx, reply)) return null;
   if (ctx.shared) {
     reply
       .code(403)
