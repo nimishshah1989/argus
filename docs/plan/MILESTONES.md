@@ -34,7 +34,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 15  | Report a breakdown (floor)                        | M1        | done        | #179, #196, #205, #207 |
 | 16  | Desk lists and ticket detail                      | M1        | in progress | #181, #194, #201, #203 |
 | 17  | Work the ticket                                   | M1        | done        | #185             |
-| 18  | Close, report, PDFs                               | M1        | in progress | goal 1 desk builder (after #201); goal 2 PDFs asked of backend lane |
+| 18  | Close, report, PDFs                               | M1        | in progress | goal 2 server #212; goal 1 closes (desk builder); team day report + PDF access (backend) |
 | 19  | Follow-up tasks                                   | M1        | todo        | —                |
 | 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 + #200; screens todo |
 | 21  | People, logins and sign-in                        | M1        | in progress | API #199, #210; sign-in #213 |
