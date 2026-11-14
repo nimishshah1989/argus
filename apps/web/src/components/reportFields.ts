@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import type {
   BreakdownCategory,
   BreakdownReportBody,
@@ -8,24 +6,23 @@ import type {
   Shift,
   Ticket,
 } from '../api.js';
+import type { FinishFigures } from './closeFinish.js';
 
-const inputClass =
-  'mt-2 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
-const labelClass = 'text-sm font-medium text-neutral-600';
+/** One report is Done By x3 (the first is required) and Supported By x1, as v3's form (design lock, slice 2). */
+export const DONE_SLOTS = 3;
 
 export interface ReportValues {
   problem: string;
   observedBy: string;
   correctiveAction: string;
-  doneByPersonIds: string[];
-  supportedByPersonIds: string[];
+  doneBy: string[];
+  supportedBy: string;
   downtimeMin: string;
   responseMin: string;
   repairMin: string;
   breakdownCategory: string;
   maintCode: string;
   spareUsed: string;
-  rootCause: string;
   handoverName: string;
   date: string;
   shiftCode: string;
@@ -63,21 +60,26 @@ export function currentShiftCode(shifts: Shift[], timeZone?: string): string {
   return shift?.code ?? '';
 }
 
-export function initialReportValues(ticket: Ticket, config: Config): ReportValues {
-  const figures = ticket.figures;
+/** The form's first values: the ticket's own facts and the figures at the chosen finish (or the stored ones). */
+export function initialReportValues(
+  ticket: Ticket,
+  config: Config,
+  chosen?: FinishFigures,
+): ReportValues {
+  const stored = ticket.figures;
+  const downtime = chosen ? chosen.downtimeMin : (stored?.downtimeMin ?? stored?.downAccMin);
   return {
     problem: ticket.problem,
     observedBy: '',
     correctiveAction: '',
-    doneByPersonIds: ticket.leadPersonId ? [ticket.leadPersonId] : [],
-    supportedByPersonIds: [],
-    downtimeMin: minutesText(figures?.downtimeMin ?? figures?.downAccMin),
-    responseMin: minutesText(figures?.responseMin),
-    repairMin: minutesText(figures?.repairMin),
+    doneBy: [ticket.leadPersonId ?? '', '', ''],
+    supportedBy: '',
+    downtimeMin: minutesText(downtime),
+    responseMin: minutesText(chosen ? chosen.responseMin : stored?.responseMin),
+    repairMin: minutesText(chosen ? chosen.repairMin : stored?.repairMin),
     breakdownCategory: '',
     maintCode: '',
     spareUsed: '',
-    rootCause: '',
     handoverName: '',
     date: tenantToday(config.timeZone),
     shiftCode: currentShiftCode(config.shifts, config.timeZone),
@@ -88,8 +90,9 @@ function text(value: string): string | undefined {
   return value.trim() || undefined;
 }
 
-function selected(ids: string[]): string[] | undefined {
-  return ids.length > 0 ? ids : undefined;
+function people(ids: string[]): string[] | undefined {
+  const picked = [...new Set(ids.filter(Boolean))];
+  return picked.length > 0 ? picked : undefined;
 }
 
 function minutes(value: string): number | undefined {
@@ -107,28 +110,28 @@ export function buildReportBody(values: ReportValues): BreakdownReportBody {
     problem: text(values.problem),
     observedBy: text(values.observedBy),
     correctiveAction: text(values.correctiveAction),
-    doneByPersonIds: selected(values.doneByPersonIds),
-    supportedByPersonIds: selected(values.supportedByPersonIds),
+    doneByPersonIds: people(values.doneBy),
+    supportedByPersonIds: people([values.supportedBy]),
     downtimeMin: minutes(values.downtimeMin),
     responseMin: minutes(values.responseMin),
     repairMin: minutes(values.repairMin),
     breakdownCategory: category(values.breakdownCategory),
     maintCode: text(values.maintCode),
     spareUsed: text(values.spareUsed),
-    rootCause: text(values.rootCause),
     handoverName: text(values.handoverName),
     date: text(values.date),
     shiftCode: text(values.shiftCode),
   };
 }
 
-export interface ReportValuesProps {
-  values: ReportValues;
-  update: (patch: Partial<ReportValues>) => void;
-}
-
-export function togglePerson(ids: string[], personId: string): string[] {
-  return ids.includes(personId) ? ids.filter((item) => item !== personId) : [...ids, personId];
+/** The report can be sent once the problem, the first Done By, the category and the code are set. */
+export function reportReady(values: ReportValues): boolean {
+  return Boolean(
+    values.problem.trim() &&
+    values.doneBy[0] &&
+    category(values.breakdownCategory) &&
+    values.maintCode.trim(),
+  );
 }
 
 export function listOptions(config: Config, list: string): { value: string; label: string }[] {
@@ -141,160 +144,6 @@ export function shiftOptions(shifts: Shift[]): { value: string; label: string }[
   return shifts.map((shift) => ({ value: shift.code, label: shift.name }));
 }
 
-export function activePeople(people: Person[]): Person[] {
-  return people.filter((person) => person.active !== false);
-}
-
-export function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section>
-      <h3 className={labelClass}>{title}</h3>
-      <div className="mt-2 space-y-3">{children}</div>
-    </section>
-  );
-}
-
-interface FieldProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: 'text' | 'number' | 'date';
-  multiline?: boolean;
-  placeholder?: string;
-}
-
-export function Field({
-  id,
-  label,
-  value,
-  onChange,
-  type = 'text',
-  multiline = false,
-  placeholder,
-}: FieldProps) {
-  return (
-    <label htmlFor={id} className="block">
-      <span className={labelClass}>{label}</span>
-      {multiline ? (
-        <textarea
-          id={id}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className={`${inputClass} min-h-24 py-3`}
-        />
-      ) : (
-        <input
-          id={id}
-          type={type}
-          min={type === 'number' ? 0 : undefined}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className={inputClass}
-        />
-      )}
-    </label>
-  );
-}
-
-interface SelectProps {
-  id: string;
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}
-
-export function SelectField({ id, label, value, options, onChange }: SelectProps) {
-  const { t } = useTranslation();
-  return (
-    <label htmlFor={id} className="block">
-      <span className={labelClass}>{label}</span>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
-      >
-        <option value="">{t('common.choose')}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export function FillReport({ onOpen }: { onOpen: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('report.title')}</h2>
-      <p className="mt-2 text-sm text-neutral-600">{t('report.fillPrompt')}</p>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-3 min-h-13 w-full rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90"
-      >
-        {t('report.fillButton')}
-      </button>
-    </section>
-  );
-}
-
-export function ContextSection({ values, update, config }: ReportValuesProps & { config: Config }) {
-  const { t } = useTranslation();
-  return (
-    <Section title={t('report.when')}>
-      <Field
-        id="report-date"
-        label={t('report.date')}
-        value={values.date}
-        onChange={(date) => update({ date })}
-        type="date"
-      />
-      <SelectField
-        id="report-shift"
-        label={t('report.shift')}
-        value={values.shiftCode}
-        options={shiftOptions(config.shifts)}
-        onChange={(shiftCode) => update({ shiftCode })}
-      />
-    </Section>
-  );
-}
-
-interface PeoplePickerProps {
-  legend: string;
-  people: Person[];
-  selected: string[];
-  onToggle: (personId: string) => void;
-}
-
-export function PeoplePicker({ legend, people, selected, onToggle }: PeoplePickerProps) {
-  return (
-    <fieldset>
-      <legend className={labelClass}>{legend}</legend>
-      <div className="mt-2 grid gap-1">
-        {people.map((person) => (
-          <label
-            key={person.id}
-            className="flex min-h-13 items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4"
-          >
-            <input
-              type="checkbox"
-              checked={selected.includes(person.id)}
-              onChange={() => onToggle(person.id)}
-              className="h-5 w-5 accent-accent"
-            />
-            <span className="text-base">{person.name}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
+export function activePeople(list: Person[]): Person[] {
+  return list.filter((person) => person.active !== false);
 }

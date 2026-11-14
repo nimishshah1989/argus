@@ -120,10 +120,10 @@ describe('actionSpecs', () => {
     ]);
   });
 
-  it('keeps one Close for a work request', () => {
+  it('offers one Mark done for a work request', () => {
     const specs = actionSpecs(working({ kind: 'general' }), [], actor({ role: 'supervisor' }));
     expect(specs.filter((spec) => spec.action === 'close')).toEqual([
-      { action: 'close', label: 'action.label.close', primary: true },
+      { action: 'close', label: 'closes.action.markDone', preset: 'done', primary: true },
     ]);
   });
 

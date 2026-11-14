@@ -1,0 +1,228 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { CommandAction, CommandBody, Config, TicketDetail } from '../api.js';
+import { Banner } from '../ui/banner.js';
+import { Button } from '../ui/button.js';
+import { FinishTime, ScreenFooter } from '../ui/close-kit.js';
+import { FactList, MinuteTiles } from '../ui/detail-kit.js';
+import { TopBar } from '../ui/top-bar.js';
+import { earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
+import { formatClock, formatMinutes, machineLabel } from './format.js';
+import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
+import { StatusBadge } from './StatusBadge.js';
+import {
+  buildReportBody,
+  initialReportValues,
+  reportReady,
+  type ReportValues,
+} from './reportFields.js';
+
+export interface CloseFlowProps {
+  detail: TicketDetail;
+  config: Config;
+  personId: string;
+  /** `close` writes the report and closes; `late` files the report of a ticket closed without one. */
+  mode: 'close' | 'late';
+  pending: boolean;
+  error: string | null;
+  command: (action: CommandAction, body: CommandBody) => Promise<boolean>;
+  onExit: () => void;
+}
+
+/** The machine, its status chip and the three facts the finish time is judged against. */
+function TicketFacts(props: CloseFlowProps & { responseMin: number | null }) {
+  const { t } = useTranslation();
+  const { ticket } = props.detail;
+  const zone = props.config.timeZone;
+  const started = ticket.startedAt
+    ? t('closes.workStarted', {
+        time: formatClock(ticket.startedAt, zone),
+        response: formatMinutes(props.responseMin),
+      })
+    : '—';
+  return (
+    <>
+      <section className="flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-card">
+        <h2 className="text-title1 font-extrabold leading-tight">
+          {machineLabel(ticket, props.config.machines)}
+        </h2>
+        <StatusBadge status={ticket.status} handedOver={ticket.handedOver} />
+      </section>
+      <FactList
+        rows={[
+          { label: t('closes.fact.reported'), value: formatClock(ticket.reportedAt, zone) },
+          { label: t('closes.fact.workStarted'), value: started },
+          { label: t('closes.fact.waiting'), value: formatMinutes(ticket.figures?.waitMin ?? 0) },
+        ]}
+      />
+    </>
+  );
+}
+
+/** Step 1: when did you finish, and what that does to the figures. */
+function FinishStep(props: CloseFlowProps & { onNext: (finish: Date) => void }) {
+  const { t } = useTranslation();
+  const { detail, config } = props;
+  const [now] = useState(() => new Date());
+  const floor = new Date(Math.min(earliestFinish(detail).getTime(), now.getTime()));
+  const [finish, setFinish] = useState(now);
+  const zone = config.timeZone;
+  const figs = finishFigures(detail, finish);
+  const step = (minutes: number) => setFinish(stepFinish(finish, minutes, floor, now));
+  const behind = Math.round((now.getTime() - finish.getTime()) / 60_000);
+  return (
+    <>
+      <TopBar
+        back={{ onClick: props.onExit, label: t('common.back') }}
+        trailing={<h1 className="text-footnote text-neutral-600">{t('closes.step1.title')}</h1>}
+      />
+      <main className="flex flex-1 flex-col gap-4 p-4">
+        <TicketFacts {...props} responseMin={figs.responseMin} />
+        <FinishTime
+          title={t('closes.finish.title')}
+          label={t('closes.finish.label')}
+          time={formatClock(finish.toISOString(), zone)}
+          status={
+            behind <= 0
+              ? t('closes.finish.now')
+              : t('closes.finish.ago', { time: formatMinutes(behind) })
+          }
+          hint={t('closes.finish.hint')}
+          earlier={t('closes.finish.earlier')}
+          now={t('closes.finish.now')}
+          later={t('closes.finish.later')}
+          canEarlier={finish > floor}
+          canNow={finish < now}
+          canLater={finish < now}
+          onEarlier={() => step(-STEP_MIN)}
+          onNow={() => setFinish(now)}
+          onLater={() => step(STEP_MIN)}
+        />
+        <MinuteTiles
+          tiles={[
+            { label: t('closes.tile.response'), value: formatMinutes(figs.responseMin) },
+            { label: t('closes.tile.repair'), value: formatMinutes(figs.repairMin) },
+            { label: t('closes.tile.downtime'), value: formatMinutes(figs.downtimeMin) },
+          ]}
+        />
+      </main>
+      <ScreenFooter hint={t('closes.step1.hint')}>
+        <Button onClick={() => props.onNext(finish)}>{t('closes.step1.next')}</Button>
+      </ScreenFooter>
+    </>
+  );
+}
+
+/** A close dated at the chosen finish, or the late report of a closed ticket. */
+function sendReport(props: CloseFlowProps, values: ReportValues, finish: Date | null) {
+  const { personId } = props;
+  const report = buildReportBody(values);
+  if (props.mode === 'late') return props.command('report', { personId, report });
+  return props.command('close', {
+    personId,
+    kind: 'report',
+    at: (finish ?? new Date()).toISOString(),
+    report,
+  });
+}
+
+/** Step 2 (or the only step of a late report): the breakdown report form and its one primary button. */
+function ReportStep(
+  props: CloseFlowProps & {
+    values: ReportValues;
+    finish: Date | null;
+    onBack: () => void;
+    setValues: (values: ReportValues) => void;
+  },
+) {
+  const { t } = useTranslation();
+  const { values, finish } = props;
+  const late = props.mode === 'late';
+  const machineCode = machineLabel(props.detail.ticket, props.config.machines);
+  const fields = {
+    values,
+    config: props.config,
+    update: (patch: Partial<ReportValues>) => props.setValues({ ...values, ...patch }),
+  };
+
+  async function submit() {
+    if (props.pending || !reportReady(values)) return;
+    if (await sendReport(props, values, finish)) props.onExit();
+  }
+  const submitLabel = late ? t('closes.late.submit') : t('report.closeWithReport');
+
+  return (
+    <form
+      aria-label={t('closes.reportTitle')}
+      className="flex flex-1 flex-col"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void submit();
+      }}
+    >
+      <TopBar
+        back={{ onClick: props.onBack, label: t('common.back') }}
+        trailing={<h1 className="text-footnote text-neutral-600">{t('closes.reportTitle')}</h1>}
+      />
+      <main className="flex flex-1 flex-col gap-4 p-4">
+        {late ? (
+          <Banner tone="info" title={t('closes.late.title')}>
+            {t('closes.late.note')}
+          </Banner>
+        ) : null}
+        <WhatHappened {...fields} machineCode={machineCode} />
+        <WhoDidIt {...fields} />
+        <Classification {...fields} />
+        {props.error ? <Banner tone="error" title={props.error} /> : null}
+      </main>
+      <ScreenFooter hint={late ? t('closes.form.hintLate') : t('closes.form.hintClose')}>
+        <Button type="submit" disabled={props.pending || !reportReady(values)}>
+          {props.pending ? t('common.saving') : submitLabel}
+        </Button>
+      </ScreenFooter>
+    </form>
+  );
+}
+
+/** The two full screens of Write report and close, or the late report's one (design lock, slice 2). */
+export function CloseFlow(props: CloseFlowProps) {
+  const [step, setStep] = useState<1 | 2>(props.mode === 'late' ? 2 : 1);
+  const [finish, setFinish] = useState<Date | null>(null);
+  const [values, setValues] = useState<ReportValues | null>(() =>
+    props.mode === 'late' ? initialReportValues(props.detail.ticket, props.config) : null,
+  );
+  function next(chosen: Date) {
+    const fresh = initialReportValues(
+      props.detail.ticket,
+      props.config,
+      finishFigures(props.detail, chosen),
+    );
+    setFinish(chosen);
+    setValues((prev) =>
+      prev
+        ? {
+            ...prev,
+            downtimeMin: fresh.downtimeMin,
+            responseMin: fresh.responseMin,
+            repairMin: fresh.repairMin,
+          }
+        : fresh,
+    );
+    setStep(2);
+  }
+  return (
+    <div className="flex min-h-dvh flex-col bg-neutral-100">
+      {step === 1 || !values ? (
+        <FinishStep {...props} onNext={next} />
+      ) : (
+        <ReportStep
+          {...props}
+          values={values}
+          setValues={setValues}
+          finish={finish}
+          onBack={props.mode === 'late' ? props.onExit : () => setStep(1)}
+        />
+      )}
+    </div>
+  );
+}
