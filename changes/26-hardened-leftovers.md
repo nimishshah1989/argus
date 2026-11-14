@@ -1,0 +1,1 @@
+- The sign-in page's company name and logo addresses now refuse a client that asks for them more than 60 times a minute (the same cap sign-in has), while other clients are unaffected. A test now holds `/state` under 300 ms (measured about 22 ms) on a plant with 500 machines, 90 open breakdowns and 30 tickets waiting for a report.
