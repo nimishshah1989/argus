@@ -50,8 +50,12 @@ export async function startRealPlant(): Promise<RealPlant> {
     // A login of one person has its own (invented) person; a shared one names who is acting at sign-in.
     const own = (
       await db.admin.query(
-        "INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, 'maintenance') RETURNING id",
-        [tenantId, `Test ${login.username}`],
+        'INSERT INTO person (tenant_id, name, team) VALUES ($1, $2, $3) RETURNING id',
+        [
+          tenantId,
+          `Test ${login.username}`,
+          login.role === 'operator' ? 'production' : 'maintenance',
+        ],
       )
     ).rows[0].id as string;
     await db.admin.query(
