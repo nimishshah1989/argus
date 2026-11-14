@@ -40,9 +40,16 @@ export const healthReplySchema = z.union([
   z.object({ status: z.literal('ok') }).strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
-/** A ticket as every reply carries it: tickets' fields, then accountability's `sla` and `handback` parts. */
+/**
+ * A ticket as every reply carries it: tickets' fields, then accountability's `sla`, `handback` and `canAcknowledge`
+ * parts. `canAcknowledge` is about the person using the session: true only when they may acknowledge this ticket now.
+ */
 export const ticketReplySchema = ticketSchema
-  .extend({ sla: slaProjectionSchema.nullable(), handback: handbackSchema.nullable() })
+  .extend({
+    sla: slaProjectionSchema.nullable(),
+    handback: handbackSchema.nullable(),
+    canAcknowledge: z.boolean(),
+  })
   .strict();
 export const stateReplySchema = z
   .object({

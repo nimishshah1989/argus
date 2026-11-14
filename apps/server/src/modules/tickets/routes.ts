@@ -4,7 +4,6 @@ import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import * as shared from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
-import { withTenant } from '@uptimo/db';
 import { requireAuth } from '../identity/index.js';
 import { machinesByIds } from '../plant/index.js';
 import {
@@ -12,7 +11,6 @@ import {
   AUTH_MESSAGES,
   isOnRoster,
   ticketPartsAfterWrite,
-  withTicketParts,
   type AppConfig,
 } from '../../kernel/index.js';
 import * as tm from './mapper.js';
@@ -23,8 +21,8 @@ import * as report from './repo/report.js';
 import { ALREADY_OPEN, runOutcome } from './outcome.js';
 import { boardToday } from './board.js';
 import { registerPast } from './past.js';
-import { detail, listNeedReport, listTickets, projectTicket } from './list.js';
-import { openDuplicateId, openTicketRows } from './repo/list.js';
+import { detail, listTickets, loadState } from './list.js';
+import { openDuplicateId } from './repo/list.js';
 import {
   checkCorrectedRefs,
   machineSwitchedOff,
@@ -141,6 +139,7 @@ async function executeCommand(
     now: new Date(),
     boss,
     command: tx.action,
+    actor: tx.auth,
   });
 
   const outcome: Outcome = {
@@ -240,16 +239,12 @@ async function executeRaise(
   const existing = await idem.getIdempotent(client, binding);
   if (existing) return existing;
   const machine = await validateMachine(client, tx);
-  if ('status' in machine) {
-    // A concurrent same-key raise may have committed between our idempotency check and this
-    // duplicate-machine probe; replay its stored result instead of failing on the duplicate.
-    return (await idem.getIdempotent(client, binding)) ?? machine;
-  }
+  // A same-key raise may have committed in between: replay its stored result, not a duplicate error.
+  if ('status' in machine) return (await idem.getIdempotent(client, binding)) ?? machine;
   const people = await validateRaisePeople(client, tx);
   if ('status' in people) return people;
   const ref = await sql.allocateRef(client, tx.tenantId, String(tx.body.kind));
   const now = new Date();
-  // M2-2.1: load the tenant severity matrix (falls back to the domain default).
   const severityMatrix = await loadSeverityMatrix(client, tx.tenantId);
   const raised = buildRaised({
     ref,
@@ -286,6 +281,7 @@ async function executeRaise(
     now,
     boss,
     command: 'raise',
+    actor: tx.auth,
   });
   const outcome: Outcome = {
     status: 201,
@@ -332,13 +328,7 @@ async function raise(
 async function state(pool: Pool, request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return;
-  const openRows = await withTenant(pool, ctx.tenantId, (client) =>
-    openTicketRows(client, ctx.tenantId),
-  );
-  const needReport = await listNeedReport(pool, ctx.tenantId, ctx.personId, ctx.role);
-  const open = await withTenant(pool, ctx.tenantId, (client) =>
-    withTicketParts(client, ctx.tenantId, openRows, (row) => projectTicket(row)),
-  );
+  const { open, needReport } = await loadState(pool, ctx.tenantId, ctx);
   reply.send({ open, needReport, now: new Date().toISOString() });
 }
 

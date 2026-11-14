@@ -19,6 +19,8 @@ export {
   ticketPartsAfterWrite,
   withTicketParts,
   type ConfigPart,
+  type PartView,
+  type TicketActor,
   type TicketPart,
   type TicketListener,
   type TicketWrite,

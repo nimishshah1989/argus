@@ -300,6 +300,7 @@ async function executePast(
     now: tx.now,
     boss,
     command: 'past',
+    actor: tx.auth,
   });
   const stored = await ticketRowById(client, tenantId, ticketId);
   const outcome: Outcome = {
