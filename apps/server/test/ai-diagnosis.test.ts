@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { diagnosisOutputV1Schema, type AiSuggestPayload } from '@uptimo/shared';
 import {
   createFakeProvider,
+  pickProvider,
   type AiConfig,
   type AiFeature,
   type AiProvider,
@@ -27,6 +28,7 @@ const NOW = new Date('2026-11-13T10:00:00Z');
 const PHONE = '+919000000101';
 const config: AiConfig = {
   production: false,
+  residencyRecord: null,
   apiKey: null,
   model: 'fake',
   priceInputUsdPerMtok: 1,
@@ -212,6 +214,42 @@ describe('diagnosis feature', () => {
     expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
     for (const secret of ['Ravi Fake', 'Mina Fake', PHONE]) expect(text).not.toContain(secret);
     expect(text).toContain('[P1] reset the drive');
+  });
+
+  it('through the real Claude adapter: no name, phone or id leaves, the reply is grounded and costed', async () => {
+    const { old1 } = await history();
+    const id = await subject();
+    const sent: { url: string; body: string }[] = [];
+    const answer = reply([cand('Bearing failing again', ['T1', 'T9'])]).output;
+    const fetchImpl = (async (url: string, init: { body: string }) => {
+      sent.push({ url, body: init.body });
+      return new Response(
+        JSON.stringify({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: JSON.stringify(answer) }],
+          usage: { input_tokens: 900, output_tokens: 120 },
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    const real = pickProvider(
+      { ...config, apiKey: 'key-placeholder', model: 'claude-sonnet-5-5' },
+      fetchImpl,
+    )!;
+    expect(await runSuggest(payload(id), runtime(real))).toBe('ok');
+    expect(sent).toHaveLength(1);
+    expect(new URL(sent[0]!.url).host).toBe('api.anthropic.com');
+    for (const secret of ['Ravi Fake', 'Mina Fake', PHONE, 'Test Plant A'])
+      expect(sent[0]!.body).not.toContain(secret);
+    expect(sent[0]!.body).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+    const [row] = await rows(id);
+    expect(row).toMatchObject({
+      mode: 'shadow',
+      evidence_ticket_ids: [old1],
+      model_ref: 'claude-sonnet-5-5',
+      cost_micro_usd: '1500',
+    });
+    expect(logs[0]).toMatchObject({ evidenceDropped: 1, inputTokens: 900, outputTokens: 120 });
   });
 
   it('drops evidence the tenant can no longer see', async () => {

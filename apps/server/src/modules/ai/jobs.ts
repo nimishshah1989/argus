@@ -4,6 +4,7 @@ import type { JobRole } from '../../kernel/index.js';
 import type { AiConfig } from './config.js';
 import { diagnosisFeature } from './diagnosis.js';
 import { pickProvider, type AiProvider } from './provider.js';
+import { ensureAiQueue } from './queue.js';
 import {
   AI_SUGGEST_QUEUE,
   runSuggest,
@@ -28,17 +29,9 @@ export interface AiJobDeps {
 /**
  * Creates the queue for every role (senders need it) and, unless the role is `api` or no feature is registered
  * (a worker would only poll an empty queue every two seconds), the worker.
- * `retryDelay` 95 s is above the 90 s claim lease, so pg-boss's own single retry (a crash or an
- * unexpected error) can re-claim a `running` row.
  */
 export async function startAiJobs(boss: PgBoss, deps: AiJobDeps, role: JobRole): Promise<void> {
-  if (!(await boss.getQueue(AI_SUGGEST_QUEUE)))
-    await boss.createQueue(AI_SUGGEST_QUEUE, {
-      policy: 'standard',
-      retryLimit: 1,
-      retryDelay: 95,
-      expireInSeconds: 90,
-    });
+  await ensureAiQueue(boss);
   const features = deps.features ?? { diagnosis: diagnosisFeature as AiFeature<unknown> };
   if (role === 'api' || Object.keys(features).length === 0) return;
   const runtime = {

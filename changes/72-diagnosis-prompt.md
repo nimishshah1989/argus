@@ -1,1 +1,0 @@
-- AI diagnosis, part 2: a stopped-machine job now gets a safety flag and up to three likely causes from Claude, each tied to past tickets or marked a guess, stored but not shown.

@@ -1,4 +1,5 @@
-import { defineModule } from '../../kernel/index.js';
+import { contributeTicketListener, defineModule } from '../../kernel/index.js';
+import { queueDiagnosisOnRaise } from './queue.js';
 
 export { aiConfigFromEnv, type AiConfig } from './config.js';
 export {
@@ -19,4 +20,9 @@ export {
 export { AI_SUGGEST_QUEUE, startAiJobs, type AiJobDeps } from './jobs.js';
 export type { AiFeature } from './suggest.js';
 
-export const aiModule = defineModule({ name: 'ai', register: () => undefined });
+export const aiModule = defineModule({
+  name: 'ai',
+  register: () => {
+    contributeTicketListener('diagnosis', queueDiagnosisOnRaise);
+  },
+});

@@ -15,6 +15,7 @@ import { APP_API_PASSWORD, startTestDb, type TestDb } from './harness.js';
 const A = '63000000-0000-4000-8000-00000000000a';
 const config: AiConfig = {
   production: false,
+  residencyRecord: null,
   apiKey: null,
   model: 'fake',
   priceInputUsdPerMtok: 1,
