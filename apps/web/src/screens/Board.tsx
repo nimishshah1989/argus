@@ -78,7 +78,11 @@ function BoardContent({ kiosk, open, config, filter, onFilter, loading, error }:
   return (
     <>
       <Counts counts={boardCounts(open)} large={kiosk} />
-      <SegmentFilter segments={config?.segments ?? []} value={filter} onChange={onFilter} />
+      <SegmentFilter
+        segments={(config?.segments ?? []).filter((segment) => segment.show_on_board)}
+        value={filter}
+        onChange={onFilter}
+      />
       <BoardSections sections={visible} large={kiosk} />
       <WorkFooter open={open} machines={config?.machines ?? []} large={kiosk} />
     </>

@@ -150,6 +150,7 @@ function groupBySegment(groups: Group[]): Map<string, Group[]> {
   return bySegment;
 }
 
+/** Segments kept off the board and hidden groups (Settings) take their machines off it. */
 export function buildSections(
   machines: Machine[],
   segments: Segment[],
@@ -157,16 +158,20 @@ export function buildSections(
   open: Ticket[],
 ): SegmentSection[] {
   const index = ticketIndex(open);
-  const segmentIds = new Set(segments.map((segment) => segment.id));
-  const segmentGroups = groupBySegment(groups);
+  const offBoard = new Set(segments.filter((s) => !s.show_on_board).map((s) => s.id));
+  const hidden = new Set(groups.filter((group) => group.hidden).map((group) => group.id));
+  const shown = segments.filter((segment) => !offBoard.has(segment.id));
+  const segmentIds = new Set(shown.map((segment) => segment.id));
+  const segmentGroups = groupBySegment(groups.filter((group) => !hidden.has(group.id)));
   const buckets = new Map<string, Map<string, Tile[]>>();
   for (const machine of machines) {
+    if (offBoard.has(machine.segment_id ?? '') || hidden.has(machine.group_id ?? '')) continue;
     const segmentKey = segmentKeyFor(machine, segmentIds);
     const groupKey = groupFor(machine, segmentGroups.get(segmentKey) ?? []);
     addTile(buckets, segmentKey, groupKey, { machine, ticket: ticketFor(machine, index) });
   }
   const sections: SegmentSection[] = [];
-  for (const segment of segments) {
+  for (const segment of shown) {
     const bucket = buckets.get(segment.id);
     if (bucket) {
       sections.push(
