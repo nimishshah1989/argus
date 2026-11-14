@@ -1,0 +1,1 @@
+- No change for plant users. Pull requests that change only plans, designs, the wiki, changelog notes or agent skills no longer install and run the full server and browser suites, which roughly halves the CI minutes we pay for. Any code, infra, spec or data change still runs everything.
