@@ -150,8 +150,8 @@ every frame, its states and the choices taken.
   of steps (at least one).
 - **Analytics face (heads, plant head, admin; desktop and phone):** left menu in groups, collapsed except the current one,
   with Guide and Data checklist; Dashboard in the platform's order; head and plant head open on Today; every figure shows
-  its drill target; Money Matters is heads and admin only. The Dashboard figures not read from the platform workbook (NO DT
-  line, per-day averages, bubbles) are computed from its Breakdown Log and must be checked in ticket 38's answer key.
+  its drill target; Money Matters is heads and admin only. Every Dashboard figure and chart is the backend answer key
+  (`fixtures/answer-key/dashboard.json`, as of 11 Nov 2026); the Live machine status card is dropped (m4a-triage).
 
 ## Screens: artboard, pattern, parity row, who may open it, states shown
 

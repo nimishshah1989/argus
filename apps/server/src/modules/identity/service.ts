@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { apiError } from '@uptimo/shared';
-import { AUTH_MESSAGES, type AuthContext } from '../../kernel/index.js';
+import { AUTH_MESSAGES, refuse, type AuthContext } from '../../kernel/index.js';
 import type { PasswordProblem } from '@uptimo/domain';
 import { actingTeams } from './repo/acting.js';
 import { lookupSession, readAuthRows, touchSession, type AuthRows } from './repo.js';
@@ -103,4 +103,16 @@ export async function requireAuth(
   if (request.auth) return request.auth;
   reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.missing));
   return null;
+}
+
+export const SUPPORT_NOT_ALLOWED = refuse(403, 'forbidden', 'Not allowed under support access');
+
+/**
+ * For a route our own support staff must never use, read or write (D29): who has access, the sign-ins of the
+ * admin who approved it. Answers 403 and returns true when the caller is under a support grant.
+ */
+export function refuseSupport(ctx: AuthContext, reply: FastifyReply): boolean {
+  if (!ctx.supportGrantId) return false;
+  reply.code(SUPPORT_NOT_ALLOWED.status).send(SUPPORT_NOT_ALLOWED.body);
+  return true;
 }

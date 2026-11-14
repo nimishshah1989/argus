@@ -187,7 +187,9 @@ describe('auth', () => {
       { old: 'nope', password: 'new-password-123' },
       token1,
     );
-    expect(wrongOld.statusCode).toBe(401);
+    expect(wrongOld.statusCode).toBe(422);
+    expect(wrongOld.json().error.field).toBe('old');
+    expect((await get('/api/v1/auth/me', 'cosmos.localhost', token1)).statusCode).toBe(200);
     const short = await post(
       '/api/v1/auth/password',
       'cosmos.localhost',
@@ -451,7 +453,7 @@ describe('login guard', () => {
         payload: { old, password: 'a-brand-new-password' },
       });
     const from = '198.51.100.27';
-    for (let i = 0; i < 20; i++) expect((await change(`guess-${i}`, from)).statusCode).toBe(401);
+    for (let i = 0; i < 20; i++) expect((await change(`guess-${i}`, from)).statusCode).toBe(422);
     const blocked = await change(PASSWORD, from);
     expect(blocked.statusCode).toBe(429);
     expect(blocked.json().error.code).toBe('rate_limited');
