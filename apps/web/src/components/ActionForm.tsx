@@ -1,6 +1,8 @@
+/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { Button } from '../ui/button.js';
 import type { CloseKind, CommandAction, CommandBody, Config, RaiseKind } from '../api.js';
 
 interface FieldSpec {
@@ -13,7 +15,7 @@ interface FieldSpec {
 }
 
 const inputClass =
-  'mt-2 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
+  'mt-2 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
 
 const CLOSE_OPTION_KEYS: Record<RaiseKind, { value: string; key: string }[]> = {
   stopped: [
@@ -162,10 +164,10 @@ interface FieldsProps {
 function FormFields({ fields, values, onChange }: FieldsProps) {
   const { t } = useTranslation();
   return (
-    <div className="mt-3 space-y-3">
+    <div className="mt-3 flex flex-col gap-3">
       {fields.map((field) => (
         <label key={field.name} className="block">
-          <span className="text-sm font-medium text-neutral-600">
+          <span className="text-footnote font-medium text-neutral-600">
             {field.label}
             {field.required ? <span aria-hidden="true"> *</span> : null}
           </span>
@@ -189,7 +191,9 @@ function FormFields({ fields, values, onChange }: FieldsProps) {
               className={`${inputClass} min-h-24 py-3`}
             />
           )}
-          {field.hint && <span className="mt-1 block text-xs text-neutral-500">{field.hint}</span>}
+          {field.hint && (
+            <span className="mt-1 block text-caption text-neutral-600">{field.hint}</span>
+          )}
         </label>
       ))}
     </div>
@@ -206,27 +210,21 @@ interface ActionsProps {
 function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
   const { t } = useTranslation();
   return (
-    <div className="mt-4 flex gap-2">
-      <button
-        type="button"
-        onClick={onDone}
-        className="min-h-13 flex-1 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
-      >
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      <Button variant="secondary" onClick={onDone}>
         {t('common.back')}
-      </button>
-      <button
-        type="submit"
-        disabled={disabled || pending}
-        className="min-h-13 flex-1 rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
-      >
+      </Button>
+      <Button type="submit" disabled={disabled || pending}>
         {pending ? t('common.saving') : submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }
 
 interface Props {
   action: CommandAction;
+  /** Close only: the way of closing the form starts on. */
+  preset?: CloseKind;
   personId: string;
   kind: RaiseKind;
   config: Config;
@@ -255,14 +253,24 @@ const SUBMIT_KEYS: Record<string, string> = {
   cancel: 'action.cancel.submit',
 };
 
-/** Join defaults to support; every other form starts empty. */
-function initialValues(action: CommandAction): Record<string, string> {
-  return action === 'join' ? { role: 'support' } : {};
+/** Join defaults to support, a close starts on the way its button named; every other form starts empty. */
+function initialValues(action: CommandAction, preset?: CloseKind): Record<string, string> {
+  if (action === 'join') return { role: 'support' };
+  return action === 'close' && preset ? { kind: preset } : {};
 }
 
-export function ActionForm({ action, personId, kind, config, pending, onRun, onDone }: Props) {
+export function ActionForm({
+  action,
+  preset,
+  personId,
+  kind,
+  config,
+  pending,
+  onRun,
+  onDone,
+}: Props) {
   const { t } = useTranslation();
-  const [values, setValues] = useState<Record<string, string>>(() => initialValues(action));
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(action, preset));
   const fields = fieldsFor(t, { action, kind, config, personId });
   const body = buildBody(action, personId, trimmed(values));
   const title = t(TITLE_KEYS[action] ?? action);
@@ -279,8 +287,8 @@ export function ActionForm({ action, personId, kind, config, pending, onRun, onD
   }
 
   return (
-    <form onSubmit={submit} aria-label={title} className="mt-4 rounded-xl bg-neutral-50 p-4">
-      <h3 className="text-base font-semibold">{title}</h3>
+    <form onSubmit={submit} aria-label={title} className="rounded-2xl bg-surface p-4 shadow-card">
+      <h3 className="text-body font-bold">{title}</h3>
       <FormFields fields={fields} values={values} onChange={update} />
       <FormActions pending={pending} disabled={!body} submitLabel={submitLabel} onDone={onDone} />
     </form>

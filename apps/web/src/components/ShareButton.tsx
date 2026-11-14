@@ -12,6 +12,7 @@ interface Props {
 /**
  * Opens WhatsApp with the ticket text. The text is the tested shared function; the brand lookup
  * supplies the tenant name for the full text (the config payload does not carry it yet).
+ * A link that looks like the kit's secondary button.
  */
 export function ShareButton({ ticket, config, mode = 'short' }: Props) {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ export function ShareButton({ ticket, config, mode = 'short' }: Props) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-13 w-full items-center justify-center rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+      className="inline-flex min-h-target w-full items-center justify-center rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900"
     >
       {t('share.send')}
     </a>
