@@ -110,3 +110,10 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   close; container.stop() then killed the still-ending admin-pool backend (57P01, CI dump: database 'test',
   _poolUseCount 13 = the 13 partial databases). Fix: endPool() waits for every 'remove' event; draft PR #204
   (test-only), merge on green.
+- 2026-11-14 05:48 UTC — FRONTEND orchestrator handed over: new FRONTEND = session_01KEBF29s188PmJ6P6e68eEZ (old
+  session_01KEBF28rZZwgSDVMzdNjw77 ended). The MIGRATION LOCK for 23 stays granted. 23 draft PR #206 opened; two
+  adversarial reviewers started in parallel with CI (migration/files; contract/guards). Main red since #196/#199:
+  FRONTEND's #205 fixes #196's browser part; builder 21 fixes #199's part (secrets, sign-in refusals). Queued for the
+  next free slot (FRONTEND request, from approved mockups): operator may upgradeKind support->stopped (DOMAIN section 3
+  change + test); work requests get WR refs not BD (ref-counter bug + test). Infra (FRONTEND): logos on server disk
+  FILES_DIR need a persistent, backed-up volume until S3.
