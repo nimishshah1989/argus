@@ -197,3 +197,9 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   (Skill tool, playbook named in the PR), delegates as poteto-agent subagents, models per
   .claude/rules/pstack-models.md; my adversarial reviews follow .claude/skills/interrogate/SKILL.md (findings only
   when proven by a run). All three builders told; each confirms poteto-mode is loaded.
+- 2026-11-14 07:02 UTC — poteto-mode and interrogate are user-invocation only (disable-model-invocation); a relayed
+  message cannot load them (builder 23 correctly refused). Ruling: every new ticket starts in a FRESH session whose
+  first message is '/poteto-mode <brief>'. CONFIRMED working: builder 35 (session_01KEBF27bzgyREScPzFL623W) reports
+  "poteto-mode loaded (Feature playbook)". FRONTEND adopted the same. Running builders (29, M1 leftovers) finish by hand.
+  Merged #220 (d3d03ce, 9/9; small server items). Builder 23 archived. Dispatched 35 goals 2+3 (devices; support access
+  with admin approval, 7 days, audited) + auth/password wrong-old = 422 (FRONTEND ask). FRONTEND restore drill A passed.
