@@ -293,3 +293,7 @@ Start a fresh orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLA
   /auth/me gains optional supportGrantId; per-grant refusal flood = accepted insider-only nuisance (in D29).
   Sent to builder 35 for ONE batched push. Product line for Nimish (via FRONTEND, batch): "change plant settings"
   read as machines/segments/groups/shifts/logo/company/SLA/lists, not machine criticality; say if wrong.
+- 08:03 UTC #233 (32 follow-up: #230 review fixes + the two v3 push triggers, draft, 5cdfb89) and #234 (30 pause clock,
+  draft, 2a5b3d3) opened; one Opus reviewer each running. #231 (35) CI running at 889def0. New FRONTEND orchestrator
+  session_01KEBF27UzWD37VxyiA2gNP7. Rulings accepted: breakdown push -> technician+supervisor, only kind 'stopped'; fixed ->
+  reporter unless they closed it; any pause arms the pause clock (reviewer to judge pausesSla=false).
