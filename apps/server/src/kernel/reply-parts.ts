@@ -69,6 +69,29 @@ export async function withTicketParts(
   });
 }
 
+/**
+ * A listener (an alert, say) must never fail the ticket write it hangs off. It runs inside a savepoint: on any
+ * error the savepoint is rolled back, so a failed statement does not leave the transaction aborted, and the
+ * ticket is written without whatever the listener tried to add.
+ */
+async function isolated(
+  client: PoolClient,
+  name: string,
+  listener: TicketListener,
+  write: TicketWrite,
+): Promise<void> {
+  await client.query('SAVEPOINT ticket_listener');
+  try {
+    await listener(client, write);
+    await client.query('RELEASE SAVEPOINT ticket_listener');
+  } catch (error) {
+    await client.query('ROLLBACK TO SAVEPOINT ticket_listener');
+    await client.query('RELEASE SAVEPOINT ticket_listener');
+    const reason = (error as { code?: string; name?: string }).code ?? (error as Error).name;
+    console.error(JSON.stringify({ event: 'ticket.listener.failed', listener: name, reason }));
+  }
+}
+
 /** Every part's `afterWrite`, merged in contribution order, then every listener. */
 export async function ticketPartsAfterWrite(
   client: PoolClient,
@@ -76,7 +99,7 @@ export async function ticketPartsAfterWrite(
 ): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {};
   for (const part of ticketParts.values()) Object.assign(out, await part.afterWrite(client, write));
-  for (const listener of ticketListeners.values()) await listener(client, write);
+  for (const [name, listener] of ticketListeners) await isolated(client, name, listener, write);
   return out;
 }
 

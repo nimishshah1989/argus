@@ -3,7 +3,7 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '../../kernel/index.js';
 import { isPushEndpoint } from './endpoint.js';
 import { pushPayload } from './kinds.js';
-import { queueSend } from './notify.js';
+import { queueSends } from './notify.js';
 import { sendPush, type PushResult } from './push.js';
 import {
   deleteSubscription,
@@ -100,10 +100,10 @@ export async function processNotification(
     if (row.nextAttemptAt > deps.now) {
       const wake = Math.max(row.nextAttemptAt.getTime(), deps.now.getTime() + RECHECK_MS);
       if (deps.boss)
-        await queueSend(
+        await queueSends(
           tx,
           deps.boss,
-          { tenantId, notificationId, attempt: row.attempts },
+          [{ tenantId, notificationId, attempt: row.attempts }],
           new Date(wake),
         );
       return { outcome: 'skipped', delivered: 0 };
@@ -114,10 +114,10 @@ export async function processNotification(
         : { outcome: failure(row, 'no_sender', deps.now, false), delivered: 0 };
     await recordOutcome(tx, { tenantId, id: notificationId, now: deps.now }, outcome);
     if (outcome.status === 'pending' && deps.boss)
-      await queueSend(
+      await queueSends(
         tx,
         deps.boss,
-        { tenantId, notificationId, attempt: outcome.attempts },
+        [{ tenantId, notificationId, attempt: outcome.attempts }],
         outcome.nextAttemptAt,
       );
     return { outcome: outcome.status === 'pending' ? 'retry' : outcome.status, delivered };

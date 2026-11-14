@@ -2,7 +2,7 @@ import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import type { JobRole } from '../../kernel/index.js';
-import { NOTIFY_SEND_QUEUE, NOTIFY_SEND_VERSION, SEND_QUEUE } from './notify.js';
+import { markQueueReady, NOTIFY_SEND_QUEUE, NOTIFY_SEND_VERSION, SEND_QUEUE } from './notify.js';
 import { processNotification } from './send.js';
 import { sweepNotifications } from './sweep.js';
 
@@ -33,6 +33,7 @@ export async function startNotifyJobs(
 ): Promise<void> {
   if (!(await boss.getQueue(NOTIFY_SEND_QUEUE)))
     await boss.createQueue(NOTIFY_SEND_QUEUE, SEND_QUEUE);
+  markQueueReady(boss);
   if (!(await boss.getQueue(NOTIFY_SWEEP_QUEUE)))
     await boss.createQueue(NOTIFY_SWEEP_QUEUE, {
       policy: 'standard',

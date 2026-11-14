@@ -2,6 +2,7 @@ import { hash } from '@node-rs/argon2';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import webpush from 'web-push';
 import { buildApp } from '../src/app.js';
+import { contributeTicketListener } from '../src/kernel/index.js';
 import { processNotification } from '../src/modules/notifications/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
@@ -16,8 +17,9 @@ const OPERA = id(0x13);
 const HEAD = id(0x14);
 const GONE = id(0x15);
 const LEFT = id(0x16);
+const QUIT = id(0x18);
 const OTHER = id(0x17);
-const MACHINES = Array.from({ length: 10 }, (_, i) => id(0x30 + i));
+const MACHINES = Array.from({ length: 20 }, (_, i) => id(0x30 + i));
 const PASSWORD = 'correct-horse-battery';
 const PHONE = 'https://fcm.googleapis.com/fcm/send/asha-phone';
 
@@ -106,6 +108,7 @@ beforeAll(async () => {
     [GONE, A, 'gone', 'technician', false],
     [LEFT, A, 'left', 'technician', true],
     [OTHER, B, 'other', 'technician', true],
+    [QUIT, A, 'quit', 'operator', true],
   ];
   for (const [person, tenant, username, role, active] of people) {
     await db.admin.query(
@@ -226,4 +229,53 @@ describe('a fixed complaint tells the person who reported it', () => {
 it('keeps the notification ids free of names and phones', async () => {
   const text = JSON.stringify((await db.admin.query('SELECT * FROM notification')).rows);
   expect(text).not.toMatch(/Testperson|Spindle/);
+});
+
+describe('an upgrade to a breakdown is a new breakdown', () => {
+  it('tells the maintenance side once, when a support ticket becomes a stopped one', async () => {
+    const ticketId = await raise(tokens.opera!, { kind: 'support' });
+    expect(await told(ticketId)).toEqual([]);
+    const res = await post(`/api/v1/tickets/${ticketId}/upgrade-kind`, tokens.opera!, {});
+    expect(res.statusCode, res.body).toBe(200);
+    expect((await told(ticketId)).map((n) => n.person_id)).toEqual([ASHA, BINA, SUNIL].sort());
+  });
+});
+
+describe('a person who has left is not told their complaint is fixed', () => {
+  it('sends nothing to a switched-off reporter', async () => {
+    const ticketId = await raise(tokens.quit!);
+    await post(`/api/v1/tickets/${ticketId}/start`, tokens.asha!, { personId: ASHA });
+    await db.admin.query('UPDATE person SET active = false WHERE id = $1', [QUIT]);
+    await db.admin.query('DELETE FROM notification');
+    const closed = await post(`/api/v1/tickets/${ticketId}/close`, tokens.asha!, {
+      personId: ASHA,
+      kind: 'report',
+    });
+    expect(closed.statusCode).toBe(200);
+    expect(await told(ticketId)).toEqual([]);
+  });
+});
+
+describe('a notification problem never fails the ticket write', () => {
+  const ticketExists = async (ticketId: string): Promise<boolean> =>
+    ((await db.admin.query('SELECT 1 FROM ticket WHERE id = $1', [ticketId])).rowCount ?? 0) > 0;
+
+  it.each([
+    ['throws', async () => Promise.reject(new Error('listener broke'))],
+    [
+      'runs a failing statement',
+      async (client: { query: (sql: string) => Promise<unknown> }) => {
+        await client.query('SELECT 1 / 0');
+      },
+    ],
+  ])('a listener that %s still gives the 201 and the ticket', async (_name, broken) => {
+    contributeTicketListener('broken', broken as never);
+    try {
+      const ticketId = await raise(tokens.opera!);
+      expect(await ticketExists(ticketId)).toBe(true);
+      expect((await told(ticketId)).length).toBe(3);
+    } finally {
+      contributeTicketListener('broken', async () => undefined);
+    }
+  });
 });

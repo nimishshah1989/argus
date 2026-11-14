@@ -211,6 +211,56 @@ describe('notify writes one row per recipient and channel', () => {
   });
 });
 
+describe('notify inside a ticket write', () => {
+  it('leaves no row and no job when the transaction it ran in is rolled back', async () => {
+    await expect(
+      withTenant(db.app, A, async (client) => {
+        await notify(client, boss, toAsha('rollback:1', { to: [ASHA, BINA] }));
+        throw new Error('the ticket write failed');
+      }),
+    ).rejects.toThrow('the ticket write failed');
+    expect(await rowCount(A)).toBe(0);
+    expect(await boss.fetch<SendJob>('notify.send', { batchSize: 100 })).toEqual([]);
+  });
+
+  it('writes many recipients in a handful of round trips, not one or two each', async () => {
+    const queries = await withTenant(db.app, A, async (client) => {
+      const spy = vi.spyOn(client, 'query');
+      await notify(
+        client,
+        boss,
+        toAsha('fanout:1', { to: [ASHA, BINA], channels: ['push', 'whatsapp'] }),
+      );
+      const calls = spy.mock.calls.length;
+      spy.mockRestore();
+      return calls;
+    });
+    expect(queries).toBeLessThanOrEqual(3);
+    expect(await rowCount(A)).toBe(4);
+  });
+
+  it('does not create the queue inside the transaction once startup has made it', async () => {
+    const fresh = new PgBoss({
+      connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${db.container.getHost()}:${db.container.getPort()}/${db.container.getDatabase()}`,
+      migrate: false,
+      schedule: false,
+      supervise: false,
+      openTelemetry: { enabled: false },
+    });
+    await fresh.start();
+    try {
+      await startNotifyJobs(fresh, { pool: db.app }, 'api');
+      const look = vi.spyOn(fresh, 'getQueue');
+      const create = vi.spyOn(fresh, 'createQueue');
+      await withTenant(db.app, A, (client) => notify(client, fresh, toAsha('ready:1')));
+      expect(look).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    } finally {
+      await fresh.stop();
+    }
+  });
+});
+
 describe('notify.send', () => {
   it('delivers the new-breakdown push and marks the row sent', async () => {
     const [made] = await tell(toAsha('breakdown:10'));
@@ -275,6 +325,12 @@ describe('notify.send', () => {
     await work(A, id, T0);
     const due = (await row(id)).next_attempt_at!;
     expect(await queuedFor(id)).toEqual([{ v: 1, tenantId: A, notificationId: id, attempt: 1 }]);
+    // pg-boss has no call that reads a job's start time, so this one fact is read from its table.
+    const waiting = await db.admin.query(
+      "SELECT start_after FROM pgboss.job WHERE name = 'notify.send' AND data->>'notificationId' = $1 AND data->>'attempt' = '1'",
+      [id],
+    );
+    expect(new Date(waiting.rows[0].start_after).getTime()).toBe(due.getTime());
     send.mockClear();
     expect((await work(A, id, new Date(due.getTime() - 1))).outcome).toBe('skipped');
     expect(send).not.toHaveBeenCalled();
@@ -479,6 +535,22 @@ describe('notify.sweep finds messages whose job was lost', () => {
     expect((await work(A, lost!.notificationId, new Date(T0.getTime() + HOUR))).outcome).toBe(
       'sent',
     );
+  });
+
+  it('queues each lost row once, however many sweeps run in a row', async () => {
+    await tell(toAsha('sweep:twice'));
+    await boss.deleteAllJobs('notify.send');
+    const first = await sweepNotifications({
+      pool: db.app,
+      boss,
+      now: new Date(T0.getTime() + HOUR),
+    });
+    const second = await sweepNotifications({
+      pool: db.app,
+      boss,
+      now: new Date(T0.getTime() + HOUR + MIN),
+    });
+    expect([first.requeued, second.requeued]).toEqual([1, 0]);
   });
 
   it('gives up on a row overdue for over a week and shows it dead, never silently', async () => {

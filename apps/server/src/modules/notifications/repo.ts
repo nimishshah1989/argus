@@ -80,48 +80,51 @@ export async function clearSubscriptionPerson(tx: Db, personId: string): Promise
 
 export type Channel = 'push' | 'whatsapp';
 
-export interface NotificationToWrite {
+export interface NotificationsToWrite {
   tenantId: string;
-  dedupeKey: string;
   kind: string;
-  personId: string;
-  channel: Channel;
   ticketId: string | null;
   eventId: string | null;
   nextAttemptAt: Date;
+  /** One entry per message: person, channel and the key that names it. */
+  rows: { dedupeKey: string; personId: string; channel: Channel }[];
 }
 
-/** The new row's id, or null when this dedupe key is already recorded for the plant. */
-export async function insertNotification(tx: Db, n: NotificationToWrite): Promise<string | null> {
+/** One statement for all rows. The ids of the rows that are new, by dedupe key; a key already recorded is left out. */
+export async function insertNotifications(
+  tx: Db,
+  n: NotificationsToWrite,
+): Promise<Map<string, string>> {
   const inserted = await tx.query(
     `INSERT INTO notification
        (tenant_id, dedupe_key, kind, person_id, channel, ticket_id, event_id, next_attempt_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     ON CONFLICT (tenant_id, dedupe_key) DO NOTHING RETURNING id`,
+     SELECT $1, u.k, $3, u.p, u.c, $6::uuid, $7::uuid, $8
+       FROM unnest($2::text[], $4::uuid[], $5::text[]) AS u(k, p, c)
+     ON CONFLICT (tenant_id, dedupe_key) DO NOTHING RETURNING id, dedupe_key`,
     [
       n.tenantId,
-      n.dedupeKey,
+      n.rows.map((r) => r.dedupeKey),
       n.kind,
-      n.personId,
-      n.channel,
+      n.rows.map((r) => r.personId),
+      n.rows.map((r) => r.channel),
       n.ticketId,
       n.eventId,
       n.nextAttemptAt,
     ],
   );
-  return (inserted.rows[0]?.id as string | undefined) ?? null;
+  return new Map(inserted.rows.map((r) => [r.dedupe_key as string, r.id as string]));
 }
 
-export async function notificationIdByKey(
+export async function notificationIdsByKey(
   tx: Db,
   tenantId: string,
-  dedupeKey: string,
-): Promise<string> {
+  dedupeKeys: string[],
+): Promise<Map<string, string>> {
   const found = await tx.query(
-    'SELECT id FROM notification WHERE tenant_id = $1 AND dedupe_key = $2',
-    [tenantId, dedupeKey],
+    'SELECT id, dedupe_key FROM notification WHERE tenant_id = $1 AND dedupe_key = ANY($2::text[])',
+    [tenantId, dedupeKeys],
   );
-  return found.rows[0].id as string;
+  return new Map(found.rows.map((r) => [r.dedupe_key as string, r.id as string]));
 }
 
 export interface PendingNotification {
@@ -196,20 +199,25 @@ export async function purgeNotifications(tx: Db, tenantId: string, cutoff: Date)
   return result.rowCount ?? 0;
 }
 
-/** Pending rows that should have been tried before `overdueBefore`, oldest first. */
-export async function overduePending(
+/**
+ * Takes the pending rows that should have been tried before `overdueBefore` (oldest first) and pushes their due
+ * time to `now`, in one statement, so another sweep a minute later does not queue them again.
+ */
+export async function claimOverdue(
   tx: Db,
   tenantId: string,
-  overdueBefore: Date,
-  limit: number,
+  at: { overdueBefore: Date; now: Date; limit: number },
 ): Promise<{ id: string; attempts: number }[]> {
-  const found = await tx.query(
-    `SELECT id, attempts FROM notification
-      WHERE tenant_id = $1 AND status = 'pending' AND next_attempt_at < $2
-      ORDER BY next_attempt_at LIMIT $3`,
-    [tenantId, overdueBefore, limit],
+  const claimed = await tx.query(
+    `UPDATE notification SET next_attempt_at = $3, updated_at = $3
+      WHERE tenant_id = $1 AND id IN (
+        SELECT id FROM notification
+         WHERE tenant_id = $1 AND status = 'pending' AND next_attempt_at < $2
+         ORDER BY next_attempt_at LIMIT $4 FOR UPDATE SKIP LOCKED)
+      RETURNING id, attempts`,
+    [tenantId, at.overdueBefore, at.now, at.limit],
   );
-  return found.rows.map((r) => ({ id: r.id as string, attempts: r.attempts as number }));
+  return claimed.rows.map((r) => ({ id: r.id as string, attempts: r.attempts as number }));
 }
 
 /** A pending row nobody got to before `overdueBefore` is shown dead (`stuck`) so a person can see it. */

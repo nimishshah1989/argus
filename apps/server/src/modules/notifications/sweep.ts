@@ -2,8 +2,8 @@ import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { withTenant } from '../../kernel/index.js';
 import { jobTenantIds } from '../identity/index.js';
-import { queueSend } from './notify.js';
-import { markStuckDead, overduePending } from './repo.js';
+import { queueSends } from './notify.js';
+import { claimOverdue, markStuckDead } from './repo.js';
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
@@ -33,12 +33,26 @@ export async function sweepNotifications(deps: {
   for (const tenantId of await jobTenantIds(pool)) {
     await withTenant(pool, tenantId, async (tx) => {
       result.dead += await markStuckDead(tx, tenantId, new Date(now.getTime() - GIVE_UP_MS), now);
-      const lost = await overduePending(tx, tenantId, new Date(now.getTime() - GRACE_MS), BATCH);
-      for (const row of lost) {
-        await queueSend(tx, boss, { tenantId, notificationId: row.id, attempt: row.attempts }, now);
-        result.requeued += 1;
-      }
+      const lost = await claimOverdue(tx, tenantId, {
+        overdueBefore: new Date(now.getTime() - GRACE_MS),
+        now,
+        limit: BATCH,
+      });
+      for (const [attempt, rows] of groupByAttempt(lost))
+        await queueSends(
+          tx,
+          boss,
+          rows.map((r) => ({ tenantId, notificationId: r.id, attempt })),
+          now,
+        );
+      result.requeued += lost.length;
     });
   }
   return result;
+}
+
+function groupByAttempt(rows: { id: string; attempts: number }[]): Map<number, { id: string }[]> {
+  const groups = new Map<number, { id: string }[]>();
+  for (const row of rows) groups.set(row.attempts, [...(groups.get(row.attempts) ?? []), row]);
+  return groups;
 }
