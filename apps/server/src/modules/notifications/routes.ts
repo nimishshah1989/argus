@@ -4,8 +4,8 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 import { apiError } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { activePerson, requireAuth } from '../identity/index.js';
-import type { AppConfig } from '../../kernel/index.js';
+import { lockLiveActing, requireAuth } from '../identity/index.js';
+import { AUTH_MESSAGES, type AppConfig } from '../../kernel/index.js';
 import { isPushEndpoint, normalisedEndpoint } from './endpoint.js';
 import {
   deleteSubscription,
@@ -81,26 +81,27 @@ async function subscribeHandler(
     return;
   }
   const { subscription, actingPersonId } = parsed.data;
-  await withTenant(pool, auth.tenantId, async (client) => {
-    if (!(await activePerson(client, auth.tenantId, actingPersonId))) {
-      return { missingPerson: true as const };
-    }
-    await upsertSubscription(client, {
+  const check = await withTenant(pool, auth.tenantId, async (client) => {
+    const live = await lockLiveActing(client, {
       tenantId: auth.tenantId,
       loginId: auth.loginId,
-      actingPersonId,
-      endpoint: normalisedEndpoint(subscription.endpoint),
-      keys: JSON.stringify(subscription.keys),
-      role: auth.role,
+      personId: actingPersonId,
     });
-    return { missingPerson: false as const };
-  }).then((result) => {
-    if (result.missingPerson) {
-      reply.code(404).send(apiError('not_found', 'Unknown person', 'actingPersonId'));
-    } else {
-      reply.send({ ok: true });
-    }
+    if (live === 'ok')
+      await upsertSubscription(client, {
+        tenantId: auth.tenantId,
+        loginId: auth.loginId,
+        actingPersonId,
+        endpoint: normalisedEndpoint(subscription.endpoint),
+        keys: JSON.stringify(subscription.keys),
+        role: auth.role,
+      });
+    return live;
   });
+  if (check === 'ok') reply.send({ ok: true });
+  else if (check === 'unknown_person')
+    reply.code(404).send(apiError('not_found', 'Unknown person', 'actingPersonId'));
+  else reply.code(401).send(apiError('unauthenticated', AUTH_MESSAGES.ended));
 }
 
 async function unsubscribeHandler(

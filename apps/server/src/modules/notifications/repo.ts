@@ -72,14 +72,19 @@ export async function subscriptionsOfPerson(
   return rowsToSubs(rows);
 }
 
-/** Switching a person or login off: every device of these logins, and every device acting as this person. */
-export async function deleteSubscriptionsOf(
-  tx: Db,
-  who: { loginIds: readonly string[]; actingPersonId?: string },
-): Promise<number> {
+/** Switching a login off: every device registered by these logins. */
+export async function deleteSubscriptionsOf(tx: Db, loginIds: readonly string[]): Promise<number> {
+  const result = await tx.query('DELETE FROM push_subscription WHERE login_id = ANY($1::uuid[])', [
+    loginIds,
+  ]);
+  return result.rowCount ?? 0;
+}
+
+/** A shared phone's registration stays, but no longer sends this person's notifications to it. */
+export async function clearSubscriptionPerson(tx: Db, personId: string): Promise<number> {
   const result = await tx.query(
-    'DELETE FROM push_subscription WHERE login_id = ANY($1::uuid[]) OR acting_person_id = $2::uuid',
-    [who.loginIds, who.actingPersonId ?? null],
+    'UPDATE push_subscription SET acting_person_id = NULL, updated_at = now() WHERE acting_person_id = $1',
+    [personId],
   );
   return result.rowCount ?? 0;
 }

@@ -42,4 +42,14 @@ realmadrid zxcvbnm1 justinbieber admin123 baili123com wow12345 qwerty321 golfcou
 freedom1 nyq28giz1z cheyenne florence test1234 chicken1 oblivion crossfire bestfriend pass1234 g13916055158
 `;
 
-export const COMMON_PASSWORDS: readonly string[] = WORDS.trim().split(/\s+/);
+// Added by us, not from the lists above: the defaults people actually pick in an Indian plant, which the lists
+// miss because they strip or never contain punctuation (`Admin@123` is `admin123` once the `@` is gone).
+const OUR_ADDITIONS = `
+password123 password1234 welcome123 welcome1234 india123 india1234 admin123 admin1234 admin12345 india2024
+india2025 india2026 factory123 plant1234 company123 temp1234 temporary1 changeme1 changeme123 letmein123
+user1234 test1234 qwerty1234 pass1234 abc123456 abcd12345 uptimo123 cosmos123 cosmos1234 maintenance1
+`;
+
+export const COMMON_PASSWORDS: readonly string[] = [
+  ...new Set([...WORDS.trim().split(/\s+/), ...OUR_ADDITIONS.trim().split(/\s+/)]),
+];

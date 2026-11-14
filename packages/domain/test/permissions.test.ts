@@ -81,6 +81,11 @@ describe('permissions', () => {
       expect(canSettingsPeople(actor(role)), role).toBe(false);
   });
 
+  it('refuses an admin on a shared login: an admin action must name a person', () => {
+    expect(canSettingsPeople(actor('admin', { shared: true }))).toBe(false);
+    expect(canSettingsPeople(actor('admin'))).toBe(true);
+  });
+
   it('keeps the AI consent and spending settings with the admin alone', () => {
     expect(canSettingsAi(actor('admin'))).toBe(true);
     for (const role of [
