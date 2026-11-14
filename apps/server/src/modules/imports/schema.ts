@@ -71,6 +71,8 @@ export interface ImportStats {
   tickets: number;
   imported: number;
   skipped: number;
+  /** Rows that created a person whose name matches an erased one. Imported as usual; a person looks at them. */
+  possiblyErasedMatches: number;
   errored: number;
   events: number;
   crew: number;

@@ -31,10 +31,13 @@ let url: string;
 let refs = 0;
 const tagIds: string[] = [];
 
+/** Built at runtime so no test file carries a key-shaped literal. */
+const ERASURE_KEY = ['erasure', 'test', 'cutover'].join('-').padEnd(40, 'x');
+
 function run(script: string, args: string[], env: Record<string, string> = {}) {
   const result = spawnSync('pnpm', ['--silent', 'tsx', `scripts/${script}.ts`, ...args], {
     cwd: ROOT,
-    env: { ...process.env, MIGRATION_DATABASE_URL: url, ...env },
+    env: { ...process.env, MIGRATION_DATABASE_URL: url, ERASURE_HASH_KEY: ERASURE_KEY, ...env },
     encoding: 'utf8',
     timeout: 60_000,
   });
@@ -229,7 +232,16 @@ describe('cutover scripts, before 0009', () => {
   }, 120_000);
 });
 
-describe('cutover scripts, at 0009', () => {
+describe('cutover scripts, at the current schema', () => {
+  // erase-person needs the erasure columns and the six-argument erase_person, which come after 0009.
+  beforeAll(async () => {
+    for (const file of readdirSync(MIGRATIONS)
+      .filter((name) => name.endsWith('.sql') && name >= '0010')
+      .sort()) {
+      await db.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
+    }
+  });
+
   it('export-tags has nothing to export after the cutover', () => {
     const out = mkdtempSync(join(tmpdir(), 'tags-'));
     const result = run('export-tags', ['--out', out]);
@@ -254,6 +266,16 @@ describe('cutover scripts, at 0009', () => {
     );
     expect(problem.rows.map((r) => r.problem)).toContain('Former staff checked the press');
     expect(problem.rows.map((r) => r.problem).join()).not.toMatch(/Testa/);
+  }, 120_000);
+
+  it('erase-person refuses to start without the erasure key, and changes nothing', async () => {
+    const { dir } = filesDir();
+    const person = await leaver('Keyless Leaver', [], { phone: '+910000000077' });
+    const result = run('erase-person', eraseArgs(person, 'REQ-KEY', dir), { ERASURE_HASH_KEY: '' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/ERASURE_HASH_KEY/);
+    const row = await db.query('SELECT name FROM person WHERE id = $1', [person]);
+    expect(row.rows[0].name).toBe('Keyless Leaver');
   }, 120_000);
 
   it('erase-person holds a no-term erasure until the review is recorded', async () => {

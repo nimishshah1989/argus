@@ -1,6 +1,7 @@
 import { withTenant } from '@uptimo/db';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
+import { erasedNamesAmong } from '../identity/index.js';
 import {
   emptyImportStats,
   ImportFatalError,
@@ -89,6 +90,24 @@ function failRow(stats: ImportStats, row: PlannedRow, issues: ImportIssue[]): vo
   row.outcome = 'error';
   stats.errored += 1;
   stats.issues.push(...issues);
+}
+
+/** A person this row created has the name of someone erased: the row still imports, and the report says to look. */
+async function flagPossiblyErased(
+  ctx: RunCtx,
+  row: PlannedRow,
+  stats: ImportStats,
+  result: TicketResult,
+): Promise<void> {
+  if ((await erasedNamesAmong(ctx.client, ctx.tenantId, result.pendingPersons)).size === 0) return;
+  stats.possiblyErasedMatches += 1;
+  result.issues.push(
+    rowIssue(
+      issueIdentity(row),
+      'possible_erased_match',
+      'A person created by this row may be one who was erased: check before using them',
+    ),
+  );
 }
 
 function succeedRow(stats: ImportStats, row: PlannedRow, result?: TicketResult): void {
@@ -202,6 +221,7 @@ async function runRow(
         },
       );
       row.existingTicketId = result.ticketId;
+      await flagPossiblyErased(ctx, row, stats, result);
       await updateRow(ctx, batchId, { rowId, status: 'imported', ticketId: result.ticketId });
       succeedRow(stats, row, result);
     }
