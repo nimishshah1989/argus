@@ -22,7 +22,7 @@ function part(name: string, value: unknown, write: Record<string, unknown> = {})
 describe('ticket reply parts', () => {
   it('merges each part under its name after the projection', async () => {
     contributeTicketPart(part('fake', 'x'));
-    const out = await withTicketParts(client, 'tenant', rows, project);
+    const out = await withTicketParts(client, { tenantId: 'tenant' }, rows, project);
     expect(out).toEqual([
       { id: 't1', a: 1, fake: 'x' },
       { id: 't2', a: 1, fake: null },
@@ -33,7 +33,7 @@ describe('ticket reply parts', () => {
   it('keeps contribution order', async () => {
     contributeTicketPart(part('fake', 'x'));
     contributeTicketPart(part('fake2', 'y'));
-    const out = await withTicketParts(client, 'tenant', rows, project);
+    const out = await withTicketParts(client, { tenantId: 'tenant' }, rows, project);
     expect(Object.keys(out[0]!)).toEqual(['id', 'a', 'fake', 'fake2']);
   });
 
@@ -49,7 +49,7 @@ describe('ticket reply parts', () => {
   it('a part contributed twice under one name is replaced', async () => {
     contributeTicketPart(part('fake', 'first'));
     contributeTicketPart(part('fake', 'second'));
-    const out = await withTicketParts(client, 'tenant', [{ id: 't1' }], project);
+    const out = await withTicketParts(client, { tenantId: 'tenant' }, [{ id: 't1' }], project);
     expect(out[0]!.fake).toBe('second');
     expect(Object.keys(out[0]!).filter((k) => k === 'fake')).toHaveLength(1);
   });

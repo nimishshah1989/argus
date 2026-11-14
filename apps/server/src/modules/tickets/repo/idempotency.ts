@@ -19,10 +19,19 @@ export class IdempotencyKeyReusedError extends Error {
   }
 }
 
+/** Keys the system writes itself (an escalation step is `esc:<rule>:<episode>:<attempt>`): a client may not send one. */
+export const RESERVED_KEY_PREFIX = 'esc:';
+
+/** What a request without a usable key is told. */
+export const KEY_REQUIRED =
+  'Idempotency-Key header is required (keys starting with esc: are reserved)';
+
+/** The client's key, or null when there is none or it starts with the reserved prefix. */
 export function idempotencyKey(headers: Record<string, unknown>): string | null {
   const raw = headers['idempotency-key'];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+  const key = typeof value === 'string' ? value.trim() : '';
+  return key && !key.startsWith(RESERVED_KEY_PREFIX) ? key : null;
 }
 
 /** Deterministic serialisation: stable key order, Dates as ISO, undefined keys dropped. */
@@ -40,20 +49,28 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export function computeRequestHash(command: string, body: unknown): string {
+/**
+ * `actor` is the person on a shared phone: the same key from a phone that has since changed hands is a different
+ * request, never the first person's stored reply. A personal login has one person for life, so it adds nothing.
+ */
+export function computeRequestHash(command: string, body: unknown, actor?: string | null): string {
   return createHash('sha256')
-    .update(`${command}|${stableStringify(body)}`)
+    .update(`${command}|${stableStringify(body)}${actor ? `|as:${actor}` : ''}`)
     .digest('hex');
 }
+
+/** The person a shared phone's request is made as; undefined on a personal login. */
+export const phoneActor = (auth: { shared: boolean; personId: string | null }) =>
+  auth.shared ? auth.personId : undefined;
 
 export function computeBinding(
   tenantId: string,
   loginId: string,
   key: string,
-  request: [command: string, body: unknown],
+  request: [command: string, body: unknown, actor?: string | null],
 ): IdempotencyBinding {
-  const [command, body] = request;
-  return { tenantId, loginId, key, requestHash: computeRequestHash(command, body) };
+  const [command, body, actor] = request;
+  return { tenantId, loginId, key, requestHash: computeRequestHash(command, body, actor) };
 }
 
 export function reusedKeyOutcome(): IdempotencyResult {

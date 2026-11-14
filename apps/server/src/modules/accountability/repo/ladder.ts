@@ -22,8 +22,8 @@ export async function insertEscalationDefault(
 ): Promise<void> {
   await tx.query(
     `INSERT INTO escalation_rule
-       (tenant_id, trigger, severity_min, level, notify_role, channel, delay_minutes, repeat_minutes, repeat_cap)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (tenant_id, trigger, severity_min, level, notify_role, channel, delay_minutes, repeat_minutes, repeat_cap, active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      ON CONFLICT DO NOTHING`,
     [
       tenantId,
@@ -35,6 +35,7 @@ export async function insertEscalationDefault(
       rule.delayMinutes,
       rule.repeatMinutes,
       rule.repeatCap,
+      rule.active ?? true,
     ],
   );
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WizardPage } from '../../patterns/wizard-page.js';
-import { FloorLoading, FloorShell } from './floor-shell.js';
+import { FloorShell, FloorWaiting } from './floor-shell.js';
 import { MachineStep } from './machine-step.js';
 import { ProblemLead, ProblemStep } from './problem-step.js';
 import { useReport } from './report-state.js';
@@ -75,7 +75,8 @@ function ReportFlow(p: { data: FloorData; deepLink: string | null; onAnother: ()
 export function Report() {
   const [params] = useSearchParams();
   const [round, setRound] = useState(0);
-  const data = useFloorData();
+  const load = useFloorData();
+  const data = load.data;
   return (
     <FloorShell>
       {data ? (
@@ -86,7 +87,7 @@ export function Report() {
           onAnother={() => setRound((n) => n + 1)}
         />
       ) : (
-        <FloorLoading />
+        <FloorWaiting load={load} />
       )}
     </FloorShell>
   );

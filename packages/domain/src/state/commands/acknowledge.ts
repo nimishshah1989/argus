@@ -1,4 +1,5 @@
-import { canAcknowledge } from '../../permissions.js';
+import { acknowledgeRefusal } from '../../permissions.js';
+import { eventsSinceLastTransfer } from '../../sla.js';
 import { apply, clampAt, TransitionError } from '../helpers.js';
 import type { Command, TransitionInput, TransitionResult } from '../types.js';
 
@@ -7,14 +8,13 @@ export function acknowledge(
   input: TransitionInput,
   command: Extract<Command, { type: 'acknowledge' }>,
 ): TransitionResult {
-  // the permission answer is the same on every ticket, so it comes before any state check
-  const assignedToActor = input.ticket.assignedToPersonId === input.ctx.personId;
-  if (!canAcknowledge(input.ctx, { onRoster: command.onRoster, assignedToActor }))
-    throw new TransitionError('Not allowed');
-  if (!['open', 'working'].includes(input.ticket.status))
-    throw new TransitionError(`Ticket is ${input.ticket.status}: nothing to acknowledge`);
-  if (input.events.some((event) => event.type === 'acknowledge'))
-    throw new TransitionError('Ticket is already acknowledged');
+  const refusal = acknowledgeRefusal(input.ctx, input.ticket, {
+    onRoster: command.onRoster,
+    alreadyAcknowledged: eventsSinceLastTransfer(input.events).some(
+      (e) => e.type === 'acknowledge',
+    ),
+  });
+  if (refusal) throw new TransitionError(refusal);
   return apply(input, {
     ticket: {},
     event: { type: 'acknowledge' },

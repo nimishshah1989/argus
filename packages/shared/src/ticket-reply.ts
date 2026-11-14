@@ -95,6 +95,29 @@ export const ticketSchema = z
   })
   .strict();
 
+/** One step of an escalation, as the history shows it: which rule, at what level, who was told, the attempt. */
+export const escalationStepSchema = z
+  .object({
+    ruleId: z.string(),
+    trigger: z.string(),
+    /** Names one run of a rule on this ticket (a breach, a stretch of downtime): repeats share it. */
+    episode: z.number(),
+    level: z.string(),
+    attempt: z.number(),
+    /** The channel the rule asks for. */
+    channel: z.string(),
+    /** Set when that channel has no sender yet (WhatsApp) and the step went out on this one instead. */
+    channelFallback: z.string().optional(),
+    /** How many people the step told. */
+    toldCount: z.number(),
+    /** Nobody was on the ladder for the rule: the plant's heads and admins were told instead. */
+    noLadder: z.boolean().optional(),
+    /** Read from the notifications; `null` once they are purged (90 days) though the step told people. */
+    toldPersonIds: z.array(z.string()).nullable(),
+  })
+  .strict();
+export type EscalationStep = z.infer<typeof escalationStepSchema>;
+
 export const ticketEventSchema = z
   .object({
     seq: z.number(),
@@ -109,6 +132,8 @@ export const ticketEventSchema = z
     changes: z
       .array(z.object({ field: z.string(), from: z.unknown(), to: z.unknown() }))
       .nullable(),
+    /** Set on an `escalate` event, null on every other; optional so a client that builds a reply by hand may leave it out. */
+    escalation: escalationStepSchema.nullable().optional(),
   })
   .strict();
 export type TicketEvent = z.infer<typeof ticketEventSchema>;

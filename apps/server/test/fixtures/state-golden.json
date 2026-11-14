@@ -81,7 +81,9 @@
           "stoppedAt": null,
           "remainingMinutes": 110
         }
-      }
+      },
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000022",
@@ -164,7 +166,9 @@
           "stoppedAt": null,
           "remainingMinutes": 180
         }
-      }
+      },
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000024",
@@ -247,7 +251,9 @@
           "stoppedAt": null,
           "remainingMinutes": 360
         }
-      }
+      },
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000025",
@@ -306,7 +312,9 @@
       "parentId": null,
       "expectedBackAt": null,
       "waitingSpare": null,
-      "sla": null
+      "sla": null,
+      "handback": null,
+      "canAcknowledge": false
     },
     {
       "id": "30000000-0000-0000-0000-000000000023",
@@ -384,7 +392,9 @@
           "stoppedAt": null,
           "remainingMinutes": 420
         }
-      }
+      },
+      "handback": null,
+      "canAcknowledge": false
     }
   ],
   "needReport": [],

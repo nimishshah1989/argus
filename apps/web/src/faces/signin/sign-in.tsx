@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, getBrand, getConfig, setToken, signIn } from '../../api.js';
-import { rememberWho } from '../../data/index.js';
+import { describeFailure, rememberWho } from '../../data/index.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { BrandHeader } from '../../ui/brand-header.js';
 import { Page, Stack } from '../../ui/layout.js';
@@ -37,12 +37,16 @@ export function SignIn() {
       setToken(reply.token);
       rememberWho(reply.user);
       rememberUsername(username.trim());
-      // A temporary password comes first: /config answers must_change_password before anything else,
-      // and the data layer then opens /password itself.
-      if (await mustChangePasswordFirst()) return false;
-      navigate(reply.user.shared && !reply.user.actingPersonId ? '/who' : '/floor');
+      // Only a shared phone with nobody acting could show "Who is using this phone?" before a
+      // temporary password: ask /config first there (it answers must_change_password, and the data
+      // layer then opens /password). Everyone else goes straight on; their first call does the same.
+      const asksWho = reply.user.shared && !reply.user.actingPersonId;
+      if (asksWho && (await mustChangePasswordFirst())) return false;
+      navigate(asksWho ? '/who' : '/floor');
     } catch (caught) {
-      if (!(caught instanceof ApiError)) throw caught;
+      // The screen says what happened; the console keeps the real error for whoever has to find out why.
+      if (!(caught instanceof ApiError && caught.code === 'unauthenticated'))
+        console.error(`sign-in failed: ${describeFailure(caught)}`, caught);
       setError(t(signInError(caught)));
       return false;
     }

@@ -19,11 +19,14 @@ export {
   ticketPartsAfterWrite,
   withTicketParts,
   type ConfigPart,
+  type PartView,
+  type TicketActor,
   type TicketPart,
   type TicketListener,
   type TicketWrite,
 } from './reply-parts.js';
 export { fieldProblem, idOrNotFound, refuse, type Refusal } from './contract.js';
+export { actingRefusal } from './acting.js';
 export {
   isOnRoster,
   machineSwitchOffBlocker,
@@ -37,3 +40,4 @@ export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
 export { createPool } from './db.js';
 export { jobDb, type JobRole, type JobsHandle } from './jobs.js';
+export { rateLimitFromEnv } from './rate-limit-env.js';

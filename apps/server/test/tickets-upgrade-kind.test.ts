@@ -114,32 +114,42 @@ describe('only a ticket that is still being worked can be upgraded', () => {
 });
 
 describe('who is acting on an upgrade is resolved like every other command', () => {
-  it('a shared login names the person acting in the body, and it is recorded on the event', async () => {
+  it('a shared login acts as the person chosen on the phone, and that person is on the event', async () => {
     const id = await supportTicket('UP-shared');
     const acting = (
-      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-technician'")
+      await f.admin.query("SELECT person_id FROM login WHERE username = 'plant-a-operator'")
     ).rows[0].person_id as string;
-    const res = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {
-      personId: acting,
+    const chosen = await f.call('POST', '/api/v1/auth/acting', f.tokens['shared-operator']!, {
+      actingPersonId: acting,
     });
+    expect(chosen.statusCode, chosen.body).toBe(200);
+    const res = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {});
     expect(res.statusCode, res.body).toBe(200);
     const events = (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().events;
     const upgrade = events.find((e: { type: string }) => e.type === 'upgrade_kind');
     expect(upgrade.actingPersonId).toBe(acting);
   });
 
-  it('a shared login that names nobody, or somebody who is not in this plant, is refused', async () => {
-    const id = await supportTicket('UP-shared-none');
-    const none = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {});
-    expect([403, 404]).toContain(none.statusCode);
-    const stranger = await post(
-      f.tokens['shared-operator']!,
-      `/api/v1/tickets/${id}/upgrade-kind`,
-      {
-        personId: '99999999-9999-4999-8999-999999999999',
-      },
-    );
-    expect(stranger.statusCode).toBe(404);
+  it('a shared login cannot act as a person it only names, in this plant or not', async () => {
+    const id = await supportTicket('UP-shared-other');
+    const person = async (username: string) =>
+      (await f.admin.query('SELECT person_id FROM login WHERE username = $1', [username])).rows[0]
+        .person_id as string;
+    const chosen = await f.call('POST', '/api/v1/auth/acting', f.tokens['shared-operator']!, {
+      actingPersonId: await person('plant-a-operator'),
+    });
+    expect(chosen.statusCode, chosen.body).toBe(200);
+    for (const personId of [
+      await person('plant-a-technician'),
+      '99999999-9999-4999-8999-999999999999',
+    ]) {
+      const res = await post(f.tokens['shared-operator']!, `/api/v1/tickets/${id}/upgrade-kind`, {
+        personId,
+      });
+      expect(res.statusCode, res.body).toBe(403);
+    }
+    const events = (await f.call('GET', `/api/v1/tickets/${id}`, f.tokens.head!)).json().events;
+    expect(events.some((e: { type: string }) => e.type === 'upgrade_kind')).toBe(false);
   });
 
   it('a signed-in person acts as themselves: no body person, or their own, works; another person is 403', async () => {
