@@ -7,6 +7,8 @@ export const EXPECTED_DIFFS: Record<string, string> = {
   // it was cancelled. His app counts it. Everything else of this ticket, hands-on and every person's minutes included, equals his.
   'BD-0077 handoverWaitMin: his 263, ours 11': 'cancelled time not counted (Nimish, 14 Nov)',
   'BD-0077 downtimeMin: his 366, ours 114': 'cancelled time not counted (Nimish, 14 Nov)',
+  'BD-0077 repairMin: his 366, ours 114':
+    'cancelled time not counted in repair either (Nimish, 14 Nov)',
   // Closed 29 Oct, before his app wrote `segment` rows: his hands-on is 0 and the one person's minutes are 0 although the
   // ticket ran 115 minutes from start to close. Our figure follows the work segment, 115. He stored 0 and the importer keeps it.
   'BD-0023 activeMin: his 0, ours 115': 'closed before his app wrote segment rows (stored 0)',

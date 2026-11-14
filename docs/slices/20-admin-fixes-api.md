@@ -28,4 +28,4 @@ correction has to move a segment, that is a history-protection change and gets i
 ## Replay
 
 BD-0077 (cancelled, restored, picked up, paused, resumed, closed) is now in the worker.js replay; restore goes through the admin
-route. It equals his numbers except the two figures Nimish's ruling changes (cancelled time not counted).
+route. It equals his numbers except the three figures Nimish's ruling changes (cancelled time not counted): handover wait, downtime and repair.
