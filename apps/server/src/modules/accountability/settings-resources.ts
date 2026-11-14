@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { canSettingsSla } from '@uptimo/domain';
 import {
+  calendarDay,
   rosterCreateSchema,
   rosterPatchSchema,
   ruleCreateSchema,
@@ -8,7 +9,8 @@ import {
 } from '@uptimo/shared';
 import { lockActivePerson } from '../identity/index.js';
 import { plantToday, shiftIsOn, type Problem, type Resource } from '../plant/index.js';
-import { ensureEscalationDefaults } from './ladder.js';
+import { ensureEscalationDefaults, ROSTER_KEEP_DAYS, shiftDay } from './ladder.js';
+import { rosterStore, ruleStore } from './repo/ladder.js';
 
 type Reply = Record<string, unknown>;
 type Row = Record<string, unknown>;
@@ -20,11 +22,35 @@ const isoDay = (value: unknown): string =>
     ? `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`
     : String(value);
 
-/** `day` moved by `days` calendar days. */
-function shiftDay(day: string, days: number): string {
-  const moved = new Date(`${day}T00:00:00Z`);
-  moved.setUTCDate(moved.getUTCDate() + days);
-  return moved.toISOString().slice(0, 10);
+const DEFAULT_BACK_DAYS = 7;
+const DEFAULT_AHEAD_DAYS = 35;
+const MAX_SPAN_DAYS = 120;
+const DAY_MS = 86_400_000;
+
+/** `?from&to` (plant dates), by default a week back to five weeks ahead; at most 120 days in one call. */
+async function rosterWindow(
+  tx: PoolClient,
+  tenantId: string,
+  query: Record<string, unknown>,
+): Promise<Problem | { from: string; to: string }> {
+  const today = await plantToday(tx, tenantId);
+  const from = query.from ?? shiftDay(today, -DEFAULT_BACK_DAYS);
+  const to = query.to ?? shiftDay(today, DEFAULT_AHEAD_DAYS);
+  for (const [field, value] of [
+    ['from', from],
+    ['to', to],
+  ] as const) {
+    if (!calendarDay.safeParse(value).success) {
+      return { field, message: 'Use a date like 2026-11-14' };
+    }
+  }
+  const [first, last] = [from as string, to as string];
+  if (last < first) return { field: 'from', message: 'From must not be after to' };
+  const span = (Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / DAY_MS;
+  if (span > MAX_SPAN_DAYS) {
+    return { field: 'to', message: `Ask for at most ${MAX_SPAN_DAYS} days at a time` };
+  }
+  return { from: first, to: last };
 }
 
 /**
@@ -44,7 +70,7 @@ async function checkRosterLine(
   if (!(await lockActivePerson(tx, tenantId, line.personId as string)))
     return { field: 'personId', message: 'Unknown person' };
   const today = await plantToday(tx, tenantId);
-  if ((line.date as string) < shiftDay(today, -365))
+  if ((line.date as string) < shiftDay(today, -ROSTER_KEEP_DAYS))
     return { field: 'date', message: 'Roster lines older than a year are not kept' };
   if ((line.date as string) > shiftDay(today, 366))
     return { field: 'date', message: 'That date is more than a year ahead' };
@@ -68,7 +94,8 @@ export const roster: Resource = {
     level: row.level,
     active: true,
   }),
-  removable: true,
+  store: rosterStore,
+  listFilter: rosterWindow,
   uniqueField: 'personId',
   taken: 'That person is already on this shift that day',
   can: canSettingsSla,
@@ -160,7 +187,8 @@ export const rules: Resource = {
   taken: 'The ladder already has that rule',
   can: canSettingsSla,
   check: checkRule,
-  beforeList: (tx, who) => ensureEscalationDefaults(tx as PoolClient, who),
+  store: ruleStore,
+  prepare: ensureEscalationDefaults,
 };
 
 export const LADDER_RESOURCES: readonly Resource[] = [roster, rules];

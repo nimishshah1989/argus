@@ -54,7 +54,7 @@ const JOBS = {
   },
   'roster.purge': {
     cron: '50 2 * * *',
-    run: async (c, t, now) => count(await purgeRoster(c, t, before(now, 365))),
+    run: async (c, t, now) => count(await purgeRoster(c, t, now)),
   },
   'figures.drift': {
     cron: '0 3 * * *',

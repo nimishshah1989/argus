@@ -19,7 +19,7 @@ export {
 export { actorOf, forbidden } from './actor.js';
 export { registerResource } from './settings-routes.js';
 export { plantToday, type Problem, type Resource } from './settings-resources.js';
-export { shiftIsOn } from './repo/plant-settings.js';
+export { shiftIsOn, type Row, type Store } from './repo/plant-settings.js';
 export { passwordChangeEnforced } from './service.js';
 
 export const plantModule = defineModule({ name: 'plant', register: registerPlantRoutes });

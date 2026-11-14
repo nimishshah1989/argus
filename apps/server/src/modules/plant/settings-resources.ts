@@ -23,7 +23,7 @@ import {
   segmentIsOn,
   type Row,
   type Scope,
-  type SettingsTable,
+  type Store,
 } from './repo/plant-settings.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -34,7 +34,10 @@ export type Problem = { field: string; message: string; conflict?: boolean };
 /** One settings screen's resource: what the generic list, create and edit routes need to know. */
 export interface Resource {
   path: string;
-  table: SettingsTable;
+  /** The audit entity; for a resource without its own `store` it is also the table (one of the plant's own). */
+  table: string;
+  /** Set by a resource of another module, which reads and writes its own tables itself. */
+  store?: Store;
   /** Set when one table holds several lists (`list_item`): only that list's rows are visible and written. */
   scope?: Scope;
   /** Prefix of the audit action: `machine.create`, `group.update`. */
@@ -54,8 +57,6 @@ export interface Resource {
   taken?: string;
   /** Who may use it (DOMAIN §3); head and admin (the lists cell) unless the resource has its own cell. */
   can?: (actor: ActorContext) => boolean;
-  /** `active: false` removes the row (a roster line has no switch of its own); the reply then says `active: false`. */
-  removable?: boolean;
   /** What `active: true/false` changes for this resource; none when it has no switch. */
   switchTo?: (active: boolean, before: Reply) => Reply;
   /** The values as they would be after the write; a message when they break a rule of the plant. */
@@ -68,8 +69,14 @@ export interface Resource {
   /** Columns worked out from the values, never typed by a person. */
   derive?: (merged: Reply) => Record<string, unknown>;
   actionFor?: (before: Reply, after: Reply) => string;
-  /** Runs before the list is read, inside its transaction (the ladder seeds its starting rules here). */
-  beforeList?: (tx: Db, who: { tenantId: string; loginId: string }) => Promise<void>;
+  /** Runs before the list is read and before a row is created, in that transaction (the ladder seeds here). */
+  prepare?: (tx: PoolClient, who: { tenantId: string; loginId: string }) => Promise<void>;
+  /** What a list asks for in its query string (`?from&to`); a problem is a 422. The store's `all` receives the filter. */
+  listFilter?: (
+    tx: PoolClient,
+    tenantId: string,
+    query: Record<string, unknown>,
+  ) => Promise<Problem | Record<string, unknown>>;
   /** Runs inside the edit's transaction once the row is written. */
   afterEdit?: (tx: Db, edit: Edit) => Promise<void>;
 }
@@ -128,9 +135,9 @@ async function checkLinks(tx: Db, m: Reply, patch?: Reply): Promise<Problem | nu
 }
 
 /** Today in the plant's own time zone, as a date the database and the screens both read. */
-export async function plantToday(tx: Db, tenantId: string): Promise<string> {
+export async function plantToday(tx: Db, tenantId: string, at: Date = new Date()): Promise<string> {
   const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
-  return new Date().toLocaleDateString('en-CA', { timeZone });
+  return at.toLocaleDateString('en-CA', { timeZone });
 }
 
 /** A cell change is dated today or earlier, and never before the machine's last move (the history stays in order). */

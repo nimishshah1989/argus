@@ -3,13 +3,17 @@ import { hash } from '@node-rs/argon2';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ESCALATION_DEFAULTS } from '@uptimo/domain';
+import { withTenant } from '@uptimo/db';
 import { buildApp } from '../src/app.js';
+import { ensureEscalationDefaults } from '../src/modules/accountability/index.js';
 import type { AppConfig } from '../src/kernel/index.js';
 import { runRetentionJob } from '../src/retention.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const A = '82000000-0000-0000-0000-000000000001';
 const B = '83000000-0000-0000-0000-000000000001';
+const C = '85000000-0000-0000-0000-000000000001';
+const D = '86000000-0000-0000-0000-000000000001';
 const PASSWORD = 'correct-horse-battery';
 const ROLES = ['head', 'admin', 'supervisor', 'technician', 'plant_head', 'operator', 'board'];
 
@@ -21,13 +25,17 @@ let key = 0;
 let today = '';
 const tokens: Record<string, string> = {};
 const tokenB: Record<string, string> = {};
+const tokenC: Record<string, string> = {};
+const tokenD: Record<string, string> = {};
 const ids = {
   shiftA: randomUUID(),
   shiftAOff: randomUUID(),
   shiftB: randomUUID(),
+  shiftC: randomUUID(),
   personA: randomUUID(),
   personA2: randomUUID(),
   personB: randomUUID(),
+  personC: randomUUID(),
 };
 
 type Method = 'GET' | 'POST' | 'PUT';
@@ -53,6 +61,11 @@ const a = (method: Method, url: string, who = 'head', body?: object) =>
   call('rla', { method, url, token: tokens[who] ?? '', body });
 const b = (method: Method, url: string, who = 'head', body?: object) =>
   call('rlb', { method, url, token: tokenB[who] ?? '', body });
+const c = (method: Method, url: string, who = 'head', body?: object) =>
+  call('rlc', { method, url, token: tokenC[who] ?? '', body });
+const d = (method: Method, url: string, who = 'head', body?: object) =>
+  call('rld', { method, url, token: tokenD[who] ?? '', body });
+
 const dayOffset = async (days: number): Promise<string> =>
   (
     await admin.query("SELECT ((now() AT TIME ZONE 'Asia/Kolkata')::date + $1::int)::text AS d", [
@@ -122,11 +135,15 @@ beforeAll(async () => {
   app = await buildApp(config);
   await seedTenant(A, 'rla', hashed, tokens);
   await seedTenant(B, 'rlb', hashed, tokenB);
+  await seedTenant(C, 'rlc', hashed, tokenC);
+  await seedTenant(D, 'rld', hashed, tokenD);
+  await admin.query("UPDATE tenant SET time_zone = 'America/New_York' WHERE id = $1", [C]);
   today = await dayOffset(0);
   for (const [tenant, shift, off] of [
     [A, ids.shiftA, false],
     [A, ids.shiftAOff, true],
     [B, ids.shiftB, false],
+    [C, ids.shiftC, false],
   ] as const) {
     await admin.query(
       `INSERT INTO shift (id, tenant_id, code, name, starts_at, ends_at, crosses_midnight, active)
@@ -138,6 +155,7 @@ beforeAll(async () => {
     [ids.personA, A],
     [ids.personA2, A],
     [ids.personB, B],
+    [ids.personC, C],
   ] as const) {
     await admin.query(
       "INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, 'Duty', 'maintenance')",
@@ -294,6 +312,56 @@ describe('the duty roster', () => {
   });
 });
 
+describe('the roster list window', () => {
+  const idsOf = (res: { json: () => { items: { id: string }[] } }) =>
+    res.json().items.map((i) => i.id);
+
+  it('lists today minus 7 days to today plus 35 days by default, and takes ?from and ?to', async () => {
+    const at: Record<string, string> = {};
+    for (const offset of [-8, -7, 35, 36]) {
+      const row = await admin.query(
+        `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
+         VALUES ($1, $2, $3, $4, 'L1') RETURNING id`,
+        [A, await dayOffset(offset), ids.shiftA, ids.personA2],
+      );
+      at[offset] = row.rows[0].id;
+    }
+    const byDefault = idsOf(await a('GET', '/api/v1/roster'));
+    expect(byDefault).toContain(at[-7]);
+    expect(byDefault).toContain(at[35]);
+    expect(byDefault).not.toContain(at[-8]);
+    expect(byDefault).not.toContain(at[36]);
+
+    const wide = await a(
+      'GET',
+      `/api/v1/roster?from=${await dayOffset(-8)}&to=${await dayOffset(36)}`,
+    );
+    expect(wide.json().nextCursor).toBeNull();
+    for (const offset of [-8, -7, 35, 36]) expect(idsOf(wide)).toContain(at[offset]);
+    const narrow = idsOf(
+      await a('GET', `/api/v1/roster?from=${await dayOffset(35)}&to=${await dayOffset(35)}`),
+    );
+    expect(narrow).toEqual([at[35]]);
+  });
+
+  it('allows a span of 120 days and refuses a longer one, a backwards one and a bad date with a 422', async () => {
+    const from = await dayOffset(-8);
+    const ok = await a('GET', `/api/v1/roster?from=${from}&to=${await dayOffset(112)}`);
+    expect(ok.statusCode, ok.body).toBe(200);
+    const tooLong = await a('GET', `/api/v1/roster?from=${from}&to=${await dayOffset(113)}`);
+    expect(tooLong.statusCode).toBe(422);
+    expect(tooLong.json().error.field).toBe('to');
+    const backwards = await a('GET', `/api/v1/roster?from=${await dayOffset(3)}&to=${from}`);
+    expect(backwards.statusCode).toBe(422);
+    expect(backwards.json().error.field).toBe('from');
+    for (const query of ['from=tomorrow', 'to=2026-02-30']) {
+      const bad = await a('GET', `/api/v1/roster?${query}`);
+      expect(bad.statusCode, query).toBe(422);
+      expect(bad.json().error.field).toBe(query.split('=')[0]);
+    }
+  });
+});
+
 describe('the escalation ladder', () => {
   const rows = async (tenant: string) =>
     (await admin.query('SELECT * FROM escalation_rule WHERE tenant_id = $1', [tenant])).rows;
@@ -431,6 +499,49 @@ describe('the escalation ladder', () => {
     }
   });
 
+  it('writes one seed audit row when a second first read arrives while the first is still seeding', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let seeded: () => void = () => undefined;
+    const reached = new Promise<void>((resolve) => {
+      seeded = resolve;
+    });
+    const first = withTenant(db.app, C, async (client) => {
+      await ensureEscalationDefaults(client, { tenantId: C, loginId: null });
+      seeded();
+      await gate;
+    });
+    await reached;
+    const second = c('GET', '/api/v1/escalation-rules');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    release();
+    await first;
+    const res = await second;
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().items).toHaveLength(ESCALATION_DEFAULTS.length);
+    expect(await rows(C)).toHaveLength(ESCALATION_DEFAULTS.length);
+    expect(await auditActions(C, 'escalation_rule')).toEqual(['escalation_rule.seed']);
+  });
+
+  it('seeds the defaults first when the very first thing a plant does is add a rule', async () => {
+    const made = await d('POST', '/api/v1/escalation-rules', 'head', {
+      trigger: 'restore_missed',
+      severityMin: 'S4',
+      level: 'L2',
+      notifyRole: 'supervisor',
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    const list = (await d('GET', '/api/v1/escalation-rules')).json().items;
+    expect(list).toHaveLength(ESCALATION_DEFAULTS.length + 1);
+    // one transaction, so both rows carry the same time: compare as a set
+    expect((await auditActions(D, 'escalation_rule')).sort()).toEqual([
+      'escalation_rule.create',
+      'escalation_rule.seed',
+    ]);
+  });
+
   it('gives each plant its own ladder: plant A edits never reach plant B', async () => {
     const seeded = (await b('GET', '/api/v1/escalation-rules')).json().items;
     expect(seeded).toHaveLength(ESCALATION_DEFAULTS.length);
@@ -492,5 +603,30 @@ describe('roster.purge keeps a roster line one year', () => {
     const all = await runRetentionJob(db.app, 'roster.purge', { now: NOW, allowFakeClock: true });
     expect(all.affected).toBe(1);
     expect(await left(B)).toEqual(['2026-06-15', '2026-07-15', '2027-06-20']);
+  });
+
+  it('cuts off by the plant date, the same rule the form uses (a plant west of UTC keeps its 365th day)', async () => {
+    // 03:00 UTC on 15 June is 23:00 on 14 June in New York: the plant's today is 14 June, so 14 June last year is
+    // the oldest line the form accepts and must survive; 13 June is gone.
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [C]);
+    for (const date of ['2026-06-13', '2026-06-14', '2026-06-15']) {
+      await admin.query(
+        "INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level) VALUES ($1, $2, $3, $4, 'L1')",
+        [C, date, ids.shiftC, ids.personC],
+      );
+    }
+    const result = await runRetentionJob(db.app, 'roster.purge', {
+      now: NOW,
+      tenantId: C,
+      allowFakeClock: true,
+    });
+    expect(result.affected).toBe(1);
+    const left = (
+      await admin.query(
+        'SELECT date::text AS d FROM roster_entry WHERE tenant_id = $1 ORDER BY date',
+        [C],
+      )
+    ).rows.map((r) => r.d);
+    expect(left).toEqual(['2026-06-14', '2026-06-15']);
   });
 });

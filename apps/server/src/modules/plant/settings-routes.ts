@@ -13,13 +13,11 @@ import { requireAuth } from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import { actorOf, forbidden } from './actor.js';
 import {
-  deleteRow,
   exists,
-  insertRow,
-  selectAll,
   selectMoves,
-  selectOne,
-  updateRow,
+  tableStore,
+  type SettingsTable,
+  type Store,
   type Row,
 } from './repo/plant-settings.js';
 import { LIST_RESOURCES } from './settings-lists.js';
@@ -28,6 +26,10 @@ import { RESOURCES, type Problem, type Resource } from './settings-resources.js'
 type Ctx = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Reply = Record<string, unknown>;
 type Outcome = Refusal;
+
+/** The resource's own store, or the generic one over one of the plant's own tables. */
+const storeOf = (resource: Resource): Store =>
+  resource.store ?? tableStore(resource.table as SettingsTable, resource.order, resource.scope);
 
 const invalid = ({ field, message, conflict }: Problem) =>
   conflict ? refuse(409, 'conflict', message, field) : refuse(422, 'validation', message, field);
@@ -67,6 +69,7 @@ function auditEntry(ctx: Ctx, resource: Resource, action: string, entityId: stri
 
 async function create(tx: PoolClient, ctx: Ctx, resource: Resource, body: Reply): Promise<Outcome> {
   const fields = tidy(body);
+  await resource.prepare?.(tx, ctx);
   const problem = await resource.check?.(tx, fields, undefined, ctx.tenantId);
   if (problem) return invalid(problem);
   const { scope } = resource;
@@ -75,7 +78,7 @@ async function create(tx: PoolClient, ctx: Ctx, resource: Resource, body: Reply)
     ...(scope ? { [scope.column]: scope.value } : {}),
     ...resource.derive?.(fields),
   };
-  const row = await insertRow(tx, resource.table, ctx.tenantId, values);
+  const row = await storeOf(resource).insert(tx, ctx.tenantId, values);
   const reply = resource.reply(row);
   await audit.record(tx, {
     ...auditEntry(ctx, resource, `${resource.kind}.create`, reply.id as string),
@@ -104,7 +107,7 @@ function resolveFields(resource: Resource, before: Reply, patch: Reply): Reply |
   return { ...fields, ...resource.switchTo(active as boolean, before) };
 }
 
-/** A removable resource's `active: false`: the row goes, the audit keeps what it held. */
+/** A store with `remove` takes `active: false` as "take it off": the row goes, the audit keeps what it held. */
 async function remove(
   tx: PoolClient,
   ctx: Ctx,
@@ -112,7 +115,7 @@ async function remove(
   before: Reply,
 ): Promise<Outcome> {
   const id = before.id as string;
-  await deleteRow(tx, resource.table, id);
+  await storeOf(resource).remove?.(tx, id);
   await audit.record(tx, {
     ...auditEntry(ctx, resource, `${resource.kind}.remove`, id),
     before,
@@ -130,10 +133,11 @@ async function edit(
   resource: Resource,
   target: { id: string; patch: Reply },
 ): Promise<Outcome> {
-  const current = await selectOne(tx, resource.table, target.id, resource.scope);
+  const current = await storeOf(resource).one(tx, target.id);
   if (!current) return notFound(resource.kind);
   const before = resource.reply(current);
-  if (resource.removable && target.patch.active === false) return remove(tx, ctx, resource, before);
+  if (resource.store?.remove && target.patch.active === false)
+    return remove(tx, ctx, resource, before);
   return update(tx, ctx, resource, { ...target, before });
 }
 
@@ -155,7 +159,7 @@ async function update(
   const problem = await resource.check?.(tx, merged, proposed, ctx.tenantId);
   if (problem) return invalid(problem);
   const values = { ...columnsOf(resource, pick(fields, touched)), ...resource.derive?.(merged) };
-  const after = resource.reply(await updateRow(tx, resource.table, target.id, values));
+  const after = resource.reply(await storeOf(resource).update(tx, target.id, values));
   const changed = changedKeys(before, after);
   if (changed.length === 0) return { status: 200, body: after };
   await resource.afterEdit?.(tx, { tenantId: ctx.tenantId, before, after, patch: fields });
@@ -210,11 +214,15 @@ export function registerResource(app: FastifyInstance, pool: Pool, resource: Res
   app.get(base, async (request, reply) => {
     const ctx = await gate(pool, request, reply, resource.can);
     if (!ctx) return;
-    const rows = await withTenant(pool, ctx.tenantId, async (tx) => {
-      await resource.beforeList?.(tx, ctx);
-      return selectAll(tx, resource.table, resource.order, resource.scope);
+    const outcome = await withTenant(pool, ctx.tenantId, async (tx): Promise<Outcome> => {
+      await resource.prepare?.(tx, ctx);
+      const query = (request.query ?? {}) as Record<string, unknown>;
+      const filter = (await resource.listFilter?.(tx, ctx.tenantId, query)) ?? {};
+      if (isProblem(filter)) return invalid(filter);
+      const rows = await storeOf(resource).all(tx, filter);
+      return { status: 200, body: { items: rows.map(resource.reply), nextCursor: null } };
     });
-    reply.send({ items: rows.map(resource.reply), nextCursor: null });
+    reply.code(outcome.status).send(outcome.body);
   });
   app.post(base, async (request, reply) => {
     const ctx = await gate(pool, request, reply, resource.can);

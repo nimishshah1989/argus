@@ -1,7 +1,13 @@
 import type { PoolClient } from 'pg';
 import type { EscalationRuleDefault } from '@uptimo/domain';
+import type { Store } from '../../plant/index.js';
 
 type Db = Pick<PoolClient, 'query'>;
+
+/** Two first readers of one plant's ladder take turns: the second then finds the rules the first wrote. */
+export async function lockLadderSeed(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`escalation-seed:${tenantId}`]);
+}
 
 /** Whether the plant has any rule at all (a switched-off one still counts: the head's own choice stands). */
 export async function hasEscalationRules(tx: Db): Promise<boolean> {
@@ -41,3 +47,53 @@ export async function deleteRosterBefore(tx: Db, tenantId: string, day: string):
   );
   return rowCount ?? 0;
 }
+
+type OwnTable = 'roster_entry' | 'escalation_rule';
+
+/** How the generic settings routes read and write one of this module's tables: the statements live here. */
+function ownStore(table: OwnTable, all: Store['all']): Store {
+  return {
+    all,
+    one: async (tx, id) =>
+      (await tx.query(`SELECT * FROM ${table} WHERE id = $1 FOR UPDATE`, [id])).rows[0],
+    insert: async (tx, tenantId, values) => {
+      const columns = ['tenant_id', ...Object.keys(values)];
+      const marks = columns.map((_, i) => `$${i + 1}`).join(', ');
+      const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${marks}) RETURNING *`;
+      return (await tx.query(sql, [tenantId, ...Object.values(values)])).rows[0];
+    },
+    update: async (tx, id, values) => {
+      const sets = Object.keys(values).map((column, i) => `${column} = $${i + 2}`);
+      const sql = `UPDATE ${table} SET ${[...sets, 'updated_at = now()'].join(', ')} WHERE id = $1 RETURNING *`;
+      return (await tx.query(sql, [id, ...Object.values(values)])).rows[0];
+    },
+  };
+}
+
+/** The roster lines dated from `filter.from` to `filter.to` (plant dates, both ends included), newest first. */
+export const rosterStore: Store = {
+  ...ownStore(
+    'roster_entry',
+    async (tx, filter = {}) =>
+      (
+        await tx.query(
+          `SELECT * FROM roster_entry WHERE date BETWEEN $1::date AND $2::date
+          ORDER BY date DESC, shift_id, level, person_id`,
+          [filter.from, filter.to],
+        )
+      ).rows,
+  ),
+  remove: async (tx, id) => {
+    await tx.query('DELETE FROM roster_entry WHERE id = $1', [id]);
+  },
+};
+
+export const ruleStore: Store = ownStore(
+  'escalation_rule',
+  async (tx) =>
+    (
+      await tx.query(
+        'SELECT * FROM escalation_rule ORDER BY trigger, severity_min, level, notify_role NULLS LAST, id',
+      )
+    ).rows,
+);
