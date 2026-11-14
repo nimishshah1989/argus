@@ -54,7 +54,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   ops: [],
   identity: ['ops'],
   plant: ['identity', 'ops'],
-  people: ['identity', 'notifications', 'plant', 'ops'],
+  people: ['identity', 'notifications', 'plant', 'tickets', 'ops'],
   files: ['ops'],
   notifications: ['identity', 'plant', 'ops'],
   tickets: ['identity', 'plant', 'files', 'ops'],
