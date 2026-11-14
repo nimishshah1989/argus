@@ -148,6 +148,7 @@ Base `/api/v1`, JSON. **Tenant from the host name** (`cosmos.<domain>`), resolve
 | `GET /tickets/{id}` |  | `{ticket, events[], people[], tasks[], intervals}` | `/api/ticket` |
 | `GET /tickets` | filters: status, kind, machine, person, from, to, page | list for Mine, Team, closed 30 days | `/api/mywork` |
 | `POST /tickets` | `{kind, machineId?, location?, workType?, urgent?, problem, problemLang?, reportedByPersonId?, reportedByRole?, startNow?, startByPersonId?}` | `{ticket}` or `409 {existing}` | `/api/down` |
+| `POST /tickets/past` | `{machineId, reportedAt, workStartedAt?, runningAt, problem, reportedByPersonId?, closedByPersonId?, report?}`; `Idempotency-Key` required; technician, supervisor, head, admin; order `reportedAt <= workStartedAt <= runningAt`, none in the future; refused with `409` (field `reportedAt`) when it overlaps another breakdown of the machine (open or closed, live or imported) | `{ticket}`: closed, `raised_channel=backfill`, events `down` and `close`; downtime, response and repair taken from the times (what the form states wins) and marked as set by hand |
 | `POST /tickets/{id}/start` | `{personId, at}` | `{ticket}` | `/api/start` |
 | `POST /tickets/{id}/join` · `/leave` | `{personId, role}` · `{personId, reason}` | `{ticket}` | `/api/join`, `/api/leave` |
 | `POST /tickets/{id}/pause` · `/resume` | `{personId, reasonCode, note?, expectedBackOn?, assignToPersonId?}` · `{personId, note?}` | `{ticket}` | `/api/pause`, `/api/resume` |

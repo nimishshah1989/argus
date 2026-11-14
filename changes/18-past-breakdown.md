@@ -1,1 +1,0 @@
-- Supervisors, technicians, heads and admins can now record a breakdown that already happened, with when it stopped, when work began and when the machine ran again. It becomes a closed ticket with its report, so old reports and downtime figures are complete. A period that overlaps another breakdown of the same machine is refused.

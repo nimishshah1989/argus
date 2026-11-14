@@ -222,6 +222,16 @@ describe('what is recorded', () => {
     expect((await past(tech(), { ...payload, report: { shiftCode: '1' } })).statusCode).toBe(201);
   });
 
+  it('a refusal does not use up a reference number', async () => {
+    const first = await past(tech(), span(freshMachine(), '04:00', '05:00'));
+    expect(first.statusCode).toBe(201);
+    const n = Number(String(first.json().ticket.ref).split('-')[1]);
+    // 00:30 UTC is 06:00 at the plant, between the two shifts: refused after the numbers are checked.
+    expect((await past(tech(), span(freshMachine(), '00:30', '01:30'))).statusCode).toBe(422);
+    const next = await past(tech(), span(freshMachine(), '04:00', '05:00'));
+    expect(next.json().ticket.ref).toBe(`BD-${String(n + 1).padStart(4, '0')}`);
+  });
+
   it('records one audit line', async () => {
     const before = await countAuditRows(admin, TENANT);
     expect((await past(tech(), span(freshMachine(), '04:00', '05:00'))).statusCode).toBe(201);

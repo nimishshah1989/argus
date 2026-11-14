@@ -82,17 +82,24 @@ const NO_REPORT_FIELDS = {
   supportedByPersonIds: [],
 };
 
+/** The shift the stop fell in (or the one the form names), asked before anything is written. */
+async function shiftFor(client: PoolClient, tx: PastTx): Promise<string | Outcome> {
+  const { body } = tx;
+  if (body.report?.shiftCode) return body.report.shiftCode;
+  const zone = (await tenantInfo(client, tx.tenantId)).time_zone;
+  const found = await shiftCodeAt(client, zone, body.reportedAt);
+  return found ?? refuse(422, 'validation', 'No shift covers that time', 'report.shiftCode');
+}
+
 /** The report as the plant files it: the form's fields, then the shift and date the stop fell in. */
 async function reportFor(
   client: PoolClient,
   tx: PastTx,
-  figures: ImportedTicketRow['figures'],
-): Promise<Report | Outcome> {
+  filed: { figures: ImportedTicketRow['figures']; shiftCode: string },
+): Promise<Report> {
   const { body } = tx;
+  const { figures, shiftCode } = filed;
   const form = body.report ?? {};
-  const zone = (await tenantInfo(client, tx.tenantId)).time_zone;
-  const shiftCode = form.shiftCode ?? (await shiftCodeAt(client, zone, body.reportedAt));
-  if (!shiftCode) return refuse(422, 'validation', 'No shift covers that time', 'report.shiftCode');
   return {
     ...NO_REPORT_FIELDS,
     ...form,
@@ -215,12 +222,13 @@ function handEnteredMinutes(body: shared.PastBreakdownBody): Record<string, numb
 async function buildPast(
   client: PoolClient,
   tx: PastTx,
-  machine: MachineRow,
-): Promise<ImportedTicketRow | Outcome> {
+  filed: { machine: MachineRow; shiftCode: string },
+): Promise<ImportedTicketRow> {
+  const { machine, shiftCode } = filed;
   const { body } = tx;
   const past = recordPastBreakdown({
     id: randomUUID(),
-    ref: await allocateRef(client, tx.tenantId),
+    ref: await allocateRef(client, tx.tenantId, 'stopped'),
     kind: 'stopped',
     machineId: machine.id,
     machineCriticality: machine.criticality,
@@ -235,8 +243,7 @@ async function buildPast(
   const figures = tm.recomputeFigures(past.ticket, past.events, [], { overrides, now: tx.now });
   // No work start, no repair time: the stored figure stays empty rather than a made-up 0.
   const kept = { ...figures, repairMin: overrides.repairMin ?? null };
-  const report = await reportFor(client, tx, kept);
-  if ('body' in report) return report;
+  const report = await reportFor(client, tx, { figures: kept, shiftCode });
   const { code, category, cell, criticality } = machine;
   return pastRow(past, {
     machine: { id: machine.id, snapshot: { code, category, cell, criticality }, criticality },
@@ -263,8 +270,10 @@ async function executePast(
   const machine = (await machinesByIds(client, tenantId, [body.machineId], 'share'))[0];
   const refusal = await refusalFor(client, tx, machine);
   if (refusal) return refusal;
-  const row = await buildPast(client, tx, machine as MachineRow);
-  if ('body' in row) return row;
+  // Every refusal comes before the first write, so a refused request never uses up a reference number.
+  const shiftCode = await shiftFor(client, tx);
+  if (typeof shiftCode !== 'string') return shiftCode;
+  const row = await buildPast(client, tx, { machine: machine as MachineRow, shiftCode });
   const [ticketId] = (await importTickets(client, tenantId, [row])) as [string];
   await audit.record(client, {
     tenantId,
