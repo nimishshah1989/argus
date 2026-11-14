@@ -4,6 +4,7 @@ import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as repo from './repo/tasks.js';
 import { tenantInfo } from '../identity/index.js';
+import { activeListItems } from '../plant/index.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix } from './severity.js';
 
 type Outcome = tm.Outcome;
@@ -13,6 +14,13 @@ const refuse = (message: string, field: string): Outcome => ({
   status: 422,
   body: apiError('validation', message, field),
 });
+
+/** The plant's own `task_reason` list: a task may only be left for a reason the plant still offers. */
+async function offersReason(client: PoolClient, tenantId: string, code: string): Promise<boolean> {
+  return (await activeListItems(client, tenantId, ['task_reason'])).some(
+    (item) => item.code === code,
+  );
+}
 
 /** Whether this ticket is itself a follow-up task: a work request with a parent. */
 const isTask = (row: Row): boolean => row.parent_id != null;
@@ -35,7 +43,7 @@ export async function checkTaskInput(
       'task',
     );
   }
-  if (task && !(await repo.taskReasonIsActive(client, tx.tenantId, task.reasonCode))) {
+  if (task && !(await offersReason(client, tx.tenantId, task.reasonCode))) {
     return refuse('Unknown task reason', 'task.reasonCode');
   }
   if (tx.body.taskDownMin !== undefined && !isTask(loaded.row)) {

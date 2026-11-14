@@ -3,15 +3,6 @@ import type { PoolClient } from 'pg';
 type Db = Pick<PoolClient, 'query'>;
 type Row = Record<string, unknown>;
 
-/** The plant's own `task_reason` list: a task may only be left for a reason the plant offers. */
-export async function taskReasonIsActive(tx: Db, tenantId: string, code: string): Promise<boolean> {
-  const found = await tx.query(
-    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'task_reason' AND code = $2 AND active",
-    [tenantId, code],
-  );
-  return found.rows.length > 0;
-}
-
 /** Today's date in the plant's time zone, `YYYY-MM-DD`: a task is overdue once its expected date is before it. */
 export async function plantToday(tx: Db, timeZone: string): Promise<string> {
   const row = (
