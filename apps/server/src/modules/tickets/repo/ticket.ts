@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { SlaInputError } from '@uptimo/domain';
-import { activePerson } from '../../identity/index.js';
+import { lockActivePerson } from '../../identity/index.js';
 import { listItem } from '../../plant/index.js';
 import {
   nextRef,
@@ -311,7 +311,7 @@ export async function personExists(
   tenantId: string,
   personId: string,
 ): Promise<boolean> {
-  return Boolean(await activePerson(client, tenantId, personId));
+  return Boolean(await lockActivePerson(client, tenantId, personId));
 }
 
 export async function lockRefCounter(

@@ -79,22 +79,56 @@ export async function findLogin(pool: Pool, tenantId: string, username: string) 
   ).rows[0];
 }
 
+/**
+ * Starts a sign-in only while the login is on, its password is the one just checked and the acting person
+ * is on. The rows are locked until commit, so a switch-off or a reset that comes next waits for this insert
+ * and then ends the sign-in it made. Returns false when nothing was inserted.
+ */
 export async function insertSession(
   pool: Pool,
   args: {
     tenantId: string;
     loginId: string;
-    device?: string;
-    actingPersonId: string;
+    passwordHash: string;
+    /** null on a shared phone that has not yet been told who is using it. */
+    actingPersonId: string | null;
     tokenHash: string;
+    device?: string;
   },
-): Promise<void> {
-  await withTenant(pool, args.tenantId, (client) =>
-    client.query(
-      "INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at, acting_person_id) VALUES ($1, $2, $3, $4, now() + interval '30 days', $5)",
-      [args.tenantId, args.loginId, args.tokenHash, args.device ?? null, args.actingPersonId],
-    ),
-  );
+): Promise<boolean> {
+  const result = await withTenant(pool, args.tenantId, async (client) => {
+    // Person before login, as a switch-off takes them, so the two never wait on each other.
+    if (args.actingPersonId)
+      await client.query('SELECT 1 FROM person WHERE id = $1 FOR SHARE', [args.actingPersonId]);
+    return client.query(
+      `INSERT INTO session (tenant_id, login_id, token_hash, device_label, expires_at, acting_person_id)
+       SELECT l.tenant_id, l.id, $3, $4, now() + interval '30 days', p.id
+       FROM login l LEFT JOIN person p ON p.id = $2 AND p.tenant_id = l.tenant_id AND p.active
+       WHERE l.id = $1 AND l.disabled_at IS NULL AND l.password_hash = $5
+         AND ($2::uuid IS NULL OR p.id IS NOT NULL)
+       FOR SHARE OF l`,
+      [args.loginId, args.actingPersonId, args.tokenHash, args.device ?? null, args.passwordHash],
+    );
+  });
+  return (result.rowCount ?? 0) > 0;
+}
+
+/** A shared phone chooses who is using it, but only an active person of the same company. */
+export async function setActingPerson(
+  pool: Pool,
+  args: { tenantId: string; tokenHash: string; personId: string },
+): Promise<boolean> {
+  const result = await withTenant(pool, args.tenantId, async (client) => {
+    await client.query('SELECT 1 FROM person WHERE id = $1 FOR SHARE', [args.personId]);
+    return client.query(
+      `UPDATE session s SET acting_person_id = p.id, updated_at = now()
+       FROM person p, login l
+       WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND l.id = s.login_id AND l.shared
+         AND p.id = $2 AND p.tenant_id = s.tenant_id AND p.active`,
+      [args.tokenHash, args.personId],
+    );
+  });
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function revokeSession(pool: Pool, tenantId: string, tokenHash: string) {

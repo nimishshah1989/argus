@@ -6,8 +6,9 @@ export function canSettingsLists(ctx: ActorContext): boolean {
   return (HEAD_ADMIN as readonly string[]).includes(ctx.role);
 }
 
+/** The admin on a personal login: an admin action in the audit must name a person, which a shared phone cannot. */
 export function canSettingsPeople(ctx: ActorContext): boolean {
-  return ctx.role === 'admin';
+  return ctx.role === 'admin' && !ctx.shared;
 }
 
 export function canSettingsSla(ctx: ActorContext): boolean {
