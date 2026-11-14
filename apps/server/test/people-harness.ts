@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { hash } from '@node-rs/argon2';
 import { expect } from 'vitest';
 import { buildApp } from '../src/app.js';
+import type { AppConfig } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 /** Two customers, an admin in each, and one personal login per other role in the first. Invented data only. */
@@ -59,7 +60,7 @@ async function seed(db: TestDb, passwordHash: string): Promise<void> {
   }
 }
 
-export async function startPeopleApp(): Promise<PeopleApp> {
+export async function startPeopleApp(extra: Partial<AppConfig> = {}): Promise<PeopleApp> {
   const db = await startTestDb();
   const passwordHash = await hash(PASSWORD, {
     algorithm: 2,
@@ -68,7 +69,7 @@ export async function startPeopleApp(): Promise<PeopleApp> {
     parallelism: 1,
   });
   await seed(db, passwordHash);
-  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
+  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, ...extra });
   const on =
     (host: string): Call =>
     (method, url, token, payload) =>
