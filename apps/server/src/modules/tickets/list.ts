@@ -164,8 +164,7 @@ function detailFigures(
 ): domain.Figures {
   const now = new Date();
   if (KEEPS_STORED_FIGURES.has(row.raised_channel as string)) {
-    const open = segments.map((s) => ({ ...s, endedAt: s.endedAt ?? null }));
-    return { ...tm.figuresFromRow(row), perPerson: tm.perPersonFromSegments(open, now) };
+    return { ...tm.figuresFromRow(row), perPerson: domain.personMinutes(segments, now) };
   }
   return tm.recomputeFigures(ticket, events, segments, {
     overrides: (row.overrides as Record<string, unknown>) ?? {},

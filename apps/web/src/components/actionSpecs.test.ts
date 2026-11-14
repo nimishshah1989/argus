@@ -101,7 +101,7 @@ describe('actionSpecs', () => {
       'detail.action.closeNoReport',
       'detail.action.cancel',
     ]);
-    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(8).fill(false)]);
+    expect(specs.map((spec) => spec.primary)).toEqual([true, ...Array(7).fill(false)]);
     expect(specs.filter((spec) => spec.preset).map((spec) => spec.preset)).toEqual([
       'report',
       'no_report',
