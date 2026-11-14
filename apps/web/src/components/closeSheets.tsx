@@ -14,6 +14,9 @@ export interface CloseSheetProps {
   onClose: () => void;
 }
 
+/** The server's cap on a close note; a longer one queued offline would be refused on replay. */
+const NOTE_MAX = 2000;
+
 /** The two quick closes are one text box each; both queue offline like every close. */
 function CloseSheet(
   p: CloseSheetProps & {
@@ -37,7 +40,9 @@ function CloseSheet(
       submitLabel={p.submit}
       backLabel={t('closes.back')}
       actingAs={name ? t('closes.actingAs', { name }) : undefined}
-      fields={[{ name: 'note', label: p.label, required: true, multiline: true }]}
+      fields={[
+        { name: 'note', label: p.label, required: true, multiline: true, maxLength: NOTE_MAX },
+      ]}
       offlineAllowed
       pending={p.pending}
       error={p.error}

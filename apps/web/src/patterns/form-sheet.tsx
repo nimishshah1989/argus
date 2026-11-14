@@ -14,6 +14,8 @@ export interface FormField {
   required?: boolean;
   /** A taller text box for a sentence or two. */
   multiline?: boolean;
+  /** Longest text the server accepts; the box stops there so a queued command is never refused. */
+  maxLength?: number;
 }
 export interface FormSheetProps {
   open: boolean;
@@ -45,6 +47,7 @@ function FieldRow(props: { field: FormField; value: string; onChange: (value: st
       <Control
         id={`form-${field.name}`}
         required={field.required}
+        maxLength={field.maxLength}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />

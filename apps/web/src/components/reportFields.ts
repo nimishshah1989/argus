@@ -32,8 +32,8 @@ function minutesText(value: number | null | undefined): string {
   return value == null ? '' : String(value);
 }
 
-export function tenantToday(timeZone?: string): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
+export function tenantToday(timeZone?: string, at: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(at);
 }
 
 function clockMinutes(time: string): number {
@@ -42,7 +42,11 @@ function clockMinutes(time: string): number {
 }
 
 /** The shift whose window contains the tenant-local time now, if the plant has shifts. */
-export function currentShiftCode(shifts: Shift[], timeZone?: string): string {
+export function currentShiftCode(
+  shifts: Shift[],
+  timeZone?: string,
+  at: Date = new Date(),
+): string {
   if (shifts.length === 0) return '';
   const now = clockMinutes(
     new Intl.DateTimeFormat('en-GB', {
@@ -50,7 +54,7 @@ export function currentShiftCode(shifts: Shift[], timeZone?: string): string {
       minute: '2-digit',
       hour12: false,
       timeZone,
-    }).format(new Date()),
+    }).format(at),
   );
   const shift = shifts.find((item) => {
     const start = clockMinutes(item.starts_at);
@@ -65,6 +69,7 @@ export function initialReportValues(
   ticket: Ticket,
   config: Config,
   chosen?: FinishFigures,
+  at: Date = new Date(),
 ): ReportValues {
   const stored = ticket.figures;
   const downtime = chosen ? chosen.downtimeMin : (stored?.downtimeMin ?? stored?.downAccMin);
@@ -81,8 +86,8 @@ export function initialReportValues(
     maintCode: '',
     spareUsed: '',
     handoverName: '',
-    date: tenantToday(config.timeZone),
-    shiftCode: currentShiftCode(config.shifts, config.timeZone),
+    date: tenantToday(config.timeZone, at),
+    shiftCode: currentShiftCode(config.shifts, config.timeZone, at),
   };
 }
 
@@ -101,8 +106,11 @@ function minutes(value: string): number | undefined {
   return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : undefined;
 }
 
+/** The categories the server accepts; the plant's own list may only narrow or relabel them. */
+const SERVER_CATEGORIES: readonly BreakdownCategory[] = ['E', 'M', 'E/M', 'PM'];
+
 function category(value: string): BreakdownCategory | undefined {
-  return value === 'E' || value === 'M' || value === 'E/M' || value === 'PM' ? value : undefined;
+  return SERVER_CATEGORIES.find((code) => code === value);
 }
 
 export function buildReportBody(values: ReportValues): BreakdownReportBody {
@@ -138,6 +146,12 @@ export function listOptions(config: Config, list: string): { value: string; labe
   return (config.lists[list] ?? [])
     .filter((item) => item.active !== false)
     .map((item) => ({ value: item.code, label: item.label }));
+}
+
+/** The plant's breakdown categories the server accepts, or the fixed four when the plant has no list. */
+export function categoryOptions(config: Config): { value: string; label: string }[] {
+  const planned = listOptions(config, 'breakdown_category').filter((o) => category(o.value));
+  return planned.length > 0 ? planned : SERVER_CATEGORIES.map((c) => ({ value: c, label: c }));
 }
 
 export function shiftOptions(shifts: Shift[]): { value: string; label: string }[] {

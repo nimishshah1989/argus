@@ -7,6 +7,7 @@ import { Grid, Stack } from '../ui/layout.js';
 import {
   DONE_SLOTS,
   activePeople,
+  categoryOptions,
   listOptions,
   shiftOptions,
   type ReportValues,
@@ -95,6 +96,7 @@ export function WhatHappened({
       <Field id="report-problem" label={t('closes.form.problem')}>
         <Textarea
           id="report-problem"
+          maxLength={2000}
           value={values.problem}
           onChange={(event) => update({ problem: event.target.value })}
         />
@@ -109,6 +111,7 @@ export function WhatHappened({
       <Field id="report-corrective" label={t('closes.form.correctiveAction')}>
         <Textarea
           id="report-corrective"
+          maxLength={4000}
           placeholder={t('closes.form.correctivePlaceholder')}
           value={values.correctiveAction}
           onChange={(event) => update({ correctiveAction: event.target.value })}
@@ -161,11 +164,18 @@ export function WhoDidIt({ values, update, config }: SectionProps) {
 /** The down time (read only), the classification, the spare and the handover. */
 export function Classification({ values, update, config }: SectionProps) {
   const { t } = useTranslation();
-  const field = (id: string, label: string, key: 'spareUsed' | 'handoverName', hint: string) => (
+  const field = (
+    id: string,
+    label: string,
+    key: 'spareUsed' | 'handoverName',
+    hint: string,
+    maxLength: number,
+  ) => (
     <Field id={id} label={label}>
       <Input
         id={id}
         placeholder={hint}
+        maxLength={maxLength}
         value={values[key]}
         onChange={(event) => update({ [key]: event.target.value })}
       />
@@ -180,7 +190,7 @@ export function Classification({ values, update, config }: SectionProps) {
         id="report-category"
         label={t('closes.form.category')}
         value={values.breakdownCategory}
-        options={listOptions(config, 'breakdown_category')}
+        options={categoryOptions(config)}
         onChange={(breakdownCategory) => update({ breakdownCategory })}
       />
       <Choice
@@ -195,12 +205,14 @@ export function Classification({ values, update, config }: SectionProps) {
         t('closes.form.spare'),
         'spareUsed',
         t('closes.form.sparePlaceholder'),
+        200,
       )}
       {field(
         'report-handover',
         t('closes.form.handover'),
         'handoverName',
         t('closes.form.handoverPlaceholder'),
+        120,
       )}
     </Stack>
   );
