@@ -23,6 +23,7 @@ export {
 } from './repo/reads.js';
 export { ensureLockoutSteps } from './lockout.js';
 export { actorOf, forbidden } from './actor.js';
+export { mayViewBoard } from './board-access.js';
 export { registerResource } from './settings-routes.js';
 export { plantToday, type Problem, type Resource } from './settings-resources.js';
 export { shiftIsOn, type Row, type Store } from './repo/plant-settings.js';

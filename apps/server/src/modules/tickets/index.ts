@@ -38,6 +38,7 @@ export const ticketsModule = defineModule({
     registerTickets(app, config);
   },
 });
+export { closedAwaitingSignoff, type AwaitingSignoffRow } from './repo/signoff.js';
 export {
   dayJobRows,
   machineHistory,

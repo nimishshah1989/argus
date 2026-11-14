@@ -15,6 +15,7 @@ import {
 } from './parts.js';
 import { onRosterAt } from './roster.js';
 import { registerSettings } from './routes.js';
+import { registerSignoffFeed } from './signoff-feed.js';
 
 export { startJobs } from './jobs.js';
 export type { SlaTicketReconciler } from './consistency.js';
@@ -25,6 +26,7 @@ export const accountabilityModule = defineModule({
   name: 'accountability',
   register: (app, config) => {
     registerSettings(app, config);
+    registerSignoffFeed(app, config.pool);
     contributeTicketPart(slaTicketPart);
     contributeTicketPart(handbackTicketPart);
     contributeTicketPart(canAcknowledgeTicketPart);
