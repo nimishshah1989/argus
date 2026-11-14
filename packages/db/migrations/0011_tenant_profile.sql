@@ -1,9 +1,17 @@
--- Migration 0011: the company profile can be written. Ticket 23, goal 2.
--- approved-by: orchestrator ruling (ticket 23, 14 Nov): company name, language, time zone and logo must be real settings; function-only, as 0010 was.
--- backup: none needed. Additive: one column-level right and three functions. Applying it reads, changes and deletes no row.
+-- Migration 0011: the company profile can be written, and a logo is kept in the database. Ticket 23, goal 2.
+-- approved-by: orchestrator ruling (ticket 23, 14 Nov): company name, language, time zone and logo must be real settings; logo bytes live in the database (reviewer ruling, same day).
+-- backup: none needed to apply. Additive: one nullable column on `file`, one column-level right and three functions. Applying it reads, changes and deletes no row.
+--   Before a revert, take a snapshot: the down file drops the column, and with it every stored logo.
 --   Revert: packages/db/migrations/down/0011_tenant_profile.down.sql.
 
 BEGIN;
+
+-- A logo is at most 256 KB, so its bytes live in the row itself: database backups cover it, a redeploy cannot
+-- lose it, and no disk is needed on the server. Only a `logo` may carry content; `s3_key` for such a row is a
+-- placeholder (`db:logo/<id>`), `bytes` and `sha256` describe the content as for any file.
+ALTER TABLE file ADD COLUMN content bytea;
+ALTER TABLE file ADD CONSTRAINT file_content_logo_only
+  CHECK (content IS NULL OR (kind = 'logo' AND octet_length(content) <= 262144));
 
 -- The application role cannot touch `tenant` (0001): it reads name, language and time zone through definer
 -- functions. These three are the only ways to write them, and to find a logo, without opening the table.
@@ -18,7 +26,9 @@ GRANT UPDATE (name, language, time_zone, logo_file_id, updated_at) ON tenant TO 
 CREATE FUNCTION tenant_update_profile(p_name text, p_language text, p_time_zone text)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE scope uuid := NULLIF(current_setting('app.tenant_id', true), '')::uuid;
+DECLARE
+  scope uuid := NULLIF(current_setting('app.tenant_id', true), '')::uuid;
+  zone text;
 BEGIN
   IF scope IS NULL THEN RAISE EXCEPTION 'tenant_update_profile: no plant in scope'; END IF;
   IF p_name IS NOT NULL AND btrim(p_name) = '' THEN
@@ -27,14 +37,17 @@ BEGIN
   IF p_language IS NOT NULL AND p_language NOT IN ('en', 'gu', 'hi') THEN
     RAISE EXCEPTION 'tenant_update_profile: unsupported language';
   END IF;
-  IF p_time_zone IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names z WHERE z.name = p_time_zone) THEN
-    RAISE EXCEPTION 'tenant_update_profile: unknown time zone';
+  -- The zone is stored as the database spells it (`asia/kolkata` becomes `Asia/Kolkata`): every shift and
+  -- report query hands this value back to the database, which is the judge of what a zone is.
+  IF p_time_zone IS NOT NULL THEN
+    SELECT z.name INTO zone FROM pg_catalog.pg_timezone_names z
+     WHERE lower(z.name) = lower(p_time_zone) ORDER BY z.name = p_time_zone DESC LIMIT 1;
+    IF zone IS NULL THEN RAISE EXCEPTION 'tenant_update_profile: unknown time zone'; END IF;
   END IF;
   UPDATE tenant SET
     name = COALESCE(btrim(p_name), name),
     language = COALESCE(p_language, language),
-    time_zone = COALESCE(p_time_zone, time_zone),
+    time_zone = COALESCE(zone, time_zone),
     updated_at = now()
   WHERE id = scope;
 END $$;

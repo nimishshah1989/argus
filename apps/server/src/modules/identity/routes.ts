@@ -220,7 +220,9 @@ async function brand(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
     reply.code(404).send(apiError('not_found', 'Unknown company'));
     return;
   }
-  const logo = (await tenantLogoId(pool, tenant.slug)) ? '/api/v1/brand/logo' : null;
+  // The file id in the address makes a browser fetch the new logo as soon as one is uploaded.
+  const logoId = await tenantLogoId(pool, tenant.slug);
+  const logo = logoId ? `/api/v1/brand/logo?v=${logoId}` : null;
   reply.send({ company: tenant.name, logo });
 }
 

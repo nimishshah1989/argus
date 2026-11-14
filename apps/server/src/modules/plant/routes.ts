@@ -81,14 +81,16 @@ async function writeSetting(
     : await selectSetting(client, key);
   if (profile) await updateTenantProfile(client, { [profile]: value as string });
   else await upsertSetting(client, ctx.tenantId, key, value);
-  if (isDeepStrictEqual(before, value)) return;
+  // A time zone is stored as the database spells it (`asia/kolkata` is `Asia/Kolkata`): audit what was stored.
+  const stored = profile ? (await tenantInfo(client, ctx.tenantId))[TENANT_FIELD[profile]] : value;
+  if (isDeepStrictEqual(before, stored)) return;
   await audit.record(client, {
     tenantId: ctx.tenantId,
     loginId: ctx.loginId,
     action: 'setting.update',
     entity: 'setting',
     before: { key, value: before ?? null },
-    after: { key, value },
+    after: { key, value: stored },
   });
 }
 
@@ -109,9 +111,16 @@ async function putSetting(pool: Pool, request: FastifyRequest, reply: FastifyRep
     reply.code(422).send(apiError('validation', 'Invalid setting', 'value'));
     return;
   }
-  await withTenant(pool, ctx.tenantId, (client) =>
-    writeSetting(client, ctx, { key, setting, value: value.data }),
-  );
+  try {
+    await withTenant(pool, ctx.tenantId, (client) =>
+      writeSetting(client, ctx, { key, setting, value: value.data }),
+    );
+  } catch (error) {
+    // The database is the judge of a time zone or a name it refuses (its own `RAISE`): a bad value, not a fault.
+    if ((error as { code?: string }).code !== 'P0001') throw error;
+    reply.code(422).send(apiError('validation', 'The database refused this value', 'value'));
+    return;
+  }
   reply.send({ ok: true });
 }
 

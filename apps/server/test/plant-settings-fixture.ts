@@ -168,11 +168,11 @@ async function signInAll(app: App, admin: Pool): Promise<Record<string, string>>
   return tokens;
 }
 
-export async function startFixture(filesDir?: string): Promise<Fixture> {
+export async function startFixture(): Promise<Fixture> {
   const db = await startTestDb();
   const admin = db.admin;
   await seedAll(admin);
-  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000, filesDir });
+  const app = await buildApp({ pool: db.app, logger: false, rateLimitMax: 100000 });
   const tokens = await signInAll(app, admin);
   const call: Fixture['call'] = (method, url, token, payload) =>
     app.inject({

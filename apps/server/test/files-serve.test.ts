@@ -1,8 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createLocalFileStore } from '../src/modules/files/index.js';
 import { sha256 } from '../src/modules/files/store.js';
 import {
   A,
@@ -18,57 +14,50 @@ import {
 const PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('uptimo-logo')]);
 const PDF_ID = '10000000-0000-0000-0000-000000000109';
 const HTML_ID = '10000000-0000-0000-0000-00000000010a';
-const GONE_ID = '10000000-0000-0000-0000-00000000010b';
+const EMPTY_ID = '10000000-0000-0000-0000-00000000010b';
 const TAMPERED_ID = '10000000-0000-0000-0000-00000000010c';
-const ESCAPE_ID = '10000000-0000-0000-0000-00000000010d';
 
 let f: Fixture;
-let dir: string;
 
 async function addFile(
   id: string,
   tenant: string,
-  row: { kind: string; key: string; mime: string; bytes?: Buffer; sha?: string },
+  row: { kind: string; mime: string; content?: Buffer | null; sha?: string },
 ) {
-  const bytes = row.bytes ?? PNG;
+  const content = row.content === undefined ? PNG : row.content;
   await f.admin.query(
-    'INSERT INTO file (id, tenant_id, kind, s3_key, mime, bytes, sha256) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-    [id, tenant, row.kind, row.key, row.mime, bytes.length, row.sha ?? sha256(bytes)],
+    'INSERT INTO file (id, tenant_id, kind, s3_key, mime, bytes, sha256, content) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+    [
+      id,
+      tenant,
+      row.kind,
+      `db:test/${id}`,
+      row.mime,
+      content?.length ?? 0,
+      row.sha ?? sha256(content ?? Buffer.alloc(0)),
+      content,
+    ],
   );
 }
 
 beforeAll(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'uptimo-files-'));
-  f = await startFixture(dir);
-  const store = createLocalFileStore(dir);
-  await store.put('a/logo.png', PNG);
-  await store.put('b/logo.png', PNG);
-  await store.put('a/doc.pdf', Buffer.from('%PDF-1.4'));
-  await store.put('a/page.html', Buffer.from('<script>alert(1)</script>'));
-  await store.put('a/tampered.png', Buffer.from('not what was stored'));
-  writeFileSync(join(dir, '..', 'outside-secret.txt'), 'secret');
-  await addFile(LOGO_A, A, { kind: 'logo', key: 'a/logo.png', mime: 'image/png' });
-  await addFile(LOGO_B, B, { kind: 'logo', key: 'b/logo.png', mime: 'image/png' });
-  await addFile(PDF_ID, A, {
-    kind: 'pdf',
-    key: 'a/doc.pdf',
-    mime: 'application/pdf',
-    bytes: Buffer.from('%PDF-1.4'),
-  });
+  f = await startFixture();
+  await addFile(LOGO_A, A, { kind: 'logo', mime: 'image/png' });
+  await addFile(LOGO_B, B, { kind: 'logo', mime: 'image/png' });
+  // A stored PDF carries no content (only a logo may), so it is refused on kind long before bytes matter.
+  await addFile(PDF_ID, A, { kind: 'pdf', mime: 'application/pdf', content: null });
   await addFile(HTML_ID, A, {
     kind: 'logo',
-    key: 'a/page.html',
     mime: 'text/html',
-    bytes: Buffer.from('<script>alert(1)</script>'),
+    content: Buffer.from('<script>alert(1)</script>'),
   });
-  await addFile(GONE_ID, A, { kind: 'logo', key: 'a/missing.png', mime: 'image/png' });
+  await addFile(EMPTY_ID, A, { kind: 'logo', mime: 'image/png', content: null });
   await addFile(TAMPERED_ID, A, {
     kind: 'logo',
-    key: 'a/tampered.png',
     mime: 'image/png',
+    content: Buffer.from('not what was recorded'),
     sha: sha256(PNG),
   });
-  await addFile(ESCAPE_ID, A, { kind: 'logo', key: '../outside-secret.txt', mime: 'image/png' });
 }, 180_000);
 afterAll(async () => f.stop());
 
@@ -108,13 +97,10 @@ describe('GET /files/:id', () => {
     }
   });
 
-  it('answers 404 when the bytes are gone, 500 when they do not match their record, and never reads outside the folder', async () => {
-    expect((await get(GONE_ID, f.tokens.admin!)).statusCode).toBe(404);
+  it('answers 404 when a row has no content, and 500 when the content does not match its record', async () => {
+    expect((await get(EMPTY_ID, f.tokens.admin!)).statusCode).toBe(404);
     const tampered = await get(TAMPERED_ID, f.tokens.admin!);
     expect(tampered.statusCode).toBe(500);
     expect(tampered.json().error.code).toBe('internal');
-    const escape = await get(ESCAPE_ID, f.tokens.admin!);
-    expect(escape.statusCode).toBe(404);
-    expect(escape.rawPayload.toString()).not.toContain('secret');
   });
 });

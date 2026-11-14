@@ -121,6 +121,52 @@ describe('tenant_update_profile', () => {
   });
 });
 
+describe('time zones are stored as the database spells them', () => {
+  it.each([
+    ['asia/kolkata', 'Asia/Kolkata'],
+    ['UTC', 'UTC'],
+    ['utc', 'UTC'],
+    ['ASIA/DUBAI', 'Asia/Dubai'],
+  ])('%s is stored as %s', async (given, stored) => {
+    await db.query('BEGIN');
+    await db.query('SET LOCAL ROLE app_user');
+    await db.query("SELECT set_config('app.tenant_id', $1, true)", [A]);
+    await db.query('SELECT tenant_update_profile(NULL, NULL, $1)', [given]);
+    await db.query('RESET ROLE');
+    expect((await profile(A)).time_zone).toBe(stored);
+    await db.query('ROLLBACK');
+  });
+});
+
+describe('a logo is kept in the file row, and nothing else may carry content', () => {
+  const insert = (kind: string, bytes: number) =>
+    db.query(
+      `INSERT INTO file (tenant_id, kind, s3_key, mime, bytes, sha256, content)
+       VALUES ($1, $2, $3, 'image/png', $4, 'x', $5)`,
+      [A, kind, `db:test/${kind}-${bytes}-${Math.random()}`, bytes, Buffer.alloc(bytes)],
+    );
+
+  it('accepts a logo up to 256 KB, refuses a bigger one and content on any other kind', async () => {
+    await insert('logo', 10);
+    await insert('logo', 256 * 1024);
+    await expect(insert('logo', 256 * 1024 + 1)).rejects.toThrow(/file_content_logo_only/);
+    for (const kind of ['pdf', 'photo', 'voice', 'signature', 'import']) {
+      await expect(insert(kind, 10), kind).rejects.toThrow(/file_content_logo_only/);
+    }
+  });
+
+  it('the application role can store and read a logo with its content', async () => {
+    const res = await asApp(
+      A,
+      `INSERT INTO file (tenant_id, kind, s3_key, mime, bytes, sha256, content)
+       VALUES ($1, 'logo', 'db:app-role-test', 'image/png', 3, 'x', '\\x010203')
+       RETURNING length(content) AS n`,
+      [A],
+    );
+    expect(res.rows[0].n).toBe(3);
+  });
+});
+
 describe('tenant_set_logo and tenant_logo', () => {
   it("points the plant at its own logo, never at another plant's file or another kind of file", async () => {
     await db.query('BEGIN');

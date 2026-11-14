@@ -1,6 +1,3 @@
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { A, ROLES, startFixture, type Fixture } from './plant-settings-fixture.js';
 
@@ -15,7 +12,7 @@ const WEBP = Buffer.concat([
 
 let f: Fixture;
 beforeAll(async () => {
-  f = await startFixture(mkdtempSync(join(tmpdir(), 'uptimo-logo-')));
+  f = await startFixture();
 }, 180_000);
 afterAll(async () => f.stop());
 
@@ -78,6 +75,8 @@ describe('company name, language and time zone', () => {
       ['company.timeZone', 'not a zone'],
       ['company.name', '   '],
       ['company.name', 42],
+      ['company.name', 'Plant\u0000A'],
+      ['company.name', 'Plant\nA'],
     ] as const) {
       const res = await put(key, value);
       expect(res.statusCode, `${key} ${value}`).toBe(422);
@@ -121,9 +120,10 @@ describe('the company logo', () => {
     expect(res.statusCode).toBe(200);
     const path = res.json().logo as string;
     expect(path).toMatch(/^\/api\/v1\/files\/[0-9a-f-]{36}$/);
+    const fileId = path.split('/').pop();
     expect((await brand('plant-a')).json()).toMatchObject({
       company: 'Plant A Engineering',
-      logo: '/api/v1/brand/logo',
+      logo: `/api/v1/brand/logo?v=${fileId}`,
     });
     const pub = await f.app.inject({
       method: 'GET',
@@ -143,6 +143,8 @@ describe('the company logo', () => {
     expect(line.rows).toEqual([
       { after: expect.objectContaining({ mime: 'image/png', bytes: PNG.length }) },
     ]);
+    const first = await f.admin.query("SELECT before FROM audit_log WHERE action = 'company.logo'");
+    expect(first.rows[0].before).toEqual({ fileId: null });
   });
 
   it("another company never gets this company's logo, publicly or signed in", async () => {
@@ -168,7 +170,14 @@ describe('the company logo', () => {
   });
 
   it('JPEG and WebP are accepted; a new upload replaces the logo and the old file is kept', async () => {
+    const png = (
+      await f.admin.query("SELECT id FROM file WHERE tenant_id = $1 AND kind = 'logo'", [A])
+    ).rows[0].id;
     expect((await logo(head(), 'image/jpeg', JPEG)).statusCode).toBe(200);
+    const replaced = await f.admin.query(
+      "SELECT before FROM audit_log WHERE action = 'company.logo' ORDER BY at DESC LIMIT 1",
+    );
+    expect(replaced.rows[0].before).toEqual({ fileId: png });
     expect((await logo(f.tokens.admin!, 'image/webp', WEBP)).statusCode).toBe(200);
     const pub = await f.app.inject({
       method: 'GET',
@@ -234,7 +243,9 @@ describe('the company logo', () => {
       })
     ).rawPayload;
     expect((await logo(f.tokens['b-admin']!, 'image/png', PNG, 'plant-b')).statusCode).toBe(200);
-    expect((await brand('plant-b')).json().logo).toBe('/api/v1/brand/logo');
+    expect((await brand('plant-b')).json().logo).toMatch(
+      /^\/api\/v1\/brand\/logo\?v=[0-9a-f-]{36}$/,
+    );
     const after = (
       await f.app.inject({
         method: 'GET',

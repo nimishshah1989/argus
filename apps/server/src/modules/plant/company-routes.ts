@@ -3,8 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import { LOGO_MAX_BYTES, apiError } from '@uptimo/shared';
 import { canSettingsLists } from '@uptimo/domain';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
-import { insertFileRow, storeFor } from '../files/index.js';
-import { requireAuth, setTenantLogo } from '../identity/index.js';
+import { insertFileRow } from '../files/index.js';
+import { requireAuth, setTenantLogo, tenantLogoId, tenantSlugFromHost } from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import { actorOf, forbidden } from './actor.js';
 
@@ -25,7 +25,7 @@ export function imageType(bytes: Buffer): { mime: string; ext: string } | null {
   return null;
 }
 
-/** `PUT /company/logo`: the body is the image itself. Head and admin only; the previous logo file is kept. */
+/** `PUT /company/logo`: the body is the image itself, kept in the database in one transaction with its audit line. Head and admin only; the previous logo row is kept. */
 export function registerCompanyRoutes(app: FastifyInstance, config: AppConfig): void {
   app.addContentTypeParser(
     IMAGE_TYPES,
@@ -42,14 +42,16 @@ export function registerCompanyRoutes(app: FastifyInstance, config: AppConfig): 
     if (!found || found.mime !== declared) {
       return reply.code(422).send(apiError('validation', 'Send a PNG, JPEG or WebP image', 'logo'));
     }
-    const key = `${ctx.tenantId}/logo-${randomUUID()}.${found.ext}`;
-    await storeFor(config).put(key, bytes);
+    // The logo being replaced, for the audit line (the public brand lookup knows the current one).
+    const slug = tenantSlugFromHost(request.headers.host ?? '');
+    const previous = slug ? await tenantLogoId(config.pool, slug) : null;
     const fileId = await withTenant(config.pool, ctx.tenantId, async (tx) => {
       const id = await insertFileRow(tx, {
         tenantId: ctx.tenantId,
-        key,
+        key: `db:logo/${randomUUID()}.${found.ext}`,
         mime: found.mime,
         bytes,
+        content: bytes,
         kind: 'logo',
         uploadedBy: ctx.personId,
       });
@@ -60,7 +62,7 @@ export function registerCompanyRoutes(app: FastifyInstance, config: AppConfig): 
         action: 'company.logo',
         entity: 'tenant',
         entityId: ctx.tenantId,
-        before: null,
+        before: { fileId: previous },
         after: { fileId: id, mime: found.mime, bytes: bytes.length },
       });
       return id;

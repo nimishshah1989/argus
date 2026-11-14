@@ -1,29 +1,16 @@
-import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { apiError, isUuid } from '@uptimo/shared';
 import { withTenant, type AppConfig } from '../../kernel/index.js';
 import { requireAuth, resolveTenant, tenantLogoId, tenantSlugFromHost } from '../identity/index.js';
 import { selectFile } from './repo.js';
-import { createLocalFileStore, sha256, type ObjectStore } from './store.js';
+import { sha256 } from './store.js';
 
 /**
- * What `GET /files/:id` will hand out: plant logos, as images only. Ticket PDFs are rendered on request and
+ * What `GET /files/:id` will hand out: plant logos (their bytes are in the row), as images only. Ticket PDFs are rendered on request and
  * never stored (#182); photos, voice notes, signatures and import files hold people's data and wait for
  * their own permission rules, so they answer 404 here.
  */
 const SERVED = new Map([['logo', new Set(['image/png', 'image/jpeg', 'image/webp'])]]);
-
-const stores = new WeakMap<AppConfig, ObjectStore>();
-
-/** The storage behind the `file` rows: `filesDir`, else `FILES_DIR`, else `data/files` beside the server. */
-export function storeFor(config: AppConfig): ObjectStore {
-  let store = stores.get(config);
-  if (!store) {
-    store = createLocalFileStore(config.filesDir ?? process.env.FILES_DIR ?? join('data', 'files'));
-    stores.set(config, store);
-  }
-  return store;
-}
 
 /** Sends one stored file of this plant as an image, or answers 404 / 500; the one place that decides how. */
 async function sendFile(
@@ -35,9 +22,7 @@ async function sendFile(
   if (!isUuid(target.id)) return notFound();
   const file = await withTenant(config.pool, target.tenantId, (tx) => selectFile(tx, target.id));
   if (!file || !SERVED.get(file.kind)?.has(file.mime)) return notFound();
-  const bytes = await storeFor(config)
-    .get(file.key)
-    .catch(() => null);
+  const bytes = file.content;
   if (!bytes) return notFound();
   if (sha256(bytes) !== file.sha256) {
     return reply.code(500).send(apiError('internal', 'Stored file does not match its record'));

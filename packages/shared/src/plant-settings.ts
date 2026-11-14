@@ -201,7 +201,12 @@ export type GlossaryPatch = z.infer<typeof glossaryPatchSchema>;
 export type GlossaryReply = z.infer<typeof glossaryReplySchema>;
 
 /** The company profile settings (`PUT /settings/company.*`). The time zone is checked against the real zone list. */
-export const companyNameSchema = z.string().trim().min(1).max(120);
+export const companyNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine((v) => !/\p{Cc}/u.test(v), 'The name cannot contain control characters');
 export const companyLanguageSchema = z.enum(['en', 'gu', 'hi']);
 export const companyTimeZoneSchema = z
   .string()
