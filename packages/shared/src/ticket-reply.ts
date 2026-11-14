@@ -137,6 +137,7 @@ export const storedReportSchema = z
     maintCode: str,
     spareUsed: str,
     rootCause: str,
+    handoverPersonId: str,
     handoverName: str,
     submittedByPersonId: str,
     downtimeMin: z.number(),

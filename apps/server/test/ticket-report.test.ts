@@ -267,4 +267,41 @@ describe('breakdown report', () => {
     const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
     expect(detail.json().report).toBeNull();
   });
+
+  it('records who the report is handed over to as a person, with no typed copy of the name', async () => {
+    const id = await raiseAndStart(M1);
+    const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: BINA, handoverName: 'typed as well' },
+    });
+    expect(close.statusCode).toBe(200);
+    const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(stored.handoverPersonId).toBe(BINA);
+    expect(stored.handoverName).toBeNull();
+  });
+
+  it('keeps a typed handover as text when no person is given, as imported history has it', async () => {
+    const id = await raiseAndStart(M2);
+    const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverName: 'Night crew' },
+    });
+    expect(close.statusCode).toBe(200);
+    const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
+    expect(stored.handoverPersonId).toBeNull();
+    expect(stored.handoverName).toBe('Night crew');
+  });
+
+  it('refuses a handover to someone who is not in this plant', async () => {
+    const id = await raiseAndStart(M3);
+    const refused = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+      personId: ASHA,
+      kind: 'report',
+      report: { handoverPersonId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+    });
+    expect(refused.statusCode).toBe(422);
+    expect(refused.json().error.field).toBe('handoverPersonId');
+  });
 });

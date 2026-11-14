@@ -16,6 +16,8 @@ export interface ReportPdfInput {
   };
   report: StoredReport;
   people: { done: string[]; supported: string[] };
+  /** Who the report is handed over to: the linked person's name, or the typed text of imported history. */
+  handoverTo?: string | null;
   qr: { svg: string };
   generatedAt: Date;
 }
@@ -109,7 +111,7 @@ function reportFacts(input: ReportPdfInput): string {
     field('Maintenance code', report.maintCode),
     field('Spare used', report.spareUsed),
     field('Observed by', report.observedBy),
-    field('Handover to', report.handoverName),
+    field('Handover to', input.handoverTo ?? report.handoverName),
   ];
   const text = [
     field('Problem', report.problem),

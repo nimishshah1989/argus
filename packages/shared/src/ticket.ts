@@ -124,6 +124,8 @@ export const breakdownReportSchema = z.object({
   maintCode: z.string().max(60).optional(),
   spareUsed: z.string().max(200).optional(),
   rootCause: z.string().max(2000).optional(),
+  /** The person the report is handed over to. Typed text (`handoverName`) is for imported history; use this. */
+  handoverPersonId: z.string().uuid().optional(),
   handoverName: z.string().max(120).optional(),
   date: z
     .string()
