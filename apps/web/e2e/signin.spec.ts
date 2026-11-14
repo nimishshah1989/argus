@@ -36,7 +36,12 @@ test('show password reveals it, and the last username is remembered', async ({ p
 test('a session the server no longer accepts signs the phone out with a message', async ({
   page,
 }) => {
-  await page.addInitScript(() => localStorage.setItem('uptimo_token', 'no-longer-valid'));
+  // Seed a refused token once (an init script runs on every navigation, including the redirect).
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('uptimo_token', 'no-longer-valid');
+  });
   await page.goto('/floor');
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole('status').filter({ hasText: 'You were signed out' })).toContainText(

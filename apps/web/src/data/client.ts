@@ -1,5 +1,7 @@
 /** The token the login screen stores; every request attaches it. */
 const TOKEN_KEY = 'uptimo_token';
+/** Where a refused session lands; the sign-in screen reads `signedOut`. */
+export const SIGNED_OUT = '/login?signedOut=1';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -50,9 +52,11 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
-  if (res.status === 401) {
+  // A 401 on a signed-in request ends the session (v3.signin.05); sign-in shows why. A 401 without a
+  // token is the server's answer to a sign-in and is read like any other error.
+  if (res.status === 401 && token) {
     clearToken();
-    window.location.assign('/login');
+    window.location.assign(SIGNED_OUT);
     throw new ApiError('unauthenticated', 'unauthorized');
   }
   if (!res.ok) throw await parseError(res);

@@ -42,6 +42,7 @@ export const tickets = defineResource<TicketDetail, Ticket>({
 });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
+const login = defineResource({ key: 'auth', path: '/api/v1/auth/login' });
 const settings = defineResource({ key: 'settings', path: '/api/v1/settings' });
 const criticality = defineResource({
   key: 'machines',
@@ -84,6 +85,12 @@ export const useTicketPages = (query: TicketListQuery) => tickets.useList(query)
 export const getMe = (): Promise<{ user: Me }> => me.one();
 
 export const getBrand = (): Promise<{ company: string }> => brand.one();
+
+/** POST /auth/login; a wrong password is an ApiError with the server's message. */
+export const signIn = (body: {
+  username: string;
+  password: string;
+}): Promise<{ token: string; user: Me }> => login.create<{ token: string; user: Me }>(body);
 
 export { ApiError, clearToken, getToken, isOffline, sendCommand, setToken } from './data/index.js';
 

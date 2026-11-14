@@ -1,0 +1,1 @@
+- Sign-in is rebuilt on the approved design: the company's name at the top, a "Show password" box, and the phone remembers the last username so you only type the password. A wrong password says "Sign-in failed" above the fields. When the server ends a session, the phone goes back to sign-in and says "You were signed out" instead of showing a blank page.
