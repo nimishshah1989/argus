@@ -101,15 +101,15 @@ describe('people', () => {
     '+1234567890123456',
     '+91900000000a',
     '00919000000001',
-  ])('refuses the phone %s with 400 and says why', async (bad) => {
+  ])('refuses the phone %s with 422 and says why', async (bad) => {
     const before = (await rows()).length;
     const res = await t.call('POST', '/api/v1/people', admin, person({ phone: bad }));
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422);
     expect(res.json().error).toMatchObject({ code: 'validation', field: 'phone' });
     expect(res.json().error.message).toMatch(/\+/);
     const own = await addPerson();
     const edit = await t.call('PATCH', `/api/v1/people/${own.id}`, admin, { phone: bad });
-    expect(edit.statusCode).toBe(400);
+    expect(edit.statusCode).toBe(422);
     expect((await rows()).length).toBe(before + 1);
   });
 
@@ -138,13 +138,13 @@ describe('people', () => {
   it('refuses unknown fields, an empty edit, a bad team and a bad id', async () => {
     const p = await addPerson();
     for (const body of [{ role: 'admin' }, {}, { team: 'cafeteria' }, { name: '  ' }])
-      expect((await t.call('PATCH', `/api/v1/people/${p.id}`, admin, body)).statusCode).toBe(400);
+      expect((await t.call('PATCH', `/api/v1/people/${p.id}`, admin, body)).statusCode).toBe(422);
     expect(
       (await t.call('PATCH', '/api/v1/people/not-an-id', admin, { name: 'X' })).statusCode,
     ).toBe(404);
     expect(
       (await t.call('POST', '/api/v1/people', admin, person({ pending: false }))).statusCode,
-    ).toBe(400);
+    ).toBe(422);
   });
 
   it('writes one audit row per change, with before and after, never the phone', async () => {
@@ -257,7 +257,7 @@ describe('logins', () => {
       expect(
         (await t.call('POST', '/api/v1/logins', admin, body)).statusCode,
         JSON.stringify(body),
-      ).toBe(400);
+      ).toBe(422);
   });
 
   it('answers 409 for a taken username', async () => {
@@ -294,14 +294,14 @@ describe('logins', () => {
       'PW.Check',
     ]) {
       const res = await make(weak);
-      expect(res.statusCode, weak).toBe(400);
+      expect(res.statusCode, weak).toBe(422);
       expect(res.json().error.field).toBe('temporaryPassword');
     }
     const id = await addLogin('pw.owner');
     expect(
       (await t.call('PATCH', `/api/v1/logins/${id}`, admin, { temporaryPassword: 'welcome1' }))
         .statusCode,
-    ).toBe(400);
+    ).toBe(422);
     const token = await t.signIn('pw.owner', undefined, 'Temp-pass-4821');
     for (const weak of ['password1', 'pw.owner', '1234567890']) {
       const res = await t.call('POST', '/api/v1/auth/password', token, {
@@ -353,7 +353,7 @@ describe('logins', () => {
     expect(refused.statusCode).toBe(401);
     expect(
       (await t.call('PATCH', `/api/v1/logins/${id}`, admin, { disabled: false })).statusCode,
-    ).toBe(400);
+    ).toBe(422);
     const on = await t.call('PATCH', `/api/v1/logins/${id}`, admin, {
       disabled: false,
       temporaryPassword: 'Third-temp-5512',

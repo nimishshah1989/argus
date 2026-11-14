@@ -111,11 +111,15 @@ describe('switching a person off', () => {
     expect(res.statusCode, res.body).toBe(200);
     expect(res.json().person).toMatchObject({ active: false, phone: null, name: 'Tara Test' });
 
-    for (const gone of ['taraPhone', 'taraLaptop', 'sharedAsTara'])
+    for (const gone of ['taraPhone', 'taraLaptop'])
       expect(await status(tokens[gone]!), gone).toBe(401);
     expect(await status(tokens.ravi!)).toBe(200);
     expect(await status(tokens.sharedAsRavi!)).toBe(200);
-    expect(await endpoints()).toEqual(['https://push.test/shared-as-ravi']);
+    expect(await endpoints()).toEqual([
+      'https://push.test/shared-as-ravi',
+      'https://push.test/shared-as-tara',
+    ]);
+    expect(await status(tokens.sharedAsTara!), 'the shared phone keeps its sign-in').toBe(200);
 
     const refused = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'tara',
@@ -143,8 +147,9 @@ describe('switching a person off', () => {
     expect(audit).toHaveLength(1);
     expect(audit[0].after).toMatchObject({
       active: false,
-      sessionsEnded: 3,
-      devicesRemoved: 2,
+      sessionsEnded: 2,
+      devicesRemoved: 1,
+      actingCleared: 1,
       loginsDisabled: ['tara'],
     });
     expect(JSON.stringify(audit)).not.toContain('9000000011');
@@ -188,7 +193,11 @@ describe('switching a person off', () => {
     const on = await t.call('PATCH', `/api/v1/people/${tara}`, admin, { active: true });
     expect(on.statusCode, on.body).toBe(200);
     expect(on.json().person).toMatchObject({ active: true, phone: null });
-    expect(await endpoints()).toEqual(['https://push.test/shared-as-ravi']);
+    expect(await endpoints()).toEqual([
+      'https://push.test/shared-as-ravi',
+      'https://push.test/shared-as-tara',
+    ]);
+    expect(await status(tokens.sharedAsTara!), 'the shared phone keeps its sign-in').toBe(200);
     const stillOff = await t.call('POST', '/api/v1/auth/login', undefined, {
       username: 'tara',
       password: TEMP,

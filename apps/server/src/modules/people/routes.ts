@@ -12,27 +12,16 @@ import {
 } from '@uptimo/shared';
 import { withTenant, type AppConfig, type AuthContext } from '../../kernel/index.js';
 import { listLoginAdmin, listPersonAdmin, requireAuth } from '../identity/index.js';
-import { forbidden } from '../plant/index.js';
-import {
-  createLogin,
-  createPerson,
-  patchLogin,
-  patchPerson,
-  type Actor,
-  type Outcome,
-} from './service.js';
+import { actorOf, forbidden } from '../plant/index.js';
+import { createLogin, patchLogin } from './logins.js';
+import type { Actor, Outcome } from './outcome.js';
+import { createPerson, patchPerson } from './service.js';
 
 /** The signed-in admin, or null after answering 401 or 403. Everyone else gets 403 on every route here. */
 async function adminOnly(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
   const ctx = await requireAuth(pool, request, reply);
   if (!ctx) return null;
-  const actor = {
-    role: ctx.role as Parameters<typeof canSettingsPeople>[0]['role'],
-    loginId: ctx.loginId,
-    personId: ctx.personId,
-    shared: ctx.shared,
-  };
-  if (canSettingsPeople(actor)) return ctx;
+  if (canSettingsPeople(actorOf(ctx))) return ctx;
   forbidden(reply);
   return null;
 }
@@ -42,7 +31,7 @@ function parse<T>(schema: ZodType<T, z.ZodTypeDef, unknown>, body: unknown, repl
   if (parsed.success) return parsed.data;
   const issue = parsed.error.issues[0];
   const field = issue?.path.join('.') || undefined;
-  reply.code(400).send(apiError('validation', issue?.message ?? 'Invalid request', field));
+  reply.code(422).send(apiError('validation', issue?.message ?? 'Invalid request', field));
   return null;
 }
 
@@ -74,7 +63,7 @@ async function write<T>(
   }
 }
 
-const actorOf = (ctx: AuthContext): Actor => ({ tenantId: ctx.tenantId, loginId: ctx.loginId });
+const auditActor = (ctx: AuthContext): Actor => ({ tenantId: ctx.tenantId, loginId: ctx.loginId });
 const uuid = z.string().uuid();
 
 function unknownId(reply: FastifyReply, what: string): void {
@@ -102,7 +91,7 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
     if (!ctx || !body) return;
     await write(
       reply,
-      run(ctx, (tx) => createPerson(tx, actorOf(ctx), body)),
+      run(ctx, (tx) => createPerson(tx, auditActor(ctx), body)),
       'person',
     );
   });
@@ -115,7 +104,7 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
     if (!id.success) return unknownId(reply, 'person');
     await write(
       reply,
-      run(ctx, (tx) => patchPerson(tx, actorOf(ctx), id.data, body)),
+      run(ctx, (tx) => patchPerson(tx, auditActor(ctx), id.data, body)),
       'person',
     );
   });
@@ -126,7 +115,7 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
     if (!ctx || !body) return;
     await write(
       reply,
-      run(ctx, (tx) => createLogin(tx, actorOf(ctx), body)),
+      run(ctx, (tx) => createLogin(tx, auditActor(ctx), body)),
       'login',
     );
   });
@@ -139,7 +128,7 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
     if (!id.success) return unknownId(reply, 'login');
     await write(
       reply,
-      run(ctx, (tx) => patchLogin(tx, actorOf(ctx), id.data, body)),
+      run(ctx, (tx) => patchLogin(tx, auditActor(ctx), id.data, body)),
       'login',
     );
   });
