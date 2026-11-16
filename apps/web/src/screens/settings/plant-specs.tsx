@@ -39,15 +39,30 @@ const criticalityChip = (row: MachineReply, c: CrudCtx) => (
   </Chip>
 );
 
+/**
+ * The plant stores a cell as its bare label ("6"); an older row, a form or a fixture may say "Cell 6"
+ * or "Cell-6". One normalisation, so a row never reads "Cell Cell 6".
+ */
+const bareCell = (cell: string) => cell.trim().replace(/^cell[\s-]+/i, '');
+const cellText = (cell: string, c: CrudCtx) =>
+  c.t('plant.machines.cellN', { cell: bareCell(cell) });
 const cellOf = (row: MachineReply, c: CrudCtx) =>
-  row.cell ? c.t('plant.machines.cellN', { cell: row.cell }) : c.t('plant.machines.noCell');
+  row.cell ? cellText(row.cell, c) : c.t('plant.machines.noCell');
 
 /** A cell change is dated today by the server; the note says so before it is saved. */
 function moveNote(values: Record<string, string>, row: MachineReply | null, c: CrudCtx) {
-  const [from, to] = [row?.cell ?? '', (values.cell ?? '').trim()];
+  const [from, to] = [
+    row?.cell ? bareCell(row.cell) : '',
+    values.cell?.trim() ? bareCell(values.cell) : '',
+  ];
   if (!row || !from || !to || from === to) return null;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return c.t('plant.machines.moves', { code: row.code, from, to, date });
+  return c.t('plant.machines.moves', {
+    code: row.code,
+    from: cellText(from, c),
+    to: cellText(to, c),
+    date,
+  });
 }
 
 export const machinesSpec: CrudSpec<MachineReply> = {
@@ -63,7 +78,8 @@ export const machinesSpec: CrudSpec<MachineReply> = {
   hidden: {
     area: 'Master data kept for the ticket; the approved sheet edits the cell, not the area.',
     location: 'Master data kept for the ticket; the approved sheet does not edit it.',
-    groupId: 'A machine is filed into a group when it is moved; this sheet changes the segment only.',
+    groupId:
+      'A machine is filed into a group when it is moved; this sheet changes the segment only.',
     make: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
     model: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
     serial: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
@@ -115,7 +131,7 @@ export const machinesSpec: CrudSpec<MachineReply> = {
   columns: [
     {
       labelKey: 'plant.machines.cell',
-      cell: (row) => row.cell ?? '',
+      cell: (row, c) => cellOf(row, c),
       sortKey: (row) => row.cell ?? '',
     },
     {

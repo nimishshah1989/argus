@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from './test.js';
-import { FLOOR_GROUP, MACHINES, signIn } from './fixtures.js';
+import { FLOOR_GROUP, MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
 
 test('admin moves a machine to another cell and sets its criticality', async ({
   page,
@@ -18,9 +18,9 @@ test('admin moves a machine to another cell and sets its criticality', async ({
 
   await page.getByRole('button', { name: `Edit ${machine.code}`, exact: true }).click();
   const form = page.getByRole('form', { name: `Edit ${machine.code}` });
-  await form.getByLabel('Cell', { exact: true }).fill('Cell-9');
+  await form.getByLabel('Cell', { exact: true }).fill('9');
   await expect(
-    form.getByText(`Moves ${machine.code} from ${machine.cell} to Cell-9 from today`),
+    form.getByText(`Moves ${machine.code} from Cell ${machine.cell} to Cell 9 from today`),
   ).toBeVisible();
   await form.getByRole('button', { name: 'B', exact: true }).click();
   await form.getByRole('button', { name: 'Save', exact: true }).click();
@@ -30,7 +30,7 @@ test('admin moves a machine to another cell and sets its criticality', async ({
   const row = page.getByRole('button', { name: `Edit ${machine.code}`, exact: true });
   await row.click();
   const reopened = page.getByRole('form', { name: `Edit ${machine.code}` });
-  await expect(reopened.getByLabel('Cell', { exact: true })).toHaveValue('Cell-9');
+  await expect(reopened.getByLabel('Cell', { exact: true })).toHaveValue('9');
   await expect(reopened.getByRole('button', { name: 'B', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -65,6 +65,29 @@ test('settings leads back to the desk', async ({ page }, testInfo) => {
   }
   await expect(page).toHaveURL(/\/desk$/);
   await expect(page.getByRole('heading', { name: 'Open', exact: true })).toBeVisible();
+});
+
+test('a machine row shows its cell once, however the plant stored it', async ({ page }) => {
+  const legacy = MACHINES[0]!;
+  const token = await apiLogin('admin');
+  const put = (cell: string) =>
+    apiFetch(`/api/v1/machines/${legacy.id}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cell }),
+    });
+  await signIn(page, 'admin');
+  await page.goto('/settings/machines');
+  // The plant stores a cell as its bare label; the row says it once.
+  await expect(page.getByText('VMC · Cell 1', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Cell Cell/)).toHaveCount(0);
+
+  // A row stored before that shape ("Cell-6") reads the same, never "Cell Cell-6".
+  expect((await put('Cell-6')).ok).toBe(true);
+  await page.reload();
+  await expect(page.getByText('VMC · Cell 6', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Cell Cell/)).toHaveCount(0);
+  expect((await put(legacy.cell)).ok).toBe(true);
 });
 
 test('admin hides a group and it stays hidden', async ({ page }) => {
@@ -125,10 +148,10 @@ test('a failed criticality save still shows the cell move that was saved', async
   );
   await page.getByRole('button', { name: `Edit ${machine.code}`, exact: true }).click();
   const form = page.getByRole('form', { name: `Edit ${machine.code}` });
-  await form.getByLabel('Cell', { exact: true }).fill('Cell-8');
+  await form.getByLabel('Cell', { exact: true }).fill('8');
   await form.getByRole('button', { name: 'C', exact: true }).click();
   await form.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(form.getByRole('alert')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByText(/Cell-8/).first()).toBeVisible();
+  await expect(page.getByText(/Cell 8/).first()).toBeVisible();
 });
