@@ -75,7 +75,10 @@ test('"Not fixed" needs a reason, then the same ticket is open again', async ({
   await expect(card.getByText('Your reason: Still loose at high speed')).toBeVisible();
   // The card's wording comes from the handback, so also read the ticket: a dispute reopens it for the lead, and
   // the API says `working` (in progress again), not `closed`; `open` means nobody has started it.
-  const detail = await getJson<TicketDetailReply>(await token('asha'), `/api/v1/tickets/${ticket.id}`);
+  const detail = await getJson<TicketDetailReply>(
+    await token('asha'),
+    `/api/v1/tickets/${ticket.id}`,
+  );
   expect(detail.ticket.status).toBe('working');
   expect(detail.ticket.handback?.reopenCount).toBe(1);
 });

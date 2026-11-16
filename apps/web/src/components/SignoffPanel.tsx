@@ -106,10 +106,10 @@ export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Conf
     {
       label: t('signoff.maintenance'),
       value: formatMinutes(handback.turnaround.maintenanceMin),
-      hint: t(
-        state === 'reopened' ? 'signoff.maintenanceFirstHint' : 'signoff.maintenanceHint',
-        { from: at(ticket.reportedAt), to: at(handback.requestedAt) },
-      ),
+      hint: t(state === 'reopened' ? 'signoff.maintenanceFirstHint' : 'signoff.maintenanceHint', {
+        from: at(ticket.reportedAt),
+        to: at(handback.requestedAt),
+      }),
     },
     { label: t('signoff.production'), value: copy.answer, hint: productionHint },
     ...(handback.reopenCount > 0

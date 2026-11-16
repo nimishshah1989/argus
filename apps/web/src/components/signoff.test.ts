@@ -61,14 +61,13 @@ describe('sign-off refusals', () => {
     'The sign-off cannot reopen this ticket: the machine already has an open ticket, BD-0171.',
     undefined,
     409,
-    {
-      openTicket: {
-        ticketId: 'ticket-171',
-        ref: 'BD-0171',
-        reportedAt: '2026-11-13T10:50:00.000Z',
-      },
+  ).withDetails({
+    openTicket: {
+      ticketId: 'ticket-171',
+      ref: 'BD-0171',
+      reportedAt: '2026-11-13T10:50:00.000Z',
     },
-  );
+  });
 
   it('reads the new breakdown from the code and its open ticket', () => {
     expect(signoffRefusal(blocked, 'disputed')).toMatchObject({

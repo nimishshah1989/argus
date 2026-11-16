@@ -60,6 +60,7 @@ export function SignoffAsk({ data, ticket }: { data: FloorData; ticket: Ticket }
         <Button disabled={command.pending} onClick={() => void answer(CONFIRMED)}>
           {t('signoff.yes')}
         </Button>
+        {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
         <Button variant="secondary" onClick={() => setSheet(true)}>
           {t('signoff.no')}
         </Button>

@@ -38,21 +38,20 @@ export class ApiError extends Error {
   machineCell?: string | null;
   loginCell?: string | null;
 
-  constructor(
-    code: string,
-    message: string,
-    field?: string,
-    status?: number,
-    details: ApiErrorDetails = {},
-  ) {
+  constructor(code: string, message: string, field?: string, status?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
     this.status = status;
+  }
+
+  /** The structured fields the server sent beside the code (a new ticket, both cells). */
+  withDetails(details: ApiErrorDetails): this {
     this.openTicket = details.openTicket;
     this.machineCell = details.machineCell;
     this.loginCell = details.loginCell;
+    return this;
   }
 }
 
@@ -89,12 +88,11 @@ async function parseError(res: Response): Promise<ApiError> {
         body.error.message ?? 'Request failed',
         body.error.field,
         res.status,
-        {
-          openTicket: body.error.openTicket,
-          machineCell: body.error.machineCell,
-          loginCell: body.error.loginCell,
-        },
-      );
+      ).withDetails({
+        openTicket: body.error.openTicket,
+        machineCell: body.error.machineCell,
+        loginCell: body.error.loginCell,
+      });
     }
   } catch {
     // Non-JSON error body; fall through to a generic message.
