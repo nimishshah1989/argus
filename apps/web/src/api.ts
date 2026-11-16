@@ -204,6 +204,7 @@ export type CommandBody =
   | { personId?: string; report: BreakdownReportBody }
   | { personId?: string; reason: string }
   | { personId?: string; role: 'primary' | 'support' }
+  | { personId?: string; response: 'confirmed' | 'disputed'; reason?: string }
   | { reason: string; changes: CorrectChanges };
 
 export const putSeverityMatrix = (value: SeverityMatrix): Promise<{ ok: boolean }> =>

@@ -19,12 +19,24 @@ export function clearToken(): void {
   forgetPushBinding();
 }
 
+/** The ticket a refused dispute names, and the two cells a refused phone names. */
+export interface ApiErrorDetails {
+  openTicket?: { ticketId: string; ref: string; reportedAt: string };
+  machineCell?: string | null;
+  loginCell?: string | null;
+}
+
 /** A server `{error:{code,message,field}}` body surfaced to the screen. */
 export class ApiError extends Error {
   code: string;
   field?: string;
   /** The HTTP status, when the error came from a reply (not from a failed connection). */
   status?: number;
+  /** On `reopen_blocked`: the machine's newer open ticket. */
+  openTicket?: ApiErrorDetails['openTicket'];
+  /** On `other_cell`: the machine's cell and the login's, when known. */
+  machineCell?: string | null;
+  loginCell?: string | null;
 
   constructor(code: string, message: string, field?: string, status?: number) {
     super(message);
@@ -32,6 +44,14 @@ export class ApiError extends Error {
     this.code = code;
     this.field = field;
     this.status = status;
+  }
+
+  /** The structured fields the server sent beside the code (a new ticket, both cells). */
+  withDetails(details: ApiErrorDetails): this {
+    this.openTicket = details.openTicket;
+    this.machineCell = details.machineCell;
+    this.loginCell = details.loginCell;
+    return this;
   }
 }
 
@@ -53,7 +73,14 @@ export function worthRetrying(error: unknown): boolean {
 async function parseError(res: Response): Promise<ApiError> {
   try {
     const body = (await res.json()) as {
-      error?: { code?: string; message?: string; field?: string };
+      error?: {
+        code?: string;
+        message?: string;
+        field?: string;
+        openTicket?: ApiErrorDetails['openTicket'];
+        machineCell?: string | null;
+        loginCell?: string | null;
+      };
     };
     if (body?.error) {
       return new ApiError(
@@ -61,7 +88,11 @@ async function parseError(res: Response): Promise<ApiError> {
         body.error.message ?? 'Request failed',
         body.error.field,
         res.status,
-      );
+      ).withDetails({
+        openTicket: body.error.openTicket,
+        machineCell: body.error.machineCell,
+        loginCell: body.error.loginCell,
+      });
     }
   } catch {
     // Non-JSON error body; fall through to a generic message.

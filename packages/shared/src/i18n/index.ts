@@ -44,6 +44,8 @@ import { closesEn } from './closes.en.js';
 import { closesGu } from './closes.gu.js';
 import { signinEn } from './signin.en.js';
 import { signinGu } from './signin.gu.js';
+import { signoffEn } from './signoff.en.js';
+import { signoffGu } from './signoff.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -70,6 +72,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'report-floor': reportFloorEn,
   closes: closesEn,
   signin: signinEn,
+  signoff: signoffEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -97,6 +100,7 @@ export const en = {
   ...reportFloorEn,
   ...closesEn,
   ...signinEn,
+  ...signoffEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -126,4 +130,5 @@ export const gu = {
   ...reportFloorGu,
   ...closesGu,
   ...signinGu,
+  ...signoffGu,
 };

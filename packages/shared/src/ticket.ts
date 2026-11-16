@@ -4,6 +4,9 @@ import { taskDownMinSchema, taskInputSchema } from './tasks.js';
 // ISO timestamps are coerced to Date so the parsed body matches the domain Command types.
 const iso = z.coerce.date();
 
+/** The shared cap on every reason a ticket command carries; the phone field must not type past it. */
+export const REASON_MAX_LENGTH = 500;
+
 export const raiseTicketSchema = z
   .object({
     kind: z.enum(['stopped', 'support', 'general']).default('stopped'),
@@ -81,7 +84,7 @@ export type JoinTicketBody = z.infer<typeof joinTicketSchema>;
 
 export const leaveTicketSchema = z.object({
   personId: actingPerson,
-  reason: z.string().min(1).max(500),
+  reason: z.string().min(1).max(REASON_MAX_LENGTH),
 });
 export type LeaveTicketBody = z.infer<typeof leaveTicketSchema>;
 
@@ -210,7 +213,7 @@ export type ReportTicketBody = z.infer<typeof reportTicketSchema>;
 
 export const cancelTicketSchema = z.object({
   personId: actingPerson,
-  reason: z.string().min(1).max(500),
+  reason: z.string().min(1).max(REASON_MAX_LENGTH),
 });
 export type CancelTicketBody = z.infer<typeof cancelTicketSchema>;
 
@@ -219,7 +222,7 @@ export const handbackTicketSchema = z
   .object({
     personId: actingPerson,
     response: z.enum(['confirmed', 'disputed']),
-    reason: z.string().trim().min(1).max(500).optional(),
+    reason: z.string().trim().min(1).max(REASON_MAX_LENGTH).optional(),
   })
   .refine((body) => body.response === 'confirmed' || body.reason !== undefined, {
     message: 'A reason is required',
@@ -229,12 +232,12 @@ export type HandbackTicketBody = z.infer<typeof handbackTicketSchema>;
 
 export const restoreTicketSchema = z.object({
   personId: actingPerson,
-  reason: z.string().min(1).max(500),
+  reason: z.string().min(1).max(REASON_MAX_LENGTH),
 });
 export type RestoreTicketBody = z.infer<typeof restoreTicketSchema>;
 
 export const correctTicketSchema = z.object({
-  reason: z.string().min(1).max(500),
+  reason: z.string().min(1).max(REASON_MAX_LENGTH),
   changes: z.object({
     reportedAt: iso.optional(),
     startedAt: iso.optional(),

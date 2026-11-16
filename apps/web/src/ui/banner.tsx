@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { Info, TriangleAlert, WifiOff, type IconComponent } from './icon.js';
+import { Info, TimerOff, TriangleAlert, WifiOff, type IconComponent } from './icon.js';
 
-export type BannerTone = 'offline' | 'info' | 'attention' | 'error';
+export type BannerTone = 'offline' | 'info' | 'attention' | 'error' | 'muted';
 
 const TONE: Record<BannerTone, { box: string; title: string; icon: IconComponent }> = {
   offline: { box: 'bg-muted-tint', title: 'text-neutral-900', icon: WifiOff },
   info: { box: 'rounded-xl bg-info-tint', title: 'text-info-ink', icon: Info },
   attention: { box: 'rounded-xl bg-warning-tint', title: 'text-warning-ink', icon: TriangleAlert },
   error: { box: 'rounded-xl bg-danger-tint', title: 'text-danger-ink', icon: TriangleAlert },
+  muted: { box: 'rounded-xl bg-muted-tint', title: 'text-muted-ink', icon: TimerOff },
 };
 
 /**
