@@ -9,7 +9,7 @@ import { toldByEscalationStep } from '../notifications/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
-import { lockoutOf } from './lockout.js';
+import { lockoutsOf, lockoutOf } from './lockout.js';
 import { taskParts } from './tasks.js';
 import {
   needReportRows,
@@ -99,6 +99,19 @@ async function queryList(
   const items = await withTicketParts(client, { tenantId, actor }, page, (row) =>
     projectTicket(row, perPerson[row.id as string]),
   );
+  const lockouts = await lockoutsOf(
+    client,
+    { tenantId, loginId: actor.loginId },
+    page.map((row) => ({
+      id: row.id as string,
+      status: row.status as string,
+      workType: (row.work_type as string | null) ?? null,
+    })),
+  );
+  for (const item of items) {
+    const lockout = lockouts.get(item.id as string);
+    if (lockout) item.lockout = lockout;
+  }
   let nextCursor: string | null = null;
   if (rows.length > filters.limit) {
     const last = page[page.length - 1] as Record<string, unknown>;
@@ -164,7 +177,22 @@ export async function loadState(
     const all = await withTicketParts(client, { tenantId, actor }, rows, (row) =>
       projectTicket(row),
     );
-    return { open: all.slice(0, openRows.length), needReport: all.slice(openRows.length) };
+    const open = all.slice(0, openRows.length);
+    // The Open desk hides a flagged ticket's quick Start by this; the ticket page still reads it in full.
+    const lockouts = await lockoutsOf(
+      client,
+      { tenantId, loginId: actor.loginId },
+      openRows.map((row) => ({
+        id: row.id as string,
+        status: row.status as string,
+        workType: (row.work_type as string | null) ?? null,
+      })),
+    );
+    for (const ticket of open) {
+      const lockout = lockouts.get(ticket.id as string);
+      if (lockout) ticket.lockout = lockout;
+    }
+    return { open, needReport: all.slice(openRows.length) };
   });
 }
 

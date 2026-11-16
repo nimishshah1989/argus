@@ -80,6 +80,66 @@ export async function lockoutOf(
   return (await readLockout(client, who, ticketId))?.lockout ?? null;
 }
 
+const LIVE = new Set(['open', 'working', 'waiting']);
+
+/** One live ticket in a list reply: enough to say whether it needs a lockout, without its queries. */
+export interface LockoutRow {
+  id: string;
+  status: string;
+  workType: string | null;
+}
+
+/**
+ * The lockout of every flagged ticket in a list reply, keyed by ticket id; unflagged and non-live tickets
+ * are left out. The plant's flags are read once and the latest report category of the whole page in one
+ * query, so a desk card sees the same flag as the ticket page without running Start itself.
+ */
+export async function lockoutsOf(
+  client: PoolClient,
+  who: Who,
+  tickets: readonly LockoutRow[],
+): Promise<Map<string, Lockout>> {
+  const result = new Map<string, Lockout>();
+  const live = tickets.filter((ticket) => LIVE.has(ticket.status));
+  if (live.length === 0) return result;
+  const flagged = await lockoutFlagged(client, who.tenantId);
+  const names = (list: string) =>
+    new Set((flagged.find((entry) => entry.list === list)?.names ?? []).map(norm));
+  const workTypes = names('work_type');
+  const categories = names('breakdown_category');
+  const { rows } = await client.query(
+    `SELECT DISTINCT ON (ticket_id) ticket_id, breakdown_category FROM breakdown_report
+      WHERE tenant_id = $1 AND ticket_id = ANY($2) ORDER BY ticket_id, submitted_at DESC`,
+    [who.tenantId, live.map((ticket) => ticket.id)],
+  );
+  const categoryOf = new Map(
+    rows.map((row) => [row.ticket_id as string, row.breakdown_category as string | null]),
+  );
+  const needed = live.filter((ticket) => {
+    if (ticket.workType && workTypes.has(norm(ticket.workType))) return true;
+    const category = categoryOf.get(ticket.id);
+    return category != null && categories.has(norm(category));
+  });
+  if (needed.length === 0) return result;
+  await ensureLockoutSteps(client, who);
+  const steps = await lockoutSteps(client, who.tenantId);
+  for (const ticket of needed) {
+    const history = await lockoutHistory(client, ticket.id);
+    const standing = standingLockoutConfirmations(
+      history,
+      steps.map((step) => step.code),
+    );
+    result.set(ticket.id, {
+      steps,
+      confirmations: [...standing.values()].map((entry) => ({
+        at: entry.at.toISOString(),
+        byPersonId: entry.actingPersonId ?? null,
+      })),
+    });
+  }
+  return result;
+}
+
 /** A flagged work type is never started at the raise: the ticket stays open until its lockout is confirmed. */
 export async function holdStartForLockout(
   client: PoolClient,

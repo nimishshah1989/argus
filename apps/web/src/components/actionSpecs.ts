@@ -111,13 +111,17 @@ export function actionSpecs(
 }
 
 const QUICK: readonly TicketAction[] = ['start', 'resume', 'machine-running'];
+/** A flagged ticket's Start, Pick up and Resume confirm the lockout first, so the card sends it to the ticket. */
+const NEEDS_STEPS: ReadonlySet<TicketAction> = new Set(['start', 'resume']);
 
 /** The one field-free action a desk card offers; crew does not matter for it. */
 export function quickSpec(ticket: Ticket, actor: ActorContext): ActionSpec | null {
   const offered = availableActions({ ...ticket, crew: [] }, actor);
   const action = QUICK.find(
     (candidate) =>
-      offered.includes(candidate) && (candidate !== 'machine-running' || !ticket.machineRunningAt),
+      offered.includes(candidate) &&
+      !(ticket.lockout && NEEDS_STEPS.has(candidate)) &&
+      (candidate !== 'machine-running' || !ticket.machineRunningAt),
   );
   return action ? { action, label: labelFor(action, ticket), primary: false } : null;
 }

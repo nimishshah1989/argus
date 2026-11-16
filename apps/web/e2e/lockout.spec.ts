@@ -131,6 +131,20 @@ test('a refused Resume keeps saying who is still to confirm', async ({ page }) =
   await expect(page.getByText(/Still to confirm:.*Bina/)).toBeVisible();
 });
 
+test('a flagged ticket card routes to the ticket instead of a quick Start', async ({ page }) => {
+  const ticket = await flaggedTicket();
+  await signIn(page, 'asha');
+  await page.goto('/desk');
+  await page.getByRole('button', { name: /^Work \(/ }).click();
+
+  const card = page.getByRole('listitem').filter({ hasText: ticket.ref });
+  await expect(card).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Start work' })).toHaveCount(0);
+
+  await card.getByRole('link').click();
+  await expect(page.getByRole('heading', { name: 'Lockout before you start' })).toBeVisible();
+});
+
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
   const ticket = await flaggedTicket();
   const asha = await apiLogin('asha');
