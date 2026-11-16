@@ -56,17 +56,50 @@ describe('wait limit words', () => {
 });
 
 describe('sign-off refusals', () => {
-  const conflict = new ApiError(
-    'conflict',
+  const blocked = new ApiError(
+    'reopen_blocked',
     'The sign-off cannot reopen this ticket: the machine already has an open ticket, BD-0171.',
+    undefined,
+    409,
+    {
+      openTicket: {
+        ticketId: 'ticket-171',
+        ref: 'BD-0171',
+        reportedAt: '2026-11-13T10:50:00.000Z',
+      },
+    },
   );
 
-  it('tells a dispute against a machine with a new open breakdown from other conflicts', () => {
-    expect(signoffRefusal(conflict, 'disputed')).toEqual({ kind: 'newBreakdown', ref: null });
+  it('reads the new breakdown from the code and its open ticket', () => {
+    expect(signoffRefusal(blocked, 'disputed')).toMatchObject({
+      kind: 'newBreakdown',
+      ref: 'BD-0171',
+      reportedAt: '2026-11-13T10:50:00.000Z',
+    });
     expect(signoffRefusal(new ApiError('conflict', 'Already answered'), 'disputed')).toEqual({
       kind: 'other',
     });
-    expect(signoffRefusal(conflict, 'confirmed')).toEqual({ kind: 'other' });
+    expect(signoffRefusal(blocked, 'confirmed')).toEqual({ kind: 'other' });
+  });
+
+  it('never decides from the server words, so a wording edit cannot hide the refusal', () => {
+    const renamed = new ApiError('reopen_blocked', 'The office printer is on fire');
+    expect(signoffRefusal(renamed, 'disputed')).toEqual({
+      kind: 'newBreakdown',
+      ref: null,
+      reportedAt: null,
+    });
+    const oldWording = new ApiError(
+      'conflict',
+      'The sign-off cannot reopen this ticket: the machine already has an open ticket, BD-0171.',
+    );
+    expect(signoffRefusal(oldWording, 'disputed')).toEqual({ kind: 'other' });
+  });
+
+  it('reads another cell from its code, not from every 403', () => {
+    expect(signoffRefusal(new ApiError('other_cell', 'no'), 'confirmed')).toEqual({
+      kind: 'otherCell',
+    });
   });
 
   it('does not blame the cell for a plain 403, which is also a switched person or a wrong role', () => {

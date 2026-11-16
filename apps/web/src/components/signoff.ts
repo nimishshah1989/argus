@@ -35,27 +35,26 @@ export const waitedMin = (handback: Handback, nowIso: string): number =>
 
 /** What went wrong when production's answer was refused, in words the screen can pick a message for. */
 export type Refusal =
-  | { kind: 'newBreakdown'; ref: string | null }
+  | { kind: 'newBreakdown'; ref: string | null; reportedAt: string | null }
   | { kind: 'otherCell' }
   | { kind: 'notAllowed' }
   | { kind: 'other' };
 
 /**
- * The one place that reads the server's refusals. Today the server sends a plain 409 for "the machine already
- * has a new open ticket" and a plain 403 for every refusal of who may answer, so the sentence prefix and the
- * status stand in; the stable codes and their fields (new ticket id, ref, time; both cells) replace this when they ship.
+ * The one place that reads the server's refusals. The stable codes decide, never the message text: a wording edit
+ * must not turn a known refusal into "Could not send. Try again." A plain conflict or 403 stays the generic refusal.
  */
 export function signoffRefusal(error: unknown, response: 'confirmed' | 'disputed'): Refusal {
   if (!(error instanceof ApiError)) return { kind: 'other' };
-  // A 403 is also a switched phone person or a wrong role, so it must not claim "other cell" until the server
-  // sends its own code for that; `otherCell` is ready for it.
+  if (error.code === 'other_cell') return { kind: 'otherCell' };
+  // A 403 is also a switched phone person or a wrong role, so it must not claim "other cell" without the code.
   if (error.code === 'forbidden') return { kind: 'notAllowed' };
-  if (
-    response === 'disputed' &&
-    error.code === 'conflict' &&
-    error.message.startsWith('The sign-off cannot reopen')
-  )
-    return { kind: 'newBreakdown', ref: null };
+  if (response === 'disputed' && error.code === 'reopen_blocked')
+    return {
+      kind: 'newBreakdown',
+      ref: error.openTicket?.ref ?? null,
+      reportedAt: error.openTicket?.reportedAt ?? null,
+    };
   return { kind: 'other' };
 }
 
