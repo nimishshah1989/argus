@@ -34,10 +34,17 @@ export interface MinuteTile {
   hint?: string;
 }
 
-/** Three figures side by side: a small label, the number big, a hint under it. */
+/** Two figures take the halves the mockup draws; three take thirds. */
+export function minuteTileColumns(count: number): 2 | 3 {
+  return count === 2 ? 2 : 3;
+}
+
+const COLUMNS = { 2: 'grid-cols-2', 3: 'grid-cols-3' } as const;
+
+/** Figures side by side: a small label, the number big, a hint under it. */
 export function MinuteTiles({ tiles }: { tiles: MinuteTile[] }) {
   return (
-    <dl className="grid grid-cols-3 gap-2">
+    <dl className={`grid ${COLUMNS[minuteTileColumns(tiles.length)]} gap-2`}>
       {tiles.map((tile) => (
         <div key={tile.label} className="flex flex-col rounded-2xl bg-surface p-3 shadow-card">
           <dt className="text-caption text-neutral-600">{tile.label}</dt>

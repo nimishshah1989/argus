@@ -14,10 +14,10 @@ import {
 } from './signoff.js';
 
 const TONE: Record<SignoffState, BannerTone> = {
-  asking: 'info',
+  asking: 'attention',
   confirmed: 'info',
   reopened: 'error',
-  timedOut: 'attention',
+  timedOut: 'muted',
 };
 
 interface Copy {
@@ -79,18 +79,39 @@ export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Conf
   const { handback } = ticket;
   if (!handback) return null;
   const copy = copyFor(t, handback, config);
+  const state = signoffState(handback);
+  const at = (iso: string | null) => (iso ? formatTime(iso, config?.timeZone) : '');
+  const productionHint = (() => {
+    switch (state) {
+      case 'asking':
+        return t('signoff.waitingSoFar', {
+          time: formatMinutes(waitedMin(handback, new Date().toISOString())),
+        });
+      case 'confirmed':
+        return ticket.closedAt && handback.respondedAt
+          ? t('signoff.confirmedWindow', {
+              from: at(ticket.closedAt),
+              to: at(handback.respondedAt),
+            })
+          : undefined;
+      case 'reopened':
+        return handback.respondedAt
+          ? t('signoff.disputedAt', { time: at(handback.respondedAt) })
+          : undefined;
+      case 'timedOut':
+        return handback.dueAt ? t('signoff.timedOutAt', { time: at(handback.dueAt) }) : undefined;
+    }
+  })();
   const tiles = [
     {
       label: t('signoff.maintenance'),
       value: formatMinutes(handback.turnaround.maintenanceMin),
-      hint: ticket.closedAt
-        ? t('signoff.maintenanceHint', {
-            from: formatTime(ticket.reportedAt, config?.timeZone),
-            to: formatTime(ticket.closedAt, config?.timeZone),
-          })
-        : undefined,
+      hint: t(
+        state === 'reopened' ? 'signoff.maintenanceFirstHint' : 'signoff.maintenanceHint',
+        { from: at(ticket.reportedAt), to: at(handback.requestedAt) },
+      ),
     },
-    { label: t('signoff.production'), value: copy.answer },
+    { label: t('signoff.production'), value: copy.answer, hint: productionHint },
     ...(handback.reopenCount > 0
       ? [
           {
@@ -103,7 +124,7 @@ export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Conf
   ];
   return (
     <section aria-label={copy.title} className="flex flex-col gap-3">
-      <Banner tone={TONE[signoffState(handback)]} title={copy.title}>
+      <Banner tone={TONE[state]} title={copy.title}>
         {copy.sub}
       </Banner>
       <MinuteTiles tiles={tiles} />

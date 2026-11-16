@@ -9,7 +9,7 @@ import {
 } from '../../components/signoff.js';
 import { useCommand } from '../../data/index.js';
 import { Button } from '../../ui/button.js';
-import { Stack } from '../../ui/layout.js';
+import { Grid, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
 import { DisputeSheet } from './dispute-sheet.js';
 import { RefusalNote } from './refusal-note.js';
@@ -56,13 +56,14 @@ export function SignoffAsk({ data, ticket }: { data: FloorData; ticket: Ticket }
         <Text>{t('signoff.askBody', { time: clock(ticket.closedAt) })}</Text>
       ) : null}
       <RefusalNote refusal={sheet ? null : refusal} />
-      <Button disabled={command.pending} onClick={() => void answer(CONFIRMED)}>
-        {t('signoff.yes')}
-      </Button>
-      {/* eslint-disable-next-line i18next/no-literal-string -- prop value, not copy */}
-      <Button variant="secondary" onClick={() => setSheet(true)}>
-        {t('signoff.no')}
-      </Button>
+      <Grid columns={2} gap={2}>
+        <Button disabled={command.pending} onClick={() => void answer(CONFIRMED)}>
+          {t('signoff.yes')}
+        </Button>
+        <Button variant="secondary" onClick={() => setSheet(true)}>
+          {t('signoff.no')}
+        </Button>
+      </Grid>
       <DisputeSheet
         open={sheet}
         onOpenChange={setSheet}
