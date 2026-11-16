@@ -40,13 +40,12 @@ export class ApiError extends Error {
   /** On a resume refused for the lockout: the people still to confirm. */
   missing?: string[];
 
-  constructor(code: string, message: string, field?: string, status?: number, missing?: string[]) {
+  constructor(code: string, message: string, field?: string, status?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
     this.status = status;
-    this.missing = missing;
   }
 
   /** The structured fields the server sent beside the code (a new ticket, both cells). */
@@ -87,17 +86,18 @@ async function parseError(res: Response): Promise<ApiError> {
       };
     };
     if (body?.error) {
-      return new ApiError(
+      const error = new ApiError(
         body.error.code ?? 'internal',
         body.error.message ?? 'Request failed',
         body.error.field,
         res.status,
-        body.error.missing,
       ).withDetails({
         openTicket: body.error.openTicket,
         machineCell: body.error.machineCell,
         loginCell: body.error.loginCell,
       });
+      error.missing = body.error.missing;
+      return error;
     }
   } catch {
     // Non-JSON error body; fall through to a generic message.

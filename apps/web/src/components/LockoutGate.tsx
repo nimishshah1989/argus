@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody } from '../api.js';
@@ -50,15 +50,11 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
   const [missing, setMissing] = useState<readonly string[]>([]);
   const steps = view?.kind === 'ticking' ? view.steps : [];
   const allTicked = steps.length > 0 && steps.every((step) => ticks.has(step.code));
-  // A refetch that puts the ticket back in front of the ticks (after a pause, say) starts them empty:
-  // the ticks belong to the confirmation that was just cleared, not to the one about to be made.
+  // A refetch that puts the steps back in front of the person (after a pause, say) starts them unticked.
   const stepsKey = steps.map((step) => step.code).join('\u0000');
-  const seenSteps = useRef<string | null>(steps.length > 0 ? stepsKey : null);
   useEffect(() => {
-    const key = steps.length > 0 ? stepsKey : null;
-    if (key !== null && seenSteps.current !== key) setTicks(new Set());
-    seenSteps.current = key;
-  }, [steps.length, stepsKey]);
+    if (stepsKey) setTicks(new Set());
+  }, [stepsKey]);
 
   function tick(code: string, on: boolean) {
     const next = new Set(ticks);
