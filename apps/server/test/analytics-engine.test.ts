@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
@@ -146,16 +146,23 @@ describe('the analytics profile and the engine, through HTTP', () => {
   });
 
   it('answers every registered figure with its owner and a drill type, and defaults the date to the plant today', async () => {
-    const res = await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!);
-    const { asOf, figures } = res.json();
-    expect(asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(figures.length).toBeGreaterThan(30);
-    for (const figure of figures) {
-      expect(['machine', 'ticket', 'move'], figure.key).toContain(figure.drill.type);
-      expect(figure.owner, figure.key).toBeGreaterThanOrEqual(38);
-      expect(figure.status, figure.key).toBe('not_computed');
+    // 00:30 on 16 Nov at this plant (Asia/Kolkata) is still 15 Nov in UTC: the default must be the plant's day.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-15T19:00:00Z'));
+    try {
+      const res = await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!);
+      const { asOf, figures } = res.json();
+      expect(asOf).toBe('2026-11-16');
+      expect(figures.length).toBeGreaterThan(30);
+      for (const figure of figures) {
+        expect(['machine', 'ticket', 'move'], figure.key).toContain(figure.drill.type);
+        expect(figure.owner, figure.key).toBeGreaterThanOrEqual(38);
+        expect(figure.status, figure.key).toBe('not_computed');
+      }
+      expect(figures.map((figure: { key: string }) => figure.key)).toContain('money-matters');
+    } finally {
+      vi.useRealTimers();
     }
-    expect(figures.map((figure: { key: string }) => figure.key)).toContain('money-matters');
   });
 
   it('shows money only to heads and admin, and the figures only to those who may read analytics', async () => {
