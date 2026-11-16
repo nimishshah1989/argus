@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { FIGURES } from '@uptimo/domain';
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
@@ -165,13 +166,20 @@ describe('the analytics profile and the engine, through HTTP', () => {
     }
   });
 
-  it('shows money only to heads and admin, and the figures only to those who may read analytics', async () => {
+  it('shows every money figure only to heads and admin, and the figures only to those who may read analytics', async () => {
+    const moneyKeys = FIGURES.filter((figure) => figure.money).map((figure) => figure.key);
+    expect(moneyKeys.length).toBeGreaterThan(1);
     const supervisor = await f.call('GET', '/api/v1/analytics/figures', f.tokens.supervisor!);
     expect(supervisor.statusCode).toBe(200);
     expect(supervisor.json().profile.mmThroughput).toBeNull();
-    expect(supervisor.json().figures.map((x: { key: string }) => x.key)).not.toContain(
-      'money-matters',
-    );
+    const supervisorKeys = supervisor.json().figures.map((x: { key: string }) => x.key);
+    const headKeys = (await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!))
+      .json()
+      .figures.map((x: { key: string }) => x.key);
+    for (const key of moneyKeys) {
+      expect(supervisorKeys, key).not.toContain(key);
+      expect(headKeys, key).toContain(key);
+    }
     for (const role of ['operator', 'technician', 'board']) {
       expect(
         (await f.call('GET', '/api/v1/analytics/figures', f.tokens[role]!)).statusCode,
