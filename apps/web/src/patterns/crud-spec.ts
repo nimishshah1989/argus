@@ -10,6 +10,10 @@ export interface CrudRow {
 }
 /** The rows of each lookup resource (`CrudSpec.lookups`), by name; a spec casts what it reads. */
 export type Lookups = Record<string, unknown[]>;
+/** A reply schema's keys, as the D05 guard reads them without pulling its library into the app. */
+export interface ReplySchema {
+  shape: Record<string, unknown>;
+}
 /** What a spec's functions read: the lookup rows by name, and the translator. */
 export interface CrudCtx {
   lookups: Lookups;
@@ -52,6 +56,10 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   emptyKey: LabelKey;
   /** The Add button and the add sheet; default "Add". */
   addKey?: LabelKey;
+  /** The reply the list returns (D05): every key is a form field or declared hidden. */
+  schema?: ReplySchema;
+  /** Reply keys the screen never shows, each with the reason; the D05 guard permits only these. */
+  hidden?: Record<string, string>;
   /** Form fields, and the table columns when the spec has no `look`. */
   fields: CrudField<Row>[];
   /** Resources the choices and the row look draw on (segments, machines), read once and cached. */

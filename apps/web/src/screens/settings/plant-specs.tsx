@@ -1,9 +1,12 @@
 /* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
-import type {
-  GroupReply,
-  MachineReply,
-  SegmentReply,
-  ShiftReply,
+import {
+  groupReplySchema,
+  machineReplySchema,
+  shiftReplySchema,
+  type GroupReply,
+  type MachineReply,
+  type SegmentReply,
+  type ShiftReply,
 } from '@uptimo/shared/plant-settings';
 import { putMachineCriticality } from '../../api.js';
 import type { CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
@@ -50,12 +53,22 @@ function moveNote(values: Record<string, string>, row: MachineReply | null, c: C
 export const machinesSpec: CrudSpec<MachineReply> = {
   key: 'machines',
   path: '/api/v1/machines',
+  schema: machineReplySchema,
   titleKey: 'plant.machines.title',
   emptyKey: 'plant.machines.empty',
   addKey: 'plant.machines.add',
   footnoteKey: 'plant.audit',
   lookups: { segments },
   toggle: false,
+  hidden: {
+    area: 'Master data kept for the ticket; the approved sheet edits the cell, not the area.',
+    location: 'Master data kept for the ticket; the approved sheet does not edit it.',
+    groupId: 'A machine is filed into a group when it is moved; this sheet changes the segment only.',
+    make: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
+    model: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
+    serial: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
+    year: 'Nameplate detail, imported once; tickets show it and this sheet never edits it.',
+  },
   fields: [
     { name: 'code', labelKey: 'plant.machines.code', required: true, addOnly: true },
     { name: 'category', labelKey: 'plant.machines.category', addOnly: true },
@@ -129,12 +142,14 @@ const machineCount = (c: CrudCtx, groupId: string) =>
 export const groupsSpec: CrudSpec<GroupReply> = {
   key: 'groups',
   path: '/api/v1/groups',
+  schema: groupReplySchema,
   titleKey: 'plant.groups.title',
   emptyKey: 'plant.groups.empty',
   addKey: 'plant.groups.add',
   introKey: 'plant.groups.intro',
   lookups: { segments, machines },
   toggle: { labelKey: 'plant.groups.hide', inverted: true },
+  hidden: { hidden: 'The row switch is this flag; the sheet never edits it.' },
   fields: [
     {
       name: 'segmentId',
@@ -188,9 +203,11 @@ const hours = (row: ShiftReply, c: CrudCtx) =>
 export const shiftsSpec: CrudSpec<ShiftReply> = {
   key: 'shifts',
   path: '/api/v1/shifts',
+  schema: shiftReplySchema,
   titleKey: 'plant.shifts.title',
   emptyKey: 'plant.shifts.empty',
   addKey: 'plant.shifts.add',
+  hidden: { crossesMidnight: 'Worked out from the two times and shown in the hours line.' },
   fields: [
     { name: 'code', labelKey: 'plant.shifts.code', required: true, addOnly: true },
     { name: 'name', labelKey: 'plant.shifts.name', required: true },
