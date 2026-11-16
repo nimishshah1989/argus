@@ -35,7 +35,9 @@ export function DisputeSheet({ open, onOpenChange, ticket, refusal, pending, sen
         {refused ? (
           <>
             <Text weight="bold">
-              {t('signoff.refusedTitle', { ref: refused.ref ?? ticket.ref })}
+              {refused.ref
+                ? t('signoff.refusedTitle', { ref: refused.ref })
+                : t('signoff.refusedTitleNoRef')}
             </Text>
             {refused.reportedAt ? (
               <Text size="footnote" tone="secondary">

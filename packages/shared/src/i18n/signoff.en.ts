@@ -11,6 +11,7 @@ export const signoffEn = {
   'signoff.cancel': 'Cancel',
   'signoff.back': 'Go back',
   'signoff.refusedTitle': 'This machine already has a new open breakdown, {{ref}}.',
+  'signoff.refusedTitleNoRef': 'This machine already has a new open breakdown.',
   'signoff.refusedReported': 'It was reported at {{time}}.',
   'signoff.refusedBody': 'Your problem is handled there, so {{ref}} stays closed.',
   'signoff.otherCell':
