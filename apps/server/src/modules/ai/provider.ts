@@ -1,9 +1,9 @@
 import type { z } from 'zod';
 import { createClaudeProvider } from './claude.js';
 import type { AiConfig } from './config.js';
-import type { AiJson } from './redact.js';
+import type { AiJson } from '../identity/index.js';
 
-export type { AiJson } from './redact.js';
+export type { AiJson } from '../identity/index.js';
 
 export interface AiOutputSchema<T> {
   /** Tool name, /^[a-z_]{1,64}$/. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RedactionTerms } from '../src/modules/identity/index.js';
-import { createRedactor } from '../src/modules/ai/redact.js';
+import { createRedactor } from '../src/modules/identity/redact.js';
 
 function terms(over: Partial<RedactionTerms> = {}): RedactionTerms {
   return {

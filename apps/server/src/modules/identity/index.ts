@@ -12,6 +12,7 @@ export {
   lockTenantBySlug,
   listPeople,
   peopleByIds,
+  peopleForEngine,
   purgeDeadSessions,
   redactionTerms,
   resolveTenant,
@@ -76,3 +77,4 @@ export {
 } from './support-auth.js';
 
 export const identityModule = defineModule({ name: 'identity', register: registerIdentityRoutes });
+export { createRedactor, type AiJson, type Redactor } from './redact.js';

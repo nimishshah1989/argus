@@ -14,3 +14,4 @@ export * from './plant-settings.js';
 export * from './support-access.js';
 export * from './lockout.js';
 export * from './escalation-settings.js';
+export * from './analytics.js';

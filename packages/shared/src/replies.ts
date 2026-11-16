@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { figuresReplySchema, profilePageSchema, profileReplySchema } from './analytics.js';
 import { boardTodayReplySchema } from './board.js';
 import { signoffFeedReplySchema } from './signoff.js';
 import {
@@ -176,6 +177,9 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('roster', rosterReplySchema),
   ...settingsResource('escalation-rules', ruleReplySchema),
+  [`GET ${P}/analytics-profile`]: profilePageSchema,
+  [`PUT ${P}/analytics-profile/:id`]: profileReplySchema,
+  [`GET ${P}/analytics/figures`]: figuresReplySchema,
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`POST ${P}/tickets/past`]: commandReplySchema,
