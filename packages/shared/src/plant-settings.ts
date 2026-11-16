@@ -50,12 +50,21 @@ const machineFields = {
   status: machineStatusSchema,
 };
 
+/**
+ * The lock's rule that criticality starts at B for every machine. A new machine gets it from the create
+ * schema; a machine stored before the rule (a null) is read as B, which is the legacy default.
+ */
+export const DEFAULT_MACHINE_CRITICALITY = 'B' as const;
+
 /** A new machine. Criticality can be set here; afterwards it changes only through its own route. */
 export const machineCreateSchema = dropBlanks(
   z
     .object({ code, criticality: criticalitySchema.nullable(), ...machineFields })
     .partial()
     .required({ code: true })
+    // Set after `.partial()`: a field-level default made optional by `.partial()` never runs, so a form
+    // that leaves criticality empty would store a null instead of the lock's B.
+    .extend({ criticality: criticalitySchema.nullable().default(DEFAULT_MACHINE_CRITICALITY) })
     .strict(),
 );
 export type MachineCreate = z.infer<typeof machineCreateSchema>;

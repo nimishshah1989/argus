@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import type { ZodTypeAny } from 'zod';
 import type { ActorContext } from '@uptimo/domain';
 import {
+  DEFAULT_MACHINE_CRITICALITY,
   groupCreateSchema,
   groupPatchSchema,
   machineCreateSchema,
@@ -100,6 +101,11 @@ export interface Proposed {
 
 const clock = (value: unknown) => String(value).slice(0, 5);
 
+/**
+ * The one place a machine is shaped for a caller. A stored null is a machine made before the lock's
+ * "criticality starts at B" rule, so it reads as B here (the legacy default) and every screen and
+ * severity answer sees a machine that has a criticality.
+ */
 function machineReply(row: Row): Reply {
   return {
     id: row.id,
@@ -110,7 +116,7 @@ function machineReply(row: Row): Reply {
     location: row.location,
     segmentId: row.segment_id,
     groupId: row.group_id,
-    criticality: row.criticality,
+    criticality: row.criticality ?? DEFAULT_MACHINE_CRITICALITY,
     make: row.make,
     model: row.model,
     serial: row.serial,

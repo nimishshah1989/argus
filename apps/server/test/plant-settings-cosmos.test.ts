@@ -44,7 +44,13 @@ function call(method: string, url: string, payload?: object) {
     ...(payload ? { payload } : {}),
   });
 }
-type Machine = { id: string; code: string; cell: string | null; segmentId: string | null };
+type Machine = {
+  id: string;
+  code: string;
+  cell: string | null;
+  segmentId: string | null;
+  criticality: 'A' | 'B' | 'C' | null;
+};
 const machines = async () => (await call('GET', '/api/v1/machines')).json().items as Machine[];
 
 describe("Cosmos's real plant through the settings API", () => {
@@ -98,6 +104,22 @@ describe("Cosmos's real plant through the settings API", () => {
     expect(off.json()).toMatchObject({ status: 'scrapped', active: false });
     expect((await call('GET', '/api/v1/config')).json().machines).toHaveLength(191);
     expect(await machines()).toHaveLength(192);
+  });
+
+  it('criticality starts at B for every machine, including one stored without a value', async () => {
+    const created = (
+      await call('POST', '/api/v1/machines', { code: 'NEW-CRIT-B', category: 'VMC' })
+    ).json();
+    expect(created.criticality).toBe('B');
+    const stored = await db.admin.query('SELECT criticality FROM machine WHERE id = $1', [
+      created.id,
+    ]);
+    expect(stored.rows[0].criticality).toBe('B');
+
+    const legacy = (await machines()).find((m) => m.code === 'NEW-CRIT-B')!;
+    await db.admin.query('UPDATE machine SET criticality = NULL WHERE id = $1', [legacy.id]);
+    const read = (await machines()).find((m) => m.code === 'NEW-CRIT-B')!;
+    expect(read.criticality).toBe('B');
   });
 });
 
