@@ -11,7 +11,6 @@ export interface Gate {
   personId: string;
   view: LockoutView | null;
   ticks: ReadonlySet<string>;
-  allTicked: boolean;
   /** The confirmation and the action are being sent. */
   busy: boolean;
   /** Why the last attempt was refused, in words. */
@@ -26,24 +25,14 @@ export interface Gate {
   run: (action: CommandAction, body: CommandBody) => Promise<boolean>;
 }
 
-/** Outside a ticket page there is no lockout: nothing is held and the action bar behaves as it always did. */
-const NO_GATE: Gate = {
-  personId: '',
-  view: null,
-  ticks: new Set(),
-  allTicked: false,
-  busy: false,
-  refusal: null,
-  missing: [],
-  tick: () => undefined,
-  holds: () => false,
-  sending: () => false,
-  run: () => Promise.resolve(false),
-};
+/** Outside a ticket page there is no lockout: the action bar is only rendered under `LockoutGate`. */
+const GateContext = createContext<Gate | null>(null);
 
-const GateContext = createContext<Gate>(NO_GATE);
-
-export const useLockoutGate = () => useContext(GateContext);
+export function useLockoutGate(): Gate {
+  const gate = useContext(GateContext);
+  if (!gate) throw new Error('useLockoutGate is only for the ticket page');
+  return gate;
+}
 
 interface Props {
   ticketId: string;
@@ -109,7 +98,6 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
     personId,
     view,
     ticks,
-    allTicked,
     busy,
     refusal,
     missing,
