@@ -7,22 +7,34 @@ import { getMe } from '../../api.js';
 import { CrudPage } from '../../patterns/crud-page.js';
 import type { CrudRow, CrudSpec } from '../../patterns/crud-spec.js';
 import { useWide } from '../../patterns/wide.js';
-import { ChevronRight, Clock, Factory, LayoutGrid, type IconComponent } from '../../ui/icon.js';
+import {
+  ChevronRight,
+  Clock,
+  Factory,
+  LayoutGrid,
+  Menu,
+  type IconComponent,
+} from '../../ui/icon.js';
 import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 
-type PlantPage = 'home' | 'machines' | 'groups' | 'shifts';
+export type PlantPage = 'home' | 'machines' | 'groups' | 'shifts';
 type Key = 'plant.menu.machines' | 'plant.menu.groups' | 'plant.menu.shifts';
 
-/** Plant settings (D5): one menu entry per config of `CrudPage`; the menu is where a new config is added. */
-const PAGES: {
+export interface PlantPageSpec {
   page: Exclude<PlantPage, 'home'>;
   icon: IconComponent;
   key: Key;
   spec: CrudSpec<never>;
-}[] = [
+}
+
+/**
+ * Plant settings (D5): one list is the menu and the routes, so a new config (ticket 23) is added in one
+ * place. `App.tsx` maps it to `/settings/<page>`, and the left menu and phone list read the same entries.
+ */
+export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'machines', icon: Factory, key: 'plant.menu.machines', spec: machinesSpec as never },
   { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
   { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
@@ -34,7 +46,7 @@ function Home() {
     <div className="flex flex-col gap-2">
       <h2 className="px-1 text-footnote font-semibold text-neutral-600">{t('plant.menu.plant')}</h2>
       <ul className="rounded-2xl bg-surface px-4 shadow-card">
-        {PAGES.map(({ page, icon: Icon, key }) => (
+        {PLANT_PAGES.map(({ page, icon: Icon, key }) => (
           <li key={page} className="border-t border-neutral-200 first:border-t-0">
             <Link to={`/settings/${page}`} className="flex min-h-16 items-center gap-3 py-2">
               <Icon aria-hidden size={22} />
@@ -62,7 +74,7 @@ function NoAccess() {
 }
 
 function Body({ page }: { page: PlantPage }) {
-  const found = PAGES.find((p) => p.page === page);
+  const found = PLANT_PAGES.find((p) => p.page === page);
   return found ? <CrudPage key={page} spec={found.spec as CrudSpec<CrudRow>} /> : <Home />;
 }
 
@@ -78,8 +90,15 @@ export function PlantSettings({ page }: { page: PlantPage }) {
   if (role) content = role === 'admin' || role === 'head' ? <Body page={page} /> : <NoAccess />;
   const nav = [
     {
+      title: t('nav.desk'),
+      items: [
+        { to: '/desk', label: t('desk.tab.open'), icon: Menu },
+        { to: '/desk/board', label: t('deskLists.tab.live'), icon: LayoutGrid },
+      ],
+    },
+    {
       title: t('plant.menu.plant'),
-      items: PAGES.map(({ page: to, icon, key }) => ({
+      items: PLANT_PAGES.map(({ page: to, icon, key }) => ({
         to: `/settings/${to}`,
         label: t(key),
         icon,
@@ -101,7 +120,11 @@ export function PlantSettings({ page }: { page: PlantPage }) {
     );
   return (
     <div className="flex min-h-dvh flex-col bg-neutral-100 text-neutral-900">
-      {page === 'home' ? bar : <TopBar back={{ to: '/settings', label: t('plant.title') }} />}
+      {page === 'home' ? (
+        <TopBar title={t('plant.title')} back={{ to: '/desk', label: t('settings.back') }} />
+      ) : (
+        <TopBar back={{ to: '/settings', label: t('plant.title') }} />
+      )}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">{content}</main>
     </div>
   );

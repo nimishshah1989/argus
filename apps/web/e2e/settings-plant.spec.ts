@@ -49,6 +49,24 @@ test('the group switch keeps the 44 px tap target at 360 px', async ({ page }) =
   expect(box.width).toBeGreaterThanOrEqual(44);
 });
 
+test('settings leads back to the desk', async ({ page }, testInfo) => {
+  const wide = testInfo.project.name === 'chromium';
+  if (wide) await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, 'admin');
+  await page.goto('/settings/machines');
+  if (wide)
+    await page
+      .getByRole('navigation', { name: 'Settings' })
+      .getByRole('link', { name: 'Open', exact: true })
+      .click();
+  else {
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
+    await page.getByRole('link', { name: 'Back to desk', exact: true }).click();
+  }
+  await expect(page).toHaveURL(/\/desk$/);
+  await expect(page.getByRole('heading', { name: 'Open', exact: true })).toBeVisible();
+});
+
 test('admin hides a group and it stays hidden', async ({ page }) => {
   await signIn(page, 'admin');
   await page.goto('/settings/groups');
