@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
-import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
+import { AccountButtonRow, AccountSheet } from '../../components/AccountSheet.js';
 import { Drafts } from '../../components/Drafts.js';
 import { useOnline } from '../../data/index.js';
 import { PatternFrame, StateNotice } from '../../patterns/frame.js';
@@ -24,9 +24,7 @@ export function FloorShell({ children }: { children: ReactNode }) {
   return (
     <Shell bar={<TabBar label={t('reportFloor.tabs')} tabs={tabs} current={current} />}>
       <Page>
-        <div className="flex justify-end">
-          <AccountButton onClick={() => setAccount(true)} />
-        </div>
+        <AccountButtonRow onClick={() => setAccount(true)} />
         <Drafts />
         {children}
       </Page>

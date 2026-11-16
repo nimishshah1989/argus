@@ -74,6 +74,15 @@ export function AccountButton({ onClick, named }: { onClick: () => void; named?:
   );
 }
 
+/** The person button's row on the floor's header: right-aligned, kept out of faces/ (D20). */
+export function AccountButtonRow({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="flex justify-end">
+      <AccountButton onClick={onClick} />
+    </div>
+  );
+}
+
 function Header({ user, company }: { user: Me; company: string }) {
   const { t } = useTranslation();
   const grant = Boolean(user.supportGrantId);
