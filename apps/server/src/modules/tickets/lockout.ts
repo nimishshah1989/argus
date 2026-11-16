@@ -5,6 +5,7 @@ import { ensureLockoutSteps, lockoutFlagged, lockoutSteps } from '../plant/index
 import type { Outcome, Tx } from './mapper.js';
 import {
   liveTicket,
+  lockoutHistories,
   lockoutHistory,
   peopleWorkingAfterResume,
   reportCategories,
@@ -92,8 +93,8 @@ export interface LockoutRow {
 
 /**
  * The lockout of every flagged ticket in a list reply, keyed by ticket id; unflagged and non-live tickets
- * are left out. The plant's flags are read once and the latest report category of the whole page in one
- * query, so a desk card sees the same flag as the ticket page without running Start itself.
+ * are left out. The plant's flags, the latest report category and the lockout history of the whole page are
+ * each read once, so a desk card sees the same flag as the ticket page without running Start itself.
  */
 export async function lockoutsOf(
   client: PoolClient,
@@ -121,10 +122,14 @@ export async function lockoutsOf(
   if (needed.length === 0) return result;
   await ensureLockoutSteps(client, who);
   const steps = await lockoutSteps(client, who.tenantId);
+  const historyOf = await lockoutHistories(
+    client,
+    who.tenantId,
+    needed.map((ticket) => ticket.id),
+  );
   for (const ticket of needed) {
-    const history = await lockoutHistory(client, ticket.id);
     const standing = standingLockoutConfirmations(
-      history,
+      historyOf.get(ticket.id) ?? [],
       steps.map((step) => step.code),
     );
     result.set(ticket.id, {
