@@ -5,6 +5,13 @@ Product spec: `docs/spec/SPEC.md`. Current state: `docs/HANDOFF.md` (read first)
 new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: `docs/DATA-MAP.md`. Design:
 `docs/DESIGN.md`. Discovery in `docs/discovery/` is reference only, never code to copy.
 
+## Model routing and budgets
+
+Development and testing run on the hosted coder; goal drafting, planning, final review and compliance run on
+the reasoning model. The routes, the one-word route probe, the review tiers and the two hard budgets are fixed
+in `docs/decisions/D31-third-regime-routing-and-quality.md`. Never switch a model silently, never exceed a
+budget stop, and never let the writer review its own work.
+
 ## Who decides
 
 - Nimish answers product and business questions only, and tests previews. Never ask him a technology question.
