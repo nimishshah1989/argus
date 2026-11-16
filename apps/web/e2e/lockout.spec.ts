@@ -64,6 +64,28 @@ test('Start stays off until every lockout step is ticked, then confirms and star
   await expect(page.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
 });
 
+test('pausing after a start clears the ticks, so Resume waits for every step again', async ({
+  page,
+}) => {
+  const ticket = await flaggedTicket();
+  await signIn(page, 'asha');
+  await page.goto(`/desk/${ticket.id}`);
+
+  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+  await page.getByRole('button', { name: 'Start work' }).click();
+  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Pause: waiting' }).click();
+  const form = page.getByRole('form', { name: 'Pause the ticket' });
+  await form.getByLabel('Waiting for').selectOption('spare');
+  await form.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(form).toBeHidden();
+
+  // The server cleared the confirmation at the pause: Resume must ask for every step again.
+  await expect(page.getByRole('button', { name: 'Resume work' })).toBeDisabled();
+  for (const step of FOUR_STEPS) await expect(page.getByLabel(step)).not.toBeChecked();
+});
+
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
   const ticket = await flaggedTicket();
   const asha = await apiLogin('asha');
