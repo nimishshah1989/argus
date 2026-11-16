@@ -919,16 +919,20 @@ rows:
     evidence: []
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.registers.05
-    feature:
-      'Settings page: company, hours per day and days per year, cost per hour, thresholds, team,
-      codes, categories; settings sync preview'
-    disposition: replace
+    feature: Settings sync preview and push to the phones
+    disposition: drop
     milestone: M4
     milestones:
       - M4
-    status: todo
+    status: waived
+    waiver_reason:
+      'Dropped by the M4a triage (signed off 16 Nov 2026): the phones and the analytics are one
+      system now. Settings themselves are kept and tracked by m4a.settings (ticket 37).
+      Cost if wrong: None.'
     evidence: []
     source: PARITY.md §analytics / Registers and master data
+    screen: settings-sync
+    ticket: '36'
   - id: analytics.registers.06
     feature: Data Checklist page (what is missing or inconsistent)
     disposition: keep
@@ -939,26 +943,36 @@ rows:
     evidence: []
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.breakdown.01
-    feature: Breakdown log with filters; breakdown form; downtime conversions; classification rules
-      including NO DT (repaired outside production hours, zero lost hours)
-    disposition: keep
+    feature: Typing a breakdown into the log
+    disposition: drop
     milestone: M4
     milestones:
       - M4
-    status: todo
+    status: waived
+    waiver_reason:
+      'Dropped by the M4a triage (signed off 16 Nov 2026): new breakdowns are closed tickets;
+      late ones use the past-breakdown path. The breakdown log itself is kept and tracked by
+      m4a.breakdown-log (ticket 40). Cost if wrong: Bhavin types in the old tool during the
+      transition; one admin form.'
     evidence: []
     source: PARITY.md §analytics / Breakdown history and analysis
+    screen: breakdown-form
+    ticket: '36'
   - id: analytics.breakdown.02
     feature: PDF import of the breakdown report via QR (preview, apply)
-    disposition: keep
+    disposition: drop
     milestone: M4
     milestones:
       - M4
-    status: external
-    external_reason: Needs Bhavin's legacy PDF corpus to verify the QR import during the transition;
-      unnecessary once tickets create reports (M4).
+    status: waived
+    waiver_reason:
+      'Dropped by the M4a triage (signed off 16 Nov 2026): tickets now create the report; the
+      1,350 rows are already in the workbook. Cost if wrong: paper reports not in the workbook
+      are re-keyed by hand through the past-breakdown path.'
     evidence: []
     source: PARITY.md §analytics / Breakdown history and analysis
+    screen: pdf-import
+    ticket: '36'
   - id: analytics.breakdown.03
     feature: A1 BD percent and PM split; A2 by category and cell with detail; A3 MTTR and MTBF with
       machine table; A4 manpower; A5 energy heatmap; heat-grid components
@@ -1046,15 +1060,20 @@ rows:
     evidence: []
     source: PARITY.md §analytics / Breakdown history and analysis
   - id: analytics.breakdown.12
-    feature: Excel import and export of the whole data set
-    disposition: keep
+    feature: Restore the whole platform from an Excel file
+    disposition: drop
     milestone: M4
     milestones:
       - M4
-    status: external
-    external_reason: Bhavin's Excel export is the import source and defines the mapping (NEEDS.md); M4/M5.
+    status: waived
+    waiver_reason:
+      'Dropped by the M4a triage (signed off 16 Nov 2026): history loads through the cleaned-history
+      path (D21); a general importer is M5. Excel export is kept and tracked by m4a.workbook-export
+      (ticket 45). Cost if wrong: none for Cosmos; a second plant waits for M5.'
     evidence: []
     source: PARITY.md §analytics / Breakdown history and analysis
+    screen: excel-import
+    ticket: '36'
   - id: analytics.forecasting.01
     feature: Machine rate pooled with category rate (180-day prior, an empirical-Bayes idea); repeat
       entries merged into episodes

@@ -124,6 +124,27 @@ export function keptScreens(triage: string): { id: string; ticket: string }[] {
     .map((cells) => ({ id: cells[1] as string, ticket: cells[4] as string }));
 }
 
+/** A screen the triage dropped; any parity row that still tracks it must be waved off. */
+function droppedScreenErrors(file: ParityFile, triage: string): string[] {
+  const errors: string[] = [];
+  const dropped = triage
+    .split('\n')
+    .map((line) => line.split('|').map((cell) => cell.trim()))
+    .filter(
+      (cells) => cells.length > 5 && cells[3] === 'DROPPED' && /^[a-z0-9-]+$/.test(cells[1] ?? ''),
+    )
+    .map((cells) => cells[1] as string);
+  for (const id of dropped) {
+    for (const row of file.rows.filter((candidate) => candidate.screen === id)) {
+      if (row.disposition !== 'drop' || row.status !== 'waived')
+        errors.push(
+          `screen ${id}: dropped in the M4a triage but row ${row.id} still claims work (${row.status}, ${row.disposition})`,
+        );
+    }
+  }
+  return errors;
+}
+
 function screenErrors(file: ParityFile, triage: string): string[] {
   const errors: string[] = [];
   for (const kept of keptScreens(triage)) {
@@ -157,7 +178,11 @@ export function validateParity(
     errors.push(...rowErrors(row, seen));
     seen.add(row.id);
   }
-  errors.push(...sourceErrors(file, markdown), ...screenErrors(file, triage));
+  errors.push(
+    ...sourceErrors(file, markdown),
+    ...screenErrors(file, triage),
+    ...droppedScreenErrors(file, triage),
+  );
   return errors;
 }
 
