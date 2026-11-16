@@ -51,6 +51,13 @@ function rowsOf(specs: ActionSpec[]): ActionSpec[][] {
   return rows;
 }
 
+/** The busy line says which gated action is being sent, not always "starting". */
+const CONFIRMING: Record<string, string> = {
+  start: 'lockout.confirmingStart',
+  resume: 'lockout.confirmingResume',
+  join: 'lockout.confirmingJoin',
+};
+
 /** One action button; on a flagged ticket Start, Resume and Join wait for the ticks and say why. */
 function ActionButton(props: { spec: ActionSpec; disabled: boolean; onClick: () => void }) {
   const { spec, disabled, onClick } = props;
@@ -58,6 +65,7 @@ function ActionButton(props: { spec: ActionSpec; disabled: boolean; onClick: () 
   const gate = useLockoutGate();
   const held = gate.holds(spec.action);
   const sending = gate.sending(spec.action);
+  const confirming = CONFIRMING[spec.action] ?? 'lockout.confirming';
   return (
     <>
       <Button
@@ -69,7 +77,7 @@ function ActionButton(props: { spec: ActionSpec; disabled: boolean; onClick: () 
         {sending ? (
           <span className="inline-flex items-center justify-center gap-2">
             <RefreshCw aria-hidden size={20} />
-            {t('lockout.confirming')}
+            {t(confirming)}
           </span>
         ) : (
           t(spec.label)

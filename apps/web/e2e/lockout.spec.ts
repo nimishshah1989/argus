@@ -145,6 +145,28 @@ test('a flagged ticket card routes to the ticket instead of a quick Start', asyn
   await expect(page.getByRole('heading', { name: 'Lockout before you start' })).toBeVisible();
 });
 
+test('the busy button names the action it is confirming, not always starting', async ({ page }) => {
+  const ticket = await flaggedTicket();
+  const asha = await apiLogin('asha');
+  const stepCodes = await stepCodesOf(asha, ticket.id);
+  await postCommand(asha, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(asha, ticket.id, 'start', {});
+  await postCommand(asha, ticket.id, 'pause', { reasonCode: 'spare' });
+
+  await signIn(page, 'asha');
+  await page.goto(`/desk/${ticket.id}`);
+  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+
+  // Hold the confirmation in flight so the label is readable without a race.
+  await page.route('**/api/v1/tickets/*/lockout-confirm', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Resume work' }).click();
+  await expect(page.getByRole('button', { name: /Confirming and resuming/ })).toBeVisible();
+  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
+});
+
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
   const ticket = await flaggedTicket();
   const asha = await apiLogin('asha');
