@@ -8,6 +8,7 @@ import { Stack } from '../../ui/layout.js';
 import { Sheet } from '../../ui/sheet.js';
 import { Text } from '../../ui/text.js';
 import { RefusalNote } from './refusal-note.js';
+import { clock } from './use-floor.js';
 
 interface Props {
   open: boolean;
@@ -22,13 +23,20 @@ interface Props {
 export function DisputeSheet({ open, onOpenChange, ticket, refusal, pending, send }: Props) {
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
-  const refused = refusal?.kind === 'newBreakdown';
+  const refused = refusal?.kind === 'newBreakdown' ? refusal : null;
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t('signoff.no')}>
       <Stack gap={3}>
         {refused ? (
           <>
-            <Text weight="bold">{t('signoff.refusedTitle')}</Text>
+            <Text weight="bold">
+              {t('signoff.refusedTitle', { ref: refused.ref ?? ticket.ref })}
+            </Text>
+            {refused.reportedAt ? (
+              <Text size="footnote" tone="secondary">
+                {t('signoff.refusedReported', { time: clock(refused.reportedAt) })}
+              </Text>
+            ) : null}
             <Text size="footnote" tone="secondary">
               {t('signoff.refusedBody', { ref: ticket.ref })}
             </Text>

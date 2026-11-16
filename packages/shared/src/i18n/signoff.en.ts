@@ -10,7 +10,8 @@ export const signoffEn = {
   'signoff.send': 'Send back to maintenance',
   'signoff.cancel': 'Cancel',
   'signoff.back': 'Go back',
-  'signoff.refusedTitle': 'This machine already has a new open breakdown.',
+  'signoff.refusedTitle': 'This machine already has a new open breakdown, {{ref}}.',
+  'signoff.refusedReported': 'It was reported at {{time}}.',
   'signoff.refusedBody': 'Your problem is handled there, so {{ref}} stays closed.',
   'signoff.otherCell':
     'This phone cannot answer for this machine. Ask the person who reported it, or a supervisor, to answer.',
