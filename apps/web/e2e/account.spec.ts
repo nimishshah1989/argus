@@ -84,6 +84,31 @@ test('the support-access note shows only when the session carries a grant', asyn
   await expect(account(page).getByRole('link', { name: 'Change password' })).toHaveCount(0);
 });
 
+/** A phone whose alerts are already on: a stubbed registration and a granted permission. */
+async function withAlertsOn(page: import('@playwright/test').Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __push: string[] };
+    w.__push = [];
+    Object.defineProperty(window, 'PushManager', { value: function PushManager() {} });
+    Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+    const subscription = {
+      endpoint: 'https://fcm.googleapis.com/fcm/send/e2e-account',
+      toJSON: () => ({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/e2e-account',
+        keys: { p256dh: 'e2e-key', auth: 'e2e-auth' },
+      }),
+      unsubscribe: async () => {
+        w.__push.push('unsubscribe');
+        return true;
+      },
+    };
+    const registration = { pushManager: { getSubscription: async () => subscription } };
+    Object.defineProperty(navigator.serviceWorker, 'getRegistration', {
+      value: async () => registration,
+    });
+  });
+}
+
 test.describe('Alerts', () => {
   test('where the browser cannot show alerts, it says so and offers no switch', async ({
     page,
@@ -122,6 +147,51 @@ test.describe('Alerts', () => {
     await alerts.getByRole('button', { name: 'Check again' }).click();
     await expect(alerts.getByText('Off', { exact: true })).toBeVisible();
     await expect(alerts.getByRole('button', { name: 'Turn on alerts' })).toBeVisible();
+  });
+});
+
+test.describe('Alerts already on', () => {
+  test('alerts already on for this phone say so and send the test through the server', async ({
+    page,
+  }) => {
+    const tests: string[] = [];
+    await page.route('**/api/v1/push/test', async (route) => {
+      tests.push(route.request().method());
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"sent":1}' });
+    });
+    await withAlertsOn(page);
+    await signIn(page, 'asha');
+    await openAccount(page);
+    const alerts = account(page).getByRole('region', { name: 'Alerts' });
+    await expect(alerts.getByText('On', { exact: true })).toBeVisible();
+    await expect(alerts.getByText('Alerts are on for this phone')).toBeVisible();
+    await alerts.getByRole('button', { name: 'Send a test' }).click();
+    await expect(alerts.getByText('Test sent. It should arrive in a moment.')).toBeVisible();
+    expect(tests).toEqual(['POST']);
+  });
+
+  test('signing out stops alerts on the server before the session ends', async ({ page }) => {
+    const order: string[] = [];
+    await page.route('**/api/v1/push/unsubscribe', async (route) => {
+      order.push('unsubscribe');
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+    });
+    await page.route('**/api/v1/auth/logout', async (route) => {
+      order.push('logout');
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+    });
+    await withAlertsOn(page);
+    await signIn(page, 'asha');
+    await openAccount(page);
+    await account(page).getByRole('button', { name: 'Sign out', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page).toHaveURL(/\/login/);
+    expect(order).toEqual(['unsubscribe', 'logout']);
+    expect(
+      await page.evaluate(() =>
+        (window as unknown as { __push: string[] }).__push.includes('unsubscribe'),
+      ),
+    ).toBe(true);
   });
 });
 
