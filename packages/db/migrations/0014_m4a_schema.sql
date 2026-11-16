@@ -1,5 +1,6 @@
 -- Migration 0014: the one M4a schema change. Ticket 36 part B, D17 (the `kpi_snapshot` table), D31 (where each kept
 -- stored item of the analytics face lives).
+-- Apply with scripts/migrate.ts, not raw psql: only the runner lends app_router CREATE on schema public for the OWNER TO below (D24 point 4).
 -- approved-by: orchestrator ruling (backend lane, 14 Nov: ticket 36 part B brief, candidate list in the 36A figure catalogue, PR #267, §2); reviewed by two agents on the PR
 -- backup: full snapshot first (RDS: aws rds create-db-snapshot; elsewhere pg_dump -Fc), its id recorded in the deploy note.
 --   This file DROPS three columns that existed since 0001 and that no code reads or writes (`person.kind`,
