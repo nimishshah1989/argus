@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody } from '../api.js';
 import { ApiError, confirmLockoutThen } from '../data/index.js';
@@ -29,6 +29,10 @@ export interface Gate {
 
 /** Outside a ticket page there is no lockout: the action bar is only rendered under `LockoutGate`. */
 const GateContext = createContext<Gate | null>(null);
+
+/** Refreshes the replies a command changes, in parallel. */
+const refresh = (client: QueryClient, keys: string[]) =>
+  Promise.all(keys.map((key) => client.invalidateQueries({ queryKey: [key] })));
 
 export function useLockoutGate(): Gate {
   const gate = useContext(GateContext);
@@ -73,11 +77,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
       if (view?.kind !== 'ticking') return false;
       const stepCodes = view.steps.map((step) => step.code);
       await confirmLockoutThen(ticketId, { stepCodes, action, body });
-      await Promise.all(
-        ['state', 'ticket', 'tickets'].map((key) =>
-          queryClient.invalidateQueries({ queryKey: [key] }),
-        ),
-      );
+      await refresh(queryClient, ['state', 'ticket', 'tickets']);
       return true;
     } catch (caught) {
       const key = lockoutRefusalKey(caught);
@@ -85,7 +85,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
       setMissing(caught instanceof ApiError ? (caught.missing ?? []) : []);
       setTicks(new Set());
       // The steps may have been edited, or somebody else may have moved the ticket: show what is true now.
-      await queryClient.invalidateQueries({ queryKey: ['ticket'] });
+      await refresh(queryClient, ['ticket']);
       return false;
     } finally {
       setBusy(false);
