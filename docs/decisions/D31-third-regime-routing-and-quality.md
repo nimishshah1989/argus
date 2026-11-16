@@ -47,6 +47,22 @@ the app boots, so a profile change needs a full restart; the session allowlist i
 8. **Memory.** One ledger line per dispatch, ruling or merge (`docs/plan/ledger.md`); a decision file for
    irreversible choices; the handoff under 50 lines; change fragments under `changes/`.
 
+### Vendored pstack playbooks in DSH
+
+The repo vendors the pstack plugin (D23): 167 playbook/reference files under `.claude/skills/` and two agent
+briefs under `.claude/agents/`. DSH does not load Claude plugins, so the machine exposes the useful playbooks as
+native DSH skills through thin shims in `~/.agents/skills/`; each shim says "read the real SKILL.md and follow
+it", and the source of truth stays in the repo.
+
+Available in the session catalog: `poteto-mode` (build loop), `ponytail-review` (every PR), `ponytail-audit`
+(milestone), `interrogate` (R3 adversarial), `architect`, `pstack-how`, `pstack-why`, `correct`, `to-spec`,
+`to-tickets`, `impeccable`, `blast-radius`, `domain-modeling`, `pstack-principles`, `recall`, `ketchup`,
+`typescript-best-practices`.
+
+Claude-only machinery does not run: the four hooks (`session_start`, `pre_tool`, `post_edit`, `stop`) and slash
+commands are followed as intent. The two agent briefs (`poteto-agent`, `comment-sicko`) are pasted into a
+subagent prompt. On a machine without the shims, recreate them from `.claude/skills/<name>/SKILL.md`.
+
 ## Goal loop (engineering protocol)
 
 One milestone goal at a time, persisted with the DSH goal service (`create_goal`; `update_goal` only on a
