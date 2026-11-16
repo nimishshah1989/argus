@@ -95,6 +95,9 @@ END $$;
 ALTER TABLE list_item ADD COLUMN aliases text[] NOT NULL DEFAULT '{}';
 CREATE FUNCTION list_item_check_aliases() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+  IF btrim(NEW.code) = '' THEN
+    RAISE EXCEPTION 'list_item: a code cannot be empty' USING ERRCODE = 'check_violation';
+  END IF;
   NEW.aliases := ARRAY(SELECT DISTINCT lower(btrim(a)) FROM unnest(NEW.aliases) a WHERE btrim(a) <> '' ORDER BY 1);
   PERFORM pg_advisory_xact_lock(hashtextextended(NEW.tenant_id::text || '|' || NEW.list, 0));
   IF lower(NEW.code) = ANY(NEW.aliases) OR EXISTS (

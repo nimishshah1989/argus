@@ -191,6 +191,12 @@ describe('legacy codes', () => {
     }
     expect(await resolve('maint_code', 'rt')).toEqual(['RACE1']);
   });
+
+  it('refuses an empty code, so a blank option cannot enter a list', async () => {
+    await asPlant(A);
+    await expect(listItem('maint_code', '')).rejects.toThrow(/code cannot be empty/);
+    await expect(listItem('maint_code', '   ')).rejects.toThrow(/code cannot be empty/);
+  });
 });
 
 describe('the homes of the analytics face’s stored items', () => {
