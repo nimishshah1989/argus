@@ -28,10 +28,11 @@ export const lockoutStepSchema = z
 export type LockoutStep = z.infer<typeof lockoutStepSchema>;
 
 /**
- * What a ticket's reply says about lockout, on a raise, the ticket detail and a command's reply (not on lists or
- * `/state`): `null` unless the ticket is live and flagged "needs lockout". Then the steps to tick and who stands
- * confirmed now. A confirmation belongs to one person and is cleared when the ticket is paused, handed over,
- * closed, cancelled, restored or reopened, so an empty list on a flagged ticket means "confirm before you touch it".
+ * What a ticket's reply says about lockout, on a raise, the ticket detail, a command's reply, a list reply
+ * (`/tickets`) and `/state`: `null` unless the ticket is live and flagged "needs lockout". Then the steps to
+ * tick and who stands confirmed now. A confirmation belongs to one person and is cleared when the ticket is
+ * paused, handed over, closed, cancelled, restored or reopened, so an empty list on a flagged ticket means
+ * "confirm before you touch it".
  */
 export const lockoutSchema = z
   .object({

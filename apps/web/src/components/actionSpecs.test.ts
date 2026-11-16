@@ -150,6 +150,20 @@ describe('quickSpec', () => {
     expect(label(working({ machineRunningAt: STARTED }))).toBeNull();
     expect(label(ticket(), actor({ role: 'operator' }))).toBeNull();
   });
+
+  it('sends a flagged card to the ticket for Start and Resume, and keeps the other quick action', () => {
+    const lockout = {
+      steps: [{ code: 'isolate', label: 'Isolate the supply', labelGu: null, labelHi: null }],
+      confirmations: [],
+    };
+    const label = (t: Ticket) => quickSpec(t, actor())?.label ?? null;
+    expect(label(ticket({ lockout }))).toBeNull();
+    expect(label(ticket({ handedOver: true, lockout }))).toBeNull();
+    expect(
+      label(ticket({ kind: 'general', status: 'waiting', startedAt: STARTED, lockout })),
+    ).toBeNull();
+    expect(label(working({ lockout }))).toBe('action.label.machineRunning');
+  });
 });
 
 describe('actorFrom and crewFrom', () => {
