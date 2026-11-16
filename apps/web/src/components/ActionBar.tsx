@@ -99,8 +99,14 @@ export function ActionBar(props: Props) {
   const gate = useLockoutGate();
   const [open, setOpen] = useState<ActionSpec | null>(null);
   // On a flagged ticket Start, Resume and Join confirm the lockout first, then run.
-  const onRun = (action: CommandAction, body: CommandBody) =>
-    isGated(gate.view, action) ? gate.run(action, body) : props.onRun(action, body);
+  const onRun = async (action: CommandAction, body: CommandBody) => {
+    if (isGated(gate.view, action)) return gate.run(action, body);
+    // Once the person's own confirmation stands, the command runs through the page itself; a success
+    // there means the lockout refusal it was retried after no longer applies.
+    const ran = await props.onRun(action, body);
+    if (ran) gate.clearRefusal();
+    return ran;
+  };
   const specs = actionSpecs(ticket, crew, actor);
   if (specs.length === 0) return null;
 

@@ -131,6 +131,32 @@ test('a refused Resume keeps saying who is still to confirm', async ({ page }) =
   await expect(page.getByText(/Still to confirm:.*Bina/)).toBeVisible();
 });
 
+test('the refusal goes once the retried Resume succeeds through the page', async ({ page }) => {
+  const ticket = await flaggedTicket();
+  const asha = await apiLogin('asha');
+  const bina = await apiLogin('bina');
+  const stepCodes = await stepCodesOf(asha, ticket.id);
+
+  await postCommand(asha, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(asha, ticket.id, 'start', {});
+  await postCommand(bina, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(bina, ticket.id, 'join', { role: 'support' });
+  await postCommand(asha, ticket.id, 'pause', { reasonCode: 'spare' });
+
+  await signIn(page, 'asha');
+  await page.goto(`/desk/${ticket.id}`);
+  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+  await page.getByRole('button', { name: 'Resume work' }).click();
+  await expect(page.getByText('Lockout refused').first()).toBeVisible();
+
+  // Bina confirms after the pause. Asha's own confirmation already stands, so Resume needs no gate and
+  // goes through the page's own command path; the refusal it left behind is stale and must go.
+  await postCommand(bina, ticket.id, 'lockout-confirm', { stepCodes });
+  await page.getByRole('button', { name: 'Resume work' }).click();
+  await expect(page.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
+  await expect(page.getByText('Lockout refused')).toHaveCount(0);
+});
+
 test('a flagged ticket card routes to the ticket instead of a quick Start', async ({ page }) => {
   const ticket = await flaggedTicket();
   await signIn(page, 'asha');

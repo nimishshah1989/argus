@@ -23,6 +23,8 @@ export interface Gate {
   sending: (action: string) => boolean;
   /** Confirm every step (when not yet confirmed), then run `action`. */
   run: (action: CommandAction, body: CommandBody) => Promise<boolean>;
+  /** The last refusal no longer applies: the command it was about has now run. */
+  clearRefusal: () => void;
 }
 
 /** Outside a ticket page there is no lockout: the action bar is only rendered under `LockoutGate`. */
@@ -101,6 +103,10 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
     holds: (action) => isGated(view, action) && !allTicked,
     sending: (action) => busy && isGated(view, action),
     run,
+    clearRefusal: () => {
+      setRefusal(null);
+      setMissing([]);
+    },
   };
   return <GateContext.Provider value={gate}>{children}</GateContext.Provider>;
 }
