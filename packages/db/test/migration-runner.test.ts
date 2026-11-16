@@ -148,7 +148,6 @@ async function revertBatch1(pool: Pool): Promise<void> {
   await pool.query(
     readFileSync(new URL('../migrations/down/0014_m4a_schema.down.sql', import.meta.url), 'utf8'),
   );
-  await pool.query("DELETE FROM schema_migration WHERE filename = '0014_m4a_schema.sql'");
   await pool.query(
     readFileSync(new URL('../migrations/down/0013_batch1.down.sql', import.meta.url), 'utf8'),
   );
@@ -612,14 +611,16 @@ it('runs every migration as a non-superuser database owner', async () => {
           'utf8',
         ),
       );
-      await pool.query("DELETE FROM schema_migration WHERE filename = '0014_m4a_schema.sql'");
       await expectInstalled(pool, '0014_m4a_schema.sql', false);
+      // The down file alone forgets its ledger row, so the runner applies 0014 again and does not sit pre-0014.
+      expect(await ledger(pool)).not.toContain('0014_m4a_schema.sql');
       const forced = await pool.query(
         `SELECT relname FROM pg_class WHERE relname IN ('person', 'ticket', 'audit_log', 'sla_policy')
            AND NOT relforcerowsecurity`,
       );
       expect(forced.rows).toEqual([]);
-      await runMigration(url.toString());
+      const reapplied = await runMigration(url.toString());
+      expect(reapplied.stdout).toContain('applied 0014_m4a_schema.sql');
       await expectInstalled(pool, '0014_m4a_schema.sql', true);
     } finally {
       await endPool(pool);

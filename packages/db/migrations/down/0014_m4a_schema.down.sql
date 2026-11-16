@@ -48,4 +48,10 @@ ALTER TABLE person FORCE ROW LEVEL SECURITY;
 ALTER TABLE ticket FORCE ROW LEVEL SECURITY;
 ALTER TABLE audit_log FORCE ROW LEVEL SECURITY;
 ALTER TABLE sla_policy FORCE ROW LEVEL SECURITY;
+-- Its own ledger row goes too, so the next runner run applies 0014 again instead of leaving the database pre-0014.
+DO $$ BEGIN
+  IF to_regclass('public.schema_migration') IS NOT NULL THEN
+    DELETE FROM schema_migration WHERE filename = '0014_m4a_schema.sql';
+  END IF;
+END $$;
 COMMIT;
