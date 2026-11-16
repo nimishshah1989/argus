@@ -16,6 +16,8 @@ export interface Gate {
   busy: boolean;
   /** Why the last attempt was refused, in words. */
   refusal: string | null;
+  /** The people the server says are still to confirm, when that is why it refused. */
+  missing: readonly string[];
   tick: (code: string, on: boolean) => void;
   holds: (action: string) => boolean;
   /** This button is the one being sent. */
@@ -32,6 +34,7 @@ const NO_GATE: Gate = {
   allTicked: false,
   busy: false,
   refusal: null,
+  missing: [],
   tick: () => undefined,
   holds: () => false,
   sending: () => false,
@@ -55,6 +58,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
   const [ticks, setTicks] = useState<ReadonlySet<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [missing, setMissing] = useState<readonly string[]>([]);
   const steps = view?.kind === 'ticking' ? view.steps : [];
   const allTicked = steps.length > 0 && steps.every((step) => ticks.has(step.code));
   // A refetch that puts the ticket back in front of the ticks (after a pause, say) starts them empty:
@@ -77,6 +81,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
   async function run(action: CommandAction, body: CommandBody): Promise<boolean> {
     setBusy(true);
     setRefusal(null);
+    setMissing([]);
     try {
       if (view?.kind !== 'ticking') return false;
       const stepCodes = view.steps.map((step) => step.code);
@@ -90,6 +95,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
     } catch (caught) {
       const key = lockoutRefusalKey(caught);
       setRefusal(key ? t(key) : caught instanceof ApiError ? caught.message : t('lockout.offline'));
+      setMissing(caught instanceof ApiError ? (caught.missing ?? []) : []);
       setTicks(new Set());
       // The steps may have been edited, or somebody else may have moved the ticket: show what is true now.
       await queryClient.invalidateQueries({ queryKey: ['ticket'] });
@@ -106,6 +112,7 @@ export function LockoutGate({ ticketId, personId, view, children }: Props) {
     allTicked,
     busy,
     refusal,
+    missing,
     tick,
     holds: (action) => isGated(view, action) && !allTicked,
     sending: (action) => busy && isGated(view, action),

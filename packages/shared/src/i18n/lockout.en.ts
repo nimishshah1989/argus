@@ -6,8 +6,9 @@ export const lockoutEn = {
   'lockout.progress': 'This job needs lockout. {{done}} of {{total}} done.',
   'lockout.tickAll': 'Tick all {{count}} steps to start.',
   'lockout.confirming': 'Confirming and starting...',
-  'lockout.refusedTitle': 'Start refused',
+  'lockout.refusedTitle': 'Lockout refused',
   'lockout.refused': 'The lockout steps were not confirmed. Tick every step, then start again.',
+  'lockout.missingPeople': 'Still to confirm: {{names}}.',
   'lockout.stepsChanged': 'The lockout steps have changed. Tick the new list, then start again.',
   'lockout.noSteps': 'This plant has no lockout steps yet. Ask the maintenance head.',
   'lockout.offline':

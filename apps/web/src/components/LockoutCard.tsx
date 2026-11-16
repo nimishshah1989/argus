@@ -19,17 +19,26 @@ function useLabel() {
   return (step: LockoutStep) => localisedLabel(step, i18n.language);
 }
 
+/** The server's refusal stays on the card across the refetch, and names the crew it is still waiting for. */
+function Refusal({ gate, names }: { gate: Gate; names: Record<string, string> }) {
+  const { t } = useTranslation();
+  if (!gate.refusal) return null;
+  const missing = gate.missing.map((id) => names[id] ?? t('common.teamMember'));
+  return (
+    <Banner tone="error" icon={CircleX} title={t('lockout.refusedTitle')}>
+      {missing.length > 0
+        ? t('lockout.missingPeople', { names: missing.join(', ') })
+        : gate.refusal}
+    </Banner>
+  );
+}
+
 function Ticking({ gate, steps }: { gate: Gate; steps: LockoutStep[] }) {
   const { t } = useTranslation();
   const label = useLabel();
   const done = steps.filter((step) => gate.ticks.has(step.code)).length;
   return (
     <>
-      {gate.refusal && (
-        <Banner tone="error" icon={CircleX} title={t('lockout.refusedTitle')}>
-          {gate.refusal}
-        </Banner>
-      )}
       <p className="text-footnote text-neutral-600">
         {gate.busy ? t('lockout.progress', { done, total: steps.length }) : t('lockout.intro')}
       </p>
@@ -69,20 +78,25 @@ function Confirmed({ gate, names, timeZone }: Props & { gate: Gate }) {
 function Body({ gate, names, timeZone }: Props & { gate: Gate }) {
   const { t } = useTranslation();
   const view = gate.view;
-  if (view?.kind === 'ticking') return <Ticking gate={gate} steps={view.steps} />;
-  if (view?.kind === 'confirmed')
-    return <Confirmed gate={gate} names={names} timeZone={timeZone} />;
-  if (view?.kind === 'record') {
-    return (
+  const content =
+    view?.kind === 'ticking' ? (
+      <Ticking gate={gate} steps={view.steps} />
+    ) : view?.kind === 'confirmed' ? (
+      <Confirmed gate={gate} names={names} timeZone={timeZone} />
+    ) : view?.kind === 'record' ? (
       <Banner tone="attention" title={t('lockout.recordTitle')}>
         {t('lockout.record')}
       </Banner>
+    ) : (
+      <Banner tone="attention" title={t('lockout.noStepsTitle')}>
+        {t('lockout.noSteps')}
+      </Banner>
     );
-  }
   return (
-    <Banner tone="attention" title={t('lockout.noStepsTitle')}>
-      {t('lockout.noSteps')}
-    </Banner>
+    <>
+      <Refusal gate={gate} names={names} />
+      {content}
+    </>
   );
 }
 

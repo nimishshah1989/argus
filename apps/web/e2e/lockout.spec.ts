@@ -17,6 +17,27 @@ const json = (token: string, key = randomUUID()) => ({
   'idempotency-key': key,
 });
 
+/** A command through the API, for the setup another person's confirmation needs. */
+async function postCommand(
+  token: string,
+  ticketId: string,
+  action: string,
+  body: object,
+): Promise<void> {
+  const sent = await apiFetch(`/api/v1/tickets/${ticketId}/${action}`, {
+    method: 'POST',
+    headers: json(token),
+    body: JSON.stringify(body),
+  });
+  expect(sent.status).toBe(200);
+}
+
+async function stepCodesOf(token: string, ticketId: string): Promise<string[]> {
+  const read = await apiFetch(`/api/v1/tickets/${ticketId}`, { headers: json(token) });
+  const { ticket } = (await read.json()) as { ticket: { lockout: { steps: { code: string }[] } } };
+  return ticket.lockout.steps.map((step) => step.code);
+}
+
 /** A work type flagged "needs lockout" of its own, so the spec leaves the plant's lists as it found them. */
 async function flaggedTicket(): Promise<{ id: string; ref: string }> {
   const head = await apiLogin('head');
@@ -84,6 +105,30 @@ test('pausing after a start clears the ticks, so Resume waits for every step aga
   // The server cleared the confirmation at the pause: Resume must ask for every step again.
   await expect(page.getByRole('button', { name: 'Resume work' })).toBeDisabled();
   for (const step of FOUR_STEPS) await expect(page.getByLabel(step)).not.toBeChecked();
+});
+
+test('a refused Resume keeps saying who is still to confirm', async ({ page }) => {
+  const ticket = await flaggedTicket();
+  const asha = await apiLogin('asha');
+  const bina = await apiLogin('bina');
+  const stepCodes = await stepCodesOf(asha, ticket.id);
+
+  // Asha starts, Bina joins the work, then Asha pauses: that clears both confirmations.
+  await postCommand(asha, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(asha, ticket.id, 'start', {});
+  await postCommand(bina, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(bina, ticket.id, 'join', { role: 'support' });
+  await postCommand(asha, ticket.id, 'pause', { reasonCode: 'spare' });
+
+  await signIn(page, 'asha');
+  await page.goto(`/desk/${ticket.id}`);
+  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+  await page.getByRole('button', { name: 'Resume work' }).click();
+
+  // Asha's own confirmation goes through; Resume is refused because Bina has not confirmed since the pause.
+  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
+  await expect(page.getByText('Lockout refused').first()).toBeVisible();
+  await expect(page.getByText(/Still to confirm:.*Bina/)).toBeVisible();
 });
 
 test('another technician has to confirm for themselves before joining', async ({ page }) => {

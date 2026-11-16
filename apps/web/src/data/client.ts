@@ -37,13 +37,16 @@ export class ApiError extends Error {
   /** On `other_cell`: the machine's cell and the login's, when known. */
   machineCell?: string | null;
   loginCell?: string | null;
+  /** On a resume refused for the lockout: the people still to confirm. */
+  missing?: string[];
 
-  constructor(code: string, message: string, field?: string, status?: number) {
+  constructor(code: string, message: string, field?: string, status?: number, missing?: string[]) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.field = field;
     this.status = status;
+    this.missing = missing;
   }
 
   /** The structured fields the server sent beside the code (a new ticket, both cells). */
@@ -80,6 +83,7 @@ async function parseError(res: Response): Promise<ApiError> {
         openTicket?: ApiErrorDetails['openTicket'];
         machineCell?: string | null;
         loginCell?: string | null;
+        missing?: string[];
       };
     };
     if (body?.error) {
@@ -88,6 +92,7 @@ async function parseError(res: Response): Promise<ApiError> {
         body.error.message ?? 'Request failed',
         body.error.field,
         res.status,
+        body.error.missing,
       ).withDetails({
         openTicket: body.error.openTicket,
         machineCell: body.error.machineCell,
