@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { REASON_MAX_LENGTH } from '@uptimo/shared/ticket';
 import type { Ticket } from '../../api.js';
 import type { Refusal } from '../../components/signoff.js';
 import { Button } from '../../ui/button.js';
@@ -23,6 +24,10 @@ interface Props {
 export function DisputeSheet({ open, onOpenChange, ticket, refusal, pending, send }: Props) {
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
+  // Closing the sheet drops a half-typed reason; reopening it starts clean.
+  useEffect(() => {
+    if (!open) setReason('');
+  }, [open]);
   const refused = refusal?.kind === 'newBreakdown' ? refusal : null;
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t('signoff.no')}>
@@ -48,6 +53,7 @@ export function DisputeSheet({ open, onOpenChange, ticket, refusal, pending, sen
         <Textarea
           id={`signoff-${ticket.id}`}
           value={reason}
+          maxLength={REASON_MAX_LENGTH}
           onChange={(e) => setReason(e.target.value)}
         />
         <Text size="footnote" tone="secondary">
