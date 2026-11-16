@@ -34,9 +34,7 @@ describe('sendTestPush', () => {
       setItem: () => undefined,
       removeItem: () => undefined,
     });
-    const fetchStub = vi.fn(
-      async () => new Response(JSON.stringify(reply), { status: 200 }),
-    );
+    const fetchStub = vi.fn(async () => new Response(JSON.stringify(reply), { status: 200 }));
     vi.stubGlobal('fetch', fetchStub);
     return fetchStub;
   }
