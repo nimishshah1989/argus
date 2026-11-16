@@ -1,3 +1,4 @@
+import { REASON_MAX_LENGTH } from '@uptimo/shared/ticket';
 import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
@@ -67,9 +68,16 @@ test('"Not fixed" needs a reason, then the same ticket is open again', async ({
   await expect(
     sheet.getByText(`Maintenance will open this same ticket again, ${ticket.ref}.`),
   ).toBeVisible();
+  const reasonField = sheet.getByLabel('What is still wrong?');
+  await expect(reasonField).toHaveAttribute('maxlength', String(REASON_MAX_LENGTH));
   const send = sheet.getByRole('button', { name: 'Send back to maintenance' });
   await expect(send).toBeDisabled();
-  await sheet.getByLabel('What is still wrong?').fill('Still loose at high speed');
+  // A cancelled draft is dropped: closing the sheet and reopening it starts empty.
+  await reasonField.fill('Still loose');
+  await sheet.getByRole('button', { name: 'Cancel' }).click();
+  await card.getByRole('button', { name: 'Not fixed' }).click();
+  await expect(reasonField).toHaveValue('');
+  await reasonField.fill('Still loose at high speed');
   await send.click();
   await expect(card.getByText(/You said it was not fixed at/)).toBeVisible();
   await expect(card.getByText('Your reason: Still loose at high speed')).toBeVisible();
