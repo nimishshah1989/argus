@@ -26,6 +26,8 @@ export function dataAsOf(data: EngineData, asOf: string): EngineData {
   const reported = (t: TicketRow) => plantDay(t.reportedAt, timeZone) <= asOf;
   const tickets = data.tickets.filter(reported).map(view);
   const tasks = data.tasks.filter(reported).map(view);
+  /** The ticket rows in the cut: a report whose ticket is not here cannot be in a coherent snapshot. */
+  const cut = new Set([...tickets, ...tasks].map((t) => t.id));
   return {
     ...data,
     machines: data.machines.filter((m) => m.purchasedOn === null || m.purchasedOn <= asOf),
@@ -33,7 +35,9 @@ export function dataAsOf(data: EngineData, asOf: string): EngineData {
     tickets,
     tasks,
     reports: data.reports.filter(
-      (r) => r.date <= asOf && !(r.ticketId !== null && rewound.has(r.ticketId)),
+      (r) =>
+        r.date <= asOf &&
+        (r.ticketId === null || (cut.has(r.ticketId) && !rewound.has(r.ticketId))),
     ),
   };
 }

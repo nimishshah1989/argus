@@ -230,6 +230,35 @@ describe('plant dates', () => {
     expect(later.reports).toHaveLength(1);
     expect(later.tickets[0]).toMatchObject({ status: 'closed', downtimeMin: 120 });
   });
+
+  it('drops a report whose ticket was cut away, so every report names a ticket row of the snapshot', () => {
+    const late = {
+      ...ticket('t1', 'm1'),
+      reportedAt: '2026-11-16T04:00:00.000Z',
+      closedAt: '2026-11-16T06:00:00.000Z',
+    };
+    const report = {
+      id: 'r1',
+      ticketId: 't1',
+      machineId: 'm1',
+      date: '2026-11-01',
+      shift: '1',
+      problem: 'x',
+      downtimeMin: 60,
+      responseMin: null,
+      repairMin: null,
+      category: null,
+      maintCode: null,
+      spareUsed: null,
+      rootCause: null,
+      doneBy: [],
+      supportedBy: [],
+    };
+    const data: EngineData = { ...DATA, tickets: [late], reports: [report] };
+    const early = dataAsOf(data, '2026-11-01');
+    expect(early.tickets).toEqual([]);
+    expect(early.reports).toEqual([]);
+  });
 });
 
 /** The engine reads no clock, no random number and no machine time zone: any such call is a finding. */

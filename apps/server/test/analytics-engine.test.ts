@@ -212,11 +212,20 @@ describe('the analytics profile and the engine, through HTTP', () => {
 
   it('runs the engine as of a past plant date: later tickets, reports and closings are not in it', async () => {
     // 01:00 IST on 1 Nov is 19:30Z on 31 Oct: it belongs to 1 Nov in this plant.
-    await f.admin.query(
-      `INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity)
-       VALUES ($1, 'BD-0003', 'stopped', 'open', $2, 'Night stop', '2026-10-31T19:30:00Z', 'S3')`,
-      [A, M_USED],
-    );
+    const nightStop = (
+      await f.admin.query(
+        `INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, severity)
+         VALUES ($1, 'BD-0003', 'stopped', 'open', $2, 'Night stop', '2026-10-31T19:30:00Z', 'S3')
+         RETURNING id`,
+        [A, M_USED],
+      )
+    ).rows[0].id as string;
+    // A report is in a snapshot only with its own ticket: point the seeded report at this 1 Nov ticket,
+    // so the cut proves the report's date rather than an incoherent report with a ticket from the future.
+    await f.admin.query('UPDATE breakdown_report SET ticket_id = $1 WHERE tenant_id = $2', [
+      nightStop,
+      A,
+    ]);
     const at = async (asOf: string) =>
       (await f.call('GET', `/api/v1/analytics/figures?asOf=${asOf}`, f.tokens.head!)).json().rows;
     expect((await at('2026-10-31')).tickets).toBe(0);
