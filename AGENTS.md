@@ -9,3 +9,5 @@ For agents that read AGENTS.md (Codex, Cursor, OpenCode and others). The rules a
 5. `docs/spec/SPEC.md`: the product source of truth; `docs/HANDOFF.md`: where things stand now.
 
 Where they name Claude-only tools (skills, hooks, plugins), follow their intent with the tools you have.
+
+Routing and budgets: `docs/decisions/D31-third-regime-routing-and-quality.md`. The instruction files here must not name build processes other than pstack; point at the decision instead.

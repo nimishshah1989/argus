@@ -2,47 +2,38 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (frontend orchestrator handover, 14 Nov 2026 ~09:15 UTC)
+## RESUME HERE (third regime, 16 Nov 2026)
 
-Start with: "Orchestrate `docs/plan/MILESTONES.md` per `CLAUDE.md`." You are the FRONTEND orchestrator (apps/web, infra,
-staging, MILESTONES, HANDOFF, `docs/plan/ledger.md`). The BACKEND orchestrator is session_01KEBF2ANCJYSxcYWMb43Pwz
-(apps/server, packages, scripts; ledger-backend.md). Restart yourself at ~60% context (Nimish's standing rule).
+**State:** `main` = `925d4a9` (PR #269). M0 gate passed 14 Nov; M1 is current (3 done / 6 in progress / 6 todo);
+M2 server work is ahead of the tracker. Staging is live with Cosmos's real data. **8 PRs are open and unmerged —
+clearing that queue is the first job.**
 
-**State:** M0 closed (Nimish "GO - IT WORKED", 14 Nov). M1 is current. Staging https://cosmos.3-108-95-203.sslip.io
-(admin login `bhaven`; the password is the first-sign-in password Nimish chose, never in any file).
+**Routing and budget:** see `docs/decisions/D31-third-regime-routing-and-quality.md`. Development and testing run
+on the hosted coder; goal drafting, planning, final review and compliance run on the reasoning model. Two hard
+budgets: $5 hosted-coder credit and $10 reasoning credit. Probe the coder route before the first packet (a model
+list is not a route). No silent model switch.
 
-**Rules today (all in the ledger):**
+**Quality rails:** the writer never reviews its own work; a fresh reviewer gets the plan, diff and test output
+only and returns PASS/FAIL with numbered `file:line` findings; every packet names a red test and a green command;
+`pnpm precheck` before every push; one CI run per ready PR; one merge queue; rebase and rerun stale greens.
 
-- Only the orchestrators merge, on the covering checks green. Nimish said he will NOT merge from the GitHub page.
-  Rulesets are not enforced on a private personal repo, so a habit, not a setting, holds the line.
-- **CI cost (#224):** drafts run no CI; builders run `pnpm precheck` + the whole spec files they touched locally and push
-  once; the orchestrator marks a PR ready (one CI run); no CI on main. Actions spend was ~$42 in 14 days; the budget
-  alert is Nimish's to set (billing page).
-- **New tickets start in a fresh session** whose first message is `/poteto-mode <brief>` (the skill cannot be loaded from
-  a relayed message). Reviews: ponytail-review + `/interrogate` for schema, auth, tenancy, deletes, history.
-- One migration in flight; FRONTEND grants the lock (none held now; #228 released it).
-- Builder cap 6 across lanes for today (frontend 3, backend 3). Screens only from approved mockups (`docs/design/LOCK.md`).
+## PR queue (one at a time, rebase + rerun on current main)
 
-## In flight (frontend)
+1. #265 engine shell — green on current main
+2. #261 sign-off web — rebase; server #262 already merged
+3. #258 settings screens — rebase
+4. #264 lockout web — rebase
+5. #268 M4a migration — draft → ready → CI (before any analytics writer)
+6. #267 M4a triage / answer key — needs Nimish's sign-off on the triage
+7. #263 Gujarati — last of the screen set; regenerate baselines
+8. #260 account/Alerts — conflicts; e2e never run
 
-- Sign-in builder session_01KEBF28gYoZ8XReuz1auL6F: ONE new PR (not yet opened): signed-out /floor and /desk redirect to
-  /login (they hang on "Loading…" today: reproduced), visible error + retry on failed loads, the "Could not send. Try
-  again." message (name the real failure), the 2 stray browser errors (run 43571698489), the sign-in /config change
-  (8051c6e), an e2e-only login-limit env var. Mark ready when it says so.
-- Pattern builder session_01KEBF26LgQj2ZmZDx8Km8Mi: PR-C, the desk two-pane (list left, detail right from 1024 px).
-- Live board builder session_01KEBF28GwjEXv9mZoRUHYCf: #229 merged (goal 1). Left: its response/repair-today tiles
-  (need backend, asked) and goal 2 (alerts, push, update banner, WhatsApp text).
-- Designer session_01KEBF29W6XpMpBRfZAEgga6: slice 4 phone + desktop + icon frames done; idle.
+## Direction (Nimish)
 
-## Next frontend tickets (each a fresh `/poteto-mode` session)
+- **Frontend-first:** finish the M1 screens, then the M2 screens. Backend only the fine-tuning those screens need.
+- **M4 is the advanced turn:** analytics, forecasting, manufacturing integrations. AI layer after that. M3/M5 parked.
+- Product questions only for Nimish; settle technical forks by running something.
 
-22/23 settings screens (CrudPage config, D5), 20/21 people + audit, 19 follow-up tasks + the past-breakdown screen
-(`POST /api/v1/tickets/past` is live; contract in the ledger), the outbox follow-up (a permanent refusal must leave the
-queue visibly; entries are now per person), the account sheet's "Change" using `askWhoIsActing()`, the repair/"waiting"
-figure next to repair on ticket screens (Q10). Mockups: slice 4 https://claude.ai/artifact/7iLVAMkHLQ8ncGEg5ZWhXL, live board
-https://claude.ai/artifact/M3Gc2VpfMqTBrQ6u6MrV6p.
+## Blocked / external
 
-## Waiting on Nimish
-
-Actions budget alert; the 31 status labels; weekly dump (RESTORE.md §0, 2 commands). Answered today: Q10 to Q13 ("all
-yes": v3 repair rule + a waiting figure; escalation defaults; support access; erased stays erased).
+- Bhavin: triage sign-off for #267; real inputs for cutover. Backup workflow failed 16 Nov — fix before the next deploy.
