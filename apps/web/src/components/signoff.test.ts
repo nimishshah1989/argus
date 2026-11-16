@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../data/index.js';
 import {
+  canAskHandback,
   formatLimit,
   signoffLimitMin,
   signoffRefusal,
@@ -19,6 +20,16 @@ const handback = (over: Partial<Handback> = {}): Handback => ({
   reopenCount: 0,
   turnaround: { maintenanceMin: 261, productionMin: 0 },
   ...over,
+});
+
+describe('who is asked', () => {
+  it('asks only a login that may answer a sign-off', () => {
+    expect(canAskHandback('operator')).toBe(true);
+    for (const role of ['supervisor', 'head', 'plant_head', 'admin'])
+      expect(canAskHandback(role)).toBe(true);
+    expect(canAskHandback('technician')).toBe(false);
+    expect(canAskHandback('board')).toBe(false);
+  });
 });
 
 describe('sign-off states', () => {

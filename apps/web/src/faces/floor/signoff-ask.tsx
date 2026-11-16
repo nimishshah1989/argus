@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Ticket } from '../../api.js';
-import { signoffRefusal, signoffState, type Refusal } from '../../components/signoff.js';
+import {
+  canAskHandback,
+  signoffRefusal,
+  signoffState,
+  type Refusal,
+} from '../../components/signoff.js';
 import { useCommand } from '../../data/index.js';
 import { Button } from '../../ui/button.js';
 import { Stack } from '../../ui/layout.js';
@@ -22,7 +27,16 @@ export function SignoffAsk({ data, ticket }: { data: FloorData; ticket: Ticket }
   const [refusal, setRefusal] = useState<Refusal | null>(null);
   const handback = ticket.handback;
   if (!handback) return null;
-  if (signoffState(handback) !== 'asking') return <SignoffAnswered ticket={ticket} />;
+  const state = signoffState(handback);
+  const answers = canAskHandback(data.me.role);
+  if (state !== 'asking') {
+    // A technician or the board never answers, so the confirmed and reopened lines ("You said…") would put
+    // words in their mouth; the timed-out line says only what the plant did, so it still reads true.
+    if (answers || state === 'timedOut') return <SignoffAnswered ticket={ticket} />;
+    return null;
+  }
+  // The ask buttons are for the people who may answer; everyone else must never see them and earn a 403.
+  if (!answers) return null;
 
   async function answer(response: typeof CONFIRMED | typeof DISPUTED, reason?: string) {
     setRefusal(null);
