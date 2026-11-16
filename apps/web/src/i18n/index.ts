@@ -24,10 +24,11 @@ export function setLanguage(lng: Language): Promise<void> {
 
 const LANGUAGE_KEY = 'uptimo.language';
 
-/** A language the person picked on this phone wins over the company's default. */
+/** A language the person picked on this phone wins over the company's default; an unknown value falls back to it. */
 export function pickLanguage(saved: string | null, company: string | undefined): Language {
-  const chosen = saved ?? company;
-  return chosen === 'gu' ? 'gu' : 'en';
+  const known = (value: string | null | undefined): Language | undefined =>
+    SUPPORTED_LANGUAGES.find((lng) => lng === value);
+  return known(saved) ?? known(company) ?? 'en';
 }
 
 function savedLanguage(): string | null {

@@ -31,7 +31,9 @@ describe('pickLanguage', () => {
     expect(pickLanguage('gu', 'en')).toBe('gu');
   });
 
-  it('ignores a language it does not know', () => {
-    expect(pickLanguage('fr', 'gu')).toBe('en');
+  it('falls back to the company default for a language it does not know', () => {
+    expect(pickLanguage('fr', 'gu')).toBe('gu');
+    expect(pickLanguage('fr', 'en')).toBe('en');
+    expect(pickLanguage('fr', undefined)).toBe('en');
   });
 });
