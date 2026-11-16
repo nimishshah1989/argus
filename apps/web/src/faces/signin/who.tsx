@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ApiError, chooseActing, clearToken, getActingChoices, getMe, signOut } from '../../api.js';
+import { ApiError, chooseActing, getActingChoices, getMe } from '../../api.js';
+import { SignOutSheet } from '../../components/AccountSheet.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Card } from '../../ui/card.js';
@@ -62,6 +63,7 @@ export function Who() {
   const queryClient = useQueryClient();
   const [personId, setPersonId] = useState('');
   const [error, setError] = useState('');
+  const [confirming, setConfirming] = useState(false);
   async function send(): Promise<false> {
     setError('');
     try {
@@ -81,11 +83,7 @@ export function Who() {
     navigate('/floor');
     return false;
   }
-  async function leave(): Promise<void> {
-    await signOut().catch(() => undefined);
-    clearToken();
-    navigate('/login');
-  }
+  const leave = () => setConfirming(true);
   const body = (
     <Stack gap={4}>
       <Text tone="secondary">{t('signin.whoLede')}</Text>
@@ -113,6 +111,7 @@ export function Who() {
         onFinish={send}
         result={null}
       />
+      <SignOutSheet open={confirming} onOpenChange={setConfirming} />
     </Page>
   );
 }

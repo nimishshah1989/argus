@@ -184,11 +184,54 @@ function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
   );
 }
 
+/** The one sign-out question: the account sheet and the who step both ask it before ending the session. */
+export function SignOutPrompt({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <p className="text-footnote text-neutral-600">{t('account.signOutBody')}</p>
+      <div className="flex gap-3">
+        <Button variant="secondary" onClick={onCancel}>
+          {t('account.goBack')}
+        </Button>
+        <Button onClick={onConfirm}>{t('account.signOut')}</Button>
+      </div>
+    </>
+  );
+}
+
 /** Ending this phone's session also ends its alerts, so a signed-out phone never rings. */
-async function leave(): Promise<void> {
+export async function leaveThisPhone(): Promise<void> {
   await disablePush();
   await signOut().catch(() => undefined);
   clearToken();
+}
+
+/** The same question on a sheet of its own: the who step's back button has no account sheet to ask in. */
+export function SignOutSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  async function signOutNow(): Promise<void> {
+    await leaveThisPhone();
+    navigate('/login');
+  }
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} title={t('account.signOutTitle')}>
+      <SignOutPrompt onCancel={() => onOpenChange(false)} onConfirm={() => void signOutNow()} />
+    </Sheet>
+  );
 }
 
 /** The account sheet (slice 5): a bottom sheet on a phone, a side panel on desktop. Sign out asks first. */
@@ -209,7 +252,7 @@ export function AccountSheet({
     onOpenChange(next);
   };
   async function signOutNow() {
-    await leave();
+    await leaveThisPhone();
     navigate('/login');
   }
   return (
@@ -219,15 +262,7 @@ export function AccountSheet({
       title={confirming ? t('account.signOutTitle') : t('account.title')}
     >
       {confirming ? (
-        <>
-          <p className="text-footnote text-neutral-600">{t('account.signOutBody')}</p>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setConfirming(false)}>
-              {t('account.goBack')}
-            </Button>
-            <Button onClick={() => void signOutNow()}>{t('account.signOut')}</Button>
-          </div>
-        </>
+        <SignOutPrompt onCancel={() => setConfirming(false)} onConfirm={() => void signOutNow()} />
       ) : (
         <Body user={user} onSignOut={() => setConfirming(true)} />
       )}
