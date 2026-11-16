@@ -265,6 +265,8 @@ describe('plant dates', () => {
 const BANNED = [
   [/\bDate\.now\s*\(/, 'Date.now()'],
   [/\bnew Date\s*\(\s*\)/, 'new Date()'],
+  [/\bnew Date\s*\(\s*\d/, 'a local-time constructor'],
+  [/\bDate\.parse\s*\(/, 'Date.parse()'],
   [/\bMath\.random\s*\(/, 'Math.random()'],
   [/\.get(?:Date|Day|Hours|Minutes|Month|FullYear)\s*\(/, 'a local-time getter'],
   [/toLocale\w*String\s*\([^)]*\)/, 'a locale formatter without a time zone'],
@@ -298,5 +300,11 @@ describe('a deterministic engine', () => {
       'Math.random()',
       'a local-time getter',
     ]);
+  });
+
+  it('catches a date built from local parts and Date.parse, the two ways a machine time zone slips in', () => {
+    expect(
+      clockProblems('const d = new Date(2026, 10, 1); const p = Date.parse("2026-11-01");'),
+    ).toEqual(['a local-time constructor', 'Date.parse()']);
   });
 });
