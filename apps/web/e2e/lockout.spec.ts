@@ -148,26 +148,36 @@ test('a flagged ticket card routes to the ticket instead of a quick Start', asyn
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
   const ticket = await flaggedTicket();
   const asha = await apiLogin('asha');
-  const read = await apiFetch(`/api/v1/tickets/${ticket.id}`, { headers: json(asha) });
-  const { ticket: full } = (await read.json()) as {
-    ticket: { lockout: { steps: { code: string }[] } };
-  };
-  const stepCodes = full.lockout.steps.map((step) => step.code);
-  for (const [action, body] of [
-    ['lockout-confirm', { stepCodes }],
-    ['start', {}],
-  ] as const) {
-    const sent = await apiFetch(`/api/v1/tickets/${ticket.id}/${action}`, {
-      method: 'POST',
-      headers: json(asha),
-      body: JSON.stringify(body),
-    });
-    expect(sent.status).toBe(200);
-  }
+  const bina = await apiLogin('bina');
+  const stepCodes = await stepCodesOf(asha, ticket.id);
+  await postCommand(asha, ticket.id, 'lockout-confirm', { stepCodes });
+  await postCommand(asha, ticket.id, 'start', {});
 
   await signIn(page, 'bina');
   await page.goto(`/desk/${ticket.id}`);
-  await expect(page.getByRole('button', { name: 'Add me as support' })).toBeDisabled();
+  const join = page.getByRole('button', { name: 'Add me as support' });
+  await expect(join).toBeDisabled();
   for (const step of FOUR_STEPS) await page.getByLabel(step).check();
-  await expect(page.getByRole('button', { name: 'Add me as support' })).toBeEnabled();
+  await expect(join).toBeEnabled();
+  await join.click();
+  const form = page.getByRole('form', { name: 'Add me as crew' });
+  await form.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(form).toBeHidden();
+
+  // Joining is Bina's own confirmation plus the crew row, not just a button that turns enabled.
+  const me = await apiFetch('/api/v1/auth/me', { headers: json(bina) });
+  const { user } = (await me.json()) as { user: { actingPersonId: string } };
+  const read = await apiFetch(`/api/v1/tickets/${ticket.id}`, { headers: json(bina) });
+  const detail = (await read.json()) as {
+    ticket: { lockout: { confirmations: { byPersonId: string }[] } };
+    people: { personId: string; role: string; leftAt: string | null }[];
+  };
+  expect(detail.people).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ personId: user.actingPersonId, role: 'support', leftAt: null }),
+    ]),
+  );
+  expect(detail.ticket.lockout.confirmations.map((entry) => entry.byPersonId)).toContain(
+    user.actingPersonId,
+  );
 });
