@@ -1,3 +1,4 @@
+import { canAnswerHandbackAtAll } from '@uptimo/domain';
 import type { Ticket } from '../api.js';
 import { ApiError } from '../data/index.js';
 import { formatMinutes } from './format.js';
@@ -14,13 +15,8 @@ const STATE: Record<Handback['status'], SignoffState> = {
 
 export const signoffState = (handback: Handback): SignoffState => STATE[handback.status];
 
-/** Roles that may answer a sign-off at all (DOMAIN §3): the floor's operators and the desk from supervisor up. */
-const ANSWER_ROLES = ['operator', 'supervisor', 'head', 'plant_head', 'admin'] as const;
-
 /** Whether this login is ever asked "Is it fixed?"; technicians and the board never answer one. */
-export function canAskHandback(role: string): boolean {
-  return (ANSWER_ROLES as readonly string[]).includes(role);
-}
+export const canAskHandback = canAnswerHandbackAtAll;
 
 const minutesBetween = (from: string, to: string): number =>
   Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000));
