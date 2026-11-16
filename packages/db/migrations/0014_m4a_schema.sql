@@ -6,7 +6,8 @@
 --   This file DROPS three columns that existed since 0001 and that no code reads or writes (`person.kind`,
 --   `ticket.sla_policy_id`, `ticket.handback_status`; tools/retired-columns.test.ts guards that). Before it drops them it
 --   writes every non-default value they hold into one `audit_log` line per customer (action `migration.0014`), and the
---   revert puts those values back, so the revert loses nothing even if a column held data. It changes no other row.
+--   revert puts those values back only while that line survives: `audit_purge` removes audit rows after 3 years (D31), so
+--   a revert past that window restores nothing, even where a column held data. It changes no other row.
 --   It adds one table (`kpi_snapshot`), one array column on `list_item`, one money column on `breakdown_report`, two
 --   location columns on `machine_move`, and three triggers. Revert: packages/db/migrations/down/0014_m4a_schema.down.sql
 --   (take a snapshot before a revert too: it drops `kpi_snapshot` with every stored figure, and the new columns).
