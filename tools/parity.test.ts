@@ -175,6 +175,36 @@ describe('kept screens need a row and a ticket (ticket 36)', () => {
     expect(problems([screenRow()])).toEqual([]);
   });
 
+  it('fails a row that keeps claiming work for a dropped screen', () => {
+    const row = screenRow({
+      id: 'm4a.pdf-import',
+      feature: 'PDF import by QR',
+      disposition: 'keep',
+      screen: 'pdf-import',
+      ticket: '36',
+    });
+    expect(validateParity({ version: 1, rows: [row] }, undefined, TRIAGE)).toContain(
+      'screen pdf-import: dropped in the M4a triage but row m4a.pdf-import still claims work (todo, keep)',
+    );
+  });
+
+  it('passes a dropped screen that is waived off with its reason', () => {
+    const row = screenRow({
+      id: 'm4a.pdf-import',
+      feature: 'PDF import by QR',
+      disposition: 'drop',
+      screen: 'pdf-import',
+      status: 'waived',
+      waiver_reason: 'tickets create the report',
+      ticket: '36',
+    });
+    expect(
+      validateParity({ version: 1, rows: [row] }, undefined, TRIAGE).filter((error) =>
+        error.startsWith('screen pdf-import'),
+      ),
+    ).toEqual([]);
+  });
+
   it('holds on the real ledger and the real triage', () => {
     expect(validateParity(file).filter((e) => e.startsWith('screen '))).toEqual([]);
     expect(keptScreens(readFileSync('docs/plan/m4a-triage.md', 'utf8')).length).toBeGreaterThan(25);

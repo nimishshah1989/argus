@@ -1,7 +1,7 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { scanText } from './check-pii.js';
-import { keptScreens } from './parity.js';
+import { answerKeyErrors, keptScreens } from './parity.js';
 import { loadDenyList } from './pii-sources.js';
 import { namesIn } from './answer-key/generate.js';
 import { readWorkbook, type Cell } from './answer-key/xlsx.js';
@@ -30,15 +30,25 @@ const data = (name: string): Cell[][] => {
 };
 
 describe('the answer key', () => {
-  it('has a fixture for every file a kept screen names in the triage', () => {
-    const keys = triage
-      .split('\n')
-      .map((line) => line.split('|').map((cell) => cell.trim()))
-      .filter((cells) => cells[3] === 'KEPT' || cells[3] === 'DEFERRED')
-      .flatMap((cells) => (cells[5] ?? '-').split(','));
+  it('has a fixture for every file a kept screen names, and each declares that screen', () => {
     expect(keptScreens(triage).length).toBeGreaterThan(25);
-    expect(keys.length).toBeGreaterThan(25);
-    for (const key of keys) expect(existsSync(`${KEY}/${key}.json`), key).toBe(true);
+    expect(answerKeyErrors(triage)).toEqual([]);
+  });
+
+  it('fails when a row names another screen’s fixture', () => {
+    const swapKeys = (text: string, a: string, b: string): string =>
+      text
+        .split('\n')
+        .map((line) => {
+          const cells = line.split('|');
+          const id = cells[1]?.trim();
+          if (cells.length > 6 && (id === a || id === b)) cells[5] = id === a ? ` ${b} ` : ` ${a} `;
+          return cells.join('|');
+        })
+        .join('\n');
+    expect(answerKeyErrors(swapKeys(triage, 'a1-bd-pm', 'a2-category-cell'))).toContain(
+      'a1-bd-pm: answer key a2-category-cell.json answers a2-category-cell, not a1-bd-pm',
+    );
   });
 
   it('holds the same rows as the workbook it was computed from', () => {

@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { parse } from 'yaml';
 
 export type Disposition = 'keep' | 'improve' | 'replace' | 'drop';
@@ -113,15 +114,35 @@ function sourceErrors(file: ParityFile, markdown: string): string[] {
 
 const TRIAGE = 'docs/plan/m4a-triage.md';
 
-/** The screens the M4a triage keeps, with the ticket that owns each (columns: id, screen, verdict, ticket). */
-export function keptScreens(triage: string): { id: string; ticket: string }[] {
+/** The M4a triage table as rows: id, verdict, ticket and the answer-key files it names. */
+function triageRows(
+  triage: string,
+): { id: string; verdict: string; ticket: string; keys: string[] }[] {
   return triage
     .split('\n')
     .map((line) => line.split('|').map((cell) => cell.trim()))
     .filter(
-      (cells) => cells.length > 5 && cells[3] === 'KEPT' && /^[a-z0-9-]+$/.test(cells[1] ?? ''),
+      (cells) =>
+        cells.length > 5 &&
+        /^[a-z0-9-]+$/.test(cells[1] ?? '') &&
+        ['KEPT', 'DROPPED', 'DEFERRED'].includes(cells[3] ?? ''),
     )
-    .map((cells) => ({ id: cells[1] as string, ticket: cells[4] as string }));
+    .map((cells) => ({
+      id: cells[1] as string,
+      verdict: cells[3] as string,
+      ticket: cells[4] as string,
+      keys: (cells[5] ?? '-')
+        .split(',')
+        .map((key) => key.trim())
+        .filter(Boolean),
+    }));
+}
+
+/** The screens the M4a triage keeps, with the ticket that owns each (columns: id, screen, verdict, ticket). */
+export function keptScreens(triage: string): { id: string; ticket: string }[] {
+  return triageRows(triage)
+    .filter((row) => row.verdict === 'KEPT')
+    .map((row) => ({ id: row.id, ticket: row.ticket }));
 }
 
 /** A screen the triage dropped; any parity row that still tracks it must be waved off. */
@@ -164,6 +185,59 @@ function screenErrors(file: ParityFile, triage: string): string[] {
   return errors;
 }
 
+const ANSWER_KEY = 'fixtures/answer-key';
+
+/** Fixtures that answer more than the screen named after them. */
+const SHARED_KEYS: Record<string, string[]> = {
+  dashboard: ['drill-down'],
+  registers: ['cell-change-log'],
+  'machine-page': ['machine-pages'],
+  'legacy-settings': ['settings'],
+  'workbook-export': ['amc-warranty', 'legal-compliance', 'pm-reports'],
+  'a7-footprint': ['footprint'],
+  'a8-age': ['age'],
+};
+
+function declaredScreen(path: string): string | undefined {
+  try {
+    return (JSON.parse(readFileSync(path, 'utf8')) as { screen?: string }).screen;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A triage row's Key column must name fixtures that declare that screen. A fixture named after
+ * itself answers its namesake; the few shared files are listed above. `input.json` is data.
+ */
+export function answerKeyErrors(triage: string, root = ANSWER_KEY): string[] {
+  const errors: string[] = [];
+  for (const file of readdirSync(root).filter((name) => name.endsWith('.json'))) {
+    if (file === 'input.json') continue;
+    const declared = declaredScreen(join(root, file));
+    if (declared !== file.slice(0, -5))
+      errors.push(`${file}: declares screen ${declared ?? 'none'}, expected ${file.slice(0, -5)}`);
+  }
+  for (const row of triageRows(triage).filter((candidate) => candidate.verdict !== 'DROPPED')) {
+    for (const key of row.keys) {
+      if (key === 'input') continue;
+      const path = join(root, `${key}.json`);
+      if (!existsSync(path)) {
+        errors.push(`${row.id}: answer key ${key}.json is missing`);
+        continue;
+      }
+      const declared = declaredScreen(path);
+      if (declared !== key) {
+        errors.push(`${row.id}: answer key ${key}.json declares screen ${declared ?? 'none'}`);
+        continue;
+      }
+      if (row.id !== key && !(SHARED_KEYS[key] ?? []).includes(row.id))
+        errors.push(`${row.id}: answer key ${key}.json answers ${declared}, not ${row.id}`);
+    }
+  }
+  return errors;
+}
+
 export function validateParity(
   file: ParityFile,
   markdown = readFileSync('docs/spec/PARITY.md', 'utf8'),
@@ -182,6 +256,7 @@ export function validateParity(
     ...sourceErrors(file, markdown),
     ...screenErrors(file, triage),
     ...droppedScreenErrors(file, triage),
+    ...answerKeyErrors(triage),
   );
   return errors;
 }
