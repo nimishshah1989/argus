@@ -10,6 +10,10 @@ interface Me {
   user: { actingPersonId: string };
 }
 
+interface TicketDetailReply {
+  ticket: { status: string; handback: { reopenCount: number } | null };
+}
+
 const tokens = new Map<string, Promise<string>>();
 const token = (username: string): Promise<string> => {
   if (!tokens.has(username)) tokens.set(username, apiLogin(username));
@@ -69,6 +73,11 @@ test('"Not fixed" needs a reason, then the same ticket is open again', async ({
   await send.click();
   await expect(card.getByText(/You said it was not fixed at/)).toBeVisible();
   await expect(card.getByText('Your reason: Still loose at high speed')).toBeVisible();
+  // The card's wording comes from the handback, so also read the ticket: a dispute reopens it for the lead, and
+  // the API says `working` (in progress again), not `closed`; `open` means nobody has started it.
+  const detail = await getJson<TicketDetailReply>(await token('asha'), `/api/v1/tickets/${ticket.id}`);
+  expect(detail.ticket.status).toBe('working');
+  expect(detail.ticket.handback?.reopenCount).toBe(1);
 });
 
 test('the desk ticket shows the sign-off and both turnarounds', async ({ page }, testInfo) => {
