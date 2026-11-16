@@ -47,6 +47,53 @@ the app boots, so a profile change needs a full restart; the session allowlist i
 8. **Memory.** One ledger line per dispatch, ruling or merge (`docs/plan/ledger.md`); a decision file for
    irreversible choices; the handoff under 50 lines; change fragments under `changes/`.
 
+## Goal loop (engineering protocol)
+
+One milestone goal at a time, persisted with the DSH goal service (`create_goal`; `update_goal` only on a
+human word, or to mark complete/blocked). Objective = the milestone's gate, never "keep coding". Rounds are
+capped (`max_goal_rounds`), and the loop is the only path from goal to merged code:
+
+| Step            | What happens                                                                    | Artifact / evidence                        |
+| --------------- | ------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1. Goal         | Milestone objective, success criteria, constraints, budget, stop conditions     | Goal + `docs/HANDOFF.md`                   |
+| 2. Frontier     | Smallest unblocked ticket from `docs/plan/MILESTONES.md` (blockers merged)      | Ledger dispatch line                       |
+| 3. Slice plan   | Files, interfaces, fields, tests, write scope; fresh plan review                | `docs/slices/<ticket>.md` + review verdict |
+| 4. Decompose    | Microtask ledger: one assertion each, red command, green command, write scope   | Ledger / packet list                       |
+| 5. Execute      | One builder packet at a time; red report, then green; max 3 attempts            | Red output + green output                  |
+| 6. Verify       | Covering suite + `pnpm precheck` locally; no skipped/weakened test              | Command output                             |
+| 7. Review       | Fresh reviewer: plan + diff + test output only; PASS/FAIL, numbered `file:line` | Review verdict                             |
+| 8. Integrate    | One PR, rebase on current main, green covering checks, one merge                | PR URL + CI green                          |
+| 9. Record       | Ledger line, changelog fragment, HANDOFF if state changed                       | `docs/plan/ledger.md`, `changes/`          |
+| 10. Re-evaluate | Next frontier; or stop at the gate / budget / repeated finding                  | Gate report                                |
+
+**Stop conditions (all of them stop the loop):** the milestone gate is green and the owner says go; either
+budget is exhausted; the same finding fails three times (plan defect, re-plan); the plan is silent (return the
+question, do not guess); a product decision is needed; an irreversible action (production, deletion, outbound
+message) lacks the owner's word.
+
+**Roles:** the orchestrator plans, reviews, keeps the budget and merges; builders only write code to a frozen
+packet; R3 changes get a second, different-family reviewer. **No self-review, ever.** **Evidence map:** at the
+gate, every success criterion maps to a ticket, a test and a link — a hole means the milestone is not done.
+
+## Skills by phase
+
+The repo's `.claude/skills` pack is Claude-specific; in DSH, use the equivalent available skill with the same
+intent (AGENTS.md says this explicitly). Claude-only review skills (`ponytail-review`, `/interrogate`) become
+the fresh-reviewer and adversarial-reviewer prompts below.
+
+| Phase                           | Skill (DSH)                                                              | Use                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Product shaping, open questions | `grill-me`, `grill-with-docs`                                            | Interview the owner; settle product decisions, never technical ones |
+| Plan → tickets                  | `to-prd`, `to-issues`                                                    | Turn a shaped feature into vertical tickets; update the one plan    |
+| Codebase orientation            | `graphify`                                                               | Query/impact before editing; refresh the graph after merged changes |
+| Design / frontend               | `ui-ux-pro-max`, `tailwind-design-system`, `vercel-react-best-practices` | Screens from approved mockups, design tokens, performance           |
+| Implementation                  | `tdd`                                                                    | Red → green → refactor, one assertion at a time                     |
+| Bug diagnosis                   | `diagnose`                                                               | Reproduce → minimise → instrument → fix → regression test           |
+| Risky design fork               | `prototype`                                                              | Run the fork instead of asking the owner a technical question       |
+| Review (R0–R2)                  | fresh reviewer subagent (no skill)                                       | Plan + diff + test output → PASS/FAIL with `file:line`              |
+| Review (R3)                     | fresh reviewer + adversarial reviewer (`diagnose` for proof-by-run)      | Schema/auth/tenancy/deletes/money/cutover                           |
+| Multi-worker coordination       | `orchestration`, `handoff`                                               | Supervise builders, compact at 50–70% context                       |
+
 ## Priorities (Nimish, 16 November)
 
 - **Frontend-first.** The screens are the visible product and the gap: finish the M1 screens, then the M2 screens.
