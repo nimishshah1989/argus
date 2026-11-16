@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ensurePushBinding, needsRebind, urlBase64ToUint8Array } from './push.js';
+import { ensurePushBinding, needsRebind, sendTestPush, urlBase64ToUint8Array } from './push.js';
 
 describe('needsRebind', () => {
   it('keeps the binding when the acting person is the same', () => {
@@ -22,6 +22,35 @@ describe('urlBase64ToUint8Array', () => {
 
   it('decodes the url-safe - and _ characters', () => {
     expect(Array.from(urlBase64ToUint8Array('-_8'))).toEqual([251, 255]);
+  });
+});
+
+describe('sendTestPush', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubBrowser(reply: { sent: number }) {
+    vi.stubGlobal('localStorage', {
+      getItem: () => 'tok-1',
+      setItem: () => undefined,
+      removeItem: () => undefined,
+    });
+    const fetchStub = vi.fn(
+      async () => new Response(JSON.stringify(reply), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchStub);
+    return fetchStub;
+  }
+
+  it('reports success when the server delivered to a phone', async () => {
+    const fetchStub = stubBrowser({ sent: 1 });
+    await expect(sendTestPush()).resolves.toBe(true);
+    const [url] = fetchStub.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/v1/push/test');
+  });
+
+  it('reports failure when the server delivered to no phone', async () => {
+    stubBrowser({ sent: 0 });
+    await expect(sendTestPush()).resolves.toBe(false);
   });
 });
 
