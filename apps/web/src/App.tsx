@@ -14,6 +14,7 @@ import { OtherWork } from './faces/floor/other-work.js';
 import { Report } from './faces/floor/report.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
+import { PlantSettings, PLANT_PAGES } from './screens/settings/Plant.js';
 
 // Decided at build time: in a production build without VITE_GALLERY=on this is `false`, so the
 // bundler drops the gallery (D20).
@@ -40,6 +41,10 @@ export function App() {
         <Route path="/desk/team" element={<Desk view="team" />} />
         <Route path="/desk/board" element={<Board />} />
         <Route path="/desk/settings" element={<Settings />} />
+        <Route path="/settings" element={<PlantSettings page="home" />} />
+        {PLANT_PAGES.map(({ page }) => (
+          <Route key={page} path={`/settings/${page}`} element={<PlantSettings page={page} />} />
+        ))}
         <Route path="/desk/:id?" element={<TicketRoute />} />
         <Route
           path="/gallery"

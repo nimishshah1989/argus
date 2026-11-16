@@ -33,13 +33,17 @@ import { useWide } from '../patterns/wide.js';
 function SettingsLink({ role }: { role?: string }) {
   const { t } = useTranslation();
   if (role !== 'admin' && role !== 'head') return null;
+  const link =
+    'inline-flex min-h-target-min items-center rounded-xl border border-control bg-surface px-4 text-body font-semibold';
   return (
-    <Link
-      to="/desk/settings"
-      className="inline-flex min-h-target-min items-center rounded-xl border border-control bg-surface px-4 text-body font-semibold"
-    >
-      {t('settings.title')}
-    </Link>
+    <>
+      <Link to="/settings/machines" className={link}>
+        {t('plant.menu.link')}
+      </Link>
+      <Link to="/desk/settings" className={link}>
+        {t('settings.title')}
+      </Link>
+    </>
   );
 }
 
