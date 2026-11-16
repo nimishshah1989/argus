@@ -7,6 +7,7 @@ import {
   liveTicket,
   lockoutHistory,
   peopleWorkingAfterResume,
+  reportCategories,
   reportCategory,
 } from './repo/lockout.js';
 
@@ -107,13 +108,10 @@ export async function lockoutsOf(
     new Set((flagged.find((entry) => entry.list === list)?.names ?? []).map(norm));
   const workTypes = names('work_type');
   const categories = names('breakdown_category');
-  const { rows } = await client.query(
-    `SELECT DISTINCT ON (ticket_id) ticket_id, breakdown_category FROM breakdown_report
-      WHERE tenant_id = $1 AND ticket_id = ANY($2) ORDER BY ticket_id, submitted_at DESC`,
-    [who.tenantId, live.map((ticket) => ticket.id)],
-  );
-  const categoryOf = new Map(
-    rows.map((row) => [row.ticket_id as string, row.breakdown_category as string | null]),
+  const categoryOf = await reportCategories(
+    client,
+    who.tenantId,
+    live.map((ticket) => ticket.id),
   );
   const needed = live.filter((ticket) => {
     if (ticket.workType && workTypes.has(norm(ticket.workType))) return true;

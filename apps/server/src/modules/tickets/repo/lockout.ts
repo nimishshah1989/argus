@@ -34,6 +34,23 @@ export async function reportCategory(
   return (row?.breakdown_category as string | null | undefined) ?? null;
 }
 
+/** The latest stored report category of each ticket in one read, for a whole list reply. */
+export async function reportCategories(
+  client: PoolClient,
+  tenantId: string,
+  ticketIds: string[],
+): Promise<Map<string, string | null>> {
+  if (ticketIds.length === 0) return new Map();
+  const { rows } = await client.query(
+    `SELECT DISTINCT ON (ticket_id) ticket_id, breakdown_category FROM breakdown_report
+      WHERE tenant_id = $1 AND ticket_id = ANY($2) ORDER BY ticket_id, submitted_at DESC`,
+    [tenantId, ticketIds],
+  );
+  return new Map(
+    rows.map((row) => [row.ticket_id as string, (row.breakdown_category as string | null) ?? null]),
+  );
+}
+
 /** The ticket's lockout-relevant events, oldest first. */
 export async function lockoutHistory(
   client: PoolClient,
