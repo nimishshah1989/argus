@@ -103,11 +103,8 @@ export const en = {
   ...reportFloorEn,
   ...closesEn,
   ...signinEn,
-<<<<<<< HEAD
   ...signoffEn,
-=======
   ...plantEn,
->>>>>>> f3aeb37 (22: plant settings screens (machines, groups, shifts) from one CrudPage config)
 };
 
 export type MessageKey = keyof typeof en;
@@ -137,9 +134,6 @@ export const gu = {
   ...reportFloorGu,
   ...closesGu,
   ...signinGu,
-<<<<<<< HEAD
   ...signoffGu,
-=======
   ...plantGu,
->>>>>>> f3aeb37 (22: plant settings screens (machines, groups, shifts) from one CrudPage config)
 };
