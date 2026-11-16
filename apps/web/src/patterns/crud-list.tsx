@@ -47,11 +47,16 @@ function Toggle<Row extends CrudRow>(p: ListProps<Row> & { row: Row; name: strin
       aria-label={t(toggle.labelKey, { name: p.name })}
       disabled={p.busy}
       onClick={() => p.onToggle(p.row)}
-      className={`relative h-[31px] w-[51px] flex-none rounded-full ${on ? 'bg-accent-strong' : 'bg-neutral-200'}`}
+      className="flex min-h-target-min w-[51px] flex-none items-center"
     >
+      {/* The pill stays 31 px tall; the button around it keeps the kit's 44 px tap target. */}
       <span
-        className={`absolute top-0.5 h-[27px] w-[27px] rounded-full bg-white shadow-card ${on ? 'left-[22px]' : 'left-0.5'}`}
-      />
+        className={`relative block h-[31px] w-[51px] rounded-full ${on ? 'bg-accent-strong' : 'bg-neutral-200'}`}
+      >
+        <span
+          className={`absolute top-0.5 h-[27px] w-[27px] rounded-full bg-white shadow-card ${on ? 'left-[22px]' : 'left-0.5'}`}
+        />
+      </span>
     </button>
   );
 }

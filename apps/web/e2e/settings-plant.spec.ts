@@ -37,6 +37,18 @@ test('admin moves a machine to another cell and sets its criticality', async ({
   );
 });
 
+test('the group switch keeps the 44 px tap target at 360 px', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await signIn(page, 'admin');
+  await page.goto('/settings/groups');
+  const hide = page.getByRole('switch', { name: `Hide ${FLOOR_GROUP.name}`, exact: true });
+  await expect(hide).toBeVisible();
+  const box = await hide.boundingBox();
+  if (!box) throw new Error('Visible switch has no bounding box');
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.width).toBeGreaterThanOrEqual(44);
+});
+
 test('admin hides a group and it stays hidden', async ({ page }) => {
   await signIn(page, 'admin');
   await page.goto('/settings/groups');
