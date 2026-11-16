@@ -145,6 +145,20 @@ describe('legacy codes', () => {
     ).rejects.toThrow(/already used in this list/);
   });
 
+  it('refuses a code another entry of the same list claims in any letter case, and lets another list or plant use it', async () => {
+    await asPlant(A);
+    await listItem('packet1_codes', 'MOTOR');
+    await expect(listItem('packet1_codes', 'motor')).rejects.toThrow(/already used in this list/);
+    await listItem('packet1_codes', 'PMP', ['pump']);
+    await expect(listItem('packet1_codes', 'PUMP')).rejects.toThrow(/already used in this list/);
+    await expect(listItem('packet1_codes', 'ZZ', ['pmp'])).rejects.toThrow(
+      /already used in this list/,
+    );
+    await listItem('packet1_other', 'motor');
+    await asPlant(B);
+    await listItem('packet1_codes', 'motor');
+  });
+
   it('lets another list, and another plant, use the same legacy code', async () => {
     await asPlant(A);
     await listItem('failure_code', 'ELEC', ['ELE']);

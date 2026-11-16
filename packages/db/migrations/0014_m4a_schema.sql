@@ -88,8 +88,8 @@ END $$;
 
 -- 3. Legacy codes resolve through the row they were folded into (Bhavin's retired ELE, HYD and ROT, and the many old
 -- codes M4b maps onto one failure code). Several legacy codes may point at one entry, so it is a list. The trigger keeps
--- the list clean (trimmed, lower case, no empties or repeats) and refuses a code that two entries of one list both claim,
--- or an alias equal to another entry's code; it takes a per-list lock so two writers cannot both pass the check.
+-- the list clean (trimmed, lower case, no empties or repeats) and refuses a code another entry of one list claims in any
+-- letter case, as its code or as an alias; it takes a per-list lock so two writers cannot both pass the check.
 ALTER TABLE list_item ADD COLUMN aliases text[] NOT NULL DEFAULT '{}';
 CREATE FUNCTION list_item_check_aliases() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -97,7 +97,8 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended(NEW.tenant_id::text || '|' || NEW.list, 0));
   IF lower(NEW.code) = ANY(NEW.aliases) OR EXISTS (
     SELECT 1 FROM list_item o WHERE o.tenant_id = NEW.tenant_id AND o.list = NEW.list AND o.id <> NEW.id
-      AND (o.aliases && NEW.aliases OR lower(o.code) = ANY(NEW.aliases) OR lower(NEW.code) = ANY(o.aliases))
+      AND (o.aliases && NEW.aliases OR lower(o.code) = ANY(NEW.aliases) OR lower(NEW.code) = ANY(o.aliases)
+        OR lower(o.code) = lower(NEW.code))
   ) THEN
     RAISE EXCEPTION 'list_item: a code or alias of "%" is already used in this list', NEW.code
       USING ERRCODE = 'unique_violation';
