@@ -159,6 +159,18 @@ describe('legacy codes', () => {
     await listItem('packet1_codes', 'motor');
   });
 
+  it('lets an upsert of an entry that already exists update it instead of calling it a duplicate', async () => {
+    await asPlant(A);
+    await listItem('upsert_codes', 'MOTOR', ['motor_old']);
+    await db.query(
+      `INSERT INTO list_item (tenant_id, list, code, label)
+       VALUES (current_setting('app.tenant_id')::uuid, 'upsert_codes', 'MOTOR', 'Edited')
+       ON CONFLICT (tenant_id, list, code) DO UPDATE SET label = EXCLUDED.label`,
+    );
+    const rows = await db.query("SELECT label, aliases FROM list_item WHERE list = 'upsert_codes'");
+    expect(rows.rows).toEqual([{ label: 'Edited', aliases: ['motor_old'] }]);
+  });
+
   it('lets another list, and another plant, use the same legacy code', async () => {
     await asPlant(A);
     await listItem('failure_code', 'ELEC', ['ELE']);

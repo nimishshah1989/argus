@@ -100,8 +100,14 @@ BEGIN
   END IF;
   NEW.aliases := ARRAY(SELECT DISTINCT lower(btrim(a)) FROM unnest(NEW.aliases) a WHERE btrim(a) <> '' ORDER BY 1);
   PERFORM pg_advisory_xact_lock(hashtextextended(NEW.tenant_id::text || '|' || NEW.list, 0));
+  -- An upsert (`INSERT ... ON CONFLICT (tenant_id, list, code) DO UPDATE`) runs this insert trigger with a fresh
+  -- generated id, so the row it will update is not recognised by `id` and would count as a duplicate of the new
+  -- entry: every edit of an existing list item failed that way. The row with the same exact code in this list is
+  -- that target, so leave it out; a plain duplicate insert still fails the table's (tenant_id, list, code) unique
+  -- constraint, and a code another entry claims in another letter case still fails the check below.
   IF lower(NEW.code) = ANY(NEW.aliases) OR EXISTS (
     SELECT 1 FROM list_item o WHERE o.tenant_id = NEW.tenant_id AND o.list = NEW.list AND o.id <> NEW.id
+      AND o.code <> NEW.code
       AND (o.aliases && NEW.aliases OR lower(o.code) = ANY(NEW.aliases) OR lower(NEW.code) = ANY(o.aliases)
         OR lower(o.code) = lower(NEW.code))
   ) THEN
