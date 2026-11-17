@@ -4,4 +4,4 @@ Every deliberate `shortcut: <limit>, <when to upgrade>` comment in the code is l
 
 | File | Limit    | Upgrade when | Ticket |
 | ---- | -------- | ------------ | ------ |
-| —    | None yet | —            | —      |
+| `apps/server/src/modules/analytics/routes.ts` | Drills load the whole plant once per request. | drills load the whole plant once per request; switch to narrow repo reads by id when a plant's load passes about a second. | 37a |
