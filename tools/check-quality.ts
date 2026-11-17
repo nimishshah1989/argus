@@ -112,6 +112,19 @@ export function testsRemovedReason(body: string | undefined): string | null {
   return reason.replace(/\s/g, '').length >= 10 ? reason : null;
 }
 
+/**
+ * Why a push from this HEAD must be refused, or null when it may go ahead. Nothing ahead of
+ * origin/main means the push would empty the PR (17 Nov: a rebase left HEAD on main's commit, the
+ * push landed main on the PR branch and GitHub closed it); unmerged paths mean the rebase is still
+ * mid-conflict.
+ */
+export function pushRefusal(ahead: number, unmerged: string[]): string | null {
+  if (unmerged.length > 0) return `resolve the rebase first: ${unmerged.join(', ')}`;
+  if (ahead === 0)
+    return "HEAD has no commits ahead of origin/main; this push would empty the PR (did a rebase abort leave you on main's commit?)";
+  return null;
+}
+
 interface Check {
   id: string;
   label: string;
@@ -215,8 +228,39 @@ function runPr(): void {
   console.log('quality:pr OK — 14 attributes declared, no weakened tests');
 }
 
+function gitText(args: string[]): string | null {
+  try {
+    return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function runPush(): void {
+  if (!hasOriginMain()) {
+    console.log('push:check: no origin/main to compare with, skipping the push guard');
+    return;
+  }
+  const count = gitText(['rev-list', '--count', 'origin/main..HEAD']);
+  const unmergedText = gitText(['diff', '--name-only', '--diff-filter=U']);
+  if (count === null || unmergedText === null) {
+    console.log('push:check: could not read the git state, skipping the push guard');
+    return;
+  }
+  const unmerged = unmergedText.split('\n').filter((path) => path.length > 0);
+  const refusal = pushRefusal(Number.parseInt(count, 10), unmerged);
+  if (refusal) {
+    console.log(`push:check: ${refusal}`);
+    process.exitCode = 1;
+    return;
+  }
+  const head = gitText(['rev-parse', '--short=7', 'HEAD']) ?? 'unknown';
+  console.log(`push:check OK — ${count} commits ahead of origin/main (HEAD ${head})`);
+}
+
 function main(): void {
-  if (process.argv.includes('--pr')) runPr();
+  if (process.argv.includes('--push')) runPush();
+  else if (process.argv.includes('--pr')) runPr();
   else runLocal();
 }
 

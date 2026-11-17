@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { missingAttributes, missingSections, weakenedTests } from './check-quality.js';
+import { missingAttributes, missingSections, pushRefusal, weakenedTests } from './check-quality.js';
 
 const DELETE_ASSERTION = `diff --git a/apps/x.test.ts b/apps/x.test.ts
 index 1111111..2222222 100644
@@ -102,5 +102,23 @@ ${qTable(['Q7'])}`;
     const text = `## What changed\n\nPreview: http://127.0.0.1:3000/x\nDecisions: none\n\n${qTable()}`;
     expect(missingAttributes(text)).toEqual([]);
     expect(missingSections(text)).toEqual([]);
+  });
+});
+
+describe('push guard', () => {
+  it('Q1 refuses a HEAD with nothing ahead of main', () => {
+    const refusal = pushRefusal(0, []);
+    expect(refusal).toContain('no commits ahead of origin/main');
+    expect(refusal).toContain('rebase');
+  });
+
+  it('Q1 refuses a tree with unresolved conflicts and names the paths', () => {
+    const refusal = pushRefusal(3, ['apps/web/src/a.ts', 'tools/b.ts']);
+    expect(refusal).toContain('apps/web/src/a.ts');
+    expect(refusal).toContain('tools/b.ts');
+  });
+
+  it('Q1 allows a branch that is ahead with a clean tree', () => {
+    expect(pushRefusal(5, [])).toBeNull();
   });
 });

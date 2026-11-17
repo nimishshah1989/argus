@@ -5,7 +5,7 @@ D31 (routes, budgets, quality rails), `docs/QUALITY-BAR.md` (the milestone score
 
 ## Decision
 
-The quality rails in D31 said *who* reviews and *how* work is sized. They did not say, in a fixed checklist, what
+The quality rails in D31 said _who_ reviews and _how_ work is sized. They did not say, in a fixed checklist, what
 a change must satisfy before it may merge — so each session re-derived the same list and missed different items.
 That is the repeated instruction `principle-encode-lessons-in-structure` tells us to encode.
 

@@ -1,1 +1,2 @@
 - A pull request must now satisfy fourteen numbered quality attributes, and `pnpm quality` (locally) and `pnpm quality:pr` (in CI) check the ones a machine can decide; the rest are returned by the fresh reviewer as a Q table. A failing attribute blocks the merge; a waiver is a ledger ruling, never a silent exception.
+- `pnpm push:check` now refuses to push a HEAD with no commits ahead of `origin/main`, or a tree with unresolved rebase conflicts (the 17 Nov incident), so a rebase left mid-conflict cannot empty the PR.
