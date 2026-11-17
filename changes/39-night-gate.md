@@ -1,0 +1,1 @@
+- The unattended-run protocol now says what a night run does at a milestone: it writes and merges the gate report, then continues into the next milestone for Nimish to review when he wakes, with no irreversible action taken unattended.
