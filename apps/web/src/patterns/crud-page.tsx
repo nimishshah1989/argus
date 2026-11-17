@@ -391,7 +391,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
           title={row ? t('kit.crud.editTitle', { name: nameOf(row) }) : add}
         />
       ) : null}
-      <SwitchSheet spec={spec} c={c} name={row ? nameOf(row) : ''} />
+      <SwitchSheet spec={spec} c={c} name={c.switch.row ? nameOf(c.switch.row) : ''} />
       <BulkSheet c={c} ctx={ctx} />
     </PatternFrame>
   );

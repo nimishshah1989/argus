@@ -5,27 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { AUDIT_AREAS, type AuditArea, type AuditRow } from '@uptimo/shared/audit';
 import type { PersonAdmin } from '@uptimo/shared/people';
 import { getMe } from '../../api.js';
-import { defineResource, getToken, useOnline } from '../../data/index.js';
+import { defineResource, downloadFile, useOnline } from '../../data/index.js';
 import { PatternFrame, StateNotice } from '../../patterns/frame.js';
 import { viewState } from '../../patterns/view-state.js';
 import { Button } from '../../ui/button.js';
-import { FileCheck, type IconComponent } from '../../ui/icon.js';
+import { FileCheck } from '../../ui/icon.js';
 import { Input, Label, Select } from '../../ui/input.js';
 import { Stack } from '../../ui/layout.js';
 
-export interface AuditPageSpec {
-  page: 'audit';
-  icon: IconComponent;
-  key: 'audit.menu';
-  /** The audit screen is not a `CrudPage`; `Plant.tsx` branches to `AuditSettings` before it reads a spec. */
-  spec: null;
-}
-export const AUDIT_PAGE: AuditPageSpec = {
-  page: 'audit',
-  icon: FileCheck,
-  key: 'audit.menu',
-  spec: null,
-};
+/** The nav entry; the screen is not a `CrudPage`, so `Plant.tsx` branches before it reads a spec. */
+export const AUDIT_PAGE = { page: 'audit', icon: FileCheck, key: 'audit.menu' } as const;
 
 const audit = defineResource<AuditRow, AuditRow>({ key: 'audit', path: '/api/v1/audit' });
 const people = defineResource<PersonAdmin, PersonAdmin>({ key: 'people', path: '/api/v1/people' });
@@ -183,19 +172,10 @@ function FiltersBar(p: {
 
 async function downloadCsv(filters: Filters): Promise<void> {
   const params = new URLSearchParams(queryOf(filters)).toString();
-  const token = getToken();
-  const res = await fetch(`/api/v1/audit.csv${params ? `?${params}` : ''}`, {
-    headers: token ? { authorization: `Bearer ${token}` } : undefined,
-  });
-  if (!res.ok) throw new Error(`export failed: ${res.status}`);
-  const url = URL.createObjectURL(await res.blob());
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `audit-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  await downloadFile(
+    `/api/v1/audit.csv${params ? `?${params}` : ''}`,
+    `audit-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
 }
 
 function NoAccess() {

@@ -182,6 +182,27 @@ async function send<T>(path: string, init: RequestInit | undefined, session: Ses
   return res.json() as Promise<T>;
 }
 
+/** One binary reply (a CSV export): the saved session, a refusal surfaced as usual, then a download. */
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(path, {
+    headers: token ? { authorization: `Bearer ${token}` } : undefined,
+  });
+  if (res.status === 401) {
+    leaveForSignIn(token !== null);
+    throw new ApiError('unauthenticated', 'unauthorized', undefined, 401);
+  }
+  if (!res.ok) throw await refusal(res);
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** True when the phone has no connection (the UI can show the offline marker). */
 export function isOffline(): boolean {
   return typeof navigator !== 'undefined' && !navigator.onLine;

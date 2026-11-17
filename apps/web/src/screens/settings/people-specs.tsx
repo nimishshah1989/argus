@@ -126,7 +126,15 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
   ],
   look: (row, c) => ({
     title: row.name,
-    sub: [row.title, teamOf(row, c), row.pending ? c.t('people.pending') : null]
+    sub: [
+      row.title,
+      teamOf(row, c),
+      `${roleText(c, row.id)} · ${kindOf(c, row.id)}`,
+      cellText(row.cell, c),
+      shiftText(row.defaultShift, c),
+      c.t('people.lastSignInSub', { when: signInText(row.lastSignInAt, c) }),
+      row.pending ? c.t('people.pending') : null,
+    ]
       .filter(Boolean)
       .join(' · '),
   }),

@@ -3,6 +3,7 @@ export {
   askWhoIsActing,
   clearToken,
   describeFailure,
+  downloadFile,
   getToken,
   httpKeepSession,
   httpWithoutSession,
