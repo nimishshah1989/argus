@@ -1,7 +1,6 @@
 import { expect, test } from './test.js';
 import { MACHINES, apiFetch, apiLogin, signIn, ticketView } from './fixtures.js';
 import {
-  FUTURE_PAUSE_COPY,
   POLICIES,
   cancelAndRestore,
   completePolicies,
@@ -10,11 +9,13 @@ import {
   expectOfflineSettings,
   expectPhoneSettingsLayout,
   expectPoliciesPersisted,
+  expectWaitReasonPausesSla,
   pauseWithReason,
   policyGroup,
   prepareStoppedTicket,
   raiseWorkRequest,
-  savePoliciesAndWaitRule,
+  savePolicies,
+  setWaitReasonPausesSla,
   timerRow,
 } from './sla-test-helpers.js';
 
@@ -24,9 +25,13 @@ test('configures policies and future pause rules, then shows ticket timers', asy
   page,
 }, testInfo) => {
   await signIn(page, 'admin');
+  // Ticket 23 moved wait reasons and their pause flag off the SLA screen onto Lists.
+  await page.goto('/settings/lists?list=wait_reason');
+  await expect(page.getByRole('heading', { name: 'Wait reasons', exact: true })).toBeVisible();
+  await setWaitReasonPausesSla(page, 'Spare part');
+
   await page.goto('/desk/settings');
   await expect(page.getByRole('heading', { name: 'SLA policies', exact: true })).toBeVisible();
-  await expect(page.getByText(FUTURE_PAUSE_COPY, { exact: true })).toBeVisible();
   const noPolicies = page.getByText(
     'No SLA policies configured. Enter all four targets and save.',
     {
@@ -39,9 +44,13 @@ test('configures policies and future pause rules, then shows ticket timers', asy
     await expect(s1.getByRole('spinbutton', { name: 'Restore minutes' })).toHaveValue('');
   }
 
-  await savePoliciesAndWaitRule(page);
+  await savePolicies(page);
   await expectPoliciesPersisted(page);
   if (testInfo.project.name === 'phone') await expectPhoneSettingsLayout(page);
+
+  // The flag set on Lists survives a reload, so the timer journey below runs on the saved rule.
+  await page.goto('/settings/lists?list=wait_reason');
+  await expectWaitReasonPausesSla(page, 'Spare part');
 
   const machine = MACHINES[testInfo.project.name === 'phone' ? 9 : 8];
   if (!machine) throw new Error(`No SLA machine for ${testInfo.project.name}`);
@@ -162,7 +171,7 @@ test('freezes cached Settings and ticket timers while offline', async ({ page })
   await page.clock.install();
   await signIn(page, 'admin');
   await page.goto('/desk/settings');
-  await savePoliciesAndWaitRule(page);
+  await savePolicies(page);
   const ticket = await raiseWorkRequest(await apiLogin('asha'), 'Offline SLA snapshot');
   await page.goto(`/desk/${ticket.id}`);
   const timers = page.getByRole('region', { name: 'SLA timers', exact: true });

@@ -16,9 +16,6 @@ export const POLICIES = [
   { severity: 'S4', ackMinutes: '180', restoreMinutes: '720', businessHoursOnly: false },
 ] as const;
 
-export const FUTURE_PAUSE_COPY =
-  'Applies to pauses started after this change. Existing pauses keep the rule they started with.';
-
 async function apiJson<T>(token: string, path: string, init: ApiInit = {}): Promise<T> {
   const response = await apiFetch(path, {
     ...init,
@@ -78,7 +75,39 @@ export async function expectPhoneSettingsLayout(page: Page): Promise<void> {
   );
 }
 
-export async function savePoliciesAndWaitRule(page: Page): Promise<void> {
+/** The ticket-23 Lists screen owns wait reasons and their pause flag; edit one as an admin does. */
+export async function setWaitReasonPausesSla(page: Page, label: string): Promise<void> {
+  await page.getByRole('button', { name: `Edit ${label}`, exact: true }).click();
+  const form = page.getByRole('form', { name: `Edit ${label}`, exact: true });
+  await form
+    .getByRole('group', { name: 'Pauses SLA', exact: true })
+    .getByRole('button', { name: 'Yes', exact: true })
+    .click();
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        /\/api\/v1\/settings\/lists\/wait_reason\/[^/]+$/.test(response.url()) &&
+        response.request().method() === 'PUT' &&
+        response.status() === 200,
+    ),
+    form.getByRole('button', { name: 'Save', exact: true }).click(),
+  ]);
+  expect(response.status()).toBe(200);
+  await expect(form).toBeHidden();
+}
+
+/** Whether the stored row says its pause flag stops the SLA clock, read from the edit sheet. */
+export async function expectWaitReasonPausesSla(page: Page, label: string): Promise<void> {
+  await page.getByRole('button', { name: `Edit ${label}`, exact: true }).click();
+  const form = page.getByRole('form', { name: `Edit ${label}`, exact: true });
+  await expect(
+    form
+      .getByRole('group', { name: 'Pauses SLA', exact: true })
+      .getByRole('button', { name: 'Yes', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+}
+
+export async function savePolicies(page: Page): Promise<void> {
   await completePolicies(page);
   // Ensure Save is dirty even when the other device project already persisted the same values.
   const s1Ack = policyGroup(page, 'S1').getByRole('spinbutton', {
@@ -86,21 +115,6 @@ export async function savePoliciesAndWaitRule(page: Page): Promise<void> {
   });
   await s1Ack.fill('61');
   await s1Ack.fill('60');
-  const spare = page.getByRole('checkbox', {
-    name: 'Pause restore clock while waiting for Spare part',
-    exact: true,
-  });
-  if (!(await spare.isChecked())) {
-    await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.url().endsWith('/api/v1/lists/wait_reason/spare') &&
-          response.request().method() === 'PUT' &&
-          response.status() === 200,
-      ),
-      spare.check(),
-    ]);
-  }
   const save = page.getByRole('button', { name: 'Save SLA policies', exact: true });
   const [response] = await Promise.all([
     page.waitForResponse(
@@ -131,12 +145,6 @@ export async function expectPoliciesPersisted(page: Page): Promise<void> {
       await expect(businessHours).not.toBeChecked();
     }
   }
-  await expect(
-    page.getByRole('checkbox', {
-      name: 'Pause restore clock while waiting for Spare part',
-      exact: true,
-    }),
-  ).toBeChecked();
 }
 
 export async function expectOfflineSettings(page: Page): Promise<void> {
