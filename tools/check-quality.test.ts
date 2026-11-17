@@ -1,5 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { missingAttributes, missingSections, pushRefusal, weakenedTests } from './check-quality.js';
+import {
+  missingAttributes,
+  missingSections,
+  pushRefusal,
+  REVIEW,
+  weakenedTests,
+} from './check-quality.js';
 
 const DELETE_ASSERTION = `diff --git a/apps/x.test.ts b/apps/x.test.ts
 index 1111111..2222222 100644
@@ -100,6 +107,12 @@ Run it.
 ${qTable(['Q7'])}`;
     expect(missingAttributes(partial)).toEqual(['Q7']);
     expect(missingSections(partial)).toEqual(['What must be decided']);
+  });
+
+  it('Q14 keeps REVIEW equal to the review rows in the contract', () => {
+    const doc = readFileSync(new URL('../docs/QUALITY-ATTRIBUTES.md', import.meta.url), 'utf8');
+    const reviewRows = [...doc.matchAll(/^\|\s*(Q\d+)\s*\|.*\|\s*review\s*\|/gm)].map((m) => m[1]);
+    expect(reviewRows.join(' ')).toBe(REVIEW);
   });
 
   it('Q12 accepts a Preview line and a Decisions line', () => {

@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
  */
 
 export const IDS: readonly string[] = Array.from({ length: 15 }, (_, i) => `Q${i + 1}`);
-export const REVIEW = 'Q1 Q3 Q4 Q8 Q9 Q10 Q11 Q14 Q15';
+export const REVIEW = 'Q1 Q11 Q14';
 
 const REMOVED_ASSERTION = /\bexpect\s*\(/;
 const REMOVED_TEST = /\b(?:it|test)(?:\.(?:each|only|skip|todo|concurrent))?\s*\(/;
@@ -150,9 +150,12 @@ function gitDiff(): string | null {
   }
 }
 
-function pnpm(args: string[], env: NodeJS.ProcessEnv = {}): boolean {
+type Command = [string, ...string[]];
+
+function runCommand(command: Command, env: NodeJS.ProcessEnv = {}): boolean {
+  const [bin, ...args] = command;
   try {
-    execFileSync('pnpm', args, { stdio: 'pipe', env: { ...process.env, ...env } });
+    execFileSync(bin, args, { stdio: 'pipe', env: { ...process.env, ...env } });
     return true;
   } catch {
     return false;
@@ -173,10 +176,10 @@ function testIntegrity(): Check {
 function commandCheck(
   id: string,
   label: string,
-  commands: string[][],
+  commands: Command[],
   env: NodeJS.ProcessEnv = {},
 ): Check {
-  const failed = commands.find((args) => !pnpm(args, env));
+  const failed = commands.find((command) => !runCommand(command, env));
   return { id, label, ok: failed === undefined, note: failed?.join(' ') };
 }
 
@@ -184,15 +187,21 @@ function runLocal(): void {
   const checks = [
     testIntegrity(),
     commandCheck('Q5', 'data safety', [
-      ['run', 'migrations:check'],
-      ['run', 'migrations:immutable'],
+      ['pnpm', 'run', 'migrations:check'],
+      ['pnpm', 'run', 'migrations:immutable'],
     ]),
-    commandCheck('Q6', 'lean budgets', [['run', 'pr:size']], {
+    commandCheck('Q6', 'lean budgets', [['pnpm', 'run', 'pr:size']], {
       PR_BODY: process.env.PR_BODY ?? '',
     }),
-    commandCheck('Q7', 'design lock', [['run', 'ui:check']]),
-    commandCheck('Q12', 'evidence and memory', [['run', 'changelog:check']]),
-    commandCheck('Q13', 'secrets and data', [['run', 'pii:scan']]),
+    commandCheck('Q7', 'design lock', [['pnpm', 'run', 'ui:check']]),
+    commandCheck('Q9', 'i18n catalogue', [
+      ['npx', 'vitest', 'run', 'packages/shared/test/catalogue.test.ts'],
+    ]),
+    commandCheck('Q10', 'determinism', [
+      ['npx', 'vitest', 'run', 'packages/domain/test/analytics-engine.test.ts'],
+    ]),
+    commandCheck('Q12', 'evidence and memory', [['pnpm', 'run', 'changelog:check']]),
+    commandCheck('Q13', 'secrets and data', [['pnpm', 'run', 'pii:scan']]),
   ];
   for (const check of checks) {
     const status = check.skipped ? `skip — ${check.skipped}` : check.ok ? 'pass' : 'fail';
@@ -200,7 +209,7 @@ function runLocal(): void {
     console.log(`${check.id.padEnd(4)}${check.label.padEnd(22)}${status}${note}`);
   }
   const failed = checks.filter((check) => !check.ok && !check.skipped);
-  console.log(`quality: ${checks.length} auto attributes, ${failed.length} failed`);
+  console.log(`quality: ${checks.length} local checks, ${failed.length} failed`);
   console.log(`review attributes: ${REVIEW}`);
   if (failed.length > 0) process.exitCode = 1;
 }
