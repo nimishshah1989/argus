@@ -37,6 +37,8 @@ export interface CrudField {
   choices?: (c: CrudCtx) => CrudChoice[];
   /** Asked when adding only: the row keeps it once made (its code, its segment). */
   addOnly?: boolean;
+  /** A yes/no choice the server keeps as a boolean: the sheet's "true"/"false" are sent as true/false. */
+  flag?: boolean;
 }
 /** How a row reads on a phone and in the table's first column. */
 export interface CrudLook {
