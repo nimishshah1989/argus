@@ -10,8 +10,12 @@ import {
   rememberWho,
 } from './data/index.js';
 import type { BoardToday } from '@uptimo/shared/board';
-import type { DrillType, FiguresReply } from '@uptimo/shared/analytics';
-import type { MachineRow, MoveRow, TicketRow } from '@uptimo/domain';
+import {
+  drillReplySchema,
+  type DrillReply,
+  type DrillType,
+  type FiguresReply,
+} from '@uptimo/shared/analytics';
 import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
@@ -61,19 +65,15 @@ const analyticsFigures = defineResource<FiguresReply>({
 });
 /**
  * `GET /analytics/drill` answers `{ type, rows }`, not a cursor page: the engine's plain rows, the same shape
- * the engine reads. The sibling packet 37a owns that contract; `list` is only the query-string helper here.
+ * the engine reads. The shared contract owns that reply; `list` is only the query-string helper here.
  */
-const analyticsDrill = defineResource<unknown, never>({
+const analyticsDrill = defineResource<DrillReply, never>({
   key: 'analytics-drill',
   path: '/api/v1/analytics/drill',
 });
-export interface DrillReply {
-  type: DrillType;
-  rows: (MachineRow | MoveRow | TicketRow)[];
-}
-/** The rows behind a figure: at most 200 ids, the order of the ids asked. */
+/** The rows behind a figure: at most 200 ids, the order of the ids asked; the reply is parsed at this boundary. */
 export const getDrill = async (type: DrillType, ids: readonly string[]): Promise<DrillReply> =>
-  (await analyticsDrill.list({ type, ids: ids.join(',') })) as unknown as DrillReply;
+  drillReplySchema.parse(await analyticsDrill.list({ type, ids: ids.join(',') }));
 const signoffFeed = defineResource<SignoffFeed>({
   key: 'signoff-feed',
   path: '/api/v1/board/signoff',
