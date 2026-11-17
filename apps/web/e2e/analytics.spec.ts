@@ -48,14 +48,21 @@ const DRILL_ROW = {
 
 type Figure = FiguresReply['figures'][number];
 
-/** The face prints a number the way the app does: grouped, hours with at least one decimal (one rule: groups.ts). */
-const valueText = (figure: Figure): string =>
-  typeof figure.value === 'number'
-    ? new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: HOUR_FIGURES.has(figure.key) ? 1 : 0,
-        maximumFractionDigits: 2,
-      }).format(figure.value)
-    : String(figure.value);
+/**
+ * The text a tile prints for a figure's value: a scalar's exact face, or null when the value is an object or array
+ * with no text of its own (the tile says "Ready"; the domain test proves the shape against the key).
+ */
+const valueText = (figure: Figure): string | null => {
+  const value = figure.value;
+  if (typeof value === 'number')
+    return new Intl.NumberFormat('en-GB', {
+      minimumFractionDigits: HOUR_FIGURES.has(figure.key) ? 1 : 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  if (typeof value === 'string') return value;
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return value === null ? '—' : null;
+};
 
 /** One dashboard figure's tile, found by the registry key the screen stamps on it. */
 const tile = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`);
@@ -158,12 +165,20 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
   const reply = (await (await response).json()) as FiguresReply;
 
-  // Every Dashboard figure the live API returns has a tile; the ready ones print the value it returned.
+  // Every Dashboard figure the live API returns has a tile. A scalar prints the exact value the API returned; an
+  // object value (the two cards, the two charts) has no text of its own, so its tile only has to be ready.
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
   for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
-  for (const figure of ready) await expect(tile(page, figure.key)).toContainText(valueText(figure));
+  for (const figure of ready) {
+    const text = valueText(figure);
+    // The value's own shape is proven in the domain test against the key; the tile can only say "Ready".
+    if (text === null) {
+      await expect(tile(page, figure.key)).toContainText('Ready');
+      await expect(tile(page, figure.key)).not.toContainText('Not computed yet');
+    } else await expect(tile(page, figure.key)).toContainText(text);
+  }
 
   // The strip above the tiles is built from the existing /state, with no new endpoint.
   await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
@@ -181,12 +196,14 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
 
-  // The data checklist has its own route, at the foot of the menu, and stays honest until 38.2 computes it.
+  // The data checklist has its own route, at the foot of the menu. 38.2 computes it now: its value is the open
+  // items (an object), so the tile is ready and never claims a "Not computed yet" it no longer is.
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   await menu.getByRole('link', { name: 'Data checklist', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
   await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
-  await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
+  await expect(tile(page, 'data-checklist')).toContainText('Ready');
+  await expect(tile(page, 'data-checklist')).not.toContainText('Not computed yet');
 });
 
 /**
