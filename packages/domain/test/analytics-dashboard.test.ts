@@ -6,6 +6,8 @@ import {
   type EngineResult,
   type FigureResult,
   type MachineRow,
+  type ReportRow,
+  type TicketRow,
 } from '../src/index.js';
 import { dashboardComputers } from '../src/analytics/computers.js';
 import { DASHBOARD, ENGINE_DATA, kpiByLabel, type DashboardKpi } from './answer-key/fixture.js';
@@ -39,7 +41,16 @@ const DERIVED = [
   ['dashboard.avg-bd-hours-per-machine', 'Avg BD Hours / Machine'],
 ] as const;
 
+/** The four of packet 38.4, whose formulas the platform's own Guide states (available hours, the record span). */
+const GUIDE_FORMULAS = [
+  ['dashboard.fleet-availability', 'Fleet Availability'],
+  ['dashboard.plant-bd-pct', 'Plant BD %'],
+  ['dashboard.avg-complaints-per-day', 'Avg Complaints / Day'],
+  ['dashboard.avg-bd-hours-per-day', 'Avg BD Hours / Day'],
+] as const;
+
 const ELEVEN = [...MACHINE_COUNTS, ...DERIVED] as const;
+const FIFTEEN = [...ELEVEN, ...GUIDE_FORMULAS] as const;
 
 const run = (data: EngineData = ENGINE_DATA): EngineResult =>
   runWith(dashboardComputers, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
@@ -81,26 +92,27 @@ const extraMachine: MachineRow = {
   assetCode: null,
   status: 'active',
   criticality: null,
+  excludedFromProduction: false,
   metadata: {},
 };
 
-describe('the eleven dashboard figures on the 11 November workbook', () => {
+describe('the fifteen dashboard figures on the 11 November workbook', () => {
   const result = run();
   const machineIds = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
   const ticketIds = new Set(
     [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
   );
 
-  it("answers each of the eleven with the answer key's exact number, as the platform showed it", () => {
+  it("answers each of the fifteen with the answer key's exact number, as the platform showed it", () => {
     expect(DASHBOARD.asOf).toBe(AS_OF);
-    for (const [key, label] of ELEVEN) {
+    for (const [key, label] of FIFTEEN) {
       const answer = kpiByLabel(label);
       expect(figure(result, key).status, key).toBe('ready');
       expect(figure(result, key).value, `${label}: ours vs key`).toBe(keyNumber(answer));
     }
   });
 
-  it("parses a count exactly and an hours figure to the key's own decimals, never rounding a unit away", () => {
+  it("parses a count exactly, an hours figure to the key's decimals and the percentages as points", () => {
     for (const [, label] of MACHINE_COUNTS) expect(kpiByLabel(label).value, label).toMatch(/^\d+$/);
     expect(kpiByLabel('Total Breakdowns').value).toMatch(/^\d+$/);
     for (const label of [
@@ -110,6 +122,12 @@ describe('the eleven dashboard figures on the 11 November workbook', () => {
       'Avg BD Hours / Machine',
     ]) {
       expect(kpiByLabel(label).value, label).toMatch(/^[\d,]+(?:\.\d+)? hrs$/);
+    }
+    for (const label of ['Fleet Availability', 'Plant BD %']) {
+      expect(kpiByLabel(label).value, label).toMatch(/^\d+\.\d{2}%$/);
+    }
+    for (const label of ['Avg Complaints / Day', 'Avg BD Hours / Day']) {
+      expect(kpiByLabel(label).value, label).toMatch(/^\d+\.\d{2}$/);
     }
   });
 
@@ -149,6 +167,52 @@ describe('the eleven dashboard figures on the 11 November workbook', () => {
     );
   });
 
+  it('drills the four Guide figures to the rows their formulas read: production machines and tickets', () => {
+    const availability = figure(result, 'dashboard.fleet-availability');
+    const production = ENGINE_DATA.machines.filter(
+      (machine) => machine.segment === 'CNC' && !machine.excludedFromProduction,
+    );
+    expect(availability.drill.type).toBe('machine');
+    expect(availability.drill.ids).toEqual(production.map((machine) => machine.id).sort());
+    for (const id of availability.drill.ids) expect(machineIds.has(id), id).toBe(true);
+    const excluded = ENGINE_DATA.machines
+      .filter((machine) => machine.excludedFromProduction)
+      .map((machine) => machine.id);
+    expect(excluded.length).toBeGreaterThan(0);
+    for (const id of excluded) expect(availability.drill.ids, id).not.toContain(id);
+
+    // Both daily averages are the key's own totals over the record span, so they drill to those same tickets.
+    expect(figure(result, 'dashboard.avg-complaints-per-day').drill).toEqual(
+      figure(result, 'dashboard.total-breakdowns').drill,
+    );
+    expect(figure(result, 'dashboard.avg-bd-hours-per-day').drill).toEqual(
+      figure(result, 'dashboard.total-downtime-hours').drill,
+    );
+    const bdPct = figure(result, 'dashboard.plant-bd-pct');
+    expect(bdPct.drill.type).toBe('ticket');
+    expect(bdPct.drill.ids.length).toBeGreaterThan(0);
+    for (const id of bdPct.drill.ids) expect(ticketIds.has(id), id).toBe(true);
+  });
+
+  it('divides both daily averages by the span the breakdown log covers, first to last day included', () => {
+    const dates = ENGINE_DATA.reports
+      .filter((report) => report.maintCode !== 'PM')
+      .map((report) => report.date)
+      .sort();
+    const first = dates[0] ?? '';
+    const last = dates[dates.length - 1] ?? '';
+    const days =
+      (Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86_400_000 + 1;
+    expect(days).toBe(311);
+    const toTwo = (value: number) => Math.round(value * 100) / 100;
+    expect(figure(result, 'dashboard.avg-complaints-per-day').value).toBe(
+      toTwo(Number(figure(result, 'dashboard.total-breakdowns').value) / days),
+    );
+    expect(figure(result, 'dashboard.avg-bd-hours-per-day').value).toBe(
+      toTwo(Number(figure(result, 'dashboard.total-downtime-hours').value) / days),
+    );
+  });
+
   it("splits the fleet as the key's sub-labels say: utilities and DG stand outside the total", () => {
     const count = (key: string) => Number(figure(result, key).value);
     const total = figure(result, 'dashboard.total-machines');
@@ -176,5 +240,121 @@ describe('a machine count reads the data it is given', () => {
     expect(after.drill.ids).toContain(extraMachine.id);
     expect(before.drill.ids).not.toContain(extraMachine.id);
     expect(after.drill.ids.length).toBe(after.value);
+  });
+});
+
+describe('a machine excluded from production data', () => {
+  const excludedMachine: MachineRow = {
+    ...extraMachine,
+    id: 'TEST-EXCLUDED-1',
+    code: 'TEST-EXCLUDED-1',
+    excludedFromProduction: true,
+  };
+  const productionMachine: MachineRow = {
+    ...extraMachine,
+    id: 'TEST-PRODUCTION-1',
+    code: 'TEST-PRODUCTION-1',
+  };
+
+  /**
+   * A breakdown row for the excluded Robot, which the workbook itself holds no row for: one real, sourced row with
+   * downtime, dated inside the record span, so only the production filter can keep it out of the Guide figures.
+   */
+  const robot = ENGINE_DATA.machines.find((machine) => machine.id === 'BOXY');
+  if (!robot || !robot.excludedFromProduction) {
+    throw new Error('the workbook no longer holds the excluded BOXY robot');
+  }
+  const robotBreakdown = 'TEST-EXCLUDED-BD-1';
+  const robotTicket: TicketRow = {
+    id: robotBreakdown,
+    ref: robotBreakdown,
+    kind: 'stopped',
+    status: 'closed',
+    machineId: robot.id,
+    reportedAt: '2026-06-15T02:30:00.000Z',
+    closedAt: '2026-06-15T10:30:00.000Z',
+    source: 'history',
+    downtimeMin: 480,
+    repairMin: 450,
+    workType: 'AX',
+  };
+  const robotReport: ReportRow = {
+    id: robotBreakdown,
+    ticketId: robotBreakdown,
+    machineId: robot.id,
+    date: '2026-06-15',
+    shift: '1',
+    problem: 'Robot stopped',
+    downtimeMin: 480,
+    responseMin: 30,
+    repairMin: 450,
+    category: 'M',
+    maintCode: 'AX',
+    spareUsed: null,
+    rootCause: null,
+    doneBy: [],
+    supportedBy: [],
+  };
+
+  it("never moves the four Guide figures with an excluded machine's breakdown rows", () => {
+    const before = run();
+    const after = run({
+      ...ENGINE_DATA,
+      tickets: [...ENGINE_DATA.tickets, robotTicket],
+      reports: [...ENGINE_DATA.reports, robotReport],
+    });
+    // The row is sourced like every other row, so the unfiltered total counts it: the fixture change is not a no-op.
+    expect(Number(figure(after, 'dashboard.total-breakdowns').value)).toBe(
+      Number(figure(before, 'dashboard.total-breakdowns').value) + 1,
+    );
+    for (const key of [
+      'dashboard.plant-bd-pct',
+      'dashboard.fleet-availability',
+      'dashboard.avg-complaints-per-day',
+      'dashboard.avg-bd-hours-per-day',
+    ]) {
+      expect(figure(after, key).value, key).toBe(figure(before, key).value);
+    }
+    // The drills name the rows a figure counted, so no Guide figure names the excluded machine's row.
+    expect(figure(after, 'dashboard.plant-bd-pct').drill).toEqual(
+      figure(before, 'dashboard.plant-bd-pct').drill,
+    );
+    expect(figure(after, 'dashboard.plant-bd-pct').drill.ids).not.toContain(robotBreakdown);
+    expect(figure(after, 'dashboard.avg-bd-hours-per-day').drill).toEqual(
+      figure(before, 'dashboard.avg-bd-hours-per-day').drill,
+    );
+    const availability = figure(after, 'dashboard.fleet-availability');
+    const production = ENGINE_DATA.machines.filter(
+      (machine) => machine.segment === 'CNC' && !machine.excludedFromProduction,
+    );
+    expect(availability.drill.ids.length).toBe(production.length);
+    expect(availability.drill.ids).not.toContain(robot.id);
+  });
+
+  it('stays in the fleet totals but adds no available hours and joins no production drill', () => {
+    const before = run();
+    const after = run({
+      ...ENGINE_DATA,
+      machines: [...ENGINE_DATA.machines, excludedMachine],
+    });
+    expect(Number(figure(after, 'dashboard.total-machines').value)).toBe(
+      Number(figure(before, 'dashboard.total-machines').value) + 1,
+    );
+    for (const key of ['dashboard.fleet-availability', 'dashboard.plant-bd-pct']) {
+      expect(figure(after, key).value, key).toBe(figure(before, key).value);
+    }
+    expect(figure(after, 'dashboard.fleet-availability').drill.ids).toEqual(
+      figure(before, 'dashboard.fleet-availability').drill.ids,
+    );
+  });
+
+  it('a production machine joins the available-hours denominator and its drill', () => {
+    const before = figure(run(), 'dashboard.fleet-availability');
+    const after = figure(
+      run({ ...ENGINE_DATA, machines: [...ENGINE_DATA.machines, productionMachine] }),
+      'dashboard.fleet-availability',
+    );
+    expect(after.drill.ids).toContain(productionMachine.id);
+    expect(after.drill.ids.length).toBe(before.drill.ids.length + 1);
   });
 });

@@ -66,6 +66,8 @@ interface Workbook {
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
+    /** The machines the plant leaves out of production data (the Robot is one). */
+    excludedMachines?: string[];
     /** The plant's shifts, with the wall-clock start the log date belongs to. */
     shiftTimes: Array<{ name: string; start: string; end: string }>;
   };
@@ -128,7 +130,11 @@ function footprint(row: WorkbookMachine): Record<string, unknown> {
 }
 
 /** One workbook row as a machine: the list it is in is its segment, since a list row carries none of its own. */
-function toMachine(row: WorkbookMachine, segment: string): MachineRow {
+function toMachine(
+  row: WorkbookMachine,
+  segment: string,
+  excluded: ReadonlySet<string>,
+): MachineRow {
   return {
     id: row.id,
     code: row.id,
@@ -146,12 +152,15 @@ function toMachine(row: WorkbookMachine, segment: string): MachineRow {
     assetCode: text(row.assetCode),
     status: 'active',
     criticality: null,
+    // The plant's Settings list names the Robot; a row whose category is Robot is out of production data too.
+    excludedFromProduction: excluded.has(row.id) || row.category === 'Robot',
     metadata: footprint(row),
   };
 }
 
 /** The workbook's five machine sheets, in the order the platform lists them. */
 function machines(workbook: Workbook): MachineRow[] {
+  const excluded = new Set(workbook.settings.excludedMachines ?? []);
   const sheets: ReadonlyArray<[readonly WorkbookMachine[], string]> = [
     [workbook.machines, 'CNC'],
     [workbook.convMachines, 'Conventional'],
@@ -159,7 +168,7 @@ function machines(workbook: Workbook): MachineRow[] {
     [workbook.utilMachines, 'Utility'],
     [workbook.dgMachines, 'DG'],
   ];
-  return sheets.flatMap(([rows, segment]) => rows.map((row) => toMachine(row, segment)));
+  return sheets.flatMap(([rows, segment]) => rows.map((row) => toMachine(row, segment, excluded)));
 }
 
 /** A coded name (`Person 51`, `Maint. Team`) as the engine's person code. The workbook holds no other name. */

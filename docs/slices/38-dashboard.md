@@ -193,52 +193,55 @@ is listed as not implemented yet".
 - `dashboard.avg-complaints-per-day` (4.11) and `dashboard.avg-bd-hours-per-day` (9.84), both "over 311 days of
   records": the workbook spans 315 days and has 256 distinct breakdown dates; 311 is not derivable (R8).
 
-## Packet 38.3 — the Dashboard screen and the head's Today (binding, after 38.1)
+## Revision 4 — the platform's own Guide answers the four held figures (17 Nov, from discovery)
 
-**What is computable today:** eleven Dashboard figures (`dashboard.*` machine counts, total-breakdowns,
-total-downtime-hours, pm-hours, no-downtime-hours, avg-bd-hours-per-machine). **Held for Nimish, stay honest
-"Not computed yet":** `fleet-availability`, `plant-bd-pct`, `avg-complaints-per-day`, `avg-bd-hours-per-day`,
-`bubble-chart`, `expansion-timeline`, `data-checklist`. Never print a made-up value for those.
+`docs/discovery/source/cosmos_platform.html` (and Nimish's newer copy) contains the platform's **Guide**, which states
+every formula, and the platform's JavaScript that implements them. My earlier "stop-and-ask" was wrong: the answers
+were in discovery. These are the rules to port (re-implement, never copy code):
 
-- **Dashboard screen** (`/analytics/today`): the eleven KPIs as tiles in the platform's order (the key's order), value
-  formatted from the figure (hours to one decimal, percentages/counts as the face already formats), each tile a drill
-  link when its `drill.ids` is non-empty. The held seven render the honest placeholder through the existing
-  "Not computed yet" path.
-- **The head's and plant head's home opens on Today** (LOCK § "Analytics face": "head and plant head open on Today"):
-  after sign-in, and from the desk's home, those two roles land on `/analytics/today`; operators and technicians keep
-  their existing homes (`My complaints`, `Mine`) untouched. One role→landing map, tested.
-- **Today's "what needs me now"** strip on the same screen: open items and breached clocks from the **existing**
-  `/api/v1/state` and the SLA fields it already carries (`sla.ack`/`sla.restore` breached, `waitSince`), reusing
-  `openLists` helpers where they fit — **no new endpoint, no new query shape**, and money never appears here.
-- **Data checklist screen** (`/analytics/machines?…`? no: its own screen under the Today group): renders the
-  `data-checklist` figure's honest placeholder until 38.2 computes it; the route and the Guide entry ship now so the
-  menu is complete.
-- **Tests:** one Playwright journey — a head signs in and lands on Today, sees the eleven values from the live API (the
-  e2e tenant's small data, so assert the computed values the API returns and at least one drill opens its rows), sees
-  "Not computed yet" for a held figure, and the data checklist screen opens; a second assertion that an **operator**
-  still lands on My complaints (home unchanged). A pure unit test for the role→landing map.
-- **Not in this packet:** the two charts' rendering (no series yet), the checklist computation (38.2), any new figure.
+- **Available hours per machine** = `prodHrsPerDay × workDaysPerYear` (= 20 × 300 = 6000, from the profile).
+  Basis **"days so far" (default)**: counted from 1 January to the last data date (or today if later), **month by
+  month** — a full month is `annual/12`, a partial month is `annual/12 × (days covered ÷ days in that month)`. Each
+  machine counts **from its purchase date** (`purchasedOn`), and a machine with no purchase date counts from the
+  period start. `"Full year"` counts the whole 6000.
+- **Production machines** = CNC machines **not excluded from production data** (the Robot is excluded; excluded
+  machines stay in the fleet totals and the timeline but never in breakdown hours, MTTR/MTBF, BD %, availability,
+  footprint or reports).
+- **Plant BD %** = breakdown hours ÷ Σ available hours of the production machines.
+- **PM %** = PM hours ÷ the same denominator. **Fleet Availability** = 1 − Plant BD % − PM %.
+- **Days in the record** = earliest to latest breakdown date in the log, both included (this is the 311).
+  **Avg Complaints / Day** = Total Breakdowns ÷ days in the record; **Avg BD Hours / Day** = Total Downtime ÷ days in
+  the record.
+- Breakdown selection follows the guide: CNC breakdown entries only, **PM excluded from breakdowns/downtime**,
+  **NO DT entries count as a breakdown but add 0 hours** (their recorded hours show separately as NO-DT hours),
+  live `otherBD` entries are a separate log and are not in the workbook's breakdown list.
+- **Breakdown-Free Machines** (new figure): CNC production machines whose last breakdown was ≥ 30 days ago (or none),
+  out of the production machines in service that day (a machine joins on its purchase date); excluded machines and
+  robots are left out. The key shows 53 of 125.
+- **Problems costing the most downtime** (new figure): breakdown problems ranked by downtime hours.
+- **Bubble chart**: one bubble per CNC production machine with ≥1 breakdown; height = breakdown count, x = machine BD
+  hours, size = its MTTR (BD hours ÷ breakdowns).
+- **Machine Expansion Timeline**: cumulative machine count by purchase year; a year lists the machines bought that
+  year.
 
-## Packet 38.3 — the Dashboard screen and the head's Today (binding, after 38.1)
+**Acceptance for packet 38.4:** implement Plant BD %, Fleet Availability, Avg Complaints/Day and Avg BD Hours/Day and
+reproduce the key **exactly** — 0.54 %, 99.32 %, 4.11, 9.84 — then join and extend the pure test. If a number does not
+reproduce, the delta names the missing rule: STOP and report it; never tune the formula to fit. The platform JavaScript
+to read (not copy) is in `docs/discovery/source/cosmos_platform.html`: functions `annualHoursPerMachine`, `availWin`,
+`availSum`, `periodFrac`, `dayDiff`, `isExcluded`, `nonRobotMachines`, `filterBD`, `sumHrs`, `calcAnalytics1` and the
+Dashboard renderer.
 
-**Computable today:** eleven Dashboard figures (the machine counts, total-breakdowns, total-downtime-hours,
-pm-hours, no-downtime-hours, avg-bd-hours-per-machine). **Held for Nimish, stay honest "Not computed yet":**
-`fleet-availability`, `plant-bd-pct`, `avg-complaints-per-day`, `avg-bd-hours-per-day`, `bubble-chart`,
-`expansion-timeline`, `data-checklist`. Never print a made-up value for those.
+## Follow-ups filed after packet 38.4's review
 
-- **Dashboard screen** (`/analytics/today`): the eleven KPIs as tiles in the platform's key order, value formatted
-  from the figure (hours to one decimal), each tile a drill link when its `drill.ids` is non-empty; the held seven
-  render through the existing "Not computed yet" path.
-- **The head's and plant head's home opens on Today** (LOCK § "Analytics face"): after sign-in and on the desk's home
-  those two roles land on `/analytics/today`; operators and technicians keep their existing homes (`My complaints`,
-  `Mine`) untouched. One role→landing map, unit-tested.
-- **Today's "what needs me now" strip** on the same screen: open items and breached clocks from the **existing**
-  `/api/v1/state` fields (`sla.ack`/`sla.restore` breached, `waitSince`), reusing `openLists` helpers where they fit —
-  **no new endpoint**, no new query shape, and money never appears here.
-- **Data checklist screen**: its own route under the Today group, rendering the honest placeholder until 38.2 computes
-  it; the route and Guide entry ship now so the menu is complete.
-- **Tests:** one Playwright journey — a head signs in and lands on Today, sees the eleven values from the live API (the
-  e2e tenant's small data: assert what the API returns and that one drill opens its rows), sees "Not computed yet" for a
-  held figure, and opens the data checklist screen; one assertion that an **operator** still lands on My complaints. A
-  pure unit test for the role→landing map.
-- **Not in this packet:** the two charts' rendering (no series yet), the checklist computation (38.2), any new figure.
+- **S2 — Total Breakdowns' production filter.** `dashboard.total-breakdowns` counts every history breakdown (PM
+  excluded) while `dashboard.avg-complaints-per-day` divides the **production-filtered** count. The platform's Guide
+  filters Total Breakdowns by production too (`bdIsCountable`), but the answer key cannot arbitrate (1279 either way —
+  BOXY has no rows). Align both in ticket 40 (breakdown analyses), where the log itself is computed, and say it in that
+  PR; do not retune here.
+- **Recorded hours vs minutes.** The Guide divides recorded **hours**; the repo stores **minutes**, which reproduces the
+  key exactly today (3060.1333 h). If a later ticket needs the recorded-hours column (`downHrs`), it is an additive
+  column in that ticket's migration, not a formula change.
+
+**Proven (17 Nov).** The four reproduce the key exactly through the code above: Plant BD % **0.54**, Fleet Availability
+**99.32**, Avg Complaints/Day **4.11** (1279 ÷ 311), Avg BD Hours/Day **9.84** (3060.1333 ÷ 311), with the pure test
+comparing the key's own printed text and no tolerance.

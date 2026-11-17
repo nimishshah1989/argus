@@ -45,6 +45,9 @@ const machine = (row: Row): MachineRow => ({
   assetCode: text(row.asset_code),
   status: row.status as MachineRow['status'],
   criticality: row.criticality as MachineRow['criticality'],
+  // The plant files a Robot in its own segment (and the imported master also marks its category Robot): it is never
+  // production data. A machine a plant excludes by hand has no column yet; that is an additive follow-up.
+  excludedFromProduction: row.segment === 'Robot' || row.category === 'Robot',
   metadata: row.metadata as Record<string, unknown>,
 });
 

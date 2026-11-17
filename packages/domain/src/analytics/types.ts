@@ -22,6 +22,12 @@ export interface MachineRow {
   assetCode: string | null;
   status: 'active' | 'idle' | 'scrapped';
   criticality: 'A' | 'B' | 'C' | null;
+  /**
+   * The plant leaves this machine out of production data (the Robot, and any machine excluded in Settings): it stays
+   * in the fleet totals, the breakdown log and the expansion timeline, but no production figure reads its breakdowns
+   * or adds its available hours (breakdown percent, availability, MTTR/MTBF, footprint, reports).
+   */
+  excludedFromProduction: boolean;
   /** What the plant keeps beside the columns: footprint, conveyor side and the like (ticket 39 reads it). */
   metadata: Record<string, unknown>;
 }
