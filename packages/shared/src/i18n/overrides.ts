@@ -1,7 +1,5 @@
-import type { MessageKey } from './index.js';
-
 /** The plant's own Gujarati, keyed by catalogue key (D17: a `setting`, laid over the bundled catalogue). */
-export type UiOverrides = Partial<Record<MessageKey, string>>;
+export type UiOverrides = Record<string, string>;
 
 /**
  * The bundled Gujarati with the plant's overrides on top: an override with text wins, a blank one or a key the
@@ -21,7 +19,9 @@ export function untranslatedKeys(
   en: Record<string, string>,
   gu: Record<string, string>,
   overrides: UiOverrides,
-): MessageKey[] {
+): string[] {
   const shown = overlaidGu(gu, overrides);
-  return (Object.keys(en) as MessageKey[]).filter((key) => (shown[key] ?? '').trim() === '').sort();
+  return Object.keys(en)
+    .filter((key) => (shown[key] ?? '').trim() === '')
+    .sort();
 }
