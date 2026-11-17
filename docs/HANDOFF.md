@@ -2,48 +2,45 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (M4a analytics parity, 17 Nov 2026)
+## RESUME HERE (M4a analytics parity, 17 Nov 2026, night)
 
-**State:** `main` = `77e0930`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37
-is done except the **breakdown-log load (37c)** (#289 machinery, #290 face/Guide/profile, #291 record); ticket 38 is
-**done** — the Dashboard is complete and **every figure is exact** against Bhavin's 11 November numbers: #293 built the answer-key seam (workbook
-fixture → engine data) with the six machine counts, #295 added total breakdowns 1279, total downtime 3060.1 h, PM
-759.3 h, NO-DT 209.1 h, avg 24.29 h/machine, and **joined the computers into `COMPUTERS`** with both shell tests
-moved to the stronger ready-set invariant. The tracker, ledger and this file are the truth; M3/M5 are parked.
+**State:** `main` = `c026546`. **M2 is accepted.** **M4a is current: tickets 36, 37 and 38 are done — the Dashboard is
+complete and every figure is exact against Bhavin's 11 November key** (#293, #295, #298, #299; screen and role homes
+#297). **Ticket 39 (registers, cell change log, footprint, age, machine page) is in flight**: the plan is committed on
+branch `m4a-regs` (`docs/slices/39-registers.md`, including the frozen figure value shapes in its Revision section) and
+two builders were running when this handoff was written: engine in worktree `.agents/worktrees/m4a-regs` (branch
+`m4a-regs`), screens in `.agents/worktrees/m4a-regs-ui` (branch `m4a-regs-ui`). **Their work is uncommitted/partial —
+inspect, then either finish it through a fresh builder against the plan or reset the worktree to `origin/main` and
+restart the packet. Never merge unreviewed partial work.**
 
-**Frontier, in the order Nimish approved:** **39 registers and machine pages** → 40 Breakdown analyses → 41
-manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45
-reports/export/Guide. Then the M4a gate (`docs/plan/gates/M4a.md`, under 30 lines) for his go, then M4b (46–54, 67),
-then M6 (55–60). M3 is out.
+**Unattended runs:** follow `docs/plan/night-run.md` — the loop per ticket, the evidence standard, the post-gate
+backend architecture review, and the **night exception to gates** (write and merge the gate report, continue; no
+irreversible action unattended). Nimish is loading credits; if the budget still runs out, stop and report.
 
-**The one real gap to start with:** `COMPUTERS` in `packages/domain/src/analytics/computers.ts` is **empty**, so all
-43 registered figures answer `not_computed`. Each screen ticket adds its figures there against
-`fixtures/answer-key/<screen>.json`, with `pnpm parity` rows updated in `docs/spec/parity.yaml`. The seam is
-`runWith(computers, {data, asOf, profile})`; the drill-provenance rule is already enforced by the engine.
+**Frontier:** 40 Breakdown analyses (with **37c, the 2026 breakdown-log load** — its prerequisite, plan it first) → 41
+manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45 reports/export/
+Guide → **M4a gate** (`docs/plan/gates/M4a.md`, under 30 lines) → **M4b** (10 tickets: 46–54 and 67) → **M6** (55–60).
+**M3 is out.** The **frontend overhaul** is a later workstream (`docs/plan/frontend-overhaul.md`), not in the loop.
 
-**Calls recorded (Nimish, 17 Nov):** order as above; money = heads/plant_head/admin only and never on the TV; build
-on the 16 Nov **32 KEPT** triage set while Bhavin's N12 review is outstanding; ticket 35 goal 1 (failed-jobs screen,
-timer-lag alarm) **parked**, not a gate. Menu groups use SPEC §8's names, each figure in exactly one group (a test
-enforces it); the analytics face is desktop-first, so a phone gets no Analytics tab until a mockup is approved.
+**Historic registers** are planned in `docs/plan/history-registers-plan.md` — **draft PR #300, Nimish's to review**.
+H1–H5 run beside the M4a tail after 37c; H6–H7 after the M4a gate; H8–H9 in M4b's first window. Consent is settled
+(N14, 17 Nov); the one precondition is coding names on the operator's machine before any AI pass (H2). No real register
+file goes into the repo.
 
-**Routing:** as `docs/decisions/D31-…` (names live there). The coder route answered and wrote every packet; the
-reasoning/review route's API key is still absent, so planning and all reviews run on Isoquant's second family —
-recorded, never a silent switch. Budgets are inside.
+**The platform's own Guide is the authority for every formula** — `docs/discovery/source/cosmos_platform.html` (and
+`docs/slices/38-dashboard.md` revision 4 has the distilled rules). When a number does not reproduce, stop and report.
 
-## Next session, first steps
+**Routing:** per `docs/decisions/D31-…`. The coder route writes; planning and reviews run on Isoquant's second family
+(the reasoning-route key is still absent — recorded). Never a silent model switch.
+
+**Open PR:** only #300 (the history plan, draft, awaiting Nimish). Queue is otherwise clear.
+
+## Next session, first three steps
 
 1. Read this file, `docs/plan/ledger.md` (17 Nov lines) and `docs/plan/MILESTONES.md`; refresh Graphify.
-2. Continue ticket 38 from `docs/slices/38-dashboard.md` (revisions 2–3 binding). **Four KPIs are held for Nimish**
-   (see his questions below) and must stay `not_computed`: fleet availability, plant BD %, avg complaints/day, avg
-   hours/day. Next: 38.2 (charts + the data checklist — checklist source `fixtures/answer-key/data-checklist.json`,
-   `extra.items`, and it must drill to tickets per R2; the bubble radius and the timeline grouping are stop-and-ask,
-   held with the four), then 38.3 (the Dashboard screen + the head's Today, with the eleven real figures and honest
-   placeholders for the held ones). A dropped computer is caught only by the domain suite — add one HTTP-level pin in
-   38.2/38.3 (reviewer note on #295).
-3. 37c (the 1,354-row breakdown log) is the input 40 needs; a draft scope from another session (#292, old registers
-   2022/24/25 with 4,767 entries) awaits Nimish's eight product decisions and a D21 data-consent check.
-4. **Open questions for Nimish** (they unblock four KPIs): the machine-hours denominator behind Fleet Availability
-   99.32 % and Plant BD % 0.54 % (126 or 159 machines, hours/day, date span, averaged per machine?); and the divisor
-   behind Avg Complaints/Day 4.11 and Avg BD Hours/Day 9.84 (311 platform days, 315 span, or 256 days with records?).
-   **For Bhavin:** our seed files BOXY under Robot (CNC 125/158) while his platform counts it in CNC (126/159).
-   One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.
+2. Recover ticket 39: inspect both worktrees, run their suites; complete via fresh builder + fresh reviewer, or reset and
+   re-dispatch. Then merge 39a and 39b with `main:check` after each.
+3. Plan 37c + 40 together (the log load is 40's input): the Guide's A1–A3 rules are already extracted; the fixture
+   `fixtures/answer-key/{breakdown-log,a1-bd-pm,a2-category-cell,a3-mttr-mtbf}.json` is the acceptance.
+
+One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.

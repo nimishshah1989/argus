@@ -1,0 +1,1 @@
+- The build continues overnight: the Dashboard is complete and answer-key exact, the registers/machine-page ticket is in flight, and the operating protocol for unattended runs (including what happens at a milestone gate) is written down so a fresh session can carry on without losing context.
