@@ -434,6 +434,32 @@ describe('a confirmation must cover the steps as they are now', () => {
   });
 });
 
+describe('a list reply carries the same lockout as the ticket page', () => {
+  it('reads the flagged tickets in one history query, each with its own confirmations', async () => {
+    const first = await raiseWork('Electrical');
+    const second = await raiseWork('Electrical');
+    await confirm(first, tech, DEFAULT_CODES);
+
+    const state = (await f.call('GET', '/api/v1/state', f.tokens.technician!)).json() as {
+      open: { id: string; lockout: { confirmations: { byPersonId: string }[] } }[];
+    };
+    const inState = (id: string) => state.open.find((ticket) => ticket.id === id)?.lockout;
+    expect(inState(first)).toEqual(await lockoutOf(first));
+    expect(inState(second)).toEqual(await lockoutOf(second));
+    // A batch must group by ticket: one person's confirmation is not every ticket's.
+    expect(inState(first)?.confirmations.map((c) => c.byPersonId)).toEqual([tech]);
+    expect(inState(second)?.confirmations).toEqual([]);
+  });
+
+  it('the Mine list carries the lockout of a flagged ticket being worked', async () => {
+    const id = await working();
+    const mine = (
+      await f.call('GET', `/api/v1/tickets?personId=${tech}&status=working`, f.tokens.technician!)
+    ).json() as { items: { id: string; lockout: unknown }[] };
+    expect(mine.items.find((ticket) => ticket.id === id)?.lockout).toEqual(await lockoutOf(id));
+  });
+});
+
 describe('who is confirming comes from the session', () => {
   it("a confirmation with no personId is the signed-in person's own", async () => {
     const id = await raiseWork('Electrical');

@@ -12,6 +12,7 @@ const TONES: Record<string, Tone> = {
   upgrade_kind: 'danger',
   start: 'info',
   pickup: 'info',
+  lockout_confirmed: 'ok',
   resume: 'info',
   join: 'info',
   lead: 'info',
@@ -44,6 +45,7 @@ const LABEL_KEYS: Record<string, string> = {
   edit: 'timeline.edit',
   task: 'timeline.task',
   acknowledge: 'timeline.acknowledge',
+  lockout_confirmed: 'timeline.lockoutConfirmed',
   tag_add: 'timeline.tagAdd',
   tag_remove: 'timeline.tagRemove',
 };
@@ -59,8 +61,10 @@ export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
   const { t } = useTranslation();
   const items = events.map((event) => {
     const actor = event.actingPersonId ? names[event.actingPersonId] : undefined;
+    // A lockout confirmation keeps the steps' wording in `reason`; it is what was confirmed, not a "Reason".
+    const confirmedSteps = event.type === 'lockout_confirmed' ? event.reason : undefined;
     const reason =
-      event.reason && event.reason !== event.text
+      event.reason && event.reason !== event.text && !confirmedSteps
         ? t('timeline.reason', { reason: reasonLabels[event.reason] ?? event.reason })
         : undefined;
     return {
@@ -70,7 +74,7 @@ export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
       at: event.at,
       when: formatTime(event.at, timeZone),
       // The report event's text is the problem, which the header already shows.
-      detail: [actor, event.type === 'down' ? undefined : event.text, reason]
+      detail: [actor, event.type === 'down' ? undefined : event.text, confirmedSteps, reason]
         .filter(Boolean)
         .join(' · '),
     };

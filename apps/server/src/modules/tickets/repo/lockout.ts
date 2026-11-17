@@ -34,22 +34,73 @@ export async function reportCategory(
   return (row?.breakdown_category as string | null | undefined) ?? null;
 }
 
+/** The latest stored report category of each ticket in one read, for a whole list reply. */
+export async function reportCategories(
+  client: PoolClient,
+  tenantId: string,
+  ticketIds: string[],
+): Promise<Map<string, string | null>> {
+  if (ticketIds.length === 0) return new Map();
+  const { rows } = await client.query(
+    `SELECT DISTINCT ON (ticket_id) ticket_id, breakdown_category FROM breakdown_report
+      WHERE tenant_id = $1 AND ticket_id = ANY($2) ORDER BY ticket_id, submitted_at DESC`,
+    [tenantId, ticketIds],
+  );
+  return new Map(
+    rows.map((row) => [row.ticket_id as string, (row.breakdown_category as string | null) ?? null]),
+  );
+}
+
+/** One lockout-relevant event, as both the single-ticket and the batched read shape it. */
+export interface LockoutEvent {
+  type: EventType;
+  at: Date;
+  actingPersonId: string | null;
+  stepCodes?: string[];
+}
+
+function toLockoutEvent(e: Record<string, unknown>): LockoutEvent {
+  return {
+    type: e.type as EventType,
+    at: new Date(e.at as string),
+    actingPersonId: e.acting_person_id as string | null,
+    stepCodes: (e.step_codes as string[] | null) ?? undefined,
+  };
+}
+
 /** The ticket's lockout-relevant events, oldest first. */
 export async function lockoutHistory(
   client: PoolClient,
   ticketId: string,
-): Promise<{ type: EventType; at: Date; actingPersonId: string | null; stepCodes?: string[] }[]> {
+): Promise<LockoutEvent[]> {
   const { rows } = await client.query(
     `SELECT type, at, acting_person_id, payload->'stepCodes' AS step_codes FROM ticket_event
       WHERE ticket_id = $1 AND type = ANY($2) ORDER BY seq`,
     [ticketId, LOCKOUT_EVENT_TYPES],
   );
-  return rows.map((e) => ({
-    type: e.type as EventType,
-    at: new Date(e.at),
-    actingPersonId: e.acting_person_id as string | null,
-    stepCodes: (e.step_codes as string[] | null) ?? undefined,
-  }));
+  return rows.map(toLockoutEvent);
+}
+
+/** The lockout-relevant events of several tickets in one read, each ticket's oldest first. */
+export async function lockoutHistories(
+  client: PoolClient,
+  tenantId: string,
+  ticketIds: string[],
+): Promise<Map<string, LockoutEvent[]>> {
+  const result = new Map<string, LockoutEvent[]>();
+  if (ticketIds.length === 0) return result;
+  const { rows } = await client.query(
+    `SELECT ticket_id, type, at, acting_person_id, payload->'stepCodes' AS step_codes FROM ticket_event
+      WHERE tenant_id = $1 AND ticket_id = ANY($2) AND type = ANY($3) ORDER BY ticket_id, seq`,
+    [tenantId, ticketIds, LOCKOUT_EVENT_TYPES],
+  );
+  for (const row of rows) {
+    const id = row.ticket_id as string;
+    const list = result.get(id) ?? [];
+    list.push(toLockoutEvent(row));
+    result.set(id, list);
+  }
+  return result;
 }
 
 /** Everyone who will be working once `resumer` resumes the ticket: its lead after the resume and the crew still on. */

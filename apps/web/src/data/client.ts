@@ -37,6 +37,8 @@ export class ApiError extends Error {
   /** On `other_cell`: the machine's cell and the login's, when known. */
   machineCell?: string | null;
   loginCell?: string | null;
+  /** On a resume refused for the lockout: the people still to confirm. */
+  missing?: string[];
 
   constructor(code: string, message: string, field?: string, status?: number) {
     super(message);
@@ -80,10 +82,11 @@ async function parseError(res: Response): Promise<ApiError> {
         openTicket?: ApiErrorDetails['openTicket'];
         machineCell?: string | null;
         loginCell?: string | null;
+        missing?: string[];
       };
     };
     if (body?.error) {
-      return new ApiError(
+      const error = new ApiError(
         body.error.code ?? 'internal',
         body.error.message ?? 'Request failed',
         body.error.field,
@@ -93,6 +96,8 @@ async function parseError(res: Response): Promise<ApiError> {
         machineCell: body.error.machineCell,
         loginCell: body.error.loginCell,
       });
+      error.missing = body.error.missing;
+      return error;
     }
   } catch {
     // Non-JSON error body; fall through to a generic message.

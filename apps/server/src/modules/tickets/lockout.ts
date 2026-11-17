@@ -5,8 +5,10 @@ import { ensureLockoutSteps, lockoutFlagged, lockoutSteps } from '../plant/index
 import type { Outcome, Tx } from './mapper.js';
 import {
   liveTicket,
+  lockoutHistories,
   lockoutHistory,
   peopleWorkingAfterResume,
+  reportCategories,
   reportCategory,
 } from './repo/lockout.js';
 
@@ -78,6 +80,67 @@ export async function lockoutOf(
   ticketId: string,
 ): Promise<Lockout | null> {
   return (await readLockout(client, who, ticketId))?.lockout ?? null;
+}
+
+const LIVE = new Set(['open', 'working', 'waiting']);
+
+/** One live ticket in a list reply: enough to say whether it needs a lockout, without its queries. */
+export interface LockoutRow {
+  id: string;
+  status: string;
+  workType: string | null;
+}
+
+/**
+ * The lockout of every flagged ticket in a list reply, keyed by ticket id; unflagged and non-live tickets
+ * are left out. The plant's flags, the latest report category and the lockout history of the whole page are
+ * each read once, so a desk card sees the same flag as the ticket page without running Start itself.
+ */
+export async function lockoutsOf(
+  client: PoolClient,
+  who: Who,
+  tickets: readonly LockoutRow[],
+): Promise<Map<string, Lockout>> {
+  const result = new Map<string, Lockout>();
+  const live = tickets.filter((ticket) => LIVE.has(ticket.status));
+  if (live.length === 0) return result;
+  const flagged = await lockoutFlagged(client, who.tenantId);
+  const names = (list: string) =>
+    new Set((flagged.find((entry) => entry.list === list)?.names ?? []).map(norm));
+  const workTypes = names('work_type');
+  const categories = names('breakdown_category');
+  const categoryOf = await reportCategories(
+    client,
+    who.tenantId,
+    live.map((ticket) => ticket.id),
+  );
+  const needed = live.filter((ticket) => {
+    if (ticket.workType && workTypes.has(norm(ticket.workType))) return true;
+    const category = categoryOf.get(ticket.id);
+    return category != null && categories.has(norm(category));
+  });
+  if (needed.length === 0) return result;
+  await ensureLockoutSteps(client, who);
+  const steps = await lockoutSteps(client, who.tenantId);
+  const historyOf = await lockoutHistories(
+    client,
+    who.tenantId,
+    needed.map((ticket) => ticket.id),
+  );
+  for (const ticket of needed) {
+    const standing = standingLockoutConfirmations(
+      historyOf.get(ticket.id) ?? [],
+      steps.map((step) => step.code),
+    );
+    result.set(ticket.id, {
+      steps,
+      confirmations: [...standing.values()].map((entry) => ({
+        at: entry.at.toISOString(),
+        byPersonId: entry.actingPersonId ?? null,
+      })),
+    });
+  }
+  return result;
 }
 
 /** A flagged work type is never started at the raise: the ticket stays open until its lockout is confirmed. */

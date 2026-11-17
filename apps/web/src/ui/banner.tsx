@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Info, TimerOff, TriangleAlert, WifiOff, type IconComponent } from './icon.js';
+import { CircleCheck, Info, TimerOff, TriangleAlert, WifiOff, type IconComponent } from './icon.js';
 
-export type BannerTone = 'offline' | 'info' | 'attention' | 'error' | 'muted';
+export type BannerTone = 'offline' | 'info' | 'attention' | 'error' | 'muted' | 'ok';
 
 const TONE: Record<BannerTone, { box: string; title: string; icon: IconComponent }> = {
   offline: { box: 'bg-muted-tint', title: 'text-neutral-900', icon: WifiOff },
@@ -9,6 +9,7 @@ const TONE: Record<BannerTone, { box: string; title: string; icon: IconComponent
   attention: { box: 'rounded-xl bg-warning-tint', title: 'text-warning-ink', icon: TriangleAlert },
   error: { box: 'rounded-xl bg-danger-tint', title: 'text-danger-ink', icon: TriangleAlert },
   muted: { box: 'rounded-xl bg-muted-tint', title: 'text-muted-ink', icon: TimerOff },
+  ok: { box: 'rounded-xl bg-ok-tint', title: 'text-ok-ink', icon: CircleCheck },
 };
 
 /**
@@ -20,6 +21,7 @@ export function Banner({
   title,
   children,
   action,
+  icon,
 }: {
   tone: BannerTone;
   title: string;
@@ -27,8 +29,11 @@ export function Banner({
   children?: ReactNode;
   /** One button, e.g. Dismiss or Try again. */
   action?: ReactNode;
+  /** A different icon for the tone (a refusal uses a cross, not a warning triangle). */
+  icon?: IconComponent;
 }) {
-  const { box, title: titleInk, icon: Icon } = TONE[tone];
+  const { box, title: titleInk, icon: toneIcon } = TONE[tone];
+  const Icon = icon ?? toneIcon;
   return (
     <div role={tone === 'error' ? 'alert' : 'status'} className={`flex flex-col gap-3 p-4 ${box}`}>
       <div className="flex gap-2">
