@@ -303,18 +303,20 @@ describe('a machine excluded from production data', () => {
     supportedBy: [],
   };
 
-  it("never moves the four Guide figures with an excluded machine's breakdown rows", () => {
+  it("never moves the production figures with an excluded machine's breakdown rows", () => {
     const before = run();
     const after = run({
       ...ENGINE_DATA,
       tickets: [...ENGINE_DATA.tickets, robotTicket],
       reports: [...ENGINE_DATA.reports, robotReport],
     });
-    // The row is sourced like every other row, so the unfiltered total counts it: the fixture change is not a no-op.
-    expect(Number(figure(after, 'dashboard.total-breakdowns').value)).toBe(
-      Number(figure(before, 'dashboard.total-breakdowns').value) + 1,
+    // S2 inverts the old control: dashboard.total-breakdowns now reads the production filter, so the positive
+    // control moves to a figure that still counts every sourced row. The fixture change is still proven not a no-op.
+    expect(Number(figure(after, 'dashboard.total-downtime-hours').value)).toBe(
+      Number(figure(before, 'dashboard.total-downtime-hours').value) + robotReport.downtimeMin / 60,
     );
     for (const key of [
+      'dashboard.total-breakdowns',
       'dashboard.plant-bd-pct',
       'dashboard.fleet-availability',
       'dashboard.avg-complaints-per-day',
@@ -327,6 +329,11 @@ describe('a machine excluded from production data', () => {
       figure(before, 'dashboard.plant-bd-pct').drill,
     );
     expect(figure(after, 'dashboard.plant-bd-pct').drill.ids).not.toContain(robotBreakdown);
+    // S2: the breakdown count reads the same production filter, so it names no excluded machine's row either.
+    expect(figure(after, 'dashboard.total-breakdowns').drill).toEqual(
+      figure(before, 'dashboard.total-breakdowns').drill,
+    );
+    expect(figure(after, 'dashboard.total-breakdowns').drill.ids).not.toContain(robotBreakdown);
     expect(figure(after, 'dashboard.avg-bd-hours-per-day').drill).toEqual(
       figure(before, 'dashboard.avg-bd-hours-per-day').drill,
     );

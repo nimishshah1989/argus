@@ -1,6 +1,10 @@
 import { dayNumber } from './plant-date.js';
 import type { MachineRow } from './types.js';
 
+/** A CNC machine the plant counts in production data: the Robot and any Settings exclusion are left out. */
+export const isProduction = (machine: MachineRow): boolean =>
+  machine.segment === 'CNC' && !machine.excludedFromProduction;
+
 /** The year the platform files a machine under: the purchase date's year, else the Year field, else none. */
 export function machineYear(machine: MachineRow): number | null {
   const bought = machine.purchasedOn;
