@@ -4,12 +4,12 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 ## RESUME HERE (17 Nov 2026)
 
-**State:** `main` = `cba7541` (#267). M0 gate passed 14 Nov; M1 is current. Merged 16–17 Nov: #265 analytics
+**State:** `main` = `bccf327` (#275). M0 gate passed 14 Nov; M1 is current. Merged 16-17 Nov: #265 analytics engine (37A), #261 sign-off screens (34 p1), #258 plant settings (22), #264 lockout (66), #268 M4a migration (36B), #267 triage + answer key (36A, signed off), #263 Gujarati (24 p1), #260 account + Alerts (25/21), #275 follow-up task screens (19), plus #273 (main was red), #274 (browser shards), #277 (path-filtered CI), #272 (quality gate). M0 gate passed 14 Nov; M1 is current. Merged 16–17 Nov: #265 analytics
 engine shell (tickets 37A), #261 sign-off screens (34 part 1), #258 plant settings screens (22), #264 lockout
 before Start (66), #268 the M4a migration (36B), #267 M4a triage + answer key (36A, triage signed off by
 Nimish 16 Nov), plus #273 (test-only: main had gone red) and #274 (browser CI sharded 3 ways).
 
-**In the merge queue:** #272 (the quality gate + `pnpm push:check`), #263 (Gujarati screens + baselines),
+**In the merge queue:** #276 (lists, glossary and company settings screens, 23) and #278 (people, logins and audit screens plus the server slice they needed, 20/21). Both are built, reviewed and locally green; each still has one CI job red (an SLA e2e moved to the Lists route; a gallery assertion about the crud page's message) - the fixes are pushed and need one more run, then rebase on current main and merge.
 #260 (account sheet + Alerts control). One at a time, rebase on current main, fresh review, green CI.
 
 **In build (parallel frontend streams, each its own worktree/branch):** ticket 19 follow-up tasks screens
