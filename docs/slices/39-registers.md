@@ -76,3 +76,7 @@ The engine (39a) emits exactly these; the screens (39b) consume them and never g
 5. The machine page rides the existing figures reply (no new endpoint, no `api.ts` change).
 
 **Revision 2 (night review, 17 Nov).** (a) `topProblem` is an object `{ problem, count } | null`; a screen that prints it reads `.problem` (39b read it as a string and showed "Not available" on machines that have breakdowns — fixed in 39b). (b) Empty plant: a figure with no rows behind it returns `{ value: null, drillIds: [] }` (the engine's invariant forbids a ready value naming no rows); this applies to `a7-footprint`, `a8-age` and `registers` on an empty or dimension-less plant. (c) The whole figure is compared to its key file, not a slice of it: `a7-footprint`'s five tables and each register's By Category table are asserted by full equality.
+**Revision 3 (night, 17 Nov).** Packets 39a/39b merged (#304, #305). Goal 1's third clause, "an admin correcting a
+cell move's date is audited", is not in that code: it is packets **39c (API) and 39d (screen)**, planned in
+`docs/slices/39-move-audit.md` (branch `39-move-audit`) — one fragment per packet, the date bounded by the plant's
+history and today, and the audit entity `machine` with the machine's id.

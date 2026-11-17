@@ -2,44 +2,41 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (M4a analytics parity, 17 Nov 2026, night)
+## RESUME HERE (M4a analytics parity, 18 Nov 2026, night)
 
-**State:** `main` = `c026546`. **M2 is accepted.** **M4a is current: tickets 36, 37 and 38 are done — the Dashboard is
-complete and every figure is exact against Bhavin's 11 November key** (#293, #295, #298, #299; screen and role homes
-#297). **Ticket 39 (registers, cell change log, footprint, age, machine page) is built and in review**: engine on branch
-`m4a-regs` (**draft PR #304**, five figures exact against the 11 Nov key: registers, A7 footprint, A8 age, machine-page,
-cell-change-log) and screens on branch `m4a-regs-ui` (**draft PR #305**: registers pages, cell log + CSV export, one page
-per machine, the frozen value shapes). Both are pushed, tested locally (30 domain tests; 65 web tests + 2 e2e) and
-**await a fresh reviewer → one CI run each → merge one at a time → `main:check`**.
+**State:** `main` = `7395ac17`. **M2 is accepted.** M4a: 36, 38 done; **ticket 39's figures and screens are merged**
+(#304 engine: registers with both key tables, footprint with all five, age, machine page, cell log — exact against the
+11 Nov key; #305 screens: register pages, cell log + controlled-document CSV, one page per machine). Both PRs were held
+for real defects found in review and CI: an empty plant threw the engine, the key comparison was a slice, the screen read
+`topProblem` as a string, the catalogue hit its 250-line guard, and the strict drill reply did not grow with the loader.
 
-**Unattended runs:** follow `docs/plan/night-run.md` — the loop per ticket, the evidence standard, the post-gate
-backend architecture review, and the **night exception to gates** (write and merge the gate report, continue; no
-irreversible action unattended). Nimish is loading credits; if the budget still runs out, stop and report.
+**Unattended runs:** follow `docs/plan/night-run.md` — the loop, the evidence standard, the post-gate backend review,
+and the night exception to gates (write and merge the gate report, continue; nothing irreversible unattended).
 
-**Frontier:** 40 Breakdown analyses (with **37c, the 2026 breakdown-log load** — its prerequisite, plan it first) → 41
-manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45 reports/export/
-Guide → **M4a gate** (`docs/plan/gates/M4a.md`, under 30 lines) → **M4b** (10 tickets: 46–54 and 67) → **M6** (55–60).
-**M3 is out.** The **frontend overhaul** is a later workstream (`docs/plan/frontend-overhaul.md`), not in the loop.
+**Open, in order:**
 
-**Historic registers** are planned in `docs/plan/history-registers-plan.md` — **draft PR #300, Nimish's to review**.
-H1–H5 run beside the M4a tail after 37c; H6–H7 after the M4a gate; H8–H9 in M4b's first window. Consent is settled
-(N14, 17 Nov); the one precondition is coding names on the operator's machine before any AI pass (H2). No real register
-file goes into the repo.
+1. **38.5 the Dashboard's object figures** (Nimish's report: tiles printed "Ready" and drew nothing). Plan
+   `docs/slices/38-charts.md` (four packets); branch `38-charts`: A1 kit `8e8c4a9e` (scatter + mixed, `chartOption`
+   exported and node-tested) and B1 mapper `d45d3a3d` are built. **Rebase first**: 39b split `analytics.en.ts` into
+   `analytics-machines.*`, so B1's +30 keys conflict. Then B2 (FigureTile/Dashboard/DataChecklist render + spans), B3
+   (e2e inversions, parity evidence, fragment), fresh review, CI, merge.
+2. **39c/39d the audited move-date correction** — ticket 39 goal 1's third clause is not in the code yet. Plan
+   `docs/slices/39-move-audit.md` on branch `39-move-audit` (re-reviewed: bounds = not future, not reordering; audit
+   entity `machine` with the machine id; one fragment per packet; parity via 39d).
+3. **37c the 2026 breakdown-log load** (1,343 rows through the past-breakdown path; source refs, `list_item` aliases,
+   leaver erasure), then **40** Breakdown Log/A1/A2/A3 against `breakdown-log`, `a1-bd-pm`, `a2-category-cell`,
+   `a3-mttr-mtbf`. Then 41–45 → **M4a gate** → M4b (46–54, 67) → M6 (55–60). **M3 is out.**
 
-**The platform's own Guide is the authority for every formula** — `docs/discovery/source/cosmos_platform.html` (and
-`docs/slices/38-dashboard.md` revision 4 has the distilled rules). When a number does not reproduce, stop and report.
+**Calls and gaps:** CSV, not XLSX, for the cell log (an XLSX writer needs an ADR); the analytics Gujarati copy is still
+blank (`blank(analyticsEn)`, external N5); the platform's category/cell/location masters are constants until
+`EngineData.lists` carries them (recorded from the 39a review); the "Ready" tile is fixed by 38.5, no screen may print it.
 
-**Routing:** per `docs/decisions/D31-…`. The coder route writes; planning and reviews run on Isoquant's second family
-(the reasoning-route key is still absent — recorded). Never a silent model switch.
+**Routing:** the routes, the review tiers and the budgets are fixed in `docs/decisions/D31-third-regime-routing-and-quality.md`;
+never switch one silently. **Review lesson (17 Nov):** a reviewer that runs only the named test passed a branch that was
+red in the covering suite and in CI — the review prompt now names the covering suite.
+**Open PR:** #300 (history plan, draft, Nimish's).
 
-**Open PR:** only #300 (the history plan, draft, awaiting Nimish). Queue is otherwise clear.
-
-## Next session, first three steps
-
-1. Read this file, `docs/plan/ledger.md` (17 Nov lines) and `docs/plan/MILESTONES.md`; refresh Graphify.
-2. Land ticket 39: fresh-review #304 and #305 (plan on the `m4a-regs` branch), then one CI run each, merge one at a time,
-   `main:check` after each.
-3. Plan 37c + 40 together (the log load is 40's input): the Guide's A1–A3 rules are already extracted; the fixture
-   `fixtures/answer-key/{breakdown-log,a1-bd-pm,a2-category-cell,a3-mttr-mtbf}.json` is the acceptance.
+**Next session, first three steps:** 1. read this file, `docs/plan/ledger.md` (17 Nov lines) and `MILESTONES.md`;
+rebase the `38-charts` branch. 2. Finish 38.5's B2/B3, review, merge. 3. Build 39c/39d, then plan 37c + 40 together.
 
 One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.
