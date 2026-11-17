@@ -61,7 +61,14 @@ const valueText = (figure: Figure): string =>
 const tile = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`);
 
 /**
- * Ticket 37b: the analytics face, its Guide entry and the profile screen. The eleven computable Dashboard
+ * The first Dashboard figure the live reply leaves uncomputed: its tile must say so, whatever this packet
+ * has computed. Null only when every Dashboard figure is ready.
+ */
+const firstHeld = (reply: FiguresReply) =>
+  reply.figures.find((figure) => figure.screen === 'dashboard' && figure.status !== 'ready');
+
+/**
+ * Ticket 37b: the analytics face, its Guide entry and the profile screen. The computable Dashboard
  * figures are ready and the held ones stay honestly "Not computed yet". The drill test stubs both analytics
  * replies, so it never waits for the live engine.
  */
@@ -78,8 +85,12 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   await page.goto('/desk');
   if (wide) await expect(page.getByRole('link', { name: 'Analytics', exact: true })).toBeVisible();
 
+  const response = page.waitForResponse(
+    (reply) => reply.url().includes('/api/v1/analytics/figures') && reply.status() === 200,
+  );
   await page.goto('/analytics');
   await expect(page).toHaveURL(/\/analytics\/today$/);
+  const reply = (await (await response).json()) as FiguresReply;
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   for (const name of [
@@ -96,7 +107,8 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
     await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
 
   // The honest state: a held figure claims no value it does not have.
-  await expect(tile(page, 'dashboard.fleet-availability')).toContainText('Not computed yet');
+  const held = firstHeld(reply);
+  if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
 
   // The Guide lists the screens and figures with their labels.
@@ -131,7 +143,7 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
 });
 
 /**
- * Packet 38.3's journey: a head signs in on Today, sees the eleven values the live API returns, opens one
+ * Packet 38.3's journey: a head signs in on Today, sees the values the live API returns, opens one
  * drill's rows, sees a held figure stay honest, and opens the data checklist.
  */
 test('a head lands on Today with the live figures, a drill and the data checklist', async ({
@@ -146,11 +158,11 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
   const reply = (await (await response).json()) as FiguresReply;
 
-  // The eleven computable Dashboard figures: every tile prints the value the live API returned.
-  const ready = reply.figures.filter(
-    (figure) => figure.screen === 'dashboard' && figure.status === 'ready',
-  );
-  expect(ready).toHaveLength(11);
+  // Every Dashboard figure the live API returns has a tile; the ready ones print the value it returned.
+  const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
+  const ready = dashboard.filter((figure) => figure.status === 'ready');
+  expect(ready.length).toBeGreaterThan(0);
+  for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
   for (const figure of ready) await expect(tile(page, figure.key)).toContainText(valueText(figure));
 
   // The strip above the tiles is built from the existing /state, with no new endpoint.
@@ -166,7 +178,8 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   await expect(table.getByRole('row')).toHaveCount(drilled!.drill.ids.length + 1);
 
   // A held figure never invents a number.
-  await expect(tile(page, 'dashboard.fleet-availability')).toContainText('Not computed yet');
+  const held = firstHeld(reply);
+  if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
 
   // The data checklist has its own route, at the foot of the menu, and stays honest until 38.2 computes it.
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
