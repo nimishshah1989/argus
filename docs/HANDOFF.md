@@ -2,38 +2,42 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (third regime, 16 Nov 2026)
+## RESUME HERE (M2 gate, 17 Nov 2026)
 
-**State:** `main` = `925d4a9` (PR #269). M0 gate passed 14 Nov; M1 is current (3 done / 6 in progress / 6 todo);
-M2 server work is ahead of the tracker. Staging is live with Cosmos's real data. **8 PRs are open and unmerged —
-clearing that queue is the first job.**
+**State:** `main` has **M2 Accountability** built. The gate report is `docs/plan/gates/M2.md` (one screen); it is
+**waiting for Nimish's go**. Evidence: the M2 PRs (#228 schema, #241/#284 roster and ladder, #230 notifications,
+#249/#252/#285 escalation, #244/#261/#262/#283 sign-off, #248/#264/#284 lockout) and their tests.
 
-**Routing and budget:** see `docs/decisions/D31-third-regime-routing-and-quality.md`. Development and testing run
-on the hosted coder; goal drafting, planning, final review and compliance run on the reasoning model. Two hard
-budgets: $5 hosted-coder credit and $10 reasoning credit. Probe the coder route before the first packet (a model
-list is not a route). No silent model switch.
+- **Roster and ladder:** `/settings/roster` with **Copy to the next 7 days**; `/settings/escalation-rules` refuses
+  a repeat under 15 minutes and a repeat with no cap, push only for now (the server's WhatsApp fallback stays
+  proven for M3).
+- **Lockout:** the "Needs lockout" flag now on work types *and* breakdown categories, and the editable lockout
+  step list, both on Lists; a flagged ticket's Start waits for the ticks (#264).
+- **Acknowledge** leads the action bar for the on-duty person with Start beside it, who and when after (#285).
+- **Escalation** shows in the history (level, who was told, channel, speed, repeats, "Escalation due, nobody
+  told") and as a state line on the desk card; the fake clock proves an L2 fires at its configured minute.
+- **Sign-off turnaround** on live tickets, and the desk's waiting feed reads **oldest first** (#283).
 
-**Quality rails:** the writer never reviews its own work; a fresh reviewer gets the plan, diff and test output
-only and returns PASS/FAIL with numbered `file:line` findings; every packet names a red test and a green command;
-`pnpm precheck` before every push; one CI run per ready PR; one merge queue; rebase and rerun stale greens.
+**Routing and budgets:** per `docs/decisions/D31-…`. The coder route `isoquant/deepseek-v4.1-flash-1017-fast`
+answered ROUTE-OK and wrote every packet. The reviewer route `deepseek-account/deepseek-flash` **could not
+answer — `DEEPSEEK_API_KEY` is absent** (recorded gap, ledger 17 Nov); planning and every fresh/scoped review ran
+on `isoquant/glm-5.3-flash` (different family). No silent switch. Spend is inside the two budgets.
 
-## PR queue (one at a time, rebase + rerun on current main)
+**Open, not mine:** #281 (CI test cut — needs its Q14 review line and a rerun) and #282 (M1 session record —
+prettier red). Both predate this session.
 
-1. #265 engine shell — green on current main
-2. #261 sign-off web — rebase; server #262 already merged
-3. #258 settings screens — rebase
-4. #264 lockout web — rebase
-5. #268 M4a migration — draft → ready → CI (before any analytics writer)
-6. #267 M4a triage / answer key — needs Nimish's sign-off on the triage
-7. #263 Gujarati — last of the screen set; regenerate baselines
-8. #260 account/Alerts — conflicts; e2e never run
+## M2 leftovers, for the gate word
 
-## Direction (Nimish)
+- Ticket 30 is `in progress`: clocks live on card and detail, the pause-breach fake clock is #251; switching the
+  targets on at Cosmos is the staging step.
+- Ticket 35 goal 1 (failed-jobs screen and the timer-lag alarm) is open; the nine M2 success criteria do not
+  include it. Decide whether M2 closes without it.
 
-- **Frontend-first:** finish the M1 screens, then the M2 screens. Backend only the fine-tuning those screens need.
-- **M4 is the advanced turn:** analytics, forecasting, manufacturing integrations. AI layer after that. M3/M5 parked.
-- Product questions only for Nimish; settle technical forks by running something.
+## Next
 
-## Blocked / external
+- Nimish's go on M2 → M4a (analytics parity), per `docs/plan/MILESTONES.md`; M3 and M5 stay parked.
+- After the gate: the weekly dump + Drill B (`RESTORE.md`), and the DEEPSEEK key so the reasoning route returns.
 
-- Bhavin: triage sign-off for #267; real inputs for cutover. Backup workflow failed 16 Nov — fix before the next deploy.
+## Parallel rule
+
+One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.

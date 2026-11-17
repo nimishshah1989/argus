@@ -45,13 +45,13 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 26  | Hardened                                          | M1        | todo        | —                                                                                             |
 | 27  | Usability round                                   | M1        | todo        | —                                                                                             |
 | 28  | Cutover                                           | M1        | todo        | —                                                                                             |
-| 29  | M2 schema                                         | M2        | todo        | —                                                                                             |
-| 30  | Clocks live                                       | M2        | todo        | —                                                                                             |
-| 31  | Roster, ladder, acknowledge                       | M2        | todo        | —                                                                                             |
-| 32  | Notification service                              | M2        | todo        | —                                                                                             |
-| 33  | Escalation                                        | M2        | todo        | —                                                                                             |
-| 34  | Production sign-off                               | M2        | todo        | —                                                                                             |
-| 35  | Run it safely                                     | M2        | todo        | —                                                                                             |
+| 29  | M2 schema                                         | M2        | done        | #228                                                                                          |
+| 30  | Clocks live                                       | M2        | in progress | clocks on card/detail (`sla-timers.spec.ts`), pause breach #251; Cosmos switch-on is the staging step |
+| 31  | Roster, ladder, acknowledge                       | M2        | done        | server #241; screens #284; acknowledge #285                                                    |
+| 32  | Notification service                              | M2        | done        | #230                                                                                          |
+| 33  | Escalation                                        | M2        | done        | #249, #252; history and desk state #285                                                       |
+| 34  | Production sign-off                               | M2        | done        | #244, #261, #262; the waiting feed #283                                                       |
+| 35  | Run it safely                                     | M2        | in progress | devices and support access #231; failed-jobs screen and timer-lag alarm open                  |
 | 36  | M4a schema and answer key                         | M4a       | todo        | —                                                                                             |
 | 37  | History, engine and drill-down                    | M4a       | todo        | —                                                                                             |
 | 38  | Dashboard and Today                               | M4a       | todo        | —                                                                                             |
@@ -82,7 +82,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 63  | Report by WhatsApp                                | M3        | parked      | —                                                                                             |
 | 64  | Voice                                             | M3        | parked      | —                                                                                             |
 | 65  | Email and deletion                                | M3        | parked      | —                                                                                             |
-| 66  | Lockout before electrical work                    | M2        | todo        | —                                                                                             |
+| 66  | Lockout before electrical work                    | M2        | done        | server #248; ticket #264; settings (flag on categories, step list) #284                       |
 | 67  | Reliability and critical spares                   | M4b       | todo        | —                                                                                             |
 | 68  | Gujarati text understood                          | M1        | todo        | —                                                                                             |
 
