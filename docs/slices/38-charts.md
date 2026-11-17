@@ -36,7 +36,7 @@ Gallery frames for scatter/mixed are **out of scope** (the gallery is design QA,
 frame is a frontend-overhaul follow-up — the kit is proven by the node test in A1). `more-data.ts` is therefore not in
 any write list.
 
-- **A1 — the kit** (2 files: `ui/chart/use-chart.ts`, new `ui/chart/use-chart.test.ts`). Acceptance: the exported pure
+- **A1 — the kit** (3 files: `ui/chart/use-chart.ts`, `ui/chart/chart.tsx`, new `ui/chart/use-chart.test.ts`). Acceptance: the exported pure
   `chartOption(spec, palette)` builds the four kinds correctly — bar/line unchanged; scatter: one `scatter` series with
   per-point `symbolSize` and both axis titles; mixed: two `yAxis`, one **stacked** bar series per `bars` entry (same
   colour, so a year reads as one total; no legend) and the optional line on the second axis. `ScatterChart` registered
