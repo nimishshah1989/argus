@@ -1,0 +1,1 @@
+- Ticket 39 (registers, cell change log, footprint, age and one page per machine) is built and in review: engine PR #304 with all five figures exact against the platform's 11 November key, and screens PR #305 with the registers, the cell-change-log export and the machine page. The handoff names both so the next session lands them first.
