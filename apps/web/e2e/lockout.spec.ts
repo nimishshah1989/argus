@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from './test.js';
-import { apiFetch, apiLogin, signIn } from './fixtures.js';
+import { apiFetch, apiLogin, signIn, ticketView } from './fixtures.js';
 
-/** Ticket 66, slice 7: a ticket flagged "needs lockout" will not start until the person ticks every step. */
+/**
+ * Ticket 66, slice 7: a ticket flagged "needs lockout" will not start until the person ticks every step.
+ * Every ticket locator goes through `ticketView`: the Open list beside the pane repeats each card's
+ * "Start work", so an unscoped one matches a card as well as the ticket.
+ */
 
 const FOUR_STEPS = [
   'Switch off and isolate the supply',
@@ -69,20 +73,21 @@ test('Start stays off until every lockout step is ticked, then confirms and star
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
 
-  await expect(page.getByRole('heading', { name: 'Lockout before you start' })).toBeVisible();
-  const start = page.getByRole('button', { name: 'Start work' });
+  const view = ticketView(page);
+  await expect(view.getByRole('heading', { name: 'Lockout before you start' })).toBeVisible();
+  const start = view.getByRole('button', { name: 'Start work' });
   await expect(start).toBeDisabled();
-  await expect(page.getByText('Tick all 4 steps to start.')).toBeVisible();
+  await expect(view.getByText('Tick all 4 steps to start.')).toBeVisible();
 
-  for (const step of FOUR_STEPS.slice(0, 3)) await page.getByLabel(step).check();
+  for (const step of FOUR_STEPS.slice(0, 3)) await view.getByLabel(step).check();
   await expect(start).toBeDisabled();
 
-  await page.getByLabel(FOUR_STEPS[3]!).check();
+  await view.getByLabel(FOUR_STEPS[3]!).check();
   await expect(start).toBeEnabled();
   await start.click();
 
-  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
+  await expect(view.getByText('Lockout confirmed').first()).toBeVisible();
+  await expect(view.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
 });
 
 test('pausing after a start clears the ticks, so Resume waits for every step again', async ({
@@ -92,19 +97,20 @@ test('pausing after a start clears the ticks, so Resume waits for every step aga
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
 
-  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
-  await page.getByRole('button', { name: 'Start work' }).click();
-  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
+  const view = ticketView(page);
+  for (const step of FOUR_STEPS) await view.getByLabel(step).check();
+  await view.getByRole('button', { name: 'Start work' }).click();
+  await expect(view.getByText('Lockout confirmed').first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'Pause: waiting' }).click();
-  const form = page.getByRole('form', { name: 'Pause the ticket' });
+  await view.getByRole('button', { name: 'Pause: waiting' }).click();
+  const form = view.getByRole('form', { name: 'Pause the ticket' });
   await form.getByLabel('Waiting for').selectOption('spare');
   await form.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(form).toBeHidden();
 
   // The server cleared the confirmation at the pause: Resume must ask for every step again.
-  await expect(page.getByRole('button', { name: 'Resume work' })).toBeDisabled();
-  for (const step of FOUR_STEPS) await expect(page.getByLabel(step)).not.toBeChecked();
+  await expect(view.getByRole('button', { name: 'Resume work' })).toBeDisabled();
+  for (const step of FOUR_STEPS) await expect(view.getByLabel(step)).not.toBeChecked();
 });
 
 test('a refused Resume keeps saying who is still to confirm', async ({ page }) => {
@@ -122,13 +128,14 @@ test('a refused Resume keeps saying who is still to confirm', async ({ page }) =
 
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
-  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
-  await page.getByRole('button', { name: 'Resume work' }).click();
+  const view = ticketView(page);
+  for (const step of FOUR_STEPS) await view.getByLabel(step).check();
+  await view.getByRole('button', { name: 'Resume work' }).click();
 
   // Asha's own confirmation goes through; Resume is refused because Bina has not confirmed since the pause.
-  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
-  await expect(page.getByText('Lockout refused').first()).toBeVisible();
-  await expect(page.getByText(/Still to confirm:.*Bina/)).toBeVisible();
+  await expect(view.getByText('Lockout confirmed').first()).toBeVisible();
+  await expect(view.getByText('Lockout refused').first()).toBeVisible();
+  await expect(view.getByText(/Still to confirm:.*Bina/)).toBeVisible();
 });
 
 test('the refusal goes once the retried Resume succeeds through the page', async ({ page }) => {
@@ -145,16 +152,17 @@ test('the refusal goes once the retried Resume succeeds through the page', async
 
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
-  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
-  await page.getByRole('button', { name: 'Resume work' }).click();
-  await expect(page.getByText('Lockout refused').first()).toBeVisible();
+  const view = ticketView(page);
+  for (const step of FOUR_STEPS) await view.getByLabel(step).check();
+  await view.getByRole('button', { name: 'Resume work' }).click();
+  await expect(view.getByText('Lockout refused').first()).toBeVisible();
 
   // Bina confirms after the pause. Asha's own confirmation already stands, so Resume needs no gate and
   // goes through the page's own command path; the refusal it left behind is stale and must go.
   await postCommand(bina, ticket.id, 'lockout-confirm', { stepCodes });
-  await page.getByRole('button', { name: 'Resume work' }).click();
-  await expect(page.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
-  await expect(page.getByText('Lockout refused')).toHaveCount(0);
+  await view.getByRole('button', { name: 'Resume work' }).click();
+  await expect(view.getByRole('button', { name: 'Pause: waiting' })).toBeVisible();
+  await expect(view.getByText('Lockout refused')).toHaveCount(0);
 });
 
 test('a flagged ticket card routes to the ticket instead of a quick Start', async ({ page }) => {
@@ -168,7 +176,9 @@ test('a flagged ticket card routes to the ticket instead of a quick Start', asyn
   await expect(card.getByRole('button', { name: 'Start work' })).toHaveCount(0);
 
   await card.getByRole('link').click();
-  await expect(page.getByRole('heading', { name: 'Lockout before you start' })).toBeVisible();
+  await expect(
+    ticketView(page).getByRole('heading', { name: 'Lockout before you start' }),
+  ).toBeVisible();
 });
 
 test('the busy button names the action it is confirming, not always starting', async ({ page }) => {
@@ -181,16 +191,17 @@ test('the busy button names the action it is confirming, not always starting', a
 
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
-  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+  const view = ticketView(page);
+  for (const step of FOUR_STEPS) await view.getByLabel(step).check();
 
   // Hold the confirmation in flight so the label is readable without a race.
   await page.route('**/api/v1/tickets/*/lockout-confirm', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await route.continue();
   });
-  await page.getByRole('button', { name: 'Resume work' }).click();
-  await expect(page.getByRole('button', { name: /Confirming and resuming/ })).toBeVisible();
-  await expect(page.getByText('Lockout confirmed').first()).toBeVisible();
+  await view.getByRole('button', { name: 'Resume work' }).click();
+  await expect(view.getByRole('button', { name: /Confirming and resuming/ })).toBeVisible();
+  await expect(view.getByText('Lockout confirmed').first()).toBeVisible();
 });
 
 test('another technician has to confirm for themselves before joining', async ({ page }) => {
@@ -203,12 +214,13 @@ test('another technician has to confirm for themselves before joining', async ({
 
   await signIn(page, 'bina');
   await page.goto(`/desk/${ticket.id}`);
-  const join = page.getByRole('button', { name: 'Add me as support' });
+  const view = ticketView(page);
+  const join = view.getByRole('button', { name: 'Add me as support' });
   await expect(join).toBeDisabled();
-  for (const step of FOUR_STEPS) await page.getByLabel(step).check();
+  for (const step of FOUR_STEPS) await view.getByLabel(step).check();
   await expect(join).toBeEnabled();
   await join.click();
-  const form = page.getByRole('form', { name: 'Add me as crew' });
+  const form = view.getByRole('form', { name: 'Add me as crew' });
   await form.getByRole('button', { name: 'Join', exact: true }).click();
   await expect(form).toBeHidden();
 
