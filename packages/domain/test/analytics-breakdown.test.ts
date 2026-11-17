@@ -451,13 +451,14 @@ function fallbackRow(
   id: string,
   date: string,
   srNo: number | null,
+  machineId = 'TC-1',
 ): { ticket: TicketRow; report: ReportRow } {
   const ticket: TicketRow = {
     id: `ticket-${id}`,
     ref: `BD-${id}`,
     kind: 'stopped',
     status: 'closed',
-    machineId: 'TC-1',
+    machineId,
     reportedAt: `${date}T04:00:00.000Z`,
     closedAt: `${date}T06:00:00.000Z`,
     source: 'history',
@@ -468,7 +469,7 @@ function fallbackRow(
   const report: ReportRow = {
     id,
     ticketId: ticket.id,
-    machineId: 'TC-1',
+    machineId,
     date,
     shift: '1',
     problem: id,
@@ -559,5 +560,88 @@ describe('the A1 breakdown percent and PM split figure', () => {
     expect(drilled.drill.type).toBe('ticket');
     // The engine deduplicates and sorts the ids it hands the face; every one is still a row it read.
     expect(drilled.drill.ids).toEqual([...new Set(computed.drillIds)].sort());
+  });
+});
+
+/**
+ * The A2 figure (packet 40c): the platform's own page, whole — the 14 categories, the 9 cells, the 14 per-category
+ * machine tables and the eight charts, never a tolerance. The table cells carry the key's normalised labels while the
+ * chart labels carry the raw category (the workbook's double space); the drill names the breakdown tickets it read.
+ */
+describe('the A2 category and cell figure', () => {
+  it("prints the key's whole page: 16 tables and 8 charts", () => {
+    const computed = figure('a2-category-cell');
+    // Red first: the A2 computer had not landed, so the engine answered not_computed.
+    expect(computed.status).toBe('ready');
+    const value = computed.value as unknown as FigureKey;
+    expect({ screen: value.screen, asOf: value.asOf }).toEqual({
+      screen: A2.screen,
+      asOf: AS_OF,
+    });
+    expect(value.pages).toEqual(A2.pages);
+  });
+
+  it('drills the production breakdown tickets it read', () => {
+    const computed = COMPUTERS['a2-category-cell']!({
+      data: ENGINE_DATA,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    });
+    const production = new Set(
+      ENGINE_DATA.machines
+        .filter((machine) => machine.segment === 'CNC' && !machine.excludedFromProduction)
+        .map((machine) => machine.id),
+    );
+    const carried = sourcedReports(ENGINE_DATA).filter(
+      (row) => isHistory(row) && !isPm(row) && production.has(row.report.machineId),
+    );
+    const known = new Set(
+      [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+    );
+    // Every history row is a production CNC row in this workbook, so the figure read every non-PM one.
+    expect(carried).toHaveLength(HISTORY.filter((row) => row.maintCode !== 'PM').length);
+    expect(computed.drillIds).toEqual(carried.map((row) => row.ticket.id));
+    expect(computed.drillIds.every((id) => known.has(id))).toBe(true);
+    const drilled = figure('a2-category-cell');
+    expect(drilled.drill.type).toBe('ticket');
+    expect(drilled.drill.ids).toEqual([...new Set(computed.drillIds)].sort());
+  });
+
+  it('is data-driven: one added breakdown moves its category row', () => {
+    // CAM-01 is a production machine with no breakdowns on the key date, so one added row is the whole change.
+    const extra = fallbackRow('a2-extra', '2026-06-01', null, 'CAM-01');
+    const grown: EngineData = {
+      ...ENGINE_DATA,
+      tickets: [...ENGINE_DATA.tickets, extra.ticket],
+      reports: [...ENGINE_DATA.reports, extra.report],
+    };
+    const before = COMPUTERS['a2-category-cell']!({
+      data: ENGINE_DATA,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    }).value as unknown as FigureKey;
+    const after = COMPUTERS['a2-category-cell']!({
+      data: grown,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    }).value as unknown as FigureKey;
+    expect(tableRow(before, 'By Category', 'CAM Profile Machine')).toEqual([
+      'CAM Profile Machine',
+      '1',
+      '0',
+      '0.00',
+      '0.00%',
+      '0.00',
+      '0.00',
+    ]);
+    expect(tableRow(after, 'By Category', 'CAM Profile Machine')).toEqual([
+      'CAM Profile Machine',
+      '1',
+      '1',
+      '1.00',
+      '0.03%',
+      '1.00',
+      '1.00',
+    ]);
   });
 });

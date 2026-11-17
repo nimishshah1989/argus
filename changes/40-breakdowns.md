@@ -27,3 +27,11 @@
   positive control moved from total-breakdowns (+1) to the unfiltered total-downtime-hours (+8 hrs), and
   total-breakdowns joined the never-moves set beside the four Guide figures. The key value stays 1,279 because no real
   history row sits on an excluded machine.
+
+- A2 (packet 40c) now answers the platform's whole page exactly: the 16 tables (By Category — Detail 14 rows, By Cell —
+  Detail 9, the 14 per-category Machine-Level Detail tables) and the eight charts (ch-a2-cathrs, ch-a2-catcnt,
+  ch-a2-cellhrs, ch-a2-cellcnt, ch-a2-catavghrs, ch-a2-catavgcnt, ch-a2-cellavghrs, ch-a2-cellavgcnt), compared whole
+  against the key with no tolerance. A breakdown counts in the cell the machine was in on its date (cellAt), while a
+  machine-level row prints the machine's current cell; tables print the key's normalised category label and charts keep
+  the workbook's raw double space, 2 dp chart values included. The drill names the production breakdown tickets the
+  figure read.
