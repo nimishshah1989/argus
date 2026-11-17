@@ -18,8 +18,8 @@ export interface FormField {
   multiline?: boolean;
   /** Longest text the server accepts; the box stops there so a queued command is never refused. */
   maxLength?: number;
-  /** `choice` picks one of `choices` (a bar for up to four, a menu for more); `time` is HH:MM. */
-  kind?: 'text' | 'time' | 'choice';
+  /** `choice` picks one of `choices` (a bar for up to four, a menu for more); `time` is HH:MM; `date` is a day. */
+  kind?: 'text' | 'time' | 'date' | 'choice';
   choices?: { value: string; label: string }[];
 }
 export interface FormSheetProps {
@@ -100,7 +100,7 @@ function FieldRow(props: { field: FormField; value: string; onChange: (value: st
       ) : (
         <Control
           id={`form-${field.name}`}
-          type={field.kind === 'time' ? 'time' : undefined}
+          type={field.kind === 'time' ? 'time' : field.kind === 'date' ? 'date' : undefined}
           required={field.required}
           maxLength={field.maxLength}
           value={props.value}
