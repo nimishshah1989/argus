@@ -51,7 +51,7 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   const [sheet, setSheet] = useState<{ row: Row | null; key: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const valuesOf = (row: Row): Record<string, string> =>
-    Object.fromEntries(spec.fields.map((f) => [f.name, String(row[f.name] ?? '')]));
+    Object.fromEntries(spec.fields.map((f) => [f.name, String(row[f.name as keyof Row] ?? '')]));
 
   async function save(values: Record<string, string>): Promise<boolean> {
     setError(null);
@@ -105,7 +105,7 @@ function CrudTableRow<Row extends CrudRow>(p: {
   const { t } = useTranslation();
   const { row } = p;
   const [first, ...others] = p.spec.fields;
-  const name = String(row[first!.name] ?? '');
+  const name = String(row[first!.name as keyof Row] ?? '');
   return (
     <tr className="border-t border-neutral-200 lg:h-13">
       <th scope="row" className="p-2 font-medium lg:px-3">
@@ -113,7 +113,7 @@ function CrudTableRow<Row extends CrudRow>(p: {
       </th>
       {others.map((f) => (
         <td key={f.name} className="p-2 lg:px-3">
-          {String(row[f.name] ?? '')}
+          {String(row[f.name as keyof Row] ?? '')}
         </td>
       ))}
       <td className="p-2 lg:px-3">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>

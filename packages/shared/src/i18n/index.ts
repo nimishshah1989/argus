@@ -54,6 +54,10 @@ import { lockoutGu } from './lockout.gu.js';
 import { accountEn } from './account.en.js';
 import { accountGu } from './account.gu.js';
 import { tasksGu } from './tasks.gu.js';
+import { peopleEn } from './people.en.js';
+import { peopleGu } from './people.gu.js';
+import { crudEn } from './crud.en.js';
+import { crudGu } from './crud.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -85,6 +89,8 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   lockout: lockoutEn,
   account: accountEn,
   tasks: tasksEn,
+  people: peopleEn,
+  crud: crudEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -117,6 +123,8 @@ export const en = {
   ...lockoutEn,
   ...accountEn,
   ...tasksEn,
+  ...peopleEn,
+  ...crudEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -151,4 +159,6 @@ export const gu = {
   ...lockoutGu,
   ...accountGu,
   ...tasksGu,
+  ...peopleGu,
+  ...crudGu,
 };

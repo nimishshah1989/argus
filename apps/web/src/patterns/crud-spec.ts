@@ -24,9 +24,12 @@ export interface CrudChoice {
   label: string;
 }
 export interface CrudField<Row> {
-  name: keyof Row & string;
+  /** A reply key, or a write-only field a form sends (a new temporary password). */
+  name: string;
   labelKey: LabelKey;
   required?: boolean;
+  /** Asked only when adding (a login's first temporary password). */
+  requiredOnAdd?: boolean;
   /** `choice` picks one of `choices`; `time` is HH:MM. */
   kind?: 'text' | 'time' | 'choice';
   choices?: (c: CrudCtx) => CrudChoice[];
@@ -50,6 +53,33 @@ export interface CrudToggle {
   labelKey: LabelKey;
   /** The switch reads "on" when the row is switched off (a hidden flag). */
   inverted?: boolean;
+}
+/** Switching a row off asks why first; the reason is required and the switch is only then sent. */
+export interface CrudSwitchOff {
+  /** What switching this row off does, under the title. */
+  hintKey?: LabelKey;
+}
+/** Switching a row on needs a value first (a login's new temporary password). */
+export interface CrudSwitchOn {
+  field: string;
+  labelKey: LabelKey;
+  hintKey?: LabelKey;
+}
+/** One action over the ticked rows, confirmed with a reason and the count it will touch. */
+export interface CrudBulkAction<Row> {
+  id: string;
+  /** The button's words. */
+  labelKey: LabelKey;
+  /** The confirmation's title, with `{{count}}`. */
+  titleKey: LabelKey;
+  hintKey?: LabelKey;
+  /** A value the action needs first (the new shift). */
+  field?: { name: string; labelKey: LabelKey; choices?: (c: CrudCtx) => CrudChoice[] };
+  /** Runs once per ticked row; a throw is that row's refusal, and the others still run. */
+  run: (row: Row, values: Record<string, string>) => Promise<void>;
+}
+export interface CrudBulk<Row> {
+  actions: CrudBulkAction<Row>[];
 }
 export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   titleKey: LabelKey;
@@ -78,6 +108,12 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   section?: (row: Row, c: CrudCtx) => { key: string; title: string; lead?: ReactNode };
   /** `false`: no switch on the list (a machine's status is a field). A switch config: a labelled switch. Default: Switch off/on button. */
   toggle?: false | CrudToggle;
+  /** With it, switching off asks a reason first. */
+  switchOff?: CrudSwitchOff;
+  /** With it, switching on asks a value first (a new temporary password). */
+  switchOn?: CrudSwitchOn;
+  /** With it, rows carry a tick box and a bulk bar appears while any is ticked. */
+  bulk?: CrudBulk<Row>;
   /** A line under the form, from what the fields hold now. */
   note?: (values: Record<string, string>, row: Row | null, c: CrudCtx) => string | null;
   /** Fields saved by their own route after the row (a machine's criticality refreshes its open tickets). */
