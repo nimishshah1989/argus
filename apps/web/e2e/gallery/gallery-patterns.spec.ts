@@ -1,9 +1,7 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { readFileSync } from 'node:fs';
-
-const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+import { expectAxeClean, frame } from './axe.js';
 
 async function open(page: Page, query: string): Promise<void> {
   await page.goto(`/gallery?${query}`);
@@ -144,8 +142,7 @@ for (const lang of ['en', 'gu']) {
       lang === 'en' ? 'Code' : 'ક ખ ગ · Code',
     );
     await expect(crud).toHaveScreenshot(`crud-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [frame('gallery-crud')]);
   });
 
   test(`wizard ${lang}: one primary action per step, back, then the result screen`, async ({
@@ -157,8 +154,7 @@ for (const lang of ['en', 'gu']) {
     const w = page.getByTestId('gallery-wizard-ready');
     const btn = (name: string | RegExp) => w.getByRole('button', { name });
     await expect(page.getByTestId('gallery-wizard')).toHaveScreenshot(`wizard-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [frame('gallery-wizard')]);
     await expect(w).toContainText(step(1));
     await expect(btn(/Next/)).toBeDisabled();
     await btn('CNC-07').click();
@@ -232,8 +228,7 @@ for (const lang of ['en', 'gu']) {
       literal(cat['status.sync.offline']),
     );
     await expect(at('gallery-board')).toHaveScreenshot(`board-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [frame('gallery-board')]);
   });
 }
 
@@ -282,8 +277,7 @@ for (const lang of ['en', 'gu']) {
     ).toBeVisible();
     await expect(at('gallery-dashboard-offline')).toContainText(cat['kit.pattern.offline']);
     await expect(at('gallery-dashboard')).toHaveScreenshot(`dashboard-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [frame('gallery-dashboard')]);
   });
 }
 

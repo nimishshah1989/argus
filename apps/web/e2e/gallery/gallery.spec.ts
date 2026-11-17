@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { existsSync } from 'node:fs';
+import { AXE_TAGS, DIALOG, expectAxeClean, frame } from './axe.js';
 
 const SECTIONS = [
   'tokens',
@@ -15,7 +16,6 @@ const SECTIONS = [
   'floor',
   'closes',
 ] as const;
-const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 type Catalogue = Record<MessageKey, string>;
 const catalogue = (lang: string): Catalogue => (lang === 'gu' ? gu : en);
@@ -38,6 +38,7 @@ test('gallery en: every section matches its baseline at 360 px', async ({ page }
   }
   for (const name of SECTIONS)
     await expect(page.getByTestId(`gallery-${name}`)).toHaveScreenshot(`${name}-en.png`);
+  await expectAxeClean(page);
 });
 
 test('gallery gu: Gujarati renders and matches its baseline', async ({ page }) => {
@@ -49,6 +50,7 @@ test('gallery gu: Gujarati renders and matches its baseline', async ({ page }) =
   await expect(page.getByTestId('gallery-primary-sample')).toHaveText(/^ક ખ ગ ·/);
   for (const name of SECTIONS)
     await expect(page.getByTestId(`gallery-${name}`)).toHaveScreenshot(`${name}-gu.png`);
+  await expectAxeClean(page);
 });
 
 for (const lang of ['en', 'gu']) {
@@ -60,8 +62,7 @@ for (const lang of ['en', 'gu']) {
     await expect(dialog).toContainText(lang === 'en' ? 'Sheet title' : 'ક ખ ગ · Sheet title');
     expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
     await expect(page).toHaveScreenshot(`sheet-open-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [DIALOG]);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
   });
@@ -76,8 +77,7 @@ for (const lang of ['en', 'gu']) {
         'background-color',
         accent === 'teal' ? 'rgb(15, 118, 110)' : 'rgb(10, 102, 194)',
       );
-      const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-      expect(axe.violations).toEqual([]);
+      await expectAxeClean(page, [frame('gallery-components')]);
     });
   }
 }
@@ -92,8 +92,7 @@ for (const lang of ['en', 'gu']) {
     const pills = page.getByTestId('gallery-status').locator('[data-status]');
     await expect(pills).toHaveCount(40);
     for (const pill of await pills.all()) await expect(pill.locator('svg')).toHaveCount(1);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page);
     for (const name of SECTIONS)
       await expect(page.getByTestId(`gallery-${name}`)).toHaveScreenshot(
         `${name}-${lang}-dark.png`,
@@ -181,8 +180,7 @@ for (const lang of ['en', 'gu']) {
     await expect(at('gallery-detail-ready')).toContainText('Reported from the floor');
     await expect(at('gallery-queue')).toHaveScreenshot(`queue-${lang}.png`);
     await expect(at('gallery-detail')).toHaveScreenshot(`detail-${lang}.png`);
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(axe.violations).toEqual([]);
+    await expectAxeClean(page, [frame('gallery-queue'), frame('gallery-detail')]);
   });
 
   for (const state of ['loading', 'empty', 'error', 'offline']) {
@@ -205,8 +203,7 @@ for (const lang of ['en', 'gu']) {
       if (state === 'offline') await expect(dialog).toContainText(cat['kit.form.offlineQueued']);
       if (state === 'empty') await expect(submit).toBeDisabled();
       await expect(page).toHaveScreenshot(`form-${state}-${lang}.png`);
-      const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-      expect(axe.violations).toEqual([]);
+      await expectAxeClean(page, [DIALOG]);
       if (state === 'empty') {
         await dialog.getByLabel(/Note/).fill('Belt replaced');
         await expect(submit).toBeEnabled();

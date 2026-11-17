@@ -1,0 +1,3 @@
+- A pull request now runs the three slow import tests once, in their own job, instead of in all three API shards; the shards exclude them.
+- The gallery scans axe on the twelve kit frames that cover every component family instead of the whole page in every test, and still compares screenshots for all of them.
+- Three test files no longer fail in a checkout whose path contains a space: they build paths with `fileURLToPath`.

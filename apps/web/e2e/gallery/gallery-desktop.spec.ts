@@ -1,7 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-
-const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+import { DIALOG, expectAxeClean, frame } from './axe.js';
 
 async function open(page: Page, query = ''): Promise<void> {
   await page.goto(`/gallery?view=desktop${query}`);
@@ -108,8 +106,11 @@ for (const theme of ['light', 'dark']) {
         ['gallery-crud', 'desktop-crud'],
       ] as const)
         await expect(page.getByTestId(id)).toHaveScreenshot(`${name}${suffix}.png`);
-      const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-      expect(axe.violations).toEqual([]);
+      await expectAxeClean(page, [
+        frame('gallery-desktop-queue'),
+        frame('gallery-desktop-detail'),
+        frame('gallery-crud'),
+      ]);
     });
 
     test(`desktop ${theme}: the open side panel matches its baseline, axe clean`, async ({
@@ -118,8 +119,7 @@ for (const theme of ['light', 'dark']) {
       await open(page, `&theme=${theme}`);
       await openAddSheet(page);
       await expect(page).toHaveScreenshot(`desktop-sheet-open${suffix}.png`);
-      const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-      expect(axe.violations).toEqual([]);
+      await expectAxeClean(page, [DIALOG]);
     });
   });
 }
