@@ -1,0 +1,1 @@
+- Scoping note for loading Cosmos's old breakdown registers (2022, 2024, 2025): what the 14 workbooks hold, the traps in them, the decisions Nimish must take, and a six-ticket build. Nothing is built and no data is loaded.
