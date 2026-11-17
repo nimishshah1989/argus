@@ -1,4 +1,4 @@
-import { formatNumber, formatPercent, normalizeLabel } from './format.js';
+import { formatNumber, formatPercent, metadataNumber, normalizeLabel } from './format.js';
 import { machineAge } from './machine-facts.js';
 import { controllerInfo, makeName } from './machine-splits.js';
 import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
@@ -16,10 +16,17 @@ export interface RegisterKpi {
   sub: string;
 }
 
+export interface RegisterTable {
+  title: string;
+  header: string[];
+  rows: string[][];
+}
+
 export interface RegisterPage {
   page: string;
   title: string;
   kpis: RegisterKpi[];
+  tables: RegisterTable[];
 }
 
 /** The count of a list's categories as the platform prints it (its settings list, then anything new in the rows). */
@@ -175,6 +182,144 @@ function dgKpis(list: readonly MachineRow[], asOf: string): RegisterKpi[] {
   ];
 }
 
+/** A value as the machine list prints it: a dash when the workbook holds nothing. */
+const printed = (value: unknown): string =>
+  value === null || value === undefined || String(value).trim() === '' ? '—' : String(value);
+
+/** The ID cell the lists print; an excluded machine carries the platform's own badge text. */
+const printedId = (machine: MachineRow): string =>
+  machine.excludedFromProduction ? `${machine.id} NOT IN PRODUCTION DATA` : machine.id;
+
+/** The machine's age as the list prints it, from the same completed-years rule as the age analysis. */
+const printedAge = (machine: MachineRow, asOf: string): string => {
+  const age = machineAge(machine, asOf);
+  return age === null ? '—' : `${age}y`;
+};
+
+/** The L × W cell in millimetres, or a dash when either side is missing. */
+function printedDims(machine: MachineRow): string {
+  const length = metadataNumber(machine, 'length');
+  const width = metadataNumber(machine, 'width');
+  return length === null || width === null ? '—' : `${length} × ${width}`;
+}
+
+/** The CNC (and robot) machine list: segment, identity, age column, and its Edit/Move/Del row actions. */
+function cncTable(list: readonly MachineRow[], asOf: string): RegisterTable {
+  return {
+    title: '',
+    header: [
+      '#',
+      'Machine ID',
+      'Segment',
+      'Category',
+      'Make',
+      'Model',
+      'Serial',
+      'Year',
+      'Age',
+      'Location',
+      'Cell',
+      'Power',
+      '',
+      '',
+      '',
+    ],
+    rows: list.map((machine, index) => [
+      String(index + 1),
+      printedId(machine),
+      printed(machine.segment),
+      printed(machine.category === null ? null : normalizeLabel(machine.category)),
+      printed(machine.make),
+      printed(machine.model),
+      printed(machine.serial),
+      printed(machine.year),
+      printedAge(machine, asOf),
+      printed(machine.location),
+      printed(machine.cell),
+      printed(machine.powerKw),
+      'Edit',
+      'Move',
+      'Del',
+    ]),
+  };
+}
+
+/** A conventional, process or utility machine list: its dimensions and its Edit/Del row actions. */
+function utilityTable(list: readonly MachineRow[], asOf: string): RegisterTable {
+  return {
+    title: '',
+    header: [
+      '#',
+      'Machine ID',
+      'Category',
+      'Make',
+      'Model',
+      'Serial',
+      'Year',
+      'Age',
+      'Location',
+      'Cell',
+      'Power (KVA)',
+      'L × W (mm)',
+      '',
+      '',
+    ],
+    rows: list.map((machine, index) => [
+      String(index + 1),
+      printedId(machine),
+      printed(machine.category === null ? null : normalizeLabel(machine.category)),
+      printed(machine.make),
+      printed(machine.model),
+      printed(machine.serial),
+      printed(machine.year),
+      printedAge(machine, asOf),
+      printed(machine.location),
+      printed(machine.cell),
+      printed(machine.powerKw),
+      printedDims(machine),
+      'Edit',
+      'Del',
+    ]),
+  };
+}
+
+/** The DG list: capacity in place of load, dimensions, and Edit/Del. */
+function dgTable(list: readonly MachineRow[], asOf: string): RegisterTable {
+  return {
+    title: '',
+    header: [
+      '#',
+      'DG ID',
+      'Make',
+      'Model',
+      'Serial',
+      'Year',
+      'Age',
+      'Location',
+      'Cell',
+      'Capacity (KVA)',
+      'L × W (mm)',
+      '',
+      '',
+    ],
+    rows: list.map((machine, index) => [
+      String(index + 1),
+      printedId(machine),
+      printed(machine.make),
+      printed(machine.model),
+      printed(machine.serial),
+      printed(machine.year),
+      printedAge(machine, asOf),
+      printed(machine.location),
+      printed(machine.cell),
+      printed(machine.capacityKva),
+      printedDims(machine),
+      'Edit',
+      'Del',
+    ]),
+  };
+}
+
 /** The five register lists the platform shows, each with its own page. */
 function pages(data: EngineData, asOf: string): RegisterPage[] {
   const cnc = data.machines.filter((machine) => machine.segment === 'CNC');
@@ -188,14 +333,31 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
       page: 'machines',
       title: 'CNC Machines',
       kpis: [...summaryKpis(cnc, 'CNC Machines', asOf), ...controllerKpis(cnc), ...makeKpis(cnc)],
+      tables: [
+        cncTable(
+          cnc.filter((machine) => machine.category !== 'Robot'),
+          asOf,
+        ),
+      ],
     },
-    { page: 'robots', title: 'Robots', kpis: robotKpis(data, robots) },
+    {
+      page: 'robots',
+      title: 'Robots',
+      kpis: robotKpis(data, robots),
+      tables: [cncTable(robots, asOf)],
+    },
     {
       page: 'conv',
       title: 'Conventional Machines',
       kpis: summaryKpis(conv, 'Conventional Machines', asOf),
+      tables: [utilityTable(conv, asOf)],
     },
-    { page: 'proc', title: 'Process Machines', kpis: summaryKpis(proc, 'Process Machines', asOf) },
+    {
+      page: 'proc',
+      title: 'Process Machines',
+      kpis: summaryKpis(proc, 'Process Machines', asOf),
+      tables: [utilityTable(proc, asOf)],
+    },
     {
       page: 'util',
       title: 'Utilities',
@@ -203,8 +365,9 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
         powerLabel: 'Listed Power',
         powerNote: 'compressors & dryer only — stabilizer / UPS KVA are capacities, not load',
       }),
+      tables: [utilityTable(util, asOf)],
     },
-    { page: 'dg', title: 'DG Sets', kpis: dgKpis(dg, asOf) },
+    { page: 'dg', title: 'DG Sets', kpis: dgKpis(dg, asOf), tables: [dgTable(dg, asOf)] },
   ];
 }
 

@@ -1,5 +1,5 @@
 import { formatNumber, formatPercent, metadataNumber, normalizeLabel } from './format.js';
-import type { Computer, MachineRow } from './types.js';
+import type { Computer, FigureValue, MachineRow } from './types.js';
 
 /**
  * The footprint figure (ticket 39): machine area is Length × Width from the machine master, and the floor needed
@@ -151,8 +151,14 @@ export const footprint: Computer = ({ data }) => {
       sub: 'per machine',
     },
   ];
+  const page = {
+    page: 'a7',
+    title: 'Footprint',
+    kpis,
+    tables: [categoryTable(items, machineArea)],
+  };
   return {
-    value: { kpis, tables: [categoryTable(items, machineArea)] },
+    value: { pages: [page] } as unknown as FigureValue,
     drillIds: items.map((item) => item.machine.id),
   };
 };

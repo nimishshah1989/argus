@@ -1,7 +1,7 @@
 import { formatNumber } from './format.js';
 import { machineAge } from './machine-facts.js';
 import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
-import type { Computer, MachineRow } from './types.js';
+import type { Computer, FigureValue, MachineRow } from './types.js';
 
 /**
  * The age analysis figure (ticket 39): age is completed years from the purchase date (the Year field estimates
@@ -57,8 +57,9 @@ export const ageAnalysis: Computer = ({ data, asOf }) => {
     sub: `${formatNumber(hours, 1)} hrs ÷ ${machines.length} machines`,
   }));
   const aged = bands.flatMap(({ machines }) => machines);
+  const page = { page: 'a8', title: 'Age Analysis', kpis: [...totals, ...averages], tables: [] };
   return {
-    value: { kpis: [...totals, ...averages] },
+    value: { pages: [page] } as unknown as FigureValue,
     drillIds: aged.map((machine) => machine.id),
   };
 };
