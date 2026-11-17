@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { num } from './form.js';
-import { settingsPage } from './plant-settings.js';
+import { calendarDay, settingsPage } from './plant-settings.js';
+import { isoDateTimeSchema, ticketKindSchema, ticketStatusSchema } from './ticket-reply.js';
 
 /**
  * Contracts for the analytics engine shell (ticket 37). The plant profile is the legacy platform's own numbers,
@@ -199,3 +200,84 @@ export const figuresReplySchema = z
   })
   .strict();
 export type FiguresReply = z.infer<typeof figuresReplySchema>;
+
+/** How many ids one drill-down may ask for: a screen's worth of rows, still one read of the plant. */
+export const MAX_DRILL_IDS = 200;
+
+const drillText = z.string().nullable();
+
+/**
+ * A figure's drill target, as the engine reads it: a machine, a ticket or a cell move, plain and with no table
+ * names. It is the same row the engine computed from, so the screen shows what the number counted.
+ */
+export const machineDrillRowSchema = z
+  .object({
+    id,
+    code: z.string(),
+    segment: drillText,
+    category: drillText,
+    cell: drillText,
+    location: drillText,
+    make: drillText,
+    model: drillText,
+    controller: drillText,
+    year: z.number().int().nullable(),
+    purchasedOn: calendarDay.nullable(),
+    powerKw: z.number().nullable(),
+    capacityKva: z.number().nullable(),
+    assetCode: drillText,
+    status: z.enum(['active', 'idle', 'scrapped']),
+    criticality: z.enum(['A', 'B', 'C']).nullable(),
+    metadata: z.record(z.unknown()),
+  })
+  .strict();
+
+export const ticketDrillRowSchema = z
+  .object({
+    id,
+    ref: z.string(),
+    kind: ticketKindSchema,
+    status: ticketStatusSchema,
+    machineId: id.nullable(),
+    reportedAt: isoDateTimeSchema,
+    closedAt: isoDateTimeSchema.nullable(),
+    source: z.enum(['live', 'history']),
+    downtimeMin: z.number().int().nullable(),
+    repairMin: z.number().int().nullable(),
+    workType: drillText,
+  })
+  .strict();
+
+export const moveDrillRowSchema = z
+  .object({ id, machineId: id, fromCell: drillText, toCell: drillText, effectiveFrom: calendarDay })
+  .strict();
+
+export const drillReplyRowSchema = z.union([
+  machineDrillRowSchema,
+  ticketDrillRowSchema,
+  moveDrillRowSchema,
+]);
+export type DrillReplyRow = z.infer<typeof drillReplyRowSchema>;
+
+/** `GET /analytics/drill?type=machine&ids=<id>,<id>`: the ids arrive as one comma-separated list. */
+export const drillQuerySchema = z
+  .object({
+    type: drillTypeSchema,
+    ids: z
+      .string()
+      .transform((raw) =>
+        raw
+          .split(',')
+          .map((part) => part.trim())
+          .filter((part) => part !== ''),
+      )
+      .pipe(z.array(id).min(1).max(MAX_DRILL_IDS)),
+  })
+  .strict();
+export type DrillQuery = z.infer<typeof drillQuerySchema>;
+
+/** The rows a figure drills to, in the order they were asked; ids of another plant or another type are dropped. */
+export const drillReplySchema = z
+  .object({ type: drillTypeSchema, rows: z.array(drillReplyRowSchema) })
+  .strict();
+export type DrillReply = z.infer<typeof drillReplySchema>;

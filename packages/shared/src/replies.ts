@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { figuresReplySchema, profilePageSchema, profileReplySchema } from './analytics.js';
+import {
+  drillReplySchema,
+  figuresReplySchema,
+  profilePageSchema,
+  profileReplySchema,
+} from './analytics.js';
 import { boardTodayReplySchema } from './board.js';
 import { signoffFeedReplySchema } from './signoff.js';
 import {
@@ -190,6 +195,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/analytics-profile`]: profilePageSchema,
   [`PUT ${P}/analytics-profile/:id`]: profileReplySchema,
   [`GET ${P}/analytics/figures`]: figuresReplySchema,
+  [`POST ${P}/analytics/run`]: figuresReplySchema,
+  [`GET ${P}/analytics/drill`]: drillReplySchema,
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   ...commands,
   [`POST ${P}/tickets/past`]: commandReplySchema,

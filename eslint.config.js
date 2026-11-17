@@ -76,7 +76,11 @@ export default tseslint.config(
       complexity: ['error', 12],
       'max-depth': ['error', 4],
       'max-params': ['error', 4],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // A rest-destructured sibling is dropped on purpose, so it may go unused.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
   },
   // Module boundaries (ticket 03): the same rules tools/check-boundaries.ts checks, at edit time.
