@@ -252,12 +252,24 @@ function a1Figure(): Figure {
   };
 }
 
-async function stubFigures(page: Page): Promise<void> {
+/** A1 with more drill ids than the endpoint's cap: the page must offer the log, not a refused drill. */
+function a1OverCapFigure(): Figure {
+  const figure = a1Figure();
+  return {
+    ...figure,
+    drill: {
+      type: 'ticket',
+      ids: Array.from({ length: 201 }, (_, index) => `over-cap-${index}`),
+    },
+  };
+}
+
+async function stubFigures(page: Page, a1: Figure = a1Figure()): Promise<void> {
   const reply: FiguresReply = {
     asOf: AS_OF,
     profile: {} as FiguresReply['profile'],
     rows: { machines: 125, moves: 0, tickets: 2, tasks: 0, reports: 5, people: 4 },
-    figures: [logFigure(), a1Figure()],
+    figures: [logFigure(), a1],
   };
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
@@ -333,10 +345,10 @@ async function openA1(page: Page): Promise<void> {
     .click();
   await expect(page).toHaveURL(/screen=a1-bd-pm/);
   await expect(page.getByRole('heading', { name: 'BD % & PM Split', exact: true })).toBeVisible();
-  await expect(page.getByText('Avg Available Hrs / Machine', { exact: true })).toBeVisible();
-  await expect(page.getByText('4,525.54', { exact: true })).toBeVisible();
-  await expect(page.getByText('Total Machines', { exact: true })).toBeVisible();
-  await expect(page.getByText('99.32%', { exact: true })).toBeVisible();
+  for (const kpi of A1_KPIS) {
+    await expect(page.getByText(kpi.label, { exact: true })).toBeVisible();
+    await expect(page.getByText(kpi.value, { exact: true })).toBeVisible();
+  }
   for (const title of [
     'By Cell — Detail',
     'Month-on-Month — BD % and PM % (2026)',
@@ -374,6 +386,30 @@ test('a head filters the Breakdown Log, keeps its count, exports it and opens a 
     page.getByRole('heading', { name: tickets.first.ref, exact: true }).first(),
   ).toBeVisible();
   await openA1(page);
+});
+
+test('A1 over the drill cap offers the log instead of a refused drill', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page, a1OverCapFigure());
+  await signIn(page, 'head');
+  const drillRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/analytics/drill')) drillRequests.push(request.url());
+  });
+  await page.goto('/analytics/breakdowns?screen=a1-bd-pm');
+  await expect(page.getByRole('heading', { name: 'BD % & PM Split', exact: true })).toBeVisible();
+  await expect(
+    page.getByText('201 tickets are behind this page; open them one by one in the Breakdown log.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'See the rows', exact: true })).toHaveCount(0);
+  const logLink = page.getByRole('link', { name: 'Open the Breakdown log', exact: true });
+  await expect(logLink).toHaveAttribute('href', '/analytics/breakdowns?screen=breakdown-log');
+  await logLink.click();
+  await expect(page).toHaveURL(/screen=breakdown-log/);
+  await expect(page.getByRole('heading', { name: 'Breakdown Log', exact: true })).toBeVisible();
+  expect(drillRequests).toEqual([]);
 });
 
 test('an operator is refused the breakdowns face', async ({ page }) => {

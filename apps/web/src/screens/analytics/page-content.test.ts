@@ -102,11 +102,10 @@ const A1 = {
           sub: 'hours to 11 Nov · annual 6,000 from Settings',
         },
         { label: 'Total Machines', value: '125', sub: 'machines counted in production data' },
-        {
-          label: 'Actual Breakdown',
-          value: '3,060.1 hrs',
-          sub: '0.54% of available',
-        },
+        { label: 'Total Available Hrs', value: '5,65,692.47', sub: 'whole plant' },
+        { label: 'Actual Breakdown', value: '3,060.1 hrs', sub: '0.54% of available' },
+        { label: 'PM Downtime', value: '759.3 hrs', sub: '0.13% of available' },
+        { label: 'Fleet Availability', value: '99.32%', sub: 'BD + PM excluded' },
       ],
       tables: [
         {
@@ -248,6 +247,20 @@ describe('the A1 page', () => {
       'analytics.content.a1.cellAxis',
       'analytics.content.a1.trendChart',
       'analytics.content.a1.trendAxis',
+    ]);
+  });
+
+  it('pins all six of the key page KPI labels and values', () => {
+    const { t } = translator();
+    const content = contentOf(figure('a1-bd-pm', A1), t);
+    if (content?.kind !== 'page') throw new Error('expected the A1 page');
+    expect(content.kpis.map(({ label, value }) => [label, value])).toEqual([
+      ['Avg Available Hrs / Machine', '4,525.54'],
+      ['Total Machines', '125'],
+      ['Total Available Hrs', '5,65,692.47'],
+      ['Actual Breakdown', '3,060.1 hrs'],
+      ['PM Downtime', '759.3 hrs'],
+      ['Fleet Availability', '99.32%'],
     ]);
   });
 
