@@ -923,7 +923,8 @@ rows:
     status: in-progress
     evidence:
       - 'PR #305 (the cell change log and its controlled-document CSV export)'
-      - 'apps/web/e2e/analytics-machines.spec.ts :: a head opens a register page, the cell change log and a machine page that is honest about gaps'
+      - 'apps/web/e2e/analytics-machines.spec.ts :: a head opens a register page, the cell change log and a machine page that is honest about gaps (the export, and a head correcting a move date with the PATCH asserted)'
+      - 'apps/web/e2e/analytics-machines.spec.ts :: an operator is refused the machines face (and never sees Correct date)'
       - 'docs/slices/39-move-audit.md (the audited move-date correction, packets 39c/39d)'
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.registers.04
