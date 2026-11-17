@@ -1,8 +1,13 @@
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
+import { ageAnalysis } from './age.js';
+import { cellChangeLog } from './cell-log.js';
 import { bubbleChart, expansionTimeline } from './dashboard-charts.js';
 import { breakdownFree, costliestProblems } from './dashboard-flags.js';
 import { dataChecklist } from './data-checklist.js';
+import { footprint } from './footprint.js';
+import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
+import { registers } from './registers.js';
 import type { Computer, EngineData, MachineRow } from './types.js';
 
 /**
@@ -151,8 +156,20 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'data-checklist': dataChecklist,
 };
 
+/** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
+const registerComputers: Readonly<Record<string, Computer>> = {
+  registers,
+  'cell-change-log': cellChangeLog,
+  'a7-footprint': footprint,
+  'a8-age': ageAnalysis,
+  'machine-page': machinePage,
+};
+
 /**
  * The computation of each figure, by key: the one map the engine runs. A registered figure with no entry here
  * answers `not_computed`, and the engine tickets from 38 to 45 add their files' maps to this one as they land.
  */
-export const COMPUTERS: Readonly<Record<string, Computer>> = { ...dashboardComputers };
+export const COMPUTERS: Readonly<Record<string, Computer>> = {
+  ...dashboardComputers,
+  ...registerComputers,
+};

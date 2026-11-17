@@ -548,6 +548,8 @@ describe('running and storing through HTTP, and the drill-down', () => {
         machineId: M_USED,
         fromCell: 'Cell 1',
         toCell: 'Cell 2',
+        fromLocation: null,
+        toLocation: null,
         effectiveFrom: '2026-11-02',
       },
     ]);

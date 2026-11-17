@@ -9,6 +9,7 @@ export async function machinesForEngine(tx: Db): Promise<Row[]> {
   return (
     await tx.query(
       `SELECT m.id, m.code, s.code AS segment, m.category, m.cell, m.location, m.make, m.model, m.controller,
+              m.serial, m.controller_model, m.controller_serial,
               m.year, m.purchased_on::text AS purchased_on, m.power_kw::float8 AS power_kw,
               m.capacity_kva::float8 AS capacity_kva, m.asset_code, m.status, m.criticality, m.metadata
          FROM machine m LEFT JOIN segment s ON s.id = m.segment_id
@@ -20,7 +21,7 @@ export async function machinesForEngine(tx: Db): Promise<Row[]> {
 export async function movesForEngine(tx: Db): Promise<Row[]> {
   return (
     await tx.query(
-      `SELECT id, machine_id, from_cell, to_cell, effective_from::text AS effective_from
+      `SELECT id, machine_id, from_cell, to_cell, from_location, to_location, effective_from::text AS effective_from
          FROM machine_move ORDER BY effective_from, id`,
     )
   ).rows;

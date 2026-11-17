@@ -3,6 +3,7 @@ import type {
   EngineData,
   ListRow,
   MachineRow,
+  MoveRow,
   PersonRow,
   ReportRow,
   TicketRow,
@@ -23,7 +24,10 @@ interface WorkbookMachine {
   category?: string;
   make?: string;
   model?: string;
+  serial?: string | number;
   controller?: string;
+  ctrlModel?: string | number;
+  ctrlSerial?: string | number;
   year?: number | string | null;
   datePurchase?: string;
   power?: number | string | null;
@@ -31,9 +35,21 @@ interface WorkbookMachine {
   location?: string;
   cell?: string;
   assetCode?: string;
-  length?: number;
-  width?: number;
+  length?: number | string;
+  width?: number | string;
   conveyor?: string;
+  efficiency?: number | string;
+}
+
+/** One row of the workbook's cell change log: the date it took effect and both cells and locations. */
+interface WorkbookMove {
+  id: string;
+  machineId: string;
+  date: string;
+  fromCell?: string;
+  toCell?: string;
+  fromLocation?: string;
+  toLocation?: string;
 }
 
 interface WorkbookBreakdown {
@@ -66,6 +82,8 @@ interface Workbook {
   dgMachines: WorkbookMachine[];
   breakdowns: WorkbookBreakdown[];
   otherBD: WorkbookBreakdown[];
+  /** The cell/location moves the platform logged, with the location columns 0014 carries. */
+  cellChangeLog?: WorkbookMove[];
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
@@ -92,8 +110,8 @@ const number = (value: number | string | null | undefined): number | null => {
   return null;
 };
 
-const text = (value: string | undefined): string | null =>
-  value !== undefined && value.trim() !== '' ? value.trim() : null;
+const text = (value: string | number | undefined): string | null =>
+  value !== undefined && String(value).trim() !== '' ? String(value).trim() : null;
 
 /** The plant date (`YYYY-MM-DD`) of a workbook date (`DD-MM-YYYY`). */
 function plantDate(workbookDate: string): string {
@@ -125,12 +143,13 @@ function closedAt(start: string, row: WorkbookBreakdown): string {
   return new Date(new Date(start).getTime() + (row.downMin ?? 0) * 60_000).toISOString();
 }
 
-/** What the workbook keeps beside the columns: the footprint and conveyor side ticket 39 reads. */
+/** What the workbook keeps beside the columns: the footprint, conveyor side and per-machine efficiency ticket 39 reads. */
 function footprint(row: WorkbookMachine): Record<string, unknown> {
   const metadata: Record<string, unknown> = {};
-  if (row.length !== undefined) metadata.length = row.length;
-  if (row.width !== undefined) metadata.width = row.width;
+  if (row.length !== undefined && row.length !== '') metadata.length = row.length;
+  if (row.width !== undefined && row.width !== '') metadata.width = row.width;
   if (row.conveyor) metadata.conveyor = row.conveyor;
+  if (row.efficiency !== undefined && row.efficiency !== '') metadata.efficiency = row.efficiency;
   return metadata;
 }
 
@@ -150,6 +169,9 @@ function toMachine(
     make: text(row.make),
     model: text(row.model),
     controller: text(row.controller),
+    serial: text(row.serial),
+    controllerModel: text(row.ctrlModel),
+    controllerSerial: text(row.ctrlSerial),
     year: number(row.year),
     purchasedOn: text(row.datePurchase),
     powerKw: number(row.power),
@@ -265,6 +287,19 @@ function lists(workbook: Workbook): Record<string, ListRow[]> {
   return maintCodes.length > 0 ? { maint_code: maintCodes } : {};
 }
 
+/** The workbook's cell change log as the engine's moves: the plant date it takes effect, both cells and locations. */
+function moves(workbook: Workbook): MoveRow[] {
+  return (workbook.cellChangeLog ?? []).map((row) => ({
+    id: row.id,
+    machineId: row.machineId,
+    fromCell: text(row.fromCell),
+    toCell: text(row.toCell),
+    fromLocation: text(row.fromLocation),
+    toLocation: text(row.toLocation),
+    effectiveFrom: plantDate(row.date),
+  }));
+}
+
 function engineData(workbook: Workbook): EngineData {
   const history = workbook.breakdowns;
   const live = workbook.otherBD;
@@ -272,7 +307,7 @@ function engineData(workbook: Workbook): EngineData {
   return {
     timeZone: 'Asia/Kolkata',
     machines: machines(workbook),
-    moves: [],
+    moves: moves(workbook),
     tickets: [
       ...history.map((row) => toTicket(workbook, row, 'history')),
       ...live.map((row) => toTicket(workbook, row, 'live')),

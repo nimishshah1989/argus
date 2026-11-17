@@ -220,7 +220,10 @@ export const machineDrillRowSchema = z
     location: drillText,
     make: drillText,
     model: drillText,
+    serial: drillText,
     controller: drillText,
+    controllerModel: drillText,
+    controllerSerial: drillText,
     year: z.number().int().nullable(),
     purchasedOn: calendarDay.nullable(),
     powerKw: z.number().nullable(),
@@ -250,7 +253,15 @@ export const ticketDrillRowSchema = z
   .strict();
 
 export const moveDrillRowSchema = z
-  .object({ id, machineId: id, fromCell: drillText, toCell: drillText, effectiveFrom: calendarDay })
+  .object({
+    id,
+    machineId: id,
+    fromCell: drillText,
+    toCell: drillText,
+    fromLocation: drillText,
+    toLocation: drillText,
+    effectiveFrom: calendarDay,
+  })
   .strict();
 
 export const drillReplyRowSchema = z.union([
