@@ -43,4 +43,5 @@ export const detailEn = {
   'escalation.acknowledgedAfter': 'acknowledged after {{time}}',
   'escalation.acknowledgedAfterBy': 'acknowledged after {{time}} · {{who}}',
   'escalation.nobodyTold': 'Escalation due, nobody told',
+  'escalation.setLadder': 'Set the ladder',
 };

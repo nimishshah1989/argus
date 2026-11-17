@@ -90,6 +90,8 @@ export interface HistoryItem {
   at: string;
   when: string;
   detail?: string;
+  /** An action a record's own state offers, drawn under its line (the page passes the link, the kit does not). */
+  action?: ReactNode;
 }
 
 const DOT: Record<Tone, string> = {
@@ -118,6 +120,7 @@ export function HistoryList({ items }: { items: HistoryItem[] }) {
               <time dateTime={item.at}>{item.when}</time>
               {item.detail ? ` · ${item.detail}` : null}
             </span>
+            {item.action ? <div className="mt-2">{item.action}</div> : null}
           </div>
         </li>
       ))}

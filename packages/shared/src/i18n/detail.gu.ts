@@ -45,4 +45,5 @@ export const detailGu = gujarati(detailEn, {
   'escalation.acknowledgedAfter': '{{time}} પછી સ્વીકાર્યું',
   'escalation.acknowledgedAfterBy': '{{time}} પછી સ્વીકાર્યું · {{who}}',
   'escalation.nobodyTold': 'એસ્કેલેશન બાકી, કોઈને જણાવ્યું નથી',
+  'escalation.setLadder': 'લેડર સેટ કરો',
 });

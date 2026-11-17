@@ -1,0 +1,1 @@
+- Two design corrections on the escalation and roster screens: the duty roster's "Copy to the next 7 days" now sits below the list, as the approved frame draws it, and a ticket whose escalation found no ladder now shows "Set the ladder" beside "Escalation due, nobody told" for a head or admin, linking to the roster and escalation settings; everyone else still sees the line alone.

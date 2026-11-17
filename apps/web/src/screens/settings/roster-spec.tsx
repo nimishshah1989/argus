@@ -107,7 +107,7 @@ export const rosterSpec: CrudSpec<RosterReply> = {
 const todayIn = (timeZone: string): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
 
-/** One action above the list: repeat a day's roster over the next seven days, once. */
+/** One action below the list: repeat a day's roster over the next seven days, once. */
 function CopyRoster() {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -163,12 +163,12 @@ function CopyRoster() {
   );
 }
 
-/** The roster screen: the generated list with the copy-week action over it. */
+/** The roster screen: the generated list first, then the copy-week action under it (design lock, slice 8). */
 export function RosterScreen() {
   return (
     <div className="flex flex-col gap-4">
-      <CopyRoster />
       <CrudPage spec={rosterSpec} />
+      <CopyRoster />
     </div>
   );
 }
