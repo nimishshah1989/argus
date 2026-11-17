@@ -15,7 +15,11 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
-import { rosterCopyReplySchema, rosterReplySchema, ruleReplySchema } from './escalation-settings.js';
+import {
+  rosterCopyReplySchema,
+  rosterReplySchema,
+  ruleReplySchema,
+} from './escalation-settings.js';
 import { PEOPLE_REPLIES } from './people.js';
 import {
   glossaryReplySchema,
