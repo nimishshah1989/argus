@@ -33,6 +33,7 @@ import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
 import { taskParentSchema, taskRowSchema, taskSummarySchema } from './tasks.js';
 import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
+import { AUDIT_REPLIES } from './audit.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
   isoDateTimeSchema,
@@ -166,6 +167,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/push/test`]: pushSentReplySchema,
   ...PEOPLE_REPLIES,
   ...SUPPORT_ACCESS_REPLIES,
+  ...AUDIT_REPLIES,
   ...settingsResource('machines', machineReplySchema),
   ...settingsResource('segments', segmentReplySchema),
   ...settingsResource('groups', groupReplySchema),

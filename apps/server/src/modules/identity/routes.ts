@@ -23,6 +23,7 @@ import {
   setActingPerson,
   setPasswordHash,
 } from './repo.js';
+import { registerAuditRoutes } from './audit.js';
 import { registerDeviceRoutes } from './devices.js';
 import { createLoginGuard } from './login-guard.js';
 import { registerSupportRoutes } from './support.js';
@@ -310,6 +311,7 @@ export function registerIdentityRoutes(app: FastifyInstance, config: AppConfig):
   app.post('/api/v1/auth/password', (request, reply) =>
     changePassword(pool, guard, request, reply),
   );
+  registerAuditRoutes(app, pool);
   registerDeviceRoutes(app, pool);
   registerSupportRoutes(app, pool);
 }

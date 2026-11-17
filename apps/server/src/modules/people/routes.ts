@@ -9,6 +9,7 @@ import {
   loginPatchSchema,
   personCreateSchema,
   personPatchSchema,
+  personSignOutSchema,
 } from '@uptimo/shared';
 import {
   fieldProblem,
@@ -27,7 +28,7 @@ import {
 import { actorOf, forbidden } from '../plant/index.js';
 import { createLogin, patchLogin } from './logins.js';
 import type { Actor, Outcome } from './outcome.js';
-import { createPerson, patchPerson } from './service.js';
+import { createPerson, patchPerson, signOutPerson } from './service.js';
 
 /** The signed-in admin, or null after answering 401 or 403. Everyone else gets 403 on every route here. */
 async function adminOnly(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
@@ -143,4 +144,20 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
   edit('/api/v1/logins', 'login', loginPatchSchema, (tx, actor, t) =>
     patchLogin(tx, actor, t.id, t.body),
   );
+  registerSignOut(app, pool);
+}
+
+/** The bulk "sign out devices" action: admin only, a reason, and the count of sessions it ended. */
+function registerSignOut(app: FastifyInstance, pool: Pool): void {
+  app.post('/api/v1/people/:id/sign-out', async (request, reply) => {
+    const ctx = await adminOnly(pool, request, reply);
+    if (!ctx) return;
+    const { id } = request.params as { id: string };
+    if (!idOrNotFound(reply, id, 'person')) return;
+    const body = parse(personSignOutSchema, request.body, reply);
+    if (!body) return;
+    await write(reply, () =>
+      withTenant(pool, ctx.tenantId, (tx) => signOutPerson(tx, auditActor(ctx), id, body.reason)),
+    );
+  });
 }

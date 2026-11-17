@@ -134,13 +134,22 @@ async function auditPersonChange(
   const unchanged =
     JSON.stringify(before) === JSON.stringify(after) && (!effects || touched(effects) === 0);
   if (unchanged) return;
+  const action = personAction(before, change.patch);
+  // A switch-off's reason lives on the new value only: the old value never held one (LOCK).
+  const reason =
+    action === 'person.switch_off' && change.patch.reason ? { reason: change.patch.reason } : {};
   await audit.record(tx, {
     ...actor,
-    action: personAction(before, change.patch),
+    action,
     entity: 'person',
     entityId: after.id,
     before: personSnapshot(before),
-    after: { ...personSnapshot(after), ...(phoneChanged && { phoneChanged }), ...effects },
+    after: {
+      ...personSnapshot(after),
+      ...(phoneChanged && { phoneChanged }),
+      ...effects,
+      ...reason,
+    },
   });
 }
 
@@ -167,4 +176,31 @@ export async function patchPerson(
   const effects = off || on ? await endAccess(tx, id, off) : undefined;
   await auditPersonChange(tx, actor, { before, after, patch, effects });
   return done(after);
+}
+
+/**
+ * The bulk "sign out devices" action: every live session of this person's logins ends, on every device, and one
+ * audit line says why and how many. The person row itself does not change.
+ */
+export async function signOutPerson(
+  tx: Tx,
+  actor: Actor,
+  id: string,
+  reason: string,
+): Promise<Outcome<{ ended: number }>> {
+  const denied = await lockAsAdmin(tx, actor);
+  if (denied) return denied;
+  await lockPerson(tx, id);
+  if (!(await personAdminById(tx, id))) return fail(404, 'not_found', 'Unknown person', 'id');
+  const loginIds = (await loginsOfPerson(tx, id)).map((login) => login.id);
+  const ended = await endSessions(tx, loginIds);
+  await audit.record(tx, {
+    ...actor,
+    action: 'person.sign_out',
+    entity: 'person',
+    entityId: id,
+    before: null,
+    after: { reason, ended },
+  });
+  return done({ ended });
 }

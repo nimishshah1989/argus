@@ -19,9 +19,17 @@ import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
+import { PeopleSettings, PEOPLE_PAGES } from './People.js';
+import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 
-export type PlantPage = 'home' | 'machines' | 'groups' | 'shifts';
-type Key = 'plant.menu.machines' | 'plant.menu.groups' | 'plant.menu.shifts';
+export type PlantPage = 'home' | 'machines' | 'groups' | 'shifts' | 'people' | 'logins' | 'audit';
+type Key =
+  | 'plant.menu.machines'
+  | 'plant.menu.groups'
+  | 'plant.menu.shifts'
+  | 'people.menu.people'
+  | 'people.menu.logins'
+  | 'audit.menu';
 
 export interface PlantPageSpec {
   page: Exclude<PlantPage, 'home'>;
@@ -38,6 +46,8 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'machines', icon: Factory, key: 'plant.menu.machines', spec: machinesSpec as never },
   { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
   { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
+  ...(PEOPLE_PAGES as readonly PlantPageSpec[]),
+  { ...AUDIT_PAGE, spec: null as never },
 ];
 
 function Home() {
@@ -74,6 +84,8 @@ function NoAccess() {
 }
 
 function Body({ page }: { page: PlantPage }) {
+  if (page === 'people' || page === 'logins') return <PeopleSettings page={page} />;
+  if (page === 'audit') return <AuditSettings />;
   const found = PLANT_PAGES.find((p) => p.page === page);
   return found ? <CrudPage key={page} spec={found.spec as CrudSpec<CrudRow>} /> : <Home />;
 }

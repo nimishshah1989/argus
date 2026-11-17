@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { blank, dropBlanks, flag } from './form.js';
+import { isoDateTimeSchema } from './ticket-reply.js';
 import { settingsPage } from './plant-settings.js';
 
 /**
@@ -42,6 +43,16 @@ const optionalText = (max: number) =>
 const team = z.enum(['maintenance', 'production', 'vendor']);
 const nonEmpty = (o: object) => Object.keys(o).length > 0;
 
+/**
+ * A switch-off's reason (LOCK: "switching a person off needs a reason"): trimmed, 500 characters at most, and an
+ * empty text means none. The screen asks for it; the API keeps it optional so a client that does not send one is
+ * not broken, and stores it on the audit line alone.
+ */
+export const reasonText = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().trim().max(500).optional(),
+);
+
 const personFields = {
   name: text(120),
   shortName: optionalText(40),
@@ -59,10 +70,10 @@ export type PersonCreate = z.infer<typeof personCreateSchema>;
 
 /** `active: false` switches the person off, `true` back on. A form may send every field back unchanged. */
 export const personPatchSchema = z
-  .object({ ...personFields, active: flag })
+  .object({ ...personFields, active: flag, reason: reasonText })
   .partial()
   .strict()
-  .refine(nonEmpty, 'Nothing to change');
+  .refine((value) => Object.keys(value).some((key) => key !== 'reason'), 'Nothing to change');
 export type PersonPatch = z.infer<typeof personPatchSchema>;
 
 export const personAdminSchema = z
@@ -77,6 +88,8 @@ export const personAdminSchema = z
     defaultShift: z.string().nullable(),
     active: z.boolean(),
     pending: z.boolean(),
+    /** The newest session start among this person's logins, null when none of them has ever signed in. */
+    lastSignInAt: isoDateTimeSchema.nullable(),
   })
   .strict();
 export type PersonAdmin = z.infer<typeof personAdminSchema>;
@@ -144,15 +157,25 @@ export const loginAdminSchema = z
     cell: z.string().nullable(),
     mustChangePassword: z.boolean(),
     active: z.boolean(),
+    /** The newest session start of this login, null when it has never signed in. */
+    lastSignInAt: isoDateTimeSchema.nullable(),
   })
   .strict();
 export type LoginAdmin = z.infer<typeof loginAdminSchema>;
+
+/** `POST /people/:id/sign-out`: the bulk "sign out devices" action. A reason is required and the count comes back. */
+export const personSignOutSchema = z.object({ reason: z.string().trim().min(1).max(500) }).strict();
+export type PersonSignOut = z.infer<typeof personSignOutSchema>;
+
+export const personSignOutReplySchema = z.object({ ended: z.number().int().min(0) }).strict();
+export type PersonSignOutReply = z.infer<typeof personSignOutReplySchema>;
 
 /** Reply schema of each people-and-logins route, spread into `REPLY_SCHEMAS`. */
 export const PEOPLE_REPLIES = {
   'GET /api/v1/people': settingsPage(personAdminSchema),
   'POST /api/v1/people': personAdminSchema,
   'PUT /api/v1/people/:id': personAdminSchema,
+  'POST /api/v1/people/:id/sign-out': personSignOutReplySchema,
   'GET /api/v1/logins': settingsPage(loginAdminSchema),
   'POST /api/v1/logins': loginAdminSchema,
   'PUT /api/v1/logins/:id': loginAdminSchema,

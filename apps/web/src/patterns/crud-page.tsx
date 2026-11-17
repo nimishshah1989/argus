@@ -1,16 +1,23 @@
-import { useMemo, useState } from 'react';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { defineResource, idempotencyKey, useOnline } from '../data/index.js';
+import { getConfig } from '../api.js';
+import { ApiError, defineResource, useOnline } from '../data/index.js';
 import { Button } from '../ui/button.js';
 import { Inline } from '../ui/layout.js';
+import { BulkBar, useBulk, useSave, useSwitch } from './crud-actions.js';
 import { CrudList } from './crud-list.js';
 import type { CrudCtx, CrudRow, CrudSpec, Lookups } from './crud-spec.js';
 import { FormSheet } from './form-sheet.js';
 import { PatternFrame, StateNotice } from './frame.js';
-import { viewState } from './view-state.js';
+import { viewState, type ViewState } from './view-state.js';
 
 export type { CrudRow, CrudField, CrudSpec, LabelKey } from './crud-spec.js';
+
+/** The server's own words for a refusal (the E.164 message), or the generic line. */
+function messageOf(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
 
 /** The lists a spec's choices and rows draw on, read once and cached under each resource's key. */
 function useLookups<Row extends CrudRow>(spec: CrudSpec<Row>): Lookups {
@@ -24,21 +31,6 @@ function useLookups<Row extends CrudRow>(spec: CrudSpec<Row>): Lookups {
   return Object.fromEntries(entries.map(([name], i) => [name, results[i]?.data ?? []]));
 }
 
-/** The row's own fields first, then each field that has its own route, when it changed. */
-async function saveEdit<Row extends CrudRow>(
-  spec: CrudSpec<Row>,
-  row: Row,
-  values: Record<string, string>,
-  put: (body: Record<string, unknown>) => Promise<unknown>,
-): Promise<void> {
-  const apart = spec.separate ?? {};
-  const own = Object.entries(values).filter(([k]) => !(k in apart));
-  await put({ ...Object.fromEntries(own), active: row.active });
-  for (const [name, send] of Object.entries(apart))
-    if (name in values && values[name] !== String(row[name as keyof Row] ?? ''))
-      await send(row.id, values[name]!);
-}
-
 function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -48,50 +40,48 @@ function useCrud<Row extends CrudRow>(spec: CrudSpec<Row>) {
   const create = resource.useCreate();
   const update = resource.useUpdate();
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
-  const [sheet, setSheet] = useState<{ row: Row | null; key: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const saving = useSave(
+    spec,
+    {
+      create: (v) => create.mutateAsync(v),
+      update: (v) => update.mutateAsync(v),
+      refresh: () => client.invalidateQueries({ queryKey: [spec.key] }),
+    },
+    t,
+  );
+  const sw = useSwitch(spec, (v) => update.mutateAsync(v), t);
+  const bulk = useBulk(spec, items, () => client.invalidateQueries({ queryKey: [spec.key] }), t);
   const valuesOf = (row: Row): Record<string, string> =>
-    Object.fromEntries(spec.fields.map((f) => [f.name, String(row[f.name] ?? '')]));
+    Object.fromEntries(spec.fields.map((f) => [f.name, String(row[f.name as keyof Row] ?? '')]));
 
-  async function save(values: Record<string, string>): Promise<boolean> {
-    setError(null);
-    const row = sheet?.row;
-    try {
-      if (!row) await create.mutateAsync({ body: values, idempotencyKey: sheet?.key });
-      else await saveEdit(spec, row, values, (body) => update.mutateAsync({ id: row.id, body }));
-      return true;
-    } catch {
-      setError(t('kit.crud.error'));
-      return false;
-    } finally {
-      if (row) await client.invalidateQueries({ queryKey: [spec.key] });
-    }
-  }
+  /** A switch with a reason or a value first opens its sheet; the rest flip in place. */
   async function toggle(row: Row): Promise<void> {
-    setError(null);
+    saving.setError(null);
+    if (row.active ? spec.switchOff : spec.switchOn) {
+      sw.setRow(row);
+      return;
+    }
     try {
       await update.mutateAsync({ id: row.id, body: { ...valuesOf(row), active: !row.active } });
-    } catch {
-      setError(t('kit.crud.error'));
+    } catch (failure) {
+      saving.setError(messageOf(failure, t('kit.crud.error')));
     }
   }
-  const open = (row: Row | null) => {
-    setError(null);
-    setSheet({ row, key: idempotencyKey() });
-  };
   return {
     list,
     items,
     lookups,
-    sheet,
-    setSheet,
-    error,
+    sheet: saving.sheet,
+    setSheet: saving.setSheet,
+    error: saving.error,
     valuesOf,
-    save,
+    save: saving.save,
     toggle,
-    open,
+    open: saving.open,
     create,
     update,
+    switch: sw,
+    bulk,
   };
 }
 
@@ -105,7 +95,7 @@ function CrudTableRow<Row extends CrudRow>(p: {
   const { t } = useTranslation();
   const { row } = p;
   const [first, ...others] = p.spec.fields;
-  const name = String(row[first!.name] ?? '');
+  const name = String(row[first!.name as keyof Row] ?? '');
   return (
     <tr className="border-t border-neutral-200 lg:h-13">
       <th scope="row" className="p-2 font-medium lg:px-3">
@@ -113,7 +103,7 @@ function CrudTableRow<Row extends CrudRow>(p: {
       </th>
       {others.map((f) => (
         <td key={f.name} className="p-2 lg:px-3">
-          {String(row[f.name] ?? '')}
+          {String(row[f.name as keyof Row] ?? '')}
         </td>
       ))}
       <td className="p-2 lg:px-3">{row.active ? t('kit.crud.on') : t('kit.crud.off')}</td>
@@ -164,7 +154,6 @@ function CrudTable<Row extends CrudRow>(p: {
                 {t(f.labelKey)}
               </th>
             ))}
-            {}
             <th
               scope="col"
               className="p-2 font-medium text-neutral-600 lg:p-3 lg:text-caption lg:font-semibold"
@@ -215,7 +204,7 @@ function CrudSheet<Row extends CrudRow>(p: {
         .map((f) => ({
           name: f.name,
           label: t(f.labelKey),
-          required: f.required,
+          required: f.required || (!row && f.requiredOnAdd),
           kind: f.kind,
           choices: f.choices?.(ctx),
         }))}
@@ -230,22 +219,160 @@ function CrudSheet<Row extends CrudRow>(p: {
   );
 }
 
+function SwitchSheet<Row extends CrudRow>(p: {
+  spec: CrudSpec<Row>;
+  c: ReturnType<typeof useCrud<Row>>;
+  name: string;
+}) {
+  const { t } = useTranslation();
+  const { spec, c } = p;
+  const row = c.switch.row;
+  if (!row) return null;
+  const on = !row.active;
+  const config = on ? spec.switchOn : spec.switchOff;
+  const fields = on
+    ? [
+        {
+          name: spec.switchOn!.field,
+          label: t(spec.switchOn!.labelKey),
+          required: true,
+        },
+      ]
+    : [{ name: 'reason', label: t('kit.crud.reason'), required: true, multiline: true }];
+  return (
+    <FormSheet
+      open
+      onOpenChange={(o) => {
+        if (!o) c.switch.setRow(null);
+      }}
+      title={t(on ? 'kit.crud.switchOnRow' : 'kit.crud.switchOffRow', { name: p.name })}
+      submitLabel={t(on ? 'kit.crud.switchOn' : 'kit.crud.switchOff')}
+      fields={fields}
+      description={config?.hintKey ? t(config.hintKey) : t('kit.crud.reasonHint')}
+      offlineAllowed={false}
+      pending={c.update.isPending}
+      error={c.switch.error}
+      onSubmit={c.switch.submit}
+    />
+  );
+}
+
+function BulkSheet<Row extends CrudRow>(p: { c: ReturnType<typeof useCrud<Row>>; ctx: CrudCtx }) {
+  const { t } = useTranslation();
+  const { c, ctx } = p;
+  const action = c.bulk.action;
+  if (!action) return null;
+  const fields = [
+    { name: 'reason', label: t('kit.crud.reason'), required: true, multiline: true },
+    ...(action.field
+      ? [
+          {
+            name: action.field.name,
+            label: t(action.field.labelKey),
+            kind: 'choice' as const,
+            choices: action.field.choices?.(ctx),
+          },
+        ]
+      : []),
+  ];
+  return (
+    <FormSheet
+      open
+      onOpenChange={(o) => {
+        if (!o) c.bulk.setAction(null);
+      }}
+      title={t(action.titleKey, { count: c.bulk.selected.size })}
+      submitLabel={t(action.labelKey)}
+      fields={fields}
+      description={action.hintKey ? t(action.hintKey) : undefined}
+      offlineAllowed={false}
+      pending={c.bulk.running}
+      error={c.bulk.error}
+      onSubmit={c.bulk.submit}
+    />
+  );
+}
+
+function CrudBody<Row extends CrudRow>(p: {
+  spec: CrudSpec<Row>;
+  c: ReturnType<typeof useCrud<Row>>;
+  ctx: CrudCtx;
+  state: ViewState;
+}) {
+  const { t } = useTranslation();
+  const { spec, c, ctx, state } = p;
+  if (state !== 'ready')
+    return (
+      <StateNotice state={state} empty={t(spec.emptyKey)} onRetry={() => void c.list.refetch()} />
+    );
+  const list = {
+    spec,
+    rows: c.items,
+    onEdit: c.open,
+    busy: c.update.isPending,
+    selected: c.bulk.selected,
+    selectable: Boolean(spec.bulk),
+    onSelect: c.bulk.select,
+    onToggle: (row: Row) => void c.toggle(row),
+  };
+  if (spec.look) return <CrudList {...list} ctx={ctx} />;
+  return (
+    <CrudTable
+      spec={spec}
+      rows={c.items}
+      onEdit={c.open}
+      onToggle={list.onToggle}
+      busy={c.update.isPending}
+    />
+  );
+}
+
+function CrudExtras<Row extends CrudRow>(p: {
+  spec: CrudSpec<Row>;
+  c: ReturnType<typeof useCrud<Row>>;
+}) {
+  const { t } = useTranslation();
+  const { spec, c } = p;
+  const outcome = c.bulk.outcome;
+  return (
+    <>
+      {spec.bulk ? (
+        <BulkBar
+          spec={spec}
+          count={c.bulk.selected.size}
+          onPick={(action) => {
+            c.bulk.setError(null);
+            c.bulk.setAction(action);
+          }}
+        />
+      ) : null}
+      {outcome ? (
+        <p role="status" className="text-footnote text-neutral-600">
+          {t(outcome.doneKey ?? 'kit.crud.bulkDone', {
+            done: outcome.done,
+            count: outcome.done + outcome.failed,
+            extra: outcome.extra,
+          })}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 /** A settings page generated from one `CrudSpec`: list, add, edit, switch off and on; never delete. */
 export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> }) {
   const { t } = useTranslation();
-  const online = useOnline();
   const c = useCrud(spec);
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const state = viewState({
-    online,
+    online: useOnline(),
     hasData: c.list.data !== undefined,
     isEmpty: c.items.length === 0,
     error: c.list.error,
   });
-  const row = c.sheet?.row ?? null;
-  const ctx: CrudCtx = { lookups: c.lookups, t };
-  const nameOf = (r: Row) => spec.look?.(r, ctx).title ?? c.valuesOf(r)[spec.fields[0]!.name];
+  const ctx: CrudCtx = { lookups: c.lookups, t, timeZone: config.data?.timeZone };
+  const nameOf = (r: Row) => spec.look?.(r, ctx).title ?? c.valuesOf(r)[spec.fields[0]!.name] ?? '';
   const add = t(spec.addKey ?? 'kit.crud.add');
-  const list = { spec, rows: c.items, onEdit: c.open, busy: c.update.isPending };
   return (
     <PatternFrame title={t(spec.titleKey)}>
       {spec.introKey ? <p className="text-footnote text-neutral-600">{t(spec.introKey)}</p> : null}
@@ -255,21 +382,18 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
           {c.error}
         </p>
       ) : null}
-      {state !== 'ready' ? (
-        <StateNotice state={state} empty={t(spec.emptyKey)} onRetry={() => void c.list.refetch()} />
-      ) : spec.look ? (
-        <CrudList {...list} ctx={ctx} onToggle={(r) => void c.toggle(r)} />
-      ) : (
-        <CrudTable {...list} onToggle={(r) => void c.toggle(r)} />
-      )}
+      <CrudBody spec={spec} c={c} ctx={ctx} state={state} />
+      <CrudExtras spec={spec} c={c} />
       {c.sheet ? (
         <CrudSheet
           spec={spec}
           c={c}
           ctx={ctx}
-          title={row ? t('kit.crud.editTitle', { name: nameOf(row) }) : add}
+          title={c.sheet.row ? t('kit.crud.editTitle', { name: nameOf(c.sheet.row) }) : add}
         />
       ) : null}
+      <SwitchSheet spec={spec} c={c} name={c.switch.row ? nameOf(c.switch.row) : ''} />
+      <BulkSheet c={c} ctx={ctx} />
     </PatternFrame>
   );
 }

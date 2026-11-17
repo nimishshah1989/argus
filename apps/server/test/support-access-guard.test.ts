@@ -251,6 +251,25 @@ describe('what a support person may not do', () => {
     );
   });
 
+  it("cannot read or export the plant's audit trail", async () => {
+    const grant = await t.approve(admin);
+    await expectRefused(
+      await t.support(one, grant.id, { method: 'GET', url: '/api/v1/audit' }),
+      WRITE_REFUSED,
+    );
+    await expectRefused(
+      await t.support(one, grant.id, { method: 'GET', url: '/api/v1/audit.csv' }),
+      WRITE_REFUSED,
+    );
+    // The customer's own admin still reads both: the refusal is only for our staff.
+    expect((await t.send({ method: 'GET', url: '/api/v1/audit', token: admin })).statusCode).toBe(
+      200,
+    );
+    expect(
+      (await t.send({ method: 'GET', url: '/api/v1/audit.csv', token: admin })).statusCode,
+    ).toBe(200);
+  });
+
   it('cannot write tickets, people or logins, and nothing changes', async () => {
     const grant = await t.approve(admin);
     const before = (await t.send({ ...read, token: admin })).json();

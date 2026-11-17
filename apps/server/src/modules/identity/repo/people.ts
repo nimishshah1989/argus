@@ -20,6 +20,13 @@ export type PersonFields = Partial<{ [K in keyof typeof PERSON_COLUMNS]: unknown
 const PERSON_SELECT =
   'id, name, short_name, phone, team, title, cell, default_shift, active, pending';
 
+/** The newest session start of any login this person holds; null when none of them has ever signed in. */
+const PERSON_LAST_SIGN_IN =
+  '(SELECT max(s.created_at) FROM session s JOIN login l ON l.tenant_id = s.tenant_id AND l.id = s.login_id WHERE l.person_id = person.id) AS last_sign_in_at';
+
+const toStamp = (value: unknown): string | null =>
+  value ? new Date(value as string | Date).toISOString() : null;
+
 function toPerson(r: Record<string, unknown>): PersonAdmin {
   return {
     id: r.id,
@@ -32,11 +39,19 @@ function toPerson(r: Record<string, unknown>): PersonAdmin {
     defaultShift: r.default_shift,
     active: r.active,
     pending: r.pending,
+    lastSignInAt: toStamp(r.last_sign_in_at),
   } as PersonAdmin;
 }
 
-const LOGIN_SELECT =
+/** The columns of a login reply: the password and its hash are never among them. */
+const LOGIN_COLUMNS =
   'id, username, role, shared, person_id, cell, must_change_password, disabled_at';
+
+/** The newest session start of this login; null when it has never signed in. */
+const LOGIN_LAST_SIGN_IN =
+  '(SELECT max(s.created_at) FROM session s WHERE s.login_id = login.id) AS last_sign_in_at';
+
+const LOGIN_SELECT = `${LOGIN_COLUMNS}, ${LOGIN_LAST_SIGN_IN}`;
 
 function toLogin(r: Record<string, unknown>): LoginAdmin {
   return {
@@ -48,6 +63,7 @@ function toLogin(r: Record<string, unknown>): LoginAdmin {
     cell: r.cell,
     mustChangePassword: r.must_change_password,
     active: r.disabled_at === null,
+    lastSignInAt: toStamp(r.last_sign_in_at),
   } as LoginAdmin;
 }
 
@@ -57,12 +73,18 @@ export async function lockPeopleWrites(tx: Db, tenantId: string): Promise<void> 
 }
 
 export async function listPersonAdmin(tx: Db): Promise<PersonAdmin[]> {
-  const rows = (await tx.query(`SELECT ${PERSON_SELECT} FROM person ORDER BY name, id`)).rows;
+  const rows = (
+    await tx.query(`SELECT ${PERSON_SELECT}, ${PERSON_LAST_SIGN_IN} FROM person ORDER BY name, id`)
+  ).rows;
   return rows.map(toPerson);
 }
 
 export async function personAdminById(tx: Db, id: string): Promise<PersonAdmin | undefined> {
-  const row = (await tx.query(`SELECT ${PERSON_SELECT} FROM person WHERE id = $1`, [id])).rows[0];
+  const row = (
+    await tx.query(`SELECT ${PERSON_SELECT}, ${PERSON_LAST_SIGN_IN} FROM person WHERE id = $1`, [
+      id,
+    ])
+  ).rows[0];
   return row && toPerson(row);
 }
 
@@ -96,13 +118,11 @@ export async function updatePerson(tx: Db, id: string, fields: PersonFields): Pr
     values.push(value);
     set.push(`${column} = $${values.length}`);
   }
-  const row = (
-    await tx.query(
-      `UPDATE person SET ${set.join(', ')} WHERE id = $1 RETURNING ${PERSON_SELECT}`,
-      values,
-    )
+  const updated = (
+    await tx.query(`UPDATE person SET ${set.join(', ')} WHERE id = $1 RETURNING id`, values)
   ).rows[0];
-  return toPerson(row);
+  // Re-read with the newest sign-in, so the reply says what the list would say.
+  return (await personAdminById(tx, updated.id)) as PersonAdmin;
 }
 
 export async function listLoginAdmin(tx: Db): Promise<LoginAdmin[]> {
@@ -124,6 +144,21 @@ export async function loginsOfPerson(tx: Db, personId: string): Promise<LoginAdm
   return rows.map(toLogin);
 }
 
+/** The display name of each login: the person's name, or the username of a shared phone. */
+export async function loginNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = (
+    await tx.query(
+      `SELECT l.id, COALESCE(p.name, l.username) AS name
+       FROM login l
+       LEFT JOIN person p ON p.tenant_id = l.tenant_id AND p.id = l.person_id
+       WHERE l.id = ANY($1::uuid[])`,
+      [ids],
+    )
+  ).rows;
+  return new Map(rows.map((row) => [row.id as string, row.name as string]));
+}
+
 export async function insertLogin(
   tx: Db,
   tenantId: string,
@@ -133,11 +168,11 @@ export async function insertLogin(
   const row = (
     await tx.query(
       `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared, cell, must_change_password)
-       VALUES ($1, $2, $3, $4, $5, $2::uuid IS NULL, $6, true) RETURNING ${LOGIN_SELECT}`,
+       VALUES ($1, $2, $3, $4, $5, $2::uuid IS NULL, $6, true) RETURNING id`,
       [tenantId, l.personId, l.username, passwordHash, l.role, l.cell],
     )
   ).rows[0];
-  return toLogin(row);
+  return (await loginAdminById(tx, row.id)) as LoginAdmin;
 }
 
 export interface LoginChange {
@@ -160,7 +195,7 @@ export async function updateLogin(tx: Db, id: string, c: LoginChange): Promise<L
          disabled_at = CASE WHEN $6::boolean IS NULL THEN disabled_at
                             WHEN $6::boolean THEN COALESCE(disabled_at, now()) ELSE NULL END,
          updated_at = now()
-       WHERE id = $1 RETURNING ${LOGIN_SELECT}`,
+       WHERE id = $1 RETURNING id`,
       [
         id,
         c.role ?? null,
@@ -171,7 +206,7 @@ export async function updateLogin(tx: Db, id: string, c: LoginChange): Promise<L
       ],
     )
   ).rows[0];
-  return toLogin(row);
+  return (await loginAdminById(tx, row.id)) as LoginAdmin;
 }
 
 /** Switches off every login of a person; returns the usernames that were still on. */

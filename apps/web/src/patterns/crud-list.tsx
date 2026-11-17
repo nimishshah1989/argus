@@ -17,6 +17,25 @@ export interface ListProps<Row extends CrudRow> {
   onEdit: (row: Row) => void;
   onToggle: (row: Row) => void;
   busy: boolean;
+  /** Ticked rows, when the spec allows bulk actions. */
+  selected?: ReadonlySet<string>;
+  selectable?: boolean;
+  onSelect?: (id: string, on: boolean) => void;
+}
+
+/** The tick box a bulk action needs; the label around it keeps the 44 px tap target. */
+function SelectBox(p: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="flex min-h-target-min min-w-target-min flex-none items-center justify-center">
+      <input
+        type="checkbox"
+        aria-label={p.label}
+        checked={p.checked}
+        onChange={(event) => p.onChange(event.target.checked)}
+        className="size-5 accent-accent-strong"
+      />
+    </label>
+  );
 }
 
 /** The row's on/off control: a Switch off/on button, or the spec's own labelled switch. */
@@ -66,6 +85,13 @@ function EditRow<Row extends CrudRow>(p: ListProps<Row> & { row: Row }) {
   const look = p.spec.look!(p.row, p.ctx);
   return (
     <div className="flex items-center gap-3 border-t border-neutral-200 first:border-t-0">
+      {p.selectable ? (
+        <SelectBox
+          label={t('kit.crud.selectRow', { name: look.title })}
+          checked={Boolean(p.selected?.has(p.row.id))}
+          onChange={(on) => p.onSelect?.(p.row.id, on)}
+        />
+      ) : null}
       <button
         type="button"
         aria-label={t('kit.crud.editRow', { name: look.title })}
@@ -197,7 +223,21 @@ function tableColumns<Row extends CrudRow>(p: ListProps<Row>, t: TFunction) {
             cell: (row) => <Toggle {...p} row={row} name={p.spec.look!(row, p.ctx).title} />,
           },
         ];
-  return [first, ...rest, ...switchColumn];
+  const selectColumn: QueueColumn<Row>[] = p.selectable
+    ? [
+        {
+          label: t('kit.crud.select'),
+          cell: (row) => (
+            <SelectBox
+              label={t('kit.crud.selectRow', { name: p.spec.look!(row, p.ctx).title })}
+              checked={Boolean(p.selected?.has(row.id))}
+              onChange={(on) => p.onSelect?.(row.id, on)}
+            />
+          ),
+        },
+      ]
+    : [];
+  return [first, ...rest, ...switchColumn, ...selectColumn];
 }
 
 /** The settings list: phone rows under search and filter chips, a sortable table from 1024 px. */
