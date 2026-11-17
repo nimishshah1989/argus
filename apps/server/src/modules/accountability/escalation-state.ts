@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 import { pendingEscalationLevels, type EscalationHistoryEvent } from '@uptimo/domain';
 import type { EscalationState } from '@uptimo/shared/ticket-reply';
 import type { TicketPart } from '../../kernel/index.js';
-import { ticketEventRows } from '../tickets/index.js';
+import { ladderEventRows, type LadderEventRow } from '../tickets/index.js';
 
 const EMPTY: EscalationState = { pendingLevels: [], lastLevel: null, lastAt: null };
 
@@ -12,19 +12,13 @@ interface EscalationRow {
   payload: Record<string, unknown>;
 }
 
-/** The two event kinds the ladder reads, grouped by ticket; every other event says nothing about it. */
-function ladderEvents(rows: Array<Record<string, unknown>>): Map<string, EscalationRow[]> {
+/** The two event kinds this part reads, grouped by ticket; the query has already filtered every other kind out. */
+function ladderEvents(rows: readonly LadderEventRow[]): Map<string, EscalationRow[]> {
   const byTicket = new Map<string, EscalationRow[]>();
   for (const row of rows) {
-    if (row.type !== 'escalate' && row.type !== 'escalation_ack') continue;
-    const ticketId = row.ticket_id as string;
-    const own = byTicket.get(ticketId) ?? [];
-    own.push({
-      type: row.type,
-      at: new Date(row.at as string | number | Date),
-      payload: (row.payload ?? {}) as Record<string, unknown>,
-    });
-    byTicket.set(ticketId, own);
+    const own = byTicket.get(row.ticket_id) ?? [];
+    own.push({ type: row.type, at: new Date(row.at), payload: row.payload ?? {} });
+    byTicket.set(row.ticket_id, own);
   }
   return byTicket;
 }
@@ -52,14 +46,15 @@ function stateOf(rows: readonly EscalationRow[]): EscalationState {
   };
 }
 
-/** The escalation state of every ticket in a reply: one batch read for the page, never one per ticket. */
+/** The escalation state of every ticket in a reply: one narrow batch read for the page, never one per ticket. */
 export async function loadEscalationStates(
   client: PoolClient,
+  tenantId: string,
   ticketIds: string[],
 ): Promise<Map<string, EscalationState>> {
   const states = new Map(ticketIds.map((id) => [id, EMPTY]));
   if (ticketIds.length === 0) return states;
-  const byTicket = ladderEvents(await ticketEventRows(client, ticketIds));
+  const byTicket = ladderEvents(await ladderEventRows(client, tenantId, ticketIds));
   for (const [id, rows] of byTicket) states.set(id, stateOf(rows));
   return states;
 }
@@ -67,8 +62,10 @@ export async function loadEscalationStates(
 /** The desk card and the detail read it from every ticket reply; a write answers its fresh value like `sla`. */
 export const escalationTicketPart: TicketPart = {
   name: 'escalation',
-  load: (client, _tenantId, ids) => loadEscalationStates(client, ids),
+  load: (client, tenantId, ids) => loadEscalationStates(client, tenantId, ids),
   afterWrite: async (client, write) => ({
-    escalation: (await loadEscalationStates(client, [write.ticketId])).get(write.ticketId) ?? EMPTY,
+    escalation:
+      (await loadEscalationStates(client, write.tenantId, [write.ticketId])).get(write.ticketId) ??
+      EMPTY,
   }),
 };
