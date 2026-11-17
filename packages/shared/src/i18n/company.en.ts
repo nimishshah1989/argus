@@ -36,5 +36,4 @@ export const companyEn = {
   'company.save': 'Save changes',
   'company.saved': 'Saved.',
   'company.error': 'Could not save. Check the values and try again.',
-  'company.name.required': 'A company name is needed.',
 };

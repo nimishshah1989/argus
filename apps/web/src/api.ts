@@ -75,7 +75,6 @@ const criticality = defineResource({
   key: 'machines',
   path: '/api/v1/machines/:id/criticality',
 });
-const waitReasons = defineResource({ key: 'lists', path: '/api/v1/lists/wait_reason' });
 
 export function getConfig(): Promise<Config> {
   return cacheFirst({
@@ -239,17 +238,3 @@ export const putMachineCriticality = (
 
 export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }> =>
   settings.update<{ ok: boolean }>('sla-policies', body);
-
-/** Sends every editable field; null translations/tags stay omitted because the PUT schema is optional. */
-export function putWaitReason(item: ListItem): Promise<{ ok: boolean }> {
-  return waitReasons.update<{ ok: boolean }>(item.code, {
-    label: item.label,
-    labelGu: item.labelGu ?? undefined,
-    labelHi: item.labelHi ?? undefined,
-    sort: item.sort,
-    active: item.active,
-    isVendor: item.isVendor,
-    pausesSla: item.pausesSla,
-    tag: item.tag ?? undefined,
-  });
-}
