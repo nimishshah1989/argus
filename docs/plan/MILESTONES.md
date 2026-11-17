@@ -52,9 +52,9 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 33  | Escalation                                        | M2        | done        | #249, #252; history and desk state #285; Set the ladder #287                                                  |
 | 34  | Production sign-off                               | M2        | done        | #244, #261, #262; the waiting feed #283                                                                       |
 | 35  | Run it safely                                     | M2        | in progress | devices and support access #231; failed-jobs screen and timer-lag alarm carried to M4a                        |
-| 36  | M4a schema and answer key                         | M4a       | in progress | triage + answer key #267; migration part A #268                                                               |
-| 37  | History, engine and drill-down                    | M4a       | in progress | shell #265; snapshot + drill #289; face, Guide, profile screen #290; breakdown-log load (37c) open            |
-| 38  | Dashboard and Today                               | M4a       | todo        | —                                                                                                             |
+| 36  | M4a schema and answer key                         | M4a       | done        | triage + answer key #267; migration part A #268                                                       |
+| 37  | History, engine and drill-down                    | M4a       | in progress | shell #265; snapshot + drill #289; face/Guide/profile #290; **37c (2026-log load) open**               |
+| 38  | Dashboard and Today                               | M4a       | done        | answer-key seam #293; formulas #295, #298; screen + role homes #297; charts/cards/checklist #299        |
 | 39  | Registers and machine pages                       | M4a       | todo        | —                                                                                                             |
 | 40  | Breakdown analyses                                | M4a       | todo        | —                                                                                                             |
 | 41  | Manpower, energy, root cause                      | M4a       | todo        | —                                                                                                             |

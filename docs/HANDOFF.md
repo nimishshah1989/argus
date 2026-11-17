@@ -4,16 +4,17 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 ## RESUME HERE (M4a analytics parity, 17 Nov 2026)
 
-**State:** `main` = `88d6515`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37
-is done except the **breakdown-log load (37c)** (#289 machinery, #290 face/Guide/profile, #291 record); ticket 38 has
-**11 of 16 Dashboard figures exact** against Bhavin's 11 November numbers: #293 built the answer-key seam (workbook
+**State:** `main` = `77e0930`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37
+is done except the **breakdown-log load (37c)** (#289 machinery, #290 face/Guide/profile, #291 record); ticket 38 is
+**done** — the Dashboard is complete and **every figure is exact** against Bhavin's 11 November numbers: #293 built the answer-key seam (workbook
 fixture → engine data) with the six machine counts, #295 added total breakdowns 1279, total downtime 3060.1 h, PM
 759.3 h, NO-DT 209.1 h, avg 24.29 h/machine, and **joined the computers into `COMPUTERS`** with both shell tests
 moved to the stronger ready-set invariant. The tracker, ledger and this file are the truth; M3/M5 are parked.
 
-**Frontier, in the order Nimish approved:** 38 Dashboard/Today → 40 Breakdown analyses → 39 registers and machine
-pages → 41 manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45
-reports/export/Guide. Then the M4a gate (`docs/plan/gates/M4a.md`, under 30 lines) for his go.
+**Frontier, in the order Nimish approved:** **39 registers and machine pages** → 40 Breakdown analyses → 41
+manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45
+reports/export/Guide. Then the M4a gate (`docs/plan/gates/M4a.md`, under 30 lines) for his go, then M4b (46–54, 67),
+then M6 (55–60). M3 is out.
 
 **The one real gap to start with:** `COMPUTERS` in `packages/domain/src/analytics/computers.ts` is **empty**, so all
 43 registered figures answer `not_computed`. Each screen ticket adds its figures there against
