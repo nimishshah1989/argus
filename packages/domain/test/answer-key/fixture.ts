@@ -20,7 +20,6 @@ import type {
 
 interface WorkbookMachine {
   id: string;
-  segment?: string;
   category?: string;
   make?: string;
   model?: string;
@@ -67,6 +66,8 @@ interface Workbook {
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
+    /** The plant's shifts, with the wall-clock start the log date belongs to. */
+    shiftTimes: Array<{ name: string; start: string; end: string }>;
   };
 }
 
@@ -94,8 +95,28 @@ function plantDate(workbookDate: string): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Noon in the plant's own time zone on that plant date, so the day cut in `plantDay` lands on the same day. */
-const instant = (date: string): string => `${date}T06:30:00.000Z`;
+/** The workbook spells some shifts `1ST` and `2ND`; the settings give them as `1` and `2`. */
+const SHIFT_ALIASES: Record<string, string> = { '1ST': '1', '2ND': '2' };
+
+/**
+ * The plant instant a row starts at: its log date at the shift's start in the plant's own time zone (the settings'
+ * `shiftTimes`), as `plantDay` reads the cut. A shift the settings give no start for (the workbook has a few `3`
+ * rows) starts with the day shift, so its plant date stays the row's date.
+ */
+function shiftStart(workbook: Workbook, shift: string): string {
+  const name = SHIFT_ALIASES[shift.trim().toUpperCase()] ?? shift.trim();
+  const times = workbook.settings.shiftTimes;
+  return times.find((time) => time.name === name)?.start ?? times[0]?.start ?? '08:00';
+}
+
+/** A workbook date and shift as the plant instant it starts at. Asia/Kolkata has no daylight saving. */
+const reportedAt = (workbook: Workbook, row: WorkbookBreakdown): string =>
+  new Date(`${plantDate(row.date)}T${shiftStart(workbook, row.shift)}:00+05:30`).toISOString();
+
+/** The instant the breakdown closed: its start plus the recorded downtime. */
+function closedAt(start: string, row: WorkbookBreakdown): string {
+  return new Date(new Date(start).getTime() + (row.downMin ?? 0) * 60_000).toISOString();
+}
 
 /** What the workbook keeps beside the columns: the footprint and conveyor side ticket 39 reads. */
 function footprint(row: WorkbookMachine): Record<string, unknown> {
@@ -106,12 +127,12 @@ function footprint(row: WorkbookMachine): Record<string, unknown> {
   return metadata;
 }
 
-/** One workbook row as a machine; a list that is not the CNC master carries no segment of its own. */
+/** One workbook row as a machine: the list it is in is its segment, since a list row carries none of its own. */
 function toMachine(row: WorkbookMachine, segment: string): MachineRow {
   return {
     id: row.id,
     code: row.id,
-    segment: row.segment ?? segment,
+    segment,
     category: text(row.category),
     cell: text(row.cell),
     location: text(row.location),
@@ -157,18 +178,25 @@ function personCodes(value: string | undefined): string[] {
     .filter((code) => code !== '');
 }
 
-/** Every breakdown row is one closed history ticket, under the workbook's own ticket or row id so a drill resolves. */
-function toTicket(row: WorkbookBreakdown): TicketRow {
-  const date = plantDate(row.date);
+/**
+ * Every breakdown row is one closed ticket, under the workbook's own ticket or row id so a drill resolves. A row of
+ * the log is `history`; a row the live app recorded is `live`, and the key counts the two differently per figure.
+ */
+function toTicket(
+  workbook: Workbook,
+  row: WorkbookBreakdown,
+  source: TicketRow['source'],
+): TicketRow {
+  const start = reportedAt(workbook, row);
   return {
     id: row.ticketId ?? row.id,
     ref: row.ticketRef ?? row.id,
     kind: 'stopped',
     status: 'closed',
     machineId: row.machineId,
-    reportedAt: instant(date),
-    closedAt: instant(date),
-    source: 'history',
+    reportedAt: start,
+    closedAt: closedAt(start, row),
+    source,
     downtimeMin: number(row.downMin),
     repairMin: number(row.activeMin),
     workType: text(row.maintCode),
@@ -221,12 +249,17 @@ function lists(workbook: Workbook): Record<string, ListRow[]> {
 }
 
 function engineData(workbook: Workbook): EngineData {
-  const rows = [...workbook.breakdowns, ...workbook.otherBD];
+  const history = workbook.breakdowns;
+  const live = workbook.otherBD;
+  const rows = [...history, ...live];
   return {
     timeZone: 'Asia/Kolkata',
     machines: machines(workbook),
     moves: [],
-    tickets: rows.map(toTicket),
+    tickets: [
+      ...history.map((row) => toTicket(workbook, row, 'history')),
+      ...live.map((row) => toTicket(workbook, row, 'live')),
+    ],
     // The workbook links no follow-up job to a parent ticket, so there is no task to shape.
     tasks: [],
     reports: rows.map(toReport),
