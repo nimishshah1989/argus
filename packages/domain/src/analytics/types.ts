@@ -15,6 +15,10 @@ export interface MachineRow {
   make: string | null;
   model: string | null;
   controller: string | null;
+  /** The nameplate fields the machine page prints (ticket 39); the database columns exist, the fixture fills them. */
+  serial?: string | null;
+  controllerModel?: string | null;
+  controllerSerial?: string | null;
   year: number | null;
   purchasedOn: string | null;
   powerKw: number | null;
@@ -37,6 +41,9 @@ export interface MoveRow {
   machineId: string;
   fromCell: string | null;
   toCell: string | null;
+  /** The locations the move carried (0014); absent on a row written before the column existed. */
+  fromLocation?: string | null;
+  toLocation?: string | null;
   effectiveFrom: string;
 }
 
