@@ -144,6 +144,18 @@ export const ticketPersonSchema = z
   .strict();
 export type TicketPerson = z.infer<typeof ticketPersonSchema>;
 
+/** The ticket's escalation state: the levels still waiting for someone, and the newest step that was told. */
+export const escalationStateSchema = z
+  .object({
+    /** A chain has told someone and no acknowledge at its level or above covers it yet. */
+    pendingLevels: z.array(z.string()),
+    /** The newest `escalate` event's level, null when the ticket never escalated. */
+    lastLevel: z.string().nullable(),
+    lastAt: isoDateTimeSchema.nullable(),
+  })
+  .strict();
+export type EscalationState = z.infer<typeof escalationStateSchema>;
+
 export const ticketIntervalSchema = z
   .object({ personId: z.string(), role: z.string(), startedAt: isoDateTimeSchema, endedAt: iso })
   .strict();
