@@ -111,6 +111,8 @@ const report = (row: Row, clean: Cleaner): ReportRow => ({
 const person = (row: Row): PersonRow => ({
   id: row.id as string,
   code: personCode(row.id as string),
+  // The engine holds no name: the live plant's printable form is its pseudonym, never the person's name.
+  displayName: personCode(row.id as string),
   team: row.team as PersonRow['team'],
   active: row.active as boolean,
 });
