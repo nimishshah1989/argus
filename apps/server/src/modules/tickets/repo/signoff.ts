@@ -19,9 +19,10 @@ export interface SignoffCursor {
 }
 
 /**
- * Closed tickets whose latest close asked production to sign off and has no confirm or dispute after it, newest
- * close first, one page at a time. Machines in `offBoard` (a hidden group or a segment off the board) are left out.
- * Whether the time to answer has run out is not known here (the sign-off clock is accountability's).
+ * Closed tickets whose latest close asked production to sign off and has no confirm or dispute after it, oldest
+ * close first (the longest wait at the top), one page at a time. Machines in `offBoard` (a hidden group or a segment
+ * off the board) are left out. Whether the time to answer has run out is not known here (the sign-off clock is
+ * accountability's).
  */
 export async function closedAwaitingSignoff(
   client: Pick<PoolClient, 'query'>,
@@ -33,7 +34,7 @@ export async function closedAwaitingSignoff(
      FROM ticket t
      WHERE t.tenant_id = $1 AND t.status = 'closed' AND t.closed_at IS NOT NULL
        AND (t.machine_id IS NULL OR t.machine_id <> ALL($3::uuid[]))
-       AND ($4::timestamptz IS NULL OR (t.closed_at, t.id) < ($4::timestamptz, $5::uuid))
+       AND ($4::timestamptz IS NULL OR (t.closed_at, t.id) > ($4::timestamptz, $5::uuid))
        AND EXISTS (
          SELECT 1 FROM ticket_event c
          WHERE c.tenant_id = t.tenant_id AND c.ticket_id = t.id AND c.type = 'close'
@@ -42,7 +43,7 @@ export async function closedAwaitingSignoff(
              SELECT 1 FROM ticket_event a
              WHERE a.tenant_id = t.tenant_id AND a.ticket_id = t.id AND a.seq > c.seq
                AND a.type IN ('handback_confirm', 'handback_dispute')))
-     ORDER BY t.closed_at DESC, t.id DESC LIMIT $2`,
+     ORDER BY t.closed_at ASC, t.id ASC LIMIT $2`,
     [tenantId, page.limit, page.offBoard, page.after?.closedAt ?? null, page.after?.id ?? null],
   );
   return result.rows.map((row) => {
