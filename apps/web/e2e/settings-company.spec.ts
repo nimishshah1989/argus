@@ -81,6 +81,25 @@ test('saving sends one request per changed key, the feature record once', async 
   });
 });
 
+test('a feature switch saves on the real route and survives a reload', async ({ page }) => {
+  await signIn(page, 'admin');
+  await page.goto('/settings/company');
+  const live = page.getByRole('checkbox', { name: 'Live board for operators', exact: true });
+  await expect(live).not.toBeChecked();
+  await live.check();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('checkbox', { name: 'Live board for operators', exact: true }),
+  ).toBeChecked();
+
+  // Put it back: the rest of the run sees the plant's own setting.
+  await page.getByRole('checkbox', { name: 'Live board for operators', exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible();
+});
+
 test('a technician who opens the company or the lists settings is told they have no access', async ({
   page,
 }) => {
