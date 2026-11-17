@@ -90,13 +90,13 @@ jobs:
 
   browser:
     if: ${{ !github.event.pull_request.draft }}
-    name: browser (${{ matrix.shard }}/2)
+    name: browser (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,7 +124,7 @@ jobs:
       - name: Install Chromium
         if: steps.paths.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/3
         if: steps.paths.outputs.run == 'true'
 
   gallery:
