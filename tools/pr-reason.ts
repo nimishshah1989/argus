@@ -1,4 +1,4 @@
-export type ReasonKey = 'Large PR' | 'No parity';
+export type ReasonKey = 'Large PR' | 'No parity' | 'Merge train';
 
 const MIN_CHARS = 10;
 

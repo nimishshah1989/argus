@@ -34,6 +34,8 @@ Before writing, read the task and the code it touches — callers, tests, fixtur
 | `shortcut:` comments        | Ledger at every gate                                                 | `tools/check-shortcuts.ts` → `docs/plan/DEBT.md`                                                           |
 | Duplicate logic             | 0                                                                    | Review: grep before writing; reuse the shared function                                                     |
 
+A pull request may carry one `changes/` fragment per ticket when it is a merge train: add `Merge train: <reason>` to the description (10+ characters, like `Large PR:`; checked by `tools/check-changelog.ts`).
+
 **Exceptions:** a file over 400 lines may carry `// lean-allow: <one-line reason>` in its first five lines **and** a reviewer’s approval in the PR. The default is no. Schema files are split by domain (`tickets`, `people`, `machines`, `config`) so no one file owns the whole database. Migrations are exempt from the line budget, not from review.
 
 ## 3. The lean review (every PR)

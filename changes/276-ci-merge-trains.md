@@ -1,0 +1,1 @@
+- A merge train whose PR description carries `Merge train: <reason>` (10+ characters, like `Large PR:`) may add one `changes/` fragment per ticket; without the line the rule stays exactly one fragment.

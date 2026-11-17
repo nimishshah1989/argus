@@ -22,3 +22,23 @@ describe('changelog check', () => {
     expect(changelogErrors(files)).toEqual(expected);
   });
 });
+
+describe('merge train changelog check', () => {
+  it('allows one fragment per ticket', () => {
+    const files = [file('A', 'changes/276-a.md'), file('A', 'changes/277-b.md')];
+    expect(changelogErrors(files, { train: true })).toEqual([]);
+  });
+  it('allows a single fragment', () => {
+    expect(changelogErrors([file('A', 'changes/276-a.md')], { train: true })).toEqual([]);
+  });
+  it('still requires at least one fragment', () => {
+    expect(changelogErrors([file('M', 'apps/x.ts')], { train: true })).toEqual([
+      'add at least one changelog fragment under changes/ (found 0)',
+    ]);
+  });
+  it('still rejects a badly named fragment', () => {
+    expect(changelogErrors([file('A', 'changes/notes.md')], { train: true })).toEqual([
+      'changes/notes.md: name a fragment changes/<issue>-<slug>.md',
+    ]);
+  });
+});
