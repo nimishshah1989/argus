@@ -69,7 +69,6 @@ export const escalationTicketPart: TicketPart = {
   name: 'escalation',
   load: (client, _tenantId, ids) => loadEscalationStates(client, ids),
   afterWrite: async (client, write) => ({
-    escalation:
-      (await loadEscalationStates(client, [write.ticketId])).get(write.ticketId) ?? EMPTY,
+    escalation: (await loadEscalationStates(client, [write.ticketId])).get(write.ticketId) ?? EMPTY,
   }),
 };
