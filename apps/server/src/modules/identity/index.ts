@@ -48,6 +48,7 @@ export {
   lockPerson,
   lockPeopleWrites,
   loginAdminById,
+  loginNames,
   loginsOfPerson,
   otherAdminCount,
   peopleWithRole,

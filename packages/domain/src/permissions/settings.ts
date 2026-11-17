@@ -27,3 +27,13 @@ export function canSettingsAi(ctx: ActorContext): boolean {
 export function canManageSupportAccess(ctx: ActorContext): boolean {
   return ctx.role === 'admin' && !ctx.shared;
 }
+
+/** The audit trail (LOCK): the admin and the head read it; the board, the desk and the floor do not. */
+export function canReadAudit(ctx: ActorContext): boolean {
+  return (HEAD_ADMIN as readonly string[]).includes(ctx.role);
+}
+
+/** Only the admin exports the trail (LOCK: "admin and head read, only admin exports"). */
+export function canExportAudit(ctx: ActorContext): boolean {
+  return ctx.role === 'admin';
+}

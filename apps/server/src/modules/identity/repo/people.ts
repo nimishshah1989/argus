@@ -81,7 +81,9 @@ export async function listPersonAdmin(tx: Db): Promise<PersonAdmin[]> {
 
 export async function personAdminById(tx: Db, id: string): Promise<PersonAdmin | undefined> {
   const row = (
-    await tx.query(`SELECT ${PERSON_SELECT}, ${PERSON_LAST_SIGN_IN} FROM person WHERE id = $1`, [id])
+    await tx.query(`SELECT ${PERSON_SELECT}, ${PERSON_LAST_SIGN_IN} FROM person WHERE id = $1`, [
+      id,
+    ])
   ).rows[0];
   return row && toPerson(row);
 }
@@ -140,6 +142,21 @@ export async function loginsOfPerson(tx: Db, personId: string): Promise<LoginAdm
     ])
   ).rows;
   return rows.map(toLogin);
+}
+
+/** The display name of each login: the person's name, or the username of a shared phone. */
+export async function loginNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = (
+    await tx.query(
+      `SELECT l.id, COALESCE(p.name, l.username) AS name
+       FROM login l
+       LEFT JOIN person p ON p.tenant_id = l.tenant_id AND p.id = l.person_id
+       WHERE l.id = ANY($1::uuid[])`,
+      [ids],
+    )
+  ).rows;
+  return new Map(rows.map((row) => [row.id as string, row.name as string]));
 }
 
 export async function insertLogin(
