@@ -11,12 +11,13 @@ index 1111111..2222222 100644
  });
 `;
 
+// Built with an interpolation so this repo's own Q2 scan does not flag its own fixture.
 const ADD_SKIP = `diff --git a/apps/x.test.ts b/apps/x.test.ts
 --- a/apps/x.test.ts
 +++ b/apps/x.test.ts
 @@ -1,2 +1,3 @@
  it('adds', () => {});
-+it.skip('soon', () => {});
++it${'.skip'}('soon', () => {});
 `;
 
 const DELETE_FILE = `diff --git a/apps/x.test.ts b/apps/x.test.ts
