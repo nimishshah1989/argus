@@ -14,6 +14,7 @@ for real defects found in review and CI: an empty plant threw the engine, the ke
 and the night exception to gates (write and merge the gate report, continue; nothing irreversible unattended).
 
 **Open, in order:**
+
 1. **38.5 the Dashboard's object figures** (Nimish's report: tiles printed "Ready" and drew nothing). Plan
    `docs/slices/38-charts.md` (four packets); branch `38-charts`: A1 kit `8e8c4a9e` (scatter + mixed, `chartOption`
    exported and node-tested) and B1 mapper `d45d3a3d` are built. **Rebase first**: 39b split `analytics.en.ts` into
@@ -30,8 +31,8 @@ and the night exception to gates (write and merge the gate report, continue; not
 blank (`blank(analyticsEn)`, external N5); the platform's category/cell/location masters are constants until
 `EngineData.lists` carries them (recorded from the 39a review); the "Ready" tile is fixed by 38.5, no screen may print it.
 
-**Routing:** per `docs/decisions/D31`. Coder `isoquant/deepseek-v4.1-flash-1017-fast`; plan/reviews
-`isoquant/glm-5.3-flash`. **Review lesson (17 Nov):** a reviewer that runs only the named test passed a branch that was
+**Routing:** the routes, the review tiers and the budgets are fixed in `docs/decisions/D31-third-regime-routing-and-quality.md`;
+never switch one silently. **Review lesson (17 Nov):** a reviewer that runs only the named test passed a branch that was
 red in the covering suite and in CI — the review prompt now names the covering suite.
 **Open PR:** #300 (history plan, draft, Nimish's).
 

@@ -80,4 +80,3 @@ The engine (39a) emits exactly these; the screens (39b) consume them and never g
 cell move's date is audited", is not in that code: it is packets **39c (API) and 39d (screen)**, planned in
 `docs/slices/39-move-audit.md` (branch `39-move-audit`) — one fragment per packet, the date bounded by the plant's
 history and today, and the audit entity `machine` with the machine's id.
-
