@@ -108,7 +108,7 @@ const FIGURES: FiguresReply = {
               hours: 151.32,
               mttr: 5.6,
               lastOn: '2026-11-07',
-              topProblem: 'Tool declamp problem',
+              topProblem: { problem: 'Tool declamp problem', count: 18 },
             },
             pm: { visits: 0, hours: 0 },
             completeness: { recorded: 10, of: 10, missing: [] },
@@ -190,6 +190,7 @@ test('a head opens a register page, the cell change log and a machine page that 
   await expect(page.getByText('10.00 m²', { exact: true })).toBeVisible();
   await expect(page.getByText('4.20 KVA', { exact: true })).toBeVisible();
   await expect(page.getByText('27', { exact: true })).toBeVisible();
+  await expect(page.getByText('Tool declamp problem', { exact: true })).toBeVisible();
   await expect(page.getByText('10 of 10 fields', { exact: true })).toBeVisible();
 
   // A machine with no length, width or purchase date says so, never a fabricated number.

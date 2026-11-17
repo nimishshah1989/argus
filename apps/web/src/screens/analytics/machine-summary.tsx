@@ -52,7 +52,7 @@ export function Breakdowns({ record, machineId }: { record: MachineRecord; machi
           <li>
             <StatCard
               label={t('analytics.machine.topProblem')}
-              value={bd.topProblem ?? t(NOT_AVAILABLE)}
+              value={bd.topProblem?.problem ?? t(NOT_AVAILABLE)}
             />
           </li>
         </ul>

@@ -188,7 +188,7 @@ describe('one machine page', () => {
           hours: 151.32,
           mttr: 5.6,
           lastOn: '2026-11-07',
-          topProblem: 'Tool declamp',
+          topProblem: { problem: 'Tool declamp', count: 3 },
         },
         pm: { visits: 0, hours: 0 },
         completeness: { recorded: 10, of: 10, missing: [] },
@@ -212,10 +212,31 @@ describe('one machine page', () => {
     expect(record?.runningKva).toBe(4.2);
     expect(record?.floorAreaM2).toBe(10);
     expect(record?.breakdowns).toMatchObject({ count: 27, hours: 151.32, mttr: 5.6 });
+    expect(record?.breakdowns?.topProblem).toEqual({ problem: 'Tool declamp', count: 3 });
     expect(record?.pm).toEqual({ visits: 0, hours: 0 });
     expect(record?.completeness).toEqual({ recorded: 10, of: 10, missing: [] });
     expect(record?.moves).toHaveLength(1);
     expect(record?.drills.moves).toEqual(['m1']);
+  });
+
+  const withBreakdowns = (breakdowns: unknown) =>
+    machineRecord({ byMachine: { [ID]: { machine: { code: 'VC-1' }, breakdowns } } }, ID);
+
+  it('leaves the top problem null when the engine says null, so the card says Not available', () => {
+    expect(withBreakdowns({ count: 27, topProblem: null })?.breakdowns?.topProblem).toBeNull();
+  });
+
+  it('leaves the top problem null when the engine omits it, so the card says Not available', () => {
+    expect(withBreakdowns({ count: 27 })?.breakdowns?.topProblem).toBeNull();
+  });
+
+  it('ignores a top problem that is not a record with a problem name', () => {
+    expect(
+      withBreakdowns({ count: 27, topProblem: 'Tool declamp' })?.breakdowns?.topProblem,
+    ).toBeNull();
+    expect(
+      withBreakdowns({ count: 27, topProblem: { count: 3 } })?.breakdowns?.topProblem,
+    ).toBeNull();
   });
 
   it('returns null for an id the value does not hold', () => {

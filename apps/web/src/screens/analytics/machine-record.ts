@@ -1,6 +1,6 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { cellMoves, type CellMove } from './machine-values.js';
-import { bag, num, pickNum, pickText, texts, type Bag } from './read-value.js';
+import { bag, num, pickNum, pickText, text, texts, type Bag } from './read-value.js';
 
 /**
  * One machine's page from the engine's `machine-page` value. Every reader is total: a missing length, width or
@@ -36,7 +36,7 @@ export interface BreakdownSummary {
   mttr: number | null;
   mtbf: number | null;
   lastOn: string | null;
-  topProblem: string | null;
+  topProblem: { problem: string; count: number | null } | null;
 }
 
 export interface PmSummary {
@@ -131,6 +131,14 @@ export function runningFrom(connected: number | null, efficiencyPct: number | nu
   return round2((connected * efficiencyPct) / 100);
 }
 
+/** The engine's most frequent problem, read as its record; anything that is not a named problem is null. */
+function parseTopProblem(raw: unknown): BreakdownSummary['topProblem'] {
+  const found = bag(raw);
+  if (!found) return null;
+  const problem = text(found.problem);
+  return problem === null ? null : { problem, count: num(found.count) };
+}
+
 function parseBreakdowns(raw: unknown): BreakdownSummary | null {
   const countFromNumber = num(raw);
   if (countFromNumber !== null)
@@ -151,7 +159,7 @@ function parseBreakdowns(raw: unknown): BreakdownSummary | null {
     mttr: num(summary.mttr),
     mtbf: num(summary.mtbf),
     lastOn: pickText(summary, 'lastOn', 'lastBreakdown'),
-    topProblem: pickText(summary, 'topProblem'),
+    topProblem: parseTopProblem(summary.topProblem),
   };
 }
 
