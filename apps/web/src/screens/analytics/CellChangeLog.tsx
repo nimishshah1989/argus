@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { getConfig } from '../../api.js';
+import { correctMove, getConfig, getMe } from '../../api.js';
+import { ApiError } from '../../data/index.js';
+import { FormSheet } from '../../patterns/form-sheet.js';
 import { Button } from '../../ui/button.js';
 import { Download } from '../../ui/icon.js';
 import { Stack } from '../../ui/layout.js';
 import {
   cellLogCsv,
   cellMoves,
+  correctionError,
   displayDay,
   type CellLogLabels,
   type CellMove,
@@ -114,13 +117,92 @@ function HeadCell({ children }: { children: string }) {
   );
 }
 
-/** The moves table: date, machine (a link to its page), cell change and location change. */
+/**
+ * The correction sheet: one date, prefilled from the move's ISO day. A 422 that names the field puts the
+ * server's words on the form; any other refusal shows the catalogue's line. The sheet stays open on refusal.
+ */
+function CorrectSheet({
+  move,
+  onClose,
+  onSaved,
+}: {
+  move: CellMove;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function save(values: Record<string, string>): Promise<boolean> {
+    setPending(true);
+    setError(null);
+    try {
+      await correctMove(move.machineId, move.id, values.date ?? '');
+    } catch (caught) {
+      const named = caught instanceof ApiError ? correctionError(caught).date : undefined;
+      setError(named ?? t('analytics.cellLog.refused'));
+      return false;
+    } finally {
+      setPending(false);
+    }
+    // The row and every figure come back from the server; the screen never changes a date itself.
+    await client.invalidateQueries({ queryKey: ['analytics-figures'] });
+    onSaved();
+    return true;
+  }
+
+  return (
+    <FormSheet
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={t('analytics.cellLog.correctTitle')}
+      submitLabel={t('analytics.cellLog.save')}
+      fields={[
+        // eslint-disable-next-line i18next/no-literal-string -- field config, not copy
+        { name: 'date', label: t('analytics.cellLog.correctDate'), required: true, kind: 'date' },
+      ]}
+      initial={{ date: move.date }}
+      offlineAllowed={false}
+      pending={pending}
+      error={error}
+      onSubmit={save}
+    />
+  );
+}
+
+/** One row's way into the correction sheet; the table mounts it only for head and admin. */
+function CorrectCell({ move, onSaved }: { move: CellMove; onSaved: () => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <td className="p-2">
+      <Button
+        // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
+        variant="secondary"
+        onClick={() => setOpen(true)}
+      >
+        {t('analytics.cellLog.correct')}
+      </Button>
+      {open ? <CorrectSheet move={move} onClose={() => setOpen(false)} onSaved={onSaved} /> : null}
+    </td>
+  );
+}
+
+/** The moves table: date, machine (a link to its page), cell and location change, and the head's correction. */
 function CellLogTable({
   moves,
   codeOf,
+  canCorrect,
+  onSaved,
 }: {
   moves: readonly CellMove[];
   codeOf: (id: string) => string | null;
+  canCorrect: boolean;
+  onSaved: () => void;
 }) {
   const { t } = useTranslation();
   const absent = t('analytics.value.none');
@@ -134,6 +216,7 @@ function CellLogTable({
             <HeadCell>{t('analytics.cellLog.machine')}</HeadCell>
             <HeadCell>{t('analytics.cellLog.cell')}</HeadCell>
             <HeadCell>{t('analytics.cellLog.location')}</HeadCell>
+            {canCorrect ? <HeadCell>{t('analytics.cellLog.correct')}</HeadCell> : null}
           </tr>
         </thead>
         <tbody>
@@ -159,6 +242,7 @@ function CellLogTable({
                   noChange={t('analytics.cellLog.noChange')}
                 />
               </td>
+              {canCorrect ? <CorrectCell move={move} onSaved={onSaved} /> : null}
             </tr>
           ))}
         </tbody>
@@ -175,17 +259,26 @@ function CellLogTable({
 export function CellChangeLog({ figure }: { figure: Figure | undefined }) {
   const { t } = useTranslation();
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const [saved, setSaved] = useState(false);
   const ready = figure?.status === 'ready';
   const moves = cellMoves(figure?.value);
   const codeOf = (id: string) =>
     config.data?.machines.find((machine) => machine.id === id)?.code ?? null;
   const exportable = ready && moves.length > 0;
+  // The server's settings gate allows exactly these two roles; the plant head is not one of them.
+  const canCorrect = role === 'head' || role === 'admin';
   return (
     <Stack gap={4}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-3xl text-body text-neutral-600">{t('analytics.cellLog.intro')}</p>
         <ExportButton moves={moves} codeOf={codeOf} disabled={!exportable} />
       </div>
+      {saved ? (
+        <p role="status" className="text-footnote font-medium text-ok-ink">
+          {t('analytics.cellLog.saved')}
+        </p>
+      ) : null}
       {!ready ? (
         <div data-cell-log="not-computed" className="rounded-2xl bg-surface p-4 shadow-card">
           <p className="text-body font-medium text-neutral-600">{t('analytics.notComputed')}</p>
@@ -193,7 +286,12 @@ export function CellChangeLog({ figure }: { figure: Figure | undefined }) {
       ) : moves.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.cellLog.empty')}</p>
       ) : (
-        <CellLogTable moves={moves} codeOf={codeOf} />
+        <CellLogTable
+          moves={moves}
+          codeOf={codeOf}
+          canCorrect={canCorrect}
+          onSaved={() => setSaved(true)}
+        />
       )}
     </Stack>
   );

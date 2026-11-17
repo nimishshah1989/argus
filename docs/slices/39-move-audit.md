@@ -62,8 +62,10 @@ consumes; the register ledger rows' evidence lands with 39d-2.`
   `useQueryClient().invalidateQueries({ queryKey: ['analytics-figures'] })` (the figures resource's key) so the row and
   the analytics figures refetch — never a local date mutation. The server's 422 message shows on the field; a 403 shows
   the refusal line; non-head/admin never see the action (the server refuses anyway).
-- `apps/web/e2e/analytics-machines.spec.ts`: the head corrects a move's date, sees the new date, and the audit screen
-  lists the correction; the operator journey keeps its refusal assertion.
+- `apps/web/e2e/analytics-machines.spec.ts`: the head corrects a move's date and sees the new date; the operator
+  journey keeps its refusal assertion. **Deviation (39d build):** the journey does not visit the audit screen — the
+  audit row content is pinned by the server tests merged in 39c; the screens journey proves the PATCH and the refetch,
+  and the audit screen is the existing audit view.
 - `docs/spec/parity.yaml`: rows `analytics.registers.03` gain this journey's evidence (the export + edit coverage).
 - Files: `apps/web/src/screens/analytics/CellChangeLog.tsx`, `apps/web/e2e/analytics-machines.spec.ts`,
   `docs/spec/parity.yaml`, `changes/39-move-correct-e2e.md`.

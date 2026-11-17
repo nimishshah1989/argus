@@ -135,15 +135,75 @@ const FIGURES: FiguresReply = {
   ],
 };
 
-async function stubFigures(page: Page): Promise<void> {
-  await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: FIGURES }));
+interface StubMove {
+  id: string;
+  machineId: string;
+  date: string;
+  fromCell: string;
+  toCell: string;
+}
+
+/** The stub's one cell move: the row the correction journey acts on. */
+function cellLogMove(reply: FiguresReply): StubMove {
+  const figure = reply.figures.find((candidate) => candidate.key === 'cell-change-log');
+  const value = figure?.value as { moves: StubMove[] } | undefined;
+  const move = value?.moves[0];
+  if (!move) throw new Error('the figures stub no longer holds a cell move');
+  return move;
+}
+
+async function stubFigures(page: Page, reply: FiguresReply = FIGURES): Promise<void> {
+  await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
+}
+
+/** The stubbed PATCH: applies the correction to the stub, so the figures refetch shows the corrected day. */
+async function stubCorrection(page: Page, figures: FiguresReply): Promise<void> {
+  await page.route('**/api/v1/machines/*/moves/*', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const body = route.request().postDataJSON() as { effectiveFrom: string };
+    const move = cellLogMove(figures);
+    move.date = body.effectiveFrom;
+    await route.fulfill({
+      json: {
+        move: {
+          id: move.id,
+          machineId: move.machineId,
+          fromCell: move.fromCell,
+          toCell: move.toCell,
+          effectiveFrom: move.date,
+        },
+      },
+    });
+  });
+}
+
+/** The head's correction: the sheet opens prefilled, the PATCH is sent, and the refetched row shows the day. */
+async function correctFirstMove(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Correct date', exact: true }).first().click();
+  const form = page.getByRole('form', { name: 'Correct the move date', exact: true });
+  const date = form.getByLabel('New date', { exact: true });
+  await expect(date).toHaveValue('2026-08-03');
+  await date.fill('2026-08-04');
+  const correcting = page.waitForResponse(
+    (reply) =>
+      reply.request().method() === 'PATCH' &&
+      /\/api\/v1\/machines\/[^/]+\/moves\/[^/]+$/.test(new URL(reply.url()).pathname) &&
+      reply.status() === 200,
+  );
+  await form.getByRole('button', { name: 'Save', exact: true }).click();
+  expect((await correcting).request().postDataJSON()).toEqual({ effectiveFrom: '2026-08-04' });
+  await expect(page.getByText('Move date corrected.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '04-08-2026', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '03-08-2026', exact: true })).toHaveCount(0);
 }
 
 test('a head opens a register page, the cell change log and a machine page that is honest about gaps', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await stubFigures(page);
+  const figures = structuredClone(FIGURES);
+  await stubCorrection(page, figures);
+  await stubFigures(page, figures);
   await signIn(page, 'head');
 
   // Machines opens on its registers: one page per register, the CNC page first.
@@ -182,6 +242,9 @@ test('a head opens a register page, the cell change log and a machine page that 
   expect(csv).toContain('DOC. NO. CE-MTN-F-01');
   expect(csv).toContain(`${FULL.code},4,2,434,841-B`);
 
+  // A head corrects a move's date from the log.
+  await correctFirstMove(page);
+
   // One machine page: its nameplate and every figure the record holds.
   await page.goto(`/analytics/machines/${FULL.id}`);
   await expect(page.getByRole('heading', { name: FULL.code, exact: true })).toBeVisible();
@@ -216,4 +279,10 @@ test('an operator is refused the machines face', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'CNC Machines', exact: true })).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Registers', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Cell change log', exact: true })).toHaveCount(0);
+
+  // Even with the log in hand, an operator gets no correction action: the role gate, not only the refusal.
+  await stubFigures(page);
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await expect(page.getByRole('cell', { name: '03-08-2026', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Correct date', exact: true })).toHaveCount(0);
 });

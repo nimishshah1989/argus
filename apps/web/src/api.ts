@@ -1,7 +1,9 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
+import { correctionBody } from './screens/analytics/machine-values.js';
 import {
   ApiError,
   defineResource,
+  http,
   httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
@@ -267,6 +269,17 @@ export const putMachineCriticality = (
   machineId: string,
   c: 'A' | 'B' | 'C' | null,
 ): Promise<{ ok: boolean }> => criticality.update<{ ok: boolean }>(machineId, { criticality: c });
+
+/** PATCH `/machines/:id/moves/:moveId`: one cell move's corrected date; a refusal is an ApiError. */
+export const correctMove = (
+  machineId: string,
+  moveId: string,
+  effectiveFrom: string,
+): Promise<unknown> =>
+  http(`/api/v1/machines/${encodeURIComponent(machineId)}/moves/${encodeURIComponent(moveId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(correctionBody(effectiveFrom)),
+  });
 
 export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }> =>
   settings.update<{ ok: boolean }>('sla-policies', body);
