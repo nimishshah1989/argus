@@ -145,6 +145,23 @@ function dayKey(raw: string): string {
   return platform ? `${platform[3]}-${platform[2]}-${platform[1]}` : raw;
 }
 
+/* ── Correcting one move's date ───────────────────────────────────────────────────────────────── */
+
+/** The sheet's error shape: a 422 naming `effectiveFrom` sits under the date; anything else is the refusal line. */
+export function correctionError(error: { field?: string; message: string }): {
+  date?: string;
+  message: string;
+} {
+  return error.field === 'effectiveFrom'
+    ? { date: error.message, message: error.message }
+    : { message: error.message };
+}
+
+/** The date the sheet chose, as the PATCH body the server reads. */
+export function correctionBody(date: string): { effectiveFrom: string } {
+  return { effectiveFrom: date };
+}
+
 /* ── The controlled-document export ───────────────────────────────────────────────────────────── */
 
 export interface CellLogLabels {

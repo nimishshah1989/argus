@@ -4,6 +4,8 @@ import {
   REGISTER_TABS,
   cellLogCsv,
   cellMoves,
+  correctionBody,
+  correctionError,
   displayDay,
   registerPages,
   toCsv,
@@ -154,6 +156,24 @@ describe('the cell change log', () => {
 
   it('quotes a field only when it holds a comma or a quote', () => {
     expect(toCsv([['plain', 'a,b', 'say "hi"']])).toBe('plain,"a,b","say ""hi"""');
+  });
+});
+
+describe("correcting one move's date", () => {
+  it("puts the server's 422 field message under the date field", () => {
+    const message = 'Use a date after the previous move';
+    expect(correctionError({ field: 'effectiveFrom', message })).toEqual({
+      date: message,
+      message,
+    });
+  });
+
+  it("shows a refusal with no field as the sheet's own line", () => {
+    expect(correctionError({ message: 'forbidden' })).toEqual({ message: 'forbidden' });
+  });
+
+  it('sends the chosen date as the PATCH body', () => {
+    expect(correctionBody('2026-08-03')).toEqual({ effectiveFrom: '2026-08-03' });
   });
 });
 

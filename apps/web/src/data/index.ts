@@ -5,6 +5,7 @@ export {
   describeFailure,
   downloadFile,
   getToken,
+  http,
   httpKeepSession,
   httpWithoutSession,
   idempotencyKey,
