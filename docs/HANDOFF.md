@@ -46,6 +46,4 @@ recorded, never a silent switch. Budgets are inside.
    behind Avg Complaints/Day 4.11 and Avg BD Hours/Day 9.84 (311 platform days, 315 span, or 256 days with records?).
    **For Bhavin:** our seed files BOXY under Robot (CNC 125/158) while his platform counts it in CNC (126/159).
 
-## Parallel rule
-
 One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.
