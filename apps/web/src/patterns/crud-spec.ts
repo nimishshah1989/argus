@@ -77,8 +77,10 @@ export interface CrudBulkAction<Row> {
   hintKey?: LabelKey;
   /** A value the action needs first (the new shift). */
   field?: { name: string; labelKey: LabelKey; choices?: (c: CrudCtx) => CrudChoice[] };
-  /** Runs once per ticked row; a throw is that row's refusal, and the others still run. */
-  run: (row: Row, values: Record<string, string>) => Promise<void>;
+  /** Runs once per ticked row; a number is an extra count it reports (devices signed out). */
+  run: (row: Row, values: Record<string, string>) => Promise<number | void>;
+  /** The success line when the action has its own count to report, with `{{extra}}`. */
+  doneKey?: LabelKey;
 }
 export interface CrudBulk<Row> {
   actions: CrudBulkAction<Row>[];

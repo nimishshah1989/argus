@@ -85,8 +85,13 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
         labelKey: 'people.bulk.signOut',
         titleKey: 'people.bulk.signOut.title',
         hintKey: 'people.bulk.signOut.hint',
+        doneKey: 'people.bulk.signOut.done',
         run: async (row, values) => {
-          await signOut.create({ reason: values.reason }, { id: row.id });
+          const reply = await signOut.create<{ ended: number }>(
+            { reason: values.reason },
+            { id: row.id },
+          );
+          return reply.ended;
         },
       },
       {

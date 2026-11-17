@@ -55,6 +55,7 @@ export const peopleEn = {
   'people.bulk.signOut.title': 'Sign out the devices of {{count}} people',
   'people.bulk.signOut.title_one': 'Sign out the devices of 1 person',
   'people.bulk.signOut.title_other': 'Sign out the devices of {{count}} people',
+  'people.bulk.signOut.done': '{{done}} of {{count}} done; {{extra}} devices signed out.',
   'people.bulk.signOut.hint':
     'Every live device of the ticked people is signed out once. The reason is kept on the audit trail.',
   'people.bulk.off': 'Switch off',

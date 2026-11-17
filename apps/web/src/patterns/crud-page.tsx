@@ -348,9 +348,10 @@ function CrudExtras<Row extends CrudRow>(p: {
       ) : null}
       {outcome ? (
         <p role="status" className="text-footnote text-neutral-600">
-          {t('kit.crud.bulkDone', {
+          {t(outcome.doneKey ?? 'kit.crud.bulkDone', {
             done: outcome.done,
             count: outcome.done + outcome.failed,
+            extra: outcome.extra,
           })}
         </p>
       ) : null}

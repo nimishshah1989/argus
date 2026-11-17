@@ -57,6 +57,34 @@ describe('a bulk action runs every ticked row, counting refusals (ticket 21)', (
       rows,
       { reason: 'Shift changed' },
     );
-    expect(result).toEqual({ done: 2, failed: 1, message: 'Bina is on tickets in progress' });
+    expect(result).toMatchObject({
+      done: 2,
+      failed: 1,
+      message: 'Bina is on tickets in progress',
+    });
+  });
+
+  it('adds up the count an action reports besides its rows (devices signed out)', async () => {
+    const rows: Row[] = [
+      { id: 'p1', name: 'Asha', active: true },
+      { id: 'p2', name: 'Bina', active: true },
+    ];
+    const result = await runBulk(
+      {
+        id: 'signOut',
+        labelKey: 'people.bulk.signOut',
+        titleKey: 'people.bulk.signOut.title',
+        doneKey: 'people.bulk.signOut.done',
+        run: async (row) => (row.id === 'p1' ? 2 : 1),
+      },
+      rows,
+      { reason: 'Phone lost' },
+    );
+    expect(result).toMatchObject({
+      done: 2,
+      failed: 0,
+      extra: 3,
+      doneKey: 'people.bulk.signOut.done',
+    });
   });
 });

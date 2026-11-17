@@ -153,7 +153,7 @@ test('bulk actions change a shift, sign devices out and switch people off, each 
   await out.getByLabel('Reason', { exact: true }).fill('Phone lost on the floor');
   await out.getByRole('button', { name: 'Sign out devices', exact: true }).click();
   await expect(out).toBeHidden();
-  await expect(page.getByText('1 of 1 done.', { exact: true })).toBeVisible();
+  await expect(page.getByText(/1 of 1 done; \d+ devices signed out\./)).toBeVisible();
 });
 
 test('a technician is told people settings are not theirs', async ({ page }) => {

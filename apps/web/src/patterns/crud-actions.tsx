@@ -25,6 +25,10 @@ export function switchBody<Row extends CrudRow>(
 export interface BulkOutcome {
   done: number;
   failed: number;
+  /** What the action counted besides rows (devices signed out). */
+  extra: number;
+  /** The action's own success line, when it has one. */
+  doneKey?: string;
   /** The first refusal, in the server's words. */
   message?: string;
 }
@@ -37,17 +41,19 @@ export async function runBulk<Row>(
 ): Promise<BulkOutcome> {
   let done = 0;
   let failed = 0;
+  let extra = 0;
   let message: string | undefined;
   for (const row of rows) {
     try {
-      await action.run(row, values);
+      const count = await action.run(row, values);
+      if (typeof count === 'number') extra += count;
       done += 1;
     } catch (error) {
       failed += 1;
       message ??= error instanceof Error ? error.message : String(error);
     }
   }
-  return { done, failed, message };
+  return { done, failed, extra, doneKey: action.doneKey, message };
 }
 
 /** The row's own fields first, then each field that has its own route, when it changed. */
