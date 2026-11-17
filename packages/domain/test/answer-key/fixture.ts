@@ -44,13 +44,16 @@ interface WorkbookBreakdown {
   shift: string;
   problem: string;
   downMin?: number;
+  downHrs?: number;
   respMin?: number;
   activeMin?: number;
   maintCode?: string;
   electMech?: string;
   spare1?: string;
+  correctiveAction?: string;
   doneBy?: string;
   supportedBy?: string;
+  observedBy?: string;
   ticketId?: string;
   ticketRef?: string;
 }
@@ -66,10 +69,12 @@ interface Workbook {
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
-    /** The machines the plant leaves out of production data (the Robot is one). */
+    /** Machines left out of production data (the Robot is the platform's own default). */
     excludedMachines?: string[];
     /** The plant's shifts, with the wall-clock start the log date belongs to. */
     shiftTimes: Array<{ name: string; start: string; end: string }>;
+    /** Manual problem-group fixes from the App Settings, by breakdown id. */
+    problemFix?: Record<string, string>;
   };
 }
 
@@ -228,8 +233,11 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     maintCode: text(row.maintCode),
     spareUsed: text(row.spare1),
     rootCause: null,
+    correctiveAction: text(row.correctiveAction),
     doneBy: personCodes(row.doneBy),
     supportedBy: personCodes(row.supportedBy),
+    recordedHours: number(row.downHrs),
+    observedBy: text(row.observedBy),
   };
 }
 
@@ -274,6 +282,10 @@ function engineData(workbook: Workbook): EngineData {
     reports: rows.map(toReport),
     people: people(workbook, rows),
     lists: lists(workbook),
+    settings: {
+      excludedMachineIds: workbook.settings.excludedMachines ?? [],
+      problemFixes: workbook.settings.problemFix ?? {},
+    },
   };
 }
 

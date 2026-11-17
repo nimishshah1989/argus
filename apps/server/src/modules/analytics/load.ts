@@ -97,8 +97,12 @@ const report = (row: Row, clean: Cleaner): ReportRow => ({
   maintCode: text(row.maint_code),
   spareUsed: cleanOrNull(row.spare_used, clean),
   rootCause: cleanOrNull(row.root_cause, clean),
+  correctiveAction: cleanOrNull(row.corrective_action, clean),
   doneBy: codes(row.done_by),
   supportedBy: codes(row.supported_by),
+  observedBy: cleanOrNull(row.observed_by, clean),
+  // The plant stores minutes; the legacy recorded-hours column exists only in the old workbook.
+  recordedHours: null,
 });
 
 const person = (row: Row): PersonRow => ({

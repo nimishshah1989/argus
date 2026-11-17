@@ -65,6 +65,16 @@ export interface ReportRow {
   rootCause: string | null;
   doneBy: string[];
   supportedBy: string[];
+  /** What the team did (`corrective_action`); the problem grouping reads it when the problem text says nothing. */
+  correctiveAction?: string | null;
+  /**
+   * The legacy platform's recorded-hours column, where the source has one. The plant stores minutes and this
+   * column can disagree with them by a rounding or a typo, so a figure that ports the platform's own number reads
+   * it when present and falls back to `downtimeMin / 60` when it is not.
+   */
+  recordedHours?: number | null;
+  /** Who saw it (`observed_by`); the data checklist asks only whether the field is empty, never prints it. */
+  observedBy?: string | null;
 }
 
 export interface TicketRow {
@@ -95,6 +105,17 @@ export interface ListRow {
   active: boolean;
 }
 
+/**
+ * The plant's own settings that a figure needs beside its rows: the legacy platform kept both in Settings, and a
+ * figure that ports its numbers reads them here. Optional, so a tenant that never set them reads the defaults.
+ */
+export interface EngineSettings {
+  /** Machines left out of breakdown hours, MTTR, BD % and availability (they stay in the fleet totals). */
+  excludedMachineIds: readonly string[];
+  /** Manual problem-group fixes from the legacy App Settings, by breakdown report id (ticket 41 owns the screen). */
+  problemFixes: Readonly<Record<string, string>>;
+}
+
 export interface EngineData {
   /** The plant's IANA time zone. Every date the engines compare is a plant date, made with `plantDay`. */
   timeZone: string;
@@ -105,6 +126,7 @@ export interface EngineData {
   reports: ReportRow[];
   people: PersonRow[];
   lists: Record<string, ListRow[]>;
+  settings?: EngineSettings;
 }
 
 /** What one figure is: a value the face prints, and the rows behind it. */
@@ -143,6 +165,6 @@ export interface EngineResult {
   asOf: string;
   profile: AnalyticsProfile;
   /** How many rows of each kind the run was given. */
-  rows: Record<Exclude<keyof EngineData, 'lists' | 'timeZone'>, number>;
+  rows: Record<'machines' | 'moves' | 'tickets' | 'tasks' | 'reports' | 'people', number>;
   figures: FigureResult[];
 }
