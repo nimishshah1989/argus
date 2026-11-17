@@ -2,8 +2,7 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ApiError, changePassword, getMe, getToken } from '../../api.js';
-import { landingPath } from '../../roles.js';
+import { ApiError, changePassword, getToken } from '../../api.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Button } from '../../ui/button.js';
 import { Input, Label } from '../../ui/input.js';
@@ -39,7 +38,7 @@ function Field(p: { id: string; label: string; value: string; set: (v: string) =
   );
 }
 
-/** After the save: only now are the other phones signed out (review of PR 225). The landing asks who next, if needed. */
+/** After the save: only now are the other phones signed out (review of PR 225). The floor asks who next, if needed. */
 function Saved({ onContinue }: { onContinue: () => void }) {
   const { t } = useTranslation();
   return (
@@ -62,7 +61,6 @@ export function ChangePassword() {
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
   const [error, setError] = useState('');
-  const [landing, setLanding] = useState<'/desk' | '/floor'>('/floor');
   const differ = Boolean(next && again && next !== again);
   async function send(): Promise<void | false> {
     setError('');
@@ -74,9 +72,6 @@ export function ChangePassword() {
       setError(t(key));
       return false;
     }
-    // The same role rule as sign-in: a technician and above continue to the desk, the floor for the rest.
-    const me = await getMe().catch(() => null);
-    setLanding(landingPath(me?.user.role ?? ''));
   }
   const body = (
     <Stack gap={4}>
@@ -92,7 +87,7 @@ export function ChangePassword() {
       {differ ? <Text tone="danger">{t('signin.passwordsDiffer')}</Text> : null}
     </Stack>
   );
-  const toLanding = () => navigate(landing);
+  const toFloor = () => navigate('/floor');
   const ready = Boolean(old) && next.length >= MIN_LENGTH && next === again;
   const step = { title: t('signin.passwordTitle'), body, action: t('signin.savePassword'), ready };
   // No session (a bookmark, or signed out): nothing to change a password for; sign in first.
@@ -106,7 +101,7 @@ export function ChangePassword() {
         steps={[step]}
         offlineAllowed={false}
         onFinish={send}
-        result={<Saved onContinue={toLanding} />}
+        result={<Saved onContinue={toFloor} />}
       />
     </Page>
   );
