@@ -24,7 +24,6 @@ const crudRow = (page: Page, code: string) =>
   page.getByTestId('gallery-crud').locator('tbody tr', { hasText: code });
 
 const writes = async (page: Page) => (await crudRequests(page)).filter((r) => r.method !== 'GET');
-const SAVE_ERROR = 'Could not save. Check the details and try again.';
 
 type Catalogue = Record<MessageKey, string>;
 const catalogue = (lang: string): Catalogue => (lang === 'gu' ? gu : en);
@@ -107,7 +106,8 @@ test("crud: shows the API's refusal and keeps the data", async ({ page }) => {
   await open(page, 'lang=en');
   const crud = page.getByTestId('gallery-crud');
   await crudRow(page, 'DRILL-01').getByRole('button', { name: 'Switch on' }).click();
-  await expect(crud.getByRole('alert')).toContainText(SAVE_ERROR);
+  // The server's own refusal is shown as typed (the E.164 message in the real app).
+  await expect(crud.getByRole('alert')).toContainText('Machine is retired');
   await expect(crudRow(page, 'DRILL-01')).toContainText('Off');
   await crud.getByRole('button', { name: 'Add', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -115,11 +115,11 @@ test("crud: shows the API's refusal and keeps the data", async ({ page }) => {
   await dialog.getByLabel('Name').fill('Duplicate');
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('alert')).toContainText(SAVE_ERROR);
+  await expect(dialog.getByRole('alert')).toContainText('Code already used');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(crud.locator('tbody tr')).toHaveCount(3);
-  await expect(crud.getByRole('alert')).toContainText('Could not save');
+  await expect(crud.getByRole('alert')).toContainText('Code already used');
   expect(await writes(page)).toEqual([
     {
       method: 'PUT',
@@ -343,7 +343,7 @@ test('crud: the add sheet sends one Idempotency-Key and a retry re-sends the sam
   await dialog.getByLabel('Code').fill('CNC-07');
   await dialog.getByLabel('Name').fill('Duplicate');
   await dialog.getByRole('button', { name: 'Save' }).click();
-  await expect(dialog.getByRole('alert')).toContainText(SAVE_ERROR);
+  await expect(dialog.getByRole('alert')).toContainText('Code already used');
   await dialog.getByLabel('Code').fill('MILL-03');
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
