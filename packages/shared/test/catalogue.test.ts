@@ -97,6 +97,11 @@ function untranslated(
     .sort();
 }
 
+/** PENDING keys that are no longer blank in Gujarati: the entry is stale and would hide a blank key. */
+function stalePending(pending: string[], guValues: Catalogue): string[] {
+  return pending.filter((key) => guValues[key]);
+}
+
 const placeholders = (text: string): string[] =>
   [...text.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]!).sort();
 
@@ -168,6 +173,14 @@ describe('message catalogues', () => {
   it('translates every key of every shipped namespace', () => {
     expect(SHIPPED.filter((ns) => !(ns in NAMESPACES))).toEqual([]);
     expect(untranslated(NAMESPACES, gu as Catalogue, SHIPPED, PENDING)).toEqual([]);
+  });
+
+  it('keeps every pending entry honest: the key is still blank in Gujarati', () => {
+    expect(stalePending(PENDING, gu as Catalogue)).toEqual([]);
+  });
+
+  it('flags a stale pending entry so it cannot mask a blank Gujarati value', () => {
+    expect(stalePending(['a.b', 'c.d'], { 'a.b': 'સાચવો', 'c.d': '' })).toEqual(['a.b']);
   });
 
   it('flags a blank key in a shipped namespace and lets a new namespace stay blank', () => {
