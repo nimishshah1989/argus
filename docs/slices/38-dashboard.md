@@ -167,7 +167,7 @@ Nimish rather than guessed (recorded at the end). Build the five, join the map, 
 1. `dashboard.total-breakdowns` = count of the history `breakdowns` rows whose `maintCode !== 'PM'`, **excluding**
    live `otherBD` rows → **1279** (R4). Drill ids: those tickets.
 2. `dashboard.total-downtime-hours` = Σ `downMin`/60 over the history rows whose `maintCode` is neither `PM` nor
-   `NO DT` **plus** the live rows → **3060.1** (R4, R5; the key's sub-label says NO-DT rows are excluded from downtime
+   `NO DT`, **plus** the live rows **except any live NO-DT row** → **3060.1** (R4, R5; the key's sub-label says NO-DT rows are excluded from downtime
    totals — dropping that exclusion gives 3270.7, which the builder proved before implementing the key's rule).
 3. `dashboard.pm-hours` = Σ `downMin`/60 where `maintCode === 'PM'` → **759.3** (R5; not Σ `pmHrs`).
 4. `dashboard.no-downtime-hours` = Σ `downMin`/60 where `maintCode === 'NO DT'` (history only) → **209.1** (R4, R5).
