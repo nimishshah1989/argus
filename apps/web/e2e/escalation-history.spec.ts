@@ -249,4 +249,15 @@ test('a plant with nobody on the ladder reads "Escalation due, nobody told"', as
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
   await expect(page.getByText('Escalation due, nobody told')).toBeVisible();
+  // A technician cannot change the plant's settings, so the step offers them no link.
+  await expect(page.getByRole('link', { name: 'Set the ladder' })).toHaveCount(0);
+
+  // A head or an admin reads the same step with the link beside it, and it opens the ladder itself.
+  await signIn(page, 'admin');
+  await page.goto(`/desk/${ticket.id}`);
+  const setLadder = page.getByRole('link', { name: 'Set the ladder' });
+  await expect(setLadder).toBeVisible();
+  await expect(setLadder).toHaveAttribute('href', '/settings/ladder');
+  await setLadder.click();
+  await expect(page.getByRole('heading', { name: 'Escalation ladder' })).toBeVisible();
 });
