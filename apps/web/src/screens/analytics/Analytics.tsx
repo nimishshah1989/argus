@@ -6,11 +6,19 @@ import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { List } from '../../ui/icon.js';
-import { ANALYTICS_GROUPS, CHECKLIST_PATH, groupFor, type AnalyticsGroup } from './groups.js';
+import {
+  ANALYTICS_GROUPS,
+  CHECKLIST_PATH,
+  MACHINES_PATH,
+  groupFor,
+  type AnalyticsGroup,
+} from './groups.js';
 import { Dashboard } from './Dashboard.js';
 import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
+import { MachinePage } from './MachinePage.js';
+import { MachinesPage } from './MachinesPage.js';
 
 const DESK = '/desk';
 
@@ -21,6 +29,17 @@ export function DataChecklistPage() {
   return (
     <FaceShell group={today} current={CHECKLIST_PATH}>
       <DataChecklist />
+    </FaceShell>
+  );
+}
+
+/** One machine's page: inside the Machines group's shell, with that group's menu entry marked. */
+export function MachinePageRoute() {
+  const machines = groupFor('machines');
+  if (!machines) return <Navigate to="/analytics/today" replace />;
+  return (
+    <FaceShell group={machines} current={MACHINES_PATH}>
+      <MachinePage group={machines} />
     </FaceShell>
   );
 }
@@ -36,6 +55,8 @@ export function AnalyticsFace() {
         <GuidePage />
       ) : found.id === 'today' ? (
         <Dashboard group={found} />
+      ) : found.id === 'machines' ? (
+        <MachinesPage group={found} />
       ) : (
         <GroupPage group={found} />
       )}

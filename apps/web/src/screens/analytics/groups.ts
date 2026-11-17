@@ -198,6 +198,9 @@ export function groupFor(id: string | undefined): AnalyticsGroup | undefined {
   return ANALYTICS_GROUPS.find((group) => group.id === id);
 }
 
+/** The Machines group's route; one machine's page hangs under it (`/analytics/machines/:id`). */
+export const MACHINES_PATH = '/analytics/machines';
+
 /** The data checklist's own route, under the Today group (packet 38.3). */
 export const CHECKLIST_PATH = '/analytics/today/checklist';
 

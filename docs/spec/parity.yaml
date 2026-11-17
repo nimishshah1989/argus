@@ -907,8 +907,12 @@ rows:
     milestone: M4
     milestones:
       - M4
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'PR #304 (the register figures exact against the 11 November key)'
+      - "packages/domain/test/analytics-registers.test.ts :: shows every register page's KPIs and its machine list exactly as the key printed them"
+      - 'PR #305 (one screen per register)'
+      - 'apps/web/e2e/analytics-machines.spec.ts :: a head opens a register page, the cell change log and a machine page that is honest about gaps'
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.registers.03
     feature: Machine form, move-cell form, cell change log with export and edit
@@ -916,8 +920,11 @@ rows:
     milestone: M4
     milestones:
       - M4
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'PR #305 (the cell change log and its controlled-document CSV export)'
+      - 'apps/web/e2e/analytics-machines.spec.ts :: a head opens a register page, the cell change log and a machine page that is honest about gaps'
+      - 'docs/slices/39-move-audit.md (the audited move-date correction, packets 39c/39d)'
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.registers.04
     feature: Footprint (A7) packing, expansion timeline, age analysis (A8) and age drill
@@ -925,8 +932,12 @@ rows:
     milestone: M4
     milestones:
       - M4
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'PR #304 (footprint with all five key tables, age bands, expansion timeline data)'
+      - "packages/domain/test/analytics-registers.test.ts :: answers the footprint's cards and per-category table exactly, with the Guide's packing"
+      - "packages/domain/test/analytics-registers.test.ts :: answers the age analysis' band and average cards exactly as the key"
+      - 'docs/slices/38-charts.md (the expansion timeline drawn on the face, packet 38.5)'
     source: PARITY.md §analytics / Registers and master data
   - id: analytics.registers.05
     feature: Settings sync preview and push to the phones

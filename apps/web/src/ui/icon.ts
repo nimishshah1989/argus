@@ -26,6 +26,7 @@ export {
   CircleX,
   Clock,
   Cog,
+  Download,
   Drill,
   Eye,
   Factory,

@@ -41,7 +41,7 @@ function ScreenSection({
 }
 
 /** One group's screens and their figures, plus the drill rows when the query names them. */
-export function GroupPage({ group }: { group: AnalyticsGroup }) {
+export function GroupPage({ group, only }: { group: AnalyticsGroup; only?: string }) {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const figures = useAnalyticsFigures();
@@ -60,7 +60,7 @@ export function GroupPage({ group }: { group: AnalyticsGroup }) {
         onRetry={() => void figures.refetch()}
       />
     );
-  const shown = group.screens
+  const shown = (only === undefined ? group.screens : [only])
     .map((screen) => ({
       screen,
       figures: figures.data.figures.filter((figure) => figure.screen === screen),
@@ -69,9 +69,11 @@ export function GroupPage({ group }: { group: AnalyticsGroup }) {
   const drill = parseDrill(params.get('drill'));
   return (
     <Stack gap={6}>
-      <p className="text-footnote text-neutral-600">
-        {t('analytics.asOf', { date: figures.data.asOf })}
-      </p>
+      {only === undefined ? (
+        <p className="text-footnote text-neutral-600">
+          {t('analytics.asOf', { date: figures.data.asOf })}
+        </p>
+      ) : null}
       {drill ? <DrillTable group={group} drill={drill} /> : null}
       {shown.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.empty')}</p>
