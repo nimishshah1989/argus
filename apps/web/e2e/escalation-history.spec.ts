@@ -210,9 +210,24 @@ test('the on-duty person acknowledges first and the desk card shows the ladder w
 
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect(page.getByRole('button', { name: 'Acknowledge', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'docs/slices/m2-31-side-by-side/acknowledge.png' });
   await page.getByRole('button', { name: 'Acknowledge', exact: true }).click();
   await expect(page.getByText(/Acknowledged by/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Acknowledge', exact: true })).toHaveCount(0);
+
+  // Evidence for the history line: an admin covers L2, so the step reads who answered and how fast.
+  await json(admin, `/api/v1/tickets/${ticket.id}/acknowledge-escalation`, {
+    method: 'POST',
+    headers: { 'idempotency-key': randomUUID() },
+    body: {},
+  });
+  await page.reload();
+  const answered = page.getByText(/acknowledged after/);
+  await answered.scrollIntoViewIfNeeded();
+  await expect(answered).toBeVisible();
+  await page.screenshot({ path: 'docs/slices/m2-31-side-by-side/escalation-history.png' });
 });
 
 test('a plant with nobody on the ladder reads "Escalation due, nobody told"', async ({ page }) => {
