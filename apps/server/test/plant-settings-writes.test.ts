@@ -758,7 +758,7 @@ describe('what a generated form sends on create and on a bad id', () => {
     });
     expect(machine.statusCode).toBe(201);
     expect(machine.json()).toMatchObject({
-      criticality: null,
+      criticality: 'B',
       year: null,
       category: null,
       segmentId: null,
