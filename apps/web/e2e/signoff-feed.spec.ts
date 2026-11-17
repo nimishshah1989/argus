@@ -50,6 +50,10 @@ test('the desk feed puts the longest wait for production first, and a row opens 
     refs.findIndex((text) => text.includes(newer.ref)),
   );
 
+  // Evidence for the PR: the desk Open screen on a phone, oldest wait at the top.
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.screenshot({ path: 'docs/slices/m2-34-side-by-side/waiting-feed.png' });
+
   await oldRow.click();
   await expect(page).toHaveURL(new RegExp(`/desk/${older.id}$`));
   await expect(page.getByRole('heading', { name: older.ref })).toBeVisible();

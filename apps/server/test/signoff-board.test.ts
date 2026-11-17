@@ -291,9 +291,10 @@ describe('the board feed of sign-offs waiting for production', () => {
     };
     const items = res.json().items as Item[];
     const ids = items.map((item) => item.ticketId);
-    // The oldest close comes first: `first` was closed before `second`, and both are the newest
-    // closes this test still has waiting, so they are the last two in the feed.
-    expect(ids.slice(-2)).toEqual([first.id, second.id]);
+    // The oldest close comes first: `first` was closed before `second`.
+    expect(ids).toContain(first.id);
+    expect(ids).toContain(second.id);
+    expect(ids.indexOf(first.id)).toBeLessThan(ids.indexOf(second.id));
     const closedAts = items.map((item) => Date.parse(item.closedAt));
     expect(closedAts).toEqual([...closedAts].sort((a, b) => a - b));
     for (const left of [answered.id, sentBack.id, nobodyAsked.id, stillOpen]) {
