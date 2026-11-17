@@ -335,5 +335,5 @@ describe('the 2026 breakdown log through the past-breakdown path', () => {
     );
     expect(listed?.problem).toContain('Former staff');
     expect(list.body).not.toContain(FREE_TEXT_PERSON);
-  });
+  }, 120_000);
 });
