@@ -8,7 +8,8 @@ import type { CrudChoice, CrudCtx, CrudSpec, LabelKey } from '../../patterns/cru
 
 /** The plant settings lists (ticket 23): each one is a `CrudPage` config over `/settings/lists/<name>`. */
 
-export type ListsPage = 'wait_reason' | 'work_type' | 'quick_problem';
+export type ListsPage =
+  'wait_reason' | 'work_type' | 'quick_problem' | 'breakdown_category' | 'lockout_step';
 type Flag = 'isVendor' | 'pausesSla' | 'needsLockout';
 
 const FLAG: Record<Flag, { labelKey: LabelKey; wordKey: LabelKey; only: string }> = {
@@ -132,6 +133,31 @@ export const LIST_PAGES: readonly ListsPageSpec[] = [
       titleKey: 'lists.quickProblem.title',
       addKey: 'lists.quickProblem.add',
       emptyKey: 'lists.quickProblem.empty',
+    }),
+  },
+  {
+    page: 'breakdown_category',
+    titleKey: 'lists.breakdownCategory.title',
+    subKey: 'lists.menu.breakdownCategory.sub',
+    spec: listSpec({
+      page: 'breakdown_category',
+      flags: ['needsLockout'],
+      titleKey: 'lists.breakdownCategory.title',
+      addKey: 'lists.breakdownCategory.add',
+      emptyKey: 'lists.breakdownCategory.empty',
+    }),
+  },
+  {
+    // The four starting steps are seeded by the server; this is the list the head edits them on.
+    page: 'lockout_step',
+    titleKey: 'lists.lockoutStep.title',
+    subKey: 'lists.menu.lockoutStep.sub',
+    spec: listSpec({
+      page: 'lockout_step',
+      flags: [],
+      titleKey: 'lists.lockoutStep.title',
+      addKey: 'lists.lockoutStep.add',
+      emptyKey: 'lists.lockoutStep.empty',
     }),
   },
 ];

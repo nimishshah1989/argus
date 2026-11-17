@@ -56,3 +56,28 @@ describe('a list edit refreshes what the desk reads its labels from', () => {
     for (const page of LIST_PAGES) expect(page.spec.invalidates, page.page).toContain('config');
   });
 });
+
+describe('the lockout lists are on the same hub', () => {
+  const page = (name: string) => LIST_PAGES.find((it) => it.page === name);
+
+  it('offers breakdown categories with the lockout flag', () => {
+    const breakdown = page('breakdown_category');
+    expect(breakdown).toBeDefined();
+    expect(breakdown!.spec.fields.map((field) => field.name)).toContain('needsLockout');
+    expect(listMenu(LIST_PAGES).map((row) => row.to)).toContain(
+      '/settings/lists?list=breakdown_category',
+    );
+  });
+
+  it('offers the lockout steps as an ordinary editable list, label and code', () => {
+    const steps = page('lockout_step');
+    expect(steps).toBeDefined();
+    const fields = steps!.spec.fields.map((field) => field.name);
+    expect(fields).toEqual(expect.arrayContaining(['label', 'code', 'sort']));
+    // The steps themselves are not one of the lists that carries the lockout flag.
+    expect(fields).not.toContain('needsLockout');
+    expect(listMenu(LIST_PAGES).map((row) => row.to)).toContain(
+      '/settings/lists?list=lockout_step',
+    );
+  });
+});

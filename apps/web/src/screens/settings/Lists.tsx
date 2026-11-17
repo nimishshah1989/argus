@@ -8,7 +8,9 @@ import {
   CircleHelp,
   Hourglass,
   List,
+  Lock,
   Wrench,
+  Zap,
   type IconComponent,
 } from '../../ui/icon.js';
 import { LIST_PAGES, glossarySpec, listMenu, type ListsPage } from './lists-specs.js';
@@ -17,6 +19,8 @@ const ICON: Record<ListsPage, IconComponent> = {
   wait_reason: Hourglass,
   work_type: Wrench,
   quick_problem: CircleHelp,
+  breakdown_category: Zap,
+  lockout_step: Lock,
 };
 
 /** The phone's list of lists: every row comes from `LIST_PAGES`, so a new list needs no screen code. */
