@@ -22,6 +22,8 @@ export const peopleEn = {
   'people.shift': 'Shift',
   'people.shiftCode': 'Shift {{code}}',
   'people.shift.none': 'No shift',
+  'people.lastSignIn': 'Last sign-in',
+  'people.never': 'Never',
   'people.role': 'Role',
   'people.role.none': 'No login',
   'people.role.operator': 'Operator',
@@ -46,6 +48,10 @@ export const peopleEn = {
   'people.switchOn.hint': 'Switching on gives them a new temporary password.',
   'people.bulk.shift': 'Change shift',
   'people.bulk.shift.title': 'Change the shift of {{count}} people',
+  'people.bulk.signOut': 'Sign out devices',
+  'people.bulk.signOut.title': 'Sign out the devices of {{count}} people',
+  'people.bulk.signOut.hint':
+    'Every live device of the ticked people is signed out once. The reason is kept on the audit trail.',
   'people.bulk.off': 'Switch off',
   'people.bulk.off.title': 'Switch off {{count}} people',
   'people.bulk.off.hint':

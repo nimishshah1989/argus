@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
 import {
   LOGIN_ROLES,
   loginAdminSchema,
@@ -11,6 +10,10 @@ import { defineResource } from '../../data/index.js';
 import type { CrudChoice, CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
 
 const people = defineResource<PersonAdmin, PersonAdmin>({ key: 'people', path: '/api/v1/people' });
+const signOut = defineResource<{ ended: number }>({
+  key: 'people',
+  path: '/api/v1/people/:id/sign-out',
+});
 
 const TEAMS = ['maintenance', 'production', 'vendor'] as const;
 const teamOf = (row: PersonAdmin, c: CrudCtx) => c.t(`people.team.${row.team}`);
@@ -30,6 +33,17 @@ const cellText = (cell: string | null, c: CrudCtx) =>
   cell ? c.t('people.cellN', { cell }) : c.t('people.cell.none');
 const shiftText = (code: string | null, c: CrudCtx) =>
   code ? c.t('people.shiftCode', { code }) : c.t('people.shift.none');
+/** A last sign-in reads as a plant date and time; `Never` when the login has none. */
+const signInText = (iso: string | null, c: CrudCtx) =>
+  iso
+    ? new Date(iso).toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : c.t('people.never');
 const shiftChoices = (c: CrudCtx): CrudChoice[] =>
   (c.lookups.shifts as ShiftReply[]).map((shift) => ({ value: shift.code, label: shift.name }));
 const roleChoices = (c: CrudCtx): CrudChoice[] =>
@@ -54,7 +68,7 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
     logins: { key: 'logins', path: '/api/v1/logins' },
     shifts: { key: 'shifts', path: '/api/v1/shifts' },
   },
-  switchOff: { hintKey: 'people.switchOff.hint' },
+  switchOff: { hintKey: 'people.switchOff.hint', sendReason: true },
   bulk: {
     actions: [
       {
@@ -67,12 +81,21 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
         },
       },
       {
+        id: 'signOut',
+        labelKey: 'people.bulk.signOut',
+        titleKey: 'people.bulk.signOut.title',
+        hintKey: 'people.bulk.signOut.hint',
+        run: async (row, values) => {
+          await signOut.create({ reason: values.reason }, { id: row.id });
+        },
+      },
+      {
         id: 'off',
         labelKey: 'people.bulk.off',
         titleKey: 'people.bulk.off.title',
         hintKey: 'people.bulk.off.hint',
-        run: async (row) => {
-          await people.update(row.id, { active: false });
+        run: async (row, values) => {
+          await people.update(row.id, { active: false, reason: values.reason });
         },
       },
     ],
@@ -80,6 +103,7 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
   hidden: {
     pending: 'The server flags a name that matches an erased person; shown, never edited.',
   },
+  readOnly: { lastSignInAt: 'Shown in the list; the form never edits it.' },
   fields: [
     { name: 'name', labelKey: 'people.name', required: true },
     { name: 'shortName', labelKey: 'people.shortName' },
@@ -127,6 +151,11 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
       cell: (row, c) => kindOf(c, row.id),
       sortKey: (row, c) => kindOf(c, row.id),
     },
+    {
+      labelKey: 'people.lastSignIn',
+      cell: (row, c) => signInText(row.lastSignInAt, c),
+      sortKey: (row) => row.lastSignInAt ?? '',
+    },
   ],
   search: { labelKey: 'people.search', text: (row) => `${row.name} ${row.shortName ?? ''}` },
   filter: {
@@ -162,6 +191,7 @@ export const loginsSpec: CrudSpec<LoginAdmin> = {
     mustChangePassword:
       'Set by a temporary password and cleared when the person changes it; this screen never edits it.',
   },
+  readOnly: { lastSignInAt: 'Shown in the list; the form never edits it.' },
   note: (_values, _row, c) => c.t('people.login.note'),
   fields: [
     { name: 'username', labelKey: 'people.username', required: true, addOnly: true },
@@ -203,6 +233,11 @@ export const loginsSpec: CrudSpec<LoginAdmin> = {
       sortKey: (row, c) => personName(c, row.personId),
     },
     { labelKey: 'people.cell', cell: (row, c) => (row.shared ? cellText(row.cell, c) : '') },
+    {
+      labelKey: 'people.lastSignIn',
+      cell: (row, c) => signInText(row.lastSignInAt, c),
+      sortKey: (row) => row.lastSignInAt ?? '',
+    },
   ],
   search: { labelKey: 'people.login.search', text: (row) => row.username },
   filter: {

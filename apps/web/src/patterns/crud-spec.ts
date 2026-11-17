@@ -23,7 +23,7 @@ export interface CrudChoice {
   value: string;
   label: string;
 }
-export interface CrudField<Row> {
+export interface CrudField {
   /** A reply key, or a write-only field a form sends (a new temporary password). */
   name: string;
   labelKey: LabelKey;
@@ -58,6 +58,8 @@ export interface CrudToggle {
 export interface CrudSwitchOff {
   /** What switching this row off does, under the title. */
   hintKey?: LabelKey;
+  /** The reason travels with the switch (a person's audit line keeps it). */
+  sendReason?: boolean;
 }
 /** Switching a row on needs a value first (a login's new temporary password). */
 export interface CrudSwitchOn {
@@ -90,8 +92,10 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   schema?: ReplySchema;
   /** Reply keys the screen never shows, each with the reason; the D05 guard permits only these. */
   hidden?: Record<string, string>;
+  /** Reply keys the screen shows but never edits, each with the reason (a last sign-in). */
+  readOnly?: Record<string, string>;
   /** Form fields, and the table columns when the spec has no `look`. */
-  fields: CrudField<Row>[];
+  fields: CrudField[];
   /** Resources the choices and the row look draw on (segments, machines), read once and cached. */
   lookups?: Record<string, ResourceSpec>;
   /** With it: a phone list of rows and a sortable desktop table (`columns` after the first). */

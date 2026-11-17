@@ -19,14 +19,18 @@ describe('every people and logins spec accounts for its reply keys (D05)', () =>
       if (!spec.schema) throw new Error(`${page} has no reply schema to check`);
       const fields = new Set<string>(spec.fields.map((field) => field.name));
       const hidden = spec.hidden ?? {};
+      const readOnly = spec.readOnly ?? {};
       const keys = Object.keys(spec.schema.shape);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
         if (STRUCTURAL.has(key)) continue;
-        expect(fields.has(key) || key in hidden, `${page}.${key} is neither field nor hidden`).toBe(
-          true,
-        );
+        expect(
+          fields.has(key) || key in hidden || key in readOnly,
+          `${page}.${key} is neither field, hidden nor readOnly`,
+        ).toBe(true);
         if (key in hidden) expect(hidden[key]!.trim(), `${page}.${key} has no reason`).not.toBe('');
+        if (key in readOnly)
+          expect(readOnly[key]!.trim(), `${page}.${key} has no reason`).not.toBe('');
       }
     });
   }
@@ -56,6 +60,7 @@ describe('the people list shows what the plant knows (ticket 21)', () => {
       defaultShift: 'A',
       active: true,
       pending: false,
+      lastSignInAt: '2026-11-17T04:05:00.000Z',
     };
     const look = peopleSpec.look!(row, ctx);
     expect(look.title).toBe('Asha');
@@ -68,6 +73,9 @@ describe('the people list shows what the plant knows (ticket 21)', () => {
     expect(columnText).toContain('people.login.shared');
     expect(columnText).toContain('people.cellN:4');
     expect(columnText).toContain('people.shiftCode:A');
+    expect(peopleSpec.columns!.some((column) => column.labelKey === 'people.lastSignIn')).toBe(
+      true,
+    );
   });
 
   it('says a person has no login rather than leaving the cells empty', () => {
@@ -83,6 +91,7 @@ describe('the people list shows what the plant knows (ticket 21)', () => {
       defaultShift: null,
       active: true,
       pending: false,
+      lastSignInAt: null,
     };
     const columnText = peopleSpec
       .columns!.map((column) => String(column.cell(row, ctx)))
@@ -90,6 +99,7 @@ describe('the people list shows what the plant knows (ticket 21)', () => {
     expect(columnText).toContain('people.role.none');
     expect(columnText).toContain('people.cell.none');
     expect(columnText).toContain('people.shift.none');
+    expect(columnText).toContain('people.never');
   });
 });
 
