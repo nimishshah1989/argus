@@ -1,0 +1,4 @@
+- The admin and the plant head now have the audit trail as a screen behind `GET /api/v1/audit`: newest first, filtered by area, person and plant day, each row naming who acted and what changed. The admin alone can export it as CSV (capped at the newest 50 000 rows, with a line saying when it was cut).
+- People and logins now show when they last signed in.
+- Switching a person off takes an optional reason (500 characters at most) that is kept on the audit line.
+- The admin can sign a person out of every device at once, with a reason, and the screen says how many sessions ended. Changing a shift or switching several people off stays a set of individual confirmed changes, each audited.
