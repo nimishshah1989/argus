@@ -1,3 +1,4 @@
+import type { ShiftReply } from '@uptimo/shared/plant-settings';
 import { expect, test } from './test.js';
 import { apiFetch, apiLogin, signIn } from './fixtures.js';
 
@@ -21,12 +22,18 @@ test('admin copies a day’s roster to the next seven days from Settings', async
     await page.setViewportSize({ width: 1440, height: 900 });
   const today = plantDay();
   const token = await apiLogin('admin');
-  const shifts = await api<{ items: { id: string; name: string }[] }>('/api/v1/shifts', token);
+  const shifts = await api<{ items: ShiftReply[] }>('/api/v1/shifts', token);
   const people = await api<{ items: { id: string; name: string; active: boolean }[] }>(
     '/api/v1/people',
     token,
   );
-  const shift = shifts.items[0]!;
+  // The roster refuses a line on a shift that is switched off, so seed on one that is on.
+  // A fixture that predates `active` omits it, which means on.
+  const shift = shifts.items.find((it) => it.active !== false);
+  if (!shift)
+    throw new Error(
+      `No active shift to seed a roster line: ${shifts.items.map((it) => it.code).join(', ') || 'no shifts at all'}`,
+    );
   const person = people.items.find((it) => it.active)!;
 
   // One line for today, seeded through the API: the copy action is what this test proves.
@@ -47,9 +54,11 @@ test('admin copies a day’s roster to the next seven days from Settings', async
     page.getByText('Copied 7 lines; 0 were already there.', { exact: true }),
   ).toBeVisible();
 
-  // The copied line is on screen, and the roster now holds the source day plus seven copies.
-  await expect(page.getByText(plantDay(1), { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Edit / })).toHaveCount(8);
+  // The copied rows, read off the generated list itself: each row's own line names its day and shift,
+  // in the wide table's first cell and in the phone row's subtitle alike. No button label is involved.
+  for (const offset of [0, 1, 2, 3, 4, 5, 6, 7]) {
+    await expect(page.getByText(`${plantDay(offset)} · ${shift.name}`)).toBeVisible();
+  }
   const roster = await api<{ items: { date: string }[] }>('/api/v1/roster', token);
   expect(roster.items).toHaveLength(8);
   expect(roster.items.map((it) => it.date)).toContain(plantDay(7));
