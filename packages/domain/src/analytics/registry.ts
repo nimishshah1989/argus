@@ -72,7 +72,8 @@ export const FIGURES: readonly FigureDef[] = [
   dashboard('avg-complaints-per-day', 'Average complaints per day', 'ticket'),
   dashboard('avg-bd-hours-per-day', 'Average breakdown hours per day', 'ticket'),
   dashboard('avg-bd-hours-per-machine', 'Average breakdown hours per machine', 'ticket'),
-  screen(38, 'data-checklist', 'Data checklist', 'machine'),
+  // R2: every checklist item is a breakdown/ticket row, so the checklist drills to tickets (not machines).
+  screen(38, 'data-checklist', 'Data checklist', 'ticket'),
   screen(39, 'registers', 'Registers and splits', 'machine'),
   screen(39, 'cell-change-log', 'Cell change log', 'move'),
   screen(39, 'a7-footprint', 'A7 footprint', 'machine'),

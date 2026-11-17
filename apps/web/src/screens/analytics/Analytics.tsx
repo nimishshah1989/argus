@@ -5,11 +5,25 @@ import { useWide } from '../../patterns/wide.js';
 import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
-import { ANALYTICS_GROUPS, groupFor, type AnalyticsGroup } from './groups.js';
+import { List } from '../../ui/icon.js';
+import { ANALYTICS_GROUPS, CHECKLIST_PATH, groupFor, type AnalyticsGroup } from './groups.js';
+import { Dashboard } from './Dashboard.js';
+import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 
 const DESK = '/desk';
+
+/** The data checklist's own route, inside the Today group's shell. */
+export function DataChecklistPage() {
+  const today = groupFor('today');
+  if (!today) return <Navigate to="/analytics/today" replace />;
+  return (
+    <FaceShell group={today} current={CHECKLIST_PATH}>
+      <DataChecklist />
+    </FaceShell>
+  );
+}
 
 /** The face itself: `/analytics` opens on Today; an unknown group falls back to it (no 404 screen). */
 export function AnalyticsFace() {
@@ -18,9 +32,30 @@ export function AnalyticsFace() {
   if (!found) return <Navigate to="/analytics/today" replace />;
   return (
     <FaceShell group={found}>
-      {found.id === 'guide' ? <GuidePage /> : <GroupPage group={found} />}
+      {found.id === 'guide' ? (
+        <GuidePage />
+      ) : found.id === 'today' ? (
+        <Dashboard group={found} />
+      ) : (
+        <GroupPage group={found} />
+      )}
     </FaceShell>
   );
+}
+
+/**
+ * The face's links: the eight locked groups, then Data checklist at the foot (the design lock's order).
+ * Pure data, so the wide menu and the phone menu cannot drift apart.
+ */
+function menuEntries() {
+  return [
+    ...ANALYTICS_GROUPS.map(({ id, labelKey, icon }) => ({
+      to: `/analytics/${id}`,
+      labelKey,
+      icon,
+    })),
+    { to: CHECKLIST_PATH, labelKey: 'analytics.screen.data-checklist', icon: List },
+  ];
 }
 
 function PhoneMenu({ current }: { current: string }) {
@@ -28,12 +63,12 @@ function PhoneMenu({ current }: { current: string }) {
   return (
     <nav aria-label={t('analytics.menu')} className="rounded-2xl bg-surface p-2 shadow-card">
       <ul className="flex flex-wrap gap-1">
-        {ANALYTICS_GROUPS.map(({ id, labelKey }) => (
-          <li key={id}>
+        {menuEntries().map(({ to, labelKey }) => (
+          <li key={to}>
             <Link
-              to={`/analytics/${id}`}
+              to={to}
               // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={id === current ? 'page' : undefined}
+              aria-current={to === current ? 'page' : undefined}
               className="flex min-h-target items-center rounded-xl px-3 text-footnote font-medium text-neutral-900 aria-[current=page]:bg-accent-tint aria-[current=page]:font-semibold aria-[current=page]:text-accent-text"
             >
               {t(labelKey)}
@@ -46,18 +81,23 @@ function PhoneMenu({ current }: { current: string }) {
 }
 
 function menuItems(t: (key: string) => string) {
-  return ANALYTICS_GROUPS.map(({ id, labelKey, icon }) => ({
-    to: `/analytics/${id}`,
-    label: t(labelKey),
-    icon,
-  }));
+  return menuEntries().map(({ to, labelKey, icon }) => ({ to, label: t(labelKey), icon }));
 }
 
-function FaceShell({ group, children }: { group: AnalyticsGroup; children: ReactNode }) {
+function FaceShell({
+  group,
+  children,
+  current,
+}: {
+  group: AnalyticsGroup;
+  children: ReactNode;
+  /** The menu link to mark as this page: the group's route, or the checklist's own route. */
+  current?: string;
+}) {
   const { t } = useTranslation();
   const wide = useWide();
   useSystemTheme();
-  const here = `/analytics/${group.id}`;
+  const here = current ?? `/analytics/${group.id}`;
   if (wide)
     return (
       <div className="flex min-h-dvh bg-neutral-100 text-neutral-900">
@@ -76,7 +116,7 @@ function FaceShell({ group, children }: { group: AnalyticsGroup; children: React
     <div className="flex min-h-dvh flex-col bg-neutral-100 text-neutral-900">
       <TopBar title={t(group.labelKey)} back={{ to: DESK, label: t('nav.desk') }} />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">
-        <PhoneMenu current={group.id} />
+        <PhoneMenu current={here} />
         {children}
       </main>
     </div>

@@ -35,7 +35,7 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
     id: 'today',
     labelKey: 'analytics.group.today',
     icon: Clock,
-    screens: ['dashboard', 'action-center', 'team-focus'],
+    screens: ['dashboard', 'action-center', 'team-focus', 'data-checklist'],
   },
   {
     id: 'machines',
@@ -49,7 +49,6 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
       'machine-page',
       'compare',
       'a5-energy',
-      'data-checklist',
     ],
   },
   {
@@ -170,6 +169,24 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'annual-report': 'analytics.figure.annual-report',
 };
 
+/**
+ * The figures printed in hours (the engine rounds them to the key's decimals). A tile prints the value with
+ * at least one decimal, so a whole number of hours still reads as hours; a count prints as a count. Pure: the
+ * tile and the e2e's expected text both read this rule from here.
+ */
+export const HOUR_FIGURES: ReadonlySet<string> = new Set([
+  'dashboard.total-downtime-hours',
+  'dashboard.pm-hours',
+  'dashboard.no-downtime-hours',
+  'dashboard.avg-bd-hours-per-day',
+  'dashboard.avg-bd-hours-per-machine',
+]);
+
+/** The unit a ready figure prints after its value; null for a count, a percentage or an object. */
+export function unitOf(key: string): MessageKey | null {
+  return HOUR_FIGURES.has(key) ? 'analytics.unit.hours' : null;
+}
+
 /** The group a screen belongs to; null only for a registry screen the menu has not placed yet. */
 export function groupOfScreen(screen: string): AnalyticsGroup | null {
   return ANALYTICS_GROUPS.find((group) => group.screens.includes(screen)) ?? null;
@@ -178,6 +195,9 @@ export function groupOfScreen(screen: string): AnalyticsGroup | null {
 export function groupFor(id: string | undefined): AnalyticsGroup | undefined {
   return ANALYTICS_GROUPS.find((group) => group.id === id);
 }
+
+/** The data checklist's own route, under the Today group (packet 38.3). */
+export const CHECKLIST_PATH = '/analytics/today/checklist';
 
 /** The drill link a tile carries: the group page, with the type and the rows in the query. */
 export function drillHref(group: GroupId, type: DrillType, ids: readonly string[]): string {

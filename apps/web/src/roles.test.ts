@@ -1,18 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { landingPath, mayOpenDesk } from './roles.js';
 
-/** Packet 1: where a sign-in lands, by the role in the session reply (all seven roles). */
+/**
+ * Row 38: each role's home opens on what needs that person now (MILESTONES row 38). The operator opens
+ * My complaints, the technician Mine, the supervisor and admin the Open desk, and the maintenance head
+ * and plant head the analytics Today dashboard.
+ */
 describe('landingPath', () => {
-  it('sends the technician and above to the desk', () => {
-    for (const role of ['technician', 'supervisor', 'head', 'plant_head', 'admin'])
-      expect(landingPath(role)).toBe('/desk');
+  it('sends the head and the plant head to Today', () => {
+    for (const role of ['head', 'plant_head'])
+      expect(landingPath(role), role).toBe('/analytics/today');
   });
 
-  it('sends the operator and the board to the floor', () => {
-    for (const role of ['operator', 'board']) expect(landingPath(role)).toBe('/floor');
+  it('sends the operator to My complaints and the technician to Mine', () => {
+    expect(landingPath('operator')).toBe('/floor/mine');
+    expect(landingPath('technician')).toBe('/desk/mine');
   });
 
-  it('agrees with mayOpenDesk for every role', () => {
+  it('sends the supervisor and admin to the Open desk, and the board to the floor', () => {
+    for (const role of ['supervisor', 'admin']) expect(landingPath(role), role).toBe('/desk');
+    expect(landingPath('board')).toBe('/floor');
+  });
+
+  it('sends every role that may open the desk to a desk or the face, and nobody else', () => {
     for (const role of [
       'operator',
       'technician',
@@ -22,6 +32,6 @@ describe('landingPath', () => {
       'admin',
       'board',
     ])
-      expect(mayOpenDesk(role)).toBe(landingPath(role) === '/desk');
+      expect(mayOpenDesk(role), role).toBe(!landingPath(role).startsWith('/floor'));
   });
 });

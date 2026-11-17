@@ -29,6 +29,9 @@ test('a shared phone asks who is using it once, then the floor works as that per
   await expect(cont).toBeEnabled();
   expect(await fill()).not.toBe(greyed);
   await cont.click();
+  // Row 38: an operator's home is My complaints; the floor is still one tap away.
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
+  await page.goto('/floor');
   await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
 
   await page.getByRole('button', { name: /^Other work \(not a machine\)/ }).click();
@@ -205,7 +208,8 @@ test("a queued command the server refuses as someone else's leaves the queue for
   await page.getByLabel('Your name').selectOption({ label: 'Omi' });
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   // The picker opens the floor only after it has replayed what this person queued.
-  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
+  await page.goto('/floor');
   await expect(page.getByText('Could not send: this was queued for someone else')).toBeVisible();
   expect(await queued(page)).toBe(0);
 });

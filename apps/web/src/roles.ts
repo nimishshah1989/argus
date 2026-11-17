@@ -9,7 +9,24 @@ export function mayOpenDesk(role: string): boolean {
   return (DESK_ROLES as readonly string[]).includes(role);
 }
 
-/** Where a sign-in lands: the desk for a role that may open it, the floor for everyone else (operator, board). */
-export function landingPath(role: string): '/desk' | '/floor' {
-  return mayOpenDesk(role) ? '/desk' : '/floor';
+/**
+ * Where a role's home is (MILESTONES row 38): each home opens on what needs that person now. The operator
+ * opens My complaints, the technician Mine, the maintenance head and plant head the analytics Today
+ * dashboard; the supervisor and admin open the desk's Open list, and the board login the floor.
+ */
+export type LandingPath = '/analytics/today' | '/desk' | '/desk/mine' | '/floor' | '/floor/mine';
+
+const HOME: Readonly<Record<string, LandingPath>> = {
+  operator: '/floor/mine',
+  technician: '/desk/mine',
+  supervisor: '/desk',
+  head: '/analytics/today',
+  plant_head: '/analytics/today',
+  admin: '/desk',
+  board: '/floor',
+};
+
+/** Where a sign-in lands. Every known role is named; an unknown role keeps the old fallback. */
+export function landingPath(role: string): LandingPath {
+  return HOME[role] ?? (mayOpenDesk(role) ? '/desk' : '/floor');
 }

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ApiError, changePassword, getMe, getToken } from '../../api.js';
-import { landingPath } from '../../roles.js';
+import { landingPath, type LandingPath } from '../../roles.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
 import { Button } from '../../ui/button.js';
 import { Input, Label } from '../../ui/input.js';
@@ -62,7 +62,7 @@ export function ChangePassword() {
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
   const [error, setError] = useState('');
-  const [landing, setLanding] = useState<'/desk' | '/floor'>('/floor');
+  const [landing, setLanding] = useState<LandingPath>('/floor');
   const differ = Boolean(next && again && next !== again);
   async function send(): Promise<void | false> {
     setError('');
