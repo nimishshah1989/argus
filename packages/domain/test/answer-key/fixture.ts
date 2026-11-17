@@ -130,7 +130,11 @@ function footprint(row: WorkbookMachine): Record<string, unknown> {
 }
 
 /** One workbook row as a machine: the list it is in is its segment, since a list row carries none of its own. */
-function toMachine(row: WorkbookMachine, segment: string, excluded: ReadonlySet<string>): MachineRow {
+function toMachine(
+  row: WorkbookMachine,
+  segment: string,
+  excluded: ReadonlySet<string>,
+): MachineRow {
   return {
     id: row.id,
     code: row.id,
