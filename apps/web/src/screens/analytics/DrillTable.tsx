@@ -47,6 +47,55 @@ function cellsOf(
   return [move.fromCell ?? t(NONE), move.toCell ?? t(NONE), move.effectiveFrom];
 }
 
+/** The table body: one row per drilled row, a machine code opening that machine's page. */
+function DrillRows({
+  type,
+  rows,
+  machines,
+}: {
+  type: DrillType;
+  rows: readonly Row[];
+  machines: Config['machines'] | undefined;
+}) {
+  const { t } = useTranslation();
+  const head = HEAD[type];
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-footnote">
+        <thead>
+          <tr>
+            {head.map((key) => (
+              <th key={key} scope="col" className="p-2 font-medium text-neutral-600">
+                {t(key)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-t border-neutral-200">
+              {cellsOf(type, row, machines, t).map((cell, index) => (
+                <td key={head[index]} className="p-2">
+                  {type === 'machine' && index === 0 ? (
+                    <Link
+                      to={`/analytics/machines/${row.id}`}
+                      className="inline-flex min-h-target-min items-center font-semibold text-accent-text"
+                    >
+                      {cell}
+                    </Link>
+                  ) : (
+                    cell
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** The rows a figure drilled to: a plain table of what identifies each one. */
 export function DrillTable({ group, drill }: { group: AnalyticsGroup; drill: Drill }) {
   const { t } = useTranslation();
@@ -55,7 +104,6 @@ export function DrillTable({ group, drill }: { group: AnalyticsGroup; drill: Dri
     queryFn: () => getDrill(drill.type, drill.ids),
   });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
-  const head = HEAD[drill.type];
   return (
     <section className="flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
@@ -78,30 +126,7 @@ export function DrillTable({ group, drill }: { group: AnalyticsGroup; drill: Dri
       ) : !reply.data || reply.data.rows.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.drill.empty')}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-footnote">
-            <thead>
-              <tr>
-                {head.map((key) => (
-                  <th key={key} scope="col" className="p-2 font-medium text-neutral-600">
-                    {t(key)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {reply.data.rows.map((row) => (
-                <tr key={row.id} className="border-t border-neutral-200">
-                  {cellsOf(drill.type, row, config.data?.machines, t).map((cell, index) => (
-                    <td key={head[index]} className="p-2">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DrillRows type={drill.type} rows={reply.data.rows} machines={config.data?.machines} />
       )}
     </section>
   );
