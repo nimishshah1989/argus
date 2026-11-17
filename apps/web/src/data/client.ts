@@ -171,7 +171,9 @@ let leaving = false;
 async function send<T>(path: string, init: RequestInit | undefined, session: Session): Promise<T> {
   const token = session === 'none' ? null : getToken();
   const headers = new Headers(init?.headers);
-  if (init?.body !== undefined) headers.set('Content-Type', 'application/json');
+  // A body is JSON unless the caller names its own type (the company logo is raw image bytes).
+  if (init?.body !== undefined && !headers.has('Content-Type'))
+    headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(path, { ...init, headers });
   if (res.status === 401 && session === 'ends') {

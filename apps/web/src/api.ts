@@ -53,7 +53,10 @@ export const tickets = defineResource<TicketDetail, Ticket>({
 });
 const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
-const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
+const brand = defineResource<{ company: string; logo: string | null }>({
+  key: 'brand',
+  path: '/api/v1/brand',
+});
 const login = defineResource({
   key: 'auth',
   path: '/api/v1/auth/login',
@@ -116,7 +119,7 @@ export const getMe = (): Promise<{ user: Me }> =>
     return reply;
   });
 
-export const getBrand = (): Promise<{ company: string }> => brand.one();
+export const getBrand = (): Promise<{ company: string; logo: string | null }> => brand.one();
 
 /** POST /auth/login; a wrong password is an ApiError with the server's message. */
 export const signIn = (body: {
