@@ -1,0 +1,2 @@
+- Eleven of the Dashboard's numbers are now worked out from the plant's own records: the six machine counts, and total breakdowns, total downtime hours, PM hours, breakdown hours recorded with no downtime, and average breakdown hours per machine. Each number keeps the rows behind it, so its drill opens exactly the tickets it counted.
+- The Dashboard screen itself, and the four figures whose definitions are still open (fleet availability, plant breakdown percent, and the two per-day averages), stay "not computed yet" until Nimish rules on them.
