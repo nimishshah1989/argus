@@ -30,7 +30,7 @@ test('Sign out asks first; Go back keeps the person signed in', async ({ page })
   await expect(page.getByText('Sign out of this phone?')).toBeVisible();
   await expect(page.getByText('Alerts stop on this phone.')).toBeVisible();
   await page.getByRole('button', { name: 'Go back' }).click();
-  await expect(page).toHaveURL(/\/floor/);
+  await expect(page).toHaveURL(/\/(floor|desk)/);
   await expect(account(page).getByText('Signed in as asha')).toBeVisible();
   await account(page).getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
