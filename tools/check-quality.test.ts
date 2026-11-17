@@ -1,0 +1,105 @@
+import { describe, expect, it } from 'vitest';
+import { missingAttributes, missingSections, weakenedTests } from './check-quality.js';
+
+const DELETE_ASSERTION = `diff --git a/apps/x.test.ts b/apps/x.test.ts
+index 1111111..2222222 100644
+--- a/apps/x.test.ts
++++ b/apps/x.test.ts
+@@ -1,3 +1,2 @@
+ it('adds', () => {
+-  expect(add(1, 2)).toBe(3);
+ });
+`;
+
+const ADD_SKIP = `diff --git a/apps/x.test.ts b/apps/x.test.ts
+--- a/apps/x.test.ts
++++ b/apps/x.test.ts
+@@ -1,2 +1,3 @@
+ it('adds', () => {});
++it.skip('soon', () => {});
+`;
+
+const DELETE_FILE = `diff --git a/apps/x.test.ts b/apps/x.test.ts
+deleted file mode 100644
+index 1111111..0000000
+--- a/apps/x.test.ts
++++ /dev/null
+@@ -1,2 +0,0 @@
+-import { expect, it } from 'vitest';
+-it('x', () => { expect(1).toBe(1); });
+`;
+
+const CLEAN = `diff --git a/apps/x.test.ts b/apps/x.test.ts
+--- a/apps/x.test.ts
++++ b/apps/x.test.ts
+@@ -1,2 +1,3 @@
+ it('adds', () => {
++  expect(add(1, 1)).toBe(2);
+ });
+`;
+
+const IDS = Array.from({ length: 14 }, (_, i) => `Q${i + 1}`);
+const qTable = (omit: string[] = []): string =>
+  IDS.filter((id) => !omit.includes(id))
+    .map((id) => `${id} pass`)
+    .join('\n');
+
+const body = (omit: string[] = []): string => `## What changed and why
+
+Adds the quality gate.
+
+## How to try it
+
+Run \`pnpm quality\`.
+
+## What must be decided
+
+Nothing.
+
+${qTable(omit)}
+`;
+
+describe('weakened tests', () => {
+  it('Q2 reports a removed assertion line', () => {
+    expect(weakenedTests(DELETE_ASSERTION)).toEqual(['apps/x.test.ts: removed assertion']);
+  });
+
+  it('Q2 reports a new .skip declaration', () => {
+    expect(weakenedTests(ADD_SKIP)).toEqual(['apps/x.test.ts: added .skip']);
+  });
+
+  it('Q2 reports a deleted test file once', () => {
+    expect(weakenedTests(DELETE_FILE)).toEqual(['apps/x.test.ts: deleted test file']);
+  });
+
+  it('Q2 passes a diff that only adds assertions', () => {
+    expect(weakenedTests(CLEAN)).toEqual([]);
+  });
+});
+
+describe('quality evidence', () => {
+  it('Q12 accepts all 14 ids and the three sections', () => {
+    expect(missingAttributes(body())).toEqual([]);
+    expect(missingSections(body())).toEqual([]);
+  });
+
+  it('Q12 reports exactly the missing id and section', () => {
+    const partial = `## What changed and why
+
+Adds the gate.
+
+## How to try it
+
+Run it.
+
+${qTable(['Q7'])}`;
+    expect(missingAttributes(partial)).toEqual(['Q7']);
+    expect(missingSections(partial)).toEqual(['What must be decided']);
+  });
+
+  it('Q12 accepts a Preview line and a Decisions line', () => {
+    const text = `## What changed\n\nPreview: http://127.0.0.1:3000/x\nDecisions: none\n\n${qTable()}`;
+    expect(missingAttributes(text)).toEqual([]);
+    expect(missingSections(text)).toEqual([]);
+  });
+});
