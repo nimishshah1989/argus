@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { ComposeOption } from 'echarts/core';
-import type { BarSeriesOption, LineSeriesOption } from 'echarts/charts';
-import type { GridComponentOption } from 'echarts/components';
+import type { BarSeriesOption, LineSeriesOption, ScatterSeriesOption } from 'echarts/charts';
+import type { GridComponentOption, TooltipComponentOption } from 'echarts/components';
 
 export interface ChartSeries {
   name: string; // translated; end label, table header
   values: number[]; // one per category
+}
+interface ScatterPoint {
+  x: number;
+  y: number;
+  r: number; // bubble radius
+  label: string; // the machine, data not copy
+  mttr?: number;
 }
 export type ChartSpec =
   | {
@@ -21,11 +28,39 @@ export type ChartSpec =
       categoryLabel: string;
       categories: string[];
       series: [ChartSeries] | [ChartSeries, ChartSeries];
+    }
+  | {
+      kind: 'scatter';
+      title: string;
+      machineLabel: string;
+      xLabel: string;
+      yLabel: string;
+      mttrLabel: string;
+      points: ScatterPoint[];
+    }
+  | {
+      kind: 'mixed';
+      title: string;
+      categoryLabel: string;
+      categories: string[];
+      bars: ChartSeries[];
+      line?: ChartSeries;
     };
 export type ChartState = 'loading' | 'ready' | 'error';
 
-type Option = ComposeOption<BarSeriesOption | LineSeriesOption | GridComponentOption>;
-interface Palette {
+type BarSpec = Extract<ChartSpec, { kind: 'bar' }>;
+type LineSpec = Extract<ChartSpec, { kind: 'line' }>;
+type ScatterSpec = Extract<ChartSpec, { kind: 'scatter' }>;
+type MixedSpec = Extract<ChartSpec, { kind: 'mixed' }>;
+
+type Option = ComposeOption<
+  | BarSeriesOption
+  | LineSeriesOption
+  | ScatterSeriesOption
+  | GridComponentOption
+  | TooltipComponentOption
+>;
+export interface Palette {
   series: [string, string];
   axis: string;
   grid: string;
@@ -42,7 +77,14 @@ async function load() {
     import('echarts/components'),
     import('echarts/renderers'),
   ]);
-  core.use([charts.BarChart, charts.LineChart, components.GridComponent, renderers.SVGRenderer]);
+  core.use([
+    charts.BarChart,
+    charts.LineChart,
+    charts.ScatterChart,
+    components.GridComponent,
+    components.TooltipComponent,
+    renderers.SVGRenderer,
+  ]);
   return core;
 }
 
@@ -65,49 +107,149 @@ function palette(el: HTMLElement): Palette {
   };
 }
 
-function chartOption(spec: ChartSpec, p: Palette): Option {
-  const longest = Math.max(...spec.series.map((s) => s.name.length));
-  const axis = { axisLabel: { color: p.axis } };
+function baseOption(p: Palette, right: number): Option {
   return {
     animation: false,
     textStyle: { fontFamily: p.font, fontSize: 12, color: p.axis },
-    grid: {
-      left: 8,
-      top: 24,
-      bottom: 8,
-      right: spec.kind === 'line' ? 16 + 7 * longest : 16,
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: spec.categories,
-      axisTick: { show: false },
-      axisLine: { lineStyle: { color: p.grid } },
-      ...axis,
-    },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: p.grid } }, ...axis },
-    series: spec.series.map((s, i) =>
-      spec.kind === 'bar'
-        ? {
-            type: 'bar' as const,
-            name: s.name,
-            data: s.values,
-            color: p.series[0],
-            label: { show: true, position: 'top' as const, color: p.axis },
-          }
-        : {
-            type: 'line' as const,
-            name: s.name,
-            data: s.values,
-            color: p.series[i],
-            symbol: ['circle', 'triangle'][i],
-            symbolSize: 8,
-            showAllSymbol: true,
-            lineStyle: { width: 2, type: (['solid', 'dashed'] as const)[i] },
-            endLabel: { show: true, formatter: '{a}', color: p.series[i] },
-          },
-    ),
+    grid: { left: 8, top: 24, bottom: 8, right, containLabel: true },
   };
+}
+
+function categoryAxis(categories: string[], p: Palette) {
+  return {
+    type: 'category' as const,
+    data: categories,
+    axisTick: { show: false },
+    axisLine: { lineStyle: { color: p.grid } },
+    axisLabel: { color: p.axis },
+  };
+}
+
+function valueAxis(p: Palette) {
+  return {
+    type: 'value' as const,
+    splitLine: { lineStyle: { color: p.grid } },
+    axisLabel: { color: p.axis },
+  };
+}
+
+function barOption(spec: BarSpec, p: Palette): Option {
+  const series = spec.series[0];
+  return {
+    ...baseOption(p, 16),
+    xAxis: categoryAxis(spec.categories, p),
+    yAxis: valueAxis(p),
+    series: [
+      {
+        type: 'bar',
+        name: series.name,
+        data: series.values,
+        color: p.series[0],
+        label: { show: true, position: 'top', color: p.axis },
+      },
+    ],
+  };
+}
+
+function lineOption(spec: LineSpec, p: Palette): Option {
+  const longest = Math.max(...spec.series.map((s) => s.name.length));
+  return {
+    ...baseOption(p, 16 + 7 * longest),
+    xAxis: categoryAxis(spec.categories, p),
+    yAxis: valueAxis(p),
+    series: spec.series.map((s, i) => ({
+      type: 'line' as const,
+      name: s.name,
+      data: s.values,
+      color: p.series[i],
+      symbol: (['circle', 'triangle'] as const)[i],
+      symbolSize: 8,
+      showAllSymbol: true,
+      lineStyle: { width: 2, type: (['solid', 'dashed'] as const)[i] },
+      endLabel: { show: true, formatter: '{a}', color: p.series[i] },
+    })),
+  };
+}
+
+function scatterOption(spec: ScatterSpec, p: Palette): Option {
+  const axis = {
+    ...valueAxis(p),
+    nameLocation: 'middle' as const,
+    nameGap: 28,
+    nameTextStyle: { color: p.axis },
+  };
+  return {
+    ...baseOption(p, 24),
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: unknown) => {
+        const name = (params as { name?: string }).name;
+        const mttr = spec.points.find((point) => point.label === name)?.mttr;
+        return mttr === undefined
+          ? String(name ?? '')
+          : `${name ?? ''}\n${spec.mttrLabel}: ${mttr}`;
+      },
+    },
+    xAxis: { ...axis, name: spec.xLabel },
+    yAxis: { ...axis, name: spec.yLabel },
+    series: [
+      {
+        type: 'scatter',
+        data: spec.points.map((point) => ({
+          value: [point.x, point.y],
+          symbolSize: point.r,
+          name: point.label,
+        })),
+      },
+    ],
+  };
+}
+
+function mixedOption(spec: MixedSpec, p: Palette): Option {
+  return {
+    ...baseOption(p, 16),
+    xAxis: categoryAxis(spec.categories, p),
+    yAxis: [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }],
+    series: [
+      ...spec.bars.map((s) => ({
+        type: 'bar' as const,
+        name: s.name,
+        data: s.values,
+        color: p.series[0],
+        stack: 'total',
+      })),
+      ...(spec.line === undefined
+        ? []
+        : [
+            {
+              type: 'line' as const,
+              name: spec.line.name,
+              data: spec.line.values,
+              color: p.series[1],
+              yAxisIndex: 1,
+              symbol: 'circle',
+              symbolSize: 8,
+              showAllSymbol: true,
+              lineStyle: { width: 2, type: 'dashed' as const },
+              endLabel: { show: true, formatter: '{a}', color: p.series[1] },
+            },
+          ]),
+    ],
+  };
+}
+
+/** The ECharts option for a spec; the one exported builder the node test pins. */
+export function chartOption(spec: ChartSpec, p: Palette): Option {
+  switch (spec.kind) {
+    case 'bar':
+      return barOption(spec, p);
+    case 'line':
+      return lineOption(spec, p);
+    case 'scatter':
+      return scatterOption(spec, p);
+    case 'mixed':
+      return mixedOption(spec, p);
+  }
 }
 
 /** Draws `spec` into the returned ref once ECharts has loaded; `error` if it never does. */
