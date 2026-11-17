@@ -8,9 +8,8 @@ export default defineConfig({
     passWithNoTests: true,
     // Integration files boot real Postgres containers; cap concurrency to avoid shutdown races.
     maxWorkers: 4,
-    // Integration tests start a Testcontainer and seed it; under a full parallel run the
-    // default 5s test timeout is too tight (the cosmos seed legitimately takes longer).
-    testTimeout: 20_000,
+    // A container start plus seed on a CI runner can pass 20 s, and a timed-out file wastes the whole run.
+    testTimeout: 35_000,
     hookTimeout: 120_000,
   },
 });
