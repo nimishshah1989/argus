@@ -51,6 +51,8 @@ export interface PersonRow {
   id: string;
   /** A stable pseudonym (`P-` and eight characters of the id); the engine never sees a name. */
   code: string;
+  /** The coded name the platform prints (`Person 41`, `Maint. Team`); never a real name. */
+  displayName: string;
   team: 'maintenance' | 'production' | 'vendor';
   active: boolean;
 }

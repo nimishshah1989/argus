@@ -8,6 +8,7 @@ import type {
   ReportRow,
   TicketRow,
 } from '../../src/index.js';
+import type { Workbook, WorkbookBreakdown, WorkbookMachine } from './workbook.js';
 
 /**
  * The answer-key seam (ticket 38): `fixtures/answer-key/input.json` is the 11 November workbook in the shape the
@@ -16,85 +17,8 @@ import type {
  * touches a database. This module is the model tickets 39 to 45 copy.
  *
  * The files are repo data and already pseudonymised (names are `Person 51`, machines, codes and timings are real).
- * Nothing here writes; a person is a slug of the workbook's coded name, never a new name.
+ * Nothing here writes; a person keeps the workbook's coded name beside a slug of it, never a new name.
  */
-
-interface WorkbookMachine {
-  id: string;
-  category?: string;
-  make?: string;
-  model?: string;
-  serial?: string | number;
-  controller?: string;
-  ctrlModel?: string | number;
-  ctrlSerial?: string | number;
-  year?: number | string | null;
-  datePurchase?: string;
-  power?: number | string | null;
-  capacityKva?: number;
-  location?: string;
-  cell?: string;
-  assetCode?: string;
-  length?: number | string;
-  width?: number | string;
-  conveyor?: string;
-  efficiency?: number | string;
-}
-
-/** One row of the workbook's cell change log: the date it took effect and both cells and locations. */
-interface WorkbookMove {
-  id: string;
-  machineId: string;
-  date: string;
-  fromCell?: string;
-  toCell?: string;
-  fromLocation?: string;
-  toLocation?: string;
-}
-
-interface WorkbookBreakdown {
-  id: string;
-  machineId: string;
-  /** The workbook writes plant dates as `DD-MM-YYYY`. */
-  date: string;
-  shift: string;
-  problem: string;
-  downMin?: number;
-  downHrs?: number;
-  respMin?: number;
-  activeMin?: number;
-  maintCode?: string;
-  electMech?: string;
-  spare1?: string;
-  correctiveAction?: string;
-  doneBy?: string;
-  supportedBy?: string;
-  observedBy?: string;
-  ticketId?: string;
-  ticketRef?: string;
-}
-
-interface Workbook {
-  machines: WorkbookMachine[];
-  convMachines: WorkbookMachine[];
-  procMachines: WorkbookMachine[];
-  utilMachines: WorkbookMachine[];
-  dgMachines: WorkbookMachine[];
-  breakdowns: WorkbookBreakdown[];
-  otherBD: WorkbookBreakdown[];
-  /** The cell/location moves the platform logged, with the location columns 0014 carries. */
-  cellChangeLog?: WorkbookMove[];
-  settings: {
-    codes: Array<{ code: string; description: string }>;
-    team: Array<{ name: string; type: string }>;
-    /** Machines left out of production data (the Robot is the platform's own default). */
-    excludedMachines?: string[];
-    /** The plant's shifts, with the wall-clock start the log date belongs to. */
-    shiftTimes: Array<{ name: string; start: string; end: string }>;
-    /** Manual problem-group fixes from the App Settings, by breakdown id. */
-    problemFix?: Record<string, string>;
-  };
-}
 
 function read<T>(name: string): T {
   const url = new URL(`../../../../fixtures/answer-key/${name}`, import.meta.url);
@@ -206,10 +130,17 @@ const personCode = (name: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-function personCodes(value: string | undefined): string[] {
+/** The coded names a workbook cell lists: comma-separated, trimmed, an empty cell naming nobody. */
+function personNames(value: string | undefined): string[] {
   if (!value) return [];
   return value
     .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
+}
+
+function personCodes(value: string | undefined): string[] {
+  return personNames(value)
     .map(personCode)
     .filter((code) => code !== '');
 }
@@ -266,15 +197,29 @@ function toReport(row: WorkbookBreakdown): ReportRow {
 /** The coded names the rows and the team settings use, never a real one. */
 function people(workbook: Workbook, rows: readonly WorkbookBreakdown[]): PersonRow[] {
   const team = new Map<string, PersonRow['team']>();
+  const names = new Map<string, string>();
+  const remember = (name: string): void => {
+    const code = personCode(name);
+    if (code !== '' && !names.has(code)) names.set(code, name.trim());
+  };
   for (const member of workbook.settings.team) {
+    remember(member.name);
     team.set(personCode(member.name), member.type === 'Vendor' ? 'vendor' : 'maintenance');
   }
   for (const row of rows) {
-    for (const code of [...personCodes(row.doneBy), ...personCodes(row.supportedBy)]) {
-      if (!team.has(code)) team.set(code, 'maintenance');
+    for (const name of [...personNames(row.doneBy), ...personNames(row.supportedBy)]) {
+      remember(name);
+      const code = personCode(name);
+      if (code !== '' && !team.has(code)) team.set(code, 'maintenance');
     }
   }
-  return [...team].map(([code, kind]) => ({ id: code, code, team: kind, active: true }));
+  return [...team].map(([code, kind]) => ({
+    id: code,
+    code,
+    displayName: names.get(code) ?? code,
+    team: kind,
+    active: true,
+  }));
 }
 
 /** The maintenance codes the rows carry; a row names one, so the list holds them. */
@@ -395,3 +340,34 @@ export interface ChecklistKey {
 
 /** The Data Checklist the platform showed for `input.json`: the open items and their per-group counts. */
 export const CHECKLIST: ChecklistKey = read<ChecklistKey>('data-checklist.json');
+
+/** One table of a breakdown figure's page, as the platform printed it. */
+export interface KeyTable {
+  title: string;
+  header: string[];
+  rows: string[][];
+  rowCount: number;
+  /** The log prints its newest rows only; `rowCount` still counts the whole log. */
+  truncated?: boolean;
+}
+
+export interface KeyFigurePage {
+  page: string;
+  title: string;
+  kpis: DashboardKpi[];
+  tables: KeyTable[];
+  charts: DashboardChart[];
+}
+
+/** One breakdown figure's printed page, whole: the values are the platform's own text, never a tolerance. */
+export interface FigureKey {
+  screen: string;
+  asOf: string;
+  pages: KeyFigurePage[];
+}
+
+/** The four breakdown figures of ticket 40, frozen on 2026-11-11 (the same workbook `ENGINE_DATA` holds). */
+export const BREAKDOWN_LOG: FigureKey = read<FigureKey>('breakdown-log.json');
+export const A1: FigureKey = read<FigureKey>('a1-bd-pm.json');
+export const A2: FigureKey = read<FigureKey>('a2-category-cell.json');
+export const A3: FigureKey = read<FigureKey>('a3-mttr-mtbf.json');

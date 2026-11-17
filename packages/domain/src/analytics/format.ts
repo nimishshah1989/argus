@@ -28,6 +28,20 @@ export function formatNumber(value: number, decimals: number): string {
   return decimals > 0 ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
 }
 
+/**
+ * The same number in the Indian grouping the breakdown figures print: the last three digits, then pairs
+ * (`5,65,692.47`, `12,34,56,789.50`). Rounding is `formatNumber`'s own, so nothing is rounded twice.
+ */
+export function formatInr(value: number, decimals: number): string {
+  const rounded = roundValue(value, decimals);
+  const [integer = '0', fraction = ''] = Math.abs(rounded).toFixed(decimals).split('.');
+  const last = integer.slice(-3);
+  const rest = integer.slice(0, -3);
+  const grouped = rest === '' ? last : `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last}`;
+  const sign = rounded < 0 ? '-' : '';
+  return decimals > 0 ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
+}
+
 /** A fraction as the platform's percentage text: `52.28%`. */
 export function formatPercent(fraction: number): string {
   return `${formatNumber(fraction * 100, 2)}%`;
