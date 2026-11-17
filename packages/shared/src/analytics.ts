@@ -228,6 +228,7 @@ export const machineDrillRowSchema = z
     assetCode: drillText,
     status: z.enum(['active', 'idle', 'scrapped']),
     criticality: z.enum(['A', 'B', 'C']).nullable(),
+    excludedFromProduction: z.boolean(),
     metadata: z.record(z.unknown()),
   })
   .strict();

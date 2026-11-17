@@ -42,6 +42,7 @@ const DRILL_ROW = {
   assetCode: null,
   status: 'active',
   criticality: 'A',
+  excludedFromProduction: false,
   metadata: {},
 };
 

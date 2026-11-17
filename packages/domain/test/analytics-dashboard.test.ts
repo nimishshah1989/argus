@@ -81,6 +81,7 @@ const extraMachine: MachineRow = {
   assetCode: null,
   status: 'active',
   criticality: null,
+  excludedFromProduction: false,
   metadata: {},
 };
 
