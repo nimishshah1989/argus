@@ -1,7 +1,9 @@
 /**
  * The audit trail as CSV (LOCK: `at,action,entity,entityId,actor,ip,before,after`). RFC-4180: fields are quoted
- * only when they hold a comma, a quote or a line break, and a quote inside is doubled. The values are the stored
- * JSON, compact, so a spreadsheet shows the same before/after the screen does.
+ * only when they hold a comma, a quote or a line break, and a quote inside is doubled. A leading `=`, `+`, `-`,
+ * `@`, tab or CR is what a spreadsheet evaluates as a formula, so every cell gets a single quote in front of it
+ * (the conventional CSV-injection guard) before quoting: a person's name is free text. The values are the
+ * stored JSON, compact, so a spreadsheet shows the same before/after the screen does.
  */
 
 export const CSV_HEADER = 'at,action,entity,entityId,actor,ip,before,after';
@@ -17,8 +19,14 @@ export interface CsvRow {
   after: unknown;
 }
 
+const RISKY = /^[=+\-@\t\r]/;
+const neutralise = (text: string): string => (RISKY.test(text) ? `'${text}` : text);
+
 const quote = (text: string): string =>
   /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+
+/** One cell: neutralised so a spreadsheet never runs it, then quoted only when RFC-4180 needs it. */
+const cell = (text: string): string => quote(neutralise(text));
 
 const json = (value: unknown): string => JSON.stringify(value ?? null);
 
@@ -40,7 +48,7 @@ export function auditCsv(rows: readonly CsvRow[], cappedAt: number | null): stri
         json(row.before),
         json(row.after),
       ]
-        .map(quote)
+        .map(cell)
         .join(','),
     );
   if (cappedAt !== null)

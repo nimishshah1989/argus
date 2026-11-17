@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A, B, startPeopleApp, type PeopleApp } from './people-harness.js';
+import { A, B, startPeopleApp, TEMP, type PeopleApp } from './people-harness.js';
 
 /**
  * The audit screen's backend (MILESTONES 20 goal 2): the page an admin and the head read, the CSV only an admin
@@ -46,6 +46,44 @@ async function person(name: string, extra: object = {}) {
   });
   expect(res.statusCode, res.body).toBe(201);
   return res.json() as { id: string; name: string };
+}
+
+async function loginFor(personId: string, username: string): Promise<string> {
+  const res = await t.call('POST', '/api/v1/logins', admin, {
+    username,
+    role: 'technician',
+    shared: false,
+    personId,
+    temporaryPassword: TEMP,
+  });
+  expect(res.statusCode, res.body).toBe(201);
+  return res.json().id as string;
+}
+
+/** The body as rows of cells per RFC-4180: quotes dropped, doubled quotes kept, CRLF between rows. */
+function parseCsv(body: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i]!;
+    if (quoted && ch === '"' && body[i + 1] === '"') {
+      cell += '"';
+      i += 1;
+    } else if (ch === '"') quoted = !quoted;
+    else if (!quoted && ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (!quoted && ch === '\r' && body[i + 1] === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+      i += 1;
+    } else cell += ch;
+  }
+  return rows;
 }
 
 /** An audit line with a known time or address, written straight in: the filter needs rows the clock cannot place. */
@@ -272,6 +310,81 @@ describe('the export', () => {
     const cell = (value: unknown) => `"${JSON.stringify(value).replace(/"/g, '""')}"`;
     expect(quoted).toContain(cell({ note: 'a,b' }));
     expect(quoted).toContain(cell({ note: 'He said "hi"' }));
+  });
+
+  it('neutralises a formula in every cell and keeps RFC-4180 quoting', async () => {
+    const evil = await person("=cmd|' /C calc'!A0");
+    const evilLogin = await loginFor(evil.id, `formula-${++n}`);
+    await insertRow({
+      action: 'person.create',
+      entity: 'person',
+      entityId: evil.id,
+      loginId: evilLogin,
+      after: { reason: '@SUM(1+1)' },
+      ip: '10.0.0.1',
+      at: '2026-11-12T09:30:00Z',
+    });
+    await insertRow({
+      action: '@SUM(1+1)',
+      entity: 'person',
+      after: { note: 'plus' },
+      ip: '-1+1',
+      at: '2026-11-12T09:31:00Z',
+    });
+    await insertRow({
+      action: '\t=1+1',
+      entity: 'person',
+      after: { note: 'tab' },
+      ip: '\r=1+1',
+      at: '2026-11-12T09:32:00Z',
+    });
+    await insertRow({
+      action: 'person.create',
+      entity: 'person',
+      loginId: adminLoginId,
+      after: { note: 'plain' },
+      ip: '10.0.0.2 "quoted"',
+      at: '2026-11-12T09:33:00Z',
+    });
+    const body = await csvBody('?area=person');
+    const rows = parseCsv(body);
+    expect(rows[0]).toEqual([
+      'at',
+      'action',
+      'entity',
+      'entityId',
+      'actor',
+      'ip',
+      'before',
+      'after',
+    ]);
+    const cells = rows.slice(1);
+    // No cell a spreadsheet would run on open: every one starts with ordinary text.
+    for (const row of cells)
+      for (const cell of row) expect(cell, JSON.stringify(cell)).not.toMatch(/^[=+\-@\t\r]/);
+    const byActor = (actor: string) => cells.find((row) => row[4] === actor)!;
+    expect(byActor("'=cmd|' /C calc'!A0")).toEqual([
+      '2026-11-12T09:30:00.000Z',
+      'person.create',
+      'person',
+      evil.id,
+      "'=cmd|' /C calc'!A0",
+      '10.0.0.1',
+      'null',
+      '{"reason":"@SUM(1+1)"}',
+    ]);
+    const byIp = (ip: string) => cells.find((row) => row[5] === ip)!;
+    expect(byIp("'-1+1")[1]).toBe("'@SUM(1+1)");
+    expect(byIp('10.0.0.2 "quoted"')[5]).toBe('10.0.0.2 "quoted"');
+    expect(body).toContain('"10.0.0.2 ""quoted"""');
+    const tabbed = cells.find((row) => row[1] === "'\t=1+1")!;
+    expect(tabbed[5]).toBe("'\r=1+1");
+    expect(body).toContain(`"'\r=1+1"`);
+    // Normal cells stay as they were, and the plain admin line reads unchanged.
+    const plain = byIp('10.0.0.2 "quoted"');
+    expect(plain[1]).toBe('person.create');
+    expect(plain[4]).toBe('Asha Admin');
+    expect(plain[7]).toBe('{"note":"plain"}');
   });
 
   it('keeps to the filters it is given', async () => {
