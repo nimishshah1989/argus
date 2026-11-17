@@ -192,3 +192,53 @@ is listed as not implemented yet".
 - `dashboard.plant-bd-pct` (0.54%, "of hours to 11 Nov"): the same denominator question.
 - `dashboard.avg-complaints-per-day` (4.11) and `dashboard.avg-bd-hours-per-day` (9.84), both "over 311 days of
   records": the workbook spans 315 days and has 256 distinct breakdown dates; 311 is not derivable (R8).
+
+## Packet 38.3 — the Dashboard screen and the head's Today (binding, after 38.1)
+
+**What is computable today:** eleven Dashboard figures (`dashboard.*` machine counts, total-breakdowns,
+total-downtime-hours, pm-hours, no-downtime-hours, avg-bd-hours-per-machine). **Held for Nimish, stay honest
+"Not computed yet":** `fleet-availability`, `plant-bd-pct`, `avg-complaints-per-day`, `avg-bd-hours-per-day`,
+`bubble-chart`, `expansion-timeline`, `data-checklist`. Never print a made-up value for those.
+
+- **Dashboard screen** (`/analytics/today`): the eleven KPIs as tiles in the platform's order (the key's order), value
+  formatted from the figure (hours to one decimal, percentages/counts as the face already formats), each tile a drill
+  link when its `drill.ids` is non-empty. The held seven render the honest placeholder through the existing
+  "Not computed yet" path.
+- **The head's and plant head's home opens on Today** (LOCK § "Analytics face": "head and plant head open on Today"):
+  after sign-in, and from the desk's home, those two roles land on `/analytics/today`; operators and technicians keep
+  their existing homes (`My complaints`, `Mine`) untouched. One role→landing map, tested.
+- **Today's "what needs me now"** strip on the same screen: open items and breached clocks from the **existing**
+  `/api/v1/state` and the SLA fields it already carries (`sla.ack`/`sla.restore` breached, `waitSince`), reusing
+  `openLists` helpers where they fit — **no new endpoint, no new query shape**, and money never appears here.
+- **Data checklist screen** (`/analytics/machines?…`? no: its own screen under the Today group): renders the
+  `data-checklist` figure's honest placeholder until 38.2 computes it; the route and the Guide entry ship now so the
+  menu is complete.
+- **Tests:** one Playwright journey — a head signs in and lands on Today, sees the eleven values from the live API (the
+  e2e tenant's small data, so assert the computed values the API returns and at least one drill opens its rows), sees
+  "Not computed yet" for a held figure, and the data checklist screen opens; a second assertion that an **operator**
+  still lands on My complaints (home unchanged). A pure unit test for the role→landing map.
+- **Not in this packet:** the two charts' rendering (no series yet), the checklist computation (38.2), any new figure.
+
+## Packet 38.3 — the Dashboard screen and the head's Today (binding, after 38.1)
+
+**Computable today:** eleven Dashboard figures (the machine counts, total-breakdowns, total-downtime-hours,
+pm-hours, no-downtime-hours, avg-bd-hours-per-machine). **Held for Nimish, stay honest "Not computed yet":**
+`fleet-availability`, `plant-bd-pct`, `avg-complaints-per-day`, `avg-bd-hours-per-day`, `bubble-chart`,
+`expansion-timeline`, `data-checklist`. Never print a made-up value for those.
+
+- **Dashboard screen** (`/analytics/today`): the eleven KPIs as tiles in the platform's key order, value formatted
+  from the figure (hours to one decimal), each tile a drill link when its `drill.ids` is non-empty; the held seven
+  render through the existing "Not computed yet" path.
+- **The head's and plant head's home opens on Today** (LOCK § "Analytics face"): after sign-in and on the desk's home
+  those two roles land on `/analytics/today`; operators and technicians keep their existing homes (`My complaints`,
+  `Mine`) untouched. One role→landing map, unit-tested.
+- **Today's "what needs me now" strip** on the same screen: open items and breached clocks from the **existing**
+  `/api/v1/state` fields (`sla.ack`/`sla.restore` breached, `waitSince`), reusing `openLists` helpers where they fit —
+  **no new endpoint**, no new query shape, and money never appears here.
+- **Data checklist screen**: its own route under the Today group, rendering the honest placeholder until 38.2 computes
+  it; the route and Guide entry ship now so the menu is complete.
+- **Tests:** one Playwright journey — a head signs in and lands on Today, sees the eleven values from the live API (the
+  e2e tenant's small data: assert what the API returns and that one drill opens its rows), sees "Not computed yet" for a
+  held figure, and opens the data checklist screen; one assertion that an **operator** still lands on My complaints. A
+  pure unit test for the role→landing map.
+- **Not in this packet:** the two charts' rendering (no series yet), the checklist computation (38.2), any new figure.
