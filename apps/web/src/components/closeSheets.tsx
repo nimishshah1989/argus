@@ -1,7 +1,8 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
-import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
-import { FormSheet } from '../patterns/form-sheet.js';
+import type { CommandBody, Config, Ticket } from '../api.js';
+import type { TaskInput } from '@uptimo/shared/tasks';
+import { FormSheet, type FormField } from '../patterns/form-sheet.js';
 import { machineLabel } from './format.js';
 
 export interface CloseSheetProps {
@@ -10,25 +11,52 @@ export interface CloseSheetProps {
   personId: string;
   pending: boolean;
   error: string | null;
-  onRun: (action: CommandAction, body: CommandBody) => Promise<boolean>;
+  onRun: (action: 'close', body: CommandBody) => Promise<boolean>;
   onClose: () => void;
 }
 
 /** The server's cap on a close note; a longer one queued offline would be refused on replay. */
 const NOTE_MAX = 2000;
+/** The server's cap on a task's words. */
+const TASK_TEXT_MAX = 300;
 
-/** The two quick closes are one text box each; both queue offline like every close. */
+/** The task a close leaves behind, if the person filled the two boxes that make one. */
+function taskOf(values: Record<string, string>): { task?: TaskInput } {
+  const text = (values.taskText ?? '').trim();
+  const reasonCode = values.taskReason ?? '';
+  if (!text || !reasonCode) return {};
+  const expectedOn = (values.taskExpectedOn ?? '').trim();
+  return { task: { text, reasonCode, ...(expectedOn ? { expectedOn } : {}) } };
+}
+
+/** The plant's own task reasons, with the ones switched off left out. */
+function reasonChoices(config: Config): { value: string; label: string }[] {
+  return (config.lists.task_reason ?? [])
+    .filter((item) => item.active !== false)
+    .map((item) => ({ value: item.code, label: item.label }));
+}
+
+const NOTE = (label: string): FormField => ({
+  name: 'note',
+  label,
+  required: true,
+  multiline: true,
+  maxLength: NOTE_MAX,
+});
+
+/** The quick closes say what happened, and (for a task) the minutes the machine stood still. */
 function CloseSheet(
   p: CloseSheetProps & {
     title: string;
     description?: string;
-    label: string;
     submit: string;
-    kind: 'no_report' | 'done';
+    fields: FormField[];
+    footnote?: string;
+    body: (values: Record<string, string>) => CommandBody;
   },
 ) {
-  const { t } = useTranslation();
   const name = p.config.people.find((person) => person.id === p.personId)?.name ?? '';
+  const { t } = useTranslation();
   return (
     <FormSheet
       open
@@ -40,13 +68,12 @@ function CloseSheet(
       submitLabel={p.submit}
       backLabel={t('closes.back')}
       actingAs={name ? t('closes.actingAs', { name }) : undefined}
-      fields={[
-        { name: 'note', label: p.label, required: true, multiline: true, maxLength: NOTE_MAX },
-      ]}
+      fields={p.fields}
+      footnote={p.footnote}
       offlineAllowed
       pending={p.pending}
       error={p.error}
-      onSubmit={(values) => p.onRun('close', { kind: p.kind, note: (values.note ?? '').trim() })}
+      onSubmit={(values) => p.onRun('close', p.body(values))}
     />
   );
 }
@@ -54,29 +81,60 @@ function CloseSheet(
 /** Close without report (S4-1): a reason, and the ticket waits under Needs report. */
 export function NoReportSheet(p: CloseSheetProps) {
   const { t } = useTranslation();
+  const reasons = reasonChoices(p.config);
+  const fields: FormField[] = [
+    NOTE(t('closes.noReport.reason')),
+    { name: 'taskText', label: t('tasks.what'), multiline: true, maxLength: TASK_TEXT_MAX },
+    ...(reasons.length
+      ? [
+          {
+            name: 'taskReason',
+            label: t('tasks.reason'),
+            kind: 'choice' as const,
+            choices: reasons,
+          },
+        ]
+      : []),
+    { name: 'taskExpectedOn', label: t('tasks.expectedLabel'), kind: 'date' as const },
+  ];
   return (
     <CloseSheet
       {...p}
-      kind="no_report"
       title={t('closes.noReport.title', { machine: machineLabel(p.ticket, p.config.machines) })}
       description={t('closes.noReport.hint')}
-      label={t('closes.noReport.reason')}
       submit={t('closes.noReport.submit')}
+      footnote={reasons.length ? t('tasks.leaveHint') : undefined}
+      fields={fields}
+      body={(values) => ({
+        kind: 'no_report',
+        note: (values.note ?? '').trim(),
+        ...taskOf(values),
+      })}
     />
   );
 }
 
-/** Mark done (S4-2): what was done on a work request. */
+/** Mark done (S4-2): what was done, and the machine-stopped minutes when this is a follow-up task. */
 export function DoneSheet(p: CloseSheetProps) {
   const { t } = useTranslation();
+  const task = p.ticket.parentId !== null;
+  const fields: FormField[] = [
+    NOTE(t('closes.done.what')),
+    ...(task ? [{ name: 'taskDownMin', label: t('tasks.stoppedMinutes'), required: true }] : []),
+  ];
   return (
     <CloseSheet
       {...p}
-      kind="done"
       title={t('closes.done.title', { what: machineLabel(p.ticket, p.config.machines) })}
       description={p.ticket.problem}
-      label={t('closes.done.what')}
       submit={t('closes.done.submit')}
+      footnote={task ? t('tasks.stoppedMinutesHint') : undefined}
+      fields={fields}
+      body={(values) => ({
+        kind: 'done',
+        note: (values.note ?? '').trim(),
+        ...(task ? { taskDownMin: Number(values.taskDownMin) } : {}),
+      })}
     />
   );
 }

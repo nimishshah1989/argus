@@ -32,6 +32,7 @@ import type {
 } from '@uptimo/shared/replies';
 import type { SlaPoliciesUpdate, SlaPolicy, SlaProjection, SlaTimer } from '@uptimo/shared/sla';
 import type { BreakdownReportBody, CommandAction, RaiseTicketBody } from '@uptimo/shared/ticket';
+import type { TaskInput } from '@uptimo/shared/tasks';
 import type {
   BreakdownReport,
   CloseKind,
@@ -208,7 +209,17 @@ export type CommandBody =
   | { personId?: string; reasonCode: string; note?: string }
   | { personId?: string; text: string }
   | { personId?: string; note: string; toPersonId?: string }
-  | { personId?: string; kind: CloseKind; at?: string; note?: string; report?: BreakdownReportBody }
+  | {
+      personId?: string;
+      kind: CloseKind;
+      at?: string;
+      note?: string;
+      report?: BreakdownReportBody;
+      /** What a close leaves behind (ticket 19): the follow-up task. */
+      task?: TaskInput;
+      /** Asked only when a follow-up task is marked done: 0 to 1440. */
+      taskDownMin?: number;
+    }
   | { personId?: string; report: BreakdownReportBody }
   | { personId?: string; reason: string }
   | { personId?: string; role: 'primary' | 'support' }
