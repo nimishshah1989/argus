@@ -1143,6 +1143,8 @@ rows:
     status: todo
     evidence:
       - fixtures/answer-key/dashboard.json
+      - 'apps/web/e2e/analytics.spec.ts :: a head lands on Today with the live figures, a drill
+        and the data checklist'
     source: docs/plan/m4a-triage.md
     screen: dashboard
     ticket: '38'

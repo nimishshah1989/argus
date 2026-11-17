@@ -8,6 +8,7 @@ import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { DrillTable } from './DrillTable.js';
 import { FigureTile } from './FigureTile.js';
+import { contentKind } from './figure-content.js';
 import { NeedsNow } from './NeedsNow.js';
 import { CHECKLIST_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
 
@@ -58,11 +59,19 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
           </Link>
         </div>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((figure) => (
-            <li key={figure.key}>
-              <FigureTile figure={figure} group={group} />
-            </li>
-          ))}
+          {list.map((figure) => {
+            const kind = contentKind(figure);
+            return (
+              <li
+                key={figure.key}
+                className={
+                  kind !== null && kind !== 'text' ? 'sm:col-span-2 lg:col-span-3' : undefined
+                }
+              >
+                <FigureTile figure={figure} group={group} />
+              </li>
+            );
+          })}
         </ul>
       </section>
     </Stack>
