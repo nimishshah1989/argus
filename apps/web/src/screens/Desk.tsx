@@ -15,9 +15,7 @@ import {
 import { actorFrom } from '../components/actionSpecs.js';
 import { formatTime, peopleNames } from '../components/format.js';
 import { useCommand } from '../data/index.js';
-import { AccountSheet } from '../components/AccountSheet.js';
 import { Drafts } from '../components/Drafts.js';
-import { NotificationsToggle } from '../components/NotificationsToggle.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Banner } from '../ui/banner.js';
 import { Loading, Skeleton } from '../ui/loading.js';
@@ -123,10 +121,8 @@ export function Desk({ view }: { view: DeskView }) {
     >
       <div className="flex items-center justify-end gap-2">
         <SettingsLink role={user?.role} />
-        <AccountSheet />
       </div>
       <OfflineBanner />
-      <NotificationsToggle />
       <Drafts />
       {error ? <Banner tone="error" title={error} /> : null}
       {view === 'open' && wide ? <TwoPane list={body} ticketId={id} /> : body}

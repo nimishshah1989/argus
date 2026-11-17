@@ -1,6 +1,6 @@
 import { gu } from '@uptimo/shared/i18n';
 import { afterEach, describe, expect, it } from 'vitest';
-import i18n, { setLanguage } from './index.js';
+import i18n, { pickLanguage, setLanguage } from './index.js';
 
 describe('i18n catalogue', () => {
   afterEach(() => setLanguage('en'));
@@ -17,5 +17,23 @@ describe('i18n catalogue', () => {
     const shown = i18n.t('floor.title');
     expect(shown).toBe(gu['floor.title']);
     expect(shown).not.toBe('Report a problem');
+  });
+});
+
+describe('pickLanguage', () => {
+  it('uses the company language until the person picks one on this phone', () => {
+    expect(pickLanguage(null, 'gu')).toBe('gu');
+    expect(pickLanguage(null, undefined)).toBe('en');
+  });
+
+  it('keeps the phone own choice over the company default', () => {
+    expect(pickLanguage('en', 'gu')).toBe('en');
+    expect(pickLanguage('gu', 'en')).toBe('gu');
+  });
+
+  it('falls back to the company default for a language it does not know', () => {
+    expect(pickLanguage('fr', 'gu')).toBe('gu');
+    expect(pickLanguage('fr', 'en')).toBe('en');
+    expect(pickLanguage('fr', undefined)).toBe('en');
   });
 });

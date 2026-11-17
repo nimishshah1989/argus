@@ -22,16 +22,40 @@ export function setLanguage(lng: Language): Promise<void> {
   });
 }
 
+const LANGUAGE_KEY = 'uptimo.language';
+
+/** A language the person picked on this phone wins over the company's default; an unknown value falls back to it. */
+export function pickLanguage(saved: string | null, company: string | undefined): Language {
+  const known = (value: string | null | undefined): Language | undefined =>
+    SUPPORTED_LANGUAGES.find((lng) => lng === value);
+  return known(saved) ?? known(company) ?? 'en';
+}
+
+function savedLanguage(): string | null {
+  try {
+    return localStorage.getItem(LANGUAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** The account sheet's language choice: applied now and kept for this phone. */
+export function chooseLanguage(lng: Language): Promise<void> {
+  try {
+    localStorage.setItem(LANGUAGE_KEY, lng);
+  } catch {
+    // Private browsing: the choice lasts until the page reloads.
+  }
+  return setLanguage(lng);
+}
+
 /** Read the tenant language from `/config` and apply it (defaults to `en`). */
 export function applyConfigLanguage(): void {
   // Skip when not signed in: an unauthenticated getConfig would 401 → redirect to /login and
   // loop on the sign-in screen.
   if (!getToken()) return;
   getConfig()
-    .then((config) => {
-      if (config.language === 'gu') void setLanguage('gu');
-      else void setLanguage('en');
-    })
+    .then((config) => void setLanguage(pickLanguage(savedLanguage(), config.language)))
     .catch(() => undefined);
 }
 

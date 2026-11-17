@@ -109,6 +109,16 @@ export async function disablePush(): Promise<void> {
   localStorage.removeItem(BOUND_PERSON_KEY);
 }
 
+/** Sends one test alert to this person's phones; true only when the server says a phone took it. */
+export async function sendTestPush(): Promise<boolean> {
+  try {
+    const reply = await push.create<{ sent: number }>({}, { id: 'test' });
+    return reply.sent > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function getPushState(): Promise<PushState> {
   if (!hasPushSupport()) return 'unsupported';
   if (Notification.permission === 'denied') return 'denied';

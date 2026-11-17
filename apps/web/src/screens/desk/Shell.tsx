@@ -1,12 +1,23 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
 import { SyncStatus } from '../../patterns/sync-status.js';
 import { useWide } from '../../patterns/wide.js';
 import { CirclePlus, LayoutGrid, Lock, Menu, Users, Wrench } from '../../ui/icon.js';
 import { SideNav } from '../../ui/side-nav.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { TopBar } from '../../ui/top-bar.js';
+
+function TopTrailing({ person }: { person: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <SyncStatus />
+      {person}
+    </div>
+  );
+}
 
 export type DeskView = 'open' | 'mine' | 'team';
 
@@ -43,6 +54,16 @@ export function useSystemTheme(alwaysDark = false): void {
 }
 
 /** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */
+function deskTabs(t: TFunction, badge: number) {
+  return [
+    { to: '/desk', label: t('desk.tab.open'), icon: Menu, badge },
+    { to: '/desk/mine', label: t('desk.tab.mine'), icon: Wrench },
+    { to: '/desk/team', label: t('desk.tab.team'), icon: Users },
+    { to: '/floor', label: t('deskLists.tab.report'), icon: CirclePlus },
+    { to: '/desk/board', label: t('deskLists.tab.live'), icon: LayoutGrid },
+  ];
+}
+
 export function DeskFrame({
   title,
   subtitle,
@@ -59,20 +80,28 @@ export function DeskFrame({
   const { t } = useTranslation();
   const wide = useWide();
   useSystemTheme();
-  const tabs = [
-    { to: '/desk', label: t('desk.tab.open'), icon: Menu, badge },
-    { to: '/desk/mine', label: t('desk.tab.mine'), icon: Wrench },
-    { to: '/desk/team', label: t('desk.tab.team'), icon: Users },
-    { to: '/floor', label: t('deskLists.tab.report'), icon: CirclePlus },
-    { to: '/desk/board', label: t('deskLists.tab.live'), icon: LayoutGrid },
-  ];
+  const tabs = deskTabs(t, badge);
   const here = current === 'open' ? '/desk' : `/desk/${current}`;
-  const top = <TopBar title={title} subtitle={subtitle} trailing={<SyncStatus />} />;
+  const [account, setAccount] = useState(false);
+  const person = <AccountButton named={wide} onClick={() => setAccount(true)} />;
+  const top = (
+    <TopBar
+      title={title}
+      subtitle={subtitle}
+      trailing={<TopTrailing person={wide ? null : person} />}
+    />
+  );
+  const sheet = <AccountSheet open={account} onOpenChange={setAccount} />;
   if (wide)
     return (
       <div className="flex min-h-dvh bg-neutral-100 text-neutral-900">
         <div className="sticky top-0 h-dvh">
-          <SideNav label={t('deskLists.tabs')} groups={[{ items: tabs }]} current={here} />
+          <SideNav
+            label={t('deskLists.tabs')}
+            groups={[{ items: tabs }]}
+            current={here}
+            footer={person}
+          />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           {top}
@@ -80,6 +109,7 @@ export function DeskFrame({
             {children}
           </main>
         </div>
+        {sheet}
       </div>
     );
   return (
@@ -87,6 +117,7 @@ export function DeskFrame({
       {top}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">{children}</main>
       <TabBar label={t('deskLists.tabs')} tabs={tabs} current={here} />
+      {sheet}
     </div>
   );
 }

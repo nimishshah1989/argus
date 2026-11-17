@@ -50,6 +50,8 @@ import { plantEn } from './plant.en.js';
 import { plantGu } from './plant.gu.js';
 import { lockoutEn } from './lockout.en.js';
 import { lockoutGu } from './lockout.gu.js';
+import { accountEn } from './account.en.js';
+import { accountGu } from './account.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -79,6 +81,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   signoff: signoffEn,
   plant: plantEn,
   lockout: lockoutEn,
+  account: accountEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -109,6 +112,7 @@ export const en = {
   ...signoffEn,
   ...plantEn,
   ...lockoutEn,
+  ...accountEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -141,4 +145,5 @@ export const gu = {
   ...signoffGu,
   ...plantGu,
   ...lockoutGu,
+  ...accountGu,
 };

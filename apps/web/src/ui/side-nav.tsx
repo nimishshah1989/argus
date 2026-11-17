@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { IconComponent } from './icon.js';
 
@@ -53,10 +53,13 @@ export function SideNav({
   label,
   groups,
   current,
+  footer,
 }: {
   label: string;
   groups: NavGroup[];
   current: string;
+  /** Pinned to the foot of the menu: the signed-in person's button. */
+  footer?: ReactNode;
 }) {
   return (
     <nav
@@ -66,6 +69,7 @@ export function SideNav({
       {groups.map((group, index) => (
         <Group key={group.title ?? index} {...group} current={current} />
       ))}
+      {footer ? <div className="mt-auto border-t border-neutral-200 pt-2">{footer}</div> : null}
     </nav>
   );
 }

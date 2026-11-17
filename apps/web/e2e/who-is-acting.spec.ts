@@ -277,3 +277,59 @@ test('a wrong current password answered 422 for "old" also keeps the phone signe
   expect(await page.evaluate(() => localStorage.getItem('uptimo_token'))).not.toBeNull();
   expect(logged).toEqual([]);
 });
+
+/** A phone that already allows alerts and holds a subscription: On is reachable and sign-out can turn it off. */
+async function withAlertsOn(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __push: string[] };
+    w.__push = [];
+    Object.defineProperty(window, 'PushManager', { value: function PushManager() {} });
+    Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+    const subscription = {
+      endpoint: 'https://fcm.googleapis.com/fcm/send/e2e-who',
+      toJSON: () => ({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/e2e-who',
+        keys: { p256dh: 'e2e-key', auth: 'e2e-auth' },
+      }),
+      unsubscribe: async () => {
+        w.__push.push('unsubscribe');
+        return true;
+      },
+    };
+    const registration = { pushManager: { getSubscription: async () => subscription } };
+    Object.defineProperty(navigator.serviceWorker, 'getRegistration', {
+      value: async () => registration,
+    });
+  });
+}
+
+test('leaving the who step asks first and stops alerts before the session ends', async ({
+  page,
+}) => {
+  const order: string[] = [];
+  await page.route('**/api/v1/push/unsubscribe', async (route) => {
+    order.push('unsubscribe');
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+  });
+  await page.route('**/api/v1/auth/logout', async (route) => {
+    order.push('logout');
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+  });
+  await withAlertsOn(page);
+  await signInShared(page);
+  await expect(page.getByRole('heading', { name: 'Who is using this phone?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByText('Sign out of this phone?')).toBeVisible();
+  await expect(page.getByText('Alerts stop on this phone.')).toBeVisible();
+  await page.getByRole('button', { name: 'Go back' }).click();
+  await expect(page.getByRole('heading', { name: 'Who is using this phone?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  expect(order).toEqual(['unsubscribe', 'logout']);
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __push: string[] }).__push.includes('unsubscribe'),
+    ),
+  ).toBe(true);
+});
