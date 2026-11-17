@@ -39,16 +39,12 @@ async function seedRows(admin: Pool, id: string, options: { policies: boolean })
   });
   for (const [name, personId] of Object.entries(people)) {
     const production = name === 'rina';
-    await admin.query(
-      'INSERT INTO person (id, tenant_id, name, team, kind) VALUES ($1, $2, $3, $4, $5)',
-      [
-        personId,
-        id,
-        name,
-        production ? 'production' : 'maintenance',
-        production ? 'production' : 'staff',
-      ],
-    );
+    await admin.query('INSERT INTO person (id, tenant_id, name, team) VALUES ($1, $2, $3, $4)', [
+      personId,
+      id,
+      name,
+      production ? 'production' : 'maintenance',
+    ]);
     await admin.query(
       `INSERT INTO login (tenant_id, person_id, username, password_hash, role, shared)
        VALUES ($1, $2, $3, $4, $5, false)`,

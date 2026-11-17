@@ -33,7 +33,7 @@ export const figuresSchema = z
   .strict();
 export type Figures = z.infer<typeof figuresSchema>;
 
-/** The 47 keys `ticketProjection` emits; accountability's `sla` part is added in replies.ts. */
+/** The 46 keys `ticketProjection` emits; accountability's `sla` part is added in replies.ts. */
 export const ticketSchema = z
   .object({
     id: z.string(),
@@ -52,8 +52,6 @@ export const ticketSchema = z
     closeNote: str,
     taskReason: str,
     taskExpectedOn: str,
-    /** Retired (ticket 29): the policy is found by severity. Always absent; dropped from the contract with the column in M4a. */
-    slaPolicyId: str.optional(),
     location: str,
     workType: str,
     problemLang: str,

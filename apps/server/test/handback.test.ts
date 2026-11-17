@@ -77,10 +77,10 @@ beforeAll(async () => {
     [MACHINE, A, MACHINE_NO_CELL],
   );
   await admin.query(
-    `INSERT INTO person (id, tenant_id, name, team, kind) VALUES
-      ($2, $1, 'Rina', 'production', 'production'), ($3, $1, 'Lal', 'maintenance', 'staff'),
-      ($4, $1, 'Sana', 'maintenance', 'staff'), ($5, $1, 'Floor Two', 'production', 'production'),
-      ($6, $1, 'Out', 'production', 'production')`,
+    `INSERT INTO person (id, tenant_id, name, team) VALUES
+      ($2, $1, 'Rina', 'production'), ($3, $1, 'Lal', 'maintenance'),
+      ($4, $1, 'Sana', 'maintenance'), ($5, $1, 'Floor Two', 'production'),
+      ($6, $1, 'Out', 'production')`,
     [A, REPORTER, LEAD, SUPER, FLOOR2, OUTSIDER],
   );
   await admin.query(

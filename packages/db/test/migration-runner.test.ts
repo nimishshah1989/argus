@@ -61,6 +61,14 @@ const ARTIFACTS: Record<string, string> = {
                 WHERE table_name = 'person' AND column_name = 'erasure_name_hash')
     AND to_regprocedure('erase_person(uuid,uuid,text,text,text,text)') IS NOT NULL
     AND to_regprocedure('erase_person(uuid,uuid,text,text)') IS NULL AS installed`,
+  '0014_m4a_schema.sql': `SELECT to_regclass('public.kpi_snapshot') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'list_item' AND column_name = 'aliases')
+    AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'person_erased_scrubs_notes')
+    AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'person' AND column_name = 'kind')
+    AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'ticket' AND column_name IN ('sla_policy_id', 'handback_status')) AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';
@@ -132,11 +140,14 @@ async function ledger(pool: Pool): Promise<string[]> {
 }
 
 /**
- * Reverting 0009 on a fully migrated database needs 0013 reverted first: 0013 replaced `erase_person` with a
- * six-argument version, and 0009's revert drops the four-argument one. 0013 is forgotten by the ledger so the next
- * run applies it again.
+ * Reverting 0009 on a fully migrated database needs 0014 and 0013 reverted first, newest first: 0014's trigger watches
+ * `person.erasure_hash`, which 0013's revert drops, and 0013 replaced `erase_person` with a six-argument version while
+ * 0009's revert drops the four-argument one. Both are forgotten by the ledger so the next run applies them again.
  */
 async function revertBatch1(pool: Pool): Promise<void> {
+  await pool.query(
+    readFileSync(new URL('../migrations/down/0014_m4a_schema.down.sql', import.meta.url), 'utf8'),
+  );
   await pool.query(
     readFileSync(new URL('../migrations/down/0013_batch1.down.sql', import.meta.url), 'utf8'),
   );
@@ -593,6 +604,24 @@ it('runs every migration as a non-superuser database owner', async () => {
         "SELECT audit_purge(now() - interval '4 years', 'agent-test') AS purged",
       );
       expect(Number(purged.rows[0].purged)).toBe(0);
+      // The production revert path: 0014's revert, run as the same non-superuser owner, with row security forced.
+      await pool.query(
+        readFileSync(
+          new URL('../migrations/down/0014_m4a_schema.down.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+      await expectInstalled(pool, '0014_m4a_schema.sql', false);
+      // The down file alone forgets its ledger row, so the runner applies 0014 again and does not sit pre-0014.
+      expect(await ledger(pool)).not.toContain('0014_m4a_schema.sql');
+      const forced = await pool.query(
+        `SELECT relname FROM pg_class WHERE relname IN ('person', 'ticket', 'audit_log', 'sla_policy')
+           AND NOT relforcerowsecurity`,
+      );
+      expect(forced.rows).toEqual([]);
+      const reapplied = await runMigration(url.toString());
+      expect(reapplied.stdout).toContain('applied 0014_m4a_schema.sql');
+      await expectInstalled(pool, '0014_m4a_schema.sql', true);
     } finally {
       await endPool(pool);
     }
@@ -632,8 +661,10 @@ it('goes up, down and up again', async () => {
     const tags = "SELECT to_regclass('public.ticket_tag') IS NOT NULL AS exists";
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
+    await expectInstalled(pool, '0014_m4a_schema.sql', true);
 
     await revertBatch1(pool);
+    await expectInstalled(pool, '0014_m4a_schema.sql', false);
     await pool.query(
       readFileSync(
         new URL('../migrations/down/0009_history_cannot_be_lost.down.sql', import.meta.url),
@@ -650,6 +681,7 @@ it('goes up, down and up again', async () => {
     expect(await ledger(pool)).toEqual(FILES);
     expect((await pool.query(privilege)).rows[0].can_delete).toBe(false);
     expect((await pool.query(tags)).rows[0].exists).toBe(false);
+    await expectInstalled(pool, '0014_m4a_schema.sql', true);
   });
 }, 180_000);
 

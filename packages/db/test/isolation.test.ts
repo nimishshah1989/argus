@@ -15,7 +15,7 @@ const D17_TABLES = [
 const DATED_TABLES: Record<string, string> = {};
 
 const ROUTER_TABLES =
-  'person login session push_subscription ticket ticket_event work_segment crew_member breakdown_report breakdown_report_person file import_batch import_row audit_log command_idempotency sla_policy ai_suggestion'.split(
+  'person login session push_subscription ticket ticket_event work_segment crew_member breakdown_report breakdown_report_person file import_batch import_row audit_log command_idempotency sla_policy ai_suggestion setting'.split(
     ' ',
   );
 

@@ -204,10 +204,10 @@ export async function seedSyntheticTenant(pool: Pool): Promise<void> {
     [ids.machine, ids.tenant],
   );
   await pool.query(
-    `INSERT INTO person (id, tenant_id, name, team, kind) VALUES
-       ($1, $4, 'Asha', 'maintenance', 'staff'),
-       ($2, $4, 'Bina', 'maintenance', 'staff'),
-       ($3, $4, 'Synthetic Vendor', 'vendor', 'vendor')`,
+    `INSERT INTO person (id, tenant_id, name, team) VALUES
+       ($1, $4, 'Asha', 'maintenance'),
+       ($2, $4, 'Bina', 'maintenance'),
+       ($3, $4, 'Synthetic Vendor', 'vendor')`,
     [ids.asha, ids.bina, ids.vendor, ids.tenant],
   );
   await pool.query(
