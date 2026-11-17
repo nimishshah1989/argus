@@ -154,7 +154,6 @@ function CrudTable<Row extends CrudRow>(p: {
                 {t(f.labelKey)}
               </th>
             ))}
-            {}
             <th
               scope="col"
               className="p-2 font-medium text-neutral-600 lg:p-3 lg:text-caption lg:font-semibold"
@@ -371,7 +370,6 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
     isEmpty: c.items.length === 0,
     error: c.list.error,
   });
-  const row = c.sheet?.row ?? null;
   const ctx: CrudCtx = { lookups: c.lookups, t, timeZone: config.data?.timeZone };
   const nameOf = (r: Row) => spec.look?.(r, ctx).title ?? c.valuesOf(r)[spec.fields[0]!.name] ?? '';
   const add = t(spec.addKey ?? 'kit.crud.add');
@@ -391,7 +389,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
           spec={spec}
           c={c}
           ctx={ctx}
-          title={row ? t('kit.crud.editTitle', { name: nameOf(row) }) : add}
+          title={c.sheet.row ? t('kit.crud.editTitle', { name: nameOf(c.sheet.row) }) : add}
         />
       ) : null}
       <SwitchSheet spec={spec} c={c} name={c.switch.row ? nameOf(c.switch.row) : ''} />
