@@ -61,7 +61,7 @@ export const featuresSchema = z.record(z.boolean());
  */
 export const i18nOverridesSchema = z
   .record(z.string().min(1).max(200), z.string().trim().min(1).max(500))
-  .refine((overrides) => Object.keys(overrides).every((key) => key in en), {
+  .refine((overrides) => Object.keys(overrides).every((key) => Object.hasOwn(en, key)), {
     message: 'Unknown message key',
   });
 export type I18nOverrides = Record<string, string>;

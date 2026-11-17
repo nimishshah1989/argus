@@ -202,6 +202,10 @@ describe('settings and config', () => {
       value: { 'not.a.key': 'કંઈ નહીં' },
     });
     expect(unknown.statusCode).toBe(422);
+    const inherited = await req('PUT', '/api/v1/settings/i18n.overrides', token, {
+      value: { toString: 'કંઈ નહીં' },
+    });
+    expect(inherited.statusCode).toBe(422);
     const tech = await loginAs('tech');
     const forbiddenWrite = await req('PUT', '/api/v1/settings/i18n.overrides', tech, {
       value: { 'plant.menu.machines': 'મશીન' },

@@ -8,7 +8,7 @@ export type UiOverrides = Record<string, string>;
 export function overlaidGu<T extends Record<string, string>>(gu: T, overrides: UiOverrides): T {
   const out = { ...gu };
   for (const [key, value] of Object.entries(overrides)) {
-    if (key in out && typeof value === 'string' && value.trim() !== '')
+    if (Object.hasOwn(out, key) && typeof value === 'string' && value.trim() !== '')
       out[key as keyof T] = value as T[keyof T];
   }
   return out;
