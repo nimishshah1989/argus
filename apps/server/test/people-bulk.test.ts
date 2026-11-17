@@ -60,13 +60,19 @@ async function trail(entityId: string) {
        WHERE tenant_id = $1 AND entity_id = $2 ORDER BY at, id`,
       [A, entityId],
     )
-  ).rows as { action: string; before: Record<string, unknown> | null; after: Record<string, unknown> }[];
+  ).rows as {
+    action: string;
+    before: Record<string, unknown> | null;
+    after: Record<string, unknown>;
+  }[];
   return rows;
 }
 
 const newestSession = async (loginId: string): Promise<string> => {
   const row = (
-    await t.db.admin.query('SELECT max(created_at) AS at FROM session WHERE login_id = $1', [loginId])
+    await t.db.admin.query('SELECT max(created_at) AS at FROM session WHERE login_id = $1', [
+      loginId,
+    ])
   ).rows[0];
   return (row.at as Date).toISOString();
 };
@@ -142,7 +148,10 @@ describe('switching a person off with a reason', () => {
     expect(update!.after).not.toHaveProperty('reason');
 
     await t.call('PUT', `${PEOPLE}/${person.id}`, admin, { active: false });
-    const on = await t.call('PUT', `${PEOPLE}/${person.id}`, admin, { active: true, reason: 'back' });
+    const on = await t.call('PUT', `${PEOPLE}/${person.id}`, admin, {
+      active: true,
+      reason: 'back',
+    });
     expect(on.statusCode, on.body).toBe(200);
     const switchOn = (await trail(person.id)).find((r) => r.action === 'person.switch_on');
     expect(switchOn!.after).not.toHaveProperty('reason');
@@ -165,14 +174,18 @@ describe('signing a person out of every device', () => {
   it('ends every session of that person, replies with the count and audits the reason', async () => {
     const person = await makePerson();
     const login = await makeLogin(person.id);
-    const first = (await t.call('POST', '/api/v1/auth/login', undefined, {
-      username: login.username,
-      password: TEMP,
-    })).json().token as string;
-    const second = (await t.call('POST', '/api/v1/auth/login', undefined, {
-      username: login.username,
-      password: TEMP,
-    })).json().token as string;
+    const first = (
+      await t.call('POST', '/api/v1/auth/login', undefined, {
+        username: login.username,
+        password: TEMP,
+      })
+    ).json().token as string;
+    const second = (
+      await t.call('POST', '/api/v1/auth/login', undefined, {
+        username: login.username,
+        password: TEMP,
+      })
+    ).json().token as string;
 
     const res = await t.call('POST', `${PEOPLE}/${person.id}/sign-out`, admin, {
       reason: 'Phone lost on site',
@@ -190,7 +203,10 @@ describe('signing a person out of every device', () => {
   it('leaves everyone else signed in', async () => {
     const person = await makePerson();
     await makeLogin(person.id);
-    expect((await t.call('POST', `${PEOPLE}/${person.id}/sign-out`, admin, { reason: 'Tidy up' })).statusCode).toBe(200);
+    expect(
+      (await t.call('POST', `${PEOPLE}/${person.id}/sign-out`, admin, { reason: 'Tidy up' }))
+        .statusCode,
+    ).toBe(200);
     expect((await t.call('GET', PEOPLE, admin)).statusCode).toBe(200);
   });
 
@@ -207,21 +223,28 @@ describe('signing a person out of every device', () => {
     const person = await makePerson();
     for (const role of ROLES) {
       const token = await t.signIn(role);
-      const res = await t.call('POST', `${PEOPLE}/${person.id}/sign-out`, token, { reason: 'nope' });
+      const res = await t.call('POST', `${PEOPLE}/${person.id}/sign-out`, token, {
+        reason: 'nope',
+      });
       expect(res.statusCode, role).toBe(403);
     }
   });
 
   it('answers 404 to an unknown person, and to another customer’s', async () => {
     expect(
-      (await t.call('POST', `${PEOPLE}/10000000-0000-4000-8000-0000000000ff/sign-out`, admin, { reason: 'x' }))
-        .statusCode,
+      (
+        await t.call('POST', `${PEOPLE}/10000000-0000-4000-8000-0000000000ff/sign-out`, admin, {
+          reason: 'x',
+        })
+      ).statusCode,
     ).toBe(404);
-    expect((await t.call('POST', `${PEOPLE}/not-a-uuid/sign-out`, admin, { reason: 'x' })).statusCode).toBe(404);
+    expect(
+      (await t.call('POST', `${PEOPLE}/not-a-uuid/sign-out`, admin, { reason: 'x' })).statusCode,
+    ).toBe(404);
     const bAdmin = await t.signIn('b-admin', 'plant-two.localhost');
     const mine = await makePerson();
     expect(
-      (await t.call('POST', `${PEOPLE}/${mine.id}/sign-out`, bAdmin, { reason: 'x' })).statusCode,
+      (await t.callB('POST', `${PEOPLE}/${mine.id}/sign-out`, bAdmin, { reason: 'x' })).statusCode,
     ).toBe(404);
   });
 
@@ -235,7 +258,10 @@ describe('signing a person out of every device', () => {
     expect(patch.statusCode).toBe(404);
     // The loop's own calls still work, each audited.
     const person = await makePerson();
-    const res = await t.call('PUT', `${PEOPLE}/${person.id}`, admin, { active: false, reason: 'Left' });
+    const res = await t.call('PUT', `${PEOPLE}/${person.id}`, admin, {
+      active: false,
+      reason: 'Left',
+    });
     expect(res.statusCode, res.body).toBe(200);
   });
 });
