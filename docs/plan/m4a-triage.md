@@ -1,6 +1,8 @@
 # M4a triage: which of Bhavin's screens we keep
 
-Ruling (backend lane, 14 Nov 2026, for Nimish): this list is **proposed from Bhavin's 11 November platform and workbook**, not agreed with him. The triage with Bhavin (N12) comes later and does not block building. If he changes a verdict, the cost is in the last column. Answer-key fixtures are in `fixtures/answer-key/` and are read by tickets 38 to 45; the parity check reads the table below.
+**Signed off by Nimish, 16 Nov 2026** ("that's the right set of screens"): 32 KEPT, 6 DROPPED because tickets already do that job, 1 DEFERRED. The triage with Bhavin (N12) still comes later and can change a verdict at the per-row cost below.
+
+Ruling (backend lane, 14 Nov 2026, for Nimish): this list was **proposed from Bhavin's 11 November platform and workbook**. The triage with Bhavin (N12) comes later and does not block building. If he changes a verdict, the cost is in the last column. Answer-key fixtures are in `fixtures/answer-key/` and are read by tickets 38 to 45; the parity check reads the table below.
 
 **How the key was made.** `tools/answer-key/generate.ts` opens the 11 Nov platform in a headless browser, loads the 11 Nov workbook through the platform's own restore code, freezes the date at 11 Nov 2026 and records what each screen shows. Check: the platform's A1 to A4 figures equal the workbook's own "Analytics 1 to 4" sheets (a test reads both). The HTML's built-in data stops at 31 Oct (1,283 rows), so it is not used; the workbook has 1,350 breakdown rows. Names and phones are coded `Person NN` and `+9199999NNNNN` by the existing pseudonymiser; machines, codes, faults and timings are real.
 
