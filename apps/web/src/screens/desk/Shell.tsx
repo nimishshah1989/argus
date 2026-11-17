@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
+import { DESK_ROLES } from '../../roles.js';
 import { SyncStatus } from '../../patterns/sync-status.js';
 import { useWide } from '../../patterns/wide.js';
 import { CirclePlus, LayoutGrid, Lock, Menu, Users, Wrench } from '../../ui/icon.js';
@@ -21,9 +22,9 @@ function TopTrailing({ person }: { person: ReactNode }) {
 
 export type DeskView = 'open' | 'mine' | 'team';
 
-const DESK = ['technician', 'supervisor', 'head', 'plant_head', 'admin'];
+const DESK: readonly string[] = DESK_ROLES;
 /** DOMAIN §3: Mine is for people who work tickets; the plant head sees Open and Team only. */
-const MAY_OPEN: Record<DeskView, string[]> = {
+const MAY_OPEN: Record<DeskView, readonly string[]> = {
   open: DESK,
   mine: DESK.filter((role) => role !== 'plant_head'),
   team: DESK,

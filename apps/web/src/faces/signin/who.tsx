@@ -12,6 +12,7 @@ import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
 import { ensurePushBinding } from '../../push.js';
 import { replayOutbox } from '../../offline/replay.js';
+import { landingPath } from '../../roles.js';
 import { Notice } from './parts.js';
 
 /** "Signed in as" the login, and that it is a shared phone. */
@@ -73,14 +74,14 @@ export function Who() {
       setError(t('signin.chooseName'));
       return false;
     }
-    await getMe();
+    const me = await getMe();
     // A shared phone that already allows alerts follows the person now using it, and only them.
     await ensurePushBinding(personId).catch(() => undefined);
     // What this person queued earlier on this phone goes now (review of PR 225); others' stays held.
     await replayOutbox().catch(() => undefined);
     for (const key of ['me', 'config', 'state', 'tickets'])
       await queryClient.invalidateQueries({ queryKey: [key] });
-    navigate('/floor');
+    navigate(landingPath(me.user.role));
     return false;
   }
   const leave = () => setConfirming(true);
