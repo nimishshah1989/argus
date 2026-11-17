@@ -75,10 +75,18 @@ export const companySections = (
   { titleKey: 'company.features', fields: fields.filter((field) => field.kind === 'flag') },
 ];
 
+/** The stored `features` record, unknown keys and all: the server keeps an open record the screen does not own. */
+export function storedFeatures(rows: readonly SettingRow[]): Record<string, unknown> {
+  const value = rows.find((row) => row.key === 'features')?.value;
+  return typeof value === 'object' && value !== null
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
 /** The rows of `GET /settings` as the form's values. */
 export function companyValues(rows: readonly SettingRow[]): CompanyValues {
   const stored = (key: string) => rows.find((row) => row.key === key)?.value;
-  const features = (stored('features') ?? {}) as Record<string, unknown>;
+  const features = storedFeatures(rows);
   return Object.fromEntries(
     COMPANY_FIELDS.map((field) => [
       field.id,
@@ -88,7 +96,11 @@ export function companyValues(rows: readonly SettingRow[]): CompanyValues {
 }
 
 /** One PUT per changed detail, and the whole `features` record once when any switch moved. */
-export function companyChanges(original: CompanyValues, draft: CompanyValues): CompanyChange[] {
+export function companyChanges(
+  original: CompanyValues,
+  draft: CompanyValues,
+  stored: Record<string, unknown>,
+): CompanyChange[] {
   const changes: CompanyChange[] = [];
   for (const field of COMPANY_FIELDS) {
     if (field.kind === 'flag') continue;
@@ -100,7 +112,11 @@ export function companyChanges(original: CompanyValues, draft: CompanyValues): C
   if (flags.some((field) => (original[field.id] ?? '') !== (draft[field.id] ?? ''))) {
     changes.push({
       key: 'features',
-      value: Object.fromEntries(flags.map((field) => [field.feature!, draft[field.id] === 'true'])),
+      // The server owns keys this screen does not show (a login's temporary password): keep them under the switches.
+      value: {
+        ...stored,
+        ...Object.fromEntries(flags.map((field) => [field.feature!, draft[field.id] === 'true'])),
+      },
     });
   }
   return changes;

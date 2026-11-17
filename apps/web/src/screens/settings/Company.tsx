@@ -13,6 +13,7 @@ import {
   companyChanges,
   companySections,
   companyValues,
+  storedFeatures,
   type CompanyField,
   type SettingRow,
 } from './company-spec.js';
@@ -220,8 +221,9 @@ function CompanyForm({ rows }: { rows: SettingRow[] }) {
   const [saved, setSaved] = useState(false);
   const [failed, setFailed] = useState(false);
   const stored = companyValues(rows);
+  const features = storedFeatures(rows);
   const values = draft ?? stored;
-  const changes = draft ? companyChanges(stored, draft) : [];
+  const changes = draft ? companyChanges(stored, draft, features) : [];
   const missing = COMPANY_FIELDS.some(
     (field) => field.required && (values[field.id] ?? '').trim() === '',
   );
