@@ -128,7 +128,49 @@ jobs:
       - name: Install Chromium
         if: steps.paths.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
+      - run: >-
+          pnpm exec vitest run --shard=${{ matrix.shard }}/3
+          --exclude apps/server/test/import-cli.test.ts
+          --exclude apps/server/test/import-real.test.ts
+          --exclude apps/server/test/import-integration.test.ts
+        if: steps.paths.outputs.run == 'true'
+
+  imports:
+    # The three import files each boot the same Postgres container and only change with the import path or
+    # the workbook, so they run once here instead of once per shard. No sharding: they share the containers.
+    needs: changes
+    if: ${{ !github.event.pull_request.draft && needs.changes.outputs.server == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: paths
+        # Prose-only PRs (plans, designs, decisions, wiki, changelog, agent skills) skip the install and the
+        # tests; the job still reports, so required checks stay green.
+        run: |
+          run=true
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if ! git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Evq '^(docs/|wiki/|changes/|\.claude/|[^/]+\.md$)'; then run=false; fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        if: steps.paths.outputs.run == 'true'
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        if: steps.paths.outputs.run == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.paths.outputs.run == 'true'
+      - run: >-
+          pnpm exec vitest run
+          apps/server/test/import-cli.test.ts
+          apps/server/test/import-real.test.ts
+          apps/server/test/import-integration.test.ts
         if: steps.paths.outputs.run == 'true'
 
   browser:
