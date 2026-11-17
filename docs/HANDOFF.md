@@ -4,9 +4,10 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 ## RESUME HERE (M2 gate, 17 Nov 2026)
 
-**State:** `main` has **M2 Accountability** built. The gate report is `docs/plan/gates/M2.md` (one screen); it is
-**waiting for Nimish's go**. Evidence: the M2 PRs (#228 schema, #241/#284 roster and ladder, #230 notifications,
-#249/#252/#285 escalation, #244/#261/#262/#283 sign-off, #248/#264/#284 lockout) and their tests.
+**State:** **M2 Accountability is ACCEPTED — Nimish gave GO on 17 Nov.** Gate report `docs/plan/gates/M2.md`
+(29 lines, every criterion → ticket, test, link). Evidence: #228 schema, #241/#284 roster and ladder, #230
+notifications, #249/#252/#285 escalation, #244/#261/#262/#283 sign-off, #248/#264/#284 lockout, #287 the two
+design calls. **M4a (analytics parity) is next.**
 
 - **Roster and ladder:** `/settings/roster` with **Copy to the next 7 days**; `/settings/escalation-rules` refuses
   a repeat under 15 minutes and a repeat with no cap, push only for now (the server's WhatsApp fallback stays
@@ -36,8 +37,9 @@ prettier red). Both predate this session.
 
 ## Next
 
-- Nimish's go on M2 → M4a (analytics parity), per `docs/plan/MILESTONES.md`; M3 and M5 stay parked.
-- After the gate: the weekly dump + Drill B (`RESTORE.md`), and the missing reasoning-route key so that route returns.
+- **M4a analytics parity** (tickets 36–45; 36 and 37 are part-done), per `docs/plan/MILESTONES.md`. M3/M5 parked.
+- His staging step for M2's clocks: Settings → SLA targets, the four severities' acknowledge and restore minutes.
+- Weekly dump + Drill B (`RESTORE.md`), and the missing reasoning-route key so that route returns.
 
 ## Parallel rule
 
