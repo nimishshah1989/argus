@@ -471,9 +471,10 @@ describe('the ladder is the head’s to edit', () => {
       delayMinutes: '10',
       repeatMinutes: '',
       repeatCap: '',
-      channel: 'whatsapp',
     });
     expect(res.statusCode, res.body).toBe(200);
+    // the rule API only accepts push; put the other channel on the row directly so the engine's fallback stays proven
+    await admin.query("UPDATE escalation_rule SET channel = 'whatsapp' WHERE id = $1", [rule.id]);
     const { id, at } = await raise(E);
     await breach(E, id, 'ack', plus(at, 6));
     expect(await steps(id)).toEqual([]);
