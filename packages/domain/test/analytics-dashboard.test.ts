@@ -6,6 +6,8 @@ import {
   type EngineResult,
   type FigureResult,
   type MachineRow,
+  type ReportRow,
+  type TicketRow,
 } from '../src/index.js';
 import { dashboardComputers } from '../src/analytics/computers.js';
 import { DASHBOARD, ENGINE_DATA, kpiByLabel, type DashboardKpi } from './answer-key/fixture.js';
@@ -253,6 +255,81 @@ describe('a machine excluded from production data', () => {
     id: 'TEST-PRODUCTION-1',
     code: 'TEST-PRODUCTION-1',
   };
+
+  /**
+   * A breakdown row for the excluded Robot, which the workbook itself holds no row for: one real, sourced row with
+   * downtime, dated inside the record span, so only the production filter can keep it out of the Guide figures.
+   */
+  const robot = ENGINE_DATA.machines.find((machine) => machine.id === 'BOXY');
+  if (!robot || !robot.excludedFromProduction) {
+    throw new Error('the workbook no longer holds the excluded BOXY robot');
+  }
+  const robotBreakdown = 'TEST-EXCLUDED-BD-1';
+  const robotTicket: TicketRow = {
+    id: robotBreakdown,
+    ref: robotBreakdown,
+    kind: 'stopped',
+    status: 'closed',
+    machineId: robot.id,
+    reportedAt: '2026-06-15T02:30:00.000Z',
+    closedAt: '2026-06-15T10:30:00.000Z',
+    source: 'history',
+    downtimeMin: 480,
+    repairMin: 450,
+    workType: 'AX',
+  };
+  const robotReport: ReportRow = {
+    id: robotBreakdown,
+    ticketId: robotBreakdown,
+    machineId: robot.id,
+    date: '2026-06-15',
+    shift: '1',
+    problem: 'Robot stopped',
+    downtimeMin: 480,
+    responseMin: 30,
+    repairMin: 450,
+    category: 'M',
+    maintCode: 'AX',
+    spareUsed: null,
+    rootCause: null,
+    doneBy: [],
+    supportedBy: [],
+  };
+
+  it("never moves the four Guide figures with an excluded machine's breakdown rows", () => {
+    const before = run();
+    const after = run({
+      ...ENGINE_DATA,
+      tickets: [...ENGINE_DATA.tickets, robotTicket],
+      reports: [...ENGINE_DATA.reports, robotReport],
+    });
+    // The row is sourced like every other row, so the unfiltered total counts it: the fixture change is not a no-op.
+    expect(Number(figure(after, 'dashboard.total-breakdowns').value)).toBe(
+      Number(figure(before, 'dashboard.total-breakdowns').value) + 1,
+    );
+    for (const key of [
+      'dashboard.plant-bd-pct',
+      'dashboard.fleet-availability',
+      'dashboard.avg-complaints-per-day',
+      'dashboard.avg-bd-hours-per-day',
+    ]) {
+      expect(figure(after, key).value, key).toBe(figure(before, key).value);
+    }
+    // The drills name the rows a figure counted, so no Guide figure names the excluded machine's row.
+    expect(figure(after, 'dashboard.plant-bd-pct').drill).toEqual(
+      figure(before, 'dashboard.plant-bd-pct').drill,
+    );
+    expect(figure(after, 'dashboard.plant-bd-pct').drill.ids).not.toContain(robotBreakdown);
+    expect(figure(after, 'dashboard.avg-bd-hours-per-day').drill).toEqual(
+      figure(before, 'dashboard.avg-bd-hours-per-day').drill,
+    );
+    const availability = figure(after, 'dashboard.fleet-availability');
+    const production = ENGINE_DATA.machines.filter(
+      (machine) => machine.segment === 'CNC' && !machine.excludedFromProduction,
+    );
+    expect(availability.drill.ids.length).toBe(production.length);
+    expect(availability.drill.ids).not.toContain(robot.id);
+  });
 
   it('stays in the fleet totals but adds no available hours and joins no production drill', () => {
     const before = run();
