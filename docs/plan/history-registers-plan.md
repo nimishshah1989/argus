@@ -8,16 +8,13 @@ Read first: `docs/DATA-MAP.md` §5 and §8, `docs/decisions/D21-cleaned-history-
 `docs/plan/MILESTONES.md` (37c, 39–45, 46–54, 56–58, 67), `docs/slices/38-dashboard.md` revision 4, and the loader
 on `main` (`tickets.importTickets`, `imports/{batch,undo}.ts`, `packages/domain/src/analytics/{types,engine}.ts`).
 
-> ## Consent (N14) — do not run anything yet
->
-> D21 says names are coded on our own machine **before** an AI session sees the files. These 14 workbooks arrived
-> **uncoded**: 2022 names a technician on **526 rows in 63 spellings**, 2024 on 7 rows (5 spellings), 2025 on 9 (6).
-> No phone number was found. Two of three years name nobody, so a ranking on this era would mislead as well as expose.
->
-> **Exact next action, in this order.** (1) Nimish files Cosmos's written consent (N14), covering these files and the
-> cleaning pass. (2) The operator runs H2 **on the operator's machine** and keeps the key there. (3) Only then does a
-> coded copy leave that machine — until then, no AI session, upload, commit, fixture or screenshot. This document
-> holds counts and `Maint. Team` only, no name, phone or free text that could carry one.
+> ## Consent and name handling
+
+Nimish confirmed on **17 November 2026** that Cosmos's written consent (N14) is in place for these files — it is
+recorded as a fact and is **not a gate**. One technical step remains before any tool that sends data out: the 14
+workbooks arrived **uncoded** (2022 names a technician on 526 rows, 2024 on 7, 2025 on 9; no phone numbers found), so
+ticket H2 codes the names on the operator's machine and keeps the key there. This document holds counts and
+`Maint. Team` only.
 
 ## 1. Goal
 
@@ -37,7 +34,7 @@ command loads and one command undoes.
 **The gate condition — the goal post.** The work is done, and the gate report `docs/plan/gates/H.md` is written,
 only when all of these are true:
 
-1. Consent N14 is filed, and every loaded file arrived coded through H2; no coded copy and no key is in the repo.
+1. Every loaded file arrived coded through H2; no coded copy and no key is in the repo. (Consent N14: confirmed in place, Nimish, 17 Nov 2026.)
 2. The reader reads the 14 files in under a minute, with zero unexplained columns, in CI on synthetic fixtures.
 3. Every trap in §4 (T1–T8, the fourteen profile rules behind them) has a fixture and a test; held rows are counted, listed and settled — none dropped silently.
 4. Staging holds the load; Nimish has spot-checked three machines he knows; the production load ran under a time-limited `platform_access` grant after a snapshot; one undo removes that batch only.
@@ -157,7 +154,7 @@ and D17 allows a `setting` key. No migration.
 | 5   | 2023, grinders 2022, February–March 2022      | `gapPolicy: 'show'`; nothing is filled in; a span that crosses a gap says so                                                           | There is no "hide" default; a plant may label a gap as "not kept" (a display string only).        |
 | 6   | Technician names from 2022                    | `personPolicy: 'codes'`; link on exact match only; `rankTechnicians: false` for this era                                               | On would rewrite a product rule (DATA-MAP Q4) — stop and ask Nimish.                              |
 | 7   | Rows with no words, bad dates, duplicates     | `doubtfulRows: 'hold'`; a person at Cosmos answers keep / fix / drop with a reason; the answer is recorded in the batch ledger         | There is no "guess" setting. Off = the load refuses.                                              |
-| 8   | Consent                                       | `consentFiled: false`; the load command refuses until it is true and the N14 paper is linked in `file`                                 | It cannot default to true. The gate reads it.                                                     |
+| 8   | Name coding (consent is settled) | Not a switch: consent is confirmed in place (Nimish, 17 Nov 2026); H2 codes the names on the operator's machine before any AI pass | The gate records H2 done; no work waits on paperwork |
 
 One more switch belongs to the parity rail rather than to these eight: `legacyFrom: '2026-01-01'`, the date the legacy
 figures read from — a setting, not the history flag, because 37c's log is history and must count.
@@ -200,7 +197,7 @@ BY`, every name in the action text, every phone-shaped number becomes a token; e
   key is refused if it resolves inside the repo and is deleted after the production load.
 - **Storage** is the existing past-breakdown path: `tickets.importTickets(tx, tenantId, rows)` with channel
   `backfill`, closed, `closeKind: 'report'`, and its own ref series (`H22-0001`, `H24-0001`, `H25-0001`) so no live
-  `BD-` number is consumed. **No new table, no new column, no migration expected.** Safety order (D21): consent →
+  `BD-` number is consumed. **No new table, no new column, no migration expected.** Safety order (D21): names coded (H2) →
   coded copies → check on staging → Nimish's spot-check → snapshot → production under a grant → undo or snapshot.
 - **Outages** are closed tickets per machine hit (work type `utility`, downtime = the UTI hours), and the shared
   date is the event: "outages per year" counts distinct outage dates, "hours lost" sums per machine, both drill to
@@ -304,7 +301,7 @@ Write areas: `apps/server/src/modules/analytics/register/check.ts`, the tray exp
 2. [Process] Held rows export as a sheet (keep / fix to value / drop with a reason); the answers file is applied on the next check; an unanswered held row still refuses the load.
 3. [API] Each answer is recorded in the batch ledger (who, when, what), and a dropped row is counted in the ledger.
 
-**H6 — Load and undo on staging.** Milestone: H. Blocked by: H5, decisions 1–7, consent N14 filed.
+**H6 — Load and undo on staging.** Milestone: H. Blocked by: H5, decisions 1–7, H2 done.
 Delivers: the load, the ref series, idempotency, independent undo, and Nimish's staging spot-check.
 Write areas: `apps/server/src/modules/analytics/register/load.ts`, `scripts/history-load.ts`, staging run notes.
 
@@ -362,14 +359,14 @@ Write areas: `packages/domain/src/analytics/computers.ts`, `registry.ts`, the ma
 
 | Phase | Tickets     | Can run together                                              | Must be true first                                                                                     |
 | ----- | ----------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 0     | —           | —                                                             | N14 consent filed; decisions 1–7 answered; the operator's machine ready; **no file moved before this** |
-| 1     | H1, H2, H3  | H2 beside H1; H3 after H1 (shared `packages/shared`)          | 37c merged; consent filed (H2 is the first pass on the files)                                          |
+| 0     | —           | —                                                             | H2 ready on the operator's machine; decisions 1–7 answered; **no file moved before this**              |
+| 1     | H1, H2, H3  | H2 beside H1; H3 after H1 (shared `packages/shared`)          | 37c merged; H2 is the first pass on the files                                                          |
 | 2     | H4, H5      | H4 then H5 (H5 reads H1's contract); one writer per file area | Phase 1 green in CI                                                                                    |
 | 3     | H6, then H7 | No — the load is serial, staging then production              | Decisions 1–7; the tray's answers in; the M4a gate passed for H7                                       |
 | 4     | H8, then H9 | H8 beside 46–47; H9 after H8 (computers file)                 | H6 on staging; the parity test red-then-green                                                          |
 
 **Effort and lanes.** Nine tickets at the one-hour-to-PR rule, plus review and two load runs: about **12–15 builder
-days** and **4–6 calendar weeks**, most of the calendar spent waiting on consent, decisions and answers. The backend
+days** and **4–6 calendar weeks**, most of the calendar spent on the decisions and Bhavin's answers. The backend
 lane owns H1–H9 except H9's two web additions (frontend lane, frozen interfaces). H2 uses one builder on `scripts/`;
 H1/H3 share `packages/shared` and never run together; H4/H5 are disjoint; H8/H9 both touch `computers.ts` and run in
 order. No migration, so no lock — unless H1 proves one is needed, then stop and ask.
@@ -388,7 +385,7 @@ order. No migration, so no lock — unless H1 proves one is needed, then stop an
 
 | Risk                                      | Why it bites                                                                                     | Mitigation                                                                                                                  |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| **Consent (N14) and D21 exposure**        | The files arrived uncoded; 542 rows name someone; a further AI pass without consent compounds it | Consent filed before any run; H2 on the operator's machine; no file, key or name in the repo; the gate reads `consentFiled` |
+| **Name handling (D21)**                   | The files arrived uncoded; 542 rows name someone; a further AI pass before coding compounds it | H2 codes the names on the operator's machine before any AI pass; no coded copy, key or name in the repo |
 | Unrepeatable numbers if AI reads the text | A model's reading changes between runs; the figures stop being auditable                         | The reader is code and profile only; AI comes in M6 as suggestions beside the facts                                         |
 | Data quality                              | 5% doubtful rows, 515 blank codes, 8 wrong years, 283 round-shift figures                        | Holds and flags, a person at Cosmos, and a reconciliation report — never a silent fix                                       |
 | Bhavin's parity drifts                    | The old years are in the same tables; one careless filter and the 2026 keys move                 | `legacyFrom` as a setting, a parity test with old-era tickets present, and a gate that reads it                             |
@@ -413,4 +410,4 @@ source, the undo contract allowlist) is named; overstated figures are re-measure
 
 **Left to the plan of record:** the tracker rows in `MILESTONES.md` (H1–H9 are added when the work is taken up, not
 now); `DATA-MAP.md` still lists `history_breakdown` as "planned, M4a" — D17 removed it and this plan confirms closed
-tickets, so that row is corrected with H1's D33; N14's status in `NEEDS.md` moves when the consent is filed.
+tickets, so that row is corrected with H1's D33; N14 is recorded as in place (Nimish, 17 Nov 2026) in `NEEDS.md`.
