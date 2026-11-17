@@ -437,12 +437,53 @@ describe('the escalation ladder', () => {
     expect(none.json()).toMatchObject({ repeatMinutes: null, repeatCap: null });
   });
 
+  it('keeps the ladder on push for now: WhatsApp is refused and the push rule stays', async () => {
+    const rule = (await a('GET', '/api/v1/escalation-rules')).json().items[0] as {
+      id: string;
+      channel: string;
+    };
+    const refused = await a('PUT', `/api/v1/escalation-rules/${rule.id}`, 'head', {
+      channel: 'whatsapp',
+    });
+    expect(refused.statusCode, refused.body).toBe(422);
+    expect(refused.json().error.field).toBe('channel');
+    const kept = (await a('GET', '/api/v1/escalation-rules')).json().items as Array<{
+      id: string;
+      channel: string;
+    }>;
+    expect(kept.find((it) => it.id === rule.id)?.channel).toBe('push');
+
+    const made = await a('POST', '/api/v1/escalation-rules', 'head', {
+      trigger: 'restore_missed',
+      severityMin: 'S4',
+      level: 'L1',
+      notifyRole: 'admin',
+      channel: 'push',
+      delayMinutes: '5',
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    expect(made.json().channel).toBe('push');
+
+    const repeat = await a('PUT', `/api/v1/escalation-rules/${made.json().id}`, 'head', {
+      repeatMinutes: '10',
+      repeatCap: '3',
+    });
+    expect(repeat.statusCode, repeat.body).toBe(422);
+    expect(repeat.json().error.field).toBe('repeatMinutes');
+    const noCap = await a('PUT', `/api/v1/escalation-rules/${made.json().id}`, 'head', {
+      repeatMinutes: '30',
+      repeatCap: '',
+    });
+    expect(noCap.statusCode, noCap.body).toBe(422);
+    expect(noCap.json().error.field).toBe('repeatCap');
+  });
+
   it('adds a rule for a named person or a role, never both or neither', async () => {
     const base = {
       trigger: 'restore_missed',
       severityMin: 'S2',
       level: 'vendor',
-      channel: 'whatsapp',
+      channel: 'push',
     };
     const both = await a('POST', '/api/v1/escalation-rules', 'head', {
       ...base,
@@ -467,7 +508,7 @@ describe('the escalation ladder', () => {
     expect(ok.statusCode, ok.body).toBe(201);
     expect(ok.json()).toMatchObject({
       level: 'vendor',
-      channel: 'whatsapp',
+      channel: 'push',
       notifyPersonId: ids.personA,
       notifyRole: null,
       delayMinutes: 20,
@@ -556,6 +597,55 @@ describe('the escalation ladder', () => {
         .statusCode,
     ).toBe(404);
     expect(await auditActions(B, 'escalation_rule')).toEqual(['escalation_rule.seed']);
+  });
+});
+
+describe('copying a day’s roster forward', () => {
+  it('copies a day’s roster to the next seven days, once', async () => {
+    // A clean day: the one line this test seeds is the only source line.
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A]);
+    const seeded = await a('POST', '/api/v1/roster', 'head', line());
+    expect(seeded.statusCode, seeded.body).toBe(201);
+
+    const first = await a('POST', '/api/v1/settings/roster/copy', 'head', { date: today });
+    expect(first.statusCode, first.body).toBe(200);
+    expect(first.json()).toEqual({ created: 7, skipped: 0 });
+    const again = await a('POST', '/api/v1/settings/roster/copy', 'head', { date: today });
+    expect(again.statusCode, again.body).toBe(200);
+    expect(again.json()).toEqual({ created: 0, skipped: 7 });
+
+    const roster = (await a('GET', '/api/v1/roster')).json().items as Array<{ date: string }>;
+    expect(roster).toHaveLength(8);
+    for (let day = 1; day <= 7; day += 1) {
+      expect(roster).toContainEqual(
+        expect.objectContaining({
+          date: await dayOffset(day),
+          shiftId: ids.shiftA,
+          personId: ids.personA,
+          level: 'L1',
+        }),
+      );
+    }
+    const copies = (await auditActions(A, 'roster_entry')).filter((it) => it === 'roster.copy');
+    expect(copies).toHaveLength(2);
+
+    // The head, not only the admin, may copy; an operator may not.
+    expect(
+      (await a('POST', '/api/v1/settings/roster/copy', 'operator', { date: today })).statusCode,
+    ).toBe(403);
+  });
+
+  it('refuses a day older than the roster floor and a body with no date, naming date', async () => {
+    const old = await a('POST', '/api/v1/settings/roster/copy', 'head', {
+      date: await dayOffset(-366),
+    });
+    expect(old.statusCode, old.body).toBe(422);
+    expect(old.json().error.field).toBe('date');
+    for (const body of [{}, { date: 'tomorrow' }, { date: today, days: 3 }]) {
+      const bad = await a('POST', '/api/v1/settings/roster/copy', 'head', body);
+      expect(bad.statusCode, JSON.stringify(body)).toBe(422);
+      expect(bad.json().error.field).toBe('date');
+    }
   });
 });
 

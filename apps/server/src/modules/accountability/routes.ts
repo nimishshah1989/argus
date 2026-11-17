@@ -1,7 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { apiError, machineCriticalitySchema, slaPoliciesUpdateSchema } from '@uptimo/shared';
+import {
+  apiError,
+  machineCriticalitySchema,
+  rosterCopySchema,
+  slaPoliciesUpdateSchema,
+} from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
 import { lockRefCounter, refreshMachineSeverity } from '../tickets/index.js';
 import { reconcileSlaPolicies } from './sla.js';
@@ -14,10 +19,16 @@ import {
   actorOf,
   forbidden,
   hasShifts,
+  plantToday,
   registerResource,
   setMachineCriticality,
 } from '../plant/index.js';
+import { ROSTER_KEEP_DAYS, shiftDay } from './ladder.js';
+import { copyRoster } from './repo/ladder.js';
 import { LADDER_RESOURCES } from './settings-resources.js';
+
+/** A copied roster repeats the source day for a week (the design's "Copy to the next 7 days"). */
+const ROSTER_COPY_DAYS = 7;
 
 function unchangedPolicies(before: Record<string, unknown>[], policies: PolicyInput[]): boolean {
   return (
@@ -148,11 +159,48 @@ async function putMachineCriticality(
   reply.send({ ok: true });
 }
 
+/** A pasted-together date is the field's one answer; the roster's own floor is the route's second refusal. */
+const BAD_DATE = 'Use a date like 2026-11-14';
+const TOO_OLD = 'Roster lines older than a year are not kept';
+
+async function postRosterCopy(pool: Pool, request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await requireAuth(pool, request, reply);
+  if (!ctx) return;
+  if (!canSettingsSla(actorOf(ctx))) return forbidden(reply);
+  const parsed = rosterCopySchema.safeParse(request.body);
+  if (!parsed.success) {
+    reply.code(422).send(apiError('validation', BAD_DATE, 'date'));
+    return;
+  }
+  const { date } = parsed.data;
+  const outcome = await withTenant(pool, ctx.tenantId, async (client) => {
+    const today = await plantToday(client, ctx.tenantId);
+    if (date < shiftDay(today, -ROSTER_KEEP_DAYS)) return null;
+    const counts = await copyRoster(client, ctx.tenantId, { date, days: ROSTER_COPY_DAYS });
+    await audit.record(client, {
+      tenantId: ctx.tenantId,
+      loginId: ctx.loginId,
+      supportGrantId: ctx.supportGrantId,
+      action: 'roster.copy',
+      entity: 'roster_entry',
+      before: null,
+      after: { date, days: ROSTER_COPY_DAYS, created: counts.created, skipped: counts.skipped },
+    });
+    return counts;
+  });
+  if (!outcome) {
+    reply.code(422).send(apiError('validation', TOO_OLD, 'date'));
+    return;
+  }
+  reply.send(outcome);
+}
+
 export function registerSettings(app: FastifyInstance, config: AppConfig): void {
   const { pool } = config;
   app.put('/api/v1/settings/sla-policies', (request, reply) =>
     putSlaPolicies(pool, request, reply, config.jobBoss),
   );
+  app.post('/api/v1/settings/roster/copy', (request, reply) => postRosterCopy(pool, request, reply));
   for (const resource of LADDER_RESOURCES) {
     // A saved rule re-arms what it governs (the tickets already down), as saving the clocks' targets does.
     const afterSave = (tx: PoolClient, tenantId: string) =>
