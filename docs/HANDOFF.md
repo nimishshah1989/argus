@@ -4,9 +4,11 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 ## RESUME HERE (M4a analytics parity, 17 Nov 2026)
 
-**State:** `main` = `7100f65`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37 is
-mostly done (#289 engine machinery + snapshot + drill, #290 the analytics face, Guide and profile screen); what
-remains of 37 is the **breakdown-log load (37c)**. The tracker, ledger and this file are the truth; M3/M5 are parked.
+**State:** `main` = `b0f6b7f`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37
+is done except the **breakdown-log load (37c)** (#289 machinery, #290 face/Guide/profile, #291 record); ticket 38 has
+its **first packet merged** (#293): the answer-key seam (workbook fixture → engine data, deterministic dates/shifts/
+sources) and six Dashboard figures exact against Bhavin's 11 November numbers (159/30/3/126/16/17). The tracker,
+ledger and this file are the truth; M3/M5 are parked.
 
 **Frontier, in the order Nimish approved:** 38 Dashboard/Today → 40 Breakdown analyses → 39 registers and machine
 pages → 41 manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45
@@ -29,10 +31,16 @@ recorded, never a silent switch. Budgets are inside.
 ## Next session, first steps
 
 1. Read this file, `docs/plan/ledger.md` (17 Nov lines) and `docs/plan/MILESTONES.md`; refresh Graphify.
-2. Write `docs/slices/38-dashboard.md` (16 dashboard figures + Today + data checklist, answer key first), get it
-   reviewed, then dispatch one packet at a time; 40 follows the same shape with `a1–a3` + breakdown log.
-3. 37c (the 1,354-row breakdown log as closed tickets through the past-breakdown path) is the input 40 needs — plan
-   it beside 38 so 40 is not blocked.
+2. Continue ticket 38 from `docs/slices/38-dashboard.md` (**read revisions 2 and 3 — they are binding**): packet 38.1
+   adds the remaining KPIs/derived numbers, **joins `dashboardComputers` into `COMPUTERS` and updates
+   `analytics-engine.test.ts` in the same PR** (R11), then 38.2 (charts + data checklist, which now drills to tickets)
+   and 38.3 (the Dashboard screen + the head's Today). Two points are **stop-and-ask**: the "311 days of records"
+   divisor and the bubble chart's radius formula — do not guess.
+3. 37c (the 1,354-row breakdown log) is the input 40 needs; a draft scope from another session (#292, old registers
+   2022/24/25 with 4,767 entries) awaits Nimish's eight product decisions and a D21 data-consent check.
+4. Open data question for Bhavin/Nimish: our seed files BOXY under Robot (CNC 125/158) while his platform counts it
+   in CNC (126/159); the engine is exact against the key, the live dashboard shows the seed until the list is
+   reconciled.
 
 ## Parallel rule
 
