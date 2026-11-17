@@ -9,8 +9,8 @@ import { loadHandbacks } from './handback.js';
 import { firedHandbackTickets } from './repo/handback-timers.js';
 
 /**
- * Newest close first, a page at a time, until the feed is full. Tickets whose clock has run out are dropped before
- * anything is loaded for them; a few pages are looked at so that a run of them does not hide an older ticket that is
+ * Oldest close first, a page at a time, until the feed is full. Tickets whose clock has run out are dropped before
+ * anything is loaded for them; a few pages are looked at so that a run of them does not hide a newer ticket that is
  * still waiting (a plant may give some severities a longer time than others).
  */
 const MAX_PAGES = 6;
@@ -64,7 +64,8 @@ async function waitingTickets(client: PoolClient, tenantId: string, now: Date): 
 
 /**
  * `GET /api/v1/board/signoff`: whoever may see the board gets the closed tickets still waiting for production to
- * answer (status `requested`, not timed out), newest close first. Machines kept off the board stay off it here.
+ * answer (status `requested`, not timed out), oldest close first: the longest wait at the top. Machines kept off the
+ * board stay off it here.
  */
 async function signoffFeed(
   pool: Pool,

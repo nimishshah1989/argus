@@ -1,0 +1,1 @@
+- The desk's Open screen now has a "Waiting for production's OK" list: every closed job production still has to answer, the longest wait at the top, with the machine, the cell and the time waited, and one tap to the ticket. The list reads oldest first, so nothing waits at the bottom of a long page unnoticed.

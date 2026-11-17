@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { hash } from '@node-rs/argon2';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { SIGNOFF_FEED_MAX } from '@uptimo/shared';
 import { buildApp } from '../src/app.js';
 import { qrSvg } from '../src/modules/reports/pdf.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -148,7 +149,7 @@ async function raisedBy(machineId: string, who = 'rina'): Promise<string> {
     machineId,
     problem: 'Spindle stops',
   });
-  expect(raised.statusCode).toBe(201);
+  expect(raised.statusCode, raised.body).toBe(201);
   return raised.json().ticket.id as string;
 }
 
@@ -265,7 +266,7 @@ describe('the board feed of sign-offs waiting for production', () => {
   const feed = (token = tokens.tv!, host = HOST_A) =>
     send({ host, method: 'GET', url: '/api/v1/board/signoff', token });
 
-  it('lists only closed tickets still waiting for an answer, newest close first, with where to go', async () => {
+  it('lists only closed tickets still waiting for an answer, oldest close first, with where to go', async () => {
     const first = await closed(MACHINE_A);
     const second = await closed(MACHINE_A2);
     const answered = await closed(MACHINE_A);
@@ -279,34 +280,73 @@ describe('the board feed of sign-offs waiting for production', () => {
 
     const res = await feed();
     expect(res.statusCode).toBe(200);
-    const ids = res.json().items.map((item: { ticketId: string }) => item.ticketId);
-    expect(ids.slice(0, 2)).toEqual([second.id, first.id]);
-    const closedAts = res
-      .json()
-      .items.map((item: { closedAt: string }) => Date.parse(item.closedAt));
-    expect(closedAts).toEqual([...closedAts].sort((a, b) => b - a));
+    type Item = {
+      ticketId: string;
+      ref: string;
+      machine: { id: string; code: string | null } | null;
+      cell: string | null;
+      closedAt: string;
+      requestedAt: string;
+      dueAt: string | null;
+    };
+    const items = res.json().items as Item[];
+    const ids = items.map((item) => item.ticketId);
+    // The oldest close comes first: `first` was closed before `second`.
+    expect(ids).toContain(first.id);
+    expect(ids).toContain(second.id);
+    expect(ids.indexOf(first.id)).toBeLessThan(ids.indexOf(second.id));
+    const closedAts = items.map((item) => Date.parse(item.closedAt));
+    expect(closedAts).toEqual([...closedAts].sort((a, b) => a - b));
     for (const left of [answered.id, sentBack.id, nobodyAsked.id, stillOpen]) {
       expect(ids).not.toContain(left);
     }
-    expect(res.json().items[0]).toMatchObject({
-      ticketId: second.id,
-      ref: second.ref,
-      machine: { id: MACHINE_A2, code: 'VC-SB2' },
-      cell: 'C2',
+    const older = items.find((item) => item.ticketId === first.id)!;
+    const newer = items.find((item) => item.ticketId === second.id)!;
+    expect(older).toMatchObject({
+      ticketId: first.id,
+      ref: first.ref,
+      machine: { id: MACHINE_A, code: 'VC-SB' },
+      cell: 'C1',
     });
-    const item = res.json().items[1];
-    expect(item.machine).toEqual({ id: MACHINE_A, code: 'VC-SB' });
-    expect(item.cell).toBe('C1');
-    for (const field of ['closedAt', 'requestedAt', 'dueAt']) {
-      expect(Number.isNaN(Date.parse(item[field])), field).toBe(false);
+    expect(newer.machine).toEqual({ id: MACHINE_A2, code: 'VC-SB2' });
+    expect(newer.cell).toBe('C2');
+    for (const field of ['closedAt', 'requestedAt'] as const) {
+      expect(Number.isNaN(Date.parse(newer[field])), field).toBe(false);
     }
-    expect(Date.parse(res.json().items[0].closedAt)).toBeGreaterThanOrEqual(
-      Date.parse(item.closedAt),
-    );
+    expect(newer.dueAt === null || !Number.isNaN(Date.parse(newer.dueAt))).toBe(true);
+    expect(Date.parse(older.closedAt)).toBeLessThanOrEqual(Date.parse(newer.closedAt));
     await asA('POST', `${ticketUrl(stillOpen)}/cancel`, tokens.sana!, {
       personId: SUPER,
       reason: 'x',
     });
+  });
+
+  it('the waiting feed puts the longest wait first', async () => {
+    const older = await closed(MACHINE_A);
+    const newer = await closed(MACHINE_A);
+    const answered = await closed(MACHINE_A);
+    expect((await answer(answered.id, { response: 'confirmed' })).statusCode).toBe(200);
+    const timedOut = await closed(MACHINE_A);
+    // The clock ran out on this one: its handback timer fired and its time is past.
+    await db.admin.query(
+      `UPDATE sla_timer SET due_at = now() - interval '1 minute', fired_at = now() - interval '1 minute'
+       WHERE tenant_id = $1 AND ticket_id = $2 AND kind = 'handback'`,
+      [A, timedOut.id],
+    );
+
+    const res = await feed();
+    expect(res.statusCode).toBe(200);
+    const items = res.json().items as { ticketId: string; closedAt: string }[];
+    const ids = items.map((item) => item.ticketId);
+    // The longest wait is at the top: both show, and the older close comes first.
+    expect(ids).toContain(older.id);
+    expect(ids).toContain(newer.id);
+    expect(ids.indexOf(older.id)).toBeLessThan(ids.indexOf(newer.id));
+    const closedAts = items.map((item) => Date.parse(item.closedAt));
+    expect(closedAts).toEqual([...closedAts].sort((a, b) => a - b));
+    // An answered sign-off and a timed-out one never show, and the page holds only the cap.
+    for (const gone of [answered.id, timedOut.id]) expect(ids).not.toContain(gone);
+    expect(ids.length).toBeLessThanOrEqual(SIGNOFF_FEED_MAX);
   });
 
   it('drops a ticket once the time production had to answer has run out', async () => {
@@ -425,14 +465,15 @@ describe('the board feed with many tickets', () => {
       .json()
       .items.map((i: { ref: string }) => i.ref) as string[];
 
-  it('shows at most 50, newest close first', async () => {
+  it('shows at most 50, oldest close first', async () => {
     await seedWaiting({ tag: 'CAP', count: 51, severity: 'S3', closedAt: minutesAgo(10) });
     try {
       const refs = await refsOfB();
+      // CAP-51 is the oldest close and CAP-1 the newest: the oldest fifty fill the page.
       expect(refs).toHaveLength(50);
-      expect(refs[0]).toBe('CAP-1');
-      expect(refs).toContain('CAP-50');
-      expect(refs).not.toContain('CAP-51');
+      expect(refs[0]).toBe('CAP-51');
+      expect(refs).toContain('CAP-2');
+      expect(refs).not.toContain('CAP-1');
     } finally {
       await forgetSeeded('CAP');
     }

@@ -16,7 +16,7 @@ export const signoffFeedItemSchema = z
   })
   .strict();
 
-/** `GET /board/signoff`: newest close first, at most `SIGNOFF_FEED_MAX` items. */
+/** `GET /board/signoff`: oldest close first (the longest wait at the top), at most `SIGNOFF_FEED_MAX` items. */
 export const signoffFeedReplySchema = z.object({ items: z.array(signoffFeedItemSchema) }).strict();
 export type SignoffFeed = z.infer<typeof signoffFeedReplySchema>;
 export const SIGNOFF_FEED_MAX = 50;

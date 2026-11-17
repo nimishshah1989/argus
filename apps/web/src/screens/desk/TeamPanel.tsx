@@ -14,6 +14,15 @@ import { ClosedTotals, RecentCancelled } from './ClosedSection.js';
 import { Empty, Section, TicketRow, rowClass } from './parts.js';
 import { workingByPerson } from './views.js';
 
+const time = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : Number.NaN);
+
+/** The Team tab's Waiting list: paused tickets, the ones waiting longest first (server sends newest first). */
+export function waitingFirst(tickets: Ticket[]): Ticket[] {
+  return tickets
+    .filter((ticket) => ticket.status === 'waiting')
+    .sort((a, b) => time(a.waitSince) - time(b.waitSince));
+}
+
 function waitText(ticket: Ticket, config?: Config): string {
   if (!ticket.waitReason) return '—';
   const item = (config?.lists.wait_reason ?? []).find((entry) => entry.code === ticket.waitReason);
@@ -74,7 +83,7 @@ function WorkingNow({ tickets, config, machines }: WorkingProps) {
 
 function Waiting({ tickets, config, machines }: WorkingProps) {
   const { t } = useTranslation();
-  const waiting = tickets.filter((ticket) => ticket.status === 'waiting');
+  const waiting = waitingFirst(tickets);
   return (
     <Section title={t('status.waiting')}>
       {waiting.length === 0 ? (
