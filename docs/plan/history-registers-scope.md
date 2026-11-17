@@ -88,15 +88,45 @@ Seven traps a plain copy-in would fall into:
 
 ## 4. What this buys, and what it cannot
 
-**Gains.** History goes from ten months to about four years (with the 2023 hole):
+**First, what it must not change.** Bhavin's screens (tickets 38 to 45) are being matched digit for digit against
+his platform, which holds only 2026. Those figures keep reading 2026 only. The old years feed the long-range views,
+M4b's reliability work and M6's AI tests, where ten months is too short to say anything.
 
-- Repeat failures and chronic machines become visible; ten months is too short to see them.
-- "Did breakdowns fall after the PM?" can be answered for 2024 and 2025.
-- Hours lost to the grid, per year, as its own figure.
-- About 2,600 more problem-and-fix pairs behind Fix Finder and the AI diagnosis (M6), per machine.
+**Where it pays, screen by screen.** Counts are from the trial read; treat them as approximate.
+
+| Analytics (ticket)                                      | With 2026 alone                                                                               | With the registers added                                                                                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reliability curves, critical spares (67)                | 42 machines have 10 or more breakdowns; 15 have 20 or more                                    | 76 and 56. Per-machine failure curves need that many failures, so this ticket goes from "mostly not enough history" to usable on most machines. Biggest single gain   |
+| Forecast and Forecast Lab (42)                          | The lab tests each method on about 7 months; 72 machines reach the 6-breakdown confidence bar | 24 more test months (2024 to 2025) and 95 machines. Choosing a forecasting method stops resting on 7 data points. Runs in our profile; Bhavin's lab still matches his |
+| Trend test, repeat faults, "worsening machine" (42, 44) | Ten months of baseline                                                                        | A machine compared with its own 2024 and 2025. A repeat fault is visible across years (HMC-2's Z-axis, VC-27's tool declamp)                                          |
+| MTBF, MTTR, availability on real hours (48)             | One partial year                                                                              | Three years per machine, year on year, with one breakdown counted once however many days it ran                                                                       |
+| Did an intervention work (54)                           | Little "before" to compare against                                                            | Two years of before. A PM change in 2026 is judged against 2024 and 2025 and a control group                                                                          |
+| Machine pages (39)                                      | Ten months                                                                                    | Three more years of history, drillable to the paper row                                                                                                               |
+| Fix Finder, find past jobs (43, 57)                     | About 1,350 problem-and-fix pairs                                                             | About 2,650 more, per machine and per kind of fault                                                                                                                   |
+| AI code suggestion and its test (56, 58)                | The test set must be built by hand                                                            | About 3,000 old rows where a person already wrote a code beside the words: a ready test to measure the AI before it is switched on (after the old codes are mapped)   |
+| New-machine failures (OEM analytics, deferred)          | 24 machines under 300 days                                                                    | 16 machines new in 2025 with about 130 entries in their first year: evidence for warranty claims, once Bhavin agrees the rule                                         |
+| A new figure: lost to utilities                         | Not recorded in 2026                                                                          | About 940 machine-hours in 2024 on 148 outage days, about 170 in 2025 on 41. A money case for power backup, if the drop is real and not a change in what was written  |
+| A new figure: vendor dependence                         | Spare cost only                                                                               | About 110 entries and 630 hours mention CIPL, the OEM or "sent for repair": how long the plant waits on outsiders, for AMC decisions (51)                             |
 
 **Limits.** No response time, no acknowledge or restore clock, no spare cost, no root cause, and no technician
 ranking: those fields are not in the registers. Any screen that needs them must leave this era out and say so.
+
+**Claude's manufacturing plugin.** Of its 17 skills, two matter here, and Argus already adopted the core of both
+(`docs/plan/CLAUDE-ADOPTION.md`, ADR 0007, `THIRD_PARTY.md`; Apache-2.0, so the logic may be copied with
+attribution). The rest need sensor, ERP, production-count, inspection or CAD data that Argus does not have:
+quoting, sourcing, OEE reports, 8D and CAPA, the overnight production pulse.
+
+- `breakdown-diagnosis` is the model for M6's diagnosis and the technician-facing ranking. New to us, for this data:
+  its rule that words like "again", "still", "temporary fix" are the strongest sign of a repeat fault. In the
+  registers, about 134 breakdown entries on 39 machines carry such a word ("not ok", "work in progress", "under
+  observation"). A cheap first repeat-fault signal for ticket 42, before any AI. Also its rule "an asset with no
+  history is not a good actor, it is unreported": machines missing from a year (the 2023 hole, new or retired
+  machines) must be listed apart, never ranked as reliable.
+- `data-consolidate` is the model for the loader's checks; five of its rules are already adopted. New to us: the
+  approved-normalisations list (each spelling fix recorded with who agreed and when), which becomes the register
+  profile, and its rule to count how many rows share a key, which is exactly the outage and multi-day trap.
+- Running the skills as-is on Cosmos's data is not advised: they send data to Claude, publish outside India and
+  price in dollars. Their methods go into our code; the skills themselves stay out.
 
 ## 5. My view, including where I disagree with the ask
 
