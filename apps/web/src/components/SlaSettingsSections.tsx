@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getConfig, putSlaPolicies, type Severity, type SlaPolicy } from '../api.js';
 import { invalidateSlaData } from './slaQueries.js';
-import { SlaWaitReasonSettings } from './SlaWaitReasonSettings.js';
 
 const SEVERITIES: Severity[] = ['S1', 'S2', 'S3', 'S4'];
 type MinuteField = 'ackMinutes' | 'restoreMinutes';
@@ -221,14 +220,5 @@ function SlaPolicySection({ policies, online }: { policies?: SlaPolicy[]; online
 
 export function SlaSettingsSections({ online }: { online: boolean }) {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
-  return (
-    <>
-      <SlaPolicySection policies={config.data?.slaPolicies} online={online} />
-      <SlaWaitReasonSettings
-        reasons={config.data?.lists.wait_reason ?? []}
-        available={config.data?.slaPolicies !== undefined}
-        online={online}
-      />
-    </>
-  );
+  return <SlaPolicySection policies={config.data?.slaPolicies} online={online} />;
 }
