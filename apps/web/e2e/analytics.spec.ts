@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { signIn } from './fixtures.js';
 
@@ -42,10 +44,31 @@ const DRILL_ROW = {
   metadata: {},
 };
 
+type Figure = FiguresReply['figures'][number];
+
+/** The face prints a number the way the app does: grouped, hours with at least one decimal. */
+const HOUR_FIGURES = new Set([
+  'dashboard.total-downtime-hours',
+  'dashboard.pm-hours',
+  'dashboard.no-downtime-hours',
+  'dashboard.avg-bd-hours-per-day',
+  'dashboard.avg-bd-hours-per-machine',
+]);
+const valueText = (figure: Figure): string =>
+  typeof figure.value === 'number'
+    ? new Intl.NumberFormat('en-GB', {
+        minimumFractionDigits: HOUR_FIGURES.has(figure.key) ? 1 : 0,
+        maximumFractionDigits: 2,
+      }).format(figure.value)
+    : String(figure.value);
+
+/** One dashboard figure's tile, found by the registry key the screen stamps on it. */
+const tile = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`);
+
 /**
- * Ticket 37b: the analytics face, its Guide entry and the profile screen. No engine is registered yet
- * (COMPUTERS is empty), so every figure is honestly "Not computed yet". The drill test stubs both analytics
- * replies, so it never waits for a live engine or for sibling packet 37a's route.
+ * Ticket 37b: the analytics face, its Guide entry and the profile screen. The eleven computable Dashboard
+ * figures are ready and the held ones stay honestly "Not computed yet". The drill test stubs both analytics
+ * replies, so it never waits for the live engine.
  */
 test('a head opens the analytics face, its Guide, and edits the plant profile', async ({
   page,
@@ -54,12 +77,14 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   if (wide) await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
 
-  // The desk offers the face to a head: the desktop left menu, where the desk's own destinations live.
+  // Packet 38.3: the head's home is Today, and the desk still offers the face on its own menu.
+  await expect(page).toHaveURL(/\/analytics\/today$/);
+  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+  await page.goto('/desk');
   if (wide) await expect(page.getByRole('link', { name: 'Analytics', exact: true })).toBeVisible();
 
   await page.goto('/analytics');
   await expect(page).toHaveURL(/\/analytics\/today$/);
-  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   for (const name of [
@@ -74,8 +99,8 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   ])
     await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
 
-  // The honest state: the registry's figures are listed, and none claims a value it does not have.
-  await expect(page.getByText('Not computed yet').first()).toBeVisible();
+  // The honest state: a held figure claims no value it does not have.
+  await expect(tile(page, 'dashboard.fleet-availability')).toContainText('Not computed yet');
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
 
   // The Guide lists the screens and figures with their labels.
@@ -109,6 +134,51 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   ).toHaveValue('21');
 });
 
+/**
+ * Packet 38.3's journey: a head signs in on Today, sees the eleven values the live API returns, opens one
+ * drill's rows, sees a held figure stay honest, and opens the data checklist.
+ */
+test('a head lands on Today with the live figures, a drill and the data checklist', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const response = page.waitForResponse(
+    (reply) => reply.url().includes('/api/v1/analytics/figures') && reply.status() === 200,
+  );
+  await signIn(page, 'head');
+  await expect(page).toHaveURL(/\/analytics\/today$/);
+  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+  const reply = (await (await response).json()) as FiguresReply;
+
+  // The eleven computable Dashboard figures: every tile prints the value the live API returned.
+  const ready = reply.figures.filter(
+    (figure) => figure.screen === 'dashboard' && figure.status === 'ready',
+  );
+  expect(ready).toHaveLength(11);
+  for (const figure of ready) await expect(tile(page, figure.key)).toContainText(valueText(figure));
+
+  // The strip above the tiles is built from the existing /state, with no new endpoint.
+  await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
+
+  // One drill opens the rows behind its figure, in the table the face already has.
+  const drilled = ready.find((figure) => figure.drill.ids.length > 0);
+  expect(drilled).toBeTruthy();
+  await tile(page, drilled!.key).getByRole('link', { name: 'See the rows', exact: true }).click();
+  await expect(page).toHaveURL(/\/analytics\/today\?drill=/);
+  const table = page.getByRole('table');
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('row')).toHaveCount(drilled!.drill.ids.length + 1);
+
+  // A held figure never invents a number.
+  await expect(tile(page, 'dashboard.fleet-availability')).toContainText('Not computed yet');
+
+  // The data checklist has its own route and stays honest until 38.2 computes it.
+  await page.getByRole('link', { name: 'Data checklist', exact: true }).click();
+  await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
+  await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
+  await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
+});
+
 test('a ready figure opens the table of rows behind it', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -125,9 +195,11 @@ test('a ready figure opens the table of rows behind it', async ({ page }, testIn
   await page.goto('/analytics/today');
 
   // A ready figure prints its value and offers the rows it came from.
-  await expect(page.getByText('Total machines', { exact: true })).toBeVisible();
-  await expect(page.getByText('12', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
+  await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');
+  await expect(tile(page, 'dashboard.total-machines')).toContainText('12');
+  await tile(page, 'dashboard.total-machines')
+    .getByRole('link', { name: 'See the rows', exact: true })
+    .click();
 
   // The drill table is the plain list of what identifies each row.
   await expect(page).toHaveURL(/\/analytics\/today\?drill=machine%3A/);
@@ -138,10 +210,16 @@ test('a ready figure opens the table of rows behind it', async ({ page }, testIn
   await expect(table.getByRole('cell', { name: 'Cell 4', exact: true })).toBeVisible();
 });
 
-test('an operator gets no analytics entry and no analytics profile', async ({ page }, testInfo) => {
+test('an operator lands on My complaints and has no analytics entry', async ({
+  page,
+}, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'op');
+
+  // Row 38: the operator's home is unchanged — My complaints, not the face.
+  await expect(page).toHaveURL(/\/floor\/mine$/);
+  await expect(page.getByRole('heading', { name: 'My complaints', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Analytics', exact: true })).toHaveCount(0);
 
   await page.goto('/settings/analytics-profile');
