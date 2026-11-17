@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ActorContext } from '@uptimo/domain';
-import type { CommandAction, Machine, State, Ticket } from '../../api.js';
+import type { CommandAction, Config, Machine, State, Ticket } from '../../api.js';
 import { quickSpec } from '../../components/actionSpecs.js';
 import { machineLabel } from '../../components/format.js';
 import { TicketCard } from '../../components/TicketCard.js';
@@ -21,6 +21,7 @@ import {
   type ChipFilter,
 } from './openLists.js';
 import { ListHeading } from './parts.js';
+import { TasksList } from './TasksList.js';
 
 type Segment = 'breakdowns' | 'tasks' | 'work';
 
@@ -156,7 +157,15 @@ function Breakdowns({
 }
 
 /** v3's Open screen: counts, who is on a job, then Breakdowns / Tasks / Work and the reports still owed. */
-export function OpenLists({ state, ctx }: { state: State; ctx: CardContext }) {
+export function OpenLists({
+  state,
+  ctx,
+  config,
+}: {
+  state: State;
+  ctx: CardContext;
+  config?: Config;
+}) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<ChipFilter>('');
   const [segment, setSegment] = useState<Segment>('breakdowns');
@@ -165,14 +174,7 @@ export function OpenLists({ state, ctx }: { state: State; ctx: CardContext }) {
   const work = workRequests(open);
   const lists: Record<Segment, ReactNode> = {
     breakdowns: <Breakdowns open={open} filter={filter} ctx={ctx} />,
-    tasks: (
-      <Hinted
-        hint={t('deskLists.hint.tasks')}
-        tickets={tasks}
-        empty={t('deskLists.empty.tasks')}
-        ctx={ctx}
-      />
-    ),
+    tasks: <TasksList open={open} config={config} ctx={ctx} />,
     work: (
       <Hinted
         hint={t('deskLists.hint.work')}
