@@ -11,17 +11,18 @@ Read first. Rewrite when the state changes. Under 50 lines.
 - **Roster and ladder:** `/settings/roster` with **Copy to the next 7 days**; `/settings/escalation-rules` refuses
   a repeat under 15 minutes and a repeat with no cap, push only for now (the server's WhatsApp fallback stays
   proven for M3).
-- **Lockout:** the "Needs lockout" flag now on work types *and* breakdown categories, and the editable lockout
+- **Lockout:** the "Needs lockout" flag now on work types _and_ breakdown categories, and the editable lockout
   step list, both on Lists; a flagged ticket's Start waits for the ticks (#264).
 - **Acknowledge** leads the action bar for the on-duty person with Start beside it, who and when after (#285).
 - **Escalation** shows in the history (level, who was told, channel, speed, repeats, "Escalation due, nobody
   told") and as a state line on the desk card; the fake clock proves an L2 fires at its configured minute.
 - **Sign-off turnaround** on live tickets, and the desk's waiting feed reads **oldest first** (#283).
 
-**Routing and budgets:** per `docs/decisions/D31-…`. The coder route `isoquant/deepseek-v4.1-flash-1017-fast`
-answered ROUTE-OK and wrote every packet. The reviewer route `deepseek-account/deepseek-flash` **could not
-answer — `DEEPSEEK_API_KEY` is absent** (recorded gap, ledger 17 Nov); planning and every fresh/scoped review ran
-on `isoquant/glm-5.3-flash` (different family). No silent switch. Spend is inside the two budgets.
+**Routing and budgets:** the routes are fixed in `docs/decisions/D31-…`; those names live in the decision, not
+here. Probe: the **coder route answered ROUTE-OK** and wrote every packet. The **reasoning/review route could not
+answer — its API key is absent from the credential store** (recorded gap, ledger 17 Nov); planning and every
+fresh/scoped review therefore ran on Isoquant's second family (a different family from the writer), never a silent
+switch. Spend is inside the two budgets.
 
 **Open, not mine:** #281 (CI test cut — needs its Q14 review line and a rerun) and #282 (M1 session record —
 prettier red). Both predate this session.
@@ -36,7 +37,7 @@ prettier red). Both predate this session.
 ## Next
 
 - Nimish's go on M2 → M4a (analytics parity), per `docs/plan/MILESTONES.md`; M3 and M5 stay parked.
-- After the gate: the weekly dump + Drill B (`RESTORE.md`), and the DEEPSEEK key so the reasoning route returns.
+- After the gate: the weekly dump + Drill B (`RESTORE.md`), and the missing reasoning-route key so that route returns.
 
 ## Parallel rule
 
