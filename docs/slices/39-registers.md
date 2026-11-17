@@ -67,7 +67,7 @@ head/plant_head/admin; no real names or phones. Commit locally; do not push; rep
 
 The engine (39a) emits exactly these; the screens (39b) consume them and never guess:
 
-1. **`registers`**: `{ pages: [{ page: 'machines'|'conv'|'proc'|'util'|'dg'|'robots', title, kpis: [{label, value, sub?}], tables: [{title?, header, rows}] }] }` — key-shaped: each register page carries the key's **By Category** table and then its machine list, in the key's order. The key's *Cell / Location Change Log* table is delivered by the separately registered `cell-change-log` figure (its own drill type) and is not duplicated inside `registers`.
+1. **`registers`**: `{ pages: [{ page: 'machines'|'conv'|'proc'|'util'|'dg'|'robots', title, kpis: [{label, value, sub?}], tables: [{title?, header, rows}] }] }` — key-shaped: each register page carries the key's **By Category** table and then its machine list, in the key's order. The key's _Cell / Location Change Log_ table is delivered by the separately registered `cell-change-log` figure (its own drill type) and is not duplicated inside `registers`.
 2. **`cell-change-log`**: `{ moves: [{ id, machineId, date, fromCell, toCell, fromLocation, toLocation }] }` — `id` is the move id, `machineId` the machine UUID, `date` ISO (the UI formats it).
 3. **`a7-footprint` / `a8-age`**: key-shaped `{ pages: [{ page, title, kpis, tables }] }` — `a7-footprint` carries **all five** of the key's tables (by category, by cell, by location, growth by purchase year, the ten largest), `a8-age` all of its cards.
 4. **`machine-page`**: `{ byMachine: { [machineUuid]: MachineRecord } }` where `MachineRecord` is
