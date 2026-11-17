@@ -78,10 +78,24 @@ function asTicket(task: EngineData['tasks'][number]): EngineData['tickets'][numb
   return ticket;
 }
 
-/** The rows of one drill type. Tasks are tickets too: they drill as the ticket row the reply carries. */
+/**
+ * The rows of one drill type. Tasks are tickets too: they drill as the ticket row the reply carries. The loader's
+ * optional nameplate fields become the null the reply contract names, so the strict schema still sees every key.
+ */
 function drillRows(data: EngineData, type: DrillType): DrillReplyRow[] {
-  if (type === 'machine') return data.machines;
-  if (type === 'move') return data.moves;
+  if (type === 'machine')
+    return data.machines.map((machine) => ({
+      ...machine,
+      serial: machine.serial ?? null,
+      controllerModel: machine.controllerModel ?? null,
+      controllerSerial: machine.controllerSerial ?? null,
+    }));
+  if (type === 'move')
+    return data.moves.map((move) => ({
+      ...move,
+      fromLocation: move.fromLocation ?? null,
+      toLocation: move.toLocation ?? null,
+    }));
   return [...data.tickets, ...data.tasks.map(asTicket)];
 }
 

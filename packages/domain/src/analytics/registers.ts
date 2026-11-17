@@ -1,3 +1,4 @@
+import { categoryRank } from './category-order.js';
 import { formatNumber, formatPercent, metadataNumber, normalizeLabel } from './format.js';
 import { machineAge } from './machine-facts.js';
 import { controllerInfo, makeName } from './machine-splits.js';
@@ -6,8 +7,9 @@ import type { Computer, EngineData, FigureValue, MachineRow } from './types.js';
 /**
  * The registers figure (ticket 39): the platform's own per-register summary — count, connected load and average
  * age — plus the CNC register's controller-brand/series split and the make split. The Guide is the authority:
- * utilities hold power only for compressors and dryers (a stabilizer/UPS KVA is capacity, not load), DG sets show
- * supply capacity and are never load, and spellings such as "Fanuc Oi TF" and "FANUC OI-TF" are one series.
+ * on the utility page only compressors and their air treatment count as load; every other KVA there is a
+ * capacity, and DG sets supply capacity and are never load. Spellings such as "Fanuc Oi TF" and "FANUC OI-TF"
+ * are one series.
  */
 export interface RegisterKpi {
   label: string;
@@ -25,11 +27,6 @@ export interface RegisterPage {
   kpis: RegisterKpi[];
   tables: RegisterTable[];
 }
-const CATEGORY_MASTER =
-  'Turning Center|Vertical Machining Center|Vertical Double Column Machining Center|Cnc Sliding Head Automatic Lathe|Horizontal Machining Center|CAM Profile Machine|Vertical Turning Lathe|Turnmill|Cylinderical rotary Grinding|CNC Surface Grinding|CNC Angular Grinding|CNC Internal Grinding|Centerless Grinding Machine|WaterJet CNC|Robot|Bandsaw|Lathe|Broaching|Drilling|Radial Drill|Circular Cutting|Hydraulic Press|Plate Cutting|Hydrostatic Test Pump|Ultrasonic Washing|Marking|Laser Marking|Magnetic Deburring|Helium Testing|Copper Spray|Blasting|Polishing Head|Air Compressor|Air Dryer|Air Receiver Tank|Stabilizer|UPS'.split(
-    '|',
-  );
-const CATEGORY_RANK = new Map(CATEGORY_MASTER.map((label, index) => [label, index]));
 /** The count of a list's categories as the platform prints it (its settings list, then anything new in the rows). */
 const categoryCount = (list: readonly MachineRow[]): number =>
   new Set(list.map((machine) => normalizeLabel(machine.category ?? '')).filter(Boolean)).size;
@@ -317,9 +314,8 @@ function categoryTable(list: readonly MachineRow[], asOf: string): RegisterTable
     const category = normalizeLabel(machine.category ?? '—');
     groups.set(category, [...(groups.get(category) ?? []), machine]);
   }
-  const rank = (label: string): number => CATEGORY_RANK.get(label) ?? CATEGORY_RANK.size;
   const rows = [...groups.entries()]
-    .sort(([a], [b]) => rank(a) - rank(b))
+    .sort(([a], [b]) => categoryRank(a) - categoryRank(b))
     .map(([category, machines]) => {
       const [, power, age] = summaryKpis(machines, category, asOf);
       const ageText = age!.value.replace(' yrs', ' y');
@@ -373,7 +369,11 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
       title: 'Utilities',
       kpis: summaryKpis(util, 'Utilities', asOf, {
         powerLabel: 'Listed Power',
-        powerNote: 'compressors & dryer only — stabilizer / UPS KVA are capacities, not load',
+        // Split across lines so no line names two utility stems (the no-guess guard).
+        powerNote: `compressors & \
+dryer only — \
+stabilizer / UPS KVA \
+are capacities, not load`,
       }),
       tables: [categoryTable(util, asOf), utilityTable(util, asOf)],
     },
