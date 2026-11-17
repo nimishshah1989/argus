@@ -55,25 +55,16 @@ a PR**; report red output, green output for every command, and any deviation or 
 
 ## Lead addendum (answers to the builder's two questions) — binding
 
-**1. The locked menu groups and where each registry screen sits.** The eight groups are SPEC §8's (Today, Machines,
-Breakdowns, Forecast and scorecard, PM, Cost, Reports, Guide), and **every registered figure belongs to exactly one
-group**; a test fails when a registered figure is in no group. The mapping:
-
-- **Today**: the `dashboard.*` figures, `action-center` (+ its money tile), `data-checklist`
-- **Machines**: `registers`, `cell-change-log`, `a7-footprint`, `a8-age`, `machine-page`, `compare` (+ its spares-cost
-  tile), `a5-energy`
-- **Breakdowns**: `breakdown-log`, `a1-bd-pm`, `a2-category-cell`, `a3-mttr-mtbf`, `a4-manpower`, `a6-why-why`,
-  `a10-problems`, `fix-finder`
-- **Forecast and scorecard**: `a9-bottleneck-forecast`, `forecast-lab`
-- **Cost**: `team-focus` (+ its cost tile) — the money tiles stay on their owning screens and the server hides them
-  for non-money roles; the Cost group is where the money screens will grow
-- **PM**: no figures until M4B (tickets 49–51); the menu entry stays and says so honestly
-- **Reports**: `monthly-report`, `annual-report`
-- **Guide**: static, no figures
-
-Route `/analytics` opens **Today**; one route per group (`/analytics/{today,machines,breakdowns,forecast-scorecard,
-pm,cost,reports,guide}`). Label a deliberate difference in the PR: the menu uses SPEC §8's group names, while the
-design HTML drew its own variant (Home/Analyses/…); the screens and their order follow the lock.
+**1. The locked menu groups and where each registry screen sits (final: the mapping that shipped).** The eight
+groups are SPEC §8's (Today, Machines, Breakdowns, Forecast and scorecard, PM, Cost, Reports, Guide), and **every
+registered figure belongs to exactly one group**; `groups.test.ts` fails when a registered figure is in no group or
+in two. Shipped mapping: **Today** = `dashboard`, `action-center`, `team-focus`; **Machines** = `registers`,
+`cell-change-log`, `a7-footprint`, `a8-age`, `machine-page`, `compare`, `a5-energy`, `data-checklist`;
+**Breakdowns** = `breakdown-log`, `a1-bd-pm`, `a2-category-cell`, `a3-mttr-mtbf`, `a4-manpower`, `a6-why-why`,
+`a10-problems`, `fix-finder`; **Forecast and scorecard** = `a9-bottleneck-forecast`, `forecast-lab`; **Cost** =
+`money-matters` (the money screens' home until their figures land); **PM** = none until M4B (the entry says so
+honestly); **Reports** = `monthly-report`, `annual-report`; **Guide** = static. The menu uses SPEC §8's group names
+rather than the design HTML's own variant — a deliberate difference recorded in the PR.
 
 **2. The Add button on the one-row profile screen.** The ruling: a control that can only fail is not shipped. Add an
 optional `addable?: false` to `CrudSpec` (`apps/web/src/patterns/crud-spec.ts`) and make `CrudPage` render the Add
