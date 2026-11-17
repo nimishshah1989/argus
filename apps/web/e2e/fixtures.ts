@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { request } from 'node:http';
-import { expect, type Locator, type Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 /**
  * The fake cosmos used by the e2e stack. Every id is fixed so specs can reference
@@ -379,14 +379,7 @@ export async function raiseTicketViaApi(
   return body.ticket;
 }
 
-/** Signs in through the real login screen and waits until the floor is rendered. */
-export async function signIn(page: Page, username = 'asha'): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('Username', { exact: true }).fill(username);
-  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
-}
+export { signIn } from './sign-in.js';
 
 /**
  * Where the ticket is on screen: its own pane beside the Open list on a wide screen, the whole page on a

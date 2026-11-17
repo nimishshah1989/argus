@@ -180,6 +180,39 @@ describe('settings and config', () => {
     expect(missing.json().map((row: { code: string }) => row.code)).not.toContain('spare');
   });
 
+  it('stores Gujarati overrides as a setting and serves them with the config', async () => {
+    const token = await loginAs('admin');
+    const before = (await req('GET', '/api/v1/config', token)).json();
+    expect(before.i18nOverrides).toEqual({});
+    const value = { 'plant.menu.machines': 'મશીન' };
+    const put = await req('PUT', '/api/v1/settings/i18n.overrides', token, { value });
+    expect(put.statusCode).toBe(200);
+    const after = (await req('GET', '/api/v1/config', token)).json();
+    expect(after.i18nOverrides).toEqual(value);
+    const rows = (await req('GET', '/api/v1/settings', token)).json() as {
+      key: string;
+      value: unknown;
+    }[];
+    expect(rows.find((row) => row.key === 'i18n.overrides')?.value).toEqual(value);
+  });
+
+  it('refuses an override for a key the catalogue does not have, and a floor role', async () => {
+    const token = await loginAs('admin');
+    const unknown = await req('PUT', '/api/v1/settings/i18n.overrides', token, {
+      value: { 'not.a.key': 'કંઈ નહીં' },
+    });
+    expect(unknown.statusCode).toBe(422);
+    const inherited = await req('PUT', '/api/v1/settings/i18n.overrides', token, {
+      value: { toString: 'કંઈ નહીં' },
+    });
+    expect(inherited.statusCode).toBe(422);
+    const tech = await loginAs('tech');
+    const forbiddenWrite = await req('PUT', '/api/v1/settings/i18n.overrides', tech, {
+      value: { 'plant.menu.machines': 'મશીન' },
+    });
+    expect(forbiddenWrite.statusCode).toBe(403);
+  });
+
   it('rejects unauthenticated /config', async () => {
     const cfg = await req('GET', '/api/v1/config');
     expect(cfg.statusCode).toBe(401);

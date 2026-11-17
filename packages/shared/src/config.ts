@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { en } from './i18n/index.js';
 
 export const LIST_NAMES = [
   'wait_reason',
@@ -53,6 +54,17 @@ export const listUpsertSchema = z.object({
 export type ListUpsertBody = z.infer<typeof listUpsertSchema>;
 
 export const featuresSchema = z.record(z.boolean());
+
+/**
+ * The plant's Gujarati overrides (D17: one `setting`, D7: laid over the bundled catalogue). A key must be a real
+ * catalogue key, so a typo cannot sit in the setting forever; a value is real Gujarati, never blank.
+ */
+export const i18nOverridesSchema = z
+  .record(z.string().min(1).max(200), z.string().trim().min(1).max(500))
+  .refine((overrides) => Object.keys(overrides).every((key) => Object.hasOwn(en, key)), {
+    message: 'Unknown message key',
+  });
+export type I18nOverrides = Record<string, string>;
 
 export const settingsPutSchema = z.object({ value: z.unknown() });
 export type SettingsPutBody = z.infer<typeof settingsPutSchema>;
@@ -176,6 +188,7 @@ export const plantConfigSchema = z
     people: z.array(personSchema),
     shifts: z.array(shiftSchema),
     severityMatrix: severityMatrixReplySchema,
+    i18nOverrides: i18nOverridesSchema,
   })
   .strict();
 

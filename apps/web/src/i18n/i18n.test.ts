@@ -1,6 +1,6 @@
 import { gu } from '@uptimo/shared/i18n';
 import { afterEach, describe, expect, it } from 'vitest';
-import i18n, { pickLanguage, setLanguage } from './index.js';
+import i18n, { applyOverrides, pickLanguage, setLanguage } from './index.js';
 
 describe('i18n catalogue', () => {
   afterEach(() => setLanguage('en'));
@@ -35,5 +35,17 @@ describe('pickLanguage', () => {
     expect(pickLanguage('fr', 'gu')).toBe('gu');
     expect(pickLanguage('fr', 'en')).toBe('en');
     expect(pickLanguage('fr', undefined)).toBe('en');
+  });
+});
+
+describe('plant Gujarati overrides', () => {
+  afterEach(() => applyOverrides({}));
+
+  it('shows a plant override in Gujarati, and the catalogue again when it is cleared', async () => {
+    applyOverrides({ 'plant.menu.machines': 'મશીન' });
+    await setLanguage('gu');
+    expect(i18n.t('plant.menu.machines')).toBe('મશીન');
+    applyOverrides({});
+    expect(i18n.t('plant.menu.machines')).toBe('Machines');
   });
 });

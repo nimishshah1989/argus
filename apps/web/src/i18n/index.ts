@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getConfig, getToken } from '../api.js';
-import { en, gu } from '@uptimo/shared/i18n';
+import { en, gu, overlaidGu, type UiOverrides } from '@uptimo/shared/i18n';
 
 export const SUPPORTED_LANGUAGES = ['en', 'gu'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
@@ -9,7 +9,9 @@ export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 void i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
-  resources: { en: { translation: en }, gu: { translation: gu } },
+  // Copies: i18next keeps the resource objects it is handed, and the override merge below must not edit the
+  // compiled catalogue (another caller reads it as the fallback).
+  resources: { en: { translation: { ...en } }, gu: { translation: { ...gu } } },
   interpolation: { escapeValue: false },
   returnEmptyString: false,
 });
@@ -49,13 +51,24 @@ export function chooseLanguage(lng: Language): Promise<void> {
   return setLanguage(lng);
 }
 
-/** Read the tenant language from `/config` and apply it (defaults to `en`). */
+/**
+ * Lay the plant's own Gujarati (setting `i18n.overrides`) over the bundled catalogue: the whole Gujarati bundle is
+ * replaced from the two, so a cleared override falls back to the catalogue and no rebuild is needed (D7, D17).
+ */
+export function applyOverrides(overrides: UiOverrides): void {
+  i18n.addResourceBundle('gu', 'translation', overlaidGu(gu, overrides), true, true);
+}
+
+/** Read the tenant language and its Gujarati overrides from `/config` and apply both (defaults to `en`). */
 export function applyConfigLanguage(): void {
   // Skip when not signed in: an unauthenticated getConfig would 401 → redirect to /login and
   // loop on the sign-in screen.
   if (!getToken()) return;
   getConfig()
-    .then((config) => void setLanguage(pickLanguage(savedLanguage(), config.language)))
+    .then((config) => {
+      applyOverrides(config.i18nOverrides ?? {});
+      return setLanguage(pickLanguage(savedLanguage(), config.language));
+    })
     .catch(() => undefined);
 }
 

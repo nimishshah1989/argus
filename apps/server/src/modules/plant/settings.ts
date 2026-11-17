@@ -5,6 +5,7 @@ import {
   companyNameSchema,
   companyTimeZoneSchema,
   featuresSchema,
+  i18nOverridesSchema,
   severityMatrixSchema,
 } from '@uptimo/shared';
 import { canSettingsAi, canSettingsLists, canSettingsSla, type ActorContext } from '@uptimo/domain';
@@ -24,6 +25,8 @@ interface WritableSetting {
  */
 const WRITABLE: Record<string, WritableSetting> = {
   features: { schema: featuresSchema, allow: canSettingsLists },
+  // The plant's own Gujarati, laid over the bundled catalogue at load (D7, D17): admin and head only.
+  'i18n.overrides': { schema: i18nOverridesSchema, allow: canSettingsLists },
   severity_matrix: { schema: severityMatrixSchema, allow: canSettingsSla },
   'ai.monthlyCapUsd': { schema: aiMonthlyCapUsdSchema, allow: canSettingsAi },
   'company.name': { schema: companyNameSchema, allow: canSettingsLists, profile: 'name' },

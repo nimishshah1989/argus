@@ -1,8 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 
-const SRC = new URL('../src/', import.meta.url).pathname;
+// `fileURLToPath`, not `.pathname`: a checkout under a directory with a space would otherwise
+// percent-encode the path and the guard would fail instead of checking the sources.
+const SRC = fileURLToPath(new URL('../src/', import.meta.url));
 const THE_ONE_SENDER = 'modules/notifications/push.ts';
 
 function sources(dir: string): string[] {

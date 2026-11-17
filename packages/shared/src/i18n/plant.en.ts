@@ -60,4 +60,16 @@ export const plantEn = {
   'plant.shifts.hours': '{{from}} to {{to}}',
   'plant.shifts.hoursOvernight': '{{from}} to {{to}} · crosses midnight',
   'plant.shifts.hint': 'A Shift 2 job belongs to the day the shift started.',
+  'plant.menu.translations': 'Translations',
+  'plant.menu.translations.sub': 'Gujarati for keys without it',
+  'plant.translations.title': 'Translations',
+  'plant.translations.intro':
+    'Keys the app still shows in English in Gujarati mode. Enter the plant’s own Gujarati; it applies at once and stays with the plant.',
+  'plant.translations.search': 'Find a key or its English',
+  'plant.translations.count': '{{count}} keys have no Gujarati yet',
+  'plant.translations.save': 'Save translations',
+  'plant.translations.saved': 'Saved.',
+  'plant.translations.error': 'Could not save the translations.',
+  'plant.translations.empty': 'Every key has Gujarati.',
+  'plant.translations.noMatch': 'No key matches that search.',
 };

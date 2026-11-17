@@ -17,6 +17,8 @@ export interface ConfigPayload {
   people: unknown[];
   shifts: unknown[];
   severityMatrix: SeverityMatrix;
+  /** The plant's Gujarati laid over the bundled catalogue (setting `i18n.overrides`). */
+  i18nOverrides: Record<string, string>;
 }
 
 /**
@@ -91,6 +93,8 @@ export async function loadConfig(
       people,
       shifts: plant.shifts,
       severityMatrix,
+      i18nOverrides: (plant.settings.find((row) => row.key === 'i18n.overrides')?.value ??
+        {}) as Record<string, string>,
       ...(await configParts(client, tenantId)),
     };
   });
