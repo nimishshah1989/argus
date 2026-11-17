@@ -1,4 +1,21 @@
-import { blank } from './blank.js';
+import { gujarati } from './blank.js';
 import { liveBoardEn } from './live-board.en.js';
 
-export const liveBoardGu = blank(liveBoardEn);
+export const liveBoardGu = gujarati(liveBoardEn, {
+  'live.openTv': 'ટીવી વ્યૂ ખોલો',
+  'live.pulse.aria': 'ચાલુ અને બંધ મશીન',
+  'live.pulse.running': 'ચાલુ',
+  'live.pulse.of': '{{count}} મશીનમાંથી',
+  'live.pulse.stopped': 'બંધ',
+  'live.column.notStarted': 'કોઈએ શરૂ નથી કર્યું',
+  'live.column.repairing': 'રિપેર ચાલુ',
+  'live.column.waiting': 'થોભાવેલું, રાહમાં',
+  'live.more': 'અને બીજાં {{count}}',
+  'live.ages.title': 'ખુલ્લા બ્રેકડાઉન, કેટલા જૂના',
+  'live.ages.overDayTitle': '1 દિવસથી વધુ ખુલ્લા',
+  'live.ages.underHour': '1 કલાકથી ઓછું',
+  'live.ages.oneToFour': '1 થી 4 કલાક',
+  'live.ages.fourToDay': '4 થી 24 કલાક',
+  'live.ages.overDay': '1 દિવસથી વધુ',
+  'live.ages.line': '{{label}}: {{count}}',
+});

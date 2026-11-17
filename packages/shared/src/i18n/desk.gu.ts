@@ -1,4 +1,33 @@
-import { blank } from './blank.js';
+import { gujarati } from './blank.js';
 import { deskEn } from './desk.en.js';
 
-export const deskGu = blank(deskEn);
+export const deskGu = gujarati(deskEn, {
+  'desk.title': 'ટિકિટ',
+  'desk.tab.open': 'ખુલ્લી',
+  'desk.tab.mine': 'મારી',
+  'desk.tab.team': 'ટીમ',
+  'desk.count.open': 'ખુલ્લી',
+  'desk.count.stopped': 'બંધ',
+  'desk.count.support': 'સપોર્ટ',
+  'desk.count.general': 'સામાન્ય',
+  'desk.group.breakdowns': 'બ્રેકડાઉન',
+  'desk.group.tasks': 'બાકી કામ',
+  'desk.group.work': 'વિનંતી',
+  'desk.empty.breakdowns': 'કોઈ બ્રેકડાઉન નથી.',
+  'desk.empty.tasks': 'કોઈ બાકી કામ નથી.',
+  'desk.empty.work': 'કોઈ કામની વિનંતી નથી.',
+  'desk.teamNow': 'હાલ ટીમ',
+  'desk.teamNowEmpty': 'હાલ કોઈ કામ પર નથી.',
+  'desk.ticketLists': 'ટિકિટની યાદીઓ',
+  'desk.mineTitle': 'મારી ટિકિટ',
+  'desk.mineEmpty': 'તમને કંઈ સોંપાયું નથી.',
+  'desk.needsReport': 'રિપોર્ટ બાકી',
+  'desk.view.workingNow': 'હાલ કામ ચાલુ',
+  'desk.view.notStarted': 'શરૂ નથી થયું',
+  'desk.view.cancelled24h': 'રદ, છેલ્લા 24 કલાક',
+  'desk.view.closed30d': 'ક્લોઝ, છેલ્લા 30 દિવસ',
+  'desk.view.monthly': 'દરેક વ્યક્તિનો મહિનાનો સરવાળો',
+  'desk.view.none': 'અહીં કંઈ નથી.',
+  'desk.mine.dayReport': 'દિવસનો રિપોર્ટ',
+  'desk.mine.dayReportError': 'દિવસનો રિપોર્ટ ડાઉનલોડ ન થયો.',
+});

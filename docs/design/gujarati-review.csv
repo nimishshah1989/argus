@@ -1,0 +1,34 @@
+key,english,gujarati,why_unsure
+status.ticket.closed,Closed,ક્લોઝ,"ક્લોઝ is a loanword picked so a closed ticket never reads as બંધ, the stopped machine. Check the floor says ""ટિકિટ ક્લોઝ""; else પૂર્ણ."
+action.close.submit,Close ticket,ટિકિટ ક્લોઝ કરો,"Same choice as status.ticket.closed: ક્લોઝ કરો, not બંધ કરો."
+action.label.pickUp,Pick up,હાથમાં લો,"હાથમાં લો (take in hand) is an idiom; the desk may say ""ટિકિટ લો""."
+figures.handsOn,Hands-on,ખરું કામ,No settled Gujarati for hands-on time; ખરું કામ (actual work) is a paraphrase.
+detail.hint.handsOn,hands on,ખરું કામ,Same as figures.handsOn.
+account.actingAs,Acting as,હાલ વાપરનાર,Acting as: the person using a shared phone now. હાલ વાપરનાર may read as the phone owner.
+signin.held,Not sent: queued by {{name}},મોકલાયું નથી: {{name}} ના નામે બાકી,The inserted name takes ના નામે; check it reads well with signin.heldEarlier inserted.
+signin.heldEarlier,an earlier sign-in,અગાઉના સાઇન ઇન,"Inserted into signin.held as {{name}}, so it is in the oblique form (અગાઉના)."
+signin.sharedPhone,Shared phone,સહિયારો ફોન,"સહિયારો ફોન is correct but formal; the floor may say ""કોમન ફોન""."
+report.correctiveAction,Corrective action,સુધારાનું કામ,Report form field from the plant paper form; સુધારાનું કામ may not match what technicians call it.
+closes.form.handover,Name of Person Taking Handover,સોંપણી લેનારનું નામ,Who takes the machine back after repair. સોંપણી vs the shift word ચાર્જ; check the paper form wording.
+desk.group.tasks,Tasks,બાકી કામ,"Tasks (work left after a breakdown) as બાકી કામ, kept apart from work requests (વિનંતી). Check the two are not confused."
+deskLists.tab.work,Work ({{count}}),વિનંતી ({{count}}),"Work tab shortened to વિનંતી (requests); may be too short to say ""work requests""."
+floor.workRequest,Work request,કામની વિનંતી,"કામની વિનંતી is clear but formal; the floor may say ""કામ"" or a loanword."
+status.forecast.hot,Hot,જોખમ,"Forecast state; જોખમ (risk) is stronger than ""hot""."
+status.forecast.watch,Watch,ધ્યાન રાખો,"ધ્યાન રાખો is an instruction, used as a state label."
+status.handback.requested,Requested,મંજૂરી માંગી,Handback sign-off states are not on screens yet; wording is a guess at the flow.
+status.handback.disputed,Disputed,વાંધો,વાંધો (objection) for a disputed sign-off.
+status.pm.due,Due,કરવાનું છે,Preventive maintenance due; કરવાનું છે is plain but long for a chip.
+sla.stoppedLeft,Stopped · {{time}} left,અટક્યું · {{time}} બાકી,"An SLA clock that stopped, as અટક્યું, so it never reads as the machine stopping (બંધ)."
+sla.restore,Restore,રિસ્ટોર,Restore target kept as the loanword રિસ્ટોર for heads and admins; floor staff do not see it.
+sla.ack,Acknowledge,સ્વીકાર,Acknowledge target as સ્વીકાર.
+tile.idle,Idle,ખાલી,Board tile for a machine with no ticket; ખાલી can also mean empty or unloaded.
+settings.criticalityTitle,Machine criticality,મશીનનું મહત્વ,Criticality as મહત્વ (importance); there is no common technical word.
+kit.wizard.step,Step {{n}} of {{total}},{{total}} માંથી પગલું {{n}},Word order for Step n of total.
+drafts.title,Needs attention,ધ્યાન આપવાનું છે,"Needs attention, as a heading over failed offline actions."
+nav.report,Report,જાણ કરો,Bottom tab for raising a problem; જાણ કરો (inform) vs ફરિયાદ (complaint).
+deskLists.showing,Showing {{what}}. Tap to show all.,{{what}} બતાવે છે. બધું જોવા ટેપ કરો.,{{what}} is filled with deskLists.filter.* words; check the sentence reads for each.
+deskLists.time.follow,Running since {{since}} · down {{time}},{{since}} થી ચાલુ · બંધ રહ્યું {{time}},"Two clocks in one line: running since, and how long it was stopped."
+live.ages.title,Open breakdowns by age,"ખુલ્લા બ્રેકડાઉન, કેટલા જૂના",Open breakdowns grouped by age; the phrasing is a literal paraphrase.
+offline.queued,"{{count}} queued, reconnecting…","{{count}} મોકલવાનાં બાકી, ફરી જોડાય છે…",Queued actions waiting to send while reconnecting.
+detail.running,{{time}} (running),{{time}} (ચાલુ છે),"""(running)"" means the clock is still counting, not the machine running."
+closes.done.submit,Mark done,પૂરું કર્યું,Mark done as પૂરું કર્યું (did it); may want an imperative.

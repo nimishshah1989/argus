@@ -1,4 +1,32 @@
-import { blank } from './blank.js';
+import { gujarati } from './blank.js';
 import { detailEn } from './detail.en.js';
 
-export const detailGu = blank(detailEn);
+export const detailGu = gujarati(detailEn, {
+  'detail.back': 'ખુલ્લી ટિકિટ',
+  'detail.minutes': 'મિનિટ',
+  'detail.people': 'કોણે કામ કર્યું',
+  'detail.history': 'પૂરો ઇતિહાસ',
+  'detail.kind.stopped': 'મશીન બંધ',
+  'detail.kind.support': 'સપોર્ટ જોઈએ',
+  'detail.kind.general': 'કામની વિનંતી',
+  'detail.fact.type': 'પ્રકાર',
+  'detail.fact.reported': 'નોંધાયું',
+  'detail.fact.workStarted': 'કામ શરૂ',
+  'detail.fact.response': 'રિસ્પોન્સ',
+  'detail.fact.workTime': 'કામનો સમય',
+  'detail.fact.waiting': 'રાહ',
+  'detail.fact.downtime': 'મશીન ડાઉનટાઇમ',
+  'detail.by': '{{time}}, {{name}} દ્વારા',
+  'detail.byRole': '{{time}}, {{name}} ({{role}}) દ્વારા',
+  'detail.running': '{{time}} (ચાલુ છે)',
+  'detail.soFar': 'અત્યાર સુધી {{time}}',
+  'detail.tile.downtime': 'ડાઉનટાઇમ',
+  'detail.tile.workTime': 'કામનો સમય',
+  'detail.tile.waiting': 'રાહ',
+  'detail.hint.stopped': 'બંધ',
+  'detail.hint.handsOn': 'ખરું કામ',
+  'detail.joined': '{{role}} · જોડાયા {{time}}',
+  'detail.action.cancel': 'ટિકિટ રદ કરો',
+  'detail.action.closeReport': 'રિપોર્ટ લખીને ક્લોઝ કરો',
+  'detail.action.closeNoReport': 'રિપોર્ટ વગર ક્લોઝ કરો',
+});

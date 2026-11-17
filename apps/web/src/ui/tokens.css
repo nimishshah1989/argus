@@ -76,6 +76,10 @@
   --text-tv-120: 120px;
   --text-tv-160: 160px;
 
+  /* Gujarati lines carry matras above and below: the lock gives them 1.55 line height (LOCK.md:30).
+     English keeps Tailwind's 1.5, so a paragraph reads exactly as it did before. */
+  --leading-body: 1.5;
+
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
@@ -98,6 +102,11 @@
   --color-chart-2: var(--color-neutral-600);
   --color-chart-axis: var(--color-neutral-600);
   --color-chart-grid: var(--color-neutral-200);
+}
+
+/* The page language is set on <html> (i18n/index.ts), so this follows the tenant without a component prop. */
+:root[lang='gu'] {
+  --leading-body: 1.55;
 }
 
 @media (prefers-reduced-motion: reduce) {

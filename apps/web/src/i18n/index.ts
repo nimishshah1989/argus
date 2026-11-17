@@ -16,7 +16,10 @@ void i18n.use(initReactI18next).init({
 
 /** Switch the active language; empty `gu` values fall back to English. */
 export function setLanguage(lng: Language): Promise<void> {
-  return i18n.changeLanguage(lng).then(() => undefined);
+  return i18n.changeLanguage(lng).then(() => {
+    // Screen readers and the browser's Gujarati shaping read the page language from <html lang>.
+    if (typeof document !== 'undefined') document.documentElement.lang = lng;
+  });
 }
 
 /** Read the tenant language from `/config` and apply it (defaults to `en`). */

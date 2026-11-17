@@ -4,7 +4,7 @@ export const galleryEn: Record<string, string> = {
   title: 'Design gallery',
   language: 'Language',
   'language.en': 'English',
-  'language.gu': 'Gujarati (placeholder)',
+  'language.gu': 'Gujarati',
   accent: 'Accent',
   theme: 'Theme',
   'theme.light': 'Light',
@@ -177,12 +177,12 @@ export const galleryEn: Record<string, string> = {
   'desk.time': 'Waiting 2 h 14 min',
   'desk.start': 'Start work',
   guBanner:
-    'Gujarati placeholder: sample letters only, not translations. Real Gujarati arrives with ticket 24.',
+    "Real Gujarati: components show the live catalogue. Only the gallery's own labels are sample letters.",
   guSpecimen:
     'અ આ ઇ ઈ ઉ ઊ એ ઐ ઓ ઔ ક ખ ગ ઘ ચ છ જ ઝ ટ ઠ ડ ઢ ણ ત થ દ ધ ન પ ફ બ ભ મ ય ર લ વ શ સ હ ૦ ૧ ૨ ૩ ૪ ૫ ૬ ૭ ૮ ૯',
 };
 
-/** Marked placeholder script, not a translation (nothing is machine-translated). */
+/** The gallery's own labels in sample letters, not translations. Components use the real catalogue. */
 export const galleryGu: Record<string, string> = Object.fromEntries(
   Object.entries(galleryEn).map(([key, value]) => [
     key,

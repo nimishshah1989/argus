@@ -1,5 +1,6 @@
 import { expect, test as base } from '@playwright/test';
 import { Pool } from 'pg';
+import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { TENANT_WEB_URL, seedStatements } from './fixtures.js';
 import { actionSeedStatements } from './fixtures-actions.js';
 import { signoffSeedStatements } from './fixtures-signoff.js';
@@ -22,7 +23,18 @@ async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
   }
 }
 
-export const test = base.extend<object, { workerTenant: void; uiLanguage: 'en' | 'gu' }>({
+export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+export const test = base.extend<{ t: Translate }, { workerTenant: void; uiLanguage: 'en' | 'gu' }>({
+  /** A catalogue string in the tenant language, English where gu is empty (as the app does). */
+  t: async ({ uiLanguage }, use) => {
+    const catalogue: Record<string, string> = uiLanguage === 'gu' ? gu : en;
+    await use((key, vars = {}) =>
+      (catalogue[key] || en[key]).replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+        String(vars[name]),
+      ),
+    );
+  },
   /** The tenant language this worker is seeded with; the `gujarati` project sets `gu`. */
   uiLanguage: ['en', { scope: 'worker', option: true }],
   workerTenant: [
