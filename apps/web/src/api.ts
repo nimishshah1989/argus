@@ -1,4 +1,5 @@
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
+import { correctionBody } from './screens/analytics/machine-values.js';
 import {
   ApiError,
   defineResource,
@@ -277,7 +278,7 @@ export const correctMove = (
 ): Promise<unknown> =>
   http(`/api/v1/machines/${encodeURIComponent(machineId)}/moves/${encodeURIComponent(moveId)}`, {
     method: 'PATCH',
-    body: JSON.stringify({ effectiveFrom }),
+    body: JSON.stringify(correctionBody(effectiveFrom)),
   });
 
 export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }> =>
