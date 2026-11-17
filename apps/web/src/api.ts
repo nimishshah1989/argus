@@ -249,9 +249,9 @@ export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }
 
 const rosterCopy = defineResource<{ created: number; skipped: number }>({
   key: 'roster',
-  path: '/api/v1/settings/roster/copy',
+  path: '/api/v1/roster/copy',
 });
 
-/** POST /settings/roster/copy: repeat one day's roster over the next seven days; a refusal is an ApiError. */
+/** POST /roster/copy: repeat one day's roster over the next seven days; a refusal is an ApiError. */
 export const copyRoster = (date: string): Promise<{ created: number; skipped: number }> =>
   rosterCopy.create({ date });

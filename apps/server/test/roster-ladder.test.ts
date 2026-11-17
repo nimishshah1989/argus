@@ -607,10 +607,10 @@ describe('copying a day’s roster forward', () => {
     const seeded = await a('POST', '/api/v1/roster', 'head', line());
     expect(seeded.statusCode, seeded.body).toBe(201);
 
-    const first = await a('POST', '/api/v1/settings/roster/copy', 'head', { date: today });
+    const first = await a('POST', '/api/v1/roster/copy', 'head', { date: today });
     expect(first.statusCode, first.body).toBe(200);
     expect(first.json()).toEqual({ created: 7, skipped: 0 });
-    const again = await a('POST', '/api/v1/settings/roster/copy', 'head', { date: today });
+    const again = await a('POST', '/api/v1/roster/copy', 'head', { date: today });
     expect(again.statusCode, again.body).toBe(200);
     expect(again.json()).toEqual({ created: 0, skipped: 7 });
 
@@ -630,19 +630,19 @@ describe('copying a day’s roster forward', () => {
     expect(copies).toHaveLength(2);
 
     // The head, not only the admin, may copy; an operator may not.
-    expect(
-      (await a('POST', '/api/v1/settings/roster/copy', 'operator', { date: today })).statusCode,
-    ).toBe(403);
+    expect((await a('POST', '/api/v1/roster/copy', 'operator', { date: today })).statusCode).toBe(
+      403,
+    );
   });
 
   it('refuses a day older than the roster floor and a body with no date, naming date', async () => {
-    const old = await a('POST', '/api/v1/settings/roster/copy', 'head', {
+    const old = await a('POST', '/api/v1/roster/copy', 'head', {
       date: await dayOffset(-366),
     });
     expect(old.statusCode, old.body).toBe(422);
     expect(old.json().error.field).toBe('date');
     for (const body of [{}, { date: 'tomorrow' }, { date: today, days: 3 }]) {
-      const bad = await a('POST', '/api/v1/settings/roster/copy', 'head', body);
+      const bad = await a('POST', '/api/v1/roster/copy', 'head', body);
       expect(bad.statusCode, JSON.stringify(body)).toBe(422);
       expect(bad.json().error.field).toBe('date');
     }

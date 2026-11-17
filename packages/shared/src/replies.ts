@@ -185,7 +185,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('roster', rosterReplySchema),
-  [`POST ${P}/settings/roster/copy`]: rosterCopyReplySchema,
+  [`POST ${P}/roster/copy`]: rosterCopyReplySchema,
   ...settingsResource('escalation-rules', ruleReplySchema),
   [`GET ${P}/analytics-profile`]: profilePageSchema,
   [`PUT ${P}/analytics-profile/:id`]: profileReplySchema,

@@ -200,9 +200,7 @@ export function registerSettings(app: FastifyInstance, config: AppConfig): void 
   app.put('/api/v1/settings/sla-policies', (request, reply) =>
     putSlaPolicies(pool, request, reply, config.jobBoss),
   );
-  app.post('/api/v1/settings/roster/copy', (request, reply) =>
-    postRosterCopy(pool, request, reply),
-  );
+  app.post('/api/v1/roster/copy', (request, reply) => postRosterCopy(pool, request, reply));
   for (const resource of LADDER_RESOURCES) {
     // A saved rule re-arms what it governs (the tickets already down), as saving the clocks' targets does.
     const afterSave = (tx: PoolClient, tenantId: string) =>
