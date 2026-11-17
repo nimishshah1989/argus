@@ -28,6 +28,7 @@ Two kinds of checking:
 | Q12 | Evidence and memory      | The PR says what changed for a user, how to try it, what must be decided; a `changes/` fragment exists; rulings and merges reach the ledger.   | auto       | The body lacks the three headings, the fragment is missing, or the PR text is over the size gate. |
 | Q13 | No secrets, no real data | No secret in code, tests, fixtures, logs or screenshots; real names and phone numbers stay out of the repo.                                    | auto       | `secrets` or `pii:scan` fails.                                                                    |
 | Q14 | Honest review            | A fresh reviewer that did not write the change returns the verdict in the ponytail format, with numbered `file:line` findings and the Q table. | review     | Self-review, a verdict without evidence, or a finding without a proof.                            |
+| Q15 | Merge keeps main green | After each merge the queue verifies the new `main`: check it out, run the test files the merged PR touched, and hotfix a red tree before the next merge. | review | The new `main` fails a test the merge touched, or the next PR discovers it (a red main blocks every PR). |
 
 ## How the gate runs
 
@@ -39,6 +40,10 @@ Two kinds of checking:
   17 Nov incident, when a mid-conflict rebase plus a force push closed the PR.
 - **CI, on every ready PR (`pr-meta`):** `pnpm quality:pr`. It fails the PR when the body does not carry the
   Q table, when a test was weakened, or when a size/parity/changelog gate fails.
+- **After every merge (Q15):** check out the new `main`, run the test files the merged PR touched, and record
+  the result in the ledger. A red `main` gets its own hotfix PR before the next merge — on 17 Nov a stale
+  expectation from #206 broke `main` through #258 and was found only by the next PR's CI, which blocked the
+  whole queue.
 - **Before every merge:** the reviewer returns the Q table with a verdict per id. A FAIL on any id blocks the
   merge; a waiver is a ledger ruling, never a silent exception.
 

@@ -19,6 +19,11 @@ That is the repeated instruction `principle-encode-lessons-in-structure` tells u
    review.
 4. **A failed attribute blocks the merge.** Never lower an attribute to pass a PR. A waiver is a ledger ruling
    with a cost-if-wrong line, never a silent exception.
+5. **Q15 keeps `main` green.** CI deliberately does not run on `main` (Actions minutes, #224), so a red tree is
+   otherwise found by the *next* PR's run, after the queue has already spent a CI run on it. On 17 Nov a stale
+   expectation from #206 met #258's criticality default that way and blocked every PR. The queue therefore
+   verifies the new `main` after each merge: check it out, run the test files that merge touched, and hotfix a
+   red tree before the next merge.
 
 ## Why not fold it into `pnpm precheck`
 
