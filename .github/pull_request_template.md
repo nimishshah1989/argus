@@ -2,6 +2,35 @@
 
 <!-- One or two sentences; link the slice or issue. -->
 
+## How to try it
+
+<!-- The preview URL, or the command and path to open. -->
+
+## What must be decided
+
+<!-- Anything the reviewer or Nimish must rule on; write None when nothing. -->
+
+## Quality attributes
+
+<!-- One line per id from docs/QUALITY-ATTRIBUTES.md. Replace <verdict> with pass, "n/a — reason" or
+"fail — finding N"; a line without a verdict does not count and the gate fails the PR. -->
+
+Q1 Behaviour tested: <verdict>
+Q2 Test integrity: <verdict>
+Q3 Tenancy sealed: <verdict>
+Q4 Auth and permission: <verdict>
+Q5 Data safety: <verdict>
+Q6 Lean budgets: <verdict>
+Q7 Design lock: <verdict>
+Q8 Accessibility: <verdict>
+Q9 Internationalisation: <verdict>
+Q10 Determinism: <verdict>
+Q11 Operability: <verdict>
+Q12 Evidence and memory: <verdict>
+Q13 No secrets or real data: <verdict>
+Q14 Honest review: <verdict>
+Q15 Merge keeps main green: <verdict>
+
 ## Verification
 
 - [ ] `pnpm precheck` green before the push

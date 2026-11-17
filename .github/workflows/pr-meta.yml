@@ -39,3 +39,6 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           LEAN_ALLOW_LARGE: ${{ contains(github.event.pull_request.labels.*.name, 'size:large') && '1' || '' }}
+      - run: pnpm quality:pr
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
