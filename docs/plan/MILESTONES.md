@@ -38,9 +38,9 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 19  | Follow-up tasks                                   | M1        | todo        | —                                                                                             |
 | 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 + #200; screens todo                                                          |
 | 21  | People, logins and sign-in                        | M1        | in progress | API #199, #210; sign-in #213, who-is-acting #225; follow-up PR open soon; people screens todo |
-| 22  | Plant settings: machines, groups, shifts          | M1        | in progress | goal 2 #187; API #195; screens todo                                                           |
+| 22  | Plant settings: machines, groups, shifts          | M1        | done        | API #195; screens #258 (+ #187 goal 2)                                                        |
 | 23  | Plant settings: lists and company                 | M1        | in progress | API #206 (server done); screens todo                                                          |
-| 24  | Gujarati                                          | M1        | todo        | —                                                                                             |
+| 24  | Gujarati                                          | M1        | in progress | catalogues + baselines #263; translation screen is part 2                                     |
 | 25  | Live board and alerts                             | M1        | in progress | goal 1 #229 (response/repair-today tiles wait on backend); goal 2 todo                        |
 | 26  | Hardened                                          | M1        | todo        | —                                                                                             |
 | 27  | Usability round                                   | M1        | todo        | —                                                                                             |
@@ -50,10 +50,10 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 31  | Roster, ladder, acknowledge                       | M2        | todo        | —                                                                                             |
 | 32  | Notification service                              | M2        | todo        | —                                                                                             |
 | 33  | Escalation                                        | M2        | todo        | —                                                                                             |
-| 34  | Production sign-off                               | M2        | todo        | —                                                                                             |
+| 34  | Production sign-off                               | M2        | in progress | part 1 web #261; part 2 on the #262 server work                                               |
 | 35  | Run it safely                                     | M2        | todo        | —                                                                                             |
-| 36  | M4a schema and answer key                         | M4a       | todo        | —                                                                                             |
-| 37  | History, engine and drill-down                    | M4a       | todo        | —                                                                                             |
+| 36  | M4a schema and answer key                         | M4a       | in progress | part A #267 (triage signed off 16 Nov); migration #268                                        |
+| 37  | History, engine and drill-down                    | M4a       | in progress | part A engine shell #265; figures arrive 38-45                                                |
 | 38  | Dashboard and Today                               | M4a       | todo        | —                                                                                             |
 | 39  | Registers and machine pages                       | M4a       | todo        | —                                                                                             |
 | 40  | Breakdown analyses                                | M4a       | todo        | —                                                                                             |
