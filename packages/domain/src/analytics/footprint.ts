@@ -116,6 +116,109 @@ function categoryTable(items: readonly FootprintItem[], machineArea: number) {
   };
 }
 
+/** Cell and location master order (the platform's Settings lists), for the two splits' row order. */
+const CELL_ORDER = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const LOCATION_ORDER = ['434', '435/4', '445', '486', '841-A', '841-B', '381'];
+type AreaGroup = { label: string; count: number; area: number };
+function areaGroups(items: readonly FootprintItem[], labelOf: (item: FootprintItem) => string) {
+  const groups = new Map<string, AreaGroup>();
+  for (const item of items) {
+    const label = labelOf(item).trim() || '—';
+    const group = groups.get(label) ?? { label, count: 0, area: 0 };
+    groups.set(label, { label, count: group.count + 1, area: group.area + item.area });
+  }
+  return [...groups.values()];
+}
+type AreaSplit = { title: string; label: string; master: readonly string[] };
+
+function areaTable(split: AreaSplit, groups: readonly AreaGroup[], total: number) {
+  const { title, label, master } = split;
+  const rank = new Map(master.map((value, index) => [value, index]));
+  const rows = groups
+    .slice()
+    .sort((a, b) => (rank.get(a.label) ?? master.length) - (rank.get(b.label) ?? master.length))
+    .map((group) => [
+      group.label,
+      String(group.count),
+      formatNumber(group.area, 1),
+      formatPercent(total === 0 ? 0 : group.area / total),
+      // The platform rounds the raw average once; stop formatNumber re-rounding a binary near-half.
+      formatNumber(Number((group.area / group.count).toFixed(1)), 1),
+    ]);
+  return {
+    title,
+    header: [
+      label,
+      'Machines',
+      'Machine Area (m²)',
+      '% of Machine Area',
+      'Avg Area / Machine (m²)',
+    ],
+    rows,
+  };
+}
+function growthTable(items: readonly FootprintItem[]) {
+  const years = new Map<number, { count: number; area: number }>();
+  for (const item of items) {
+    const year = item.machine.year;
+    if (year === null || year <= 0) continue;
+    const group = years.get(year) ?? { count: 0, area: 0 };
+    years.set(year, { count: group.count + 1, area: group.area + item.area });
+  }
+  let cumulative = 0;
+  const rows = [...years.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([year, group]) => {
+      cumulative += group.area;
+      return [
+        String(year),
+        String(group.count),
+        formatNumber(group.area, 1),
+        formatNumber(cumulative, 1),
+      ];
+    });
+  return {
+    title: 'Footprint Growth by Purchase Year',
+    header: ['Year', 'Machines Added', 'Area Added (m²)', 'Cumulative (m²)'],
+    rows,
+  };
+}
+function largestTable(items: readonly FootprintItem[]) {
+  const rows = items
+    .slice()
+    .sort((a, b) => b.area - a.area)
+    .slice(0, 10)
+    .map((item) => [
+      item.machine.id,
+      item.machine.model ?? '—',
+      `${formatNumber(item.length, 2)} × ${formatNumber(item.width, 2)}`,
+      formatNumber(item.area, 1),
+    ]);
+  return {
+    title: '10 Largest Footprints',
+    header: ['Machine', 'Model', 'L × W (m)', 'Area (m²)'],
+    rows,
+  };
+}
+function tablesFor(items: readonly FootprintItem[], machineArea: number) {
+  const cells = areaGroups(items, (item) => item.machine.cell?.trim() || '—');
+  const locations = areaGroups(items, (item) => item.machine.location?.trim() || '—');
+  return [
+    categoryTable(items, machineArea),
+    areaTable(
+      { title: 'Footprint — by Cell', label: 'Cell', master: CELL_ORDER },
+      cells,
+      machineArea,
+    ),
+    areaTable(
+      { title: 'Footprint — by Location', label: 'Location', master: LOCATION_ORDER },
+      locations,
+      machineArea,
+    ),
+    growthTable(items),
+    largestTable(items),
+  ];
+}
 /** The footprint cards and its category table, drilling to the machines with dimensions. */
 export const footprint: Computer = ({ data }) => {
   const machines = data.machines.filter(
@@ -156,7 +259,7 @@ export const footprint: Computer = ({ data }) => {
     page: 'a7',
     title: 'Footprint',
     kpis,
-    tables: [categoryTable(items, machineArea)],
+    tables: tablesFor(items, machineArea),
   };
   return {
     value: { pages: [page] } as unknown as FigureValue,

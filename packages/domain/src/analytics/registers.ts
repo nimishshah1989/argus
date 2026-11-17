@@ -3,7 +3,6 @@ import { machineAge } from './machine-facts.js';
 import { controllerInfo, makeName } from './machine-splits.js';
 import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow } from './types.js';
-
 /**
  * The registers figure (ticket 39): the platform's own per-register summary — count, connected load and average
  * age — plus the CNC register's controller-brand/series split and the make split. The Guide is the authority:
@@ -15,26 +14,25 @@ export interface RegisterKpi {
   value: string;
   sub: string;
 }
-
 export interface RegisterTable {
   title: string;
   header: string[];
   rows: string[][];
 }
-
 export interface RegisterPage {
   page: string;
   title: string;
   kpis: RegisterKpi[];
   tables: RegisterTable[];
 }
-
+const CATEGORY_MASTER =
+  'Turning Center|Vertical Machining Center|Vertical Double Column Machining Center|Cnc Sliding Head Automatic Lathe|Horizontal Machining Center|CAM Profile Machine|Vertical Turning Lathe|Turnmill|Cylinderical rotary Grinding|CNC Surface Grinding|CNC Angular Grinding|CNC Internal Grinding|Centerless Grinding Machine|WaterJet CNC|Robot|Bandsaw|Lathe|Broaching|Drilling|Radial Drill|Circular Cutting|Hydraulic Press|Plate Cutting|Hydrostatic Test Pump|Ultrasonic Washing|Marking|Laser Marking|Magnetic Deburring|Helium Testing|Copper Spray|Blasting|Polishing Head|Air Compressor|Air Dryer|Air Receiver Tank|Stabilizer|UPS'.split(
+    '|',
+  );
+const CATEGORY_RANK = new Map(CATEGORY_MASTER.map((label, index) => [label, index]));
 /** The count of a list's categories as the platform prints it (its settings list, then anything new in the rows). */
-function categoryCount(list: readonly MachineRow[]): number {
-  return new Set(list.map((machine) => normalizeLabel(machine.category ?? '')).filter(Boolean))
-    .size;
-}
-
+const categoryCount = (list: readonly MachineRow[]): number =>
+  new Set(list.map((machine) => normalizeLabel(machine.category ?? '')).filter(Boolean)).size;
 /** Count, connected load and average age: the summary above every register list. */
 function summaryKpis(
   list: readonly MachineRow[],
@@ -68,7 +66,6 @@ function summaryKpis(
     },
   ];
 }
-
 /** The controller brand cards: the brand, its machine count and its top three series with counts. */
 function controllerKpis(list: readonly MachineRow[]): RegisterKpi[] {
   const groups = new Map<string, { count: number; series: Map<string, number> }>();
@@ -95,7 +92,6 @@ function controllerKpis(list: readonly MachineRow[]): RegisterKpi[] {
       };
     });
 }
-
 /** The make cards: the make, its machine count and its top two categories with counts. */
 function makeKpis(list: readonly MachineRow[]): RegisterKpi[] {
   const groups = new Map<string, { count: number; categories: Map<string, number> }>();
@@ -126,7 +122,6 @@ function makeKpis(list: readonly MachineRow[]): RegisterKpi[] {
       };
     });
 }
-
 /** The robots page: its own three cards (the platform keeps robots out of the CNC register split). */
 function robotKpis(data: EngineData, robots: readonly MachineRow[]): RegisterKpi[] {
   const ids = new Set(robots.map((robot) => robot.id));
@@ -145,7 +140,6 @@ function robotKpis(data: EngineData, robots: readonly MachineRow[]): RegisterKpi
     },
   ];
 }
-
 /** The DG page: supply capacity is never load, so these cards print capacity and the largest set. */
 function dgKpis(list: readonly MachineRow[], asOf: string): RegisterKpi[] {
   const capacity = list.reduce((sum, set) => sum + (set.capacityKva ?? 0), 0);
@@ -181,7 +175,6 @@ function dgKpis(list: readonly MachineRow[], asOf: string): RegisterKpi[] {
     },
   ];
 }
-
 /** A value as the machine list prints it: a dash when the workbook holds nothing. */
 const printed = (value: unknown): string =>
   value === null || value === undefined || String(value).trim() === '' ? '—' : String(value);
@@ -282,7 +275,6 @@ function utilityTable(list: readonly MachineRow[], asOf: string): RegisterTable 
     ]),
   };
 }
-
 /** The DG list: capacity in place of load, dimensions, and Edit/Del. */
 function dgTable(list: readonly MachineRow[], asOf: string): RegisterTable {
   return {
@@ -319,6 +311,23 @@ function dgTable(list: readonly MachineRow[], asOf: string): RegisterTable {
     ]),
   };
 }
+function categoryTable(list: readonly MachineRow[], asOf: string): RegisterTable {
+  const groups = new Map<string, MachineRow[]>();
+  for (const machine of list) {
+    const category = normalizeLabel(machine.category ?? '—');
+    groups.set(category, [...(groups.get(category) ?? []), machine]);
+  }
+  const rank = (label: string): number => CATEGORY_RANK.get(label) ?? CATEGORY_RANK.size;
+  const rows = [...groups.entries()]
+    .sort(([a], [b]) => rank(a) - rank(b))
+    .map(([category, machines]) => {
+      const [, power, age] = summaryKpis(machines, category, asOf);
+      const ageText = age!.value.replace(' yrs', ' y');
+      const powerText = power!.value.replace(' KVA', '');
+      return [category, String(machines.length), ageText, powerText];
+    });
+  return { title: 'By Category', header: ['Category', 'Machines', 'Avg Age', 'Power (KVA)'], rows };
+}
 
 /** The five register lists the platform shows, each with its own page. */
 function pages(data: EngineData, asOf: string): RegisterPage[] {
@@ -334,6 +343,7 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
       title: 'CNC Machines',
       kpis: [...summaryKpis(cnc, 'CNC Machines', asOf), ...controllerKpis(cnc), ...makeKpis(cnc)],
       tables: [
+        categoryTable(cnc, asOf),
         cncTable(
           cnc.filter((machine) => machine.category !== 'Robot'),
           asOf,
@@ -350,13 +360,13 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
       page: 'conv',
       title: 'Conventional Machines',
       kpis: summaryKpis(conv, 'Conventional Machines', asOf),
-      tables: [utilityTable(conv, asOf)],
+      tables: [categoryTable(conv, asOf), utilityTable(conv, asOf)],
     },
     {
       page: 'proc',
       title: 'Process Machines',
       kpis: summaryKpis(proc, 'Process Machines', asOf),
-      tables: [utilityTable(proc, asOf)],
+      tables: [categoryTable(proc, asOf), utilityTable(proc, asOf)],
     },
     {
       page: 'util',
@@ -365,7 +375,7 @@ function pages(data: EngineData, asOf: string): RegisterPage[] {
         powerLabel: 'Listed Power',
         powerNote: 'compressors & dryer only — stabilizer / UPS KVA are capacities, not load',
       }),
-      tables: [utilityTable(util, asOf)],
+      tables: [categoryTable(util, asOf), utilityTable(util, asOf)],
     },
     { page: 'dg', title: 'DG Sets', kpis: dgKpis(dg, asOf), tables: [dgTable(dg, asOf)] },
   ];

@@ -70,6 +70,17 @@ const MACHINE_PAGE = readKey<
   ScreenKey & { extra: { machine: MachineKey; efficiencyPct: number; breakdowns: number } }
 >('machine-page.json');
 
+/** The key's pages in the figure's shape, dropping a table another figure delivers. */
+const keyPages = (key: ScreenKey, withoutTable?: string): ScreenPage[] =>
+  key.pages.map(({ page, title, kpis, tables }) => ({
+    page,
+    title,
+    kpis,
+    tables: tables
+      .filter((table) => table.title !== withoutTable)
+      .map(({ title: tableTitle, header, rows }) => ({ title: tableTitle, header, rows })),
+  }));
+
 const run = (data: EngineData = ENGINE_DATA): EngineResult =>
   runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
 
@@ -117,36 +128,21 @@ const displayDate = (iso: string): string =>
 describe('the five owner-39 figures on the 11 November workbook', () => {
   const result = run();
 
-  it("shows every register page's KPIs and its machine list exactly as the key printed them", () => {
+  it('shows every register page exactly as the key printed it, minus the separately registered change log', () => {
     expect(REGISTERS.asOf).toBe(AS_OF);
     const pages = valueOf<{ pages: ScreenPage[] }>(result, 'registers').pages;
-    expect(pages.map(({ page, title, kpis }) => ({ page, title, kpis }))).toEqual(
-      REGISTERS.pages.map(({ page, title, kpis }) => ({ page, title, kpis })),
-    );
-    for (const page of REGISTERS.pages) {
-      const ours = pages.find((candidate) => candidate.page === page.page);
-      const keyTable = page.tables.find((table) =>
-        table.header.some((header) => header === 'Machine ID' || header === 'DG ID'),
-      );
-      if (!keyTable) throw new Error(`the register key holds no machine list on ${page.page}`);
-      const { title, header, rows } = keyTable;
-      expect(ours?.tables[0], page.page).toEqual({ title, header, rows });
-    }
+    // The change log is the cell-change-log figure's own table, not a second copy here.
+    expect(pages).toEqual(keyPages(REGISTERS, 'Cell / Location Change Log'));
     // The controller split merges spellings ("Fanuc Oi TF" and "FANUC OI-TF" are one series).
     const cnc = pages.find((page) => page.page === 'machines');
     expect(cnc?.kpis.filter((kpi) => kpi.label === 'Fanuc').length).toBe(1);
   });
 
-  it("answers the footprint's cards and per-category table exactly, with the Guide's packing", () => {
+  it("answers every footprint table exactly, with the Guide's packing", () => {
     expect(FOOTPRINT.asOf).toBe(AS_OF);
-    const page = valueOf<{ pages: ScreenPage[] }>(result, 'a7-footprint').pages[0]!;
-    expect({ page: page.page, title: page.title, kpis: page.kpis }).toEqual({
-      page: FOOTPRINT.pages[0]!.page,
-      title: FOOTPRINT.pages[0]!.title,
-      kpis: FOOTPRINT.pages[0]!.kpis,
-    });
-    const { title, header, rows } = FOOTPRINT.pages[0]!.tables[0]!;
-    expect(page.tables[0]).toEqual({ title, header, rows });
+    expect(valueOf<{ pages: ScreenPage[] }>(result, 'a7-footprint').pages).toEqual(
+      keyPages(FOOTPRINT),
+    );
   });
 
   it("answers the age analysis' band and average cards exactly as the key", () => {
