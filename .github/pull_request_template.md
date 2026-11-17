@@ -2,6 +2,33 @@
 
 <!-- One or two sentences; link the slice or issue. -->
 
+## How to try it
+
+<!-- The preview URL, or the command and path to open. -->
+
+## What must be decided
+
+<!-- Anything the reviewer or Nimish must rule on; write None when nothing. -->
+
+## Quality attributes
+
+<!-- One line per id from docs/QUALITY-ATTRIBUTES.md, appending pass, n/a — reason, or fail — finding N. -->
+
+Q1 Behaviour tested
+Q2 Test integrity
+Q3 Tenancy sealed
+Q4 Auth and permission
+Q5 Data safety
+Q6 Lean budgets
+Q7 Design lock
+Q8 Accessibility
+Q9 Internationalisation
+Q10 Determinism
+Q11 Operability
+Q12 Evidence and memory
+Q13 No secrets or real data
+Q14 Honest review
+
 ## Verification
 
 - [ ] `pnpm precheck` green before the push
