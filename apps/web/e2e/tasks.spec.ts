@@ -114,8 +114,22 @@ async function markTaskDone(page: Page, task: MadeTask, machineCode: string, par
   await page.getByRole('button', { name: 'Mark done', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: `Done: ${machineCode}` });
   await sheet.getByLabel('What was done?').fill('Bearing replaced');
-  await sheet.getByLabel('Machine-stopped minutes').fill('45');
-  await sheet.getByRole('button', { name: 'Mark done', exact: true }).click();
+  // A typo queued offline is refused on replay and jams every command behind it: the sheet holds Send.
+  const minutes = sheet.getByLabel('Machine-stopped minutes');
+  const submit = sheet.getByRole('button', { name: 'Mark done', exact: true });
+  const invalid = 'Machine-stopped minutes must be a whole number from 0 to 1440.';
+  for (const typo of ['abc', '-5', '2000']) {
+    await minutes.fill(typo);
+    await expect(submit).toBeDisabled();
+    await expect(sheet.getByText(invalid, { exact: true })).toBeVisible();
+  }
+  for (const edge of ['0', '1440']) {
+    await minutes.fill(edge);
+    await expect(submit).toBeEnabled();
+    await expect(sheet.getByText(invalid, { exact: true })).toHaveCount(0);
+  }
+  await minutes.fill('45');
+  await submit.click();
   await expect(page.locator('header').getByText('Closed', { exact: true })).toBeVisible();
 }
 

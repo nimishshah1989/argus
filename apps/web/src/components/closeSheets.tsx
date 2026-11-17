@@ -19,6 +19,13 @@ export interface CloseSheetProps {
 const NOTE_MAX = 2000;
 /** The server's cap on a task's words. */
 const TASK_TEXT_MAX = 300;
+/** The server's cap on the minutes a task left the machine stopped: whole minutes, 0 to a day. */
+const DOWN_MIN_MAX = 1440;
+
+/** Whole minutes from 0 to 1440: what the server takes, and what a queued command may carry. */
+function downMinOk(raw: string): boolean {
+  return /^\d+$/.test(raw) && Number(raw) <= DOWN_MIN_MAX;
+}
 
 /** The task a close leaves behind, if the person filled the two boxes that make one. */
 function taskOf(values: Record<string, string>): { task?: TaskInput } {
@@ -140,10 +147,15 @@ export function DoneSheet(p: CloseSheetProps) {
       submit={t('closes.done.submit')}
       footnote={task ? t('tasks.stoppedMinutesHint') : undefined}
       fields={fields}
+      note={(values) => {
+        const raw = (values.taskDownMin ?? '').trim();
+        return task && raw !== '' && !downMinOk(raw) ? t('tasks.stoppedMinutesInvalid') : null;
+      }}
+      blocked={(values) => task && !downMinOk((values.taskDownMin ?? '').trim())}
       body={(values) => ({
         kind: 'done',
         note: (values.note ?? '').trim(),
-        ...(task ? { taskDownMin: Number(values.taskDownMin) } : {}),
+        ...(task ? { taskDownMin: Number((values.taskDownMin ?? '').trim()) } : {}),
       })}
     />
   );

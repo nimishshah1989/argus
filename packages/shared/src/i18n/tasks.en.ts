@@ -26,6 +26,7 @@ export const tasksEn = {
   'tasks.expectedLabel': 'Expected date',
   'tasks.expectedHint': 'Optional. A task with no date never turns overdue.',
   'tasks.stoppedMinutes': 'Machine-stopped minutes',
+  'tasks.stoppedMinutesInvalid': 'Machine-stopped minutes must be a whole number from 0 to 1440.',
   'tasks.stoppedMinutesHint':
     '0 to 1440. It stays on this task and is not added to the breakdown downtime.',
   'tasks.warningTitle': 'This machine has a follow-up task',
