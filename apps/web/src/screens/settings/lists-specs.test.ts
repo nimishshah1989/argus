@@ -50,3 +50,9 @@ describe('the lists screen is grown from its page config', () => {
     expect(rows.at(-1)?.titleKey).toBe('lists.flag.yes');
   });
 });
+
+describe('a list edit refreshes what the desk reads its labels from', () => {
+  it('every list names the config among the keys a write invalidates', () => {
+    for (const page of LIST_PAGES) expect(page.spec.invalidates, page.page).toContain('config');
+  });
+});

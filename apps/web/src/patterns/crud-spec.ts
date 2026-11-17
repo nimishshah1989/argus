@@ -126,6 +126,8 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   note?: (values: Record<string, string>, row: Row | null, c: CrudCtx) => string | null;
   /** Fields saved by their own route after the row (a machine's criticality refreshes its open tickets). */
   separate?: Record<string, (id: string, value: string) => Promise<unknown>>;
+  /** Query keys a write must also refresh: a wait reason renames the desk's `config.lists.wait_reason`. */
+  invalidates?: readonly string[];
   introKey?: LabelKey;
   footnoteKey?: LabelKey;
 }

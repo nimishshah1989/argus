@@ -59,6 +59,8 @@ function listSpec(p: {
   return {
     key: `list-${p.page}`,
     path: `/api/v1/settings/lists/${p.page}`,
+    // The desk and the board read these labels from the cached config: a rename must refresh it.
+    invalidates: ['config'],
     schema: listItemReplySchema,
     titleKey: p.titleKey,
     addKey: p.addKey,
