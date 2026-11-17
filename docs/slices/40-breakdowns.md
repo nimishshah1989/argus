@@ -4,7 +4,7 @@ Ticket 40: [Engine] "Breakdown log (NO DT and conversions included), A1 BD % and
 MTTR and MTBF match exactly." [Browser] "Their screens show them with drill-downs." Acceptance:
 `fixtures/answer-key/{breakdown-log,a1-bd-pm,a2-category-cell,a3-mttr-mtbf}.json`, whole figure, no tolerance.
 A fresh plan review verified every rule below against the keys, `input.json` and the discovery JS; its ten rulings are
-incorporated here (see the Revision section at the end for the evidence).
+incorporated here. The evidence, per rule, is in the Revision section at the end (discovery file and functions cited).
 
 ## Shared rules (settle once, in packet 40h, reuse everywhere)
 
@@ -19,9 +19,12 @@ incorporated here (see the Revision section at the end for the evidence).
 - **By Cell BD attribution** uses the machine's **effective cell at the breakdown date** (`cellAt` walking `machine_move`
   from the first move's `fromCell`) and **cell availability is time-weighted by `cellFrac`** — a discovery-JS rule, ported
   (not in `availability.ts`). Machine-level detail tables print the machine's **current** cell.
-- **Formatting**: `formatInr` — Indian grouping (5,65,692.47) — added beside `formatNumber`; category labels are the key's
-  **raw** text (including the double space); chart precision is per key (ch-a1-trend raw floats, a2/a3 charts 2 dp),
-  compared with `toEqual` via a `chartById` helper.
+- **Formatting**: `formatInr` — Indian grouping (5,65,692.47) — added beside `formatNumber`; **table cells group by the raw
+  category and print the key's whitespace-normalised single-space label; chart labels carry the raw double space**; chart
+  precision is per key (ch-a1-trend raw floats, a2/a3 charts 2 dp), compared with `toEqual` via a `chartById` helper.
+- **Done By display seam** (settled in 40h): the fixture slugs doneBy to `person-41` and the engine has no display form, so
+  `PersonRow` gains a **`displayName`** (the workbook's coded name: Person 41, Maint. Team) and the log prints it; the
+  fixture reader keeps that name instead of discarding it. No prettifier guesses.
 - **Drill type is ticket** for all four (registry): the log names its row-order ticket ids; A1 names the BD + PM tickets
   its numerator read; A2/A3 name the breakdown tickets they read.
 - Honesty: figure values are the key's own printed page (English strings are data); catalogue keys cover chrome; an
@@ -29,8 +32,10 @@ incorporated here (see the Revision section at the end for the evidence).
 
 ## Packet 40h — the shared helpers (one PR, one writer, first)
 
-`packages/domain/src/analytics/hours.ts` (effective recorded hours selection + the availability window/bases + cellAt +
-cellFrac port), `format.ts` (`formatInr`), `packages/domain/test/answer-key/fixture.ts` (A1/A2/A3/BREAKDOWN_LOG readers),
+`packages/domain/src/analytics/hours.ts` (**composes** `rows.ts`'s `effectiveHours`, which already selects recorded hours
+and NO DT→0 — plus the availability window/bases and the cellAt + cellFrac port), `format.ts` (`formatInr`),
+`packages/domain/src/analytics/types.ts` (`PersonRow.displayName`), `packages/domain/test/answer-key/fixture.ts`
+(A1/A2/A3/BREAKDOWN_LOG readers, keeping the coded doneBy name),
 `analytics-breakdown.test.ts` (new: the helper-level cases — 11 Nov plant Σ 565,692.47, Jan window 50,548.4, Cell 1
 36,272.45 by cellFrac, the Q-average vs printed-monthly distinction, en-IN grouping). Red first: the fixture readers and
 the computed windows do not exist.
@@ -43,7 +48,9 @@ seam; recorded as the D31 work unit, >150 lines.)
 kpis: [], tables: [{ title: '', header: ['','Sr No','Ticket No.','Date','Shift','Machine','Problem','Done By','Downtime
 (Hrs)','Code'], rows: display-string rows, rowCount: 1343, truncated: true }], charts: [] } }` — **all history rows
 including the 64 PM rows** (the key's 1,343), newest first (srNo 1357…) so the truncation is head-truncation, the eye
-column, dates DD-MM-YYYY, hours printed as the platform does (1.83, 4, — for NO DT). Drill = ticket ids in row order.
+column, dates DD-MM-YYYY, hours printed as the platform does (1.83, 4, — for NO DT), **Ticket No. = the workbook's
+`ticketRef` where present, else the row's own legacy id** (only 60 rows carry a ref; the key pins the three newest, which
+do). Drill = ticket ids in row order.
 **Acceptance**: `rowCount` **derived** from input.json (**not a constant**); the value's `rowCount` equals the number of
 rows built; the key's three sample rows equal the figure's first three; every drill id is a real ticket and the count
 equals rowCount; `totalHours` and `noDowntimeHours` derived in the test from input.json (NO-DT cross-checked against
@@ -55,8 +62,11 @@ dashboard's 209.1; **not** the dashboard's 3,060.1).
 `a1-bd-pm`: the 6 KPIs (4,525.54; 125; 5,65,692.47; 3,060.1 hrs; 759.3 hrs; 99.32 %), the 4 tables (By Cell — Detail 9;
 MoM BD %/PM % 20 rows; MoM BD Hours by Cell 9; MoM PM Hours by Cell 9), the 2 charts (ch-a1-cell, ch-a1-trend) — exact
 against the key, including the print quirks (concatenated hour+percent cells, the pair labels with the empty second
-label, "PLANT TOTAL" prefixes, the Q/Total bases above). **S2 lands here** (dashboard.total-breakdowns aligned to the
-production filter; the dashboard test's expected 1,279 stays, the filter now shared).
+label, "PLANT TOTAL" prefixes, the Q/Total bases above). **S2 lands here**: dashboard.total-breakdowns aligned to the
+production filter. That **inverts an existing guard test** whose control is `total-breakdowns` moving +1 when an excluded
+machine's row is added (analytics-dashboard.test.ts): the control moves to an unfiltered figure (e.g.
+total-downtime-hours) and total-breakdowns joins the never-moves set. The inversion is named in the PR; no assertion is
+deleted.
 **Files:** `a1-bd-pm.ts` (new), `analytics-breakdown.test.ts`, `computers.ts`, the dashboard figure's filter change +
 its test, fragment.
 
@@ -65,12 +75,15 @@ its test, fragment.
 `a2-category-cell`: **16 tables** (By Category — Detail 14, By Cell — Detail 9, **14** per-category Machine-Level Detail
 tables) and **8 charts** (ch-a2-cathrs, ch-a2-catcnt, ch-a2-cellhrs, ch-a2-cellcnt, ch-a2-catavghrs, ch-a2-catavgcnt,
 ch-a2-cellavghrs, ch-a2-cellavgcnt) — exact against the key.
+**Files:** `a2-category-cell.ts` (new), `analytics-breakdown.test.ts`, `computers.ts` spread, `changes/40-breakdowns.md`.
 
 ## Packet 40d — A3 MTTR and MTBF (one PR)
 
 `a3-mttr-mtbf`: **6 tables** (By Category 14; By Cell 9; MoM Cell-wise/Plant-wide 20; MoM Age Band-wise/Plant-wide 12;
 By Machine Age Band 5; By Individual Machine 125) and **7 charts** (ch-a3-catmttr, catmtbf, cellmttr, cellmtbf, agemttr,
-agemtbf, ch-a3-planttrend — the mixed convention) — exact against the key, the four MTBF bases and the zero rules above.
+agemtbf, ch-a3-planttrend — the mixed convention) — exact against the key, the four MTBF bases and the zero rules
+(including the quarters: a1 MoM Cell 9 Q1/Q2 and a3 cell-wise Cell 5 Q1, Cell 9 Q1/Q2 print the key's dash).
+**Files:** `a3-mttr-mtbf.ts` (new), `analytics-breakdown.test.ts`, `computers.ts` spread, `changes/40-breakdowns.md`.
 
 ## Packet 40e — the screens (two PRs, after 40a–d)
 
@@ -95,3 +108,13 @@ deviations (each engine packet is 180–600 lines: state it; the shared seam is 
 The four figures equal their keys in every checkable dimension (the log by derived rowCount + head rows + order + drill
 ids + derived totals; A1/A2/A3 whole page); the four screens show them with drills; a fresh reviewer runs the covering
 suite; CI green; `main:check` green after each merge.
+
+## Revision — the evidence for the ten rulings (fresh plan reviews, 17–18 Nov)
+
+Every number above was recomputed by the reviewers against the keys, `input.json` and
+`docs/discovery/source/cosmos_platform-2026-11-11.html`: the log's 1,343 rows (64 PM, 140 NO DT with 209.11 recorded hours
+and 0 effective), BD effective hours 3,060.11 → 3,060.1 over 1,279 rows (matching the dashboard KPIs), plant Σ available
+565,692.47 with Jan 50,548.39 and Cell 1 36,272.45 via `cellFrac`/`getEffectiveCell`/`cellAvail` (~line 830 of the
+discovery file), the a2 table/chart counts, the a3 6 tables + 7 charts, the four MTBF bases (Cell 1 MTBF Q3 501.4 vs the
+naive 501.5 pins the unrounded average), the zero-breakdown MTBF = available hours (5,183.33), and the en-IN grouping.
+The plan's first draft was refused for contradicting several of these; this file is the corrected version.
