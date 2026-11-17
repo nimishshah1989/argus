@@ -166,7 +166,9 @@ Nimish rather than guessed (recorded at the end). Build the five, join the map, 
 
 1. `dashboard.total-breakdowns` = count of the history `breakdowns` rows whose `maintCode !== 'PM'`, **excluding**
    live `otherBD` rows → **1279** (R4). Drill ids: those tickets.
-2. `dashboard.total-downtime-hours` = Σ `downMin`/60 over those rows **plus** the live rows → **3060.1** (R4, R5).
+2. `dashboard.total-downtime-hours` = Σ `downMin`/60 over the history rows whose `maintCode` is neither `PM` nor
+   `NO DT` **plus** the live rows → **3060.1** (R4, R5; the key's sub-label says NO-DT rows are excluded from downtime
+   totals — dropping that exclusion gives 3270.7, which the builder proved before implementing the key's rule).
 3. `dashboard.pm-hours` = Σ `downMin`/60 where `maintCode === 'PM'` → **759.3** (R5; not Σ `pmHrs`).
 4. `dashboard.no-downtime-hours` = Σ `downMin`/60 where `maintCode === 'NO DT'` (history only) → **209.1** (R4, R5).
 5. `dashboard.avg-bd-hours-per-machine` = total downtime ÷ **126** ("Total downtime ÷ CNC machines" in the key) →
@@ -183,6 +185,7 @@ average) and prove that with the test.
 is listed as not implemented yet".
 
 **Held for Nimish (do not implement, do not guess):**
+
 - `dashboard.fleet-availability` (key 99.32%, "average · hours to 11 Nov"): no formula in the repo produces it —
   downtime/(126×20×311) = 99.61%, /(126×24×311) = 99.67%; the denominator needs ~141 days for 159 machines at 20 h.
   His answer must fix the machine-hours denominator and whether availability averages per machine.
