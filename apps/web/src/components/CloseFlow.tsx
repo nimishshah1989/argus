@@ -7,7 +7,7 @@ import { FinishTime, ScreenFooter } from '../ui/close-kit.js';
 import { FactList, MinuteTiles } from '../ui/detail-kit.js';
 import { TopBar } from '../ui/top-bar.js';
 import { closeAt, earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
-import { NO_TASK, TaskLeaveCard, taskInput, type TaskDraft } from './FollowUpTask.js';
+import { NO_TASK, TaskLeaveCard, taskInput, taskReady, type TaskDraft } from './FollowUpTask.js';
 import { formatClock, formatMinutes, machineLabel } from './format.js';
 import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
 import { StatusBadge } from './StatusBadge.js';
@@ -160,8 +160,10 @@ function ReportStep(
     update: (patch: Partial<ReportValues>) => props.setValues({ ...values, ...patch }),
   };
 
+  const canSend = !props.pending && reportReady(values) && taskReady(props.task);
+
   async function submit() {
-    if (props.pending || !reportReady(values)) return;
+    if (!canSend) return;
     if (await sendReport(props, values, finish, props.task)) props.onExit();
   }
   const submitLabel = late ? t('closes.late.submit') : t('report.closeWithReport');
@@ -194,7 +196,7 @@ function ReportStep(
         {props.error ? <Banner tone="error" title={props.error} /> : null}
       </main>
       <ScreenFooter hint={late ? t('closes.form.hintLate') : t('closes.form.hintClose')}>
-        <Button type="submit" disabled={props.pending || !reportReady(values)}>
+        <Button type="submit" disabled={!canSend}>
           {props.pending ? t('common.saving') : submitLabel}
         </Button>
       </ScreenFooter>

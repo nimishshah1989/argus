@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../data/index.js';
 import { Button } from '../ui/button.js';
@@ -43,6 +43,8 @@ export interface FormSheetProps {
   backLabel?: string;
   /** A line shown under the fields, from what they hold now (a cell change says what it will move). */
   note?: (values: Record<string, string>) => string | null;
+  /** True holds the submit button: a combination the server would refuse, explained by `note`. */
+  blocked?: (values: Record<string, string>) => boolean;
   /** A small line under the button. */
   footnote?: string;
 }
@@ -78,6 +80,31 @@ function Choice(props: { field: FormField; value: string; onChange: (value: stri
 
 function Footnote({ text }: { text?: string }) {
   return text ? <p className="text-center text-caption text-neutral-600">{text}</p> : null;
+}
+
+/** Whether the submit waits: a required field, no connection, or a combination the caller refuses. */
+function submitHeld(
+  p: FormSheetProps,
+  values: Record<string, string>,
+  missing: boolean,
+  notice: string | null,
+): boolean {
+  return (
+    p.pending || missing || notice === 'kit.form.needsConnection' || (p.blocked?.(values) ?? false)
+  );
+}
+
+/** The submit alone, or Back beside it (design lock, every sheet with a way out). */
+function SheetActions(p: { backLabel?: string; submit: ReactNode; onCancel: () => void }) {
+  if (!p.backLabel) return <>{p.submit}</>;
+  return (
+    <Grid columns={2} gap={2}>
+      <Button variant="secondary" onClick={p.onCancel}>
+        {p.backLabel}
+      </Button>
+      {p.submit}
+    </Grid>
+  );
 }
 
 function NoteLine({ note }: { note: string | null }) {
@@ -129,7 +156,7 @@ export function FormSheet(p: FormSheetProps) {
   }
 
   const submitButton = (
-    <Button type="submit" disabled={p.pending || missing || notice === 'kit.form.needsConnection'}>
+    <Button type="submit" disabled={submitHeld(p, values, missing, notice)}>
       {p.pending ? t('common.sending') : p.submitLabel}
     </Button>
   );
@@ -159,16 +186,11 @@ export function FormSheet(p: FormSheetProps) {
               {p.error}
             </p>
           ) : null}
-          {p.backLabel ? (
-            <Grid columns={2} gap={2}>
-              <Button variant="secondary" onClick={() => p.onOpenChange(false)}>
-                {p.backLabel}
-              </Button>
-              {submitButton}
-            </Grid>
-          ) : (
-            submitButton
-          )}
+          <SheetActions
+            backLabel={p.backLabel}
+            submit={submitButton}
+            onCancel={() => p.onOpenChange(false)}
+          />
           <Footnote text={p.footnote} />
         </Stack>
       </form>

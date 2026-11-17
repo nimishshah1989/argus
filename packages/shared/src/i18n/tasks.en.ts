@@ -19,6 +19,7 @@ export const tasksEn = {
   'tasks.tabHint': 'Follow-up tasks left after a close, earliest expected date first.',
   'tasks.tabEmpty': 'No follow-up tasks.',
   'tasks.leave': 'Leave a follow-up task',
+  'tasks.incomplete': 'A follow-up task needs what is left and a reason for it.',
   'tasks.leaveHint':
     'The job is not finished. It becomes a task on this breakdown, with a reason and an expected date.',
   'tasks.what': 'What is left',

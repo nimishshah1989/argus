@@ -54,11 +54,19 @@ async function leaveTaskAtClose(page: Page, reason: string): Promise<void> {
   await page.getByRole('button', { name: 'Continue to report form', exact: true }).click();
   await page.getByLabel('Breakdown Category').selectOption({ index: 1 });
   await page.getByLabel('Maintenance Code').selectOption({ index: 1 });
+  const submit = page.getByRole('button', { name: 'Close with report', exact: true });
   await page.getByRole('checkbox', { name: 'Leave a follow-up task', exact: true }).check();
+  // A task needs its words and its reason: the close waits rather than dropping them.
+  await expect(submit).toBeDisabled();
+  await expect(page.getByTestId('task-incomplete')).toHaveText(
+    'A follow-up task needs what is left and a reason for it.',
+  );
   await page.getByLabel('What is left', { exact: true }).fill('Replace the spindle bearing');
+  await expect(submit).toBeDisabled();
   await page.getByLabel('Reason', { exact: true }).selectOption(reason);
   await page.getByLabel('Expected date', { exact: true }).fill('2000-01-01');
-  await page.getByRole('button', { name: 'Close with report', exact: true }).click();
+  await expect(submit).toBeEnabled();
+  await submit.click();
   await expect(page.locator('header').getByText('Closed', { exact: true })).toBeVisible();
 }
 

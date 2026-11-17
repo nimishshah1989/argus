@@ -52,6 +52,8 @@ function CloseSheet(
     submit: string;
     fields: FormField[];
     footnote?: string;
+    note?: (values: Record<string, string>) => string | null;
+    blocked?: (values: Record<string, string>) => boolean;
     body: (values: Record<string, string>) => CommandBody;
   },
 ) {
@@ -70,6 +72,8 @@ function CloseSheet(
       actingAs={name ? t('closes.actingAs', { name }) : undefined}
       fields={p.fields}
       footnote={p.footnote}
+      note={p.note}
+      blocked={p.blocked}
       offlineAllowed
       pending={p.pending}
       error={p.error}
@@ -105,6 +109,12 @@ export function NoReportSheet(p: CloseSheetProps) {
       submit={t('closes.noReport.submit')}
       footnote={reasons.length ? t('tasks.leaveHint') : undefined}
       fields={fields}
+      note={(values) =>
+        Boolean((values.taskText ?? '').trim()) !== Boolean(values.taskReason)
+          ? t('tasks.incomplete')
+          : null
+      }
+      blocked={(values) => Boolean((values.taskText ?? '').trim()) !== Boolean(values.taskReason)}
       body={(values) => ({
         kind: 'no_report',
         note: (values.note ?? '').trim(),

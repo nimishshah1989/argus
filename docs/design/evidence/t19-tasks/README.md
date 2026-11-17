@@ -5,14 +5,14 @@ https://claude.ai/artifact/7iLVAMkHLQ8ncGEg5ZWhXL (link kept in `docs/design/LOC
 `docs/design/slices/` holds slices 5 to 9 only. These shots show the built screens on their own, at 360 px,
 taken from the e2e stack with pseudonymised fixture data.
 
-| Image                       | Screen                                                                      |
-| --------------------------- | --------------------------------------------------------------------------- |
-| `t19-close-leave-task.png`  | Close with report: "Leave a follow-up task" with what is left, reason, date |
-| `t19-parent-overdue.png`    | The parent's Follow-up tasks box: one overdue task with its reason and date |
-| `t19-desk-tasks-tab.png`    | Desk Open, Tasks tab: the task with its state, reason and expected date     |
-| `t19-task-done-sheet.png`   | Marking a task done: the sheet asks the machine-stopped minutes             |
-| `t19-parent-done.png`       | The parent after the task is done, with "45 min machine-stopped"           |
-| `t19-floor-warning.png`     | Floor Step 2: the machine already has a follow-up task                     |
+| Image                      | Screen                                                                      |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `t19-close-leave-task.png` | Close with report: "Leave a follow-up task" with what is left, reason, date |
+| `t19-parent-overdue.png`   | The parent's Follow-up tasks box: one overdue task with its reason and date |
+| `t19-desk-tasks-tab.png`   | Desk Open, Tasks tab: the task with its state, reason and expected date     |
+| `t19-task-done-sheet.png`  | Marking a task done: the sheet asks the machine-stopped minutes             |
+| `t19-parent-done.png`      | The parent after the task is done, with "45 min machine-stopped"            |
+| `t19-floor-warning.png`    | Floor Step 2: the machine already has a follow-up task                      |
 
 ## Deliberate differences
 
@@ -27,3 +27,7 @@ taken from the e2e stack with pseudonymised fixture data.
    status pill.
 5. The task's own screen says "Left from BD-0001" and its reason and expected date; the parent's box stays
    one primary action (the ticket's own action bar), so rows are links, not buttons.
+6. The Tasks tab lists unfinished tasks (v3's pending list); a done task stays on its parent's box, so the
+   tab never grows without bound.
+7. The close-without-report sheet carries the same three optional task boxes as the report close; it is not
+   shot here because it is a sheet over the same screens.

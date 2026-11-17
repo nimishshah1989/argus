@@ -15,6 +15,11 @@ export interface TaskDraft {
 
 export const NO_TASK: TaskDraft = { on: false, text: '', reasonCode: '', expectedOn: '' };
 
+/** A ticked task needs its words and the plant's reason before the close may send, or it would be lost. */
+export function taskReady(draft: TaskDraft): boolean {
+  return !draft.on || (draft.text.trim() !== '' && draft.reasonCode !== '');
+}
+
 /** The server's shape, or nothing when the person left the boxes empty (a close without a task). */
 export function taskInput(draft: TaskDraft): TaskInput | undefined {
   const text = draft.text.trim();
@@ -106,6 +111,11 @@ export function TaskLeaveCard({
           onChange={(event) => onChange({ ...draft, on: event.target.checked })}
         />
         {draft.on ? <TaskLeaveFields config={config} draft={draft} onChange={onChange} /> : null}
+        {taskReady(draft) ? null : (
+          <p role="status" data-testid="task-incomplete" className="text-footnote text-danger">
+            {t('tasks.incomplete')}
+          </p>
+        )}
       </Card>
     </div>
   );
