@@ -9,6 +9,7 @@ import { BrandHeader } from '../../ui/brand-header.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
 import { lastUsername, rememberUsername } from './last-username.js';
+import { landingPath } from '../../roles.js';
 import { Fields, Notice, SIGNED_OUT_PARAM, signInError } from './parts.js';
 
 async function mustChangePasswordFirst(): Promise<boolean> {
@@ -42,7 +43,7 @@ export function SignIn() {
       // layer then opens /password). Everyone else goes straight on; their first call does the same.
       const asksWho = reply.user.shared && !reply.user.actingPersonId;
       if (asksWho && (await mustChangePasswordFirst())) return false;
-      navigate(asksWho ? '/who' : '/floor');
+      navigate(asksWho ? '/who' : landingPath(reply.user.role));
     } catch (caught) {
       // The screen says what happened; the console keeps the real error for whoever has to find out why.
       if (!(caught instanceof ApiError && caught.code === 'unauthenticated'))
