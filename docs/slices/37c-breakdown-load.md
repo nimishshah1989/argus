@@ -30,7 +30,7 @@ left to their live tickets by construction, not by a silent skip.
 **Ticket shape (settled against schema.ts):**
 
 - `legacyId` = row id; `ref` = **`BD-9<srNo padded to 5>`** (BD-90001…BD-91357) — a collision-free synthetic band: the
-  plant's live refs are BD-0001…BD-0151, and `advanceRefCounters` will raise the live counter to BD-91358 when the import
+  plant's live refs are BD-0001…BD-0151, and `advanceRefCounters` will raise the live counter to BD-91287 when the import
   commits; that consequence is recorded in the PR and the fragment, not hidden. (A 60-row overlap at srNo/refs is moot:
   those rows are not tickets in this export.)
 - `entryType: 'pastBreakdown'`, `kind: 'stopped'`, `status: 'closed'`, `machineCode`, `problem`;
@@ -78,7 +78,7 @@ the packet's red evidence.
 
 - imports the generated export: `stats.imported = 1,283, status 'done'`, 1,283 closed backfill tickets with a report
   each and `import_row.source_ref` = the row's legacy id; the 60 `bd_live_` rows are not in the export;
-- **a re-import adds nothing** (`imported 0, skipped 1,343`; ticket and breakdown_report counts unchanged);
+- **a re-import adds nothing** (`imported 0, skipped 1,283`; ticket and breakdown_report counts unchanged);
 - **codes through the alias config**: the NI/FS/PP/UTI rows carry the aliased code; a blank stays null; an unseeded,
   un-aliased code is an import issue a person sees, never a silent drop;
 - **history on the desk**: `GET /api/v1/tickets?from=<day>&to=<day>` for a history day returns the imported ticket(s)

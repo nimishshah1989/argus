@@ -9,7 +9,7 @@
  * so the export is the other 1,283 rows and the load leaves the 60 to their live tickets.
  *
  * Refs sit in a synthetic band: `BD-9` prefixed to the srNo (four digits, `BD-90001`…`BD-91357`). The plant's
- * live refs are `BD-0001`…`BD-0151`; `advanceRefCounters` raises the live BD counter to `BD-91358` when the
+ * live refs are `BD-0001`…`BD-0151`; `advanceRefCounters` raises the live BD counter to `BD-91287` when the
  * import commits. That consequence is recorded, not hidden.
  *
  * Shift placement: the seed holds two windows, `1` 08:00-18:30 and `2` 18:29-05:00. `1ST` is `1`, `2ND` is

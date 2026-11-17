@@ -13,3 +13,4 @@
 - Red evidence (verification packet): with `import_row.source_ref` wired to the ticket ref instead of the legacy id,
   the load test fails on the source-reference set; restored after the run. Wiring it to null makes the batch fail
   fatally on the completion fingerprint (dangling provenance). Neither change is in the final diff.
+- The import raises the live BD ticket counter to BD-91287 (the highest history ref in the export, BD-91286, plus one); the platform's own BD counter continues from there — recorded, not hidden.
