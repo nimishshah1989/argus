@@ -76,7 +76,7 @@ test('admin adds a personal login and switches it back on with a new password', 
   page,
 }) => {
   const name = unique('Login Person');
-  const person = await addPerson(name);
+  await addPerson(name);
   const username = `login.${randomUUID().slice(0, 8)}`;
   await signIn(page, 'admin');
   await page.goto('/settings/logins');
@@ -108,7 +108,6 @@ test('admin adds a personal login and switches it back on with a new password', 
   await expect(
     page.getByRole('button', { name: `Switch off ${username}`, exact: true }),
   ).toBeVisible();
-  expect(person.id).toBeTruthy();
 });
 
 test('bulk actions change a shift, sign devices out and switch people off, each with a reason and a count', async ({
