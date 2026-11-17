@@ -19,13 +19,14 @@ import {
 import { audit, type AuditPageRow } from '../ops/index.js';
 import { loginNames, loginsOfPerson } from './repo/people.js';
 import { tenantInfo } from './repo.js';
-import { requireAuth } from './service.js';
+import { refuseSupport, requireAuth } from './service.js';
 import { auditCsv } from './audit-csv.js';
 
 /**
  * The audit screen's read side (MILESTONES 20 goal 2): the page an admin and the head read, and the CSV only the
- * admin exports. `audit_log` is read through the `ops` module's published `audit.page`; names live here, so this
- * module (which may call `ops`) shapes the reply instead of `ops` reaching up to `login`/`person`.
+ * admin exports. Our own staff never read or export it, even under a grant: the trail is the customer's record
+ * of what support did. `audit_log` is read through the `ops` module's published `audit.page`; names live here, so
+ * this module (which may call `ops`) shapes the reply instead of `ops` reaching up to `login`/`person`.
  */
 
 const PAGE = '/api/v1/audit';
@@ -43,14 +44,14 @@ const actorOf = (ctx: AuthContext): ActorContext => ({
 const forbidden = (reply: FastifyReply): void =>
   void reply.code(403).send(apiError('forbidden', 'You do not have permission for this action'));
 
-/** The signed-in caller, or null after answering 401 or 403 for a role outside the audit cell. */
+/** The signed-in caller, or null after answering 401 or 403 for a role outside the audit cell or a grant. */
 async function caller(
   pool: Pool,
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<AuthContext | null> {
   const ctx = await requireAuth(pool, request, reply);
-  if (!ctx) return null;
+  if (!ctx || refuseSupport(ctx, reply)) return null;
   if (canReadAudit(actorOf(ctx))) return ctx;
   forbidden(reply);
   return null;
