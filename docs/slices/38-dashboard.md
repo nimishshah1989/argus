@@ -158,3 +158,34 @@ Bhavin's real machine list is reconciled. Record it for Nimish/Bhavin at the gat
 
 **R13. `ReportRow` carries no `source`; the source is the linked ticket's.** 38.1 reads `source` through
 `report.ticketId` → ticket. Do not add a field to `types.ts` unless a figure genuinely cannot resolve it.
+
+## Packet 38.1 — final scope after checking the key's arithmetic (binding)
+
+Five of the remaining KPIs are unambiguous from `dashboard.json` and the workbook; **four are not**, and are held for
+Nimish rather than guessed (recorded at the end). Build the five, join the map, update the shell test.
+
+1. `dashboard.total-breakdowns` = count of the history `breakdowns` rows whose `maintCode !== 'PM'`, **excluding**
+   live `otherBD` rows → **1279** (R4). Drill ids: those tickets.
+2. `dashboard.total-downtime-hours` = Σ `downMin`/60 over those rows **plus** the live rows → **3060.1** (R4, R5).
+3. `dashboard.pm-hours` = Σ `downMin`/60 where `maintCode === 'PM'` → **759.3** (R5; not Σ `pmHrs`).
+4. `dashboard.no-downtime-hours` = Σ `downMin`/60 where `maintCode === 'NO DT'` (history only) → **209.1** (R4, R5).
+5. `dashboard.avg-bd-hours-per-machine` = total downtime ÷ **126** ("Total downtime ÷ CNC machines" in the key) →
+   **24.29**.
+
+Each is `ready`, names its ticket drill ids, and is compared **exactly** to the key in
+`packages/domain/test/analytics-dashboard.test.ts`; round to the key's own decimals (2 for the hours, 2 for the
+average) and prove that with the test.
+
+**Join (R11):** `dashboardComputers` spread into `COMPUTERS` in `computers.ts`, and
+`apps/server/test/analytics-engine.test.ts`'s shell assertion updated in the same PR: it must fail on a figure that has
+**no** computer (drive it from `FIGURE_KEYS` minus the implemented keys) instead of asserting every figure is
+`not_computed`. No test is weakened: the "honest not_computed" intent moves to "every figure either has a computer or
+is listed as not implemented yet".
+
+**Held for Nimish (do not implement, do not guess):**
+- `dashboard.fleet-availability` (key 99.32%, "average · hours to 11 Nov"): no formula in the repo produces it —
+  downtime/(126×20×311) = 99.61%, /(126×24×311) = 99.67%; the denominator needs ~141 days for 159 machines at 20 h.
+  His answer must fix the machine-hours denominator and whether availability averages per machine.
+- `dashboard.plant-bd-pct` (0.54%, "of hours to 11 Nov"): the same denominator question.
+- `dashboard.avg-complaints-per-day` (4.11) and `dashboard.avg-bd-hours-per-day` (9.84), both "over 311 days of
+  records": the workbook spans 315 days and has 256 distinct breakdown dates; 311 is not derivable (R8).
