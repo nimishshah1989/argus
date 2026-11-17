@@ -568,6 +568,27 @@ describe('the ladder is the head’s to edit', () => {
   });
 });
 
+it('an L2 step fires exactly at the configured minute', async () => {
+  const rules = (await call(P, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+    id: string;
+    trigger: string;
+  }>;
+  const rule = rules.find((r) => r.trigger === 'ack_missed')!;
+  const res = await call(P, 'PUT', `/api/v1/escalation-rules/${rule.id}`, 'hema', {
+    level: 'L2',
+    delayMinutes: '12',
+    repeatMinutes: '',
+    repeatCap: '',
+    channel: 'push',
+  });
+  expect(res.statusCode, res.body).toBe(200);
+  const { id, at } = await raise(P);
+  await breach(P, id, 'ack', plus(at, 6));
+  expect(await runDue(P, id, plus(at, 6 + 11), 'ack_missed')).toBe(0);
+  expect(await runDue(P, id, plus(at, 6 + 12), 'ack_missed')).toBe(1);
+  expect((await steps(id, 'ack_missed'))[0]).toMatchObject({ level: 'L2', attempt: 1 });
+});
+
 describe('acknowledge an escalation', () => {
   async function restoreMissed(plant: Plant) {
     const { id, at } = await raise(plant);
