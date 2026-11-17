@@ -73,13 +73,10 @@ export const personPatchSchema = z
   .object({ ...personFields, active: flag, reason: reasonText })
   .partial()
   .strict()
-  .refine(
-    (value) => {
-      const { reason: _reason, ...rest } = value as { reason?: string } & Record<string, unknown>;
-      return Object.keys(rest).length > 0;
-    },
-    'Nothing to change',
-  );
+  .refine((value) => {
+    const { reason: _reason, ...rest } = value as { reason?: string } & Record<string, unknown>;
+    return Object.keys(rest).length > 0;
+  }, 'Nothing to change');
 export type PersonPatch = z.infer<typeof personPatchSchema>;
 
 export const personAdminSchema = z
@@ -181,6 +178,7 @@ export const PEOPLE_REPLIES = {
   'GET /api/v1/people': settingsPage(personAdminSchema),
   'POST /api/v1/people': personAdminSchema,
   'PUT /api/v1/people/:id': personAdminSchema,
+  'POST /api/v1/people/:id/sign-out': personSignOutReplySchema,
   'GET /api/v1/logins': settingsPage(loginAdminSchema),
   'POST /api/v1/logins': loginAdminSchema,
   'PUT /api/v1/logins/:id': loginAdminSchema,
