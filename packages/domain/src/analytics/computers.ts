@@ -1,11 +1,4 @@
-import type { Computer } from './types.js';
-
-/**
- * The computation of each figure, by key. Empty in the shell: a registered figure with no entry here answers
- * `not_computed`. Engine tickets 38 to 45 add their entries from their own files, for example
- * `...dashboardComputers`, and nothing else in the engine changes.
- */
-export const COMPUTERS: Readonly<Record<string, Computer>> = {};
+import type { Computer, EngineData, ReportRow, TicketRow } from './types.js';
 
 /**
  * A count of the machines in the named workbook lists, naming every machine it counted so a drill opens them. The
@@ -21,15 +14,47 @@ function countSegments(...segments: readonly string[]): Computer {
   };
 }
 
+/** A breakdown report with the ticket that says which log it came from: a report carries no source of its own. */
+interface SourcedReport {
+  report: ReportRow;
+  ticket: TicketRow;
+}
+
+/** Every report whose ticket is in the snapshot, so its source resolves; an unlinked report has no source. */
+function sourcedReports(data: EngineData): SourcedReport[] {
+  const tickets = new Map([...data.tickets, ...data.tasks].map((ticket) => [ticket.id, ticket]));
+  return data.reports.flatMap((report) => {
+    const ticket = report.ticketId === null ? undefined : tickets.get(report.ticketId);
+    return ticket ? [{ report, ticket }] : [];
+  });
+}
+
+const isPm = (row: SourcedReport): boolean => row.report.maintCode === 'PM';
+const isNoDowntime = (row: SourcedReport): boolean => row.report.maintCode === 'NO DT';
+const isHistory = (row: SourcedReport): boolean => row.ticket.source === 'history';
+
 /**
- * Packet 38.0: the six machine counts, from the workbook's own lists. Total Machines is the three production lists,
- * 126 + 16 + 17 = 159; Utilities (30) and DG sets (3) are registers outside the fleet total, the DG sub-label saying
- * it plainly: "power sources — not counted in load". The CNC list holds the machine its sub-label marks "1 not
- * counted in production data": that exclusion is production-only (the breakdown-free card divides by 125), the
- * machine is still fleet, and it is counted here.
- *
- * Not joined into `COMPUTERS` yet: packets 38.1 and 38.2 add the rest of the Dashboard's numbers, the charts and
- * the checklist, and the packet that finishes the screen joins the map in.
+ * The actual-breakdown rows: PM work is not a breakdown, and a NO-DT row records breakdown hours but no downtime,
+ * so it keeps its own figure and stays out of the downtime totals (the key's sub-label says so).
+ */
+const isDowntime = (row: SourcedReport): boolean => !isPm(row) && !isNoDowntime(row);
+
+/** The ticket ids behind a figure; each sourced report's ticket is in the snapshot, so every id drills. */
+const ticketIds = (rows: readonly SourcedReport[]): string[] => rows.map((row) => row.ticket.id);
+
+const minutes = (rows: readonly SourcedReport[]): number =>
+  rows.reduce((sum, row) => sum + row.report.downtimeMin, 0);
+
+/** The key prints hours to one decimal and the average to two: round to the key's own decimals, half up. */
+const round = (value: number, decimals: 1 | 2): number =>
+  Math.round(value * 10 ** decimals) / 10 ** decimals;
+
+const hours = (rows: readonly SourcedReport[]): number => round(minutes(rows) / 60, 1);
+
+/**
+ * The Dashboard's numbers, each from the workbook's own columns: breakdowns are the history log minus the PM rows
+ * (the live app's own tickets are not breakdowns); downtime is actual breakdowns over both logs; PM and NO-DT are
+ * their own selectors; and the average divides downtime by the CNC machines, as the key's sub-label says.
  */
 export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'dashboard.total-machines': countSegments('CNC', 'Conventional', 'Process'),
@@ -38,4 +63,32 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'dashboard.cnc-machines': countSegments('CNC'),
   'dashboard.conventional-machines': countSegments('Conventional'),
   'dashboard.process-machines': countSegments('Process'),
+  'dashboard.total-breakdowns': ({ data }) => {
+    const counted = sourcedReports(data).filter((row) => isHistory(row) && !isPm(row));
+    return { value: counted.length, drillIds: ticketIds(counted) };
+  },
+  'dashboard.total-downtime-hours': ({ data }) => {
+    const counted = sourcedReports(data).filter(isDowntime);
+    return { value: hours(counted), drillIds: ticketIds(counted) };
+  },
+  'dashboard.pm-hours': ({ data }) => {
+    const counted = sourcedReports(data).filter(isPm);
+    return { value: hours(counted), drillIds: ticketIds(counted) };
+  },
+  'dashboard.no-downtime-hours': ({ data }) => {
+    const counted = sourcedReports(data).filter((row) => isHistory(row) && isNoDowntime(row));
+    return { value: hours(counted), drillIds: ticketIds(counted) };
+  },
+  'dashboard.avg-bd-hours-per-machine': ({ data }) => {
+    const downtime = sourcedReports(data).filter(isDowntime);
+    const cnc = data.machines.filter((machine) => machine.segment === 'CNC').length;
+    if (cnc === 0) return { value: 0, drillIds: [] };
+    return { value: round(minutes(downtime) / 60 / cnc, 2), drillIds: ticketIds(downtime) };
+  },
 };
+
+/**
+ * The computation of each figure, by key: the one map the engine runs. A registered figure with no entry here
+ * answers `not_computed`, and the engine tickets from 38 to 45 add their files' maps to this one as they land.
+ */
+export const COMPUTERS: Readonly<Record<string, Computer>> = { ...dashboardComputers };
