@@ -35,7 +35,7 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
     id: 'today',
     labelKey: 'analytics.group.today',
     icon: Clock,
-    screens: ['dashboard', 'action-center', 'team-focus'],
+    screens: ['dashboard', 'action-center', 'team-focus', 'data-checklist'],
   },
   {
     id: 'machines',
@@ -49,7 +49,6 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
       'machine-page',
       'compare',
       'a5-energy',
-      'data-checklist',
     ],
   },
   {
@@ -178,6 +177,9 @@ export function groupOfScreen(screen: string): AnalyticsGroup | null {
 export function groupFor(id: string | undefined): AnalyticsGroup | undefined {
   return ANALYTICS_GROUPS.find((group) => group.id === id);
 }
+
+/** The data checklist's own route, under the Today group (packet 38.3). */
+export const CHECKLIST_PATH = '/analytics/today/checklist';
 
 /** The drill link a tile carries: the group page, with the type and the rows in the query. */
 export function drillHref(group: GroupId, type: DrillType, ids: readonly string[]): string {

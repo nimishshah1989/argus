@@ -6,10 +6,23 @@ import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { ANALYTICS_GROUPS, groupFor, type AnalyticsGroup } from './groups.js';
+import { Dashboard } from './Dashboard.js';
+import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 
 const DESK = '/desk';
+
+/** The data checklist's own route, inside the Today group's shell. */
+export function DataChecklistPage() {
+  const today = groupFor('today');
+  if (!today) return <Navigate to="/analytics/today" replace />;
+  return (
+    <FaceShell group={today}>
+      <DataChecklist />
+    </FaceShell>
+  );
+}
 
 /** The face itself: `/analytics` opens on Today; an unknown group falls back to it (no 404 screen). */
 export function AnalyticsFace() {
@@ -18,7 +31,13 @@ export function AnalyticsFace() {
   if (!found) return <Navigate to="/analytics/today" replace />;
   return (
     <FaceShell group={found}>
-      {found.id === 'guide' ? <GuidePage /> : <GroupPage group={found} />}
+      {found.id === 'guide' ? (
+        <GuidePage />
+      ) : found.id === 'today' ? (
+        <Dashboard group={found} />
+      ) : (
+        <GroupPage group={found} />
+      )}
     </FaceShell>
   );
 }
