@@ -457,6 +457,31 @@ describe('running and storing through HTTP, and the drill-down', () => {
       'BD-0002',
       'BD-0001',
     ]);
+    // BD-0002 is a task: a ticket drill returns it, in the asked order, as the ticket row only.
+    const task = asked.json().rows[0] as Record<string, unknown>;
+    expect(task).toMatchObject({
+      id: ids['BD-0002'],
+      ref: 'BD-0002',
+      kind: 'general',
+      status: 'open',
+      machineId: M_USED,
+    });
+    expect(Object.keys(task).sort()).toEqual([
+      'closedAt',
+      'downtimeMin',
+      'id',
+      'kind',
+      'machineId',
+      'ref',
+      'repairMin',
+      'reportedAt',
+      'source',
+      'status',
+      'workType',
+    ]);
+    for (const field of ['parentId', 'reason', 'expectedOn']) {
+      expect(task).not.toHaveProperty(field);
+    }
     // Another plant never sees this tenant's rows, and this tenant never sees another's.
     const other = await f.call(
       'GET',
