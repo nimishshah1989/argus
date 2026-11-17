@@ -54,8 +54,8 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 35  | Run it safely                                     | M2        | in progress | devices and support access #231; failed-jobs screen and timer-lag alarm carried to M4a                        |
 | 36  | M4a schema and answer key                         | M4a       | done        | triage + answer key #267; migration part A #268                                                               |
 | 37  | History, engine and drill-down                    | M4a       | in progress | shell #265; snapshot + drill #289; face/Guide/profile #290; **37c (2026-log load) open**                      |
-| 38  | Dashboard and Today                               | M4a       | done        | answer-key seam #293; formulas #295, #298; screen + role homes #297; charts/cards/checklist #299              |
-| 39  | Registers and machine pages                       | M4a       | todo        | —                                                                                                             |
+| 38  | Dashboard and Today                               | M4a       | done        | answer-key seam #293; formulas #295, #298; screen + role homes #297; charts/cards/checklist #299; **38.5 draws the object figures (open)** |
+| 39  | Registers and machine pages                       | M4a       | in progress | engine #304, screens #305; **39c/39d (audited move-date correction) open**                                     |
 | 40  | Breakdown analyses                                | M4a       | todo        | —                                                                                                             |
 | 41  | Manpower, energy, root cause                      | M4a       | todo        | —                                                                                                             |
 | 42  | Forecast                                          | M4a       | todo        | —                                                                                                             |
