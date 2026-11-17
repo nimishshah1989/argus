@@ -147,6 +147,7 @@ let E: Plant;
 let N: Plant;
 let R: Plant;
 let P: Plant;
+let S: Plant;
 
 beforeAll(async () => {
   db = await startTestDb();
@@ -160,6 +161,7 @@ beforeAll(async () => {
   N = await seedPlant('esc-n', 4, false);
   R = await seedPlant('esc-r', 5);
   P = await seedPlant('esc-p', 6);
+  S = await seedPlant('esc-s', 7);
 }, 180_000);
 
 afterAll(async () => {
@@ -236,7 +238,7 @@ type Step = {
 };
 const plantOf = async (id: string): Promise<Plant> => {
   const tenant = (await admin.query('SELECT tenant_id FROM ticket WHERE id = $1', [id])).rows[0];
-  return [A, B, E, N, R, P].find((plant) => plant.id === tenant.tenant_id)!;
+  return [A, B, E, N, R, P, S].find((plant) => plant.id === tenant.tenant_id)!;
 };
 /** The steps of a ticket as the history reply shows them (who was told is read by the server from the notifications). */
 const steps = async (id: string, trigger?: string): Promise<Step[]> => {
@@ -469,9 +471,10 @@ describe('the ladder is the head’s to edit', () => {
       delayMinutes: '10',
       repeatMinutes: '',
       repeatCap: '',
-      channel: 'whatsapp',
     });
     expect(res.statusCode, res.body).toBe(200);
+    // the rule API only accepts push; put the other channel on the row directly so the engine's fallback stays proven
+    await admin.query("UPDATE escalation_rule SET channel = 'whatsapp' WHERE id = $1", [rule.id]);
     const { id, at } = await raise(E);
     await breach(E, id, 'ack', plus(at, 6));
     expect(await steps(id)).toEqual([]);
@@ -565,6 +568,27 @@ describe('the ladder is the head’s to edit', () => {
   });
 });
 
+it('an L2 step fires exactly at the configured minute', async () => {
+  const rules = (await call(P, 'GET', '/api/v1/escalation-rules', 'hema')).json().items as Array<{
+    id: string;
+    trigger: string;
+  }>;
+  const rule = rules.find((r) => r.trigger === 'ack_missed')!;
+  const res = await call(P, 'PUT', `/api/v1/escalation-rules/${rule.id}`, 'hema', {
+    level: 'L2',
+    delayMinutes: '12',
+    repeatMinutes: '',
+    repeatCap: '',
+    channel: 'push',
+  });
+  expect(res.statusCode, res.body).toBe(200);
+  const { id, at } = await raise(P);
+  await breach(P, id, 'ack', plus(at, 6));
+  expect(await runDue(P, id, plus(at, 6 + 11), 'ack_missed')).toBe(0);
+  expect(await runDue(P, id, plus(at, 6 + 12), 'ack_missed')).toBe(1);
+  expect((await steps(id, 'ack_missed'))[0]).toMatchObject({ level: 'L2', attempt: 1 });
+});
+
 describe('acknowledge an escalation', () => {
   async function restoreMissed(plant: Plant) {
     const { id, at } = await raise(plant);
@@ -619,6 +643,61 @@ describe('acknowledge an escalation', () => {
     expect(await runDue(A, id, plus(at, 31 + 30), 'restore_missed')).toBe(1);
     expect(await steps(id, 'ack_missed')).toHaveLength(1);
     expect(await steps(id, 'restore_missed')).toHaveLength(2);
+  });
+});
+
+describe('escalation state on a ticket reply', () => {
+  const ackEscalation = (plant: Plant, id: string, as: string) =>
+    call(plant, 'POST', `/api/v1/tickets/${id}/acknowledge-escalation`, as, {
+      personId: plant.people[as],
+    });
+  /** The ticket parts of the detail, `/state` and the list: the same read on every reply that carries a ticket. */
+  const detailOf = async (id: string) =>
+    (await call(S, 'GET', `/api/v1/tickets/${id}`, 'hema')).json().ticket as {
+      id: string;
+      escalation: { pendingLevels: string[]; lastLevel: string | null; lastAt: string | null };
+    };
+  const listRowOf = async (id: string) => {
+    const page = (await call(S, 'GET', '/api/v1/tickets?limit=100', 'hema')).json() as {
+      items: Array<{ id: string; escalation: unknown }>;
+    };
+    return page.items.find((item) => item.id === id)?.escalation;
+  };
+  const stateRowOf = async (id: string) => {
+    const state = (await call(S, 'GET', '/api/v1/state', 'hema')).json() as {
+      open: Array<{ id: string; escalation: unknown }>;
+      needReport: Array<{ id: string; escalation: unknown }>;
+    };
+    return [...state.open, ...state.needReport].find((item) => item.id === id)?.escalation;
+  };
+
+  it('a ticket reply carries the escalation state and clears it when the level is acknowledged', async () => {
+    // never escalated: the state is explicit, not missing
+    const never = await raise(S);
+    expect((await detailOf(never.id)).escalation).toEqual({
+      pendingLevels: [],
+      lastLevel: null,
+      lastAt: null,
+    });
+
+    await rosterLine(S, 'tester', 'L2');
+    const { id, at } = await raise(S);
+    await breach(S, id, 'ack', plus(at, 6));
+    const stepAt = plus(at, 6).toISOString();
+    const waiting = { pendingLevels: ['L2'], lastLevel: 'L2', lastAt: stepAt };
+
+    expect((await detailOf(id)).escalation).toEqual(waiting);
+    expect(await stateRowOf(id)).toEqual(waiting);
+    expect(await listRowOf(id)).toEqual(waiting);
+
+    // the rostered supervisor covers L2: the chain is answered, the newest step stays on the reply
+    expect((await ackEscalation(S, id, 'tester')).statusCode).toBe(200);
+    const answered = (await call(S, 'GET', `/api/v1/tickets/${id}`, 'hema')).json();
+    expect(answered.ticket.escalation).toEqual({ ...waiting, pendingLevels: [] });
+    expect(answered.events.map((event: { type: string }) => event.type)).toContain(
+      'escalation_ack',
+    );
+    await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [S.id]);
   });
 });
 

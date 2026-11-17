@@ -22,6 +22,7 @@ export {
   CLOCK_TRIGGER,
   ESCALATION_DEFAULTS,
   chainAcknowledged,
+  levelCovers,
   mayAcknowledgeLevel,
   pendingEscalationLevels,
   reopenEpisode,

@@ -140,6 +140,27 @@ describe('actionSpecs', () => {
   });
 });
 
+describe('acknowledge', () => {
+  it('is first and primary when the session may acknowledge, with start beside it', () => {
+    const specs = actionSpecs(ticket({ canAcknowledge: true }), [], actor());
+    expect(specs.slice(0, 2)).toEqual([
+      { action: 'acknowledge', label: 'action.label.acknowledge', primary: true },
+      { action: 'start', label: 'action.label.start', primary: false },
+    ]);
+  });
+
+  it('stays off the bar when the session may not acknowledge or has no person', () => {
+    const actions = (t: Ticket, who = actor()) =>
+      actionSpecs(t, [], who).map((spec) => spec.action);
+    expect(actions(ticket({ canAcknowledge: false }))).not.toContain('acknowledge');
+    expect(actions(ticket({ canAcknowledge: true }), actor({ personId: null }))).toEqual([]);
+  });
+
+  it('is never the desk card quick action', () => {
+    expect(quickSpec(ticket({ canAcknowledge: true }), actor())?.action).toBe('start');
+  });
+});
+
 describe('quickSpec', () => {
   it('picks the quick action', () => {
     const label = (t: Ticket, who = actor()) => quickSpec(t, who)?.label ?? null;

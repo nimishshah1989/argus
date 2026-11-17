@@ -115,6 +115,11 @@ const LEVEL_RANK: Readonly<Record<EscalationLevel, number>> = {
   L4: 4,
 };
 
+/** Whether an acknowledgement made at `acknowledgedAt` covers a step waiting at `step` (the same level or above). */
+export function levelCovers(acknowledgedAt: EscalationLevel, step: EscalationLevel): boolean {
+  return LEVEL_RANK[acknowledgedAt] >= LEVEL_RANK[step];
+}
+
 /** The level a role may acknowledge up to (DOMAIN section 3): technician L1, supervisor L2, head L3, plant head L4, admin all. */
 const ROLE_LEVEL: Readonly<Record<string, number>> = {
   technician: 1,
@@ -154,7 +159,7 @@ function chains(events: readonly EscalationHistoryEvent[]): Map<string, Chain> {
       const level = event.payload?.level as EscalationLevel | undefined;
       if (!level) continue;
       for (const chain of found.values()) {
-        if (LEVEL_RANK[chain.level] <= LEVEL_RANK[level]) chain.acknowledged = true;
+        if (levelCovers(level, chain.level)) chain.acknowledged = true;
       }
     }
   }

@@ -10,12 +10,15 @@ import type { Me, Ticket, TicketPerson } from '../api.js';
 
 /** Presentation only: which actions exist is decided by the domain `availableActions`. */
 export interface ActionSpec {
-  action: TicketAction;
+  action: ActionSlot;
   label: MessageKey;
   primary: boolean;
   /** Close only: the way of closing the form opens with (the bar's two close buttons). */
   preset?: 'report' | 'no_report' | 'done';
 }
+
+/** Acknowledge is a presentation-only slot: the domain's `availableActions` does not offer it. */
+export type ActionSlot = TicketAction | 'acknowledge';
 
 const ROLES: readonly string[] = [
   'operator',
@@ -27,7 +30,8 @@ const ROLES: readonly string[] = [
   'board',
 ] satisfies Role[];
 
-const LABELS: Record<Exclude<TicketAction, 'cancel'>, MessageKey> = {
+const LABELS: Record<Exclude<ActionSlot, 'cancel'>, MessageKey> = {
+  acknowledge: 'action.label.acknowledge',
   start: 'action.label.start',
   resume: 'action.label.resume',
   update: 'action.label.update',
@@ -40,7 +44,7 @@ const LABELS: Record<Exclude<TicketAction, 'cancel'>, MessageKey> = {
   close: 'action.label.close',
 };
 
-function labelFor(action: TicketAction, ticket: Ticket): MessageKey {
+function labelFor(action: ActionSlot, ticket: Ticket): MessageKey {
   if (action === 'cancel') return 'detail.action.cancel';
   if (action === 'start' && ticket.handedOver) return 'action.label.pickUp';
   return LABELS[action];
@@ -84,7 +88,11 @@ const ORDER: readonly Slot[] = [
 ];
 
 /** A breakdown or support ticket closes with or without a report (two buttons); a work request is marked done. */
-function specFor(slot: Slot, ticket: Ticket): Omit<ActionSpec, 'primary'> {
+function specFor(
+  slot: ActionSlot | 'close-no-report',
+  ticket: Ticket,
+): Omit<ActionSpec, 'primary'> {
+  if (slot === 'acknowledge') return { action: slot, label: LABELS.acknowledge };
   if (slot === 'close-no-report') {
     return { action: 'close', label: 'detail.action.closeNoReport', preset: 'no_report' };
   }
@@ -103,11 +111,19 @@ export function actionSpecs(
   actor: ActorContext,
 ): ActionSpec[] {
   const offered = availableActions({ ...ticket, crew }, actor);
-  return ORDER.filter((slot) =>
-    slot === 'close-no-report'
-      ? offered.includes('close') && ticket.kind !== 'general'
-      : offered.includes(slot),
-  ).map((slot, index) => ({ ...specFor(slot, ticket), primary: index === 0 && slot !== 'cancel' }));
+  const slots: Array<ActionSlot | 'close-no-report'> = [
+    // Acknowledge leads when the session may take it: it is what the clock is waiting for.
+    ...(ticket.canAcknowledge && actor.personId !== null ? (['acknowledge'] as const) : []),
+    ...ORDER.filter((slot) =>
+      slot === 'close-no-report'
+        ? offered.includes('close') && ticket.kind !== 'general'
+        : offered.includes(slot),
+    ),
+  ];
+  return slots.map((slot, index) => ({
+    ...specFor(slot, ticket),
+    primary: index === 0 && slot !== 'cancel',
+  }));
 }
 
 const QUICK: readonly TicketAction[] = ['start', 'resume', 'machine-running'];

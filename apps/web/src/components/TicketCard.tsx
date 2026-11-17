@@ -1,8 +1,11 @@
 /* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { CommandAction, Ticket } from '../api.js';
 import { Button } from '../ui/button.js';
 import { Hourglass, LifeBuoy, OctagonX, Wrench, type IconComponent } from '../ui/icon.js';
+import { TONE_TEXT } from '../ui/meaning.js';
+import type { Tone } from '../ui/status/index.js';
 import { StatusPill } from '../ui/status/status-pill.js';
 import { TicketCard as Card } from '../ui/ticket-card.js';
 import { timeLine, typeLine } from '../screens/desk/openLists.js';
@@ -37,6 +40,17 @@ const KIND_ICON: Record<string, IconComponent> = {
   info: Wrench,
 };
 
+/** Ticket 31: the ladder's state on the card, one line, only once a step was told. */
+function escalationLine(ticket: Ticket, t: TFunction): { text: string; tone: Tone } | null {
+  const state = ticket.escalation;
+  if (!state?.lastLevel) return null;
+  const waiting = state.pendingLevels.length > 0;
+  return {
+    text: t(waiting ? 'escalation.cardWaiting' : 'escalation.cardTold', { level: state.lastLevel }),
+    tone: waiting ? 'danger' : 'hold',
+  };
+}
+
 interface Props {
   ticket: Ticket;
   now: string;
@@ -63,6 +77,7 @@ export function TicketCard({
   const chip = chipFor(ticket);
   const who = ticket.reportedByPersonId ? names[ticket.reportedByPersonId] : undefined;
   const at = formatTime(ticket.reportedAt);
+  const escalation = escalationLine(ticket, t);
   return (
     <Card
       to={`/desk/${ticket.id}`}
@@ -88,7 +103,16 @@ export function TicketCard({
         }),
         tone: TIME_TONE[time.key],
       }}
-      extra={<SlaTimerSummary ticket={ticket} />}
+      extra={
+        <>
+          <SlaTimerSummary ticket={ticket} />
+          {escalation ? (
+            <span className={`block text-footnote font-bold ${TONE_TEXT[escalation.tone]}`}>
+              {escalation.text}
+            </span>
+          ) : null}
+        </>
+      }
     >
       {quick ? (
         <Button variant="tonal" disabled={pending} onClick={() => onQuick(ticket, quick.action)}>

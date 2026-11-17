@@ -6,6 +6,7 @@ import {
   setRosterLookup,
 } from '../../kernel/index.js';
 import { alertOnTicketWrite } from './alerts.js';
+import { escalationTicketPart } from './escalation-state.js';
 import { startReopenEscalation } from './escalation.js';
 import {
   canAcknowledgeTicketPart,
@@ -30,6 +31,7 @@ export const accountabilityModule = defineModule({
     contributeTicketPart(slaTicketPart);
     contributeTicketPart(handbackTicketPart);
     contributeTicketPart(canAcknowledgeTicketPart);
+    contributeTicketPart(escalationTicketPart);
     contributeConfigPart(slaPoliciesPart);
     contributeTicketListener('alerts', alertOnTicketWrite);
     contributeTicketListener('reopened-escalation', startReopenEscalation);

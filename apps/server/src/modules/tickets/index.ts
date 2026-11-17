@@ -16,6 +16,7 @@ export {
   type DownFacts,
 } from './repo/escalation.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
+export { ladderEventRows, type LadderEventRow } from './repo/ladder.js';
 export {
   lockTicket,
   slaCandidateIds,

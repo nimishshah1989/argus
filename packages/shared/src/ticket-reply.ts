@@ -133,6 +133,8 @@ export const ticketEventSchema = z
       .nullable(),
     /** Set on an `escalate` event, null on every other; optional so a client that builds a reply by hand may leave it out. */
     escalation: escalationStepSchema.nullable().optional(),
+    /** On an `escalation_ack`: the highest level the acknowledgement covered, as its payload records it. */
+    escalationLevel: z.string().nullable().optional(),
     /** Set on a `task` event (a follow-up task left, or done); null on every other. */
     task: taskEventSchema.nullable().optional(),
   })
@@ -143,6 +145,18 @@ export const ticketPersonSchema = z
   .object({ personId: z.string(), role: z.string(), leftAt: iso, leftReason: str })
   .strict();
 export type TicketPerson = z.infer<typeof ticketPersonSchema>;
+
+/** The ticket's escalation state: the levels still waiting for someone, and the newest step that was told. */
+export const escalationStateSchema = z
+  .object({
+    /** A chain has told someone and no acknowledge at its level or above covers it yet. */
+    pendingLevels: z.array(z.string()),
+    /** The newest `escalate` event's level, null when the ticket never escalated. */
+    lastLevel: z.string().nullable(),
+    lastAt: isoDateTimeSchema.nullable(),
+  })
+  .strict();
+export type EscalationState = z.infer<typeof escalationStateSchema>;
 
 export const ticketIntervalSchema = z
   .object({ personId: z.string(), role: z.string(), startedAt: isoDateTimeSchema, endedAt: iso })

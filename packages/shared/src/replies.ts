@@ -36,6 +36,7 @@ import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { AUDIT_REPLIES } from './audit.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import {
+  escalationStateSchema,
   isoDateTimeSchema,
   storedReportSchema,
   ticketEventSchema,
@@ -75,6 +76,8 @@ export const ticketReplySchema = ticketSchema
     sla: slaProjectionSchema.nullable(),
     handback: handbackSchema.nullable(),
     canAcknowledge: z.boolean(),
+    /** Optional so a client that builds a reply by hand may leave it out; the server always sends it. */
+    escalation: escalationStateSchema.optional(),
     lockout: lockoutSchema.nullable().optional(),
   })
   .strict();

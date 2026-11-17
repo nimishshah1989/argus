@@ -260,6 +260,10 @@ export async function detail(
         isVendor: event.isVendor ?? false,
         changes: (event as { changes?: unknown[] }).changes ?? null,
         escalation: escalationStep(event, told),
+        escalationLevel:
+          event.type === 'escalation_ack'
+            ? ((event.payload?.level as string | undefined) ?? null)
+            : null,
         task: (event.payload?.task as object | undefined) ?? null,
         actingPersonId: event.actingPersonId,
         loginId: event.loginId,

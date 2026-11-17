@@ -83,7 +83,12 @@
         }
       },
       "handback": null,
-      "canAcknowledge": false
+      "canAcknowledge": false,
+      "escalation": {
+        "pendingLevels": [],
+        "lastLevel": null,
+        "lastAt": null
+      }
     },
     {
       "id": "30000000-0000-0000-0000-000000000022",
@@ -168,7 +173,12 @@
         }
       },
       "handback": null,
-      "canAcknowledge": false
+      "canAcknowledge": false,
+      "escalation": {
+        "pendingLevels": [],
+        "lastLevel": null,
+        "lastAt": null
+      }
     },
     {
       "id": "30000000-0000-0000-0000-000000000024",
@@ -253,7 +263,12 @@
         }
       },
       "handback": null,
-      "canAcknowledge": false
+      "canAcknowledge": false,
+      "escalation": {
+        "pendingLevels": [],
+        "lastLevel": null,
+        "lastAt": null
+      }
     },
     {
       "id": "30000000-0000-0000-0000-000000000025",
@@ -314,7 +329,12 @@
       "waitingSpare": null,
       "sla": null,
       "handback": null,
-      "canAcknowledge": false
+      "canAcknowledge": false,
+      "escalation": {
+        "pendingLevels": [],
+        "lastLevel": null,
+        "lastAt": null
+      }
     },
     {
       "id": "30000000-0000-0000-0000-000000000023",
@@ -394,7 +414,12 @@
         }
       },
       "handback": null,
-      "canAcknowledge": false
+      "canAcknowledge": false,
+      "escalation": {
+        "pendingLevels": [],
+        "lastLevel": null,
+        "lastAt": null
+      }
     }
   ],
   "needReport": [],
