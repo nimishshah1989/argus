@@ -1,8 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
-import { runWith, type EngineData, type EngineResult, type FigureResult } from '../src/index.js';
+import {
+  runWith,
+  type Computer,
+  type EngineData,
+  type EngineResult,
+  type FigureResult,
+} from '../src/index.js';
+import { ageAnalysis } from '../src/analytics/age.js';
 import { COMPUTERS } from '../src/analytics/computers.js';
+import { footprint } from '../src/analytics/footprint.js';
+import { registers } from '../src/analytics/registers.js';
 import { ENGINE_DATA } from './answer-key/fixture.js';
 
 /**
@@ -348,5 +357,47 @@ describe('the figures read the data they are given', () => {
     });
     expect(band(after, 0)).toBe(band(before, 0) - 1);
     expect(band(after, 4)).toBe(band(before, 4) + 1);
+  });
+});
+
+/** A computer called on a variant of the plant, exactly as the engine calls it. */
+const computeWith = (computer: Computer, data: EngineData) =>
+  computer({ data, asOf: AS_OF, profile: DEFAULT_PROFILE });
+
+describe('an empty plant gets no ready figure without rows', () => {
+  const guarded = { value: null, drillIds: [] };
+  const noMachines: EngineData = { ...ENGINE_DATA, machines: [] };
+  // A machine whose metadata holds no recorded length and width, as the master does before anyone measures it.
+  const noDimensions = ENGINE_DATA.machines.map(({ metadata: _metadata, ...machine }) => ({
+    ...machine,
+    metadata: {},
+  }));
+  const noDates = ENGINE_DATA.machines.map((machine) => ({
+    ...machine,
+    purchasedOn: null,
+    year: null,
+  }));
+  const otherSegments = ENGINE_DATA.machines.map((machine) => ({ ...machine, segment: 'Other' }));
+
+  it('answers the null guard on footprint, age and registers when the plant holds no machine', () => {
+    for (const computer of [footprint, ageAnalysis, registers]) {
+      expect(computeWith(computer, noMachines)).toEqual(guarded);
+    }
+  });
+
+  it('answers the footprint null guard when no CNC production machine carries a length and width', () => {
+    expect(computeWith(footprint, { ...ENGINE_DATA, machines: noDimensions })).toEqual(guarded);
+    // The registers list machines, not dimensions, so they still answer their pages.
+    const ready = computeWith(registers, { ...ENGINE_DATA, machines: noDimensions });
+    expect(ready.value).not.toBeNull();
+    expect(ready.drillIds.length).toBeGreaterThan(0);
+  });
+
+  it('answers the age null guard when no machine carries a purchase date or a year', () => {
+    expect(computeWith(ageAnalysis, { ...ENGINE_DATA, machines: noDates })).toEqual(guarded);
+  });
+
+  it('answers the registers null guard when no machine belongs to one of its five lists', () => {
+    expect(computeWith(registers, { ...ENGINE_DATA, machines: otherSegments })).toEqual(guarded);
   });
 });
