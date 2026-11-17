@@ -100,6 +100,19 @@ function PeopleSection({ detail, names, timeZone }: PeopleProps) {
   );
 }
 
+/** Ticket 31: the newest acknowledge event, as the person's name and the time; nothing when it never happened. */
+function AcknowledgedFacts({ detail, names, timeZone }: PeopleProps) {
+  const { t } = useTranslation();
+  const ack = [...detail.events].reverse().find((event) => event.type === 'acknowledge');
+  if (!ack) return null;
+  const who = (ack.actingPersonId && names[ack.actingPersonId]) || t('common.teamMember');
+  return (
+    <p className="text-footnote text-neutral-600">
+      {t('sla.acknowledgedBy', { who, time: formatTime(ack.at, timeZone) })}
+    </p>
+  );
+}
+
 interface ViewProps {
   detail: TicketDetailData;
   config?: Config;
@@ -220,6 +233,7 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
         <TaskPanel detail={detail} config={config} />
         <SignoffPanel ticket={ticket} config={config} />
         <SlaTimerSummary ticket={ticket} detailed config={config} />
+        <AcknowledgedFacts detail={detail} names={names} timeZone={config?.timeZone} />
         <Facts ticket={ticket} config={config} names={names} liveDownMin={liveDown} />
         <LockoutCard names={names} timeZone={config?.timeZone} />
         {detail.report && <ReportCard report={detail.report} names={names} />}

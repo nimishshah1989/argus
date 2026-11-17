@@ -40,12 +40,15 @@ function variantOf(spec: ActionSpec) {
   return spec.primary ? 'primary' : 'secondary';
 }
 
-/** Pause and Transfer sit side by side (design lock B2-3); every other action has its own row. */
+/** Pause and Transfer sit side by side (design lock B2-3); Acknowledge and Start/Resume share one row (ticket 31). */
 function rowsOf(specs: ActionSpec[]): ActionSpec[][] {
   const rows: ActionSpec[][] = [];
   for (const spec of specs) {
     const last = rows[rows.length - 1];
+    const besideAcknowledge =
+      last?.[0]?.action === 'acknowledge' && (spec.action === 'start' || spec.action === 'resume');
     if (spec.action === 'transfer' && last?.[0]?.action === 'pause') last.push(spec);
+    else if (besideAcknowledge) last!.push(spec);
     else rows.push([spec]);
   }
   return rows;

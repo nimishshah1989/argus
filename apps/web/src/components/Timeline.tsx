@@ -3,6 +3,7 @@ import type { TicketEvent } from '../api.js';
 import { HistoryList, SectionTitle } from '../ui/detail-kit.js';
 import { Stack } from '../ui/layout.js';
 import type { Tone } from '../ui/status/index.js';
+import { escalationLines } from './escalation-history.js';
 import { formatTime } from './format.js';
 
 /** The dot colour of each kind of event (the word beside it says the same thing). */
@@ -10,6 +11,8 @@ const TONES: Record<string, Tone> = {
   down: 'danger',
   stopped: 'danger',
   upgrade_kind: 'danger',
+  escalate: 'danger',
+  escalation_ack: 'ok',
   start: 'info',
   pickup: 'info',
   lockout_confirmed: 'ok',
@@ -26,6 +29,8 @@ const TONES: Record<string, Tone> = {
 
 const LABEL_KEYS: Record<string, string> = {
   down: 'timeline.down',
+  escalate: 'timeline.escalate',
+  escalation_ack: 'timeline.escalationAck',
   start: 'timeline.start',
   pickup: 'timeline.pickup',
   update: 'timeline.update',
@@ -59,6 +64,7 @@ interface Props {
 
 export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
   const { t } = useTranslation();
+  const escalation = escalationLines(events, names, t);
   const items = events.map((event) => {
     const actor = event.actingPersonId ? names[event.actingPersonId] : undefined;
     // A lockout confirmation keeps the steps' wording in `reason`; it is what was confirmed, not a "Reason".
@@ -74,7 +80,13 @@ export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
       at: event.at,
       when: formatTime(event.at, timeZone),
       // The report event's text is the problem, which the header already shows.
-      detail: [actor, event.type === 'down' ? undefined : event.text, confirmedSteps, reason]
+      detail: [
+        actor,
+        event.type === 'down' ? undefined : event.text,
+        escalation.get(event.seq),
+        confirmedSteps,
+        reason,
+      ]
         .filter(Boolean)
         .join(' · '),
     };

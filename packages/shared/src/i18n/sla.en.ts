@@ -15,4 +15,8 @@ export const slaEn = {
   'sla.stoppedAt': 'Stopped at',
   'sla.dueAfterResume': 'Deadline recalculates on resume',
   'sla.cancelledRestore': 'Ticket cancelled; restore recalculates the clock.',
+  'sla.acknowledgedBy': 'Acknowledged by {{who}} · {{time}}',
+  'action.label.acknowledge': 'Acknowledge',
+  'escalation.cardWaiting': 'Escalation · {{level}} waiting',
+  'escalation.cardTold': 'Escalation · {{level}} told',
 };
