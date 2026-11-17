@@ -125,6 +125,7 @@ export const footprint: Computer = ({ data }) => {
     const item = itemOf(machine);
     return item ? [item] : [];
   });
+  if (items.length === 0) return { value: null, drillIds: [] };
   const machineArea = items.reduce((sum, item) => sum + item.area, 0);
   const side = floorSide(items);
   const floorArea = side * side;

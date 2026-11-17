@@ -381,6 +381,7 @@ export const registers: Computer = ({ data, asOf }) => {
     ...data.machines.filter((machine) => machine.segment === 'Utility'),
     ...data.machines.filter((machine) => machine.segment === 'DG'),
   ];
+  if (lists.length === 0) return { value: null, drillIds: [] };
   return {
     value: { pages: shown } as unknown as FigureValue,
     drillIds: [...new Set(lists.map((machine) => machine.id))],

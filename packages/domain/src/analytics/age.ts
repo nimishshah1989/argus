@@ -57,6 +57,7 @@ export const ageAnalysis: Computer = ({ data, asOf }) => {
     sub: `${formatNumber(hours, 1)} hrs ÷ ${machines.length} machines`,
   }));
   const aged = bands.flatMap(({ machines }) => machines);
+  if (aged.length === 0) return { value: null, drillIds: [] };
   const page = { page: 'a8', title: 'Age Analysis', kpis: [...totals, ...averages], tables: [] };
   return {
     value: { pages: [page] } as unknown as FigureValue,
