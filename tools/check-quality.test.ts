@@ -39,7 +39,7 @@ const CLEAN = `diff --git a/apps/x.test.ts b/apps/x.test.ts
  });
 `;
 
-const IDS = Array.from({ length: 14 }, (_, i) => `Q${i + 1}`);
+const IDS = Array.from({ length: 15 }, (_, i) => `Q${i + 1}`);
 const qTable = (omit: string[] = []): string =>
   IDS.filter((id) => !omit.includes(id))
     .map((id) => `${id} pass`)
@@ -79,9 +79,13 @@ describe('weakened tests', () => {
 });
 
 describe('quality evidence', () => {
-  it('Q12 accepts all 14 ids and the three sections', () => {
+  it('Q12 accepts all 15 ids and the three sections', () => {
     expect(missingAttributes(body())).toEqual([]);
     expect(missingSections(body())).toEqual([]);
+  });
+
+  it('Q15 reports a body that omits the merge-keeps-main-green line', () => {
+    expect(missingAttributes(body(['Q15']))).toEqual(['Q15']);
   });
 
   it('Q12 reports exactly the missing id and section', () => {

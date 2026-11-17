@@ -7,8 +7,8 @@ import { pathToFileURL } from 'node:url';
  * The pure scanners live here so they are testable without git or CI.
  */
 
-export const IDS: readonly string[] = Array.from({ length: 14 }, (_, i) => `Q${i + 1}`);
-export const REVIEW = 'Q1 Q3 Q4 Q8 Q9 Q10 Q11 Q14';
+export const IDS: readonly string[] = Array.from({ length: 15 }, (_, i) => `Q${i + 1}`);
+export const REVIEW = 'Q1 Q3 Q4 Q8 Q9 Q10 Q11 Q14 Q15';
 
 const REMOVED_ASSERTION = /\bexpect\s*\(/;
 const REMOVED_TEST = /\b(?:it|test)(?:\.(?:each|only|skip|todo|concurrent))?\s*\(/;
@@ -78,7 +78,7 @@ export function weakenedTests(diffText: string): string[] {
   return findings;
 }
 
-/** The ids Q1..Q14 a PR body never declared as a line starting `Q<id>`. */
+/** The ids Q1..Q15 a PR body never declared as a line starting `Q<id>`. */
 export function missingAttributes(body: string): string[] {
   const declared = new Set<string>();
   for (const match of stripComments(body).matchAll(/^[ \t]*(?:[-*][ \t]+)?Q(\d{1,2})\b/gm)) {
@@ -225,7 +225,7 @@ function runPr(): void {
     process.exitCode = 1;
     return;
   }
-  console.log('quality:pr OK — 14 attributes declared, no weakened tests');
+  console.log('quality:pr OK — 15 attributes declared, no weakened tests');
 }
 
 function gitText(args: string[]): string | null {

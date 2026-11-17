@@ -9,7 +9,7 @@ The quality rails in D31 said _who_ reviews and _how_ work is sized. They did no
 a change must satisfy before it may merge — so each session re-derived the same list and missed different items.
 That is the repeated instruction `principle-encode-lessons-in-structure` tells us to encode.
 
-1. **`docs/QUALITY-ATTRIBUTES.md` is the per-change contract.** Fourteen numbered attributes (Q1–Q14), each with a
+1. **`docs/QUALITY-ATTRIBUTES.md` is the per-change contract.** Fifteen numbered attributes (Q1–Q15), each with a
    definition, a checker (`auto` or `review`) and the failure condition. The ids are stable and are cited by
    reviewers, PR bodies and gate reports.
 2. **One command runs the automatic set.** `pnpm quality` locally (fast, before a push) and `pnpm quality:pr` in
@@ -20,7 +20,7 @@ That is the repeated instruction `principle-encode-lessons-in-structure` tells u
 4. **A failed attribute blocks the merge.** Never lower an attribute to pass a PR. A waiver is a ledger ruling
    with a cost-if-wrong line, never a silent exception.
 5. **Q15 keeps `main` green.** CI deliberately does not run on `main` (Actions minutes, #224), so a red tree is
-   otherwise found by the *next* PR's run, after the queue has already spent a CI run on it. On 17 Nov a stale
+   otherwise found by the _next_ PR's run, after the queue has already spent a CI run on it. On 17 Nov a stale
    expectation from #206 met #258's criticality default that way and blocked every PR. The queue therefore
    verifies the new `main` after each merge: check it out, run the test files that merge touched, and hotfix a
    red tree before the next merge.
