@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
+import { runWith, type EngineResult, type FigureResult } from '../src/index.js';
 import { availabilityWindow } from '../src/analytics/availability.js';
+import { COMPUTERS } from '../src/analytics/computers.js';
 import { formatInr, formatNumber } from '../src/analytics/format.js';
 import {
   availableByCell,
@@ -12,16 +15,24 @@ import {
   type DateWindow,
   type HoursWindow,
 } from '../src/analytics/hours.js';
-import { effectiveHours, isNoDowntime, isPm, sourcedReports } from '../src/analytics/rows.js';
+import {
+  effectiveHours,
+  isHistory,
+  isNoDowntime,
+  isPm,
+  sourcedReports,
+} from '../src/analytics/rows.js';
 import {
   A1,
   A2,
   A3,
   BREAKDOWN_LOG,
   ENGINE_DATA,
+  kpiByLabel,
   type FigureKey,
   type KeyTable,
 } from './answer-key/fixture.js';
+import type { Workbook, WorkbookBreakdown } from './answer-key/workbook.js';
 
 /**
  * The shared seam the four breakdown figures build on (packet 40h), checked against the platform's own 11
@@ -234,5 +245,193 @@ describe('the effective hours', () => {
     const rows = sourcedReports(ENGINE_DATA);
     const pm = rows.filter(isPm).find((row) => (row.report.recordedHours ?? 0) > 0)!;
     expect(effectiveHours(pm.report)).toBe(pm.report.recordedHours);
+  });
+});
+
+/**
+ * The Breakdown Log figure (packet 40a): the platform's whole history log, PM rows included, newest first by its
+ * stable Sr No. The key pins the page shape, the three newest rows and the count; the workbook below pins the rest
+ * (the order, the ticket numbers, the names, the hours and the totals) so no expected number is a constant here.
+ */
+
+interface LogTable {
+  title: string;
+  header: string[];
+  rows: string[][];
+  rowCount: number;
+  truncated?: boolean;
+}
+interface LogPage {
+  page: string;
+  title: string;
+  kpis: unknown[];
+  tables: LogTable[];
+  charts: unknown[];
+}
+interface LogValue {
+  screen: string;
+  asOf: string;
+  pages: LogPage[];
+}
+
+/** The 11 November workbook, read here too so the log's rows are checked against their source, not the key. */
+const INPUT = JSON.parse(
+  readFileSync(new URL('../../../fixtures/answer-key/input.json', import.meta.url), 'utf8'),
+) as Workbook;
+const HISTORY = INPUT.breakdowns;
+
+/** The workbook's own Sr No: the permanent log number the platform prints. */
+function srNo(row: WorkbookBreakdown): number {
+  if (row.srNo === undefined) throw new Error(`the workbook row ${row.id} carries no Sr No`);
+  return row.srNo;
+}
+
+/** The log's order as the workbook pins it: newest Sr No first. */
+const NEWEST = [...HISTORY].sort((left, right) => srNo(right) - srNo(left));
+
+/** The platform's own hours for a workbook row: the recorded column, minutes otherwise, zero for NO DT. */
+const recorded = (row: WorkbookBreakdown): number =>
+  row.maintCode === 'NO DT' ? 0 : (row.downHrs ?? (row.downMin ?? 0) / 60);
+
+const TOTAL_HOURS = HISTORY.reduce((sum, row) => sum + recorded(row), 0);
+const NO_DT_HOURS = HISTORY.filter((row) => row.maintCode === 'NO DT').reduce(
+  (sum, row) => sum + (row.downHrs ?? 0),
+  0,
+);
+/** The dashboard's Total Downtime: every non-PM row, NO DT being zero hours. */
+const BD_HOURS = HISTORY.filter((row) => row.maintCode !== 'PM').reduce(
+  (sum, row) => sum + recorded(row),
+  0,
+);
+
+const RESULT: EngineResult = runWith(COMPUTERS, {
+  data: ENGINE_DATA,
+  asOf: AS_OF,
+  profile: DEFAULT_PROFILE,
+});
+
+function figure(key: string): FigureResult {
+  const found = RESULT.figures.find((candidate) => candidate.key === key);
+  if (!found) throw new Error(`the engine knows no figure ${key}`);
+  return found;
+}
+
+function valueOf<T>(key: string): T {
+  const found = figure(key);
+  if (found.status !== 'ready') throw new Error(`the figure ${key} is ${found.status}`);
+  return found.value as unknown as T;
+}
+
+/** Done By as the plant printed it: the coded names behind the report, in the row's own order. */
+function displayDoneBy(row: WorkbookBreakdown): string {
+  const names = (row.doneBy ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
+  if (names.length === 0) return '—';
+  return names
+    .map((name) => {
+      const person = ENGINE_DATA.people.find((candidate) => candidate.displayName === name);
+      if (!person) throw new Error(`the fixture holds no person named "${name}"`);
+      return person.displayName;
+    })
+    .join(', ');
+}
+
+const logTable = (): LogTable => valueOf<LogValue>('breakdown-log').pages[0]!.tables[0]!;
+
+describe('the breakdown log figure', () => {
+  it('prints the key page shape: all history rows, the count derived from the workbook', () => {
+    const log = valueOf<LogValue>('breakdown-log');
+    const keyPage = BREAKDOWN_LOG.pages[0]!;
+    const keyTable = keyPage.tables[0]!;
+    expect(log.screen).toBe(BREAKDOWN_LOG.screen);
+    expect(log.asOf).toBe(AS_OF);
+    expect(log.pages).toHaveLength(1);
+    const page = log.pages[0]!;
+    expect({ page: page.page, title: page.title, kpis: page.kpis, charts: page.charts }).toEqual({
+      page: keyPage.page,
+      title: keyPage.title,
+      kpis: keyPage.kpis,
+      charts: keyPage.charts,
+    });
+    const table = page.tables[0]!;
+    expect({ title: table.title, header: table.header, truncated: table.truncated }).toEqual({
+      title: keyTable.title,
+      header: keyTable.header,
+      truncated: true,
+    });
+    expect(table.rowCount).toBe(HISTORY.length);
+    expect(table.rows).toHaveLength(table.rowCount);
+    // The key's own count is the workbook's count, never a constant the figure was handed.
+    expect(keyTable.rowCount).toBe(HISTORY.length);
+    expect(table.rows.slice(0, 3)).toEqual(keyTable.rows);
+  });
+
+  it("orders every row by the workbook's Sr No, newest first", () => {
+    const printed = logTable().rows.map((row) => Number(row[1]));
+    expect(printed).toEqual(NEWEST.map(srNo));
+    expect(printed[0]).toBeGreaterThan(printed.at(-1)!);
+  });
+
+  it('prints every workbook row exactly: eye, ticket, date, shift, machine, problem, name, hours, code', () => {
+    const rows = logTable().rows;
+    expect(rows).toHaveLength(NEWEST.length);
+    NEWEST.forEach((row, index) => {
+      expect(rows[index], row.id).toEqual([
+        '👁',
+        String(srNo(row)),
+        row.ticketRef ?? row.id,
+        row.date,
+        row.shift,
+        row.machineId,
+        row.problem,
+        displayDoneBy(row),
+        row.maintCode === 'NO DT' ? '—' : String(recorded(row)),
+        (row.maintCode ?? '').trim() === '' ? '—' : row.maintCode,
+      ]);
+    });
+  });
+
+  it('keeps the 64 PM rows in the log while the analyses leave them out', () => {
+    const printed = logTable().rows.filter((row) => row[9] === 'PM');
+    expect(printed).toHaveLength(HISTORY.filter((row) => row.maintCode === 'PM').length);
+  });
+
+  it("names every row's real ticket in row order, so every row drills", () => {
+    const computed = COMPUTERS['breakdown-log']!({
+      data: ENGINE_DATA,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    });
+    const known = new Set(
+      [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+    );
+    const carrying = sourcedReports(ENGINE_DATA).filter(isHistory);
+    expect(carrying.every((row) => row.report.ticketId !== null)).toBe(true);
+    expect(carrying).toHaveLength(HISTORY.length);
+    expect(computed.drillIds).toEqual(NEWEST.map((row) => row.ticketId ?? row.id));
+    expect(computed.drillIds.every((id) => known.has(id))).toBe(true);
+    const drill = figure('breakdown-log').drill;
+    expect(drill.type).toBe('ticket');
+    expect(drill.ids).toHaveLength(carrying.length);
+    expect(drill.ids.every((id) => known.has(id))).toBe(true);
+  });
+
+  it('derives the hours from the workbook: 3,819.38 over the log and 209.1 NO-DT, never 3,060.1', () => {
+    const table = logTable();
+    const printed = table.rows.map((row) => (row[8] === '—' ? 0 : Number(row[8])));
+    expect(printed.every(Number.isFinite)).toBe(true);
+    expect(printed.reduce((sum, hours) => sum + hours, 0)).toBeCloseTo(TOTAL_HOURS, 6);
+    expect(formatNumber(TOTAL_HOURS, 2)).toBe('3,819.38');
+    const noDt = HISTORY.filter((row) => row.maintCode === 'NO DT');
+    expect(table.rows.filter((row) => row[8] === '—')).toHaveLength(noDt.length);
+    // The NO-DT hours are the dashboard's own 209.1, not its 3,060.1 downtime (which is the non-PM total).
+    expect(formatNumber(NO_DT_HOURS, 1)).toBe('209.1');
+    expect(`${formatNumber(NO_DT_HOURS, 1)} hrs`).toBe(
+      kpiByLabel('BD Hours but NO Downtime').value,
+    );
+    expect(`${formatNumber(BD_HOURS, 1)} hrs`).toBe(kpiByLabel('Total Downtime').value);
+    expect(formatNumber(NO_DT_HOURS, 1)).not.toBe(formatNumber(BD_HOURS, 1));
   });
 });

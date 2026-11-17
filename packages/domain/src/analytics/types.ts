@@ -82,6 +82,12 @@ export interface ReportRow {
    * it when present and falls back to `downtimeMin / 60` when it is not.
    */
   recordedHours?: number | null;
+  /**
+   * The legacy platform's stable log number (its "Sr No"), where the source recorded one: the Breakdown Log prints
+   * it. A log the platform numbered itself has gaps here (deleted entries keep their number), so a figure must
+   * never renumber one from the row's position; a row with no number gets its place in date order instead.
+   */
+  srNo?: number | null;
   /** Who saw it (`observed_by`); the data checklist asks only whether the field is empty, never prints it. */
   observedBy?: string | null;
 }

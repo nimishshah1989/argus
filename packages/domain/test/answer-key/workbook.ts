@@ -56,6 +56,8 @@ export interface WorkbookBreakdown {
   observedBy?: string;
   ticketId?: string;
   ticketRef?: string;
+  /** The plant's stable log number; the exported workbook numbers every row, gaps included. */
+  srNo?: number;
 }
 
 export interface Workbook {

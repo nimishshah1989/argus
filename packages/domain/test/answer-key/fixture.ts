@@ -190,6 +190,7 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     doneBy: personCodes(row.doneBy),
     supportedBy: personCodes(row.supportedBy),
     recordedHours: number(row.downHrs),
+    srNo: number(row.srNo),
     observedBy: text(row.observedBy),
   };
 }

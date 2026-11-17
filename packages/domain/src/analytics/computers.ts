@@ -1,5 +1,6 @@
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
+import { breakdownLogFigure } from './breakdown-log.js';
 import { cellChangeLog } from './cell-log.js';
 import { bubbleChart, expansionTimeline } from './dashboard-charts.js';
 import { breakdownFree, costliestProblems } from './dashboard-flags.js';
@@ -156,6 +157,11 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'data-checklist': dataChecklist,
 };
 
+/** Owner 40's figures: the Breakdown Log and, as packets 40b to 40d land, A1 to A3. */
+const breakdownComputers: Readonly<Record<string, Computer>> = {
+  'breakdown-log': breakdownLogFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -172,4 +178,5 @@ const registerComputers: Readonly<Record<string, Computer>> = {
 export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...dashboardComputers,
   ...registerComputers,
+  ...breakdownComputers,
 };
