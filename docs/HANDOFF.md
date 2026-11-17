@@ -2,44 +2,37 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (M2 gate, 17 Nov 2026)
+## RESUME HERE (M4a analytics parity, 17 Nov 2026)
 
-**State:** **M2 Accountability is ACCEPTED — Nimish gave GO on 17 Nov.** Gate report `docs/plan/gates/M2.md`
-(29 lines, every criterion → ticket, test, link). Evidence: #228 schema, #241/#284 roster and ladder, #230
-notifications, #249/#252/#285 escalation, #244/#261/#262/#283 sign-off, #248/#264/#284 lockout, #287 the two
-design calls. **M4a (analytics parity) is next.**
+**State:** `main` = `7100f65`. **M2 is accepted (Nimish's go, 17 Nov).** **M4a is the current milestone**: ticket 37 is
+mostly done (#289 engine machinery + snapshot + drill, #290 the analytics face, Guide and profile screen); what
+remains of 37 is the **breakdown-log load (37c)**. The tracker, ledger and this file are the truth; M3/M5 are parked.
 
-- **Roster and ladder:** `/settings/roster` with **Copy to the next 7 days**; `/settings/escalation-rules` refuses
-  a repeat under 15 minutes and a repeat with no cap, push only for now (the server's WhatsApp fallback stays
-  proven for M3).
-- **Lockout:** the "Needs lockout" flag now on work types _and_ breakdown categories, and the editable lockout
-  step list, both on Lists; a flagged ticket's Start waits for the ticks (#264).
-- **Acknowledge** leads the action bar for the on-duty person with Start beside it, who and when after (#285).
-- **Escalation** shows in the history (level, who was told, channel, speed, repeats, "Escalation due, nobody
-  told") and as a state line on the desk card; the fake clock proves an L2 fires at its configured minute.
-- **Sign-off turnaround** on live tickets, and the desk's waiting feed reads **oldest first** (#283).
+**Frontier, in the order Nimish approved:** 38 Dashboard/Today → 40 Breakdown analyses → 39 registers and machine
+pages → 41 manpower/energy/root cause → 42 forecast → 43 compare/team/money/Fix Finder → 44 Action Center → 45
+reports/export/Guide. Then the M4a gate (`docs/plan/gates/M4a.md`, under 30 lines) for his go.
 
-**Routing and budgets:** the routes are fixed in `docs/decisions/D31-…`; those names live in the decision, not
-here. Probe: the **coder route answered ROUTE-OK** and wrote every packet. The **reasoning/review route could not
-answer — its API key is absent from the credential store** (recorded gap, ledger 17 Nov); planning and every
-fresh/scoped review therefore ran on Isoquant's second family (a different family from the writer), never a silent
-switch. Spend is inside the two budgets.
+**The one real gap to start with:** `COMPUTERS` in `packages/domain/src/analytics/computers.ts` is **empty**, so all
+43 registered figures answer `not_computed`. Each screen ticket adds its figures there against
+`fixtures/answer-key/<screen>.json`, with `pnpm parity` rows updated in `docs/spec/parity.yaml`. The seam is
+`runWith(computers, {data, asOf, profile})`; the drill-provenance rule is already enforced by the engine.
 
-**Open, not mine:** #281 (CI test cut — needs its Q14 review line and a rerun) and #282 (M1 session record —
-prettier red). Both predate this session.
+**Calls recorded (Nimish, 17 Nov):** order as above; money = heads/plant_head/admin only and never on the TV; build
+on the 16 Nov **32 KEPT** triage set while Bhavin's N12 review is outstanding; ticket 35 goal 1 (failed-jobs screen,
+timer-lag alarm) **parked**, not a gate. Menu groups use SPEC §8's names, each figure in exactly one group (a test
+enforces it); the analytics face is desktop-first, so a phone gets no Analytics tab until a mockup is approved.
 
-## M2 leftovers, for the gate word
+**Routing:** as `docs/decisions/D31-…` (names live there). The coder route answered and wrote every packet; the
+reasoning/review route's API key is still absent, so planning and all reviews run on Isoquant's second family —
+recorded, never a silent switch. Budgets are inside.
 
-- Ticket 30 is `in progress`: clocks live on card and detail, the pause-breach fake clock is #251; switching the
-  targets on at Cosmos is the staging step.
-- Ticket 35 goal 1 (failed-jobs screen and the timer-lag alarm) is open; the nine M2 success criteria do not
-  include it. Decide whether M2 closes without it.
+## Next session, first steps
 
-## Next
-
-- **M4a analytics parity** (tickets 36–45; 36 and 37 are part-done), per `docs/plan/MILESTONES.md`. M3/M5 parked.
-- His staging step for M2's clocks: Settings → SLA targets, the four severities' acknowledge and restore minutes.
-- Weekly dump + Drill B (`RESTORE.md`), and the missing reasoning-route key so that route returns.
+1. Read this file, `docs/plan/ledger.md` (17 Nov lines) and `docs/plan/MILESTONES.md`; refresh Graphify.
+2. Write `docs/slices/38-dashboard.md` (16 dashboard figures + Today + data checklist, answer key first), get it
+   reviewed, then dispatch one packet at a time; 40 follows the same shape with `a1–a3` + breakdown log.
+3. 37c (the 1,354-row breakdown log as closed tickets through the past-breakdown path) is the input 40 needs — plan
+   it beside 38 so 40 is not blocked.
 
 ## Parallel rule
 
