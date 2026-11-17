@@ -14,18 +14,18 @@ registers `BarChart` + `LineChart`), palette has two series colours, no legend c
 
 ## The five object figures (every one shows data, never "Ready")
 
-| key | engine value | rendered as |
-| --- | --- | --- |
-| `dashboard.breakdown-free` | `{ runningClean, inService }` (`dashboard-flags.ts:39`) | text: "<n> of <m> machines" |
-| `dashboard.costliest-problems` | `{ rows: [{ problem, hours, share, breakdowns }], totalHours }` (:88) | table: Problem / BD hours / % of BD / Breakdowns, caption = total hours |
-| `dashboard.bubble-chart` | `{ axes, datasets: [{ label:'Machines', data: [{ x, y, r, id, model, age, mttr }] }] }` (`dashboard-charts.ts:41-58`) | scatter chart + derived table |
-| `dashboard.expansion-timeline` | `{ axes, labels, datasets: [prefix bars …, 'Cumulative Fleet Size'] }` (:75-91) | mixed chart (stacked bars + line) + derived table |
-| `data-checklist` | `{ counts: {group: n}, items: [{ group, key, plain }] }` (`data-checklist.ts:227`) | grouped list with counts |
+| key                            | engine value                                                                                                          | rendered as                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `dashboard.breakdown-free`     | `{ runningClean, inService }` (`dashboard-flags.ts:39`)                                                               | text: "<n> of <m> machines"                                             |
+| `dashboard.costliest-problems` | `{ rows: [{ problem, hours, share, breakdowns }], totalHours }` (:88)                                                 | table: Problem / BD hours / % of BD / Breakdowns, caption = total hours |
+| `dashboard.bubble-chart`       | `{ axes, datasets: [{ label:'Machines', data: [{ x, y, r, id, model, age, mttr }] }] }` (`dashboard-charts.ts:41-58`) | scatter chart + derived table                                           |
+| `dashboard.expansion-timeline` | `{ axes, labels, datasets: [prefix bars …, 'Cumulative Fleet Size'] }` (:75-91)                                       | mixed chart (stacked bars + line) + derived table                       |
+| `data-checklist`               | `{ counts: {group: n}, items: [{ group, key, plain }] }` (`data-checklist.ts:227`)                                    | grouped list with counts                                                |
 
 Ready figures whose value is **null** (empty data) keep today's "—" (they have no content to lay out). Any other
 non-null object we cannot render says `analytics.value.onlyData` = "Only numbers so far" (not "Ready").
 
-**Engine-authored text is data, not catalogue copy.** The "every visible string a catalogue key" rail covers *chrome*
+**Engine-authored text is data, not catalogue copy.** The "every visible string a catalogue key" rail covers _chrome_
 (titles, axis labels, series names, table headers) — all of which the mapper supplies from `analytics.en.ts`. The engine's
 own prose prints as data: the checklist's item sentences ("date missing or invalid", "3 days with no entries"), the
 costliest problem names, machine ids, prefixes and dates. Those are values from the reply, never English literals in code.

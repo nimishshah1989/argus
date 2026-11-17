@@ -52,8 +52,8 @@ const DRILL_ROW = {
 type Figure = FiguresReply['figures'][number];
 
 /**
- * The text a tile prints for a figure's value: a scalar's exact face, or null when the value is an object or array
- * with no text of its own (the tile says "Ready"; the domain test proves the shape against the key).
+ * The text a tile prints for a scalar value: a number's exact face, a string as it came, yes/no. Null when the
+ * value is not a scalar: a ready null prints "—" and an object renders its own content, both asserted structurally.
  */
 const valueText = (figure: Figure): string | null => {
   const value = figure.value;
@@ -64,11 +64,95 @@ const valueText = (figure: Figure): string | null => {
     }).format(value);
   if (typeof value === 'string') return value;
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  return value === null ? '—' : null;
+  return null;
 };
 
 /** One dashboard figure's tile, found by the registry key the screen stamps on it. */
 const tile = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`);
+
+/**
+ * The three chart/table payloads are pinned here: the e2e seed holds no history rows, so the live engine answers
+ * the bubble and the timeline with a null value and the costliest table with no rows. Everything else stays live.
+ */
+const OBJECT_VALUES: Record<string, unknown> = {
+  'dashboard.bubble-chart': {
+    axes: { x: 'BD Hours (machine total)', y: 'Number of Breakdowns' },
+    datasets: [
+      {
+        label: 'Machines',
+        data: [{ x: 12, y: 3, r: 16, id: MACHINE_ID, model: 'CNC-1', age: '2 yrs', mttr: 4 }],
+      },
+    ],
+  },
+  'dashboard.expansion-timeline': {
+    axes: { x: '', y: '', y1: '' },
+    labels: [2024, 2025],
+    datasets: [
+      { label: 'VC', data: [1, 0] },
+      { label: 'Cumulative Fleet Size', data: [1, 2] },
+    ],
+  },
+  'dashboard.costliest-problems': {
+    rows: [{ problem: 'Spindle alarm', hours: 4.5, share: 75, breakdowns: 3 }],
+    totalHours: 6,
+  },
+};
+
+/** The live figures reply with the three object payloads pinned, so rendering does not depend on the seed. */
+async function pinObjectFigures(page: Page): Promise<void> {
+  await page.route('**/api/v1/analytics/figures', async (route) => {
+    const response = await route.fetch();
+    const reply = (await response.json()) as FiguresReply;
+    const figures = reply.figures.map((figure) => {
+      const value = OBJECT_VALUES[figure.key];
+      return value === undefined
+        ? figure
+        : { ...figure, status: 'ready' as const, value: value as Figure['value'] };
+    });
+    await route.fulfill({ response, json: { ...reply, figures } });
+  });
+}
+
+/**
+ * One ready figure's tile: a scalar prints its exact face, a ready null prints "—", a mapped object draws its
+ * content, and an object with no renderer says "Only numbers so far". The word "Ready" is never claimed.
+ */
+async function expectReadyFigure(page: Page, figure: Figure): Promise<void> {
+  const found = tile(page, figure.key);
+  const value = figure.value;
+  if (value === null) {
+    await expect(found).toContainText('—');
+    return;
+  }
+  const text = valueText(figure);
+  if (text !== null) {
+    await expect(found).toContainText(text);
+    return;
+  }
+  switch (figure.key) {
+    case 'dashboard.bubble-chart':
+    case 'dashboard.expansion-timeline':
+      await expect(found.locator('[data-testid="chart"]')).toHaveAttribute(
+        'data-chart-state',
+        'ready',
+      );
+      return;
+    case 'dashboard.breakdown-free': {
+      const counts = value as { runningClean: number; inService: number };
+      await expect(found).toContainText(`${counts.runningClean} of ${counts.inService}`);
+      return;
+    }
+    case 'dashboard.costliest-problems': {
+      const rows = (value as { rows: { problem: string }[] }).rows;
+      if (rows[0] !== undefined) await expect(found).toContainText(rows[0].problem);
+      return;
+    }
+    case 'data-checklist':
+      return;
+    default:
+      await expect(found).toContainText('Only numbers so far');
+  }
+}
 
 /**
  * The first Dashboard figure the live reply leaves uncomputed: its tile must say so, whatever this packet
@@ -160,6 +244,7 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await pinObjectFigures(page);
   const response = page.waitForResponse(
     (reply) => reply.url().includes('/api/v1/analytics/figures') && reply.status() === 200,
   );
@@ -168,20 +253,15 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
   const reply = (await (await response).json()) as FiguresReply;
 
-  // Every Dashboard figure the live API returns has a tile. A scalar prints the exact value the API returned; an
-  // object value (the two cards, the two charts) has no text of its own, so its tile only has to be ready.
+  // Every Dashboard figure the live API returns has a tile. A scalar prints the exact value the API returned; a
+  // ready null prints "—"; an object draws its mapped content (the two charts, the breakdown-free sentence, the
+  // costliest table) and never claims the word "Ready".
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
   for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
-  for (const figure of ready) {
-    const text = valueText(figure);
-    // The value's own shape is proven in the domain test against the key; the tile can only say "Ready".
-    if (text === null) {
-      await expect(tile(page, figure.key)).toContainText('Ready');
-      await expect(tile(page, figure.key)).not.toContainText('Not computed yet');
-    } else await expect(tile(page, figure.key)).toContainText(text);
-  }
+  for (const figure of ready) await expectReadyFigure(page, figure);
+  await expect(page.locator('[data-figure]').filter({ hasText: 'Ready' })).toHaveCount(0);
 
   // The strip above the tiles is built from the existing /state, with no new endpoint.
   await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
@@ -191,7 +271,10 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   expect(drilled).toBeTruthy();
   await tile(page, drilled!.key).getByRole('link', { name: 'See the rows', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\?drill=/);
-  const table = page.getByRole('table');
+  const drill = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'The rows behind this figure' }) });
+  const table = drill.getByRole('table');
   await expect(table).toBeVisible();
   await expect(table.getByRole('row')).toHaveCount(drilled!.drill.ids.length + 1);
 
@@ -199,14 +282,22 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
 
-  // The data checklist has its own route, at the foot of the menu. 38.2 computes it now: its value is the open
-  // items (an object), so the tile is ready and never claims a "Not computed yet" it no longer is.
+  // The data checklist has its own route, at the foot of the menu. Its tile lists the open items it computes,
+  // grouped and counted, and never claims a "Ready" it does not have.
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   await menu.getByRole('link', { name: 'Data checklist', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
   await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
-  await expect(tile(page, 'data-checklist')).toContainText('Ready');
-  await expect(tile(page, 'data-checklist')).not.toContainText('Not computed yet');
+  const checklistTile = tile(page, 'data-checklist');
+  await expect(checklistTile).not.toContainText('Ready');
+  await expect(checklistTile).not.toContainText('Not computed yet');
+  const checklist = reply.figures.find((figure) => figure.key === 'data-checklist');
+  const items =
+    checklist !== undefined && typeof checklist.value === 'object' && checklist.value !== null
+      ? (checklist.value as { items: { plain: string }[] }).items
+      : [];
+  await expect(checklistTile.locator('li')).toHaveCount(items.length);
+  if (items[0] !== undefined) await expect(checklistTile).toContainText(items[0].plain);
 });
 
 /**
