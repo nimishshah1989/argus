@@ -31,6 +31,7 @@
     "precheck": "tsx tools/precheck.ts",
     "quality": "tsx tools/check-quality.ts",
     "quality:pr": "tsx tools/check-quality.ts --pr",
+    "main:check": "tsx tools/check-quality.ts --main",
     "push:check": "tsx tools/check-quality.ts --push",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm parity && pnpm licences && pnpm migrations:check && pnpm ui:check && pnpm docs:check && pnpm pii:scan && pnpm audit:deps && pnpm audit:lean",
     "test:e2e": "playwright test",

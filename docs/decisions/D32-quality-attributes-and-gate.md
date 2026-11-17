@@ -10,8 +10,8 @@ a change must satisfy before it may merge — so each session re-derived the sam
 That is the repeated instruction `principle-encode-lessons-in-structure` tells us to encode.
 
 1. **`docs/QUALITY-ATTRIBUTES.md` is the per-change contract.** Fifteen numbered attributes (Q1–Q15), each with a
-   definition, a checker (`auto` or `review`) and the failure condition. The ids are stable and are cited by
-   reviewers, PR bodies and gate reports.
+   definition, the exact runner (`quality`, `CI: api suite`, `CI: gallery` or `review`) and the failure
+   condition. The ids are stable and are cited by reviewers, PR bodies and gate reports.
 2. **One command runs the automatic set.** `pnpm quality` locally (fast, before a push) and `pnpm quality:pr` in
    the `pr-meta` CI job (needs the PR body; it also fails a PR whose body does not carry the Q table).
 3. **The reviewer returns the Q table.** In the `ponytail-review` format, followed by one line per attribute
@@ -22,8 +22,10 @@ That is the repeated instruction `principle-encode-lessons-in-structure` tells u
 5. **Q15 keeps `main` green.** CI deliberately does not run on `main` (Actions minutes, #224), so a red tree is
    otherwise found by the _next_ PR's run, after the queue has already spent a CI run on it. On 17 Nov a stale
    expectation from #206 met #258's criticality default that way and blocked every PR. The queue therefore
-   verifies the new `main` after each merge: check it out, run the test files that merge touched, and hotfix a
-   red tree before the next merge.
+   verifies the new `main` after each merge: check it out, run `pnpm main:check` (a mode of
+   `tools/check-quality.ts`), and hotfix a red tree before the next merge. `main:check` reads
+   `git diff --name-only HEAD~1 HEAD`, keeps the changed `*.test.ts` files, runs them with `npx vitest run`,
+   and exits non-zero on a failure.
 
 ## Why not fold it into `pnpm precheck`
 

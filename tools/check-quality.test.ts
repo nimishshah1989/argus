@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  mergeTestFiles,
   missingAttributes,
   missingSections,
   pushRefusal,
@@ -107,6 +108,19 @@ describe('weakened tests', () => {
 
   it('Q2 reports the same removal inside a test file', () => {
     expect(weakenedTests(REMOVED_TEST_CALL)).toEqual(['apps/x.test.ts: removed test']);
+  });
+});
+
+describe('merge test selection', () => {
+  it('Q15 keeps only the changed test files', () => {
+    expect(
+      mergeTestFiles([
+        'apps/server/src/foo.ts',
+        'packages/shared/test/catalogue.test.ts',
+        'apps/web/src/screen.test.tsx',
+        'README.md',
+      ]),
+    ).toEqual(['packages/shared/test/catalogue.test.ts', 'apps/web/src/screen.test.tsx']);
   });
 });
 

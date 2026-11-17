@@ -89,6 +89,11 @@ export function missingAttributes(body: string): string[] {
   return IDS.filter((id) => !declared.has(id));
 }
 
+/** The `*.test.ts(x)` paths among the files a merge changed; Q15 runs only these. */
+export function mergeTestFiles(paths: string[]): string[] {
+  return paths.filter((path) => TEST_FILE.test(path));
+}
+
 /** The evidence sections a PR body must carry: what changed, how to try it, what must be decided. */
 export function missingSections(body: string): string[] {
   const text = stripComments(body);
@@ -269,9 +274,33 @@ function runPush(): void {
   console.log(`push:check OK — ${count} commits ahead of origin/main (HEAD ${head})`);
 }
 
+function runMain(): void {
+  const changed = gitText(['diff', '--name-only', 'HEAD~1', 'HEAD']);
+  if (changed === null) {
+    console.log('main:check: no HEAD~1 to diff, nothing to run');
+    return;
+  }
+  const files = mergeTestFiles(changed.split('\n').filter((path) => path.length > 0));
+  if (files.length === 0) {
+    console.log('main:check: no test files in the last merge, nothing to run');
+    return;
+  }
+  try {
+    execFileSync('npx', ['vitest', 'run', ...files], { stdio: 'inherit' });
+  } catch {
+    console.log(
+      `main:check: FAIL — ${files.length} test file(s) from the last merge, red on ${files.join(' ')}`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`main:check: ${files.length} test file(s) from the last merge, all green`);
+}
+
 function main(): void {
   if (process.argv.includes('--push')) runPush();
   else if (process.argv.includes('--pr')) runPr();
+  else if (process.argv.includes('--main')) runMain();
   else runLocal();
 }
 
