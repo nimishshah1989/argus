@@ -35,7 +35,7 @@ test('the desk feed puts the longest wait for production first, and a row opens 
 
   await signIn(page);
   await page.goto('/desk');
-  const feed = page.getByRole('region', { name: new RegExp(`^${t('signoff.deskWaiting')}`) });
+  const feed = page.getByTestId('signoff-feed');
   await expect(feed).toBeVisible();
   await expect(feed.getByRole('heading')).toContainText(t('signoff.deskWaiting'));
   await expect(feed.getByRole('heading')).toContainText(/\(\d+\)/);

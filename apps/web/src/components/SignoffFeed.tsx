@@ -39,7 +39,7 @@ export function SignoffFeed({ now }: { now?: string }) {
   };
   const { heading, rows } = feedRows(items, now ?? new Date().toISOString(), names);
   return (
-    <section aria-label={heading} className="flex flex-col gap-2">
+    <section data-testid="signoff-feed" className="flex flex-col gap-2">
       <SectionTitle>{heading}</SectionTitle>
       {state === 'ready' ? (
         <ul className="flex flex-col gap-2">
