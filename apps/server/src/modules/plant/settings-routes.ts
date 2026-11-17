@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { apiError } from '@uptimo/shared';
+import { apiError, calendarDay } from '@uptimo/shared';
 import { canSettingsLists } from '@uptimo/domain';
 import {
   fieldProblem,
@@ -13,6 +13,7 @@ import { requireAuth } from '../identity/index.js';
 import { audit } from '../ops/index.js';
 import { actorOf, forbidden } from './actor.js';
 import {
+  correctMove,
   exists,
   selectMoves,
   tableStore,
@@ -21,7 +22,7 @@ import {
   type Row,
 } from './repo/plant-settings.js';
 import { LIST_RESOURCES } from './settings-lists.js';
-import { RESOURCES, type Problem, type Resource } from './settings-resources.js';
+import { plantToday, RESOURCES, type Problem, type Resource } from './settings-resources.js';
 
 type Ctx = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Reply = Record<string, unknown>;
@@ -34,6 +35,80 @@ const storeOf = (resource: Resource): Store =>
 const invalid = ({ field, message, conflict }: Problem) =>
   conflict ? refuse(409, 'conflict', message, field) : refuse(422, 'validation', message, field);
 const notFound = (what: string) => refuse(404, 'not_found', `Unknown ${what}`, 'id');
+/** A move as the reply contract carries it. */
+const moveReply = (move: Row) => ({
+  id: move.id,
+  machineId: move.machine_id,
+  fromCell: move.from_cell,
+  toCell: move.to_cell,
+  effectiveFrom: move.effective_from,
+});
+/** The same move as the audit's before/after carry it: the machine, the move and the date. */
+const moveAudit = (move: Row) => ({
+  machineId: move.machine_id,
+  moveId: move.id,
+  fromCell: move.from_cell,
+  toCell: move.to_cell,
+  effectiveFrom: move.effective_from,
+});
+
+/** A correction must sit after the machine's previous move and before its next one (the list is newest first). */
+function moveBoundsProblem(moves: Row[], index: number, effectiveFrom: string): Problem | null {
+  const previous = moves[index + 1];
+  if (previous && effectiveFrom <= (previous.effective_from as string))
+    return {
+      field: 'effectiveFrom',
+      message: `The previous move is on ${previous.effective_from}; date this one after it`,
+    };
+  const next = moves[index - 1];
+  if (next && effectiveFrom >= (next.effective_from as string))
+    return {
+      field: 'effectiveFrom',
+      message: `The next move is on ${next.effective_from}; date this one before it`,
+    };
+  return null;
+}
+
+/** Correct one move's date, audit a real change, and change nothing (or audit nothing) for the same date. */
+async function correctOne(
+  tx: PoolClient,
+  ctx: Ctx,
+  target: { machineId: string; moveId: string; effectiveFrom: string },
+): Promise<Outcome> {
+  const { machineId, moveId, effectiveFrom } = target;
+  if (!(await exists(tx, 'machine', machineId))) return notFound('machine');
+  const moves = await selectMoves(tx, machineId);
+  const index = moves.findIndex((move) => move.id === moveId);
+  if (index < 0) return notFound('machine');
+  const move = moves[index]!;
+  const current = move.effective_from as string;
+  if (effectiveFrom > (await plantToday(tx, ctx.tenantId)))
+    return invalid({
+      field: 'effectiveFrom',
+      message: 'A cell move cannot be dated in the future',
+    });
+  if (effectiveFrom === current) return { status: 200, body: { move: moveReply(move) } };
+  const problem = moveBoundsProblem(moves, index, effectiveFrom);
+  if (problem) return invalid(problem);
+  const row = await correctMove(tx, {
+    tenantId: ctx.tenantId,
+    machineId,
+    moveId,
+    effectiveFrom,
+  });
+  if (!row) return notFound('machine');
+  await audit.record(tx, {
+    tenantId: ctx.tenantId,
+    loginId: ctx.loginId,
+    supportGrantId: ctx.supportGrantId,
+    action: 'machine.move.correct',
+    entity: 'machine',
+    entityId: machineId,
+    before: moveAudit(move),
+    after: moveAudit(row),
+  });
+  return { status: 200, body: { move: moveReply(row) } };
+}
 
 function pick(reply: Reply, keys: string[]): Reply {
   return Object.fromEntries(keys.map((key) => [key, reply[key]]));
@@ -268,14 +343,34 @@ export function registerPlantSettingsRoutes(app: FastifyInstance, pool: Pool): v
       (await exists(tx, 'machine', id)) ? selectMoves(tx, id) : null,
     );
     if (!moves) return reply.code(404).send(notFound('machine').body);
-    reply.send(
-      moves.map((m) => ({
-        id: m.id,
-        machineId: m.machine_id,
-        fromCell: m.from_cell,
-        toCell: m.to_cell,
-        effectiveFrom: m.effective_from,
-      })),
+    reply.send(moves.map(moveReply));
+  });
+  /**
+   * Correct one move's effective date inside the plant's real bounds: today or earlier, after the previous
+   * move and before the next, so the history keeps its order. A same-date correction changes nothing and is
+   * not audited; a real one leaves one line naming the machine, the move and the old → new date.
+   */
+  app.patch('/api/v1/machines/:id/moves/:moveId', async (request, reply) => {
+    const ctx = await gate(pool, request, reply);
+    if (!ctx) return;
+    const { id, moveId } = request.params as { id: string; moveId: string };
+    if (!idOrNotFound(reply, id, 'machine') || !idOrNotFound(reply, moveId, 'move')) return;
+    const parsed = calendarDay.safeParse(
+      (request.body as { effectiveFrom?: unknown } | undefined)?.effectiveFrom,
     );
+    if (!parsed.success)
+      return reply
+        .code(422)
+        .send(
+          apiError(
+            'validation',
+            parsed.error.issues[0]?.message ?? 'Use a date like 2026-11-14',
+            'effectiveFrom',
+          ),
+        );
+    const outcome = await withTenant(pool, ctx.tenantId, (tx) =>
+      correctOne(tx, ctx, { machineId: id, moveId, effectiveFrom: parsed.data }),
+    );
+    reply.code(outcome.status).send(outcome.body);
   });
 }

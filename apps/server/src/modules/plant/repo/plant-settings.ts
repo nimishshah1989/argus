@@ -118,6 +118,25 @@ export async function insertMove(tx: Db, move: NewMove): Promise<void> {
   );
 }
 
+export interface MoveCorrection {
+  tenantId: string;
+  machineId: string;
+  moveId: string;
+  effectiveFrom: string;
+}
+
+/** Correct one move's effective date; undefined when this plant's machine has no such move. */
+export async function correctMove(tx: Db, move: MoveCorrection): Promise<Row | undefined> {
+  return (
+    await tx.query(
+      `UPDATE machine_move SET effective_from = $1, updated_at = now()
+        WHERE id = $2 AND machine_id = $3 AND tenant_id = $4
+        RETURNING id, machine_id, from_cell, to_cell, effective_from::text AS effective_from`,
+      [move.effectiveFrom, move.moveId, move.machineId, move.tenantId],
+    )
+  ).rows[0];
+}
+
 /** The date of the machine's newest cell move, or undefined when it has never moved. */
 export async function latestMoveDate(tx: Db, machineId: string): Promise<string | undefined> {
   const row = (

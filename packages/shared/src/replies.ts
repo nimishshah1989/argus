@@ -198,6 +198,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/analytics/run`]: figuresReplySchema,
   [`GET ${P}/analytics/drill`]: drillReplySchema,
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
+  [`PATCH ${P}/machines/:id/moves/:moveId`]: z.object({ move: machineMoveReplySchema }).strict(),
   ...commands,
   [`POST ${P}/tickets/past`]: commandReplySchema,
   [`GET ${P}/tickets`]: ticketPageSchema,

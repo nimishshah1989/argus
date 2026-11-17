@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   GROUP_A,
   ITEM_A,
+  M_B,
   M_FREE,
   SEG_A,
   SHIFT_A,
@@ -585,6 +586,155 @@ describe('a cell change keeps the history in order', () => {
       .json()
       .items.find((m: { id: string }) => m.id === machine.id);
     expect(final.cell).toBe(second.toCell);
+  });
+});
+
+describe('an admin corrects a cell move date within the plant bounds', () => {
+  const day = (offset: number) => addDays(plantToday(), offset);
+  const correct = (
+    machineId: string,
+    moveId: string,
+    effectiveFrom: string,
+    token = f.tokens.admin!,
+  ) => f.call('PATCH', `/api/v1/machines/${machineId}/moves/${moveId}`, token, { effectiveFrom });
+  /** A fresh machine with one move per offset (newest first on the read), so the bounds are real. */
+  const history = async (code: string, offsets: number[] = [-10, -5, -2]) => {
+    const machine = await newMachine(code);
+    for (const [i, offset] of offsets.entries()) {
+      const edited = await f.call('PUT', `/api/v1/machines/${machine.id}`, head(), {
+        cell: `Cell ${i + 2}`,
+        effectiveFrom: day(offset),
+      });
+      expect(edited.statusCode).toBe(200);
+    }
+    type Move = { id: string; effectiveFrom: string; fromCell: string; toCell: string };
+    const list = (await moves(machine.id)) as Move[];
+    return { machine, list, newest: list[0]!, middle: list[1]! };
+  };
+  const rowOf = async (id: string) =>
+    (
+      await f.admin.query('SELECT effective_from::text AS day FROM machine_move WHERE id = $1', [
+        id,
+      ])
+    ).rows[0].day as string;
+
+  it('admin corrects the date: the row and updated_at change, and the audit names machine, move and old → new', async () => {
+    const { machine, middle } = await history('CM-1');
+    const target = day(-8);
+    await f.admin.query(
+      "UPDATE machine_move SET updated_at = now() - interval '1 day' WHERE id = $1",
+      [middle.id],
+    );
+    const stamp = async () =>
+      (await f.admin.query('SELECT updated_at FROM machine_move WHERE id = $1', [middle.id]))
+        .rows[0].updated_at as Date;
+    const before = await stamp();
+    const res = await correct(machine.id, middle.id, target);
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json()).toEqual({
+      move: {
+        id: middle.id,
+        machineId: machine.id,
+        fromCell: middle.fromCell,
+        toCell: middle.toCell,
+        effectiveFrom: target,
+      },
+    });
+    expect(await rowOf(middle.id)).toBe(target);
+    expect((await stamp()).getTime()).toBeGreaterThan(before.getTime());
+    const line = (await audits('machine', machine.id)).find(
+      (l) => l.action === 'machine.move.correct',
+    );
+    expect(line).toMatchObject({
+      username: 'plant-a-admin',
+      before: {
+        machineId: machine.id,
+        moveId: middle.id,
+        fromCell: middle.fromCell,
+        toCell: middle.toCell,
+        effectiveFrom: middle.effectiveFrom,
+      },
+      after: {
+        machineId: machine.id,
+        moveId: middle.id,
+        fromCell: middle.fromCell,
+        toCell: middle.toCell,
+        effectiveFrom: target,
+      },
+    });
+  });
+
+  it('a head may correct a date too', async () => {
+    const { machine, newest } = await history('CM-2', [-12, -6]);
+    const res = await correct(machine.id, newest.id, day(-10), head());
+    expect(res.statusCode).toBe(200);
+    expect(res.json().move.effectiveFrom).toBe(day(-10));
+  });
+
+  it('an operator and a technician are refused', async () => {
+    const { machine, newest } = await history('CM-3', [-4]);
+    for (const token of [f.tokens.operator!, f.tokens.technician!]) {
+      expect((await correct(machine.id, newest.id, day(-6), token)).statusCode).toBe(403);
+    }
+  });
+
+  it("another tenant's move id is not found", async () => {
+    const moved = await f.call('PUT', `/api/v1/machines/${M_B}`, f.tokens['b-admin']!, {
+      cell: 'Cell 10',
+      effectiveFrom: day(-3),
+    });
+    expect(moved.statusCode).toBe(200);
+    const bMoves = (
+      await f.call('GET', `/api/v1/machines/${M_B}/moves`, f.tokens['b-admin']!)
+    ).json();
+    const bMove = bMoves[0] as { id: string };
+    expect((await correct(M_B, bMove.id, day(-4))).statusCode).toBe(404);
+    const mine = await newMachine('CM-4');
+    expect((await correct(mine.id, bMove.id, day(-4))).statusCode).toBe(404);
+  });
+
+  it('a future date is refused, naming effectiveFrom', async () => {
+    const { machine, newest } = await history('CM-5', [-1]);
+    const res = await correct(machine.id, newest.id, day(1));
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error).toMatchObject({ code: 'validation', field: 'effectiveFrom' });
+    expect(await rowOf(newest.id)).toBe(newest.effectiveFrom);
+  });
+
+  it('a date before the previous move, or after the next, is refused so the history keeps its order', async () => {
+    const { machine, list, middle } = await history('CM-6');
+    const early = await correct(machine.id, middle.id, addDays(list[2]!.effectiveFrom, -1));
+    expect(early.statusCode).toBe(422);
+    expect(early.json().error.field).toBe('effectiveFrom');
+    const late = await correct(machine.id, middle.id, addDays(list[0]!.effectiveFrom, 1));
+    expect(late.statusCode).toBe(422);
+    expect(late.json().error.field).toBe('effectiveFrom');
+    expect(await rowOf(middle.id)).toBe(middle.effectiveFrom);
+  });
+
+  it('a same-date correction answers 200 and writes no audit line', async () => {
+    const { machine, newest } = await history('CM-7', [-3]);
+    const before = (await audits('machine', machine.id)).length;
+    const res = await correct(machine.id, newest.id, newest.effectiveFrom);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().move.effectiveFrom).toBe(newest.effectiveFrom);
+    expect((await audits('machine', machine.id)).length).toBe(before);
+  });
+
+  it('the analytics figures cell change log shows the corrected date', async () => {
+    const { machine, newest } = await history('CM-8', [-6]);
+    const target = day(-9);
+    expect((await correct(machine.id, newest.id, target)).statusCode).toBe(200);
+    const figures = (await f.call('GET', '/api/v1/analytics/figures', head())).json()
+      .figures as Array<{
+      key: string;
+      value: { moves: Array<{ id: string; machineId: string; date: string }> };
+    }>;
+    const log = figures.find((figure) => figure.key === 'cell-change-log')!;
+    expect(log.value.moves.find((move) => move.id === newest.id)).toMatchObject({
+      machineId: machine.id,
+      date: target,
+    });
   });
 });
 
