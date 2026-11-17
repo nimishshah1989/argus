@@ -118,3 +118,12 @@ and 0 effective), BD effective hours 3,060.11 → 3,060.1 over 1,279 rows (match
 discovery file), the a2 table/chart counts, the a3 6 tables + 7 charts, the four MTBF bases (Cell 1 MTBF Q3 501.4 vs the
 naive 501.5 pins the unrounded average), the zero-breakdown MTBF = available hours (5,183.33), and the en-IN grouping.
 The plan's first draft was refused for contradicting several of these; this file is the corrected version.
+
+**Review ruling carried here (cellKey, 40h review S1).** The discovery platform maps a cell absent from Settings to
+"No cell" (`cellKey`); our port maps only blanks. The frozen key's cells are 1–9 and no production machine sits outside
+them, so the key is unaffected; the rule is recorded here for 40b's A1/A2/A3: the figures group by `cellKey` as ported and
+the settings-unknown mapping is a deliberate deviation until `EngineData` carries the plant's cell list. 40a's log rowCount
+is the history sheet only (1,343): the seven `otherBD` rows are off-production and must not be added.
+**40h deviations recorded:** `load.ts` supplies `PersonRow.displayName` (the pseudonym, never a real name); the workbook
+source types moved verbatim to `packages/domain/test/answer-key/workbook.ts` to keep `fixture.ts` under 400 lines;
+`quarterAverage` was added to `hours.ts` (both 40a's Q columns and 40d's need it; it mirrors discovery `quarterAvg`).

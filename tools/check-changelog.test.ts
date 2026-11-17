@@ -6,19 +6,21 @@ const file = (status: string, path: string): ChangedFile => ({ status, path });
 describe('changelog check', () => {
   it.each([
     [[file('A', 'changes/76-green-fast-main.md'), file('M', 'apps/x.ts')], []],
+    [[file('M', 'changes/40-breakdowns.md'), file('M', 'apps/x.ts')], []],
+    [[file('M', 'apps/x.ts')], ['add exactly one changelog fragment under changes/ (found 0)']],
     [
-      [file('M', 'changes/70-old.md')],
-      ['add exactly one changelog fragment under changes/ (found 0)'],
-    ],
-    [
-      [file('A', 'changes/1-a.md'), file('A', 'changes/2-b.md')],
+      [file('A', 'changes/1-a.md'), file('M', 'changes/2-b.md')],
       ['add exactly one changelog fragment under changes/ (found 2)'],
     ],
     [
       [file('A', 'changes/notes.md')],
       ['changes/notes.md: name a fragment changes/<issue>-<slug>.md'],
     ],
-  ])('allows exactly one well-named fragment: %j', (files, expected) => {
+    [
+      [file('M', 'changes/notes.md')],
+      ['changes/notes.md: name a fragment changes/<issue>-<slug>.md'],
+    ],
+  ])('allows exactly one well-named fragment, added or modified: %j', (files, expected) => {
     expect(changelogErrors(files)).toEqual(expected);
   });
 });
@@ -30,6 +32,9 @@ describe('merge train changelog check', () => {
   });
   it('allows a single fragment', () => {
     expect(changelogErrors([file('A', 'changes/276-a.md')], { train: true })).toEqual([]);
+  });
+  it('allows a modified fragment, the ticket appending to the one it added earlier', () => {
+    expect(changelogErrors([file('M', 'changes/40-breakdowns.md')], { train: true })).toEqual([]);
   });
   it('still requires at least one fragment', () => {
     expect(changelogErrors([file('M', 'apps/x.ts')], { train: true })).toEqual([
