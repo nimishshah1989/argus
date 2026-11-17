@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { FIGURES } from '@uptimo/domain';
+import { DEFAULT_PROFILE } from '@uptimo/shared';
+import { FIGURES, type EngineResult, type FigureValue } from '@uptimo/domain';
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
-import { A, B, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
+import { snapshotStore } from '../src/modules/analytics/snapshot.js';
+import { A, B, M_B, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 let f: Fixture;
 beforeAll(async () => {
@@ -303,5 +305,208 @@ describe('storing a run', () => {
       runForTenant(tx, { tenantId: B, asOf: '2026-11-11' }),
     );
     expect(plain).toEqual(result);
+  });
+});
+
+/** The stored figures of a plant, read the way an operator must never be able to: from the table itself. */
+const snapshots = async (tenant: string) =>
+  (
+    await f.admin.query(
+      `SELECT id, key, profile, subject_kind, subject_key, period_start::text AS period_start,
+              period_end::text AS period_end, as_of::text AS as_of, run_id::text AS run_id,
+              value, computed_at, updated_at
+         FROM kpi_snapshot WHERE tenant_id = $1 ORDER BY key`,
+      [tenant],
+    )
+  ).rows as Array<Record<string, unknown>>;
+
+const figureOf = (
+  key: string,
+  value: FigureValue,
+  status: 'ready' | 'not_computed',
+): EngineResult['figures'][number] => ({
+  key,
+  screen: 'dashboard',
+  owner: 38,
+  status,
+  value,
+  drill: { type: 'machine', ids: [] },
+});
+
+/** A run as the engines will hand it over: two figures ready, one not computed. */
+const engineResult = (asOf: string, machines: number): EngineResult => ({
+  asOf,
+  profile: DEFAULT_PROFILE,
+  rows: { machines: 0, moves: 0, tickets: 0, tasks: 0, reports: 0, people: 0 },
+  figures: [
+    figureOf('dashboard.total-machines', machines, 'ready'),
+    figureOf('dashboard.utilities', null, 'not_computed'),
+    figureOf('dashboard.dg-sets', null, 'ready'),
+  ],
+});
+
+describe('the snapshot writer', () => {
+  it('stores one row per ready figure, with the run date, as_of and one run_id', async () => {
+    await withTenant(f.db.app, B, (tx) => snapshotStore.save(tx, B, engineResult('2026-11-11', 2)));
+    const rows = await snapshots(B);
+    expect(rows.map((row) => row.key)).toEqual(['dashboard.dg-sets', 'dashboard.total-machines']);
+    expect(new Set(rows.map((row) => row.run_id)).size).toBe(1);
+    for (const row of rows) {
+      expect(row).toMatchObject({
+        profile: 'legacy',
+        subject_kind: 'plant',
+        subject_key: '',
+        period_start: '2026-11-11',
+        period_end: '2026-11-11',
+        as_of: '2026-11-11',
+      });
+    }
+    expect(rows.find((row) => row.key === 'dashboard.total-machines')?.value).toBe(2);
+    expect(rows.find((row) => row.key === 'dashboard.dg-sets')?.value).toBeNull();
+  });
+
+  it('replaces a re-run of the same day and keeps another day as its own series', async () => {
+    const before = await snapshots(B);
+    const first = before.find((row) => row.key === 'dashboard.total-machines')!;
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    await withTenant(f.db.app, B, (tx) => snapshotStore.save(tx, B, engineResult('2026-11-11', 5)));
+    const after = await snapshots(B);
+    expect(after).toHaveLength(2);
+    const replaced = after.find((row) => row.key === 'dashboard.total-machines')!;
+    expect(replaced.value).toBe(5);
+    expect(replaced.run_id).not.toBe(first.run_id);
+    expect(new Date(replaced.updated_at as string).getTime()).toBeGreaterThan(
+      new Date(first.updated_at as string).getTime(),
+    );
+    await withTenant(f.db.app, B, (tx) => snapshotStore.save(tx, B, engineResult('2026-11-12', 3)));
+    const series = await snapshots(B);
+    expect(series).toHaveLength(4);
+    expect(series.map((row) => row.as_of).sort()).toEqual([
+      '2026-11-11',
+      '2026-11-11',
+      '2026-11-12',
+      '2026-11-12',
+    ]);
+  });
+});
+
+describe('running and storing through HTTP, and the drill-down', () => {
+  it('a head stores a run, a GET never writes, and an operator or supervisor cannot run', async () => {
+    const day = '2026-11-11';
+    const seeded = (
+      await f.admin.query(
+        `INSERT INTO kpi_snapshot (tenant_id, profile, key, subject_kind, subject_key,
+                                   period_start, period_end, as_of, run_id, value)
+         VALUES ($1, 'legacy', 'dashboard.total-machines', 'plant', '', $2, $2, $2,
+                 gen_random_uuid(), '7'::jsonb) RETURNING id`,
+        [A, day],
+      )
+    ).rows[0].id as string;
+    const before = await snapshots(A);
+    expect(before).toHaveLength(1);
+    const read = await f.call('GET', `/api/v1/analytics/figures?asOf=${day}`, f.tokens.head!);
+    expect(read.statusCode).toBe(200);
+    expect(await snapshots(A)).toEqual(before);
+
+    for (const role of ['operator', 'technician', 'supervisor', 'board']) {
+      const refused = await f.call('POST', '/api/v1/analytics/run', f.tokens[role]!, { asOf: day });
+      expect(refused.statusCode, role).toBe(403);
+    }
+    for (const role of ['head', 'plant_head', 'admin']) {
+      const run = await f.call('POST', '/api/v1/analytics/run', f.tokens[role]!, { asOf: day });
+      expect(run.statusCode, role).toBe(200);
+      expect(run.json()).toMatchObject({ asOf: day });
+      expect(run.json().figures.length).toBeGreaterThan(30);
+      expect(
+        run.json().figures.every((one: { status: string }) => one.status === 'not_computed'),
+      ).toBe(true);
+    }
+    const after = await snapshots(A);
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ id: seeded, value: 7 });
+  });
+
+  it('returns the asked machines and tickets in the asked order, dropping ids this plant does not have', async () => {
+    const tickets = (
+      await f.admin.query('SELECT id, ref FROM ticket WHERE tenant_id = $1 ORDER BY ref', [A])
+    ).rows as Array<{ id: string; ref: string }>;
+    const ids = Object.fromEntries(tickets.map((row) => [row.ref, row.id]));
+    const response = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=machine&ids=${M_B},${M_USED},${M_FREE},not-a-uuid`,
+      f.tokens.head!,
+    );
+    expect(response.statusCode).toBe(422);
+    expect(response.json().error.field).toBe('ids');
+    const machines = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=machine&ids=${M_B},${M_USED},${M_FREE},00000000-0000-0000-0000-000000000000`,
+      f.tokens.head!,
+    );
+    expect(machines.statusCode).toBe(200);
+    expect(machines.json().type).toBe('machine');
+    expect(machines.json().rows.map((row: { id: string }) => row.id)).toEqual([M_USED, M_FREE]);
+    expect(machines.json().rows[0]).toMatchObject({ code: 'VC-02' });
+    const asked = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=ticket&ids=${ids['BD-0002']},${ids['BD-0001']}`,
+      f.tokens.head!,
+    );
+    expect(asked.statusCode).toBe(200);
+    expect(asked.json().rows.map((row: { ref: string }) => row.ref)).toEqual([
+      'BD-0002',
+      'BD-0001',
+    ]);
+    // Another plant never sees this tenant's rows, and this tenant never sees another's.
+    const other = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=machine&ids=${M_B}`,
+      f.tokens['b-admin']!,
+    );
+    expect(other.json().rows.map((row: { id: string }) => row.id)).toEqual([M_B]);
+  });
+
+  it('returns the asked cell moves, and refuses an operator, a bad type and more than 200 ids', async () => {
+    const move = (
+      await f.admin.query(
+        `INSERT INTO machine_move (tenant_id, machine_id, from_cell, to_cell, effective_from)
+         VALUES ($1, $2, 'Cell 1', 'Cell 2', '2026-11-02') RETURNING id`,
+        [A, M_USED],
+      )
+    ).rows[0].id as string;
+    const response = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=move&ids=${move}`,
+      f.tokens.head!,
+    );
+    expect(response.statusCode).toBe(200);
+    expect(response.json().rows).toEqual([
+      {
+        id: move,
+        machineId: M_USED,
+        fromCell: 'Cell 1',
+        toCell: 'Cell 2',
+        effectiveFrom: '2026-11-02',
+      },
+    ]);
+    expect(
+      (await f.call('GET', `/api/v1/analytics/drill?type=move&ids=${move}`, f.tokens.operator!))
+        .statusCode,
+    ).toBe(403);
+    const badType = await f.call(
+      'GET',
+      '/api/v1/analytics/drill?type=plant&ids=' + move,
+      f.tokens.head!,
+    );
+    expect(badType.statusCode).toBe(422);
+    expect(badType.json().error.field).toBe('type');
+    const many = Array.from({ length: 201 }, () => crypto.randomUUID()).join(',');
+    const tooMany = await f.call(
+      'GET',
+      `/api/v1/analytics/drill?type=machine&ids=${many}`,
+      f.tokens.head!,
+    );
+    expect(tooMany.statusCode).toBe(422);
+    expect(tooMany.json().error.field).toBe('ids');
   });
 });
