@@ -131,6 +131,8 @@ export const analyticsEn = {
   'analytics.figure.dashboard.total-downtime-hours': 'Total downtime',
   'analytics.figure.dashboard.pm-hours': 'PM hours',
   'analytics.figure.dashboard.no-downtime-hours': 'Breakdown hours with no downtime',
+  'analytics.figure.dashboard.breakdown-free': 'Breakdown-free machines',
+  'analytics.figure.dashboard.costliest-problems': 'Problems costing the most downtime',
   'analytics.figure.dashboard.bubble-chart': 'Bubble chart',
   'analytics.figure.dashboard.expansion-timeline': 'Expansion timeline',
   'analytics.figure.dashboard.fleet-availability': 'Fleet availability',

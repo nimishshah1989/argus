@@ -22,11 +22,12 @@ function knownIds(data: EngineData): Record<FigureDef['drill'], Set<string>> {
   };
 }
 
-/** A value that has no rows behind it: nothing, zero, an empty text, list or object. */
+/** A value that has no rows behind it: nothing, zero, an empty text, or a list or object of empties. */
 function isEmptyValue(value: FigureValue): boolean {
   if (value === null || value === 0 || value === '' || value === false) return true;
-  if (Array.isArray(value)) return value.length === 0;
-  return typeof value === 'object' && Object.keys(value).length === 0;
+  if (Array.isArray(value)) return value.length === 0 || value.every(isEmptyValue);
+  if (typeof value !== 'object') return false;
+  return Object.values(value).every(isEmptyValue);
 }
 
 /**
@@ -42,7 +43,7 @@ function drillOf(def: FigureDef, computed: Computed, known: Set<string>): string
       `Figure ${def.key} drills to ${stray}, which is not a ${def.drill} row of its data`,
     );
   }
-  if (ids.length === 0 && !isEmptyValue(computed.value)) {
+  if (ids.length === 0 && def.mixed !== true && !isEmptyValue(computed.value)) {
     throw new Error(`Figure ${def.key} has a value but names no rows to drill to`);
   }
   return ids;

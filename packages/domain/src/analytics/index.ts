@@ -9,6 +9,7 @@ export type {
   Computer,
   EngineData,
   EngineResult,
+  EngineSettings,
   FigureResult,
   FigureValue,
   ListRow,

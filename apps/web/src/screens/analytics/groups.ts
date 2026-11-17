@@ -134,6 +134,8 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'dashboard.total-downtime-hours': 'analytics.figure.dashboard.total-downtime-hours',
   'dashboard.pm-hours': 'analytics.figure.dashboard.pm-hours',
   'dashboard.no-downtime-hours': 'analytics.figure.dashboard.no-downtime-hours',
+  'dashboard.breakdown-free': 'analytics.figure.dashboard.breakdown-free',
+  'dashboard.costliest-problems': 'analytics.figure.dashboard.costliest-problems',
   'dashboard.bubble-chart': 'analytics.figure.dashboard.bubble-chart',
   'dashboard.expansion-timeline': 'analytics.figure.dashboard.expansion-timeline',
   'dashboard.fleet-availability': 'analytics.figure.dashboard.fleet-availability',

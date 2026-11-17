@@ -44,13 +44,16 @@ interface WorkbookBreakdown {
   shift: string;
   problem: string;
   downMin?: number;
+  downHrs?: number;
   respMin?: number;
   activeMin?: number;
   maintCode?: string;
   electMech?: string;
   spare1?: string;
+  correctiveAction?: string;
   doneBy?: string;
   supportedBy?: string;
+  observedBy?: string;
   ticketId?: string;
   ticketRef?: string;
 }
@@ -66,10 +69,12 @@ interface Workbook {
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
-    /** The machines the plant leaves out of production data (the Robot is one). */
+    /** Machines left out of production data (the Robot is the platform's own default). */
     excludedMachines?: string[];
     /** The plant's shifts, with the wall-clock start the log date belongs to. */
     shiftTimes: Array<{ name: string; start: string; end: string }>;
+    /** Manual problem-group fixes from the App Settings, by breakdown id. */
+    problemFix?: Record<string, string>;
   };
 }
 
@@ -228,8 +233,11 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     maintCode: text(row.maintCode),
     spareUsed: text(row.spare1),
     rootCause: null,
+    correctiveAction: text(row.correctiveAction),
     doneBy: personCodes(row.doneBy),
     supportedBy: personCodes(row.supportedBy),
+    recordedHours: number(row.downHrs),
+    observedBy: text(row.observedBy),
   };
 }
 
@@ -274,6 +282,10 @@ function engineData(workbook: Workbook): EngineData {
     reports: rows.map(toReport),
     people: people(workbook, rows),
     lists: lists(workbook),
+    settings: {
+      excludedMachineIds: workbook.settings.excludedMachines ?? [],
+      problemFixes: workbook.settings.problemFix ?? {},
+    },
   };
 }
 
@@ -286,6 +298,20 @@ export interface DashboardKpi {
   sub: string;
 }
 
+export interface DashboardDataset {
+  label: string;
+  data: unknown[];
+}
+
+/** One chart as the platform drew it: the series and the axes, with the canvas type dropped. */
+export interface DashboardChart {
+  id: string;
+  axes: Record<string, string>;
+  tickLabels: Record<string, string[]>;
+  labels: unknown[];
+  datasets: DashboardDataset[];
+}
+
 export interface DashboardKey {
   screen: string;
   asOf: string;
@@ -294,7 +320,7 @@ export interface DashboardKey {
     title: string;
     kpis: DashboardKpi[];
     tables: unknown[];
-    charts: unknown[];
+    charts: DashboardChart[];
     text: string;
   }>;
 }
@@ -310,3 +336,27 @@ export function kpiByLabel(label: string): DashboardKpi {
   }
   throw new Error(`the answer key holds no KPI labelled "${label}"`);
 }
+
+/** The Dashboard chart the engine must reproduce, by the platform's own canvas id. */
+export function chartById(id: string): DashboardChart {
+  for (const page of DASHBOARD.pages) {
+    const found = page.charts.find((chart) => chart.id === id);
+    if (found) return found;
+  }
+  throw new Error(`the answer key holds no chart "${id}"`);
+}
+
+export interface ChecklistItem {
+  group: string;
+  key: string;
+  plain: string;
+}
+
+export interface ChecklistKey {
+  screen: string;
+  asOf: string;
+  extra: { counts: Record<string, number>; items: ChecklistItem[] };
+}
+
+/** The Data Checklist the platform showed for `input.json`: the open items and their per-group counts. */
+export const CHECKLIST: ChecklistKey = read<ChecklistKey>('data-checklist.json');

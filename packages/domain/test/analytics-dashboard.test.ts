@@ -10,7 +10,14 @@ import {
   type TicketRow,
 } from '../src/index.js';
 import { dashboardComputers } from '../src/analytics/computers.js';
-import { DASHBOARD, ENGINE_DATA, kpiByLabel, type DashboardKpi } from './answer-key/fixture.js';
+import {
+  CHECKLIST,
+  DASHBOARD,
+  ENGINE_DATA,
+  chartById,
+  kpiByLabel,
+  type DashboardKpi,
+} from './answer-key/fixture.js';
 
 /**
  * Every Dashboard figure the engine computes, against the 11 November platform (answer key), from `input.json`
@@ -356,5 +363,107 @@ describe('a machine excluded from production data', () => {
     );
     expect(after.drill.ids).toContain(productionMachine.id);
     expect(after.drill.ids.length).toBe(before.drill.ids.length + 1);
+  });
+});
+
+/** The two plotted series and the two cards packet 38.2 adds to the workbook. */
+interface BubblePoint {
+  id: string;
+  x: number;
+  y: number;
+  r: number;
+  mttr: number;
+}
+interface ChartValue {
+  labels?: unknown[];
+  datasets: Array<{ label: string; data: unknown[] }>;
+}
+
+const dashboard = (): EngineResult => run();
+
+describe('the two Dashboard charts on the 11 November workbook', () => {
+  const result = dashboard();
+  const machineIds = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
+
+  it('draws one bubble per CNC production machine with a breakdown, exactly as the key plotted it', () => {
+    const plotted = figure(result, 'dashboard.bubble-chart');
+    expect(plotted.status).toBe('ready');
+    expect(plotted.drill.type).toBe('machine');
+    const value = plotted.value as unknown as ChartValue;
+    expect(value.datasets).toEqual(chartById('ch-dash-bubble').datasets);
+    const points = value.datasets[0]!.data as BubblePoint[];
+    expect([...plotted.drill.ids].sort()).toEqual(points.map((point) => point.id).sort());
+    for (const id of plotted.drill.ids) expect(machineIds.has(id), id).toBe(true);
+  });
+
+  it('draws the expansion timeline by purchase year, with the cumulative fleet, exactly as the key plotted it', () => {
+    const plotted = figure(result, 'dashboard.expansion-timeline');
+    expect(plotted.status).toBe('ready');
+    expect(plotted.drill.type).toBe('machine');
+    const key = chartById('ch-dash-timeline');
+    const value = plotted.value as unknown as ChartValue;
+    expect(value.labels).toEqual(key.labels);
+    expect(value.datasets).toEqual(key.datasets);
+    const fleetTotal = Number(key.datasets.at(-1)!.data.at(-1));
+    expect(plotted.drill.ids.length).toBe(fleetTotal);
+    for (const id of plotted.drill.ids) expect(machineIds.has(id), id).toBe(true);
+  });
+});
+
+describe('the two cards packet 38.2 registers', () => {
+  const result = dashboard();
+  const text = DASHBOARD.pages[0]!.text;
+  const machineIds = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
+  const ticketIds = new Set(
+    [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+  );
+
+  it('counts the breakdown-free machines out of the production fleet in service, as the key card says', () => {
+    const match = /RUNNING CLEAN TODAY (\d+) \/ (\d+)/.exec(text);
+    if (!match) throw new Error('the answer key holds no breakdown-free card');
+    const free = figure(result, 'dashboard.breakdown-free');
+    expect(free.status).toBe('ready');
+    expect(free.drill.type).toBe('machine');
+    expect(free.value).toEqual({ runningClean: Number(match[1]), inService: Number(match[2]) });
+    expect(free.drill.ids.length).toBe(Number(match[1]));
+    for (const id of free.drill.ids) expect(machineIds.has(id), id).toBe(true);
+  });
+
+  it('ranks the problems costing the most downtime, as the key card prints them', () => {
+    const printed = [...text.matchAll(/(\d)([A-Za-z][^\d]*?) (\d+) hrs · ([\d.]+)% · (\d+) BDs/g)];
+    const expected = printed.map((row) => ({
+      problem: row[2]!.trim(),
+      hours: Number(row[3]),
+      share: Number(row[4]),
+      breakdowns: Number(row[5]),
+    }));
+    expect(expected.length).toBe(3);
+    const ranked = figure(result, 'dashboard.costliest-problems');
+    expect(ranked.status).toBe('ready');
+    expect(ranked.drill.type).toBe('ticket');
+    const value = ranked.value as { rows: unknown[] };
+    expect(value.rows).toEqual(expected);
+    for (const id of ranked.drill.ids) expect(ticketIds.has(id), id).toBe(true);
+  });
+});
+
+describe('the data checklist on the 11 November workbook', () => {
+  const result = dashboard();
+  const ticketIds = new Set(
+    [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+  );
+
+  it("answers every open item and every per-group count the key's checklist holds", () => {
+    const checklist = figure(result, 'data-checklist');
+    expect(checklist.status).toBe('ready');
+    expect(checklist.value).toEqual(CHECKLIST.extra);
+    expect(CHECKLIST.asOf).toBe(AS_OF);
+  });
+
+  it('drills its breakdown items to tickets, never to a row the data does not hold', () => {
+    const checklist = figure(result, 'data-checklist');
+    expect(checklist.drill.type).toBe('ticket');
+    expect(checklist.drill.ids.length).toBeGreaterThan(0);
+    for (const id of checklist.drill.ids) expect(ticketIds.has(id), id).toBe(true);
   });
 });
