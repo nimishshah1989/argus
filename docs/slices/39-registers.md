@@ -62,3 +62,15 @@ or a new `apps/web/e2e/analytics-machines.spec.ts`, `changes/39-machines-ui.md`.
 Red test first; never delete/skip/weaken a test; one writer per packet, disjoint files; file ≤ 400 lines, function ≤ 60,
 screen files ≤ 300; no new dependency without an ADR; every string a catalogue key in both languages; money only for
 head/plant_head/admin; no real names or phones. Commit locally; do not push; report red, green and deviations.
+
+## Revision — the frozen figure value shapes (agreed between 39a and 39b, binding)
+
+The engine (39a) emits exactly these; the screens (39b) consume them and never guess:
+
+1. **`registers`**: `{ pages: [{ page: 'machines'|'conv'|'proc'|'util'|'dg'|'robots', title, kpis: [{label, value, sub?}], tables: [{title?, header, rows}] }] }` — key-shaped.
+2. **`cell-change-log`**: `{ moves: [{ id, machineId, date, fromCell, toCell, fromLocation, toLocation }] }` — `id` is the move id, `machineId` the machine UUID, `date` ISO (the UI formats it).
+3. **`a7-footprint` / `a8-age`**: key-shaped `{ pages: [{ page, title, kpis, tables }] }`.
+4. **`machine-page`**: `{ byMachine: { [machineUuid]: MachineRecord } }` where `MachineRecord` is
+   `{ machine: { id, code, segment?, category?, make?, model?, serial?, controller?, controllerModel?, controllerSerial?, year?, purchasedOn? (ISO), powerKva?, capacityKva?, location?, cell?, assetCode?, lengthMm?, widthMm?, conveyor? }, ageYears?: number|null, ageEstimated?: boolean, floorAreaM2?: number|null, efficiencyPct?: number|null, connectedKva?: number|null, runningKva?: number|null, breakdowns?: { count, hours?, mttr?, mtbf?, lastOn?, topProblem? }|null, pm?: { visits, hours }|null, completeness?: { recorded, of, missing: string[] }, moves?: [...], drill?: { breakdowns?: uuid[], pm?: uuid[], moves?: uuid[] } }`.
+   **A missing length/width or purchase date is `null`/absent — never 0 or a guess**; the UI says "Not available".
+5. The machine page rides the existing figures reply (no new endpoint, no `api.ts` change).
