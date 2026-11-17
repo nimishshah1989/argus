@@ -32,16 +32,16 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 13  | Staging live                                      | M0        | done        | #146                                                                                          |
 | 14  | Staging holds Cosmos, safe to run                 | M0        | done        | #176; drill A passed 14 Nov (weekly dump carried into M1)                                     |
 | 15  | Report a breakdown (floor)                        | M1        | done        | #179, #196, #205, #207                                                                        |
-| 16  | Desk lists and ticket detail                      | M1        | in progress | #181, #194, #201, #203                                                                        |
+| 16  | Desk lists and ticket detail                      | M1        | done | #181, #194, #201, #203 + figures parity test |
 | 17  | Work the ticket                                   | M1        | done        | #185                                                                                          |
 | 18  | Close, report, PDFs                               | M1        | done        | #212, #216, #221 (past breakdown screen with slice 4 build)                                   |
-| 19  | Follow-up tasks                                   | M1        | todo        | —                                                                                             |
-| 20  | Admin fixes and audit                             | M1        | in progress | goal 1 API #191 + #200; screens todo                                                          |
-| 21  | People, logins and sign-in                        | M1        | in progress | API #199, #210; sign-in #213, who-is-acting #225; follow-up PR open soon; people screens todo |
+| 19  | Follow-up tasks                                   | M1        | done        | #275 |
+| 20  | Admin fixes and audit                             | M1        | done | API #191/#200; audit screen #278 |
+| 21  | People, logins and sign-in                        | M1        | done | #199/#210; screens #278; sign-in #213/#225 |
 | 22  | Plant settings: machines, groups, shifts          | M1        | done        | API #195; screens #258 (+ #187 goal 2)                                                        |
-| 23  | Plant settings: lists and company                 | M1        | in progress | API #206 (server done); screens todo                                                          |
-| 24  | Gujarati                                          | M1        | in progress | catalogues + baselines #263; translation screen is part 2                                     |
-| 25  | Live board and alerts                             | M1        | in progress | goal 1 #229 (response/repair-today tiles wait on backend); goal 2 todo                        |
+| 23  | Plant settings: lists and company                 | M1        | done | API #206; screens #276 |
+| 24  | Gujarati                                          | M1        | done | #263 part 1; translation screen #280 part 2 |
+| 25  | Live board and alerts                             | M1        | done | goal 1 #229; goal 2 verified #280 |
 | 26  | Hardened                                          | M1        | todo        | —                                                                                             |
 | 27  | Usability round                                   | M1        | todo        | —                                                                                             |
 | 28  | Cutover                                           | M1        | todo        | —                                                                                             |
