@@ -515,3 +515,49 @@ describe('the breakdown log fallback number', () => {
     expect(computed.drillIds).toHaveLength(3);
   });
 });
+
+/**
+ * The A1 figure (packet 40b): the platform's own page, whole — the six KPIs, the four tables with their print
+ * quirks and the two charts, never a tolerance. The key is the page the platform printed; the drill names the
+ * production-filtered BD and PM rows the numerator read.
+ */
+describe('the A1 breakdown percent and PM split figure', () => {
+  it("prints the key's whole page: the six KPIs, the four tables and the two charts", () => {
+    const computed = figure('a1-bd-pm');
+    // Red first: the A1 computer had not landed, so the engine answered not_computed.
+    expect(computed.status).toBe('ready');
+    const value = computed.value as unknown as FigureKey;
+    expect({ screen: value.screen, asOf: value.asOf }).toEqual({
+      screen: A1.screen,
+      asOf: AS_OF,
+    });
+    expect(value.pages).toEqual(A1.pages);
+  });
+
+  it('drills the BD and PM tickets its numerator read, production-filtered', () => {
+    const computed = COMPUTERS['a1-bd-pm']!({
+      data: ENGINE_DATA,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    });
+    const production = new Set(
+      ENGINE_DATA.machines
+        .filter((machine) => machine.segment === 'CNC' && !machine.excludedFromProduction)
+        .map((machine) => machine.id),
+    );
+    const carried = sourcedReports(ENGINE_DATA).filter(
+      (row) => isHistory(row) && production.has(row.report.machineId),
+    );
+    const known = new Set(
+      [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+    );
+    // Every history row is a production CNC row in this workbook, so the numerator read them all.
+    expect(carried).toHaveLength(HISTORY.length);
+    expect(computed.drillIds).toEqual(carried.map((row) => row.ticket.id));
+    expect(computed.drillIds.every((id) => known.has(id))).toBe(true);
+    const drilled = figure('a1-bd-pm');
+    expect(drilled.drill.type).toBe('ticket');
+    // The engine deduplicates and sorts the ids it hands the face; every one is still a row it read.
+    expect(drilled.drill.ids).toEqual([...new Set(computed.drillIds)].sort());
+  });
+});

@@ -15,3 +15,15 @@
   instead of renumbering from the row's position; a log the platform numbered itself falls back to that date order.
 - Deliberate: a report the snapshot does not link to a ticket is not in the log, because the engine refuses a value
   that names no row to drill. The 37c import links every loaded row, so no real entry is hidden.
+
+- A1 (packet 40b) now answers the platform's whole page exactly: the six KPIs (4,525.54; 125; 5,65,692.47; 3,060.1 hrs;
+  759.3 hrs; 99.32%), the four tables (By Cell — Detail 9 rows; MoM BD %/PM % 20; MoM BD Hours by Cell 9; MoM PM
+  Hours by Cell 9) and the two charts (ch-a1-cell, ch-a1-trend), compared whole against the key with no tolerance. The
+  print quirks are deliberate data: the concatenated hour+share cells, the empty second label of each BD/PM pair, the
+  PLANT TOTAL prefixes, Q as the unrounded monthly average, Total as the recomputed aggregate, and the dash for a month
+  with no entries. The drill names the production-filtered BD + PM tickets the numerator read.
+- S2 lands with A1: `dashboard.total-breakdowns` now uses the same production filter as A1 and the daily averages, so
+  an excluded machine's breakdown row no longer counts. This inverts one guard assertion rather than deleting it: the
+  positive control moved from total-breakdowns (+1) to the unfiltered total-downtime-hours (+8 hrs), and
+  total-breakdowns joined the never-moves set beside the four Guide figures. The key value stays 1,279 because no real
+  history row sits on an excluded machine.
