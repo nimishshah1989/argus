@@ -46,5 +46,4 @@ recorded, never a silent switch. Budgets are inside.
    99.32 % and Plant BD % 0.54 % (126 or 159 machines, hours/day, date span, averaged per machine?); and the divisor
    behind Avg Complaints/Day 4.11 and Avg BD Hours/Day 9.84 (311 platform days, 315 span, or 256 days with records?).
    **For Bhavin:** our seed files BOXY under Robot (CNC 125/158) while his platform counts it in CNC (126/159).
-
-One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.
+   One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.

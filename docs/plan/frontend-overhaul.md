@@ -9,6 +9,7 @@ chart, graph."
 history-registers workstream runs beside it; this comes after.
 
 **What it is about (for whoever scopes it):**
+
 - a **visual language**, not decoration: status/severity/risk shown by icon + colour + word (red/amber/green with the
   locked tokens and the 44 px tap floor), one mapping table (the kit's `ui/meaning.ts` is the seed);
 - **insight-first screens**: lists become overview + filters + sort + sparkline/trend, not one long column; every
