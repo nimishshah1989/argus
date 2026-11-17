@@ -141,3 +141,20 @@ the floor/desk homes.
 "Live machine status" KPI is the dropped live card (triage), so the KPI-by-label helper must not hunt a figure for it;
 and 38.3 names the exact interfaces it uses (`GET /api/v1/analytics/figures` with the server's money filtering, the
 chart kit at `apps/web/src/ui/chart/use-chart.ts`).
+
+## Revision 3 — the 38.0 findings (binding for 38.1 onward)
+
+**R11. The dashboard computers join `COMPUTERS` in the packet that finishes the Dashboard (38.1).** 38.0 keeps them in
+a named map (`dashboardComputers`) because `analytics-engine.test.ts` asserts that a bare `run()` reports every figure
+`not_computed`; 38.1 must spread them into `COMPUTERS` **and** update that shell test in the same PR (the test's
+intent — "an unimplemented figure is honest" — survives; the assertion becomes "a figure with no computer is
+`not_computed`", driven by the registry instead of the implementation).
+
+**R12. The plant's own seed differs from the platform's machine list, and that is a data question, not a figure bug.**
+`apps/server/src/seed/generated/cosmos-machines.json` files BOXY under segment `Robot` (CNC 125, total 158), while the
+answer key counts it in CNC (126/159: "1 not counted in production data"). The engine is right against the key (the
+answer-key test proves it on the workbook fixture); the live dashboard will show our seed's classification until
+Bhavin's real machine list is reconciled. Record it for Nimish/Bhavin at the gate; do not bend a computer to hide it.
+
+**R13. `ReportRow` carries no `source`; the source is the linked ticket's.** 38.1 reads `source` through
+`report.ticketId` → ticket. Do not add a field to `types.ts` unless a figure genuinely cannot resolve it.
