@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
@@ -18,7 +19,7 @@ import { parse } from 'yaml';
 // https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_SendCommand.html
 const RUN_COMMAND_LIMIT_BYTES = 64 * 1024;
 
-const root = new URL('..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('..', import.meta.url));
 const script = (name: string) => join(root, 'infra/instance', name);
 
 let dir: string;

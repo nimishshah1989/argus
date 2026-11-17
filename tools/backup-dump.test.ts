@@ -9,10 +9,11 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
-const root = new URL('..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('..', import.meta.url));
 let dir: string;
 let bin: string;
 
@@ -60,6 +61,8 @@ esac`,
     `echo "aws $*" >> "$UPTIMO_DIR/calls.log"
 case "$*" in *head-object*) echo "\${REMOTE_SIZE:-5}" ;; esac`,
   );
+  // dump.sh runs on Linux (`stat -c`); read the real size here so the test also passes on macOS.
+  stub('stat', 'f="${@: -1}"; wc -c < "$f" | tr -d " "');
 });
 
 afterEach(() => {
