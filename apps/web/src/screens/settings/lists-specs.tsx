@@ -73,7 +73,6 @@ function listSpec(p: {
         name: flag,
         labelKey: FLAG[flag].labelKey,
         kind: 'choice' as const,
-        flag: true,
         choices: yesNo,
       })),
     ],
