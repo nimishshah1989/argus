@@ -14,17 +14,18 @@ audit/harness facts, and returned FAIL on dispatch detail; this revision settles
   `canSettingsLists` = head + admin; other roles get the kernel's `403 forbidden`.
 - **Body:** `calendarDay` (packages/shared/src/plant-settings.ts:24-29 — it already refines a real calendar day);
   422 names `effectiveFrom`.
-- **Date rule (settled, mirrors the machine edit's own bounds):** reject with 422 when the date is **in the future**
-  (plant today) or when it would **reorder the history** — it must be strictly after the machine's previous move's date
-  and strictly before its next move's date; the newest move is therefore only bounded by "not in the future". A
-  correction to the *same* date changes nothing: reply 200 and write **no audit line**, mirroring `update()`'s
-  no-change rule.
+- **Date rule (settled):** reject with 422 when the date is **in the future** (plant today) or when it would
+  **reorder the history** — strictly after the machine's previous move's date and strictly before its next move's date.
+  The newest move has no upper bound but still sits after its predecessor. This is deliberately **stricter than the
+  machine edit's own move rule**, which allows a date equal to the last move; equal-to-a-neighbour here would make the
+  order ambiguous. A correction to the _same_ date changes nothing: reply 200 and write **no audit line**, mirroring
+  `update()`'s no-change rule.
 - **Tenancy/404:** inside `withTenant`; `UPDATE machine_move SET effective_from = $1, updated_at = now() WHERE id = $2
-  AND machine_id = $3` (the column is NOT NULL since 0001, no migration; `app_user` keeps UPDATE). Zero rows → 404
+AND machine_id = $3` (the column is NOT NULL since 0001, no migration; `app_user` keeps UPDATE). Zero rows → 404
   naming the machine. Valid ids via `idOrNotFound`; a machine that is not this tenant's is a 404, never a read.
 - **Audit (settled):** `audit.record` with `entity: 'machine'` (the audit-area enum has no `machine_move` chip),
   `entityId: machineId`, `action: 'machine.move.correct'`, `before/after: { machineId, moveId, fromCell, toCell,
-  effectiveFrom }` — so the audit screen shows the machine and the old→new date.
+effectiveFrom }` — so the audit screen shows the machine and the old→new date.
 - **Reply:** `{ move: { id, machineId, fromCell, toCell, effectiveFrom } }` — the shape `machineMoveReplySchema`
   (packages/shared/src/plant-settings.ts:96-105) owns; the GET stays a bare array.
 - **Home:** tests go in `apps/server/test/plant-settings-writes.test.ts` (it already has the moves describe, the
@@ -33,7 +34,9 @@ audit/harness facts, and returned FAIL on dispatch detail; this revision settles
   operator/technician 403; another tenant's move id 404; future date 422; a date before the previous move 422;
   same date → 200 and no new audit; the analytics figures reply (cell-change-log) shows the corrected date.
 - **Files:** `apps/server/src/modules/plant/settings-routes.ts`, `apps/server/src/modules/plant/repo/plant-settings.ts`,
-  `apps/server/test/plant-settings-writes.test.ts`, `changes/39-move-correct-api.md`.
+  `apps/server/test/plant-settings-writes.test.ts`, **`packages/shared/src/replies.ts`** (a PATCH needs a `REPLY_SCHEMAS`
+  entry — the repo invariant), **`apps/server/test/reply-contract.test.ts`** (the pinned route count 127 → 128, which
+  that same invariant enforces), `changes/39-move-correct-api.md`.
 - **Red / green:** Red `pnpm exec vitest run apps/server/test/plant-settings-writes.test.ts` (route answers 404 today);
   Green the same command + `pnpm lint && pnpm typecheck`.
 - **Parity:** no ledger row changes in this PR (the screens' evidence lands in 39d) → the PR body carries
@@ -43,11 +46,14 @@ audit/harness facts, and returned FAIL on dispatch detail; this revision settles
 
 - `apps/web/src/api.ts`: `correctMove(machineId, moveId, { effectiveFrom })` returning the reply shape.
 - Pure mapper in `apps/web/src/screens/analytics/machine-values.test.ts` (the file that already holds the cell log's
-  pure tests): a 422 `{ field, message }` maps to `{ date: message }` for the form, a good date maps to the PATCH body,
-  and a 403 maps to the kernel's refusal line.
+  pure tests): the wire envelope is `{ error: { code, message, field? } }`, so a 422 with `error.field ===
+'effectiveFrom'` maps to `{ date: error.message }` for the form, a good date maps to the PATCH body, and a 403 maps
+  to the kernel's refusal line.
 - i18n `analytics.en.ts`: the action, the field label, the refusal, and the saved line.
 - Files: `apps/web/src/api.ts`, `apps/web/src/screens/analytics/machine-values.test.ts`,
   `packages/shared/src/i18n/analytics.en.ts`, `changes/39-move-correct-form.md`.
+- **Parity:** no ledger row in this PR → the PR body carries `No parity: this packet is the form mapping the screen
+consumes; the register ledger rows' evidence lands with 39d-2.`
 
 ## Packet 39d-2 — the action and the journey (one PR, one writer)
 
