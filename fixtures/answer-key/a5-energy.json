@@ -1,0 +1,28 @@
+{
+  "screen": "a5-energy",
+  "asOf": "2026-11-11",
+  "pages": [{"page":"a5","title":"Energy Heatmap","kpis":[],"tables":[],"charts":[]}],
+  "extra": {
+    "byCell": [
+      {"key":"1","machines":8,"totalKva":170,"avgKva":21.25,"runningKva":34,"avgRunningKva":4.25,"machineIds":["TC-16","S-1","S-2","CAM-01","TMC-4","TMC-5","BOXY","TMC-6"]},
+      {"key":"2","machines":25,"totalKva":487,"avgKva":19.48,"runningKva":97.40000000000002,"avgRunningKva":3.896000000000001,"machineIds":["TC-32","TC-33","VC-6","VC-14","VC-16","VC-18","VC-20","VC-42","VC-43","VC-44","VC-45","VC-46","VC-47","HMC-3","HMC-4","VTL-10","TMC-1","TMC-2","GRD-2","GRD-3","GRD-4","GRD-5","GRD-7","GRD-8","GRD-9"]},
+      {"key":"3","machines":15,"totalKva":344,"avgKva":22.933333333333334,"runningKva":68.8,"avgRunningKva":4.586666666666667,"machineIds":["TC-31","VC-9","VC-12","VC-15","VC-19","VC-25","VC-26","VC-41","VC-48","VC-49","DCMC-01","HMC-2","TC-35","VC-55","VC-56"]},
+      {"key":"4","machines":15,"totalKva":470,"avgKva":31.333333333333332,"runningKva":94,"avgRunningKva":6.266666666666667,"machineIds":["TC-6","TC-8","TC-23","TC-26","TC-28","VC-17","VC-37","VC-38","DCMC-02","VTL-1","VTL-2","VTL-3","VTL-5","VC-50","VTL-12"]},
+      {"key":"5","machines":6,"totalKva":157,"avgKva":26.166666666666668,"runningKva":31.4,"avgRunningKva":5.233333333333333,"machineIds":["TC-7","VC-24","VC-32","VC-36","VTL-7","TC-36"]},
+      {"key":"6","machines":19,"totalKva":411,"avgKva":21.63157894736842,"runningKva":82.20000000000002,"avgRunningKva":4.326315789473685,"machineIds":["TC-9","TC-10","TC-11","TC-12","TC-14","TC-15","TC-19","VC-22","VC-27","VC-28","VC-29","VC-30","VC-33","VC-35","VC-39","VC-40","VTL-9","WJ-01","TC-39"]},
+      {"key":"7","machines":25,"totalKva":513,"avgKva":20.52,"runningKva":102.6,"avgRunningKva":4.104,"machineIds":["TC-3","TC-5","TC-13","TC-17","TC-18","TC-20","TC-21","TC-22","TC-24","TC-25","TC-29","VC-7","VC-8","VC-10","VC-13","VC-21","VC-23","VC-31","VC-34","VTL-6","VTL-8","GRD-1","GRD-6","VTL-11","TC-38"]},
+      {"key":"8","machines":3,"totalKva":57,"avgKva":19,"runningKva":11.4,"avgRunningKva":3.8000000000000003,"machineIds":["TC-30","TC-34","VC-54"]},
+      {"key":"9","machines":10,"totalKva":203,"avgKva":20.3,"runningKva":40.6,"avgRunningKva":4.0600000000000005,"machineIds":["TC-27","VC-11","VTL-4","VC-51","VC-52","VC-53","TC-37","TC-40","TC-41","VC-57"]}
+    ],
+    "byLocation": [
+      {"key":"434","machines":30,"totalKva":782,"avgKva":26.066666666666666,"runningKva":156.4,"avgRunningKva":5.213333333333334,"machineIds":["TC-6","TC-8","TC-23","TC-26","TC-28","TC-30","TC-31","VC-9","VC-12","VC-15","VC-17","VC-19","VC-25","VC-26","VC-37","VC-38","VC-41","VC-48","VC-49","DCMC-01","DCMC-02","HMC-2","VTL-1","VTL-2","VTL-3","VTL-5","VC-50","TC-34","TC-35","VC-54"]},
+      {"key":"435/4","machines":1,"totalKva":46,"avgKva":46,"runningKva":9.2,"avgRunningKva":9.2,"machineIds":["WJ-01"]},
+      {"key":"445","machines":17,"totalKva":416,"avgKva":24.470588235294116,"runningKva":83.2,"avgRunningKva":4.894117647058824,"machineIds":["TC-7","TC-16","VC-24","VC-32","VC-36","S-1","S-2","CAM-01","VTL-7","TMC-4","TMC-5","BOXY","TMC-6","TC-36","VTL-12","VC-55","VC-56"]},
+      {"key":"486","machines":18,"totalKva":365,"avgKva":20.27777777777778,"runningKva":73.00000000000001,"avgRunningKva":4.055555555555556,"machineIds":["TC-9","TC-10","TC-11","TC-12","TC-14","TC-15","TC-19","VC-22","VC-27","VC-28","VC-29","VC-30","VC-33","VC-35","VC-39","VC-40","VTL-9","TC-39"]},
+      {"key":"841-A","machines":25,"totalKva":513,"avgKva":20.52,"runningKva":102.6,"avgRunningKva":4.104,"machineIds":["TC-3","TC-5","TC-13","TC-17","TC-18","TC-20","TC-21","TC-22","TC-24","TC-25","TC-29","VC-7","VC-8","VC-10","VC-13","VC-21","VC-23","VC-31","VC-34","VTL-6","VTL-8","GRD-1","GRD-6","VTL-11","TC-38"]},
+      {"key":"841-B","machines":25,"totalKva":487,"avgKva":19.48,"runningKva":97.40000000000002,"avgRunningKva":3.896000000000001,"machineIds":["TC-32","TC-33","VC-6","VC-14","VC-16","VC-18","VC-20","VC-42","VC-43","VC-44","VC-45","VC-46","VC-47","HMC-3","HMC-4","VTL-10","TMC-1","TMC-2","GRD-2","GRD-3","GRD-4","GRD-5","GRD-7","GRD-8","GRD-9"]},
+      {"key":"381","machines":10,"totalKva":203,"avgKva":20.3,"runningKva":40.6,"avgRunningKva":4.0600000000000005,"machineIds":["TC-27","VC-11","VTL-4","VC-51","VC-52","VC-53","TC-37","TC-40","TC-41","VC-57"]}
+    ],
+    "effFactorPct": 20
+  }
+}

@@ -48,7 +48,7 @@ afterAll(async () => {
   await db.stop();
 });
 
-describe('Bhavin export in', () => {
+describe('the Cosmos export in', () => {
   it('imports every ticket with his numbers and proves them', async () => {
     expect(first.stats).toMatchObject({ status: 'done', tickets: 275, imported: 275, skipped: 0 });
     expect(first.stats.figures.unexplained).toBe(0);

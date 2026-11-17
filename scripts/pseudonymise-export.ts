@@ -5,6 +5,7 @@ import { PHONE, loadDenyList, normalisePhone } from '../tools/pii-sources.js';
  * Hand-run, never in CI: `tsx scripts/pseudonymise-export.ts <real export.json> <out.json>`.
  * Every person name (in any string, free text included) becomes `Person NN` and every phone number
  * `+9199999NNNNN`. One person gets one number, whichever way the name is written (full name, first name, any case).
+ * A word before an honorific ("Fakeword bhai", "Qxzy sir") is coded as a person even when no list names it.
  */
 
 const escape = (name: string): string =>
@@ -24,7 +25,13 @@ export function pseudonymise(
   const words = [...deny.names.map(escape), ...keys.map(escape)].sort(
     (a, b) => b.length - a.length,
   );
-  const names = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${words.join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+  const names =
+    words.length === 0
+      ? /(?!)/gu
+      : new RegExp(`(?<![\\p{L}\\p{N}_])(?:${words.join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+  const honorific =
+    /(?<![\p{L}\p{N}_])(\p{L}{3,})(\s+)(bhai|bhaiya|sir|ji|madam|saheb|sahib)(?![\p{L}\p{N}_])/giu;
+  const greeting = /^(?:dear|yes|hello|thanks|please|sorry|good|okay|person)$/i;
   const phones = new Map<string, string>();
   const swap = (text: string): string =>
     text
@@ -32,6 +39,11 @@ export function pseudonymise(
         const key = first(hit.toLowerCase().replace(/\s+/g, ' '));
         return `Person ${String(numberOf(key)).padStart(2, '0')}`;
       })
+      .replace(honorific, (hit, word: string, gap: string, title: string) =>
+        greeting.test(word)
+          ? hit
+          : `Person ${String(numberOf(word.toLowerCase())).padStart(2, '0')}${gap}${title}`,
+      )
       .replace(PHONE, (hit) => {
         const digits = normalisePhone(hit);
         if (!phones.has(digits))

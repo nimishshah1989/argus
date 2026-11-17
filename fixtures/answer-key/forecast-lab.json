@@ -1,0 +1,31 @@
+{
+  "screen": "forecast-lab",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "fl",
+      "title": "Forecast Lab",
+      "kpis": [],
+      "tables": [
+        {
+          "title": "How each method did",
+          "header": ["Method","Accuracy score (lower is better)","Change vs current","Above 80% line (about 20% is right)","Above 90% line (about 10% is right)","Plant inside 80% range","Top-10 caught","Better than current","Verdict",""],
+          "rows": [
+            ["Current model in useEach machine’s own breakdown rate, pulled towards the average of other machines in its category.","1.85","—","21.1%","10.0%","4 of 7","32.8%","—","BaselineThe model used today.",""],
+            ["Age-adjustedSame, but the starting point also allows for the machine’s age band (new and old machines fail at different rates).","1.85","+0.2%","21.4%","11.0%","4 of 7","36.5%","2 of 7","Do not adoptAccuracy is 0.2% worse; the 80% and 90% ranges become less reliable; better in only 2 of 7 months.","Use for Planning"],
+            ["Recent-weightedSame as current, but recent breakdowns count more than old ones (older events fade with a half-life).","1.84","-0.3%","20.6%","9.8%","5 of 7","32.8%","6 of 7","Do not adoptAccuracy gain (0.3%) is under the 1% needed.","Use for Planning"],
+            ["Age + recentBoth changes together.","1.84","-0.3%","21.4%","10.6%","5 of 7","39.8%","4 of 7","Do not adoptAccuracy gain (0.3%) is under the 1% needed.","Use for Planning"]
+          ],
+          "rowCount": 4
+        },
+        {
+          "title": "Month detail (median forecast, with the 80% range in brackets; red = actual fell outside)",
+          "header": ["Month","Actual hrs","Current model","Age-adjusted","Recent-weighted","Age + recent"],
+          "rows": [["Apr 26","377.8","263 (177–374)","250 (173–370)","266 (179–380)","252 (171–379)"],["May 26","73.9","287 (175–469)","286 (172–463)","288 (179–466)","284 (179–479)"],["Jun 26","660.4","229 (139–389)","228 (138–404)","224 (140–382)","219 (140–391)"],["Jul 26","300.9","302 (175–550)","290 (166–520)","300 (182–547)","287 (169–524)"],["Aug 26","370.7","293 (172–507)","282 (168–504)","290 (176–515)","290 (174–505)"],["Sep 26","194.4","307 (182–545)","297 (179–515)","316 (194–537)","307 (188–535)"],["Oct 26","248.8","307 (197–519)","308 (193–530)","320 (204–530)","322 (200–536)"]],
+          "rowCount": 7
+        }
+      ],
+      "charts": [{"id":"ch-fl","type":"line","axes":{"x":"","y":"Breakdown hours in the month"},"tickLabels":{"x":[],"y":[]},"labels":["Apr 26","May 26","Jun 26","Jul 26","Aug 26","Sep 26","Oct 26"],"datasets":[{"label":"Actual","data":[377.8,73.9,660.4,300.9,370.7,194.4,248.8]},{"label":"Current model","data":[263,286.8,228.6,301.7,292.8,306.9,306.8]},{"label":"Age-adjusted","data":[250.5,286.1,228,290.4,282.4,297.3,307.7]},{"label":"Recent-weighted","data":[266,287.5,223.5,300,289.9,316.2,319.6]},{"label":"Age + recent","data":[252.1,284.1,218.9,286.8,289.6,307.2,322.2]}]}]
+    }
+  ]
+}

@@ -48,6 +48,40 @@ describe('pii deny-list', () => {
     expect(() => workbookCells('no sheets')).toThrow(/no readable worksheets/);
   });
 
+  it('reads people from every column that holds one, observed-by included, and skips the roles', () => {
+    const sheet = (header: string, ...values: string[]) =>
+      '<worksheet>' +
+      `<c r="A1" t="inlineStr"><is><t>${header}</t></is></c>` +
+      values.map((v, i) => `<c r="A${i + 2}" t="inlineStr"><is><t>${v}</t></is></c>`).join('') +
+      '</worksheet>';
+    for (const header of ['Observed By', 'Reviewed by', 'Prod. supervisor', 'Maint. supervisor']) {
+      const deny = denyListFromSources({ workbook: sheet(header, 'Fake Person', 'Operator') });
+      expect(deny.names).toEqual(['fake person']);
+    }
+  });
+
+  it('flags a principal name in code or a fixture, and spares prose', () => {
+    const deny = { names: ['bhavin'], phones: [] };
+    // Assembled: the repository scan reads this file too, and a real principal in a short string is
+    // exactly what it flags.
+    const name = ['Bh', 'avin'].join('');
+    expect(scanText('tools/planted.ts', `const name = '${name}';`, deny)).toEqual([
+      'tools/planted.ts:1: real name from the source lists',
+    ]);
+    expect(scanText('fixtures/planted.json', `{"observedBy":"${name}"}`, deny)).toEqual([
+      'fixtures/planted.json:1: real name from the source lists',
+    ]);
+    expect(scanText('docs/plan/planted.md', `${name} signed the triage off`, deny)).toEqual([]);
+  });
+
+  it('fails on a name that is also an English word only when it is written as a name', () => {
+    const deny = { names: ['meet'], phones: [] };
+    expect(scanText('a.md', 'The jobs meet the target', deny)).toEqual([]);
+    expect(
+      scanText('a.md', `Reported by ${'meet'.replace(/^./, (c) => c.toUpperCase())}`, deny),
+    ).toEqual(['a.md:1: real name from the source lists']);
+  });
+
   it('fails loudly when a source list is missing', () => {
     const empty = mkdtempSync(join(tmpdir(), 'pii-empty-'));
     expect(() => loadDenyList(empty)).toThrow(/pii: source list missing/);

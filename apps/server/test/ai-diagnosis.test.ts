@@ -219,19 +219,19 @@ describe('diagnosis feature', () => {
 
   it('through the real Claude adapter: the whole request is the redacted input, nothing else leaves', async () => {
     await db.admin.query(
-      `INSERT INTO person (tenant_id, name, short_name, active) VALUES ($1, 'Kiran Fake', 'Kiran', true)`,
+      `INSERT INTO person (tenant_id, name, short_name, active) VALUES ($1, 'Trial Fake', 'Trial', true)`,
       [A],
     );
     const { old1 } = await history();
     await ticket(A, M, '2026-10-20T08:00:00Z', {
-      closeNote: 'Kiran re-seated the encoder, bypass wire left',
+      closeNote: 'Trial re-seated the encoder, bypass wire left',
     });
     const reference = createFakeProvider();
     const first = await subject();
     await runSuggest(payload(first), runtime(reference));
     const redactedInput = JSON.stringify(reference.calls[0]!.input);
     expect(redactedInput).toContain('[P');
-    expect(redactedInput).not.toContain('Kiran');
+    expect(redactedInput).not.toContain('Trial');
     await db.admin.query('DELETE FROM ai_suggestion');
     await db.admin.query('DELETE FROM ticket WHERE id = $1', [first]);
     const id = await subject();
@@ -283,7 +283,7 @@ describe('diagnosis feature', () => {
     ]);
     expect(body.system).toBe(DIAGNOSIS_PROMPT.text);
     expect(body.messages).toEqual([{ role: 'user', content: redactedInput }]);
-    for (const secret of ['Ravi Fake', 'Kiran', PHONE, 'Test Plant A'])
+    for (const secret of ['Ravi Fake', 'Trial', PHONE, 'Test Plant A'])
       expect(sent[0]!.body).not.toContain(secret);
     expect(sent[0]!.body).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
     const [row] = await rows(id);

@@ -1,0 +1,514 @@
+{
+  "screen": "a10-problems",
+  "asOf": "2026-11-11",
+  "pages": [
+    {
+      "page": "a10",
+      "title": "Problem Analysis",
+      "kpis": [{"label":"Breakdowns studied","value":"1279","sub":"3,060 hrs of downtime, PM excluded"},{"label":"Top problem group","value":"Axis motor","sub":"15.85% of all hours"},{"label":"Quick stops (30 min or less)","value":"40.89%","sub":"of breakdowns, but only 4.15% of hours"},{"label":"Repeat problems","value":"36.38%","sub":"74 machine and problem pairs, 4+ times"},{"label":"Downtime saved","value":"242 hrs","sub":"7.92% of all breakdown hours"},{"label":"Breakdowns avoided","value":"52","sub":"out of 1279 in the period"},{"label":"Plant availability","value":"99.50%","sub":"was 99.46% (+0.04 points)"},{"label":"MTBF","value":"459 hrs","sub":"was 440 hrs"}],
+      "tables": [
+        {
+          "title": "All problem groups",
+          "header": ["Problem group","Family","Breakdowns","% of breakdowns","Hours","% of hours","Hrs each","Machines","Quick"],
+          "rows": [
+            ["Axis motor / drive / encoder / servo","Axis, drive and geometry","104","8.13%","484.9","15.85%","4.66","48","27.88%"],
+            ["Machine accident / crash","Crashes and setup","41","3.21%","306.5","10.02%","7.48","27","9.76%"],
+            ["Home position / geometry / backlash","Axis, drive and geometry","22","1.72%","296.3","9.68%","13.47","16","27.27%"],
+            ["Coolant leakage","Fluids and chips","123","9.62%","243.2","7.95%","1.98","62","31.71%"],
+            ["Tool clamp / unclamp / drawbar","Tool changing","45","3.52%","211.0","6.89%","4.69","19","24.44%"],
+            ["4th axis / rotary / angular head","Rotary and 4th axis","96","7.51%","204.0","6.67%","2.13","32","40.63%"],
+            ["Alarm / PLC / parameter / reset","Electrical and controls","135","10.56%","145.4","4.75%","1.08","55","48.15%"],
+            ["Tool-change arm stuck (ATC)","Tool changing","98","7.66%","137.7","4.50%","1.40","31","43.88%"],
+            ["Spindle motor / overload / noise","Spindle, turret and chuck","57","4.46%","131.9","4.31%","2.31","34","33.33%"],
+            ["Conveyor / chip jam","Fluids and chips","57","4.46%","120.5","3.94%","2.11","32","43.86%"],
+            ["Turret clamp / indexing","Spindle, turret and chuck","36","2.81%","104.0","3.40%","2.89","20","41.67%"],
+            ["Installation / relocation / trial","Other","14","1.09%","90.6","2.96%","6.47","9","7.14%"],
+            ["Chuck / jaw / collet","Spindle, turret and chuck","16","1.25%","89.7","2.93%","5.61","14","31.25%"],
+            ["Push button / switch / cable / panel","Electrical and controls","78","6.10%","79.6","2.60%","1.02","50","47.44%"],
+            ["Tool-change error (general)","Tool changing","40","3.13%","73.4","2.40%","1.83","22","37.50%"],
+            ["Air leakage / low air pressure","Fluids and chips","83","6.49%","66.6","2.18%","0.80","42","57.83%"],
+            ["Coolant pressure / flow","Fluids and chips","63","4.93%","65.3","2.13%","1.04","34","58.73%"],
+            ["Door / guard / limit switch / sensor","Electrical and controls","29","2.27%","40.2","1.31%","1.39","18","34.48%"],
+            ["Magazine / tool pot","Tool changing","28","2.19%","39.9","1.30%","1.42","18","50.00%"],
+            ["Other / unclear","Other","31","2.42%","37.1","1.21%","1.20","27","58.06%"],
+            ["Hydraulic pressure","Fluids and chips","14","1.09%","25.7","0.84%","1.83","12","35.71%"],
+            ["Lubrication / low oil","Fluids and chips","20","1.56%","25.6","0.84%","1.28","17","45.00%"],
+            ["Fan / filter / overheating","Electrical and controls","37","2.89%","23.7","0.77%","0.64","21","70.27%"],
+            ["Belt / bearing / coupling / wear","Mechanical wear","12","0.94%","17.3","0.57%","1.45","11","25.00%"]
+          ],
+          "rowCount": 24
+        },
+        {
+          "title": "Families of problems",
+          "header": ["Family","Breakdowns","% of breakdowns","Hours","% of hours","Groups inside"],
+          "rows": [
+            ["Axis, drive and geometry","126","9.85%","781.2","25.53%","Axis motor / drive / encoder / servo; Home position / geometry / backlash"],
+            ["Fluids and chips","360","28.15%","546.8","17.87%","Coolant pressure / flow; Conveyor / chip jam; Coolant leakage; Air leakage / low air pressure; Hydraulic pressure; Lubrication / low oil"],
+            ["Tool changing","211","16.50%","461.9","15.09%","Magazine / tool pot; Tool-change arm stuck (ATC); Tool-change error (general); Tool clamp / unclamp / drawbar"],
+            ["Spindle, turret and chuck","109","8.52%","325.7","10.64%","Spindle motor / overload / noise; Turret clamp / indexing; Chuck / jaw / collet"],
+            ["Crashes and setup","41","3.21%","306.5","10.02%","Machine accident / crash"],
+            ["Electrical and controls","279","21.81%","288.9","9.44%","Alarm / PLC / parameter / reset; Push button / switch / cable / panel; Door / guard / limit switch / sensor; Fan / filter / overheating"],
+            ["Rotary and 4th axis","96","7.51%","204.0","6.67%","4th axis / rotary / angular head"],
+            ["Other","45","3.52%","127.7","4.17%","Other / unclear; Installation / relocation / trial"],
+            ["Mechanical wear","12","0.94%","17.3","0.57%","Belt / bearing / coupling / wear"]
+          ],
+          "rowCount": 9
+        },
+        {
+          "title": "Repeat offenders",
+          "header": ["Machine","Category","Problem group","Times","Hours"],
+          "rows": [
+            ["TC-5","Turning Center","Axis motor / drive / encoder / servo","5","163.5"],
+            ["VC-28","Vertical Machining Center","Tool clamp / unclamp / drawbar","18","145.5"],
+            ["WJ-01","WaterJet CNC","Coolant leakage","22","79.4"],
+            ["VC-22","Vertical Machining Center","4th axis / rotary / angular head","8","43.3"],
+            ["TC-3","Turning Center","Axis motor / drive / encoder / servo","4","39.2"],
+            ["TMC-4","Turnmill","Spindle motor / overload / noise","8","37.1"],
+            ["HMC-3","Horizontal Machining Center","Tool-change arm stuck (ATC)","10","32.4"],
+            ["VC-31","Vertical Machining Center","4th axis / rotary / angular head","11","30.9"],
+            ["DCMC-02","Vertical Double Column Machining Center","4th axis / rotary / angular head","5","28.4"],
+            ["VC-8","Vertical Machining Center","Axis motor / drive / encoder / servo","13","27.7"],
+            ["TC-31","Turning Center","Machine accident / crash","5","25.9"],
+            ["VC-9","Vertical Machining Center","Axis motor / drive / encoder / servo","10","19.9"],
+            ["VC-9","Vertical Machining Center","Tool-change arm stuck (ATC)","4","17.5"],
+            ["HMC-2","Horizontal Machining Center","Tool-change arm stuck (ATC)","13","17.4"],
+            ["TC-3","Turning Center","Turret clamp / indexing","9","17.2"]
+          ],
+          "rowCount": 15
+        },
+        {
+          "title": "Entries the system could not place (31, 2.42% of all)",
+          "header": ["Date","Machine","Problem","Action taken","Group",""],
+          "rows": [
+            [
+              "06-11-2026",
+              "VC-14",
+              "FRL UNIT CHANGE",
+              "FRL UNIT CHANGE",
+              "Suggested: Air leakage / low air pressure (99%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "23-01-2026",
+              "VC-34",
+              "Tapping cycle issue",
+              "Spider changed by HO team for tapping cycle & machine handed over to production.",
+              "Suggested: Alarm / PLC / parameter / reset (99%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "03-07-2026",
+              "VC-22",
+              "Tapping cycle problem",
+              "Tap change",
+              "Suggested: Alarm / PLC / parameter / reset (99%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "30-08-2026",
+              "VC-14",
+              "ABS data fault",
+              "Change the battery",
+              "Suggested: Alarm / PLC / parameter / reset (99%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "06-09-2026",
+              "VC-16",
+              "Arm original cylinder working ok",
+              "Replace the new cylinder with the repaired one",
+              "Suggested: Tool-change arm stuck (ATC) (95%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "29-10-2026",
+              "VC-33",
+              "Tap stuck in piece",
+              "So retract it by using MDI so tap cut and machine running ok",
+              "Suggested: Tool-change arm stuck (ATC) (95%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "24-01-2026",
+              "VC-34",
+              "Tapping cycle issue",
+              "Correction done BY HO team as m/c under warranty",
+              "Suggested: Magazine / tool pot (92%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "12-04-2026",
+              "TC-14",
+              "APC alaram",
+              "Replace Battery",
+              "Suggested: Alarm / PLC / parameter / reset (91%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "14-08-2026",
+              "TC-13",
+              "SMPS issue (24 V supply)",
+              "Change the SMPS 25amp 220v supply Ac",
+              "Suggested: Push button / switch / cable / panel (89%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "09-04-2026",
+              "DCMC-02",
+              "m7057 Alaram",
+              "check all peramiter",
+              "Suggested: Machine accident / crash (85%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "30-08-2026",
+              "S-2",
+              "Part injection issue",
+              "Open and clean the injector",
+              "Suggested: Coolant pressure / flow (84%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "09-04-2026",
+              "TMC-4",
+              "live tool barring problem",
+              "replace tool barring",
+              "Suggested: Alarm / PLC / parameter / reset (82%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "05-08-2026",
+              "VC-42",
+              "Machine voltage unbalance issue",
+              "Power protection relay bypass (Temporary solution)",
+              "Suggested: Alarm / PLC / parameter / reset (82%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "05-08-2026",
+              "VC-43",
+              "Machine voltage unbalance issue",
+              "Power protection relay bypass (Temporary solution)",
+              "Suggested: Alarm / PLC / parameter / reset (82%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "05-08-2026",
+              "VC-45",
+              "Machine voltage unbalance issue",
+              "Power protection relay bypass (Temporary solution)",
+              "Suggested: Alarm / PLC / parameter / reset (82%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "06-11-2026",
+              "S-1",
+              "barfider problem",
+              "Matiriyal rood khadyo feed fengar colet khadi / fasail rood ne khadyo pachi badhi assembly kari ok karyu",
+              "Suggested: Push button / switch / cable / panel (77%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "18-06-2026",
+              "TC-8",
+              "SV 0401 X/Z INPROER V READY",
+              "POWER FIUCTUATION",
+              "Suggested: Alarm / PLC / parameter / reset (75%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "11-06-2026",
+              "GRD-7",
+              "power supply not working",
+              "repair Y phase",
+              "Suggested: Push button / switch / cable / panel (68%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "27-01-2026",
+              "TC-15",
+              "Power peck fail",
+              "check motor and power peck unit",
+              "Suggested: Axis motor / drive / encoder / servo (66%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "04-08-2026",
+              "TMC-1",
+              "I/O Interface relay card issue",
+              "Change the I/O interface relay card",
+              "Suggested: Tool-change error (general) (57%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "31-10-2026",
+              "TC-29",
+              "Tool disc number disturb",
+              "Set the tool disc number",
+              "Suggested: Axis motor / drive / encoder / servo (57%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "28-01-2026",
+              "TMC-2",
+              "Control voltage not ok",
+              "So change the control relay, now machine ok",
+              "Suggested: Alarm / PLC / parameter / reset (54%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "18-01-2026",
+              "TC-23",
+              "Machine automataclly shutdown during on machining",
+              "Checked and restart agine machine found all ok",
+              "Suggested: Axis motor / drive / encoder / servo (42%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "11-03-2026",
+              "TC-23",
+              "Machine automataclly shutdown during on machining",
+              "Checked and restart agine machine found all ok",
+              "Suggested: Axis motor / drive / encoder / servo (42%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "22-01-2026",
+              "TC-25",
+              "Machine automataclly shutdown during on machining",
+              "Checked and restart agine machine found all ok",
+              "Suggested: Axis motor / drive / encoder / servo (42%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "08-06-2026",
+              "TMC-2",
+              "job accuracy issue",
+              "check all peramiters then give machine for production",
+              "Suggested: 4th axis / rotary / angular head (41%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "27-07-2026",
+              "VC-15",
+              "chetring issue",
+              "found backless 0.1 then set by pera.(2012)",
+              "Suggested: Axis motor / drive / encoder / servo (28%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "19-06-2026",
+              "HMC-2",
+              "hendel not working",
+              "cebal joint &check hendel working ok",
+              "Suggested: Push button / switch / cable / panel (24%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "04-11-2026",
+              "VC-7",
+              "not starting",
+              "Testing purpose",
+              "Suggested: Alarm / PLC / parameter / reset (24%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            [
+              "03-11-2026",
+              "DCMC-01",
+              "Job chattering issue",
+              "",
+              "Suggested: Push button / switch / cable / panel (15%)Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",
+              "Accept"
+            ],
+            ["03-11-2026","TMC-6","","","No suggestionMachine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear",""]
+          ],
+          "rowCount": 31
+        },
+        {
+          "title": "Words not yet recognised",
+          "header": ["Word","In entries","Hours","Example problem","Add to group"],
+          "rows": [
+            [
+              "power",
+              "6",
+              "4.9",
+              "power supply not working",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "relay",
+              "5",
+              "4.8",
+              "I/O Interface relay card issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "voltage",
+              "4",
+              "4.3",
+              "Control voltage not ok",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "unbalance",
+              "3",
+              "3.8",
+              "Machine voltage unbalance issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "protection",
+              "3",
+              "3.8",
+              "Machine voltage unbalance issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "bypass",
+              "3",
+              "3.8",
+              "Machine voltage unbalance issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "temporary",
+              "3",
+              "3.8",
+              "Machine voltage unbalance issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "solution",
+              "3",
+              "3.8",
+              "Machine voltage unbalance issue",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "tapping",
+              "3",
+              "2.0",
+              "Tapping cycle problem",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "cycle",
+              "3",
+              "2.0",
+              "Tapping cycle problem",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "automataclly",
+              "3",
+              "1.2",
+              "Machine automataclly shutdown during on machining",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "shutdown",
+              "3",
+              "1.2",
+              "Machine automataclly shutdown during on machining",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "machining",
+              "3",
+              "1.2",
+              "Machine automataclly shutdown during on machining",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ],
+            [
+              "restart",
+              "3",
+              "1.2",
+              "Machine automataclly shutdown during on machining",
+              "Choose group…Machine accident / crashPM logged as a breakdownTool-change arm stuck (ATC)Magazine / tool potTool clamp / unclamp / drawbarTool-change error (general)4th axis / rotary / angular headAxis motor / drive / encoder / servoHome position / geometry / backlashCoolant leakageCoolant pressure / flowAir leakage / low air pressureConveyor / chip jamSpindle motor / overload / noiseTurret clamp / indexingChuck / jaw / colletLubrication / low oilHydraulic pressureDoor / guard / limit switch / sensorPush button / switch / cable / panelFan / filter / overheatingAlarm / PLC / parameter / resetInstallation / relocation / trialBelt / bearing / coupling / wear"
+            ]
+          ],
+          "rowCount": 14
+        },
+        {
+          "title": "",
+          "header": ["Order","Group name","Family","Keywords",""],
+          "rows": [
+            ["↑ ↓","","","accid, acceid, crash, collision","×"],
+            ["↑ ↓","","","pm","×"],
+            ["↑ ↓","","","arm stuck, arm stucked, atc arm, arm not, arm motor, arm position, arm proximity, atc","×"],
+            ["↑ ↓","","","magazin, tool pot, pot not, tool fell, tool full, tool pocket","×"],
+            ["↑ ↓","","","tool clamp, tool unclamp, tool un-clamp, tool declamp, tool release, drawbar, draw bar, draw tube","×"],
+            ["↑ ↓","","","tool change, toolchange, tool chang","×"],
+            ["↑ ↓","","","4th, fourth, rotary, angular head, tilting","×"],
+            ["↑ ↓","","","fssb, servo, encoder, drive, amplifier, axis motor, overcurrent, over current, power module, x axis, x-axis, y axis, y-axis, z axis, z-axis, axis not, axis jam, axis alarm, axis hum, sv0","×"],
+            ["↑ ↓","","","home position, reference, geometr, geomatr, backlash, centre, center, taper, teppar, tapper","×"],
+            ["↑ ↓","","","coolant leak, coolant lek, colant, coolnat, nozzle leak, water leak, kmt, pump leak, oil leak, coolant pipe, coolant hose","×"],
+            ["↑ ↓","","","coolant, cts","×"],
+            ["↑ ↓","","","air, pneumat","×"],
+            ["↑ ↓","","","conv, chain, scrap, chip","×"],
+            ["↑ ↓","","","spindle, 1001","×"],
+            ["↑ ↓","","","turret, index","×"],
+            ["↑ ↓","","","chuck, collet, jaw, tailstock, tail stock","×"],
+            ["↑ ↓","","","lubric, lube, grease, oil","×"],
+            ["↑ ↓","","","hydraul, hyd","×"],
+            ["↑ ↓","","","door, guard, limit, prox, sensor, interlock","×"],
+            ["↑ ↓","","","push button, pushbutton, switch, cable, lamp, light, fuse, mcb, panel, display, mpg, connector","×"],
+            ["↑ ↓","","","fan, fen, filter, overheat, temperature, dust","×"],
+            ["↑ ↓","","","alarm, alram, parameter, plc, reset, program, communication, error","×"],
+            ["↑ ↓","","","install, resift, shift, relocat, trial","×"],
+            ["↑ ↓","","","belt, bearing, coupling, gear, pulley, pully, bush, vibration, noise, noice, broken, loose","×"]
+          ],
+          "rowCount": 24
+        }
+      ],
+      "charts": [
+        {
+          "id": "ch-prob-pareto",
+          "type": "bar",
+          "axes": {"x":"Breakdown hours","y":""},
+          "tickLabels": {"x":[],"y":[]},
+          "labels": ["Axis motor / drive / encoder / servo  (16%)","Machine accident / crash  (10%)","Home position / geometry / backlash  (10%)","Coolant leakage  (8%)","Tool clamp / unclamp / drawbar  (7%)","4th axis / rotary / angular head  (7%)","Alarm / PLC / parameter / reset  (5%)","Tool-change arm stuck (ATC)  (4%)","Spindle motor / overload / noise  (4%)","Conveyor / chip jam  (4%)","Turret clamp / indexing  (3%)","Installation / relocation / trial  (3%)","Chuck / jaw / collet  (3%)","Push button / switch / cable / panel  (3%)","Tool-change error (general)  (2%)","Air leakage / low air pressure  (2%)"],
+          "datasets": [{"label":"","data":[484.9,306.5,296.3,243.2,211,204,145.4,137.7,131.9,120.5,104,90.6,89.7,79.6,73.4,66.6]}]
+        },
+        {
+          "id": "ch-prob-scatter",
+          "type": "bubble",
+          "axes": {"x":"How often (number of breakdowns)","y":"How long each one takes (average hrs)"},
+          "tickLabels": {"x":[],"y":[]},
+          "labels": [],
+          "datasets": [
+            {
+              "label": "",
+              "data": [
+                {"x":104,"y":4.66,"r":26},
+                {"x":41,"y":7.48,"r":22.760768879807205},
+                {"x":22,"y":13.47,"r":22.376621728938442},
+                {"x":123,"y":1.98,"r":20.273332237202645},
+                {"x":45,"y":4.69,"r":18.882695782117555},
+                {"x":96,"y":2.13,"r":18.56998922993764},
+                {"x":135,"y":1.08,"r":15.672954411979896},
+                {"x":98,"y":1.4,"r":15.253271780178835},
+                {"x":57,"y":2.31,"r":14.93133617597568},
+                {"x":57,"y":2.11,"r":14.271608178477997},
+                {"x":36,"y":2.89,"r":13.25872542893924},
+                {"x":14,"y":6.47,"r":12.3705092862016},
+                {"x":16,"y":5.61,"r":12.31505582610164},
+                {"x":78,"y":1.02,"r":11.599905172026192},
+                {"x":40,"y":1.83,"r":11.135317687430387},
+                {"x":83,"y":0.8,"r":10.612332448618448},
+                {"x":63,"y":1.04,"r":10.501071373912282},
+                {"x":29,"y":1.39,"r":8.24040047570505},
+                {"x":28,"y":1.42,"r":8.209579770000412},
+                {"x":31,"y":1.2,"r":7.922537472300147},
+                {"x":14,"y":1.83,"r":6.583957776292312},
+                {"x":20,"y":1.28,"r":6.572396823077559},
+                {"x":37,"y":0.64,"r":6.330078988448722},
+                {"x":12,"y":1.45,"r":5.413372331550823}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

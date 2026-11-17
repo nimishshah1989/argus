@@ -358,7 +358,7 @@ Split from draft ticket 24: the service is its own module, used by escalation, r
 **36 M4a schema and answer key** · Blocked by: 33, 34, 35, 66 (M2 gate) · External: triage with Bhavin, code aliases (N12)
 
 1. [Engine] Bhavin's 11 November platform and workbook figures for every screen the triage keeps are pseudonymised answer-key fixtures; `parity.yaml` gains a row per kept screen, the AMC & Warranty, Legal Compliance, PM Plan and PM Reports registers included; the parity check fails on a kept screen without a row and ticket.
-2. [API] One migration (backup first): `kpi_snapshot`; the alias column on `list_item`; each kept stored item (Why-Why records, Team Focus status/owner/note, nudge snooze, PDF import by QR) gets a home in an existing table confirmed by the schema-reviewer, or is dropped in `DIFFERENCES.md`.
+2. [API] One migration (backup first): `kpi_snapshot`; the alias column on `list_item`; each kept stored item (Why-Why records, Team Focus status/owner/note, nudge snooze; PDF import by QR is dropped, `DIFFERENCES.md` D21) gets a home in an existing table confirmed by the schema-reviewer, or is dropped in `DIFFERENCES.md`.
 3. [API] `person.kind`, `ticket.sla_policy_id` and `ticket.handback_status` are dropped; the migration reverts on a production copy.
 
 **37 History, engine and drill-down** · Blocked by: 36

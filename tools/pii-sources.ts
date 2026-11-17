@@ -33,10 +33,28 @@ const TICKET_NAME_FIELDS = [
   'transferTo',
   'pausedBy',
 ];
-const NAME_HEADERS = new Set(['name', 'done by', 'supported by']);
+const NAME_HEADERS = new Set([
+  'name',
+  'done by',
+  'supported by',
+  'observed by',
+  'reviewed by',
+  'completed by',
+  'prod. supervisor',
+  'maint. supervisor',
+]);
 const NAME_SPLIT = /[,&/+]|\band\b/i;
 const GENERIC =
-  /^(?:operator|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i;
+  /^(?:operator|opeator|opeartor|setter|engineer|supervisor|admin|store|technician|maintenance|maint\.?|vendor|production|none|n\/?a)$|\bteam\b|^cell\s*\d+$/i;
+
+/** Names that are also ordinary English words: the repository scan flags only the capitalised form. */
+export const ENGLISH_WORDS = new Set(['meet']);
+
+/** The project's own principals: coded in fixtures, never flagged in prose (docs and code comments). */
+export const SCAN_PRINCIPALS = new Set(['bhavin', 'bhavin p', 'bhaven', 'nimish']);
+
+/** A role or other label that is not a person ("Operator", "Setter", a misspelling of them). */
+export const isGenericLabel = (name: string): boolean => GENERIC.test(name.trim());
 
 export function normalisePhone(value: string): string {
   return value.replace(/\D/g, '').slice(-10);
