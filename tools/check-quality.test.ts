@@ -37,6 +37,23 @@ index 1111111..0000000
 -it('x', () => { expect(1).toBe(1); });
 `;
 
+// A production file that happens to call a method named `test(...)` must not look like a removed test.
+const REMOVED_PRODUCTION_CALL = `diff --git a/apps/server/src/foo.ts b/apps/server/src/foo.ts
+--- a/apps/server/src/foo.ts
++++ b/apps/server/src/foo.ts
+@@ -1,2 +1,1 @@
+-    if (pattern.test(v)) return true;
+     return false;
+`;
+
+const REMOVED_TEST_CALL = `diff --git a/apps/x.test.ts b/apps/x.test.ts
+--- a/apps/x.test.ts
++++ b/apps/x.test.ts
+@@ -1,2 +1,1 @@
+-    if (pattern.test(v)) return true;
+     return false;
+`;
+
 const CLEAN = `diff --git a/apps/x.test.ts b/apps/x.test.ts
 --- a/apps/x.test.ts
 +++ b/apps/x.test.ts
@@ -82,6 +99,14 @@ describe('weakened tests', () => {
 
   it('Q2 passes a diff that only adds assertions', () => {
     expect(weakenedTests(CLEAN)).toEqual([]);
+  });
+
+  it('Q2 ignores a production line that calls a method named test()', () => {
+    expect(weakenedTests(REMOVED_PRODUCTION_CALL)).toEqual([]);
+  });
+
+  it('Q2 reports the same removal inside a test file', () => {
+    expect(weakenedTests(REMOVED_TEST_CALL)).toEqual(['apps/x.test.ts: removed test']);
   });
 });
 

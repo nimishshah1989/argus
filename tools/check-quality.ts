@@ -72,7 +72,7 @@ export function weakenedTests(diffText: string): string[] {
       path = line.slice(6).trim();
       continue;
     }
-    if (deleted.has(path)) continue;
+    if (deleted.has(path) || !TEST_FILE.test(path)) continue;
     const finding = removedFinding(line) ?? addedFinding(line);
     if (finding) findings.push(`${path}: ${finding}`);
   }
