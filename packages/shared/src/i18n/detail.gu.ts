@@ -43,5 +43,6 @@ export const detailGu = gujarati(detailEn, {
   'escalation.channel.fallback': '{{channel}} (વોટ્સએપનું સેન્ડર હજી નથી)',
   'escalation.repeat': 'પુનરાવર્તન {{attempt}}',
   'escalation.acknowledgedAfter': '{{time}} પછી સ્વીકાર્યું',
+  'escalation.acknowledgedAfterBy': '{{time}} પછી સ્વીકાર્યું · {{who}}',
   'escalation.nobodyTold': 'એસ્કેલેશન બાકી, કોઈને જણાવ્યું નથી',
 });

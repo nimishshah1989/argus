@@ -133,6 +133,8 @@ export const ticketEventSchema = z
       .nullable(),
     /** Set on an `escalate` event, null on every other; optional so a client that builds a reply by hand may leave it out. */
     escalation: escalationStepSchema.nullable().optional(),
+    /** On an `escalation_ack`: the highest level the acknowledgement covered, as its payload records it. */
+    escalationLevel: z.string().nullable().optional(),
     /** Set on a `task` event (a follow-up task left, or done); null on every other. */
     task: taskEventSchema.nullable().optional(),
   })

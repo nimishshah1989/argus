@@ -12,12 +12,12 @@ const t = ((key: string, vars: Record<string, string | number> = {}) =>
     String(vars[name]),
   )) as unknown as TFunction;
 
-function event(
-  seq: number,
-  at: string,
-  type: string,
-  escalation?: Partial<EscalationStep> | null,
-): TicketEvent {
+type EventOptions = Omit<Partial<TicketEvent>, 'escalation'> & {
+  escalation?: Partial<EscalationStep> | null;
+};
+
+function event(seq: number, at: string, type: string, options: EventOptions = {}): TicketEvent {
+  const { escalation, ...rest } = options;
   return {
     seq,
     type,
@@ -41,11 +41,19 @@ function event(
           ...escalation,
         }
       : null,
+    ...rest,
   };
 }
 
 const step = (seq: number, at: string, escalation: Partial<EscalationStep> = {}) =>
-  event(seq, at, 'escalate', escalation);
+  event(seq, at, 'escalate', { escalation });
+
+/** The ladder's own acknowledgement: the level it covered, and who made it. */
+const ack = (seq: number, at: string, level: string, personId: string | null = 'person-2') =>
+  event(seq, at, 'escalation_ack', {
+    escalationLevel: level,
+    actingPersonId: personId,
+  });
 
 const lines = (events: TicketEvent[], names: Record<string, string> = { 'person-1': 'Asha' }) => [
   ...escalationLines(events, names, t).values(),
@@ -89,22 +97,52 @@ describe('escalationLines', () => {
     );
   });
 
-  it('reads acknowledgement speed from the two event times of the first later acknowledgement', () => {
-    expect(lines([step(1, AT), event(2, '2026-11-11T10:04:00.000Z', 'acknowledge')])).toEqual([
-      'L2 · no acknowledgement · Asha · Push · acknowledged after 4 min',
-    ]);
-    // whichever wrote it (a ticket acknowledge or an escalation acknowledge), the first later one answers
+  it('names who acknowledged and how fast from the first covering escalation_ack', () => {
     expect(
-      lines([
-        step(1, AT),
-        event(2, '2026-11-11T10:02:00.000Z', 'escalation_ack'),
-        event(3, '2026-11-11T10:07:00.000Z', 'acknowledge'),
-      ]),
-    ).toEqual(['L2 · no acknowledgement · Asha · Push · acknowledged after 2 min']);
-    // an acknowledgement before the step is not an answer to it
-    expect(lines([event(1, '2026-11-11T09:59:00.000Z', 'acknowledge'), step(2, AT)])).toEqual([
-      'L2 · no acknowledgement · Asha · Push',
+      lines([step(1, AT), ack(2, '2026-11-11T10:04:00.000Z', 'L2')], {
+        'person-1': 'Asha',
+        'person-2': 'Bina',
+      }),
+    ).toEqual(['L2 · no acknowledgement · Asha · Push · acknowledged after 4 min · Bina']);
+  });
+
+  it('a higher escalation_ack covers a lower step, a lower one does not cover a higher step', () => {
+    const names = { 'person-1': 'Asha', 'person-2': 'Bina' };
+    const at = '2026-11-11T10:05:00.000Z';
+    expect(lines([step(1, AT, { level: 'L2' }), ack(2, at, 'L3')], names)[0]).toBe(
+      'L2 · no acknowledgement · Asha · Push · acknowledged after 5 min · Bina',
+    );
+    expect(lines([step(1, AT, { level: 'L3' }), ack(2, at, 'L2')], names)).toEqual([
+      'L3 · no acknowledgement · Asha · Push',
     ]);
+  });
+
+  it("the ticket's plain acknowledge does not answer a step, and a lower ack does not cover it", () => {
+    const names = { 'person-1': 'Asha', 'person-2': 'Bina' };
+    // the Acknowledge button stops the ack clock; it never clears the ladder
+    expect(
+      lines([step(1, AT), event(2, '2026-11-11T10:04:00.000Z', 'acknowledge')], names),
+    ).toEqual(['L2 · no acknowledgement · Asha · Push']);
+    // a lower level never answers a higher step, even when it is the first later ack
+    expect(
+      lines(
+        [
+          step(1, AT, { level: 'L3' }),
+          ack(2, '2026-11-11T10:02:00.000Z', 'L2'),
+          ack(3, '2026-11-11T10:07:00.000Z', 'L3'),
+        ],
+        names,
+      ),
+    ).toEqual(['L3 · no acknowledgement · Asha · Push · acknowledged after 7 min · Bina']);
+  });
+
+  it('an acknowledgement before the step is not an answer to it', () => {
+    expect(
+      lines([ack(1, '2026-11-11T09:59:00.000Z', 'L2'), step(2, AT)], {
+        'person-1': 'Asha',
+        'person-2': 'Bina',
+      }),
+    ).toEqual(['L2 · no acknowledgement · Asha · Push']);
   });
 
   it('gives each step its own line, even when the same rule repeats', () => {

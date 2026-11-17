@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { levelCovers, type EscalationLevel } from '@uptimo/domain';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { TicketEvent } from '../api.js';
 import { formatMinutes } from './format.js';
@@ -21,12 +22,28 @@ const CHANNELS: Record<string, MessageKey> = {
   whatsapp: 'escalation.channel.whatsapp',
 };
 
-/** The first acknowledgement that answered a step: the first later `acknowledge` or `escalation_ack` row. */
-function answeredAfter(events: readonly TicketEvent[], index: number): number | null {
+/** The first escalation acknowledgement that covers a step: how fast it came, and who made it. */
+interface Answer {
+  minutes: number;
+  personId: string | null;
+}
+
+/**
+ * The first later `escalation_ack` whose level covers this step: the same level or above. The ticket's plain
+ * `acknowledge` stops its ack clock, not the ladder, and a lower level never answers a higher step.
+ */
+function answeredAfter(events: readonly TicketEvent[], index: number): Answer | null {
+  const step = events[index]!.escalation!;
   const stepAt = new Date(events[index]!.at).getTime();
   for (const event of events.slice(index + 1)) {
-    if (event.type !== 'acknowledge' && event.type !== 'escalation_ack') continue;
-    return Math.max(0, Math.floor((new Date(event.at).getTime() - stepAt) / 60_000));
+    if (event.type !== 'escalation_ack' || !event.escalationLevel) continue;
+    if (!levelCovers(event.escalationLevel as EscalationLevel, step.level as EscalationLevel)) {
+      continue;
+    }
+    return {
+      minutes: Math.max(0, Math.floor((new Date(event.at).getTime() - stepAt) / 60_000)),
+      personId: event.actingPersonId,
+    };
   }
   return null;
 }
@@ -59,7 +76,8 @@ export function escalationLines(
       lines.set(event.seq, t('escalation.nobodyTold'));
       return;
     }
-    const minutes = answeredAfter(events, index);
+    const answered = answeredAfter(events, index);
+    const ackedBy = answered?.personId ? names[answered.personId] : undefined;
     const parts = [
       step.attempt > 1 ? t('escalation.repeat', { attempt: step.attempt }) : null,
       t('escalation.line.level', {
@@ -68,7 +86,14 @@ export function escalationLines(
       }),
       toldNames(step, names),
       channelText(step.channel, step.channelFallback, t),
-      minutes === null ? null : t('escalation.acknowledgedAfter', { time: formatMinutes(minutes) }),
+      answered === null
+        ? null
+        : ackedBy
+          ? t('escalation.acknowledgedAfterBy', {
+              time: formatMinutes(answered.minutes),
+              who: ackedBy,
+            })
+          : t('escalation.acknowledgedAfter', { time: formatMinutes(answered.minutes) }),
     ].filter((part): part is string => Boolean(part));
     lines.set(event.seq, parts.join(' · '));
   });

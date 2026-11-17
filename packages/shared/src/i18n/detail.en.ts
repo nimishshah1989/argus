@@ -41,5 +41,6 @@ export const detailEn = {
   'escalation.channel.fallback': '{{channel}} (WhatsApp has no sender yet)',
   'escalation.repeat': 'repeat {{attempt}}',
   'escalation.acknowledgedAfter': 'acknowledged after {{time}}',
+  'escalation.acknowledgedAfterBy': 'acknowledged after {{time}} · {{who}}',
   'escalation.nobodyTold': 'Escalation due, nobody told',
 };
