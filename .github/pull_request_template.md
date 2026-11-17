@@ -15,21 +15,21 @@
 <!-- One line per id from docs/QUALITY-ATTRIBUTES.md. Replace <verdict> with pass, "n/a — reason" or
 "fail — finding N"; a line without a verdict does not count and the gate fails the PR. -->
 
-Q1 Behaviour tested
-Q2 Test integrity
-Q3 Tenancy sealed
-Q4 Auth and permission
-Q5 Data safety
-Q6 Lean budgets
-Q7 Design lock
-Q8 Accessibility
-Q9 Internationalisation
-Q10 Determinism
-Q11 Operability
-Q12 Evidence and memory
-Q13 No secrets or real data
-Q14 Honest review
-Q15 Merge keeps main green
+Q1 Behaviour tested: <verdict>
+Q2 Test integrity: <verdict>
+Q3 Tenancy sealed: <verdict>
+Q4 Auth and permission: <verdict>
+Q5 Data safety: <verdict>
+Q6 Lean budgets: <verdict>
+Q7 Design lock: <verdict>
+Q8 Accessibility: <verdict>
+Q9 Internationalisation: <verdict>
+Q10 Determinism: <verdict>
+Q11 Operability: <verdict>
+Q12 Evidence and memory: <verdict>
+Q13 No secrets or real data: <verdict>
+Q14 Honest review: <verdict>
+Q15 Merge keeps main green: <verdict>
 
 ## Verification
 
