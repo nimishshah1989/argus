@@ -6,11 +6,8 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 **Ship M2 Accountability — roster and ladder settings, live SLA clocks, the acknowledge action, the
 escalation feed and lockout settings — so that sign-off turnaround is visible on live tickets. Stop at the M2
-gate.**
-
-Why: next milestone in the plan's order, and its server side already exists (schema #228; roster/ladder,
-escalation, notifications, timer APIs merged) — the gap is mostly screens plus the gate criterion. Bounded,
-with a checkable gate.
+gate.** Next in the plan's order; its server side already exists (schema #228) so the gap is screens plus the
+gate criterion — bounded, with a checkable gate.
 
 Then in order: **M4a** analytics figure screens (engine shell + answer key are in `main`), then **M4b** PM
 scheduling and spare parts (the two gaps the UpKeep research says lose deals), then **M6** AI.
@@ -35,9 +32,8 @@ screen ticket is merged (15–19, 20–25, 22, 34 p1, 37A, 36A/B, 66). M1 gate r
 ledger, tracker, M1 gate report, handoff, research). Both rebased and running; merge them before the new goal.
 
 **Routing and budgets:** coder `isoquant/deepseek-v4.1-flash-1017-fast`; reasoning `deepseek-account/
-deepseek-flash` (`DEEPSEEK_API_KEY` absent, no Pro; R3 uses flash + a glm-5.3-flash adversary). Hard stops; no
-spend meter — check provider dashboards. Actions budget is $75 with ~28% left: use `push:check` (chained with
-`&&`), path-filtered suites, drafts to avoid runs, and merge trains.
+deepseek-flash` (`DEEPSEEK_API_KEY` absent, no Pro; R3 adds a glm-5.3-flash adversary). Hard stops; no spend
+meter. Actions $75 with ~28% left: chain `push:check`, keep drafts draft, use trains.
 
 **Quality:** Q1–Q15 in `docs/QUALITY-ATTRIBUTES.md` (D32). `pnpm quality`, `pnpm quality:pr`, `pnpm push:check`
 before every push, `main:check` after every merge (Q15). CI is path-filtered (#277), browser-sharded 3 ways
@@ -49,6 +45,5 @@ name-collisions, nothing to embed from UpKeep's org; borrow AI diagnosis + narra
 inspect/disclose discipline), and `claude-manufacturing-skills-vs-uptimo.md` (in progress: the 17 skills mapped to our raw
 data, plus capabilities we were not planning).
 
-**Open for Nimish:** hidden-group breakdowns still push an alert (should they?); update-banner window 15 min in
-code vs 30 in SPEC; ticket 68 needs a translation-provider decision; export the slice 1–4 mockup frames as
-PNGs so those screens get a real side-by-side instead of a Q7 waiver.
+**Open for Nimish:** hidden-group breakdowns still push an alert; update-banner 15 min in code vs 30 in SPEC;
+ticket 68 needs a translation provider; export the slice 1–4 mockup frames as PNGs to end the Q7 waiver.
