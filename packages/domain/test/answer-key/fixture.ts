@@ -286,6 +286,20 @@ export interface DashboardKpi {
   sub: string;
 }
 
+export interface DashboardDataset {
+  label: string;
+  data: unknown[];
+}
+
+/** One chart as the platform drew it: the series and the axes, with the canvas type dropped. */
+export interface DashboardChart {
+  id: string;
+  axes: Record<string, string>;
+  tickLabels: Record<string, string[]>;
+  labels: unknown[];
+  datasets: DashboardDataset[];
+}
+
 export interface DashboardKey {
   screen: string;
   asOf: string;
@@ -294,7 +308,7 @@ export interface DashboardKey {
     title: string;
     kpis: DashboardKpi[];
     tables: unknown[];
-    charts: unknown[];
+    charts: DashboardChart[];
     text: string;
   }>;
 }
@@ -310,3 +324,27 @@ export function kpiByLabel(label: string): DashboardKpi {
   }
   throw new Error(`the answer key holds no KPI labelled "${label}"`);
 }
+
+/** The Dashboard chart the engine must reproduce, by the platform's own canvas id. */
+export function chartById(id: string): DashboardChart {
+  for (const page of DASHBOARD.pages) {
+    const found = page.charts.find((chart) => chart.id === id);
+    if (found) return found;
+  }
+  throw new Error(`the answer key holds no chart "${id}"`);
+}
+
+export interface ChecklistItem {
+  group: string;
+  key: string;
+  plain: string;
+}
+
+export interface ChecklistKey {
+  screen: string;
+  asOf: string;
+  extra: { counts: Record<string, number>; items: ChecklistItem[] };
+}
+
+/** The Data Checklist the platform showed for `input.json`: the open items and their per-group counts. */
+export const CHECKLIST: ChecklistKey = read<ChecklistKey>('data-checklist.json');
