@@ -2,18 +2,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { askWhoIsActing, clearToken, getBrand, getMe, signOut, type Me } from '../api.js';
 import { chooseLanguage, type Language } from '../i18n/index.js';
+import { mayOpenDesk } from '../roles.js';
 import { disablePush } from '../push.js';
 import { Button } from '../ui/button.js';
 import {
   ArrowRightLeft,
   ChevronRight,
+  CirclePlus,
   KeyRound,
   LogOut,
+  Menu,
   ShieldCheck,
   UserRound,
+  type IconComponent,
 } from '../ui/icon.js';
 import { Sheet } from '../ui/sheet.js';
 import { AlertsCard, usePushBinding } from './AlertsCard.js';
@@ -132,10 +136,25 @@ function LanguageChoice() {
   );
 }
 
+/** One navigation row in the sheet: the same shape as Change password. */
+function NavRow({ to, icon: Icon, label }: { to: string; icon: IconComponent; label: string }) {
+  return (
+    <Link to={to} className={ROW}>
+      <span className="flex items-center gap-3">
+        <Icon aria-hidden size={20} />
+        {label}
+      </span>
+      <ChevronRight aria-hidden size={20} />
+    </Link>
+  );
+}
+
 function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const company = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company ?? '';
   const grant = Boolean(user.supportGrantId);
+  const onDesk = pathname === '/desk' || pathname.startsWith('/desk/');
   return (
     <>
       <Header user={user} company={company} />
@@ -161,17 +180,13 @@ function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
           <p className="text-footnote text-neutral-600">{t('account.actingNote')}</p>
         </div>
       ) : null}
+      {onDesk ? <NavRow to="/floor" icon={CirclePlus} label={t('account.floor')} /> : null}
+      {!onDesk && mayOpenDesk(user.role) ? (
+        <NavRow to="/desk" icon={Menu} label={t('account.desk')} />
+      ) : null}
       <LanguageChoice />
       <AlertsCard personId={user.actingPersonId || undefined} />
-      {grant ? null : (
-        <Link to="/password" className={ROW}>
-          <span className="flex items-center gap-3">
-            <KeyRound aria-hidden size={20} />
-            {t('account.changePassword')}
-          </span>
-          <ChevronRight aria-hidden size={20} />
-        </Link>
-      )}
+      {grant ? null : <NavRow to="/password" icon={KeyRound} label={t('account.changePassword')} />}
       <button
         type="button"
         onClick={onSignOut}

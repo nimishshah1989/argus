@@ -6,6 +6,8 @@ export const accountEn = {
   'account.changePerson': 'Change person',
   'account.actingNote': 'Every action you take is saved under this person.',
   'account.language': 'Language',
+  'account.desk': 'Desk',
+  'account.floor': 'Floor',
   'account.changePassword': 'Change password',
   'account.signOutTitle': 'Sign out of this phone?',
   'account.signOutBody':
