@@ -10,6 +10,7 @@ import {
   quarterAverage,
   type HoursWindow,
 } from './hours.js';
+import { isProduction } from './machine-facts.js';
 import { effectiveHours, isHistory, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow, MoveRow } from './types.js';
 
@@ -21,12 +22,6 @@ import type { Computer, EngineData, FigureValue, MachineRow, MoveRow } from './t
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DASH = '—';
-
-function productionMachines(data: EngineData): MachineRow[] {
-  return data.machines.filter(
-    (machine) => machine.segment === 'CNC' && !machine.excludedFromProduction,
-  );
-}
 
 function inrUpTo2(value: number): string {
   const text = value.toFixed(2).replace(/\.?0+$/, '');
@@ -151,7 +146,7 @@ function cellStats(input: {
 }
 
 function buildContext(data: EngineData, asOf: string, annual: number): A1Context {
-  const machines = productionMachines(data);
+  const machines = data.machines.filter(isProduction);
   const ids = new Set(machines.map((machine) => machine.id));
   const entries = analysisEntries(data, machines);
   const cells = plantCells(machines, data.moves, ids);

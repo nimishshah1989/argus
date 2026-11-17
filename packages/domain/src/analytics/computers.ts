@@ -7,6 +7,7 @@ import { bubbleChart, expansionTimeline } from './dashboard-charts.js';
 import { breakdownFree, costliestProblems } from './dashboard-flags.js';
 import { dataChecklist } from './data-checklist.js';
 import { footprint } from './footprint.js';
+import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
@@ -41,10 +42,6 @@ const round = (value: number, decimals: 1 | 2): number =>
   Math.round(value * 10 ** decimals) / 10 ** decimals;
 
 const hours = (rows: readonly SourcedReport[]): number => round(minutes(rows) / 60, 1);
-
-/** A CNC machine the plant counts in production data: the Robot and any Settings exclusion are left out. */
-const isProduction = (machine: MachineRow): boolean =>
-  machine.segment === 'CNC' && !machine.excludedFromProduction;
 
 /** The breakdown rows whose machine is production data; an excluded machine's rows are never a production number. */
 function productionReports(data: EngineData): SourcedReport[] {
