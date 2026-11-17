@@ -4,13 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { scanFiles, scanText, scannedPaths } from './check-pii.js';
-import {
-  SOURCES,
-  denyListFromSources,
-  loadDenyList,
-  scanList,
-  workbookCells,
-} from './pii-sources.js';
+import { SOURCES, denyListFromSources, loadDenyList, workbookCells } from './pii-sources.js';
 
 // No real value goes into an assertion message: every check on a real value is a boolean or a count.
 
@@ -66,13 +60,21 @@ describe('pii deny-list', () => {
     }
   });
 
-  it('keeps only the project principals out of the repository scan, and keeps them in the coding list', () => {
-    const deny = { names: ['nimish', 'bhavin', 'fake person'], phones: [] };
-    expect(scanList(deny).names).toEqual(['fake person']);
-    expect(deny.names).toHaveLength(3);
+  it('flags a principal name in code or a fixture, and spares prose', () => {
+    const deny = { names: ['bhavin'], phones: [] };
+    // Assembled: the repository scan reads this file too, and a real principal in a short string is
+    // exactly what it flags.
+    const name = ['Bh', 'avin'].join('');
+    expect(scanText('tools/planted.ts', `const name = '${name}';`, deny)).toEqual([
+      'tools/planted.ts:1: real name from the source lists',
+    ]);
+    expect(scanText('fixtures/planted.json', `{"observedBy":"${name}"}`, deny)).toEqual([
+      'fixtures/planted.json:1: real name from the source lists',
+    ]);
+    expect(scanText('docs/plan/planted.md', `${name} signed the triage off`, deny)).toEqual([]);
   });
 
-  it('flags a name that is also an English word only when it is written as a name', () => {
+  it('fails on a name that is also an English word only when it is written as a name', () => {
     const deny = { names: ['meet'], phones: [] };
     expect(scanText('a.md', 'The jobs meet the target', deny)).toEqual([]);
     expect(
@@ -133,6 +135,6 @@ describe('pii scan', () => {
       maxBuffer: 1 << 26,
     });
     const paths = listed.split('\0').filter(Boolean);
-    expect(scanFiles(process.cwd(), scannedPaths(paths), scanList(loadDenyList()))).toEqual([]);
+    expect(scanFiles(process.cwd(), scannedPaths(paths), loadDenyList())).toEqual([]);
   });
 });

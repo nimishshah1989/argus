@@ -50,13 +50,8 @@ const GENERIC =
 /** Names that are also ordinary English words: the repository scan flags only the capitalised form. */
 export const ENGLISH_WORDS = new Set(['meet']);
 
-/** The project's own principals: coded in fixtures, never flagged in prose. */
-const SCAN_PRINCIPALS = new Set(['bhavin', 'bhavin p', 'bhaven', 'nimish']);
-
-/** The deny list as the repository scan uses it; fixtures are coded with the whole list. */
-export function scanList(deny: DenyList): DenyList {
-  return { ...deny, names: deny.names.filter((n) => !SCAN_PRINCIPALS.has(n)) };
-}
+/** The project's own principals: coded in fixtures, never flagged in prose (docs and code comments). */
+export const SCAN_PRINCIPALS = new Set(['bhavin', 'bhavin p', 'bhaven', 'nimish']);
 
 /** A role or other label that is not a person ("Operator", "Setter", a misspelling of them). */
 export const isGenericLabel = (name: string): boolean => GENERIC.test(name.trim());

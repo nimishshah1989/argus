@@ -206,36 +206,51 @@ function declaredScreen(path: string): string | undefined {
   }
 }
 
+/** Every fixture in the answer key must declare the screen its file name says it answers. */
+function fixtureScreenErrors(root: string): string[] {
+  const errors: string[] = [];
+  for (const file of readdirSync(root).filter((name) => name.endsWith('.json'))) {
+    if (file === 'input.json') continue;
+    const expected = file.slice(0, -5);
+    const declared = declaredScreen(join(root, file));
+    if (declared !== expected)
+      errors.push(`${file}: declares screen ${declared ?? 'none'}, expected ${expected}`);
+  }
+  return errors;
+}
+
+/** The Key column of one triage row: each file exists, declares its own screen, and answers this row. */
+function keyErrors(row: { id: string; keys: string[] }, root: string): string[] {
+  const errors: string[] = [];
+  for (const key of row.keys) {
+    if (key === 'input') continue;
+    const path = join(root, `${key}.json`);
+    if (!existsSync(path)) {
+      errors.push(`${row.id}: answer key ${key}.json is missing`);
+      continue;
+    }
+    const declared = declaredScreen(path);
+    if (declared !== key) {
+      errors.push(`${row.id}: answer key ${key}.json declares screen ${declared ?? 'none'}`);
+      continue;
+    }
+    if (row.id !== key && !(SHARED_KEYS[key] ?? []).includes(row.id))
+      errors.push(`${row.id}: answer key ${key}.json answers ${declared}, not ${row.id}`);
+  }
+  return errors;
+}
+
 /**
  * A triage row's Key column must name fixtures that declare that screen. A fixture named after
  * itself answers its namesake; the few shared files are listed above. `input.json` is data.
  */
 export function answerKeyErrors(triage: string, root = ANSWER_KEY): string[] {
-  const errors: string[] = [];
-  for (const file of readdirSync(root).filter((name) => name.endsWith('.json'))) {
-    if (file === 'input.json') continue;
-    const declared = declaredScreen(join(root, file));
-    if (declared !== file.slice(0, -5))
-      errors.push(`${file}: declares screen ${declared ?? 'none'}, expected ${file.slice(0, -5)}`);
-  }
-  for (const row of triageRows(triage).filter((candidate) => candidate.verdict !== 'DROPPED')) {
-    for (const key of row.keys) {
-      if (key === 'input') continue;
-      const path = join(root, `${key}.json`);
-      if (!existsSync(path)) {
-        errors.push(`${row.id}: answer key ${key}.json is missing`);
-        continue;
-      }
-      const declared = declaredScreen(path);
-      if (declared !== key) {
-        errors.push(`${row.id}: answer key ${key}.json declares screen ${declared ?? 'none'}`);
-        continue;
-      }
-      if (row.id !== key && !(SHARED_KEYS[key] ?? []).includes(row.id))
-        errors.push(`${row.id}: answer key ${key}.json answers ${declared}, not ${row.id}`);
-    }
-  }
-  return errors;
+  return [
+    ...fixtureScreenErrors(root),
+    ...triageRows(triage)
+      .filter((row) => row.verdict !== 'DROPPED')
+      .flatMap((row) => keyErrors(row, root)),
+  ];
 }
 
 export function validateParity(
