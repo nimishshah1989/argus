@@ -6,6 +6,7 @@ import type { ActorContext } from '@uptimo/domain';
 import type { CommandAction, Config, Machine, State, Ticket } from '../../api.js';
 import { quickSpec } from '../../components/actionSpecs.js';
 import { machineLabel } from '../../components/format.js';
+import { SignoffFeed } from '../../components/SignoffFeed.js';
 import { TicketCard } from '../../components/TicketCard.js';
 import { CountsStrip } from '../../ui/counts-strip.js';
 import { ChevronRight, CircleCheck, Hourglass, LifeBuoy, OctagonX, Users } from '../../ui/icon.js';
@@ -192,6 +193,7 @@ export function OpenLists({
           {t('deskLists.showing', { what: t(`deskLists.filter.${filter}`) })}
         </p>
       ) : null}
+      <SignoffFeed now={ctx.now} />
       <TeamNowLink count={teamNowCount(open)} />
       <SegmentedBar
         label={t('deskLists.segments')}

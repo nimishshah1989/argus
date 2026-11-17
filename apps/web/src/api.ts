@@ -31,6 +31,7 @@ import type {
   TicketPage,
 } from '@uptimo/shared/replies';
 import type { SlaPoliciesUpdate, SlaPolicy, SlaProjection, SlaTimer } from '@uptimo/shared/sla';
+import type { SignoffFeed } from '@uptimo/shared/signoff';
 import type { BreakdownReportBody, CommandAction, RaiseTicketBody } from '@uptimo/shared/ticket';
 import type { TaskInput } from '@uptimo/shared/tasks';
 import type {
@@ -52,6 +53,10 @@ export const tickets = defineResource<TicketDetail, Ticket>({
   path: '/api/v1/tickets',
 });
 const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
+const signoffFeed = defineResource<SignoffFeed>({
+  key: 'signoff-feed',
+  path: '/api/v1/board/signoff',
+});
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string; logo: string | null }>({
   key: 'brand',
@@ -101,6 +106,9 @@ export function getState(): Promise<State> {
 
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
+
+/** `GET /board/signoff`: closed tickets still waiting for production, the longest wait first. */
+export const getSignoffFeed = (): Promise<SignoffFeed> => signoffFeed.one();
 
 export const getTicket = (id: string): Promise<TicketDetail> => tickets.one(id);
 
