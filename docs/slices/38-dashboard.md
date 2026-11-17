@@ -230,3 +230,14 @@ reproduce, the delta names the missing rule: STOP and report it; never tune the 
 to read (not copy) is in `docs/discovery/source/cosmos_platform.html`: functions `annualHoursPerMachine`, `availWin`,
 `availSum`, `periodFrac`, `dayDiff`, `isExcluded`, `nonRobotMachines`, `filterBD`, `sumHrs`, `calcAnalytics1` and the
 Dashboard renderer.
+
+## Follow-ups filed after packet 38.4's review
+
+- **S2 — Total Breakdowns' production filter.** `dashboard.total-breakdowns` counts every history breakdown (PM
+  excluded) while `dashboard.avg-complaints-per-day` divides the **production-filtered** count. The platform's Guide
+  filters Total Breakdowns by production too (`bdIsCountable`), but the answer key cannot arbitrate (1279 either way —
+  BOXY has no rows). Align both in ticket 40 (breakdown analyses), where the log itself is computed, and say it in that
+  PR; do not retune here.
+- **Recorded hours vs minutes.** The Guide divides recorded **hours**; the repo stores **minutes**, which reproduces the
+  key exactly today (3060.1333 h). If a later ticket needs the recorded-hours column (`downHrs`), it is an additive
+  column in that ticket's migration, not a formula change.
