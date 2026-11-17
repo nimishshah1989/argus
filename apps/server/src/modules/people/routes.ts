@@ -144,18 +144,20 @@ export function registerPeopleRoutes(app: FastifyInstance, config: AppConfig): v
   edit('/api/v1/logins', 'login', loginPatchSchema, (tx, actor, t) =>
     patchLogin(tx, actor, t.id, t.body),
   );
+  registerSignOut(app, pool);
+}
 
-  // The bulk "sign out devices" action: admin only, a reason, and the count of sessions it ended.
+/** The bulk "sign out devices" action: admin only, a reason, and the count of sessions it ended. */
+function registerSignOut(app: FastifyInstance, pool: Pool): void {
   app.post('/api/v1/people/:id/sign-out', async (request, reply) => {
     const ctx = await adminOnly(pool, request, reply);
     if (!ctx) return;
     const { id } = request.params as { id: string };
     if (!idOrNotFound(reply, id, 'person')) return;
     const body = parse(personSignOutSchema, request.body, reply);
-    if (body)
-      await write(
-        reply,
-        run(ctx, (tx) => signOutPerson(tx, auditActor(ctx), id, body.reason)),
-      );
+    if (!body) return;
+    await write(reply, () =>
+      withTenant(pool, ctx.tenantId, (tx) => signOutPerson(tx, auditActor(ctx), id, body.reason)),
+    );
   });
 }

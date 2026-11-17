@@ -73,10 +73,7 @@ export const personPatchSchema = z
   .object({ ...personFields, active: flag, reason: reasonText })
   .partial()
   .strict()
-  .refine((value) => {
-    const { reason: _reason, ...rest } = value as { reason?: string } & Record<string, unknown>;
-    return Object.keys(rest).length > 0;
-  }, 'Nothing to change');
+  .refine((value) => Object.keys(value).some((key) => key !== 'reason'), 'Nothing to change');
 export type PersonPatch = z.infer<typeof personPatchSchema>;
 
 export const personAdminSchema = z

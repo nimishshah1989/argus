@@ -81,11 +81,14 @@ interface Fetched {
 
 async function fetch(
   tx: PoolClient,
-  tenantId: string,
-  query: AuditQuery | AuditExportQuery,
-  cursor: { at: string; id: string } | null,
-  limit: number,
+  page: {
+    tenantId: string;
+    query: AuditQuery | AuditExportQuery;
+    cursor: { at: string; id: string } | null;
+    limit: number;
+  },
 ): Promise<Fetched> {
+  const { tenantId, query, cursor, limit } = page;
   const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
   const loginIds = query.personId
     ? (await loginsOfPerson(tx, query.personId)).map((login) => login.id)
@@ -135,7 +138,12 @@ async function readPage(
   if (cursor === undefined)
     return void reply.code(422).send(apiError('validation', 'Invalid cursor', 'cursor'));
   const page = await withTenant(pool, ctx.tenantId, async (tx) => {
-    const { rows, names } = await fetch(tx, ctx.tenantId, query, cursor, query.limit);
+    const { rows, names } = await fetch(tx, {
+      tenantId: ctx.tenantId,
+      query,
+      cursor,
+      limit: query.limit,
+    });
     const shown = rows.slice(0, query.limit);
     const last = shown[shown.length - 1];
     return {
@@ -161,7 +169,12 @@ async function exportCsv(
   const range = rangeProblem(parsed.data);
   if (range) return void reply.code(range.status).send(range.body);
   const body = await withTenant(pool, ctx.tenantId, async (tx) => {
-    const { rows, names } = await fetch(tx, ctx.tenantId, parsed.data, null, EXPORT_CAP);
+    const { rows, names } = await fetch(tx, {
+      tenantId: ctx.tenantId,
+      query: parsed.data,
+      cursor: null,
+      limit: EXPORT_CAP,
+    });
     const capped = rows.length > EXPORT_CAP;
     const shown = capped ? rows.slice(0, EXPORT_CAP) : rows;
     return auditCsv(
