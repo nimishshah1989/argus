@@ -623,3 +623,24 @@ R2 G9→07 g1, g3 · R3 module names per ARCHITECTURE §2→02 g2, 03 g1, 04 g2 
 34 g2 (removed from 30 g2) · R6 shadow below threshold→59 g3 (T4, T5), 60 g3 (T6) · R7 `analytics.registers.03`→39 g1 ·
 R8 `analytics.registers.05`→37 g2 · R9 meter and checklist homes→46 g3 · R10 erasure→37 g1, 55 g3 · R11 wording→18 g1,
 15 g1, 25 g2, NV-01 reason.
+
+## Candidate tickets found by research (17 Nov 2026) — not yet shaped
+
+Each one is cheap because the raw data is already stored; none needs a new table for v1. Full evidence,
+data sources and risks: `docs/research/claude-manufacturing-skills-vs-uptimo.md` §5–6. Shape with
+`to-tickets` before building; the first five are ranked by effort-to-value.
+
+| Candidate | What it does for a user | Joins | Size |
+| --- | --- | --- | --- |
+| Spare-part rollups (parse-then-flag) | Monthly page of candidate part names from the free-text spares field, each parse approved by the admin; settles the parts-module question with real consumption | M4a (rides 40/41), feeds M4b 67 | 1–2 wks |
+| "Did you check this?" floor hint | One Gujarati line on the report's third tap when the same machine had the same problem in 30 days; deterministic, dismissible | M1 follow-up after 15/18 | 2–3 d |
+| Warranty / AMC claim pack | One PDF per machine: every breakdown since purchase, minutes, spares, who attended — the evidence an AMC claim needs | M4a 39 | 1 wk |
+| Narrated repeat-offender pack | Machines ranked by downtime × frequency, with what failed each time and whether it held | M4a 42 (counts exist) | 3–5 d |
+| Per-shift accountability digest | A printable per-shift summary from crew minutes and sign-off turnaround | M2 after 34 | 1 wk |
+| Audit-driven compliance pack | Every safety-relevant change with actor and time, ready for a customer audit | hold until an audit is booked | 1 wk |
+| PM bridge list | Ranked PM suggestions derived from real failure intervals, no PM module needed yet | M4a 42 | 1 wk |
+| Escalation/roster load review | Who is being chased most, from ticket timings and the roster | M2 after 34 | 1 wk |
+| Gujarati fix-it knowledge base | Resolved tickets + glossary become a searchable "how we fixed this" | M4a 39 | 2 wks |
+
+Deliberately not pursuing: the plugin's commercial loop (RFQ, quoting, supplier RFQ, supplier escape) and its
+CAD design skills — they run on ERP/PO/CAD data we neither hold nor should hold.
