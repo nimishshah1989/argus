@@ -96,6 +96,7 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
     'Cost',
     'Reports',
     'Guide',
+    'Data checklist',
   ])
     await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
 
@@ -172,8 +173,9 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   // A held figure never invents a number.
   await expect(tile(page, 'dashboard.fleet-availability')).toContainText('Not computed yet');
 
-  // The data checklist has its own route and stays honest until 38.2 computes it.
-  await page.getByRole('link', { name: 'Data checklist', exact: true }).click();
+  // The data checklist has its own route, at the foot of the menu, and stays honest until 38.2 computes it.
+  const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
+  await menu.getByRole('link', { name: 'Data checklist', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
   await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
   await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
