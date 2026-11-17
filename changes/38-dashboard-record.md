@@ -1,0 +1,1 @@
+- Eleven of the sixteen Dashboard numbers now match the platform exactly and keep the rows behind them, so each drill opens the tickets it counted. Four stay honestly "not computed yet" until Nimish rules on the machine-hours denominator and the days divisor behind them.

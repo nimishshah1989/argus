@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PROFILE } from '@uptimo/shared';
-import { FIGURES, type EngineResult, type FigureValue } from '@uptimo/domain';
+import {
+  COMPUTERS,
+  FIGURES,
+  FIGURE_KEYS,
+  type EngineResult,
+  type FigureValue,
+} from '@uptimo/domain';
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
@@ -157,10 +163,31 @@ describe('the analytics profile and the engine, through HTTP', () => {
       const { asOf, figures } = res.json();
       expect(asOf).toBe('2026-11-16');
       expect(figures.length).toBeGreaterThan(30);
+      // A figure with a computer is ready; one with no computer is honestly not_computed and drills nowhere.
+      // The two lists must agree: a registered figure that lost its computation cannot pass as "not computed yet".
+      const computed = Object.keys(COMPUTERS).sort();
+      const ready = figures
+        .filter((figure: { status: string }) => figure.status === 'ready')
+        .map((figure: { key: string }) => figure.key)
+        .sort();
+      expect(computed.length).toBeGreaterThan(0);
+      expect(ready).toEqual(computed);
+      const notReady = figures
+        .filter((figure: { status: string }) => figure.status === 'not_computed')
+        .map((figure: { key: string }) => figure.key)
+        .sort();
+      // Everything registered that has no computer: the honest "not computed yet" list, derived from the registry.
+      expect(notReady).toEqual(FIGURE_KEYS.filter((key) => !computed.includes(key)).sort());
+      expect(figures.length).toBeGreaterThan(computed.length);
       for (const figure of figures) {
         expect(['machine', 'ticket', 'move'], figure.key).toContain(figure.drill.type);
         expect(figure.owner, figure.key).toBeGreaterThanOrEqual(38);
-        expect(figure.status, figure.key).toBe('not_computed');
+        if (computed.includes(figure.key)) {
+          expect(figure.status, figure.key).toBe('ready');
+        } else {
+          expect(figure.status, figure.key).toBe('not_computed');
+          expect(figure.drill.ids, figure.key).toEqual([]);
+        }
       }
       expect(figures.map((figure: { key: string }) => figure.key)).toContain('money-matters');
     } finally {
@@ -417,13 +444,23 @@ describe('running and storing through HTTP, and the drill-down', () => {
       expect(run.statusCode, role).toBe(200);
       expect(run.json()).toMatchObject({ asOf: day });
       expect(run.json().figures.length).toBeGreaterThan(30);
+      // The same honest split as the GET: a figure with a computer is ready, one without is not computed.
+      const computed = Object.keys(COMPUTERS);
       expect(
-        run.json().figures.every((one: { status: string }) => one.status === 'not_computed'),
+        run
+          .json()
+          .figures.every((one: { key: string; status: string }) =>
+            computed.includes(one.key) ? one.status === 'ready' : one.status === 'not_computed',
+          ),
       ).toBe(true);
     }
     const after = await snapshots(A);
-    expect(after).toHaveLength(1);
-    expect(after[0]).toMatchObject({ id: seeded, value: 7 });
+    // The run keeps one row per ready figure; the seeded row of the same day and key is replaced, not added.
+    expect(after.map((row) => row.key).sort()).toEqual(Object.keys(COMPUTERS).sort());
+    expect(after.find((row) => row.key === 'dashboard.total-machines')).toMatchObject({
+      id: seeded,
+      value: 2,
+    });
   });
 
   it('returns the asked machines and tickets in the asked order, dropping ids this plant does not have', async () => {

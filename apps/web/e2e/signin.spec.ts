@@ -26,6 +26,8 @@ test('show password reveals it, and the last username is remembered', async ({ p
   await page.getByRole('checkbox', { name: 'Show password' }).check();
   await expect(password(page)).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
+  await page.goto('/floor');
   await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
 
   await page.goto('/login');
@@ -72,5 +74,7 @@ test('Enter on the phone keyboard signs in', async ({ page }) => {
   await username(page).fill('op');
   await password(page).fill(E2E_PASSWORD);
   await password(page).press('Enter');
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
+  await page.goto('/floor');
   await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
 });

@@ -176,6 +176,7 @@ test('reporting a machine that has a pending task warns the operator', async ({
   });
 
   await signIn(page, 'op');
+  await page.goto('/floor');
   await page.getByLabel('Find a machine').fill(machine.code);
   await page.getByRole('button', { name: new RegExp(`^${machine.code}\\b`) }).click();
   const warning = page.getByText('This machine has a follow-up task', { exact: true });

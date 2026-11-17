@@ -92,10 +92,27 @@ describe('run(data, asOf, profile)', () => {
   it('answers every registered figure, each with its drill type, and says which are not computed yet', () => {
     const result = run(DATA, '2026-11-11', DEFAULT_PROFILE);
     expect(result.figures.map((figure) => figure.key)).toEqual(FIGURE_KEYS);
+    // A figure with a computer is computed; one with no computer is honestly not_computed and drills nowhere.
+    // Comparing the two lists proves neither a computation nor a "not computed yet" claim has gone missing.
+    const computed = Object.keys(COMPUTERS).sort();
+    const ready = result.figures
+      .filter((figure) => figure.status === 'ready')
+      .map((figure) => figure.key)
+      .sort();
+    expect(ready).toEqual(computed);
+    expect(
+      result.figures
+        .filter((figure) => figure.status === 'not_computed')
+        .map((figure) => figure.key),
+    ).toEqual(FIGURE_KEYS.filter((key) => !computed.includes(key)));
     for (const figure of result.figures) {
       expect(DRILL_TYPES, figure.key).toContain(figure.drill.type);
-      expect(figure.status, figure.key).toBe('not_computed');
-      expect(figure.drill.ids, figure.key).toEqual([]);
+      if (computed.includes(figure.key)) {
+        expect(figure.status, figure.key).toBe('ready');
+      } else {
+        expect(figure.status, figure.key).toBe('not_computed');
+        expect(figure.drill.ids, figure.key).toEqual([]);
+      }
     }
     expect(result.rows).toEqual({
       machines: 2,

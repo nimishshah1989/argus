@@ -14,6 +14,7 @@ import { OtherWork } from './faces/floor/other-work.js';
 import { Report } from './faces/floor/report.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
+import { AnalyticsFace, DataChecklistPage } from './screens/analytics/Analytics.js';
 import { PlantSettings, PLANT_PAGES } from './screens/settings/Plant.js';
 
 // Decided at build time: in a production build without VITE_GALLERY=on this is `false`, so the
@@ -45,6 +46,9 @@ export function App() {
         {PLANT_PAGES.map(({ page }) => (
           <Route key={page} path={`/settings/${page}`} element={<PlantSettings page={page} />} />
         ))}
+        <Route path="/analytics" element={<Navigate to="/analytics/today" replace />} />
+        <Route path="/analytics/today/checklist" element={<DataChecklistPage />} />
+        <Route path="/analytics/:group" element={<AnalyticsFace />} />
         <Route path="/desk/:id?" element={<TicketRoute />} />
         <Route
           path="/gallery"

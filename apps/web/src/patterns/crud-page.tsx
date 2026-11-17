@@ -376,7 +376,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
   return (
     <PatternFrame title={t(spec.titleKey)}>
       {spec.introKey ? <p className="text-footnote text-neutral-600">{t(spec.introKey)}</p> : null}
-      <Button onClick={() => c.open(null)}>{add}</Button>
+      {spec.addable !== false ? <Button onClick={() => c.open(null)}>{add}</Button> : null}
       {!c.sheet && c.error ? (
         <p role="alert" className="text-body font-medium text-neutral-900">
           {c.error}
@@ -384,7 +384,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
       ) : null}
       <CrudBody spec={spec} c={c} ctx={ctx} state={state} />
       <CrudExtras spec={spec} c={c} />
-      {c.sheet ? (
+      {c.sheet && (spec.addable !== false || c.sheet.row) ? (
         <CrudSheet
           spec={spec}
           c={c}

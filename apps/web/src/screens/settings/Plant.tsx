@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Clock,
   Factory,
+  FlaskConical,
   Languages,
   LayoutGrid,
   List,
@@ -25,6 +26,7 @@ import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { CompanyScreen } from './Company.js';
+import { analyticsProfileSpec } from './analytics-profile-spec.js';
 import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { ladderSpec } from './ladder-spec.js';
@@ -46,7 +48,8 @@ export type PlantPage =
   | 'lists'
   | 'glossary'
   | 'company'
-  | 'translations';
+  | 'translations'
+  | 'analytics-profile';
 type Key =
   | 'plant.menu.machines'
   | 'plant.menu.groups'
@@ -59,7 +62,8 @@ type Key =
   | 'lists.menu.lists'
   | 'lists.menu.glossary'
   | 'company.menu.company'
-  | 'plant.menu.translations';
+  | 'plant.menu.translations'
+  | 'analytics.profile.menu';
 
 export interface PlantPageSpec {
   page: Exclude<PlantPage, 'home'>;
@@ -85,6 +89,12 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
   { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
   { page: 'company', icon: Building2, key: 'company.menu.company', screen: CompanyScreen },
+  {
+    page: 'analytics-profile',
+    icon: FlaskConical,
+    key: 'analytics.profile.menu',
+    spec: analyticsProfileSpec as never,
+  },
   {
     page: 'translations',
     icon: Languages,
