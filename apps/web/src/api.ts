@@ -53,7 +53,10 @@ export const tickets = defineResource<TicketDetail, Ticket>({
 });
 const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
-const brand = defineResource<{ company: string }>({ key: 'brand', path: '/api/v1/brand' });
+const brand = defineResource<{ company: string; logo: string | null }>({
+  key: 'brand',
+  path: '/api/v1/brand',
+});
 const login = defineResource({
   key: 'auth',
   path: '/api/v1/auth/login',
@@ -72,7 +75,6 @@ const criticality = defineResource({
   key: 'machines',
   path: '/api/v1/machines/:id/criticality',
 });
-const waitReasons = defineResource({ key: 'lists', path: '/api/v1/lists/wait_reason' });
 
 export function getConfig(): Promise<Config> {
   return cacheFirst({
@@ -116,7 +118,7 @@ export const getMe = (): Promise<{ user: Me }> =>
     return reply;
   });
 
-export const getBrand = (): Promise<{ company: string }> => brand.one();
+export const getBrand = (): Promise<{ company: string; logo: string | null }> => brand.one();
 
 /** POST /auth/login; a wrong password is an ApiError with the server's message. */
 export const signIn = (body: {
@@ -236,17 +238,3 @@ export const putMachineCriticality = (
 
 export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }> =>
   settings.update<{ ok: boolean }>('sla-policies', body);
-
-/** Sends every editable field; null translations/tags stay omitted because the PUT schema is optional. */
-export function putWaitReason(item: ListItem): Promise<{ ok: boolean }> {
-  return waitReasons.update<{ ok: boolean }>(item.code, {
-    label: item.label,
-    labelGu: item.labelGu ?? undefined,
-    labelHi: item.labelHi ?? undefined,
-    sort: item.sort,
-    active: item.active,
-    isVendor: item.isVendor,
-    pausesSla: item.pausesSla,
-    tag: item.tag ?? undefined,
-  });
-}

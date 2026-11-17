@@ -13,6 +13,7 @@ export {
   worthRetrying,
 } from './client.js';
 export { defineResource } from './resource.js';
+export { putLogo } from './logo.js';
 export type { CursorPage, ListQuery, Resource, ResourceSpec, Transport } from './resource.js';
 export { confirmLockoutThen, sendCommand, useCommand } from './command.js';
 export type { CommandHandle } from './command.js';

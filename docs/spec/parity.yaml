@@ -833,10 +833,14 @@ rows:
     milestone: M0
     milestones:
       - M0
-    status: in-progress
+    status: done
     evidence:
       - 'PR #11'
       - 'PR #12'
+      - 'PR #276'
+      - 'apps/web/e2e/settings-lists.spec.ts :: an admin edits a wait reason, a work type and a quick problem on generated screens and the flags persist'
+      - 'apps/web/e2e/settings-lists.spec.ts :: the glossary is edited on a generated screen'
+      - 'apps/web/e2e/settings-company.spec.ts :: an admin changes the company name, language, time zone and a feature switch, and each saves through the real route'
       - 'apps/server/test/settings.test.ts :: returns the full config with a fingerprint and lists
         the missing translations'
       - 'apps/server/test/settings.test.ts :: updates features through /settings and reflects them

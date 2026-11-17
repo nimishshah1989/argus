@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router-dom';
@@ -8,34 +8,54 @@ import { CrudPage } from '../../patterns/crud-page.js';
 import type { CrudRow, CrudSpec } from '../../patterns/crud-spec.js';
 import { useWide } from '../../patterns/wide.js';
 import {
+  BookOpen,
+  Building2,
   ChevronRight,
   Clock,
   Factory,
   LayoutGrid,
+  List,
   Menu,
   type IconComponent,
 } from '../../ui/icon.js';
 import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
+import { CompanyScreen } from './Company.js';
+import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 
-export type PlantPage = 'home' | 'machines' | 'groups' | 'shifts' | 'people' | 'logins' | 'audit';
+export type PlantPage =
+  | 'home'
+  | 'machines'
+  | 'groups'
+  | 'shifts'
+  | 'people'
+  | 'logins'
+  | 'audit'
+  | 'lists'
+  | 'glossary'
+  | 'company';
 type Key =
   | 'plant.menu.machines'
   | 'plant.menu.groups'
   | 'plant.menu.shifts'
   | 'people.menu.people'
   | 'people.menu.logins'
-  | 'audit.menu';
+  | 'audit.menu'
+  | 'lists.menu.lists'
+  | 'lists.menu.glossary'
+  | 'company.menu.company';
 
 export interface PlantPageSpec {
   page: Exclude<PlantPage, 'home'>;
   icon: IconComponent;
   key: Key;
-  spec: CrudSpec<never>;
+  /** A page that is not one generated list (the lists hub, the company form). */
+  screen?: ComponentType;
+  spec?: CrudSpec<never>;
 }
 
 /**
@@ -48,6 +68,9 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
   ...(PEOPLE_PAGES as readonly PlantPageSpec[]),
   { ...AUDIT_PAGE, spec: null as never },
+  { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
+  { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
+  { page: 'company', icon: Building2, key: 'company.menu.company', screen: CompanyScreen },
 ];
 
 function Home() {
@@ -87,7 +110,12 @@ function Body({ page }: { page: PlantPage }) {
   if (page === 'people' || page === 'logins') return <PeopleSettings page={page} />;
   if (page === 'audit') return <AuditSettings />;
   const found = PLANT_PAGES.find((p) => p.page === page);
-  return found ? <CrudPage key={page} spec={found.spec as CrudSpec<CrudRow>} /> : <Home />;
+  if (!found) return <Home />;
+  if (found.screen) {
+    const Screen = found.screen;
+    return <Screen />;
+  }
+  return <CrudPage key={page} spec={found.spec as CrudSpec<CrudRow>} />;
 }
 
 /** Plant settings for an admin or head: the desktop left menu, or on a phone a list and back to it. */
