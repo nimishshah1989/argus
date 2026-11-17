@@ -87,6 +87,7 @@ export function NeedsNow() {
   const headingId = useId();
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  const loaded = state.data !== undefined;
   const open = state.data?.open ?? [];
   const now = state.data?.now ?? new Date().toISOString();
   const items = needsNow(open, now);
@@ -107,10 +108,14 @@ export function NeedsNow() {
           {t('analytics.needsNow.title')}
         </h2>
         <p className="text-footnote text-neutral-600">
-          {t('analytics.needsNow.counts', { items: items.length, clocks })}
+          {loaded ? t('analytics.needsNow.counts', { items: items.length, clocks }) : null}
         </p>
       </div>
-      {items.length === 0 ? (
+      {!loaded ? (
+        <p role="status" className="text-body text-neutral-600">
+          {t('common.loading')}
+        </p>
+      ) : items.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.needsNow.empty')}</p>
       ) : (
         <ul>

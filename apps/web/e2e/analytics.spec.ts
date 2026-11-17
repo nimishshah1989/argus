@@ -179,6 +179,30 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
 });
 
+/**
+ * The honesty gate on the strip: a head lands straight on Today, so a slow `/state` must not read as an
+ * all-clear. The reply is held for a moment to catch the strip before its data lands.
+ */
+test('the needs-now strip says it is loading until /state arrives, never a false all-clear', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route('**/api/v1/state', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await route.continue();
+  });
+  await signIn(page, 'head');
+
+  const strip = page.getByRole('region', { name: 'What needs you now' });
+  await expect(strip.getByText('Loading…', { exact: true })).toBeVisible();
+  await expect(strip.getByText('Nothing needs you now.', { exact: true })).toHaveCount(0);
+  // The count line would also claim nothing before the reply lands.
+  await expect(strip.getByText(/clocks breached/)).toHaveCount(0);
+
+  // Once /state lands, the strip says what it knows.
+  await expect(strip.getByText(/clocks breached/)).toBeVisible({ timeout: 15_000 });
+});
+
 test('a ready figure opens the table of rows behind it', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
