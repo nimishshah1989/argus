@@ -246,3 +246,12 @@ export const putMachineCriticality = (
 
 export const putSlaPolicies = (body: SlaPoliciesUpdate): Promise<{ ok: boolean }> =>
   settings.update<{ ok: boolean }>('sla-policies', body);
+
+const rosterCopy = defineResource<{ created: number; skipped: number }>({
+  key: 'roster',
+  path: '/api/v1/roster/copy',
+});
+
+/** POST /roster/copy: repeat one day's roster over the next seven days; a refusal is an ApiError. */
+export const copyRoster = (date: string): Promise<{ created: number; skipped: number }> =>
+  rosterCopy.create({ date });

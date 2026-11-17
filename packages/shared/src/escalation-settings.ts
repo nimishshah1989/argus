@@ -44,6 +44,15 @@ export type RosterCreate = z.infer<typeof rosterCreateSchema>;
 export type RosterPatch = z.infer<typeof rosterPatchSchema>;
 export type RosterReply = z.infer<typeof rosterReplySchema>;
 
+/** The one thing "copy this day forward" sends: the source day. The seven days are the server's own rule. */
+export const rosterCopySchema = z.object({ date: calendarDay }).strict();
+export type RosterCopy = z.infer<typeof rosterCopySchema>;
+/** What a copy made and how many lines were already there. */
+export const rosterCopyReplySchema = z
+  .object({ created: z.number().int(), skipped: z.number().int() })
+  .strict();
+export type RosterCopyReply = z.infer<typeof rosterCopyReplySchema>;
+
 export const ESCALATION_TRIGGERS = [
   'ack_missed',
   'restore_missed',

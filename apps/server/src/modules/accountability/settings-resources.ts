@@ -132,13 +132,21 @@ function checkWho(rule: Reply): Problem | null {
       };
 }
 
+/** WhatsApp is built in M3: the screen offers push only and the route refuses a rule that says otherwise. */
+function checkChannel(rule: Reply): Problem | null {
+  // A new rule that names no channel takes the column's default, which is push.
+  return (rule.channel ?? 'push') === 'push'
+    ? null
+    : { field: 'channel', message: 'WhatsApp arrives in M3; escalation is push only for now' };
+}
+
 async function checkRule(
   tx: PoolClient,
   rule: Reply,
   edit: { patch: Reply } | undefined,
   tenantId: string,
 ): Promise<Problem | null> {
-  const problem = checkWho(rule) ?? checkRepeat(rule);
+  const problem = checkWho(rule) ?? checkChannel(rule) ?? checkRepeat(rule);
   if (problem) return problem;
   const person = (rule.notifyPersonId as string | null | undefined) ?? null;
   if (

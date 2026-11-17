@@ -8,8 +8,10 @@ import { CrudPage } from '../../patterns/crud-page.js';
 import type { CrudRow, CrudSpec } from '../../patterns/crud-spec.js';
 import { useWide } from '../../patterns/wide.js';
 import {
+  AlarmClock,
   BookOpen,
   Building2,
+  CalendarClock,
   ChevronRight,
   Clock,
   Factory,
@@ -25,7 +27,9 @@ import { useSystemTheme } from '../desk/Shell.js';
 import { CompanyScreen } from './Company.js';
 import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
+import { ladderSpec } from './ladder-spec.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
+import { RosterScreen } from './roster-spec.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 
@@ -34,6 +38,8 @@ export type PlantPage =
   | 'machines'
   | 'groups'
   | 'shifts'
+  | 'roster'
+  | 'ladder'
   | 'people'
   | 'logins'
   | 'audit'
@@ -45,6 +51,8 @@ type Key =
   | 'plant.menu.machines'
   | 'plant.menu.groups'
   | 'plant.menu.shifts'
+  | 'plant.menu.roster'
+  | 'plant.menu.ladder'
   | 'people.menu.people'
   | 'people.menu.logins'
   | 'audit.menu'
@@ -70,6 +78,8 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'machines', icon: Factory, key: 'plant.menu.machines', spec: machinesSpec as never },
   { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
   { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
+  { page: 'roster', icon: CalendarClock, key: 'plant.menu.roster', screen: RosterScreen },
+  { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder', spec: ladderSpec as never },
   ...(PEOPLE_PAGES as readonly PlantPageSpec[]),
   { ...AUDIT_PAGE, spec: null as never },
   { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
