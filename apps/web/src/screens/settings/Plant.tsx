@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Clock,
   Factory,
+  Languages,
   LayoutGrid,
   List,
   Menu,
@@ -22,6 +23,7 @@ import { SideNav } from '../../ui/side-nav.js';
 import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { CompanyScreen } from './Company.js';
+import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
@@ -37,7 +39,8 @@ export type PlantPage =
   | 'audit'
   | 'lists'
   | 'glossary'
-  | 'company';
+  | 'company'
+  | 'translations';
 type Key =
   | 'plant.menu.machines'
   | 'plant.menu.groups'
@@ -47,7 +50,8 @@ type Key =
   | 'audit.menu'
   | 'lists.menu.lists'
   | 'lists.menu.glossary'
-  | 'company.menu.company';
+  | 'company.menu.company'
+  | 'plant.menu.translations';
 
 export interface PlantPageSpec {
   page: Exclude<PlantPage, 'home'>;
@@ -71,6 +75,12 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
   { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
   { page: 'company', icon: Building2, key: 'company.menu.company', screen: CompanyScreen },
+  {
+    page: 'translations',
+    icon: Languages,
+    key: 'plant.menu.translations',
+    screen: TranslationsScreen,
+  },
 ];
 
 function Home() {

@@ -38,6 +38,7 @@ export {
   Hourglass,
   Info,
   KeyRound,
+  Languages,
   LayoutGrid,
   LifeBuoy,
   List,
