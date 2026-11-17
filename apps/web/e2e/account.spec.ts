@@ -2,10 +2,13 @@ import { expect, test } from './test.js';
 import { signIn } from './fixtures.js';
 
 /** Slice 5 (tickets 21 and 25): the account sheet and the Alerts control, on the floor and on the desk. */
+// The sheet's title and trigger are translated, so the locators must not depend on the language: after a
+// language switch (and after a reload that keeps it) the same control reads "એકાઉન્ટ".
+const ACCOUNT_NAME = /^(Account|એકાઉન્ટ)$/;
 const account = (page: import('@playwright/test').Page) =>
-  page.getByRole('dialog', { name: 'Account' });
+  page.getByRole('dialog', { name: ACCOUNT_NAME });
 const openAccount = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('button', { name: 'Account', exact: true }).click();
+  await page.getByRole('button', { name: ACCOUNT_NAME }).click();
   await expect(account(page)).toBeVisible();
 };
 
