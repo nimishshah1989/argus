@@ -64,6 +64,8 @@ import { crudEn } from './crud.en.js';
 import { crudGu } from './crud.gu.js';
 import { auditEn } from './audit.en.js';
 import { auditGu } from './audit.gu.js';
+import { analyticsEn } from './analytics.en.js';
+import { analyticsGu } from './analytics.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -100,6 +102,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   audit: auditEn,
   lists: listsEn,
   company: companyEn,
+  analytics: analyticsEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -137,6 +140,7 @@ export const en = {
   ...auditEn,
   ...listsEn,
   ...companyEn,
+  ...analyticsEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -176,6 +180,7 @@ export const gu = {
   ...auditGu,
   ...listsGu,
   ...companyGu,
+  ...analyticsGu,
 };
 
 export * from './overrides.js';

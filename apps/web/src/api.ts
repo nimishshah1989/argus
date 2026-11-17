@@ -10,6 +10,8 @@ import {
   rememberWho,
 } from './data/index.js';
 import type { BoardToday } from '@uptimo/shared/board';
+import type { DrillType, FiguresReply } from '@uptimo/shared/analytics';
+import type { MachineRow, MoveRow, TicketRow } from '@uptimo/domain';
 import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
@@ -53,6 +55,25 @@ export const tickets = defineResource<TicketDetail, Ticket>({
   path: '/api/v1/tickets',
 });
 const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
+const analyticsFigures = defineResource<FiguresReply>({
+  key: 'analytics-figures',
+  path: '/api/v1/analytics/figures',
+});
+/**
+ * `GET /analytics/drill` answers `{ type, rows }`, not a cursor page: the engine's plain rows, the same shape
+ * the engine reads. The sibling packet 37a owns that contract; `list` is only the query-string helper here.
+ */
+const analyticsDrill = defineResource<unknown, never>({
+  key: 'analytics-drill',
+  path: '/api/v1/analytics/drill',
+});
+export interface DrillReply {
+  type: DrillType;
+  rows: (MachineRow | MoveRow | TicketRow)[];
+}
+/** The rows behind a figure: at most 200 ids, the order of the ids asked. */
+export const getDrill = async (type: DrillType, ids: readonly string[]): Promise<DrillReply> =>
+  (await analyticsDrill.list({ type, ids: ids.join(',') })) as unknown as DrillReply;
 const signoffFeed = defineResource<SignoffFeed>({
   key: 'signoff-feed',
   path: '/api/v1/board/signoff',
@@ -106,6 +127,9 @@ export function getState(): Promise<State> {
 
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
+
+/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
+export const useAnalyticsFigures = () => analyticsFigures.useOne();
 
 /** `GET /board/signoff`: closed tickets still waiting for production, the longest wait first. */
 export const getSignoffFeed = (): Promise<SignoffFeed> => signoffFeed.one();
