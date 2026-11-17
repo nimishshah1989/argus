@@ -92,6 +92,8 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
   emptyKey: LabelKey;
   /** The Add button and the add sheet; default "Add". */
   addKey?: LabelKey;
+  /** `false`: a one-row screen with nothing to add, so no Add button and no add sheet. */
+  addable?: false;
   /** The reply the list returns (D05): every key is a form field or declared hidden. */
   schema?: ReplySchema;
   /** Reply keys the screen never shows, each with the reason; the D05 guard permits only these. */

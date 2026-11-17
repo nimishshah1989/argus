@@ -63,6 +63,7 @@ export const analyticsProfileSpec: CrudSpec<ProfileRow> = {
   emptyKey: 'analytics.profile.empty',
   introKey: 'analytics.profile.intro',
   footnoteKey: 'plant.audit',
+  addable: false,
   toggle: false,
   fields: PROFILE_KEYS.map((key) => ({ name: key, labelKey: PROFILE_LABELS[key] })),
   look: (_row, c) => ({
