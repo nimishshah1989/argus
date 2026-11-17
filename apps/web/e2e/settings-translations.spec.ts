@@ -1,7 +1,17 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
-import { apiFetch, apiLogin, signIn } from './fixtures.js';
+import { E2E_PASSWORD, apiFetch, apiLogin } from './fixtures.js';
 
 const GUJARATI = 'મશીન';
+
+/** Sign in without assuming where an admin lands (the floor today, the desk for the sign-in ticket's change). */
+async function signInAdmin(page: Page): Promise<void> {
+  await page.goto('/login');
+  await page.getByLabel('Username', { exact: true }).fill('admin');
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL(/\/desk|\/floor/);
+}
 
 /** Put the plant's overrides back: the rest of the run, and any later spec on this worker, sees none. */
 async function clearOverrides(): Promise<void> {
@@ -19,7 +29,7 @@ test('admin types Gujarati for a missing key; it shows at once and after a reloa
 }, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
-  await signIn(page, 'admin');
+  await signInAdmin(page);
   // Read the app in Gujarati: this project seeds English, so the phone's own choice is Gujarati.
   await page.evaluate(() => localStorage.setItem('uptimo.language', 'gu'));
   await page.reload();
