@@ -31,5 +31,7 @@ export function Text({
   weight?: keyof typeof WEIGHT;
   children: ReactNode;
 }) {
-  return <Tag className={`${SIZE[size]} ${TONE[tone]} ${WEIGHT[weight]}`}>{children}</Tag>;
+  return (
+    <Tag className={`${SIZE[size]} leading-body ${TONE[tone]} ${WEIGHT[weight]}`}>{children}</Tag>
+  );
 }

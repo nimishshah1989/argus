@@ -54,6 +54,22 @@ async function reportStopped(page: Page, t: Translate): Promise<void> {
   await page.getByRole('button', { name: t('reportFloor.sendStopped'), exact: true }).click();
 }
 
+/** The lock gives Gujarati lines 1.55 (LOCK.md:30); English keeps Tailwind's preflight 1.5. */
+test('a body line keeps English leading and gives Gujarati 1.55', async ({
+  page,
+  t,
+  uiLanguage,
+}) => {
+  await openFloor(page, t, uiLanguage, 'op');
+  const leading = await page.getByText(t('reportFloor.hint'), { exact: true }).evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { lineHeight: style.lineHeight, fontSize: parseFloat(style.fontSize) };
+  });
+  const ratio = parseFloat(leading.lineHeight) / leading.fontSize;
+  if (uiLanguage === 'gu') expect(ratio).toBeCloseTo(1.55, 2);
+  else expect(ratio).toBe(1.5);
+});
+
 test('reports a stopped machine found by search in four taps and shows its number', async ({
   page,
   t,
