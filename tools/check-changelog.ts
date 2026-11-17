@@ -3,8 +3,9 @@ import { pathToFileURL } from 'node:url';
 import { prReason } from './pr-reason.js';
 
 /**
- * Changelog discipline (ticket 01): a pull request adds exactly one fragment,
- * `changes/<issue>-<slug>.md`, and does not edit CHANGELOG.md. A merge train may add one per
+ * Changelog discipline (ticket 01): a pull request touches exactly one fragment,
+ * `changes/<issue>-<slug>.md`, added or modified (a ticket whose fragment already exists appends to it
+ * rather than adding a second, ticket 40a), and does not edit CHANGELOG.md. A merge train may touch one per
  * ticket when its description carries a `Merge train: <reason>` line. Skips when there is no diff
  * base, like check-parity-update.
  */
@@ -24,15 +25,18 @@ export function changelogErrors(
   files: ChangedFile[],
   opts: ChangelogOptions = { train: false },
 ): string[] {
-  const added = files.filter((f) => f.status === 'A' && f.path.startsWith('changes/'));
-  const errors = added
+  // A fragment is touched when the PR adds it or appends to the one its ticket added earlier (ticket 40a).
+  const touched = files.filter(
+    (f) => (f.status === 'A' || f.status === 'M') && f.path.startsWith('changes/'),
+  );
+  const errors = touched
     .filter((f) => !FRAGMENT.test(f.path))
     .map((f) => `${f.path}: name a fragment changes/<issue>-<slug>.md`);
   if (opts.train) {
-    if (added.length === 0)
-      errors.push(`add at least one changelog fragment under changes/ (found ${added.length})`);
-  } else if (added.length !== 1) {
-    errors.push(`add exactly one changelog fragment under changes/ (found ${added.length})`);
+    if (touched.length === 0)
+      errors.push(`add at least one changelog fragment under changes/ (found ${touched.length})`);
+  } else if (touched.length !== 1) {
+    errors.push(`add exactly one changelog fragment under changes/ (found ${touched.length})`);
   }
   return errors;
 }

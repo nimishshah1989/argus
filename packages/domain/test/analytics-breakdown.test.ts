@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
-import { runWith, type EngineResult, type FigureResult } from '../src/index.js';
+import {
+  runWith,
+  type EngineData,
+  type EngineResult,
+  type FigureResult,
+  type ReportRow,
+  type TicketRow,
+} from '../src/index.js';
 import { availabilityWindow } from '../src/analytics/availability.js';
 import { COMPUTERS } from '../src/analytics/computers.js';
 import { formatInr, formatNumber } from '../src/analytics/format.js';
@@ -433,5 +440,78 @@ describe('the breakdown log figure', () => {
     );
     expect(`${formatNumber(BD_HOURS, 1)} hrs`).toBe(kpiByLabel('Total Downtime').value);
     expect(formatNumber(NO_DT_HOURS, 1)).not.toBe(formatNumber(BD_HOURS, 1));
+  });
+});
+
+/**
+ * The fallback number: a log the platform numbered itself has no Sr No on its history rows, so the log numbers
+ * them by their place in date order, while an imported row keeps the Sr No it recorded (packet 40a).
+ */
+function fallbackRow(
+  id: string,
+  date: string,
+  srNo: number | null,
+): { ticket: TicketRow; report: ReportRow } {
+  const ticket: TicketRow = {
+    id: `ticket-${id}`,
+    ref: `BD-${id}`,
+    kind: 'stopped',
+    status: 'closed',
+    machineId: 'TC-1',
+    reportedAt: `${date}T04:00:00.000Z`,
+    closedAt: `${date}T06:00:00.000Z`,
+    source: 'history',
+    downtimeMin: 60,
+    repairMin: 30,
+    workType: null,
+  };
+  const report: ReportRow = {
+    id,
+    ticketId: ticket.id,
+    machineId: 'TC-1',
+    date,
+    shift: '1',
+    problem: id,
+    downtimeMin: 60,
+    responseMin: null,
+    repairMin: null,
+    category: null,
+    maintCode: 'BD',
+    spareUsed: null,
+    rootCause: null,
+    doneBy: [],
+    supportedBy: [],
+    recordedHours: 1,
+    srNo,
+  };
+  return { ticket, report };
+}
+
+describe('the breakdown log fallback number', () => {
+  it('numbers a row with no Sr No by date order and keeps a recorded Sr No', () => {
+    // Three rows, out of date order in the array on purpose: the two with no Sr No take 1 and 2 by their
+    // dates, and the imported row keeps its own 42.
+    const older = fallbackRow('no-sr-older', '2026-01-02', null);
+    const newer = fallbackRow('no-sr-newer', '2026-01-04', null);
+    const imported = fallbackRow('recorded', '2026-01-06', 42);
+    const data: EngineData = {
+      timeZone: 'Asia/Kolkata',
+      machines: [],
+      moves: [],
+      tickets: [newer.ticket, imported.ticket, older.ticket],
+      tasks: [],
+      reports: [newer.report, imported.report, older.report],
+      people: [],
+      lists: {},
+    };
+    const computed = COMPUTERS['breakdown-log']!({ data, asOf: AS_OF, profile: DEFAULT_PROFILE });
+    const log = computed.value as unknown as LogValue;
+    const printed = log.pages[0]!.tables[0]!.rows.map((row) => [row[1], row[6]]);
+    expect(printed).toEqual([
+      ['42', 'recorded'],
+      ['2', 'no-sr-newer'],
+      ['1', 'no-sr-older'],
+    ]);
+    expect(computed.drillIds).toHaveLength(3);
   });
 });
