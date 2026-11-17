@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { getConfig } from '../api.js';
 import { ApiError, defineResource, useOnline } from '../data/index.js';
 import { Button } from '../ui/button.js';
 import { Inline } from '../ui/layout.js';
@@ -363,6 +364,7 @@ function CrudExtras<Row extends CrudRow>(p: {
 export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> }) {
   const { t } = useTranslation();
   const c = useCrud(spec);
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const state = viewState({
     online: useOnline(),
     hasData: c.list.data !== undefined,
@@ -370,7 +372,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
     error: c.list.error,
   });
   const row = c.sheet?.row ?? null;
-  const ctx: CrudCtx = { lookups: c.lookups, t };
+  const ctx: CrudCtx = { lookups: c.lookups, t, timeZone: config.data?.timeZone };
   const nameOf = (r: Row) => spec.look?.(r, ctx).title ?? c.valuesOf(r)[spec.fields[0]!.name] ?? '';
   const add = t(spec.addKey ?? 'kit.crud.add');
   return (

@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AUDIT_AREAS, type AuditArea, type AuditRow } from '@uptimo/shared/audit';
 import type { PersonAdmin } from '@uptimo/shared/people';
-import { getMe } from '../../api.js';
+import { getConfig, getMe } from '../../api.js';
+import { formatDateTime } from '../../components/format.js';
 import { defineResource, downloadFile, useOnline } from '../../data/index.js';
 import { PatternFrame, StateNotice } from '../../patterns/frame.js';
 import { viewState } from '../../patterns/view-state.js';
@@ -55,7 +56,7 @@ const humanise = (value: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-function Change({ row }: { row: AuditRow }) {
+function Change({ row, timeZone }: { row: AuditRow; timeZone?: string }) {
   const { t } = useTranslation();
   const reason = (row.after as { reason?: string } | null)?.reason;
   const area = AUDIT_AREAS.includes(row.entity as AuditArea)
@@ -67,12 +68,7 @@ function Change({ row }: { row: AuditRow }) {
       <div className="flex items-start justify-between gap-2">
         <p className="text-body font-semibold">{humanise(row.action)}</p>
         <time dateTime={row.at} className="text-caption text-neutral-600">
-          {new Date(row.at).toLocaleString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {formatDateTime(row.at, timeZone)}
         </time>
       </div>
       <p className="text-footnote text-neutral-600">
@@ -201,7 +197,7 @@ function useTrail(filters: Filters) {
   return { list, rows, state };
 }
 
-function Trail(p: { trail: ReturnType<typeof useTrail> }) {
+function Trail(p: { trail: ReturnType<typeof useTrail>; timeZone?: string }) {
   const { t } = useTranslation();
   const { list, rows, state } = p.trail;
   if (state !== 'ready')
@@ -212,7 +208,7 @@ function Trail(p: { trail: ReturnType<typeof useTrail> }) {
     <>
       <ul className="flex flex-col gap-2">
         {rows.map((row) => (
-          <Change key={row.id} row={row} />
+          <Change key={row.id} row={row} timeZone={p.timeZone} />
         ))}
       </ul>
       {list.hasNextPage ? (
@@ -263,6 +259,7 @@ function Export({ filters }: { filters: Filters }) {
 export function AuditSettings() {
   const { t } = useTranslation();
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const role = me.data?.user.role;
   const admin = role === 'admin';
   const [filters, setFilters] = useState<Filters>(EMPTY);
@@ -283,7 +280,7 @@ export function AuditSettings() {
         onChange={setFilters}
       />
       {admin ? <Export filters={filters} /> : null}
-      <Trail trail={trail} />
+      <Trail trail={trail} timeZone={config.data?.timeZone} />
     </PatternFrame>
   );
 }

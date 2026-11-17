@@ -78,6 +78,29 @@ describe('the people list shows what the plant knows (ticket 21)', () => {
     );
   });
 
+  it("shows a last sign-in on the plant's day, not the browser's", () => {
+    const ctx = {
+      t: ((key: string) => key) as never,
+      lookups: { logins: [], shifts: [] },
+      timeZone: 'Asia/Kolkata',
+    };
+    const row = {
+      id: 'p3',
+      name: 'Late',
+      shortName: null,
+      phone: null,
+      team: 'production' as const,
+      title: null,
+      cell: null,
+      defaultShift: null,
+      active: true,
+      pending: false,
+      lastSignInAt: '2026-11-16T19:00:00.000Z',
+    };
+    const cell = peopleSpec.columns!.find((column) => column.labelKey === 'people.lastSignIn')!;
+    expect(String(cell.cell(row, ctx))).toContain('17 Nov');
+  });
+
   it('says a person has no login rather than leaving the cells empty', () => {
     const ctx = { t: ((key: string) => key) as never, lookups: { logins: [], shifts: [] } };
     const row = {

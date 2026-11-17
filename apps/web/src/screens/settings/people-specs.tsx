@@ -6,6 +6,7 @@ import {
   type PersonAdmin,
 } from '@uptimo/shared/people';
 import { type ShiftReply } from '@uptimo/shared/plant-settings';
+import { formatDateTime } from '../../components/format.js';
 import { defineResource } from '../../data/index.js';
 import type { CrudChoice, CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
 
@@ -33,17 +34,9 @@ const cellText = (cell: string | null, c: CrudCtx) =>
   cell ? c.t('people.cellN', { cell }) : c.t('people.cell.none');
 const shiftText = (code: string | null, c: CrudCtx) =>
   code ? c.t('people.shiftCode', { code }) : c.t('people.shift.none');
-/** A last sign-in reads as a plant date and time; `Never` when the login has none. */
+/** A last sign-in reads as a plant date and time, the same day the audit filters use. */
 const signInText = (iso: string | null, c: CrudCtx) =>
-  iso
-    ? new Date(iso).toLocaleString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : c.t('people.never');
+  iso ? formatDateTime(iso, c.timeZone, true) : c.t('people.never');
 const shiftChoices = (c: CrudCtx): CrudChoice[] =>
   (c.lookups.shifts as ShiftReply[]).map((shift) => ({ value: shift.code, label: shift.name }));
 const roleChoices = (c: CrudCtx): CrudChoice[] =>

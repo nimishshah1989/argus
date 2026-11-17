@@ -37,8 +37,10 @@ export function formatClock(iso: string, timeZone?: string): string {
   }).format(new Date(iso));
 }
 
-export function formatDateTime(iso: string, timeZone?: string): string {
+/** A plant date and time; `withYear` for a last sign-in, which may be older than this year. */
+export function formatDateTime(iso: string, timeZone?: string, withYear = false): string {
   return new Intl.DateTimeFormat('en-GB', {
+    ...(withYear ? { year: 'numeric' as const } : {}),
     day: 'numeric',
     month: 'short',
     hour: '2-digit',

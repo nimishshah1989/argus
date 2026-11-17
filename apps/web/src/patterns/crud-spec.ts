@@ -14,10 +14,12 @@ export type Lookups = Record<string, unknown[]>;
 export interface ReplySchema {
   shape: Record<string, unknown>;
 }
-/** What a spec's functions read: the lookup rows by name, and the translator. */
+/** What a spec's functions read: the lookup rows by name, the translator, and the plant's zone. */
 export interface CrudCtx {
   lookups: Lookups;
   t: TFunction;
+  /** The plant's time zone, so a rendered time lands on the same day the server's filters use. */
+  timeZone?: string;
 }
 export interface CrudChoice {
   value: string;
