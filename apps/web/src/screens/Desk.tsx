@@ -59,7 +59,7 @@ function DeskBody({
   const { t } = useTranslation();
   if (view === 'mine') return <MinePanel ctx={ctx} />;
   if (view === 'team') return <TeamPanel state={state} config={config} machines={ctx.machines} />;
-  if (state.data) return <OpenLists state={state.data} ctx={ctx} />;
+  if (state.data) return <OpenLists state={state.data} ctx={ctx} config={config} />;
   if (state.error) return <Banner tone="error" title={t('kit.pattern.error')} />;
   return (
     <Loading>

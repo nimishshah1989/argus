@@ -156,8 +156,10 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'apps/web/e2e/tasks.spec.ts :: reporting a machine that has a pending task warns the operator'
+      - 'docs/design/evidence/t19-tasks/t19-floor-warning.png'
     source: PARITY.md §v3 / Reporting (floor and desk)
   - id: v3.reporting.06
     feature: 'Other work (not a machine): where (locations, cells, free text), type of work (eight
@@ -503,8 +505,11 @@ rows:
     milestone: M1
     milestones:
       - M1
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'apps/web/e2e/tasks.spec.ts :: a task left at close shows on the parent, in the Tasks tab, and is
+        marked done with minutes'
+      - 'docs/design/evidence/t19-tasks/'
     source: PARITY.md §v3 / Ticket actions (desk)
   - id: v3.actions.18
     feature: 'Who may close: lead, a primary, supervisor, admin; shared phone anyone'

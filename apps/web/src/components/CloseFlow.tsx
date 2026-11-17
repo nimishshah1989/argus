@@ -7,6 +7,7 @@ import { FinishTime, ScreenFooter } from '../ui/close-kit.js';
 import { FactList, MinuteTiles } from '../ui/detail-kit.js';
 import { TopBar } from '../ui/top-bar.js';
 import { closeAt, earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
+import { NO_TASK, TaskLeaveCard, taskInput, taskReady, type TaskDraft } from './FollowUpTask.js';
 import { formatClock, formatMinutes, machineLabel } from './format.js';
 import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
 import { StatusBadge } from './StatusBadge.js';
@@ -120,14 +121,21 @@ interface Opened {
   openedAt: Date;
 }
 
-/** A close dated at the chosen finish, or the late report of a closed ticket. */
-function sendReport(props: CloseFlowProps, values: ReportValues, finish: Opened | null) {
+/** A close dated at the chosen finish, or the late report of a closed ticket. A close may leave a task. */
+function sendReport(
+  props: CloseFlowProps,
+  values: ReportValues,
+  finish: Opened | null,
+  task: TaskDraft,
+) {
   const report = buildReportBody(values);
   if (props.mode === 'late') return props.command('report', { report });
+  const left = taskInput(task);
   return props.command('close', {
     kind: 'report',
     at: (finish ? closeAt(finish.at, finish.openedAt, new Date()) : new Date()).toISOString(),
     report,
+    ...(left ? { task: left } : {}),
   });
 }
 
@@ -138,6 +146,8 @@ function ReportStep(
     finish: Opened | null;
     onBack: () => void;
     setValues: (values: ReportValues) => void;
+    task: TaskDraft;
+    setTask: (task: TaskDraft) => void;
   },
 ) {
   const { t } = useTranslation();
@@ -150,9 +160,11 @@ function ReportStep(
     update: (patch: Partial<ReportValues>) => props.setValues({ ...values, ...patch }),
   };
 
+  const canSend = !props.pending && reportReady(values) && taskReady(props.task);
+
   async function submit() {
-    if (props.pending || !reportReady(values)) return;
-    if (await sendReport(props, values, finish)) props.onExit();
+    if (!canSend) return;
+    if (await sendReport(props, values, finish, props.task)) props.onExit();
   }
   const submitLabel = late ? t('closes.late.submit') : t('report.closeWithReport');
 
@@ -178,10 +190,13 @@ function ReportStep(
         <WhatHappened {...fields} machineCode={machineCode} />
         <WhoDidIt {...fields} />
         <Classification {...fields} />
+        {late ? null : (
+          <TaskLeaveCard config={props.config} draft={props.task} onChange={props.setTask} />
+        )}
         {props.error ? <Banner tone="error" title={props.error} /> : null}
       </main>
       <ScreenFooter hint={late ? t('closes.form.hintLate') : t('closes.form.hintClose')}>
-        <Button type="submit" disabled={props.pending || !reportReady(values)}>
+        <Button type="submit" disabled={!canSend}>
           {props.pending ? t('common.saving') : submitLabel}
         </Button>
       </ScreenFooter>
@@ -193,6 +208,7 @@ function ReportStep(
 export function CloseFlow(props: CloseFlowProps) {
   const [step, setStep] = useState<1 | 2>(props.mode === 'late' ? 2 : 1);
   const [finish, setFinish] = useState<Opened | null>(null);
+  const [task, setTask] = useState<TaskDraft>(NO_TASK);
   const [values, setValues] = useState<ReportValues | null>(() =>
     props.mode === 'late'
       ? initialReportValues(
@@ -239,6 +255,8 @@ export function CloseFlow(props: CloseFlowProps) {
           values={values}
           setValues={setValues}
           finish={finish}
+          task={task}
+          setTask={setTask}
           onBack={props.mode === 'late' ? props.onExit : () => setStep(1)}
         />
       )}

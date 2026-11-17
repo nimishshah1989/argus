@@ -12,6 +12,8 @@ export interface FloorData {
   me: Me;
   /** The open ticket on each machine. */
   open: Map<string, Ticket>;
+  /** Every open ticket, follow-up tasks included: a task names its machine only in the snapshot. */
+  openAll: Ticket[];
   maintenance: boolean;
   /** "Name (Title)" for "Reporting as". */
   who: string;
@@ -41,16 +43,24 @@ export function useFloorData(): FloorLoad {
     return { data: null, error, retry };
   }
   const user = me.data.user;
-  const open = new Map<string, Ticket>();
-  for (const t of state.data?.open ?? []) if (t.machineId) open.set(t.machineId, t);
+  const openAll = state.data?.open ?? [];
+  const open = openOnMachines(openAll);
   const data: FloorData = {
     config: config.data,
     me: user,
     open,
+    openAll,
     maintenance: MAINTENANCE.includes(user.role),
     who: user.title ? `${user.name} (${user.title})` : user.name,
   };
   return { data, error: null, retry };
+}
+
+/** The open ticket on each machine; a follow-up task has no machine id of its own. */
+function openOnMachines(tickets: readonly Ticket[]): Map<string, Ticket> {
+  const byMachine = new Map<string, Ticket>();
+  for (const ticket of tickets) if (ticket.machineId) byMachine.set(ticket.machineId, ticket);
+  return byMachine;
 }
 
 /** The last five machines reported from this phone (v3 shows three). */
