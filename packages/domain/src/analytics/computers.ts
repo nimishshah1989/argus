@@ -1,5 +1,6 @@
 import { a1BdPmFigure } from './a1-bd-pm.js';
 import { a2CategoryCellFigure } from './a2-category-cell.js';
+import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -162,6 +163,7 @@ const breakdownComputers: Readonly<Record<string, Computer>> = {
   'breakdown-log': breakdownLogFigure,
   'a1-bd-pm': a1BdPmFigure,
   'a2-category-cell': a2CategoryCellFigure,
+  'a3-mttr-mtbf': a3MttrMtbfFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
