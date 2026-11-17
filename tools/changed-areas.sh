@@ -10,14 +10,24 @@ web=false
 gallery=false
 
 for path in "$@"; do
+  # A root manifest, lockfile or compiler config can break every suite, so it gates all three.
+  # The no-slash guard keeps a nested config (apps/web/vite.config.ts) in its own suite.
+  case "$path" in
+    */*) ;;
+    package.json | package-lock.json | pnpm-lock.yaml | tsconfig*.json | *.config.ts)
+      server=true
+      web=true
+      gallery=true
+      ;;
+  esac
   case "$path" in
     apps/server/* | packages/* | tools/* | scripts/* | *.sql) server=true ;;
   esac
   case "$path" in
-    apps/web/* | packages/shared/src/i18n/* | packages/shared/src/* | playwright.config.ts) web=true ;;
+    apps/web/* | packages/shared/src/* | playwright.config.ts) web=true ;;
   esac
   case "$path" in
-    apps/web/src/ui/* | apps/web/src/gallery/* | apps/web/e2e/gallery/* | *__screenshots__/*) gallery=true ;;
+    apps/web/src/ui/* | apps/web/src/gallery/* | apps/web/src/patterns/* | apps/web/e2e/gallery/* | packages/shared/src/i18n/* | *__screenshots__/*) gallery=true ;;
   esac
 done
 
