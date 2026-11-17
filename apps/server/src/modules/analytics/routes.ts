@@ -74,32 +74,8 @@ function runRefused(reply: FastifyReply, actor: ActorContext): void {
 
 /** A task's ticket part: the extra task fields never reach a drill reply, which carries ticket rows only. */
 function asTicket(task: EngineData['tasks'][number]): EngineData['tickets'][number] {
-  const {
-    id,
-    ref,
-    kind,
-    status,
-    machineId,
-    reportedAt,
-    closedAt,
-    source,
-    downtimeMin,
-    repairMin,
-    workType,
-  } = task;
-  return {
-    id,
-    ref,
-    kind,
-    status,
-    machineId,
-    reportedAt,
-    closedAt,
-    source,
-    downtimeMin,
-    repairMin,
-    workType,
-  };
+  const { parentId, reason, expectedOn, ...ticket } = task;
+  return ticket;
 }
 
 /** The rows of one drill type. Tasks are tickets too: they drill as the ticket row the reply carries. */
