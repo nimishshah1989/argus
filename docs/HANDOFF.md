@@ -2,38 +2,41 @@
 
 Read first. Rewrite when the state changes. Under 50 lines.
 
-## RESUME HERE (third regime, 16 Nov 2026)
+## RESUME HERE (17 Nov 2026)
 
-**State:** `main` = `925d4a9` (PR #269). M0 gate passed 14 Nov; M1 is current (3 done / 6 in progress / 6 todo);
-M2 server work is ahead of the tracker. Staging is live with Cosmos's real data. **8 PRs are open and unmerged —
-clearing that queue is the first job.**
+**State:** `main` = `cba7541` (#267). M0 gate passed 14 Nov; M1 is current. Merged 16–17 Nov: #265 analytics
+engine shell (tickets 37A), #261 sign-off screens (34 part 1), #258 plant settings screens (22), #264 lockout
+before Start (66), #268 the M4a migration (36B), #267 M4a triage + answer key (36A, triage signed off by
+Nimish 16 Nov), plus #273 (test-only: main had gone red) and #274 (browser CI sharded 3 ways).
 
-**Routing and budget:** see `docs/decisions/D31-third-regime-routing-and-quality.md`. Development and testing run
-on the hosted coder; goal drafting, planning, final review and compliance run on the reasoning model. Two hard
-budgets: $5 hosted-coder credit and $10 reasoning credit. Probe the coder route before the first packet (a model
-list is not a route). No silent model switch.
+**In the merge queue:** #272 (the quality gate + `pnpm push:check`), #263 (Gujarati screens + baselines),
+#260 (account sheet + Alerts control). One at a time, rebase on current main, fresh review, green CI.
 
-**Quality rails:** the writer never reviews its own work; a fresh reviewer gets the plan, diff and test output
-only and returns PASS/FAIL with numbered `file:line` findings; every packet names a red test and a green command;
-`pnpm precheck` before every push; one CI run per ready PR; one merge queue; rebase and rerun stale greens.
+**In build (parallel frontend streams, each its own worktree/branch):** ticket 19 follow-up tasks screens
+(`fe-19`), ticket 23 lists + company settings screens (`fe-23`). Streams must not touch `App.tsx`,
+`packages/shared/src/i18n/index.ts` or the settings/desk nav — they hand the orchestrator their wiring lines
+and it integrates them at merge (exception granted: a 6-line catalogue registration hunk, flagged in the PR).
+There is no slice-4 HTML in the repo; slice 4 is only the LOCK.md canvas link — build from LOCK.md and the
+slice-5 to slice-9 HTML files.
 
-## PR queue (one at a time, rebase + rerun on current main)
+**Routing and budgets:** coder `isoquant/deepseek-v4.1-flash-1017-fast`; reasoning `deepseek-account/
+deepseek-flash` because `DEEPSEEK_API_KEY` is absent (no Pro; R3 uses flash + a glm-5.3-flash adversary).
+Budgets $5 coder / $10 reasoning, hard stops. One coder per file area.
 
-1. #265 engine shell — green on current main
-2. #261 sign-off web — rebase; server #262 already merged
-3. #258 settings screens — rebase
-4. #264 lockout web — rebase
-5. #268 M4a migration — draft → ready → CI (before any analytics writer)
-6. #267 M4a triage / answer key — needs Nimish's sign-off on the triage
-7. #263 Gujarati — last of the screen set; regenerate baselines
-8. #260 account/Alerts — conflicts; e2e never run
+**Quality:** fifteen attributes Q1–Q15 in `docs/QUALITY-ATTRIBUTES.md` (D32). `pnpm quality` locally,
+`pnpm quality:pr` in the pr-meta job, `pnpm push:check` before every push, `pnpm main:check` after every merge
+(Q15 — CI does not run on main, so a red main otherwise surfaces on the next PR).
 
-## Direction (Nimish)
+**What a user can do on staging after the next deploy:** report/work/close a breakdown, desk lists and detail,
+PDFs, plant settings screens, sign-off answers ("Is it fixed?"), lockout steps before Start, the live board.
 
-- **Frontend-first:** finish the M1 screens, then the M2 screens. Backend only the fine-tuning those screens need.
-- **M4 is the advanced turn:** analytics, forecasting, manufacturing integrations. AI layer after that. M3/M5 parked.
-- Product questions only for Nimish; settle technical forks by running something.
+**Next buildable tickets:** 20/21 people + audit screens, 25 live-board goal 2, 24 Gujarati part 2 (translation
+screen), 16 desk leftovers, 19 and 23 (in flight).
 
-## Blocked / external
+**Blocked on people, not code:** 26 hardened (external security review), 27 usability round (3–5 operators and
+3 technicians on staging), 28 cutover (Bhavin sign-off + rehearsal), 68 Gujarati translation provider.
 
-- Bhavin: triage sign-off for #267; real inputs for cutover. Backup workflow failed 16 Nov — fix before the next deploy.
+**Open for Nimish:** none. Language is per device today (per login deferred, accepted 16 Nov).
+
+**CI facts to know:** browser suite runs as 3 shards with a 600 s global timeout; two workflows fire per push
+(push + pull_request), doubling minutes; `state-scale` p95 sits close to its 300 ms budget.
