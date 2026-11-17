@@ -25,11 +25,11 @@ test('an admin signs in and lands on the desk', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Open', exact: true })).toBeVisible();
 });
 
-/** Packet 1: the operator still lands on the floor, and is not offered the desk. */
-test('an operator signs in, lands on the floor and has no Desk entry', async ({ page }) => {
+/** Row 38: the operator still lands on My complaints, and is not offered the desk. */
+test('an operator signs in, lands on My complaints and has no Desk entry', async ({ page }) => {
   await signIn(page, 'op');
-  await expect(page).toHaveURL(/\/floor$/);
-  await expect(page.getByRole('heading', { name: 'Report a problem' })).toBeVisible();
+  await expect(page).toHaveURL(/\/floor\/mine$/);
+  await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
   await openAccount(page);
   await expect(accountSheet(page).getByRole('link', { name: 'Desk', exact: true })).toHaveCount(0);
 });
