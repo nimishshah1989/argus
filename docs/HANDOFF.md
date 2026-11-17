@@ -6,12 +6,11 @@ Read first. Rewrite when the state changes. Under 50 lines.
 
 **State:** `main` = `c026546`. **M2 is accepted.** **M4a is current: tickets 36, 37 and 38 are done — the Dashboard is
 complete and every figure is exact against Bhavin's 11 November key** (#293, #295, #298, #299; screen and role homes
-#297). **Ticket 39 (registers, cell change log, footprint, age, machine page) is in flight**: the plan is committed on
-branch `m4a-regs` (`docs/slices/39-registers.md`, including the frozen figure value shapes in its Revision section) and
-two builders were running when this handoff was written: engine in worktree `.agents/worktrees/m4a-regs` (branch
-`m4a-regs`), screens in `.agents/worktrees/m4a-regs-ui` (branch `m4a-regs-ui`). **Their work is uncommitted/partial —
-inspect, then either finish it through a fresh builder against the plan or reset the worktree to `origin/main` and
-restart the packet. Never merge unreviewed partial work.**
+#297). **Ticket 39 (registers, cell change log, footprint, age, machine page) is built and in review**: engine on branch
+`m4a-regs` (**draft PR #304**, five figures exact against the 11 Nov key: registers, A7 footprint, A8 age, machine-page,
+cell-change-log) and screens on branch `m4a-regs-ui` (**draft PR #305**: registers pages, cell log + CSV export, one page
+per machine, the frozen value shapes). Both are pushed, tested locally (30 domain tests; 65 web tests + 2 e2e) and
+**await a fresh reviewer → one CI run each → merge one at a time → `main:check`**.
 
 **Unattended runs:** follow `docs/plan/night-run.md` — the loop per ticket, the evidence standard, the post-gate
 backend architecture review, and the **night exception to gates** (write and merge the gate report, continue; no
@@ -38,8 +37,8 @@ file goes into the repo.
 ## Next session, first three steps
 
 1. Read this file, `docs/plan/ledger.md` (17 Nov lines) and `docs/plan/MILESTONES.md`; refresh Graphify.
-2. Recover ticket 39: inspect both worktrees, run their suites; complete via fresh builder + fresh reviewer, or reset and
-   re-dispatch. Then merge 39a and 39b with `main:check` after each.
+2. Land ticket 39: fresh-review #304 and #305 (plan on the `m4a-regs` branch), then one CI run each, merge one at a time,
+   `main:check` after each.
 3. Plan 37c + 40 together (the log load is 40's input): the Guide's A1–A3 rules are already extracted; the fixture
    `fixtures/answer-key/{breakdown-log,a1-bd-pm,a2-category-cell,a3-mttr-mtbf}.json` is the acceptance.
 
