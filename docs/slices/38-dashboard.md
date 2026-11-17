@@ -241,3 +241,7 @@ Dashboard renderer.
 - **Recorded hours vs minutes.** The Guide divides recorded **hours**; the repo stores **minutes**, which reproduces the
   key exactly today (3060.1333 h). If a later ticket needs the recorded-hours column (`downHrs`), it is an additive
   column in that ticket's migration, not a formula change.
+
+**Proven (17 Nov).** The four reproduce the key exactly through the code above: Plant BD % **0.54**, Fleet Availability
+**99.32**, Avg Complaints/Day **4.11** (1279 ÷ 311), Avg BD Hours/Day **9.84** (3060.1333 ÷ 311), with the pure test
+comparing the key's own printed text and no tolerance.
