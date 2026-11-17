@@ -35,3 +35,15 @@
   machine-level row prints the machine's current cell; tables print the key's normalised category label and charts keep
   the workbook's raw double space, 2 dp chart values included. The drill names the production breakdown tickets the
   figure read.
+
+- A3 (packet 40d) now answers the platform's whole page exactly: the six tables (By Category 14 rows, By Cell 9,
+  Month-on-Month Cell-wise/Plant-wide 20, Month-on-Month Age Band-wise/Plant-wide 12, By Machine Age Band 5, By
+  Individual Machine 125) and the seven charts (ch-a3-catmttr, ch-a3-catmtbf, ch-a3-cellmttr, ch-a3-cellmtbf,
+  ch-a3-agemttr, ch-a3-agemtbf, and ch-a3-planttrend in the platform's mixed dual-axis convention), compared whole
+  against the key with no tolerance. MTTR is BD hours ÷ breakdowns; MTBF is (available hours − BD hours) ÷ breakdowns.
+  The four bases are the key's own: the days-so-far window for the summary tables and the Total column, each month's
+  own window for its cell, and the average of the unrounded monthly values for a quarter. A group with no breakdowns
+  prints MTTR 0.00 and MTBF its available hours; only an empty month prints the dash. Age bands use the machine's age
+  at asOf, and the machine table prints its current cell. The paired month-on-month rows reproduce the key's print
+  shape: the first row carries the label and MTTR, the second row no label and its MTBF cells one column left. The
+  drill names the production breakdown tickets the figure read.

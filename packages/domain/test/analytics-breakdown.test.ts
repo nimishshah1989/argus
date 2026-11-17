@@ -645,3 +645,74 @@ describe('the A2 category and cell figure', () => {
     ]);
   });
 });
+
+/**
+ * The A3 figure (packet 40d): the platform's own page, whole — the six tables (two summary, two paired
+ * month-on-month matrices, the age-band summary and the machine table) and the seven charts, never a tolerance.
+ * The four MTBF bases are the key's own: days-so-far for the summary tables and the Total column, each month's
+ * own window for the monthly cells, and the unrounded months averaged for a quarter. The drill names the
+ * production breakdown tickets the figure read.
+ */
+describe('the A3 MTTR and MTBF figure', () => {
+  it("prints the key's whole page: six tables and seven charts", () => {
+    const computed = figure('a3-mttr-mtbf');
+    // Red first: the A3 computer had not landed, so the engine answered not_computed.
+    expect(computed.status).toBe('ready');
+    const value = computed.value as unknown as FigureKey;
+    expect({ screen: value.screen, asOf: value.asOf }).toEqual({
+      screen: A3.screen,
+      asOf: AS_OF,
+    });
+    expect(value.pages[0]!.tables).toHaveLength(6);
+    expect(value.pages[0]!.charts).toHaveLength(7);
+    expect(value.pages).toEqual(A3.pages);
+  });
+
+  it('drills the production breakdown tickets it read', () => {
+    const computed = COMPUTERS['a3-mttr-mtbf']!({
+      data: ENGINE_DATA,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    });
+    const production = new Set(
+      ENGINE_DATA.machines
+        .filter((machine) => machine.segment === 'CNC' && !machine.excludedFromProduction)
+        .map((machine) => machine.id),
+    );
+    const carried = sourcedReports(ENGINE_DATA).filter(
+      (row) => isHistory(row) && !isPm(row) && production.has(row.report.machineId),
+    );
+    const known = new Set(
+      [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+    );
+    expect(carried).toHaveLength(HISTORY.filter((row) => row.maintCode !== 'PM').length);
+    expect(computed.drillIds).toEqual(carried.map((row) => row.ticket.id));
+    expect(computed.drillIds.every((id) => known.has(id))).toBe(true);
+    const drilled = figure('a3-mttr-mtbf');
+    expect(drilled.drill.type).toBe('ticket');
+    expect(drilled.drill.ids).toEqual([...new Set(computed.drillIds)].sort());
+  });
+
+  it('prints a pair with its label on the first row and the second row one column left', () => {
+    const value = valueOf<FigureKey>('a3-mttr-mtbf');
+    for (const fragment of ['Cell-wise', 'Age Band-wise']) {
+      const table = value.pages[0]!.tables.find((candidate) => candidate.title.includes(fragment))!;
+      expect(table.rows).toHaveLength(table.rowCount);
+      expect(table.rows).toHaveLength(fragment === 'Cell-wise' ? 20 : 12);
+      for (let index = 0; index < table.rows.length; index += 2) {
+        const first = table.rows[index]!;
+        const second = table.rows[index + 1]!;
+        expect(first).toHaveLength(table.header.length);
+        expect(first[0]).toContain('MTTR / MTBF ·');
+        expect(second).toHaveLength(table.header.length - 1);
+        expect(second.every((cell) => !cell.includes('MTTR / MTBF'))).toBe(true);
+      }
+      const q3 = table.header.indexOf('Q3 Avg');
+      // Cell 1's third quarter: MTTR on the labelled row, MTBF one column left on the unlabelled row.
+      if (fragment === 'Cell-wise') {
+        expect(table.rows[0]![q3]).toBe('4.62');
+        expect(table.rows[1]![q3 - 1]).toBe('501.4');
+      }
+    }
+  });
+});
