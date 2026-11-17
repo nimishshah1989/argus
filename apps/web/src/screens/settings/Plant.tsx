@@ -22,14 +22,7 @@ import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 
-export type PlantPage =
-  | 'home'
-  | 'machines'
-  | 'groups'
-  | 'shifts'
-  | 'people'
-  | 'logins'
-  | 'audit';
+export type PlantPage = 'home' | 'machines' | 'groups' | 'shifts' | 'people' | 'logins' | 'audit';
 type Key =
   | 'plant.menu.machines'
   | 'plant.menu.groups'
