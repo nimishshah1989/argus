@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import { en } from '@uptimo/shared/i18n';
 import type { TicketEvent } from '../api.js';
-import { escalationLines } from './escalation-history.js';
+import { escalationLines, escalationLinks, maySetLadder } from './escalation-history.js';
 
 type EscalationStep = NonNullable<TicketEvent['escalation']>;
 
@@ -152,5 +152,27 @@ describe('escalationLines', () => {
       t,
     );
     expect([...bySeq.keys()]).toEqual([1, 2]);
+  });
+});
+
+describe('the ladder link', () => {
+  /** What the ticket page would hand the history for this role: the helper owns the rule, not the screen. */
+  const linkFor = (events: TicketEvent[], role: string | undefined) =>
+    escalationLinks(events, maySetLadder(role));
+
+  it('offers "Set the ladder" to a head and an admin on a step that fired with no ladder', () => {
+    for (const role of ['head', 'admin']) {
+      const link = linkFor([step(1, AT, { noLadder: true })], role).get(1);
+      expect(link?.to).toBe('/settings/ladder');
+      expect(en[link!.labelKey]).toBe('Set the ladder');
+    }
+  });
+
+  it('gives a technician the plain line, with no link to settings', () => {
+    expect(linkFor([step(1, AT, { noLadder: true })], 'technician').size).toBe(0);
+  });
+
+  it('offers no link on an ordinary step, even to an admin', () => {
+    expect(linkFor([step(1, AT)], 'admin').size).toBe(0);
   });
 });

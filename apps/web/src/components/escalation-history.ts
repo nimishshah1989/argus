@@ -62,6 +62,37 @@ function channelText(channel: string, fallback: string | undefined, t: TFunction
   return fallback ? t('escalation.channel.fallback', { channel: text }) : text;
 }
 
+/** The settings page that holds the ladder, the route `PLANT_PAGES` maps for the `ladder` page. */
+export const LADDER_PATH = '/settings/ladder';
+
+export interface EscalationLink {
+  to: string;
+  labelKey: MessageKey;
+}
+
+/** A head or an admin may change settings; nobody else is offered the ladder (design lock, slice 8). */
+export function maySetLadder(role: string | undefined): boolean {
+  return role === 'head' || role === 'admin';
+}
+
+/**
+ * "Set the ladder" beside every step that fired with no ladder, for the person who can set one. The line itself
+ * stays the words everyone reads; the link is the extra a head or admin gets.
+ */
+export function escalationLinks(
+  events: readonly TicketEvent[],
+  canSetLadder: boolean,
+): Map<number, EscalationLink> {
+  const links = new Map<number, EscalationLink>();
+  if (!canSetLadder) return links;
+  for (const event of events) {
+    if (event.type === 'escalate' && event.escalation?.noLadder) {
+      links.set(event.seq, { to: LADDER_PATH, labelKey: 'escalation.setLadder' });
+    }
+  }
+  return links;
+}
+
 /** One line per `escalate` event, keyed by its seq: what fired, who was told, how, and how fast it was answered. */
 export function escalationLines(
   events: readonly TicketEvent[],

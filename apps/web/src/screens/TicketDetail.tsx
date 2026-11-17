@@ -32,6 +32,7 @@ import { SlaTimerSummary } from '../components/SlaTimerSummary.js';
 import { TaskPanel } from '../components/TaskPanel.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Timeline } from '../components/Timeline.js';
+import { maySetLadder } from '../components/escalation-history.js';
 import { downNow } from '../components/liveDowntime.js';
 import {
   errorMessage,
@@ -250,6 +251,7 @@ function TicketView({ detail, config, me, run, pending, error, onFlow }: ViewPro
           names={names}
           reasonLabels={reasonLabels}
           timeZone={config?.timeZone}
+          canSetLadder={maySetLadder(me?.role)}
         />
         <AdminPanel ticket={ticket} config={config} me={me} />
         <Controls {...{ ticket, config, me, run, pending, error, people, onFlow }} />

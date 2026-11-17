@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import type { TicketEvent } from '../api.js';
 import { HistoryList, SectionTitle } from '../ui/detail-kit.js';
 import { Stack } from '../ui/layout.js';
 import type { Tone } from '../ui/status/index.js';
-import { escalationLines } from './escalation-history.js';
+import { escalationLines, escalationLinks } from './escalation-history.js';
 import { formatTime } from './format.js';
 
 /** The dot colour of each kind of event (the word beside it says the same thing). */
@@ -60,15 +61,19 @@ interface Props {
   names: Record<string, string>;
   reasonLabels: Record<string, string>;
   timeZone?: string;
+  /** A head or admin gets "Set the ladder" beside a step that fired with no ladder; everyone else does not. */
+  canSetLadder?: boolean;
 }
 
-export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
+export function Timeline({ events, names, reasonLabels, timeZone, canSetLadder = false }: Props) {
   const { t } = useTranslation();
   const escalation = escalationLines(events, names, t);
+  const links = escalationLinks(events, canSetLadder);
   const items = events.map((event) => {
     const actor = event.actingPersonId ? names[event.actingPersonId] : undefined;
     // A lockout confirmation keeps the steps' wording in `reason`; it is what was confirmed, not a "Reason".
     const confirmedSteps = event.type === 'lockout_confirmed' ? event.reason : undefined;
+    const link = links.get(event.seq);
     const reason =
       event.reason && event.reason !== event.text && !confirmedSteps
         ? t('timeline.reason', { reason: reasonLabels[event.reason] ?? event.reason })
@@ -89,6 +94,14 @@ export function Timeline({ events, names, reasonLabels, timeZone }: Props) {
       ]
         .filter(Boolean)
         .join(' · '),
+      action: link ? (
+        <Link
+          to={link.to}
+          className="inline-flex min-h-target-min items-center rounded-xl bg-accent-tint px-4 text-body font-semibold text-accent-text"
+        >
+          {t(link.labelKey)}
+        </Link>
+      ) : undefined,
     };
   });
   return (
