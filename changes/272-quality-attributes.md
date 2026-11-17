@@ -1,0 +1,1 @@
+- A pull request must now satisfy fourteen numbered quality attributes, and `pnpm quality` (locally) and `pnpm quality:pr` (in CI) check the ones a machine can decide; the rest are returned by the fresh reviewer as a Q table. A failing attribute blocks the merge; a waiver is a ledger ruling, never a silent exception.
