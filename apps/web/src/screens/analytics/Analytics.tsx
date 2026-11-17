@@ -14,6 +14,7 @@ import {
   type AnalyticsGroup,
 } from './groups.js';
 import { Dashboard } from './Dashboard.js';
+import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
@@ -57,6 +58,8 @@ export function AnalyticsFace() {
         <Dashboard group={found} />
       ) : found.id === 'machines' ? (
         <MachinesPage group={found} />
+      ) : found.id === 'breakdowns' ? (
+        <BreakdownsPage group={found} />
       ) : (
         <GroupPage group={found} />
       )}

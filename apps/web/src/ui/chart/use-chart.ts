@@ -20,7 +20,7 @@ export type ChartSpec =
       title: string;
       categoryLabel: string;
       categories: string[];
-      series: [ChartSeries];
+      series: [ChartSeries] | [ChartSeries, ChartSeries];
     }
   | {
       kind: 'line';
@@ -134,20 +134,17 @@ function valueAxis(p: Palette) {
 }
 
 function barOption(spec: BarSpec, p: Palette): Option {
-  const series = spec.series[0];
   return {
     ...baseOption(p, 16),
     xAxis: categoryAxis(spec.categories, p),
     yAxis: valueAxis(p),
-    series: [
-      {
-        type: 'bar',
-        name: series.name,
-        data: series.values,
-        color: p.series[0],
-        label: { show: true, position: 'top', color: p.axis },
-      },
-    ],
+    series: spec.series.map((series, index) => ({
+      type: 'bar' as const,
+      name: series.name,
+      data: series.values,
+      color: p.series[index],
+      label: { show: true, position: 'top' as const, color: p.axis },
+    })),
   };
 }
 

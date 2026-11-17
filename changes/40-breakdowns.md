@@ -36,6 +36,8 @@
   the workbook's raw double space, 2 dp chart values included. The drill names the production breakdown tickets the
   figure read.
 
+<<<<<<< HEAD
+
 - A3 (packet 40d) now answers the platform's whole page exactly: the six tables (By Category 14 rows, By Cell 9,
   Month-on-Month Cell-wise/Plant-wide 20, Month-on-Month Age Band-wise/Plant-wide 12, By Machine Age Band 5, By
   Individual Machine 125) and the seven charts (ch-a3-catmttr, ch-a3-catmtbf, ch-a3-cellmttr, ch-a3-cellmtbf,
@@ -47,3 +49,21 @@
   at asOf, and the machine table prints its current cell. The paired month-on-month rows reproduce the key's print
   shape: the first row carries the label and MTTR, the second row no label and its MTBF cells one column left. The
   drill names the production breakdown tickets the figure read.
+  \=======
+- The Breakdowns group now opens on the Breakdown Log (packet 40e-1): the platform's own page, PM rows included,
+  newest first, with the eye column, Sr No, ticket, date, shift, machine, problem, Done By, downtime hours (a dash for
+  NO DT) and code. Filters by date, shift, machine and code narrow the printed rows only; the figure's rowCount is
+  always printed (1,343 on the key) and "showing the newest N" says when the engine page was truncated. The export is
+  the existing client Blob/CSV pattern, with no new dependency, and writes the filtered table without the eye column.
+  Every row's eye opens its own ticket.
+- A1 now shows its whole key page: the six KPIs, the four tables and the two charts (the chart kit's bar and line, with
+  the two BD/PM series the engine sends). Its one drill names the ticket rows; when the engine names more than the drill
+  endpoint's 200-id cap, the page links to the Breakdown Log, where each of those tickets is a row, instead of asking
+  the server for a query it refuses.
+- The two figures map through one new key-shaped `page` content kind in `figure-content.ts`, rendered by the group
+  screen with the kit's `StatCard`, `DataTable` and `Chart`; no per-screen table renderer. Chrome is catalogue copy
+  in its own `analytics-breakdowns` namespace; the engine's titles, KPI labels and cells stay data. The journey pins a
+  head filtering and exporting the log and opening a ticket from a row, then A1's KPIs, tables, charts and drill; an
+  operator is refused.
+
+> > > > > > > 313f8b9a (feat(40e): the Breakdown Log and A1 screens)
