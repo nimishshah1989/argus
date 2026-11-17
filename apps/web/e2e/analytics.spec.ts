@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { HOUR_FIGURES } from '../src/screens/analytics/groups.js';
 import { signIn } from './fixtures.js';
 
 /** A fake id: the figure drills to it and the drill reply names the same machine row. */
@@ -46,14 +47,7 @@ const DRILL_ROW = {
 
 type Figure = FiguresReply['figures'][number];
 
-/** The face prints a number the way the app does: grouped, hours with at least one decimal. */
-const HOUR_FIGURES = new Set([
-  'dashboard.total-downtime-hours',
-  'dashboard.pm-hours',
-  'dashboard.no-downtime-hours',
-  'dashboard.avg-bd-hours-per-day',
-  'dashboard.avg-bd-hours-per-machine',
-]);
+/** The face prints a number the way the app does: grouped, hours with at least one decimal (one rule: groups.ts). */
 const valueText = (figure: Figure): string =>
   typeof figure.value === 'number'
     ? new Intl.NumberFormat('en-GB', {

@@ -2,27 +2,9 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import type { MessageKey } from '@uptimo/shared/i18n';
-import { FIGURE_LABELS, drillHref, type AnalyticsGroup } from './groups.js';
+import { FIGURE_LABELS, drillHref, unitOf, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
-
-/**
- * The figures printed in hours (the engine rounds them to the key's decimals). A tile prints the value with
- * at least one decimal, so a whole number of hours still reads as hours; a count prints as a count.
- */
-const HOUR_FIGURES: ReadonlySet<string> = new Set([
-  'dashboard.total-downtime-hours',
-  'dashboard.pm-hours',
-  'dashboard.no-downtime-hours',
-  'dashboard.avg-bd-hours-per-day',
-  'dashboard.avg-bd-hours-per-machine',
-]);
-
-/** The unit a ready figure prints after its value; null for a count, a percentage or an object. */
-export function unitOf(key: string): MessageKey | null {
-  return HOUR_FIGURES.has(key) ? 'analytics.unit.hours' : null;
-}
 
 /** A ready figure's value as a tile prints it; a computed object is not a number, so it says "Ready". */
 export function valueText(figure: Figure, t: TFunction): string {
