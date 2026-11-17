@@ -1,5 +1,9 @@
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
-import type { Computer, EngineData, MachineRow, ReportRow, TicketRow } from './types.js';
+import { bubbleChart, expansionTimeline } from './dashboard-charts.js';
+import { breakdownFree, costliestProblems } from './dashboard-flags.js';
+import { dataChecklist } from './data-checklist.js';
+import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
+import type { Computer, EngineData, MachineRow } from './types.js';
 
 /**
  * A count of the machines in the named workbook lists, naming every machine it counted so a drill opens them. The
@@ -15,29 +19,8 @@ function countSegments(...segments: readonly string[]): Computer {
   };
 }
 
-/** A breakdown report with the ticket that says which log it came from: a report carries no source of its own. */
-interface SourcedReport {
-  report: ReportRow;
-  ticket: TicketRow;
-}
-
-/** Every report whose ticket is in the snapshot, so its source resolves; an unlinked report has no source. */
-function sourcedReports(data: EngineData): SourcedReport[] {
-  const tickets = new Map([...data.tickets, ...data.tasks].map((ticket) => [ticket.id, ticket]));
-  return data.reports.flatMap((report) => {
-    const ticket = report.ticketId === null ? undefined : tickets.get(report.ticketId);
-    return ticket ? [{ report, ticket }] : [];
-  });
-}
-
-const isPm = (row: SourcedReport): boolean => row.report.maintCode === 'PM';
-const isNoDowntime = (row: SourcedReport): boolean => row.report.maintCode === 'NO DT';
-const isHistory = (row: SourcedReport): boolean => row.ticket.source === 'history';
-
-/**
- * The actual-breakdown rows: PM work is not a breakdown, and a NO-DT row records breakdown hours but no downtime,
- * so it keeps its own figure and stays out of the downtime totals (the key's sub-label says so).
- */
+/** The actual-breakdown rows: PM work is not a breakdown, and a NO-DT row records breakdown hours but no downtime,
+ * so it keeps its own figure and stays out of the downtime totals (the key's sub-label says so). */
 const isDowntime = (row: SourcedReport): boolean => !isPm(row) && !isNoDowntime(row);
 
 /** The ticket ids behind a figure; each sourced report's ticket is in the snapshot, so every id drills. */
@@ -160,6 +143,12 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
     const value = days > 0 ? round(minutes(downtime) / 60 / days, 2) : 0;
     return { value, drillIds: ticketIds(downtime) };
   },
+  'dashboard.bubble-chart': bubbleChart,
+  'dashboard.expansion-timeline': expansionTimeline,
+  'dashboard.breakdown-free': breakdownFree,
+  'dashboard.costliest-problems': costliestProblems,
+  // Owner 38's data-quality report: a screen-level key, computed here with the Dashboard's numbers.
+  'data-checklist': dataChecklist,
 };
 
 /**

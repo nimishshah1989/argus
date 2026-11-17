@@ -21,6 +21,12 @@ export interface FigureDef {
    * `money` key (see `compare.spares-cost`).
    */
   money?: true;
+  /**
+   * A figure whose value carries rows of more than one kind, so its one drill can name only the rows it can open.
+   * The data checklist is the only one: machine-record items have no ticket to drill to, and the screen renders
+   * those items from the value itself.
+   */
+  mixed?: true;
 }
 
 const dashboard = (name: string, label: string, drill: DrillType): FigureDef => ({
@@ -65,6 +71,9 @@ export const FIGURES: readonly FigureDef[] = [
   dashboard('total-downtime-hours', 'Total downtime', 'ticket'),
   dashboard('pm-hours', 'PM hours', 'ticket'),
   dashboard('no-downtime-hours', 'Breakdown hours with no downtime', 'ticket'),
+  // The two Dashboard cards the platform drew as figures but the face had not registered (Revision 2 R3).
+  dashboard('breakdown-free', 'Breakdown-free machines', 'machine'),
+  dashboard('costliest-problems', 'Problems costing the most downtime', 'ticket'),
   dashboard('bubble-chart', 'Bubble chart', 'machine'),
   dashboard('expansion-timeline', 'Expansion timeline', 'machine'),
   dashboard('fleet-availability', 'Fleet availability', 'machine'),
@@ -72,8 +81,8 @@ export const FIGURES: readonly FigureDef[] = [
   dashboard('avg-complaints-per-day', 'Average complaints per day', 'ticket'),
   dashboard('avg-bd-hours-per-day', 'Average breakdown hours per day', 'ticket'),
   dashboard('avg-bd-hours-per-machine', 'Average breakdown hours per machine', 'ticket'),
-  // R2: every checklist item is a breakdown/ticket row, so the checklist drills to tickets (not machines).
-  screen(38, 'data-checklist', 'Data checklist', 'ticket'),
+  // R2: the checklist's breakdown items drill to tickets; its machine items travel in the value (see `mixed`).
+  { ...screen(38, 'data-checklist', 'Data checklist', 'ticket'), mixed: true },
   screen(39, 'registers', 'Registers and splits', 'machine'),
   screen(39, 'cell-change-log', 'Cell change log', 'move'),
   screen(39, 'a7-footprint', 'A7 footprint', 'machine'),

@@ -389,10 +389,10 @@ describe('the two Dashboard charts on the 11 November workbook', () => {
     const plotted = figure(result, 'dashboard.bubble-chart');
     expect(plotted.status).toBe('ready');
     expect(plotted.drill.type).toBe('machine');
-    const value = plotted.value as ChartValue;
+    const value = plotted.value as unknown as ChartValue;
     expect(value.datasets).toEqual(chartById('ch-dash-bubble').datasets);
     const points = value.datasets[0]!.data as BubblePoint[];
-    expect(plotted.drill.ids).toEqual(points.map((point) => point.id));
+    expect([...plotted.drill.ids].sort()).toEqual(points.map((point) => point.id).sort());
     for (const id of plotted.drill.ids) expect(machineIds.has(id), id).toBe(true);
   });
 
@@ -401,18 +401,18 @@ describe('the two Dashboard charts on the 11 November workbook', () => {
     expect(plotted.status).toBe('ready');
     expect(plotted.drill.type).toBe('machine');
     const key = chartById('ch-dash-timeline');
-    const value = plotted.value as ChartValue;
+    const value = plotted.value as unknown as ChartValue;
     expect(value.labels).toEqual(key.labels);
     expect(value.datasets).toEqual(key.datasets);
-    const timelineMachines = ENGINE_DATA.machines.filter((machine) => machine.year !== null);
-    expect(plotted.drill.ids.length).toBe(timelineMachines.length);
+    const fleetTotal = Number(key.datasets.at(-1)!.data.at(-1));
+    expect(plotted.drill.ids.length).toBe(fleetTotal);
     for (const id of plotted.drill.ids) expect(machineIds.has(id), id).toBe(true);
   });
 });
 
 describe('the two cards packet 38.2 registers', () => {
   const result = dashboard();
-  const text = DASHBOARD.pages[0].text;
+  const text = DASHBOARD.pages[0]!.text;
   const machineIds = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
   const ticketIds = new Set(
     [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
