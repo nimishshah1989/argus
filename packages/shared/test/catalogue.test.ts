@@ -24,7 +24,11 @@ const NEW_KEYS = [
   'action.label.join',
   'action.label.leave',
   'action.label.close',
+  'action.label.acknowledge',
   'board.other',
+  'escalation.cardWaiting',
+  'escalation.cardTold',
+  'sla.acknowledgedBy',
 ];
 
 type Catalogue = Record<string, string>;
