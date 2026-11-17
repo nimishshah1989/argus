@@ -1,0 +1,1 @@
+- Pull requests now run only the test suites their changed paths can reach, so a screens-only or docs-only PR no longer pays for the three-way API suite.
