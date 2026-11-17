@@ -85,6 +85,9 @@ jobs:
       - run: pnpm audit:lean
       - run: pnpm changelog:check
         if: github.event_name == 'pull_request'
+        env:
+          # A merge train carries one fragment per ticket; the rule is train-aware and reads this.
+          PR_BODY: ${{ github.event.pull_request.body }}
       - run: pnpm migrations:immutable
         if: github.event_name == 'pull_request'
 
