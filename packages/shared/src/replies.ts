@@ -15,7 +15,7 @@ import {
   plantConfigSchema,
   settingRowSchema,
 } from './config.js';
-import { rosterReplySchema, ruleReplySchema } from './escalation-settings.js';
+import { rosterCopyReplySchema, rosterReplySchema, ruleReplySchema } from './escalation-settings.js';
 import { PEOPLE_REPLIES } from './people.js';
 import {
   glossaryReplySchema,
@@ -181,6 +181,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('roster', rosterReplySchema),
+  [`POST ${P}/settings/roster/copy`]: rosterCopyReplySchema,
   ...settingsResource('escalation-rules', ruleReplySchema),
   [`GET ${P}/analytics-profile`]: profilePageSchema,
   [`PUT ${P}/analytics-profile/:id`]: profileReplySchema,
