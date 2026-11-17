@@ -1,0 +1,1 @@
+- The check that keeps every phone alert on one send path now runs wherever the code is checked out, including a folder whose name has a space in it. Nothing changes for a user: a new breakdown and a fixed complaint still arrive the same way, and a second, direct sender still fails the check.
