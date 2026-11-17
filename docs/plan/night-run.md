@@ -74,7 +74,10 @@ next ticket.
 
 - **Routing (D31):** the coder route writes; planning and reviews run on the second family while the reasoning-route
   key is absent. A 429 or a credit error is a stop, not a retry. Never switch a model silently.
-- **Hard stops:** a milestone gate reached (wait for Nimish's go); either budget exhausted; the same finding fails
+- **The night exception to a gate:** an unattended run **writes and merges the gate report, then continues into the
+  next milestone**, and Nimish reviews the gates when he wakes. Nothing irreversible is done unattended (no production
+  deploy, no data deletion, no outbound message). A session that wants to stop at a gate must say so explicitly.
+- **Hard stops:** either budget exhausted; the same finding fails
   three times (the plan is wrong — re-plan); a product decision is needed; an irreversible action (production,
   deletion, outbound message) lacks Nimish's word.
 - **Context handoff at ~60%:** finish the ticket in flight (no half-merged work), write `docs/HANDOFF.md` (≤50 lines:
