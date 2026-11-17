@@ -16,6 +16,7 @@ const ADDED_SKIP = /\.skip\s*\(/;
 const ADDED_ONLY = /\.only\s*\(/;
 const ADDED_TODO = /\b(it|test)\.todo\s*\(/;
 const TEST_FILE = /\.test\.tsx?$/;
+const VERDICT = /\b(?:pass|n\/a|fail)\b/;
 const PREVIEW_LINE = /^[ \t]*(?:[-*][ \t]+)?preview[ \t]*:/im;
 const DECISION_LINE = /^[ \t]*(?:[-*][ \t]+)?decisions?[ \t]*:/im;
 
@@ -78,11 +79,12 @@ export function weakenedTests(diffText: string): string[] {
   return findings;
 }
 
-/** The ids Q1..Q15 a PR body never declared as a line starting `Q<id>`. */
+/** The ids Q1..Q15 a PR body never declared as a `Q<id> ...` line carrying a verdict. */
 export function missingAttributes(body: string): string[] {
   const declared = new Set<string>();
-  for (const match of stripComments(body).matchAll(/^[ \t]*(?:[-*][ \t]+)?Q(\d{1,2})\b/gm)) {
-    if (match[1]) declared.add(`Q${match[1]}`);
+  for (const line of stripComments(body).split('\n')) {
+    const match = /^[ \t]*(?:[-*][ \t]+)?Q(\d{1,2})\b(.*)$/.exec(line);
+    if (match?.[1] && VERDICT.test(match[2] ?? '')) declared.add(`Q${match[1]}`);
   }
   return IDS.filter((id) => !declared.has(id));
 }

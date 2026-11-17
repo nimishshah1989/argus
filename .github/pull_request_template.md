@@ -12,7 +12,8 @@
 
 ## Quality attributes
 
-<!-- One line per id from docs/QUALITY-ATTRIBUTES.md, appending pass, n/a — reason, or fail — finding N. -->
+<!-- One line per id from docs/QUALITY-ATTRIBUTES.md. Replace <verdict> with pass, "n/a — reason" or
+"fail — finding N"; a line without a verdict does not count and the gate fails the PR. -->
 
 Q1 Behaviour tested
 Q2 Test integrity

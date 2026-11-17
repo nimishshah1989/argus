@@ -95,6 +95,22 @@ describe('quality evidence', () => {
     expect(missingAttributes(body(['Q15']))).toEqual(['Q15']);
   });
 
+  it('Q12 rejects a Q line with no verdict', () => {
+    expect(missingAttributes(`${qTable(['Q7'])}\nQ7 Machine labels:`)).toEqual(['Q7']);
+  });
+
+  it('Q12 accepts a Q line that carries a verdict', () => {
+    expect(missingAttributes(`${qTable(['Q7'])}\nQ7 Machine labels: pass`)).toEqual([]);
+  });
+
+  it('Q12 leaves the untouched PR template failing until a verdict is filled in', () => {
+    const template = readFileSync(
+      new URL('../.github/pull_request_template.md', import.meta.url),
+      'utf8',
+    );
+    expect(missingAttributes(template)).toHaveLength(15);
+  });
+
   it('Q12 reports exactly the missing id and section', () => {
     const partial = `## What changed and why
 
