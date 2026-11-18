@@ -27,7 +27,7 @@ function FigureLinks({ entry }: { entry: GuideEntry }) {
             className="flex min-h-target-min items-center rounded-xl bg-accent-tint px-3 text-footnote font-semibold text-accent-text"
           >
             {t('analytics.guide.openFigure')} —{' '}
-            {t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}
+            <span>{t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}</span>
           </Link>
         </li>
       ))}
