@@ -4,11 +4,11 @@ Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `doc
 
 ## START HERE (review 41b → M4a tail → gate → M4b → M6)
 
-**State:** `main` = `9e185b88`. M2 accepted. **Ticket 41 is complete.** **Ticket 42's engine is done**: A9
-bottleneck (#344–#346) and the Forecast Lab (#347) equal their keys whole, 418 domain tests; the A9/Lab screens are the
-remaining 42 packet. **M4a: 36, 37, 38, 38.5, 39, 40, 41 and 42's figures done; the frontier is 42e screens**, then 43
-compare/Team Focus/Money/Fix Finder, 44 Action Center, 45 reports/export/Guide, then `docs/plan/gates/M4a.md`. Only
-other open PR: #300 (Nimish's, leave it).
+**State:** `main` = `4efd5d3e`. M2 accepted. **Ticket 41 is complete. Ticket 42 is complete** — A9 and the
+Forecast Lab equal their keys and their screens are live (#344–#347, #350). **Ticket 43's four figures are exact against
+their keys** (Compare #352, Team Focus #355, Money Matters #351, Fix Finder #353); their screens are the remaining 43
+packet. **M4a: 36–42 done; the frontier is 43e screens**, then 44 Action Center, 45 reports/export/Guide, then
+`docs/plan/gates/M4a.md`. Only other open PR: #300 (Nimish's, leave it).
 
 **The answer key's authority is the 11 Nov platform build, tracked in this repo** at
 `docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`; the
@@ -20,7 +20,7 @@ fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate ke
 map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
 
 **First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 42 plan, then plan and dispatch 42e.
+(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 42 plan, then plan and dispatch 43e.
 
 **Frontier:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
 43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),
