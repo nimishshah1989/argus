@@ -12,6 +12,7 @@ import { availableHours, availabilityWindow, daysInclusive } from './availabilit
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
 import { cellChangeLog } from './cell-log.js';
+import { compareFigure } from './compare.js';
 import { bubbleChart, expansionTimeline } from './dashboard-charts.js';
 import { breakdownFree, costliestProblems } from './dashboard-flags.js';
 import { dataChecklist } from './data-checklist.js';
@@ -189,8 +190,9 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
   'forecast-lab': forecastLabFigure,
 };
 
-/** Owner 43's figures: the compare, team, money and Fix Finder packets; 43a to 43d add their entries here. */
+/** Owner 43's figures: compare, team, money and Fix Finder. */
 const compareComputers: Readonly<Record<string, Computer>> = {
+  compare: compareFigure,
   'money-matters': moneyMattersFigure,
 };
 
@@ -212,6 +214,7 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...registerComputers,
   ...breakdownComputers,
   ...manpowerComputers,
+  ...compareComputers,
   ...forecastComputers,
   ...compareComputers,
 };
