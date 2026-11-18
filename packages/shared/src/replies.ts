@@ -44,6 +44,7 @@ import { taskParentSchema, taskRowSchema, taskSummarySchema } from './tasks.js';
 import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { AUDIT_REPLIES } from './audit.js';
 import { COMMAND_ACTIONS } from './ticket.js';
+import { whyWhyPayloadSchema } from './why-why.js';
 import {
   escalationStateSchema,
   isoDateTimeSchema,
@@ -207,7 +208,10 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/board/signoff`]: signoffFeedReplySchema,
   [`GET ${P}/tickets/:id/signoff-qr`]: null,
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
+  [`GET ${P}/tickets/:id/why-why`]: whyWhyPayloadSchema.nullable(),
+  [`PUT ${P}/tickets/:id/why-why`]: whyWhyPayloadSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
+  [`GET ${P}/tickets/:id/why-why.pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,
   [`GET ${P}/files/:id`]: null,
   [`GET ${P}/brand/logo`]: null,
