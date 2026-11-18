@@ -104,30 +104,34 @@ const cleanerOf =
 
 const codes = (ids: unknown): string[] => (ids as string[]).map(personCode);
 
-const report = (row: Row, clean: Cleaner): ReportRow => ({
-  id: row.id as string,
-  ticketId: text(row.ticket_id),
-  machineId: row.machine_id as string,
-  date: row.date as string,
-  shift: row.shift_code as string,
-  problem: clean(row.problem as string),
-  downtimeMin: row.downtime_min as number,
-  responseMin: row.response_min as number | null,
-  repairMin: row.repair_min as number | null,
-  category: text(row.breakdown_category),
-  maintCode: text(row.maint_code),
-  spareUsed: cleanOrNull(row.spare_used, clean),
-  spares: sparesOf(row.spare_used, clean),
-  rootCause: cleanOrNull(row.root_cause, clean),
-  correctiveAction: cleanOrNull(row.corrective_action, clean),
-  doneBy: codes(row.done_by),
-  supportedBy: codes(row.supported_by),
-  observedBy: cleanOrNull(row.observed_by, clean),
-  // The plant stores minutes; the legacy recorded-hours column exists only in the old workbook.
-  recordedHours: null,
-  // The platform's three spare costs are one stored sum (0014); null means no cost was recorded.
-  spareCost: numberOrNull(row.spare_cost),
-});
+const report = (row: Row, clean: Cleaner): ReportRow => {
+  // The platform's three spare costs are one stored sum (0014); the other two slots are unknown, not zero.
+  const spareCost = numberOrNull(row.spare_cost);
+  return {
+    id: row.id as string,
+    ticketId: text(row.ticket_id),
+    machineId: row.machine_id as string,
+    date: row.date as string,
+    shift: row.shift_code as string,
+    problem: clean(row.problem as string),
+    downtimeMin: row.downtime_min as number,
+    responseMin: row.response_min as number | null,
+    repairMin: row.repair_min as number | null,
+    category: text(row.breakdown_category),
+    maintCode: text(row.maint_code),
+    spareUsed: cleanOrNull(row.spare_used, clean),
+    spares: sparesOf(row.spare_used, clean),
+    rootCause: cleanOrNull(row.root_cause, clean),
+    correctiveAction: cleanOrNull(row.corrective_action, clean),
+    doneBy: codes(row.done_by),
+    supportedBy: codes(row.supported_by),
+    observedBy: cleanOrNull(row.observed_by, clean),
+    // The plant stores minutes; the legacy recorded-hours column exists only in the old workbook.
+    recordedHours: null,
+    spareCost,
+    spareCosts: spareCost === null ? undefined : [spareCost, null, null],
+  };
+};
 
 const person = (row: Row): PersonRow => ({
   id: row.id as string,
@@ -182,6 +186,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const lists = await listsForEngine(tx);
   const savedWhyWhy = await whyWhyEventRows(tx);
   const nudgeAcks = await readNudgeAcks(tx);
+  const plantLists = listsOf(lists);
   return {
     timeZone,
     machines: machines.map(machine),
@@ -198,12 +203,18 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     tasks: tickets.filter((row) => row.parent_id !== null).map(task),
     reports: reports.map((row) => report(row, clean)),
     people: people.map(person),
-    lists: listsOf(lists),
+    lists: plantLists,
     whyWhy: savedWhyWhy.flatMap((row) => {
       const record = whyWhyRow(row);
       return record ? [record] : [];
     }),
     // The Action Center's saved acks. The figure echoes them whole and the board gives each nudge its status.
-    settings: { excludedMachineIds: [], problemFixes: {}, nudgeAcks },
+    settings: {
+      excludedMachineIds: [],
+      problemFixes: {},
+      nudgeAcks,
+      // The report's cell table folds an unlisted cell into "No cell"; the plant's own cell list is the list.
+      cells: (plantLists.cell ?? []).map((item) => item.code),
+    },
   };
 }

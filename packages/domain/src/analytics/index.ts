@@ -2,6 +2,8 @@ export { run, runWith } from './engine.js';
 export { dataAsOf } from './as-of.js';
 export { plantDay } from './plant-day.js';
 export { COMPUTERS } from './computers.js';
+export { monthlyReport } from './monthly-report.js';
+export { annualReport } from './annual-report.js';
 export { actionCenterBoard } from './action-center-figure.js';
 export type {
   ActionCenterBoard,

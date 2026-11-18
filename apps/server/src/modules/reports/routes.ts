@@ -12,6 +12,8 @@ import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { registerDayReports } from './day-routes.js';
 import { registerSignoffQr } from './signoff-qr.js';
 import { registerWhyWhyPdf } from './why-why.js';
+import { registerReportPdfs } from './report-pdf.js';
+import { registerWorkbookRoute } from './workbook-route.js';
 import { renderOrBusy, sendBytes, type PdfDeps } from './pdf-send.js';
 import { figuresFromRow, loadReport, pdfTicketRow, type StoredReport } from '../tickets/index.js';
 
@@ -209,5 +211,7 @@ export function registerReports(app: FastifyInstance, config: AppConfig): void {
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
   registerWhyWhyPdf(app, deps);
   registerDayReports(app, deps);
+  registerReportPdfs(app, deps);
+  registerWorkbookRoute(app, deps);
   registerSignoffQr(app, config);
 }
