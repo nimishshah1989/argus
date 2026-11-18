@@ -53,7 +53,7 @@ Line anchors in the 11 Nov file: `fmtNum/fmtPct` 687–688, `availSum` 847, `fil
   printed `—` (the matrix cells below); never re-round a printed number.
 - **Free-text cells are the platform's rendered text**: whitespace runs collapsed to one space and trimmed (the key
   generator normalises labels; the platform printed HTML). That applies to A6's `Problem`, A10's `Problem`/`Action
-  taken` (collapse **then** slice to 110 chars — verified on all 31 unplaced rows) and the words table's example
+taken` (collapse **then** slice to 110 chars — verified on all 31 unplaced rows) and the words table's example
   problem. Everything else is already single-spaced.
 - **A number the platform passed to a KPI unformatted prints bare** (`1279`, no grouping); a number it formatted
   prints through `formatInr`. The two are different and the key pins both (A4's `Total Breakdowns` is `1279`).
@@ -96,16 +96,17 @@ no-real-personal-data rule — the ids and codes below carry the repair). Five `
 bd_muxluadanmqar and bd_muxluadbqozpr (both `Person 26`), bd_muxluadbag3ia (`Person 55`), bd_live_mw300wjpi9l77 and
 bd_live_mw5w6eqlouq32 (both `Person 79`); four `Supported By` mentions: bd_muxluada1zas4, bd_muxluadalbfgk and
 bd_muxluadbtrxho (`Person 26`), bd_muxluadb1zmxt (`Person 55`). The repair is a **fixture-side** map, `fixtures/answer-key/person-mentions.json`: report id + field
-+ coded token → its own code (`person-26-mention`, `person-55-mention`, `person-79-mention`) whose `PersonRow` keeps
-the original `displayName` (the log still prints `Person 26`). The fixture applies it while building `ENGINE_DATA`
-and `fixtures/answer-key/README.md` records why. It changes no production rule (the live plant has full names), no key
-byte, and no other figure (only A4 reads names for attribution). The planner proved the whole A4 page then equals the
-key: KPIs, all five tables and the chart, with no tolerance.
-**Files:** `types.ts`, `problem-groups.ts`, `test/answer-key/keys.ts`, `test/answer-key/fixture.ts`,
-`fixtures/answer-key/person-mentions.json` (new), `fixtures/answer-key/README.md`, `test/analytics-workers.test.ts`,
-fragment. Red first:
-`pnpm exec vitest run packages/domain/test/analytics-workers.test.ts` fails on the missing readers and fields. Green:
-same command; `pnpm exec vitest run packages/domain/test`.
+
+- coded token → its own code (`person-26-mention`, `person-55-mention`, `person-79-mention`) whose `PersonRow` keeps
+  the original `displayName` (the log still prints `Person 26`). The fixture applies it while building `ENGINE_DATA`
+  and `fixtures/answer-key/README.md` records why. It changes no production rule (the live plant has full names), no key
+  byte, and no other figure (only A4 reads names for attribution). The planner proved the whole A4 page then equals the
+  key: KPIs, all five tables and the chart, with no tolerance.
+  **Files:** `types.ts`, `problem-groups.ts`, `test/answer-key/keys.ts`, `test/answer-key/fixture.ts`,
+  `fixtures/answer-key/person-mentions.json` (new), `fixtures/answer-key/README.md`, `test/analytics-workers.test.ts`,
+  fragment. Red first:
+  `pnpm exec vitest run packages/domain/test/analytics-workers.test.ts` fails on the missing readers and fields. Green:
+  same command; `pnpm exec vitest run packages/domain/test`.
 
 ## 41a — A4 manpower (one PR)
 
@@ -114,6 +115,7 @@ same command; `pnpm exec vitest run packages/domain/test`.
 tables and 1 chart. It reads the mention-repaired fixture from 41h (R8), which is what makes the key reproducible at
 all.
 Rules, all from `calcAnalytics4`/`renderA4`:
+
 - Manpower Table: rows **sorted by `doneCount` desc** (stable); columns `# BD (Done By)`, `BD Hours (Done)` 2 dp,
   `Avg MTTR` = `doneHours/doneCount` 2 dp (0 when none), supported count, supported hours 2 dp, total
   involvement, `% of Total` = `doneCount/totalBD` via `formatPercent` (the total **derived**, never the
@@ -132,13 +134,13 @@ Rules, all from `calcAnalytics4`/`renderA4`:
   printed.
 - Chart `ch-a4-count`: bar, `labels`/`data` = the members with `doneCount > 0` in the table's sorted order, dataset
   label `# Breakdowns`, empty axes/tickLabels.
-**Files:** `a4-manpower.ts` (new), `computers.ts` spread, `test/analytics-manpower.test.ts`, fragment.
-**Acceptance:** `expect(figure.value).toEqual(A4)` — the whole key object, as every keyed figure's value is — the
-planner proved this
-equality holds under these rules with the R8 repair, so a failure here is a rule error, not a key defect; every drill
-id is a real ticket and its count is **derived**, not literal; a synthetic run with one excluded machine's row moves no
-A4 number (mutation proof that the production filter bites). Red: the named test. Green:
-`pnpm exec vitest run packages/domain/test`.
+  **Files:** `a4-manpower.ts` (new), `computers.ts` spread, `test/analytics-manpower.test.ts`, fragment.
+  **Acceptance:** `expect(figure.value).toEqual(A4)` — the whole key object, as every keyed figure's value is — the
+  planner proved this
+  equality holds under these rules with the R8 repair, so a failure here is a rule error, not a key defect; every drill
+  id is a real ticket and its count is **derived**, not literal; a synthetic run with one excluded machine's row moves no
+  A4 number (mutation proof that the production filter bites). Red: the named test. Green:
+  `pnpm exec vitest run packages/domain/test`.
 
 ## 41b — A5 energy heatmap (one PR)
 
@@ -299,7 +301,7 @@ same plus `pnpm exec playwright test analytics-problems --project=chromium` and
   the rules above are the plan's own statement of it; the committed 13 Nov export is unchanged and its two divergences
   are named in 41b/41d.
 - **R2** — a Why-Why is one append-only `ticket_event` of type `why_why`; payload `{whys[5], conclusion, completedBy,
-  completedDate}`; the latest event wins; nothing updates or deletes an event.
+completedDate}`; the latest event wins; nothing updates or deletes an event.
 - **R3** — write guard = `canAnalytics` roles; technician/operator/board refused with a named refusal. Cost if wrong:
   one guard predicate and its test.
 - **R4** — ticket 41's acceptance is the figures and the sortable screens. The A10 group editor and "add a word to a
