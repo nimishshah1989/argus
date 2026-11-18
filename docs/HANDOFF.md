@@ -1,46 +1,47 @@
 # Where things stand — handoff for the next orchestrator session
 
-Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `docs/plan/MILESTONES.md`. Under 50 lines; rewrite at session end.
+Read this first, then `docs/plan/ledger.md` (19 Nov tail), then `docs/plan/MILESTONES.md`.
 
-## START HERE (review 41b → M4a tail → gate → M4b → M6)
+## START HERE (M4b 46 → 54/67, then M6, then M3)
 
-**State:** `main` = `4efd5d3e`. M2 accepted. **Ticket 41 is complete. Ticket 42 is complete** — A9 and the
-Forecast Lab equal their keys and their screens are live (#344–#347, #350). **Ticket 43's four figures are exact against
-their keys** (Compare #352, Team Focus #355, Money Matters #351, Fix Finder #353); their screens are the remaining 43
-packet. **M4a: 36–42 done; the frontier is 43e screens**, then 44 Action Center, 45 reports/export/Guide, then
-`docs/plan/gates/M4a.md`. Only other open PR: #300 (Nimish's, leave it).
+**State:** `main` = `151071cb`. M2 accepted. **M4a is complete and its gate is written** —
+`docs/plan/gates/M4a.md`: tickets 36–45 merged, every figure whole-key exact against its frozen
+11 November key, all their screens live, the workbook and report PDFs shipping under ADR 0008, and the
+Guide's 36 entries explaining every figure once. Local proof on `main`: 2,803 unit/integration tests,
+parity 119 rows / 0 problems, boundaries 212 files / 0, the full journey suite green after the #370 fix (317 passed, 4 skipped; the two remaining `who-is-acting` flakes pass standalone 20/20) — the two red files
+locally are `tools/backup-dump` and `tools/staging-deploy`, which fail only because this checkout's
+path contains a space.
 
-**The answer key's authority is the 11 Nov platform build, tracked in this repo** at
-`docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`; the
-workbook is beside it). The earlier "not committed" note was wrong and is corrected here. The committed
-`docs/discovery/source/cosmos_platform.html` is a **different build** (no per-machine efficiency, no A10 card, no manual
-fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate keys only from the 11 Nov file.
+**CI is blocked at the account level, not by code.** Every Actions job on every PR ends in 1–2 s with
+`runner_name: ""` and "recent account payments have failed or your spending limit needs to be
+increased". Ruling R10 (ledger): merges run on local evidence instead of a CI run. **Nimish must fix
+GitHub → Settings → Billing → Actions (payment or spending limit), or make the repo public**; until then
+no PR can go green and no deploy runs.
 
-**R8 — do not undo.** The pseudonymiser collapsed name forms, so nine A4 mentions were over-attributed; the fixture-side
-map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
+**Frontier:** M4b starts at ticket 46 (the one M4b migration — backup before it), then 47, 49, 51 and 52
+off it; 48 and 50 follow; 53, 54 and 67 last. Then M6 (55–60). **M3 is out.** **M5 has no tickets in the
+one plan** — "Plant two" is shaped only when Nimish gives the product input (`grill-with-docs`), so it is
+not dispatchable yet.
 
-**First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 42 plan, then plan and dispatch 43e.
-
-**Frontier:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
-43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),
-45 reports/export/Guide (PDFs; workbook writer under an ADR). Then **write `docs/plan/gates/M4a.md` (<30 lines)** and,
-per the night exception, continue into **M4b (46–54, 67)** and **M6 (55–60)**. **M3 is out.**
-
-**How this repo is worked (non-negotiable):** plan first + a fresh plan review; one packet = one acceptance assertion,
-≤3 files/≤150 lines (a named shared seam excepted), a named red command and green command, no open decision; a fresh
-reviewer that did not write it runs the **covering suite** (never only the named test) and returns PASS/FAIL with
-`file:line`; `pnpm precheck` before push; one PR per packet, rebased, one CI run, merge one at a time, then
-`pnpm main:check`; never weaken a test; whole-figure `toEqual`, no tolerance, no re-rounding; derived counts; drill
-ids real rows. PR bodies follow `.github/pull_request_template.md` — the three headings, the Q1–Q15 verdict lines, and
-the `Large PR:`/`No parity:` **plain** lines in Reasons (a bolded bullet does not count). **Fragments:**
-`changes/<digits>-<slug>.md`.
+**How this repo is worked (non-negotiable):** plan first + a fresh plan review; one packet = one
+acceptance assertion, ≤3 files/≤150 lines (a named shared seam excepted), a named red command and green
+command, no open decision; a fresh reviewer that did not write it runs the **covering suite** (never
+only the named test) and returns PASS/FAIL with `file:line`; `pnpm precheck` before push; one PR per
+packet, rebased, one CI run, merge one at a time, then `pnpm main:check`; never weaken a test;
+whole-figure `toEqual`, no tolerance, no re-rounding; derived counts; drill ids real rows. PR bodies
+follow `.github/pull_request_template.md` — the three headings, the Q1–Q15 verdict lines, and the
+`Large PR:`/`No parity:` **plain** lines in Reasons. **Fragments:** `changes/<digits>-<slug>.md`, one
+per ticket; when packets share it, keep every section in packet order.
 
 **Known traps:** `check-size` counts the trailing newline (keep files ≤399 wc-lines); `migration-runner`,
-`escalation` and `state-scale` flake under CI load (rerun; never change code); GitHub Actions has stalled for hours
-(check job timings before debugging code); prettier runs over `docs/` too, so format a plan/ledger edit before pushing.
+`escalation` and `state-scale` flake (rerun; never change code); a checkout path with a space breaks
+`tools/backup-dump` and `tools/staging-deploy` only; prettier runs over `docs/` too — format before
+pushing; a shared fragment conflicts on every packet merge — resolve by keeping every packet's section
+in order.
 
-**Calls and gaps:** N12 open (the real legacy maintenance-code map is Bhavin's; 37c ships a labelled synthetic map);
-CSV not XLSX for the cell-log export (ADR needed); N5 real Gujarati copy blank; A10's group-editor write and the "What
-stands out" card are recorded debt (R4/R9, `docs/plan/DEBT.md`). Recorded follow-ups: split the 700-line e2e spec; an
-A2/A3 over-cap variant; a stale doc comment in figure-content.ts; the move-correction row lock.
+**Calls and gaps:** N12 open (the real legacy maintenance-code map is Bhavin's; 37c ships a labelled
+synthetic map); CSV not XLSX for the cell-log export (ADR needed); N5 real Gujarati copy blank; A10's
+group-editor write and "What stands out" card are debt (R4/R9). Report open product calls are in the
+M4a gate: report tiles/prose, commentary persistence, restorable workbook, `DOC. NO.` line, Guide prose.
+Recorded follow-ups: split the 700-line e2e spec; an A2/A3 over-cap variant; a stale doc comment in
+figure-content.ts; the move-correction row lock.
