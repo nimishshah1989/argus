@@ -166,7 +166,7 @@ async function closed(
   expect((await work('start')).statusCode).toBe(200);
   const close = await work('close', {
     kind,
-    ...(kind === 'report' ? { report: { correctiveAction: 'Fixed' } } : {}),
+    ...(kind === 'report' ? { report: { correctiveAction: 'Fixed', failureComponent: 'E' } } : {}),
   });
   expect(close.statusCode).toBe(200);
   const detail = await asA('GET', ticketUrl(ticketId), tokens.sana!);

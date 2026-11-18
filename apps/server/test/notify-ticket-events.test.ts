@@ -200,6 +200,7 @@ describe('a fixed complaint tells the person who reported it', () => {
     const closed = await post(`/api/v1/tickets/${ticketId}/close`, tokens.asha!, {
       personId: ASHA,
       kind: 'report',
+      report: { failureComponent: 'E' },
     });
     expect(closed.statusCode).toBe(200);
     expect(await told(ticketId)).toEqual([
@@ -210,7 +211,11 @@ describe('a fixed complaint tells the person who reported it', () => {
   it('does not tell someone who closed their own ticket, and says nothing when a ticket is cancelled', async () => {
     const own = await started(tokens.asha!);
     await db.admin.query('DELETE FROM notification');
-    await post(`/api/v1/tickets/${own}/close`, tokens.asha!, { personId: ASHA, kind: 'report' });
+    await post(`/api/v1/tickets/${own}/close`, tokens.asha!, {
+      personId: ASHA,
+      kind: 'report',
+      report: { failureComponent: 'E' },
+    });
     expect(await told(own)).toEqual([]);
     const cancelled = await raise(tokens.opera!);
     await db.admin.query('DELETE FROM notification');
@@ -250,6 +255,7 @@ describe('a person who has left is not told their complaint is fixed', () => {
     const closed = await post(`/api/v1/tickets/${ticketId}/close`, tokens.asha!, {
       personId: ASHA,
       kind: 'report',
+      report: { failureComponent: 'E' },
     });
     expect(closed.statusCode).toBe(200);
     expect(await told(ticketId)).toEqual([]);

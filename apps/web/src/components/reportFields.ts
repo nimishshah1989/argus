@@ -21,7 +21,8 @@ export interface ReportValues {
   responseMin: string;
   repairMin: string;
   breakdownCategory: string;
-  maintCode: string;
+  /** The one code a close carries (Q33): picked from the plant's `failure_code` list. */
+  failureComponent: string;
   spareUsed: string;
   handoverName: string;
   date: string;
@@ -83,7 +84,7 @@ export function initialReportValues(
     responseMin: minutesText(chosen ? chosen.responseMin : stored?.responseMin),
     repairMin: minutesText(chosen ? chosen.repairMin : stored?.repairMin),
     breakdownCategory: '',
-    maintCode: '',
+    failureComponent: '',
     spareUsed: '',
     handoverName: '',
     date: tenantToday(config.timeZone, at),
@@ -124,7 +125,7 @@ export function buildReportBody(values: ReportValues): BreakdownReportBody {
     responseMin: minutes(values.responseMin),
     repairMin: minutes(values.repairMin),
     breakdownCategory: category(values.breakdownCategory),
-    maintCode: text(values.maintCode),
+    failureComponent: text(values.failureComponent),
     spareUsed: text(values.spareUsed),
     handoverName: text(values.handoverName),
     date: text(values.date),
@@ -138,7 +139,7 @@ export function reportReady(values: ReportValues): boolean {
     values.problem.trim() &&
     values.doneBy[0] &&
     category(values.breakdownCategory) &&
-    values.maintCode.trim(),
+    values.failureComponent.trim(),
   );
 }
 
@@ -146,6 +147,17 @@ export function listOptions(config: Config, list: string): { value: string; labe
   return (config.lists[list] ?? [])
     .filter((item) => item.active !== false)
     .map((item) => ({ value: item.code, label: item.label }));
+}
+
+/**
+ * The close's one code (Q33), from the plant's `failure_code` list and only the rows still switched on, so
+ * a code switched off keeps its old reports and is never offered for a new close (R6). While the plant has
+ * no failure-code rows at all — the deploy window before the settings screen or a coded close creates them —
+ * the same box offers the plant's own maintenance codes, never a hardcoded list (R4's bridge).
+ */
+export function codeOptions(config: Config): { value: string; label: string }[] {
+  const codes = config.lists.failure_code ?? [];
+  return codes.length > 0 ? listOptions(config, 'failure_code') : listOptions(config, 'maint_code');
 }
 
 /** The plant's breakdown categories the server accepts, or the fixed four when the plant has no list. */

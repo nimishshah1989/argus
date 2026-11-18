@@ -20,7 +20,7 @@ export async function runOutcome(
     return await withTenant(pool, binding.tenantId, run);
   } catch (error) {
     if (error instanceof report.ReportValidationError) {
-      return { status: 422, body: shared.apiError('validation', 'Invalid report', error.field) };
+      return { status: 422, body: shared.apiError('validation', error.message, error.field) };
     }
     if (error instanceof idem.IdempotencyKeyReusedError) return idem.reusedKeyOutcome();
     if (!idem.isUniqueViolation(error)) throw error;

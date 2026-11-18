@@ -334,11 +334,14 @@ leaves at ≤ 399: **if it cannot, `pageTable` moves to `page-parts.ts` in the s
 `contentOf`, not `pageTable`). Cost if wrong: a designer wanting ECharts colour scales on the heat grid gets a
 follow-up; the numbers, the layout and the drill do not change.
 
-**R15 — the stored profile of these figures is `standard`.** `snapshot.ts:7`'s single `PROFILE` constant becomes
-`key.startsWith('shift-kpis.') ? 'standard' : 'legacy'`, so a run stores the four standard rows under their own profile
-and every existing row keeps `legacy`; the unique key already includes `profile`, so nothing collides
-(`0014_m4a_schema.sql:54-74`). No new table (D17), no migration, no column, no reply-schema change. Cost if wrong: a
-third family later needs the same one-line list; a `profile` field on `FigureDef` is the follow-up.
+**R15 — every stored row carries its own profile, and these figures' is `standard`.** `snapshot.ts:7`'s single
+`PROFILE` constant becomes one exported helper `profileOfKey(key)` — `shift-kpis.*` and `pm-compliance` are `standard`,
+everything else `legacy` — and the store writes **one row per figure with that row's profile** (the insert already
+carries `profile` per row; whether it batches through `jsonb_to_recordset` or loops is the implementer's choice, but no
+statement may use one constant for a mixed run). The unique key already includes `profile`, so the two families never
+collide (`0014_m4a_schema.sql:54-74`). Ticket 50's `pm-compliance` uses the same helper — 50's plan states the
+per-row store; this ruling is the one shared home. No new table (D17), no migration, no column, no reply-schema change.
+Cost if wrong: a third family later needs the same one-line list; a `profile` field on `FigureDef` is the follow-up.
 
 **R16 — English only, and the Guide keeps the answer key's 36 headings.** New copy goes into
 `analytics-breakdowns.en.ts` (screen, four figure labels, four chart titles, four axis names) and
@@ -391,8 +394,8 @@ owner 48, screen `shift-kpis`, drill `ticket`), `packages/domain/test/answer-key
 (new: the hand-computed numbers with the arithmetic in comments — **not** under `fixtures/answer-key/`, which holds what
 the platform itself showed), `packages/domain/test/analytics-engine.test.ts` (the owner bound and the owners list),
 `apps/server/src/modules/plant/repo/analytics.ts` + `apps/server/src/modules/plant/index.ts` (`shiftsForEngine`),
-`apps/server/src/modules/analytics/load.ts` (one field), `apps/server/src/modules/analytics/snapshot.ts` (the profile
-line), `apps/web/src/screens/analytics/groups.ts` (the screen label and the figure label in `SCREEN_LABELS`/`FIGURE_LABELS`,
+`apps/server/src/modules/analytics/load.ts` (one field), `apps/server/src/modules/analytics/snapshot.ts` (the per-row
+`profileOfKey` and its use), `apps/web/src/screens/analytics/groups.ts` (the screen label and the figure label in `SCREEN_LABELS`/`FIGURE_LABELS`,
 the screen in the Breakdowns group at `:33-95`), `apps/web/src/screens/analytics/figure-content.ts` (`KIND` and
 `PAGE_KEYS` for the one key), `apps/web/src/screens/analytics/BreakdownsPage.tsx` (the screen id at `:23` and its
 branch at `:91-105`), `apps/web/src/screens/analytics/ShiftKpisPage.tsx` (new, ~50 lines: for each figure of the screen

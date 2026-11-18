@@ -20,7 +20,12 @@ async function closedWithReport(slot: 'A' | 'B', project: string, problem: strin
   await commandViaApi(maintenance, ticket.id, 'close', {
     personId,
     kind: 'report',
-    report: { problem, correctiveAction: 'Replaced the part', doneByPersonIds: [personId] },
+    report: {
+      problem,
+      correctiveAction: 'Replaced the part',
+      doneByPersonIds: [personId],
+      failureComponent: 'M',
+    },
   });
   return ticket;
 }

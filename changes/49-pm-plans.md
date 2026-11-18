@@ -117,3 +117,45 @@ uses the existing `CrudPage` and its one new field kind (`date`).
 here because 49a has no caller for them; they land with 49b/49c and their own tests, which keeps this packet's code
 tested rather than speculative. The 404 on another plant's machine id uses the generic resource `Problem.missing`
 flag (two lines in `settings-routes.ts`); `plantToday` moved to `repo/reads.ts` to keep the resource import acyclic.
+
+## 49b — `pm.generate` raises the PM jobs (this PR)
+
+**What changed for a user:** nothing visible yet on its own — every night at 00:05 UTC the server now works out
+which PM plans are due and raises the PM job on the machine's floor list for the technician (49c builds that list and
+the phone close). A machine gets one job, never a second while one is open.
+
+**By the calendar (R7).** `anchor = last_done_on ?? the plant-local date of created_at`; due is `anchor +
+interval_days`, raised when `due <= today + horizonDays` (the daily job's horizon is 0). The ±15-day late window is
+50's. A direct-SQL plan with no interval raises nothing (R6).
+
+**By the meter (R6).** The baseline is `readings.meter` of the machine's most recent closed PM job; due when
+`last_meter_reading − baseline >= meter_interval`, raising at the interval. `meter_tolerance` only marks the plan
+`overdue` past `meter_interval + meter_tolerance`; it never delays or repeats the raise. With no baseline the meter
+rule is inert and the time rule still raises the first PM.
+
+**The number and the shape.** One effective plan per machine (R3: an active machine plan, else the most recently
+updated active category plan; scrapped machines out), one ticket per due machine through 46c's
+`raisePlannedTicket` with only `{ tenantId, machineId, channel: 'pm', problem: 'PM due: <title>', at }`, so the job is
+`kind: 'general'`, ref `WR-…`, channel `pm` and takes no SLA clock, drift line or escalation (R4). A machine with an
+open/working/waiting PM job is skipped, so a re-run is a no-op and a cancelled job frees the next run.
+
+**Wiring.** `apps/server/src/modules/tickets/pm-generate.ts` (the per-tenant run, the clock guard, the local day),
+`pm-due.ts` (the pure decision), `repo/pm.ts` (open PM jobs, meter baselines), `pm-jobs.ts` (`pm.generate` queue for
+every role; worker and the daily `5 0 * * *` UTC schedule, `{ v: 1, horizonDays: 0 }`, `singletonKey: 'all'`,
+`missed: 'once'` for non-api roles; no boot enqueue), `records.ts`'s `pmPlansForScheduling`/`pmPlanForMachine`, and
+`packages/shared/src/pm.ts`'s `pmGeneratePayloadSchema`. The worker fans out over `jobTenantIds()` under `withTenant`,
+like the retention jobs.
+
+**Evidence.** `apps/server/test/pm-generate.test.ts`: not due the day before, one job on the due date with only the
+merged input, no second job on a re-run (same day or next), no `sla_timer`/`sla.escalate` job and no drift line, a
+cancelled job raising a fresh one, the next period after a report close moving the plan, the meter 1499/1500/1549/1550 boundaries (tolerance moves only `overdue`), the
+no-baseline inert case, switched-off/scrapped/no-interval/open-job skips, machine-over-category, two plants each
+raising only their own, and the clock guard. `pnpm boundaries` is green (tickets → plant was already allowed);
+`pnpm precheck` is the rail.
+
+**Deviations recorded for review:** (1) the slice names `docs/decisions/D06-jobs.md` as the job pattern; this
+checkout has no such file (it runs D01–D32 without a D06-jobs), so the job follows `retention.ts` and the
+notifications jobs and D18's one-process rule. (2) `pmPlansForScheduling` does not return `anchorOn`: plant's repo may
+not name `tenant` (the table is identity's), so the job reads the tenant zone through `tenantInfo` and passes the local
+day into the pure `pmDue`. (3) The queue adds `retryDelay: 60`, the same as the retention queues, which the slice did
+not name. No new table, dependency or migration; no test weakened.

@@ -23,3 +23,53 @@
 - Tests: a tenant with its own code (GRS) gets only that code; a tenant holding ELE but no E keeps ELE; the empty-list
   fallback seeds once from two concurrent reads and never writes on `GET /config`; alias normalisation, switch-off,
   the 409 refusals and two-plant isolation; and the list's three generated routes reply to the shared schema.
+
+## 47b — coded closes and one code on read
+
+- A close that records a breakdown report now carries one code, resolved through the plant's `failure_code` list on
+  the way in (case-insensitive; an alias such as `ele`/`ELE` resolves to `E`) and mirrored into `maint_code`, so every
+  existing figure, PDF and screen that reads `maint_code` counts it with no change. The other three failure columns
+  are still stored when a client sends them and stay optional (Q33).
+- A live breakdown (a `stopped` ticket raised through `floor`/`desk`/`whatsapp`/`qr`) is refused 422 `validation`,
+  "A failure code is required", field `failureComponent` when its report names no code, and refused 422 "A report is
+  required to close a breakdown", field `report` when a `kind:'report'` close sends no report body at all. A
+  `no_report`/`done` close records no report and is exempt; the late report that completes a `no_report` close must
+  carry the code. PM/inspection tickets, support tickets, past breakdowns (`backfill`) and imported history keep
+  working uncoded, because the rule uses the shared breakdown-channel predicate rather than another copy of the names.
+- The list is seeded on the report write exactly as on the settings read, so a plant's first coded close also creates
+  it; an unknown code is refused by the database trigger as before, now with the message "That is not a failure code
+  of this plant" on the field it names. `ReportValidationError` carries an optional message that the reply forwards,
+  and `failureCodeField`/`ReportValidationError` moved to `repo/failure-code.ts` and are re-exported, so the import
+  path is unchanged.
+- One code on read: the analytics loader resolves `maint_code` through the same index and keeps the raw value when it
+  does not know it — `maintCode: raw === null ? null : (resolveFailureCode(index, raw) ?? raw)`. A legacy `ELE` row
+  therefore counts as `E` beside a new `E` close, while `MEC` (N12, not aliased) and a blank stay unchanged. The
+  ticket detail, PDF and breakdown log keep showing what the report recorded; no read filters on `active`.
+- `maint_code` is still optional on the wire (an older client may send it instead of `failureComponent`); on a report
+  row written by this path it is now canonical, mirrored from the resolved component.
+- Tests: `failure-code-closes.test.ts` covers the missing code and no-body refusals, `no_report`/`done` exemption, the
+  alias and mirror, the unknown code's exact message, PM/support/past exemption, and the loader's ELE → E with MEC
+  and a blank untouched. One code is added to every close-with-report call site in the server tests and the three e2e
+  specs that close through the API. The plan's must-fix at `ticket-report.test.ts:258` changes from success to the
+  refusal on purpose; every other assertion is unchanged.
+
+## 47c — the failure-code screen and the close picker
+
+- Settings → Lists gains Failure codes: one `LIST_PAGES` entry and one icon over the generated
+  `/settings/lists/failure_code` screen, so the head sees the plant's codes with their readable labels, order and
+  on/off switch, and edits the one field this list owns — the old codes, shown under each row's name and searched
+  with it. Every other list declares `aliases` hidden with its reason (the D05 guard), and the edits are audited by
+  the same list route as every other setting.
+- The floor's "Maintenance Code" box keeps the plant's words and its place (R2, design lock) and now draws its
+  options from the switched-on `failure_code` rows, sending the picked value as `failureComponent` (Q33). A code
+  switched off is not offered for a new close; the old ticket still shows the code it recorded, because no read
+  filters on `active`. The form still cannot send without a code.
+- While a plant has no `failure_code` rows at all — the deploy window — the same box offers the plant's own
+  `maint_code` rows, never a hardcoded 19, so the floor is never left with an empty picker and that first close
+  creates the list (R4's bridge). The bridge stops the moment the list holds a row.
+- Tests: the units cover the new page (the one visible `aliases` field, hidden elsewhere, the old codes under the
+  row), the picker (switched-on only; the bridge with a plant code outside the fallback 19), and the body's
+  `failureComponent`. `coded-close.spec.ts` is the journey on chromium and phone: the floor closes with a code, the
+  head switches that code off on the settings screen, the old ticket keeps it, and a new close no longer offers it.
+  The e2e tenant seeds one `failure_code` row per fixture code, so the journey exercises the list, not the bridge.
+- No dependency, no migration, no new table; `closes.*` copy is untouched (the frozen catalogue).

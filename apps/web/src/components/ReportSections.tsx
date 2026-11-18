@@ -8,7 +8,7 @@ import {
   DONE_SLOTS,
   activePeople,
   categoryOptions,
-  listOptions,
+  codeOptions,
   shiftOptions,
   type ReportValues,
 } from './reportFields.js';
@@ -190,12 +190,13 @@ export function Classification({ values, update, config }: SectionProps) {
         options={categoryOptions(config)}
         onChange={(breakdownCategory) => update({ breakdownCategory })}
       />
+      {/* R2: the floor keeps the plant's word; only where the options come from changed (ticket 47). */}
       <Choice
         id="report-maint"
         label={t('closes.form.maintCode')}
-        value={values.maintCode}
-        options={listOptions(config, 'maint_code')}
-        onChange={(maintCode) => update({ maintCode })}
+        value={values.failureComponent}
+        options={codeOptions(config)}
+        onChange={(failureComponent) => update({ failureComponent })}
       />
       {field(
         'report-spare',
