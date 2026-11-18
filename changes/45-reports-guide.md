@@ -220,6 +220,69 @@ needed changing. No dependency, no migration, no schema change.
 5. **Category labels are whitespace-normalized.** The workbook's `Cnc Sliding Head  Automatic Lathe` prints one space
    in the key; `categoryName`/`categoryOf` (45a's helpers) collapse it. The whole-key test proves every cell.
 
+# 45e — the report screens
+
+**What changed for a user:** the Reports group now has its own screen. `/analytics/reports` opens the Monthly Report
+with a Monthly | Annual switch, the period line "October 2026", the monthly key's eight tables in its order (the four
+"Where the time went" rankings, the longest breakdowns, the maintenance team, the machines added and the blank
+commentary form), and its two charts `ch-rp-daily` and `ch-rp-12m`. Switching to Annual shows "2026 to 11 November",
+the twelve annual tables in their order and `ch-ry-month` and `ch-ry-pareto`. Above the report are the two downloads:
+`Download PDF` to `/api/v1/reports/monthly.pdf` (or `/annual.pdf`) and `Export the whole data set (Excel)` to
+`/api/v1/reports/workbook.xlsx`. The report tables do not sort; the untitled table prints the caption "Management
+commentary and actions" while the figure's title stays `""`; a `null` figure prints the empty-report line and a
+figure the face cannot draw keeps "Not computed yet". No KPI tiles, no insight lists and no commentary inputs are
+added: none is in either key. The figure's ticket drill is unchanged: the monthly report links its rows and the annual
+report, naming more than 200 tickets, falls back to the Breakdown Log.
+
+**Acceptance, as the plan states it.** `apps/web/src/screens/analytics/report-view.test.ts` pins every table cell,
+caption and row count of both reports against the frozen keys (8 tables / 5,9,5,6,10,13,15,5 and 12 tables /
+11,4,10,9,8,13,5,8,11,8,15,5 rows), both chart series of each report (the daily chart's three series with its final
+`null` gap, the ten-month series, the starred November month, and the Pareto's bars plus cumulative line), the period
+line of both, and that no rendered number is absent from the key (cells, chart categories and values, and the period
+line are checked against the key's own JSON). It also pins the not-computed and empty states. The journey
+`apps/web/e2e/analytics-reports.spec.ts` opens `/analytics/reports`, reads the monthly key's first machine row
+("VC-16 CVM1160"), switches to the annual report, reads the key's Months-in-top-5 row ("3"), and follows the PDF link.
+
+**Red/green, verbatim.** Red: `pnpm exec vitest run apps/web/src/screens/analytics/report-view.test.ts` —
+`No test files found, exiting with code 0` (the module did not exist); `pnpm exec playwright test
+apps/web/e2e/analytics-reports.spec.ts` — `Error: No tests found.` then `e2e: stack stopped`. Green: the mapping file
+— `Test Files 1 passed (1)`, `Tests 14 passed (14)`; `pnpm exec vitest run apps/web/src/screens/analytics` — `Test
+Files 12 passed (12)`, `Tests 121 passed (121)`; the journey — `2 passed (7.9s)` (`chromium` and `phone`); `pnpm
+precheck` — `precheck: OK — 12 file(s) checked by prettier, 13 checks passed`.
+
+**Files.** `apps/web/src/screens/analytics/ReportsPage.tsx` (new, 145 lines: the group's page, the switch, the period
+line, both downloads and the report's states), `report-view.ts` (new: the figure → view mapping, the honest states
+and the period line), `report-view.test.ts` (new: 14 acceptance tests), `Analytics.tsx` (the `reports` branch),
+`page-content.ts` (the four report charts' chrome: `ch-rp-daily`, `ch-rp-12m`, `ch-ry-month`, `ch-ry-pareto`),
+`packages/shared/src/i18n/analytics-report.en.ts` and `.gu.ts` (new namespace: the report nav, both download buttons,
+the commentary caption, the period line and the four chart titles/axes; gu blank like every other M4a namespace) and
+its registration in `i18n/index.ts`, `apps/web/e2e/analytics-reports.spec.ts` (new), `docs/spec/parity.yaml` (both
+rows done, with the keys, the mapping test and the journey as evidence), and this fragment. No dependency, no
+migration, no schema change.
+
+**Deviations recorded.**
+
+1. **The figure's drill is kept, and `KeyPage`'s drill block moved to `FigureDrill`.** The screen spec names only the
+   tables, charts and downloads, but 45a/45b's shared rule says a report figure drills its period's tickets and the
+   face falls back to the Breakdown Log when there are too many. `KeyPage` now exports `FigureDrill` (same behaviour
+   for every existing key page) and `ReportsPage` renders it, so the monthly report links its 196 tickets and the
+   annual report's 1,279 fall back to `/analytics/breakdowns?screen=breakdown-log`. That fallback now finds the group
+   that owns `breakdown-log` (`groupOfScreen`) instead of assuming the current group, which is what the reports group
+   needed; the breakdowns group's own pages are unchanged.
+2. **The four chart specs come through the one page mapper.** `page-content.ts` holds the four ids' chrome, allows a
+   line chart up to three series (the daily chart's counts, hours and comparison counts) and maps the Pareto's second
+   dataset to its cumulative line (the kit's `mixed` spec); `report-view.ts` owns the figure → view mapping and the
+   period line. The acceptance pins the resulting specs exactly.
+3. **One key beyond the listed chrome.** `analytics.report.empty` carries the empty-report line a `null` figure
+   prints; the plan's namespace list did not name it, and no existing key says it.
+4. **The PDF route is stubbed in-test.** 45d is not on this branch, so the journey fulfils `**/api/v1/reports/*.pdf`
+   with a one-line `%PDF-` response and follows the real anchor, asserting the download. On `main` the same link
+   reaches 45d's route. The annual figure itself is served by the engine (45b is on `main`); the figures reply is
+   stubbed in the journey with both frozen keys, the face's established seam.
+5. **The period line reads the figure's own as-of.** When the value carries an `asOf` (the engine's report value
+   does), the line is computed from it; the reply's `asOf` is the fallback. That keeps the printed period the one the
+   figure was computed for even on a replayed snapshot.
+
 # 45f — the Guide
 
 **What changed for a user:** `/analytics/guide` is now the plant's Guide. Its contents list is the platform's own 36
