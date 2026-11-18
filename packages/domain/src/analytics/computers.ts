@@ -21,6 +21,7 @@ import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
+import { teamFocusFigure } from './team-focus.js';
 import type { Computer, EngineData, MachineRow } from './types.js';
 
 /**
@@ -193,6 +194,7 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
 /** Owner 43's figures: compare, team, money and Fix Finder. */
 const compareComputers: Readonly<Record<string, Computer>> = {
   compare: compareFigure,
+  'team-focus': teamFocusFigure,
   'money-matters': moneyMattersFigure,
 };
 
