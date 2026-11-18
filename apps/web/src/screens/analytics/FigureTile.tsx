@@ -94,7 +94,7 @@ function tileLine(content: FigureContent | null, figure: Figure, t: TFunction): 
 
 /** The mapped content itself: a chart, a table or a grouped list, each in the kit's own markup. */
 function Content({ content }: { content: FigureContent | null }) {
-  if (content === null || content.kind === 'text') return null;
+  if (content === null || content.kind === 'text' || content.kind === 'energy') return null;
   if (content.kind === 'chart') return <Chart spec={content.spec} />;
   if (content.kind === 'table') return <ContentTable content={content} />;
   if (content.kind === 'page') return <PageFigure content={content} />;

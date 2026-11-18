@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MAX_DRILL_IDS, type FiguresReply } from '@uptimo/shared/analytics';
@@ -5,6 +6,7 @@ import { Stack } from '../../ui/layout.js';
 import { PageFigure } from './PageFigure.js';
 import { contentOf } from './figure-content.js';
 import { drillHref, type AnalyticsGroup } from './groups.js';
+import type { PageTable } from './page-content.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -16,7 +18,16 @@ const whole = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 });
  * names more than that, the link opens the Breakdown log, where every one of those tickets is a row that opens
  * its own page.
  */
-export function KeyPage({ figure, group }: { figure: Figure | undefined; group: AnalyticsGroup }) {
+export function KeyPage({
+  figure,
+  group,
+  renderTable,
+}: {
+  figure: Figure | undefined;
+  group: AnalyticsGroup;
+  /** A screen's own card for one table (A4's Specialization); every other table keeps the shared renderer. */
+  renderTable?: (table: PageTable, index: number) => ReactNode;
+}) {
   const { t } = useTranslation();
   const content = figure ? contentOf(figure, t) : null;
   if (!figure || figure.status !== 'ready' || content?.kind !== 'page')
@@ -28,7 +39,7 @@ export function KeyPage({ figure, group }: { figure: Figure | undefined; group: 
   const ids = figure.drill.ids;
   return (
     <Stack gap={4}>
-      <PageFigure content={content} />
+      <PageFigure content={content} renderTable={renderTable} />
       {ids.length === 0 ? null : ids.length <= MAX_DRILL_IDS ? (
         <Link
           to={`${drillHref(group.id, 'ticket', ids)}&screen=${encodeURIComponent(figure.screen)}`}

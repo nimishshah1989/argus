@@ -96,38 +96,107 @@ function DrillRows({
   );
 }
 
-/** The rows a figure drilled to: a plain table of what identifies each one. */
-export function DrillTable({ group, drill }: { group: AnalyticsGroup; drill: Drill }) {
+/** The way back: a link to the group for the page drill, a button that clears the filter for a tile. */
+function BackAction({
+  group,
+  onBack,
+  backLabel,
+}: {
+  group: AnalyticsGroup;
+  onBack?: () => void;
+  backLabel?: string;
+}) {
+  const { t } = useTranslation();
+  const className =
+    'inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text';
+  return onBack === undefined ? (
+    <Link to={`/analytics/${group.id}`} className={className}>
+      {t('analytics.drill.back')}
+    </Link>
+  ) : (
+    <button type="button" onClick={onBack} className={className}>
+      {backLabel ?? t('analytics.drill.back')}
+    </button>
+  );
+}
+
+/** The reply's four states, in the face's established words. */
+function DrillBody({
+  type,
+  loading,
+  failed,
+  hasReply,
+  rows,
+  machines,
+}: {
+  type: DrillType;
+  loading: boolean;
+  failed: boolean;
+  hasReply: boolean;
+  rows: readonly Row[];
+  machines: Config['machines'] | undefined;
+}) {
+  const { t } = useTranslation();
+  if (loading)
+    return (
+      <p role="status" className="text-body text-neutral-600">
+        {t('common.loading')}
+      </p>
+    );
+  if (failed)
+    return (
+      <p role="alert" className="text-body font-medium text-neutral-900">
+        {t('kit.pattern.error')}
+      </p>
+    );
+  if (!hasReply || rows.length === 0)
+    return <p className="text-body text-neutral-600">{t('analytics.drill.empty')}</p>;
+  return <DrillRows type={type} rows={rows} machines={machines} />;
+}
+
+/**
+ * The rows a figure drilled to: a plain table of what identifies each one. A5's tile click (41e-1) narrows the
+ * same drill reply by cell or location, and owns the heading and the way back, so the one table keeps one renderer.
+ */
+export function DrillTable({
+  group,
+  drill,
+  where,
+  title,
+  onBack,
+  backLabel,
+}: {
+  group: AnalyticsGroup;
+  drill: Drill;
+  /** A tile's filter over the reply's rows; absent for the figure's own drill. */
+  where?: (row: Row) => boolean;
+  title?: string;
+  /** A filter's way back stays on the screen; the page drill's way back leaves for the group. */
+  onBack?: () => void;
+  backLabel?: string;
+}) {
   const { t } = useTranslation();
   const reply = useQuery({
     queryKey: ['analytics-drill', drill.type, drill.ids],
     queryFn: () => getDrill(drill.type, drill.ids),
   });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  const rows =
+    where === undefined ? (reply.data?.rows ?? []) : (reply.data?.rows ?? []).filter(where);
   return (
     <section className="flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-title3 font-semibold">{t('analytics.drill.title')}</h2>
-        <Link
-          to={`/analytics/${group.id}`}
-          className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-        >
-          {t('analytics.drill.back')}
-        </Link>
+        <h2 className="text-title3 font-semibold">{title ?? t('analytics.drill.title')}</h2>
+        <BackAction group={group} onBack={onBack} backLabel={backLabel} />
       </div>
-      {reply.isLoading ? (
-        <p role="status" className="text-body text-neutral-600">
-          {t('common.loading')}
-        </p>
-      ) : reply.error ? (
-        <p role="alert" className="text-body font-medium text-neutral-900">
-          {t('kit.pattern.error')}
-        </p>
-      ) : !reply.data || reply.data.rows.length === 0 ? (
-        <p className="text-body text-neutral-600">{t('analytics.drill.empty')}</p>
-      ) : (
-        <DrillRows type={drill.type} rows={reply.data.rows} machines={config.data?.machines} />
-      )}
+      <DrillBody
+        type={drill.type}
+        loading={reply.isLoading}
+        failed={reply.error !== null}
+        hasReply={reply.data !== undefined}
+        rows={rows}
+        machines={config.data?.machines}
+      />
     </section>
   );
 }

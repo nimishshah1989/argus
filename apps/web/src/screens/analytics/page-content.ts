@@ -3,10 +3,11 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
 
 /**
- * The key-shaped page (packets 40e-1 and 40e-2): the platform's own page, whole. The log, A1, A2 and A3 are
- * pages, so one mapping turns the engine's KPIs, tables and charts into the kit's pieces. The page title, KPI
- * labels, table titles and cells are the engine's printed data; the charts' titles and axes are catalogue copy.
- * Split from `figure-content.ts` when the two breakdown keys took the mapper towards the 400-line hard limit.
+ * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1): the platform's own page, whole. The log,
+ * A1, A2, A3 and A4 are pages, so one mapping turns the engine's KPIs, tables and charts into the kit's pieces.
+ * The page title, KPI labels, table titles and cells are the engine's printed data; the charts' titles and axes
+ * are catalogue copy. Split from `figure-content.ts` when the two breakdown keys took the mapper towards the
+ * 400-line hard limit.
  */
 
 export interface PageKpi {
@@ -21,6 +22,8 @@ export interface PageTable {
   rows: string[][];
   rowCount: number;
   truncated: boolean;
+  /** The face may sort this table client-side (41e-1: A4's Manpower table and its two month matrices). */
+  sortable?: boolean;
 }
 
 export interface PageContent {
@@ -39,6 +42,19 @@ const CATEGORY_AXIS = 'analytics.content.a2.categoryAxis' satisfies MessageKey;
 const CELL_AXIS = 'analytics.content.a2.cellAxis' satisfies MessageKey;
 const AGE_AXIS = 'analytics.content.a3.ageAxis' satisfies MessageKey;
 const MONTH_AXIS = 'analytics.content.a3.monthAxis' satisfies MessageKey;
+const PERSON_AXIS = 'analytics.content.a4.personAxis' satisfies MessageKey;
+
+/**
+ * The A4 tables the face sorts (41e-1): the Manpower table and the two breakdown month matrices. The PM table
+ * keeps its paired count/hours rows and the Specialization card owns its category/code toggle, so neither is sorted.
+ */
+const SORTABLE: Record<string, readonly string[]> = {
+  a4: [
+    'Manpower Table',
+    'Month-on-Month — # Breakdowns Handled',
+    'Month-on-Month — BD Hours Handled',
+  ],
+};
 
 /** The A1/A2/A3 charts' chrome: the engine's id is data, the title and axis are catalogue copy. */
 const CHART_META: Record<
@@ -136,6 +152,11 @@ const CHART_META: Record<
     kind: 'line',
     secondAxis: true,
   },
+  'ch-a4-count': {
+    title: 'analytics.content.a4.countChart',
+    category: PERSON_AXIS,
+    kind: 'bar',
+  },
 };
 
 function isObject(value: unknown): value is ObjectValue {
@@ -174,7 +195,7 @@ function pageKpi(raw: unknown): PageKpi[] {
 }
 
 /** The engine's own cells, kept exactly; a row with an empty cell is still a row. */
-function pageTable(raw: unknown): PageTable[] {
+function pageTable(raw: unknown, page: string): PageTable[] {
   const table = isObject(raw) ? raw : null;
   if (table === null) return [];
   const header = (Array.isArray(table.header) ? table.header : []).flatMap((cell) =>
@@ -186,13 +207,15 @@ function pageTable(raw: unknown): PageTable[] {
   });
   if (header.length === 0 && rows.length === 0) return [];
   const count = Number(table.rowCount);
+  const title = typeof table.title === 'string' ? table.title : '';
   return [
     {
-      title: typeof table.title === 'string' ? table.title : '',
+      title,
       header,
       rows,
       rowCount: Number.isFinite(count) ? count : rows.length,
       truncated: table.truncated === true,
+      ...(SORTABLE[page]?.includes(title) === true ? { sortable: true } : {}),
     },
   ];
 }
@@ -230,7 +253,10 @@ export function pageContent(value: ObjectValue, t: TFunction): PageContent | nul
   const first = (Array.isArray(value.pages) ? value.pages : []).find(isObject);
   if (first === undefined) return null;
   const kpis = (Array.isArray(first.kpis) ? first.kpis : []).flatMap(pageKpi);
-  const tables = (Array.isArray(first.tables) ? first.tables : []).flatMap(pageTable);
+  const page = typeof first.page === 'string' ? first.page : '';
+  const tables = (Array.isArray(first.tables) ? first.tables : []).flatMap((table) =>
+    pageTable(table, page),
+  );
   const charts = (Array.isArray(first.charts) ? first.charts : []).flatMap((chart) =>
     pageChart(chart, t),
   );

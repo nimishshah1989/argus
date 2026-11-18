@@ -13,7 +13,36 @@ import { pageContent, type PageKpi, type PageTable } from './page-content.js';
 type Figure = FiguresReply['figures'][number];
 type ObjectValue = Record<string, unknown>;
 
-export type ContentKind = 'chart' | 'table' | 'text' | 'list' | 'page';
+export type ContentKind = 'chart' | 'table' | 'text' | 'list' | 'page' | 'energy';
+
+/** One A5 heat tile, exactly the key's bucket: its load is the platform's connected (rated) KVA. */
+export interface EnergyTile {
+  key: string;
+  machines: number;
+  /** The key's `totalKva`: connected load, never re-rounded. */
+  connectedKva: number;
+  avgConnectedKva: number;
+  runningKva: number;
+  avgRunningKva: number;
+  machineIds: string[];
+}
+
+/** One A5 grid. `axis` is what a tile click filters the drill reply by; the average grid hides its running line. */
+export interface EnergyGrid {
+  axis: 'cell' | 'location';
+  showRunning: boolean;
+  tiles: EnergyTile[];
+}
+
+/** A5's own content: two heat grids and the per-machine average grid, with the plant's efficiency factor. */
+export interface EnergyContent {
+  kind: 'energy';
+  title: string;
+  effFactorPct: number;
+  byCell: EnergyGrid;
+  byLocation: EnergyGrid;
+  byMachine: EnergyGrid;
+}
 
 export type FigureContent =
   | { kind: 'chart'; spec: ChartSpec }
@@ -26,7 +55,8 @@ export type FigureContent =
       kpis: PageKpi[];
       tables: PageTable[];
       charts: ChartSpec[];
-    };
+    }
+  | EnergyContent;
 
 /** The catalogue keys the mapper prints; typed so a missing key is a compile error, not an English label. */
 const KEY = {
@@ -96,6 +126,8 @@ const KIND: Record<string, ContentKind> = {
   'a1-bd-pm': 'page',
   'a2-category-cell': 'page',
   'a3-mttr-mtbf': 'page',
+  'a4-manpower': 'page',
+  'a5-energy': 'energy',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -124,9 +156,19 @@ export function contentKind(figure: Figure): ContentKind | null {
   return KIND[figure.key] ?? null;
 }
 
+/** The whole-page figures: the log, A1, A2, A3 and A4 all map through the one page mapper. */
+const PAGE_KEYS = new Set([
+  'breakdown-log',
+  'a1-bd-pm',
+  'a2-category-cell',
+  'a3-mttr-mtbf',
+  'a4-manpower',
+]);
+
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */
 export function contentOf(figure: Figure, t: TFunction): FigureContent | null {
   if (figure.status !== 'ready' || !isObject(figure.value)) return null;
+  if (PAGE_KEYS.has(figure.key)) return pageContent(figure.value, t);
   switch (figure.key) {
     case 'dashboard.bubble-chart':
       return bubble(figure.value, t);
@@ -138,11 +180,8 @@ export function contentOf(figure: Figure, t: TFunction): FigureContent | null {
       return costliest(figure.value, t);
     case 'data-checklist':
       return checklist(figure.value, t);
-    case 'breakdown-log':
-    case 'a1-bd-pm':
-    case 'a2-category-cell':
-    case 'a3-mttr-mtbf':
-      return pageContent(figure.value, t);
+    case 'a5-energy':
+      return energyContent(figure.value);
     default:
       return null;
   }
@@ -251,4 +290,69 @@ function checklist(value: ObjectValue, t: TFunction): FigureContent {
     return [{ label: t(CHECKLIST_LABEL[group]), rows }];
   });
   return { kind: 'list', groups };
+}
+
+function finite(value: unknown): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+/** One bucket of A5's `extra`, with the key's raw floats kept: the screen formats, the mapper never rounds. */
+function energyTile(raw: unknown): EnergyTile | null {
+  if (!isObject(raw) || typeof raw.key !== 'string') return null;
+  const numbers = [raw.machines, raw.totalKva, raw.avgKva, raw.runningKva, raw.avgRunningKva].map(
+    finite,
+  );
+  if (numbers.some((number) => number === null)) return null;
+  const [machines, connectedKva, avgConnectedKva, runningKva, avgRunningKva] = numbers as number[];
+  const machineIds = Array.isArray(raw.machineIds)
+    ? raw.machineIds.flatMap((id) => (typeof id === 'string' ? [id] : []))
+    : [];
+  return {
+    key: raw.key,
+    machines: machines as number,
+    connectedKva: connectedKva as number,
+    avgConnectedKva: avgConnectedKva as number,
+    runningKva: runningKva as number,
+    avgRunningKva: avgRunningKva as number,
+    machineIds,
+  };
+}
+
+/** One grid of buckets, in the engine's Settings order; a bucket the mapper cannot read is dropped, not zeroed. */
+function energyGrid(raw: unknown, axis: EnergyGrid['axis'], showRunning: boolean): EnergyGrid {
+  const tiles = (Array.isArray(raw) ? raw : []).flatMap((bucket) => {
+    const tile = energyTile(bucket);
+    return tile === null ? [] : [tile];
+  });
+  return { axis, showRunning, tiles };
+}
+
+/**
+ * A5's page and its two keyed grids. The third grid is the platform's normalized view: the same cell buckets with
+ * their connected load replaced by the average per machine, so it prints no running line. The value carries the
+ * key's page title and efficiency factor; the chrome around it is catalogue copy in `EnergyPage`.
+ */
+function energyContent(value: ObjectValue): EnergyContent | null {
+  const extra = isObject(value.extra) ? value.extra : null;
+  if (extra === null) return null;
+  const effFactorPct = finite(extra.effFactorPct);
+  if (effFactorPct === null) return null;
+  const byCell = energyGrid(extra.byCell, 'cell', true);
+  const byLocation = energyGrid(extra.byLocation, 'location', true);
+  if (byCell.tiles.length === 0 && byLocation.tiles.length === 0) return null;
+  const byMachine: EnergyGrid = {
+    axis: 'cell',
+    showRunning: false,
+    tiles: byCell.tiles.map((tile) => ({ ...tile, connectedKva: tile.avgConnectedKva })),
+  };
+  const first = (Array.isArray(value.pages) ? value.pages : []).find(isObject);
+  return {
+    kind: 'energy',
+    title: first !== undefined && typeof first.title === 'string' ? first.title : '',
+    effFactorPct,
+    byCell,
+    byLocation,
+    byMachine,
+  };
 }

@@ -1,8 +1,17 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { contentKind, contentOf } from './figure-content.js';
+
+/** The frozen A5 key, read as data: every tile is pinned against it, raw floats included. */
+const A5_KEY: unknown = JSON.parse(
+  readFileSync(
+    new URL('../../../../../fixtures/answer-key/a5-energy.json', import.meta.url),
+    'utf8',
+  ),
+);
 
 /**
  * The five object figures must reach the face as content, with every chrome string looked up in the
@@ -199,6 +208,126 @@ describe('the data checklist figure', () => {
       'analytics.checklist.group.ww',
       'analytics.checklist.group.mc_dim',
     ]);
+  });
+});
+
+describe('the A5 energy figure', () => {
+  interface Bucket {
+    key: string;
+    machines: number;
+    totalKva: number;
+    avgKva: number;
+    runningKva: number;
+    avgRunningKva: number;
+    machineIds: string[];
+  }
+  const A5 = A5_KEY as unknown as {
+    pages: { title: string }[];
+    extra: { effFactorPct: number; byCell: Bucket[]; byLocation: Bucket[] };
+  };
+  const tile = (bucket: Bucket) => ({
+    key: bucket.key,
+    machines: bucket.machines,
+    connectedKva: bucket.totalKva,
+    avgConnectedKva: bucket.avgKva,
+    runningKva: bucket.runningKva,
+    avgRunningKva: bucket.avgRunningKva,
+    machineIds: bucket.machineIds,
+  });
+
+  it('maps every key tile whole: both heat grids and the per-machine average grid', () => {
+    const { t } = translator();
+    const source = figure('a5-energy', A5_KEY, 'a5-energy');
+    expect(contentKind(source)).toBe('energy');
+    expect(contentOf(source, t)).toEqual({
+      kind: 'energy',
+      title: 'Energy Heatmap',
+      effFactorPct: A5.extra.effFactorPct,
+      byCell: {
+        axis: 'cell',
+        showRunning: true,
+        tiles: A5.extra.byCell.map(tile),
+      },
+      byLocation: {
+        axis: 'location',
+        showRunning: true,
+        tiles: A5.extra.byLocation.map(tile),
+      },
+      byMachine: {
+        axis: 'cell',
+        showRunning: false,
+        tiles: A5.extra.byCell.map((bucket) => ({
+          ...tile(bucket),
+          connectedKva: bucket.avgKva,
+        })),
+      },
+    });
+  });
+
+  it('keeps the key raw floats, the bucket order and every machine id', () => {
+    const { t } = translator();
+    const content = contentOf(figure('a5-energy', A5_KEY, 'a5-energy'), t);
+    if (content?.kind !== 'energy') throw new Error('expected the A5 energy content');
+    expect(content.effFactorPct).toBe(20);
+    expect(content.byCell.tiles.map((entry) => entry.key)).toEqual(
+      A5.extra.byCell.map((bucket) => bucket.key),
+    );
+    expect(content.byLocation.tiles.map((entry) => entry.key)).toEqual(
+      A5.extra.byLocation.map((bucket) => bucket.key),
+    );
+    expect(content.byCell.tiles[1]?.runningKva).toBe(97.40000000000002);
+    expect(content.byCell.tiles[0]?.machineIds).toEqual(A5.extra.byCell[0]?.machineIds);
+    expect(content.byCell.tiles[0]?.machineIds).toContain('BOXY');
+    expect(content.byMachine.tiles.map((entry) => entry.connectedKva)).toEqual(
+      A5.extra.byCell.map((bucket) => bucket.avgKva),
+    );
+  });
+
+  it('maps a missing or empty extra to nothing, never to a fabricated grid', () => {
+    const { t } = translator();
+    for (const value of [
+      null,
+      {},
+      { extra: {} },
+      { extra: { effFactorPct: 20, byCell: [], byLocation: [] } },
+      { extra: { effFactorPct: 20, byCell: [{ key: '1' }], byLocation: [] } },
+    ])
+      expect(
+        contentOf(figure('a5-energy', value, 'a5-energy'), t),
+        JSON.stringify(value),
+      ).toBeNull();
+    expect(contentKind(figure('a5-energy', A5_KEY, 'a5-energy'))).toBe('energy');
+  });
+
+  it('names every A4/A5 screen string in both catalogues', () => {
+    const keys: MessageKey[] = [
+      'analytics.content.a4.countChart',
+      'analytics.content.a4.personAxis',
+      'analytics.specialization.toggle',
+      'analytics.specialization.category',
+      'analytics.specialization.code',
+      'analytics.energy.cellTitle',
+      'analytics.energy.locationTitle',
+      'analytics.energy.machineTitle',
+      'analytics.energy.cellDescription',
+      'analytics.energy.locationDescription',
+      'analytics.energy.machineDescription',
+      'analytics.energy.connected',
+      'analytics.energy.running',
+      'analytics.energy.unit',
+      'analytics.energy.machines',
+      'analytics.energy.oneMachine',
+      'analytics.energy.avg',
+      'analytics.energy.noMachines',
+      'analytics.energy.noCell',
+      'analytics.energy.drillCell',
+      'analytics.energy.drillLocation',
+      'analytics.energy.back',
+    ];
+    for (const key of keys) {
+      expect(en[key], key).toBeTruthy();
+      expect(gu, key).toHaveProperty(key);
+    }
   });
 });
 

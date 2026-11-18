@@ -1357,9 +1357,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a4-manpower.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: its 3 KPIs, its 5 tables (every cell) and its one chart series'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: marks only the Manpower table and the two breakdown month matrices sortable'
+      - 'apps/web/e2e/analytics-manpower.spec.ts :: a head opens A4, sorts and toggles it, then A5 and drills every tile and a machine row'
     source: docs/plan/m4a-triage.md
     screen: a4-manpower
     ticket: '41'
@@ -1369,9 +1372,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a5-energy.json
+      - 'apps/web/src/screens/analytics/figure-content.test.ts :: maps every key tile whole: both heat grids and the per-machine average grid'
+      - 'apps/web/src/screens/analytics/figure-content.test.ts :: keeps the key raw floats, the bucket order and every machine id'
+      - 'apps/web/e2e/analytics-manpower.spec.ts :: a head opens A4, sorts and toggles it, then A5 and drills every tile and a machine row'
     source: docs/plan/m4a-triage.md
     screen: a5-energy
     ticket: '41'
