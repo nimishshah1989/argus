@@ -29,7 +29,8 @@ sign only on counts and team hours, `no change` at zero, and `—` for an absent
 **Red/green.** Red: `pnpm exec vitest run packages/domain/test/analytics-monthly-report.test.ts` — `Test Files 1
 failed (1)`, `Tests no tests`, `Cannot find module '../src/analytics/monthly-report.js'` (the modules did not
 exist). Green: the named file — 5 tests; `pnpm exec vitest run packages/domain/test` — 41 files, 461 tests;
-`pnpm precheck` — to be recorded below.
+`pnpm precheck` — 13 checks passed (prettier checked 6 files); the size report's warnings are the soft 250-line
+ones only, no hard-rail failure.
 
 **Files.** `packages/domain/src/analytics/report-period.ts` (new: months and `monthlyPeriod`, `fraction`, annual
 and available hours, `reportStats`, `groupBy`/`sortGroups`, the machine/cell/code labels, the fleet purchase
