@@ -7,6 +7,7 @@ export const LIST_NAMES = [
   'quick_problem',
   'breakdown_category',
   'maint_code',
+  'failure_code',
   'observed_by',
   'location',
   'cell',

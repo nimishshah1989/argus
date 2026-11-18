@@ -53,6 +53,8 @@ function listSpec(p: {
     labelGu: 'Ticket 24 enters translations on the translation screen.',
     labelHi: 'Ticket 24 enters translations on the translation screen.',
     tag: 'A short tag for floor chips; the approved frames do not show it.',
+    // Ticket 47's old codes are entered on the failure-code screen; every other list leaves the key unseen.
+    aliases: 'Old codes of the failure-code list, edited on that screen (ticket 47).',
     ...Object.fromEntries(
       ALL_FLAGS.filter((flag) => !p.flags.includes(flag)).map((flag) => [flag, FLAG[flag].only]),
     ),

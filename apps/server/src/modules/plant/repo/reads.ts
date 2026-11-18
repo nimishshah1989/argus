@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { LOCKOUT_FLAG_LISTS, type Criticality, type LockoutStep } from '@uptimo/shared';
+import type { FailureCodeSeed } from '../failure-code-defaults.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -265,4 +266,68 @@ export async function insertLockoutStep(
      ON CONFLICT (tenant_id, list, code) DO NOTHING`,
     [tenantId, step.code, step.label, step.sort],
   );
+}
+
+/** A `failure_code` entry: the plant's canonical code and the old codes folded onto it. */
+export interface FailureCodeEntry {
+  code: string;
+  aliases: string[];
+}
+
+/** The plant's failure codes, switched off ones included (a close already recorded keeps its code). */
+export async function failureCodes(tx: Db, tenantId: string): Promise<FailureCodeEntry[]> {
+  return (
+    await tx.query(
+      `SELECT code, aliases FROM list_item
+        WHERE tenant_id = $1 AND list = 'failure_code' ORDER BY sort, code`,
+      [tenantId],
+    )
+  ).rows;
+}
+
+/** One of the plant's own maintenance codes, as it seeds the failure list. */
+export interface MaintenanceCodeRow {
+  code: string;
+  label: string;
+  sort: number;
+  active: boolean;
+}
+
+/** The plant's maintenance codes, switched off ones included: the list 47's failure list is copied from. */
+export async function maintenanceCodes(tx: Db, tenantId: string): Promise<MaintenanceCodeRow[]> {
+  return (
+    await tx.query(
+      `SELECT code, label, sort, active FROM list_item
+        WHERE tenant_id = $1 AND list = 'maint_code' ORDER BY sort, code`,
+      [tenantId],
+    )
+  ).rows;
+}
+
+/** Whether the plant has any failure code at all (a switched-off one still counts: the list is seeded once). */
+export async function hasFailureCodes(tx: Db, tenantId: string): Promise<boolean> {
+  const found = await tx.query(
+    "SELECT 1 FROM list_item WHERE tenant_id = $1 AND list = 'failure_code' LIMIT 1",
+    [tenantId],
+  );
+  return (found.rowCount ?? 0) > 0;
+}
+
+/** One starting code; one that is already there (another writer won) is left alone. */
+export async function insertFailureCode(
+  tx: Db,
+  tenantId: string,
+  row: FailureCodeSeed,
+): Promise<void> {
+  await tx.query(
+    `INSERT INTO list_item (tenant_id, list, code, label, sort, active, aliases)
+     VALUES ($1, 'failure_code', $2, $3, $4, $5, $6)
+     ON CONFLICT (tenant_id, list, code) DO NOTHING`,
+    [tenantId, row.code, row.label, row.sort, row.active, row.aliases],
+  );
+}
+
+/** Two first reads of the list take turns; the caller re-checks the list after taking it. */
+export async function lockFailureCodeSeed(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`failure-code-seed:${tenantId}`]);
 }
