@@ -1,5 +1,6 @@
 import type { PoolClient, QueryResult } from 'pg';
 import { ACK_CLOCK_STOPS, type SlaPolicy } from '@uptimo/domain';
+import { BREAKDOWN_CHANNELS } from '@uptimo/shared';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -46,21 +47,22 @@ export async function lockTicket(tx: Db, tenantId: string, ticketId: string): Pr
   return locked.rowCount === 1;
 }
 
+/** Only a live breakdown takes a clock; history and planned work (`pm`, `inspection`) never do. */
 export async function slaCandidateIds(tx: Db, tenantId: string): Promise<string[]> {
   const candidates = await tx.query(
-    "SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel <> 'backfill' AND parent_id IS NULL ORDER BY id",
-    [tenantId],
+    'SELECT id FROM ticket WHERE tenant_id = $1 AND raised_channel = ANY($2::text[]) AND parent_id IS NULL ORDER BY id',
+    [tenantId, [...BREAKDOWN_CHANNELS]],
   );
   return candidates.rows.map((row) => row.id as string);
 }
 
-/** Tickets still being worked (not an import of history): their clocks run and need checking. */
+/** Tickets still being worked: a live breakdown's clocks run and need checking. */
 export async function slaActiveIds(tx: Db, tenantId: string): Promise<string[]> {
   const tickets = await tx.query<{ id: string }>(
     `SELECT id FROM ticket
-       WHERE tenant_id=$1 AND raised_channel <> 'backfill' AND parent_id IS NULL AND status IN ('open','working','waiting')
+       WHERE tenant_id=$1 AND raised_channel = ANY($2::text[]) AND parent_id IS NULL AND status IN ('open','working','waiting')
        ORDER BY id`,
-    [tenantId],
+    [tenantId, [...BREAKDOWN_CHANNELS]],
   );
   return tickets.rows.map((ticket) => ticket.id);
 }

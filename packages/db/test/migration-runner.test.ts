@@ -69,6 +69,20 @@ const ARTIFACTS: Record<string, string> = {
                     WHERE table_schema = 'public' AND table_name = 'person' AND column_name = 'kind')
     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'ticket' AND column_name IN ('sla_policy_id', 'handback_status')) AS installed`,
+  '0015_m4b_schema.sql': `SELECT to_regclass('public.forecast') IS NOT NULL
+    AND to_regclass('public.intervention') IS NOT NULL
+    AND to_regclass('public.pm_plan') IS NOT NULL
+    AND to_regclass('public.asset_register') IS NOT NULL
+    AND (SELECT count(*) FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'breakdown_report'
+           AND column_name IN ('failure_component', 'failure_mode', 'failure_cause', 'failure_action',
+                               'pm_report')) = 5
+    AND to_regprocedure('breakdown_report_check_failure_codes()') IS NOT NULL
+    AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'breakdown_report_failure_codes')
+    AND pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conname = 'ticket_raised_channel_check'))
+        LIKE '%''pm''%'
+    AND pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conname = 'ticket_raised_channel_check'))
+        LIKE '%''inspection''%' AS installed`,
 };
 
 const UPTIMO_MASTER_PASSWORD = 'master-test-password';

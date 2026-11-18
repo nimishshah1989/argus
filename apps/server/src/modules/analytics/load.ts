@@ -9,7 +9,7 @@ import type {
   TicketRow,
   WhyWhyRow,
 } from '@uptimo/domain';
-import { whyWhyPayloadSchema } from '@uptimo/shared';
+import { isBreakdownChannel, whyWhyPayloadSchema } from '@uptimo/shared';
 import {
   createRedactor,
   peopleForEngine,
@@ -69,7 +69,8 @@ const ticket = (row: Row): TicketRow => ({
   machineId: text(row.machine_id),
   reportedAt: iso(row.reported_at)!,
   closedAt: iso(row.closed_at),
-  source: row.raised_channel === 'import' || row.raised_channel === 'backfill' ? 'history' : 'live',
+  // Only a live breakdown is `live`; imported, backfilled and planned work is not a live breakdown.
+  source: isBreakdownChannel(row.raised_channel as string | null) ? 'live' : 'history',
   downtimeMin: row.downtime_min as number | null,
   repairMin: row.repair_min as number | null,
   workType: text(row.work_type),
