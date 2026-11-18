@@ -1,4 +1,12 @@
-# 43 — compare, team focus, money and Fix Finder
+## 43c — Money Matters
+
+- A maintenance head now gets the whole Money Matters page from the plant's own rows, exact against the 11 November key: ten money KPIs, the four opportunity levers with their overlap-free combined row, the lost-hours-by-problem table, the ch-mm chart, and a drill to the tickets behind the priced breakdowns. Every lost hour is worth the throughput per machine-hour (₹ 1,800 by default) and the levers price the hours analysis says were avoidable at the share the team can remove (Guide section 30).
+- The page reads the fleet's existing analyses instead of copying them: A10's events and repeats for the problem levers, the Compare health model for the age-and-category expectation, A9's forecast for the three planning KPIs, and the Team Focus lanes' hours at stake for the last KPI.
+- **File split.** The page, the health model and the Team Focus stakes are three modules (`money-matters.ts`, `money-health.ts`, `money-focus.ts`) because one file cannot hold them inside the hard 400-line budget; the split follows 42b and 42d.
+- **Fixture seam.** The Team Focus spares lane counts any of a row's three spare columns and the key's last KPI depends on it, but `EngineData` carried only `spare1`. `ReportRow.spares` now carries every spare the row names (still optional, falling back to `spareUsed`), and the answer-key fixture maps all three columns. A packet that adds a figure reading spares should read `spares`, not `spareUsed`.
+- **The second box.** The platform's "share of a lost hour that is really lost sales" (`mmConv`, Guide section 30) has no profile key; this key never sets it, so the figure counts the full throughput, as the key's "full throughput counted" says. `mmTurnover` is the legacy leftover the profile still carries and the money model does not read.
+- **Shared work.** Team Focus's own packet will compute the same five lane stakes; the platform's money page calls `tfCompute` itself, so this packet prices them independently. A later refactor can share `money-focus.ts`'s `stakeHours` if the two figures are allowed to depend on each other.
+- **Tests.** `packages/domain/test/analytics-money-matters.test.ts`: the whole value equals `fixtures/answer-key/money-matters.json`, and the drill is the production non-PM tickets, each one a real ticket. Red first: before the computer registered, the engine reported the figure as not computed.
 
 ## 43d — the Fix Finder
 

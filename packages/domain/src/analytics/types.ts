@@ -71,7 +71,13 @@ export interface ReportRow {
   repairMin: number | null;
   category: string | null;
   maintCode: string | null;
+  /** The first spare the row used (`spare1`); a figure that counts part names reads `spares` where it exists. */
   spareUsed: string | null;
+  /**
+   * Every spare the row names (`spare1` to `spare3`), in the log's order. The Team Focus spares lane counts a part
+   * when any of the three names it, so a row written before this field reads `spareUsed` alone.
+   */
+  spares?: readonly string[];
   rootCause: string | null;
   doneBy: string[];
   supportedBy: string[];

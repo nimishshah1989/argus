@@ -8,6 +8,7 @@ import { a6WhyWhyFigure } from './a6-why-why.js';
 import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
 import { fixFinderFigure } from './fix-finder.js';
 import { forecastLabFigure } from './forecast-lab.js';
+import { moneyMattersFigure } from './money-matters.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -189,8 +190,9 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
   'forecast-lab': forecastLabFigure,
 };
 
-/** Owner 43's figures: the compare, team, money and Fix Finder packets; 43a to 43c add their entries here. */
+/** Owner 43's figures: compare, team, money and Fix Finder. */
 const compareComputers: Readonly<Record<string, Computer>> = {
+  'money-matters': moneyMattersFigure,
   'fix-finder': fixFinderFigure,
 };
 

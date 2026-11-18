@@ -42,7 +42,7 @@ export function KeyPage({
       <PageFigure content={content} renderTable={renderTable} />
       {ids.length === 0 ? null : ids.length <= MAX_DRILL_IDS ? (
         <Link
-          to={`${drillHref(group.id, 'ticket', ids)}&screen=${encodeURIComponent(figure.screen)}`}
+          to={`${drillHref(group.id, figure.drill.type, ids)}&screen=${encodeURIComponent(figure.screen)}`}
           className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
         >
           {t('analytics.drill.open')}
