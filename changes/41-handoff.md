@@ -37,3 +37,9 @@ is 41e-2.
 (groups, families, repeats, words, tables 0/1/2/4 exact); 41d-2 (#339) is the A10 page whole (8 KPIs, 6 tables,
 2 charts, the Naive Bayes card); 41e-1 (#340) is the A4/A5 screens with the sortable table, the tile-filtered drills
 and parity done. A4's code-matrix gap is a DEBT row, not a fabricated matrix.
+
+## 41e-2 and ticket 41 complete
+
+A6 is a screen: the candidate table, the five-whys form, saving through the real route and refetching to `Completed`,
+the PDF, and the named refusal. A10 is a screen: the 8 KPIs, both charts, the five sortable tables, the read-only
+editor and the 1,279-ticket drill. Ticket 41's seven packets are merged; M4a's frontier is 42 forecast.
