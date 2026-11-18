@@ -297,7 +297,7 @@ method and month tables and the one line chart with its y title, and opens its d
 (two page kinds), `page-content.ts` (the sort rules and the chart delegation), `KeyPage.tsx` (the drill type is
 the figure's, not always `ticket`), `Analytics.tsx` (the group route), `apps/web/src/ui/chart/use-chart.ts` and
 `chart.tsx` (optional tones, per-point radius/labels, y tick labels, a value-axis title and horizontal bars),
-`packages/shared/src/i18n/analytics.en.ts` (the eight chrome keys; Gujarati stays blank through the namespace),
+`packages/shared/src/i18n/analytics-forecast.en.ts` and `analytics-forecast.gu.ts` (new namespace: the eight chrome keys, Gujarati blank through `blank()`), `analytics.en.ts` (the eight keys moved out), `index.ts` (composes the new namespace and the flat catalogue),
 `apps/web/e2e/analytics-forecast.spec.ts` (new), `docs/spec/parity.yaml` and this fragment. No new dependency;
 no server, table, schema or migration change.
 
@@ -321,3 +321,8 @@ no server, table, schema or migration change.
    would have asked the ticket endpoint for machine ids. Ticket pages pass the same type as before.
 6. **The map's raw tick text is deliberate.** The key's settings carry two spaces in "Cnc Sliding Head Automatic
    Lathe"; the table prints the normalised label, the chart's y ticks keep the raw one, exactly as the key does.
+7. **The eight new keys live in their own namespace, not in `analytics.en.ts`.** CI's catalogue guard caps every
+   catalogue file at 250 lines, and the eight keys pushed the analytics file to 255. They moved to
+   `analytics-forecast.en.ts` with a `blank()` Gujarati, composed into `NAMESPACES`, `en` and `gu` in
+   `index.ts` — the same split the repo already uses for `analytics-machines` and `analytics-breakdowns`. No key
+   was renamed or dropped; the flat catalogue and the pages see the same strings.
