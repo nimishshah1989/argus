@@ -10,6 +10,18 @@ and a live open/PM task block on the machine page. It also wires the live workbo
 `apps/web/package.json`, `THIRD_PARTY.md`, `packages/db/migrations/` and every `apps/`/`packages/` source file are
 untouched; `pnpm precheck` and `pnpm parity` are the only checks this PR claims.
 
+## Review fixes (19 November 2026)
+
+- **50a** now assigns the two reply schemas: `packages/shared/src/replies.ts` gains `GET /api/v1/pm/calendar` and
+  `POST /api/v1/pm/reschedule`, and `apps/server/test/reply-contract.test.ts` moves by exactly +2 with the route-table
+  equality assertion kept (137 → 139 on the review baseline; 143 → 145 in this checkout, which already carries 49a's
+  three settings routes and 46/47's routes).
+- **50c** now owns the Guide: `pm-calendar` leaves `UNBUILT` (the set is four), gets a body paragraph and
+  `figures: ['pm-compliance']`, the test's unbuilt heading list drops `31. PM Calendar`, and the 36 headings stay
+  verbatim.
+- **ADR 0009** says plainly that the `/tmp` prototype numbers are a record; the reproducible proof is 50c's
+  source/chunk guard plus the E2E drag. It also names `THIRD_PARTY.md` as the repo-root file.
+
 ## Prerequisites
 
 49a is merged (`e10b5bb2`): 125 `pm_plan` rows and the generated `/settings/pm-plans` screen. 49b/49c land first and

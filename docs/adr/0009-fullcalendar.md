@@ -8,7 +8,7 @@ Status: accepted (planner, after the prototype below; the implementation packet 
 Ticket 50 puts a PM calendar on the analytics face: a month grid of each machine's next PM, a daily load, and a
 drag that reschedules the job (`docs/plan/MILESTONES.md:440-445`). SPEC §5a already names the library — "FullCalendar
 standard plugins (MIT) for the PM calendar" (`docs/spec/SPEC.md:186`), repeated in ARCHITECTURE §5
-(`docs/ARCHITECTURE.md:170`) — and `THIRD_PARTY.md:30` lists it as planned. No ADR existed for it; D27 covers
+(`docs/ARCHITECTURE.md:170`) — and the repo-root `THIRD_PARTY.md:30` lists it as planned. No ADR existed for it; D27 covers
 charts only, and LEAN's dependency budget says a new runtime dependency needs an ADR (`docs/LEAN.md:32`).
 
 The choices were: FullCalendar 7 (current), FullCalendar 6 (published as `legacy`, separate plugin packages), a
@@ -29,6 +29,11 @@ The fork was settled by running it, not by asking.
 - A 35-line hand-rolled month grid (React external) was 1,419 B / 765 B, but it had no month navigation, keyboard
   movement, touch drag, event stacking or "+N more"; a production version would be several hundred lines with
   weaker accessibility.
+- **Record, not proof.** The numbers above are a record of the fork made in `/tmp`; they are not reproducible from
+  the repository because the prototype script is not committed. The reproducible proof is 50c's source/chunk guard
+  (only `PmCalendar.tsx` names the library, and only the lazy `PmCalendar` chunk contains it) plus the E2E drag
+  that sends `POST /api/v1/pm/reschedule` and sees the event move. If a reviewer wants the fork rerun, the commands
+  and sizes are here; the guard and the E2E are the repository's checks.
 - v7 consolidates the plugins into `@fullcalendar/react` subpaths (`/daygrid`, `/interaction`, `/themes/classic`);
   the separate `@fullcalendar/daygrid` package at 7.1.5 exists only as a release candidate, and the separate
   packages are the **v6** line. v7 also hashes its CSS class names; the prototype showed that `[data-date]` on a

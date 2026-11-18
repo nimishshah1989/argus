@@ -106,7 +106,7 @@ the closed `pm_report`s (125 next-date rows, not 427 visits). No new module, tab
 **R1 — FullCalendar 7.1.5, MIT, under ADR 0009, lazy and behind one door.** The package is `@fullcalendar/react`
 7.1.5 with the `daygrid`, `interaction` and `classic` theme subpath plugins and `temporal-polyfill` 1.0.8 (a peer
 dependency, MIT). It is pinned exactly in `apps/web/package.json`; its transitive `@fullcalendar/core` 7.1.5 and
-`@full-ui/headless-calendar` 7.1.5 are MIT and enter `THIRD_PARTY.md`. One file,
+`@full-ui/headless-calendar` 7.1.5 are MIT and enter the repo-root `THIRD_PARTY.md` (not a `docs/` file). One file,
 `apps/web/src/screens/analytics/PmCalendar.tsx`, names `@fullcalendar`; the page that imports it is reached through
 `React.lazy(() => import('./PmCalendarPage.js'))`, so the library is a separate chunk and never a start-up file. A
 source guard and a build-chunk guard mirror D27's ECharts guard, with a planted violation. No premium plugin, no
@@ -354,10 +354,16 @@ an honest answer), with no drill ids.
 - `docs/adr/0009-fullcalendar.md` (new): context, the prototype result, the decision, the rejected v6/no-dependency
   options, the fallback and the consequences (R1).
 - `apps/web/package.json`, `pnpm-lock.yaml`: `@fullcalendar/react` 7.1.5, `temporal-polyfill` 1.0.8; exact pins.
-- `THIRD_PARTY.md`: the FullCalendar row becomes the exact v7.1.5 family (core, headless-calendar, temporal-polyfill,
-  all MIT).
+- `THIRD_PARTY.md` (repo root): the FullCalendar row becomes the exact v7.1.5 family (core, headless-calendar,
+  temporal-polyfill, all MIT).
 - `packages/shared/src/pm.ts`: `pmNextDue(plan, timeZone)`, `pmToleranceDays(intervalDays)`, the calendar query/reply
   schemas and the reschedule body/reply schema; `packages/shared/src/index.ts` already re-exports `pm.ts`.
+- `packages/shared/src/replies.ts`: import `pmCalendarReplySchema`/`pmRescheduleReplySchema` from `./pm.js` and add
+  the two `REPLY_SCHEMAS` entries for `GET /api/v1/pm/calendar` and `POST /api/v1/pm/reschedule` (the existing
+  `pmPlanReplySchema` import line grows by two names).
+- `apps/server/test/reply-contract.test.ts`: the count moves by exactly **+2** with the equality assertion kept —
+  137 → 139 on the review's baseline; **143 → 145 in this checkout**, which already carries 49a's three generated
+  settings routes and 46/47's routes. The route table and `Object.keys(REPLY_SCHEMAS)` stay equal.
 - `packages/domain/src/pm-schedule.ts` (new): `pmCalendar(plans, openTickets, {from, to, today, timeZone, cap,
 workingDays}) → {items, cap}` with each item `{planId, machineId, machineCode, title, dueOn, scheduledOn,
 toleranceDays, ticketId, status: 'planned'|'open', movable, crowded, suggestedOn}`; `pmSuggestDate`; the pure
@@ -394,7 +400,9 @@ and suggestion, then filtered to `[from, to]` for the reply. `pmSuggestDate` sea
 to ISO, passes the plant's time zone, and parses the reply. `pm-reschedule` locks the plan row, re-reads the
 effective plan and the open ticket, checks R4/R5, then either calls `raisePlannedTicket` (new ticket at `now` with
 `scheduledOn`) or `setPmScheduledOn`; both in the caller's `withTenant` transaction. The POST requires an
-idempotency key; a replay returns the stored reply, a reused key with a different body is 422.
+idempotency key; a replay returns the stored reply, a reused key with a different body is 422. Both replies are
+strict shared schemas and are in `REPLY_SCHEMAS` from the first commit, so `reply-contract.test.ts`'s route-table
+equality is true when the routes register.
 
 **Given/When/Then.**
 
@@ -426,6 +434,9 @@ idempotency key; a replay returns the stored reply, a reused key with a differen
    ticket's `task_expected_on` is 2026-10-30 (the due, not the late run's day).
 10. Given the GET from a technician, then 403; given a request without `Idempotency-Key` on the POST, then 422
     with the key named.
+11. Given the built app, when `routeTable(app)` is compared with `Object.keys(REPLY_SCHEMAS)`, then the two lists
+    are equal and the test's count is the baseline plus exactly 2 (137 → 139 on the review baseline; 143 → 145 in
+    this checkout) — no route without a schema, no schema without a route.
 
 **Red.**
 
@@ -435,8 +446,9 @@ not exist (`Cannot find module '../src/pm-schedule.js'`).
 `pnpm exec vitest run apps/server/test/pm-calendar.test.ts` — `GET /api/v1/pm/calendar` is 404.
 
 **Green.** The two red commands; `pnpm exec vitest run apps/server/test/pm-generate.test.ts
-apps/server/test/m4b-write.test.ts apps/server/test/tickets.test.ts`; `pnpm exec vitest run packages/domain/test
-packages/shared/test`; rails `pnpm boundaries`, `pnpm migrations:immutable`, `pnpm deps`, `pnpm precheck`.
+apps/server/test/m4b-write.test.ts apps/server/test/tickets.test.ts
+apps/server/test/reply-contract.test.ts`; `pnpm exec vitest run packages/domain/test packages/shared/test`; rails
+`pnpm boundaries`, `pnpm migrations:immutable`, `pnpm deps`, `pnpm precheck`.
 
 **Covering suite.** `pnpm exec vitest run packages/domain/test packages/shared/test apps/server/test` (the server
 suite plus the domain suite; no existing assertion is changed). The PR body carries
@@ -568,6 +580,15 @@ compliance fixture, the engine's owner/D2 pins, the stored profiles and the work
   after `<Pm>` (`:171`); the file stays under 250.
 - `packages/shared/src/i18n/pm.en.ts`: the page, calendar, spread and machine keys (R13), building on 50b's
   screen/figure/table keys; ≤70 lines; `pm.gu.ts` remains `blank(pmEn)`.
+- `packages/shared/src/i18n/analytics-guide.en.ts`: one `analytics.guide.pm-calendar.body1` paragraph so the built
+  entry has a body; `analytics-guide.gu.ts` is already `blank(analyticsGuideEn)`, so the key appears there
+  automatically. The 36 headings are untouched.
+- `apps/web/src/screens/analytics/guide-entries.ts`: remove `'pm-calendar'` from `UNBUILT` (the set goes from five
+  to four; update its comment), and give the entry one body key (`analytics.guide.pm-calendar.body1`) and
+  `figures: ['pm-compliance']`. The entry now links to the real `/analytics/pm?screen=pm-calendar` page.
+- `apps/web/src/screens/analytics/guide-entries.test.ts`: drop `'31. PM Calendar'` from the test's `UNBUILT`
+  heading list (four remain), keep the 36-heading assertion verbatim, and keep the once-per-figure check; the new
+  entry's link names the `pm` group.
 - `apps/web/src/screens/analytics/pm-calendar-guard.test.ts` (new): the source guard (only `PmCalendar.tsx` names
   `@fullcalendar`, with a planted violation) and the build-chunk guard (no `fc-classic-` in the start-up files; a
   `PmCalendar` chunk has it), mirroring `apps/web/src/ui/chart/chart-guard.test.ts:48-112`.
@@ -592,7 +613,9 @@ calendar and ticket keys, and on an error calls `info.revert()` and shows the re
 `eventStartEditable` are true only for head/admin (R10). The "Spread the load" panel lists items with
 `suggestedOn` and a Move button; it calls the same `schedulePm`. The compliance tiles format the figure's `pct`
 with one decimal and print the counts/from/to (R16). The machine block is a live list; its own loading/error lines
-never replace the analytics body.
+never replace the analytics body. The Guide's `31. PM Calendar` entry leaves `UNBUILT`, gets its body paragraph and
+names `pm-compliance`; `guide-entries.test.ts` keeps the answer key's 36 headings in order and proves every
+registered figure is explained exactly once.
 
 **Given/When/Then.**
 
@@ -617,6 +640,9 @@ never replace the analytics body.
    machine, the date and the status words, not colour alone.
 7. Given the build, when the start-up files are inspected, then no `fc-classic-` marker is in them; the
    `PmCalendar` chunk has it and is loaded only by `/analytics/pm`.
+8. Given the Guide, when it is rendered, then `31. PM Calendar` is a built entry with a body paragraph and a link
+   to `pm-compliance` on the `pm` group; the 36 headings are still the answer key's, in order, and the unbuilt
+   headings are the remaining four.
 
 **Red.**
 
@@ -626,7 +652,7 @@ never replace the analytics body.
 month grid; the drag has no event to grab and no target cell.
 
 **Green.** The red commands; `pnpm exec vitest run apps/web/src/screens/analytics
-apps/web/src/screens/settings`; `pnpm exec playwright test apps/web/e2e/pm-calendar.spec.ts
+apps/web/src/screens/settings apps/web/src/screens/analytics/guide-entries.test.ts`; `pnpm exec playwright test apps/web/e2e/pm-calendar.spec.ts
 apps/web/e2e/analytics-machines.spec.ts apps/web/e2e/analytics.spec.ts` (the existing analytics journeys rerun
 unchanged); `pnpm exec vitest run apps/web/src/ui/chart/chart-guard.test.ts` (the chart chunk stays clean); rails
 `pnpm parity`, `pnpm ui:check`, `pnpm precheck`.
@@ -702,8 +728,12 @@ several hundred lines with weaker accessibility. The v7 packages are the current
 `legacy` with separate plugin packages); v7 consolidates the plugins into `@fullcalendar/react`, needs the
 `temporal-polyfill` peer, and uses hashed CSS class names — the prototype proved `[data-date]`, the event text and
 the theme CSS variables are the stable hooks, which is what the E2E and the token styling use. `npm audit` on the
-prototype tree reported 0 high/critical. If the real page fails the chunk or interaction condition, ADR 0009's
-fallback is the hand-rolled month grid; no other library is authorised.
+prototype tree reported 0 high/critical. These `/tmp` numbers are a **record of the fork**, not the repository's
+proof: the reproducible proof is 50c's source/chunk guard (the library is only in `PmCalendar.tsx` and only in the
+lazy `PmCalendar` chunk) and the E2E's real drag (the browser sends the reschedule and the event moves). No
+prototype script is committed; if a future reviewer needs to rerun the fork, the ADR's commands are the record and
+the 50c guard is the check. If the real page fails the chunk or interaction condition, ADR 0009's fallback is the
+hand-rolled month grid; no other library is authorised.
 
 ## Not in this ticket
 
