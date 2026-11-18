@@ -30,3 +30,10 @@ The 11 Nov platform build is tracked at `docs/discovery/real-2026-11-13/cosmos_p
 The A6 Why-Why figure is on `main` (#335, `79b4c94f`): the 24 production breakdowns over the raw-hours threshold, worst
 first, the NO-DT VC-23 kept at 59.98, and a saved record turning only its own row `Completed`. Engine-only; the screen
 is 41e-2.
+
+## 41c-2, 41d and 41e-1 merged
+
+41c-2 (#337) adds the save/read/PDF contract, the append-only event and the loader; 41d-1 (#338) is the A10 core
+(groups, families, repeats, words, tables 0/1/2/4 exact); 41d-2 (#339) is the A10 page whole (8 KPIs, 6 tables,
+2 charts, the Naive Bayes card); 41e-1 (#340) is the A4/A5 screens with the sortable table, the tile-filtered drills
+and parity done. A4's code-matrix gap is a DEBT row, not a fabricated matrix.

@@ -4,12 +4,11 @@ Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `doc
 
 ## START HERE (review 41b → M4a tail → gate → M4b → M6)
 
-**State:** `main` = `79b4c94f`, deployed on every merge. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
-41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331**, **41a A4 #329**,
-**41b A5 #333** and **41c A6 #335** (24 raw-hours candidates, the NO-DT VC-23 pinned at 59.98; fresh review PASS).
-Next packets: **41c-2 saved record + server PDF**, 41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan names every rule,
-file, red/green command and ruling R1–R9; do not re-derive them, do not undo R8. Only other open PR: #300 (Nimish's,
-leave it).
+**State:** `main` = `9888794e`, deployed on every merge. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
+41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331**, all four figures —
+**41a A4 #329**, **41b A5 #333**, **41c A6 #335**, **41c-2 saved record + PDF #337**, **41d-1 A10 core #338**,
+**41d-2 A10 page #339** — and the **41e-1 A4/A5 screens #340**. Next: **41e-2 the A6/A10 screens**, then the M4a gate.
+Only other open PR: #300 (Nimish's, leave it).
 
 **The answer key's authority is the 11 Nov platform build, tracked in this repo** at
 `docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`; the
@@ -21,7 +20,7 @@ fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate ke
 map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
 
 **First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then dispatch 41c-2.
+(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then finish 41e-2.
 
 **Frontier after 41:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
 43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),

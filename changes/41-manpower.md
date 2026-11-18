@@ -201,6 +201,89 @@ plant date and recorded minutes; the plan's candidates always have a report, so 
 that any closed breakdown can be saved and printed. (5) `personCode` moved to identity (one definition, no
 duplicated formula); it changes no behaviour and no caller outside the server.
 
+## 41d-1 — A10 core: grouping, families, repeats, words
+
+**What changed for a user:** nothing visible yet. This is the Problem Analysis core the A10 page will print: every
+production, non-PM breakdown becomes one event (grouped by the plant's manual fix, else the group list's keywords over
+the problem text, then problem + corrective action, else `Other / unclear`), and four aggregations are computed — the
+24 groups (count, hours, machines, quick stops, hours each), the nine families with their groups in encounter order,
+the 74 machine-and-group repeats of four or more, and the 14 words the unplaced entries share. No figure is registered
+and `computers.ts` is untouched: 41d-2's `a10-problems.ts` assembles and registers the page from this result.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-problems.test.ts` (7 new tests): key
+tables 0, 1, 2 and 4 compared row for row — the 24 groups with family/count/%/hours/hrs-each/machines/quick, the nine
+families with the group order inside, the 15 printed repeat rows, and the 14 words with their example problem; the
+repeat list's length (74) derived from the events' machine-and-group pairs; events one per breakdown ticket, sorted by
+key then date, with repeated keys kept (merging off); the three plant fixes move exactly three entries out of
+`Other / unclear` when removed; a plant-edited group list is read, and a fix naming a removed group no longer applies.
+N (1,279) and the total hours (3,060.11) are derived from `ENGINE_DATA`, never literals. Red first, before the module
+existed: `Test Files 1 failed (1)`, `Tests no tests`, `Error: Cannot find module
+'../src/analytics/problem-analysis.js'` (0 passed). Green: the named file 7/7; then
+`pnpm exec vitest run packages/domain/test` — 29 files, 390 tests (382 before: the 7 new tests plus the purity case
+the new source file adds to `analytics-engine.test.ts`). `pnpm precheck`: all checks pass.
+
+**Files.** `packages/domain/src/analytics/problem-analysis.ts` (new, 353 lines), a third optional parameter on
+`problemGroupOf` in `problem-groups.ts`, `packages/domain/test/analytics-problems.test.ts` and this fragment.
+
+**Deviations recorded.** (1) `problem-groups.ts` is touched (not in the packet's file list): `problemGroupOf` gains an
+optional `groups` list so the plant's edited list is classified by its own names and keywords (R7) and a fix naming a
+removed group is ignored, as the platform's editor does. The default is `PROBLEM_GROUPS`, so `dashboard-flags.ts` is
+unchanged and no existing caller or number moves. (2) The analysis takes `EngineData` only, not a profile: nothing A10
+prints reads a profile field (`AnalyticsProfile` holds none for ticket 41's problem page), so 41d-2's page computer
+receives the profile as every computer does and passes only the data here. (3) The module exports the platform's
+aggregation (events and the four stats), not printed table rows: 41d-2 owns the page's cells and titles, and the test
+formats the four tables with the platform's own `formatPercent`/`formatNumber` to prove they equal the key. (4) The
+`Other / unclear` pseudo-group is not in `PROBLEM_GROUPS`, so its family `Other` is set in `problem-analysis.ts`;
+the platform's own classifier returns `f:'Other'` for it. (5) A repeat row prints the machine **code**, as A6 does; the
+fixture's machine id and code are equal, so the key is unaffected. (6) An empty group list in Settings is treated as
+"not edited" (the platform default), as `probGroups()` does; the plant's editor never saves an empty list.
+
+## 41d-2 — A10 page, charts and the suggested-group card
+
+**What changed for a user:** the A10 Problem Analysis page is now computed whole and equals the frozen 11 November
+key: the eight KPIs (breakdowns studied, top problem group, quick stops, repeat problems, then the "what if we cut a
+problem?" figures — 242 hrs saved, 52 breakdowns avoided, plant availability 99.50% "was 99.46% (+0.04 points)", MTBF
+459 hrs "was 440 hrs", from the top group at 50% against the production fleet's available hours from 1 January to the
+run date), the six tables (groups, families, the 15 repeat offenders, the 31 unplaced entries with their suggested
+group and Accept cell, the 14 words, and the group editor's own rendered cells) and the two charts (the 16-bar Pareto
+with the platform's double-spaced labels and its bubble chart of every group). Every registered figure of owner 41 now
+answers ready; A10 drills the 1,279 production non-PM tickets.
+
+The unplaced card's suggestions are the platform's Naive Bayes, ported in problem-suggest.ts: word and bigram
+features, the ML_STOP set, the platform's stemmer, multinomial Laplace (a = 0.5, V = vocabulary), log(n_label/N)
+priors and a softmax, with ties kept in the plant's group order. It learns from the 1,248 entries the keyword rules or
+a plant fix placed (a model is made only at 40 or more) and reproduces all 31 of the key's suggestions, labels and
+rounded percentages. Its 5-fold accuracy (i % 5 folds) is 76%.
+
+**Tests that prove it.** pnpm exec vitest run packages/domain/test/analytics-problems.test.ts (11 tests: the 7 41d-1
+tests unchanged plus 4 page tests): (1) expect(computed.value).toEqual(A10) for the whole page, plus the key's own
+counts (8 KPIs, 6 tables, 2 charts) restated; (2) the drill is the production non-PM tickets derived from ENGINE_DATA —
+1,279, unique, sorted by the engine, every id a real ticket; (3) the classifier trains on the derived placed count
+(1,248, never a literal) and cross-validates at 76%; (4) a mutation that drops the plant's manual fixes
+(settings.problemFixes = {}) makes the page unequal to the key, grows the unplaced card by exactly the three fixed
+entries and moves one entry out of each fixed group into Other / unclear — the fix path bites, and the key is never
+weakened. Red first, before problem-suggest.ts existed: "FAIL packages/domain/test/analytics-problems.test.ts",
+"Error: Cannot find module '../src/analytics/problem-suggest.js' imported from ...", "Test Files 1 failed (1)",
+"Tests no tests". Green: the named file 11/11; then pnpm exec vitest run packages/domain/test — 29 files, 396 tests
+(390 before: the 4 new page tests plus the two purity cases the two new source files add to analytics-engine.test.ts).
+pnpm precheck: 13 checks passed.
+
+**Files.** packages/domain/src/analytics/problem-suggest.ts (new, 222 lines), a10-problems.ts (new, 370 lines, under the
+400 budget), the computers.ts entry (and the owner-41 comment now names all four figures),
+packages/domain/test/analytics-problems.test.ts and this fragment. No new dependency; no other source touched.
+
+**Deviations recorded.** (1) The key holds no description slot (page keys are page/title/kpis/tables/charts; tables
+are title/header/rows/rowCount), so the model metadata the platform's card description prints — 1,248 training entries
+and 76% accuracy — is computed and exported by problemTraining, while the page carries no prose; adding a description
+would break the exact toEqual(A10) acceptance. This follows the R9 precedent (nothing fabricates text the key does not
+hold) and was confirmed with the orchestrator; the 41e-2 screen will print no model-description prose, and the
+orchestrator records the DEBT/ledger ruling after merge. (2) The what-if's available hours read the production fleet
+(isProduction: CNC, not excluded) as the platform's nonRobotMachines does over its CNC state.machines;
+EngineData.machines also carries the conventional, process, utility and DG registers, which the platform keeps in
+separate lists and no availability sum reads. The key's 99.46% before / 99.50% after / 440 and 459 MTBF pin this. (3) A
+softmax tie would keep the plant's group order (the plan's rule); the platform's label insertion order differs only on
+an exact tie, and this key has none (31/31 suggestions and the 76% accuracy are identical under either).
+
 ## 41e-1 — the A4 and A5 screens
 
 **What changed for a user:** the Breakdowns group now opens **A4 manpower** as its own screen: the key's three
