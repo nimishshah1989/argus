@@ -190,16 +190,10 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
   'forecast-lab': forecastLabFigure,
 };
 
-<<<<<<< HEAD
 /** Owner 43's figures: compare, team, money and Fix Finder. */
 const compareComputers: Readonly<Record<string, Computer>> = {
   compare: compareFigure,
   'money-matters': moneyMattersFigure,
-=======
-/** Owner 43's figures: the compare, team, money and Fix Finder packets; 43a to 43d add their entries here. */
-const compareComputers: Readonly<Record<string, Computer>> = {
-  'money-matters': moneyMattersFigure,
->>>>>>> origin/main
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
