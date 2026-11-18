@@ -153,6 +153,7 @@ export const analyticsEn = {
   'analytics.content.costliest.share': '% of BD',
   'analytics.content.costliest.breakdowns': 'Breakdowns',
   'analytics.content.costliest.caption': 'Total downtime: {{hours}} hours',
+
   'analytics.content.a4.countChart': 'Breakdowns handled — Done By',
   'analytics.content.a4.personAxis': 'Person',
   'analytics.specialization.toggle': 'Specialization view',
