@@ -59,7 +59,7 @@ export const analyticsEn = {
   'analytics.value.none': '—',
   'analytics.guide.title': 'Guide',
   'analytics.guide.intro':
-    'Every screen and the figures it will show. The explanation of how each one is worked out arrives with the Guide ticket.',
+    'Every figure on the analytics face: what it means, how it is worked out and where to open it.',
   'analytics.drill.open': 'See the rows',
   'analytics.drill.title': 'The rows behind this figure',
   'analytics.drill.back': 'Back to the figures',
