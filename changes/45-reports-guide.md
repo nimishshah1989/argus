@@ -152,3 +152,70 @@ inputs), `exports/workbook.ts` (new: `workbookSheets`), `exports/headers.ts`, `e
 the export), `packages/domain/test/answer-key/workbook-export.ts` (new: the key plus `EXPORT_DATA` mapped from
 `input.json`), `packages/domain/test/analytics-workbook.test.ts` (new: nine acceptance tests), and
 `packages/domain/test/registry.test.ts` (the one new public name, `workbookSheets`).
+
+# 45b — the annual report figure
+
+**What changed for a user:** the engine now builds the Annual Report. For the frozen 11 November plant it returns the
+answer key whole: the `rep_year` page "Annual Report", no KPI tiles, twelve tables in the key's order and the two
+charts `ch-ry-month` and `ch-ry-pareto`. The report is 1 January 2026 to 11 November 2026, so November is partial and
+prints "November (to date)"; 2025 has no data, so every comparison cell is `—` (see deviation 2). The tables are the
+month and quarter series; the ten costliest machines with their share, cumulative share and months in the top five;
+the cell, cause, category-reliability, age and team tables; the PM/long-breakdown pair; the machines added month by
+month with its `Total` row; and the blank commentary form. The drill names the year's 1,279 breakdown tickets,
+deduped; every one is a real ticket in the snapshot. A plant with no production machine, or no breakdown in the year,
+gets `null` and no ids.
+
+**Acceptance, exactly as the plan states it.** `expect(computed.value).toEqual(ANNUAL)` with the key whole, no
+tolerance and no re-rounding; `annualPeriod('2026-11-11')` is 2026-01-01..2026-11-11 with November as the last month.
+The drill equals the year's production, non-PM reports' ticket ids, deduped and sorted, and every id is a real ticket;
+the no-machine and no-breakdown plants are `null` with no ids.
+
+**What the key pins.** Each month is its own window cut at the run date; a quarter runs to the run date when it is
+still going. The month-over-month and quarter-over-quarter change is the unrounded hours' percent at 0 dp, `—` for the
+first row or a zero denominator; MTTR is 2 dp and `—` when the window has no breakdown. `ch-ry-month` stars the
+partial month; a chart series rounds with `Math.round(v*10)/10`, while the table text is the platform's own
+`toLocaleString` (deviation 1). "Where the downtime comes from" is the year's machines by hours, months in top 5
+counted from each month's own top five. By cell counts a machine at its current cell and divides hours by the cell's
+machine-equivalents (its time-weighted available hours ÷ annual × the period's fraction, so a machine counts only for
+the days it was in that cell and only from its purchase date). Categories divide by the machines currently in the
+category; MTBF is (the category's available hours − its hours) ÷ its breakdowns. Age bands are 0-5/5-10/10-15/15-20/20+
+with the lower bound in; the team is the Settings list with a job this year, attended descending, the first eight; long
+breakdowns are the rows whose recorded hours exceed `whyWhyThresholdHours`, recorded hours descending, the first
+eight. Added machines count a purchase date only, ordered by the fleet's category count, with `·` for a zero month and
+a `Total` row.
+
+**Red/green.** Red: `pnpm exec vitest run packages/domain/test/analytics-annual-report.test.ts` — `Test Files 1 failed
+(1)`, `Tests no tests`, `Error: Cannot find module '../src/analytics/annual-report.js'` (the module did not exist).
+Green: the named file — 5 tests; `pnpm exec vitest run packages/domain/test` — 43 files, 477 tests passed;
+`pnpm precheck` — 13 checks passed (prettier checked 5 files).
+
+**Files.** `packages/domain/src/analytics/annual-report.ts` (new: the period, the month and quarter series, by cause,
+age, PM and long-breakdown tables, the two charts, the page and `annualReport`), `annual-report-tables.ts` (new: the
+number text and the fleet, cell, category, team and machines-added tables, split out for the line rail), `computers.ts`
+(the one `'annual-report'` entry), the new test and this fragment. `report-period.ts` is untouched: no rule it holds
+needed changing. No dependency, no migration, no schema change.
+
+**Deviations recorded.**
+
+1. **A local number formatter.** 45a's shared rule says `formatNumber` for every number, but this key's top-machine
+   table prints TC-13 as `117.4` hours while the Pareto chart prints `117.5`. The platform's table text is
+   `toLocaleString` over the summed double (117.44999999999998863, which prints down at 1 dp) and only the chart
+   rounds with `Math.round`; `formatNumber`'s `Math.round(value * 10)` multiplies the near half back up and prints
+   `117.5` in both, failing the key by one cell. The annual report therefore prints through `numberText` (an
+   `Intl.NumberFormat`, the platform's own text) and `percentText` (`toFixed(2)`, the platform's `fmtPct`); every
+   other cell is unchanged and the whole-key `toEqual` proves it.
+2. **The prior-year comparison is not printed.** The plan defines 2025-01-01..2025-11-11 as the comparison (no data,
+   so `—`). In the platform that comparison feeds only the headline tiles and takeaway sentences, which the key does
+   not carry (0 KPIs); no table or chart in the annual key has a prior-year column. Computing it would add a field
+   the key does not have and break the whole-figure `toEqual`, so the figure computes the report year and prints the
+   within-year month and quarter comparisons. This is the one plan line with no printed cell, and the key is the
+   arbiter.
+3. **The team name's type word.** The platform prints the Settings team entry's type after the name, so a row
+   reads `Person 11 Team`. Our person rows keep the operational role (`maintenance`/`vendor`), not the printed
+   type, so the table prints `Vendor` for a vendor and the platform's `Team` word for every other member; the key's
+   eight rows all print `Team`.
+4. **Two source files.** The plan's Files line names one new module, but twelve tables and two charts do not fit the
+   hard 400-line rail in one: `annual-report.ts` is 380 lines and `annual-report-tables.ts` 310, each under the rail,
+   the same split 45a made for its team and machines-added tables.
+5. **Category labels are whitespace-normalized.** The workbook's `Cnc Sliding Head  Automatic Lathe` prints one space
+   in the key; `categoryName`/`categoryOf` (45a's helpers) collapse it. The whole-key test proves every cell.

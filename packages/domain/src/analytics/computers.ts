@@ -1,5 +1,6 @@
 import { a10ProblemsFigure } from './a10-problems.js';
 import { actionCenterFigure } from './action-center-figure.js';
+import { annualReportFigure } from './annual-report.js';
 import { a1BdPmFigure } from './a1-bd-pm.js';
 import { a2CategoryCellFigure } from './a2-category-cell.js';
 import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
@@ -210,9 +211,10 @@ const actionCenterComputers: Readonly<Record<string, Computer>> = {
   'action-center': actionCenterFigure,
 };
 
-/** Owner 45's reports: the monthly figure (45a); the annual figure joins it with 45b. */
+/** Owner 45's reports: the monthly figure (45a) and the annual figure (45b). */
 const reportComputers: Readonly<Record<string, Computer>> = {
   'monthly-report': monthlyReportFigure,
+  'annual-report': annualReportFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
