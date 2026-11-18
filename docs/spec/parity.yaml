@@ -1418,9 +1418,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a9-bottleneck-forecast.json
+      - 'apps/web/src/screens/analytics/forecast-charts.test.ts :: maps the key page whole: its title, 14 KPIs and every cell of its nine tables'
+      - 'apps/web/src/screens/analytics/forecast-charts.test.ts :: maps both charts: the raw-tick risk map and the band-coloured planning forecast'
+      - 'apps/web/e2e/analytics-forecast.spec.ts :: a head opens A9 and the Forecast Lab, sorts the risk table, reads both charts ready and drills machines'
     source: docs/plan/m4a-triage.md
     screen: a9-bottleneck-forecast
     ticket: '42'
@@ -1430,9 +1433,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/forecast-lab.json
+      - 'apps/web/src/screens/analytics/forecast-charts.test.ts :: maps the key page whole: no KPIs, every cell of both tables and all five chart lines'
+      - 'apps/web/e2e/analytics-forecast.spec.ts :: a head opens A9 and the Forecast Lab, sorts the risk table, reads both charts ready and drills machines'
     source: docs/plan/m4a-triage.md
     screen: forecast-lab
     ticket: '42'

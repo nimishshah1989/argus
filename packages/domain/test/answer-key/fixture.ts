@@ -216,6 +216,10 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     category: text(row.electMech),
     maintCode: text(row.maintCode),
     spareUsed: text(row.spare1),
+    spares: [row.spare1, row.spare2, row.spare3].flatMap((name) => {
+      const spare = text(name);
+      return spare === null ? [] : [spare];
+    }),
     rootCause: null,
     correctiveAction: text(row.correctiveAction),
     doneBy: personCodes(row.id, 'doneBy', row.doneBy),
