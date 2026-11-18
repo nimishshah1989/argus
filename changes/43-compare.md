@@ -69,3 +69,10 @@ loader's spare split and this fragment. No new dependency, no table, schema, mig
 - **The second box.** The platform's "share of a lost hour that is really lost sales" (`mmConv`, Guide section 30) has no profile key; this key never sets it, so the figure counts the full throughput, as the key's "full throughput counted" says. `mmTurnover` is the legacy leftover the profile still carries and the money model does not read.
 - **Shared work.** Team Focus's own packet will compute the same five lane stakes; the platform's money page calls `tfCompute` itself, so this packet prices them independently. A later refactor can share `money-focus.ts`'s `stakeHours` if the two figures are allowed to depend on each other.
 - **Tests.** `packages/domain/test/analytics-money-matters.test.ts`: the whole value equals `fixtures/answer-key/money-matters.json`, and the drill is the production non-PM tickets, each one a real ticket. Red first: before the computer registered, the engine reported the figure as not computed.
+
+## 43a — Compare machines
+
+- New `compare.ts` (page assembly: 0 KPIs, six tables, two charts) and `compare-score.ts` (the age-adjusted health score and peer averages). The scoring module is split out only to keep both files under the 400-line budget.
+- The page pins its pair from the data — the plant's most populous CNC category, then its two worst age-adjusted health scores — which reproduces the key's VC-28 vs VC-22 comparison, and drills both machine ids.
+- Registered `compare` in `computers.ts`; new `analytics-compare.test.ts` compares the whole `fixtures/answer-key/compare.json` value and derives the drill from the page's own headers.
+- Green: `pnpm exec vitest run packages/domain/test` (422 passed), `pnpm precheck`.
