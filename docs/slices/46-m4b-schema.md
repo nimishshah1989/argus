@@ -75,9 +75,9 @@ drift row, and a `floor` ticket still does.
 - `asset_register` without `kind` is refused; each of the four kinds inserts; `lead_days < 0` is refused;
 - a ticket inserts with `pm` and with `inspection`; `whatsapp` still inserts; `bogus` does not; a `pm` ticket gets no
   `sla_timer` row and no drift row, a `floor` ticket gets its clock;
-- a breakdown report with the four codes inserts and reads back; a bad code, another tenant's code and an inactive
-  code (still refused for a _new_ value? no — inactive is allowed; the test pins the plan's rule) are covered: bad and
-  other-tenant refused, a valid inactive code accepted; `pm_report` round-trips and non-PM rows stay NULL;
+- a breakdown report with the four codes inserts and reads back; a bad code and another tenant's code are refused; a
+  valid but switched-off `failure_code` is accepted (47's rule: old reports keep their codes); `pm_report` round-trips
+  and non-PM rows stay NULL;
 - `pm_plan` carries `meter_interval`, `meter_tolerance`, `last_meter_reading`; a plan with neither machine nor category
   is refused; a duplicate `forecast` machine/month is refused; `app_user` cannot UPDATE `forecast.predicted` but can set
   `outcome`; `intervention.pm_plan_id` cannot point at another tenant's plan;
