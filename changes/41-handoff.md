@@ -1,7 +1,7 @@
 # 41 — docs only
 
-Ticket 41's shared seam merged (#327). The tracker moves 41 to in progress, the ledger records the merge and its
-evidence, and `docs/HANDOFF.md` names 41a A4 as the next packet. No product code, fixture or key changes.
+Ticket 41's shared seam merged (#327). The tracker moves 41 to in progress, the ledger records each merge and its
+evidence, and `docs/HANDOFF.md` names the next packet. No product code, fixture or key changes.
 
 ## 41a merged
 
@@ -13,10 +13,11 @@ The plant's lists are on the seam (#331): `EngineSettings` carries `categories`,
 Settings order, A4's Specialization prints them, and the divergence recorded with 41a is retired. This change is
 documentation only.
 
-## 41b built, awaiting review
+## 41b merged
 
-The A5 energy heatmap is commit `16f5479e` on `41b-a5`: 4 files, its named test 5/5, `pnpm precheck` 13/13. It has no
-PR or fresh review yet, so the tracker and handoff name it as the restart point.
+The A5 energy heatmap is on `main` (#333, `f841aed4`): the whole value equals the key including its two grids and raw
+floats, it drills the 126 CNC machines and applies the 11 Nov per-machine efficiency rule. A fresh review recomputed
+every bucket and mutation-proved the rule; it returned PASS with one fragment count corrected before the PR.
 
 ## Handoff corrections
 
