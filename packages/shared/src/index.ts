@@ -3,6 +3,7 @@ export * from './board.js';
 export * from './signoff.js';
 export * from './error.js';
 export * from './config.js';
+export * from './failure-codes.js';
 export * from './ticket.js';
 export * from './channel.js';
 export * from './tasks.js';

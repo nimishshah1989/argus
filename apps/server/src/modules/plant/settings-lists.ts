@@ -7,6 +7,7 @@ import {
   listItemPatchSchema,
   type ListName,
 } from '@uptimo/shared';
+import { ensureFailureCodes } from './failure-codes.js';
 import { ensureLockoutSteps } from './lockout.js';
 import type { Resource } from './settings-resources.js';
 
@@ -29,6 +30,8 @@ function listResource(list: ListName): Resource {
       pausesSla: 'pauses_sla',
       tag: 'tag',
       needsLockout: 'needs_lockout',
+      // The old codes folded onto this entry (ticket 47); the 0014 trigger owns their uniqueness.
+      aliases: 'aliases',
     },
     fixed: ['code'],
     create: listItemCreateSchema,
@@ -44,11 +47,18 @@ function listResource(list: ListName): Resource {
       pausesSla: row.pauses_sla,
       tag: row.tag,
       needsLockout: row.needs_lockout,
+      aliases: row.aliases,
       active: row.active,
     }),
     switchTo: (active) => ({ active }),
-    // The head's first look at the steps finds the starting four to edit, not an empty list.
-    prepare: list === 'lockout_step' ? ensureLockoutSteps : undefined,
+    // The head's first look at the steps finds the starting four to edit, not an empty list; the first read
+    // of the failure codes finds the plant's own codes, which are also what a coded close resolves against.
+    prepare:
+      list === 'lockout_step'
+        ? ensureLockoutSteps
+        : list === 'failure_code'
+          ? ensureFailureCodes
+          : undefined,
     check: async (_tx, merged) =>
       merged.needsLockout === true && !(LOCKOUT_FLAG_LISTS as readonly string[]).includes(list)
         ? {
