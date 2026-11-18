@@ -1,4 +1,5 @@
 import { a10ProblemsFigure } from './a10-problems.js';
+import { actionCenterFigure } from './action-center-figure.js';
 import { a1BdPmFigure } from './a1-bd-pm.js';
 import { a2CategoryCellFigure } from './a2-category-cell.js';
 import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
@@ -200,6 +201,14 @@ const compareComputers: Readonly<Record<string, Computer>> = {
   'fix-finder': fixFinderFigure,
 };
 
+/**
+ * Owner 44's Action Center figure. The screen's money tile, `action-center.spares-spend`, stays `not_computed`
+ * until the spare-cost screen lands (46/47): the spares rule's share is in its title, never a rupee in the value.
+ */
+const actionCenterComputers: Readonly<Record<string, Computer>> = {
+  'action-center': actionCenterFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -221,4 +230,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...compareComputers,
   ...forecastComputers,
   ...compareComputers,
+  ...actionCenterComputers,
 };

@@ -297,15 +297,22 @@ function publicNudge(record: ActionCenterRecord): ActionCenterNudge {
 }
 
 /**
- * The whole nudge list, built in rule order and stably sorted by severity weight (high 3, med 2, low 1, info 0)
- * descending, then evidence day descending (a null evidence last). The sort is stable, so a tie keeps rule order.
+ * The whole record list the figure and the board share, built in rule order and stably sorted by severity weight
+ * (high 3, med 2, low 1, info 0) descending, then evidence day descending (a null evidence last). The sort is
+ * stable, so a tie keeps rule order. The evidence day and the two risk flags are the internal fields a nudge's
+ * status and the machine table read, so packet 44b reads this list rather than re-deriving them.
  */
-export function actionCenterNudges(input: ComputeInput): ActionCenterNudge[] {
+export function actionCenterRecords(input: ComputeInput): ActionCenterRecord[] {
   const ctx = actionCenterContext(input);
   const records = [...dataRules(ctx), ...amcNudges(ctx), ...legalNudges(ctx)];
   records.sort(
     (left, right) =>
       SEVERITY_WEIGHT[right.sev] - SEVERITY_WEIGHT[left.sev] || (right.ev ?? 0) - (left.ev ?? 0),
   );
-  return records.map(publicNudge);
+  return records;
+}
+
+/** The six fields the answer key and the figure hold: the internal evidence and flags stay in the model. */
+export function actionCenterNudges(input: ComputeInput): ActionCenterNudge[] {
+  return actionCenterRecords(input).map(publicNudge);
 }
