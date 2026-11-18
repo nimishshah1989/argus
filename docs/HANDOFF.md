@@ -5,11 +5,11 @@ rewrite at session end.
 
 ## START HERE (M4a tail → gate → M4b → M6)
 
-**State:** `main` = `3382033d`. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done; 41 in progress** — its slice plan
-(`docs/slices/41-manpower-energy-rootcause.md`) and the **shared seam (41h, #327)** are merged. Next packets, in this
-order: **41a A4**, 41b A5, 41c A6, 41c-2 saved Why-Why + server PDF, 41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan
-names every rule, file, red/green command and ruling R1–R9 — do not re-derive them, and do not undo R8. Only other
-open PR: #300 (history plan, Nimish's — leave it).
+**State:** `main` = `1731d112`. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done; 41 in progress** — its slice plan
+(`docs/slices/41-manpower-energy-rootcause.md`) and the **shared seam (41h, #327)** and **41a A4 (#329)** are merged. Next packets, in this
+order: **41b A5**, 41c A6, 41c-2 saved Why-Why + server PDF, 41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan
+names every rule, file, red/green command and ruling R1–R9 — do not re-derive them, and do not undo R8. One recorded divergence: A4's Specialization columns come from the fleet's categories until the plant category
+list reaches the engine (ledger ruling + DEBT row). Only other open PR: #300 (history plan, Nimish's — leave it).
 
 **The answer key's authority is the 11 Nov platform build, which lives only in the staging discovery pack**
 (`<argus-staging>/docs/discovery/real-2026-11-13/{cosmos_platform-2026-11-11.html, cosmos-export-2026-11-11.xlsx}`,
