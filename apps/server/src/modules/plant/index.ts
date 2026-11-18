@@ -30,6 +30,7 @@ export {
   type MachineRow,
 } from './repo/reads.js';
 export { ensureLockoutSteps } from './lockout.js';
+export { ensureFailureCodes, failureCodeIndexOf } from './failure-codes.js';
 export {
   ensureSettingRow,
   listsForEngine,
@@ -44,6 +45,7 @@ export { plantToday, type Problem, type Resource } from './settings-resources.js
 export { shiftIsOn, type Row, type Store } from './repo/plant-settings.js';
 export { passwordChangeEnforced } from './service.js';
 export {
+  activePlanForMachine,
   assetRegisterById,
   insertAssetRegister,
   insertPmPlan,

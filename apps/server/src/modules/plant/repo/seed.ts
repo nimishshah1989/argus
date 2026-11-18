@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { insertPmPlan } from './records.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -150,5 +151,81 @@ export async function insertGlossaryTerms(
       'INSERT INTO glossary_term (tenant_id, source, english, direction) VALUES ($1, $2, $3, $4)',
       [tenantId, term.source, term.english, term.direction],
     );
+  }
+}
+
+export interface NewPmPlan {
+  /** The machine's register code; the seed resolves it to the machine's id. */
+  machineId: string;
+  title: string;
+  intervalDays: number;
+  lastDoneOn: string | null;
+  /** The plan's clock anchor, a plant-local calendar day. */
+  anchorOn: string;
+  checklist: readonly unknown[];
+}
+
+/** The instant of a plant-local midnight: an imported plan's clock anchor, which may be in the future (R2). */
+export function localMidnight(day: string, timeZone: string): Date {
+  const [year, month, date] = day.split('-').map(Number);
+  const utc = Date.UTC(year!, month! - 1, date!);
+  const offset = (at: number): number => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).formatToParts(new Date(at));
+    const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+    const hour = value('hour') % 24;
+    return (
+      Date.UTC(
+        value('year'),
+        value('month') - 1,
+        value('day'),
+        hour,
+        value('minute'),
+        value('second'),
+      ) - at
+    );
+  };
+  let at = utc;
+  // Two passes settle a zone whose offset differs on the far side of a daylight-saving change.
+  for (let pass = 0; pass < 2; pass += 1) at = utc - offset(at);
+  return new Date(at);
+}
+
+/**
+ * The workbook's 125 machine plans. A pre-0015 schema has no `pm_plan` table: the three migration tests seed
+ * an older schema and must still pass, so the insert is a no-op there (49a).
+ */
+export async function insertPmPlans(
+  tx: Db,
+  tenantId: string,
+  plans: readonly NewPmPlan[],
+  timeZone: string,
+): Promise<void> {
+  const exists = (await tx.query("SELECT to_regclass('public.pm_plan') AS table")).rows[0]?.table;
+  if (!exists) return;
+  const machines = (await tx.query('SELECT id, code FROM machine')).rows as Array<{
+    id: string;
+    code: string;
+  }>;
+  const byCode = new Map(machines.map((machine) => [machine.code, machine.id]));
+  for (const plan of plans) {
+    const machineId = byCode.get(plan.machineId);
+    if (!machineId) throw new Error(`seed: PM plan names unknown machine ${plan.machineId}`);
+    await insertPmPlan(tx, tenantId, {
+      machineId,
+      title: plan.title,
+      intervalDays: plan.intervalDays,
+      lastDoneOn: plan.lastDoneOn,
+      checklist: plan.checklist,
+      createdAt: localMidnight(plan.anchorOn, timeZone),
+    });
   }
 }

@@ -7,7 +7,7 @@ import { withTenant } from '@uptimo/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { startTestDb, type TestDb } from './harness.js';
-import { raisePlannedTicket } from '../src/modules/tickets/index.js';
+import { figureDrift, raisePlannedTicket } from '../src/modules/tickets/index.js';
 import {
   assetRegisterById,
   insertAssetRegister,
@@ -132,12 +132,22 @@ describe('a planned raise through the published path', () => {
     );
     const detail = await get(`/api/v1/tickets/${raised.id}`);
     expect(detail.statusCode).toBe(200);
+    expect(raised.ref).toMatch(/^WR-/);
     expect(detail.json().ticket).toMatchObject({
       id: raised.id,
       ref: raised.ref,
+      kind: 'general',
       raisedChannel: channel,
       status: 'open',
     });
+    // A planned job must not take the one-open-breakdown slot: a breakdown still raises on the same machine.
+    const breakdown = await post('/api/v1/tickets', {
+      machineId,
+      problem: 'Breakdown after a planned job',
+      channel: 'floor',
+    });
+    expect(breakdown.statusCode).toBe(201);
+    expect(breakdown.json().ticket.ref).toMatch(/^BD-/);
   });
 });
 
@@ -180,6 +190,8 @@ describe('a breakdown report with failure codes and a PM report', () => {
     );
     const started = await post(`/api/v1/tickets/${raised.id}/start`, { personId: ASHA });
     expect(started.statusCode).toBe(200);
+    // Planned work takes no live clock, even when it is being worked.
+    expect((await get(`/api/v1/tickets/${raised.id}`)).json().ticket.sla).toBeNull();
     const closed = await post(`/api/v1/tickets/${raised.id}/close`, {
       personId: ASHA,
       kind: 'report',
@@ -214,6 +226,10 @@ describe('a breakdown report with failure codes and a PM report', () => {
         doneBy: ASHA,
       },
     });
+    // Even a cached figure that would be reported on a breakdown stays out of the drift list for planned work.
+    await admin.query('UPDATE ticket SET repair_min = 999 WHERE id = $1', [raised.id]);
+    const drift = await withTenant(db.app, TENANT, (client) => figureDrift(client, TENANT));
+    expect(drift.map((line) => line.ref)).not.toContain(raised.ref);
   });
 
   it('refuses a code that is not on the plant list, and the close rolls back', async () => {
