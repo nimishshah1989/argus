@@ -78,3 +78,42 @@ close can find its plan.
 The 427 → 125 reduction, the source rule and the future `created_at` (R2); the build-before-store `pm_report` and its
 exact shape (R8); the meter baseline (R6); and the floor/desk filters (R10). The plan's acceptance pins each with a
 derived count, a fake-clock boundary or an exact stored object rather than a pasted number.
+
+## 49a — the workbook load and the PM plans screen (this PR)
+
+**What changed for a user:** a head or admin now has a **PM plans** page at `/settings/pm-plans` (Plant settings,
+`CalendarCheck`). It lists the plant's 125 recurring plans, shows each machine's next due, and edits the title,
+machine/category, interval, meter interval, tolerance, last reading and last done date; changes are audited. The
+Cosmos seed loads the workbook's 427 PM Plan visit rows as those 125 plans, with the two PM Reports' checklists.
+
+**The reduction (R2).** One row per distinct machine, `title = '<machine code> preventive maintenance'`,
+`intervalDays = 182` from `pmFreq = 2` (`round(max(1, round(12 / 2)) × 30.4)`), `last_done_on` = the latest done date,
+else NULL. `created_at` is the plan's clock anchor: `last_done_on ?? (next visit − interval)` at the plant's local
+midnight; it may be in the future and no due date is before anchor + interval. Every date is a cadence anchor whatever
+its source (169 plan, 58 rule, 38 manual, 162 auto); no confirmation column exists (D17). The next date is exact for
+the 110 never-done plans and re-derived for the 15 done ones (VC-6 14 days late, the rest 1–10 days early).
+
+**The checklist (R5).** Only the two machines with a report get one: TC-31 has 32 items (26 tick + 6 readings),
+VC-6 has 47 (38 + 9); the other 123 plans get `[]`. Tick ids are the point numbers as strings; reading ids are
+`<point>.<metric>`, with the platform's measurement names as data in `packages/shared/src/pm.ts` and `unit: 'mm'`.
+The settings page shows the item count and does not edit the list (no list editor, no approved mockup).
+
+**The seed report carries the reconciliation**, not a pasted table count: `pm_plan_source_rows: 427`,
+`pm_plan_visits: 427`, `pm_plans: 125`, `pm_plan_done: 15`, `pm_plan_checklists: 2`. A second seed replaces the
+plans (same count). No ticket or `breakdown_report` is created for the two historical reports. The three pre-0015
+migration tests still seed an older schema: `insertPmPlans` checks `to_regclass('public.pm_plan')` and writes nothing
+when the table is absent.
+
+**Evidence.** `apps/server/src/seed/pm-plans.test.ts` (the 427 → 125 derivation, the 125 next dates, the source
+spread, the two checklist shapes, the custom frequency); `apps/server/test/cosmos-seed.test.ts` (the five counts,
+the 125 rows, the plant-local anchor, the replace re-run); `apps/server/test/pm-plans.test.ts` (list, create, edit,
+409 for a second active machine plan, 422 for no interval/future last done, 404 for another plant's machine, the
+category plan, switch-off, audit lines and the settings refusal); `apps/web/src/screens/settings/pm-plans-spec.test.ts`
+(D05 and the next-due zone). `pnpm boundaries` stays green: no new table, no new dependency, no migration; the screen
+uses the existing `CrudPage` and its one new field kind (`date`).
+
+**Deviation recorded for review:** the packet's build path needs only `records.ts`'s `createdAt` write and
+`activePlanForMachine` (the 409). `pmPlansForScheduling`, `pmPlanForMachine` and `recordPmCompletion` are not added
+here because 49a has no caller for them; they land with 49b/49c and their own tests, which keeps this packet's code
+tested rather than speculative. The 404 on another plant's machine id uses the generic resource `Problem.missing`
+flag (two lines in `settings-routes.ts`); `plantToday` moved to `repo/reads.ts` to keep the resource import acyclic.

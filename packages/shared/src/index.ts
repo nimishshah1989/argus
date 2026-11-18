@@ -13,6 +13,7 @@ export * from './audit.js';
 export * from './people.js';
 export * from './form.js';
 export * from './plant-settings.js';
+export * from './pm.js';
 export * from './support-access.js';
 export * from './lockout.js';
 export * from './escalation-settings.js';

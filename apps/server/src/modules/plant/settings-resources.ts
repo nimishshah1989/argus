@@ -13,7 +13,7 @@ import {
   shiftPatchSchema,
 } from '@uptimo/shared';
 import { machineSwitchOffBlocker } from '../../kernel/index.js';
-import { tenantInfo } from '../identity/index.js';
+import { pmPlans } from './settings-pm.js';
 import {
   exists,
   groupSegment,
@@ -26,11 +26,14 @@ import {
   type Scope,
   type Store,
 } from './repo/plant-settings.js';
+import { plantToday } from './repo/reads.js';
+
+export { plantToday };
 
 type Db = Pick<PoolClient, 'query'>;
 type Reply = Record<string, unknown>;
-/** A rule the values break: 422 by default, 409 when the plant's own state is the reason. */
-export type Problem = { field: string; message: string; conflict?: boolean };
+/** A rule the values break: 422 by default, 409 when the plant's own state is the reason, 404 when the row named does not exist here. */
+export type Problem = { field: string; message: string; conflict?: boolean; missing?: boolean };
 
 /** One settings screen's resource: what the generic list, create and edit routes need to know. */
 export interface Resource {
@@ -141,12 +144,6 @@ async function checkLinks(tx: Db, m: Reply, patch?: Reply): Promise<Problem | nu
     return { field: 'groupId', message: 'That group belongs to another segment' };
   }
   return null;
-}
-
-/** Today in the plant's own time zone, as a date the database and the screens both read. */
-export async function plantToday(tx: Db, tenantId: string, at: Date = new Date()): Promise<string> {
-  const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
-  return at.toLocaleDateString('en-CA', { timeZone });
 }
 
 /** A cell change is dated today or earlier, and never before the machine's last move (the history stays in order). */
@@ -347,4 +344,4 @@ const shifts: Resource = {
   derive: (s) => ({ crosses_midnight: (s.endsAt as string) < (s.startsAt as string) }),
 };
 
-export const RESOURCES: readonly Resource[] = [machines, segments, groups, shifts];
+export const RESOURCES: readonly Resource[] = [machines, segments, groups, shifts, pmPlans];

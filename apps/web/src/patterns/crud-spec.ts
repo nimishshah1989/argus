@@ -32,8 +32,8 @@ export interface CrudField {
   required?: boolean;
   /** Asked only when adding (a login's first temporary password). */
   requiredOnAdd?: boolean;
-  /** `choice` picks one of `choices`; `time` is HH:MM. */
-  kind?: 'text' | 'time' | 'choice';
+  /** `choice` picks one of `choices`; `time` is HH:MM; `date` is a day. */
+  kind?: 'text' | 'time' | 'date' | 'choice';
   choices?: (c: CrudCtx) => CrudChoice[];
   /** Asked when adding only: the row keeps it once made (its code, its segment). */
   addOnly?: boolean;

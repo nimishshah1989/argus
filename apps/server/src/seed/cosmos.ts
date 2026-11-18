@@ -13,6 +13,7 @@ import {
   insertGlossaryTerms,
   insertListItems,
   insertMachines,
+  insertPmPlans,
   insertSegments,
   insertSettings,
   insertShifts,
@@ -27,12 +28,15 @@ interface Paths {
   livePath: string;
   glossaryPath: string;
   peoplePath?: string;
+  /** The workbook's PM Plan and PM Reports; the answer-key fixture unless a caller names another. */
+  pmPath?: string;
 }
 
 export const SEED_FILES = {
   machines: fileURLToPath(new URL('./generated/cosmos-machines.json', import.meta.url)),
   shifts: fileURLToPath(new URL('./cosmos-shifts.json', import.meta.url)),
   peopleFixture: fileURLToPath(new URL('./fixtures/cosmos-people.fixture.json', import.meta.url)),
+  pm: fileURLToPath(new URL('../../../../fixtures/answer-key/input.json', import.meta.url)),
 };
 
 /** For dev and CI only: the fixture people file is fake. */
@@ -45,6 +49,7 @@ export interface SeedReport {
 }
 
 const SEGMENT_CODES = ['CNC', 'Conventional', 'Process', 'Utility', 'DG', 'Robot'];
+const COSMOS_TIME_ZONE = 'Asia/Kolkata';
 
 function settingsFor(teamShifts: Record<string, string>): Array<[string, unknown]> {
   return [
@@ -67,6 +72,7 @@ function buildFromFiles(paths: Paths) {
     machines: loadJson(SEED_FILES.machines),
     shifts: loadJson(SEED_FILES.shifts),
     people: loadJson(paths.peoplePath ?? SEED_FILES.peopleFixture),
+    pm: loadJson(paths.pmPath ?? SEED_FILES.pm),
   };
   return buildSeed(
     loadJson(paths.exportPath),
@@ -120,7 +126,7 @@ export async function seedCosmos(
       slug: 'cosmos',
       name: 'Cosmos',
       language: 'gu',
-      timeZone: 'Asia/Kolkata',
+      timeZone: COSMOS_TIME_ZONE,
     });
     // Row security filters every login but a superuser, the database owner on RDS included: name the tenant.
     await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
@@ -130,6 +136,7 @@ export async function seedCosmos(
     await insertListItems(client, tenantId, seed.lists);
     await insertShifts(client, tenantId, seed.shifts);
     await insertSettings(client, tenantId, settingsFor(seed.teamShifts));
+    await insertPmPlans(client, tenantId, seed.pmPlans, COSMOS_TIME_ZONE);
     await insertGlossaryTerms(client, tenantId, seed.glossaryTerms);
     await initRefCounters(client, tenantId);
     await client.query('COMMIT');
@@ -148,6 +155,7 @@ export async function seedCosmos(
       paths.glossaryPath,
       SEED_FILES.machines,
       SEED_FILES.shifts,
+      paths.pmPath ?? SEED_FILES.pm,
       paths.peoplePath ? 'people file (outside repo)' : SEED_FILES.peopleFixture,
     ],
   };
