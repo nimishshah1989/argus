@@ -10,8 +10,6 @@ export { loadReport, type StoredReport } from './repo/report.js';
 export {
   raisePlannedTicket,
   PlannedRaiseError,
-  PLANNED_CHANNELS,
-  type PlannedChannel,
   type PlannedTicketInput,
   type PlannedTicketResult,
 } from './planned.js';

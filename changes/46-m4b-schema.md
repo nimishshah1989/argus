@@ -144,3 +144,27 @@ The known flakes (escalation, worktree-path deploy) did not appear in the final 
    load the real plant on a pre-0015 schema and then run the current import code; keeping the base INSERT's column
    list unchanged lets that path run, while a coded past breakdown still writes the five fields and the trigger still
    judges the codes.
+
+## 46c — planned tickets are general work requests
+
+**What changed for a user:** nothing visible yet. `raisePlannedTicket` now raises `kind: 'general'` with a `WR-`
+reference (the `general` ref counter) instead of a `BD-` breakdown: a PM job or inspection does not hold the machine's
+one-open-breakdown slot (`ticket_open_breakdown_unique` is `kind <> 'general'`), does not ask production for sign-off
+(`asksSignoff` is false for `general`) and does not read as a breakdown in the floor/desk lists. The channel stays
+`pm`/`inspection`, so the 46a channel policy still keeps it off the clocks and drift. The input shape is unchanged:
+`{ tenantId, machineId, channel, problem, at?, reportedByPersonId?, raisedLoginId? }`, with `at` documented as the
+raise time.
+
+**The files.** `packages/shared/src/channel.ts` now holds `PLANNED_CHANNELS`/`PlannedChannel`/`isPlannedChannel` beside
+`BREAKDOWN_CHANNELS`; `apps/server/src/modules/tickets/planned.ts` imports that one list (no second constant) and uses
+`kind: 'general'` + `allocateRef(..., 'general')`. `apps/server/test/m4b-write.test.ts` asserts the planned ticket's
+kind/`WR-` ref/channel, raises a breakdown on the same machine afterwards (no unique-slot clash), and proves a `pm`
+ticket has `ticket.sla` null and no drift line even with a deliberately wrong cached figure.
+
+**Verbatim command tails.**
+
+- red first `pnpm exec vitest run apps/server/test/m4b-write.test.ts` → `Test Files  1 failed (1)` / `Tests  2 failed | 6 passed (8)` (`expected 'BD-0001' to match /^WR-/`).
+- `pnpm exec vitest run apps/server/test/m4b-write.test.ts` → `Test Files  1 passed (1)` / `Tests  8 passed (8)`.
+- `pnpm exec vitest run apps/server/test packages/db/test packages/domain/test` → `Test Files  191 passed (191)` / `Tests  2171 passed (2171)`.
+- `pnpm precheck` → `precheck: OK — 5 file(s) checked by prettier, 13 checks passed`.
+- `pnpm boundaries` → `boundaries: 214 files scanned, 0 problem(s)`.
