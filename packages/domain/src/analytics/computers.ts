@@ -10,6 +10,7 @@ import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
 import { fixFinderFigure } from './fix-finder.js';
 import { forecastLabFigure } from './forecast-lab.js';
 import { moneyMattersFigure } from './money-matters.js';
+import { monthlyReportFigure } from './monthly-report.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -209,6 +210,11 @@ const actionCenterComputers: Readonly<Record<string, Computer>> = {
   'action-center': actionCenterFigure,
 };
 
+/** Owner 45's reports: the monthly figure (45a); the annual figure joins it with 45b. */
+const reportComputers: Readonly<Record<string, Computer>> = {
+  'monthly-report': monthlyReportFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -231,4 +237,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...forecastComputers,
   ...compareComputers,
   ...actionCenterComputers,
+  ...reportComputers,
 };
