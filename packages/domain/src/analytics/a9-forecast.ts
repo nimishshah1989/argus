@@ -7,15 +7,14 @@ import {
 } from './a9-bottleneck.js';
 import {
   FC_PRIOR_DAYS,
+  FC_RUNS,
   FC_WINDOW,
-  categoriesOf,
   episodesOf,
   fleetRows,
-  modelOf,
+  forecastBoard,
   quantile,
-  simulate,
-  type ForecastInput,
   type ForecastModel,
+  type Month,
 } from './a9-forecast-sim.js';
 import { formatInr, formatPercent } from './format.js';
 import { dayNumber, dmy } from './plant-date.js';
@@ -31,7 +30,6 @@ import type { Computer, EngineData, FigureValue } from './types.js';
 const SCREEN = 'a9-bottleneck-forecast';
 const KPI_SLOTS = 14;
 const TABLE_SLOTS = 9;
-const FC_RUNS = 2000;
 const TOP_ROWS = 25;
 const COVER_ROWS = 8;
 const PROBLEM_CHARS = 48;
@@ -40,10 +38,6 @@ const TREND_FLAG = 1.96;
 const FORECAST_HEADER =
   '#,Machine,Category,Cell,Expected breakdowns,Chance of at least 1,Expected hrs,Plan for (80%),Worst case (90%),Chance of a 8+ hr one,Band,Confidence,Note'.split(
     ',',
-  );
-const LONG_MONTHS =
-  'January February March April May June July August September October November December'.split(
-    ' ',
   );
 
 type Kpi = { label: string; value: string; sub: string };
@@ -263,29 +257,6 @@ const forecastRow = (
   noteOf(model, start, endDay),
 ];
 
-/** The month the planning forecast covers: the first full calendar month after the period end. */
-type Month = { label: string; days: number };
-
-function nextMonth(end: string): Month {
-  const [year = 0, month = 1] = end.split('-').map(Number);
-  const index = month % 12;
-  const monthsYear = year + Math.floor(month / 12);
-  const label = `${LONG_MONTHS[index]} ${monthsYear}`;
-  return { label, days: new Date(Date.UTC(monthsYear, index + 1, 0)).getUTCDate() };
-}
-
-/** Every machine's monthly model and its simulation, in the base order the draw order is pinned to. */
-function modelsOf(input: ForecastInput): { models: ForecastModel[]; plant: number[] } {
-  const models = input.core.fleet.map((risk) => modelOf(risk, input));
-  const { machine, plant } = simulate(models, FC_RUNS);
-  models.forEach((model, index) => {
-    const sims = machine[index] ?? [];
-    model.p80 = Math.max(model.expH, quantile(sims, 0.8));
-    model.p90 = Math.max(model.p80, quantile(sims, 0.9));
-  });
-  return { models, plant };
-}
-
 /** KPIs 9–13: the plant's month, its two planning percentiles and the machines at each band. */
 function forecastKpis(
   models: readonly ForecastModel[],
@@ -331,27 +302,13 @@ function forecastKpis(
 }
 
 /** KPIs 9–13 and table 5, the planning forecast for the first full month after the period end. */
-function forecastSlots(core: BottleneckCore, rows: readonly SourcedReport[], end: string) {
-  const month = nextMonth(end);
-  const episodes = episodesOf(rows);
-  const fleetDurations = core.fleet.flatMap((risk) =>
-    (episodes.get(risk.machine.id) ?? []).map((episode) => episode.hours),
-  );
-  const totalDays = sum(core.fleet.map((risk) => risk.days));
-  const { models, plant } = modelsOf({
-    core,
-    episodes,
-    groups: categoriesOf(core, episodes),
-    fleetDurations,
-    fleetRate: totalDays > 0 ? fleetDurations.length / totalDays : 0,
-    endDay: dayNumber(end) ?? 0,
-    days: month.days,
-  });
+function forecastSlots(core: BottleneckCore, rows: readonly SourcedReport[]) {
+  const { month, models, plant } = forecastBoard(core, episodesOf(rows), FC_RUNS);
   const sorted = [...models].sort((left, right) => right.expH - left.expH || right.p80 - left.p80);
   const start = dayNumber(core.from) ?? 0;
   const printed = sorted
     .slice(0, TOP_ROWS)
-    .map((model, index) => forecastRow(model, index, start, dayNumber(end) ?? 0));
+    .map((model, index) => forecastRow(model, index, start, dayNumber(core.to) ?? 0));
   return {
     kpis: forecastKpis(sorted, plant, month, core),
     table: table('Downtime forecast for Planning', FORECAST_HEADER, printed),
@@ -366,7 +323,7 @@ export function a9ForecastSlots(
 ): { kpis: Array<Kpi | null>; tables: Array<Table | null> } {
   const rows = fleetRows(data);
   const whatIf = whatIfSlots(core, rows, profile);
-  const forecast = forecastSlots(core, rows, core.to);
+  const forecast = forecastSlots(core, rows);
   const kpis: Array<Kpi | null> = Array.from({ length: KPI_SLOTS }, () => null);
   kpis.splice(4, whatIf.kpis.length, ...whatIf.kpis);
   kpis.splice(9, forecast.kpis.length, ...forecast.kpis);

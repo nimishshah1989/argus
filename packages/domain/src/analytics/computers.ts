@@ -5,7 +5,7 @@ import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
 import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
-import { a9BottleneckForecastFigure } from './a9-forecast.js';
+import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
 import { forecastLabFigure } from './forecast-lab.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
@@ -180,10 +180,10 @@ const manpowerComputers: Readonly<Record<string, Computer>> = {
   'a10-problems': a10ProblemsFigure,
 };
 
-/** Owner 42's figures: the bottleneck and forecast page and the Forecast Lab. */
+/** Owner 42's figures: the bottleneck and forecast page and, as packet 42d lands, the Forecast Lab. */
 const forecastComputers: Readonly<Record<string, Computer>> = {
-  // 42b composes 42a's page and fills its own five KPIs and three tables.
-  'a9-bottleneck-forecast': a9BottleneckForecastFigure,
+  // 42c composes 42a's and 42b's page and fills the trend tables, repeat faults and both charts.
+  'a9-bottleneck-forecast': a9BottleneckTrendsFigure,
   // 42d backtests the four methods and prints the lab's two tables and one chart.
   'forecast-lab': forecastLabFigure,
 };
