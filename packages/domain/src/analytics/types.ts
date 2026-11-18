@@ -90,6 +90,11 @@ export interface ReportRow {
    */
   recordedHours?: number | null;
   /**
+   * The three spare costs the platform's Action Center adds up, in rupees (ticket 44); the column exists, the loader
+   * does not read it yet, so a live row reads undefined and the spares rule sees nothing.
+   */
+  spareCost?: number | null;
+  /**
    * The legacy platform's stable log number (its "Sr No"), where the source recorded one: the Breakdown Log prints
    * it. A log the platform numbered itself has gaps here (deleted entries keep their number), so a figure must
    * never renumber one from the row's position; a row with no number gets its place in date order instead.
@@ -141,6 +146,45 @@ export interface WhyWhyRow {
 }
 
 /**
+ * One saved Action Center acknowledgement (ticket 44): the status the plant chose for one nudge key, who owns it,
+ * the plant date it is due, a note and the instant it was saved. A snooze also carries the instant it opens again.
+ * Times are ISO instants and the due date is a plant date or `''`.
+ */
+export interface NudgeAck {
+  status: 'ack' | 'snooze' | 'done';
+  owner: string;
+  due: string;
+  note: string;
+  at: string;
+  until?: string;
+}
+
+/** One external AMC or extended-warranty line (ticket 44's reminder rule; M4b's register fills it). */
+export interface AmcLine {
+  id: string;
+  machineId: string;
+  type: string | null;
+  /** The plant date the contract starts, or null when the plant has not entered one. */
+  start: string | null;
+  months: number;
+  vendor: string | null;
+  noRenew: boolean;
+}
+
+/** One legal test or calibration line: what is tested, when it was last done and how long it stays valid. */
+export interface LegalLine {
+  id: string;
+  machineId: string;
+  tid: string;
+  name: string;
+  form: string | null;
+  /** The plant date of the last test, or null when no test is on record. */
+  last: string | null;
+  months: number;
+  cert: string | null;
+}
+
+/**
  * The plant's own settings that a figure needs beside its rows: the legacy platform kept both in Settings, and a
  * figure that ports its numbers reads them here. Optional, so a tenant that never set them reads the defaults.
  */
@@ -165,6 +209,12 @@ export interface EngineSettings {
   locations?: readonly string[];
   /** The plant's edited problem-group list; absent reads the platform default (`PROBLEM_GROUPS`), never a subset. */
   problemGroups?: readonly ProblemGroup[];
+  /** The Action Center's saved acknowledgements, by the platform's nudge key (ticket 44). */
+  nudgeAcks?: Readonly<Record<string, NudgeAck>>;
+  /** How many days before an AMC ends the Action Center warns; the platform's default is 15. */
+  amcRemindDays?: number;
+  /** How many days before a legal test is due the Action Center warns; the platform's default is 15. */
+  legalRemindDays?: number;
 }
 
 export interface EngineData {
@@ -180,6 +230,10 @@ export interface EngineData {
   settings?: EngineSettings;
   /** The saved Why-Why records, latest per ticket; a ticket with no record is a candidate A6 shows as not started. */
   whyWhy?: readonly WhyWhyRow[];
+  /** The external AMC and warranty lines (ticket 44's reminder rule); M4b ticket 51 fills them from the register. */
+  amc?: readonly AmcLine[];
+  /** The legal test and calibration lines (ticket 44's reminder rule); empty until the register lands. */
+  legal?: readonly LegalLine[];
 }
 
 /** What one figure is: a value the face prints, and the rows behind it. */

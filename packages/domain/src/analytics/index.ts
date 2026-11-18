@@ -5,6 +5,7 @@ export { COMPUTERS } from './computers.js';
 export type { ProblemGroup } from './problem-groups.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
 export type {
+  AmcLine,
   Computed,
   ComputeInput,
   Computer,
@@ -13,9 +14,11 @@ export type {
   EngineSettings,
   FigureResult,
   FigureValue,
+  LegalLine,
   ListRow,
   MachineRow,
   MoveRow,
+  NudgeAck,
   PersonRow,
   ReportRow,
   TaskRow,

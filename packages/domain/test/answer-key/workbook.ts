@@ -60,6 +60,43 @@ export interface WorkbookBreakdown {
   ticketRef?: string;
   /** The plant's stable log number; the exported workbook numbers every row, gaps included. */
   srNo?: number;
+  /** The three spare costs the Action Center's spares rule adds up (ticket 44). */
+  cost1?: number | string;
+  cost2?: number | string;
+  cost3?: number | string;
+}
+
+/** One saved Action Center acknowledgement as the workbook's settings carry it (ticket 44's input data). */
+export interface WorkbookAck {
+  status: 'ack' | 'snooze' | 'done';
+  owner: string;
+  due: string;
+  note: string;
+  at: string;
+  until?: string;
+}
+
+/** One AMC or extended-warranty line in the workbook's settings. */
+export interface WorkbookAmc {
+  id?: string;
+  machineId: string;
+  type?: string;
+  start?: string;
+  months?: number | string;
+  vendor?: string;
+  noRenew?: boolean;
+}
+
+/** One legal test or calibration line in the workbook's settings. */
+export interface WorkbookLegal {
+  id?: string;
+  machineId: string;
+  tid?: string;
+  name?: string;
+  form?: string;
+  last?: string;
+  months?: number | string;
+  cert?: string;
 }
 
 export interface Workbook {
@@ -85,5 +122,12 @@ export interface Workbook {
     shiftTimes: Array<{ name: string; start: string; end: string }>;
     /** Manual problem-group fixes from the App Settings, by breakdown id. */
     problemFix?: Record<string, string>;
+    /** The Action Center's six saved acknowledgements, by the platform's nudge key (ticket 44). */
+    acAcks?: Record<string, WorkbookAck>;
+    /** The AMC and legal lines the Action Center's reminder rules read. */
+    machAmc?: WorkbookAmc[];
+    machLegal?: WorkbookLegal[];
+    amcRemindDays?: number;
+    legalRemindDays?: number;
   };
 }
