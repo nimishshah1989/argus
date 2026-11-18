@@ -32,9 +32,10 @@ one invoker-rights trigger refuses any non-null code that is not a `list_item` o
   default, not a re-seed.
 - The close form already **requires** its maintenance code before it can send (`apps/web/src/components/reportFields.ts:135-143`),
   and the classification step renders it from `maint_code` (`apps/web/src/components/ReportSections.tsx:193-199`).
-  Every other report requirement works the same way: the form enforces it and the API accepts an omitted field —
-  `apps/server/test/ticket-report.test.ts:190-205` is the test that says a close with `report: {}` succeeds and gets
-  defaults. The design lock keeps floor and desk **copy** as v3 has it, and `closes.*` is a frozen catalogue namespace
+  The API's contract today is the opposite for every report field: an omitted field takes a default —
+  `apps/server/test/ticket-report.test.ts:190-205` is the test that says a close with `report: {}` succeeds. R3 makes
+  the failure code the one exception, and that test keeps every one of its default assertions and gains the code. The
+  design lock keeps floor and desk **copy** as v3 has it, and `closes.*` is a frozen catalogue namespace
   (`docs/design/LOCK.md:8`, `packages/shared/test/catalogue.test.ts:55-79`).
 - Reports reach the engine through exactly one loader, which maps `maint_code` straight through
   (`apps/server/src/modules/analytics/load.ts:120-122`). Every code figure reads that value: annual "By cause"
@@ -65,7 +66,8 @@ picks from the same 19 options would quadruple the floor's taps for no new infor
 action, 52 px targets). So the four columns stand ready for M6's suggestion and for a plant that later has a real
 per-slot taxonomy, while this ticket requires one: `failure_mode`, `failure_cause` and `failure_action` are stored when
 a client sends them and are never required. Cost if wrong: if Nimish wants all four at close, it is three more
-required pickers and one change to `reportReady`; the columns and the trigger already accept it.
+required pickers, one change to `reportReady` and one line in the report store; the columns and the trigger already
+accept it.
 
 **R2 — the floor keeps the plant's word "Maintenance Code"; the settings screen is "Failure codes".**
 The design lock freezes floor and desk copy, and the `closes` namespace is frozen in the catalogue test; renaming the
@@ -76,25 +78,38 @@ new close without any of them changing. Cost if wrong: one list carries two name
 map's on the screen), which costs a copy change and a lock decision, not data; the aliases and the two columns keep the
 data consistent either way.
 
-**R3 — presence is enforced by the form; the server enforces provenance and refuses an unknown code.**
-Every other required report field is the form's (`reportFields.ts:135-143`) and the API's contract is that an omitted
-report field takes a default (`ticket-report.test.ts:190-205`); imports and old offline clients send reports with no
-code. So the server's named refusal is only for a code that is sent and is not this plant's: HTTP 422, `validation`,
-message **"That is not a failure code of this plant"**, field `report.failureComponent` (the trigger's own wording,
-`0015:52-53`), raised before the database so the caller gets a field and not a 500. A missing code is not a server
-refusal. An empty code at close never reaches the server from the floor because the button is disabled;
-the data checklist already lists an uncoded report (`data-checklist.ts:69`). Cost if wrong: a non-app client can close
-uncoded; the fix is one schema `superRefine` on `closeTicketSchema` plus a code on the report fixtures, no schema change.
+**R3 — the server refuses a live breakdown close that carries no code; the form requires it too.**
+A live breakdown close is a close **with a report**, or the late report that completes one, on a ticket whose `kind` is
+`stopped` and whose `raised_channel` is one of the four live breakdown channels (`packages/shared/src/channel.ts:7-13`
+— the one predicate that already excludes `pm`, `inspection`, `import` and `backfill`, so planned and historical work is
+never asked). The rule lives in the one write path for a person's report,
+`apps/server/src/modules/tickets/repo/report.ts` (`storeBreakdownReport`, reached through
+`storeReportForTransition`), with the channel handed in one line from
+`apps/server/src/modules/tickets/routes.ts:130` (`loaded.extras.raisedChannel`); the ticket's `kind` and the ticket row
+come with it. There, after `ensureFailureCodes` (R4) and alias resolution (R6), a missing code throws
+`ReportValidationError('failureComponent', 'A failure code is required')` and `outcome.ts` turns it into HTTP 422,
+`validation`, field `report.failureComponent` — the second named refusal beside the trigger's wording for an unknown
+code, **"That is not a failure code of this plant"** (`0015:52-53`). `failure_mode`, `failure_cause` and
+`failure_action` stay nullable (R1); a `no_report` close has no report and no code, and the report that completes it
+later carries one; a past breakdown (channel `backfill`) and an import never reach this function and stay uncoded (R8).
+Cost if wrong: a plant that wants a live breakdown closed with no code cannot; the list is created on the write (R4) and
+the form falls back to the plant's maintenance codes while the list is empty (R4), so a missing list cannot become a
+missing close, but a client that sends neither field is refused.
 
-**R4 — the 19-code list is a tenant default created on first use, not a migration and not a re-seed.**
+**R4 — the 19-code list is a tenant default created on the settings-list read and on the close write, never on
+`GET /config`.**
 `ensureFailureCodes` (the `lockout.ts:12-30` shape: advisory lock, `has…` check, insert-on-conflict, one audit line) is
-called from three places so no plant can be left without a picker: the first `GET /config` (the close form's source of
-lists, `plant/service.ts:54-70`), the `failure_code` settings list read (`settings-lists.ts:51`), and the close/report
-write (before the code is resolved). One source for the 19 rows and the three aliases
-(`packages/shared/src/failure-codes.ts`). Cosmos live gets them on its next config load; a plant created later gets
-them the same way. Cost if wrong: one extra indexed SELECT per config load and, once, 19 inserts under a per-tenant
-lock (the lockout list already does this on every read); if the config call site were dropped, the floor's picker could
-be empty on a fresh plant — that is why it is the first of the three.
+called from two places, both already allowed to write: the `failure_code` settings list's `prepare`
+(`apps/server/src/modules/plant/settings-lists.ts:51`, the `lockout_step` precedent) and the report store
+(`repo/report.ts`, before the code is resolved — a close is already a write). The config route is not touched: a screen
+read never writes. For a plant that predates this ticket (Cosmos), the first touch is either Settings → Failure codes
+(this ticket's own screen, opened in the plant's M4b setup) or a close that carries a code; while the plant has no
+`failure_code` rows at all, the close form shows the plant's maintenance codes — the same 19 values — and sends the
+picked one as the failure code, so the floor is never left with an empty picker and that first close creates the list.
+A plant created after this ticket has the same 19 maintenance codes from its seed, so the same fallback covers it; no
+seed change, no deploy script and no migration. Cost if wrong: a plant that never opens the screen and closes only
+through clients that send no code keeps its `maint_code` rows and has no failure list until the first coded close; the
+fallback is one expression in the form and goes when a later ticket can create the list at deploy.
 
 **R5 — aliases: `E`←`ele`, `HY`←`hyd`, `RT`←`rot`. Nothing else is seeded.**
 D31 binds the three (`docs/decisions/D31-m4a-migration-homes.md:12`), the export calls them "(alt)", DATA-MAP says the
@@ -148,42 +163,65 @@ normalise to a lower-case array; reply returns the array), `apps/server/src/modu
 (`failureCodes(tx, tenantId)` with `code, aliases`, `hasFailureCodes`, `insertFailureCode` on conflict do nothing,
 `lockFailureCodeSeed`), `apps/server/src/modules/plant/failure-codes.ts` (new: `ensureFailureCodes(tx, who)` and
 `failureCodeIndexOf(tx, tenantId)`), `apps/server/src/modules/plant/settings-lists.ts` (`prepare` for `failure_code`,
-`aliases` in columns and reply), `apps/server/src/modules/plant/service.ts` (`ensureFailureCodes` before
-`loadPlantRows` in `loadConfig`, login when the route has one), `apps/server/src/modules/plant/index.ts` (two exports),
-`apps/server/test/failure-codes.test.ts` (new).
+`aliases` in columns and reply), `apps/server/src/modules/plant/index.ts` (two exports),
+`apps/server/test/failure-codes.test.ts` (new), `apps/server/test/reply-contract.test.ts` (the count: a list is three
+generated routes and three reply schemas, so the route table's `toHaveLength(137)` at line 41 becomes 140). The config
+route is not edited (R4).
 
-**Red:** `pnpm exec vitest run apps/server/test/failure-codes.test.ts` (no such module). **Green:** the same, then
-`pnpm exec vitest run apps/server/test/plant-settings-cosmos.test.ts apps/server/test/plant-settings-access.test.ts packages/shared/test/catalogue.test.ts`.
+**Red:** `pnpm exec vitest run apps/server/test/failure-codes.test.ts` (no such module). **Green:** the same, then the
+covering suite below.
 
 **Acceptance.**
 
-- Given a plant that never opened Settings, when its config loads (or the `failure_code` list is read), then the list
-  holds the 19 live codes with descriptions and `E`/`HY`/`RT` carry `ele`/`hyd`/`rot`, exactly once; a second read and a
-  second config load add nothing.
+- Given a plant that never touched the list, when the `failure_code` settings list is read, then it holds the 19 live
+  codes with descriptions and `E`/`HY`/`RT` carry `ele`/`hyd`/`rot`, exactly once; a second read adds nothing and the
+  audit trail has one seed line.
+- Given the same plant, when `GET /config` is read before that, then it carries no `failure_code` rows and writes
+  nothing (R4: no write on the config read), and the form's fallback in 47c is what keeps the floor able to close.
 - Given the list, when the head edits a row's old codes to `'ele, ELECTRICAL'` and the admin switches a code off, then
   the reply carries `['ele','electrical']` and `active:false`, both edits leave one `list_item.update` audit line with
   before/after, and a code or alias already used in the list (any letter case) is refused 409 by the 0014 trigger.
 - Given plant B's alias, when plant A's list is read, then it is absent and the resolver never returns it.
+- Given the route table, when the app is built, then `/settings/lists/failure_code` GET, POST and PUT have reply
+  schemas like every other list (137 → 140 routes/replies, no other route changes shape), and every reply parses.
+
+**Covering suite (server + shared, not only the named test):**
+`pnpm exec vitest run apps/server/test/failure-codes.test.ts apps/server/test/plant-settings-cosmos.test.ts apps/server/test/plant-settings-access.test.ts apps/server/test/plant-settings-writes.test.ts apps/server/test/settings-resources.test.ts apps/server/test/reply-contract.test.ts apps/server/test/support-access-guard.test.ts packages/shared/test`.
 
 ## Packet 47b — coded closes and one code on read (API, one PR)
 
-**Files (6).** `packages/shared/src/ticket.ts` (`breakdownReportSchema` gains the four optional `failure*` strings,
-`.max(60)`), `packages/shared/src/ticket-reply.ts` (the four nullable strings on `storedReportSchema`),
-`apps/server/src/modules/tickets/repo/report.ts` (`ensureFailureCodes` first per R4, then resolve each of the four
-submitted values through `failureCodeIndexOf` before insert, write the four columns and the mirrored `maint_code`,
-select and build them in `loadReport`/`buildStoredReport`, under 400 wc-lines; the file is 329 now), `apps/server/src/modules/tickets/outcome.ts` (`ReportValidationError` carries the refusal text so
-it is not the generic "Invalid report"), `apps/server/src/modules/analytics/load.ts` (one line: `maintCode` resolved
-through the same index), `apps/server/test/failure-code-closes.test.ts` (new). The past-breakdown and import path is not
-edited: it keeps writing `maint_code` only (R8).
+**Files.** The rule's seam (7): `packages/shared/src/ticket.ts` (`breakdownReportSchema` gains the four optional
+`failure*` strings, `.max(60)`), `packages/shared/src/ticket-reply.ts` (the four nullable strings on
+`storedReportSchema`), `apps/server/src/modules/tickets/repo/report.ts` (`ensureFailureCodes` first per R4, resolve each
+of the four submitted values through `failureCodeIndexOf`, the presence rule of R3, then insert the four columns and the
+mirrored `maint_code`, and select/build them in `loadReport`/`buildStoredReport`; under 400 wc-lines — 329 now),
+`apps/server/src/modules/tickets/routes.ts:130` (one argument: `loaded.extras.raisedChannel`),
+`apps/server/src/modules/tickets/outcome.ts` (`ReportValidationError` carries the refusal text so the two refusals read
+differently), `apps/server/src/modules/analytics/load.ts` (one line: `maintCode` resolved through the same index), and
+`apps/server/test/failure-code-closes.test.ts` (new). **The fixtures this rule forces (mechanical, no assertion
+removed):** one code at each close-with-report call site — 32 sites in 14 server test files
+(`ticket-report`, `tickets`, `tickets-commands`, `notify-ticket-events`, `import-state`, `import-fixture`, `handback`,
+`escalation`, `escalation-reopened`, `ticket-pdf`, `state`, `signoff-board`, `production-date`, `lockout`) — and the
+three e2e specs that close through the API (`signoff.spec.ts:34`, `signoff-feed.spec.ts:22`,
+`analytics-whywhy.spec.ts:48`). `ticket-report.test.ts`'s "applies defaults" case keeps every assertion and gains the
+code; a new case in the new test asserts the refusal. The past-breakdown and import path is not edited: it keeps
+writing `maint_code` only (R8).
 
-**Red:** `pnpm exec vitest run apps/server/test/failure-code-closes.test.ts`. **Green:** the same, then
-`pnpm exec vitest run apps/server/test/ticket-report.test.ts apps/server/test/tickets-past.test.ts apps/server/test/analytics-engine.test.ts apps/server/test/import-real.test.ts packages/db/test/m4b-schema.test.ts`.
+**Red:** `pnpm exec vitest run apps/server/test/failure-code-closes.test.ts` (the missing-code case is red). **Green:**
+the same, then **the whole server suite** — `pnpm exec vitest run apps/server/test` — because the rule changes the close
+contract of 14 test files, plus `pnpm exec vitest run packages/db/test/m4b-schema.test.ts`, plus the three e2e specs whose
+API closes gained a code (`pnpm exec playwright test apps/web/e2e/signoff.spec.ts apps/web/e2e/signoff-feed.spec.ts apps/web/e2e/analytics-whywhy.spec.ts`).
 
 **Acceptance.**
 
 - Given a started ticket and the list, when the technician closes with the code `E`, then the report row holds
   `failure_component = 'E'` and `maint_code = 'E'`, the detail reply returns both, and the PDF and the breakdown log
   show `E`.
+- Given a live breakdown (`kind` `stopped`, channel `floor`) and a close with a report that carries neither
+  `failureComponent` nor `maintCode`, when it is sent, then the reply is 422 `validation`, "A failure code is
+  required", field `report.failureComponent`, and no report row is written; the same close with `maintCode: 'E'`
+  (an app built before this ticket) is accepted and stored as `E`; a `pm`/`inspection` ticket, a support ticket, a
+  past breakdown (`POST /tickets/past`, channel `backfill`) and an imported row are still accepted with no code.
 - Given a legacy history row (channel `import`) stored with `maint_code = 'ELE'` and a new close coded `E`, when the
   annual report's "By cause" is computed, then it holds one `E` row that counts both, and each count drills to its own
   ticket: legacy and new closes count in one code.
@@ -197,15 +235,18 @@ edited: it keeps writing `maint_code` only (R8).
 
 ## Packet 47c — the screen and the floor's picker (web, one PR)
 
-**Files (8).** `packages/shared/src/i18n/lists.en.ts` (the `failure_code` title/add/empty/menu/sub keys, `lists.field.aliases`
+**Files (9).** `packages/shared/src/i18n/lists.en.ts` (the `failure_code` title/add/empty/menu/sub keys, `lists.field.aliases`
 and its hint; `lists.gu.ts` is `blank(listsEn)`, so no Gujarati file changes), `apps/web/src/screens/settings/lists-specs.tsx`
 (`ListsPage` gains `failure_code`; its spec shows the `aliases` field and every other list hides it with a reason),
 `apps/web/src/screens/settings/Lists.tsx` (one icon), `apps/web/src/screens/settings/lists-specs.test.ts` (the new page,
 the aliases field on it and hidden elsewhere, the D05 guard already walks the reply schema),
-`apps/web/src/components/ReportSections.tsx` (the required Choice is sourced from `failure_code`, same position, same
-"Maintenance Code" copy), `apps/web/src/components/reportFields.ts` and `reportFields.test.ts` (`maintCode` in the form's
-values becomes `failureComponent`; `buildReportBody` sends it; `reportReady` requires it), `apps/web/e2e/coded-close.spec.ts`
-(new one journey).
+`apps/web/src/components/ReportSections.tsx` (the required Choice is sourced from `codeOptions(config)`, same
+position, same "Maintenance Code" copy), `apps/web/src/components/reportFields.ts` and `reportFields.test.ts` (`maintCode`
+in the form's values becomes `failureComponent`; `buildReportBody` sends it; `reportReady` requires it; `codeOptions`
+returns the switched-on failure codes, or the maintenance codes while the list has no rows — R4's bridge, unit-tested
+here),
+`apps/web/e2e/fixtures.ts` (the e2e tenant is raw-SQL seeded, so it gets one `failure_code` row per code in the
+`LISTS` array — aliases are not exercised by this journey), `apps/web/e2e/coded-close.spec.ts` (new one journey).
 
 **Red:** `pnpm exec vitest run apps/web/src/screens/settings/lists-specs.test.ts apps/web/src/components/reportFields.test.ts`
 and `pnpm exec playwright test apps/web/e2e/coded-close.spec.ts`. **Green:** the same, then
@@ -221,6 +262,9 @@ the old journey still passes) and `pnpm ui:check`.
   shows `E`, the close form no longer offers it, and the switch is in the audit trail.
 - Given the floor writes a report, when they reach the classification step, then "Maintenance Code" lists only switched-on
   failure codes, the report cannot be sent without one, and the journey sees the code on the closed ticket afterwards.
+- Given a plant with no `failure_code` rows yet (the deploy window), when the floor opens a close, then the same
+  "Maintenance Code" box lists the plant's maintenance codes rather than nothing, the close stores the picked value as
+  the failure code and the list exists on the next read (R4's bridge).
 
 ## Rails
 
@@ -236,11 +280,14 @@ fresh and runs the covering suite, not only the named test.
 
 ## Where a reviewer should push
 
-R3 is the one deliberate thinness: the rule "every close requires a code" is the form's, the server refuses only an
-unknown code, and the fixtures prove that is the codebase's contract for every required report field. If the reviewer
-wants the API to refuse a missing code too, that is one `superRefine` and one line per close fixture, and the first
-packet's list is already there to make it possible. R4's write during `GET /config` is the second: it is the lockout
-list's pattern, but it is the first time the config route writes.
+47b carries the ticket's real cost: the rule changes a contract every close test relied on, so about 35 call sites
+gain one code. The reviewer should check that no assertion moved (especially `ticket-report.test.ts`'s "applies
+defaults") and that the rule uses the shared channel predicate rather than a fourth copy of `import`/`backfill` string
+checks. R4's bridge is the second: the form reads `maint_code` only while `failure_code` has no rows, which is one
+expression and the only way a live plant can close before its list is first created — attack whether that window can be
+removed (a deploy-time `ensureFailureCodes`, or a seed for the existing plant) rather than whether it is needed. Third,
+47a's reply-contract count moves 137 → 140 in the same PR as the list, so a reviewer should confirm the route table and
+`REPLY_SCHEMAS` still match exactly.
 
 ## Not in this ticket
 
