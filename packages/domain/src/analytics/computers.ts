@@ -1,3 +1,4 @@
+import { a10ProblemsFigure } from './a10-problems.js';
 import { a1BdPmFigure } from './a1-bd-pm.js';
 import { a2CategoryCellFigure } from './a2-category-cell.js';
 import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
@@ -169,11 +170,12 @@ const breakdownComputers: Readonly<Record<string, Computer>> = {
   'a3-mttr-mtbf': a3MttrMtbfFigure,
 };
 
-/** Owner 41's figures: A4 manpower, A5 energy and A6 Why-Why; A10 problems lands in 41d. */
+/** Owner 41's four figures, whole: A4 manpower, A5 energy, A6 Why-Why and A10 problems. */
 const manpowerComputers: Readonly<Record<string, Computer>> = {
   'a4-manpower': a4ManpowerFigure,
   'a5-energy': a5EnergyFigure,
   'a6-why-why': a6WhyWhyFigure,
+  'a10-problems': a10ProblemsFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */

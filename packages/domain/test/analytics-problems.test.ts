@@ -1,10 +1,13 @@
+import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
+import { COMPUTERS, runWith, type EngineData, type FigureResult } from '../src/index.js';
 import { formatNumber, formatPercent } from '../src/analytics/format.js';
 import { isProduction } from '../src/analytics/machine-facts.js';
 import { analyzeProblems, type ProblemAnalysis } from '../src/analytics/problem-analysis.js';
 import { OTHER_PROBLEM, PROBLEM_GROUPS } from '../src/analytics/problem-groups.js';
+import { problemTraining } from '../src/analytics/problem-suggest.js';
 import { effectiveHours, isPm, sourcedReports } from '../src/analytics/rows.js';
-import { A10, ENGINE_DATA, type KeyTable } from './answer-key/fixture.js';
+import { A10, ENGINE_DATA, type FigureKey, type KeyTable } from './answer-key/fixture.js';
 
 /**
  * The A10 problem analysis core (packet 41d-1): the platform's event list and its four aggregations against the
@@ -175,5 +178,96 @@ describe('the A10 problem analysis', () => {
     });
     expect(edited.groups.some((group) => group.name === removed)).toBe(false);
     expect(edited.events.find((event) => event.reportId === reportId)?.group).toBe(OTHER_PROBLEM);
+  });
+});
+
+const AS_OF = '2026-11-11';
+
+/** The registered A10 figure through the engine: the same path every screen and the CLI read. */
+function compute(data: EngineData = ENGINE_DATA): FigureResult {
+  const result = runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
+  const found = result.figures.find((candidate) => candidate.key === 'a10-problems');
+  if (!found) throw new Error('the engine knows no figure a10-problems');
+  return found;
+}
+
+/** The page's value, typed as the key is; a null value is a test bug, so it throws. */
+function pageValue(data: EngineData = ENGINE_DATA): FigureKey {
+  const value = compute(data).value;
+  if (value === null) throw new Error('the A10 figure printed no page');
+  return value as unknown as FigureKey;
+}
+
+/** The unplaced card's table by title prefix: its title carries the count, which the mutation moves. */
+function unplacedTable(value: FigureKey): KeyTable {
+  const found = value.pages[0]?.tables.find((candidate) =>
+    candidate.title.startsWith('Entries the system could not place'),
+  );
+  if (found === undefined) throw new Error('the A10 page holds no unplaced card');
+  return found;
+}
+
+/** The three plant fixes of this key: the manual placements the classifier must not need for itself. */
+const FIXES = Object.entries(ENGINE_DATA.settings?.problemFixes ?? {});
+
+/** The events the keyword rules place, derived: the classifier's training examples (1,248 on this key). */
+const PLACED = ANALYSIS.events.filter((event) => event.group !== OTHER_PROBLEM).length;
+
+describe('the A10 problem analysis page', () => {
+  it("equals the key's whole page: the eight KPIs, six tables and two charts", () => {
+    const computed = compute();
+    // Red first: the page computer had not landed, so the engine answered not_computed.
+    expect(computed.status).toBe('ready');
+    expect(computed.value).toEqual(A10);
+    // The key's own shape, restated so a page that shrinks silently cannot pass: 8 KPIs, 6 tables, 2 charts.
+    const page = pageValue().pages[0];
+    expect(page?.kpis).toHaveLength(8);
+    expect(page?.tables).toHaveLength(6);
+    expect(page?.charts).toHaveLength(2);
+  });
+
+  it('drills the production breakdown tickets it read, derived from the workbook', () => {
+    const computed = compute();
+    const known = new Set(
+      [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
+    );
+    expect(ROWS.length).toBeGreaterThan(0);
+    expect(computed.drill.type).toBe('ticket');
+    expect(computed.drill.ids).toHaveLength(ROWS.length);
+    expect(computed.drill.ids).toEqual([...new Set(ROWS.map((row) => row.ticket.id))].sort());
+    expect(computed.drill.ids.every((id) => known.has(id))).toBe(true);
+  });
+
+  it('teaches the classifier from the placed events and cross-validates at the key 76%', () => {
+    const training = problemTraining(ENGINE_DATA);
+    // The training labels are the events the keyword rules or a manual fix placed: 1,248 on this key.
+    expect(training.trainedOn).toBe(PLACED);
+    expect(training.model).not.toBeNull();
+    if (training.accuracy === null) throw new Error('the classifier cross-validated nothing');
+    // The platform's 5-fold accuracy, the number its card description prints: 76%.
+    expect(Math.round(training.accuracy * 100)).toBe(76);
+  });
+
+  it('drops the manual fixes from classification: the unplaced card grows and the page moves', () => {
+    expect(FIXES).toHaveLength(3);
+    const before = pageValue();
+    const mutated = pageValue({
+      ...ENGINE_DATA,
+      settings: { ...ENGINE_DATA.settings!, problemFixes: {} },
+    });
+    // The proof: without the fix path those three entries fall back to Other / unclear, so the key page cannot
+    // survive. The mutation changes the data (the plant's settings), never the key.
+    expect(mutated).not.toEqual(A10);
+    expect(before).toEqual(A10);
+    const grown = unplacedTable(mutated);
+    expect(grown.rows).toHaveLength(unplacedTable(before).rows.length + FIXES.length);
+    expect(grown.title).not.toBe(unplacedTable(before).title);
+    // Each group the plant had fixed by hand now counts one fewer entry, and Other / unclear carries them all.
+    const count = (value: FigureKey, name: string): number => {
+      const row = value.pages[0]?.tables[0]?.rows.find((cells) => cells[0] === name);
+      return row === undefined ? 0 : Number(row[2]);
+    };
+    for (const [, name] of FIXES) expect(count(mutated, name)).toBe(count(before, name) - 1);
+    expect(count(mutated, OTHER_PROBLEM)).toBe(count(before, OTHER_PROBLEM) + FIXES.length);
   });
 });

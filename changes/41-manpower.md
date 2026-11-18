@@ -237,3 +237,49 @@ formats the four tables with the platform's own `formatPercent`/`formatNumber` t
 the platform's own classifier returns `f:'Other'` for it. (5) A repeat row prints the machine **code**, as A6 does; the
 fixture's machine id and code are equal, so the key is unaffected. (6) An empty group list in Settings is treated as
 "not edited" (the platform default), as `probGroups()` does; the plant's editor never saves an empty list.
+
+## 41d-2 — A10 page, charts and the suggested-group card
+
+**What changed for a user:** the A10 Problem Analysis page is now computed whole and equals the frozen 11 November
+key: the eight KPIs (breakdowns studied, top problem group, quick stops, repeat problems, then the "what if we cut a
+problem?" figures — 242 hrs saved, 52 breakdowns avoided, plant availability 99.50% "was 99.46% (+0.04 points)", MTBF
+459 hrs "was 440 hrs", from the top group at 50% against the production fleet's available hours from 1 January to the
+run date), the six tables (groups, families, the 15 repeat offenders, the 31 unplaced entries with their suggested
+group and Accept cell, the 14 words, and the group editor's own rendered cells) and the two charts (the 16-bar Pareto
+with the platform's double-spaced labels and its bubble chart of every group). Every registered figure of owner 41 now
+answers ready; A10 drills the 1,279 production non-PM tickets.
+
+The unplaced card's suggestions are the platform's Naive Bayes, ported in problem-suggest.ts: word and bigram
+features, the ML_STOP set, the platform's stemmer, multinomial Laplace (a = 0.5, V = vocabulary), log(n_label/N)
+priors and a softmax, with ties kept in the plant's group order. It learns from the 1,248 entries the keyword rules or
+a plant fix placed (a model is made only at 40 or more) and reproduces all 31 of the key's suggestions, labels and
+rounded percentages. Its 5-fold accuracy (i % 5 folds) is 76%.
+
+**Tests that prove it.** pnpm exec vitest run packages/domain/test/analytics-problems.test.ts (11 tests: the 7 41d-1
+tests unchanged plus 4 page tests): (1) expect(computed.value).toEqual(A10) for the whole page, plus the key's own
+counts (8 KPIs, 6 tables, 2 charts) restated; (2) the drill is the production non-PM tickets derived from ENGINE_DATA —
+1,279, unique, sorted by the engine, every id a real ticket; (3) the classifier trains on the derived placed count
+(1,248, never a literal) and cross-validates at 76%; (4) a mutation that drops the plant's manual fixes
+(settings.problemFixes = {}) makes the page unequal to the key, grows the unplaced card by exactly the three fixed
+entries and moves one entry out of each fixed group into Other / unclear — the fix path bites, and the key is never
+weakened. Red first, before problem-suggest.ts existed: "FAIL packages/domain/test/analytics-problems.test.ts",
+"Error: Cannot find module '../src/analytics/problem-suggest.js' imported from ...", "Test Files 1 failed (1)",
+"Tests no tests". Green: the named file 11/11; then pnpm exec vitest run packages/domain/test — 29 files, 396 tests
+(390 before: the 4 new page tests plus the two purity cases the two new source files add to analytics-engine.test.ts).
+pnpm precheck: 13 checks passed.
+
+**Files.** packages/domain/src/analytics/problem-suggest.ts (new, 222 lines), a10-problems.ts (new, 370 lines, under the
+400 budget), the computers.ts entry (and the owner-41 comment now names all four figures),
+packages/domain/test/analytics-problems.test.ts and this fragment. No new dependency; no other source touched.
+
+**Deviations recorded.** (1) The key holds no description slot (page keys are page/title/kpis/tables/charts; tables
+are title/header/rows/rowCount), so the model metadata the platform's card description prints — 1,248 training entries
+and 76% accuracy — is computed and exported by problemTraining, while the page carries no prose; adding a description
+would break the exact toEqual(A10) acceptance. This follows the R9 precedent (nothing fabricates text the key does not
+hold) and was confirmed with the orchestrator; the 41e-2 screen will print no model-description prose, and the
+orchestrator records the DEBT/ledger ruling after merge. (2) The what-if's available hours read the production fleet
+(isProduction: CNC, not excluded) as the platform's nonRobotMachines does over its CNC state.machines;
+EngineData.machines also carries the conventional, process, utility and DG registers, which the platform keeps in
+separate lists and no availability sum reads. The key's 99.46% before / 99.50% after / 440 and 459 MTBF pin this. (3) A
+softmax tie would keep the plant's group order (the plan's rule); the platform's label insertion order differs only on
+an exact tie, and this key has none (31/31 suggestions and the 76% accuracy are identical under either).
