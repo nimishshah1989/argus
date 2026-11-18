@@ -3,14 +3,16 @@
 Ticket 52, `docs/plan/MILESTONES.md:452-455` (blocked by 46, merged): `engine.freeze` on the 1st writes one `forecast`
 row per machine; after the month the outcome is scored into the same row (fake clock); a Hot machine raises one
 inspection ticket per run and its closed outcome is stored on the forecast row; an accepted nudge becomes a linked
-ticket. Two packets are figures and writes, one is a route: **no product code in this plan**, three PRs, one writer
-each.
+ticket. **This deliverable is a plan only: this PR adds no product code and no screen** — the three packets below do, as
+three PRs, one writer each, in order 1 → 2 → 3.
 
 Authority: **D17** (`forecast` is the M4b table, `docs/decisions/D17-table-budget.md:17`; `forecast_outcome` is removed
 into columns, `:39`), **migration 0015** (`forecast` columns `packages/db/migrations/0015_m4b_schema.sql:84-101`, the
 write-once grant `:198`, the two planned channels `:29-31`), **DATA-MAP** (`forecast` row `docs/DATA-MAP.md:106`), 46b's
-raise seam (`apps/server/src/modules/tickets/planned.ts:46-104`) and 46a's channel policy
-(`packages/shared/src/channel.ts:7-12`). D17 supersedes any sentence elsewhere that names `forecast_outcome`.
+raise seam as **46c** fixed it (`apps/server/src/modules/tickets/planned.ts:40-42,61-68`: every planned ticket is `kind:
+'general'` with a `WR-` reference; `apps/server/test/m4b-write.test.ts:135-149` proves the ref, the kind and that a
+breakdown still raises on the same machine) and 46a's channel policy (`packages/shared/src/channel.ts:7-21`). D17
+supersedes any sentence elsewhere that names `forecast_outcome`.
 
 ## What exists, and what does not
 
@@ -24,10 +26,15 @@ raise seam (`apps/server/src/modules/tickets/planned.ts:46-104`) and 46a's chann
   and its `snapshotStore` (`snapshot.ts:33-40`). There is **no in-process event bus**: `machine.hot`
   (`docs/ARCHITECTURE.md:110`) is emitted nowhere (`grep machine.hot` finds only docs). 52 therefore raises the
   inspection ticket directly through `tickets.raisePlannedTicket`; see R9.
-- A planned raise is `kind: 'stopped'` today (`planned.ts:62,67`). A stopped ticket takes the machine's **one open
-  breakdown slot** (`ticket_open_breakdown_unique`, `packages/db/migrations/0009_history_cannot_be_lost.sql:197`), shows
-  on the live board (`apps/server/src/modules/tickets/repo/board.ts:38`) and, if it ever carried a report, would count in
-  A9 (`a9-forecast-sim.ts:31-34` has no source filter). See R10.
+- **A planned raise is already a work request.** 46c makes `raisePlannedTicket` raise `kind: 'general'` with a `WR-`
+  reference (`planned.ts:40-42,61-68`), so a `pm` or `inspection` ticket does not take the machine's **one
+  open-breakdown slot** (`ticket_open_breakdown_unique`, `packages/db/migrations/0009_history_cannot_be_lost.sql:197`),
+  does not read as a breakdown on the board or the floor/desk lists
+  (`apps/server/src/modules/tickets/repo/board.ts:38`), asks no sign-off (`signoff.ts:85-91`) and, having no report form (a
+  `general` ticket closes "Mark done", `apps/web/src/components/actionSpecs.ts:93-102,115-121`), stores no
+  `breakdown_report` — the only way a planned ticket could reach a figure, since `fleetRows` has no channel filter
+  (`a9-forecast-sim.ts:31-34`). 52 changes **nothing** about the kind or the ref; it adds only the raise event's `source`
+  (R10, R16).
 
 ## The loop, frozen
 
@@ -106,15 +113,21 @@ export function outcomeFor(
   actual: { hours: number; episodes: number },
   inspection: InspectionOutcome | null,
 ): ForecastOutcome;
+/** The inspection ticket's problem text, the plant's own words, pinned by the domain test. */
+export function inspectionProblem(input: {
+  code: string; // the machine's code
+  month: string; // 'YYYY-MM-01'
+  p80: number; // the frozen plan-for
+}): string; // `${code} is Hot for ${monthAt(month).label}: plan for ${formatNumber(p80, 1)} hrs`
 ```
 
 ```ts
-// apps/server/src/modules/tickets/planned.ts (46b's seam, extended)
+// apps/server/src/modules/tickets/planned.ts (the 46b seam after 46c; one field added, nothing else changes)
 export interface PlannedTicketInput {
-  // … unchanged …
-  kind?: 'stopped' | 'general'; // default 'stopped'
+  // … tenantId, machineId, channel, problem, reportedByPersonId?, raisedLoginId?, at? unchanged (46c's input shape) …
   source?: { nudge?: string; forecast?: string }; // written on the raise event's payload as {source}
 }
+// `raisePlannedTicket` stays `kind: 'general'` / `WR-` / `allocateRef(…, 'general')` (planned.ts:61-68), unchanged.
 
 // apps/server/src/modules/tickets/repo/analytics.ts → tickets/index.ts
 export interface RaisedTicket {
@@ -132,6 +145,36 @@ export function raisedTicketsFor(
   ids: string[],
 ): Promise<Map<string, RaisedTicket>>;
 ```
+
+### The public API (D2) — every runtime name a packet exports is pinned
+
+`@uptimo/domain` has one entry point: `packages/domain/src/index.ts:37` re-exports `analytics/index.js`, and
+`packages/domain/test/registry.test.ts`'s **D2** case pins `Object.keys(await import('../src/index.js'))` to a literal
+list. A **runtime** name added to `analytics/index.ts` therefore fails D2 until the literal gains it, so each packet
+adds its own names in the same PR, alphabetically. Types are erased at runtime and need no line; names that stay inside
+the package are not added.
+
+| Name                                                                       | Home → entry                                | Public?                                                                          | Packet |
+| -------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
+| `FORECAST_MODEL`, `frozenForMonth`                                         | `forecast-freeze.ts` → `analytics/index.ts` | **yes** — the freeze inserts the row and the model string with them              | 1      |
+| `monthActuals`, `outcomeFor`, `inspectionProblem`                          | `forecast-freeze.ts` → `analytics/index.ts` | **yes** — the run scores and builds the ticket's problem text with them          | 2      |
+| `FrozenPrediction`, `FrozenForecast`, `ForecastBand`, `ForecastConfidence` | type-only exports                           | **yes**, type-only: no D2 line                                                   | 1      |
+| `ForecastOutcome`, `InspectionOutcome`                                     | type-only exports                           | **yes**, type-only: no D2 line                                                   | 2      |
+| `monthAt`, `forecastBoardFor`, `bandOf`, `confidenceOf`                    | `a9-forecast-sim.ts` module exports         | **no** — deep imports inside `analytics/`; `analytics/index.ts` never re-exports | 1      |
+| `formatNumber`                                                             | `format.ts`                                 | **no** — stays off the root as today; `inspectionProblem` is the only caller     | —      |
+
+The house rule is **48's** (`docs/slices/48-shift-kpis.md:551-555`): only a name a caller **outside** the package needs
+joins the root — 48 added `plantDayStart` and kept its six analytics helpers module-private, deep-imported by the domain's
+own tests. Here that is the five runtime names below; `monthAt`, `forecastBoardFor`, `bandOf` and `confidenceOf` stay
+module exports of `a9-forecast-sim.ts` (the index has no `export *`, so they reach the pin only if it names them, and it
+must not), and `formatNumber` stays where it is. The domain's own tests (`analytics-forecast-freeze.test.ts`) may
+deep-import the private helpers; the server may not.
+
+D2 additions, in literal order: packet 1 adds `FORECAST_MODEL` (after `FIGURE_KEYS`) and `frozenForMonth` (after
+`figures`); packet 2 adds `inspectionProblem` (after `handbackDispute`), `monthActuals` (before `monthlyReport`) and
+`outcomeFor` (after `offersAcknowledge`). The test sorts both sides, so the
+literal's order is for readers, not the assertion. Red first: the export lands and D2 fails on the key list until the
+literal is edited — that failing assertion is the packet's first red, not a test to weaken.
 
 Job payloads (zod, the `notify.send` shape `apps/server/src/modules/notifications/jobs.ts:12-17`):
 `{ v: z.literal(1), tenantId: z.string().uuid().optional() }` for both queues; the schedule enqueues `{v: 1}` and the
@@ -182,8 +225,7 @@ one cheap query per tenant per day._
 **R7 — The freeze's writes are one statement and one audit line per tenant.** `frozen_at` = the run's instant (written
 explicitly, so a fake-clock test pins it); `profile` = `'legacy'` (the only stored profile name, `snapshot.ts:8`); `model`
 = `FORECAST_MODEL`; `as_of` = `month`. Audit: `forecast.freeze`, entity `forecast`, entity_id null, `before` null,
-`after {month, rows}`. _Cost if
-wrong: a new audit area in the trail, one label._
+`after {month, rows}`. _Cost if wrong: a new audit area in the trail, one label._
 
 **R8 — The outcome is scored into the same row, on a fixed calendar.** `engine.run` scores a month on the first run whose
 plant date is after the month's end (the 1st), and **re-scores it nightly through the 7th** (the plant's own no-report
@@ -199,13 +241,15 @@ Hot after the freeze gets no inspection this month, by design (the frozen row is
 authoritative if the machine is excluded from production later — only a scrapped machine is skipped (R11). _Cost if
 wrong: a mid-month Hot machine waits for the next freeze; wiring an event bus is a separate decision._
 
-**R10 — The inspection ticket is `kind: 'general'` (WR- ref).** A stopped ticket would occupy the machine's one open
-breakdown slot (`0009…:197`), block a real breakdown raise (`repo/list.ts:121-124`, `outcome.ts:32-34`) and switch-off (`tickets/index.ts:48-53`), and appear on the
-live board (`repo/board.ts:38`). A general ticket is a work request: it is hidden from the board, has no report form
-(the app closes a general ticket with "Mark done" and hides the no-report close, `apps/web/src/components/actionSpecs.ts:93-102,115-121`), and never
-reaches a figure. `raisePlannedTicket` gains `kind` (default `'stopped'`; **49 decides PM's kind** — an open PM job would
-block a breakdown the same way). _Cost if wrong: inspections live in the work-request list rather than the breakdown
-list; one word to change._
+**R10 — The inspection ticket is a general work request (`WR-`), by 46c's construction.** `raisePlannedTicket` already
+raises **every** planned ticket `kind: 'general'` with `allocateRef(…, 'general')` (`planned.ts:40-42,61-68`), so the
+inspection never takes the machine's one open-breakdown slot (`0009…:197`), never reads as a breakdown on the board or the
+floor/desk lists (`repo/board.ts:38`), asks no sign-off (`signoff.ts:85-91`), has no report form (a general ticket closes
+"Mark done", `actionSpecs.ts:93-102,115-121`) and so never reaches a figure. 52 adds **no `kind`, no ref and no second
+path**: `inspectTenant` and the accept route call the same seam 49 uses, and 49's plan already assumes it. 46c's
+`m4b-write.test.ts:135-149` (the `WR-` ref, the general kind, a breakdown still raising on the same machine afterwards)
+is the proof this ticket builds on and must stay green **unchanged**. _Cost if wrong: none on the kind — a later ticket
+that wants a planned job to read as a breakdown re-opens 46c for both channels, not a 52 parameter._
 
 **R11 — One inspection per frozen row, ever.** Dedupe by the raise event's `{source:{forecast: rowId}}` (R16), not by
 machine and month: a cancelled or closed inspection counts, so the engine never re-raises. The run takes
@@ -224,10 +268,9 @@ scorecard cannot say what the inspection found beyond its close state; a structu
 **R13 — `hit` is `outcome.hours <= predicted.p80`, exactly, no tolerance.** `hours` = Σ `effectiveHours` over the
 production, non-PM reports dated in the month (`fleetRows`, `a9-forecast-sim.ts:31-34`; NO-DT counts 0, `rows.ts:39-42`);
 `episodes` = merged episodes whose **first** day is in the month (`episodesOf`, `a9-forecast-sim.ts:37-63`), so a
-month-boundary episode counts once, in the month it began. 53's hit rate = hits ÷ rows whose `outcome` is not null. The
-plan-for is a line a calibrated model should exceed about 1 machine-month in 5, so a high hit rate can mean a conservative model; the
-Forecast Lab's pinball/coverage stays the accuracy measure (`forecast-lab-sim.ts:340-394`). _Cost if wrong: one boolean
-definition; 53 prints a less useful number._
+month-boundary episode counts once, in the month it began. 53's hit rate = hits ÷ rows whose `outcome` is not null; what
+that number is (and is not) is frozen in the hand-off below. _Cost if wrong: one boolean definition; 53 prints a less
+useful number._
 
 **R14 — No `kpi_snapshot` write, no plant-level row.** `forecast.machine_id` is NOT NULL (`0015:87`), and the plant's
 plan-for percentiles (438.37/518.55 on the key) are not recoverable by summing machine rows, so 52 does not freeze them.
@@ -246,9 +289,16 @@ column and 0015 is the milestone's one migration (D17). `raisePlannedTicket` wri
 `tickets.raisedTicketsFor` (SQL over `ticket_event`/`ticket`, in the tickets repo that owns both tables) reads it back.
 Rejected: `NudgeAck.ticketId` in the nudge's `setting` row — reopen **deletes** that row (`analytics/nudges.ts:145-168`,
 44's plan `docs/slices/44-action-center.md:202-207`), so the link would vanish, and the inspection dedupe needs the same
-seam; a `ticket.source_nudge_id` column is a migration this ticket may not add. _Cost if wrong: the Action Center card
-needs one extra read to show its ticket (the function is already published); a future column backfills from the payload in
-one statement._
+seam; a `ticket.source_nudge_id` column is a migration this ticket may not add. **The read is an unindexed jsonb filter
+and this ticket says so:** `ticket_event` carries only `(tenant_id, ticket_id, seq)` (`0001_schema_v1.sql:299`) and
+`(tenant_id, acting_person_id, at)` (`0009_history_cannot_be_lost.sql:193`), so the lookup scans the tenant's `down`
+events. It is narrowed hard: one tenant, `type = 'down'` only, the batch's ids (`= ANY($ids)`), `DISTINCT ON` the source
+key with `ORDER BY at` — at most 125 ids a month from the freeze and one from an accept, against the plant's whole
+`down` history. **Follow-up, not 52:** a partial expression index
+`(tenant_id, (payload->'source'->>'forecast')) WHERE type = 'down'` (and the nudge twin) in the next migration that owns
+one, upgraded when a plant's `down` events pass ~50k or the batch read passes ~50 ms; the plan records it in the fragment
+so it is not lost. _Cost if wrong: the accept and the monthly scoring pay a bounded scan; the index is one statement
+later._
 
 **R17 — An accepted nudge raises one inspection ticket and resolves the nudge, once.** `POST
 /api/v1/analytics/action-center/nudges/{key}/ticket`, body `{machineId?}` (uuid, strict). The nudge must name a machine:
@@ -259,10 +309,11 @@ is accepted whatever its ack status (a resolved or snoozed nudge can still becom
 The raise is `channel:'inspection'`, `kind:'general'` (R10), problem = the nudge's title, `reportedByPersonId` = the
 acting person (nullable), `raisedLoginId` = the login, `at` = the database's now. It also writes the ack `done` with
 `owner`, `due` and `note` empty (the resolve's own record, `nudges.ts:72-83`) and one audit line `nudge.accept` (entity
-`ticket`, id = the new ticket, `before` = the existing ack or null, `after {key, ticketId, ref, ack}`). It is idempotent **for the key's lifetime**: an existing linked ticket returns
-`{ticketId, ref, created:false}` without a second write, under `pg_advisory_xact_lock(hashtext('nudge-accept:' || tenantId
-|| ':' || key))`. Reopen does not reset the link (the ticket stays the one for that nudge instance). _Cost if wrong: a
-recurring nudge instance gets one ticket, and a new one after reopen needs a manual raise._
+`ticket`, id = the new ticket, `before` = the existing ack or null, `after {key, ticketId, ref, ack}`). It is idempotent
+**for the key's lifetime**: an existing linked ticket returns `{ticketId, ref, created:false}` without a second write,
+under `pg_advisory_xact_lock(hashtext('nudge-accept:' || tenantId || ':' || key))`. Reopen does not reset the link (the
+ticket stays the one for that nudge instance). _Cost if wrong: a recurring nudge instance gets one ticket, and a new one
+after reopen needs a manual raise._
 
 **R18 — Jobs: two queues, worker role only, UTC, per-tenant transactions, aggregated errors.** `startEngineJobs(boss,
 {pool, now?}, role)` creates `engine.freeze`/`engine.run` for every role (an `api` replica never works them) and schedules
@@ -287,7 +338,8 @@ _Cost if wrong: one stale ledger row survives one milestone longer._
 **Files.** `packages/domain/src/analytics/a9-forecast-sim.ts` (`monthAt`, `forecastBoardFor`, `bandOf`/`confidenceOf`
 moved in; `forecastBoard` delegates — its output is unchanged), `packages/domain/src/analytics/a9-forecast.ts` (imports
 the two moved helpers), `packages/domain/src/analytics/forecast-freeze.ts` (new: `FORECAST_MODEL`, the prediction types,
-`frozenForMonth`), `packages/domain/src/analytics/index.ts` (exports),
+`frozenForMonth`), `packages/domain/src/analytics/index.ts` (the two runtime exports and the types),
+`packages/domain/test/registry.test.ts` (D2 gains `FORECAST_MODEL` and `frozenForMonth`),
 `packages/domain/test/analytics-forecast-freeze.test.ts` (new), `apps/server/src/modules/analytics/repo/forecast.ts`
 (new: `monthFrozen`, `insertForecasts`), `apps/server/src/modules/analytics/freeze.ts` (new: `runEngineFreeze`,
 `freezeTenant`), `apps/server/src/modules/analytics/jobs.ts` (new: `startEngineJobs`, the freeze queue),
@@ -307,10 +359,9 @@ when the statement inserted rows. `monthFrozen` runs first and returns before `l
 **Acceptance — Given/When/Then.**
 
 - **G** the answer-key `ENGINE_DATA` and `DEFAULT_PROFILE`, **W** `frozenForMonth(data, profile, '2026-12-01')`, **T**
-  125 rows in fleet order; WJ-01 is `{days: 31, expN: 1.5467071634579725, expH: 6.091584054818952, p1: 0.6073360870269124,
-p80: 12.02, p90: 19.86, pLong: 0.245637461502746, band: 'Hot', confidence: 'High', hoursProfile: {prodHrsPerDay: 20,
-workDaysPerYear: 300}}`; the plant has exactly one Hot machine (WJ-01). (Numbers pinned by the planner with the current
-  code; the plant's expected hours are 193.746…, which the A9 KPI prints 193.7.)
+  125 rows in fleet order, exactly one of them Hot (WJ-01), and WJ-01's row is `{"days":31,"expN":1.5467071634579725,"expH":6.091584054818952,"p1":0.6073360870269124,"p80":12.02,"p90":19.86,"pLong":0.245637461502746,"band":"Hot","confidence":"High","hoursProfile":{"prodHrsPerDay":20,"workDaysPerYear":300}}`
+  exactly. (Numbers pinned by the planner with the current code; the plant's expected hours are 193.746…, which the A9 KPI
+  prints 193.7.)
 - **G** the same data, **W** the A9 and Forecast Lab figures are computed, **T** their values are unchanged from the key
   (`packages/domain/test/a9-value.test.ts`, `analytics-forecast-lab.test.ts` green untouched) — the day-count refactor is
   behaviour-preserving.
@@ -318,8 +369,7 @@ workDaysPerYear: 300}}`; the plant has exactly one Hot machine (WJ-01). (Numbers
   `{label:'February 2027', days:28}`; `monthAt('2026-12-02')` → `{label:'December 2026', days:31}` (it answers for the
   date's month); **W** `frozenForMonth(data, profile, '2026-12-02')`, **T** a `RangeError` (a frozen month is its 1st).
 - **G** a plant with no production breakdown, **W** `frozenForMonth`, **T** `[]`.
-- **G** the fixture tenant (`A`, `M_USED` with one closed breakdown), **W** `runEngineFreeze(f.db.app, {now:
-new Date('2026-12-01T00:30:00Z'), tenantId: A, allowFakeClock: true})`, **T** one `forecast` row for `M_USED` with
+- **G** the fixture tenant (`A`, `M_USED` with one closed breakdown), **W** `runEngineFreeze(f.db.app, {now: new Date('2026-12-01T00:30:00Z'), tenantId: A, allowFakeClock: true})`, **T** one `forecast` row for `M_USED` with
   `month = '2026-12-01'`, `as_of = '2026-12-01'`, `profile = 'legacy'`, `model = 'a9.m0.1'`, `frozen_at` = the given
   instant, and one `audit_log` row `forecast.freeze` with `after.rows = 1`.
 - **G** that row, **W** the freeze runs again an hour later, **T** still one row, `predicted`/`frozen_at` identical, no
@@ -330,16 +380,20 @@ new Date('2026-12-01T00:30:00Z'), tenantId: A, allowFakeClock: true})`, **T** on
 - **G** a tenant with no production breakdown history, **W** the freeze, **T** no rows and no audit line.
 
 **Red/green.** Red: `pnpm exec vitest run packages/domain/test/analytics-forecast-freeze.test.ts` and
-`pnpm exec vitest run apps/server/test/forecast-freeze.test.ts` (module/function absent). Green: both, then
-`pnpm exec vitest run packages/domain/test` (the A9/FL keys), `pnpm exec vitest run apps/server/test/analytics-engine.test.ts`,
+`pnpm exec vitest run apps/server/test/forecast-freeze.test.ts` (module/function absent), and
+`pnpm exec vitest run packages/domain/test/registry.test.ts` — D2 fails on the two new keys until its literal gains them.
+Green: those three, then `pnpm exec vitest run packages/domain/test` (the A9/FL keys and the unchanged D2 for the names
+that stay private), `pnpm exec vitest run apps/server/test/analytics-engine.test.ts`,
 `pnpm exec vitest run apps/server/test/retention-jobs.test.ts` (the moved guard), `pnpm boundaries`, `pnpm precheck`.
 
 ## Packet 2 — scoring and the inspection run (one PR)
 
 **Files.** `packages/domain/src/analytics/forecast-freeze.ts` (+ `monthActuals`, `outcomeFor`, the outcome types),
-`packages/domain/src/analytics/index.ts` (the new exports and `formatNumber` — it is not exported today, and the ticket's
-problem text prints through it), `packages/domain/test/analytics-forecast-freeze.test.ts` (extended),
-`apps/server/src/modules/tickets/planned.ts` (`kind`, `source`, `payloadFor`), `apps/server/src/modules/tickets/repo/analytics.ts`
+`packages/domain/src/analytics/index.ts` (the three runtime exports and the outcome types; `formatNumber` stays off the
+root, `inspectionProblem` prints through it), `packages/domain/test/registry.test.ts` (D2 gains `inspectionProblem`,
+`monthActuals`, `outcomeFor`), `packages/domain/test/analytics-forecast-freeze.test.ts` (extended),
+`apps/server/src/modules/tickets/planned.ts` (`source`, and the `payloadFor` pass-through to `persistEvents`; the kind and
+ref stay 46c's), `apps/server/src/modules/tickets/repo/analytics.ts`
 (`raisedTicketsFor`), `apps/server/src/modules/tickets/index.ts` (export), `apps/server/src/modules/analytics/repo/forecast.ts`
 (+ `pendingMonths`, `rowsForMonth`, `saveOutcomes`, `hotRows`, `hotRaises`), `apps/server/src/modules/analytics/run.ts`
 (new: `runEngineRun`, `scoreTenant`, `inspectTenant`), `apps/server/src/modules/analytics/jobs.ts` (the run queue),
@@ -352,15 +406,17 @@ then one `forecast.score` audit line `{month, rows, hits}` (entity `forecast`, e
 lock, `hotRows` for the current month,
 `raisedTicketsFor`, one `plant.machinesByIds` for the machines' codes, one `raisePlannedTicket` per unlinked Hot row
 (`PlannedRaiseError` — a scrapped unknown machine — is skipped, not retried), one `inspection.raise` audit line
-`{month, refs}` when it raised. Problem text, pinned:
-`${code} is Hot for ${label}: plan for ${formatNumber(p80, 1)} hrs` (`WJ-01 is Hot for December 2026: plan for 12.0 hrs`).
+`{month, refs}` when it raised. The problem text is the domain's `inspectionProblem({code, month, p80})`, pinned in the
+domain test: `WJ-01 is Hot for December 2026: plan for 12.0 hrs`.
 
 **Acceptance — Given/When/Then.**
 
+- **G** `inspectionProblem({code: 'WJ-01', month: '2026-12-01', p80: 12.02})`, **T**
+  `WJ-01 is Hot for December 2026: plan for 12.0 hrs` (the words and the one-decimal plan-for, exactly).
 - **G** the key fixture, a freeze at `2026-11-01` and the full data, **W** `monthActuals(data, '2026-11-01')`, **T**
   WJ-01 = `{hours: 12.02, episodes: 1}` and the plant totals 58 reports / 51.06 hrs over 42 episodes; **W**
-  `outcomeFor(predicted(WJ-01 at the November freeze), actual, null)`, **T** `{hours: 12.02, episodes: 1, hit: false,
-inspection: null}` (`p80` was 10.17); the November freeze's plant is 121 hits of 125.
+  `outcomeFor(predicted(WJ-01 at the November freeze), actual, null)`, **T** `{"hours":12.02,"episodes":1,"hit":false,"inspection":null}`
+  (`p80` was 10.17); the November freeze's plant is 121 hits of 125.
 - **G** a frozen month `2026-11`, **W** `runEngineRun` with `now = 2026-12-01T00:30:00Z` (plant date 2026-12-01), **T**
   every row has an `outcome` and `scored_at` = that instant, one `forecast.score` audit line; **W**
   `now = 2026-12-04T00:30:00Z` after a late report, **T** the same row's `outcome.hours` grew and `scored_at` moved;
@@ -383,10 +439,13 @@ inspection: null}` (`p80` was 10.17); the November freeze's plant is 121 hits of
 - **G** a Likely row and a Hot row of another tenant, **T** neither raises; **G** a Hot machine scrapped before the run,
   **T** it is skipped and the job does not fail.
 
-**Red/green.** Red: `pnpm exec vitest run packages/domain/test/analytics-forecast-freeze.test.ts apps/server/test/forecast-loop.test.ts`.
-Green: both, `pnpm exec vitest run apps/server/test/m4b-write.test.ts` (the raise seam's defaults unchanged),
+**Red/green.** Red: `pnpm exec vitest run packages/domain/test/analytics-forecast-freeze.test.ts apps/server/test/forecast-loop.test.ts`
+and `pnpm exec vitest run packages/domain/test/registry.test.ts` (D2 red on the three new keys until the literal gains
+them). Green: those, then `pnpm exec vitest run apps/server/test/m4b-write.test.ts` (**46c's `WR-`/general and the
+same-machine breakdown raise stay green, with no edit to that file**),
 `pnpm exec vitest run apps/server/test/sla-timers.test.ts` (a planned ticket still takes no clock),
-`pnpm exec vitest run packages/domain/test`, `pnpm boundaries`, `pnpm precheck`.
+`pnpm exec vitest run apps/server/test/analytics-nudges.test.ts`, `pnpm exec vitest run packages/domain/test`,
+`pnpm boundaries`, `pnpm precheck`.
 
 ## Packet 3 — the accepted nudge (one PR)
 
@@ -426,13 +485,32 @@ No row flips (R19). Each PR's description carries
 `No parity: the freeze, scoring and inspection loop are not in the v3 platform; the planning forecast's row is already done.`
 The four `analytics.forecasting.*` rows stay `todo` with the gate-time cleanup recorded in the fragment.
 
+## Hand-off to 53 (frozen)
+
+53 reads `forecast` rows directly; these five lines are the contract.
+
+1. **Finality.** A month's rows are written on the 1st after the month ends and re-written nightly through the 7th; from
+   the **8th** they never change (R8). 53 freezes its own `kpi_snapshot` period on or after the 8th, not on the 1st.
+2. **`hit` is plan-for exceedance, not accuracy.** `outcome.hit = hours <= predicted.p80` (R13). The rate
+   (`hits ÷ rows with an outcome`) is "machines that stayed inside their plan-for"; a calibrated model should exceed the
+   80% line about 1 machine-month in 5, so a high rate can mean a conservative forecast. The model's accuracy statement
+   stays the Forecast Lab's pinball loss and 80%/90% coverage (`forecast-lab-sim.ts:340-394`); 53 must not call the hit
+   rate "accuracy".
+3. **Denominator.** Rows with `outcome is null` are excluded (a row exists only if the month was frozen). A month whose
+   rows exist but the plant had no breakdown is scored 0 hours and counts as a hit (R15); 53's copy says "no breakdowns
+   in the month" where it matters.
+4. **No plant-level forecast row** (R14): 53's forecast section is per machine. A plant plan-for line would need its own
+   `kpi_snapshot` row written at freeze, which this ticket does not write.
+5. **`outcome.inspection` is the ticket's close state** (R12), not a fault finding: `status`, `closeKind`, `closedAt`,
+   `ticketId`, `ref` — nothing about what the technician saw.
+
 ## Rails
 
 - **No migration, no table** beyond D17 (0015 is the milestone's one schema change); `forecast`'s only new writer is
   `repo/forecast.ts`; the write-once grant is never exercised (no `UPDATE predicted`, no `DELETE`).
 - **No new dependency.** One writer per packet, packets in order 1 → 2 → 3. Red first; never delete, skip or weaken a
   test. File ≤ 400 lines, function ≤ 60: `nudges.ts` 214 → ~285, `a9-forecast-sim.ts` 297 → ~312, `a9-forecast.ts` 355 →
-  ~350, `planned.ts` 105 → ~120, `repo/analytics.ts` 32 → ~70, `routes.ts` untouched; the new files are well under.
+  ~350, `planned.ts` 105 → ~120 (the one `source` field), `repo/analytics.ts` 32 → ~70, `routes.ts` untouched; the new files are well under.
 - **Tenancy:** every write inside `withTenant`; `jobTenantIds` for the iteration; RLS unchanged; no query without the
   tenant predicate. `forecast` is pseudonymous (R12).
 - **Audit:** four actions (`forecast.freeze`, `forecast.score`, `inspection.raise`, `nudge.accept`), `AUDIT_AREAS` gains
@@ -449,8 +527,8 @@ The four `analytics.forecasting.*` rows stay `todo` with the gate-time cleanup r
    numbers in packet 1's first acceptance line are the whole answer to "what is frozen"; recompute them independently.
 2. **R8's 7-day window** against 53's timing: is the 8th acceptable for the scorecard, and is a 7-day grace the right
    number (the plant's own no-report list uses 7)?
-3. **R10**: is a `general` (WR-) ticket the right home for an inspection, and does that leave 49's PM jobs blocking the
-   open-breakdown slot (R10's note)?
+3. **R10**: 46c makes every planned ticket a `general` work request; attack whether an inspection should read as
+   breakdown work at all (a report, a board card), and whether the `WR-` series is where a plant will look for it.
 4. **R16**: the payload link over the `setting` row — reopen deletes the ack, but a screen may want the link where the ack
    is. Attack the query cost (no index on `ticket_event.payload`) and the one-ticket-per-key-forever rule.
 5. **R13**: `hit = hours <= p80` on a light month gives ~97% hits (121/125 in November on the key data) — is that the
