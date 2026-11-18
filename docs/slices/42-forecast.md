@@ -124,11 +124,14 @@ plant-inside count is the plant total inside its **p10–p90** range; top-10 ran
 vs current, above-80/90 shares, better-than-current count, the Adopt rule (`dLoss ≤ −1%` and `dRange ≤ +1%` and better
 in more than half the months), the exact verdict/why sentences, table 0 (4 rows), table 1 "Month detail" (7 rows,
 `Apr 26`, `median (low–high)` 0 dp), and the `ch-fl` chart (actual + one line per method, 0.1 rounding).
-**Blocked sub-item (do not dispatch 42d until settled):** a faithful port of the stated scheme matches the key except
-the **September** row (M0 310 (183–541) vs the key's 307 (182–545); M1 300 vs 297; M2 321 vs 316; M3 309 vs 307; the
-chart's Current Sep 309.6 vs 306.9; M1 better-than-current 3 of 7 vs 2 of 7). The September base rule is missing from
-both the plan and the plausible levers (cut ±1 day, full-period lam/pools, seed offsets). A spike must find it (read
-`flBacktest`, lines 9460–9560) and the plan must state it before 42d is dispatched.
+**The September boundary (settled by a spike, 18 Nov).** The lab's month cut is the previous month's last calendar
+day; a machine is in that month's base only if its **purchase calendar day is strictly before the cut day**. The
+platform's local-midnight comparison drops VC-51 (bought 31 Aug 2026) from the September cut, making the base 124
+machines; its index shifts every later seed and its `T = 1` perturbs the category/fleet rates and the age fit, which is
+the whole September difference (key M0 307 (182–545), chart 306.9; M1 297, 2 of 7; M2 316; M3 307). Under 125 machines
+the same port prints 310/309.6/300/321/309 and 3 of 7. Implement the calendar rule (TZ-neutral), not the local
+millisecond comparison. September actual 194.4 is the month's **base machines only** (all-machine 195.58 minus VC-52
+0.93 and TC-37 0.25, both bought after the cut).
 **Files:** `forecast-lab.ts` (new), `computers.ts` spread, `test/analytics-forecast-lab.test.ts`, fragment.
 **Acceptance:** `expect(figure.value).toEqual(FL)` whole; the chart series match; the drill is the machines.
 
