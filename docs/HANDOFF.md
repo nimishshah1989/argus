@@ -4,10 +4,10 @@ Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `doc
 
 ## START HERE (review 41b → M4a tail → gate → M4b → M6)
 
-**State:** `main` = `9888794e`, deployed on every merge. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
-41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331**, all four figures —
-**41a A4 #329**, **41b A5 #333**, **41c A6 #335**, **41c-2 saved record + PDF #337**, **41d-1 A10 core #338**,
-**41d-2 A10 page #339** — and the **41e-1 A4/A5 screens #340**. Next: **41e-2 the A6/A10 screens**, then the M4a gate.
+**State:** `main` = `3628097f`. M2 accepted. **Ticket 41 is complete**: all four figures are exact against
+their keys (A4 #329, A5 #333, A6 #335, A10 #338/#339), their screens are live (A4/A5 #340, A6/A10 #342), and a Why-Why
+saves to the ticket home and prints (#337). **M4a: 36, 37, 38, 38.5, 39, 40, 41 done; the frontier is 42 forecast**,
+then 43 compare/Team Focus/Money/Fix Finder, 44 Action Center, 45 reports/export/Guide, then `docs/plan/gates/M4a.md`.
 Only other open PR: #300 (Nimish's, leave it).
 
 **The answer key's authority is the 11 Nov platform build, tracked in this repo** at
@@ -20,9 +20,9 @@ fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate ke
 map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
 
 **First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then finish 41e-2.
+(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 42 slice plan, then dispatch 42.
 
-**Frontier after 41:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
+**Frontier:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
 43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),
 45 reports/export/Guide (PDFs; workbook writer under an ADR). Then **write `docs/plan/gates/M4a.md` (<30 lines)** and,
 per the night exception, continue into **M4b (46–54, 67)** and **M6 (55–60)**. **M3 is out.**
