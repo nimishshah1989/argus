@@ -7,12 +7,14 @@ import { TopBar } from '../../ui/top-bar.js';
 import { useSystemTheme } from '../desk/Shell.js';
 import { List } from '../../ui/icon.js';
 import {
+  ACTION_CENTER_PATH,
   ANALYTICS_GROUPS,
   CHECKLIST_PATH,
   MACHINES_PATH,
   groupFor,
   type AnalyticsGroup,
 } from './groups.js';
+import { ActionCenterPage } from './ActionCenterPage.js';
 import { Dashboard } from './Dashboard.js';
 import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
@@ -32,6 +34,17 @@ export function DataChecklistPage() {
   return (
     <FaceShell group={today} current={CHECKLIST_PATH}>
       <DataChecklist />
+    </FaceShell>
+  );
+}
+
+/** The Action Center's own route, inside the Today group's shell (packet 44d). */
+export function ActionCenterRoute() {
+  const today = groupFor('today');
+  if (!today) return <Navigate to="/analytics/today" replace />;
+  return (
+    <FaceShell group={today} current={ACTION_CENTER_PATH}>
+      <ActionCenterPage />
     </FaceShell>
   );
 }

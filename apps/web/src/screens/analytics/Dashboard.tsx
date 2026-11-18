@@ -2,28 +2,27 @@ import { useId } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { useAnalyticsFigures } from '../../api.js';
+import { useActionCenterBoard, useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { DrillTable } from './DrillTable.js';
 import { FigureTile } from './FigureTile.js';
-import { GroupPage } from './GroupPage.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
+import { bannerOf } from './action-center.js';
 import { contentKind } from './figure-content.js';
 import { NeedsNow } from './NeedsNow.js';
-import { CHECKLIST_PATH, SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
+import { ACTION_CENTER_PATH, CHECKLIST_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
 
 /** Neutral screen constants, so CI's secret scanner never reads a figure lookup as an API key. */
 const SCREEN_TODAY = 'dashboard';
-const SCREEN_ACTION = 'action-center';
 const SCREEN_TEAM = 'team-focus';
 
-/** The Today group's own screens; the data checklist keeps its separate route. */
-const TODAY_SCREENS = [SCREEN_TODAY, SCREEN_ACTION, SCREEN_TEAM] as const;
+/** The Today screens that share the query state; the data checklist and Action Center keep their own routes. */
+const TODAY_SCREENS = [SCREEN_TODAY, SCREEN_TEAM] as const;
 
 type TodayScreen = (typeof TODAY_SCREENS)[number];
 
@@ -31,21 +30,50 @@ function screenOf(raw: string | null): TodayScreen {
   return TODAY_SCREENS.find((screen) => screen === raw) ?? SCREEN_TODAY;
 }
 
-/** The Today group's screen menu, so Team Focus and Action Center are reachable from the head's home. */
-function TodayNav({ current }: { current: TodayScreen }) {
+/** The Today group's screen menu; Action Center is its own route, like the checklist's. */
+const TODAY_LINKS = [
+  { screen: SCREEN_TODAY, to: '/analytics/today', labelKey: 'analytics.screen.dashboard' },
+  { screen: 'action-center', to: ACTION_CENTER_PATH, labelKey: 'analytics.screen.action-center' },
+  {
+    screen: SCREEN_TEAM,
+    to: `/analytics/today?screen=${SCREEN_TEAM}`,
+    labelKey: 'analytics.screen.team-focus',
+  },
+] as const;
+
+/** The platform's Action Center banner: the open high and medium counts, linking to the screen; hidden when none. */
+function ActionCenterBanner() {
+  const { t } = useTranslation();
+  const board = useActionCenterBoard();
+  const banner = board.data === undefined ? null : bannerOf(board.data);
+  if (banner === null) return null;
+  return (
+    <Link
+      to={ACTION_CENTER_PATH}
+      className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-warning-tint p-4 text-body font-semibold text-warning-ink"
+    >
+      <span>
+        {t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium })}
+      </span>
+      <span className="text-footnote font-bold">{t('analytics.actionCenter.banner.open')}</span>
+    </Link>
+  );
+}
+
+function TodayNav({ current }: { current: string }) {
   const { t } = useTranslation();
   return (
     <nav aria-label={t('analytics.today.nav')}>
       <ul className="flex flex-wrap gap-1 rounded-xl bg-neutral-200 p-1">
-        {TODAY_SCREENS.map((screen) => (
-          <li key={screen}>
+        {TODAY_LINKS.map((link) => (
+          <li key={link.screen}>
             <Link
-              to={`/analytics/today?screen=${screen}`}
+              to={link.to}
               // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={screen === current ? 'page' : undefined}
+              aria-current={link.screen === current ? 'page' : undefined}
               className="flex min-h-target-min items-center rounded-lg px-3 text-footnote font-semibold text-neutral-700 aria-[current=page]:bg-surface aria-[current=page]:text-neutral-900 aria-[current=page]:shadow-card"
             >
-              {t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown')}
+              {t(link.labelKey)}
             </Link>
           </li>
         ))}
@@ -120,25 +148,18 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
   const figureOf = (key: string) => loaded.figures.find((figure) => figure.key === key);
   return (
     <Stack gap={6}>
+      <ActionCenterBanner />
       <TodayNav current={screen} />
-      {screen === SCREEN_ACTION ? (
-        <GroupPage group={group} only={SCREEN_ACTION} />
+      <p className="text-footnote text-neutral-600">{t('analytics.asOf', { date: loaded.asOf })}</p>
+      {screen === SCREEN_TEAM ? null : <NeedsNow />}
+      {drill === null ? null : <DrillTable group={group} drill={drill} />}
+      {screen === SCREEN_TEAM ? (
+        <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
       ) : (
-        <>
-          <p className="text-footnote text-neutral-600">
-            {t('analytics.asOf', { date: loaded.asOf })}
-          </p>
-          {screen === SCREEN_TEAM ? null : <NeedsNow />}
-          {drill === null ? null : <DrillTable group={group} drill={drill} />}
-          {screen === SCREEN_TEAM ? (
-            <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
-          ) : (
-            <DashboardSection
-              figures={loaded.figures.filter((figure) => figure.screen === SCREEN_TODAY)}
-              group={group}
-            />
-          )}
-        </>
+        <DashboardSection
+          figures={loaded.figures.filter((figure) => figure.screen === SCREEN_TODAY)}
+          group={group}
+        />
       )}
     </Stack>
   );

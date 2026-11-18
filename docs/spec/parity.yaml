@@ -1504,9 +1504,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/action-center.json
+      - 'apps/web/src/screens/analytics/action-center.test.ts :: maps the key whole: four tiles, four tabs, all 36 cards, the 16 type options, the eight risk rows and no money'
+      - 'apps/web/e2e/analytics-action-center.spec.ts :: the Today banner reads the board; a head opens the screen, filters by type, acknowledges with owner/due/note, snoozes, reloads and reopens'
     source: docs/plan/m4a-triage.md
     screen: action-center
     ticket: '44'

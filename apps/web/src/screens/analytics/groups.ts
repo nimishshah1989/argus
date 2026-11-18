@@ -204,6 +204,9 @@ export const MACHINES_PATH = '/analytics/machines';
 /** The data checklist's own route, under the Today group (packet 38.3). */
 export const CHECKLIST_PATH = '/analytics/today/checklist';
 
+/** The Action Center screen's own route, under the Today group (packet 44d). */
+export const ACTION_CENTER_PATH = '/analytics/today/action-center';
+
 /** The drill link a tile carries: the group page, with the type and the rows in the query. */
 export function drillHref(group: GroupId, type: DrillType, ids: readonly string[]): string {
   return `/analytics/${group}?drill=${encodeURIComponent(`${type}:${ids.join(',')}`)}`;

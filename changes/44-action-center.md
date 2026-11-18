@@ -206,3 +206,69 @@ snooze clock), `load.ts` (nudge acks into `settings.nudgeAcks`, `spare_cost` int
   then 3 days); the last day's exact-hour boundary remains the platform difference the plan accepts.
 - **9. `GET /settings` leaks.** Filtered in the settings read with `key !~ '^(focus|nudge):'`; a `focus:test` row
   is seeded by the test and never appears.
+
+# 44d — the Action Center screen
+
+**What changed for a user:** the Action Center is a screen of its own. The head's Today face now carries the
+platform's banner — "X high-priority and Y medium nudges need attention · Open Action Center" — and the banner opens
+the screen, which shows four priority tiles (High, Medium, Low, Good news, the open counts), four status tabs (Open
+first), a priority filter, all 16 type filters and a search over title and machines. Each open nudge is a card with
+its type, priority, title, machine chips (each opening that machine's page), its entry count and latest entry, the
+"Not in production data" chip when every machine is excluded, and the three actions: Acknowledge (owner from the
+plant's active people, a due date and a note), Snooze the profile's seven days, and Resolved. A stored nudge shows
+its status line (owner, due, note, "Snoozed until DD-MM-YYYY") and only Reopen; good news has no button. The
+"Machines needing attention" table is the board's eight rows with machine links. A role outside the analytics
+audience gets an honest refusal instead of a broken screen, and no money number appears anywhere.
+
+**Acceptance, exactly as the plan states it.** `action-center.test.ts` reads the frozen key and a board literal:
+the four tiles (6 high / 25 medium / 2 low / 0 good news) and four tabs (33 open, 1 acked, 1 snoozed, 1 resolved)
+are pinned from the key's own counts; all 36 cards print the key's titles in the key's order; the first card is
+pinned whole; the acked, snoozed and resolved cards are pinned to Reopen only; a good-news card has no button; the
+16 type options equal the key's labels; the eight risk rows equal the key's page rows (machine text, score and why);
+the filters leave the engine's order alone; and the mapped view contains no rupee and no money tile. The journey
+opens the Today banner, follows it to the screen, asserts the tiles, tabs, risk rows, five cards and the type filter,
+acknowledges with owner/due/note, snoozes, reloads and sees both hold, and reopens the snoozed nudge.
+
+**Tests that prove it.** Red (recorded by re-running the red state): the journey with the route unregistered fails
+with `getByRole('heading', { name: 'Action Center' })` not found (1 failed); the mapping test with
+`action-center.ts` absent fails with `Cannot find module './action-center.js'` (1 failed file, no tests). Green:
+`pnpm exec vitest run apps/web/src/screens/analytics` — 11 files, 107 tests (the 12 new mapping tests included);
+`pnpm exec playwright test apps/web/e2e/analytics-action-center.spec.ts` — 2 passed (chromium and phone, the banner
+journey included). `pnpm precheck` — see the precheck line below.
+
+**Files.** `apps/web/src/screens/analytics/ActionCenterPage.tsx` (new: the page, the refusal, the risk table and
+the board's filters/writes), `action-center-parts.tsx` (new: the tiles, the filter bar, one card and its
+acknowledge form), `action-center.ts` (new: the pure board-to-view mapping), `action-center.test.ts` (new),
+`apps/web/src/api.ts` (the board resource and the three mutations), `Analytics.tsx` (the
+`/analytics/today/action-center` route), `App.tsx` (the route), `groups.ts` (`ACTION_CENTER_PATH`),
+`Dashboard.tsx` (the banner and the Today menu's Action Center link), the new
+`packages/shared/src/i18n/analytics-action-center.en.ts` / `.gu.ts` namespace and its registration,
+`apps/web/e2e/analytics-action-center.spec.ts` (new), `docs/spec/parity.yaml` (the row done, the evidence added)
+and this fragment. No new dependency; no server, schema or migration change.
+
+**Deviations recorded.**
+
+1. **The presentational pieces are a second file.** The plan lists one page file, but the page with its card, form
+   and filter bar was 476 lines — over both the 300-line screen rail and the 400-line hard rail. The 42e/43e
+   precedent (`why-why-parts.tsx`, `machine-parts.tsx`) is followed: `ActionCenterPage.tsx` is 226 lines and
+   `action-center-parts.tsx` 358, each function at most 60 lines. The mapping file stays the one new pure module the
+   plan names.
+2. **Machine chips and risk rows resolve the machine's code.** The board names machine ids (44b's frozen seam), so
+   the screen would print a UUID on the live plant; `actionCenterView` takes an optional id-to-code resolver
+   (defaulting to the id, so the key, whose ids are its codes, reads exactly) and the screen passes the config's
+   machines. The drill still uses the id (`/analytics/machines/:id`). This also fixes the risk table's machine cell
+   on the live plant.
+3. **The Today menu's Action Center entry now links to the screen**, not to `?screen=action-center` and the
+   registered figure's page; the figure itself stays registered (the Guide still names it), but the product entry is
+   the board screen. The banner is the platform's: hidden while the board loads, and when nothing is open.
+4. **The ack form reads its fields with `FormData`** instead of three pieces of controlled state, to keep the
+   form under the 60-line function rail; the labels, the owner list and the 500-character note limit are unchanged.
+
+**Open questions settled.**
+
+- **2. No approved artboard.** `docs/design/LOCK.md` still has no Action Center artboard, so 44d follows the
+  platform's layout and the existing Today patterns (tokens only). A restyle is the one-screen cost if Nimish wants
+  a different face at the PR.
+- **3. The platform's per-nudge prose** (`detail`, `action`, the latest-entry sentence) is not in the key, so the
+  screen prints none: type, priority, title, the key's own computed text, the entry count and the latest entry date
+  only. Adding it needs a key field or a new copy source, as the plan says.
