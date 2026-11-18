@@ -128,6 +128,7 @@ const KIND: Record<string, ContentKind> = {
   'a3-mttr-mtbf': 'page',
   'a4-manpower': 'page',
   'a5-energy': 'energy',
+  'a6-why-why': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -163,6 +164,7 @@ const PAGE_KEYS = new Set([
   'a2-category-cell',
   'a3-mttr-mtbf',
   'a4-manpower',
+  'a6-why-why',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */

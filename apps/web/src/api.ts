@@ -41,6 +41,7 @@ import type {
 import type { SlaPoliciesUpdate, SlaPolicy, SlaProjection, SlaTimer } from '@uptimo/shared/sla';
 import type { SignoffFeed } from '@uptimo/shared/signoff';
 import type { BreakdownReportBody, CommandAction, RaiseTicketBody } from '@uptimo/shared/ticket';
+import type { WhyWhyPayload, WhyWhyWrite } from '@uptimo/shared/why-why';
 import type { TaskInput } from '@uptimo/shared/tasks';
 import type {
   BreakdownReport,
@@ -76,6 +77,11 @@ const analyticsDrill = defineResource<DrillReply, never>({
 /** The rows behind a figure: at most 200 ids, the order of the ids asked; the reply is parsed at this boundary. */
 export const getDrill = async (type: DrillType, ids: readonly string[]): Promise<DrillReply> =>
   drillReplySchema.parse(await analyticsDrill.list({ type, ids: ids.join(',') }));
+/** One ticket's Why-Why home (R2): a read of the latest record and an append-only write of the next one. */
+const whyWhy = defineResource<WhyWhyPayload | null>({
+  key: 'why-why',
+  path: '/api/v1/tickets/:id/why-why',
+});
 const signoffFeed = defineResource<SignoffFeed>({
   key: 'signoff-feed',
   path: '/api/v1/board/signoff',
@@ -132,6 +138,13 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 /** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
+
+/** `GET /tickets/:id/why-why`: the latest saved record, or null when none has been saved. */
+export const getWhyWhy = (ticketId: string): Promise<WhyWhyPayload | null> => whyWhy.one(ticketId);
+
+/** `PUT /tickets/:id/why-why`: appends one record; the server writes the author and the plant date. */
+export const saveWhyWhy = (ticketId: string, body: WhyWhyWrite): Promise<WhyWhyPayload> =>
+  whyWhy.update<WhyWhyPayload>(ticketId, body);
 
 /** `GET /board/signoff`: closed tickets still waiting for production, the longest wait first. */
 export const getSignoffFeed = (): Promise<SignoffFeed> => signoffFeed.one();

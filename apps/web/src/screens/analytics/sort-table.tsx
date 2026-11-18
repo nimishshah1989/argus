@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp, ChevronsUpDown } from '../../ui/icon.js';
 
 /**
@@ -96,14 +96,19 @@ export function SortTable({
   title,
   header,
   rows,
+  renderCell,
 }: {
   title?: string | null;
   header: readonly string[];
   rows: readonly (readonly string[])[];
+  /** A screen's own markup for one cell; it still sorts by the engine's raw cell and keeps its row's index. */
+  renderCell?: (cell: string, column: number, rowIndex: number) => ReactNode;
 }) {
   const headingId = useId();
   const [sort, setSort] = useState<TableSort | null>(null);
   const shown = sortRows(rows, sort);
+  // sortRows keeps the array identities, so a sorted row still finds the index the engine gave it.
+  const originalIndex = new Map(rows.map((row, index) => [row, index] as const));
   return (
     <div className="flex flex-col gap-2">
       {title ? (
@@ -130,15 +135,18 @@ export function SortTable({
             </tr>
           </thead>
           <tbody>
-            {shown.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-t border-neutral-200">
-                {row.map((cell, column) => (
-                  <td key={column} className="p-2">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {shown.map((row, rowIndex) => {
+              const original = originalIndex.get(row) ?? rowIndex;
+              return (
+                <tr key={`${original}-${rowIndex}`} className="border-t border-neutral-200">
+                  {row.map((cell, column) => (
+                    <td key={column} className="p-2">
+                      {renderCell ? renderCell(cell, column, original) : cell}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

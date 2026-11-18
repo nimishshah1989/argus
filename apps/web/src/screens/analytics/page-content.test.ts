@@ -12,6 +12,14 @@ const A4_KEY: unknown = JSON.parse(
     'utf8',
   ),
 );
+
+/** The frozen A6 key: the candidate page whole, so the screen's source of rows can never drift from it. */
+const A6_KEY: unknown = JSON.parse(
+  readFileSync(
+    new URL('../../../../../fixtures/answer-key/a6-why-why.json', import.meta.url),
+    'utf8',
+  ),
+);
 import { EMPTY_FILTERS, LOG_FILTERS, filterOptions, filterRows } from './log-values.js';
 
 /**
@@ -717,6 +725,31 @@ describe('the A4 page', () => {
       expect(en[key as MessageKey], key).toBeTruthy();
       expect(Object.hasOwn(gu, key), key).toBe(true);
     }
+  });
+});
+
+describe('the A6 page', () => {
+  const A6 = A6_KEY as unknown as {
+    pages: {
+      title: string;
+      tables: { title: string; header: string[]; rows: string[][]; rowCount: number }[];
+    }[];
+  };
+
+  it('maps the key candidate page whole: its title, its header and every row (status and action included)', () => {
+    const { t } = translator();
+    const source = figure('a6-why-why', A6_KEY, 'a6-why-why');
+    expect(contentKind(source)).toBe('page');
+    const content = contentOf(source, t);
+    if (content?.kind !== 'page') throw new Error('expected the A6 page');
+    expect(content.title).toBe(A6.pages[0]!.title);
+    expect(content.tables).toEqual(
+      A6.pages[0]!.tables.map((table) => ({ ...table, truncated: false })),
+    );
+    expect(content.tables[0]?.rows).toHaveLength(24);
+    expect(content.tables[0]?.header.at(-1)).toBe('');
+    expect(content.kpis).toEqual([]);
+    expect(content.charts).toEqual([]);
   });
 });
 
