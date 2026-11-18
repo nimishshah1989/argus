@@ -79,6 +79,17 @@ const task = (row: Row): TaskRow => ({
 type Cleaner = (value: string) => string;
 const cleanOrNull = (value: unknown, clean: Cleaner): string | null =>
   value === null ? null : clean(String(value));
+/** The legacy seed and the loader join a row's spare columns with ", ": the engine reads the parts, not one text. */
+const sparesOf = (value: unknown, clean: Cleaner): string[] => {
+  const text = cleanOrNull(value, clean);
+  return text === null
+    ? []
+    : text
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part) => part !== '');
+};
+
 const cleanerOf =
   (redactor: Redactor): Cleaner =>
   (value) =>
@@ -99,6 +110,7 @@ const report = (row: Row, clean: Cleaner): ReportRow => ({
   category: text(row.breakdown_category),
   maintCode: text(row.maint_code),
   spareUsed: cleanOrNull(row.spare_used, clean),
+  spares: sparesOf(row.spare_used, clean),
   rootCause: cleanOrNull(row.root_cause, clean),
   correctiveAction: cleanOrNull(row.corrective_action, clean),
   doneBy: codes(row.done_by),

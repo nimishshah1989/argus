@@ -3,7 +3,6 @@ import { fleetRows } from './a9-forecast-sim.js';
 import { normalizeLabel } from './format.js';
 import { dayNumber } from './plant-date.js';
 import { effectiveHours, type SourcedReport } from './rows.js';
-import { spareCost } from './team-focus-spares.js';
 import type { EngineData, MachineRow } from './types.js';
 
 /**
@@ -36,7 +35,6 @@ interface Seed {
   readonly band: number;
   readonly n: number;
   readonly h: number;
-  readonly cost: number;
 }
 
 /** The shrunk multiplicative fit: a category rate times an age-band factor, iterated to a fixed point. */
@@ -226,8 +224,6 @@ export interface HealthRow extends Seed {
 interface ScoreContext {
   readonly fits: { n: Fit; h: Fit };
   readonly m0: number;
-  readonly cy: number;
-  readonly cpb: number;
   readonly end: number;
   readonly threshold: number;
 }
@@ -246,7 +242,6 @@ function healthRowOf(risk: BottleneckRisk, history: History, context: ScoreConte
   const expH = rateH * yrs;
   const expectedRecent = (rateN * overlap(purchase, context.end - 89, context.end)) / 365;
   const expectedBefore = (rateN * overlap(purchase, context.end - 179, context.end - 90)) / 365;
-  const cost = sum(history.list.map((row) => spareCost(row.report)));
   const parts: Array<readonly [number, number]> = [
     [0.3, healthMap((risk.count + 3) / (expN + 3))],
     [0.25, healthMap((risk.hours + 10) / (expH + 10))],
@@ -262,10 +257,6 @@ function healthRowOf(risk: BottleneckRisk, history: History, context: ScoreConte
     ],
     [0.1, repeatScore(history.list, context.threshold)],
   ];
-  if (context.cy > 0 && context.cpb > 0) {
-    const K = 2 * context.cpb;
-    parts.push([0.05, healthMap((cost + K) / (context.cy * yrs + K))]);
-  }
   const weight = sum(parts.map(([part]) => part));
   const score = sum(parts.map(([part, value]) => part * value)) / weight;
   return {
@@ -277,7 +268,6 @@ function healthRowOf(risk: BottleneckRisk, history: History, context: ScoreConte
     h: risk.hours,
     days: risk.days,
     expH,
-    cost,
     score,
     label: healthLabel(score),
   };
@@ -293,24 +283,20 @@ export function healthRowsOf(
   const histories = historiesOf(core, data, core.fleet);
   const seeds: Seed[] = core.fleet.map((risk) => {
     const purchase = purchaseDayOf(risk.machine);
-    const history = histories.get(risk.machine.id) ?? { list: [], n90: 0, p90n: 0 };
     return {
       cat: normalizeLabel(risk.machine.category ?? ''),
       yrs: risk.days / 365,
       band: ageBand(purchase === null ? null : (end - purchase) / 365.25),
       n: risk.count,
       h: risk.hours,
-      cost: sum(history.list.map((row) => spareCost(row.report))),
     };
   });
   const fits = { n: ipf(seeds, 'n', 4), h: ipf(seeds, 'h', 40) };
-  const totals = new Map<string, { n: number; h: number; cost: number; yrs: number }>();
+  const totals = new Map<string, { n: number; h: number }>();
   for (const seed of seeds) {
-    const total = totals.get(seed.cat) ?? { n: 0, h: 0, cost: 0, yrs: 0 };
+    const total = totals.get(seed.cat) ?? { n: 0, h: 0 };
     total.n += seed.n;
     total.h += seed.h;
-    total.cost += seed.cost;
-    total.yrs += seed.yrs;
     totals.set(seed.cat, total);
   }
   const plantN = sum(seeds.map((seed) => seed.n));
@@ -319,9 +305,7 @@ export function healthRowsOf(
     const cat = normalizeLabel(risk.machine.category ?? '');
     const total = totals.get(cat);
     const m0 = total !== undefined && total.n > 0 ? total.h / total.n : plantM0;
-    const cy = total !== undefined && total.yrs > 0 ? total.cost / total.yrs : 0;
-    const cpb = total !== undefined && total.n > 0 ? total.cost / total.n : 0;
     const history = histories.get(risk.machine.id) ?? { list: [], n90: 0, p90n: 0 };
-    return healthRowOf(risk, history, { fits, m0, cy, cpb, end, threshold });
+    return healthRowOf(risk, history, { fits, m0, end, threshold });
   });
 }

@@ -4,8 +4,8 @@ import type { EngineData, ReportRow } from './types.js';
 
 /**
  * The spares Team Focus asks the stores to keep ready (ticket 43, packet 43b): the parts written again and again on
- * at least two machines, the five used most. The legacy workbook kept three spare names; the live app keeps one, so
- * the second and third are read as optional legacy columns and a live row falls back to its single field.
+ * at least two machines, the five used most. The shared `ReportRow.spares` list names every spare on the row; a row
+ * written before that seam carries one `spareUsed`, which the loader and the legacy seed join with ", ".
  */
 
 /** A part is kept in stores when it was used this often on this many machines; the page shows five. */
@@ -18,24 +18,16 @@ const PART_STOP: ReadonlySet<string> = new Set(
   'no any nil na none nos pcs pc mm kg x c a the of and set new old'.split(' '),
 );
 
-/** The legacy columns the live app's one spare field does not carry; absent on live rows. */
-interface LegacySpareReport extends ReportRow {
-  readonly spare2?: string | null;
-  readonly spare3?: string | null;
-  readonly spareCost?: number | null;
-}
-
-/** Every spare name a row recorded: the live field plus the legacy workbook's second and third columns. */
+/** Every spare name a row recorded: the shared seam's list, else the live field split on the seed's ", ". */
 export function spareNames(report: ReportRow): string[] {
-  const legacy = report as LegacySpareReport;
-  return [report.spareUsed, legacy.spare2, legacy.spare3].filter(
-    (name): name is string => typeof name === 'string' && name.trim() !== '',
-  );
+  if (report.spares !== undefined) {
+    return report.spares.map((name) => name.trim()).filter((name) => name !== '');
+  }
+  return (report.spareUsed ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
 }
-
-/** The legacy spare cost on a row; a live row has no cost and reads as blank. */
-export const spareCost = (report: ReportRow): number =>
-  (report as LegacySpareReport).spareCost ?? 0;
 
 /** The platform's part-name key: lowercased letters, stop words and one-letter words dropped, de-duplicated, sorted. */
 function partKey(name: string): string {

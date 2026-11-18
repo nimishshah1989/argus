@@ -6,7 +6,6 @@ import {
   type Computed,
   type EngineData,
   type FigureResult,
-  type ReportRow,
 } from '../src/index.js';
 import { ENGINE_DATA, read } from './answer-key/fixture.js';
 
@@ -15,9 +14,8 @@ import { ENGINE_DATA, read } from './answer-key/fixture.js';
  * ranked actions with their hours at stake. The actions' status, owner and note are the defaults the platform shows
  * before anyone touches them; their persistence is a later server packet, not this figure.
  *
- * The fixture maps the live engine's one spare field; the legacy workbook kept three spare names and three cost
- * columns, and the two spares in the second and third columns change the part counts. The test supplies those legacy
- * columns from the same workbook the fixture reads, so the figure is computed from the data the key was frozen from.
+ * The shared answer-key fixture maps the legacy workbook's three spare columns into `ReportRow.spares`, so this test
+ * reads the same seam production does, with no private enrichment.
  */
 
 const AS_OF = '2026-11-11';
@@ -40,40 +38,9 @@ interface TeamFocusKey {
   extra: FocusAction[];
 }
 
-/** One workbook breakdown with the legacy spare and cost columns the live engine does not carry. */
-interface LegacyRow {
-  id: string;
-  spare2?: string;
-  spare3?: string;
-  cost1?: number;
-  cost2?: number;
-  cost3?: number;
-}
-
 const TEAM_FOCUS = read<TeamFocusKey>('team-focus.json');
-const RAW = read<{ breakdowns: LegacyRow[]; otherBD: LegacyRow[] }>('input.json');
 
-/** The legacy spare and cost columns, by the report id the engine's rows carry. */
-const LEGACY = new Map(
-  [...RAW.breakdowns, ...RAW.otherBD].map((row) => [
-    row.id,
-    {
-      spare2: row.spare2 ?? null,
-      spare3: row.spare3 ?? null,
-      spareCost: (row.cost1 ?? 0) + (row.cost2 ?? 0) + (row.cost3 ?? 0),
-    },
-  ]),
-);
-
-const DATA: EngineData = {
-  ...ENGINE_DATA,
-  reports: ENGINE_DATA.reports.map((report): ReportRow => ({
-    ...report,
-    ...(LEGACY.get(report.id) ?? {}),
-  })),
-};
-
-function compute(data: EngineData = DATA): FigureResult {
+function compute(data: EngineData = ENGINE_DATA): FigureResult {
   const result = runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
   const found = result.figures.find((candidate) => candidate.key === 'team-focus');
   if (!found) throw new Error('the engine knows no figure team-focus');
@@ -81,7 +48,7 @@ function compute(data: EngineData = DATA): FigureResult {
 }
 
 /** The computer itself, so the drill's own order (before the engine sorts and dedupes it) is observable. */
-function runComputer(data: EngineData = DATA): Computed {
+function runComputer(data: EngineData = ENGINE_DATA): Computed {
   const figure = COMPUTERS['team-focus'];
   if (figure === undefined) throw new Error('the engine knows no figure team-focus');
   return figure({ data, asOf: AS_OF, profile: DEFAULT_PROFILE });
@@ -110,7 +77,7 @@ describe('the Team Focus figure', () => {
     const computed = compute();
     expect(computed.drill.type).toBe('machine');
     expect(computed.drill.ids).toEqual([...expected].sort());
-    const known = new Set(DATA.machines.map((machine) => machine.id));
+    const known = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
     for (const id of computed.drill.ids) expect(known.has(id), id).toBe(true);
   });
 

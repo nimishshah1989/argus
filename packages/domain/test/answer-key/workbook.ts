@@ -50,6 +50,8 @@ export interface WorkbookBreakdown {
   maintCode?: string;
   electMech?: string;
   spare1?: string;
+  spare2?: string;
+  spare3?: string;
   correctiveAction?: string;
   doneBy?: string;
   supportedBy?: string;

@@ -145,3 +145,13 @@ whole; both drill the production machines; an empty plant returns null. `pnpm ex
 
 Red first; one writer per packet; file ≤ 400 lines, function ≤ 60; no new dependency; no code copied from the frozen
 discovery (rules only); whole-subtree equality per packet and whole-key equality at the end; never weaken a test.
+
+## 42e — the A9 and Forecast Lab screens (one PR, face packet)
+
+Both figures are on `main` (#344–#347) and `groups.ts` already carries their group/screen/figure labels. Add the pages:
+
+- **A9**: render the key page through KeyPage — the 14 KPIs, the nine tables with the sort-table on the machine/forecast/trend/repeat tables, and the two charts: `ch-a9-map` (scatter: x = unav %, y = lane + jitter, per-point radius, High/Critical labels only, the key's raw tick labels) and `ch-fc` (bar: `<machine> · <category>` labels, expected coloured by band + plan for 80%).
+- **Forecast Lab**: the two tables and the `ch-fl` line chart (Actual + four methods), y "Breakdown hours in the month".
+- Wire `figure-content.ts` KIND/PAGE_KEYS and `page-content.ts` (the new page kinds, the table sort rules, the scatter/line chart mappings), the en catalogue (gu stays blank via the namespace), the parity evidence for both rows, one Chromium journey `apps/web/e2e/analytics-forecast.spec.ts` and the fragment.
+  **Acceptance:** mapping unit tests pin every A9 KPI/table cell and both chart series and every FL cell/series against the keys; the journey opens both screens on the real stack, sorts a numeric column, opens a drill and reads the chart as ready. Red first: the journey fails because the pages are not registered. Green: the journey + `pnpm exec vitest run apps/web/src/screens/analytics`.
+  **Files:** `A9Page.tsx`, `ForecastLabPage.tsx` (or one file if the 300-line screen cap allows), `figure-content.ts`, `page-content.ts`, `analytics.en.ts`, the e2e spec, `parity.yaml`, fragment.

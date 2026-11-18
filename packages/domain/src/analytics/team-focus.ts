@@ -16,7 +16,7 @@ import {
 import { dayNumber, dmy } from './plant-date.js';
 import { effectiveHours } from './rows.js';
 import { healthRowsOf, type HealthRow } from './team-focus-health.js';
-import { hasPart, laneD, spareCost } from './team-focus-spares.js';
+import { hasPart, laneD } from './team-focus-spares.js';
 import type { Computer, EngineData, FigureValue } from './types.js';
 
 /**
@@ -141,7 +141,7 @@ function laneA(models: readonly ForecastModel[], month: FocusMonth): Action[] {
     });
 }
 
-/** Lane B, first half: the machine and problem pairs that came back on three or more separate occasions. */
+/** Lane B, first half: the machine and problem pairs that came back on four or more separate occasions (Guide 29). */
 function laneBRepeats(
   events: readonly ProblemEvent[],
   repeats: readonly ProblemRepeat[],
@@ -156,7 +156,7 @@ function laneBRepeats(
         ),
       ),
     }))
-    .filter(({ occ }) => occ >= 3)
+    .filter(({ occ }) => occ >= 4)
     .slice(0, REPEAT_LIMIT)
     .map(({ repeat, occ }) =>
       withMid(
@@ -280,9 +280,7 @@ function laneE(data: EngineData, events: readonly ProblemEvent[]): Action[] {
   const multi = [...pairs.values()].filter(
     (pair) => pair.n >= 4 || (pair.n >= 3 && pair.h >= 20),
   ).length;
-  const costless = fleetRows(data).filter(
-    (row) => hasPart(row.report) && spareCost(row.report) === 0,
-  ).length;
+  const costless = fleetRows(data).filter((row) => hasPart(row.report)).length;
   const found: Action[] = [];
   if (multi > 0) {
     found.push(
