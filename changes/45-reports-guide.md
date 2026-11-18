@@ -386,3 +386,8 @@ apps/web/e2e/analytics-guide.spec.ts --project=chromium` — 1 passed (8.2 s). `
    248 lines), so the Guide copy is its own namespace, registered like every other M4a area and left blank in gu.
 3. **The old `analytics.guide.intro` line was updated.** It said the explanations "arrive with the Guide ticket";
    it now describes what the page is. The key and the namespace are untouched by that one-line change.
+
+**Follow-up fix (19 Nov):** the figure link printed its label inside one text run ("Open figure — Total machines"),
+so the pre-existing analytics journey could no longer find the "Total machines" label. The label is now its own
+`<span>`; the link's accessible name and its visual text are unchanged, and the journey passes again without a test
+edit.
