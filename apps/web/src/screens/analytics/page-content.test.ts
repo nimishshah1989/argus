@@ -12,6 +12,22 @@ const A4_KEY: unknown = JSON.parse(
     'utf8',
   ),
 );
+
+/** The frozen A6 key: the candidate page whole, so the screen's source of rows can never drift from it. */
+const A6_KEY: unknown = JSON.parse(
+  readFileSync(
+    new URL('../../../../../fixtures/answer-key/a6-why-why.json', import.meta.url),
+    'utf8',
+  ),
+);
+
+/** The frozen A10 key: the problem page whole, its eight KPIs, six tables and two charts. */
+const A10_KEY: unknown = JSON.parse(
+  readFileSync(
+    new URL('../../../../../fixtures/answer-key/a10-problems.json', import.meta.url),
+    'utf8',
+  ),
+);
 import { EMPTY_FILTERS, LOG_FILTERS, filterOptions, filterRows } from './log-values.js';
 
 /**
@@ -714,6 +730,134 @@ describe('the A4 page', () => {
 
   it('names the A4 chart chrome in both catalogues', () => {
     for (const key of ['analytics.content.a4.countChart', 'analytics.content.a4.personAxis']) {
+      expect(en[key as MessageKey], key).toBeTruthy();
+      expect(Object.hasOwn(gu, key), key).toBe(true);
+    }
+  });
+});
+
+describe('the A6 page', () => {
+  const A6 = A6_KEY as unknown as {
+    pages: {
+      title: string;
+      tables: { title: string; header: string[]; rows: string[][]; rowCount: number }[];
+    }[];
+  };
+
+  it('maps the key candidate page whole: its title, its header and every row (status and action included)', () => {
+    const { t } = translator();
+    const source = figure('a6-why-why', A6_KEY, 'a6-why-why');
+    expect(contentKind(source)).toBe('page');
+    const content = contentOf(source, t);
+    if (content?.kind !== 'page') throw new Error('expected the A6 page');
+    expect(content.title).toBe(A6.pages[0]!.title);
+    expect(content.tables).toEqual(
+      A6.pages[0]!.tables.map((table) => ({ ...table, truncated: false })),
+    );
+    expect(content.tables[0]?.rows).toHaveLength(24);
+    expect(content.tables[0]?.header.at(-1)).toBe('');
+    expect(content.kpis).toEqual([]);
+    expect(content.charts).toEqual([]);
+  });
+});
+
+describe('the A10 page', () => {
+  const A10 = A10_KEY as unknown as {
+    pages: {
+      title: string;
+      kpis: { label: string; value: string; sub: string }[];
+      tables: { title: string; header: string[]; rows: string[][]; rowCount: number }[];
+      charts: {
+        id: string;
+        axes: { x: string; y: string };
+        labels: string[];
+        datasets: { label: string; data: number[] }[];
+      }[];
+    }[];
+  };
+  const page = A10.pages[0]!;
+  const groups = page.tables[0]!;
+  const table = (index: number) => page.tables[index]!;
+  const SORTABLE = page.tables.slice(0, 5).map((entry) => entry.title);
+  const pareto = page.charts[0]!;
+  const bubble = page.charts[1]!;
+  const bubblePoints = bubble.datasets[0]!.data as unknown as { x: number; y: number; r: number }[];
+
+  it('maps the key page whole: its 8 KPIs, its 6 tables and both charts', () => {
+    const { t } = translator();
+    const source = figure('a10-problems', A10_KEY, 'a10-problems');
+    expect(contentKind(source)).toBe('page');
+    const content = contentOf(source, t);
+    if (content?.kind !== 'page') throw new Error('expected the A10 page');
+    expect(content.title).toBe('Problem Analysis');
+    expect(content.kpis).toEqual(page.kpis.map(({ label, value, sub }) => ({ label, value, sub })));
+    expect(content.tables).toEqual(
+      page.tables.map((entry, index) => ({
+        ...entry,
+        truncated: false,
+        ...(index < 5 ? { sortable: true } : {}),
+      })),
+    );
+    expect(content.charts).toEqual([
+      {
+        kind: 'bar',
+        title: 'Which problems cost the most?',
+        categoryLabel: 'Problem group',
+        categories: pareto.labels,
+        series: [{ name: 'Hours', values: pareto.datasets[0]!.data }],
+      },
+      {
+        kind: 'scatter',
+        title: 'Often, or long?',
+        machineLabel: 'Problem group',
+        xLabel: bubble.axes.x,
+        yLabel: bubble.axes.y,
+        mttrLabel: 'Hours',
+        points: bubblePoints.map((point, index) => ({
+          x: point.x,
+          y: point.y,
+          r: point.r,
+          label: groups.rows[index]![0],
+          mttr: Number(groups.rows[index]![4]!.replaceAll(',', '')),
+        })),
+      },
+    ]);
+  });
+
+  it('pins every A10 KPI label and every table header against the key', () => {
+    const { t } = translator();
+    const content = contentOf(figure('a10-problems', A10_KEY, 'a10-problems'), t);
+    if (content?.kind !== 'page') throw new Error('expected the A10 page');
+    expect(content.kpis.map((kpi) => kpi.label)).toEqual(page.kpis.map((kpi) => kpi.label));
+    expect(content.kpis.map((kpi) => kpi.value)).toEqual(page.kpis.map((kpi) => kpi.value));
+    expect(content.tables.map((entry) => entry.header)).toEqual(
+      page.tables.map((entry) => entry.header),
+    );
+    expect(content.tables[3]?.header.at(-1)).toBe('');
+    expect(content.tables[3]?.title).toBe(table(3).title);
+    expect(content.tables[3]?.rows[0]?.[5]).toBe(table(3).rows[0]?.[5]);
+  });
+
+  it('marks the five data tables sortable and leaves the editor read-only', () => {
+    const { t } = translator();
+    const content = contentOf(figure('a10-problems', A10_KEY, 'a10-problems'), t);
+    if (content?.kind !== 'page') throw new Error('expected the A10 page');
+    expect(
+      content.tables.filter((entry) => entry.sortable === true).map((entry) => entry.title),
+    ).toEqual(SORTABLE);
+    expect(content.tables[5]?.sortable).toBeUndefined();
+  });
+
+  it('names the A10 chart and editor chrome in both catalogues', () => {
+    for (const key of [
+      'analytics.content.a10.paretoChart',
+      'analytics.content.a10.bubbleChart',
+      'analytics.content.a10.groupLabel',
+      'analytics.content.a10.hours',
+      'analytics.problems.accept',
+      'analytics.problems.editorTitle',
+      'analytics.problems.editorReadOnly',
+    ]) {
       expect(en[key as MessageKey], key).toBeTruthy();
       expect(Object.hasOwn(gu, key), key).toBe(true);
     }

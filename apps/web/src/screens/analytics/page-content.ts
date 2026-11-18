@@ -3,8 +3,9 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
 
 /**
- * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1): the platform's own page, whole. The log,
- * A1, A2, A3 and A4 are pages, so one mapping turns the engine's KPIs, tables and charts into the kit's pieces.
+ * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1 and 41e-2): the platform's own page, whole. The
+ * log, A1, A2, A3, A4, A6 and A10 are pages, so one mapping turns the engine's KPIs, tables and charts into the
+ * kit's pieces. A10's bubble is the one chart whose labels are not on the chart (the groups table carries them).
  * The page title, KPI labels, table titles and cells are the engine's printed data; the charts' titles and axes
  * are catalogue copy. Split from `figure-content.ts` when the two breakdown keys took the mapper towards the
  * 400-line hard limit.
@@ -43,6 +44,8 @@ const CELL_AXIS = 'analytics.content.a2.cellAxis' satisfies MessageKey;
 const AGE_AXIS = 'analytics.content.a3.ageAxis' satisfies MessageKey;
 const MONTH_AXIS = 'analytics.content.a3.monthAxis' satisfies MessageKey;
 const PERSON_AXIS = 'analytics.content.a4.personAxis' satisfies MessageKey;
+const A10_GROUP = 'analytics.content.a10.groupLabel' satisfies MessageKey;
+const A10_HOURS = 'analytics.content.a10.hours' satisfies MessageKey;
 
 /**
  * The A4 tables the face sorts (41e-1): the Manpower table and the two breakdown month matrices. The PM table
@@ -56,6 +59,9 @@ const SORTABLE: Record<string, readonly string[]> = {
   ],
 };
 
+/** A10's five data tables sort by position: the unplaced card's title carries its own count and share. */
+const SORTABLE_INDEX: Record<string, readonly number[]> = { a10: [0, 1, 2, 3, 4] };
+
 /** The A1/A2/A3 charts' chrome: the engine's id is data, the title and axis are catalogue copy. */
 const CHART_META: Record<
   string,
@@ -64,6 +70,8 @@ const CHART_META: Record<
     category: MessageKey;
     kind: 'bar' | 'line';
     secondAxis?: true;
+    /** The series name when the engine sends none (A10's Pareto labels carry the group name). */
+    value?: MessageKey;
   }
 > = {
   'ch-a1-cell': {
@@ -157,6 +165,12 @@ const CHART_META: Record<
     category: PERSON_AXIS,
     kind: 'bar',
   },
+  'ch-prob-pareto': {
+    title: 'analytics.content.a10.paretoChart',
+    category: A10_GROUP,
+    kind: 'bar',
+    value: A10_HOURS,
+  },
 };
 
 function isObject(value: unknown): value is ObjectValue {
@@ -194,8 +208,13 @@ function pageKpi(raw: unknown): PageKpi[] {
   return [{ label, value, sub: typeof kpi.sub === 'string' ? kpi.sub : printableOf(kpi.sub) }];
 }
 
+/** Whether the face may sort one table: A4 names its tables, A10's unplaced title changes with the count. */
+function isSortable(page: string, title: string, index: number): boolean {
+  return SORTABLE[page]?.includes(title) === true || SORTABLE_INDEX[page]?.includes(index) === true;
+}
+
 /** The engine's own cells, kept exactly; a row with an empty cell is still a row. */
-function pageTable(raw: unknown, page: string): PageTable[] {
+function pageTable(raw: unknown, page: string, index: number): PageTable[] {
   const table = isObject(raw) ? raw : null;
   if (table === null) return [];
   const header = (Array.isArray(table.header) ? table.header : []).flatMap((cell) =>
@@ -215,15 +234,70 @@ function pageTable(raw: unknown, page: string): PageTable[] {
       rows,
       rowCount: Number.isFinite(count) ? count : rows.length,
       truncated: table.truncated === true,
-      ...(SORTABLE[page]?.includes(title) === true ? { sortable: true } : {}),
+      ...(isSortable(page, title, index) ? { sortable: true } : {}),
+    },
+  ];
+}
+
+/** The groups table behind A10's bubble: its first column is the group name, its fifth the group hours. */
+function groupsTable(tables: readonly PageTable[]): PageTable | undefined {
+  return tables.find((table) => table.header[0] === 'Problem group');
+}
+
+/** A cell as a number, grouping commas read; null when the key's cell is not a number. */
+function numericCell(cell: string | undefined): number | null {
+  if (cell === undefined) return null;
+  const value = Number(cell.replaceAll(',', '').trim());
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * A10's bubble: the engine sends x (count), y (average hours) and r (radius) per group and no labels, so the
+ * names come from the groups table's own hours order, which is the order the engine built both from. The third
+ * point value is the group's hours, so the chart's table and tooltip print a real number, never a blank MTTR.
+ */
+function groupBubble(chart: ObjectValue, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
+  const dataset = datasets(chart)[0];
+  if (!isObject(dataset) || !Array.isArray(dataset.data)) return [];
+  const groups = groupsTable(tables);
+  const points = dataset.data.flatMap((point, index) => {
+    if (!isObject(point)) return [];
+    const x = Number(point.x);
+    const y = Number(point.y);
+    const r = Number(point.r);
+    if (![x, y, r].every(Number.isFinite)) return [];
+    const row = groups?.rows[index];
+    const hours = numericCell(row?.[4]);
+    return [
+      {
+        x,
+        y,
+        r,
+        label: row?.[0] ?? '',
+        ...(hours === null ? {} : { mttr: hours }),
+      },
+    ];
+  });
+  if (points.length === 0) return [];
+  const axes = isObject(chart.axes) ? chart.axes : {};
+  return [
+    {
+      kind: 'scatter',
+      title: t('analytics.content.a10.bubbleChart'),
+      machineLabel: t(A10_GROUP),
+      xLabel: typeof axes.x === 'string' ? axes.x : '',
+      yLabel: typeof axes.y === 'string' ? axes.y : '',
+      mttrLabel: t(A10_HOURS),
+      points,
     },
   ];
 }
 
 /** A chart the catalogue knows, with the engine's labels and datasets as its data. */
-function pageChart(raw: unknown, t: TFunction): ChartSpec[] {
+function pageChart(raw: unknown, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
   const chart = isObject(raw) ? raw : null;
   if (chart === null || typeof chart.id !== 'string') return [];
+  if (chart.id === 'ch-prob-scatter') return groupBubble(chart, t, tables);
   const meta = CHART_META[chart.id];
   if (meta === undefined) return [];
   const categories = (Array.isArray(chart.labels) ? chart.labels : []).map(String);
@@ -232,7 +306,10 @@ function pageChart(raw: unknown, t: TFunction): ChartSpec[] {
     return parsed === null ? [] : [parsed];
   });
   if (categories.length === 0 || series.length === 0 || series.length > 2) return [];
-  const pair = series as [ChartSeries] | [ChartSeries, ChartSeries];
+  const named = series.map((data) =>
+    data.name === '' && meta.value !== undefined ? { ...data, name: t(meta.value) } : data,
+  );
+  const pair = named as [ChartSeries] | [ChartSeries, ChartSeries];
   const title = t(meta.title);
   const categoryLabel = t(meta.category);
   if (meta.kind === 'bar') return [{ kind: 'bar', title, categoryLabel, categories, series: pair }];
@@ -254,11 +331,11 @@ export function pageContent(value: ObjectValue, t: TFunction): PageContent | nul
   if (first === undefined) return null;
   const kpis = (Array.isArray(first.kpis) ? first.kpis : []).flatMap(pageKpi);
   const page = typeof first.page === 'string' ? first.page : '';
-  const tables = (Array.isArray(first.tables) ? first.tables : []).flatMap((table) =>
-    pageTable(table, page),
+  const tables = (Array.isArray(first.tables) ? first.tables : []).flatMap((table, index) =>
+    pageTable(table, page, index),
   );
   const charts = (Array.isArray(first.charts) ? first.charts : []).flatMap((chart) =>
-    pageChart(chart, t),
+    pageChart(chart, t, tables),
   );
   if (kpis.length === 0 && tables.length === 0 && charts.length === 0) return null;
   return {

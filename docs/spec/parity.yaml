@@ -1387,9 +1387,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a6-why-why.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key candidate page whole: its title, its header and every row (status and action included)'
+      - 'apps/web/src/screens/analytics/why-why-parts.test.ts :: lets the four analytics roles write'
+      - 'apps/web/e2e/analytics-whywhy.spec.ts :: a head starts a Why-Why on the first candidate, saves it, sees Completed and downloads the PDF'
     source: docs/plan/m4a-triage.md
     screen: a6-why-why
     ticket: '41'
@@ -1399,9 +1402,13 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a10-problems.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: its 8 KPIs, its 6 tables and both charts'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: pins every A10 KPI label and every table header against the key'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: marks the five data tables sortable and leaves the editor read-only'
+      - 'apps/web/e2e/analytics-problems.spec.ts :: a head opens A10, sees its eight KPIs and both charts, sorts the groups and drills its rows'
     source: docs/plan/m4a-triage.md
     screen: a10-problems
     ticket: '41'
