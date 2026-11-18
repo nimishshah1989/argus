@@ -28,8 +28,8 @@ beforeAll(async () => {
   ).rows[0].id as string;
   const report = (
     await f.admin.query(
-      `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category)
-       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise, told plant-a technician', 90, 'M') RETURNING id`,
+      `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category, spare_used)
+       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise, told plant-a technician', 90, 'M', '10 mm pu pipe, 12*3mm seal') RETURNING id`,
       [A, ticket, M_USED],
     )
   ).rows[0].id as string;
@@ -303,7 +303,13 @@ describe('the data loader', () => {
     expect(data.tickets.map((t) => t.ref)).toEqual(['BD-0003', 'BD-0001']);
     expect(data.tasks.map((t) => [t.ref, t.reason])).toEqual([['BD-0002', 'recheck']]);
     expect(data.reports).toHaveLength(1);
-    expect(data.reports[0]).toMatchObject({ downtimeMin: 90, category: 'M', shift: 'DAY' });
+    expect(data.reports[0]).toMatchObject({
+      downtimeMin: 90,
+      category: 'M',
+      shift: 'DAY',
+      // The seed joins the spare columns with ", ": the engine gets the parts, not one text.
+      spares: ['10 mm pu pipe', '12*3mm seal'],
+    });
     const technician = data.people.find((p) => p.code === data.reports[0]!.doneBy[0]);
     expect(technician).toMatchObject({ team: 'maintenance', active: true });
     expect(data.reports[0]!.supportedBy).toEqual([]);
