@@ -6,6 +6,7 @@ import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
 import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
+import { forecastLabFigure } from './forecast-lab.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -183,6 +184,8 @@ const manpowerComputers: Readonly<Record<string, Computer>> = {
 const forecastComputers: Readonly<Record<string, Computer>> = {
   // 42c composes 42a's and 42b's page and fills the trend tables, repeat faults and both charts.
   'a9-bottleneck-forecast': a9BottleneckTrendsFigure,
+  // 42d backtests the four methods and prints the lab's two tables and one chart.
+  'forecast-lab': forecastLabFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
