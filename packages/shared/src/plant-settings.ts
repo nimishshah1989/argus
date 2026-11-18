@@ -240,6 +240,75 @@ export type GlossaryCreate = z.infer<typeof glossaryCreateSchema>;
 export type GlossaryPatch = z.infer<typeof glossaryPatchSchema>;
 export type GlossaryReply = z.infer<typeof glossaryReplySchema>;
 
+/** The four kinds of one asset register row (0015's CHECK): AMC, warranty, a statutory test or a calibration. */
+export const ASSET_KINDS = ['amc', 'warranty', 'legal', 'calibration'] as const;
+export const assetKindSchema = z.enum(ASSET_KINDS);
+export type AssetKind = z.infer<typeof assetKindSchema>;
+
+/** The platform's default reminder window: an imported or new register row watches 15 days ahead (R8/R13). */
+export const REGISTER_LEAD_DAYS = 15;
+
+const registerText = (max: number) => z.string().trim().max(max).nullable();
+const registerDay = z.preprocess(blank, day.nullable());
+
+const registerFields = {
+  kind: assetKindSchema,
+  machineId: nullableId,
+  vendor: registerText(120),
+  reference: registerText(120),
+  startsOn: registerDay,
+  endsOn: registerDay,
+  dueOn: registerDay,
+  leadDays: num(z.number().int().min(0).max(3650)),
+  ownerPersonId: nullableId,
+  notes: registerText(500),
+};
+
+/** A new register row: the kind is required, the lead defaults to the platform's 15 days. */
+export const assetRegisterCreateSchema = dropBlanks(
+  z
+    .object(registerFields)
+    .partial()
+    .required({ kind: true })
+    // Set after `.partial()`: a field-level default made optional by `.partial()` never runs (the machine's rule).
+    .extend({ leadDays: num(z.number().int().min(0).max(3650)).default(REGISTER_LEAD_DAYS) })
+    .strict(),
+);
+export type AssetRegisterCreate = z.infer<typeof assetRegisterCreateSchema>;
+
+/**
+ * An edit. `active: false` is the generic remove path (the row goes, the audit keeps it); the screen sends the
+ * reason with the switch and the server records it on the audit line alone (R7).
+ */
+const registerReason = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().max(500).optional(),
+);
+export const assetRegisterPatchSchema = z
+  .object({ ...registerFields, active: flag, reason: registerReason })
+  .partial()
+  .strict();
+export type AssetRegisterPatch = z.infer<typeof assetRegisterPatchSchema>;
+
+/** What a listed row carries: `active: true`, and the remove reply `{...before, active:false}` also validates. */
+export const assetRegisterReplySchema = z
+  .object({
+    id,
+    kind: assetKindSchema,
+    machineId: id.nullable(),
+    vendor: registerText(120),
+    reference: registerText(120),
+    startsOn: day.nullable(),
+    endsOn: day.nullable(),
+    dueOn: day.nullable(),
+    leadDays: z.number().int(),
+    ownerPersonId: id.nullable(),
+    notes: registerText(500),
+    active: z.boolean(),
+  })
+  .strict();
+export type AssetRegisterReply = z.infer<typeof assetRegisterReplySchema>;
+
 /** The company profile settings (`PUT /settings/company.*`). The time zone is checked against the real zone list. */
 export const companyNameSchema = z
   .string()

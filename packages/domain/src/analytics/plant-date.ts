@@ -22,3 +22,29 @@ export function dmy(date: string): string {
   if (!match) return date;
   return `${match[3]}-${match[2]}-${match[1]}`;
 }
+
+/**
+ * A plant date `months` later, clamped to the shorter month's last day (31 Jan + 1 month is 28/29 Feb), as an ISO
+ * day. Null when the date or the month count is unreadable: a register row stores no invented date (R3).
+ */
+export function addMonths(date: string, months: number): string | null {
+  const match = PLANT_DATE.exec(date.slice(0, 10));
+  if (!match || !Number.isFinite(months)) return null;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const target = new Date(Date.UTC(year, month - 1 + Math.trunc(months), 1));
+  const last = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  target.setUTCDate(Math.min(day, last));
+  return target.toISOString().slice(0, 10);
+}
+
+/**
+ * The last day of a term that many months long: the day before `addMonths`, so a contract starting 1 January for
+ * 12 months ends 31 December. Null when the date is unreadable, the same as `addMonths`.
+ */
+export function endOfTerm(date: string, months: number): string | null {
+  const end = addMonths(date, months);
+  const day = end === null ? null : dayNumber(end);
+  return day === null ? null : new Date((day - 1) * DAY_MS).toISOString().slice(0, 10);
+}

@@ -1,4 +1,4 @@
-import { dayNumber, dmy, dmyOfDay } from '../analytics/plant-date.js';
+import { addMonths, dmy, endOfTerm } from '../analytics/plant-date.js';
 import { effectiveHours } from '../analytics/rows.js';
 import type { EngineData, ReportRow, WhyWhyRow } from '../analytics/types.js';
 import {
@@ -242,28 +242,10 @@ function pmPlanSheet(data: ExportData): ExportSheet {
   };
 }
 
-/** A plant date `months` later, clamping a short month's day (a 31 Jan + 1 month is 28/29 Feb). */
-function addMonths(date: string, months: number): string {
-  const [year, month, day] = date.slice(0, 10).split('-').map(Number);
-  if (!year || !month || !day) return '';
-  const target = new Date(Date.UTC(year, month - 1 + months, 1));
-  const last = new Date(
-    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  target.setUTCDate(Math.min(day, last));
-  return target.toISOString().slice(0, 10);
-}
-
-function shiftDays(date: string, days: number): string {
-  const day = dayNumber(date);
-  return day === null ? '' : dmyOfDay(day + days);
-}
-
 function amcSheet(data: ExportData): ExportSheet {
   const rows = (data.data.amc ?? []).map((line, index) => {
     const months = Number(line.months);
-    const end =
-      line.start !== null && months > 0 ? shiftDays(addMonths(line.start, months), -1) : '';
+    const end = line.start !== null && months > 0 ? dmy(endOfTerm(line.start, months) ?? '') : '';
     return [
       index + 1,
       line.machineId,
@@ -284,7 +266,7 @@ function amcSheet(data: ExportData): ExportSheet {
 function legalSheet(data: ExportData): ExportSheet {
   const rows = (data.data.legal ?? []).map((line, index) => {
     const months = Number(line.months);
-    const due = line.last !== null && months > 0 ? addMonths(line.last, months) : '';
+    const due = line.last !== null && months > 0 ? (addMonths(line.last, months) ?? '') : '';
     return [
       index + 1,
       line.machineId,

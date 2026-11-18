@@ -113,6 +113,33 @@ describe('cosmos real plant seed', () => {
     expect(future.n).toBeGreaterThan(0);
   });
 
+  it("loads the workbook's three register lines: 2 AMC and 1 legal, no invented date, lead 15", async () => {
+    expect(report.counts).toMatchObject({ registers: 3, registers_amc: 2, registers_legal: 1 });
+    const rows = (
+      await db.admin.query(
+        `SELECT kind, starts_on::text AS starts, ends_on::text AS ends, due_on::text AS due,
+                lead_days, owner_person_id, notes
+           FROM asset_register ORDER BY kind, notes`,
+      )
+    ).rows as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((row) => row.kind === 'amc')).toHaveLength(2);
+    expect(rows.filter((row) => row.kind === 'legal')).toHaveLength(1);
+    expect(rows.map((row) => row.notes)).toEqual([
+      'AMC',
+      'AMC (Comprehensive)',
+      'Test Of Pressure Vessel · Form No 11',
+    ]);
+    for (const row of rows) {
+      expect(row.starts).toBeNull();
+      expect(row.ends).toBeNull();
+      expect(row.due).toBeNull();
+      expect(row.lead_days).toBe(15);
+      expect(row.owner_person_id).toBeNull();
+    }
+    expect(report.sources.at(-1)).toBe(SEED_FILES.peopleFixture);
+  });
+
   it('VC-57 carries its nameplate', async () => {
     const vc = await one<Record<string, string | null>>(
       "SELECT make, model, serial FROM machine WHERE code = 'VC-57'",
@@ -193,9 +220,17 @@ describe('cosmos real plant seed', () => {
     const n = await one<Record<string, number>>(
       `SELECT (SELECT count(*) FROM machine)::int AS machines, (SELECT count(*) FROM login)::int AS logins,
               (SELECT count(*) FROM person)::int AS people, (SELECT count(*) FROM glossary_term)::int AS glossary,
-              (SELECT count(*) FROM pm_plan)::int AS pm_plans`,
+              (SELECT count(*) FROM pm_plan)::int AS pm_plans,
+              (SELECT count(*) FROM asset_register)::int AS registers`,
     );
-    expect(n).toEqual({ machines: 192, logins: 26, people: 27, glossary: 144, pm_plans: 125 });
+    expect(n).toEqual({
+      machines: 192,
+      logins: 26,
+      people: 27,
+      glossary: 144,
+      pm_plans: 125,
+      registers: 3,
+    });
   });
 
   it('a people file needs an initial password', async () => {

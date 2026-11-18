@@ -14,6 +14,7 @@ import {
 } from '@uptimo/shared';
 import { machineSwitchOffBlocker } from '../../kernel/index.js';
 import { pmPlans } from './settings-pm.js';
+import { registers } from './settings-registers.js';
 import {
   exists,
   groupSegment,
@@ -344,4 +345,11 @@ const shifts: Resource = {
   derive: (s) => ({ crosses_midnight: (s.endsAt as string) < (s.startsAt as string) }),
 };
 
-export const RESOURCES: readonly Resource[] = [machines, segments, groups, shifts, pmPlans];
+export const RESOURCES: readonly Resource[] = [
+  machines,
+  segments,
+  groups,
+  shifts,
+  pmPlans,
+  registers,
+];
