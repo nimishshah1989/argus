@@ -1,8 +1,17 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { contentKind, contentOf } from './figure-content.js';
+
+/** The frozen A4 key, read as data: the mapping test pins every cell against it, never against a copy. */
+const A4_KEY: unknown = JSON.parse(
+  readFileSync(
+    new URL('../../../../../fixtures/answer-key/a4-manpower.json', import.meta.url),
+    'utf8',
+  ),
+);
 import { EMPTY_FILTERS, LOG_FILTERS, filterOptions, filterRows } from './log-values.js';
 
 /**
@@ -644,6 +653,70 @@ describe('the A3 page', () => {
         secondAxis: true,
       },
     ]);
+  });
+});
+
+describe('the A4 page', () => {
+  const A4 = A4_KEY as unknown as {
+    pages: {
+      title: string;
+      kpis: { label: string; value: string; sub: string }[];
+      tables: { title: string; header: string[]; rows: string[][]; rowCount: number }[];
+      charts: { id: string; labels: string[]; datasets: { label: string; data: number[] }[] }[];
+    }[];
+  };
+  const page = A4.pages[0]!;
+  const SORTABLE = [
+    'Manpower Table',
+    'Month-on-Month — # Breakdowns Handled',
+    'Month-on-Month — BD Hours Handled',
+  ];
+
+  it('maps the key page whole: its 3 KPIs, its 5 tables (every cell) and its one chart series', () => {
+    const { t } = translator();
+    const source = figure('a4-manpower', A4_KEY);
+    expect(contentKind(source)).toBe('page');
+    const content = contentOf(source, t);
+    if (content?.kind !== 'page') throw new Error('expected the A4 page');
+    expect(content.title).toBe('Manpower Efficiency');
+    expect(content.kpis).toEqual(page.kpis.map(({ label, value, sub }) => ({ label, value, sub })));
+    expect(content.tables).toEqual(
+      page.tables.map((table) => ({
+        ...table,
+        truncated: false,
+        ...(SORTABLE.includes(table.title) ? { sortable: true } : {}),
+      })),
+    );
+    expect(content.tables).toHaveLength(5);
+    expect(content.tables[1]?.rows[1]).toHaveLength(13);
+    expect(content.tables[2]?.rows[0]?.[0]).toBe('Person 79');
+    expect(content.charts).toEqual([
+      {
+        kind: 'bar',
+        title: 'Breakdowns handled — Done By',
+        categoryLabel: 'Person',
+        categories: page.charts[0]!.labels,
+        series: [
+          { name: page.charts[0]!.datasets[0]!.label, values: page.charts[0]!.datasets[0]!.data },
+        ],
+      },
+    ]);
+  });
+
+  it('marks only the Manpower table and the two breakdown month matrices sortable', () => {
+    const { t } = translator();
+    const content = contentOf(figure('a4-manpower', A4_KEY), t);
+    if (content?.kind !== 'page') throw new Error('expected the A4 page');
+    expect(
+      content.tables.filter((table) => table.sortable === true).map((table) => table.title),
+    ).toEqual(SORTABLE);
+  });
+
+  it('names the A4 chart chrome in both catalogues', () => {
+    for (const key of ['analytics.content.a4.countChart', 'analytics.content.a4.personAxis']) {
+      expect(en[key as MessageKey], key).toBeTruthy();
+      expect(Object.hasOwn(gu, key), key).toBe(true);
+    }
   });
 });
 

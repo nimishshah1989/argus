@@ -6,12 +6,14 @@ import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { CellChangeLog } from './CellChangeLog.js';
+import { EnergyPage } from './EnergyPage.js';
 import { GroupPage } from './GroupPage.js';
 import { Registers } from './Registers.js';
 import { SCREEN_LABELS, type AnalyticsGroup } from './groups.js';
 
 const REGISTERS = 'registers';
 const CELL_LOG = 'cell-change-log';
+const ENERGY = 'a5-energy';
 
 /** The Machines group's own pages (the machine page itself is a route per machine, reached from a row). */
 function screensOf(group: AnalyticsGroup): string[] {
@@ -80,6 +82,8 @@ export function MachinesPage({ group }: { group: AnalyticsGroup }) {
         <Registers group={group} figure={figureOf(REGISTERS)} />
       ) : screen === CELL_LOG ? (
         <CellChangeLog figure={figureOf(CELL_LOG)} />
+      ) : screen === ENERGY ? (
+        <EnergyPage figure={figureOf(ENERGY)} group={group} />
       ) : (
         <GroupPage group={group} only={screen} />
       )}

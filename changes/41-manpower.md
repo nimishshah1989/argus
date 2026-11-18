@@ -200,3 +200,73 @@ only appears on a saved row. (4) When a closed breakdown has no report, the shee
 plant date and recorded minutes; the plan's candidates always have a report, so this only keeps the guard's promise
 that any closed breakdown can be saved and printed. (5) `personCode` moved to identity (one definition, no
 duplicated formula); it changes no behaviour and no caller outside the server.
+
+## 41e-1 — the A4 and A5 screens
+
+**What changed for a user:** the Breakdowns group now opens **A4 manpower** as its own screen: the key's three
+KPIs (1,279 breakdowns printed bare, 3,060.1 BD hours, 14 team members), the Manpower table, the PM month-on-month
+pair rows, the Specialization matrix, the two breakdown month matrices and the "Breakdowns handled — Done By" chart,
+all rendered through the existing `KeyPage`/`page-content` seam. The Manpower table and the two breakdown month
+matrices are now sortable: a header is a real button with `aria-sort`, a numeric column (grouping commas and
+percentages included) sorts as a number, a dash stays missing and sorts last, and equal rows keep the engine's
+order in both directions. The Specialization card keeps the platform's **By Category / By Fault Code** toggle.
+The Machines group now opens **A5 energy heatmap** as its own screen: Load by Cell, Load by Location and the
+per-machine average grid, painted in the platform's light-to-dark green scale and labelled **Connected** and
+**Running**; a tile click filters the figure's own machine drill reply by that cell or location (with a way back),
+and "See the rows" opens every CNC machine the figure named.
+
+**The sortable table.** New `sort-table.tsx` is the face's one sortable table: client-side, stable,
+numeric-aware, every header a focusable button with `aria-sort` on its cell. Only the three A4 tables the plan
+names are sorted; the PM table keeps its count/hours pair rows and Specialization keeps its own card.
+
+**Tests that prove it.** `pnpm exec vitest run apps/web/src/screens/analytics` — **7 files, 70 tests** (54 before;
++16 new): `sort-table.test.ts` (7) pins numeric-aware reading, the dash last in both directions, equal-row
+stability and the ascending-then-descending header click; `energy-grids.test.ts` (2) pins the platform's
+light-to-dark green scale (light at the grid minimum, dark at its maximum, mid green when flat) and its ink;
+`page-content.test.ts` (+3) maps the **whole frozen A4 key** (3 KPIs, all 5 tables cell for cell, the chart's
+labels/series, and the three sortable tables only); `figure-content.test.ts` (+4) maps the **whole A5 key**: both
+heat grids and the per-machine average grid tile for tile with the raw floats (97.40000000000002 included), the
+bucket order, every machine id (BOXY in cell 1) and every new catalogue key in both catalogues. The journey
+`pnpm exec playwright test analytics-manpower --project=chromium` opens both screens on the real stack (figures
+reply stubbed at the established seam; drill rows real), sorts the Manpower table by `# BD (Done By)` with a
+mouse click and back with Enter, toggles Specialization to the honest code view and back, drills A4 to its ticket
+rows, clicks **every** cell tile (its drill rows are that cell's real machines) and **every** location tile (its
+real reply has no locations — see deviation 6), opens a machine row to its machine page, and opens the
+126-machine drill. Red first, before the group pages were wired: the journey failed with `Error:
+expect(locator).toHaveAttribute(expected) failed / Locator: … getByRole('link', { name: 'A4 manpower' }) /
+Expected: "page" / Error: element(s) not found`. Green: the journey 1 passed, and the unit command 70/70.
+
+**Files.** `apps/web/src/screens/analytics/sort-table.tsx` (new), `sort-table.test.ts` (new),
+`energy-grids.test.ts` (new), `ManpowerPage.tsx` (new), `EnergyPage.tsx` (new),
+`EnergyGrids.tsx` (new, deviation 2), `page-content.ts` and
+`page-content.test.ts`, `figure-content.ts` and `figure-content.test.ts`, `PageFigure.tsx`, `KeyPage.tsx`,
+`DrillTable.tsx`, `BreakdownsPage.tsx`, `MachinesPage.tsx`, `FigureTile.tsx` (the energy kind on the generic
+tile path), `packages/shared/src/i18n/analytics.en.ts`, `apps/web/e2e/analytics-manpower.spec.ts` (new),
+`docs/spec/parity.yaml` (both rows done, evidence added) and this fragment.
+
+**Deviations recorded.** (1) **The A4 code matrix is not in the merged figure.** 41a's `a4-manpower.ts` ships
+only the category table in `pages[0].tables`; the figures reply has no sidecar for `codesUsed`/`codeMatrix`,
+and the ticket/machine drill replies carry no maintenance code. Per the lead's ruling (a), the toggle is real, the
+category form is the key exactly, and the code form shows the only honest placeholder, "Not computed yet"; no
+fabricated matrix and no disabled pill. The DEBT row and the ledger ruling are the lead's post-merge docs PR; the
+code comment in `ManpowerPage.tsx` states the same. (2) **`EnergyGrids.tsx` is one module beyond the plan's
+file list.** The A5 screen must stay under 300 lines, so the tile, grid and platform-green-scale pieces live in
+their own 213-line module and `EnergyPage.tsx` is 136; both stay under the file budget, and the grids module
+paints only the mapped figure. (3) **Two additive seams.** `PageFigure`/`KeyPage` gained an optional
+`renderTable` so A4's Specialization card is the screen's own without forking the shared renderer, and
+`DrillTable` gained `where`/`title`/`onBack`/back-label so a tile filters the same drill reply instead of
+duplicating its table. A1-A3 and the page drill render unchanged. (4) The **per-machine average grid is not
+clickable**, matching the platform (its third grid is drawn without a drill); the two load grids are. (5) A5's
+green tiles use the platform's own `hsl` formula inline, because the plan names that scale as the figure's data.
+Analytics is explicitly **not a drawn, locked surface** (`docs/design/LOCK.md`:181), so the floor/desk token-only
+rule does not reach it; no other colour was introduced. (6) The seeded e2e plant records **no machine location**,
+so a location tile's real drill reply filters to no rows; the journey asserts the filtered panel's heading and
+"No rows." for every location tile, while the unit test pins the key's seven location tiles exactly. No seed, schema
+or server change. (7) `groups.ts` needed no edit: 37b already registers A4 under Breakdowns and A5 under Machines
+with labels and figure labels; the wiring is each group page's screen list. `analytics.gu.ts` is
+`blank(analyticsEn)`, so the new keys exist in Gujarati as blanks like every other analytics string. (8) The
+A4 count chart is the key's labels and `# Breakdowns` series; the platform drew it horizontally and the face's
+bar kit draws vertical bars, a chart-direction difference only (the plan pins series, not axis).
+
+**Precheck.** `pnpm precheck`: all 13 checks pass (prettier, lint, typecheck, changelog, docs, boundaries, PII,
+migrations, migration immutability, parity, licences, size, deps, shortcuts).
