@@ -1,14 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
+import { isPlannedChannel, type PlannedChannel } from '@uptimo/shared';
 import { raiseTicket } from '@uptimo/domain';
 import { machinesByIds } from '../plant/index.js';
 import * as tm from './mapper.js';
 import { buildRaiseExtras, loadSeverityMatrix } from './severity.js';
 import * as sql from './repo/ticket.js';
-
-/** The channels a person never raises: planned work comes from a PM plan (49) or a forecast run (52). */
-export const PLANNED_CHANNELS = ['pm', 'inspection'] as const;
-export type PlannedChannel = (typeof PLANNED_CHANNELS)[number];
 
 export interface PlannedTicketInput {
   tenantId: string;
@@ -19,6 +16,7 @@ export interface PlannedTicketInput {
   reportedByPersonId?: string | null;
   /** The login that caused the raise, when a person did; the engine leaves it empty. */
   raisedLoginId?: string | null;
+  /** When the job is raised; defaults to now. */
   at?: Date;
 }
 
@@ -39,6 +37,8 @@ export class PlannedRaiseError extends Error {
 /**
  * Raises a `pm` or `inspection` ticket through the tickets module's published interface (D17: planned work is an
  * ordinary ticket with a channel, so the SLA clocks, drift, escalation and live analytics skip it by that channel).
+ * It is kind `general` and takes a `WR-` reference: a planned job is not a breakdown, so it does not hold the
+ * machine's one-open-breakdown slot, ask production for sign-off or show as a breakdown on the floor/desk lists.
  * It writes in the caller's transaction: 49's PM generation and 52's inspection run get their ticket in the same
  * unit of work as the plan or forecast that caused it. A breakdown channel is refused here; those come from a
  * person, through the HTTP raise path.
@@ -47,7 +47,7 @@ export async function raisePlannedTicket(
   client: PoolClient,
   input: PlannedTicketInput,
 ): Promise<PlannedTicketResult> {
-  if (!(PLANNED_CHANNELS as readonly string[]).includes(input.channel)) {
+  if (!isPlannedChannel(input.channel)) {
     throw new PlannedRaiseError('channel', 'A planned raise needs a planned channel');
   }
   const machine = (await machinesByIds(client, input.tenantId, [input.machineId], 'share'))[0];
@@ -58,14 +58,14 @@ export async function raisePlannedTicket(
   const at = input.at ?? new Date();
   const matrix = await loadSeverityMatrix(client, input.tenantId);
   const body = {
-    kind: 'stopped',
+    kind: 'general',
     channel: input.channel,
     problem: input.problem,
   };
   const raised = raiseTicket({
     id: randomUUID(),
-    ref: await sql.allocateRef(client, input.tenantId, 'stopped'),
-    kind: 'stopped',
+    ref: await sql.allocateRef(client, input.tenantId, 'general'),
+    kind: 'general',
     machineId: machine.id,
     machineCriticality: machine.criticality,
     severityMatrix: matrix,
