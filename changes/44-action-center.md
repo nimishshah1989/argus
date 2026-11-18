@@ -67,3 +67,57 @@ and this fragment. No figure registration; no runtime change to the package's pu
 6. **AMC/legal line ids are derived in the fixture** (`amc-1`, `legal-1`) because `input.json`'s lines carry
    none. Both lines have an empty start/last date, so no AMC or legal nudge fires on the key; the derived id only
    matters to the tiny-plant test, which sets its own ids.
+
+# 44b — the Action Center figure, its machine table and its board
+
+**What changed for a user:** the Action Center is now a real analytics figure. For the frozen 11 November plant the
+engine returns the answer key whole: one "Action Center" page with no KPIs, the one "Machines needing attention"
+table (8 rows) and no charts, plus an `extra` payload of the 16 type labels, the 26 plant thresholds, the six saved
+acks and the 36 nudges. The drill names all 29 machines those nudges name, deduped. The screen's board (the read
+model, not a registered figure) lists all 36 open — 6 high / 28 medium / 2 low — and its risk rows are the same
+eight the page prints, cut from one core so the two cannot drift. The screen's money tile
+`action-center.spares-spend` stays `not_computed`; no rupee enters the figure value.
+
+**Acceptance, exactly as the plan states it.** `expect(computed.value).toEqual(ACTION_CENTER)` runs the registered
+`action-center` computer through the real engine; the page is the key's (title "Action Center", 0 KPIs, the one
+"Machines needing attention" table, 0 charts); the drill's computer order equals the key's nudge-machine order and
+the engine's sorted ids are the same 29, every one a real machine; `actionCenterBoard(...)` is 36/36 open and
+`board.risk` maps to the key's page rows exactly (machine text, score and why); an empty plant answers `null` with
+no drill. The six acks are the fixture's `input.json` acks (`ENGINE_DATA.settings.nudgeAcks`), never read out of the
+key, and the test asserts the figure echoes that input.
+
+**Statuses on the key.** Two of the six stored acks name a live nudge — `freq|VC-16` (done, 27 Oct, evidence 5 Nov)
+and `freq|GRD-2` (done, 27 Oct, evidence 29 Oct) — so both reopen; the other four keys no longer fire (`long|` a
+report that no longer nudges, `rise|TC-6`, `rise|VC-22`, `freq|VC-30`), so no card inherits them. All 36 still open.
+The `why` order is the platform's insertion order: HMC-2 prints "Frequent breakdowns Recurring fault Ageing
+machines" because the nudge list orders freq before recur and the age nudge adds 1 to each of its machines.
+
+**Tests that prove it.** Named: `pnpm exec vitest run packages/domain/test/analytics-action-center-value.test.ts` —
+6/6. Domain: `pnpm exec vitest run packages/domain/test` — 40 files, 453 tests. `pnpm precheck` — 13 checks
+passed, 15 files checked by prettier. Red first: the named file failed with `Cannot find module
+'../src/analytics/action-center-figure.js'` — `Test Files 1 failed (1)`, `Tests no tests`.
+
+**Files.** `packages/domain/src/analytics/action-center-figure.ts` (new: status, risk, page, value, board, drill),
+`computers.ts` (the one `actionCenterComputers` entry, `'action-center': actionCenterFigure`; the money tile stays
+uncomputed), `packages/domain/test/analytics-action-center-value.test.ts` (new) and this fragment. No new
+dependency; no migration; no schema change.
+
+**Deviations recorded.**
+
+1. **`actionCenterRecords` is exported from the 44a engine.** The six-field public nudge cannot carry the evidence
+   day or the `agg`/`noRisk` flags, and the plan's status rule needs the evidence day ("reopen when the evidence
+   is after the ack") while the risk table needs the flags. The record list and its stable sort were already there;
+   this packet exports it and leaves `actionCenterNudges` as a thin map over it, so the 44a test and behaviour are
+   unchanged. No rule logic moved.
+2. **The plan's "three of the six stored acks match a live nudge" is two on this frozen input.** Only
+   `freq|VC-16` and `freq|GRD-2` match a current key; the other four are stale, which the plan also describes. The
+   key still has all 36 open and the risk rows are exact, so no key byte changes; the board test pins two reopened
+   and two inherited acks.
+3. **`excluded` on the board is false for a nudge that names no machine** (shift/team/good news). "Every machine is
+   excluded" is vacuously true for an empty list, which would wrongly show the "Not in production data" chip; the
+   screen's chip needs a machine that is actually out of production. The key has no such nudge, so this is a board
+   decision only.
+4. **The board's `ev` is a plant date (`YYYY-MM-DD`)**, not the platform's `Date`: 44d formats it as DD-MM-YYYY
+   like the rest of the screen, and the read model stays JSON.
+5. **The figure file is 255 lines**, a soft size warning (soft 250) and well under the hard 400 rail; the functions
+   stay under 60.
