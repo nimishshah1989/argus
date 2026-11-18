@@ -807,7 +807,10 @@ describe('a worker restart or a duplicate job', () => {
 
 describe('sign-off unanswered and a pause that ran over', () => {
   const closeIt = (plant: Plant, id: string) =>
-    command(plant, id, 'close', 'asha', { kind: 'report', report: { correctiveAction: 'Fixed' } });
+    command(plant, id, 'close', 'asha', {
+      kind: 'report',
+      report: { correctiveAction: 'Fixed', failureComponent: 'E' },
+    });
   const signoffClock = async (id: string) =>
     (
       await admin.query("SELECT due_at FROM sla_timer WHERE ticket_id = $1 AND kind = 'handback'", [
@@ -1025,7 +1028,7 @@ describe('review fixes', () => {
       (
         await command(A, id, 'close', 'asha', {
           kind: 'report',
-          report: { correctiveAction: 'Fixed' },
+          report: { correctiveAction: 'Fixed', failureComponent: 'E' },
         })
       ).statusCode,
     ).toBe(200);

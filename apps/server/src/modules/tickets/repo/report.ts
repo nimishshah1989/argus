@@ -4,6 +4,17 @@ import type { BreakdownReportBody, PmReport } from '@uptimo/shared';
 import type { Tx } from '../mapper.js';
 import { peopleByIds, tenantInfo } from '../../identity/index.js';
 import { productionDateAt, shiftCodeAt } from '../../plant/index.js';
+import {
+  failureCodeField,
+  isLiveBreakdown,
+  NOT_A_FAILURE_CODE,
+  reportCodesFor,
+  ReportValidationError,
+  REPORT_REQUIRED,
+  type ReportCodes,
+} from './failure-code.js';
+
+export { failureCodeField, ReportValidationError } from './failure-code.js';
 
 export interface StoredReportPerson {
   personId: string;
@@ -43,6 +54,9 @@ export interface ReportStoreInput {
   ticket: Ticket;
   figures: Figures | null;
   actingPersonId: string | null;
+  loginId: string | null;
+  /** The channel it was raised through: a live breakdown, or planned/history work. */
+  channel: string;
   body: BreakdownReportBody;
 }
 
@@ -75,24 +89,6 @@ const INSERT_REPORT_SQL = `INSERT INTO breakdown_report
    failure_component, failure_mode, failure_cause, failure_action, pm_report)
   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
   RETURNING id, submitted_at`;
-
-/** The report field a database failure-code refusal names, so the reply says which code was wrong. */
-export function failureCodeField(error: unknown): string | null {
-  if ((error as { code?: string }).code !== '23514') return null;
-  const named =
-    /^breakdown_report: (failure_component|failure_mode|failure_cause|failure_action) /.exec(
-      (error as Error).message,
-    )?.[1];
-  return named ? named.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()) : null;
-}
-
-export class ReportValidationError extends Error {
-  field: string;
-  constructor(field: string) {
-    super('Invalid report');
-    this.field = field;
-  }
-}
 
 function n(value: string | undefined): string | null {
   return value ?? null;
@@ -130,7 +126,11 @@ async function currentShift(client: PoolClient, tenantId: string): Promise<strin
   return shiftAt(client, tenantId, new Date());
 }
 
-async function reportValues(client: PoolClient, input: ReportStoreInput): Promise<ReportValues> {
+async function reportValues(
+  client: PoolClient,
+  input: ReportStoreInput,
+  codes: ReportCodes,
+): Promise<ReportValues> {
   const b = input.body;
   return {
     date: b.date ?? (await plantDateAt(client, input.tenantId, new Date())),
@@ -139,13 +139,13 @@ async function reportValues(client: PoolClient, input: ReportStoreInput): Promis
     observedBy: n(b.observedBy),
     correctiveAction: n(b.correctiveAction),
     breakdownCategory: n(b.breakdownCategory),
-    maintCode: n(b.maintCode),
+    maintCode: codes.maintCode,
     spareUsed: n(b.spareUsed),
     rootCause: n(b.rootCause),
-    failureComponent: n(b.failureComponent),
-    failureMode: n(b.failureMode),
-    failureCause: n(b.failureCause),
-    failureAction: n(b.failureAction),
+    failureComponent: codes.failureComponent,
+    failureMode: codes.failureMode,
+    failureCause: codes.failureCause,
+    failureAction: codes.failureAction,
     pmReport: b.pmReport ? JSON.stringify(b.pmReport) : null,
     // One truth: a person link replaces the typed text, which stays only for imported history.
     handoverPersonId: n(b.handoverPersonId),
@@ -291,7 +291,7 @@ async function insertReportRow(
   } catch (error) {
     // The list is the database's (`breakdown_report_check_failure_codes`): map its refusal, never re-check it here.
     const field = failureCodeField(error);
-    if (field) throw new ReportValidationError(field);
+    if (field) throw new ReportValidationError(field, NOT_A_FAILURE_CODE);
     throw error;
   }
 }
@@ -301,7 +301,13 @@ export async function storeBreakdownReport(
   input: ReportStoreInput,
 ): Promise<StoredReport> {
   const { done, supported } = await checkReportPeople(client, input);
-  const values = await reportValues(client, input);
+  const codes = await reportCodesFor(client, {
+    tenantId: input.tenantId,
+    loginId: input.loginId,
+    body: input.body,
+    liveBreakdown: isLiveBreakdown(input.ticket.kind, input.channel),
+  });
+  const values = await reportValues(client, input, codes);
   const result = await insertReportRow(client, input, values);
   const reportId = result.rows[0].id as string;
   await insertPeople(client, input.tenantId, reportId, { personIds: done, role: 'done' });
@@ -342,16 +348,22 @@ export async function storeReportForTransition(
   client: PoolClient,
   tx: Tx,
   result: TransitionResult,
+  channel: string,
 ): Promise<void> {
-  const shouldStore =
-    tx.action === 'report' ||
-    (tx.action === 'close' && tx.body.kind === 'report' && tx.body.report !== undefined);
-  if (!shouldStore) return;
+  const liveBreakdown = isLiveBreakdown(result.ticket.kind, channel);
+  if (tx.action === 'close' && tx.body.kind === 'report' && tx.body.report === undefined) {
+    if (liveBreakdown) throw new ReportValidationError('report', REPORT_REQUIRED);
+    return;
+  }
+  if (tx.action !== 'report' && tx.action !== 'close') return;
+  if (tx.action === 'close' && (tx.body.kind !== 'report' || tx.body.report === undefined)) return;
   await storeBreakdownReport(client, {
     tenantId: tx.tenantId,
     ticket: result.ticket,
     figures: result.ticket.figures,
     actingPersonId: tx.actingPersonId,
+    loginId: tx.auth.loginId,
+    channel,
     body: tx.body.report as BreakdownReportBody,
   });
 }

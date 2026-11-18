@@ -9,7 +9,12 @@ import type {
   TicketRow,
   WhyWhyRow,
 } from '@uptimo/domain';
-import { isBreakdownChannel, whyWhyPayloadSchema } from '@uptimo/shared';
+import {
+  isBreakdownChannel,
+  resolveFailureCode,
+  whyWhyPayloadSchema,
+  type FailureCodeIndex,
+} from '@uptimo/shared';
 import {
   createRedactor,
   peopleForEngine,
@@ -18,7 +23,12 @@ import {
   tenantInfo,
   type Redactor,
 } from '../identity/index.js';
-import { listsForEngine, machinesForEngine, movesForEngine } from '../plant/index.js';
+import {
+  failureCodeIndexOf,
+  listsForEngine,
+  machinesForEngine,
+  movesForEngine,
+} from '../plant/index.js';
 import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
 import { readNudgeAcks } from './nudges.js';
 
@@ -105,9 +115,10 @@ const cleanerOf =
 
 const codes = (ids: unknown): string[] => (ids as string[]).map(personCode);
 
-const report = (row: Row, clean: Cleaner): ReportRow => {
+const report = (row: Row, clean: Cleaner, index: FailureCodeIndex): ReportRow => {
   // The platform's three spare costs are one stored sum (0014); the other two slots are unknown, not zero.
   const spareCost = numberOrNull(row.spare_cost);
+  const raw = text(row.maint_code);
   return {
     id: row.id as string,
     ticketId: text(row.ticket_id),
@@ -119,7 +130,8 @@ const report = (row: Row, clean: Cleaner): ReportRow => {
     responseMin: row.response_min as number | null,
     repairMin: row.repair_min as number | null,
     category: text(row.breakdown_category),
-    maintCode: text(row.maint_code),
+    // One code on read: a legacy alias counts beside a new close's code, and an unknown value survives.
+    maintCode: raw === null ? null : (resolveFailureCode(index, raw) ?? raw),
     spareUsed: cleanOrNull(row.spare_used, clean),
     spares: sparesOf(row.spare_used, clean),
     rootCause: cleanOrNull(row.root_cause, clean),
@@ -185,6 +197,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const reports = await reportsForEngine(tx);
   const people = await peopleForEngine(tx);
   const lists = await listsForEngine(tx);
+  const failureIndex = await failureCodeIndexOf(tx, tenantId);
   const savedWhyWhy = await whyWhyEventRows(tx);
   const nudgeAcks = await readNudgeAcks(tx);
   const plantLists = listsOf(lists);
@@ -202,7 +215,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     })),
     tickets: tickets.filter((row) => row.parent_id === null).map(ticket),
     tasks: tickets.filter((row) => row.parent_id !== null).map(task),
-    reports: reports.map((row) => report(row, clean)),
+    reports: reports.map((row) => report(row, clean, failureIndex)),
     people: people.map(person),
     lists: plantLists,
     whyWhy: savedWhyWhy.flatMap((row) => {

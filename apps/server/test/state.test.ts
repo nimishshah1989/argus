@@ -155,7 +155,7 @@ describe('state needReport', () => {
     await post(`/api/v1/tickets/${closedId}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: {},
+      report: { failureComponent: 'E' },
     });
 
     const state = await get('/api/v1/state', ashaToken);

@@ -348,7 +348,11 @@ describe('a confirmation is cleared when the ticket stops being worked or change
     const closed = await act('close', id, tech, {
       extra: {
         kind: 'report',
-        report: { correctiveAction: 'Replaced contactor', breakdownCategory: 'E' },
+        report: {
+          correctiveAction: 'Replaced contactor',
+          breakdownCategory: 'E',
+          failureComponent: 'E',
+        },
       },
     });
     expect(closed.statusCode, closed.body).toBe(200);

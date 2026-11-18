@@ -78,3 +78,84 @@ close can find its plan.
 The 427 → 125 reduction, the source rule and the future `created_at` (R2); the build-before-store `pm_report` and its
 exact shape (R8); the meter baseline (R6); and the floor/desk filters (R10). The plan's acceptance pins each with a
 derived count, a fake-clock boundary or an exact stored object rather than a pasted number.
+
+## 49a — the workbook load and the PM plans screen (this PR)
+
+**What changed for a user:** a head or admin now has a **PM plans** page at `/settings/pm-plans` (Plant settings,
+`CalendarCheck`). It lists the plant's 125 recurring plans, shows each machine's next due, and edits the title,
+machine/category, interval, meter interval, tolerance, last reading and last done date; changes are audited. The
+Cosmos seed loads the workbook's 427 PM Plan visit rows as those 125 plans, with the two PM Reports' checklists.
+
+**The reduction (R2).** One row per distinct machine, `title = '<machine code> preventive maintenance'`,
+`intervalDays = 182` from `pmFreq = 2` (`round(max(1, round(12 / 2)) × 30.4)`), `last_done_on` = the latest done date,
+else NULL. `created_at` is the plan's clock anchor: `last_done_on ?? (next visit − interval)` at the plant's local
+midnight; it may be in the future and no due date is before anchor + interval. Every date is a cadence anchor whatever
+its source (169 plan, 58 rule, 38 manual, 162 auto); no confirmation column exists (D17). The next date is exact for
+the 110 never-done plans and re-derived for the 15 done ones (VC-6 14 days late, the rest 1–10 days early).
+
+**The checklist (R5).** Only the two machines with a report get one: TC-31 has 32 items (26 tick + 6 readings),
+VC-6 has 47 (38 + 9); the other 123 plans get `[]`. Tick ids are the point numbers as strings; reading ids are
+`<point>.<metric>`, with the platform's measurement names as data in `packages/shared/src/pm.ts` and `unit: 'mm'`.
+The settings page shows the item count and does not edit the list (no list editor, no approved mockup).
+
+**The seed report carries the reconciliation**, not a pasted table count: `pm_plan_source_rows: 427`,
+`pm_plan_visits: 427`, `pm_plans: 125`, `pm_plan_done: 15`, `pm_plan_checklists: 2`. A second seed replaces the
+plans (same count). No ticket or `breakdown_report` is created for the two historical reports. The three pre-0015
+migration tests still seed an older schema: `insertPmPlans` checks `to_regclass('public.pm_plan')` and writes nothing
+when the table is absent.
+
+**Evidence.** `apps/server/src/seed/pm-plans.test.ts` (the 427 → 125 derivation, the 125 next dates, the source
+spread, the two checklist shapes, the custom frequency); `apps/server/test/cosmos-seed.test.ts` (the five counts,
+the 125 rows, the plant-local anchor, the replace re-run); `apps/server/test/pm-plans.test.ts` (list, create, edit,
+409 for a second active machine plan, 422 for no interval/future last done, 404 for another plant's machine, the
+category plan, switch-off, audit lines and the settings refusal); `apps/web/src/screens/settings/pm-plans-spec.test.ts`
+(D05 and the next-due zone). `pnpm boundaries` stays green: no new table, no new dependency, no migration; the screen
+uses the existing `CrudPage` and its one new field kind (`date`).
+
+**Deviation recorded for review:** the packet's build path needs only `records.ts`'s `createdAt` write and
+`activePlanForMachine` (the 409). `pmPlansForScheduling`, `pmPlanForMachine` and `recordPmCompletion` are not added
+here because 49a has no caller for them; they land with 49b/49c and their own tests, which keeps this packet's code
+tested rather than speculative. The 404 on another plant's machine id uses the generic resource `Problem.missing`
+flag (two lines in `settings-routes.ts`); `plantToday` moved to `repo/reads.ts` to keep the resource import acyclic.
+
+## 49b — `pm.generate` raises the PM jobs (this PR)
+
+**What changed for a user:** nothing visible yet on its own — every night at 00:05 UTC the server now works out
+which PM plans are due and raises the PM job on the machine's floor list for the technician (49c builds that list and
+the phone close). A machine gets one job, never a second while one is open.
+
+**By the calendar (R7).** `anchor = last_done_on ?? the plant-local date of created_at`; due is `anchor +
+interval_days`, raised when `due <= today + horizonDays` (the daily job's horizon is 0). The ±15-day late window is
+50's. A direct-SQL plan with no interval raises nothing (R6).
+
+**By the meter (R6).** The baseline is `readings.meter` of the machine's most recent closed PM job; due when
+`last_meter_reading − baseline >= meter_interval`, raising at the interval. `meter_tolerance` only marks the plan
+`overdue` past `meter_interval + meter_tolerance`; it never delays or repeats the raise. With no baseline the meter
+rule is inert and the time rule still raises the first PM.
+
+**The number and the shape.** One effective plan per machine (R3: an active machine plan, else the most recently
+updated active category plan; scrapped machines out), one ticket per due machine through 46c's
+`raisePlannedTicket` with only `{ tenantId, machineId, channel: 'pm', problem: 'PM due: <title>', at }`, so the job is
+`kind: 'general'`, ref `WR-…`, channel `pm` and takes no SLA clock, drift line or escalation (R4). A machine with an
+open/working/waiting PM job is skipped, so a re-run is a no-op and a cancelled job frees the next run.
+
+**Wiring.** `apps/server/src/modules/tickets/pm-generate.ts` (the per-tenant run, the clock guard, the local day),
+`pm-due.ts` (the pure decision), `repo/pm.ts` (open PM jobs, meter baselines), `pm-jobs.ts` (`pm.generate` queue for
+every role; worker and the daily `5 0 * * *` UTC schedule, `{ v: 1, horizonDays: 0 }`, `singletonKey: 'all'`,
+`missed: 'once'` for non-api roles; no boot enqueue), `records.ts`'s `pmPlansForScheduling`/`pmPlanForMachine`, and
+`packages/shared/src/pm.ts`'s `pmGeneratePayloadSchema`. The worker fans out over `jobTenantIds()` under `withTenant`,
+like the retention jobs.
+
+**Evidence.** `apps/server/test/pm-generate.test.ts`: not due the day before, one job on the due date with only the
+merged input, no second job on a re-run (same day or next), no `sla_timer`/`sla.escalate` job and no drift line, a
+cancelled job raising a fresh one, the next period after a report close moving the plan, the meter 1499/1500/1549/1550 boundaries (tolerance moves only `overdue`), the
+no-baseline inert case, switched-off/scrapped/no-interval/open-job skips, machine-over-category, two plants each
+raising only their own, and the clock guard. `pnpm boundaries` is green (tickets → plant was already allowed);
+`pnpm precheck` is the rail.
+
+**Deviations recorded for review:** (1) the slice names `docs/decisions/D06-jobs.md` as the job pattern; this
+checkout has no such file (it runs D01–D32 without a D06-jobs), so the job follows `retention.ts` and the
+notifications jobs and D18's one-process rule. (2) `pmPlansForScheduling` does not return `anchorOn`: plant's repo may
+not name `tenant` (the table is identity's), so the job reads the tenant zone through `tenantInfo` and passes the local
+day into the pure `pmDue`. (3) The queue adds `retryDelay: 60`, the same as the retention queues, which the slice did
+not name. No new table, dependency or migration; no test weakened.

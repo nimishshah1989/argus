@@ -294,6 +294,7 @@ describe('tickets', () => {
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
+      report: { failureComponent: 'E' },
     });
     expect(close.statusCode).toBe(200);
     expect(close.json().ticket.status).toBe('closed');

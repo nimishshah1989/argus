@@ -32,8 +32,12 @@ type Outcome = Refusal;
 const storeOf = (resource: Resource): Store =>
   resource.store ?? tableStore(resource.table as SettingsTable, resource.order, resource.scope);
 
-const invalid = ({ field, message, conflict }: Problem) =>
-  conflict ? refuse(409, 'conflict', message, field) : refuse(422, 'validation', message, field);
+const invalid = ({ field, message, conflict, missing }: Problem) =>
+  missing
+    ? refuse(404, 'not_found', message, field)
+    : conflict
+      ? refuse(409, 'conflict', message, field)
+      : refuse(422, 'validation', message, field);
 const notFound = (what: string) => refuse(404, 'not_found', `Unknown ${what}`, 'id');
 /** A move as the reply contract carries it. */
 const moveReply = (move: Row) => ({
@@ -114,9 +118,13 @@ function pick(reply: Reply, keys: string[]): Reply {
   return Object.fromEntries(keys.map((key) => [key, reply[key]]));
 }
 
+/** A stored list or object (the PM checklist) is the same value when its JSON is, not only its reference. */
+const sameValue = (a: unknown, b: unknown): boolean =>
+  a === b || JSON.stringify(a) === JSON.stringify(b);
+
 /** The reply keys whose value differs, so an audit line shows only what the edit touched. */
 function changedKeys(before: Reply, after: Reply): string[] {
-  return Object.keys(after).filter((key) => before[key] !== after[key]);
+  return Object.keys(after).filter((key) => !sameValue(before[key], after[key]));
 }
 
 function columnsOf(resource: Resource, values: Reply): Record<string, unknown> {

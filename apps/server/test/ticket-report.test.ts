@@ -158,7 +158,7 @@ describe('breakdown report', () => {
         responseMin: 10,
         repairMin: 35,
         breakdownCategory: 'M',
-        maintCode: 'SP',
+        failureComponent: 'SP',
         spareUsed: 'Bearing',
         rootCause: 'Wear',
         handoverName: 'Next shift',
@@ -192,7 +192,7 @@ describe('breakdown report', () => {
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: {},
+      report: { failureComponent: 'E' },
     });
     expect(close.statusCode).toBe(200);
 
@@ -215,7 +215,7 @@ describe('breakdown report', () => {
 
     const late = await post(`/api/v1/tickets/${id}/report`, ashaToken, {
       personId: ASHA,
-      report: { problem: 'Late report', downtimeMin: 30 },
+      report: { problem: 'Late report', downtimeMin: 30, failureComponent: 'E' },
     });
     expect(late.statusCode).toBe(200);
     expect(late.json().ticket.closeKind).toBe('report');
@@ -231,21 +231,24 @@ describe('breakdown report', () => {
     const badCategory = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { breakdownCategory: 'X' },
+      report: { breakdownCategory: 'X', failureComponent: 'E' },
     });
     expect(badCategory.statusCode).toBe(422);
 
     const negative = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { downtimeMin: -5 },
+      report: { downtimeMin: -5, failureComponent: 'E' },
     });
     expect(negative.statusCode).toBe(422);
 
     const unknown = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { doneByPersonIds: ['ffffffff-ffff-ffff-ffff-ffffffffffff'] },
+      report: {
+        doneByPersonIds: ['ffffffff-ffff-ffff-ffff-ffffffffffff'],
+        failureComponent: 'E',
+      },
     });
     expect(unknown.statusCode).toBe(422);
     expect(unknown.json().error.field).toBe('doneByPersonIds');
@@ -255,17 +258,31 @@ describe('breakdown report', () => {
     expect(detail.json().ticket.status).toBe('working');
   });
 
-  it('closes without a report and leaves detail report null', async () => {
+  it('refuses a kind:report close with no report body, leaving the breakdown uncoded and unclosed', async () => {
     const id = await raiseAndStart(M5);
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
     });
-    expect(close.statusCode).toBe(200);
-    expect(close.json().ticket.closeKind).toBe('report');
+    expect(close.statusCode).toBe(422);
+    expect(close.json().error).toMatchObject({
+      code: 'validation',
+      message: 'A report is required to close a breakdown',
+      field: 'report',
+    });
 
     const detail = await get(`/api/v1/tickets/${id}`, ashaToken);
+    expect(detail.json().ticket.status).toBe('working');
     expect(detail.json().report).toBeNull();
+    // A no-report close records no report and is exempt, so the machine is free for the next case.
+    expect(
+      (
+        await post(`/api/v1/tickets/${id}/close`, ashaToken, {
+          personId: ASHA,
+          kind: 'no_report',
+        })
+      ).statusCode,
+    ).toBe(200);
   });
 
   it('records the handover as a person link, and replies show that person’s name as the handover', async () => {
@@ -273,7 +290,7 @@ describe('breakdown report', () => {
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { handoverPersonId: BINA },
+      report: { handoverPersonId: BINA, failureComponent: 'E' },
     });
     expect(close.statusCode).toBe(200);
     const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
@@ -297,7 +314,7 @@ describe('breakdown report', () => {
     const both = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { handoverPersonId: BINA, handoverName: 'typed as well' },
+      report: { handoverPersonId: BINA, handoverName: 'typed as well', failureComponent: 'E' },
     });
     expect(both.statusCode).toBe(422);
     expect(both.json().error.field).toBe('handoverName');
@@ -308,7 +325,7 @@ describe('breakdown report', () => {
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { handoverName: 'Night crew' },
+      report: { handoverName: 'Night crew', failureComponent: 'E' },
     });
     expect(close.statusCode).toBe(200);
     const stored = (await get(`/api/v1/tickets/${id}`, ashaToken)).json().report;
@@ -321,7 +338,10 @@ describe('breakdown report', () => {
     const refused = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
-      report: { handoverPersonId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+      report: {
+        handoverPersonId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        failureComponent: 'E',
+      },
     });
     expect(refused.statusCode).toBe(422);
     expect(refused.json().error.field).toBe('handoverPersonId');
