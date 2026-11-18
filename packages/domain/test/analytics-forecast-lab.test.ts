@@ -24,16 +24,19 @@ function compute(data: EngineData = ENGINE_DATA): FigureResult {
   return found;
 }
 
+/** The heavy simulation runs once for the file; the tests only read its value and drill. */
+const COMPUTED = compute();
+
 describe('the Forecast Lab backtest', () => {
   it('equals the whole key: both tables and the ch-fl chart', () => {
-    const computed = compute();
+    const computed = COMPUTED;
     // Red first: with 42b's composition alone, the engine reports this figure as not computed.
     expect(computed.status).toBe('ready');
     expect(computed.value).toEqual(FL);
   });
 
   it('drills the production machines', () => {
-    const computed = compute();
+    const computed = COMPUTED;
     expect(computed.drill.type).toBe('machine');
     expect(computed.drill.ids).toEqual(PRODUCTION.map((machine) => machine.id).sort());
   });

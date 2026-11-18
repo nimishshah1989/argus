@@ -34,12 +34,16 @@ function compute(data: EngineData = ENGINE_DATA): FigureResult {
   return found;
 }
 
-function pageOf(data: EngineData = ENGINE_DATA): FigureKey['pages'][number] {
-  const value = compute(data).value as unknown as FigureKey | null;
+function pageOf(computed: FigureResult): FigureKey['pages'][number] {
+  const value = computed.value as unknown as FigureKey | null;
   const page = value?.pages[0];
   if (!page) throw new Error('the A9 figure printed no page');
   return page;
 }
+
+/** The heavy trend page runs once for the file; the tests only read its value, tables, charts and drill. */
+const COMPUTED = compute();
+const PAGE = pageOf(COMPUTED);
 
 /** The platform's deterministic jitter inside a lane: an id hash, applied only when the lane has peers. */
 function jitter(id: string, peers: number): number {
@@ -60,10 +64,10 @@ function laneOf(chart: FigureKey['pages'][number]['charts'][number], point: MapP
 
 describe('the A9 maintenance trends, repeat faults and charts', () => {
   it("equals the key's two trend tables, the repeat faults and both charts", () => {
-    const computed = compute();
+    const computed = COMPUTED;
     // Red first: with 42b's figure registered alone, tables 6 to 8 and both charts print null.
     expect(computed.status).toBe('ready');
-    const page = pageOf();
+    const page = PAGE;
     const key = A9.pages[0]!;
     expect(page.tables[6]).toEqual(key.tables[6]);
     expect(page.tables[7]).toEqual(key.tables[7]);
@@ -73,7 +77,7 @@ describe('the A9 maintenance trends, repeat faults and charts', () => {
   });
 
   it("pins the map's lanes, points and radii", () => {
-    const page = pageOf();
+    const page = PAGE;
     const chart = page.charts[0]!;
     expect(chart.axes).toEqual({
       x: 'Unavailable (% of machine hours) — further right = more downtime',
@@ -104,10 +108,10 @@ describe('the A9 maintenance trends, repeat faults and charts', () => {
   });
 
   it("keeps 42a and 42b's slots whole and still drills the production machines", () => {
-    const computed = compute();
+    const computed = COMPUTED;
     expect(computed.drill.type).toBe('machine');
     expect(computed.drill.ids).toEqual(PRODUCTION.map((machine) => machine.id).sort());
-    const page = pageOf();
+    const page = PAGE;
     const key = A9.pages[0]!;
     // 42c fills its own indices; it never renumbers the slots packets 42a and 42b filled.
     expect(page.kpis).toEqual(key.kpis);

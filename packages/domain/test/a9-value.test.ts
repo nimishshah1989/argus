@@ -8,6 +8,9 @@ import { ENGINE_DATA, read, type FigureKey } from './answer-key/fixture.js';
  * The whole-page acceptance for ticket 42 (after 42d): the A9 page and the Forecast Lab, each run through the real
  * engine, deep-equal their frozen 11 November keys whole — every KPI, table and chart, never a tolerance — and both
  * drill the production machines. An empty plant prints null for both and names no row it did not read.
+ *
+ * The engine runs once per plant: `runWith` evaluates every registered figure, so sharing one full-data pass and one
+ * empty pass keeps the heavy A9/Forecast Lab simulations out of the per-test path.
  */
 
 const AS_OF = '2026-11-11';
@@ -31,8 +34,9 @@ const EMPTY: EngineData = {
   whyWhy: [],
 };
 
-function figureOf(screen: string, data: EngineData = ENGINE_DATA): FigureResult {
-  const result = runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
+type EngineResult = ReturnType<typeof runWith>;
+
+function figureOf(result: EngineResult, screen: string): FigureResult {
   const found = result.figures.find((candidate) => candidate.key === screen);
   if (!found) throw new Error(`the engine knows no figure ${screen}`);
   return found;
@@ -45,9 +49,16 @@ function pageOf(computed: FigureResult): FigureKey['pages'][number] {
   return page;
 }
 
+const FULL = runWith(COMPUTERS, { data: ENGINE_DATA, asOf: AS_OF, profile: DEFAULT_PROFILE });
+const EMPTY_RESULT = runWith(COMPUTERS, { data: EMPTY, asOf: AS_OF, profile: DEFAULT_PROFILE });
+const A9_RESULT = figureOf(FULL, A9_SCREEN);
+const FL_RESULT = figureOf(FULL, FL_SCREEN);
+const A9_EMPTY = figureOf(EMPTY_RESULT, A9_SCREEN);
+const FL_EMPTY = figureOf(EMPTY_RESULT, FL_SCREEN);
+
 describe('the whole A9 and Forecast Lab values', () => {
   it('prints the A9 key whole: 14 KPIs, 9 tables and both charts', () => {
-    const computed = figureOf(A9_SCREEN);
+    const computed = A9_RESULT;
     expect(computed.status).toBe('ready');
     expect(computed.value).toEqual(A9);
     const page = pageOf(computed);
@@ -57,7 +68,7 @@ describe('the whole A9 and Forecast Lab values', () => {
   });
 
   it('prints the Forecast Lab key whole: its 2 tables and one chart', () => {
-    const computed = figureOf(FL_SCREEN);
+    const computed = FL_RESULT;
     expect(computed.status).toBe('ready');
     expect(computed.value).toEqual(FL);
     const page = pageOf(computed);
@@ -68,8 +79,7 @@ describe('the whole A9 and Forecast Lab values', () => {
 
   it('drills the production machines on both pages, every id a real machine', () => {
     const known = new Set(ENGINE_DATA.machines.map((machine) => machine.id));
-    for (const screen of [A9_SCREEN, FL_SCREEN]) {
-      const computed = figureOf(screen);
+    for (const computed of [A9_RESULT, FL_RESULT]) {
       expect(computed.drill.type).toBe('machine');
       expect(computed.drill.ids).toHaveLength(125);
       expect(computed.drill.ids).toEqual(PRODUCTION_IDS);
@@ -78,8 +88,7 @@ describe('the whole A9 and Forecast Lab values', () => {
   });
 
   it('returns null for both on an empty plant, with no rows to drill', () => {
-    for (const screen of [A9_SCREEN, FL_SCREEN]) {
-      const computed = figureOf(screen, EMPTY);
+    for (const computed of [A9_EMPTY, FL_EMPTY]) {
       expect(computed.status).toBe('ready');
       expect(computed.value).toBeNull();
       expect(computed.drill.ids).toEqual([]);
