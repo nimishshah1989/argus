@@ -64,3 +64,32 @@ ticket. (4) The two BD month matrices read the year of `asOf` (the platform's `c
 Manpower table, Specialization and chart still read the whole log as the platform does. (5) The PM PLANT TOTAL hours
 are the sum over the Settings **team order**: the platform reduces its `momPMHours` rows in team order, and this
 code does the same. The key's May cell (48.0) and its PLANT TOTAL total (1,511.2) both match.
+
+## 41h-2 — the plant lists on the seam (closes the A4 category divergence)
+
+**What changed for a user:** nothing visible yet on this packet alone — but the shared engine seam now carries the
+plant's three Settings lists in their own order: `EngineSettings.categories` (all 15, Robot included), `cells`
+(`1`…`9`) and `locations` (`434`, `435/4`, `445`, `486`, `841-A`, `841-B`, `381`). A4's Specialization now
+reads the category list, so a category the plant configured but no machine carries prints its all-dash column, as
+the platform does; the fleet's first-appearance order is only the fallback when the list is absent. The A4 key page
+is byte-identical (the plant list minus Robot is exactly the 14 key columns, in order), so nothing on screen moves
+today. **This closes the A4 category divergence recorded in `docs/plan/DEBT.md`;** the orchestrator removes the row.
+
+**Tests that prove it.** The 41h seam test file gains one test: `ENGINE_DATA.settings` carries the three lists in
+workbook order — 15 categories starting `Turning Center` and containing `Robot`, the nine cells and the seven
+locations exactly. Red first: that test failed with `expected undefined to deeply equal [...]` before the seam
+edit (1 failed / 12 passed). `analytics-manpower.test.ts` gains one closure test: a synthetic run whose
+`settings.categories` appends `5-Axis Router` (no machine carries it) prints that all-dash column last, and the
+rest of the page equals the key whole. The fleet-derived list could not produce that column, so the test is red
+against the old rule by construction. Green: `pnpm exec vitest run
+packages/domain/test/analytics-workers.test.ts` (13/13) and `pnpm exec vitest run packages/domain/test` — 26
+files, 372 tests (370 before plus the two new ones).
+
+**Files.** `packages/domain/src/analytics/types.ts` (three additive optional fields), `test/answer-key/fixture.ts`
+(fills them from `workbook.settings`), `test/answer-key/workbook.ts` (the workbook's settings type gains the three
+lists it already held), `src/analytics/a4-manpower.ts` (settings categories, fleet fallback),
+`test/analytics-workers.test.ts` and `test/analytics-manpower.test.ts` (the two tests).
+
+**Deviation recorded.** `test/answer-key/workbook.ts` is touched (not named in the packet) because it is the typed
+shape of `input.json`: the fixture cannot read `workbook.settings.categories` without it. It is a test-only source
+type, and the JSON already carried the three lists.

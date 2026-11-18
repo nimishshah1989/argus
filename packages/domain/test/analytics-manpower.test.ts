@@ -134,6 +134,29 @@ describe('the A4 manpower figure', () => {
     expect(counts).toEqual([...counts].sort((left, right) => right - left));
   });
 
+  it('prints a configured category with no machines as an all-dash column, and nothing else changes', () => {
+    const categories = SETTINGS.categories ?? [];
+    const grown: EngineData = {
+      ...ENGINE_DATA,
+      settings: { ...SETTINGS, categories: [...categories, '5-Axis Router'] },
+    };
+    const value = valueOf(grown);
+    const spec = table(value, 'Specialization');
+    const keyed = table(A4, 'Specialization');
+    // The Settings order places the new category last; no machine carries it, so every member prints the dash.
+    expect(spec.header).toEqual([...keyed.header, '5-Axis Rout…']);
+    expect(spec.rows).toEqual(keyed.rows.map((row) => [...row, '—']));
+    // The fleet-derived list could not produce that column: the rest of the page is the key whole.
+    const page = value.pages[0]!;
+    const rest = {
+      ...page,
+      tables: page.tables.map((candidate) =>
+        candidate.title === 'Specialization' ? keyed : candidate,
+      ),
+    };
+    expect({ ...value, pages: [rest] }).toEqual(A4);
+  });
+
   it('prints no page for an empty plant: no production breakdowns or no team', () => {
     const noTeam = compute({
       ...ENGINE_DATA,
