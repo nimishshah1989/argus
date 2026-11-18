@@ -135,3 +135,52 @@ dependency; no table, schema, migration or settings seam.
    twice.
 7. **An empty evidence set prints no page.** The key has 57 cases; a plant whose log has no similar case answers
    `null` with an empty drill rather than a page the engine cannot drill.
+
+## 43e — the Compare, Team Focus, Money and Fix Finder screens
+
+**What changed for a user:** the four figures from #351–#355 now have their own screens. **Compare machines** opens
+from the Machines menu and prints the frozen key page whole — no KPIs, the age-adjusted health scorecard, the health
+checkup, specifications, both longest-breakdown tables, by shift, and the two charts (hours by maintenance code and
+by month) — with the engine's two-machine drill. **Team Focus** opens from a new Today screen menu (Dashboard / Action
+Center / Team Focus): its three KPIs, then all **31 ranked actions grouped by lane A, B, C, F, D, E** with the machine,
+title, hours at stake, and the platform's default status, owner and note. **Money Matters** opens on the Cost group:
+ten money KPIs, the levers and lost tables, the `ch-mm` chart and the ticket drill; only a head or an admin sees it.
+**Fix Finder** joins the Breakdowns menu: four KPIs and the 15 similar breakdowns in the key's order, sortable and
+drilling the tickets behind it.
+
+**Tests that prove it.** `apps/web/src/screens/analytics/figures-43.test.ts` (11 tests) pins every Compare, Money and
+Fix Finder table cell and chart series against the four frozen keys, the ten/four/three KPI triples, every one of the
+31 Team Focus actions and its lane order, the sortable table set, the money role gate and the new catalogue keys.
+`apps/web/e2e/analytics-compare.spec.ts` (1 Chromium journey) opens all four screens on the real stack (figures
+stubbed on the established seam), reads Compare's six tables and two ready charts, counts the 31 Team Focus actions
+and their lane groups, sorts Fix Finder's Down (hrs) column both ways, and opens a machine drill and a real ticket
+drill. Red first: the journey failed on `Compare Machines` (the pages were not registered). Green:
+`pnpm exec playwright test analytics-compare --project=chromium` 1/1; `pnpm exec vitest run apps/web/src/screens/analytics`
+10 files, 95 tests; `pnpm precheck` all checks pass.
+
+**Files.** `ComparePage.tsx`, `FixFinderPage.tsx`, `TeamFocusPage.tsx`, `team-focus-actions.ts`,
+`MoneyPage.tsx`, `screen-charts.ts` (all new, none over 400 lines), `figure-content.ts` (KIND/PAGE_KEYS),
+`page-content.ts` (sort rules and the three charts), `Dashboard.tsx` (the Today screen menu and the Team Focus
+branch), `MachinesPage.tsx`, `BreakdownsPage.tsx`, `Analytics.tsx` (the Cost branch), `analytics.en.ts`, the
+new test and e2e spec, `docs/spec/parity.yaml` (the four m4a rows are done) and this fragment. No new dependency,
+no server, schema or migration change, no test deleted or weakened.
+
+**Deviations and notes recorded.**
+
+1. **The platform's Compare pane sorts machines, not tables.** The engine chooses the pair (the key's VC-28 against
+   VC-22), so this face invents no category picker or drag zones. The face's one sortable table is used where a table
+   has a numeric order worth reading: Compare's two longest-breakdown tables and by-shift, both Money tables, and the
+   Fix Finder rows.
+2. **Team Focus keeps the key's action order inside each lane.** The platform re-sorts the visible cards by stake when
+   it renders; the key's `extra` array is already the engine's ranking (each sub-list ranked) and the acceptance pins
+   every action against it, so the screen groups by lane without re-ordering. The platform's "show done and not
+   needed" toggle is not offered: every action is open and the saved status is the later server packet.
+3. **Money is gated at the face as well as at the server.** `mayReadMoney` reads the server's own `canMoney` rule
+   (head, plant head and admin), so the face and the engine never disagree; everyone else gets the honest refusal
+   line, never an empty or guessed page. While the role is loading the screen says so rather than flashing money.
+4. **The Today group grew its own screen menu.** Team Focus was in `groups.ts` but unreachable; the new menu also
+   gives Action Center its existing generic screen, so the group's registry entries all have a door. The data
+   checklist keeps its separate route.
+5. **Charts carry catalogue chrome.** `screen-charts.ts` names the three charts (titles and axes) from the en
+   catalogue and takes every label, category and series value from the engine's own object; the blank Money dataset
+   name becomes the catalogue's "Money lost (₹ lakh)".

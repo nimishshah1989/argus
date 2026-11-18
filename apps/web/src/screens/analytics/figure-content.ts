@@ -132,6 +132,10 @@ const KIND: Record<string, ContentKind> = {
   'a10-problems': 'page',
   'a9-bottleneck-forecast': 'page',
   'forecast-lab': 'page',
+  compare: 'page',
+  'team-focus': 'page',
+  'money-matters': 'page',
+  'fix-finder': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -171,6 +175,10 @@ const PAGE_KEYS = new Set([
   'a10-problems',
   'a9-bottleneck-forecast',
   'forecast-lab',
+  'compare',
+  'team-focus',
+  'money-matters',
+  'fix-finder',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */

@@ -11,6 +11,7 @@ import { ManpowerPage } from './ManpowerPage.js';
 import { ProblemsPage } from './ProblemsPage.js';
 import { WhyWhyPage } from './WhyWhyPage.js';
 import { DrillTable } from './DrillTable.js';
+import { FixFinderPage } from './FixFinderPage.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
 const LOG = 'breakdown-log';
@@ -20,9 +21,10 @@ const A3 = 'a3-mttr-mtbf';
 const A4 = 'a4-manpower';
 const A6 = 'a6-why-why';
 const A10 = 'a10-problems';
+const FIX = 'fix-finder';
 
-/** The screens the group shows: the log, then A1, A2, A3, A4, A6 and A10's key-shaped pages. */
-const SCREENS = [LOG, A1, A2, A3, A4, A6, A10] as const;
+/** The screens the group shows: the log, then A1, A2, A3, A4, A6, A10 and Fix Finder's key-shaped pages. */
+const SCREENS = [LOG, A1, A2, A3, A4, A6, A10, FIX] as const;
 
 type Screen = (typeof SCREENS)[number];
 
@@ -94,6 +96,8 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         <ProblemsPage figure={figureOf(A10)} group={group} />
       ) : screen === A4 ? (
         <ManpowerPage figure={figureOf(A4)} group={group} />
+      ) : screen === FIX ? (
+        <FixFinderPage figure={figureOf(FIX)} group={group} />
       ) : (
         <KeyPage figure={figureOf(screen)} group={group} />
       )}
