@@ -15,6 +15,7 @@ import {
   type FiguresReply,
 } from '@uptimo/shared';
 import {
+  actionCenterBoard,
   canAnalytics,
   canMoney,
   FIGURES,
@@ -25,11 +26,19 @@ import { withTenant } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday, registerResource } from '../plant/index.js';
 import { loadEngineData } from './load.js';
-import { profileResource } from './profile.js';
+import { registerNudgeRoutes, type NudgeBoardOf } from './nudges.js';
+import { profileResource, readProfile } from './profile.js';
 import { notStored, runForTenant, type FigureStore } from './service.js';
 import { snapshotStore } from './snapshot.js';
 
 const MONEY = new Set(FIGURES.filter((figure) => figure.money).map((figure) => figure.key));
+
+/** The screen's board, cut from one load of the plant and the profile read in the same transaction. */
+const boardOf: NudgeBoardOf = async (tx, tenantId, asOf) => {
+  const data = await loadEngineData(tx, tenantId);
+  const profile = await readProfile(tx, tenantId);
+  return { data, profile, board: actionCenterBoard({ data, asOf, profile }) };
+};
 
 /** The money numbers of the profile are null for anyone but heads and admin. */
 function shownProfile(profile: AnalyticsProfile, money: boolean): FiguresReply['profile'] {
@@ -143,6 +152,7 @@ function drillProblem(error: ZodError) {
  */
 export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void {
   registerResource(app, pool, profileResource);
+  registerNudgeRoutes(app, pool, boardOf);
   app.get('/api/v1/analytics/figures', async (request, reply) => {
     const ctx = await requireAuth(pool, request, reply);
     if (!ctx) return;

@@ -22,7 +22,7 @@ export async function reportsForEngine(tx: Db): Promise<Row[]> {
   return (
     await tx.query(
       `SELECT r.id, r.ticket_id, r.machine_id, r.date::text AS date, r.shift_code, r.problem, r.observed_by, r.corrective_action, r.downtime_min,
-              r.response_min, r.repair_min, r.breakdown_category, r.maint_code, r.spare_used, r.root_cause,
+              r.response_min, r.repair_min, r.breakdown_category, r.maint_code, r.spare_used, r.spare_cost, r.root_cause,
               COALESCE(array_agg(p.person_id ORDER BY p.person_id) FILTER (WHERE p.role = 'done'), '{}') AS done_by,
               COALESCE(array_agg(p.person_id ORDER BY p.person_id) FILTER (WHERE p.role = 'supported'), '{}') AS supported_by
          FROM breakdown_report r LEFT JOIN breakdown_report_person p ON p.report_id = r.id

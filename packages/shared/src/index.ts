@@ -17,3 +17,4 @@ export * from './lockout.js';
 export * from './escalation-settings.js';
 export * from './analytics.js';
 export * from './why-why.js';
+export * from './action-center.js';

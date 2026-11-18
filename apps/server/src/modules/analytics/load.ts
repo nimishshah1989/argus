@@ -20,6 +20,7 @@ import {
 } from '../identity/index.js';
 import { listsForEngine, machinesForEngine, movesForEngine } from '../plant/index.js';
 import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
+import { readNudgeAcks } from './nudges.js';
 
 type Db = Pick<PoolClient, 'query'>;
 type Row = Record<string, unknown>;
@@ -27,6 +28,12 @@ type Row = Record<string, unknown>;
 const iso = (value: unknown): string | null =>
   value === null || value === undefined ? null : new Date(value as string | Date).toISOString();
 const text = (value: unknown): string | null => (value === null ? null : String(value));
+/** A money column, which pg reads as a string: null is "not recorded" and a finite number is the rupees. */
+const numberOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 const machine = (row: Row): MachineRow => ({
   id: row.id as string,
@@ -118,6 +125,8 @@ const report = (row: Row, clean: Cleaner): ReportRow => ({
   observedBy: cleanOrNull(row.observed_by, clean),
   // The plant stores minutes; the legacy recorded-hours column exists only in the old workbook.
   recordedHours: null,
+  // The platform's three spare costs are one stored sum (0014); null means no cost was recorded.
+  spareCost: numberOrNull(row.spare_cost),
 });
 
 const person = (row: Row): PersonRow => ({
@@ -172,6 +181,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const people = await peopleForEngine(tx);
   const lists = await listsForEngine(tx);
   const savedWhyWhy = await whyWhyEventRows(tx);
+  const nudgeAcks = await readNudgeAcks(tx);
   return {
     timeZone,
     machines: machines.map(machine),
@@ -193,5 +203,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
       const record = whyWhyRow(row);
       return record ? [record] : [];
     }),
+    // The Action Center's saved acks. The figure echoes them whole and the board gives each nudge its status.
+    settings: { excludedMachineIds: [], problemFixes: {}, nudgeAcks },
   };
 }
