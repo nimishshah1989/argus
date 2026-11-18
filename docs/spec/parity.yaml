@@ -1005,7 +1005,10 @@ rows:
     status: in-progress
     evidence:
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the six KPIs, the tables and the two charts with catalogue chrome'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 16 tables and its 8 bar charts'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 6 tables, its 6 bars and the two-line plant trend'
       - "apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1 (A1's KPIs, four tables, two charts and drill)"
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets (A2 and A3 screens and drills)'
     source: PARITY.md §analytics / Breakdown history and analysis
   - id: analytics.breakdown.04
     feature: A6 Why-Why root-cause analysis with candidate selection
@@ -1045,6 +1048,7 @@ rows:
     status: in-progress
     evidence:
       - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1 (the log eye opens the ticket; A1 drills to its ticket rows)'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets (A2 and A3 drill to their ticket rows)'
     source: PARITY.md §analytics / Breakdown history and analysis
   - id: analytics.breakdown.08
     feature:
@@ -1295,7 +1299,7 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/breakdown-log.json
       - fixtures/answer-key/input.json
@@ -1310,7 +1314,7 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a1-bd-pm.json
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the six KPIs, the tables and the two charts with catalogue chrome'
@@ -1324,9 +1328,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a2-category-cell.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 16 tables and its 8 bar charts'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets'
     source: docs/plan/m4a-triage.md
     screen: a2-category-cell
     ticket: '40'
@@ -1336,9 +1342,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/a3-mttr-mtbf.json
+      - 'PR #320 (the a3-mttr-mtbf engine figure, merged 18 Nov)'
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 6 tables, its 6 bars and the two-line plant trend'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets'
     source: docs/plan/m4a-triage.md
     screen: a3-mttr-mtbf
     ticket: '40'

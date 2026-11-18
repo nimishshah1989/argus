@@ -1,7 +1,8 @@
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { MessageKey } from '@uptimo/shared/i18n';
-import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
+import type { ChartSpec } from '../../ui/chart/use-chart.js';
+import { pageContent, type PageKpi, type PageTable } from './page-content.js';
 
 /**
  * The five object-valued figures (ticket 38.5) become renderable content here, and nowhere else. The engine
@@ -13,20 +14,6 @@ type Figure = FiguresReply['figures'][number];
 type ObjectValue = Record<string, unknown>;
 
 export type ContentKind = 'chart' | 'table' | 'text' | 'list' | 'page';
-
-export interface PageKpi {
-  label: string;
-  value: string;
-  sub: string | null;
-}
-
-export interface PageTable {
-  title: string;
-  header: string[];
-  rows: string[][];
-  rowCount: number;
-  truncated: boolean;
-}
 
 export type FigureContent =
   | { kind: 'chart'; spec: ChartSpec }
@@ -56,20 +43,7 @@ const KEY = {
   costliestShare: 'analytics.content.costliest.share',
   costliestBreakdowns: 'analytics.content.costliest.breakdowns',
   costliestCaption: 'analytics.content.costliest.caption',
-  a1CellChart: 'analytics.content.a1.cellChart',
-  a1CellAxis: 'analytics.content.a1.cellAxis',
-  a1TrendChart: 'analytics.content.a1.trendChart',
-  a1TrendAxis: 'analytics.content.a1.trendAxis',
 } as const satisfies Record<string, MessageKey>;
-
-/** The A1 charts' chrome: the engine's id is data, the title and axis are catalogue copy. */
-const CHART_META: Record<
-  string,
-  { title: MessageKey; category: MessageKey; kind: 'bar' | 'line' }
-> = {
-  'ch-a1-cell': { title: KEY.a1CellChart, category: KEY.a1CellAxis, kind: 'bar' },
-  'ch-a1-trend': { title: KEY.a1TrendChart, category: KEY.a1TrendAxis, kind: 'line' },
-};
 
 /** The engine's group order (data-checklist.ts holds the same list); a checklist group is only printed here. */
 const CHECKLIST_GROUPS = [
@@ -120,6 +94,8 @@ const KIND: Record<string, ContentKind> = {
   'data-checklist': 'list',
   'breakdown-log': 'page',
   'a1-bd-pm': 'page',
+  'a2-category-cell': 'page',
+  'a3-mttr-mtbf': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -130,13 +106,6 @@ const whole = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 });
 
 function isObject(value: unknown): value is ObjectValue {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** A cell the engine printed as a string or a finite number; anything else is not a printable cell. */
-function printableOf(value: unknown): string | null {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  return null;
 }
 
 function datasets(value: ObjectValue): unknown[] {
@@ -171,7 +140,9 @@ export function contentOf(figure: Figure, t: TFunction): FigureContent | null {
       return checklist(figure.value, t);
     case 'breakdown-log':
     case 'a1-bd-pm':
-      return page(figure.value, t);
+    case 'a2-category-cell':
+    case 'a3-mttr-mtbf':
+      return pageContent(figure.value, t);
     default:
       return null;
   }
@@ -280,84 +251,4 @@ function checklist(value: ObjectValue, t: TFunction): FigureContent {
     return [{ label: t(CHECKLIST_LABEL[group]), rows }];
   });
   return { kind: 'list', groups };
-}
-
-/** One KPI the engine printed: its label, value and sub-line are all data. */
-function pageKpi(raw: unknown): PageKpi[] {
-  const kpi = isObject(raw) ? raw : null;
-  if (kpi === null) return [];
-  const label = typeof kpi.label === 'string' ? kpi.label : null;
-  const value = printableOf(kpi.value);
-  if (label === null || value === null) return [];
-  return [{ label, value, sub: typeof kpi.sub === 'string' ? kpi.sub : printableOf(kpi.sub) }];
-}
-
-/** The engine's own cells, kept exactly; a row with an empty cell is still a row. */
-function pageTable(raw: unknown): PageTable[] {
-  const table = isObject(raw) ? raw : null;
-  if (table === null) return [];
-  const header = (Array.isArray(table.header) ? table.header : []).flatMap((cell) =>
-    typeof cell === 'string' ? [cell] : [],
-  );
-  const rows = (Array.isArray(table.rows) ? table.rows : []).flatMap((row) => {
-    const cells = (Array.isArray(row) ? row : []).map(printableOf);
-    return cells.length > 0 && cells.every((cell) => cell !== null) ? [cells as string[]] : [];
-  });
-  if (header.length === 0 && rows.length === 0) return [];
-  const count = Number(table.rowCount);
-  return [
-    {
-      title: typeof table.title === 'string' ? table.title : '',
-      header,
-      rows,
-      rowCount: Number.isFinite(count) ? count : rows.length,
-      truncated: table.truncated === true,
-    },
-  ];
-}
-
-/** A chart the catalogue knows, with the engine's labels and numeric datasets as its data. */
-function pageChart(raw: unknown, t: TFunction): ChartSpec[] {
-  const chart = isObject(raw) ? raw : null;
-  if (chart === null || typeof chart.id !== 'string') return [];
-  const meta = CHART_META[chart.id];
-  if (meta === undefined) return [];
-  const categories = (Array.isArray(chart.labels) ? chart.labels : []).map(String);
-  const series = datasets(chart).flatMap((dataset) => {
-    const parsed = seriesOf(dataset);
-    return parsed === null || parsed.values.some((value) => !Number.isFinite(value))
-      ? []
-      : [parsed];
-  });
-  if (categories.length === 0 || series.length === 0 || series.length > 2) return [];
-  const pair = series as [ChartSeries] | [ChartSeries, ChartSeries];
-  const title = t(meta.title);
-  const categoryLabel = t(meta.category);
-  return [
-    meta.kind === 'bar'
-      ? { kind: 'bar', title, categoryLabel, categories, series: pair }
-      : { kind: 'line', title, categoryLabel, categories, series: pair },
-  ];
-}
-
-/**
- * The key-shaped page (40e-1): the platform's own page, whole. The log and A1 are pages, so the screen renders
- * KPIs, tables and charts from one mapping instead of a per-screen layout. A page with nothing to print is null.
- */
-function page(value: ObjectValue, t: TFunction): FigureContent | null {
-  const first = (Array.isArray(value.pages) ? value.pages : []).find(isObject);
-  if (first === undefined) return null;
-  const kpis = (Array.isArray(first.kpis) ? first.kpis : []).flatMap(pageKpi);
-  const tables = (Array.isArray(first.tables) ? first.tables : []).flatMap(pageTable);
-  const charts = (Array.isArray(first.charts) ? first.charts : []).flatMap((chart) =>
-    pageChart(chart, t),
-  );
-  if (kpis.length === 0 && tables.length === 0 && charts.length === 0) return null;
-  return {
-    kind: 'page',
-    title: typeof first.title === 'string' ? first.title : '',
-    kpis,
-    tables,
-    charts,
-  };
 }

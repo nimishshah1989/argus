@@ -11,12 +11,12 @@ type Figure = FiguresReply['figures'][number];
 const whole = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 });
 
 /**
- * A1, BD % and the PM split (packet 40e-1): the engine's key-shaped page, whole — six KPIs, four tables and the
- * bar/line charts. The engine names one ticket list for the whole page, so the page carries one drill. The drill
- * endpoint asks at most MAX_DRILL_IDS ids; when the page names more than that, the link opens the Breakdown log,
- * where every one of those tickets is a row that opens its own page.
+ * A key-shaped screen (packets 40e-1 and 40e-2): A1, A2 and A3 each render the engine's page whole, with one
+ * drill for the ticket list the engine named. The drill endpoint asks at most MAX_DRILL_IDS ids; when the page
+ * names more than that, the link opens the Breakdown log, where every one of those tickets is a row that opens
+ * its own page.
  */
-export function A1Page({ figure, group }: { figure: Figure | undefined; group: AnalyticsGroup }) {
+export function KeyPage({ figure, group }: { figure: Figure | undefined; group: AnalyticsGroup }) {
   const { t } = useTranslation();
   const content = figure ? contentOf(figure, t) : null;
   if (!figure || figure.status !== 'ready' || content?.kind !== 'page')
