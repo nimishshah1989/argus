@@ -54,3 +54,14 @@ own problems for the key.
 Each packet adds one import and one entry to `computers.ts` (in the owner-43 map); the orchestrator resolves the shared
 file at merge and keeps every entry. `changes/43-compare.md` is shared — each packet appends its own section; the
 orchestrator keeps all. No figure is registered as a half-page: each value is whole for its key.
+
+## 43e — the Compare, Team Focus, Money and Fix Finder screens (one PR, face packet)
+
+The four figures are on `main` (#351–#355); `groups.ts` already lists their screens. Add the pages:
+- **Compare** (`cmp` page): through KeyPage — 0 KPIs, six tables, the two charts; sortable where the platform's pane sorts; the two-machine drill.
+- **Team Focus** (`tf` page): 3 KPIs plus the `extra` action list (31 actions) grouped by lane A/B/C/F/D/E with machine, title, stake, status/owner/note defaults; the drill is the machine.
+- **Money Matters** (`mm` page): 10 KPIs, the levers and lost tables, the `ch-mm` chart; heads/admin only at the face (the engine computes for all roles; the screen shows the refusal/profile for others).
+- **Fix Finder** (`ff` page): 4 KPIs and the 15-row table; the drill is the tickets.
+Wire `figure-content.ts` KIND/PAGE_KEYS, `page-content.ts` sorts/charts, the en catalogue (gu blank), parity evidence for all four rows, one Chromium journey `apps/web/e2e/analytics-compare.spec.ts`, and the fragment.
+**Acceptance:** mapping unit tests pin every table cell/chart series (Compare, Money, Fix Finder) and every Team Focus action against the keys; the journey opens each screen on the real stack, sorts a table, opens the Team Focus list and a drill. Red first: the journey fails because the pages are not registered. Green: the journey + `pnpm exec vitest run apps/web/src/screens/analytics`.
+**Files:** the page modules, `figure-content.ts`, `page-content.ts`, `analytics.en.ts`, the e2e spec, `parity.yaml`, fragment.
