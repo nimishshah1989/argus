@@ -48,6 +48,13 @@ const MONTH_AXIS = 'analytics.content.a3.monthAxis' satisfies MessageKey;
 const PERSON_AXIS = 'analytics.content.a4.personAxis' satisfies MessageKey;
 const A10_GROUP = 'analytics.content.a10.groupLabel' satisfies MessageKey;
 const A10_HOURS = 'analytics.content.a10.hours' satisfies MessageKey;
+const RP_DAILY = 'analytics.content.report.dailyChart' satisfies MessageKey;
+const RP_MONTHS = 'analytics.content.report.monthsChart' satisfies MessageKey;
+const RY_MONTHS = 'analytics.content.report.yearMonthsChart' satisfies MessageKey;
+const RY_PARETO = 'analytics.content.report.paretoChart' satisfies MessageKey;
+const REPORT_DAY = 'analytics.content.report.dayAxis' satisfies MessageKey;
+const REPORT_MONTH = 'analytics.content.report.monthAxis' satisfies MessageKey;
+const REPORT_MACHINE = 'analytics.content.report.machineAxis' satisfies MessageKey;
 
 /**
  * The A4 tables the face sorts (41e-1): the Manpower table and the two breakdown month matrices. The PM table
@@ -81,7 +88,7 @@ const CHART_META: Record<
   {
     title: MessageKey;
     category: MessageKey;
-    kind: 'bar' | 'line';
+    kind: 'bar' | 'line' | 'mixed';
     secondAxis?: true;
     /** The series name when the engine sends none (A10's Pareto labels carry the group name). */
     value?: MessageKey;
@@ -178,6 +185,11 @@ const CHART_META: Record<
     category: PERSON_AXIS,
     kind: 'bar',
   },
+  // 45e: the two monthly and two annual report charts, in the engine's own id order.
+  'ch-rp-daily': { title: RP_DAILY, category: REPORT_DAY, kind: 'line' },
+  'ch-rp-12m': { title: RP_MONTHS, category: REPORT_MONTH, kind: 'line', secondAxis: true },
+  'ch-ry-month': { title: RY_MONTHS, category: REPORT_MONTH, kind: 'line', secondAxis: true },
+  'ch-ry-pareto': { title: RY_PARETO, category: REPORT_MACHINE, kind: 'mixed' },
   'ch-prob-pareto': {
     title: 'analytics.content.a10.paretoChart',
     category: A10_GROUP,
@@ -335,13 +347,20 @@ function catalogueChart(
     const parsed = seriesOf(dataset);
     return parsed === null ? [] : [parsed];
   });
-  if (categories.length === 0 || series.length === 0 || series.length > 2) return [];
+  if (categories.length === 0 || series.length === 0) return [];
+  const limit = meta.kind === 'line' ? 3 : 2;
+  if (series.length > limit) return [];
   const named = series.map((data) =>
     data.name === '' && meta.value !== undefined ? { ...data, name: t(meta.value) } : data,
   );
   const pair = named as [ChartSeries] | [ChartSeries, ChartSeries];
   const title = t(meta.title);
   const categoryLabel = t(meta.category);
+  if (meta.kind === 'mixed') {
+    const [bars, line] = named;
+    if (bars === undefined) return [];
+    return [{ kind: 'mixed', title, categoryLabel, categories, bars: [bars], line }];
+  }
   if (meta.kind === 'bar') return [{ kind: 'bar', title, categoryLabel, categories, series: pair }];
   return [
     {
@@ -349,7 +368,7 @@ function catalogueChart(
       title,
       categoryLabel,
       categories,
-      series: pair,
+      series: named,
       ...(meta.secondAxis === true ? { secondAxis: true } : {}),
     },
   ];

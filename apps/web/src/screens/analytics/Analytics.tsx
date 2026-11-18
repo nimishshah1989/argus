@@ -24,6 +24,7 @@ import { GuidePage } from './GuidePage.js';
 import { MachinePage } from './MachinePage.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
+import { ReportsPage } from './ReportsPage.js';
 
 const DESK = '/desk';
 
@@ -79,6 +80,8 @@ export function AnalyticsFace() {
         <ForecastPage group={found} />
       ) : found.id === 'cost' ? (
         <MoneyPage group={found} />
+      ) : found.id === 'reports' ? (
+        <ReportsPage group={found} />
       ) : (
         <GroupPage group={found} />
       )}
