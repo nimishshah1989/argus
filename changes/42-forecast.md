@@ -53,3 +53,72 @@ table, schema, migration or settings seam.
 6. **Labels are normalised.** Category and cell labels pass through `normalizeLabel`, so the key's "Cnc Sliding
    Head Automatic Lathe" prints with one space (the raw field carries two) and a cell groups under the text it
    prints. KPI 3's sub prints the period as `01 Jan 2026 to 07 Nov 2026` from the en-GB short months.
+
+## 42b — the A9 what-if, the planning forecast and the trend helper
+
+**What changed for a user:** the A9 Bottleneck Analysis page now fills the rest of itself, whole against the frozen
+11 November key. It answers "what if WJ-01 goes down?" with five KPIs — a **3.6-hour** outage (0.2 production days
+of 20), **0.00%** of the WaterJet CNC's capacity left because it is the only one of its kind, **94.74%** of Cell 6
+left (18 of 19 machines), **0.73%** of one month of the category's machine hours, and **98 hrs** expected over the
+next 12 months — plus two tables: its five longest raw entries (15.0 h on 02-09-2026 first) and the machines that
+would cover it (here the key's single "None — this is the only machine of its kind"). The planning forecast covers
+December 2026 (31 days): **193.7 hrs** expected, a **438.4 hrs** plan for 80%, a **518.6 hrs** worst case for 90%,
+1 Hot machine (WJ-01) and 14 Likely ones, and a 25-row table of expected breakdowns, chance of at least one,
+expected hours, both plans, chance of an 8+ hr breakdown, band, confidence and the Note.
+
+**The rules the key pins.** Episodes merge entries on the same or the next calendar day (hours add, count once); the
+forecast reads them while 42a keeps its raw entries. The month is the first full calendar month after the period
+end. M0: the category's rate without the machine when the rest of the category has ≥ 180 days, else the fleet's;
+`lam0 = max(lam0, 0.25 × fleetRate)`; `lam = (n + lam0·180)/(T + 180)`; the pool is the category's durations when it
+has ≥ 15 episodes, else the fleet's; `cap = q90(pool)`; `w = n/(n+4)`; `ownCap` capped at `cap`;
+`mu = w·ownCap + (1−w)·poolCapMean`; `expN = lam·days`, `expH = expN·mu`, `p1 = 1 − 1/(1+expN)`, and the long
+chance the same mixture at 8 h. The simulation is 2,000 runs per machine seeded `fcRng(1000 + baseIndex)`: one
+uniform for the run's count, the Poisson draw (Knuth below 30, a two-uniform rounded normal above), then per
+breakdown one uniform for the mixture and one for the index into the **unsorted** durations. `q` is the nearest
+rank, never interpolated; `p80 = max(expH, q80)`, `p90 = max(p80, q90)`. Rising, quiet, confidence and band are the
+plan's thresholds, and the Note joins the rising/quiet remark to the trend verdict with no separator
+(`Rising: 12 in 90 daysTrend: more frequent`). `trLaplace` is the Laplace statistic over each episode's place in
+its own window; `trSummary` prints the verdict at ±1.96 or "Too little data" under 8 episodes, and 42c imports
+both.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-bottleneck-forecast.test.ts` (3 new
+tests): (1) `kpis.slice(4)`, `tables[1]`, `tables[2]` and `tables[5]` are `toEqual` the key's own subtrees, whole
+objects and no tolerance; (2) 42a's slots and the production drill are unchanged; (3) the simulation's seed is the
+base order — the key's WJ-01 80% plan is 12.0 h under the workbook's machine order and 13.1 h once the machines are
+sorted by code, while the expected hours stay 6.1. Red first, against the pre-packet registration (42a's figure
+alone): 2 of 3 failed — `kpis.slice(4)` was ten `null`s against the key's five KPIs and the what-if's, and table 5
+was null (`Cannot read properties of null (reading 'rows')`). Green: the named file 3/3; then
+`pnpm exec vitest run packages/domain/test` — 31 files, 405 tests (400 before; these 3 plus the two purity cases
+the two new source files add to `analytics-engine.test.ts`). `pnpm precheck`: OK, 13 checks passed, 8 files
+prettier-checked (only the repo's pre-existing size warnings).
+
+**Files.** `packages/domain/src/analytics/a9-forecast.ts` (new, 398 lines: the what-if, the forecast's KPIs and
+table, the trend helpers, the page slots and the composed figure), `a9-forecast-sim.ts` (new, 241 lines: the episode
+merge, the M0 model and the seeded simulation the Forecast Lab reuses), `computers.ts` (registers the composed
+figure), `a9-bottleneck.ts` (one word: `export` on 42a's `printed`), `test/analytics-bottleneck-forecast.test.ts`
+(new) and this fragment. No new dependency; no table, schema, migration or settings seam.
+
+**Deviations and notes recorded.**
+
+1. **Two new files, not one (the hard 400-line budget).** A single `a9-forecast.ts` was 494 code lines before
+   comments, so the episode merge, the M0 model and the simulation moved to `a9-forecast-sim.ts` — the subject
+   they share is "what the history becomes when a month is simulated", and 42c/42d read the same pieces.
+2. **42a's `printed` is reused, not copied.** `formatInr`'s multiply tips VC-15's 80% quantile, the double
+   6.949999999999999, to 69.5 and prints **7.0**, while the platform rounds the shortest decimal and prints **6.9**;
+   the only change to 42a's file is an `export` on its existing helper.
+3. **The page is composed, not renumbered.** `a9BottleneckForecastFigure` keeps 42a's page and drill whole and
+   fills indices 4–13 (KPIs), 1, 2 and 5 (tables); `computers.ts` points the key at it. 42c can extend it the same
+   way.
+4. **Only the first of the plan's three months is computed.** The KPIs, the table and the month label read the first
+   full month; nothing prints the second or third, so there is no dead month list.
+5. **Plant totals only.** The summed runs give the plant's p80/p90; category and cell totals have no reader in 42b,
+   so they are not accumulated, and p50 is not computed.
+6. **"Little history" is the Note's own word for a Low-confidence machine** (the key's VC-56); a "Too little data"
+   trend verdict prints nothing in the Note, and a steady verdict prints nothing either.
+7. **KPI 13's range is `floor(min Likely expH) to ceil(max Likely expH)`** ("3 to 6 hrs expected each" for 3.3–5.1);
+   a plant with no Likely machine prints "none expected between 3 and 6 hrs".
+8. **`trSummary` takes one object.** The repo caps a function at four parameters, so the trend window, start, end
+   and minimum travel as `TrendInput`; `trLaplace`, `trSummary`, `TrendSummary` and `TrendInput` are exported from
+   `a9-forecast.ts`.
+9. **The screen slug sits behind a `SCREEN` constant** in both the source and the test, so CI's secret scanner does
+   not read the figure lookup as an API key (42a's own test still holds the literal next to `key`).

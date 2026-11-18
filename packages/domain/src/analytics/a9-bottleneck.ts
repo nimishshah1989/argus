@@ -83,7 +83,7 @@ const sum = (values: readonly number[]): number =>
  * away from zero. `formatInr`'s multiply can tip a value that only looks like a half: the key's TC-7 double is
  * 134.84999999999999 (a shortest form of 134.85) and prints 134.9, while TC-13's 117.44999999999999 prints 117.4.
  */
-function printed(value: number, decimals: number): number {
+export function printed(value: number, decimals: number): number {
   if (!Number.isFinite(value)) return value;
   const text = Math.abs(value).toString();
   if (text.includes('e')) return Number(value.toFixed(decimals));
