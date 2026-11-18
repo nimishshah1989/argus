@@ -1,10 +1,11 @@
 # 46 — the one M4b schema change
 
-**What changed for a user:** nothing visible yet — this ticket adds the tables and columns M4b's features stand on.
-The plan is `docs/slices/46-m4b-schema.md`: packet 46a is migration 0015 (four tables, two new ticket channels and
-four failure-code columns with a list-item guard), packet 46b is the write paths those tables allow.
+**What changed for a user:** nothing visible yet — this ticket adds the tables and columns M4b's features stand on,
+then the write paths those tables allow. The plan is `docs/slices/46-m4b-schema.md`: packet 46a is migration 0015
+(four tables, two new ticket channels and four failure-code columns with a list-item guard), packet 46b (below) is
+the write paths the migration now permits.
 
-**Not in this PR:** no code, no screen, no seed.
+**Not in 46a:** no code, no screen, no seed. **Not in 46b:** no screen (47 builds coded closes, 49/51 the screens).
 
 **Plan revision (19 Nov):** a fresh review FAILed the first plan with nine must-fixes (seed rows for the four tenant
 tables, the migration-runner 0015 entry, the PM report-data home, the real 46b files, the down file's header/ledger/
@@ -90,3 +91,56 @@ AWS. The up → down → up was run on the migrated test container instead, as t
    `tenant_id`).
 6. **The seed uses `amc` and `calibration`.** The four kinds are proved by the m4b test; the seed only needs the
    one-row-per-tenant rule.
+
+## 46b — the write paths
+
+**What changed for a user:** nothing visible yet. The server can now raise planned `pm`/`inspection` work through a
+published tickets function (the HTTP raise refuses those channels from a person and accepts `floor`/`desk`/`whatsapp`/
+`qr`), store a close's four failure codes and a PM job's ticked checklist/readings in `breakdown_report`, and write
+one `pm_plan` draft and one `asset_register` row through the plant module's interface.
+
+**The files.** `packages/shared/src/ticket.ts` adds an optional `channel` to `raiseTicketSchema` (the four live
+channels, the same list as `BREAKDOWN_CHANNELS`) and `pmReportSchema` + the five optional report fields to
+`breakdownReportSchema`; `packages/shared/src/ticket-reply.ts` carries them on a stored report. The four codes have no
+shared list: the database trigger is the only judge (the test seeds the plant's `failure_code` items). A bad code's
+`23514` is mapped to the report's field, so the close answers 422 rather than 500; the rollback is proved by the
+ticket still being `working`.
+`apps/server/src/modules/tickets/planned.ts` (new) is the published `raisePlannedTicket` (pm/inspection, machine or
+plan side, caller's transaction) exported from the module index; `severity.ts` no longer hard-codes the channel and
+`repo/ticket.ts` inserts `raised_channel`. `repo/report.ts` writes/reads the five report columns and
+`import.ts` carries them through the past-breakdown/import path, with older callers leaving them out (the import path
+writes them as a second UPDATE only when a report has one, so the migration tests that load the plant on a pre-0015
+schema keep running the same code). `routes.ts` is unchanged (384 lines; the schema does the HTTP refusal).
+`apps/server/src/modules/plant/repo/records.ts` (new) holds `insertPmPlan`/`pmPlanById` and
+`insertAssetRegister`/`assetRegisterById`, exported from `plant/index.ts`, and `manifest.ts` gives the plant module
+ownership of the two tables.
+
+**Tests that prove it.** `apps/server/test/m4b-write.test.ts` (new, 8 tests) raises pm and inspection through the
+published path and reads the channel back, refuses `pm`/`bogus` on the HTTP raise while `floor` still works, starts a
+published PM job, closes it with the four codes and `pmReport` and reads them back, has a bad code refused by the
+database without closing the ticket, carries the codes and PM report through a past breakdown, and writes/reads one
+`pm_plan` draft and one `asset_register` row as `app_user`. Each machine has no open ticket (fresh ids, `VC-2`…).
+
+**Verbatim command tails.**
+
+- red first `pnpm exec vitest run apps/server/test/m4b-write.test.ts` → `Test Files  1 failed (1)` / `Tests  7 failed (7)` (`insertPmPlan is not a function`).
+- `pnpm exec vitest run apps/server/test/m4b-write.test.ts` → `Test Files  1 passed (1)` / `Tests  8 passed (8)`.
+- `pnpm exec vitest run apps/server/test packages/db/test packages/domain/test` → `Test Files  191 passed (191)` / `Tests  2171 passed (2171)`.
+- `pnpm precheck` → `precheck: OK — 20 file(s) checked by prettier, 13 checks passed` (the six pre-existing lint warnings: one `max-lines` and five unused eslint-disable; the size tool's soft 250-line warnings).
+- `pnpm boundaries` → `boundaries: 214 files scanned, 0 problem(s)`.
+
+The known flakes (escalation, worktree-path deploy) did not appear in the final run.
+
+**Deviations and notes.**
+
+1. **`raisedLoginId` is nullable in the domain.** Planned raises come from a job, not a login, and the column already
+   allows NULL; the `Ticket`/`RaiseInput` type now says so. No behaviour changes for a person's raise.
+2. **The published raise does not run the reply parts.** 49/52 need the ticket in their own transaction, not an HTTP
+   reply; the channel policy (46a) already keeps planned work off the SLA/drift lists. A listener can be added when a
+   screen exists.
+3. **The PM report's `doneBy` is a person id (uuid), and `comments` is nullable.** The rest of the frozen shape is
+   `{total, undone[], readings{}, ...}` with defaults for the optional keys, so a ticked job stores a complete object.
+4. **The imported report writes its M4b fields in a second UPDATE, only when it has one.** The three migration tests
+   load the real plant on a pre-0015 schema and then run the current import code; keeping the base INSERT's column
+   list unchanged lets that path run, while a coded past breakdown still writes the five fields and the trigger still
+   judges the codes.

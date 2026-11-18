@@ -49,9 +49,9 @@ const INSERT_TICKET_SQL = `INSERT INTO ticket (id, tenant_id, ref, kind, status,
   reported_by_person_id, reported_by_role, raised_login_id, self_started, started_at,
   lead_person_id, segment_started_at, severity, criticality_snapshot, last_event_seq,
   response_min, active_min, wait_min, vendor_min, handover_wait_min, down_acc_min,
-  downtime_min, follow_min, repair_min)
+  downtime_min, follow_min, repair_min, raised_channel)
   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
-    $25,$26,$27,$28,$29,$30,$31,$32) RETURNING id`;
+    $25,$26,$27,$28,$29,$30,$31,$32,$33) RETURNING id`;
 
 function ticketValues(ticket: Ticket): unknown[] {
   const f = ticket.figures as Figures;
@@ -185,6 +185,7 @@ export async function insertTicket(
     f.downtimeMin,
     f.followMin,
     f.repairMin,
+    extras.raisedChannel,
   ]);
   return result.rows[0].id as string;
 }

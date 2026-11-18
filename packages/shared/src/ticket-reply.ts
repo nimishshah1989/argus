@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { criticalitySchema, severitySchema } from './config.js';
 import { taskEventSchema } from './tasks.js';
+import { pmReportSchema } from './ticket.js';
 
 export const isoDateTimeSchema = z.string().datetime({ offset: true });
 const iso = isoDateTimeSchema.nullable();
@@ -184,6 +185,13 @@ export const storedReportSchema = z
     downtimeMin: z.number(),
     responseMin: num,
     repairMin: num,
+    /** The four failure codes of a breakdown (M4b), null when the close carried none. */
+    failureComponent: str,
+    failureMode: str,
+    failureCause: str,
+    failureAction: str,
+    /** The ticked checklist and readings of a PM job, null on every other report. */
+    pmReport: pmReportSchema.nullable(),
     submittedAt: isoDateTimeSchema,
     people: z.array(
       z.object({ personId: z.string(), role: z.enum(['done', 'supported']) }).strict(),

@@ -36,7 +36,7 @@ export function buildRaiseExtras(
     urgent,
     problemLang: (body.problemLang as string | undefined) ?? null,
     reportedByRole: (body.reportedByRole as string | undefined) ?? null,
-    raisedChannel: 'floor',
+    raisedChannel: (body.channel as string | undefined) ?? 'floor',
     parentId: null,
     expectedBackAt: null,
     waitingSpare: null,

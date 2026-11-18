@@ -7,6 +7,14 @@ export { figureDrift, type DriftLine } from './drift.js';
 export { purgeIdempotencyKeys } from './repo/idempotency.js';
 export { loadEvents, lockRefCounter, reviveCorrection } from './repo/ticket.js';
 export { loadReport, type StoredReport } from './repo/report.js';
+export {
+  raisePlannedTicket,
+  PlannedRaiseError,
+  PLANNED_CHANNELS,
+  type PlannedChannel,
+  type PlannedTicketInput,
+  type PlannedTicketResult,
+} from './planned.js';
 export { activeTicketRefsOfPerson } from './repo/people.js';
 export { ticketAlertFacts, type AlertFacts } from './repo/alerts.js';
 export {

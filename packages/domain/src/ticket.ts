@@ -8,7 +8,7 @@ export interface Ticket {
   machineId: string | null;
   problem: string;
   reportedAt: Date;
-  raisedLoginId: string;
+  raisedLoginId: string | null;
   reportedByPersonId: string | null;
   selfStarted: boolean;
   startedAt: Date | null;
