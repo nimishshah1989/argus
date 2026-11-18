@@ -77,6 +77,42 @@ describe('cosmos real plant seed', () => {
     expect(vc.cell).toBe(files.machines.machines.find((m) => m.code === 'VC-57')?.cell);
   });
 
+  it('loads the workbook PM plan as one recurring plan per machine', async () => {
+    expect(report.counts).toMatchObject({
+      pm_plan_source_rows: 427,
+      pm_plan_visits: 427,
+      pm_plans: 125,
+      pm_plan_done: 15,
+      pm_plan_checklists: 2,
+    });
+    const counts = await one<Record<string, number>>(
+      `SELECT (SELECT count(*) FROM pm_plan)::int AS plans,
+              (SELECT count(*) FROM pm_plan WHERE last_done_on IS NOT NULL)::int AS done,
+              (SELECT count(*) FROM pm_plan WHERE jsonb_array_length(checklist) > 0)::int AS checklists,
+              (SELECT count(*) FROM ticket)::int AS tickets,
+              (SELECT count(*) FROM breakdown_report)::int AS reports`,
+    );
+    expect(counts).toEqual({ plans: 125, done: 15, checklists: 2, tickets: 0, reports: 0 });
+    const titled = await one<{ bad: number }>(
+      `SELECT count(*)::int AS bad FROM pm_plan p JOIN machine m ON m.id = p.machine_id
+        WHERE p.title <> m.code || ' preventive maintenance'`,
+    );
+    expect(titled.bad).toBe(0);
+    const vc = await one<{ items: number; anchor: string; done: string }>(
+      `SELECT jsonb_array_length(p.checklist)::int AS items,
+              to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') AS anchor,
+              p.last_done_on::text AS done
+         FROM pm_plan p JOIN machine m ON m.id = p.machine_id WHERE m.code = 'VC-6'`,
+    );
+    // VC-6's latest done date is 2026-10-19 (it has two done rows); the plan anchors there.
+    expect(vc).toEqual({ items: 47, anchor: '2026-10-19', done: '2026-10-19' });
+    const future = await one<{ n: number }>(
+      `SELECT count(*)::int AS n FROM pm_plan
+        WHERE (created_at AT TIME ZONE 'Asia/Kolkata')::date > DATE '2026-11-11'`,
+    );
+    expect(future.n).toBeGreaterThan(0);
+  });
+
   it('VC-57 carries its nameplate', async () => {
     const vc = await one<Record<string, string | null>>(
       "SELECT make, model, serial FROM machine WHERE code = 'VC-57'",
@@ -156,9 +192,10 @@ describe('cosmos real plant seed', () => {
     await seedCosmos(db.admin, paths);
     const n = await one<Record<string, number>>(
       `SELECT (SELECT count(*) FROM machine)::int AS machines, (SELECT count(*) FROM login)::int AS logins,
-              (SELECT count(*) FROM person)::int AS people, (SELECT count(*) FROM glossary_term)::int AS glossary`,
+              (SELECT count(*) FROM person)::int AS people, (SELECT count(*) FROM glossary_term)::int AS glossary,
+              (SELECT count(*) FROM pm_plan)::int AS pm_plans`,
     );
-    expect(n).toEqual({ machines: 192, logins: 26, people: 27, glossary: 144 });
+    expect(n).toEqual({ machines: 192, logins: 26, people: 27, glossary: 144, pm_plans: 125 });
   });
 
   it('a people file needs an initial password', async () => {

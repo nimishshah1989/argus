@@ -5,7 +5,7 @@ export type Row = Record<string, unknown>;
 
 /** The tables the generic settings routes write for this module's own resources. Names here are ours, never a caller's. */
 export type SettingsTable =
-  'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term';
+  'machine' | 'segment' | 'machine_group' | 'shift' | 'list_item' | 'glossary_term' | 'pm_plan';
 
 /** One table holding several lists: a resource reads and writes only the rows with this column value. */
 export interface Scope {

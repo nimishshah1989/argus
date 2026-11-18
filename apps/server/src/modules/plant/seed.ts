@@ -3,6 +3,7 @@ export {
   insertGlossaryTerms,
   insertListItems,
   insertMachines,
+  insertPmPlans,
   insertSegments,
   insertSettings,
   insertShifts,

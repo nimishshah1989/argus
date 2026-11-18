@@ -48,6 +48,8 @@ import { signoffEn } from './signoff.en.js';
 import { signoffGu } from './signoff.gu.js';
 import { plantEn } from './plant.en.js';
 import { plantGu } from './plant.gu.js';
+import { pmEn } from './pm.en.js';
+import { pmGu } from './pm.gu.js';
 import { lockoutEn } from './lockout.en.js';
 import { tasksEn } from './tasks.en.js';
 import { listsEn } from './lists.en.js';
@@ -108,6 +110,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   signin: signinEn,
   signoff: signoffEn,
   plant: plantEn,
+  pm: pmEn,
   lockout: lockoutEn,
   account: accountEn,
   tasks: tasksEn,
@@ -153,6 +156,7 @@ export const en = {
   ...signinEn,
   ...signoffEn,
   ...plantEn,
+  ...pmEn,
   ...lockoutEn,
   ...accountEn,
   ...tasksEn,
@@ -200,6 +204,7 @@ export const gu = {
   ...signinGu,
   ...signoffGu,
   ...plantGu,
+  ...pmGu,
   ...lockoutGu,
   ...accountGu,
   ...tasksGu,

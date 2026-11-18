@@ -45,6 +45,7 @@ export { plantToday, type Problem, type Resource } from './settings-resources.js
 export { shiftIsOn, type Row, type Store } from './repo/plant-settings.js';
 export { passwordChangeEnforced } from './service.js';
 export {
+  activePlanForMachine,
   assetRegisterById,
   insertAssetRegister,
   insertPmPlan,

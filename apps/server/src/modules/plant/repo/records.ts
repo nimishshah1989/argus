@@ -16,6 +16,8 @@ export interface PmPlanDraftInput {
   lastDoneOn?: string | null;
   checklist?: readonly unknown[];
   active?: boolean;
+  /** The plan's clock anchor, at the plant's local midnight; an imported plan may start in the future. */
+  createdAt?: Date;
 }
 
 export interface PmPlan {
@@ -117,8 +119,8 @@ export async function insertPmPlan(
   const row = (
     await tx.query(
       `INSERT INTO pm_plan (tenant_id, machine_id, category, title, interval_days, meter_interval,
-         meter_tolerance, last_meter_reading, last_done_on, checklist, active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         meter_tolerance, last_meter_reading, last_done_on, checklist, active, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,COALESCE($12, now()))
        RETURNING ${PM_PLAN_COLUMNS}`,
       [
         tenantId,
@@ -132,6 +134,7 @@ export async function insertPmPlan(
         draft.lastDoneOn ?? null,
         JSON.stringify(draft.checklist ?? []),
         draft.active ?? true,
+        draft.createdAt ?? null,
       ],
     )
   ).rows[0];
@@ -144,6 +147,25 @@ export async function pmPlanById(tx: Db, tenantId: string, id: string): Promise<
       tenantId,
       id,
     ])
+  ).rows[0];
+  return row ? pmPlanRow(row as Record<string, unknown>) : null;
+}
+
+/** The machine's one active machine plan (R3): the settings screen refuses a second one with a 409. */
+export async function activePlanForMachine(
+  tx: Db,
+  tenantId: string,
+  machineId: string,
+  exceptId?: string,
+): Promise<PmPlan | null> {
+  const row = (
+    await tx.query(
+      `SELECT ${PM_PLAN_COLUMNS} FROM pm_plan
+        WHERE tenant_id = $1 AND machine_id = $2 AND active
+          AND ($3::uuid IS NULL OR id <> $3)
+        ORDER BY updated_at DESC LIMIT 1`,
+      [tenantId, machineId, exceptId ?? null],
+    )
   ).rows[0];
   return row ? pmPlanRow(row as Record<string, unknown>) : null;
 }

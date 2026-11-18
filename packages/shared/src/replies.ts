@@ -38,6 +38,7 @@ import {
   settingsPage,
   shiftReplySchema,
 } from './plant-settings.js';
+import { pmPlanReplySchema } from './pm.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
@@ -191,6 +192,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
     {},
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
+  ...settingsResource('settings/pm-plans', pmPlanReplySchema),
   ...settingsResource('roster', rosterReplySchema),
   [`POST ${P}/roster/copy`]: rosterCopyReplySchema,
   ...settingsResource('escalation-rules', ruleReplySchema),

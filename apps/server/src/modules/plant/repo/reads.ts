@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { LOCKOUT_FLAG_LISTS, type Criticality, type LockoutStep } from '@uptimo/shared';
+import { tenantInfo } from '../../identity/index.js';
 import type { FailureCodeSeed } from '../failure-code-defaults.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -266,6 +267,12 @@ export async function insertLockoutStep(
      ON CONFLICT (tenant_id, list, code) DO NOTHING`,
     [tenantId, step.code, step.label, step.sort],
   );
+}
+
+/** Today in the plant's own time zone, as a date the database and the screens both read. */
+export async function plantToday(tx: Db, tenantId: string, at: Date = new Date()): Promise<string> {
+  const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
+  return at.toLocaleDateString('en-CA', { timeZone });
 }
 
 /** A `failure_code` entry: the plant's canonical code and the old codes folded onto it. */

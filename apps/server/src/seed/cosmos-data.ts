@@ -1,3 +1,5 @@
+import { PM_WORKBOOK_AS_OF, mapPmPlans, type MappedPmPlan, type PmWorkbook } from './pm-plans.js';
+
 export interface MachineSeed {
   code: string;
   segment: string;
@@ -30,6 +32,7 @@ export interface SeedFiles {
   machines: { sheetCounts: Record<string, number>; machines: MachineSeed[] };
   shifts: SeedResult['shifts'];
   people: { users: PeopleEntry[] };
+  pm: PmWorkbook;
 }
 
 export const ROLE_MAP = {
@@ -58,6 +61,8 @@ export interface ListSeed {
 
 export interface SeedResult {
   machines: MachineSeed[];
+  /** The workbook's PM plans: one recurring plan per machine, written by the plant seed (49a). */
+  pmPlans: MappedPmPlan[];
   people: PersonSeed[];
   lists: ListSeed[];
   shifts: Array<{
@@ -241,6 +246,7 @@ export function buildSeed(
   files: SeedFiles,
 ): SeedResult {
   const machines = files.machines.machines;
+  const pm = mapPmPlans(files.pm, { asOf: PM_WORKBOOK_AS_OF });
   const exportTeam = (
     exp.settings as { team: Array<{ name: string; type: string; status: string }> }
   ).team;
@@ -265,6 +271,7 @@ export function buildSeed(
   ];
   return {
     machines,
+    pmPlans: pm.plans,
     people,
     lists,
     shifts,
@@ -280,6 +287,11 @@ export function buildSeed(
       shifts: shifts.length,
       glossary: glossaryTerms.length,
       segments: 6,
+      pm_plan_source_rows: pm.sourceRows,
+      pm_plan_visits: Object.values(pm.visits).reduce((sum, n) => sum + n, 0),
+      pm_plans: pm.plans.length,
+      pm_plan_done: pm.plans.filter((plan) => plan.lastDoneOn !== null).length,
+      pm_plan_checklists: pm.plans.filter((plan) => plan.checklist.length > 0).length,
     },
     conflicts,
   };
