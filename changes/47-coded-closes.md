@@ -52,3 +52,24 @@
   and a blank untouched. One code is added to every close-with-report call site in the server tests and the three e2e
   specs that close through the API. The plan's must-fix at `ticket-report.test.ts:258` changes from success to the
   refusal on purpose; every other assertion is unchanged.
+
+## 47c — the failure-code screen and the close picker
+
+- Settings → Lists gains Failure codes: one `LIST_PAGES` entry and one icon over the generated
+  `/settings/lists/failure_code` screen, so the head sees the plant's codes with their readable labels, order and
+  on/off switch, and edits the one field this list owns — the old codes, shown under each row's name and searched
+  with it. Every other list declares `aliases` hidden with its reason (the D05 guard), and the edits are audited by
+  the same list route as every other setting.
+- The floor's "Maintenance Code" box keeps the plant's words and its place (R2, design lock) and now draws its
+  options from the switched-on `failure_code` rows, sending the picked value as `failureComponent` (Q33). A code
+  switched off is not offered for a new close; the old ticket still shows the code it recorded, because no read
+  filters on `active`. The form still cannot send without a code.
+- While a plant has no `failure_code` rows at all — the deploy window — the same box offers the plant's own
+  `maint_code` rows, never a hardcoded 19, so the floor is never left with an empty picker and that first close
+  creates the list (R4's bridge). The bridge stops the moment the list holds a row.
+- Tests: the units cover the new page (the one visible `aliases` field, hidden elsewhere, the old codes under the
+  row), the picker (switched-on only; the bridge with a plant code outside the fallback 19), and the body's
+  `failureComponent`. `coded-close.spec.ts` is the journey on chromium and phone: the floor closes with a code, the
+  head switches that code off on the settings screen, the old ticket keeps it, and a new close no longer offers it.
+  The e2e tenant seeds one `failure_code` row per fixture code, so the journey exercises the list, not the bridge.
+- No dependency, no migration, no new table; `closes.*` copy is untouched (the frozen catalogue).

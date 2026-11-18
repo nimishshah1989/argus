@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  FileWarning,
   Hourglass,
   List,
   Lock,
@@ -21,6 +22,7 @@ const ICON: Record<ListsPage, IconComponent> = {
   quick_problem: CircleHelp,
   breakdown_category: Zap,
   lockout_step: Lock,
+  failure_code: FileWarning,
 };
 
 /** The phone's list of lists: every row comes from `LIST_PAGES`, so a new list needs no screen code. */
