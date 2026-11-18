@@ -19,6 +19,7 @@ import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
+import { teamFocusFigure } from './team-focus.js';
 import type { Computer, EngineData, MachineRow } from './types.js';
 
 /**
@@ -188,6 +189,11 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
   'forecast-lab': forecastLabFigure,
 };
 
+/** Owner 43's figures: the compare, team, money and Fix Finder packets; 43a to 43c add their entries here. */
+const compareComputers: Readonly<Record<string, Computer>> = {
+  'team-focus': teamFocusFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -207,4 +213,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...breakdownComputers,
   ...manpowerComputers,
   ...forecastComputers,
+  ...compareComputers,
 };
