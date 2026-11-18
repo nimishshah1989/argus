@@ -1,43 +1,46 @@
 # Where things stand — handoff for the next orchestrator session
 
-Read this first, then `docs/plan/ledger.md` (17–18 Nov) and `docs/plan/MILESTONES.md`. Under 50 lines; rewrite at session end.
+Read this first, then `docs/plan/ledger.md` (17–18 Nov), then `docs/plan/MILESTONES.md`. Under 50 lines; rewrite at session end.
 
-## START HERE (M4a analytics parity → M4b → M6)
+## START HERE (M4a tail → M4a gate → M4b → M6)
 
-**State:** `main` = `cbb9f906`. M2 accepted. M4a: **36, 38, 38.5, 39, 37 done**; **ticket 40 is one packet from done** — its
-four figures are exact and merged (seam #316, log #317, A1 + S2 #318, A2 #319, A3 #320) and two of its four screens are live
-(#322: the Breakdown Log and A1). Every merge had a fresh review with the covering suite, red first, green CI and
+**State:** `main` = `68701f2a`. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 all done.** Ticket 40's four figures are exact
+against the platform key (seam #316, log #317, A1 + S2 #318, A2 #319, A3 #320) and **all four Breakdowns screens are live**
+(#322 the log + A1, #325 A2 + A3). Every merge had a fresh review with the covering suite, red first, green CI and
 `pnpm main:check`. **Only open PR:** #300 (history plan, draft, Nimish's — leave it).
 
-**First action — refresh Graphify** (the graph predates the last merges): in your session worktree,
-`GRAPHIFY_BACKEND=none graphify update .` (if `graphify-out/` is missing: `graphify extract . --code-only &&
-GRAPHIFY_BACKEND=none graphify cluster-only .`). Then query it before reading code:
-`graphify query "<area>" --budget 2000`, `graphify explain "<symbol>"`, `graphify affected "<symbol>"`.
+**First action — refresh Graphify** (the graph was just regenerated on `68701f2a`; still refresh if you branch onward):
+`GRAPHIFY_BACKEND=none graphify update .` in your session worktree (missing: `graphify extract . --code-only &&
+GRAPHIFY_BACKEND=none graphify cluster-only .`), then `graphify query "<area>" --budget 2000` before reading code. Refresh
+it after every merge.
 
 **Frontier, in order:**
 
-1. **40e-2 the A2 and A3 screens** (last packet of ticket 40). Plan `docs/slices/40-breakdowns.md` packet 40e-2; reuse
-   40e-1's key-shaped `page` content kind and `PageFigure`, extend `BreakdownsPage`/menu, the `analytics-breakdowns`
-   catalogue, `page-content.test.ts` and the e2e journey, and flip the remaining breakdown parity rows honestly.
-   **In flight:** branch `40e2-screens` (`86a607b1`, 12 uncommitted files, `A1Page.tsx` deletion unverified) — inspect
-   `git -C .agents/worktrees/40e2-screens diff` first; if it builds and the covering suite is green, finish and review it,
-   else reset the worktree to `main` and start fresh. Nothing of it is merged.
-2. **41–45** → **M4a gate** (`docs/plan/gates/M4a.md`, under 30 lines) → **M4b** (46–54, 67) → **M6** (55–60). **M3 out.**
-3. **Follow-ups:** move-correction row lock; 38.5/39d/40c/40d/40e-1 nice-to-haves (each in the ledger); N5, N12, CSV/XLSX.
+1. **41 Manpower, energy, root cause** (M4a): A4 manpower, A5 energy heatmap, A6 Why-Why, A10 problem analysis — exact against
+   `a4-manpower`, `a5-energy`, `a6-why-why`, `a10-problems`; sortable tables; a Why-Why record saved in ticket 36's home and
+   printable; person-level minutes with coded names only. Write its slice plan first (`docs/slices/41-*.md`) and get a fresh
+   plan review.
+2. **42 Forecast** (A9 bottleneck, planning forecast with the seeded Monte Carlo, Forecast Lab backtest; the machine page shows
+   its band) — needs the deterministic seed scheme in `fixtures/answer-key/README.md`.
+3. **43 Compare, Team Focus, Money, Fix Finder** (money heads/admin only; Team Focus status/owner/note persist).
+4. **44 Action Center** (the 13 nudge rules exact on the fixture; a snooze persists across sessions).
+5. **45 Reports, export, Guide** (monthly/annual reports + PDFs, the whole-workbook export under an ADR, every Guide entry
+   opens its figure). Then **write `docs/plan/gates/M4a.md` (<30 lines)** and, per the night exception, continue into **M4b
+   (46–54, 67)** and **M6 (55–60)**. **M3 is out.**
 
-**How this repo is worked (non-negotiable):** `docs/BUILD-PROTOCOL.md`, the routing and review tiers fixed in
-`docs/decisions/D31-third-regime-routing-and-quality.md` (never switch a route silently), `docs/plan/night-run.md` (loop,
-evidence standard, night exception at gates). One writer per file area; reviewers run the **covering suite**, never only the named test; one PR per ticket,
-rebased, one CI run, merge one at a time, `pnpm main:check` after each; never weaken a test.
-**PR-body guards:** `Large PR: <reason>` or the `size:large` label; `No parity: <reason>` (or update
-`docs/spec/parity.yaml`); `Merge train:` when one PR adds several fragments; a fragment must be named
-`changes/<digits>-<slug>.md` (the checker accepts an added **or modified** one).
+**How this repo is worked (non-negotiable):** `docs/BUILD-PROTOCOL.md`; routing and review tiers in
+`docs/decisions/D31-third-regime-routing-and-quality.md` (never switch a route silently); `docs/plan/night-run.md` (loop,
+evidence standard, night exception at gates). One writer per file area; **reviewers run the covering suite, never only the
+named test**; one PR per ticket, rebased, one CI run, merge one at a time, `pnpm main:check` after each; never weaken a test.
+**PR guards:** `Large PR: <reason>` or `size:large`; `No parity: <reason>` or update `docs/spec/parity.yaml`; `Merge train:`
+for multi-fragment PRs; fragments named `changes/<digits>-<slug>.md`.
 **Known traps:** `check-size` counts the trailing newline (keep files ≤399 wc-lines); `migration-runner`, `escalation` and
-`state-scale` tests flake under CI load (rerun; never change code for them); GitHub Actions stalled ~3 h on 18 Nov — a
-red/pending run may be infrastructure, check before debugging code.
+`state-scale` flake under CI load (rerun; never change code); GitHub Actions stalled ~3 h on 18 Nov (a pending/red run may be
+infrastructure — check job timings before debugging).
 
-**Calls and gaps:** **N12 open** — the real legacy maintenance-code map is Bhavin's; 37c shipped a labelled synthetic map.
-CSV not XLSX for the cell-log export (needs an ADR); the analytics Gujarati copy is blank (external N5); category/cell
-masters are derived until `EngineData.lists` carries them.
+**Calls and gaps:** **N12 open** — the real legacy maintenance-code map is Bhavin's (37c ships a labelled synthetic map). CSV
+not XLSX for the cell-log export (ADR needed); the analytics Gujarati copy is blank (external N5); category/cell masters are
+derived until `EngineData.lists` carries them. Recorded follow-ups: move-correction row lock; 38.5/39d/40c/40d/40e-1/40e-2
+nice-to-haves (each in the ledger).
 
 One orchestrator; children use fresh contexts and disjoint files; contract first, never two writers on one file.
