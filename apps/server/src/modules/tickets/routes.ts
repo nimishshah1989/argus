@@ -125,7 +125,7 @@ async function executeCommand(
   await sql.persistResult(client, tx, loaded, result);
   await saveCorrectedMachine(client, tx, loaded);
   await recordAdminFix(client, tx, loaded, result);
-  await report.storeReportForTransition(client, tx, result);
+  await report.storeReportForTransition(client, tx, result, loaded.extras.raisedChannel);
   const left = await afterClose(client, tx, loaded, result.ticket);
   const parts = await ticketPartsAfterWrite(client, {
     tenantId: tx.tenantId,

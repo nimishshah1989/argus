@@ -193,7 +193,7 @@ const FAMILIES: Family[] = [
       await act(id, 'asha', 'close', { personId: people.asha, kind: 'no_report' });
       return id;
     },
-    body: { report: { problem: 'Late report', downtimeMin: 30 } },
+    body: { report: { problem: 'Late report', downtimeMin: 30, failureComponent: 'E' } },
   },
   { action: 'cancel', ready: () => ticketIn(), body: { reason: 'Raised twice' } },
   { action: 'upgrade-kind', ready: () => ticketIn('support'), body: {} },
