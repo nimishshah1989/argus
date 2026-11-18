@@ -15,7 +15,15 @@ export {
   ticketDownFacts,
   type DownFacts,
 } from './repo/escalation.js';
+export { whyWhyEventRows } from './repo/events.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
+export {
+  loadWhyWhy,
+  saveWhyWhy,
+  whyWhyState,
+  WHY_WHY_READ_REFUSAL,
+  WHY_WHY_WRITE_REFUSAL,
+} from './why-why.js';
 export { ladderEventRows, type LadderEventRow } from './repo/ladder.js';
 export {
   lockTicket,
