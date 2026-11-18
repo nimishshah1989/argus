@@ -4,12 +4,12 @@ Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `doc
 
 ## START HERE (review 41b → M4a tail → gate → M4b → M6)
 
-**State:** `main` = `f841aed4`, deployed on every merge. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
-41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331** (retires 41a's category
-debt), **41a A4 #329** and **41b A5 #333** (whole value equal to the key, 126-CNC drill, per-machine efficiency; fresh
-review PASS, one fragment count fixed). Next packets, in order: **41c A6**, 41c-2 saved Why-Why + server PDF,
-41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan names every rule, file, red/green command and ruling R1–R9; do not
-re-derive them, do not undo R8. Only other open PR: #300 (Nimish's, leave it).
+**State:** `main` = `79b4c94f`, deployed on every merge. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
+41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331**, **41a A4 #329**,
+**41b A5 #333** and **41c A6 #335** (24 raw-hours candidates, the NO-DT VC-23 pinned at 59.98; fresh review PASS).
+Next packets: **41c-2 saved record + server PDF**, 41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan names every rule,
+file, red/green command and ruling R1–R9; do not re-derive them, do not undo R8. Only other open PR: #300 (Nimish's,
+leave it).
 
 **The answer key's authority is the 11 Nov platform build, tracked in this repo** at
 `docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`; the
@@ -21,7 +21,7 @@ fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate ke
 map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
 
 **First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then dispatch 41c.
+(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then dispatch 41c-2.
 
 **Frontier after 41:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
 43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),
