@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { withTenant, type JobRole } from './kernel/index.js';
+import { assertClockNearDatabase, withTenant, type JobRole } from './kernel/index.js';
 import { jobTenantIds, purgeDeadSessions } from './modules/identity/index.js';
 import { stripOldImportPayloads } from './modules/imports/index.js';
 import { purgeRoster } from './modules/accountability/index.js';
@@ -14,8 +14,6 @@ import { figureDrift, purgeIdempotencyKeys, type DriftLine } from './modules/tic
  */
 
 const DAY = 86_400_000;
-/** A job whose clock is further than this from the database's refuses to run: a wrong clock would purge too much. */
-const MAX_CLOCK_SKEW_MS = DAY;
 
 export interface RetentionResult {
   tenants: number;
@@ -70,15 +68,6 @@ export const RETENTION_JOBS = Object.keys(JOBS) as RetentionJobName[];
 
 export interface RetentionPayload {
   tenantId?: string;
-}
-
-async function assertClockNearDatabase(pool: Pool, name: string, now: Date): Promise<void> {
-  const row = (await pool.query('SELECT clock_timestamp() AS t')).rows[0] as { t: Date };
-  if (Math.abs(row.t.getTime() - now.getTime()) > MAX_CLOCK_SKEW_MS)
-    throw new Error(
-      `${name}: the clock (${now.toISOString()}) is more than 24 hours from the database's ` +
-        `(${row.t.toISOString()}); nothing was changed`,
-    );
 }
 
 /**

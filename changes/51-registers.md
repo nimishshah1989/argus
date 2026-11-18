@@ -136,3 +136,40 @@ and 49a's PM plans already took it to 143, so 51a takes **143 → 146** (the equ
 (`register line N has no machine`); the unknown-code conflict is the seed's, as the plan's field map describes. An
 unknown or another plant's machine is a **422** on `machineId` (R6 and 51a's Given/When/Then 6), unlike PM plans'
 `Problem.missing` 404; another plant's **row id** is a 404.
+
+## 51b — the `register.due` notice (this PR)
+
+**What changed for a user:** an owner now gets one push per register item on the first day of its lead window, and no
+second one that day. The watch day is `due_on`, else `ends_on` — never `starts_on`; the window opens inclusive at
+`watchOn − lead_days` and has no upper bound, so an item that was missed while the server was down still gets its one
+message. Moving a date is a new window and sends a new message; switching the item off stops it; an owner who is no
+longer active is skipped; an item with no owner notifies nobody.
+
+**The rule is plant's, the job is notifications' (R8–R11).**
+`apps/server/src/modules/plant/repo/asset-registers.ts` gains `dueRegisterItems(tx, tenantId, today)`: the tenant's
+rows with an owner, a watch date and `COALESCE(due_on, ends_on) - lead_days <= today`, returning
+`{ id, ownerPersonId, watchOn, leadDays }` ordered by watch day, exported through `plant/index.ts`.
+`apps/server/src/modules/notifications/register-jobs.ts` runs it: `runRegisterDue` checks the clock, loops
+`jobTenantIds()` (or the one named tenant) under `withTenant`, computes `plantToday`, skips an owner `activePerson`
+does not return, and calls `notify` in the same transaction with `kind: 'register.due'` and the key
+`register:<row id>:<watchOn>`; `notify` appends the person and channel, so the stored key is
+`register:<id>:<date>:<person>:push`. `startRegisterJobs` creates the queue for every role and, off the `api` role, the
+worker and the daily UTC schedule `15 0 * * *`; there is no boot enqueue, and a re-run writes nothing because of the
+unique key. `notifications/kinds.ts` adds the push body (“Register item due”), and `index.ts` starts the job after the
+notify jobs. The 24-hour database clock guard moved from `retention.ts` to `kernel/jobs.ts`
+(`assertClockNearDatabase`, exported by `kernel/index.ts`); the message and the rule are unchanged and retention now
+imports it.
+
+**Evidence.** `apps/server/test/register-due.test.ts`, on the fake clock at 11:30 IST: the day before the window
+(silent), the inclusive boundary (one), a second run that day (still one), `due_on` winning over `ends_on` with lead 0,
+an overdue row (one on the next run, not a stream), a moved date (a new key, the old one never repeated), a new owner
+(a second message for the same date, the old owner not repeated), a removed row (nothing new, the earlier row stays),
+no owner / an inactive owner / a start-only row (none), one tenant's run leaving the other tenant's due row alone, the
+clock guard refusing before writing, the row holding ids only, and the registration (queue for `api`, worker and
+`15 0 * * *` UTC off it). The existing `notify.test.ts`, `retention-jobs.test.ts` (the moved guard still refuses) and
+`sla-timers.test.ts` stay green.
+
+**Rails.** No new table, column, migration or dependency (D17; 0015 untouched). `notifications → plant/identity` is
+already in `CALLS`, so `pnpm boundaries` needs no edit; `pnpm size` stays inside 400 lines; every new function is under 60. **Deviation recorded for review:** the frozen plan names the test file `apps/server/test/asset-register-notice.test.ts`
+and this packet names it `apps/server/test/register-due.test.ts` to match the `register.due` job; the cases are the
+plan's, none dropped.

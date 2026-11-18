@@ -54,3 +54,36 @@ export const registerStore: Store = {
     await tx.query('DELETE FROM asset_register WHERE id = $1', [id]);
   },
 };
+
+/** One row whose notice window is open: the job tells its owner (R8–R10). */
+export interface DueRegisterItem {
+  id: string;
+  ownerPersonId: string;
+  /** `due_on ?? ends_on`, the day the notice names; `YYYY-MM-DD` in the plant's calendar. */
+  watchOn: string;
+  leadDays: number;
+}
+
+/**
+ * The plant's rows due a notice on `today`, the rule behind the `register.due` job (R8, R11): an owner, a watch date
+ * (`due_on ?? ends_on`, never `starts_on`), and a window that opened inclusive at `watchOn − lead_days`. There is no
+ * upper bound, so an overdue row still answers; the caller's dedupe key makes it one message per item per date.
+ */
+export async function dueRegisterItems(
+  tx: Db,
+  tenantId: string,
+  today: string,
+): Promise<DueRegisterItem[]> {
+  return (
+    await tx.query(
+      `SELECT id, owner_person_id AS "ownerPersonId", COALESCE(due_on, ends_on)::text AS "watchOn",
+              lead_days AS "leadDays"
+         FROM asset_register
+        WHERE tenant_id = $1 AND owner_person_id IS NOT NULL
+          AND COALESCE(due_on, ends_on) IS NOT NULL
+          AND COALESCE(due_on, ends_on) - lead_days <= $2::date
+        ORDER BY COALESCE(due_on, ends_on), id`,
+      [tenantId, today],
+    )
+  ).rows as DueRegisterItem[];
+}
