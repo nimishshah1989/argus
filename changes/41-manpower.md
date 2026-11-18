@@ -28,3 +28,39 @@ typed in terms of them and leaving them behind would make a module cycle; `fixtu
 changed. (2) The parity tool's data-file exemption (above). (3) The R8 file and README describe the name forms in
 words, not as examples, because the repo forbids real personal data in the repo and `pnpm pii:scan` enforces it; the
 nine ids, fields, tokens and codes are exact.
+
+## 41a — A4 manpower
+
+**What changed for a user:** the A4 Manpower Efficiency page is now computed — the three KPIs (1,279 breakdowns
+printed bare, 3,060.1 BD hours, 14 team members), the Manpower table, the PM month-on-month pair rows with their two
+PLANT TOTAL rows, Specialization, the two month-on-month matrices and the bar chart. It drills to the production
+non-PM breakdown tickets.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-manpower.test.ts` (5 new tests): the
+whole page is `toEqual(A4)`; the drill count is derived from `ENGINE_DATA` and every id is a real ticket; a fresh
+copy of a real breakdown on an excluded machine leaves the whole page and the drill byte-identical (the production
+filter bites); reversing `settings.teamCodes` reverses Specialization and both BD month matrices while the Manpower
+table stays sorted by done count; an empty plant (no production breakdown or no team) prints `null`. Red first,
+before the computer was registered: four failed with status `not_computed`, and the settings-order test threw
+`the A4 page holds no table titled ...` because the value was null. Green: the named file (5/5), then
+`pnpm exec vitest run packages/domain/test` — 26 files, 370 tests.
+The suite grows by six, not five: the new source file also adds one case to
+`analytics-engine.test.ts`'s purity list; the pre-existing 364 all stay green.
+
+**Deviations recorded.** (1) The Specialization columns come from the production fleet's distinct
+`MachineRow.category` values in data order (Robot dropped, case-insensitive), because the 41h `EngineSettings`
+seam carries no category list. This is a KNOWN PLATFORM DIVERGENCE: the platform prints every
+`settings.categories` entry except Robot — including a category with no machines, as an all-dash column — while
+this figure would omit that column until the plant category list reaches the engine. On this key the derived list
+is exactly the workbook's 14 `settings.categories` without Robot, in order, so the key is unaffected (14 columns
+identical). The divergence is recorded in `docs/plan/DEBT.md` and the ledger by the orchestrator. (2) A column label
+is shortened only when it is longer than 12 characters (`slice(0, 11) + '…'`), not when it is longer than 11: the
+key prints `WaterJet CNC` (12) whole, and the committed
+platform source uses the same `>12` test. (3) "No drill id is a report id" cannot hold literally: the history
+workbook uses one id for both a report and its ticket (1,283 of 1,350 rows). The test asserts no drill id is a
+report-only id (one of the 67 live rows whose report id differs from its ticket id), while every drill id is a real
+ticket. (4) The two BD month matrices read the year of `asOf` (the platform's `calcAnalytics4(year)` passes it to
+`filterBD` for `momCount`/`momHours`); every fixture row is 2026, so the key is identical either way, and the
+Manpower table, Specialization and chart still read the whole log as the platform does. (5) The PM PLANT TOTAL hours
+are the sum over the Settings **team order**: the platform reduces its `momPMHours` rows in team order, and this
+code does the same. The key's May cell (48.0) and its PLANT TOTAL total (1,511.2) both match.
