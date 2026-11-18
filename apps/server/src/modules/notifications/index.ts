@@ -17,6 +17,14 @@ export {
 } from './notify.js';
 export { processNotification, type SendDeps, type SendResult } from './send.js';
 export { startNotifyJobs, type NotifyJobDeps } from './jobs.js';
+export {
+  REGISTER_DUE_QUEUE,
+  runRegisterDue,
+  startRegisterJobs,
+  type RegisterDueDeps,
+  type RegisterDueResult,
+  type RegisterJobDeps,
+} from './register-jobs.js';
 export { sweepNotifications, type SweepResult } from './sweep.js';
 export type { Channel } from './repo.js';
 
