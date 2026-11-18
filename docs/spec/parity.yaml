@@ -1002,8 +1002,10 @@ rows:
     milestone: M4
     milestones:
       - M4
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the six KPIs, the tables and the two charts with catalogue chrome'
+      - "apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1 (A1's KPIs, four tables, two charts and drill)"
     source: PARITY.md §analytics / Breakdown history and analysis
   - id: analytics.breakdown.04
     feature: A6 Why-Why root-cause analysis with candidate selection
@@ -1040,8 +1042,9 @@ rows:
     milestone: M4
     milestones:
       - M4
-    status: todo
-    evidence: []
+    status: in-progress
+    evidence:
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1 (the log eye opens the ticket; A1 drills to its ticket rows)'
     source: PARITY.md §analytics / Breakdown history and analysis
   - id: analytics.breakdown.08
     feature:
@@ -1296,6 +1299,8 @@ rows:
     evidence:
       - fixtures/answer-key/breakdown-log.json
       - fixtures/answer-key/input.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: its title, one empty-KPI page and the platform table with its rowCount'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1'
     source: docs/plan/m4a-triage.md
     screen: breakdown-log
     ticket: '40'
@@ -1308,6 +1313,8 @@ rows:
     status: todo
     evidence:
       - fixtures/answer-key/a1-bd-pm.json
+      - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the six KPIs, the tables and the two charts with catalogue chrome'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1'
     source: docs/plan/m4a-triage.md
     screen: a1-bd-pm
     ticket: '40'

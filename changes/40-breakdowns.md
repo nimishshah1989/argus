@@ -36,11 +36,37 @@
   the workbook's raw double space, 2 dp chart values included. The drill names the production breakdown tickets the
   figure read.
 
+- The Breakdowns group now opens on the Breakdown Log (packet 40e-1): the platform's own page, PM rows included,
+  newest first, with the eye column, Sr No, ticket, date, shift, machine, problem, Done By, downtime hours (a dash for
+  NO DT) and code. Filters by date, shift, machine and code narrow the printed rows only; the figure's rowCount is
+  always printed (1,343 on the key) and "showing the newest N" says when the engine page was truncated. The export is
+  the existing client Blob/CSV pattern, with no new dependency, and writes the filtered table without the eye column.
+  Every row's eye opens its own ticket.
+- A1 now shows its whole key page: the six KPIs, the four tables and the two charts (the chart kit's bar and line, with
+  the two BD/PM series the engine sends). Its one drill names the ticket rows; when the engine names more than the drill
+  endpoint's 200-id cap, the page links to the Breakdown Log, where each of those tickets is a row, instead of asking
+  the server for a query it refuses.
+- The two figures map through one new key-shaped `page` content kind in `figure-content.ts`, rendered by the group
+  screen with the kit's `StatCard`, `DataTable` and `Chart`; no per-screen table renderer. Chrome is catalogue copy
+  in its own `analytics-breakdowns` namespace; the engine's titles, KPI labels and cells stay data. The journey pins a
+  head filtering and exporting the log and opening a ticket from a row, then A1's KPIs, tables, charts and drill; an
+  operator is refused.
+- Red first (packet 40e-1): on base 5c4e2cc9 the mapping module `log-values.ts` is absent, `figure-content.ts` has no
+  `page` content kind, and `Analytics.tsx` has no Breakdowns route, so the new journey failed at the missing
+  "Breakdown Log" heading. Green: the page-content suite (the page mapping, the log filters and all six A1 KPIs), the
+  analytics-breakdowns journey (filter, count, export, ticket drill, six KPIs, four tables, two charts, drill, the
+  over-cap fallback and the operator refusal) and the chart kit's two-series bar case.
+- Deliberate deviations (packet 40e-1): the group's two screens switch on a `?screen=` query in `BreakdownsPage`
+  rather than nested routes, keeping the group's one `/analytics/breakdowns` route; the shared chart kit's bar spec
+  grew from one series to two (the `BarSpec` tuple and `barOption`'s per-series colour) so A1's BD/PM bars draw
+  together; and A1's drill — its 1,343 ids exceed the endpoint's 200-id cap — links to the Breakdown Log instead of
+  asking for a query the server refuses. That fallback is now pinned by an e2e stub of 201 ids: the note and the log
+  link are asserted, the drill link is absent and no drill request is made.
 - A3 (packet 40d) now answers the platform's whole page exactly: the six tables (By Category 14 rows, By Cell 9,
   Month-on-Month Cell-wise/Plant-wide 20, Month-on-Month Age Band-wise/Plant-wide 12, By Machine Age Band 5, By
   Individual Machine 125) and the seven charts (ch-a3-catmttr, ch-a3-catmtbf, ch-a3-cellmttr, ch-a3-cellmtbf,
   ch-a3-agemttr, ch-a3-agemtbf, and ch-a3-planttrend in the platform's mixed dual-axis convention), compared whole
-  against the key with no tolerance. MTTR is BD hours ÷ breakdowns; MTBF is (available hours − BD hours) ÷ breakdowns.
+  against the key with no tolerance. MTTR is BD hours / breakdowns; MTBF is (available hours - BD hours) / breakdowns.
   The four bases are the key's own: the days-so-far window for the summary tables and the Total column, each month's
   own window for its cell, and the average of the unrounded monthly values for a quarter. A group with no breakdowns
   prints MTTR 0.00 and MTBF its available hours; only an empty month prints the dash. Age bands use the machine's age

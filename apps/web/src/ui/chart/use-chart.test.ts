@@ -56,6 +56,28 @@ describe('chartOption', () => {
     expect(option.xAxis?.data).toEqual(['CNC', 'VMC']);
   });
 
+  it('draws a two-series bar in the two series colours, one legend-free bar per dataset', () => {
+    const spec: ChartSpec = {
+      kind: 'bar',
+      title: 'BD % and PM % by cell',
+      categoryLabel: 'Cell',
+      categories: ['Cell 1', 'Cell 2'],
+      series: [
+        { name: 'BD %', values: [1.36, 0.26] },
+        { name: 'PM %', values: [0.02, 0.27] },
+      ],
+    };
+    const option = view(spec);
+    expect(option.series?.map((s) => s.type)).toEqual(['bar', 'bar']);
+    expect(option.series?.map((s) => s.name)).toEqual(['BD %', 'PM %']);
+    expect(option.series?.map((s) => s.color)).toEqual(['#1', '#2']);
+    expect(option.series?.map((s) => s.data)).toEqual([
+      [1.36, 0.26],
+      [0.02, 0.27],
+    ]);
+    expect(option.legend).toBeUndefined();
+  });
+
   it('keeps the line chart on the two series colours with a category axis and end labels', () => {
     const spec: ChartSpec = {
       kind: 'line',

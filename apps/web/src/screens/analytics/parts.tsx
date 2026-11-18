@@ -52,15 +52,20 @@ export function StatCard({
   );
 }
 
-/** A plain table of the engine's cells: a header row and its rows, both already written by the engine. */
+/**
+ * A plain table of the engine's cells: a header row and its rows, both already written by the engine. A screen
+ * that needs a link inside one cell passes `renderCell`; the table itself stays the one renderer.
+ */
 export function DataTable({
   title,
   header,
   rows,
+  renderCell,
 }: {
   title?: string | null;
   header: readonly string[];
   rows: readonly (readonly string[])[];
+  renderCell?: (cell: string, rowIndex: number, columnIndex: number) => ReactNode;
 }) {
   const headingId = useId();
   const label = title ?? header.join(' · ');
@@ -95,7 +100,7 @@ export function DataTable({
               <tr key={rowIndex} className="border-t border-neutral-200">
                 {row.map((cell, index) => (
                   <td key={index} className="p-2">
-                    {cell}
+                    {renderCell ? renderCell(cell, rowIndex, index) : cell}
                   </td>
                 ))}
               </tr>

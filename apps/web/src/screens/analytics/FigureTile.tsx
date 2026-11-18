@@ -4,6 +4,7 @@ import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { Chart } from '../../ui/chart/chart.js';
 import { contentOf, type FigureContent } from './figure-content.js';
+import { PageFigure } from './PageFigure.js';
 import { FIGURE_LABELS, drillHref, unitOf, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
@@ -96,6 +97,7 @@ function Content({ content }: { content: FigureContent | null }) {
   if (content === null || content.kind === 'text') return null;
   if (content.kind === 'chart') return <Chart spec={content.spec} />;
   if (content.kind === 'table') return <ContentTable content={content} />;
+  if (content.kind === 'page') return <PageFigure content={content} />;
   return <ContentList content={content} />;
 }
 
