@@ -6,6 +6,7 @@ import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
 import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
+import { fixFinderFigure } from './fix-finder.js';
 import { forecastLabFigure } from './forecast-lab.js';
 import { moneyMattersFigure } from './money-matters.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
@@ -196,6 +197,7 @@ const compareComputers: Readonly<Record<string, Computer>> = {
   compare: compareFigure,
   'team-focus': teamFocusFigure,
   'money-matters': moneyMattersFigure,
+  'fix-finder': fixFinderFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
