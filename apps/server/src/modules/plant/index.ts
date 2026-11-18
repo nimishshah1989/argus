@@ -1,7 +1,15 @@
 import { defineModule } from '../../kernel/index.js';
 import { registerPlantRoutes } from './routes.js';
 
-export { hasShifts, setMachineCriticality } from './repo/config.js';
+export {
+  hasShifts,
+  removeNudgeAck,
+  saveNudgeAck,
+  selectNudgeAck,
+  selectNudgeAcks,
+  setMachineCriticality,
+  type StoredSetting,
+} from './repo/config.js';
 export {
   activeListItems,
   activeMachineByCode,

@@ -42,8 +42,58 @@ export async function loadPlantRows(tx: Db): Promise<PlantRows> {
   };
 }
 
+/**
+ * The generic settings list: the plant's switches and numbers. Team Focus and nudge state is one row per item
+ * (`focus:` and `nudge:`) and is read by its own screens, never here: leaking an item row into the list would
+ * show hundreds of settings rows a head cannot edit.
+ */
 export async function selectSettings(tx: Db): Promise<Rows> {
-  return (await tx.query('SELECT key, value FROM setting ORDER BY key')).rows;
+  return (
+    await tx.query("SELECT key, value FROM setting WHERE key !~ '^(focus|nudge):' ORDER BY key")
+  ).rows;
+}
+
+/** One stored `setting` row by key, with its id (the write's audit names the row it changed). */
+export interface StoredSetting {
+  id: string;
+  key: string;
+  value: unknown;
+}
+
+/** The Action Center's stored acknowledgements, one row per nudge key, in a stable order. */
+export async function selectNudgeAcks(tx: Db): Promise<StoredSetting[]> {
+  return (
+    await tx.query("SELECT id, key, value FROM setting WHERE key LIKE 'nudge:%' ORDER BY key")
+  ).rows;
+}
+
+/** One nudge's stored acknowledgement, or undefined when the nudge was never acted on. */
+export async function selectNudgeAck(tx: Db, key: string): Promise<StoredSetting | undefined> {
+  return (await tx.query('SELECT id, key, value FROM setting WHERE key = $1', [key])).rows[0];
+}
+
+/**
+ * Writes one nudge's acknowledgement. The table's `(tenant_id, key)` uniqueness is the one row per nudge: a second
+ * head's write replaces the value and keeps the row (and its id), so the audit trail reads one row's history.
+ */
+export async function saveNudgeAck(
+  tx: Db,
+  input: { tenantId: string; key: string; value: unknown },
+): Promise<StoredSetting> {
+  return (
+    await tx.query(
+      `INSERT INTO setting (tenant_id, key, value) VALUES ($1, $2, $3::jsonb)
+       ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+       RETURNING id, key, value`,
+      [input.tenantId, input.key, JSON.stringify(input.value)],
+    )
+  ).rows[0];
+}
+
+/** Reopen: the row goes, and with it the ack; stale keys are not deleted by anything else. */
+export async function removeNudgeAck(tx: Db, key: string): Promise<StoredSetting | undefined> {
+  return (await tx.query('DELETE FROM setting WHERE key = $1 RETURNING id, key, value', [key]))
+    .rows[0];
 }
 
 /** The stored value of one setting; undefined when the plant never set it. */

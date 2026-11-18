@@ -28,8 +28,8 @@ beforeAll(async () => {
   ).rows[0].id as string;
   const report = (
     await f.admin.query(
-      `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category, spare_used)
-       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise, told plant-a technician', 90, 'M', '10 mm pu pipe, 12*3mm seal') RETURNING id`,
+      `INSERT INTO breakdown_report (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category, spare_used, spare_cost)
+       VALUES ($1, $2, $3, '2026-11-01', 'DAY', 'Spindle noise, told plant-a technician', 90, 'M', '10 mm pu pipe, 12*3mm seal', 450.5) RETURNING id`,
       [A, ticket, M_USED],
     )
   ).rows[0].id as string;
@@ -309,6 +309,8 @@ describe('the data loader', () => {
       shift: 'DAY',
       // The seed joins the spare columns with ", ": the engine gets the parts, not one text.
       spares: ['10 mm pu pipe', '12*3mm seal'],
+      // The platform's three costs are one stored numeric; the loader reads it as a number.
+      spareCost: 450.5,
     });
     const technician = data.people.find((p) => p.code === data.reports[0]!.doneBy[0]);
     expect(technician).toMatchObject({ team: 'maintenance', active: true });

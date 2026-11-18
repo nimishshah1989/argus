@@ -121,3 +121,88 @@ dependency; no migration; no schema change.
    like the rest of the screen, and the read model stays JSON.
 5. **The figure file is 255 lines**, a soft size warning (soft 250) and well under the hard 400 rail; the functions
    stay under 60.
+
+# 44c — acknowledge and snooze persistence
+
+**What changed for a user:** a supervisor, head or admin can now Acknowledge, Snooze or mark Resolved any open Action
+Center nudge, with an owner, a due date and a note, and Reopen it later. The state is one `setting` row per nudge
+(`nudge:<full platform key>`), so it survives a new browser and two heads working different nudges cannot overwrite
+each other; a reopen deletes the row and the nudge is open again. A snooze lasts the plant profile's `snoozeDays`
+(default 7), and a plant that shortens that setting changes its next snooze. The six acks the frozen key carries are
+seeded rows and the `action-center` figure echoes them unchanged. The live loader now also reads `spare_cost` into
+the report row and the stored nudge acks into the engine settings, so the spares rule can fire on the live plant and
+the figure's `extra.acks` is real. `GET /settings` no longer lists `nudge:` or `focus:` item rows, which are read
+by their own screens.
+
+**Routes.** All `canAnalytics` (a supervisor acts; an operator and the board login get 403), and every successful
+write or reopen answers the whole fresh board:
+`GET /api/v1/analytics/action-center?asOf=YYYY-MM-DD` (default the plant's today); `PUT
+/api/v1/analytics/action-center/nudges/:key` with `{status: 'ack'|'snooze'|'resolved', owner?, due?, note?}`;
+`DELETE /api/v1/analytics/action-center/nudges/:key`. The key is URL-encoded and must name a **current** nudge (404
+otherwise, another plant's or a stale key included) and be **open** for a write (409 otherwise); an info (good-news)
+nudge refuses a write or a reopen (409). `owner` is at most 80 characters, `note` at most 500, `due` is a plant
+date or `''` (422 otherwise). `at` is the database's `now()` and a snooze's `until` is that instant plus the
+profile's `snoozeDays`, both read in the write's own transaction. Each write leaves one audit line (`nudge.ack`,
+`nudge.snooze`, `nudge.resolve`, `nudge.reopen`; entity `setting`; the row id; before/after).
+
+**Acceptance, exactly as the plan states it.** The six key acks are seeded from `input.json` and `GET
+/analytics/figures` returns `extra.acks` equal to those six; a live freq nudge (four breakdowns in the last 30 days)
+is a supervisor's ack with owner/due/note (one row and one audit line), an operator's and the board login's 403, a
+snooze at 7 days then 3 after the profile changes (exact `until - at` deltas), an earlier ack reopened by a newer
+breakdown, a reopen that restores open and removes the key from `extra.acks`, one row for a second ack over a stale
+one, a resolve, 404 for made-up/stale/other-tenant keys, 409 for a non-open nudge and for good news, 422 for a
+too-long note, and a settings list with no `nudge:` or `focus:` row.
+
+**Tests that prove it.** Red first with the routes unregistered: `Test Files 1 failed (1)`, `Tests 9 failed | 3
+passed (12)` (every route test saw 404; the figure and settings assertions still passed). Green:
+`pnpm exec vitest run apps/server/test/analytics-nudges.test.ts` — 12/12;
+`pnpm exec vitest run apps/server/test/analytics-engine.test.ts` — 18/18 (the loader's `spareCost` 450.5 and the
+profile); `pnpm exec vitest run packages/domain/test` — 40 files, 453 tests. `pnpm precheck` — 13 checks passed,
+28 files checked by prettier; lint reports only the repo's pre-existing warnings.
+
+**Files.** `packages/shared/src/action-center.ts` (new: `NUDGE_RULES`, `nudgeAckSchema`, `nudgeAckBodySchema`,
+the board schema and its reply), `packages/shared/src/index.ts` and `replies.ts` (export and the three reply
+contracts), `apps/server/src/modules/analytics/nudges.ts` (new: `readNudgeAcks`, the routes, the audits and the
+snooze clock), `load.ts` (nudge acks into `settings.nudgeAcks`, `spare_cost` into `ReportRow.spareCost`),
+`routes.ts` (register, and the one board loader the write paths share), `apps/server/src/modules/plant/repo/config.ts`
+(one setting row per nudge: read, upsert, delete; the `^(focus|nudge):` list filter), `apps/server/src/modules/tickets/repo/analytics.ts`
+(select `spare_cost`), `apps/server/src/modules/manifest.ts` (analytics calls ops for its audit), `apps/server/test/analytics-nudges.test.ts`
+(new) and the loader assertion in `apps/server/test/analytics-engine.test.ts`. No migration, no new dependency.
+
+**Deviations recorded.**
+
+1. **The `setting` SQL lives in the plant module.** `modules/analytics` may not name `setting` (the boundary rail:
+   only the owner's `repo/` may), so `nudges.ts` owns `readNudgeAcks` and the route logic while the SQL and the
+   list filter are in `plant/repo/config.ts`, reached through `plant/index.ts`. The plan's file list is honoured in
+   spirit; the table stays where the manifest says it belongs.
+2. **`analytics` now calls `ops`.** The audit lines need it; `CALLS` is updated in `manifest.ts` (analytics ->
+   ops, a bottom-up direction). Without that the audit of a write would break the boundary check.
+3. **`actionCenterBoard` is now on the domain's public API.** The server package has one entry point, so the board
+   function and its `ActionCenterBoard`/`BoardNudge`/`NudgeStatus`/`RiskRow` types are exported from
+   `analytics/index.ts`; `registry.test.ts`'s D2 pinned list gains the one runtime name. 44b exported nothing at
+   runtime; this packet needs the function the routes answer with.
+4. **`readNudgeAcks` is exported from `nudges.ts` and called by the loader.** `nudges.ts` does not import the
+   loader: the route module injects the board loader (`NudgeBoardOf`), so the loader -> nudges direction has no
+   cycle and the write path reuses the one load it already made.
+5. **Stored notes are not length-capped.** The write body enforces 80/500, as the plan says; the stored record's
+   `owner`/`note` schemas accept any string so a legacy platform note longer than 500 characters cannot turn the
+   board reply into a 500. The write path never stores one.
+6. **"Two acks of one key keep one row" is pinned as an upsert over a stale ack.** The plan also says a write on a
+   non-open nudge is 409, so two live acks of the same open nudge cannot both succeed through the route; the test
+   seeds the first (stale, reopened) ack and the route's second write keeps the same row id, which is the invariant
+   the unique `(tenant_id, key)` gives. A second write while the first ack still holds is the separate 409 case.
+
+**Open questions settled.**
+
+- **6. The setting key shape.** `nudge:<full platform key>` (`nudge:recur|HMC-2|ATC`, `nudge:long|bd_...`,
+  `nudge:rise|TC-6`), never `nudge:<rule>|<machine>`: the full key is what the six acks use and what `recur`,
+  `long`, `amc` and `legal` need. 0014's `<subject>` is read as the rest of the key; migrations are immutable, so
+  the correction lives here and in the ledger.
+- **7. The write role.** `canAnalytics` for read and write (supervisor, head, plant head, admin). DATA-MAP's
+  "maintenance head and admin (analytics role)" is the settlement point; a supervisor acts on a nudge, an operator and
+  the board login do not see the screen.
+- **8. Snooze precision.** A snooze stores `at` and `until` as instants but the engine holds plant **days**: the board
+  is snoozed while `plantDay(until) > asOf` and opens on that day. The tests pin the exact `until - at` delta (7 and
+  then 3 days); the last day's exact-hour boundary remains the platform difference the plan accepts.
+- **9. `GET /settings` leaks.** Filtered in the settings read with `key !~ '^(focus|nudge):'`; a `focus:test` row
+  is seeded by the test and never appears.

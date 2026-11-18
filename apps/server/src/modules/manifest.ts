@@ -66,7 +66,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   reports: ['tickets', 'identity', 'plant', 'files'],
   imports: ['tickets', 'identity', 'plant', 'files', 'ops'],
   ai: ['tickets', 'identity', 'plant'],
-  analytics: ['tickets', 'identity', 'plant'],
+  analytics: ['tickets', 'identity', 'plant', 'ops'],
 };
 
 /** A call outside CALLS that stays until its ticket removes it; `file` is repo-relative. */

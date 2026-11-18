@@ -2,6 +2,13 @@ export { run, runWith } from './engine.js';
 export { dataAsOf } from './as-of.js';
 export { plantDay } from './plant-day.js';
 export { COMPUTERS } from './computers.js';
+export { actionCenterBoard } from './action-center-figure.js';
+export type {
+  ActionCenterBoard,
+  BoardNudge,
+  NudgeStatus,
+  RiskRow,
+} from './action-center-figure.js';
 export type { ProblemGroup } from './problem-groups.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
 export type {
