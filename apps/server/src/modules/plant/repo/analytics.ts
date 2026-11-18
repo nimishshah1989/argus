@@ -27,6 +27,20 @@ export async function movesForEngine(tx: Db): Promise<Row[]> {
   ).rows;
 }
 
+/**
+ * Every shift of the plant, switched off ones too: the standard KPI family's working-hours basis is the union of
+ * the *active* windows, and a switched-off row must still arrive so the figure can say it is off (ticket 48).
+ */
+export async function shiftsForEngine(tx: Db, tenantId: string): Promise<Row[]> {
+  return (
+    await tx.query(
+      `SELECT code, name, starts_at::text AS starts_at, ends_at::text AS ends_at, crosses_midnight, active
+         FROM shift WHERE tenant_id = $1 ORDER BY code`,
+      [tenantId],
+    )
+  ).rows;
+}
+
 /** The plant's lists, off entries included, so a report that names a code since switched off still resolves. */
 export async function listsForEngine(tx: Db): Promise<Row[]> {
   return (

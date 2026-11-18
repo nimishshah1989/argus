@@ -5,6 +5,7 @@ import type {
   MoveRow,
   PersonRow,
   ReportRow,
+  ShiftRow,
   TicketRow,
 } from '../../src/index.js';
 import { read, type DashboardChart, type DashboardKpi, type FigureKey } from './keys.js';
@@ -119,6 +120,18 @@ function machines(workbook: Workbook): MachineRow[] {
     [workbook.dgMachines, 'DG'],
   ];
   return sheets.flatMap(([rows, segment]) => rows.map((row) => toMachine(row, segment, excluded)));
+}
+
+function shiftRows(workbook: Workbook): ShiftRow[] {
+  const minute = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  return workbook.settings.shiftTimes.map(({ name, start, end }) => ({
+    code: name,
+    name,
+    startMinute: minute(start),
+    endMinute: minute(end),
+    crossesMidnight: minute(end) <= minute(start),
+    active: true,
+  }));
 }
 
 /** A coded name (`Person 51`, `Maint. Team`) as the engine's person code. The workbook holds no other name. */
@@ -306,6 +319,7 @@ function engineData(workbook: Workbook): EngineData {
     reports: rows.map(toReport),
     people: people(workbook, rows),
     lists: lists(workbook),
+    shifts: shiftRows(workbook), // the plant's own windows (ticket 48)
     settings: {
       excludedMachineIds: workbook.settings.excludedMachines ?? [],
       problemFixes: workbook.settings.problemFix ?? {},

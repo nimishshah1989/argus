@@ -26,6 +26,8 @@ export const analyticsGuideEn = {
     'A machine’s year holds production hours per day × working days per year, 6,000 by default. A span counts each calendar month it touches in proportion to the days covered, divided by 12, and a machine counts from the later of the span’s start and its purchase date. A machine bought after the span ends has no available hours.',
   'analytics.guide.available-hours.body2':
     'A period’s available hours are the sum over the production fleet. BD %, PM % and availability all divide by this one figure, so they share a basis across the face.',
+  'analytics.guide.available-hours.body3':
+    'The shift-calendar basis divides by the plant’s own shift windows instead: the two shifts cover 21 hours a day, so a machine’s year holds 6,300 working hours rather than the platform’s 20 × 300 = 6,000. The platform’s column stays on screen beside it, because that is what the old tool printed, and both columns stay so a reader can see exactly what the new basis changes.',
   'analytics.guide.available-hours.formula':
     'annual = prodHrsPerDay × workDaysPerYear; fraction = Σ (days covered ÷ days in month) ÷ 12; available = annual × fraction(max(from, purchase), to)',
   'analytics.guide.dashboard.title': '3. Dashboard',

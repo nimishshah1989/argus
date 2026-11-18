@@ -10,7 +10,7 @@ import {
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
-import { snapshotStore } from '../src/modules/analytics/snapshot.js';
+import { profileOfKey, snapshotStore } from '../src/modules/analytics/snapshot.js';
 import { A, B, M_B, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 let f: Fixture;
@@ -322,6 +322,17 @@ describe('the data loader', () => {
     expect(data.reports[0]!.problem).toMatch(/^Spindle noise, told \[P\d+\]$/);
     expect(data.timeZone).toBe('Asia/Kolkata');
     expect(data.people.every((p) => /^P-[0-9a-f]{8}$/.test(p.code))).toBe(true);
+    // The standard family's basis: the plant's own shift window, read beside every other row (ticket 48).
+    expect(data.shifts).toEqual([
+      {
+        code: 'DAY',
+        name: 'Day',
+        startMinute: 8 * 60,
+        endMinute: 18 * 60 + 30,
+        crossesMidnight: false,
+        active: true,
+      },
+    ]);
   });
 });
 
@@ -421,6 +432,26 @@ describe('the snapshot writer', () => {
       '2026-11-11',
       '2026-11-12',
       '2026-11-12',
+    ]);
+  });
+  it('stores each figure under its own profile: the standard family beside the legacy one', async () => {
+    expect(profileOfKey('shift-kpis.compare')).toBe('standard');
+    expect(profileOfKey('pm-compliance')).toBe('standard');
+    expect(profileOfKey('a3-mttr-mtbf')).toBe('legacy');
+    const day = '2026-11-13';
+    await withTenant(f.db.app, B, (tx) =>
+      snapshotStore.save(tx, B, {
+        ...engineResult(day, 1),
+        figures: [
+          figureOf('dashboard.total-machines', 1, 'ready'),
+          figureOf('shift-kpis.compare', { screen: 'shift-kpis' }, 'ready'),
+        ],
+      }),
+    );
+    const rows = (await snapshots(B)).filter((row) => row.as_of === day);
+    expect(rows.map((row) => [row.key, row.profile])).toEqual([
+      ['dashboard.total-machines', 'legacy'],
+      ['shift-kpis.compare', 'standard'],
     ]);
   });
 });

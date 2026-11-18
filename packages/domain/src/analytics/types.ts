@@ -187,6 +187,20 @@ export interface LegalLine {
 }
 
 /**
+ * One row of the plant's shift settings as the working-hours basis reads it: minutes from local midnight, the
+ * direction the row says it runs, and whether the floor is offered it. The standard family's calendar is the union
+ * of the active windows, so a shifted-off window is no working time (ticket 48, R2).
+ */
+export interface ShiftRow {
+  code: string;
+  name: string;
+  startMinute: number;
+  endMinute: number;
+  crossesMidnight: boolean;
+  active: boolean;
+}
+
+/**
  * The plant's own settings that a figure needs beside its rows: the legacy platform kept both in Settings, and a
  * figure that ports its numbers reads them here. Optional, so a tenant that never set them reads the defaults.
  */
@@ -232,6 +246,11 @@ export interface EngineData {
   settings?: EngineSettings;
   /** The saved Why-Why records, latest per ticket; a ticket with no record is a candidate A6 shows as not started. */
   whyWhy?: readonly WhyWhyRow[];
+  /**
+   * The plant's shift windows (ticket 48). Optional so every fixture and test that builds `EngineData` keeps
+   * compiling: with it absent the working-hour basis has no hours and prints dashes (R3).
+   */
+  shifts?: readonly ShiftRow[];
   /** The external AMC and warranty lines (ticket 44's reminder rule); M4b ticket 51 fills them from the register. */
   amc?: readonly AmcLine[];
   /** The legal test and calibration lines (ticket 44's reminder rule); empty until the register lands. */

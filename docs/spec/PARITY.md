@@ -133,6 +133,8 @@ Source: the single-file HTML (data embedded at lines 533 to 540; Guide at lines 
 | Monthly and annual maintenance reports with PDF export | Keep; server-rendered; scheduled sending (M3) |
 | Excel import and export of the whole data set | Keep export; import becomes the importer (M5) with the same mapping as its first case |
 
+**The shift-calendar basis (M4b ticket 48).** The same five measures are printed a second, labelled time on the plant's own shift windows (MTBF, MTTR, availability, BD % and PM %) beside the platform's frozen cells; no platform page or cell changes.
+
 **Forecasting (Forecast Lab and Planning forecast)**
 
 | Calculation | Ours |

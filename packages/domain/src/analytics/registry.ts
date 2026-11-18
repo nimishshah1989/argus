@@ -55,6 +55,15 @@ const moneyTile = (owner: number, id: string, tile: string, label: string): Figu
   money: true,
 });
 
+/** One figure of a multi-figure screen: the screen id is the tile family, the figure its own key (ticket 48). */
+const tile = (owner: number, screenId: string, name: string, label: string): FigureDef => ({
+  key: `${screenId}.${name}`,
+  screen: screenId,
+  owner,
+  label,
+  drill: 'ticket',
+});
+
 /**
  * The kept screens of `docs/plan/m4a-triage.md` that an engine ticket computes. Left out on purpose: the PM,
  * AMC, legal and PM report registers (loaded by M4b tickets 49 and 51, no rows on main to drill to yet), the
@@ -108,6 +117,8 @@ export const FIGURES: readonly FigureDef[] = [
   moneyTile(44, 'action-center', 'spares-spend', 'Action Center: spares spend nudge'),
   screen(45, 'monthly-report', 'Monthly report', 'ticket'),
   screen(45, 'annual-report', 'Annual report', 'ticket'),
+  // Ticket 48's second definition of five measures: four figures on one screen, the comparison first (R12).
+  tile(48, 'shift-kpis', 'compare', 'Platform basis beside the working-hour basis'),
 ];
 
 export const FIGURE_KEYS: readonly string[] = FIGURES.map((figure) => figure.key);

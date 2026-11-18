@@ -36,6 +36,7 @@ export {
   listsForEngine,
   machinesForEngine,
   movesForEngine,
+  shiftsForEngine,
 } from './repo/analytics.js';
 export { settingRowStore } from './repo/setting-row.js';
 export { actorOf, forbidden } from './actor.js';

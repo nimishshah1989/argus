@@ -3,7 +3,7 @@ import { registerAnalyticsRoutes } from './routes.js';
 
 export { notStored, runForTenant, type FigureStore } from './service.js';
 export { loadEngineData } from './load.js';
-export { snapshotStore } from './snapshot.js';
+export { profileOfKey, snapshotStore, type FigureProfile } from './snapshot.js';
 export { readProfile } from './profile.js';
 
 export const analyticsModule = defineModule({

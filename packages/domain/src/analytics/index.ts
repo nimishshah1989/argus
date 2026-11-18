@@ -30,6 +30,7 @@ export type {
   NudgeAck,
   PersonRow,
   ReportRow,
+  ShiftRow,
   TaskRow,
   TicketRow,
   WhyWhyRow,
