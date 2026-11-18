@@ -7,6 +7,7 @@ import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
 import { a9BottleneckTrendsFigure } from './a9-maintenance.js';
 import { forecastLabFigure } from './forecast-lab.js';
+import { moneyMattersFigure } from './money-matters.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -188,6 +189,11 @@ const forecastComputers: Readonly<Record<string, Computer>> = {
   'forecast-lab': forecastLabFigure,
 };
 
+/** Owner 43's figures: the compare, team, money and Fix Finder packets; 43a to 43d add their entries here. */
+const compareComputers: Readonly<Record<string, Computer>> = {
+  'money-matters': moneyMattersFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -207,4 +213,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...breakdownComputers,
   ...manpowerComputers,
   ...forecastComputers,
+  ...compareComputers,
 };
