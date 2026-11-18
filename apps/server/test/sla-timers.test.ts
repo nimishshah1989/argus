@@ -755,6 +755,54 @@ describe('SLA ticket integration', () => {
     ).toBe(false);
   });
 
+  it('runs no clock for planned pm or inspection work, and a floor ticket still gets one', async () => {
+    const planned = async (channel: string, ref: string): Promise<string> => {
+      const row = await admin.query(
+        `INSERT INTO ticket (tenant_id, ref, kind, status, problem, reported_at, severity, raised_channel)
+         VALUES ($1, $2, 'stopped', 'open', 'Planned work', now(), 'S1', $3) RETURNING id`,
+        [TENANT, ref, channel],
+      );
+      return row.rows[0].id as string;
+    };
+    const pmId = await planned('pm', 'BD-PM');
+    const inspectionId = await planned('inspection', 'BD-INSPECTION');
+    const floorMachine = '60000000-0000-0000-0000-000000000050';
+    await admin.query(
+      "INSERT INTO machine (id, tenant_id, code, criticality) VALUES ($1, $2, 'VC-PLANNED', 'A')",
+      [floorMachine, TENANT],
+    );
+    const floor = await ticketPost('/api/v1/tickets', {
+      machineId: floorMachine,
+      problem: 'Live breakdown still clocks',
+    });
+    expect(floor.statusCode, floor.body).toBe(201);
+    const floorId = floor.json().ticket.id as string;
+
+    await withTenant(db.app, TENANT, async (client) => {
+      await reconcileSlaPolicies(client, TENANT, boss);
+    });
+    const timers = async (ticketId: string) =>
+      (
+        await admin.query('SELECT count(*)::int AS n FROM sla_timer WHERE ticket_id = $1', [
+          ticketId,
+        ])
+      ).rows[0].n as number;
+    expect(await timers(pmId)).toBe(0);
+    expect(await timers(inspectionId)).toBe(0);
+    expect(await timers(floorId)).toBeGreaterThan(0);
+    for (const id of [pmId, inspectionId, floorId]) {
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/tickets/${id}`,
+        headers: { host: 'sla.localhost', authorization: `Bearer ${ashaToken}` },
+      });
+      expect(detail.statusCode).toBe(200);
+      const sla = detail.json().ticket.sla as unknown;
+      if (id === floorId) expect(sla, 'floor ticket has a clock').not.toBeNull();
+      else expect(sla, 'planned ticket has no clock').toBeNull();
+    }
+  });
+
   it('serializes initial policy configuration followed by a concurrent raise', async () => {
     await runPolicyRaiseRace(POLICY_RACE_A, 'policy-first');
   }, 120_000);

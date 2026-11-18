@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { BREAKDOWN_CHANNELS } from '@uptimo/shared';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -21,8 +22,8 @@ export async function ticketDownFacts(
     await tx.query(
       `SELECT status, kind, severity, machine_running_at, machine_stopped_at,
               COALESCE(machine_stopped_at, kind_upgraded_at, reported_at) AS down_since
-         FROM ticket WHERE tenant_id = $1 AND id = $2 AND raised_channel <> 'backfill'`,
-      [tenantId, ticketId],
+         FROM ticket WHERE tenant_id = $1 AND id = $2 AND raised_channel = ANY($3::text[])`,
+      [tenantId, ticketId, [...BREAKDOWN_CHANNELS]],
     )
   ).rows[0];
   if (!row) return null;

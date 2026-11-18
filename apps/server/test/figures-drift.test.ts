@@ -143,14 +143,20 @@ describe('figures.drift', () => {
     expect(lines).toEqual([{ ref: 'BD-0003', figure: 'waitMin', cached: 9, recomputed: 0 }]);
   });
 
-  it('skips tickets imported from Bhavin or backfilled, whose stored figures legitimately differ', async () => {
+  it('skips history and planned work, whose stored figures are not a live breakdown, but keeps a live channel', async () => {
     await ticket(A, { ref: 'BD-0004', channel: 'import', cached: { repair_min: 999 } });
     await ticket(A, { ref: 'BD-0005', channel: 'backfill', cached: { repair_min: 999 } });
     await ticket(A, { ref: 'BD-0006', channel: 'desk', cached: { repair_min: 999 } });
+    await ticket(A, { ref: 'BD-0010', channel: 'floor', cached: { repair_min: 999 } });
+    await ticket(A, { ref: 'BD-0008', channel: 'pm', cached: { repair_min: 999 } });
+    await ticket(A, { ref: 'BD-0009', channel: 'inspection', cached: { repair_min: 999 } });
     const refs = (await drift(A)).report!.map((line) => line.ref);
     expect(refs).not.toContain('BD-0004');
     expect(refs).not.toContain('BD-0005');
+    expect(refs).not.toContain('BD-0008');
+    expect(refs).not.toContain('BD-0009');
     expect(refs).toContain('BD-0006');
+    expect(refs).toContain('BD-0010');
   });
 
   it('skips tickets that are still open: their figures move with the clock', async () => {

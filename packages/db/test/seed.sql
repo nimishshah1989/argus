@@ -130,3 +130,19 @@ INSERT INTO notification (id, tenant_id, dedupe_key, kind, person_id, channel, t
 INSERT INTO kpi_snapshot (id, tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of, run_id, value) VALUES
   ('10000000-0000-0000-0000-000000000023', '10000000-0000-0000-0000-000000000001', 'legacy', 'a3.mttr', 'plant', '', '2026-11-01', '2026-11-30', '2026-11-14', '10000000-0000-0000-0000-0000000000a1', '{"hours": 2.5}'),
   ('20000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000001', 'legacy', 'a3.mttr', 'plant', '', '2026-11-01', '2026-11-30', '2026-11-14', '20000000-0000-0000-0000-0000000000a1', '{"hours": 4}');
+
+INSERT INTO forecast (id, tenant_id, machine_id, month, as_of, profile, model, predicted) VALUES
+  ('10000000-0000-0000-0000-000000000024', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', '2026-12-01', '2026-11-14', 'legacy', 'baseline-v1', '{"hours": 3}'),
+  ('20000000-0000-0000-0000-000000000024', '20000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000008', '2026-12-01', '2026-11-14', 'legacy', 'baseline-v1', '{"hours": 4}');
+
+INSERT INTO pm_plan (id, tenant_id, machine_id, category, title, interval_days, meter_interval, meter_tolerance, last_meter_reading, last_done_on, checklist) VALUES
+  ('10000000-0000-0000-0000-000000000025', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', 'Vertical Machining Center', 'Monthly spindle service', 30, 500, 5, 1200, '2026-11-01', '["lubricate", "check coolant"]'),
+  ('20000000-0000-0000-0000-000000000025', '20000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000008', 'Vertical Machining Center', 'Monthly spindle service', 30, 500, 5, 900, '2026-11-02', '["lubricate", "check coolant"]');
+
+INSERT INTO intervention (id, tenant_id, machine_id, pm_plan_id, changed_on, control, before, after, verdict) VALUES
+  ('10000000-0000-0000-0000-000000000026', '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000025', '2026-11-05', '[{"parameter": "interval_days", "from": 30, "to": 14}]', '{"mttr": 4}', '{"mttr": 3}', '{"improved": true}'),
+  ('20000000-0000-0000-0000-000000000026', '20000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000025', '2026-11-06', '[{"parameter": "interval_days", "from": 30, "to": 14}]', '{"mttr": 5}', '{"mttr": 4}', '{"improved": true}');
+
+INSERT INTO asset_register (id, tenant_id, kind, machine_id, vendor, reference, starts_on, ends_on, due_on, lead_days, notes) VALUES
+  ('10000000-0000-0000-0000-000000000027', '10000000-0000-0000-0000-000000000001', 'amc', '10000000-0000-0000-0000-000000000008', 'Machine Tools Ltd', 'AMC-1', '2026-01-01', '2026-12-31', '2026-12-01', 30, 'Annual maintenance contract'),
+  ('20000000-0000-0000-0000-000000000027', '20000000-0000-0000-0000-000000000001', 'calibration', '20000000-0000-0000-0000-000000000008', 'Calibration Co', 'CAL-1', '2026-02-01', '2027-01-31', '2026-12-15', 45, 'Annual calibration');

@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
-import { apiError, listTicketsQuerySchema } from '@uptimo/shared';
+import { apiError, isBreakdownChannel, listTicketsQuerySchema } from '@uptimo/shared';
 import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { withTicketParts, type TicketActor } from '../../kernel/index.js';
@@ -37,9 +37,6 @@ function decodeCursor(cursor: string | undefined): { updatedAt: string; id: stri
   }
   return { updatedAt, id };
 }
-
-/** Imported and backfilled tickets keep Bhavin's stored minutes; they are never recomputed from their events. */
-const KEEPS_STORED_FIGURES = new Set(['import', 'backfill']);
 
 function csv(raw: string | undefined): string[] | null {
   return raw ? raw.split(',').filter(Boolean) : null;
@@ -196,7 +193,7 @@ export async function loadState(
   });
 }
 
-/** Stored minutes for imported tickets, a fresh computation for the rest. */
+/** Stored minutes for history and planned work, a fresh computation for a live breakdown. */
 function detailFigures(
   row: Record<string, unknown>,
   ticket: domain.Ticket,
@@ -204,7 +201,7 @@ function detailFigures(
   segments: domain.WorkSegment[],
 ): domain.Figures {
   const now = new Date();
-  if (KEEPS_STORED_FIGURES.has(row.raised_channel as string)) {
+  if (!isBreakdownChannel(row.raised_channel as string | null)) {
     return { ...tm.figuresFromRow(row), perPerson: domain.personMinutes(segments, now) };
   }
   return tm.recomputeFigures(ticket, events, segments, {

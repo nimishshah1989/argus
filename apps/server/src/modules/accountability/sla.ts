@@ -10,7 +10,7 @@ import {
   type TicketEvent,
   type SlaTimerProjection as DomainTimer,
 } from '@uptimo/domain';
-import type { SlaProjection, SlaTimer } from '@uptimo/shared';
+import { isBreakdownChannel, type SlaProjection, type SlaTimer } from '@uptimo/shared';
 import { tenantInfo } from '../identity/index.js';
 import { armDownEscalation } from './escalation.js';
 import { shiftWindows } from '../plant/index.js';
@@ -100,9 +100,9 @@ function unlimited(severity: SlaPolicy['severity']): SlaPolicy {
   };
 }
 
-/** An import of history has no live clocks, and a follow-up task (it has a parent) is no breakdown: neither runs one. */
+/** History and planned work have no live clocks, and a follow-up task (it has a parent) is no breakdown either. */
 function runsNoClock(row: { raised_channel: string; parent_id: string | null }): boolean {
-  return row.raised_channel === 'backfill' || row.parent_id !== null;
+  return !isBreakdownChannel(row.raised_channel) || row.parent_id !== null;
 }
 
 /** `withoutPolicy`: keep tickets whose severity has no policy (they get no clocks, only facts read from events). */
