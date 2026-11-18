@@ -129,6 +129,7 @@ const KIND: Record<string, ContentKind> = {
   'a4-manpower': 'page',
   'a5-energy': 'energy',
   'a6-why-why': 'page',
+  'a10-problems': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -157,7 +158,7 @@ export function contentKind(figure: Figure): ContentKind | null {
   return KIND[figure.key] ?? null;
 }
 
-/** The whole-page figures: the log, A1, A2, A3 and A4 all map through the one page mapper. */
+/** The whole-page figures: the log, A1, A2, A3, A4, A6 and A10 all map through the one page mapper. */
 const PAGE_KEYS = new Set([
   'breakdown-log',
   'a1-bd-pm',
@@ -165,6 +166,7 @@ const PAGE_KEYS = new Set([
   'a3-mttr-mtbf',
   'a4-manpower',
   'a6-why-why',
+  'a10-problems',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */

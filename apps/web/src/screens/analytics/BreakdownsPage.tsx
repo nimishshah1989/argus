@@ -8,6 +8,7 @@ import { Stack } from '../../ui/layout.js';
 import { BreakdownLog } from './BreakdownLog.js';
 import { KeyPage } from './KeyPage.js';
 import { ManpowerPage } from './ManpowerPage.js';
+import { ProblemsPage } from './ProblemsPage.js';
 import { WhyWhyPage } from './WhyWhyPage.js';
 import { DrillTable } from './DrillTable.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
@@ -18,9 +19,10 @@ const A2 = 'a2-category-cell';
 const A3 = 'a3-mttr-mtbf';
 const A4 = 'a4-manpower';
 const A6 = 'a6-why-why';
+const A10 = 'a10-problems';
 
-/** The screens the group shows: the log, then A1, A2, A3, A4 and A6's key-shaped pages. */
-const SCREENS = [LOG, A1, A2, A3, A4, A6] as const;
+/** The screens the group shows: the log, then A1, A2, A3, A4, A6 and A10's key-shaped pages. */
+const SCREENS = [LOG, A1, A2, A3, A4, A6, A10] as const;
 
 type Screen = (typeof SCREENS)[number];
 
@@ -52,8 +54,8 @@ function ScreenNav({ current }: { current: Screen }) {
 
 /**
  * The Breakdowns group (packets 40e-1, 40e-2, 41e-1 and 41e-2): its own screen menu, opening on the Breakdown
- * Log and switching to A1, A2, A3, A4 or A6 in the group's route. The drill a screen links to renders above it,
- * in the face's one drill table.
+ * Log and switching to A1, A2, A3, A4, A6 or A10 in the group's route. The drill a screen links to renders
+ * above it, in the face's one drill table.
  */
 export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
@@ -88,6 +90,8 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         <BreakdownLog figure={figureOf(LOG)} />
       ) : screen === A6 ? (
         <WhyWhyPage figure={figureOf(A6)} group={group} />
+      ) : screen === A10 ? (
+        <ProblemsPage figure={figureOf(A10)} group={group} />
       ) : screen === A4 ? (
         <ManpowerPage figure={figureOf(A4)} group={group} />
       ) : (

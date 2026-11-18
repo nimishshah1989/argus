@@ -353,3 +353,56 @@ bar kit draws vertical bars, a chart-direction difference only (the plan pins se
 
 **Precheck.** `pnpm precheck`: all 13 checks pass (prettier, lint, typecheck, changelog, docs, boundaries, PII,
 migrations, migration immutability, parity, licences, size, deps, shortcuts).
+
+## 41e-2 — the A6 and A10 screens
+
+**What changed for a user:** the Breakdowns group now opens **A6 Why-Why** as its own screen: the key's candidate
+table (sortable), its status badges, and a five-why form with the one required conclusion. A row starts a Why-Why,
+the author is the signed-in person the server writes, and a save refetches the figures reply so the row reads
+`Completed` without a reload; the saved record then downloads as the server's PDF. A role that may not write sees
+the named refusal instead of the form. **A10 Problem Analysis** opens beside it: the four page KPIs (breakdowns
+studied, top group, quick stops, repeat problems), the four what-if KPIs (downtime saved, breakdowns avoided,
+plant availability before/after, MTBF before/after), the Pareto bar and the group bubble, the groups, families,
+repeats, unplaced and words tables (all sortable), and the platform's group editor as a **read-only** card. Every
+table and chart prints the engine's own cells; A10 drills the production breakdown tickets through the existing
+seam. R4 (the settings write and its audit) and R9 (no "What stands out" prose) stay deferred in DEBT.
+
+**Tests that prove it.** A6: `pnpm exec playwright test analytics-whywhy --project=chromium` — 1 passed (the
+journey starts the first candidate, saves it, sees `Completed` and downloads a file with the `%PDF-` magic);
+`pnpm exec vitest run apps/web/src/screens/analytics` — 8 files, 78 tests, the A6 mapping and the R3 guard
+included. Red first for A6 (the A6 half's own commit): the route was not registered and the spec failed on the
+missing screen. A10: red first, `pnpm exec playwright test analytics-problems --project=chromium` failed because
+the screen was not in the group switch — `Locator: getByRole('navigation', { name: 'Breakdowns screens' })
+.getByRole('link', { name: 'A10 problem analysis' }) / Expected: "page" / Error: element(s) not found`. Green: the
+same command, 1 passed (5.7 s); `pnpm exec playwright test analytics-whywhy --project=chromium`, 1 passed; and
+`pnpm exec vitest run apps/web/src/screens/analytics`, 8 files, 78 tests. The A10 mapping test compares the whole
+key page — the eight KPI labels and values, all six tables' headers and rows, and both charts (the Pareto's 16
+double-spaced labels and the bubble's 24 points, each named from the groups table and sized by the key's own
+count/average/radius). `pnpm precheck`: all 13 checks pass (6 pre-existing lint warnings). No dependency, server,
+schema or seed change.
+
+**Files.** A6 (commit a945245b): `WhyWhyPage.tsx`, `why-why-parts.tsx` (new pieces, 320 lines),
+`why-why-parts.test.ts`, the optional `renderCell` on `sort-table.tsx`, `api.ts` (the read/save helpers),
+`BreakdownsPage.tsx`, `figure-content.ts`, `page-content.test.ts`, `analytics.en.ts`, and
+`apps/web/e2e/analytics-whywhy.spec.ts` (new). A10: `ProblemsPage.tsx` (new, 92 lines), `page-content.ts` and
+`page-content.test.ts` (the A10 page, its sortable rule and the group bubble), `figure-content.ts` (the page and
+kind), `BreakdownsPage.tsx` (the A10 screen in the switch and menu), `packages/shared/src/i18n/analytics.en.ts`,
+`apps/web/e2e/analytics-problems.spec.ts` (new), `docs/spec/parity.yaml` (A6 and A10 rows done, evidence
+added) and this fragment.
+
+**Deviations recorded.** (1) **The branch merged main before building.** The A10 engine (41d-2) and the merged
+41e-1 screens landed after this branch's A6 commit, so the A10 screen cannot read a figure without them; the merge
+kept the A6 work whole (the `renderCell` seam, the A6 mapping and its tests) and took main's 41d fragment
+sections. (2) **A10's bubble labels come from the groups table.** The engine's bubble carries x/y/r only (no
+labels), and the key's `labels` is empty; the screen names each point from the groups table, which the engine
+builds in the same hours order, and prints the group's hours as the third chart value under the catalogue label
+`Hours`. It is the key's own data, never a fabricated label. (3) **The unplaced card's last key header is
+empty.** The platform printed no header for its Accept column; the screen labels that one header `Accept` from the
+catalogue, while the cells stay the figure's exact strings (and the card remains a table, never a suggestion
+control). (4) **The group editor is read-only, as R4 says.** It renders the figure's own editor rows — the
+platform's arrows, keywords and `×` — with no input, reorder or delete; the key's empty name and family cells are
+the platform's recorded print quirk (the figures reply carries no plant group list and this packet adds no
+settings route). (5) **A10's sortable rule is positional** because the unplaced card's title carries its own count
+and share; A4 keeps its title-based rule, so no A4 mapping moved. (6) **The A6 parity row is marked done too**
+(the A6 half had left it `todo` while its screen and journey were green); the A10 row is marked done with the A10
+evidence. Neither existing row was weakened.
