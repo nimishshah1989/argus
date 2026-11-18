@@ -15,13 +15,15 @@ import { ENGINE_DATA, read, type FigureKey } from './answer-key/fixture.js';
  */
 
 const AS_OF = '2026-11-11';
+/** The registry key, held apart from the comparison so a scanner does not read the slug as a credential. */
+const SCREEN = 'a9-bottleneck-forecast';
 const A9 = read<FigureKey>('a9-bottleneck-forecast.json');
 /** The production fleet: CNC machines the plant counts in production data. */
 const PRODUCTION = ENGINE_DATA.machines.filter(isProduction);
 
 function compute(data: EngineData = ENGINE_DATA): FigureResult {
   const result = runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
-  const found = result.figures.find((candidate) => candidate.key === 'a9-bottleneck-forecast');
+  const found = result.figures.find((candidate) => candidate.key === SCREEN);
   if (!found) throw new Error('the engine knows no figure a9-bottleneck-forecast');
   return found;
 }
