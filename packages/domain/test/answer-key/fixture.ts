@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import type {
   EngineData,
   ListRow,
@@ -8,7 +7,10 @@ import type {
   ReportRow,
   TicketRow,
 } from '../../src/index.js';
+import { read, type DashboardChart, type DashboardKpi, type FigureKey } from './keys.js';
 import type { Workbook, WorkbookBreakdown, WorkbookMachine } from './workbook.js';
+
+export * from './keys.js';
 
 /**
  * The answer-key seam (ticket 38): `fixtures/answer-key/input.json` is the 11 November workbook in the shape the
@@ -19,11 +21,6 @@ import type { Workbook, WorkbookBreakdown, WorkbookMachine } from './workbook.js
  * The files are repo data and already pseudonymised (names are `Person 51`, machines, codes and timings are real).
  * Nothing here writes; a person keeps the workbook's coded name beside a slug of it, never a new name.
  */
-
-function read<T>(name: string): T {
-  const url = new URL(`../../../../fixtures/answer-key/${name}`, import.meta.url);
-  return JSON.parse(readFileSync(url, 'utf8')) as T;
-}
 
 const number = (value: number | string | null | undefined): number | null => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -139,9 +136,43 @@ function personNames(value: string | undefined): string[] {
     .filter((name) => name !== '');
 }
 
-function personCodes(value: string | undefined): string[] {
+/** The R8 mention repair (`fixtures/answer-key/person-mentions.json`, and the README's why): one coded slot. */
+interface PersonMention {
+  reportId: string;
+  field: 'doneBy' | 'supportedBy';
+  token: string;
+  code: string;
+}
+
+interface MentionFile {
+  /** Why the map exists; the fixture reads the data, a person reads this. */
+  why: string;
+  mentions: PersonMention[];
+  /** Each mention code's printed name, so a figure keeps printing what the log printed. */
+  displayNames: Record<string, string>;
+}
+
+const MENTIONS = read<MentionFile>('person-mentions.json');
+
+/** `reportId|field|token`: the exact slot the repair moves, so the other names in the cell stay untouched. */
+const MENTION_CODES = new Map<string, string>(
+  MENTIONS.mentions.map((mention) => [
+    `${mention.reportId}|${mention.field}|${mention.token}`,
+    mention.code,
+  ]),
+);
+
+/**
+ * The coded names a workbook cell lists, with the R8 repair applied. The pseudonymiser collapses every name form
+ * of a person to one code, so the nine mentions the platform attributed by an exact full name get their own code.
+ */
+function personCodes(
+  reportId: string,
+  field: PersonMention['field'],
+  value: string | undefined,
+): string[] {
   return personNames(value)
-    .map(personCode)
+    .map((name) => MENTION_CODES.get(`${reportId}|${field}|${name}`) ?? personCode(name))
     .filter((code) => code !== '');
 }
 
@@ -187,8 +218,8 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     spareUsed: text(row.spare1),
     rootCause: null,
     correctiveAction: text(row.correctiveAction),
-    doneBy: personCodes(row.doneBy),
-    supportedBy: personCodes(row.supportedBy),
+    doneBy: personCodes(row.id, 'doneBy', row.doneBy),
+    supportedBy: personCodes(row.id, 'supportedBy', row.supportedBy),
     recordedHours: number(row.downHrs),
     srNo: number(row.srNo),
     observedBy: text(row.observedBy),
@@ -213,6 +244,11 @@ function people(workbook: Workbook, rows: readonly WorkbookBreakdown[]): PersonR
       const code = personCode(name);
       if (code !== '' && !team.has(code)) team.set(code, 'maintenance');
     }
+  }
+  // The R8 mention codes are people too: each keeps the printed name, so the log prints what it printed before.
+  for (const [code, displayName] of Object.entries(MENTIONS.displayNames)) {
+    team.set(code, 'maintenance');
+    names.set(code, displayName);
   }
   return [...team].map(([code, kind]) => ({
     id: code,
@@ -266,32 +302,16 @@ function engineData(workbook: Workbook): EngineData {
     settings: {
       excludedMachineIds: workbook.settings.excludedMachines ?? [],
       problemFixes: workbook.settings.problemFix ?? {},
+      // The Settings team list in its own order (R6): the plant's list, not a filter over the people rows.
+      teamCodes: workbook.settings.team.map((member) => personCode(member.name)),
     },
+    // No Why-Why record exists in the workbook: ticket 41's form writes one, and the figure reads it here.
+    whyWhy: [],
   };
 }
 
 /** The workbook as the engine reads it. Test-only: no production module imports this fixture. */
 export const ENGINE_DATA: EngineData = engineData(read<Workbook>('input.json'));
-
-export interface DashboardKpi {
-  label: string;
-  value: string;
-  sub: string;
-}
-
-export interface DashboardDataset {
-  label: string;
-  data: unknown[];
-}
-
-/** One chart as the platform drew it: the series and the axes, with the canvas type dropped. */
-export interface DashboardChart {
-  id: string;
-  axes: Record<string, string>;
-  tickLabels: Record<string, string[]>;
-  labels: unknown[];
-  datasets: DashboardDataset[];
-}
 
 export interface DashboardKey {
   screen: string;
@@ -341,31 +361,6 @@ export interface ChecklistKey {
 
 /** The Data Checklist the platform showed for `input.json`: the open items and their per-group counts. */
 export const CHECKLIST: ChecklistKey = read<ChecklistKey>('data-checklist.json');
-
-/** One table of a breakdown figure's page, as the platform printed it. */
-export interface KeyTable {
-  title: string;
-  header: string[];
-  rows: string[][];
-  rowCount: number;
-  /** The log prints its newest rows only; `rowCount` still counts the whole log. */
-  truncated?: boolean;
-}
-
-export interface KeyFigurePage {
-  page: string;
-  title: string;
-  kpis: DashboardKpi[];
-  tables: KeyTable[];
-  charts: DashboardChart[];
-}
-
-/** One breakdown figure's printed page, whole: the values are the platform's own text, never a tolerance. */
-export interface FigureKey {
-  screen: string;
-  asOf: string;
-  pages: KeyFigurePage[];
-}
 
 /** The four breakdown figures of ticket 40, frozen on 2026-11-11 (the same workbook `ENGINE_DATA` holds). */
 export const BREAKDOWN_LOG: FigureKey = read<FigureKey>('breakdown-log.json');

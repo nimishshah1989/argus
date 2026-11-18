@@ -2,19 +2,27 @@ import type { ReportRow } from './types.js';
 
 /**
  * The platform's own default problem groups (Guide section "Problem Analysis"): the words a breakdown is grouped
- * by, in the order the platform tests them. The plant may override these in Settings; 38.2 only needs the default
- * list to rank the three problems costing the most downtime, and ticket 41 owns the screen that edits them.
+ * by, in the order the platform tests them, and the family each group belongs to. The plant may override these in
+ * Settings; 38.2 only needs the default list to rank the three problems costing the most downtime, and ticket 41
+ * owns the screen that edits them.
  */
-interface ProblemGroup {
+export interface ProblemGroup {
   readonly name: string;
+  /** The platform's family for the group: its "families of problems" table groups the names this way. */
+  readonly family: string;
   readonly keywords: readonly string[];
 }
 
 export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
-  { name: 'Machine accident / crash', keywords: ['accid', 'acceid', 'crash', 'collision'] },
-  { name: 'PM logged as a breakdown', keywords: ['pm'] },
+  {
+    name: 'Machine accident / crash',
+    family: 'Crashes and setup',
+    keywords: ['accid', 'acceid', 'crash', 'collision'],
+  },
+  { name: 'PM logged as a breakdown', family: 'Other', keywords: ['pm'] },
   {
     name: 'Tool-change arm stuck (ATC)',
+    family: 'Tool changing',
     keywords: [
       'arm stuck',
       'arm stucked',
@@ -28,10 +36,12 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
   },
   {
     name: 'Magazine / tool pot',
+    family: 'Tool changing',
     keywords: ['magazin', 'tool pot', 'pot not', 'tool fell', 'tool full', 'tool pocket'],
   },
   {
     name: 'Tool clamp / unclamp / drawbar',
+    family: 'Tool changing',
     keywords: [
       'tool clamp',
       'tool unclamp',
@@ -43,13 +53,19 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
       'draw tube',
     ],
   },
-  { name: 'Tool-change error (general)', keywords: ['tool change', 'toolchange', 'tool chang'] },
+  {
+    name: 'Tool-change error (general)',
+    family: 'Tool changing',
+    keywords: ['tool change', 'toolchange', 'tool chang'],
+  },
   {
     name: '4th axis / rotary / angular head',
+    family: 'Rotary and 4th axis',
     keywords: ['4th', 'fourth', 'rotary', 'angular head', 'tilting'],
   },
   {
     name: 'Axis motor / drive / encoder / servo',
+    family: 'Axis, drive and geometry',
     keywords: [
       'fssb',
       'servo',
@@ -75,6 +91,7 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
   },
   {
     name: 'Home position / geometry / backlash',
+    family: 'Axis, drive and geometry',
     keywords: [
       'home position',
       'reference',
@@ -90,6 +107,7 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
   },
   {
     name: 'Coolant leakage',
+    family: 'Fluids and chips',
     keywords: [
       'coolant leak',
       'coolant lek',
@@ -104,20 +122,46 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
       'coolant hose',
     ],
   },
-  { name: 'Coolant pressure / flow', keywords: ['coolant', 'cts'] },
-  { name: 'Air leakage / low air pressure', keywords: ['air', 'pneumat'] },
-  { name: 'Conveyor / chip jam', keywords: ['conv', 'chain', 'scrap', 'chip'] },
-  { name: 'Spindle motor / overload / noise', keywords: ['spindle', '1001'] },
-  { name: 'Turret clamp / indexing', keywords: ['turret', 'index'] },
-  { name: 'Chuck / jaw / collet', keywords: ['chuck', 'collet', 'jaw', 'tailstock', 'tail stock'] },
-  { name: 'Lubrication / low oil', keywords: ['lubric', 'lube', 'grease', 'oil'] },
-  { name: 'Hydraulic pressure', keywords: ['hydraul', 'hyd'] },
+  { name: 'Coolant pressure / flow', family: 'Fluids and chips', keywords: ['coolant', 'cts'] },
+  {
+    name: 'Air leakage / low air pressure',
+    family: 'Fluids and chips',
+    keywords: ['air', 'pneumat'],
+  },
+  {
+    name: 'Conveyor / chip jam',
+    family: 'Fluids and chips',
+    keywords: ['conv', 'chain', 'scrap', 'chip'],
+  },
+  {
+    name: 'Spindle motor / overload / noise',
+    family: 'Spindle, turret and chuck',
+    keywords: ['spindle', '1001'],
+  },
+  {
+    name: 'Turret clamp / indexing',
+    family: 'Spindle, turret and chuck',
+    keywords: ['turret', 'index'],
+  },
+  {
+    name: 'Chuck / jaw / collet',
+    family: 'Spindle, turret and chuck',
+    keywords: ['chuck', 'collet', 'jaw', 'tailstock', 'tail stock'],
+  },
+  {
+    name: 'Lubrication / low oil',
+    family: 'Fluids and chips',
+    keywords: ['lubric', 'lube', 'grease', 'oil'],
+  },
+  { name: 'Hydraulic pressure', family: 'Fluids and chips', keywords: ['hydraul', 'hyd'] },
   {
     name: 'Door / guard / limit switch / sensor',
+    family: 'Electrical and controls',
     keywords: ['door', 'guard', 'limit', 'prox', 'sensor', 'interlock'],
   },
   {
     name: 'Push button / switch / cable / panel',
+    family: 'Electrical and controls',
     keywords: [
       'push button',
       'pushbutton',
@@ -135,18 +179,22 @@ export const PROBLEM_GROUPS: readonly ProblemGroup[] = [
   },
   {
     name: 'Fan / filter / overheating',
+    family: 'Electrical and controls',
     keywords: ['fan', 'fen', 'filter', 'overheat', 'temperature', 'dust'],
   },
   {
     name: 'Alarm / PLC / parameter / reset',
+    family: 'Electrical and controls',
     keywords: ['alarm', 'alram', 'parameter', 'plc', 'reset', 'program', 'communication', 'error'],
   },
   {
     name: 'Installation / relocation / trial',
+    family: 'Other',
     keywords: ['install', 'resift', 'shift', 'relocat', 'trial'],
   },
   {
     name: 'Belt / bearing / coupling / wear',
+    family: 'Mechanical wear',
     keywords: [
       'belt',
       'bearing',
