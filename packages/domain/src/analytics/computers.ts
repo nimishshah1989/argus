@@ -3,6 +3,7 @@ import { a2CategoryCellFigure } from './a2-category-cell.js';
 import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
 import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
+import { a6WhyWhyFigure } from './a6-why-why.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -168,10 +169,11 @@ const breakdownComputers: Readonly<Record<string, Computer>> = {
   'a3-mttr-mtbf': a3MttrMtbfFigure,
 };
 
-/** Owner 41's figures: A4 manpower and A5 energy; A6 Why-Why and A10 problems land in 41c and 41d. */
+/** Owner 41's figures: A4 manpower, A5 energy and A6 Why-Why; A10 problems lands in 41d. */
 const manpowerComputers: Readonly<Record<string, Computer>> = {
   'a4-manpower': a4ManpowerFigure,
   'a5-energy': a5EnergyFigure,
+  'a6-why-why': a6WhyWhyFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */

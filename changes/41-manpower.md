@@ -120,3 +120,31 @@ prints a zero bucket, and a machine cell outside the Settings list groups under 
 plan's rules; no code was copied. (2) When `settings.cells` is absent no cell is known, so every CNC machine falls
 in the `—` bucket; when `settings.locations` is absent there are no location buckets. That is the literal reading
 of the stated rules (and the platform's `groupBy`); the key always carries both lists.
+
+## 41c — A6 Why-Why figure
+
+**What changed for a user:** the A6 Why-Why Analysis page is now computed — one table, "Why-Why (Root Cause)
+Analysis", of the 24 production breakdowns whose recorded hours pass the plant's 12-hour threshold, worst first,
+with the machine code, the plant date, the problem text, the hours to 2 dp, the status and the platform's action
+button. The hours are the raw recorded column, so the NO-DT row VC-23 (23-08-2026, 59.98) is the sixth candidate
+rather than a zero. Every row starts "Not Started" / "Start Why-Why"; a saved Why-Why record for a ticket turns
+exactly that row "Completed" / "View / EditPDF". The figure drills to the candidate tickets.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-whywhy.test.ts` (3 new tests): the
+whole value is `toEqual(A6)`; the drill ids equal the candidate tickets derived from `ENGINE_DATA` (24, unique,
+sorted, every one a real ticket, the sixth a NO-DT row at 59.98); adding one synthetic `whyWhy` row for the first
+candidate turns only that row's Status and action cells to "Completed" / "View / EditPDF", leaves every other cell
+and the header untouched, and leaves the drill unchanged. Red first, before the file existed: 3 failed (1 file, 3
+failed / 0 passed) — `expected 'not_computed' to be 'ready'`, `expected [] to deeply equal [ 'bd_muxluada16moi',
+…(23) ]`, and `TypeError: Cannot read properties of null (reading 'pages')` because the value was null. Green:
+the named file 1 file, 3 tests passed; then `pnpm exec vitest run packages/domain/test` — 28 files, 382 tests.
+The suite grows by four, not three: the new source file also adds one case to `analytics-engine.test.ts`'s purity
+list; the pre-existing 378 all stay green. `pnpm precheck`: all checks pass.
+
+**Files.** `packages/domain/src/analytics/a6-why-why.ts` (new, 92 lines), its `computers.ts` entry (and the
+owner-41 comment now says A10 lands in 41d), `packages/domain/test/analytics-whywhy.test.ts` and this fragment.
+
+**Deviations recorded.** None. The candidate rule (production, non-PM, raw hours strictly over the threshold,
+stable worst-first sort), the completed rule (any saved record for the ticket; the latest by completed date when
+several exist — which cannot change this page, because only the record's presence moves a cell) and the empty-plant
+rule (no candidate prints `null`) follow the slice plan verbatim.
