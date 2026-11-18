@@ -93,3 +93,30 @@ lists it already held), `src/analytics/a4-manpower.ts` (settings categories, fle
 **Deviation recorded.** `test/answer-key/workbook.ts` is touched (not named in the packet) because it is the typed
 shape of `input.json`: the fixture cannot read `workbook.settings.categories` without it. It is a test-only source
 type, and the JSON already carried the three lists.
+
+## 41b — A5 energy heatmap
+
+**What changed for a user:** the A5 Energy Heatmap figure is now computed — the empty page, the two heat grids (by
+cell and by location) and the plant's efficiency factor (20%), exactly as the 11 November key has them, raw floats
+included. This is the one analytics fleet that counts every CNC machine rather than the production fleet: the
+excluded BOXY is in cell 1 of the key, so 126 machines drill.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-energy.test.ts` (5 new tests): the
+whole value is `toEqual(A5)` including `extra`; the computer names all 126 CNC ids in data order and the engine's
+reply is that set sorted (the engine sorts every drill); giving one CNC machine `metadata.efficiency = 50` leaves
+its cell's connected load unchanged while running load rises by exactly `power × (0.5 − 0.2)` (the 11 Nov rule the
+committed workbook lacks); blanking one machine's cell adds a last `—` bucket with that machine while it keeps its
+location bucket; a plant with no CNC machine prints `null`. Red first: 5 failed as `not_computed`, because the
+computer was not registered. Green: the named file 5/5, then `pnpm exec vitest run packages/domain/test` — 27
+files, 378 tests (372 before, plus the 5 and the new file's clock-purity case).
+
+**Files.** `packages/domain/src/analytics/a5-energy.ts` (new, 117 lines), its `computers.ts` entry,
+`packages/domain/test/analytics-energy.test.ts` and this fragment.
+
+**Notes recorded.** (1) The plan says the 11 Nov discovery file is not committed; it is tracked here
+(`docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html`, 3,776,090 bytes, added in #75). It was read as
+reference only to confirm two behaviours the plan leaves implicit: a Settings cell or location with no machine still
+prints a zero bucket, and a machine cell outside the Settings list groups under `—` last. Both follow from the
+plan's rules; no code was copied. (2) When `settings.cells` is absent no cell is known, so every CNC machine falls
+in the `—` bucket; when `settings.locations` is absent there are no location buckets. That is the literal reading
+of the stated rules (and the platform's `groupBy`); the key always carries both lists.
