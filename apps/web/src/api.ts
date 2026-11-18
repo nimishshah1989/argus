@@ -11,6 +11,11 @@ import {
   forgetPushBinding,
   rememberWho,
 } from './data/index.js';
+import {
+  actionCenterBoardSchema,
+  type ActionCenterBoardReply,
+  type NudgeAckBody,
+} from '@uptimo/shared';
 import type { BoardToday } from '@uptimo/shared/board';
 import {
   drillReplySchema,
@@ -73,6 +78,17 @@ const analyticsFigures = defineResource<FiguresReply>({
 const analyticsDrill = defineResource<DrillReply, never>({
   key: 'analytics-drill',
   path: '/api/v1/analytics/drill',
+});
+/** The screen's read model (44c's routes): every current nudge with its status, counts and risk rows. */
+const actionCenter = defineResource<ActionCenterBoardReply>({
+  key: 'analytics-action-center',
+  path: '/api/v1/analytics/action-center',
+});
+/** One nudge's write and reopen; both answer the whole fresh board. */
+const actionCenterNudge = defineResource<ActionCenterBoardReply>({
+  key: 'analytics-action-center',
+  // `:id` is the resource helper's placeholder; the server's own parameter name is `key`.
+  path: '/api/v1/analytics/action-center/nudges/:id',
 });
 /** The rows behind a figure: at most 200 ids, the order of the ids asked; the reply is parsed at this boundary. */
 export const getDrill = async (type: DrillType, ids: readonly string[]): Promise<DrillReply> =>
@@ -138,6 +154,24 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 /** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
+
+/** `GET /analytics/action-center`: the Action Center board, as of the plant's today by default. */
+export const useActionCenterBoard = () => actionCenter.useOne();
+
+/** `PUT /analytics/action-center/nudges/:key`: acknowledge, snooze or resolve; the fresh board answers. */
+export const writeNudge = async (
+  key: string,
+  body: NudgeAckBody,
+): Promise<ActionCenterBoardReply> =>
+  actionCenterBoardSchema.parse(await actionCenterNudge.update<unknown>(key, body));
+
+/** `DELETE /analytics/action-center/nudges/:key`: reopen one nudge; the fresh board answers. */
+export const reopenNudge = async (key: string): Promise<ActionCenterBoardReply> =>
+  actionCenterBoardSchema.parse(
+    await http(`/api/v1/analytics/action-center/nudges/${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+    }),
+  );
 
 /** `GET /tickets/:id/why-why`: the latest saved record, or null when none has been saved. */
 export const getWhyWhy = (ticketId: string): Promise<WhyWhyPayload | null> => whyWhy.one(ticketId);

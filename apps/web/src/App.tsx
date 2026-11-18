@@ -15,6 +15,7 @@ import { Report } from './faces/floor/report.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
 import {
+  ActionCenterRoute,
   AnalyticsFace,
   DataChecklistPage,
   MachinePageRoute,
@@ -52,6 +53,7 @@ export function App() {
         ))}
         <Route path="/analytics" element={<Navigate to="/analytics/today" replace />} />
         <Route path="/analytics/today/checklist" element={<DataChecklistPage />} />
+        <Route path="/analytics/today/action-center" element={<ActionCenterRoute />} />
         <Route path="/analytics/machines/:id" element={<MachinePageRoute />} />
         <Route path="/analytics/:group" element={<AnalyticsFace />} />
         <Route path="/desk/:id?" element={<TicketRoute />} />
