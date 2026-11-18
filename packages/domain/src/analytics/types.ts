@@ -1,4 +1,5 @@
 import type { AnalyticsProfile, DrillType } from '@uptimo/shared';
+import type { ProblemGroup } from './problem-groups.js';
 
 /**
  * The plain rows the engines read, shaped for the engines and not for the tables. A person is a code and a
@@ -121,6 +122,19 @@ export interface ListRow {
 }
 
 /**
+ * One saved Why-Why record (the ticket-36 home's `why_why` payload): the five whys, the conclusion, and the
+ * author and plant date the platform keeps beside it. A person is a code, never a name.
+ */
+export interface WhyWhyRow {
+  ticketId: string;
+  whys: readonly [string, string, string, string, string];
+  conclusion: string;
+  completedBy: string;
+  /** The plant date (`YYYY-MM-DD`) the record was completed on. */
+  completedDate: string;
+}
+
+/**
  * The plant's own settings that a figure needs beside its rows: the legacy platform kept both in Settings, and a
  * figure that ports its numbers reads them here. Optional, so a tenant that never set them reads the defaults.
  */
@@ -129,6 +143,13 @@ export interface EngineSettings {
   excludedMachineIds: readonly string[];
   /** Manual problem-group fixes from the legacy App Settings, by breakdown report id (ticket 41 owns the screen). */
   problemFixes: Readonly<Record<string, string>>;
+  /**
+   * The Settings team list, in its own order: what A4 tracks. The platform keeps the vendor and inactive members
+   * "for historical completeness", so the list is the plant's, not a filter over the people rows (R6).
+   */
+  teamCodes?: readonly string[];
+  /** The plant's edited problem-group list; absent reads the platform default (`PROBLEM_GROUPS`), never a subset. */
+  problemGroups?: readonly ProblemGroup[];
 }
 
 export interface EngineData {
@@ -142,6 +163,8 @@ export interface EngineData {
   people: PersonRow[];
   lists: Record<string, ListRow[]>;
   settings?: EngineSettings;
+  /** The saved Why-Why records, latest per ticket; a ticket with no record is a candidate A6 shows as not started. */
+  whyWhy?: readonly WhyWhyRow[];
 }
 
 /** What one figure is: a value the face prints, and the rows behind it. */

@@ -198,6 +198,9 @@ const SHARED_KEYS: Record<string, string[]> = {
   'a8-age': ['age'],
 };
 
+/** Fixtures that are data, not a screen's key: the workbook, and the R8 map of nine unattributed mentions. */
+const DATA_FILES = new Set(['input.json', 'person-mentions.json']);
+
 function declaredScreen(path: string): string | undefined {
   try {
     return (JSON.parse(readFileSync(path, 'utf8')) as { screen?: string }).screen;
@@ -210,7 +213,7 @@ function declaredScreen(path: string): string | undefined {
 function fixtureScreenErrors(root: string): string[] {
   const errors: string[] = [];
   for (const file of readdirSync(root).filter((name) => name.endsWith('.json'))) {
-    if (file === 'input.json') continue;
+    if (DATA_FILES.has(file)) continue;
     const expected = file.slice(0, -5);
     const declared = declaredScreen(join(root, file));
     if (declared !== expected)
@@ -242,7 +245,8 @@ function keyErrors(row: { id: string; keys: string[] }, root: string): string[] 
 
 /**
  * A triage row's Key column must name fixtures that declare that screen. A fixture named after
- * itself answers its namesake; the few shared files are listed above. `input.json` is data.
+ * itself answers its namesake; the few shared files are listed above. `input.json` and the R8 mention map
+ * are data, not keys.
  */
 export function answerKeyErrors(triage: string, root = ANSWER_KEY): string[] {
   return [

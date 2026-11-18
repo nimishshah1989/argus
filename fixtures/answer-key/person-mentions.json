@@ -1,0 +1,64 @@
+{
+  "why": "The answer-key pseudonymiser collapses every written form of a person's name (short form and full form) to one Person NN, but the platform attributed a breakdown only when the team member's full name appeared in Done By / Supported By. Proved against <argus-staging>/docs/discovery/real-2026-11-13/cosmos-export-2026-11-11.xlsx: its 'Breakdown Log' sheet against its own 'Analytics 4 - Manpower' sheet (1,279 rows). These nine mentions are the rows the platform left unattributed.",
+  "mentions": [
+    {
+      "reportId": "bd_muxluadanmqar",
+      "field": "doneBy",
+      "token": "Person 26",
+      "code": "person-26-mention"
+    },
+    {
+      "reportId": "bd_muxluadbqozpr",
+      "field": "doneBy",
+      "token": "Person 26",
+      "code": "person-26-mention"
+    },
+    {
+      "reportId": "bd_muxluadbag3ia",
+      "field": "doneBy",
+      "token": "Person 55",
+      "code": "person-55-mention"
+    },
+    {
+      "reportId": "bd_live_mw300wjpi9l77",
+      "field": "doneBy",
+      "token": "Person 79",
+      "code": "person-79-mention"
+    },
+    {
+      "reportId": "bd_live_mw5w6eqlouq32",
+      "field": "doneBy",
+      "token": "Person 79",
+      "code": "person-79-mention"
+    },
+    {
+      "reportId": "bd_muxluada1zas4",
+      "field": "supportedBy",
+      "token": "Person 26",
+      "code": "person-26-mention"
+    },
+    {
+      "reportId": "bd_muxluadalbfgk",
+      "field": "supportedBy",
+      "token": "Person 26",
+      "code": "person-26-mention"
+    },
+    {
+      "reportId": "bd_muxluadbtrxho",
+      "field": "supportedBy",
+      "token": "Person 26",
+      "code": "person-26-mention"
+    },
+    {
+      "reportId": "bd_muxluadb1zmxt",
+      "field": "supportedBy",
+      "token": "Person 55",
+      "code": "person-55-mention"
+    }
+  ],
+  "displayNames": {
+    "person-26-mention": "Person 26",
+    "person-55-mention": "Person 55",
+    "person-79-mention": "Person 79"
+  }
+}
