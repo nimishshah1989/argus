@@ -200,3 +200,40 @@ only appears on a saved row. (4) When a closed breakdown has no report, the shee
 plant date and recorded minutes; the plan's candidates always have a report, so this only keeps the guard's promise
 that any closed breakdown can be saved and printed. (5) `personCode` moved to identity (one definition, no
 duplicated formula); it changes no behaviour and no caller outside the server.
+
+## 41d-1 — A10 core: grouping, families, repeats, words
+
+**What changed for a user:** nothing visible yet. This is the Problem Analysis core the A10 page will print: every
+production, non-PM breakdown becomes one event (grouped by the plant's manual fix, else the group list's keywords over
+the problem text, then problem + corrective action, else `Other / unclear`), and four aggregations are computed — the
+24 groups (count, hours, machines, quick stops, hours each), the nine families with their groups in encounter order,
+the 74 machine-and-group repeats of four or more, and the 14 words the unplaced entries share. No figure is registered
+and `computers.ts` is untouched: 41d-2's `a10-problems.ts` assembles and registers the page from this result.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-problems.test.ts` (7 new tests): key
+tables 0, 1, 2 and 4 compared row for row — the 24 groups with family/count/%/hours/hrs-each/machines/quick, the nine
+families with the group order inside, the 15 printed repeat rows, and the 14 words with their example problem; the
+repeat list's length (74) derived from the events' machine-and-group pairs; events one per breakdown ticket, sorted by
+key then date, with repeated keys kept (merging off); the three plant fixes move exactly three entries out of
+`Other / unclear` when removed; a plant-edited group list is read, and a fix naming a removed group no longer applies.
+N (1,279) and the total hours (3,060.11) are derived from `ENGINE_DATA`, never literals. Red first, before the module
+existed: `Test Files 1 failed (1)`, `Tests no tests`, `Error: Cannot find module
+'../src/analytics/problem-analysis.js'` (0 passed). Green: the named file 7/7; then
+`pnpm exec vitest run packages/domain/test` — 29 files, 390 tests (382 before: the 7 new tests plus the purity case
+the new source file adds to `analytics-engine.test.ts`). `pnpm precheck`: all checks pass.
+
+**Files.** `packages/domain/src/analytics/problem-analysis.ts` (new, 353 lines), a third optional parameter on
+`problemGroupOf` in `problem-groups.ts`, `packages/domain/test/analytics-problems.test.ts` and this fragment.
+
+**Deviations recorded.** (1) `problem-groups.ts` is touched (not in the packet's file list): `problemGroupOf` gains an
+optional `groups` list so the plant's edited list is classified by its own names and keywords (R7) and a fix naming a
+removed group is ignored, as the platform's editor does. The default is `PROBLEM_GROUPS`, so `dashboard-flags.ts` is
+unchanged and no existing caller or number moves. (2) The analysis takes `EngineData` only, not a profile: nothing A10
+prints reads a profile field (`AnalyticsProfile` holds none for ticket 41's problem page), so 41d-2's page computer
+receives the profile as every computer does and passes only the data here. (3) The module exports the platform's
+aggregation (events and the four stats), not printed table rows: 41d-2 owns the page's cells and titles, and the test
+formats the four tables with the platform's own `formatPercent`/`formatNumber` to prove they equal the key. (4) The
+`Other / unclear` pseudo-group is not in `PROBLEM_GROUPS`, so its family `Other` is set in `problem-analysis.ts`;
+the platform's own classifier returns `f:'Other'` for it. (5) A repeat row prints the machine **code**, as A6 does; the
+fixture's machine id and code are equal, so the key is unaffected. (6) An empty group list in Settings is treated as
+"not edited" (the platform default), as `probGroups()` does; the plant's editor never saves an empty list.
