@@ -232,25 +232,41 @@ function compile(group: ProblemGroup): CompiledGroup {
 
 const COMPILED = PROBLEM_GROUPS.map(compile);
 
-function firstMatch(text: string): string | null {
-  for (const group of COMPILED) if (group.tests.some((test) => test.test(text))) return group.name;
+/** A plant's edited list compiles once, not once per report: the same Settings array answers as the platform's does. */
+const EDITED = new WeakMap<readonly ProblemGroup[], readonly CompiledGroup[]>();
+
+function compiledOf(groups: readonly ProblemGroup[]): readonly CompiledGroup[] {
+  if (groups === PROBLEM_GROUPS) return COMPILED;
+  const cached = EDITED.get(groups);
+  if (cached !== undefined) return cached;
+  const compiled = groups.map(compile);
+  EDITED.set(groups, compiled);
+  return compiled;
+}
+
+function firstMatch(groups: readonly CompiledGroup[], text: string): string | null {
+  for (const group of groups) if (group.tests.some((test) => test.test(text))) return group.name;
   return null;
 }
 
 /**
  * The group a breakdown belongs to: a manual fix wins, then the problem text, then the problem and corrective
- * action together (the platform's own two passes). Unknown text is "Other / unclear".
+ * action together (the platform's own two passes). Unknown text is "Other / unclear". A plant's edited group list
+ * (R7) is classified by its own names and keywords; a manual fix naming a group the list no longer holds is ignored,
+ * exactly as the platform's editor does.
  */
 export function problemGroupOf(
   report: ReportRow,
   fixes: Readonly<Record<string, string>> = {},
+  groups: readonly ProblemGroup[] = PROBLEM_GROUPS,
 ): string {
+  const compiled = compiledOf(groups);
   const fixed = fixes[report.id];
-  if (fixed !== undefined && COMPILED.some((group) => group.name === fixed)) return fixed;
+  if (fixed !== undefined && compiled.some((group) => group.name === fixed)) return fixed;
   const problem = report.problem.toLowerCase();
   return (
-    firstMatch(problem) ??
-    firstMatch(`${problem} ${(report.correctiveAction ?? '').toLowerCase()}`) ??
+    firstMatch(compiled, problem) ??
+    firstMatch(compiled, `${problem} ${(report.correctiveAction ?? '').toLowerCase()}`) ??
     OTHER_PROBLEM
   );
 }
