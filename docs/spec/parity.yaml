@@ -1447,9 +1447,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/compare.json
+      - 'apps/web/src/screens/analytics/figures-43.test.ts :: maps the key page whole: no KPIs, all six tables (every cell) and both chart series'
+      - 'apps/web/e2e/analytics-compare.spec.ts :: a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one'
     source: docs/plan/m4a-triage.md
     screen: compare
     ticket: '43'
@@ -1459,9 +1461,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/team-focus.json
+      - 'apps/web/src/screens/analytics/figures-43.test.ts :: reads every one of the 31 actions with its key, lane, machine, title, stake and defaults'
+      - 'apps/web/e2e/analytics-compare.spec.ts :: a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one (the six lane groups and all 31 actions)'
     source: docs/plan/m4a-triage.md
     screen: team-focus
     ticket: '43'
@@ -1471,9 +1475,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/money-matters.json
+      - 'apps/web/src/screens/analytics/figures-43.test.ts :: maps the key page whole: all ten KPIs, both tables (every cell) and the one chart series'
+      - 'apps/web/src/screens/analytics/figures-43.test.ts :: reads the server money rule: head, plant head and admin, never the floor'
+      - 'apps/web/e2e/analytics-compare.spec.ts :: a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one'
     source: docs/plan/m4a-triage.md
     screen: money-matters
     ticket: '43'
@@ -1483,9 +1490,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/fix-finder.json
+      - 'apps/web/src/screens/analytics/figures-43.test.ts :: maps the key page whole: all four KPIs and the 15 rows in the key order'
+      - 'apps/web/e2e/analytics-compare.spec.ts :: a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one (sorts the 15 rows by Down hrs both ways)'
     source: docs/plan/m4a-triage.md
     screen: fix-finder
     ticket: '43'

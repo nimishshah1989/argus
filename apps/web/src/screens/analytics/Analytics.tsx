@@ -21,6 +21,7 @@ import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 import { MachinePage } from './MachinePage.js';
 import { MachinesPage } from './MachinesPage.js';
+import { MoneyPage } from './MoneyPage.js';
 
 const DESK = '/desk';
 
@@ -63,6 +64,8 @@ export function AnalyticsFace() {
         <BreakdownsPage group={found} />
       ) : found.id === 'forecast-scorecard' ? (
         <ForecastPage group={found} />
+      ) : found.id === 'cost' ? (
+        <MoneyPage group={found} />
       ) : (
         <GroupPage group={found} />
       )}

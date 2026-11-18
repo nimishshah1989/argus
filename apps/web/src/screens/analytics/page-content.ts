@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
 import { specialChart } from './forecast-charts.js';
+import { screenChart } from './screen-charts.js';
 
 /**
  * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1 and 41e-2): the platform's own page, whole. The
@@ -68,6 +69,10 @@ const SORTABLE_INDEX: Record<string, readonly number[]> = {
   a9: [0, 5, 6, 7, 8],
   fl: [0, 1],
   a10: [0, 1, 2, 3, 4],
+  // 43e: Compare's two longest-breakdown tables and by-shift, Money's two tables, Fix Finder's 15 rows.
+  cmp: [3, 4, 5],
+  mm: [0, 1],
+  ff: [0],
 };
 
 /** The A1/A2/A3 charts' chrome: the engine's id is data, the title and axis are catalogue copy. */
@@ -304,6 +309,8 @@ function groupBubble(chart: ObjectValue, t: TFunction, tables: readonly PageTabl
 /** A chart object with an id, mapped by the catalogue or by one of the three screen-own mappers. */
 function knownChart(chart: ObjectValue, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
   if (chart.id === 'ch-prob-scatter') return groupBubble(chart, t, tables);
+  const screen = screenChart(chart, t);
+  if (screen !== null) return screen;
   const special = specialChart(chart, t, tables);
   if (special !== null) return special;
   const meta = CHART_META[typeof chart.id === 'string' ? chart.id : ''];
