@@ -7,7 +7,9 @@ Ticket 47, `docs/plan/MILESTONES.md:423-426`:
 2. [API] Bhavin's old codes resolve through the alias column loaded in 37, so legacy and new closes count in one code.
 
 What ticket 46 already built, and what this plan uses rather than repeats: `breakdown_report.failure_component`,
-`failure_mode`, `failure_cause`, `failure_action` and `pm_report` are columns (`packages/db/migrations/0015_m4b_schema.sql:35-39`);
+`failure_mode`, `failure_cause`, `failure_action` and `pm_report` are columns (`packages/db/migrations/0015_m4b_schema.sql:35-39`)
+and 46b (`b06e888f`) already writes them, returns them in the stored-report reply and maps the trigger's refusal to
+`failureCodeField(error)`;
 one invoker-rights trigger refuses any non-null code that is not a `list_item` of
 `list = 'failure_code'` for the same tenant, with no `active` filter, so a switched-off code keeps validating old rows
 (`0015_m4b_schema.sql:41-79`); `list_item.aliases text[] NOT NULL DEFAULT '{}'` and its uniqueness trigger exist since
@@ -89,8 +91,9 @@ handed in one line from `apps/server/src/modules/tickets/routes.ts:128` (`loaded
 
 1. **A close with a report** (`kind:'report'` and a `report` body) and **the late report** that completes a `no_report`
    close: after `ensureFailureCodes` (R4) and alias resolution (R6), a missing code throws
-   `ReportValidationError(failureCodeField('failure_component'), 'A failure code is required')`; the reply is HTTP 422,
-   `validation`, field `report.failureComponent`.
+   `ReportValidationError('failureComponent', 'A failure code is required')`; the reply is HTTP 422, `validation`,
+   field `failureComponent` (the bare field 46b's trigger refusal already returns, asserted at
+   `m4b-write.test.ts:232`).
 2. **A `kind:'report'` close with no report body** on a live breakdown is refused too — it claims a report it does not
    store, and would otherwise be the uncoded close the milestone forbids: HTTP 422, `validation`, field `report`,
    message "A report is required to close a breakdown". The existing test that expects this to succeed
@@ -99,8 +102,11 @@ handed in one line from `apps/server/src/modules/tickets/routes.ts:128` (`loaded
    allowed.** The code arrives with the late report that completes a `no_report` close (case 1). This is the milestone's
    open conflict, recorded with its resolution as Q32 in `docs/spec/QUESTIONS.md`.
 
-Both refusals are produced in `report.ts` (not `outcome.ts`), by `failureCodeField` plus `ReportValidationError`; the
-unknown-code refusal is the trigger's own wording, **"That is not a failure code of this plant"** (`0015:52-53`).
+Both refusals are produced in the tickets repo, not `outcome.ts`: 46b's `failureCodeField(error)` already turns the
+trigger's refusal into a `ReportValidationError(field)` (`repo/report.ts:80-88`, `:293-297`), so 47b moves those two
+with the new resolution into `repo/failure-code.ts` and adds the message there — **"That is not a failure code of this
+plant"** (`0015:52-53`); `ReportValidationError` gains an optional message that `outcome.ts` forwards instead of its
+generic "Invalid report".
 `failure_mode`, `failure_cause` and `failure_action` stay nullable (R1). Cost if wrong: a plant that wants a live
 breakdown closed with a report but no code, or closed as `kind:'report'` without the body, cannot; the list is created
 on the write (R4) and the form falls back to the plant's maintenance codes while the list is empty (R4), so a missing
@@ -118,9 +124,10 @@ ordinary close never serialises; only when the list is empty does it take the pe
 copy the plant's own `maint_code` rows (code, label, sort, active) into `failure_code`, using the fallback's
 description where the plant's own label is just the bare code (so Cosmos's screen reads "E — Electronics/Electrical"
 rather than "E"), attaching `ele`/`hyd`/`rot` as aliases on E/HY/RT when the plant has those (a legacy code whose target
-is absent stays a row of its own — nothing is lost). The 19-code default lives in `apps/server/src/seed/failure-codes.ts` and is used **only** by a plant that has no
-`maint_code` rows at all, because SPEC rule 4 keeps plant codes out of `packages/shared` (`docs/spec/SPEC.md:335`). The
-config route is not touched: a screen read never writes. While a plant has no `failure_code` rows, the close form shows
+is absent stays a row of its own — nothing is lost). The 19-code default lives in the plant module's own `apps/server/src/modules/plant/failure-code-defaults.ts` (a module
+may not import `seed/`, `tools/check-boundaries.ts:161-162`) and is used **only** by a plant that has no `maint_code`
+rows at all, because SPEC rule 4 keeps plant codes out of `packages/shared` (`docs/spec/SPEC.md:335`). The `/config`
+read never writes. While a plant has no `failure_code` rows, the close form shows
 its `maint_code` options (the tenant's own codes) and sends the picked one as the failure code, so the floor is never
 left with an empty picker and that first close creates the list. Cost if wrong: a plant that never opens the screen and
 closes only through clients that send no code keeps its `maint_code` rows and has no failure list until the first coded
@@ -164,8 +171,9 @@ there.**
 (`apps/server/src/modules/tickets/past.ts:95-116`); history has no codes at all (`33% have no fault code`,
 `docs/discovery/01-SCOPE-BRIEF.md:55`), so its `maintCode` is optional: a past breakdown may carry one of the plant's
 codes or none, and either way it counts in every code figure (a blank stays a blank). Its four failure columns stay
-NULL because that path does not write them. Cost if wrong: a desk-entered past breakdown cannot be coded into the four
-columns until someone extends that path; no data is guessed and no migration is needed.
+optional too: 46b's path already writes them when a body carries them (`apps/server/src/modules/tickets/import.ts:211-229`),
+so a past breakdown may have none or all four, and neither blocks it. Cost if wrong: a desk-entered past breakdown with
+no codes stays uncoded until the desk fills them on that path; no data is guessed and no migration is needed.
 
 **R9 — tenancy and the engine.** Every new query names `tenant_id` explicitly (the trigger's own pattern,
 `0015:48-74`) and runs inside the tenant transaction; another plant's code is refused by the trigger and never resolves
@@ -183,12 +191,13 @@ design, and the PR body carries a plain `Large PR: the failure-code list and its
 create/patch take `''`, `'ele, hyd'` or an array and normalise to a lower-case array; reply returns the array — **so
 `aliases` becomes an accepted field on every list's create/patch and a key of every list's reply**, and the other lists'
 screens declare it hidden with a reason in 47c),
-`apps/server/src/seed/failure-codes.ts` (new: the fallback `DEFAULT_FAILURE_CODES` — the 19 codes in `input.json` order,
-their descriptions as labels, position as `sort`, `E`/`HY`/`RT` carrying `ele`/`hyd`/`rot` — plus
-`FAILURE_CODE_ALIASES` and `failureCodeSeedRows(maintCodes)`, the pure mapping of a plant's own maintenance codes to the
-failure list (code, sort and active as the plant has them; the plant's label, or the fallback description when that
-label is the bare code; the three aliases instead of rival rows); plant codes are seed data, not a `packages/shared`
-constant, per `docs/spec/SPEC.md:335`),
+`apps/server/src/modules/plant/failure-code-defaults.ts` (new, module-owned: the fallback `DEFAULT_FAILURE_CODES` — the
+19 codes in `input.json` order, their descriptions as labels, position as `sort`, `E`/`HY`/`RT` carrying `ele`/`hyd`/`rot`
+— plus `FAILURE_CODE_ALIASES` and `failureCodeSeedRows(maintCodes)`, the pure mapping of a plant's own maintenance codes
+to the failure list (code, sort and active as the plant has them; the plant's label, or the fallback description when
+that label is the bare code; the three aliases instead of rival rows); plant codes are this module's seed data, not a
+`packages/shared` constant (`docs/spec/SPEC.md:335`), and not `apps/server/src/seed/`, which a module may not import
+(`tools/check-boundaries.ts:161-162`)),
 `apps/server/src/modules/plant/repo/reads.ts` (`failureCodes(tx, tenantId)` with `code, aliases`, `maintenanceCodes(tx,
 tenantId)` with `code, label, sort, active`, `hasFailureCodes`, `insertFailureCode` on conflict do nothing,
 `lockFailureCodeSeed`), `apps/server/src/modules/plant/failure-codes.ts` (new: `ensureFailureCodes(tx, who)` —
@@ -200,7 +209,8 @@ generated routes and three reply schemas, so the route table's `toHaveLength(137
 route is not edited (R4).
 
 **Red:** `pnpm exec vitest run apps/server/test/failure-codes.test.ts` (no such module). **Green:** the same, then the
-covering suite below.
+covering suite below. The test imports `failureCodeSeedRows`/`DEFAULT_FAILURE_CODES` from
+`apps/server/src/modules/plant/failure-code-defaults.js` (module-owned, so `pnpm boundaries` stays green).
 
 **Acceptance.**
 
@@ -231,26 +241,30 @@ covering suite below.
 
 ## Packet 47b — coded closes and one code on read (API, one PR)
 
-**Files.** The rule's seam: `packages/shared/src/ticket.ts` (`breakdownReportSchema` gains the four optional `failure*`
-strings, `.max(60)`), `packages/shared/src/ticket-reply.ts` (the four required-but-nullable strings on
-`storedReportSchema`), `apps/server/src/modules/tickets/repo/report.ts` (`failureCodeField(column)` and both refusal
-messages live here; `storeReportForTransition` refuses a `kind:'report'` close with no report body on a live breakdown
-(R3 case 2); `storeBreakdownReport` runs `ensureFailureCodes`, resolves each of the four submitted values through
-`failureCodeIndexOf`, enforces R3 case 1, inserts the four columns and the mirrored `maint_code`, and
-`loadReport`/`buildStoredReport` return them; under 400 wc-lines — 329 now), `apps/server/src/modules/tickets/routes.ts:128`
-(one argument: `loaded.extras.raisedChannel`), `apps/server/src/modules/tickets/outcome.ts` (one line: the reply uses the
-message the error carries, so the two refusals read differently — the messages themselves are built in `report.ts`),
-`apps/server/src/modules/analytics/load.ts` (one line: `maintCode: raw === null ? null : (resolveFailureCode(index, raw)
-?? raw)`), and `apps/server/test/failure-code-closes.test.ts` (new). **The fixtures this rule forces (mechanical, rebased
-on 46b where it touched the same file, no assertion removed):** one code at each close-with-report call site — 32 sites
-in 14 server test files (`ticket-report` — whose "closes without a report" case at `:258-270` becomes R3 case 2's
-refusal and whose "applies defaults" case keeps every assertion and gains the code — plus `tickets`, `tickets-commands`,
+**Files — rebased on 46b, not re-added.** 46b (`b06e888f`) already put the four `failure*` strings on
+`breakdownReportSchema` at `.max(120)`, inserted them in `repo/report.ts`, returned them on `storedReportSchema`, built
+them in `loadReport`/`buildStoredReport`, and gave `failureCodeField(error)` plus the trigger mapping; its three
+stored-report fixtures (`reply-contract.test.ts:96`, `report-html.test.ts:55`, `ticket-pdf.test.ts:163`) already carry
+the four nulls. 47b adds, on top: a new `apps/server/src/modules/tickets/repo/failure-code.ts` that holds the alias resolution, the two
+refusals, and — taken over from 46b and re-exported by `report.ts` so `import.ts` is unchanged — `failureCodeField` and
+`ReportValidationError` (which gains an optional message); `repo/report.ts` keeps the write and gains only the calls,
+because it is 387 lines on main and the rule would push it past 400 — `storeReportForTransition` refuses a
+`kind:'report'` close with no report body on a live breakdown (R3 case 2) before its existing early return,
+`storeBreakdownReport` runs `ensureFailureCodes` and has the resolver write the canonical four values with `maint_code`
+mirrored from the component, and the trigger catch at `:293-297` carries the exact "That is not a failure code of this
+plant" message; then `apps/server/src/modules/tickets/routes.ts:128` (one argument:
+`loaded.extras.raisedChannel`), `apps/server/src/modules/tickets/outcome.ts` (one line: the reply uses the message the
+error carries instead of the generic "Invalid report"), `apps/server/src/modules/analytics/load.ts` (one line:
+`maintCode: raw === null ? null : (resolveFailureCode(index, raw) ?? raw)`), and
+`apps/server/test/failure-code-closes.test.ts` (new). It does not edit `packages/shared` (R3 case 1's
+missing-code check needs no schema change: an omitted optional field is the case it refuses). **The fixtures this rule
+forces (mechanical, no assertion removed):** one code at each close-with-report call site — 32 sites in 14 server test
+files (`ticket-report` — whose "closes without a report" case at `:258-270` becomes R3 case 2's refusal and whose
+"applies defaults" case keeps every assertion and gains the code — plus `tickets`, `tickets-commands`,
 `notify-ticket-events`, `import-state`, `import-fixture`, `handback`, `escalation`, `escalation-reopened`, `ticket-pdf`,
-`state`, `signoff-board`, `production-date`, `lockout`) — the three e2e specs that close through the API
-(`signoff.spec.ts:34`, `signoff-feed.spec.ts:22`, `analytics-whywhy.spec.ts:48`), and the three stored-report fixtures
-the four new reply keys force (`reply-contract.test.ts:77-113`, `report-html.test.ts:35-60`,
-`ticket-pdf.test.ts:150-170`; 46b already touched these files once, so this packet rebases rather than re-adds). The
-past-breakdown and import path is not edited: it keeps writing `maint_code` only (R8).
+`state`, `signoff-board`, `production-date`, `lockout`) — and the three e2e specs that close through the API
+(`signoff.spec.ts:34`, `signoff-feed.spec.ts:22`, `analytics-whywhy.spec.ts:48`). The past-breakdown and import path is
+not edited: 46b already writes any codes a past body carries, and none are required (R8).
 
 **Red:** `pnpm exec vitest run apps/server/test/failure-code-closes.test.ts` (the missing-code case is red). **Green:**
 the same, then **the whole server suite** — `pnpm exec vitest run apps/server/test` — because the rule changes the close
@@ -264,13 +278,15 @@ API closes gained a code (`pnpm exec playwright test apps/web/e2e/signoff.spec.t
   show `E`.
 - Given a live breakdown (`kind` `stopped`, channel `floor`) and a close with a report that carries neither
   `failureComponent` nor `maintCode`, when it is sent, then the reply is exactly 422 `validation`, "A failure code is
-  required", field `report.failureComponent`, and no report row is written; the same close with `maintCode: 'E'`
+  required", field `failureComponent`, and no report row is written; the same close with `maintCode: 'E'`
   (an app built before this ticket) is accepted and stored as `E`; a `pm`/`inspection` ticket, a support ticket, a
   past breakdown (`POST /tickets/past`, channel `backfill`) and an imported row are still accepted with no code.
 - Given the same live breakdown, when it is closed with `kind:'report'` and **no** `report` body, then the reply is
-  exactly 422 `validation`, "A report is required to close a breakdown", field `report` (R3 case 2); when it is closed
-  with `kind:'no_report'` and when a general ticket is closed with `kind:'done'`, then both succeed, store no report,
-  and are exempt (R3 case 3); the late report that completes the `no_report` close without a code is refused and with
+  exactly 422 `validation`, "A report is required to close a breakdown", field `report` (R3 case 2); when the same live
+  breakdown is closed with `kind:'no_report'`, when the same live breakdown is closed with `kind:'done'` (the API allows
+  it even though the floor offers Mark done only for general work), and when a general ticket is closed with
+  `kind:'done'`, then all three succeed, store no report, and are exempt (R3 case 3, exercising Q32's exemption on the
+  live-breakdown shape itself); the late report that completes the `no_report` close without a code is refused and with
   one is accepted.
 - Given a legacy history row (channel `import`) stored with `maint_code = 'ELE'` and a new close coded `E`, when the
   annual report's "By cause" is computed, then it holds one `E` row that counts both: legacy and new closes count in
@@ -279,7 +295,7 @@ API closes gained a code (`pnpm exec playwright test apps/web/e2e/signoff.spec.t
   the raw value (R7).
 - Given a client built before this ticket, when it sends `maintCode: 'ele'`, then the stored code is `E` (alias, any
   case); when it sends `NOPE`, then the reply is exactly 422 `validation`, "That is not a failure code of this plant",
-  field `report.failureComponent`, and nothing is written.
+  field `failureComponent`, and nothing is written.
 - Given a code used on a close and then switched off, when the ticket detail is read, then the report still shows the
   code; when `/config` is read, then the entry is there with `active:false` and the close form's options omit it.
 - Given an imported report with no codes, when it is read and counted, then every `failure*` column is NULL, no trigger
@@ -327,20 +343,24 @@ No new dependency, no new table (D17), no migration (46 owns M4b's), no change t
 rows by SQL outside `scripts`/repo files (`pnpm boundaries`); every new query names `tenant_id` and runs inside the
 tenant transaction; `app_user` keeps only its existing grants. File ≤ 400 wc-lines, function ≤ 60, plan and fragment
 formatted by prettier (`pnpm format:check`). The frozen seam for 48/49/51/52 and M6 is: `resolveFailureCode`,
-`failureCodeIndex`, `ensureFailureCodes`, `failureCodeSeedRows` and the fallback `DEFAULT_FAILURE_CODES` in
-`apps/server/src/seed/failure-codes.ts`, the four `breakdown_report.failure_*` columns, the four `storedReportSchema`
-fields, and `failure_code` in `LIST_NAMES`. `pnpm precheck` before every push; the reviewer is
+`failureCodeIndex`, `ensureFailureCodes`, `failureCodeSeedRows` and the fallback `DEFAULT_FAILURE_CODES` in the
+module-owned `apps/server/src/modules/plant/failure-code-defaults.ts`, the four `breakdown_report.failure_*` columns,
+46b's four `storedReportSchema` fields and `failureCodeField(error)`, and `failure_code` in `LIST_NAMES`. `pnpm precheck` before every push; the reviewer is
 fresh and runs the covering suite, not only the named test.
 
 ## Where a reviewer should push
 
 47b carries the ticket's real cost: the rule changes a contract every close test relied on, so about 35 call sites
 gain one code and two tests change meaning on purpose (`ticket-report.test.ts:258-270` now expects the refusal, and the
-"applies defaults" case keeps every assertion). The reviewer should check that no other assertion moved and that the
+"applies defaults" case keeps every assertion). It rebases on 46b, which already ships the four fields at `.max(120)`,
+the insert, the reply keys and `failureCodeField(error)`; 47b must add resolution, the two rules and the message, not a
+second copy of any of them. The reviewer should check that no other assertion moved and that the
 rule uses the shared channel predicate rather than a fourth copy of `import`/`backfill` string checks. R4's seed is the
 second: it copies the plant's `maint_code` rows, so a plant with a custom code gets it — attack whether copying is right
 (a plant's own label is copied as it stands; only a bare-code label takes the fallback description), and whether the
-`maint_code` bridge can be removed once every plant has the list. Third, `aliases` becomes a field on every list's
+`maint_code` bridge can be removed once every plant has the list. The default data sits in the plant module
+(`failure-code-defaults.ts`), not in `seed/` or `packages/shared`, so `pnpm boundaries` and SPEC rule 4 both hold;
+confirm the module-owned file is the one the test imports. Third, `aliases` becomes a field on every list's
 create/patch and a key of every list reply; the reviewer should confirm the other list screens declare it hidden (the
 D05 guard) and that the 0014 trigger still owns alias uniqueness. Fourth, 47a's reply-contract count moves 137 → 140 in
 the same PR as the list, so the route table and `REPLY_SCHEMAS` must still match exactly.
