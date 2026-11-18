@@ -1,27 +1,29 @@
 # Where things stand — handoff for the next orchestrator session
 
-Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `docs/plan/MILESTONES.md`. Under 50 lines;
-rewrite at session end.
+Read this first, then `docs/plan/ledger.md` (17–18 Nov, last lines), then `docs/plan/MILESTONES.md`. Under 50 lines; rewrite at session end.
 
-## START HERE (M4a tail → gate → M4b → M6)
+## START HERE (review 41b → M4a tail → gate → M4b → M6)
 
-**State:** `main` = `1731d112`. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done; 41 in progress** — its slice plan
-(`docs/slices/41-manpower-energy-rootcause.md`) and the **shared seam (41h, #327)** and **41a A4 (#329)** are merged. Next packets, in this
-order: **41b A5**, 41c A6, 41c-2 saved Why-Why + server PDF, 41d-1/41d-2 A10, 41e-1/41e-2 screens. The plan
-names every rule, file, red/green command and ruling R1–R9 — do not re-derive them, and do not undo R8. One recorded divergence: A4's Specialization columns come from the fleet's categories until the plant category
-list reaches the engine (ledger ruling + DEBT row). Only other open PR: #300 (history plan, Nimish's — leave it).
+**State:** `main` = `c96c109c`, deployed green on staging at 10:14 IST. M2 accepted. **M4a: 36, 37, 38, 38.5, 39, 40 done;
+41 in progress.** Merged for 41: the plan, seam **41h #327**, the plant's lists **41h-2 #331** (retires 41a's category
+debt), and **41a A4 #329**. **41b A5 is built, not reviewed:** `16f5479e` on branch `41b-a5` (pushed), 4 files, its
+named test 5/5 and `pnpm precheck` 13/13 green. It has no PR and no fresh review — **restart here**: review it with the
+covering suite, open its PR, merge, then 41c A6, 41c-2 saved Why-Why + server PDF, 41d-1/41d-2 A10, 41e-1/41e-2 screens.
+The plan names every rule, file, red/green command and ruling R1–R9; do not re-derive them, do not undo R8. The session
+died at 10:13 IST right after committing 41b; this docs PR carries the plan/HANDOFF corrections it left uncommitted
+(discard them in `41b-a5` with `git checkout -- docs/` before rebasing). Only other open PR: #300 (Nimish's, leave it).
 
-**The answer key's authority is the 11 Nov platform build, which lives only in the staging discovery pack**
-(`<argus-staging>/docs/discovery/real-2026-11-13/{cosmos_platform-2026-11-11.html, cosmos-export-2026-11-11.xlsx}`,
-3.7 MB, MD5 896faf97429d976903f0645c8c6d3d74). The committed `docs/discovery/source/cosmos_platform.html` is a
-**different build** (no per-machine efficiency, no A10 suggested-group card, no manual fixes in `probEvents`). The two
-divergences are written out in the plan's 41b/41d; regenerate keys only from the 11 Nov file.
+**The answer key's authority is the 11 Nov platform build, tracked in this repo** at
+`docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`; the
+workbook is beside it). The earlier "not committed" note was wrong and is corrected here. The committed
+`docs/discovery/source/cosmos_platform.html` is a **different build** (no per-machine efficiency, no A10 card, no manual
+fixes in `probEvents`); the plan's 41b/41d state both divergences. Regenerate keys only from the 11 Nov file.
 
 **R8 — do not undo.** The pseudonymiser collapsed name forms, so nine A4 mentions were over-attributed; the fixture-side
 map `fixtures/answer-key/person-mentions.json` repairs it and the seam test proves it is applied.
 
-**First action:** in a worktree, `git fetch origin --prune && git checkout --detach origin/main`, refresh Graphify
-(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then dispatch 41a.
+**First action:** in a fresh worktree from `origin/main`, `git fetch origin --prune`, refresh Graphify
+(`GRAPHIFY_BACKEND=none graphify update .`), read this → ledger tail → MILESTONES → the 41 plan, then review 41b.
 
 **Frontier after 41:** 42 forecast (seed scheme in `fixtures/answer-key/README.md`: A9, planning forecast, Forecast Lab),
 43 compare/Team Focus/Money/Fix Finder (money heads+admin only), 44 Action Center (13 rules exact; snooze persists),
@@ -42,7 +44,6 @@ the `Large PR:`/`No parity:` **plain** lines in Reasons (a bolded bullet does no
 (check job timings before debugging code); prettier runs over `docs/` too, so format a plan/ledger edit before pushing.
 
 **Calls and gaps:** N12 open (the real legacy maintenance-code map is Bhavin's; 37c ships a labelled synthetic map);
-CSV not XLSX for the cell-log export (ADR needed); N5 real Gujarati copy blank; the 11 Nov platform build is not in the
-repo (committing 3.7 MB needs a decision); A10's group-editor write and the "What stands out" card are recorded debt
-(R4/R9, `docs/plan/DEBT.md`). Recorded follow-ups: split the 700-line e2e spec; an A2/A3 over-cap variant; a stale doc
-comment in figure-content.ts; the move-correction row lock.
+CSV not XLSX for the cell-log export (ADR needed); N5 real Gujarati copy blank; A10's group-editor write and the "What
+stands out" card are recorded debt (R4/R9, `docs/plan/DEBT.md`). Recorded follow-ups: split the 700-line e2e spec; an
+A2/A3 over-cap variant; a stale doc comment in figure-content.ts; the move-correction row lock.

@@ -11,11 +11,10 @@ screen packets touch `apps/web/src/screens/analytics/*` + `apps/web/e2e/*` + `do
 
 ## Authority, and the source the key actually came from (ruling R1)
 
-The key's platform is **the 11 Nov build**:
-`<argus-staging>/docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5
-`896faf97429d976903f0645c8c6d3d74`; the same path `tools/answer-key/generate.ts` reads through
-`ROOT = 'docs/discovery/real-2026-11-13'`). That pack lives in the staging checkout, outside this repo; it is
-**not committed** (3.7 MB, and the repo's discovery pack is frozen). The committed
+The key's platform is **the 11 Nov build**, and it is tracked in this repo at
+`docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html` (3.7 MB, MD5 `896faf97429d976903f0645c8c6d3d74`;
+the workbook is beside it, and `tools/answer-key/generate.ts` reads through `ROOT = 'docs/discovery/real-2026-11-13'`).
+The staging checkout carries the same files. The committed
 `docs/discovery/source/cosmos_platform.html` is a **different build**, and every rule below was checked against both.
 Its two material divergences — which the key follows the 11 Nov build on — are called out in 41b (per-machine
 efficiency) and 41d (the suggested-group card); the plan states both rules in full, so no packet needs the file. The
@@ -297,7 +296,8 @@ same plus `pnpm exec playwright test analytics-problems --project=chromium` and
 
 ## Rulings recorded here
 
-- **R1** — the key's authority is the 11 Nov platform build in the staging discovery pack; not committed (3.7 MB);
+- **R1** — the key's authority is the 11 Nov platform build, tracked at
+  `docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html`;
   the rules above are the plan's own statement of it; the committed 13 Nov export is unchanged and its two divergences
   are named in 41b/41d.
 - **R2** — a Why-Why is one append-only `ticket_event` of type `why_why`; payload `{whys[5], conclusion, completedBy,
