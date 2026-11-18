@@ -139,7 +139,7 @@ const work = (ticketId: string, action: string, extra: object = {}) =>
 const closeIt = (ticketId: string, kind: 'report' | 'no_report' | 'done', note = 'Fixed') =>
   work(ticketId, 'close', {
     kind,
-    ...(kind === 'report' ? { report: { correctiveAction: note } } : {}),
+    ...(kind === 'report' ? { report: { correctiveAction: note, failureComponent: 'E' } } : {}),
   });
 
 const answer = (ticketId: string, who: string, personId: string | null, body: object) =>

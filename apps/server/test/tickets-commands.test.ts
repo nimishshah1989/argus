@@ -327,6 +327,7 @@ describe('ticket commands', () => {
     const close = await post(`/api/v1/tickets/${id}/close`, ashaToken, {
       personId: ASHA,
       kind: 'report',
+      report: { failureComponent: 'E' },
     });
     expect(close.statusCode).toBe(200);
     expect(close.json().ticket.status).toBe('closed');
@@ -541,7 +542,7 @@ describe('ticket commands', () => {
 
     const report = await post(`/api/v1/tickets/${id}/report`, ashaToken, {
       personId: ASHA,
-      report: {},
+      report: { failureComponent: 'E' },
     });
     expect(report.statusCode).toBe(200);
     expect(report.json().ticket.closeKind).toBe('report');
@@ -634,7 +635,11 @@ describe('history is kept', () => {
     await step(binaToken, 'leave', { personId: BINA, reason: 'All set' });
     await step(ashaToken, 'transfer', { personId: ASHA, note: 'Next shift' });
     await step(ashaToken, 'start', { personId: ASHA });
-    await step(ashaToken, 'close', { personId: ASHA, kind: 'report' });
+    await step(ashaToken, 'close', {
+      personId: ASHA,
+      kind: 'report',
+      report: { failureComponent: 'E' },
+    });
 
     const rows = await segmentRows(id);
     expect(rows.length).toBeGreaterThanOrEqual(before.length);
@@ -657,7 +662,11 @@ describe('history is kept', () => {
       await command(id, ashaToken, 'start', { personId: ASHA });
       await command(id, ashaToken, 'cancel', { personId: ASHA, reason: 'Duplicate job' });
       await command(id, adminToken, 'restore', { personId: ADMIN_PERSON, reason: 'Wrong cancel' });
-      await command(id, ashaToken, 'close', { personId: ASHA, kind: 'report' });
+      await command(id, ashaToken, 'close', {
+        personId: ASHA,
+        kind: 'report',
+        report: { failureComponent: 'E' },
+      });
       const rows = await segmentRows(id);
       expect([...new Set(rows.map((r) => r.end_reason))].sort()).toEqual([
         'cancel',

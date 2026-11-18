@@ -42,7 +42,10 @@ const work = (plant: Plant, ticketId: string, action: string, extra: object = {}
     payload: { personId: plant.people.lal, ...extra },
   });
 const closeWithReport = (plant: Plant, ticketId: string) =>
-  work(plant, ticketId, 'close', { kind: 'report', report: { correctiveAction: 'Fixed' } });
+  work(plant, ticketId, 'close', {
+    kind: 'report',
+    report: { correctiveAction: 'Fixed', failureComponent: 'E' },
+  });
 const dispute = (plant: Plant, ticketId: string, key?: string) =>
   plant.as('rina', 'POST', `/api/v1/tickets/${ticketId}/handback`, {
     payload: { personId: plant.people.rina, response: 'disputed', reason: 'Still stops' },
