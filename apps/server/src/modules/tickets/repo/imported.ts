@@ -117,6 +117,37 @@ export async function insertImportedReport(tx: Db, values: unknown[]): Promise<s
   return result.rows[0].id as string;
 }
 
+/**
+ * The M4b report fields on an already-inserted report. A separate write because a migration test loads the plant on
+ * the schema before 0015, where these columns do not exist yet; an uncoded report (every import) never calls this.
+ */
+export async function insertImportedReportCodes(
+  tx: Db,
+  input: {
+    tenantId: string;
+    reportId: string;
+    failureComponent: string | null;
+    failureMode: string | null;
+    failureCause: string | null;
+    failureAction: string | null;
+    pmReport: string | null;
+  },
+): Promise<void> {
+  await tx.query(
+    `UPDATE breakdown_report SET failure_component = $3, failure_mode = $4, failure_cause = $5,
+       failure_action = $6, pm_report = $7 WHERE id = $1 AND tenant_id = $2`,
+    [
+      input.reportId,
+      input.tenantId,
+      input.failureComponent,
+      input.failureMode,
+      input.failureCause,
+      input.failureAction,
+      input.pmReport,
+    ],
+  );
+}
+
 export async function insertReportPerson(tx: Db, values: unknown[]): Promise<void> {
   await tx.query(
     `INSERT INTO breakdown_report_person (tenant_id, report_id, person_id, role)

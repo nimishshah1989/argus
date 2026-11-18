@@ -1,6 +1,6 @@
-import type { PoolClient } from 'pg';
+import type { PoolClient, QueryResult } from 'pg';
 import type { Figures, Ticket, TransitionResult } from '@uptimo/domain';
-import type { BreakdownReportBody } from '@uptimo/shared';
+import type { BreakdownReportBody, PmReport } from '@uptimo/shared';
 import type { Tx } from '../mapper.js';
 import { peopleByIds, tenantInfo } from '../../identity/index.js';
 import { productionDateAt, shiftCodeAt } from '../../plant/index.js';
@@ -26,6 +26,11 @@ export interface StoredReport {
   maintCode: string | null;
   spareUsed: string | null;
   rootCause: string | null;
+  failureComponent: string | null;
+  failureMode: string | null;
+  failureCause: string | null;
+  failureAction: string | null;
+  pmReport: PmReport | null;
   handoverPersonId: string | null;
   handoverName: string | null;
   submittedByPersonId: string | null;
@@ -54,6 +59,11 @@ interface ReportValues {
   maintCode: string | null;
   spareUsed: string | null;
   rootCause: string | null;
+  failureComponent: string | null;
+  failureMode: string | null;
+  failureCause: string | null;
+  failureAction: string | null;
+  pmReport: string | null;
   handoverPersonId: string | null;
   handoverName: string | null;
 }
@@ -61,9 +71,20 @@ interface ReportValues {
 const INSERT_REPORT_SQL = `INSERT INTO breakdown_report
   (tenant_id, ticket_id, machine_id, date, shift_code, problem, observed_by, corrective_action,
    downtime_min, response_min, repair_min, breakdown_category, maint_code, spare_used, root_cause,
-   handover_name, handover_person_id, submitted_by_person_id)
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+   handover_name, handover_person_id, submitted_by_person_id,
+   failure_component, failure_mode, failure_cause, failure_action, pm_report)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
   RETURNING id, submitted_at`;
+
+/** The report field a database failure-code refusal names, so the reply says which code was wrong. */
+export function failureCodeField(error: unknown): string | null {
+  if ((error as { code?: string }).code !== '23514') return null;
+  const named =
+    /^breakdown_report: (failure_component|failure_mode|failure_cause|failure_action) /.exec(
+      (error as Error).message,
+    )?.[1];
+  return named ? named.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()) : null;
+}
 
 export class ReportValidationError extends Error {
   field: string;
@@ -121,6 +142,11 @@ async function reportValues(client: PoolClient, input: ReportStoreInput): Promis
     maintCode: n(b.maintCode),
     spareUsed: n(b.spareUsed),
     rootCause: n(b.rootCause),
+    failureComponent: n(b.failureComponent),
+    failureMode: n(b.failureMode),
+    failureCause: n(b.failureCause),
+    failureAction: n(b.failureAction),
+    pmReport: b.pmReport ? JSON.stringify(b.pmReport) : null,
     // One truth: a person link replaces the typed text, which stays only for imported history.
     handoverPersonId: n(b.handoverPersonId),
     handoverName: b.handoverPersonId ? null : n(b.handoverName),
@@ -201,6 +227,11 @@ function buildStoredReport(
     maintCode: maybe(row, 'maint_code'),
     spareUsed: maybe(row, 'spare_used'),
     rootCause: maybe(row, 'root_cause'),
+    failureComponent: maybe(row, 'failure_component'),
+    failureMode: maybe(row, 'failure_mode'),
+    failureCause: maybe(row, 'failure_cause'),
+    failureAction: maybe(row, 'failure_action'),
+    pmReport: maybe<PmReport>(row, 'pm_report'),
     handoverPersonId: maybe(row, 'handover_person_id'),
     handoverName: maybe(row, 'handover_name'),
     submittedByPersonId: maybe(row, 'submitted_by_person_id'),
@@ -225,32 +256,53 @@ async function checkReportPeople(
   return { done, supported };
 }
 
+/** Writes the report row, mapping the database's failure-code refusal to the field it names. */
+async function insertReportRow(
+  client: PoolClient,
+  input: ReportStoreInput,
+  values: ReportValues,
+): Promise<QueryResult> {
+  try {
+    return await client.query(INSERT_REPORT_SQL, [
+      input.tenantId,
+      input.ticket.id,
+      input.ticket.machineId,
+      values.date,
+      values.shiftCode,
+      values.problem,
+      values.observedBy,
+      values.correctiveAction,
+      values.downtimeMin,
+      values.responseMin,
+      values.repairMin,
+      values.breakdownCategory,
+      values.maintCode,
+      values.spareUsed,
+      values.rootCause,
+      values.handoverName,
+      values.handoverPersonId,
+      input.actingPersonId,
+      values.failureComponent,
+      values.failureMode,
+      values.failureCause,
+      values.failureAction,
+      values.pmReport,
+    ]);
+  } catch (error) {
+    // The list is the database's (`breakdown_report_check_failure_codes`): map its refusal, never re-check it here.
+    const field = failureCodeField(error);
+    if (field) throw new ReportValidationError(field);
+    throw error;
+  }
+}
+
 export async function storeBreakdownReport(
   client: PoolClient,
   input: ReportStoreInput,
 ): Promise<StoredReport> {
   const { done, supported } = await checkReportPeople(client, input);
   const values = await reportValues(client, input);
-  const result = await client.query(INSERT_REPORT_SQL, [
-    input.tenantId,
-    input.ticket.id,
-    input.ticket.machineId,
-    values.date,
-    values.shiftCode,
-    values.problem,
-    values.observedBy,
-    values.correctiveAction,
-    values.downtimeMin,
-    values.responseMin,
-    values.repairMin,
-    values.breakdownCategory,
-    values.maintCode,
-    values.spareUsed,
-    values.rootCause,
-    values.handoverName,
-    values.handoverPersonId,
-    input.actingPersonId,
-  ]);
+  const result = await insertReportRow(client, input, values);
   const reportId = result.rows[0].id as string;
   await insertPeople(client, input.tenantId, reportId, { personIds: done, role: 'done' });
   await insertPeople(client, input.tenantId, reportId, { personIds: supported, role: 'supported' });
@@ -272,6 +324,11 @@ export async function storeBreakdownReport(
       maint_code: values.maintCode,
       spare_used: values.spareUsed,
       root_cause: values.rootCause,
+      failure_component: values.failureComponent,
+      failure_mode: values.failureMode,
+      failure_cause: values.failureCause,
+      failure_action: values.failureAction,
+      pm_report: input.body.pmReport ?? null,
       handover_name: await handoverDisplay(client, input.tenantId, values),
       handover_person_id: values.handoverPersonId,
       submitted_by_person_id: input.actingPersonId,
@@ -307,7 +364,8 @@ export async function loadReport(
     await client.query(
       `SELECT id, tenant_id, ticket_id, machine_id, date::text AS date, shift_code, problem, observed_by,
          corrective_action, downtime_min, response_min, repair_min, breakdown_category, maint_code,
-         spare_used, root_cause, handover_name, handover_person_id, submitted_by_person_id, submitted_at
+         spare_used, root_cause, failure_component, failure_mode, failure_cause, failure_action, pm_report,
+         handover_name, handover_person_id, submitted_by_person_id, submitted_at
        FROM breakdown_report WHERE ticket_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
       [ticketId],
     )

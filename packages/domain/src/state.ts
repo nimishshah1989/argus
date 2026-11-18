@@ -24,7 +24,7 @@ export interface RaiseInput {
   urgent?: boolean;
   problem: string;
   reportedAt: Date;
-  raisedLoginId: string;
+  raisedLoginId: string | null;
   reportedByPersonId: string | null;
   selfStarted: boolean;
   startNow: boolean;

@@ -93,6 +93,11 @@ describe('a stored report in a reply', () => {
     downtimeMin: 0,
     responseMin: null,
     repairMin: null,
+    failureComponent: null,
+    failureMode: null,
+    failureCause: null,
+    failureAction: null,
+    pmReport: null,
     submittedAt: '2026-11-10T05:00:00.000Z',
     people: [],
   };

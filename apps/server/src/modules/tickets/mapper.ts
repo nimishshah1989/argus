@@ -76,6 +76,8 @@ export interface RaiseExtras {
   urgent: boolean;
   problemLang: string | null;
   reportedByRole: string | null;
+  /** Where this ticket came from; the raise paths write a breakdown channel or a planned one. */
+  raisedChannel: string;
   severity: Ticket['severity'] | null;
   criticalitySnapshot: Ticket['criticalitySnapshot'];
 }
@@ -84,7 +86,7 @@ export interface PersistEventsOptions {
   events: TicketEvent[];
   startSeq: number;
   idempotencyKey: string;
-  loginId: string;
+  loginId: string | null;
   actingPersonId: string | null;
   textFor?: (event: TicketEvent, index: number) => string | null;
   payloadFor?: (event: TicketEvent, index: number) => Record<string, unknown>;

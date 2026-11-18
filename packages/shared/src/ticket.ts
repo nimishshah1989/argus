@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BREAKDOWN_CHANNELS } from './channel.js';
 import { taskDownMinSchema, taskInputSchema } from './tasks.js';
 
 // ISO timestamps are coerced to Date so the parsed body matches the domain Command types.
@@ -16,6 +17,8 @@ export const raiseTicketSchema = z
     urgent: z.boolean().optional(),
     problem: z.string().min(1).max(2000),
     problemLang: z.string().max(2000).optional(),
+    /** Where the person raised it from; planned (`pm`/`inspection`) and history channels have their own paths. */
+    channel: z.enum(BREAKDOWN_CHANNELS).optional(),
     reportedByPersonId: z.string().uuid().optional(),
     reportedByRole: z.string().max(60).optional(),
     startNow: z.boolean().optional(),
@@ -131,6 +134,22 @@ export const machineStoppedSchema = z.object({
 });
 export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
 
+/**
+ * The data of a PM job's report (D17: the ticked checklist and readings are the ticket's report data, not a
+ * table). `total` is what the plan asked for, `undone` the points the technician could not tick, `readings`
+ * the meter values taken on the job.
+ */
+export const pmReportSchema = z
+  .object({
+    total: z.number().int().min(0),
+    undone: z.array(z.string().min(1).max(200)).max(500).default([]),
+    readings: z.record(z.string().min(1).max(120), z.number()).default({}),
+    comments: z.string().max(4000).nullable().default(null),
+    doneBy: z.string().uuid().nullable().default(null),
+  })
+  .strict();
+export type PmReport = z.infer<typeof pmReportSchema>;
+
 export const breakdownReportSchema = z.object({
   problem: z.string().min(1).max(2000).optional(),
   observedBy: z.string().max(200).optional(),
@@ -144,6 +163,13 @@ export const breakdownReportSchema = z.object({
   maintCode: z.string().max(60).optional(),
   spareUsed: z.string().max(200).optional(),
   rootCause: z.string().max(2000).optional(),
+  /** A `failure_code` list item of the plant; the database trigger is the one that knows the list (ticket 47). */
+  failureComponent: z.string().min(1).max(120).optional(),
+  failureMode: z.string().min(1).max(120).optional(),
+  failureCause: z.string().min(1).max(120).optional(),
+  failureAction: z.string().min(1).max(120).optional(),
+  /** Set on the report a PM job produces; left out by every older caller. */
+  pmReport: pmReportSchema.optional(),
   /** The person the report is handed over to. Typed text (`handoverName`) is for imported history; use this. */
   handoverPersonId: z.string().uuid().optional(),
   handoverName: z.string().max(120).optional(),

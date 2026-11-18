@@ -1,14 +1,17 @@
 import { computeSeverity } from '@uptimo/domain';
+import type { PmReport } from '@uptimo/shared';
 import type { PoolClient } from 'pg';
 import {
   insertImportedCrew,
   insertImportedEvent,
   insertImportedReport,
+  insertImportedReportCodes,
   insertImportedSegment,
   insertImportedTicket,
   insertReportPerson,
 } from './repo/imported.js';
 import { loadSeverityMatrix } from './severity.js';
+import { failureCodeField, ReportValidationError } from './repo/report.js';
 
 type When = Date | string | null;
 
@@ -110,6 +113,11 @@ export interface ImportedTicketRow {
     maintCode: string | null;
     spareUsed: string | null;
     rootCause: string | null;
+    failureComponent?: string | null;
+    failureMode?: string | null;
+    failureCause?: string | null;
+    failureAction?: string | null;
+    pmReport?: PmReport | null;
     handoverName: string | null;
     submittedByPersonId: string | null;
     submittedAt: When;
@@ -119,6 +127,8 @@ export interface ImportedTicketRow {
 }
 
 type Columns = Record<string, unknown>;
+
+const nullText = (value: string | null | undefined): string | null => value ?? null;
 
 function whoAndWhat(tenantId: string, row: ImportedTicketRow, severity: string | null): Columns {
   return {
@@ -188,6 +198,40 @@ function figureColumns(f: ImportedTicketRow['figures']): Columns {
   };
 }
 
+/** The M4b fields, written only when the report has one, so an uncoded import leaves the pre-0015 SQL shape alone. */
+async function storeReportCodes(
+  tx: PoolClient,
+  tenantId: string,
+  reportId: string,
+  r: NonNullable<ImportedTicketRow['report']>,
+): Promise<void> {
+  const codes = {
+    tenantId,
+    reportId,
+    failureComponent: nullText(r.failureComponent),
+    failureMode: nullText(r.failureMode),
+    failureCause: nullText(r.failureCause),
+    failureAction: nullText(r.failureAction),
+    pmReport: r.pmReport ? JSON.stringify(r.pmReport) : null,
+  };
+  const coded = [
+    codes.failureComponent,
+    codes.failureMode,
+    codes.failureCause,
+    codes.failureAction,
+    codes.pmReport,
+  ].some(Boolean);
+  if (!coded) return;
+  try {
+    await insertImportedReportCodes(tx, codes);
+  } catch (error) {
+    // The database's failure_code list is the only check the codes get here too (ticket 47 seeds it).
+    const field = failureCodeField(error);
+    if (field) throw new ReportValidationError(field);
+    throw error;
+  }
+}
+
 async function insertReport(
   tx: PoolClient,
   tenantId: string,
@@ -216,6 +260,7 @@ async function insertReport(
     r.submittedByPersonId,
     r.submittedAt,
   ]);
+  await storeReportCodes(tx, tenantId, reportId, r);
   for (const personId of r.doneByPersonIds) {
     await insertReportPerson(tx, [tenantId, reportId, personId, 'done']);
   }

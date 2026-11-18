@@ -32,6 +32,8 @@ export const OWNERS: Readonly<Record<string, readonly string[]>> = {
     'setting',
     'glossary_term',
     'ui_translation',
+    'pm_plan',
+    'asset_register',
   ],
   files: ['file'],
   notifications: ['push_subscription', 'notification'],
