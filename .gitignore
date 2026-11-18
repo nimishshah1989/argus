@@ -43,3 +43,6 @@ infra/terraform/terraform.tfvars
 
 # Graphify knowledge graph output
 graphify-out/
+
+# PR bodies are local scratch, never committed.
+.pr-body.md
