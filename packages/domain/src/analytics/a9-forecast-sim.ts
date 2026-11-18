@@ -10,6 +10,9 @@ import type { EngineData } from './types.js';
  * and the numbers it draws from are one subject, and because the file budget is a hard 400 lines.
  */
 
+/** The runs the A9 planning forecast draws; the Forecast Lab re-seeds its own shorter run set. */
+export const FC_RUNS = 2000;
+
 /** The recent window every rate is compared over, and the prior the M0 rate shrinks toward. */
 export const FC_WINDOW = 90;
 export const FC_PRIOR_DAYS = 180;
@@ -238,4 +241,57 @@ export function simulate(
     machine.push(sims);
   });
   return { machine, plant };
+}
+
+const LONG_MONTHS =
+  'January February March April May June July August September October November December'.split(
+    ' ',
+  );
+
+/** The month the planning forecast covers: the first full calendar month after the period end. */
+export type Month = { label: string; days: number };
+
+export function nextMonth(end: string): Month {
+  const [year = 0, month = 1] = end.split('-').map(Number);
+  const index = month % 12;
+  const monthsYear = year + Math.floor(month / 12);
+  const label = `${LONG_MONTHS[index]} ${monthsYear}`;
+  return { label, days: new Date(Date.UTC(monthsYear, index + 1, 0)).getUTCDate() };
+}
+
+/** One planning forecast: the month it covers, every machine's model and the plant's summed runs. */
+export interface ForecastBoard {
+  month: Month;
+  models: ForecastModel[];
+  plant: number[];
+}
+
+/** The A9 board the forecast table and 42c's forecast chart print: M0's models and their 2,000 runs. */
+export function forecastBoard(
+  core: BottleneckCore,
+  episodes: Map<string, Episode[]>,
+  runs: number,
+): ForecastBoard {
+  const month = nextMonth(core.to);
+  const fleetDurations = core.fleet.flatMap((risk) =>
+    (episodes.get(risk.machine.id) ?? []).map((episode) => episode.hours),
+  );
+  const totalDays = core.fleet.reduce((total, risk) => total + risk.days, 0);
+  const input: ForecastInput = {
+    core,
+    episodes,
+    groups: categoriesOf(core, episodes),
+    fleetDurations,
+    fleetRate: totalDays > 0 ? fleetDurations.length / totalDays : 0,
+    endDay: dayNumber(core.to) ?? 0,
+    days: month.days,
+  };
+  const models = core.fleet.map((risk) => modelOf(risk, input));
+  const { machine, plant } = simulate(models, runs);
+  models.forEach((model, index) => {
+    const sims = machine[index] ?? [];
+    model.p80 = Math.max(model.expH, quantile(sims, 0.8));
+    model.p90 = Math.max(model.p80, quantile(sims, 0.9));
+  });
+  return { month, models, plant };
 }

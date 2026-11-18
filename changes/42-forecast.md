@@ -122,3 +122,70 @@ figure), `a9-bottleneck.ts` (one word: `export` on 42a's `printed`), `test/analy
    `a9-forecast.ts`.
 9. **The screen slug sits behind a `SCREEN` constant** in both the source and the test, so CI's secret scanner does
    not read the figure lookup as an API key (42a's own test still holds the literal next to `key`).
+
+## 42c — the A9 trends, repeat faults and both charts
+
+**What changed for a user:** the A9 Bottleneck Analysis page now fills its last three tables and both charts, whole
+against the frozen 11 November key. Table 6 answers "is it getting worse or better?" per category: 8 categories,
+from Vertical Machining Center (**512** breakdowns, 0.88 → 1.59 per machine per month, test score **6.24**, More
+frequent) down to Turnmill (58, 1.31 → 1.27, **0.18**, No clear trend). Table 7 lists the 16 machines with a clear
+verdict (VC-16 first at **4.31**, More frequent; VTL-4 and TMC-4 Less frequent). Table 8 lists the 26 repeat faults,
+22.0 h down to 1.0 h: WJ-01's LIKLeakage four times in 20 days (23 Aug – 11 Sept), six long-running episodes ("down
+on 3 days in a row"), and every latest problem cut to 70 characters. The risk map draws one lane per category, one
+dot per production machine, the machine-code labels on High and Critical, and the forecast chart the 15 highest
+expected-hours machines with their expected and 80% bars.
+
+**The rules the key pins.** A trend places each merged episode at its **last** day in that machine's own observation
+window: `x = (last − start + 0.5)/T`, `U = Σ(x − 0.5)/√(N/12)`. A category pools its machines' episodes and
+sums `n90`, `min(90,T)`, `n − n90` and `T − min(90,T)`; `before = nB/dB·30` when `dB ≥ 30` else a dash,
+`recent = n90/min(90,T)·30`. The verdict is **More frequent** at `U ≥ 1.96`, **Less frequent** at `U ≤ −1.96`,
+otherwise No clear trend; under 15 episodes a category is dropped as "Too little data", and table 7 keeps only clear
+verdicts at 8 episodes, both sorted `|U|` desc. Repeat faults read the 90-day window (an item's last day is on or
+after `end − 90`; NO DT is out entirely): a merged episode on ≥ 3 distinct days is **Long-running**, its code the
+most frequent one and its text "down on N days in a row"; a **Recurring** fault is a greedy scan of code episodes
+whose ≥ 3 first days span ≤ 30 days, then the scan skips past the run ("N separate times in D days"). Code cells
+join the code and its Settings meaning (`LIKLeakage`), dates use en-GB short months, and rows sort downtime desc
+with no limit. The map's lane order is machine count asc then average availability asc; `y = lane` and, when the
+lane has peers, the deterministic id hash adds `((h%100)/100 − 0.5)·0.62`; `x = round(unav×1000)/10`. Its series
+are Low, Watch, High, Critical in that order, each point `{x,y,id,cat,h,a,n}` with the raw category text; the
+point radius (4 + 0.7√h, capped 15) and the High/Critical labels are drawing rules, so the key's data objects carry
+neither. The forecast chart is the top 15 forecast rows, labels `<machine> · <category>`, x titled "Hours of
+downtime expected in December 2026", series "Expected routine hrs" and "Plan for (80%)".
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-bottleneck-trends.test.ts` (3 new
+tests): (1) `tables[6]`, `tables[7]`, `tables[8]` and both `charts` are `toEqual` the key's own objects,
+whole and no tolerance; (2) every map point is pinned — x from `1 − a`, y from its lane and the id-hash jitter,
+sole machines exactly on their lane, and the three pinned radii (WJ-01 10.4038, TMC-2 capped 15, VC-11 8.879); (3)
+42a's and 42b's KPIs and tables 0–5 and the 125-machine drill stay whole. Red first, before the figure was composed:
+2 of 3 failed with `expected null to deeply equal` the key's table 6 and `Cannot read properties of null (reading
+'axes')`; the slots-kept test passed because 42b's page was already whole. Green: the named file 3/3; then
+`pnpm exec vitest run packages/domain/test` — 32 files, 410 tests (405 before; these 3 plus the two purity cases
+the two new source files add to `analytics-engine.test.ts`). `pnpm precheck`: OK, 13 checks passed (only the
+repo's pre-existing size warnings).
+
+**Files.** `packages/domain/src/analytics/a9-maintenance.ts` (new, 366 lines: tables 6–8, both charts, the page
+slots and the composed figure), `a9-repeat.ts` (new, 177 lines: the repeat-fault episode merge and the greedy
+scan), `a9-forecast.ts` and `a9-forecast-sim.ts` (the planning board, `FC_RUNS` and `nextMonth` moved to
+the shared sim so 42c reads 42b's exact models), `computers.ts` (points the key at the composed figure),
+`test/analytics-bottleneck-trends.test.ts` (new) and this fragment. No new dependency; no table, schema,
+migration or settings seam.
+
+**Deviations and notes recorded.**
+
+1. **Two new files, not one (the hard 400-line budget).** A single `a9-maintenance.ts` was 528 lines with the
+   repeat-fault merge inline, so the entry-level repeat math moved to `a9-repeat.ts`; table 8 and the page
+   composition still live in `a9-maintenance.ts`.
+2. **42b's forecast board is shared, not copied.** `FC_RUNS`, `nextMonth` and the model-plus-simulation loop moved
+   from `a9-forecast.ts` into `a9-forecast-sim.ts` as `forecastBoard`; 42b's table 5 and 42c's chart now read
+   the same board, and 42b's three tests stayed green unchanged.
+3. **The trend reads each episode's last day.** The platform's merged episode keeps updating its day as entries are
+   folded in, and its trend/pooled test reads that last day; reading the first day shifts VC-16's score from 4.31 to
+   4.30 and adds a false VC-44 trend. 42b's Note still reads first days, but no key Note differs on this workbook.
+4. **Table 6 groups on the normalised category and shows it with one space; the map keeps the raw field.** The key's
+   chart tick reads `Cnc Sliding Head  Automatic Lathe (2)` (two spaces) while its table reads
+   `Cnc Sliding Head Automatic Lathe` (one space), so the two surfaces deliberately differ.
+5. **The map's radius and labels are not in the key's data.** The frozen chart carries `{x,y,id,cat,h,a,n}` only,
+   so the test pins the radius formula and the single-machine lane rule directly; a renderer is the only consumer of
+   the drawing options.
+6. **The latest-problem cell is normalised before its 70-character cut.** One HMC row's raw problem carries a double
+   space; the key prints single spaces, and normalising first keeps the cut on the platform's text.
