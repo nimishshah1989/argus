@@ -54,9 +54,12 @@ setting, **no** migration, **no** table, **no** job and **no** dependency.
 subject_key, period_start, period_end, as_of, run_id, value)`, with `subject_kind` in `plant | segment | group | cell |
 category | machine` and the plant shape `(subject_kind = 'plant') = (subject_key = '')`
   (`packages/db/migrations/0014_m4a_schema.sql:54-74`; D17: `docs/decisions/D17-table-budget.md:17`). The writer is one
-  statement for one plant row per ready figure (`apps/server/src/modules/analytics/snapshot.ts:17-40`), and the one
-  profile constant is `'legacy'` (`:8`), which 48a changes to a key-based rule (48 R15). The table's unique key replaces
-  a re-run of the same day and breaks a series by `as_of`; `run_id` groups a batch.
+  statement for one plant row per ready figure (`apps/server/src/modules/analytics/snapshot.ts:17-40`); its single
+  `PROFILE` constant (`:8`) becomes 48's revised R15 (`docs/slices/48-shift-kpis.md:337-343`): **one exported per-row
+  helper `profileOfKey(key)`** — `shift-kpis.*` and `pm-compliance` are `standard`, everything else `legacy` — and the
+  store writes each row with that row's profile (50's plan states the same helper for `pm-compliance`). That helper is the one home 67 extends,
+  never a second mapping (R12). The table's unique key replaces a re-run of the same day and breaks a series by
+  `as_of`; `run_id` groups a batch.
 - **The budgets are the design constraint.** `page-content.ts` is 397 lines against 400, `use-chart.ts` 394,
   `analytics.en.ts` 248 against the catalogue's 250-line cap (`packages/shared/test/catalogue.test.ts:130-135`), and
   `figure-content.ts` 374. So this ticket adds **no chart kind, no chart id, no `page-content.ts` entry and no
@@ -72,12 +75,15 @@ category | machine` and the plant shape `(subject_kind = 'plant') = (subject_key
   on a heading change, a missing figure or a figure named twice; the machine entry names `machine-page`
   (`guide-entries.ts:154-159`) and the MTTR/MTBF entry names `a3-mttr-mtbf` (`:106-111`). 67 adds **no heading** and
   names its one new figure in the MTTR/MTBF entry (R14).
-- **Two tests move on purpose, and only two.** `packages/domain/test/analytics-engine.test.ts:68-69` bounds an owner at
-  45 and `:87-88` pins the owner set; 48a makes those 38–48 and the set 38–45 plus 48, and 67 makes the bound 38–67 and
-  adds 67 to the set (stricter in the set, an explicit ceiling in the bound). `apps/server/test/analytics-engine.test.ts`
-  asserts a stored run holds exactly one plant row per computed figure (`:467`); 67's per-subject rows make that
-  assertion say "one plant row per computed figure **except `reliability`**, plus its subject rows" (stricter, R12).
-  Nothing else moves.
+- **Two tests move on purpose, and only two — both shared with 48 and 50.** `packages/domain/test/analytics-engine.test.ts:68-69`
+  bounds an owner at 45 and `:87-88` pins the owner set. 48a adds 48, 50b adds 50 and 67 adds 67: **67 is the third
+  writer on this pin**, so its packet reconciles the same two lines to the bound `38–67` and the landed set **plus 67**,
+  including 50's `pm-compliance` (owner 50) whether 50b has already landed or is rebased in; 67's edit never removes
+  48's or 50's entry (`docs/slices/50-pm-calendar.md:481`). `apps/server/test/analytics-engine.test.ts` asserts a stored
+  run holds exactly one plant row per computed figure (`:467`); 67's per-subject rows make that assertion say "one
+  plant row per computed figure **except `reliability`**, plus its subject rows" (stricter, R12), and 50b edits the same
+  store and assertion for its per-row profile — 67 rebases the same lines and keeps 50's `pm-compliance` row and its
+  `standard` profile. Nothing else moves.
 
 ## The definitions, exactly
 
@@ -146,7 +152,8 @@ exposure start: with `n` events at `t_i = H(d_i)` and `T = H(asOf)`, the failure
 
 `β < 1` means intervals are getting longer (improving), `β > 1` that failures are coming faster (worsening). The word is
 a two-standard-error Wald test: `se = β̂/√n`, and the label is `improving`/`worsening` only when `|β̂ - 1| > 2·se`;
-otherwise **"no clear trend yet"**. The slope is always printed beside the word, so a small sample's steep slope is not
+otherwise **`no_clear_trend`** (the page prints "no clear trend yet"; the enum name is the stored value and the page
+word is pinned in the e2e). The slope is always printed beside the word, so a small sample's steep slope is not
 hidden, it is labelled as not yet separable from noise (R9). A category fit pools machines: `β̂ = N / Σ_i Σ_j ln(T_i/t_ij)`
 with each machine's own `T_i` and `t_ij`.
 
@@ -184,6 +191,11 @@ Read `spareNames(report)` for every failure report of the machine in the window 
   the 43c stop words dropped (`no any nil na none nos pcs pc mm kg x c a the of and set new old`, plus **`yes`** because
   the fixture records "Yes" once and "No" thirty times as answers to the column, not as parts), and the tokens sorted
   and joined. Unlike 43c's key it **keeps digits**, so 6205 and 6305 stay different parts (R10).
+- **A bare number or a whole sentence is one part.** The fixture's `2.04222431011039e+23` (a mangled part number) and the
+  one cell that is six quantities in a sentence are each **one** part: the key is the normalised text, the label is that
+  text with a trailing quantity parenthesis removed, and nothing is split on digits, spaces, commas or punctuation
+  inside a cell. The top-5 limit is unchanged (one cell is one use). The first is data damage the code cannot undo; the
+  second is a note a person wrote — both stay one entry rather than being invented into parts.
 - **Uses** = the number of distinct failure reports that named the part (a part named twice on one report is one use).
 - **Downtime hours** = the sum over those reports of `downtimeMin / 60`, and **0 for a `NO DT` report**: the plant
   attended it outside production hours, exactly as 48's MTTR counts it (R10).
@@ -346,7 +358,7 @@ which this ticket does not touch.
 
 **R9 — Crow-AMSAA is the power-law MLE on the same events, pooled across machines for a category; the word is a
 two-standard-error Wald test and the slope is always printed.** Cost if wrong: TC-17's `β = 3.39` with 5 events reads
-"no clear trend yet", which is statistically honest but may read as a contradiction; the slope is beside it and the
+`no_clear_trend` (the page's "no clear trend yet"), which is statistically honest but may read as a contradiction; the slope is beside it and the
 Guide says why. A fixed ±0.10 band would label noise as a trend; a likelihood-ratio test would be more code for the
 same answer at this sample size.
 
@@ -354,7 +366,8 @@ same answer at this sample size.
 downtime, top 5, no cost.** Cost if wrong: 43c's digit-dropping key merges 6205 and 6305, which is wrong here; a plant
 that wants rupee ranking needs a money-gated column (heads only) and a second order, and a part named twice on one
 report is one use rather than two (the fixture has no such report, so the rule is pinned by a purpose-built test).
-"yes"/"no" are answers, not parts; a part name that is a sentence stays one entry.
+"yes"/"no" are answers, not parts; a bare number or a sentence stays exactly one entry (no invented split), and the
+spares test pins that beside 6205/6305.
 
 **R11 — one new figure key, `reliability`, on the existing `machine-page` screen.** `{key: 'reliability', screen:
 'machine-page', owner: 67, drill: 'machine'}` in `registry.ts`; the machine page finds it by key (not by screen) and the
@@ -363,15 +376,20 @@ a tile. Cost if wrong: two figures on one screen is the money-tile pattern, not 
 separate screen gets a nav entry and a group change, not a new figure.
 
 **R12 — storage is per-subject rows in `kpi_snapshot`, written by the existing run; no plant row for `reliability`, no
-job.** Key `reliability`, `profile = 'standard'`, `subject_kind` `machine` (one row per production machine, 125 on the
-key) or `category` (one per fit-ready category, 10 on the key), `subject_key` = machine id or the trimmed category
-label, `period_start = windowStart`, `period_end = as_of = asOf`, one `run_id` per batch, value = the machine block or
-the category fit. The writer is `snapshotStore.save`, so `POST /analytics/run` writes it in the same transaction as the
-plant rows; `GET` never writes; a re-run of the same day replaces the rows through the unique key. No `engine.run` job,
-no daily series (52 R14 leaves `kpi_snapshot` out; 37d's series/purge stays the follow-up). Cost if wrong: the series
-exists only when a head runs the engine (the page is live and never stale); a category renamed on the settings screen
-starts a new subject series (the label is the key, there is no category id in the engine); a category label longer
-than the schema's 80 characters writes no category row (the machines' own rows still carry the fit); one
+job; the profile is 48 R15's one helper, not a second rule.** Key `reliability`, `profile = profileOfKey('reliability')`
+= `standard`, `subject_kind` `machine` (one row per production machine, 125 on the key) or `category` (one per fit-ready
+category, 10 on the key), `subject_key` = machine id or the trimmed category label, `period_start = windowStart`,
+`period_end = as_of = asOf`, one `run_id` per batch, value = the machine block or the category fit. The writer is
+`snapshotStore.save`, so `POST /analytics/run` writes it in the same transaction as the plant rows; `GET` never writes;
+a re-run of the same day replaces the rows through the unique key. **The profile is 48 R15's exported
+`profileOfKey(key)` — the one home, already covering `pm-compliance` for 50 — and 67's one-line change adds
+`|| key === 'reliability'` to it.** 67 never restates a mapping that could classify 50's rows as `legacy`: if 67 lands
+first, `profileOfKey` still returns `standard` for `pm-compliance`, and 67's store test asserts it (packet 2). The
+store's plant insert is 48/50's per-row `{profile, key, value}` insert; 67 adds the subject insert beside it. No
+`engine.run` job, no daily series (52 R14 leaves `kpi_snapshot` out; 37d's series/purge stays the follow-up). Cost if
+wrong: the series exists only when a head runs the engine (the page is live and never stale); a category renamed on the
+settings screen starts a new subject series (the label is the key, there is no category id in the engine); a category
+label longer than the schema's 80 characters writes no category row (the machines' own rows still carry the fit); one
 `snapshotStore` branch knows one figure's value shape.
 
 **R13 — the drills are the machine's own rows.** The fit's link names the tickets of the machine's failure events (all
@@ -433,7 +451,7 @@ sourced pair is the shape it has. If 48a lands `failureEvents` returning bare `R
 ### The figure's value (frozen)
 
 ```ts
-export type TrendLabel = 'improving' | 'worsening' | 'flat';
+export type TrendLabel = 'improving' | 'worsening' | 'no_clear_trend';
 export interface Quartiles {
   q25: number;
   median: number;
@@ -536,10 +554,12 @@ label in `FIGURE_LABELS` and both catalogues, and the figure named once in the M
 figure).
 
 **Red:** `pnpm exec vitest run packages/domain/test/reliability.test.ts packages/domain/test/reliability-spares.test.ts
-packages/domain/test/analytics-engine.test.ts` — the new modules are absent and the owner set has no 67. **Green:** the
-same, then `pnpm exec vitest run packages/domain/test packages/shared/test` (the frozen keys, the registry and the
-catalogue), `pnpm exec vitest run apps/web/src/screens/analytics` (the label, the Guide naming), `pnpm boundaries`,
-`pnpm size`.
+packages/domain/test/analytics-engine.test.ts` — the new modules are absent and the owner set has no 67. **The owner pin
+is shared with 48a and 50b** (this is the third writer): after the rebase the bound is `38–67` and the literal is the
+landed set plus 67, containing 48's and 50's entries; the red is the same two lines, never a copy that could drop
+them. **Green:** the same, then `pnpm exec vitest run packages/domain/test packages/shared/test` (the frozen keys, the
+registry and the catalogue), `pnpm exec vitest run apps/web/src/screens/analytics` (the label, the Guide naming),
+`pnpm boundaries`, `pnpm size`.
 
 **Acceptance — Given/When/Then.**
 
@@ -553,11 +573,11 @@ catalogue), `pnpm exec vitest run apps/web/src/screens/analytics` (the label, th
   `drill.spares` the reports behind the four parts; with the tail dropped the same intervals give `k 0.872804221`,
   `λ 104.576012925` (the test asserts the censored term is used).
 - **G** TC-17's five events, **W** its block, **T** `k 0.612598299`, `λ 373.227247135`, `censoredHours 857.5`,
-  `quartiles {33.870968, 140, 651.451613}`, `trend {3.390578197, 5, 'flat'}`; **W** `kmOf` directly, **T** the four
+  `quartiles {33.870968, 140, 651.451613}`, `trend {3.390578197, 5, 'no_clear_trend'}`; **W** `kmOf` directly, **T** the four
   steps `(16.935484, 0.8), (33.870968, 0.6), (140, 0.4), (651.451613, 0.2)` — the hand check of the product-limit.
 - **G** the same, **W** the Turning Center category, **T** `k 0.812341247`, `λ 493.425375085`, `events 260`,
   `completeIntervals 225`, `machines 35`, `quartiles {101.612903, 274.354839, 701.129032}`, `trend {1.114657295, 260,
-'flat'}`; **W** TC-24, **T** it reads that block with `basis: 'category'`, `ownEvents 4`, and its own four tickets in
+'no_clear_trend'}`; **W** TC-24, **T** it reads that block with `basis: 'category'`, `ownEvents 4`, and its own four tickets in
   `drill.fit`; **W** VC-57, **T** the same with `ownEvents 0`, an empty spares list and an empty spares drill.
 - **G** the six machines of the four small categories, **W** their blocks, **T** `status: 'insufficient'` with
   `ownEvents` 0/2/0/2/3/1, the category's event count and `minimum 5`; **G** a plant with no shift rows, **W** the
@@ -565,7 +585,9 @@ catalogue), `pnpm exec vitest run apps/web/src/screens/analytics` (the label, th
 - **G** WJ-01's 23 reports, **W** its spares, **T** the five rows of the table above in order, `total 15`; **G** HMC-2,
   **T** the two `NO DT` parts at 0.0 h and the key tie-break; **G** a report that names the same part in `spare1` and
   `spare2`, **T** one use and one downtime contribution; **G** the 30 "No" and the one "Yes", **T** none is a part;
-  **G** "Bearing 6205" and "Bearing 6305" on two reports, **T** two parts, not one.
+  **G** "Bearing 6205" and "Bearing 6305" on two reports, **T** two parts, not one; **G** a spare cell
+  `2.04222431011039e+23` and a spare cell that is a sentence, **W** the list, **T** one part each, the sentence's label
+  kept whole, no invented split and the top-5 cap unchanged.
 - **G** a 2025 report on a production machine added to the data and a live close on one, **W** the figure, **T** the
   2025 report moves neither the fit nor the spares, and the live close enters as an event (48's set, read not
   re-implemented).
@@ -576,22 +598,27 @@ catalogue), `pnpm exec vitest run apps/web/src/screens/analytics` (the label, th
 
 ## Packet 2 — the storage (one PR)
 
-**Files (5).** `apps/server/src/modules/analytics/snapshot.ts` (one `run_id` generated in the writer and passed to both
-inserts; the plant insert excludes `reliability`; the per-subject insert expands `value.machines` and
-`value.categories`), `apps/server/test/analytics-reliability-store.test.ts` (new), `apps/server/test/analytics-engine.test.ts`
+**Files (5).** `apps/server/src/modules/analytics/snapshot.ts` (one line in 48 R15's `profileOfKey` for `reliability`;
+one `run_id` generated in the writer and passed to both inserts; the plant insert excludes `reliability`; the
+per-subject insert expands `value.machines` and `value.categories`), `apps/server/test/analytics-reliability-store.test.ts` (new), `apps/server/test/analytics-engine.test.ts`
 (the moved plant-keys assertion, `:467`), `docs/DATA-MAP.md` (the `kpi_snapshot` row gains the reliability keys and
 subjects, `:105`), the fragment.
 
 **The write.** `save` reads `result.figures.find(f => f.key === 'reliability' && f.status === 'ready')`; the plant
-insert runs for every other ready figure exactly as today; one `jsonb_to_recordset` insert writes the machine rows and
-the category rows under key `reliability`, `profile 'standard'`, `period_start = value.windowStart`, `period_end/as_of =
-result.asOf`, `run_id` = the batch's. The profile rule is 48a's line with 67's key added:
-`key === 'reliability' || key.startsWith('shift-kpis.') ? 'standard' : 'legacy'`.
+insert runs for every other ready figure with its own `profileOfKey(key)` (48 R15's per-row `{profile, key, value}`
+store, the form 50b also uses); one `jsonb_to_recordset` insert writes the machine rows and the category rows under key
+`reliability`, `profile 'standard'`, `period_start = value.windowStart`, `period_end/as_of = result.asOf`, `run_id` =
+the batch's. **The profile change is one line in 48 R15's one exported helper** —
+`profileOfKey(key)` gains `|| key === 'reliability'` beside its existing `shift-kpis.*` and `pm-compliance` — so 67
+cannot restate a rule that drops `pm-compliance`, and 50's rows stay `standard` whichever of 50b/67 lands first.
 
 **Red:** `pnpm exec vitest run apps/server/test/analytics-reliability-store.test.ts` — the new assertions fail because the
 store writes a plant row and no subject rows. **Green:** the same, then
 `pnpm exec vitest run apps/server/test/analytics-engine.test.ts` (the moved assertion),
-`pnpm exec vitest run apps/server/test packages/db/test` and `pnpm boundaries`.
+`pnpm exec vitest run apps/server/test packages/db/test` and `pnpm boundaries`. **The store and its assertion are shared
+with 48a (the per-row profile) and 50b (`pm-compliance`):** after a rebase the same lines carry 50's row under `standard`
+and 67's subject rows; the test proves `profileOfKey('pm-compliance')` and `profileOfKey('shift-kpis.compare')` are still
+`standard` beside `profileOfKey('reliability')`, so 67 landing first cannot turn 50's row `legacy`.
 
 **Acceptance — Given/When/Then.**
 
@@ -608,6 +635,10 @@ store writes a plant row and no subject rows. **Green:** the same, then
   inside `withTenant` and names `tenant_id`).
 - **G** the seeded tenant A (M_USED, one report), **W** the run, **T** M_USED has one `reliability` machine row whose
   value is `insufficient` (1 event) and no category row.
+- **G** the helper and a mixed run, **W** `profileOfKey('shift-kpis.compare')`, `profileOfKey('pm-compliance')`,
+  `profileOfKey('reliability')` and `profileOfKey('dashboard.total-machines')`, **T** `standard`, `standard`,
+  `standard`, `legacy`; **W** a run on a tenant whose registry has `pm-compliance` (50b landed), **T** its row is stored
+  under `standard`, not `legacy`, beside the reliability rows — 67 does not reclassify 50's figure.
 
 ## Packet 3 — the machine page (one PR)
 
@@ -643,9 +674,11 @@ green), `pnpm exec vitest run apps/web/src/screens/analytics`, `pnpm ui:check`.
 
 ## Rails
 
-Red first in every packet; never delete, skip or weaken a test. Exactly two existing test files move, both stricter and both named above: the owner bound and set
-(`packages/domain/test/analytics-engine.test.ts:68-69,87-88`) and the stored plant-row list
-(`apps/server/test/analytics-engine.test.ts:467`). One writer per packet, packets 1 → 2 → 3, one PR each, one
+Red first in every packet; never delete, skip or weaken a test. Exactly two existing test files move, both stricter,
+both named above and **both shared with 48 and 50**: the owner bound and set
+(`packages/domain/test/analytics-engine.test.ts:68-69,87-88`, where 67 is the third writer after 48a and 50b) and the
+stored plant-row list (`apps/server/test/analytics-engine.test.ts:467`, shared with 50b's per-row profile). A rebase
+reconciles the same lines and never drops 48's or 50's entries. One writer per packet, packets 1 → 2 → 3, one PR each, one
 `changes/67-reliability-spares.md` section per packet in packet order. No new table, column, migration, setting, profile
 field, screen, route or dependency (D17; plain TypeScript for the maths; no chart in `use-chart.ts`, no key in
 `analytics.en.ts`, no entry in `page-content.ts`). No runtime export joins the domain root (D2 untouched). Every new
@@ -677,8 +710,9 @@ counter's 400-line warning.
    ranking's two keys are both visible in the table.
 7. **R12, the storage branch.** One `snapshotStore` knowing one figure's value shape, 135 rows per run and no job.
    Attack the run-only series and the category label as a subject key (a rename starts a new series).
-8. **The two moved tests.** Confirm the owner set is exact and the plant-keys assertion is stricter, and that no other
-   assertion changed.
+8. **The two shared moved tests.** Confirm the owner set is the landed set plus 48, 50 and 67 (the bound 38–67) and the
+   plant-keys assertion is stricter; 67 is the third writer on the owner pin (after 48a and 50b) and the store assertion
+   is shared with 50b's per-row profile, so a rebase must keep both, and no other assertion changed.
 
 ## Not in this ticket
 
