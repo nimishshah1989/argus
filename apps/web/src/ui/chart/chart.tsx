@@ -15,7 +15,10 @@ function tableView(spec: ChartSpec): TableView {
       categories: spec.points.map((point) => point.label),
       series: [
         { name: spec.xLabel, values: spec.points.map((point) => point.x) },
-        { name: spec.yLabel, values: spec.points.map((point) => point.y) },
+        // A labelled lane axis (A9's map) is a category, not a number to read down the table.
+        ...(spec.yTickLabels === undefined
+          ? [{ name: spec.yLabel, values: spec.points.map((point) => point.y) }]
+          : []),
         { name: spec.mttrLabel, values: spec.points.map((point) => point.mttr) },
       ],
     };

@@ -251,3 +251,73 @@ table, schema, migration or settings seam; A9 untouched.
    the detail prints them to 0 dp.
 6. **A plant with no production breakdown prints no page; fewer than four months prints an empty page.** Neither is
    in the key; the empty page keeps the figure ready and the production drill without inventing rows.
+
+## 42e — the A9 and Forecast Lab screens
+
+**What changed for a user:** the Forecast & scorecard group now opens its two real screens instead of two tile cards.
+**A9 Bottleneck Analysis** renders the engine's page whole through the face's `KeyPage` seam: 14 KPIs (Critical 6,
+High 16, four machines that are the only one of their kind, 99.45% plant availability, the WJ-01 what-if, the
+December plan and its bands), all nine tables — the risk, planning-forecast, both trend and repeat tables sortable
+with mouse and keyboard — and both charts. The **risk map** draws one lane per machine category, one dot per
+production machine, the further right the more of its time it was down, the bigger the arm the more hours it lost,
+High and Critical machines named beside their dot and the y tick text exactly as the key's settings carry it
+(`Cnc Sliding Head  Automatic Lathe (2)`, raw double space). The **planning forecast** is the 15 highest
+expected-hours machines, horizontal, the expected bar coloured by band beside the 80% plan. **Forecast Lab** renders
+the method table (four rows, the exact verdict and why), the month detail (seven rows, September actual 194.4) and
+the month-by-month line chart: Actual plus the four methods, y titled "Breakdown hours in the month". Every table
+cell is the engine's own string; sorting never rewrites one. Both figures drill the production machines as machine
+rows, and a row opens that machine's page.
+
+**The rules the screen pins.** The page kinds `a9-bottleneck-forecast` and `forecast-lab` map through the one page
+mapper. A9's sort rules are its risk, planning-forecast, both trend and repeat tables (indices 0, 5, 6, 7, 8); the
+Lab sorts both of its tables. The map reads each dataset as a rating, applies the platform's drawing rules
+(radius `max(4, min(15, 4 + 0.7√h))`, labels on High and Critical only) and passes the key's raw `tickLabels.y`
+untouched. The forecast chart takes its bands from the page's own forecast table (machine → Band), so the expected
+bar is coloured by the row it came from. The Lab's five lines are toned Actual/current/age/recent/age+recent. Chart
+chrome (three titles, the map's machine and hours labels, the machine·category axis, the Lab's month axis) is
+catalogue copy; the engine's axes stay data.
+
+**Tests that prove it.** `apps/web/src/screens/analytics/forecast-charts.test.ts` (6 new tests): (1) the A9 title,
+all 14 KPIs and every cell of all nine tables equal the key object, with the five sort flags; (2) only those five
+tables sort; (3) both A9 charts equal the key — every map point (x, y, the pinned radii WJ-01 10.4038, TMC-2 capped
+15, VC-11 8.879), the rating tones, the 22 High/Critical labels, the raw tick text, and the forecast's categories,
+values and Hot/Likely band tones; (4) the A9 chrome is in both catalogues; (5) the Lab title, no KPIs, every cell of
+both tables, all five lines and the y title equal the key; (6) the Lab chrome is in both catalogues. Red first: the
+Chromium journey failed on the unregistered group (`getByRole('navigation', { name: 'Forecast screens' })` found
+nothing; the page showed the tile list), which is the packet's stated red. Green: the named unit file 6/6, the
+analytics screen directory 9 files / 84 tests, and
+`pnpm exec playwright test apps/web/e2e/analytics-forecast.spec.ts --project=chromium` 1 passed — the journey opens
+A9, checks all 14 KPI labels and values, the 21-row risk table, both charts ready, sorts Score ascending and back
+with a click and Enter, opens the machine drill (12 real rows) and one machine page, then opens the Lab, checks the
+method and month tables and the one line chart with its y title, and opens its drill; the A10 and A4 journeys still pass (3 of 3), which proves the drill-type change kept the ticket pages. `pnpm precheck`: OK — 13 checks passed, 16 files prettier-checked (only the repo's pre-existing size and lint warnings).
+
+**Files.** `apps/web/src/screens/analytics/A9Page.tsx` (new, 15 lines), `ForecastLabPage.tsx` (new, 20 lines),
+`ForecastPage.tsx` (new, 89 lines: the group's two-screen menu and the one drill table), `forecast-charts.ts`
+(new, 216 lines: the three chart mappers), `forecast-charts.test.ts` (new, the mapping tests), `figure-content.ts`
+(two page kinds), `page-content.ts` (the sort rules and the chart delegation), `KeyPage.tsx` (the drill type is
+the figure's, not always `ticket`), `Analytics.tsx` (the group route), `apps/web/src/ui/chart/use-chart.ts` and
+`chart.tsx` (optional tones, per-point radius/labels, y tick labels, a value-axis title and horizontal bars),
+`packages/shared/src/i18n/analytics.en.ts` (the eight chrome keys; Gujarati stays blank through the namespace),
+`apps/web/e2e/analytics-forecast.spec.ts` (new), `docs/spec/parity.yaml` and this fragment. No new dependency;
+no server, table, schema or migration change.
+
+**Deviations and notes recorded.**
+
+1. **A group page was needed beyond the plan's two files.** The Forecast & scorecard group previously fell through
+   to `GroupPage`'s tile list, so neither screen could be opened. `ForecastPage.tsx` is the small two-screen
+   switch (the same shape as `BreakdownsPage.tsx`); the two named page files stay thin `KeyPage` seams.
+2. **The key carries no radius, labels or band colours; the face computes them.** Its map points are
+   `{x,y,id,cat,h,a,n}` and its forecast bars are two plain number arrays. The mapper applies the drawing rules the
+   42c engine already pins and reads the bands from the forecast table; colour uses the design tones (danger,
+   hold, warning, ok, muted, info, moved), never the platform's raw hex, so chart colour stays in the token system.
+3. **The chart kit gained options; no chart forked.** Tones, per-point radius/label, y tick labels, a value-axis
+   title and horizontal bars are optional fields on the existing specs, so every 41e chart renders as before and
+   the shared renderer's table stays the accessible reading. The map's data table drops the lane-number column,
+   because there the y axis is a category, not a quantity.
+4. **The two A9/Lab chart titles the key does not carry are catalogue copy.** The map and the Lab line use the
+   platform's card headings; the planning forecast is "Expected downtime, machine by machine" because its own
+   section heading is already table 5's title, and two identical headings would make one screen ambiguous.
+5. **`KeyPage` now drills the figure's type.** It hardcoded `ticket`; A9 and the Lab drill `machine`, so the link
+   would have asked the ticket endpoint for machine ids. Ticket pages pass the same type as before.
+6. **The map's raw tick text is deliberate.** The key's settings carry two spaces in "Cnc Sliding Head Automatic
+   Lathe"; the table prints the normalised label, the chart's y ticks keep the raw one, exactly as the key does.

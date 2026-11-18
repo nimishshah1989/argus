@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
+import { specialChart } from './forecast-charts.js';
 
 /**
  * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1 and 41e-2): the platform's own page, whole. The
@@ -59,8 +60,15 @@ const SORTABLE: Record<string, readonly string[]> = {
   ],
 };
 
-/** A10's five data tables sort by position: the unplaced card's title carries its own count and share. */
-const SORTABLE_INDEX: Record<string, readonly number[]> = { a10: [0, 1, 2, 3, 4] };
+/**
+ * The tables a face sorts by position: A10's five data cards, A9's risk, planning-forecast, both trend and repeat
+ * tables, and the Forecast Lab's method and month tables.
+ */
+const SORTABLE_INDEX: Record<string, readonly number[]> = {
+  a9: [0, 5, 6, 7, 8],
+  fl: [0, 1],
+  a10: [0, 1, 2, 3, 4],
+};
 
 /** The A1/A2/A3 charts' chrome: the engine's id is data, the title and axis are catalogue copy. */
 const CHART_META: Record<
@@ -293,13 +301,28 @@ function groupBubble(chart: ObjectValue, t: TFunction, tables: readonly PageTabl
   ];
 }
 
+/** A chart object with an id, mapped by the catalogue or by one of the three screen-own mappers. */
+function knownChart(chart: ObjectValue, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
+  if (chart.id === 'ch-prob-scatter') return groupBubble(chart, t, tables);
+  const special = specialChart(chart, t, tables);
+  if (special !== null) return special;
+  const meta = CHART_META[typeof chart.id === 'string' ? chart.id : ''];
+  if (meta === undefined) return [];
+  return catalogueChart(chart, meta, t);
+}
+
 /** A chart the catalogue knows, with the engine's labels and datasets as its data. */
 function pageChart(raw: unknown, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
   const chart = isObject(raw) ? raw : null;
   if (chart === null || typeof chart.id !== 'string') return [];
-  if (chart.id === 'ch-prob-scatter') return groupBubble(chart, t, tables);
-  const meta = CHART_META[chart.id];
-  if (meta === undefined) return [];
+  return knownChart(chart, t, tables);
+}
+
+function catalogueChart(
+  chart: ObjectValue,
+  meta: (typeof CHART_META)[string],
+  t: TFunction,
+): ChartSpec[] {
   const categories = (Array.isArray(chart.labels) ? chart.labels : []).map(String);
   const series = datasets(chart).flatMap((dataset) => {
     const parsed = seriesOf(dataset);
