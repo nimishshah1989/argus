@@ -282,3 +282,44 @@ migration, no schema change.
 5. **The period line reads the figure's own as-of.** When the value carries an `asOf` (the engine's report value
    does), the line is computed from it; the reply's `asOf` is the fallback. That keeps the printed period the one the
    figure was computed for even on a replayed snapshot.
+
+# 45f — the Guide
+
+**What changed for a user:** `/analytics/guide` is now the plant's Guide. Its contents list is the platform's own 36
+headings, verbatim and in order, from "How this platform works" and "1. Ground rules used everywhere" to
+"35. AMC, extended warranty and legal compliance (per machine)". Each heading opens an entry that states our rule in
+plain English — the production fleet, hours, dates and ages, available hours, MTTR/MTBF, BD % and the PM split, cells
+and the No cell row, sorting, the export, the reports and every analysis screen — and lists the figures it explains.
+Each figure link opens its real route (`/analytics/<group>?screen=<screen>`). The five features this build does not
+have (PM Calendar, OEM Analytics, learning from corrections, entries with no maintenance code, AMC/warranty/legal
+compliance) print the "not in this build yet" line instead of a rule. "13. Excel export and restore" explains the
+workbook we do export and says the restore is the M5 importer.
+
+**Acceptance, exactly as the plan states it.** `GUIDE_ENTRIES.map((entry) => entry.titleKey)` equals the key's
+`extra` headings resolved through the en catalogue, in order; every `FIGURE_KEYS` entry appears in exactly one
+entry's `figures` (45 keys, each once); every figure link's group really holds its screen (`groupOfScreen`); every
+entry has at least one body paragraph, and the five unbuilt entries are the only `built: false` and carry only the
+not-built line.
+
+**Red/green.** Red: `pnpm exec vitest run apps/web/src/screens/analytics/guide-entries.test.ts` — `Test Files 1
+failed (1)`, `Tests no tests`, `Cannot find module './guide-entries.js'` (the module did not exist). Green: the
+named file — 4 tests; `pnpm exec vitest run apps/web/src/screens/analytics` — 12 files, 111 tests;
+`pnpm exec vitest run packages/shared/test/catalogue.test.ts` — 14 tests; `pnpm precheck` — 13 checks passed,
+prettier checked 10 files.
+
+**Files.** `apps/web/src/screens/analytics/guide-entries.ts` (new: the 36 entries, `NOT_BUILT`, `guideFigureLinks`),
+`GuidePage.tsx` (rewritten: the contents and the entries with their figure links), `guide-entries.test.ts` (new),
+`packages/shared/src/i18n/analytics-guide.en.ts` / `.gu.ts` (new namespace: the 36 titles, the bodies, five formula
+lines, the not-built line and the link labels; gu blank), the catalogue registration, `apps/web/e2e/analytics-guide.spec.ts`
+(new), `docs/spec/parity.yaml` (`m4a.guide`: done) and this fragment. No dependency, no migration, no schema change.
+
+**Deviations recorded.**
+
+1. **The e2e ran green on this branch, against the Reports group's generic page.** `pnpm exec playwright test
+apps/web/e2e/analytics-guide.spec.ts --project=chromium` — 1 passed (8.2 s). `/analytics/reports` exists as the
+   group page now, so the link lands; after packet 45e merges, the lead should rerun the same journey to prove the
+   real Reports screen loads behind that URL. No fake reports screen was added.
+2. **One namespace, one file.** The 36 headings and their bodies do not fit in the main analytics catalogue (already
+   248 lines), so the Guide copy is its own namespace, registered like every other M4a area and left blank in gu.
+3. **The old `analytics.guide.intro` line was updated.** It said the explanations "arrive with the Guide ticket";
+   it now describes what the page is. The key and the namespace are untouched by that one-line change.

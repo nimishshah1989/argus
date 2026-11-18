@@ -76,6 +76,8 @@ import { analyticsCompareEn } from './analytics-compare.en.js';
 import { analyticsCompareGu } from './analytics-compare.gu.js';
 import { analyticsActionCenterEn } from './analytics-action-center.en.js';
 import { analyticsActionCenterGu } from './analytics-action-center.gu.js';
+import { analyticsGuideEn } from './analytics-guide.en.js';
+import { analyticsGuideGu } from './analytics-guide.gu.js';
 import { analyticsReportEn } from './analytics-report.en.js';
 import { analyticsReportGu } from './analytics-report.gu.js';
 
@@ -120,6 +122,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-forecast': analyticsForecastEn,
   'analytics-compare': analyticsCompareEn,
   'analytics-action-center': analyticsActionCenterEn,
+  'analytics-guide': analyticsGuideEn,
   'analytics-report': analyticsReportEn,
 };
 
@@ -164,6 +167,7 @@ export const en = {
   ...analyticsForecastEn,
   ...analyticsCompareEn,
   ...analyticsActionCenterEn,
+  ...analyticsGuideEn,
   ...analyticsReportEn,
 };
 
@@ -210,6 +214,7 @@ export const gu = {
   ...analyticsForecastGu,
   ...analyticsCompareGu,
   ...analyticsActionCenterGu,
+  ...analyticsGuideGu,
   ...analyticsReportGu,
 };
 
