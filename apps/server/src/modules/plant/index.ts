@@ -30,6 +30,7 @@ export {
   type MachineRow,
 } from './repo/reads.js';
 export { ensureLockoutSteps } from './lockout.js';
+export { ensureFailureCodes, failureCodeIndexOf } from './failure-codes.js';
 export {
   ensureSettingRow,
   listsForEngine,

@@ -162,8 +162,27 @@ export type ShiftCreate = z.infer<typeof shiftCreateSchema>;
 export type ShiftPatch = z.infer<typeof shiftPatchSchema>;
 export type ShiftReply = z.infer<typeof shiftReplySchema>;
 
+/**
+ * A list entry's old codes (ticket 47): a generated form sends one comma-separated text (`'ele, hyd'`), an
+ * array, or nothing, and every shape is stored and read back as a trimmed, lower-case array. The 0014 trigger
+ * refuses a code or alias another entry of the same list claims, in any letter case.
+ */
+const aliases = z.preprocess(
+  (value) => {
+    const parts = typeof value === 'string' ? value.split(',') : value;
+    if (!Array.isArray(parts)) return value;
+    return parts
+      .map((alias) => (typeof alias === 'string' ? alias.trim().toLowerCase() : alias))
+      .filter((alias) => alias !== '');
+  },
+  z.array(z.string().min(1).max(40)),
+);
+
+/** A list's label may be a whole description (the failure codes' "NO DT" is 121 characters), not only a short name. */
+const listLabel = z.string().trim().min(1).max(200);
+
 const listFields = {
-  label: name,
+  label: listLabel,
   labelGu: text,
   labelHi: text,
   sort,
@@ -172,6 +191,8 @@ const listFields = {
   tag: z.string().trim().max(40).nullable(),
   /** Only on a work type or a breakdown category: a ticket carrying it needs the lockout steps confirmed before Start. */
   needsLockout: flag,
+  /** The old codes folded onto this entry; edited on the failure-code list, a key of every list's reply. */
+  aliases,
 };
 /** One entry of a list (wait reason, work type, quick problem ...). Its code is fixed once made: tickets keep it. */
 export const listItemCreateSchema = dropBlanks(
