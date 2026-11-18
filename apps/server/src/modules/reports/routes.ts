@@ -11,6 +11,7 @@ import { buildQrPayload, qrSvg, qrText, renderPdf } from './pdf.js';
 import { renderReportHtml, type ReportPdfInput } from './pdf-template.js';
 import { registerDayReports } from './day-routes.js';
 import { registerSignoffQr } from './signoff-qr.js';
+import { registerWhyWhyPdf } from './why-why.js';
 import { renderOrBusy, sendBytes, type PdfDeps } from './pdf-send.js';
 import { figuresFromRow, loadReport, pdfTicketRow, type StoredReport } from '../tickets/index.js';
 
@@ -206,6 +207,7 @@ async function sendPdf(deps: PdfDeps, request: FastifyRequest, reply: FastifyRep
 export function registerReports(app: FastifyInstance, config: AppConfig): void {
   const deps: PdfDeps = { pool: config.pool, chromiumPath: config.chromiumPath };
   app.get('/api/v1/tickets/:id/pdf', (request, reply) => sendPdf(deps, request, reply));
+  registerWhyWhyPdf(app, deps);
   registerDayReports(app, deps);
   registerSignoffQr(app, config);
 }

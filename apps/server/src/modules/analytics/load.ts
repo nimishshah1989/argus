@@ -7,16 +7,19 @@ import type {
   ReportRow,
   TaskRow,
   TicketRow,
+  WhyWhyRow,
 } from '@uptimo/domain';
+import { whyWhyPayloadSchema } from '@uptimo/shared';
 import {
   createRedactor,
   peopleForEngine,
+  personCode,
   redactionTerms,
   tenantInfo,
   type Redactor,
 } from '../identity/index.js';
 import { listsForEngine, machinesForEngine, movesForEngine } from '../plant/index.js';
-import { reportsForEngine, ticketsForEngine } from '../tickets/index.js';
+import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
 
 type Db = Pick<PoolClient, 'query'>;
 type Row = Record<string, unknown>;
@@ -24,9 +27,6 @@ type Row = Record<string, unknown>;
 const iso = (value: unknown): string | null =>
   value === null || value === undefined ? null : new Date(value as string | Date).toISOString();
 const text = (value: unknown): string | null => (value === null ? null : String(value));
-
-/** A stable code for a person: the engines and everything they return never carry a name or a phone. */
-export const personCode = (id: string): string => `P-${id.slice(0, 8)}`;
 
 const machine = (row: Row): MachineRow => ({
   id: row.id as string,
@@ -117,6 +117,20 @@ const person = (row: Row): PersonRow => ({
   active: row.active as boolean,
 });
 
+/** One saved Why-Why record as the engine reads it: a person code, never the author's id or name. */
+function whyWhyRow(row: { ticketId: string; payload: unknown }): WhyWhyRow | null {
+  const parsed = whyWhyPayloadSchema.safeParse(row.payload);
+  if (!parsed.success) return null;
+  const { whys, conclusion, completedBy, completedDate } = parsed.data;
+  return {
+    ticketId: row.ticketId,
+    whys,
+    conclusion,
+    completedBy: personCode(completedBy),
+    completedDate,
+  };
+}
+
 function listsOf(rows: Row[]): Record<string, ListRow[]> {
   const lists: Record<string, ListRow[]> = {};
   for (const row of rows) {
@@ -145,6 +159,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const reports = await reportsForEngine(tx);
   const people = await peopleForEngine(tx);
   const lists = await listsForEngine(tx);
+  const savedWhyWhy = await whyWhyEventRows(tx);
   return {
     timeZone,
     machines: machines.map(machine),
@@ -162,5 +177,9 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     reports: reports.map((row) => report(row, clean)),
     people: people.map(person),
     lists: listsOf(lists),
+    whyWhy: savedWhyWhy.flatMap((row) => {
+      const record = whyWhyRow(row);
+      return record ? [record] : [];
+    }),
   };
 }
