@@ -8,9 +8,11 @@ import type {
   TicketRow,
 } from '../../src/index.js';
 import { read, type DashboardChart, type DashboardKpi, type FigureKey } from './keys.js';
+import { amcLines, legalLines, nudgeAcks } from './action-center.js';
 import type { Workbook, WorkbookBreakdown, WorkbookMachine } from './workbook.js';
 
 export * from './keys.js';
+export * from './action-center.js';
 
 /**
  * The answer-key seam (ticket 38): `fixtures/answer-key/input.json` is the 11 November workbook in the shape the
@@ -225,6 +227,7 @@ function toReport(row: WorkbookBreakdown): ReportRow {
     doneBy: personCodes(row.id, 'doneBy', row.doneBy),
     supportedBy: personCodes(row.id, 'supportedBy', row.supportedBy),
     recordedHours: number(row.downHrs),
+    spareCost: (number(row.cost1) ?? 0) + (number(row.cost2) ?? 0) + (number(row.cost3) ?? 0),
     srNo: number(row.srNo),
     observedBy: text(row.observedBy),
   };
@@ -312,9 +315,14 @@ function engineData(workbook: Workbook): EngineData {
       categories: workbook.settings.categories,
       cells: workbook.settings.cells.map(String),
       locations: workbook.settings.locations,
+      nudgeAcks: nudgeAcks(workbook),
+      amcRemindDays: workbook.settings.amcRemindDays,
+      legalRemindDays: workbook.settings.legalRemindDays,
     },
     // No Why-Why record exists in the workbook: ticket 41's form writes one, and the figure reads it here.
     whyWhy: [],
+    amc: amcLines(workbook),
+    legal: legalLines(workbook),
   };
 }
 
