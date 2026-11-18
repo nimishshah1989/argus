@@ -94,6 +94,8 @@ export interface ReportRow {
    * does not read it yet, so a live row reads undefined and the spares rule sees nothing.
    */
   spareCost?: number | null;
+  /** The platform's three spare-cost slots in the log's order; the stored row has one sum today. */
+  spareCosts?: readonly (number | null)[];
   /**
    * The legacy platform's stable log number (its "Sr No"), where the source recorded one: the Breakdown Log prints
    * it. A log the platform numbered itself has gaps here (deleted entries keep their number), so a figure must

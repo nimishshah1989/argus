@@ -309,12 +309,13 @@ function monthChart(points: readonly MonthPoint[]): Chart {
 }
 
 /** `ch-ry-pareto`: the fifteen costliest machines' hours and their running share of the year. */
-function paretoChart(stats: ReportStats): Chart {
+function paretoChart(stats: ReportStats, machines: ReadonlyMap<string, MachineRow>): Chart {
   let cumulative = 0;
   const top = groupBy(stats.breakdowns, (row) => row.report.machineId).slice(0, PARETO_BARS);
   return chartOf(
     'ch-ry-pareto',
-    top.map((group) => group.key),
+    // The chart names a machine by its code (the key's labels), never by the row id.
+    top.map((group) => machines.get(group.key)?.code ?? group.key),
     [
       { label: 'Downtime hrs', data: top.map((group) => Math.round(group.h * 10) / 10) },
       {
@@ -367,7 +368,10 @@ export function annualReport(
         Array.from({ length: COMMENTARY_ROWS }, () => ['', '', '']),
       ),
     ],
-    charts: [monthChart(months), paretoChart(stats)],
+    charts: [
+      monthChart(months),
+      paretoChart(stats, new Map(data.machines.map((machine) => [machine.id, machine]))),
+    ],
   };
   return {
     value: { screen: 'annual-report', asOf, pages: [page] } as unknown as FigureValue,

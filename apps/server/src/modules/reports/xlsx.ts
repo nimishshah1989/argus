@@ -3,7 +3,7 @@ import { deflateRawSync } from 'node:zlib';
 /** One sheet of a workbook: a name and its rows of text, numbers and blanks. */
 export interface Sheet {
   name: string;
-  rows: readonly (string | number | null)[][];
+  rows: readonly (readonly (string | number | null)[])[];
 }
 
 type Entry = { name: string; body: Buffer };

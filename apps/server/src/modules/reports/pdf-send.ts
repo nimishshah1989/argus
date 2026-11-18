@@ -10,9 +10,24 @@ export interface PdfDeps {
   chromiumPath?: string;
 }
 
-/** A PDF is made when asked for and sent as it is: nothing is stored, so nothing is lost on a deploy. */
-export function sendBytes(reply: FastifyReply, bytes: Buffer, fileName: string): void {
-  reply.type(PDF_MIME).header('content-disposition', `inline; filename="${fileName}"`).send(bytes);
+export interface SendOptions {
+  type?: string;
+  /** A PDF opens in the browser; a workbook downloads. */
+  disposition?: 'inline' | 'attachment';
+}
+
+/** A report is made when asked for and sent as it is: nothing is stored, so nothing is lost on a deploy. */
+export function sendBytes(
+  reply: FastifyReply,
+  bytes: Buffer,
+  fileName: string,
+  options: SendOptions = {},
+): void {
+  const { type = PDF_MIME, disposition = 'inline' } = options;
+  reply
+    .type(type)
+    .header('content-disposition', `${disposition}; filename="${fileName}"`)
+    .send(bytes);
 }
 
 /** Runs a render; a full queue becomes a 503 the caller can retry (null: the reply is already sent). */

@@ -63,7 +63,7 @@ export const CALLS: Readonly<Record<string, readonly string[]>> = {
   notifications: ['identity', 'plant', 'ops'],
   tickets: ['identity', 'plant', 'files', 'notifications', 'ops'],
   accountability: ['tickets', 'identity', 'plant', 'notifications', 'ops'],
-  reports: ['tickets', 'identity', 'plant', 'files'],
+  reports: ['tickets', 'identity', 'plant', 'files', 'analytics'],
   imports: ['tickets', 'identity', 'plant', 'files', 'ops'],
   ai: ['tickets', 'identity', 'plant'],
   analytics: ['tickets', 'identity', 'plant', 'ops'],

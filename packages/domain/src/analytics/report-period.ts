@@ -219,9 +219,10 @@ export function reportStats(
 
 /** A machine cell: its id, then the model cut to 15 characters plus an ellipsis when it is longer than 16. */
 export function machineLabel(machine: MachineRow | undefined, id: string): string {
+  const label = machine?.code !== undefined && machine.code !== '' ? machine.code : id;
   const model = machine?.model?.trim() ?? '';
-  if (model === '') return id;
-  return `${id} ${model.length > 16 ? `${model.slice(0, 15)}…` : model}`;
+  if (model === '') return label;
+  return `${label} ${model.length > 16 ? `${model.slice(0, 15)}…` : model}`;
 }
 
 /** A cell key as the report prints it: `Cell 2`, or `No cell` for a blank or unlisted cell. */

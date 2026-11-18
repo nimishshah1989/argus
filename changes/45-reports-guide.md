@@ -220,6 +220,69 @@ needed changing. No dependency, no migration, no schema change.
 5. **Category labels are whitespace-normalized.** The workbook's `Cnc Sliding Head  Automatic Lathe` prints one space
    in the key; `categoryName`/`categoryOf` (45a's helpers) collapse it. The whole-key test proves every cell.
 
+# 45d — the download endpoints
+
+**What changed for a user:** the reports can now be downloaded. `GET /api/v1/reports/monthly.pdf` prints the Monthly
+report for the complete month before `asOf`, `GET /api/v1/reports/annual.pdf` prints the Annual report for the year to
+`asOf`, and `GET /api/v1/reports/workbook.xlsx` downloads the whole data set as 45c-2's 17-sheet workbook. All three
+are read-only and canAnalytics (supervisor, head, plant head, admin; operator and technician get 403); `asOf` is
+optional (the plant's today) and a real plant date, else 422. The PDFs are `inline`, the workbook is an `attachment`
+named `<tenant-slug>-workbook-<asOf>.xlsx`. Nothing is stored: each download is computed when it is asked for.
+
+**The PDF.** A4, the tenant's name, the printed title ("Monthly Maintenance Report — October 2026" / "Annual
+Maintenance Report — 2026"), the period line ("October 2026" / "2026 to 11 November"), every table in the figure's
+order with the figure's own cells, and both charts as inline SVG. The template is a pure function of the figure
+value: no SQL, no clock, no re-rounding, and the commentary table prints as the blank Action/Owner/Due date form. The
+SVG builder draws a count series as bars, an hours series as the second-axis line, and a Pareto's hours as bars with
+its cumulative share as the line; the Pareto gives 15 bars, a 15-point line and the key's labels as tick text.
+
+**Acceptance, exactly as the plan states it.** Each PDF response starts `%PDF-` and carries the printed title, the
+period and the key cells — monthly "VC-16 CVM1160", "25.9", "Cell 2"; annual "TMC-2 SL30MC", "307.6", "November (to
+date)"; the person cell is the engine's coded name (deviation 1). The xlsx response unzips and its sheet names,
+headers and rows equal `workbookSheets` over the same plant load (45c-2's output), with the frozen key's 17 sheet
+names and header rows; the Breakdown Log carries the report and its spare cost. All three routes answer 401 without a
+sign-in, 403 for an operator and a technician, and 422 for an `asOf` that is not a real date.
+
+**Red/green, verbatim.** Red with the three routes unregistered:
+`Test Files 2 failed (2)`, `Tests 12 failed | 1 passed (13)` — all twelve route assertions saw
+`Route GET:/api/v1/reports/monthly.pdf?asOf=2026-11-11 not found` (404); the SVG builder test was the one pass.
+Green: the two named files — `Test Files 2 passed (2)`, `Tests 13 passed (13)`; `pnpm exec vitest run apps/server/test`
+— 131 files, 1,536 tests passed; `pnpm exec tsc --noEmit` clean; `pnpm precheck` — 13 checks passed.
+
+**Deviations recorded.**
+
+1. **A person prints by code, not by name.** The engine never holds a person's name (`loadEngineData` gives every
+   person the pseudonym `P-<id8>`), so the PDF's team table prints that code; the key's "Person 11" is the frozen
+   fixture's own pseudonym. The test pins the exact code (`P-<Person 11 id8>`) and reads the ASCII cells with
+   `pdfText`; `pdfShows` can only prove non-ASCII glyphs, so it is used for the title's em dash.
+2. **A live machine prints its code, not its row id.** `machineLabel` used the passed id as the label; in the key's
+   fixture `MachineRow.id` is the code, but live it is a uuid (the PDF printed `90d87aba-… CVM1160`). It now prefers
+   `machine.code` (the key is unchanged because the fixture sets code = id), and the Pareto chart labels machines by
+   code too. A 45a/45b fix found by this packet, not a new number.
+3. **The loader publishes the plant's cell list.** `loadEngineData` now sets `settings.cells` from the `cell`
+   list items; without it every report cell folded to "No cell" on live data and "Cell 2" could not print. The
+   activity is read in the same load, no extra query.
+4. **The live workbook's PM, AMC and Legal sheets are header-only.** `EngineData` has no PM plan or PM report source
+   until M4b 49/51, so the route's `ExportData` omits them and those sheets print their header row; the route equals
+   45c-2's `workbookSheets` over the same load, while the frozen key's 427/2/2/1 row counts belong to 45c-2's
+   fixture. `App Settings` is still not written (open question 4).
+5. **Spare costs.** `ReportRow.spareCosts` is the new optional three-slot field; the loader fills
+   `[spare_cost, null, null]` today (the stored row is one sum), and the workbook's Breakdown Log prints the slots.
+6. **Two small seam changes.** `sendBytes` takes an optional type and disposition (the xlsx is an attachment), and
+   `writeXlsx`'s `Sheet.rows` is readonly so 45c-2's `ExportSheet` feeds it directly. The three routes are registered
+   as binary (`null`) reply schemas, which moves the reply-contract count from 134 to 137.
+
+**Files.** `apps/server/src/modules/reports/report-chart.ts` (new: the SVG builder), `report-pdf.ts` (new: the
+template and the two PDF routes), `export-data.ts` (new: `ExportData` from the load, the profile and the tenant),
+`workbook-route.ts` (new: the xlsx route), `routes.ts` (registers all three), `apps/server/src/modules/analytics/index.ts`
+(publishes `loadEngineData`), `analytics/load.ts` (spare costs and the cell list), `modules/manifest.ts` (the one
+CALLS line: reports may call analytics), `reports/pdf-send.ts`, `reports/xlsx.ts` (the readonly rows),
+`packages/domain/src/analytics/index.ts` (publishes `monthlyReport` and `annualReport`), `analytics/types.ts`
+(`spareCosts`), `analytics/report-period.ts` and `analytics/annual-report.ts` (deviation 2),
+`packages/shared/src/replies.ts` (the three binary routes), `packages/domain/test/registry.test.ts` (the two public
+names), `apps/server/test/report-pdf.test.ts` and `apps/server/test/report-export.test.ts` (new),
+`apps/server/test/reply-contract.test.ts` (the route count), `docs/spec/parity.yaml` and this fragment.
+
 # 45e — the report screens
 
 **What changed for a user:** the Reports group now has its own screen. `/analytics/reports` opens the Monthly Report

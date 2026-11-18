@@ -1546,9 +1546,13 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/workbook-export.json
+      - 'apps/server/test/report-export.test.ts :: unzips with the 45c-2 sheet names, headers
+        and rows'
+      - 'apps/server/test/report-export.test.ts :: sends the 45c-2 workbook as an attachment
+        with the tenant and the date in its name'
     source: docs/plan/m4a-triage.md
     screen: workbook-export
     ticket: '45'
