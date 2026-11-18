@@ -24,3 +24,9 @@ every bucket and mutation-proved the rule; it returned PASS with one fragment co
 The 11 Nov platform build is tracked at `docs/discovery/real-2026-11-13/cosmos_platform-2026-11-11.html`; the earlier
 "not committed" note in the handoff and plan R1 was wrong. The handoff also records the 18 Nov 10:13 stop and the local
 `main` repair.
+
+## 41c merged
+
+The A6 Why-Why figure is on `main` (#335, `79b4c94f`): the 24 production breakdowns over the raw-hours threshold, worst
+first, the NO-DT VC-23 kept at 59.98, and a saved record turning only its own row `Completed`. Engine-only; the screen
+is 41e-2.
