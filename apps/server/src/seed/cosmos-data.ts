@@ -1,3 +1,8 @@
+import {
+  mapAssetRegisters,
+  type AssetRegisterDraft,
+  type RegisterWorkbook,
+} from './asset-registers.js';
 import { PM_WORKBOOK_AS_OF, mapPmPlans, type MappedPmPlan, type PmWorkbook } from './pm-plans.js';
 
 export interface MachineSeed {
@@ -33,6 +38,8 @@ export interface SeedFiles {
   shifts: SeedResult['shifts'];
   people: { users: PeopleEntry[] };
   pm: PmWorkbook;
+  /** The workbook's AMC/Warranty and Legal Compliance sheets (51a); the same answer-key fixture. */
+  registers: RegisterWorkbook;
 }
 
 export const ROLE_MAP = {
@@ -63,6 +70,8 @@ export interface SeedResult {
   machines: MachineSeed[];
   /** The workbook's PM plans: one recurring plan per machine, written by the plant seed (49a). */
   pmPlans: MappedPmPlan[];
+  /** The workbook's register lines, written by the plant seed after the machines (51a). */
+  assetRegisters: AssetRegisterDraft[];
   people: PersonSeed[];
   lists: ListSeed[];
   shifts: Array<{
@@ -239,6 +248,13 @@ function buildGlossary(glossary: Record<string, unknown>): SeedResult['glossaryT
   ];
 }
 
+/** The workbook's own caveats, reported beside the machine differences: they never fail the seed. */
+const SEED_CAVEATS = [
+  '19 live maintenance codes; ELE, HYD, ROT are kept inactive. History also uses MEC, NI, INT, FS, PP, UTI — not seeded; resolve aliases (Q9).',
+  'Two shift windows (08:00–18:30, 18:29–05:00) but the report form lists three shifts — pending Bhavin/Nimish (Q8).',
+  'Glossary caveats are recorded in the source file and must be fixed at seed.',
+];
+
 export function buildSeed(
   exp: Record<string, unknown>,
   live: Record<string, unknown>,
@@ -247,12 +263,12 @@ export function buildSeed(
 ): SeedResult {
   const machines = files.machines.machines;
   const pm = mapPmPlans(files.pm, { asOf: PM_WORKBOOK_AS_OF });
+  const registers = mapAssetRegisters(files.registers, { defaultLeadDays: 15 });
   const exportTeam = (
     exp.settings as { team: Array<{ name: string; type: string; status: string }> }
   ).team;
   const { people, teamShifts } = buildPeople(files.people.users, exportTeam);
   const lists = buildLists(exp, live);
-  const shifts = files.shifts;
   const glossaryTerms = buildGlossary(glossary);
   const activeCodes = lists.filter((item) => item.list === 'maint_code' && item.active).length;
   const inactiveCodes = lists.filter((item) => item.list === 'maint_code' && !item.active).length;
@@ -264,17 +280,17 @@ export function buildSeed(
   );
   const conflicts = [
     ...machineConflicts(exp, files.machines),
+    ...registers.conflicts,
     `${logins} logins (${roleCount('technician')} technician, ${roleCount('operator')} operator, ${roleCount('admin')} admin) + ${vendors.length} vendor person (${vendors.join(', ')}) without a login.`,
-    '19 live maintenance codes; ELE, HYD, ROT are kept inactive. History also uses MEC, NI, INT, FS, PP, UTI — not seeded; resolve aliases (Q9).',
-    'Two shift windows (08:00–18:30, 18:29–05:00) but the report form lists three shifts — pending Bhavin/Nimish (Q8).',
-    'Glossary caveats are recorded in the source file and must be fixed at seed.',
+    ...SEED_CAVEATS,
   ];
   return {
     machines,
     pmPlans: pm.plans,
+    assetRegisters: registers.items,
     people,
     lists,
-    shifts,
+    shifts: files.shifts,
     teamShifts,
     glossaryTerms,
     counts: {
@@ -284,7 +300,7 @@ export function buildSeed(
       logins,
       codes_active: activeCodes,
       codes_inactive: inactiveCodes,
-      shifts: shifts.length,
+      shifts: files.shifts.length,
       glossary: glossaryTerms.length,
       segments: 6,
       pm_plan_source_rows: pm.sourceRows,
@@ -292,6 +308,9 @@ export function buildSeed(
       pm_plans: pm.plans.length,
       pm_plan_done: pm.plans.filter((plan) => plan.lastDoneOn !== null).length,
       pm_plan_checklists: pm.plans.filter((plan) => plan.checklist.length > 0).length,
+      registers: registers.items.length,
+      registers_amc: registers.counts.amc,
+      registers_legal: registers.counts.legal,
     },
     conflicts,
   };
