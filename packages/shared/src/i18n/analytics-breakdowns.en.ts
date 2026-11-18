@@ -1,6 +1,6 @@
 /**
- * The breakdowns face (ticket 40, packet 40e-1): the Breakdown Log's filters, export and count, and the chrome
- * around the A1 page's two charts. Its own namespace, so the log/A1 screens never edit the analytics core.
+ * The breakdowns face (ticket 40, packets 40e-1 and 40e-2): the Breakdown Log's filters, export and count, and the
+ * chrome around A1's two charts and A2/A3's fifteen. Its own namespace, so the screens never edit the analytics core.
  */
 export const analyticsBreakdownsEn = {
   'analytics.breakdowns.nav': 'Breakdowns screens',
@@ -24,6 +24,25 @@ export const analyticsBreakdownsEn = {
   'analytics.content.a1.cellAxis': 'Cell',
   'analytics.content.a1.trendChart': 'BD and PM hours by month',
   'analytics.content.a1.trendAxis': 'Month',
+  'analytics.content.a2.categoryAxis': 'Category',
+  'analytics.content.a2.cellAxis': 'Cell',
+  'analytics.content.a2.catHrsChart': 'BD hours by category',
+  'analytics.content.a2.catCountChart': 'Breakdowns by category',
+  'analytics.content.a2.cellHrsChart': 'BD hours by cell',
+  'analytics.content.a2.cellCountChart': 'Breakdowns by cell',
+  'analytics.content.a2.catAvgHrsChart': 'Average BD hours per machine by category',
+  'analytics.content.a2.catAvgCountChart': 'Average breakdowns per machine by category',
+  'analytics.content.a2.cellAvgHrsChart': 'Average BD hours per machine by cell',
+  'analytics.content.a2.cellAvgCountChart': 'Average breakdowns per machine by cell',
+  'analytics.content.a3.ageAxis': 'Age band',
+  'analytics.content.a3.monthAxis': 'Month',
+  'analytics.content.a3.catMttrChart': 'MTTR by category',
+  'analytics.content.a3.catMtbfChart': 'MTBF by category',
+  'analytics.content.a3.cellMttrChart': 'MTTR by cell',
+  'analytics.content.a3.cellMtbfChart': 'MTBF by cell',
+  'analytics.content.a3.ageMttrChart': 'MTTR by machine age band',
+  'analytics.content.a3.ageMtbfChart': 'MTBF by machine age band',
+  'analytics.content.a3.plantTrendChart': 'Plant MTTR and MTBF by month',
   'analytics.page.drillTooMany':
     '{{tickets}} tickets are behind this page; open them one by one in the Breakdown log.',
   'analytics.page.openLog': 'Open the Breakdown log',

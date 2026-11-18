@@ -73,3 +73,19 @@
   at asOf, and the machine table prints its current cell. The paired month-on-month rows reproduce the key's print
   shape: the first row carries the label and MTTR, the second row no label and its MTBF cells one column left. The
   drill names the production breakdown tickets the figure read.
+
+- A2 and A3 now have their screens (packet 40e-2): each renders the engine's key-shaped page whole through the same
+  `page` kind and the kit — A2's 16 tables and 8 bar charts, A3's 6 tables and 7 charts (the six bar charts and the
+  plant-trend two-line, dual-axis chart, with a month the plant did not reach kept as a gap, never a zero). The page
+  title, table titles, cells and dataset labels are the engine's data; the fifteen chart titles and four axes are
+  catalogue copy in `analytics-breakdowns`. Both screens carry the engine's one drill; over the 200-id cap they link to
+  the Breakdown Log like A1. The screen module's `A1Page` became the shared `KeyPage`, so A1, A2 and A3 have one page
+  renderer and one drill fallback.
+- A2/A3 chart chrome grew in `analytics-breakdowns.en.ts`; the page mapping split out of `figure-content.ts` into
+  `page-content.ts` as the two keys took the mapper near the 400-line hard limit, and the chart kit's line spec gained
+  its optional second axis and gap values (the platform's `spanGaps:false` plant trend) beside 40e-1's two-series bar.
+  No new dependency.
+- Red first (packet 40e-2): the A2/A3 mapping cases failed with no page kind, the two-line chart had one axis, and the
+  journey found no "A2 category and cell" link. Green: the page-content suite (A2 16 tables/8 charts, A3 6 tables/7
+  charts, the raw double space, the dash and the plant-trend gap), the chart kit case, and the journey opening both
+  screens, their charts and drills, with an operator still refused.

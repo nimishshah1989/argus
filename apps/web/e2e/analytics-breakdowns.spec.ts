@@ -101,6 +101,94 @@ const A1_CHARTS = [
   },
 ];
 
+const A2_TABLE_TITLES = [
+  'By Category — Detail',
+  'By Cell — Detail',
+  ...Array.from({ length: 14 }, () => 'Machine-Level Detail'),
+];
+
+const A3_TABLE_TITLES = [
+  'By Category',
+  'By Cell',
+  'Month-on-Month MTTR & MTBF — Cell-wise and Plant-wide',
+  'Month-on-Month MTTR & MTBF — Age Band-wise and Plant-wide',
+  'By Machine Age Band',
+  'By Individual Machine',
+];
+
+/** One bar chart in the key's shape: labels as data, one dataset with its own name. */
+function chart(id: string, labels: string[], dataset: string, data: (number | null)[]) {
+  return {
+    id,
+    type: 'bar',
+    axes: { x: '', y: '' },
+    tickLabels: { x: [], y: [] },
+    labels,
+    datasets: [{ label: dataset, data }],
+  };
+}
+
+const A2_CHARTS = [
+  chart(
+    'ch-a2-cathrs',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    'BD Hrs',
+    [944.19, 73.54],
+  ),
+  chart(
+    'ch-a2-catcnt',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    '# Breakdowns',
+    [271, 17],
+  ),
+  chart('ch-a2-cellhrs', ['Cell 1', 'Cell 2'], 'BD Hrs', [492.21, 317.87]),
+  chart('ch-a2-cellcnt', ['Cell 1', 'Cell 2'], '# Breakdowns', [80, 204]),
+  chart(
+    'ch-a2-catavghrs',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    'Avg BD Hrs / Machine',
+    [24.85, 36.77],
+  ),
+  chart(
+    'ch-a2-catavgcnt',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    'Avg Breakdowns / Machine',
+    [7.13, 8.5],
+  ),
+  chart('ch-a2-cellavghrs', ['Cell 1', 'Cell 2'], 'Avg BD Hrs / Machine', [70.32, 12.71]),
+  chart('ch-a2-cellavgcnt', ['Cell 1', 'Cell 2'], 'Avg Breakdowns / Machine', [11.43, 8.16]),
+];
+
+const A3_CHARTS = [
+  chart(
+    'ch-a3-catmttr',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    'MTTR',
+    [3.48, 4.33],
+  ),
+  chart(
+    'ch-a3-catmtbf',
+    ['Turning Center', 'Cnc Sliding Head  Automatic Lathe'],
+    'MTBF',
+    [598.15, 605.48],
+  ),
+  chart('ch-a3-cellmttr', ['Cell 1', 'Cell 2'], 'MTTR', [6.15, 1.56]),
+  chart('ch-a3-cellmtbf', ['Cell 1', 'Cell 2'], 'MTBF', [447.25, 592.98]),
+  chart('ch-a3-agemttr', ['0-5 yrs', '5-10 yrs'], 'MTTR', [2.02, 3.04]),
+  chart('ch-a3-agemtbf', ['0-5 yrs', '5-10 yrs'], 'MTBF', [560.85, 435.25]),
+  {
+    id: 'ch-a3-planttrend',
+    type: 'undefined',
+    axes: { x: '', y: '', y1: '' },
+    tickLabels: { x: [], y: [], y1: [] },
+    labels: ['Jan', 'Feb', 'Dec'],
+    datasets: [
+      { label: 'Plant MTTR (Hrs)', data: [2.22, 2.54, null] },
+      { label: 'Plant MTBF (Hrs)', data: [449.1, 434.43, null] },
+    ],
+  },
+];
+
 let tickets: { first: Ticket; second: Ticket };
 
 test.beforeAll(async () => {
@@ -252,6 +340,103 @@ function a1Figure(): Figure {
   };
 }
 
+function a2Figure(): Figure {
+  return {
+    key: 'a2-category-cell',
+    screen: 'a2-category-cell',
+    owner: 40,
+    status: 'ready',
+    value: {
+      screen: 'a2-category-cell',
+      asOf: AS_OF,
+      pages: [
+        {
+          page: 'a2',
+          title: 'Category & Cell Analysis',
+          kpis: [],
+          tables: A2_TABLE_TITLES.map((title, index) => ({
+            title,
+            header:
+              index === 0
+                ? ['Category', 'Machines', '# Breakdowns', 'BD Hours']
+                : ['Category', 'BD Hrs'],
+            rows:
+              index === 0
+                ? [
+                    ['Turning Center', '38', '271', '944.19'],
+                    ['Cnc Sliding Head Automatic Lathe', '2', '17', '73.54'],
+                  ]
+                : [],
+            rowCount: index === 0 ? 14 : 1,
+          })),
+          charts: A2_CHARTS,
+        },
+      ],
+    },
+    drill: { type: 'ticket', ids: [tickets.first.id, tickets.second.id] },
+  };
+}
+
+function a3Figure(): Figure {
+  return {
+    key: 'a3-mttr-mtbf',
+    screen: 'a3-mttr-mtbf',
+    owner: 40,
+    status: 'ready',
+    value: {
+      screen: 'a3-mttr-mtbf',
+      asOf: AS_OF,
+      pages: [
+        {
+          page: 'a3',
+          title: 'MTTR & MTBF',
+          kpis: [],
+          tables: A3_TABLE_TITLES.map((title, index) => ({
+            title,
+            header:
+              index === 0
+                ? ['Category', 'Machines', '# Breakdowns', 'BD Hours', 'MTTR (Hrs)', 'MTBF (Hrs)']
+                : index === 2
+                  ? ['Cell', 'Jan', 'Feb', 'Nov', 'Q3 Avg', 'Q4 Avg', 'Total 2026']
+                  : ['Category', 'MTTR (Hrs)', 'MTBF (Hrs)'],
+            rows:
+              index === 0
+                ? [
+                    ['Turning Center', '38', '271', '944.19', '3.48', '598.15'],
+                    ['CAM Profile Machine', '1', '0', '0.00', '0.00', '5,183.33'],
+                  ]
+                : index === 2
+                  ? [
+                      [
+                        'Cell 1MTTR / MTBF · 80 breakdowns',
+                        '1.18',
+                        '1.55',
+                        '1.51',
+                        '4.62',
+                        '0.90',
+                        '6.15',
+                      ],
+                      [
+                        'Cell 2MTTR / MTBF · 204 breakdowns',
+                        '1.16',
+                        '1.33',
+                        '1.39',
+                        '2.17',
+                        '—',
+                        '1.56',
+                      ],
+                    ]
+                  : [],
+            rowCount: index === 0 ? 14 : 1,
+          })),
+          charts: A3_CHARTS,
+        },
+      ],
+    },
+    drill: { type: 'ticket', ids: [tickets.first.id, tickets.second.id] },
+  };
+}
+
 /** A1 with more drill ids than the endpoint's cap: the page must offer the log, not a refused drill. */
 function a1OverCapFigure(): Figure {
   const figure = a1Figure();
@@ -264,12 +449,17 @@ function a1OverCapFigure(): Figure {
   };
 }
 
-async function stubFigures(page: Page, a1: Figure = a1Figure()): Promise<void> {
+async function stubFigures(
+  page: Page,
+  a1: Figure = a1Figure(),
+  a2: Figure = a2Figure(),
+  a3: Figure = a3Figure(),
+): Promise<void> {
   const reply: FiguresReply = {
     asOf: AS_OF,
     profile: {} as FiguresReply['profile'],
     rows: { machines: 125, moves: 0, tickets: 2, tasks: 0, reports: 5, people: 4 },
-    figures: [logFigure(), a1],
+    figures: [logFigure(), a1, a2, a3],
   };
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
@@ -371,6 +561,79 @@ async function openA1(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
 }
 
+/** A2 inside the menu: its title, 16 tables, 8 charts and its drill. */
+async function openA2(page: Page): Promise<void> {
+  await page.goto('/analytics/breakdowns');
+  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
+  await nav.getByRole('link', { name: 'A2 category and cell', exact: true }).click();
+  await expect(page).toHaveURL(/screen=a2-category-cell/);
+  await expect(
+    nav.getByRole('link', { name: 'A2 category and cell', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+  await expect(
+    page.getByRole('heading', { name: 'Category & Cell Analysis', exact: true }),
+  ).toBeVisible();
+  for (const title of ['By Category — Detail', 'By Cell — Detail'])
+    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Machine-Level Detail', exact: true }),
+  ).toHaveCount(14);
+  await expect(
+    page.getByRole('cell', { name: 'Cnc Sliding Head Automatic Lathe', exact: true }),
+  ).toBeVisible();
+  const charts = page.getByTestId('chart');
+  await expect(charts).toHaveCount(8);
+  for (let index = 0; index < 8; index += 1)
+    await expect(charts.nth(index)).toHaveAttribute('data-chart-state', 'ready');
+  for (const title of ['BD hours by category', 'Average breakdowns per machine by cell'])
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+}
+
+/** A3 inside the menu: its title, 6 tables with the key's dash, 7 charts and its drill. */
+async function openA3(page: Page): Promise<void> {
+  await page.goto('/analytics/breakdowns');
+  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
+  await nav.getByRole('link', { name: 'A3 MTTR and MTBF', exact: true }).click();
+  await expect(page).toHaveURL(/screen=a3-mttr-mtbf/);
+  await expect(nav.getByRole('link', { name: 'A3 MTTR and MTBF', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page.getByRole('heading', { name: 'MTTR & MTBF', exact: true })).toBeVisible();
+  for (const title of A3_TABLE_TITLES)
+    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '5,183.33', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '—', exact: true }).first()).toBeVisible();
+  const charts = page.getByTestId('chart');
+  await expect(charts).toHaveCount(7);
+  for (let index = 0; index < 7; index += 1)
+    await expect(charts.nth(index)).toHaveAttribute('data-chart-state', 'ready');
+  for (const title of ['MTTR by category', 'Plant MTTR and MTBF by month'])
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+}
+
+test('a head opens A2 and A3, sees their tables and charts, and drills into their tickets', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  await openA2(page);
+  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
+  await expect(page).toHaveURL(/drill=ticket%3A/);
+  await expect(
+    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
+  await openA3(page);
+  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
+  await expect(page).toHaveURL(/drill=ticket%3A/);
+  await expect(
+    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('cell', { name: tickets.second.ref, exact: true })).toBeVisible();
+});
+
 test('a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1', async ({
   page,
 }) => {
@@ -424,4 +687,12 @@ test('an operator is refused the breakdowns face', async ({ page }) => {
   await expect(
     page.getByRole('navigation', { name: 'Breakdowns screens', exact: true }),
   ).toHaveCount(0);
+  for (const screen of ['a2-category-cell', 'a3-mttr-mtbf']) {
+    await page.goto(`/analytics/breakdowns?screen=${screen}`);
+    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByRole('table')).toHaveCount(0);
+    await expect(
+      page.getByRole('navigation', { name: 'Breakdowns screens', exact: true }),
+    ).toHaveCount(0);
+  }
 });

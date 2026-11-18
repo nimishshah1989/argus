@@ -5,7 +5,7 @@ import type { GridComponentOption, TooltipComponentOption } from 'echarts/compon
 
 export interface ChartSeries {
   name: string; // translated; end label, table header
-  values: number[]; // one per category
+  values: (number | undefined)[]; // one per category; a gap where the plant had no value
 }
 interface ScatterPoint {
   x: number;
@@ -28,6 +28,8 @@ export type ChartSpec =
       categoryLabel: string;
       categories: string[];
       series: [ChartSeries] | [ChartSeries, ChartSeries];
+      /** Two series on two axes: the first on the left, the second on the right. */
+      secondAxis?: boolean;
     }
   | {
       kind: 'scatter';
@@ -150,15 +152,19 @@ function barOption(spec: BarSpec, p: Palette): Option {
 
 function lineOption(spec: LineSpec, p: Palette): Option {
   const longest = Math.max(...spec.series.map((s) => s.name.length));
+  const secondAxis = spec.secondAxis === true && spec.series.length === 2;
   return {
     ...baseOption(p, 16 + 7 * longest),
     xAxis: categoryAxis(spec.categories, p),
-    yAxis: valueAxis(p),
+    yAxis: secondAxis
+      ? [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }]
+      : valueAxis(p),
     series: spec.series.map((s, i) => ({
       type: 'line' as const,
       name: s.name,
       data: s.values,
       color: p.series[i],
+      ...(secondAxis && i === 1 ? { yAxisIndex: 1 } : {}),
       symbol: (['circle', 'triangle'] as const)[i],
       symbolSize: 8,
       showAllSymbol: true,

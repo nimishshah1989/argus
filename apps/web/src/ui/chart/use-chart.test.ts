@@ -186,4 +186,29 @@ describe('chartOption', () => {
     expect(option.series?.map((s) => s.type)).toEqual(['bar']);
     expect(option.yAxis).toHaveLength(2);
   });
+
+  it('draws the two-line trend on two axes and keeps a month the plant did not reach as a gap', () => {
+    const spec: ChartSpec = {
+      kind: 'line',
+      title: 'Plant MTTR and MTBF by month',
+      categoryLabel: 'Month',
+      categories: ['Jan', 'Feb', 'Dec'],
+      series: [
+        { name: 'Plant MTTR (Hrs)', values: [2.22, 2.54, undefined] },
+        { name: 'Plant MTBF (Hrs)', values: [449.1, 434.43, undefined] },
+      ],
+      secondAxis: true,
+    };
+    const option = view(spec);
+    expect(Array.isArray(option.yAxis)).toBe(true);
+    expect(option.yAxis).toHaveLength(2);
+    const [mttr, mtbf] = option.series ?? [];
+    expect(mttr?.type).toBe('line');
+    expect(mtbf?.type).toBe('line');
+    expect(mttr?.yAxisIndex).toBeUndefined();
+    expect(mtbf?.yAxisIndex).toBe(1);
+    expect(mttr?.data).toEqual([2.22, 2.54, undefined]);
+    expect(mtbf?.data).toEqual([449.1, 434.43, undefined]);
+    expect(option.xAxis?.data).toEqual(['Jan', 'Feb', 'Dec']);
+  });
 });
