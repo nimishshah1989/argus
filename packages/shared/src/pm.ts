@@ -104,3 +104,9 @@ export type PmPlanReply = z.infer<typeof pmPlanReplySchema>;
 /** What a ticket's detail carries for a PM job: the effective plan (R3) and its checklist. */
 export const pmPlanForJobSchema = pmPlanReplySchema.omit({ createdAt: true });
 export type PmPlanForJob = z.infer<typeof pmPlanForJobSchema>;
+
+/** The `pm.generate` job payload (49b): tenant-agnostic, so one daily schedule serves every plant. */
+export const pmGeneratePayloadSchema = z
+  .object({ v: z.literal(1), horizonDays: z.number().int().min(0).max(3650).default(0) })
+  .strict();
+export type PmGeneratePayload = z.infer<typeof pmGeneratePayloadSchema>;
