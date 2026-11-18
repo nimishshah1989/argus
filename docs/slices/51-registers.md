@@ -53,7 +53,8 @@ reminders and the workbook's two sheets print what the register holds.
 | The triage rows and the open Bhavin question               | `docs/plan/m4a-triage.md:21-22` (amc-warranty/legal-compliance → 51) and `:55` (whether the dateless lines are placeholders; not blocking)                                                                                                                                                                                                                                                     |
 | The settings framework the screen joins                    | `apps/server/src/modules/plant/settings-resources.ts:36-80` (the `Resource` contract), `:350` (`RESOURCES`); `settings-routes.ts:146-260` (create/edit/remove) and `:290-333` (the generic routes); `repo/plant-settings.ts:163-182` (`Store`, `tableStore`, “remove is what `active: false` does”)                                                                                            |
 | The web pattern, date input and page list                  | `apps/web/src/patterns/crud-spec.ts:28-40` (`CrudField`; `kind` has no `date` yet), `apps/web/src/patterns/form-sheet.tsx:22,130` (it already renders `type=date`), `apps/web/src/patterns/crud-page.tsx:362` (“never delete”), `apps/web/src/screens/settings/Plant.tsx:38-47,81-96` (the one page list that is the menu and the routes)                                                      |
-| The audit contract                                         | `packages/shared/src/audit.ts:9-28` (`AUDIT_AREAS`, a closed enum); `apps/server/src/modules/ops/repo.ts:18-33` (`audit.record`)                                                                                                                                                                                                                                                               |
+| The audit contract                                         | `packages/shared/src/audit.ts:9-28` (`AUDIT_AREAS`, a closed enum); `apps/server/src/modules/ops/repo.ts:18-33` (`audit.record`); retention 3 years at `docs/DATA-MAP.md:94` and `packages/db/migrations/0010_retention_support.sql:18-19`                                                                                                                                                     |
+| The reply contract                                         | `packages/shared/src/replies.ts:147-152` (`settingsResource` = list/create/`PUT`, 3 routes) and `:185-196` (the existing resources); `apps/server/test/reply-contract.test.ts:37-42` (the route table equals `REPLY_SCHEMAS`, `toHaveLength(137)` today)                                                                                                                                       |
 | `notify` and its dedupe                                    | `apps/server/src/modules/notifications/notify.ts:16` (max caller key 154), `:64-110` (one row per recipient/channel, `${key}:${personId}:${channel}`); the table's `UNIQUE (tenant_id, dedupe_key)` and free-text kind ≤40 at `packages/db/migrations/0012_m2_schema.sql:93-118`; the wording map `apps/server/src/modules/notifications/kinds.ts:6-14`                                        |
 | The job shape and the fake clock                           | `apps/server/src/retention.ts:39-70` (cron map), `:75-82` (the 24 h clock guard), `:93` (`allowFakeClock`), `:125-159` (queue for every role, workers/schedule for non-api); `apps/server/test/retention-jobs.test.ts:8-11` (a fixed `NOW`); `apps/server/src/modules/notifications/jobs.ts:29-63` (the same two-tier shape, `notify.sweep` schedule); wiring `apps/server/src/index.ts:39-41` |
 | The module edges                                           | `apps/server/src/modules/manifest.ts:59-72`: `plant` may call identity/files/ops and **not** notifications; `notifications` may call identity/plant/ops                                                                                                                                                                                                                                        |
@@ -157,13 +158,17 @@ drift. An empty source date imports as NULL and no date is invented. `asset_regi
 arithmetic for dates (`starts/ends/due` are typed), and the three real rows carry no dates, so nothing reminds until
 the plant fills them; the workbook remains the archive.
 
-**R4 — the free text has one home each.** The AMC sheet's single “Vendor / contract no.” cell goes to `vendor`
-(the platform's own `line.vendor` in `AmcLine`, which the export prints); the legal “Certificate / report no.” cell
-goes to `reference` (`LegalLine.cert`). The AMC `type` and its “not renewing” flag, and the legal test name and Form
-No, have no column: the loader writes them to `notes` as `type` / `type · not renewing` and `name · form`. A
-plant-level row (no machine) is allowed: `machine_id` is nullable in 0015. **Cost if wrong:** `notes` is editable free
-text, so a person who rewrites it loses the original type/test wording from the screen; the workbook and the key still
-hold it, and `kind` plus the dates stay queryable.
+**R4 — the free text has one home each, and one convention.** The AMC sheet's single “Vendor / contract no.” cell goes
+to `vendor` (the platform's own `line.vendor` in `AmcLine`, which the export prints); the legal “Certificate / report
+no.” cell goes to `reference` (`LegalLine.cert`). The AMC `type`, the “not renewing” flag, and the legal test name and
+Form No have no column, so the loader writes them to `notes` in one convention: an AMC note is `<type>` or
+`<type> · not renewing`, and a legal note is `<name> · <form>`. The screen's notes field is the item's description and
+its hint states the convention; 51c reads the type/name/form/flag back from it (R12). A plant-level row (no machine) is
+allowed: `machine_id` is nullable in 0015. **Cost if wrong:** the notes are editable free text, and each loss is
+separate: (a) an emptied or rewritten AMC note loses the type detail, so “AMC (Comprehensive)” falls back to
+“AMC”/“Warranty”; (b) a note that no longer ends ` · not renewing` loses the flag, so the item reminds and the sheet's
+Not renewing cell goes blank; (c) a rewritten legal note still gives a name and, when it has the separator, a form,
+otherwise the board falls back to “Legal compliance”. The workbook and the key still hold the original wording.
 
 **R5 — the platform's pick-lists do not become rows or lists.** `amcTypes` (4 labels) and `legalTypes` (1 entry) only
 classify: a legal line's missing name/form are filled from `legalTypes` by `tid`, and a missing `months` falls back to
@@ -171,16 +176,25 @@ the type's months (the line's own 24 wins over the type's 11 in the real data). 
 **Cost if wrong:** the plant cannot reuse its old contract-type vocabulary on a new row; if Bhavin wants it back, a
 `list_item` list (`amc_type`, which D17 allows) joins this screen's fields later with no migration.
 
-**R6 — the screen is the generated settings resource at `/api/v1/settings/registers`.** A `Resource`
-(`apps/server/src/modules/plant/settings-registers.ts`) appended to `RESOURCES`, gated by `canSettingsLists`
+**R6 — the screen is the generated settings resource at `/api/v1/settings/registers`, with a reply schema.** A
+`Resource` (`apps/server/src/modules/plant/settings-registers.ts`) appended to `RESOURCES`, gated by `canSettingsLists`
 (head and admin, `packages/domain/src/permissions/settings.ts:5-7`), with the house audit actions
 `register.create` / `register.update` / `register.remove` on entity `asset_register`. Fields: kind (choice, required),
 machine (choice, blank means no machine), vendor, reference, startsOn/endsOn/dueOn (date), leadDays (text typed into a
 number, 0-3650, default 15), owner (choice), notes (vendor/reference ≤120 characters, notes ≤500). Validation: a machine
 of this plant (`exists`), an **active** person of this plant (`activePerson`), `endsOn >= startsOn`; the schema enforces
-the dates, the lead and the enum, so a foreign id or a backwards date is a 422, never a 500. The phone spec (`apps/web/src/screens/settings/registers-spec.tsx`)
-adds a `date` field kind (one line in `crud-spec.ts`; `FormSheet` already renders it), kind chips for the list filter,
-a watch-date column and an owner column; the page is one `PLANT_PAGES` entry (`registers`, `ShieldCheck`,
+the dates, the lead and the enum, so a foreign id or a backwards date is a 422, never a 500.
+`assetRegisterReplySchema` (strict) carries `id`, the ten fields and `active: z.boolean()`; the reply returns
+`active: true` for a listed row and the generic remove returns `{...before, active:false}`, so the schema must allow
+both. It is registered in `packages/shared/src/replies.ts` as
+`...settingsResource('settings/registers', assetRegisterReplySchema)`, which adds the three routes (list page, create,
+`PUT /:id`) and takes `apps/server/test/reply-contract.test.ts` from 137 to 140 with the equality assertion kept.
+The server `Resource` has no `switchOff` or `sendReason`: `active:false` is the generic remove path (R7) and the reason,
+when a screen sends it, comes in through `edit`'s patch.
+The phone spec (`apps/web/src/screens/settings/registers-spec.tsx`) adds a `date` field kind (one line in
+`crud-spec.ts`; `FormSheet` already renders it), kind chips for the list filter, a watch-date column, an owner column,
+and `switchOff: { hintKey: 'plant.registers.removeHint', sendReason: true }` (a `CrudSpec` field: the sheet asks for
+the reason and `switchBody` sends it). The page is one `PLANT_PAGES` entry (`registers`, `ShieldCheck`,
 `plant.menu.registers`) so the left menu, the phone list and `App.tsx`'s route all follow. All copy is in
 `plant.en.ts`; `plant.gu.ts` is `blank(plantEn)`, so the new keys fall back to English (D17's i18n rule). The owner
 lookup reads `/api/v1/config`'s people (id/name/active, phone stripped for non-admins) through a `transport` that shapes
@@ -188,13 +202,18 @@ it as `{items}`, because `/api/v1/people` is admin-only and a head must be able 
 bespoke register mockup; the screen follows the approved settings pattern, and the owner lookup is the one adapted
 source (the roster's admin-only lookup is not copied).
 
-**R7 — “switch off” is a removal, and the reason is audited.** `asset_register` has no `active` column and 0015 is
-immutable, so a row's switch is the generic `active: false` remove path: the store's `remove` deletes the row, the
-audit keeps the before row, and the screen's hint says “Removing an item deletes its register line; the audit keeps
-what it held.” The generic remove gains the optional reason and records it as the audit's `after` (`{reason}`), which the
-audit screen already renders (`apps/web/src/screens/settings/Audit.tsx:61`). This is the roster's own precedent
-(`repo/plant-settings.ts:165`). **Cost if wrong:** a removed contract or test lives only in the audit trail and the
-workbook; there is no “off but kept” state and no restore button.
+**R7 — “switch off” is a removal, and the reason is audited for three years.** `asset_register` has no `active`
+column and 0015 is immutable, so a row's switch is the generic `active: false` remove path: the store's `remove`
+deletes the row, the audit keeps the before row, and the screen's hint says “Removing an item deletes its register
+line; the audit keeps what it held.” The reason is a `CrudSpec` field (`switchOff: { hintKey, sendReason: true }`), not a
+server `Resource` field; `switchBody` sends `{active:false, reason}`, and the generic `edit` passes `target.patch.reason`
+to `remove`, which records it as the audit's `after` (`{reason}`), which the audit screen already renders
+(`apps/web/src/screens/settings/Audit.tsx:61`). This is the roster's own precedent (`repo/plant-settings.ts:165`). The
+audit row is kept **3 years** (`docs/DATA-MAP.md:94`; `audit_purge` refuses a cutoff younger than 3 years,
+`packages/db/migrations/0010_retention_support.sql:18-19`), then an operator purge removes it: the removal is not a
+permanent archive. For a **legal or calibration** item the hint adds the person-confirmation that the certificate or
+report is filed before the line is removed. **Cost if wrong:** a removed contract or test lives in the audit for three
+years and in the workbook, then only the workbook; there is no “off but kept” state and no restore button.
 
 **R8 — the notice watches `due_on ?? ends_on`; `starts_on` never.** The window is `watchOn − lead_days <= plant today`,
 inclusive, no upper bound (an overdue item still reminds once); a row with neither date raises nothing. `lead_days`
@@ -209,11 +228,15 @@ message to “all admins” for an item nobody owns is the failure the owner fie
 three imported rows push nobody until the plant assigns owners (the screen shows “No owner” and the plan's PR text says
 so); the Action Center still shows the reminder on screen from 51c, so the item is not invisible.
 
-**R10 — the dedupe key is `register:<row id>:<watchOn>`.** `notify` appends the person and channel, so the stored key
-is `register:<id>:<date>:<person>:push`; one item notifies once per date, a second run the same day is silent, a moved
-date is a new window, and a removed row cannot be re-keyed. Changing `lead_days` alone does not re-message. **Cost if
-wrong:** a renewal entered as a second row (instead of editing the item's dates) messages twice; the add sheet's hint
-says to edit the dates when an item is renewed.
+**R10 — the dedupe key is `register:<row id>:<watchOn>`, and it lives 90 days.** `notify` appends the person and
+channel, so the stored key is `register:<id>:<date>:<person>:push`; the person id is there **intentionally** — a new
+owner gets one message and an old owner is not told again for the same date. One item notifies once per date, a second
+run the same day is silent, a moved date is a new window, and a removed row cannot be re-keyed. Changing `lead_days`
+alone does not re-message. `notification.purge` deletes notification rows after **90 days**
+(`apps/server/src/retention.ts:51-53`; `docs/DATA-MAP.md:320`), so an item still overdue when its row is purged
+re-notifies once on the next run; that is the price of keeping the table bounded. **Cost if wrong:** a renewal entered
+as a second row (instead of editing the item's dates) messages twice; a long-overdue item can message again after 90
+days; the add sheet's hint says to edit the dates when an item is renewed.
 
 **R11 — the job is `register.due` in `notifications`, daily at 00:15 UTC.** `notifications` may read plant and identity
 (`manifest.ts:59-72`), so the job lives there while the **rule** stays plant's: `plant` publishes
@@ -224,16 +247,32 @@ notifications; adding the reverse edge would make a module cycle) and `accountab
 **Cost if wrong:** a plant reminder is scheduled by the delivery module; moving it is one file plus one registration in
 `index.ts`.
 
-**R12 — the register is the live source of `EngineData.amc`/`legal` (51c).** `loadEngineData` reads the register through
-`plant.assetRegistersForEngine` and maps AMC/warranty rows to `AmcLine` (`type` “AMC”/“Warranty”, `start`, `vendor`,
-`endsOn`, `months: 0`, `itemKey: id`) and legal/calibration rows to `LegalLine` (`last = starts_on`, `dueOn`,
-`cert = reference`, `months: 0`, `itemKey: id`). The two types gain optional `endsOn`/`dueOn`/`itemKey`; the action
-center prefers the stored date, and an `itemKey` equal to the row id makes the “a later line clears the older” rule
-inert for register items (a renewal is an edit of the same row). The exporter prints the stored end/due dates exactly
-(`dmy` for the AMC end, ISO for the legal due) and a blank tenure when `months` is 0. `notes` is **not** fed to the
-engine (it is human free text; the engine's no-free-text rule). The fixture path keeps its months and prints the same
-rows as before. **Cost if wrong:** the live workbook's tenure column is blank for register rows (the stored end date is
-exact); two register rows for one item both nudge, because the row, not a type, is the identity.
+**R12 — the register is the live source of `EngineData.amc`/`legal` (51c), and the note carries the text back.**
+`loadEngineData` reads the register through `plant.assetRegistersForEngine` and maps every field the engine has:
+
+- AMC/warranty → `AmcLine`: `id`, `machineId = machine_id`, `type = amcType(note)`, `start = starts_on`, `months = 0`,
+  `vendor`, `noRenew = note.endsWith(' · not renewing')`, `endsOn = ends_on`, `itemKey = id`. `amcType` is the note with
+  the ` · not renewing` suffix removed, falling back to `kind === 'warranty' ? 'Warranty' : 'AMC'` when empty.
+- legal/calibration → `LegalLine`: `id`, `machineId = machine_id`, `tid = id`, `name = legalName(note)`,
+  `form = legalForm(note)`, `last = starts_on`, `months = 0`, `cert = reference`, `dueOn = due_on`, `itemKey = id`;
+  the note's first separator (`·`) segment is the name and the rest (or null) the form, both empty when the note is
+  empty.
+
+`noRenew`, `tid`, `name` and `form` already exist on those types (they were simply left at `false`/empty by the earlier
+plan); 51c now sets them. The type, the legal name/form and the ` · not renewing` suffix are the only parts of `notes`
+that are read, and they are passed through the load's existing `clean` redactor, exactly as `problem`/`observedBy` are:
+the raw note never reaches a figure. The note convention is R4's; a person who rewrites it changes the sheet's
+Type/Test/Form cells and the board's wording, which is the recorded cost below. The two types gain optional `endsOn`/`dueOn`/`itemKey`; the action center prefers the stored
+date, and an `itemKey` equal to the row id makes the “a later line clears the older” rule inert for register items (a
+renewal is an edit of the same row). The exporter prints the type, the legal name/form, the Not renewing cell, and the
+stored end/due dates exactly (`dmy` for the AMC end, ISO for the legal due); the tenure and Valid-for cells are blank
+because `months` is 0. The fixture path keeps its own fields and prints the same rows as before.
+**Cost if wrong:** (a) the live workbook's tenure/Valid-for columns are blank for register rows (the stored end/due
+dates are exact); (b) the AMC type detail (“AMC (Comprehensive)” vs “AMC”) and the `noRenew` flag live only in the
+note, so emptying it falls back to the kind label and loses the flag (the item then reminds and the sheet's Not
+renewing cell goes blank); (c) a legal note without the separator still names the test but has no form, and an empty
+note falls back to “Legal compliance” in the nudge; (d) two register rows for one item both nudge, because the row, not
+a type, is the identity.
 
 **R13 — two windows, both 15 by default.** The Action Center keeps the plant's global `amcRemindDays`/`legalRemindDays`
 rules from ticket 44 (default 15; the key has no AMC/legal nudge, so the exact figures do not move). The phone push uses
@@ -297,8 +336,10 @@ seed already does.
   `ORDER BY kind, COALESCE(due_on, ends_on) NULLS LAST, id`; `insert` translates the resource's snake_case values back
   to the `AssetRegisterInput` draft for `insertAssetRow`.
 - `apps/server/src/modules/plant/settings-registers.ts` (new, ≤160 lines): the `Resource` — path, table
-  `asset_register`, `kind: 'register'`, the column map, reply, create/patch, `check`, `switchTo` unused, `switchOff`
-  hint + `sendReason`, `store: registerStore`.
+  `asset_register`, `kind: 'register'`, the column map, create/patch, `check`, `store: registerStore`, and the reply
+  that always carries `active: true` (a listed row; the generic remove answers `{...before, active:false}`). It has no
+  `switchOff`/`sendReason` (those are the web spec's, R6); `active:false` is the generic remove path and `edit` passes
+  the reason to the modified `remove`.
 - `apps/server/src/modules/plant/settings-resources.ts`: `registers` appended to `RESOURCES` (`:350`).
 - `apps/server/src/modules/plant/settings-routes.ts:188-206`: `remove` takes the optional reason and audits it as
   `after: { reason }`; `edit` passes `target.patch.reason`.
@@ -306,24 +347,30 @@ seed already does.
   module; `insertAssetRegisters` goes through `plant/seed.ts` only).
 - `packages/shared/src/plant-settings.ts`: `ASSET_KINDS`, `assetKindSchema`, `REGISTER_LEAD_DAYS = 15`,
   `assetRegisterCreateSchema` (`kind` required, `leadDays` default 15, `dropBlanks`), `assetRegisterPatchSchema`
-  (`reason` accepted), `assetRegisterReplySchema` (+ the inferred types).
+  (`reason` accepted), `assetRegisterReplySchema` (strict; `active: z.boolean()` because the remove reply is
+  `{...before, active:false}`) and the inferred types.
+- `packages/shared/src/replies.ts`: `...settingsResource('settings/registers', assetRegisterReplySchema)` — the list
+  page, create and `PUT /:id` replies (3 routes).
 - `packages/shared/src/audit.ts:9-28`: `'asset_register'` in `AUDIT_AREAS`.
 - `packages/shared/src/i18n/plant.en.ts`: the menu pair (`plant.menu.registers` and `.sub`) and the page keys
   `plant.registers.*` for title, intro, empty, add, kind plus the four kind labels (`kind.amc`, `kind.warranty`,
   `kind.legal`, `kind.calibration`), machine/noMachine, vendor, reference, startsOn, endsOn, dueOn, leadDays,
-  owner/noOwner, notes, allKinds, search, removeHint, watch, watchNone, ownerNone, dateColumn and lead (the
+  owner/noOwner, notes/notesHint, allKinds, search, removeHint, watch, watchNone, ownerNone, dateColumn and lead (the
   `plant.menu.*` shape is `:9-14`); `packages/shared/src/i18n/audit.en.ts`:
   `audit.area.asset_register`. `plant.gu.ts` is `blank(plantEn)`, so no Gujarati edit is needed.
 - `apps/web/src/patterns/crud-spec.ts:36`: `CrudField.kind` gains `'date'` (the only pattern change). 49a's plan
   names the same one-line change: whichever PR lands first adds it, the other finds it present and reuses it.
 - `apps/web/src/screens/settings/registers-spec.tsx` (new, ≤150 lines): `CrudSpec` — title/empty/add/intro, the
   config-people lookup and the machines lookup, fields, `look`, columns (kind, machine, watch date, lead, owner),
-  kind filter, search, `switchOff` hint/sendReason, watch/owner note.
+  kind filter, search, `switchOff: { hintKey: 'plant.registers.removeHint', sendReason: true }` and the watch/owner
+  note. The notes field's hint states the R4 convention.
 - `apps/web/src/screens/settings/registers-spec.test.ts` (new): the D05 rule.
 - `apps/web/src/screens/settings/Plant.tsx:38-47,81-96`: `'registers'` in `PlantPage`, one `PLANT_PAGES` entry
   (`ShieldCheck`, `plant.menu.registers`).
 - `apps/web/e2e/settings-registers.spec.ts` (new): the browser path.
 - `apps/server/test/asset-registers.test.ts` (new): the resource, audit, tenancy and removal.
+- `apps/server/test/reply-contract.test.ts`: the route count goes **137 → 140** (the three register replies) and the
+  `expect(keys).toEqual(Object.keys(REPLY_SCHEMAS).sort())` equality stays; the file is not otherwise weakened.
 - `apps/server/test/cosmos-seed.test.ts`: one added case — the seeded tenant holds 3 register rows (2 `amc`, 1
   `legal`), no dates and no owner.
 - `changes/51-registers.md` (this packet's section).
@@ -332,7 +379,9 @@ seed already does.
 `dueOn` with the shared helpers; `notes` per R4; `leadDays` 15; return counts by kind and a conflict for a code the seed
 has no machine for. The seed resolves codes after `insertMachines` in the same transaction (the 192-machine file has
 both). The resource's `check` resolves machine and owner inside the tenant and compares the dates; the store returns
-raw rows with `starts_on::text` etc. so the reply is date-safe. The screen groups by kind chips, shows the watch day
+raw rows with `starts_on::text` etc. so the reply is date-safe. The reply is `assetRegisterReplySchema` with
+`active: true` for every listed row (the remove's `{...before, active:false}` is the one false), registered in
+`replies.ts` so the list, create and edit routes all have a schema. The screen groups by kind chips, shows the watch day
 (`due_on ?? ends_on`), and computes the form note: “Reminds N days before DATE” or “Set an end or due date to start the
 reminder”, plus “No owner: this item notifies nobody.”
 
@@ -360,12 +409,16 @@ reminder”, plus “No owner: this item notifies nobody.”
    the before row and the reason, and a reload no longer shows it.
 8. Given the settings page at 360 px, when it lists the rows, then every reply key is a field or declared (D05), the
    kind chips filter, the watch day is the row's `due_on ?? ends_on` and the owner name reads.
+9. Given any of the four replies, when the reply contract checks them, then the list is `settingsPage` of the row
+   schema, create and edit are the row schema with `active: true`, the remove is `{...before, active:false}`, and the
+   route count is 140.
 
 **Red/green commands.**
 
 - Red: `pnpm exec vitest run apps/server/src/seed/asset-registers.test.ts` — `Test Files 1 failed`,
   `Cannot find module '../asset-registers.js'`.
 - Green: the same file; `pnpm exec vitest run apps/server/test/asset-registers.test.ts`;
+  `pnpm exec vitest run apps/server/test/reply-contract.test.ts` (140 routes, the equality assertion kept);
   `pnpm exec vitest run apps/server/test/cosmos-seed.test.ts apps/server/test/plant-settings-cosmos.test.ts`;
   `pnpm exec vitest run apps/web/src/screens/settings/registers-spec.test.ts`;
   `pnpm exec playwright test apps/web/e2e/settings-registers.spec.ts`.
@@ -437,24 +490,30 @@ notify module, the domain and the seed).
 
 **Files.**
 
-- `packages/domain/src/analytics/types.ts:164-187`: `AmcLine` gains `endsOn?: string | null` and `itemKey?: string`;
-  `LegalLine` gains `dueOn?: string | null` and `itemKey?: string`.
+- `packages/domain/src/analytics/types.ts:164-187`: `AmcLine` already has `noRenew`; `LegalLine` already has `tid`,
+  `name`, `form`; both gain `endsOn?`/`dueOn?` and `itemKey?`. 51c sets the existing fields from the register (R12),
+  it does not add a parallel type.
 - `packages/domain/src/analytics/action-center-ext.ts:63-73`: `amcLineEnd`/`legalLineDue` prefer the stored
   `endsOn`/`dueOn`; `:88-98,127-139`: a later line clears the older only when the item key matches (absent key keeps
   the old `machineId + type` / `machineId + tid` identity).
 - `packages/domain/src/exports/plant-sheets.ts:262-305`: AMC end = `line.endsOn ?? endOfTerm(...)`, legal due =
-  `line.dueOn ?? addMonths(...)`; tenure prints blank when `months <= 0`.
+  `line.dueOn ?? addMonths(...)`; the AMC Type prints `line.type`, the Not renewing cell `line.noRenew ? 'yes' : ''`,
+  the legal Test/Form cells `line.name`/`line.form`, tenure/Valid-for blank when `months <= 0`.
 - `apps/server/src/modules/plant/repo/asset-registers.ts`: `assetRegistersForEngine(tx)` — the tenant's rows with
-  `starts_on::text`, `ends_on::text`, `due_on::text`, `kind`, `machine_id`, `vendor`, `reference`, `lead_days`; no
-  `notes` (R12); exported through `plant/index.ts`.
+  `kind`, `machine_id`, `vendor`, `reference`, `starts_on::text`, `ends_on::text`, `due_on::text`, `lead_days` and
+  `notes` (R12 reads the type/test/flag back from it); exported through `plant/index.ts`.
 - `apps/server/src/modules/analytics/load.ts:178-230`: map the rows to `EngineData.amc` (amc/warranty) and
-  `EngineData.legal` (legal/calibration) with `months: 0`, `itemKey: id`, `type` “AMC”/“Warranty”; a null machine is
-  `''` (the rules filter on a known machine).
+  `EngineData.legal` (legal/calibration) with the R12 fields — `type`/`noRenew` and `tid`/`name`/`form` parsed from
+  `notes`, passed through the existing `clean` redactor, `months: 0`, `itemKey: id`; a null machine is `''` (the rules
+  filter on a known machine).
 - `apps/server/src/modules/reports/export-data.ts:8-10`: the comment now says the registers come from the register
   rows.
-- `apps/server/test/asset-register-engine.test.ts` (new): a register AMC ending 10 days out and a legal row due 10 days
-  out appear in `loadEngineData`, raise `amc|<id>|<end>` / `legal|<id>|<due>` on the Action Center board, and print
-  their stored dates on the two sheets; a removed row is gone from both; two legal rows on one machine both nudge.
+- `apps/server/test/asset-register-engine.test.ts` (new): a register AMC with notes `AMC (Comprehensive)` ending 10
+  days out and a legal row with notes `Test Of Pressure Vessel · Form No 11` due 10 days out appear in `loadEngineData`
+  with the mapped `type`/`noRenew`/`name`/`form`; the board raises `amc|<id>|<end>` / `legal|<id>|<due>` with those
+  words in the title; the sheets print the type/test/form and the Not renewing cell; a ` · not renewing` row raises no
+  AMC nudge; a removed row is gone from both; two legal rows on one machine both nudge; an empty note falls back to
+  `AMC`/`Warranty` and “Legal compliance”.
 - `docs/DATA-MAP.md:110`: the status becomes “Built (M4b, 0015); loaded, edited and the live source for the Action
   Center and the workbook (51)”.
 - `docs/spec/parity.yaml:1244-1268`: both rows `status: done` with the 51 evidence.
@@ -462,21 +521,30 @@ notify module, the domain and the seed).
 
 **Build.** The domain changes are additive (the fixture path sets no new field and prints identically; the 45 workbook
 test's 17 sheets and row counts stay exact; the Action Center's key stays 36 nudges). `loadEngineData` maps the rows
-after the lists; the Action Center's filters drop a register row with no machine. The nudge key keeps ticket 44's
-`amc|<line id>|<end>` / `legal|<line id>|<due>` shape, so an ack/snooze on a register nudge is the same stored key. The
-workbook route reads the same load, so the sheet is the register.
+after the lists, reading `type`/`noRenew` from the AMC note and `name`/`form` from the legal note per R12, through
+`clean`; the Action Center's filters drop a register row with no machine. The nudge key keeps ticket 44's
+`amc|<line id>|<end>` / `legal|<line id>|<due>` shape, so an ack/snooze on a register nudge is the same stored key.
+The workbook route reads the same load, so the sheet is the register.
 
 **Given/When/Then.**
 
-1. Given a tenant with an AMC row ending in 10 days and a legal row due in 10 days, when `loadEngineData` runs, then
-   `data.amc`/`data.legal` carry them with `endsOn`/`dueOn`, `months: 0` and `itemKey = id`.
-2. Given the same rows, when the Action Center board is computed, then it includes the `amc` nudge with the machine and
-   the `legal` nudge, both at `med`/`high` per the existing severity; an ack on the key removes it from the open list.
+1. Given a tenant with an AMC row (notes `AMC (Comprehensive)`, ending in 10 days), a warranty row (notes
+   `Mitsubishi EWC`), an AMC row with notes `AMC · not renewing`, a legal row whose note is “Test Of Pressure Vessel ·
+   Form No 11” (due in 10 days) and a blank-note AMC row, when `loadEngineData` runs, then `data.amc`/`data.legal`
+   carry every field: `type` is `AMC (Comprehensive)`/`Mitsubishi EWC`/`AMC`, `noRenew` is true only for the marked
+   row, `tid` is the row id, `name`/`form` are `Test Of Pressure Vessel`/`Form No 11`, `endsOn`/`dueOn` are the stored
+   dates, `months: 0` and `itemKey = id`; a name in a note is replaced by the redactor.
+2. Given the same rows, when the Action Center board is computed, then it includes the AMC nudge whose title ends
+   `: AMC (Comprehensive) ends in 10 days` and the legal nudge whose title ends
+   `: Test Of Pressure Vessel (Form Form No 11) due in 10 days` (the engine's existing “Form ” prefix), the not-renewing
+   row raises no AMC nudge, an empty legal note's title falls back to “Legal compliance”, and an ack on the key removes
+   the nudge from the open list.
 3. Given two legal rows on one machine, then both nudge (the row id is the identity); a renewal that edits the same
    row's `due_on` moves the key instead of leaving a stale one.
-4. Given the workbook is built, then the AMC & Warranty sheet prints the register's start and stored end (end as
-   `DD-MM-YYYY`, start ISO) and the Legal Compliance sheet prints the last/due dates; a register row with no end/due
-   prints blanks; the fixture's 17 sheets and the key's row counts are unchanged.
+4. Given the workbook is built, then the AMC & Warranty sheet prints the register's Type (`AMC (Comprehensive)`), start
+   and stored end (end as `DD-MM-YYYY`, start ISO), and Not renewing `yes` for the marked row; the Legal Compliance
+   sheet prints `Test Of Pressure Vessel` and `Form No 11`, the last/due dates, and the certificate; a row with no
+   end/due prints blanks; the fixture's 17 sheets and the key's row counts are unchanged.
 5. Given the register removes a row, then the sheet and the board no longer show it.
 6. Given the key path (`ENGINE_DATA`), then `analytics-action-center.test.ts` and `analytics-workbook.test.ts` stay
    exact and `registry.test.ts` lists the two new date helpers.
@@ -506,9 +574,11 @@ block: the rows import as they are and the plant can remove them.
 
 ## Risk the reviewer should attack
 
-The notice-date rule (R8) and the dedupe window (R10): `due_on ?? ends_on`, the inclusive boundary, no upper bound, and
-one message per item per date — a wrong choice here either misses a statutory test or warns a day late, so the
-acceptance pins the day before, the boundary, a second run, a moved date, an overdue row and a removed row. The second
-target is R12: the register becoming the live source of `EngineData.amc`/`legal` with `months: 0` (blank tenure) and
-`itemKey = row id` (two rows for one item both nudge), and the third is R7 (the switch deletes a contract row and only
-the audit keeps it).
+The notice-date rule (R8) and the dedupe window (R10): `due_on ?? ends_on`, the inclusive boundary, no upper bound, one
+message per item per date, and the 90-day purge's one possible re-message — a wrong choice here either misses a
+statutory test or warns a day late, so the acceptance pins the day before, the boundary, a second run, a moved date, an
+overdue row and a removed row. The second target is R12: the type/test/not-renewing round-trip through `notes` (a
+rewritten note changes the sheet and the banner, and an emptied one loses `AMC (Comprehensive)` and the flag), the
+`months: 0` blank tenure, and `itemKey = row id` (two rows for one item both nudge). The third is R7 (the switch
+deletes a contract row; the audit keeps it 3 years, then only the workbook) and the fourth is the reply contract
+(`active` true on a listed row, false on a remove).
