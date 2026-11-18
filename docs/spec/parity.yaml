@@ -1518,9 +1518,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/monthly-report.json
+      - 'apps/web/src/screens/analytics/report-view.test.ts :: maps the key page whole: no KPIs, all eight tables in the key order and both charts'
+      - 'apps/web/e2e/analytics-reports.spec.ts :: a head opens the reports, switches to the annual report, reads both keys and follows the PDF link'
     source: docs/plan/m4a-triage.md
     screen: monthly-report
     ticket: '45'
@@ -1530,9 +1532,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/annual-report.json
+      - 'apps/web/src/screens/analytics/report-view.test.ts :: maps the key page whole: no KPIs, all twelve tables in the key order and both charts'
+      - 'apps/web/e2e/analytics-reports.spec.ts :: a head opens the reports, switches to the annual report, reads both keys and follows the PDF link'
     source: docs/plan/m4a-triage.md
     screen: annual-report
     ticket: '45'

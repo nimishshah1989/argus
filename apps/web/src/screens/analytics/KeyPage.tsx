@@ -5,7 +5,7 @@ import { MAX_DRILL_IDS, type FiguresReply } from '@uptimo/shared/analytics';
 import { Stack } from '../../ui/layout.js';
 import { PageFigure } from './PageFigure.js';
 import { contentOf } from './figure-content.js';
-import { drillHref, type AnalyticsGroup } from './groups.js';
+import { drillHref, groupOfScreen, type AnalyticsGroup } from './groups.js';
 import type { PageTable } from './page-content.js';
 
 type Figure = FiguresReply['figures'][number];
@@ -36,30 +36,42 @@ export function KeyPage({
         <p className="text-body font-medium text-neutral-600">{t('analytics.notComputed')}</p>
       </div>
     );
-  const ids = figure.drill.ids;
   return (
     <Stack gap={4}>
       <PageFigure content={content} renderTable={renderTable} />
-      {ids.length === 0 ? null : ids.length <= MAX_DRILL_IDS ? (
-        <Link
-          to={`${drillHref(group.id, figure.drill.type, ids)}&screen=${encodeURIComponent(figure.screen)}`}
-          className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-        >
-          {t('analytics.drill.open')}
-        </Link>
-      ) : (
-        <div className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card">
-          <p className="text-body text-neutral-600">
-            {t('analytics.page.drillTooMany', { tickets: whole.format(ids.length) })}
-          </p>
-          <Link
-            to={`/analytics/${group.id}?screen=breakdown-log`}
-            className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-          >
-            {t('analytics.page.openLog')}
-          </Link>
-        </div>
-      )}
+      <FigureDrill figure={figure} group={group} />
     </Stack>
+  );
+}
+
+/**
+ * One figure's ticket drill: its inline link, or the Breakdown Log when it names more ids than one drill ask may
+ * take. Shared by every key page and the report screens, so the too-many rule has one home.
+ */
+export function FigureDrill({ figure, group }: { figure: Figure; group: AnalyticsGroup }) {
+  const { t } = useTranslation();
+  const ids = figure.drill.ids;
+  if (ids.length === 0) return null;
+  if (ids.length <= MAX_DRILL_IDS)
+    return (
+      <Link
+        to={`${drillHref(group.id, figure.drill.type, ids)}&screen=${encodeURIComponent(figure.screen)}`}
+        className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
+      >
+        {t('analytics.drill.open')}
+      </Link>
+    );
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card">
+      <p className="text-body text-neutral-600">
+        {t('analytics.page.drillTooMany', { tickets: whole.format(ids.length) })}
+      </p>
+      <Link
+        to={`/analytics/${groupOfScreen('breakdown-log')?.id ?? group.id}?screen=breakdown-log`}
+        className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
+      >
+        {t('analytics.page.openLog')}
+      </Link>
+    </div>
   );
 }
