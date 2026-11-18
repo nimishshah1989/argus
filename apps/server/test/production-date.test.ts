@@ -92,7 +92,7 @@ describe('a live close at night files the report under the day the shift started
     const closed = await post(f.tokens.technician!, `/api/v1/tickets/${id}/close`, {
       personId: tech,
       kind: 'report',
-      report: { correctiveAction: 'Replaced the belt' },
+      report: { correctiveAction: 'Replaced the belt', failureComponent: 'E' },
     });
     expect(closed.statusCode, closed.body).toBe(200);
     vi.useRealTimers();

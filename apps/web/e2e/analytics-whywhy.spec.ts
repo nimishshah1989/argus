@@ -50,6 +50,7 @@ test.beforeAll(async () => {
       problem: 'A6: spindle noise',
       correctiveAction: 'Replaced the bearing',
       doneByPersonIds: [personId],
+      failureComponent: 'M',
     },
   });
   ticket = raised;

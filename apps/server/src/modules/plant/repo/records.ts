@@ -70,6 +70,12 @@ const PM_PLAN_COLUMNS = `id, machine_id, category, title, interval_days,
   last_meter_reading::float8 AS last_meter_reading, last_done_on::text AS last_done_on,
   checklist, active, created_at, updated_at`;
 
+/** The same columns, qualified for the scheduling join over `machine` (both tables have `id`, `category`, ...). */
+const PM_PLAN_SCHEDULE_COLUMNS = `p.id, p.machine_id, p.category, p.title, p.interval_days,
+  p.meter_interval::float8 AS meter_interval, p.meter_tolerance::float8 AS meter_tolerance,
+  p.last_meter_reading::float8 AS last_meter_reading, p.last_done_on::text AS last_done_on,
+  p.checklist, p.active, p.created_at, p.updated_at`;
+
 const ASSET_COLUMNS = `id, kind, machine_id, vendor, reference, starts_on::text AS starts_on,
   ends_on::text AS ends_on, due_on::text AS due_on, lead_days, owner_person_id, notes,
   created_at, updated_at`;
@@ -165,6 +171,60 @@ export async function activePlanForMachine(
           AND ($3::uuid IS NULL OR id <> $3)
         ORDER BY updated_at DESC LIMIT 1`,
       [tenantId, machineId, exceptId ?? null],
+    )
+  ).rows[0];
+  return row ? pmPlanRow(row as Record<string, unknown>) : null;
+}
+
+/** A plan as the scheduler sees it: the old `machineId` is the target machine, even for a category plan. */
+export interface PmScheduledPlan extends Omit<PmPlan, 'machineId'> {
+  /** The machine the effective plan is for: its own machine plan, else the category plan covering it (R3). */
+  machineId: string;
+}
+
+function scheduledPlanRow(row: Record<string, unknown>): PmScheduledPlan {
+  return { ...pmPlanRow(row), machineId: row.target_machine_id as string };
+}
+
+/**
+ * One effective plan per machine (R3): an active machine plan, else the most recently updated active category plan
+ * for the machine's category, with scrapped machines left out. `pm.generate` reads this; the settings screen uses
+ * `activePlanForMachine` to refuse a duplicate and the ticket detail uses `pmPlanForMachine`.
+ */
+export async function pmPlansForScheduling(tx: Db, tenantId: string): Promise<PmScheduledPlan[]> {
+  const rows = (
+    await tx.query(
+      `SELECT DISTINCT ON (m.id) m.id AS target_machine_id, ${PM_PLAN_SCHEDULE_COLUMNS}
+         FROM machine m
+         JOIN pm_plan p ON p.tenant_id = m.tenant_id AND p.active
+           AND (p.machine_id = m.id OR (p.machine_id IS NULL AND p.category = m.category))
+        WHERE m.tenant_id = $1 AND m.status <> 'scrapped'
+        ORDER BY m.id, (p.machine_id IS NOT NULL) DESC, p.updated_at DESC`,
+      [tenantId],
+    )
+  ).rows;
+  return rows.map((row) => scheduledPlanRow(row as Record<string, unknown>));
+}
+
+/**
+ * The machine's effective plan (R3): its active machine plan, else the active category plan for its category. The
+ * one resolver `pm.generate`, the ticket detail and the close share; a switched-off plan resolves to null.
+ */
+export async function pmPlanForMachine(
+  tx: Db,
+  tenantId: string,
+  machineId: string,
+): Promise<PmPlan | null> {
+  const row = (
+    await tx.query(
+      `SELECT ${PM_PLAN_COLUMNS} FROM pm_plan p
+        WHERE p.tenant_id = $1 AND p.active
+          AND (p.machine_id = $2
+            OR (p.machine_id IS NULL
+              AND p.category = (SELECT category FROM machine WHERE tenant_id = $1 AND id = $2)))
+        ORDER BY (p.machine_id IS NOT NULL) DESC, p.updated_at DESC
+        LIMIT 1`,
+      [tenantId, machineId],
     )
   ).rows[0];
   return row ? pmPlanRow(row as Record<string, unknown>) : null;

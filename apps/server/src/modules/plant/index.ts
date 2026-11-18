@@ -50,11 +50,14 @@ export {
   insertAssetRegister,
   insertPmPlan,
   pmPlanById,
+  pmPlanForMachine,
+  pmPlansForScheduling,
   type AssetKind,
   type AssetRegisterInput,
   type AssetRegisterRow,
   type PmPlan,
   type PmPlanDraftInput,
+  type PmScheduledPlan,
 } from './repo/records.js';
 
 export const plantModule = defineModule({ name: 'plant', register: registerPlantRoutes });
