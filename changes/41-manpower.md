@@ -149,6 +149,58 @@ stable worst-first sort), the completed rule (any saved record for the ticket; t
 several exist — which cannot change this page, because only the record's presence moves a cell) and the empty-plant
 rule (no candidate prints `null`) follow the slice plan verbatim.
 
+## 41c-2 — the saved record and its PDF
+
+**What changed for a user:** a supervisor, head, plant head or admin can now save the Why-Why of a closed breakdown
+(five whys and a required conclusion) and open it again later; the save is one append-only `why_why` line in the
+ticket's history, so the ticket home keeps every draft and the latest one is what the screen reads. The A6 figure now
+marks that ticket `Completed` / `View / EditPDF`, and the sheet prints as a PDF named
+`WhyWhy_<machine>_<date>.pdf` with the machine, breakdown date, down hours, the five whys, the conclusion and the
+author's coded name and completion date. Technician, operator and board logins are refused by name; another plant's
+ticket is `not_found`; a ticket that is not a closed breakdown is `409 not-a-breakdown`.
+
+**The contract.** `packages/shared/src/why-why.ts`: `whyWhyPayloadSchema` (five whys of at most 2,000 characters
+each, blank allowed; a required 1–2,000 character conclusion; `completedBy` a uuid; `completedDate` a
+`calendarDay`) and `whyWhyWriteSchema`, the save body without the author and date. The server derives both from the
+session and the plant clock, so a body that tries to set either is a 422 naming that field.
+
+**Guard (R2/R3).** Read, write and PDF all use `canAnalytics` (supervisor, head, plant_head, admin). The write also
+needs the acting person; a session with none is `choose_acting_person`. The append's own `WHERE kind = 'stopped' AND
+status = 'closed'` is the race-safe half of the guard: an event is only written for a closed breakdown, and the
+update of the ticket's event counter is the lock that gives each event its `seq`.
+
+**Tests that prove it.** `pnpm exec vitest run apps/server/test/why-why-write.test.ts
+apps/server/test/why-why-figures.test.ts apps/server/test/why-why-pdf.test.ts` (15 tests): null then the saved
+record, two saves appending and the latest answering; the author and date coming from the session (a body field is a
+422); missing/blank/over-long conclusions and the wrong number of whys refused; the four analytics roles saved and
+technician/operator/board refused by exact message; open and support tickets 409; unknown and other-tenant tickets
+404; the figures reply turning the candidate `Not Started` into `Completed` and the loader holding one row per
+ticket with the latest conclusion and a `P-` person code; the PDF's decoded text layer carrying machine, date,
+`13.00` hours, the five whys, conclusion, coded author and completion date. Red first: the routes did not exist
+(`GET/PUT …/why-why` answered 404, and `EngineData.whyWhy` was `undefined`); the PDF case could not even save
+before the routes. Green: the three named files, 15/15; with `reply-contract` (the three new routes take its pinned
+count from 128 to 131), 4 files, 23/23; and the whole server suite `pnpm exec vitest run apps/server/test` — 127
+files, 1,510 tests passed. `pnpm precheck`: 13 checks passed (the web warnings are pre-existing).
+
+**Files.** `packages/shared/src/why-why.ts` (new), its `index.ts` export, the reply schemas in
+`packages/shared/src/replies.ts`; `apps/server/src/modules/tickets/why-why.ts` and `why-why-routes.ts` (new), the
+`repo/events.ts` queries, the tickets register and index; `apps/server/src/modules/reports/why-why.ts` (new
+template and PDF route) registered by the reports module; `apps/server/src/modules/analytics/load.ts`; the
+`personCode` helper moved to `identity/repo.ts` (its old home was the analytics loader) so the loader and the PDF
+print the same code; `apps/server/test/pdf-text.ts` gains `pdfText` (the ordered text layer the PDF test reads);
+`apps/server/test/reply-contract.test.ts` (the route count); the three new test files and this fragment.
+
+**Deviations recorded.** (1) The PDF route is registered by the **reports** module, not by the tickets module: the
+module manifest lets reports call tickets but not the reverse, and reports already owns every PDF route. The read and
+the write stay in `tickets/why-why-routes.ts` as the plan asks. (2) The 409 refusal is `apiError('conflict',
+'not-a-breakdown')`: the shared error code stays `conflict` and `not-a-breakdown` is the stable message, because
+the plan names that string and adding an error code would change the whole reply contract. (3) A PDF is also 409 when
+the ticket has no saved record (`This ticket has no saved Why-Why`); the plan is silent, and the platform's PDF button
+only appears on a saved row. (4) When a closed breakdown has no report, the sheet falls back to the ticket's own
+plant date and recorded minutes; the plan's candidates always have a report, so this only keeps the guard's promise
+that any closed breakdown can be saved and printed. (5) `personCode` moved to identity (one definition, no
+duplicated formula); it changes no behaviour and no caller outside the server.
+
 ## 41d-1 — A10 core: grouping, families, repeats, words
 
 **What changed for a user:** nothing visible yet. This is the Problem Analysis core the A10 page will print: every

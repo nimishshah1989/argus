@@ -5,6 +5,9 @@ import { withTenant } from '../../kernel/index.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
+/** A stable code for a person: the analytics engines and the reports they make never carry a name or a phone. */
+export const personCode = (id: string): string => `P-${id.slice(0, 8)}`;
+
 export interface TenantRow {
   id: string;
   slug: string;

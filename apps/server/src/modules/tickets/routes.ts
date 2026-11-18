@@ -35,6 +35,7 @@ import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, otherCellRefusal, reopenConflict } from './handback.js';
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
+import { registerWhyWhyRoutes } from './why-why-routes.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -379,4 +380,5 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
       runCommand(config, request, reply, action),
     );
   }
+  registerWhyWhyRoutes(app, pool);
 }

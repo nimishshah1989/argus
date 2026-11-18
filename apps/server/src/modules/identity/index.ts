@@ -13,6 +13,7 @@ export {
   listPeople,
   peopleByIds,
   peopleForEngine,
+  personCode,
   purgeDeadSessions,
   redactionTerms,
   resolveTenant,
