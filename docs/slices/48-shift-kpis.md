@@ -79,8 +79,8 @@ period_start, period_end, as_of, run_id, value)` (`packages/db/migrations/0014_m
 
 ## The standard definitions, exactly
 
-The standard family is a **second definition of five measures and two new tables**, carried by four figures and
-computed from the same rows as the legacy one. `AnalyticsProfile` does not change: the working-hours basis needs the plant's shifts (new `EngineData.shifts`
+The standard family is a **second definition of five measures**, carried by four figures and computed from the same
+rows as the legacy one. `AnalyticsProfile` does not change: the working-hours basis needs the plant's shifts (new `EngineData.shifts`
 in R1) and its `workDaysPerYear`, and deliberately does not use `prodHrsPerDay`.
 
 | Measure                    | Platform basis (legacy, frozen)                                                                     | Working-hours basis (standard)                                                                                                                                                                                                      | What changed                                                                                        |
@@ -92,10 +92,10 @@ in R1) and its `workDaysPerYear`, and deliberately does not use `prodHrsPerDay`.
 | Availability               | `1 − BD % − PM %`                                                                                   | `1 − (BD + PM) ÷ working hours` — operational availability: planned and unplanned both removed                                                                                                                                      | the denominator only; the algebra is the platform's                                                 |
 | BD % / PM %                | breakdown hours ÷ available hours; PM hours ÷ available hours                                       | the same quotient over **working hours**, exact minutes                                                                                                                                                                             | the denominator and the rounding                                                                    |
 | Shift split                | the platform groups a Pareto by the recorded shift                                                  | breakdowns, hours, MTTR, MTBF and availability per recorded shift, on that shift's own working hours; a recorded code with no window keeps its row with blank hours; working minutes are split 629/631 so the rows sum to the plant | new: a per-shift MTBF needs per-shift working hours                                                 |
-| Backlog                    | not defined (the platform has no word for it)                                                       | live breakdown tickets still open at `asOf`, counted, with their age in **working hours** to the end of the as-of plant day, bucketed                                                                                               | new                                                                                                 |
+| Backlog                    | not defined (the platform has no word for it)                                                       | **breakdown** tickets (R4's predicate) still open at `asOf`, counted, with their age in **working hours** to the end of the as-of plant day, bucketed                                                                               | new                                                                                                 |
 
-**The failure set, in one paragraph, because two figures depend on it.** A report is a failure when its `maintCode` is
-not `PM` and its ticket is in the snapshot; `NO DT` is a failure with zero lost time (the plant attended it outside
+**The failure set, in one paragraph, because two figures depend on it.** A report is a failure when its ticket is a
+breakdown (R4's predicate: `kind === 'stopped'` and the shared channel predicate) and its `maintCode` is not `PM`; `NO DT` is a failure with zero lost time (the plant attended it outside
 production hours — `docs/spec/PARITY.md:123` keeps "NO DT stays its own case"); a report whose ticket closed after `asOf` is not in
 the snapshot at all, because `dataAsOf` rewinds it to open and drops its report (`as-of.ts:8-40`), so an open
 breakdown is never a failure — it is in the backlog. History and live closes are merged by the DATA-MAP rule "each is
@@ -201,9 +201,11 @@ the whole point of the second family.
 data.** `AnalyticsProfile` keeps its numbers and its setting row. `EngineData` gains
 `shifts?: readonly ShiftRow[]` (`ShiftRow = {code, name, startMinute, endMinute, crossesMidnight, active}`), filled by a
 new `shiftsForEngine(tx)` in `apps/server/src/modules/plant/repo/analytics.ts` beside `machinesForEngine`/`movesForEngine`
-(`:8`, `:21`, `:31`) and read in one line of `load.ts`; `index.ts` exports the type and the new module's functions. It is
-optional so every existing fixture and test that builds `EngineData` keeps compiling; when it is absent the working-hour
-column is null (R3). Cost if wrong: a plant that wants to switch the whole face between two complete profiles needs one
+(`:8`, `:21`, `:31`) and read in one line of `load.ts`; `TicketRow` gains the optional `raisedChannel?: string | null`
+the loader already reads for `source` (`load.ts:73`), because R4 needs the shared breakdown predicate, not `kind`
+alone. Both fields are optional so every existing fixture and test that builds `EngineData` keeps compiling; with
+`shifts` absent the working-hour column is null (R3), and with `raisedChannel` absent a ticket is judged by its `kind`
+(R4). Cost if wrong: a plant that wants to switch the whole face between two complete profiles needs one
 setting and two runs — the definitions are already pure functions of `(data, asOf, profile)`, so that is one argument,
 not a rewrite.
 
@@ -229,14 +231,20 @@ tenant that never entered shift times sees four honest dashes until the settings
 windows are already seeded); the alternative — silently falling back to 20 × 300 — would print a "standard" number that
 is the legacy one.
 
-**R4 — the failure set: non-PM breakdown reports at or before `asOf`, history and live, deduplicated by machine + plant
-date + shift + downtime; `NO DT` counts with zero hours; an open breakdown is not a failure.** The dedupe key is
+**R4 — the failure set: reports of breakdown tickets only (`kind === 'stopped'` _and_ the shared channel predicate),
+non-PM, at or before `asOf`, history and live, deduplicated by machine + plant date + shift + downtime; `NO DT` counts
+with zero hours; an open breakdown is not a failure.** "Breakdown" is the shared predicate, not a guess: a ticket is one
+when `kind === 'stopped'` and `isBreakdownChannel(ticket.raisedChannel)` (`packages/shared/src/channel.ts:9`, the one
+function that already keeps `pm`, `inspection`, `import` and `backfill` out of live breakdowns); a row with no
+`raisedChannel` (an older fixture) is judged by its `kind`. So a **support** close with a report and a **PM** job's
+report are not failures, and a **general** work request never is — 48a and 48b each pin one such case. The dedupe key is
 DATA-MAP §2's own ("where machine, date, shift and downtime agree"), applied to a live report whose four fields equal a
 history report's; only the exact match drops, so "pairs that might match but are not certain" are left alone, as that
 rule requires. Nothing invents a cutover date, because no product code stores one. Cost if wrong: after cutover a live
 breakdown that exactly repeats a history row is counted once, which is the rule's intent but could hide a genuine
-repeat of the same four values on the same day; the legacy column still counts the history row, so the comparison keeps
-the evidence.
+repeat of the same four values on the same day; 48a pins that boundary both ways (an exact repeat folds into one
+failure, a same-day repeat whose downtime differs is two), and the legacy column still counts the history row, so the
+comparison keeps the evidence.
 
 **R5 — MTBF = (working hours − breakdown hours) ÷ failures, exposure right-censored at `asOf`, and no failure prints
 nothing.** The exposure of a machine that failed is its whole working time minus its breakdown time, so the interval
@@ -292,9 +300,12 @@ every legacy figure untouched.** Keys, in registry order:
 `shift-kpis.compare`, `shift-kpis.shift-split`, `shift-kpis.backlog`, `shift-kpis.breakdown-map`; all four drill
 `ticket`. The comparison table prints the platform's column beside the working-hours column, and the legacy column is
 computed with the legacy rules (`effectiveHours`, the flat annual hours) so that its five cells **equal the answer
-key's own printed cells** (asserted against A3 and A1 in 48a's test). A3, A1 and the Dashboard keep their values and
-their keys: `analytics-breakdown.test.ts:535,668` assert `value.pages` equals the key, so a standard row added to A3's
-page would be a parity break, and PARITY.md's promise is a _second, labelled figure_, not a rewritten one. Cost if
+key's own printed cells** (asserted against A3 and A1 in 48a's test). The three key-shaped breakdown figures keep
+their values and their keys: `analytics-breakdown.test.ts:535,581,668` assert `value.pages` **equals** the answer key
+for A1, A2 and A3, so a standard row added to any of them is a parity break by construction, and PARITY.md's promise is
+a _second, labelled figure_, not a rewritten one. (The Dashboard is not in that set — its tiles are asserted one number
+at a time against `dashboard.json` — so the guarantee this plan rests on is the three breakdown pages, not the
+Dashboard.) Cost if
 wrong: a reader on A3 does not see the working-hours number without one click into the Breakdowns menu; the alternative
 is a changed platform page, which the parity tests forbid.
 
@@ -328,7 +339,10 @@ third family later needs the same one-line list; a `profile` field on `FigureDef
 
 **R16 — English only, and the Guide keeps the answer key's 36 headings.** New copy goes into
 `analytics-breakdowns.en.ts` (screen, four figure labels, four chart titles, four axis names) and
-`analytics-guide.en.ts` (three `body3` keys). The Guide test fixes the 36 headings verbatim (`guide-entries.test.ts:41-46`),
+`analytics-guide.en.ts` (three `body3` keys). The `available-hours` body carries the **21-versus-20 rationale in the
+plant's own words** — the two shift windows cover 21 hours, the workbook's 20 × 300 stays beside it because that is what
+the platform printed, and both columns stay on screen — so the reader meets the one number this ticket changes where the
+basis is explained, not only in the plan. The Guide test fixes the 36 headings verbatim (`guide-entries.test.ts:41-46`),
 so the four figures are named by **existing** entries: `shift-kpis.compare` joins "Available hours" (the basis),
 `shift-kpis.shift-split` and `shift-kpis.backlog` join "MTTR and MTBF" (the definitions and what an open breakdown is
 not), `shift-kpis.breakdown-map` joins "Category and cell analysis" (where the hours come from). Cost if wrong: a
@@ -359,7 +373,7 @@ hours, cumulativePct}], fiftyPct: {count, of}}]`.
 
 ## Packet 48a — the working-hours basis and the comparison (engine + its screen, one PR)
 
-**Files (22: the seam, the first figure and the new screen's plumbing; the PR body carries one plain line,
+**Files (21: the seam, the first figure and the new screen's plumbing; the PR body carries one plain line,
 `Large slice: the working-hours seam plus the first figure and screen of a new family`, because the counter's 400-line
 warning is about code and this packet lands a new module, a new screen and its test together — the two later packets
 add figures to a screen that already exists).**
@@ -367,8 +381,8 @@ add figures to a screen that already exists).**
 `packages/domain/src/analytics/working-hours.ts` (new: the calendar, the minutes, the hours, the split),
 `packages/domain/src/analytics/standard-kpis.ts` (new: `failureEvents`, `legacyTotals`, `standardTotals`, the compare
 figure), `packages/domain/src/analytics/computers.ts` (one key), `packages/domain/src/analytics/registry.ts` (one figure,
-owner 48, screen `shift-kpis`, drill `ticket`), `packages/domain/src/analytics/index.ts` (export the type and the
-helpers the tests read), `packages/domain/test/answer-key/fixture.ts` (the engine's data gains `shifts` from the
+owner 48, screen `shift-kpis`, drill `ticket`), `packages/domain/test/answer-key/fixture.ts` (the engine's data gains
+`shifts` from the
 workbook's own `settings.shiftTimes`, the two windows the platform was configured with),
 `packages/domain/test/shift-kpis.test.ts` (new), `packages/domain/test/shift-kpis-expected.ts`
 (new: the hand-computed numbers with the arithmetic in comments — **not** under `fixtures/answer-key/`, which holds what
@@ -380,12 +394,15 @@ the screen in the Breakdowns group at `:33-95`), `apps/web/src/screens/analytics
 `PAGE_KEYS` for the one key), `apps/web/src/screens/analytics/BreakdownsPage.tsx` (the screen id at `:23` and its
 branch at `:91-105`), `apps/web/src/screens/analytics/ShiftKpisPage.tsx` (new, ~50 lines: for each figure of the screen
 in registry order, `PageFigure` + `FigureDrill` — the house pieces, no new renderer),
+`apps/web/src/screens/analytics/guide-entries.ts` (the `available-hours` entry gains `shift-kpis.compare` in its
+`figures` list, which is empty today, and a `body3` key — the one place the working-hours basis is explained),
 `packages/shared/src/i18n/analytics-breakdowns.en.ts` (two keys), `docs/spec/parity.yaml` (one row, `in-progress`) and
 `docs/spec/PARITY.md` (one line under §2).
 
 **Red:** `pnpm exec vitest run packages/domain/test/shift-kpis.test.ts` — the test lands first and fails on the missing
 module. **Green:** the same, then `pnpm exec vitest run packages/domain/test` (the engine test's owner change and every
-frozen key stay green), `pnpm exec vitest run apps/server/test/analytics-engine.test.ts` (the loader fills `shifts` from
+frozen key stay green; `registry.test.ts` is untouched here because this packet adds only **types** — `ShiftRow` and
+`TicketRow.raisedChannel` — and the D2 pin reads `Object.keys` of the runtime exports, which do not move), `pnpm exec vitest run apps/server/test/analytics-engine.test.ts` (the loader fills `shifts` from
 the fixture's one `DAY` shift row, 08:00–18:30, and the four standard rows are stored with `profile: 'standard'`), and
 `pnpm exec vitest run apps/web/src/screens/analytics apps/web/src/screens/analytics/figure-content.test.ts`.
 
@@ -402,11 +419,18 @@ the fixture's one `DAY` shift row, 08:00–18:30, and the four standard rows are
   row dropped, PM excluded, NO DT counted with no hours), MTTR is 1.13, MTBF 1,573.9, availability 99.87 %, and the
   legacy column of the same data sees two failures and MTTR 1.50: a live close moves the standard figure and not the
   legacy one.
+- Given the same fixture with one row added — a live close on the same machine, day and shift as the history row but
+  with a different downtime — when the totals are computed, then **two** failures are counted: the dedupe key is the
+  four fields together, so a same-day repeat that differs in its downtime is a real second failure.
+- Given the same fixture with a support ticket closed with a report, a PM ticket's report and a history row that
+  carries neither the `PM` code nor a breakdown channel, when the totals are computed, then none of the three is a
+  failure: the failure set is R4's predicate plus the `PM` code, and a support close never enters it.
 - Given a plant with no shift rows, when the figure is computed, then it is `ready`, the working-hour column is `—`, a
   KPI says "No shift windows in Settings", and nothing is fabricated; given a plant with no breakdown rows, then the
   value is `null` and the drill is empty.
-- Given the tenant's two seeded shifts (08:00–18:30, 18:29–05:00) and a third row switched off, when the calendar is
-  built, then it holds 1,260 minutes a day, split 629 and 631, and the switched-off shift contributes nothing.
+- Given the plant's two seeded shifts (08:00–18:30, 18:29–05:00) and **a third shift row the test writes itself** (the
+  seed has only the two), switched off, when the calendar is built, then it holds 1,260 minutes a day, split 629 and
+  631, and the switched-off shift contributes nothing.
 - Given plant B's rows, when plant A's figure runs, then nothing of B is read: the loader is inside the tenant's
   transaction and the engine's data is A's (`withTenant`, D24).
 
@@ -422,23 +446,31 @@ reply shape changes; the strict figure schema must still parse every figure), pl
 `packages/domain/src/business-hours.ts` (one exported helper, `plantDayStart(plantDate, timeZone)`, built on the
 existing `localToUtc`/`formatter` at `:120-147` — the one zone-aware midnight in the codebase),
 `packages/domain/src/analytics/computers.ts` (two keys), `packages/domain/src/analytics/registry.ts` (two figures),
-`packages/domain/src/analytics/index.ts` (the two helpers),
-`packages/domain/test/shift-kpis-split.test.ts` + `packages/domain/test/shift-kpis-backlog.test.ts` (new; the fixtures
-are the small purpose-built ones described above, with the arithmetic in comments), `apps/web/src/screens/analytics/figure-content.ts`
+`packages/domain/test/registry.test.ts` (the D2 public-API pin: the sorted root list gains one name, `plantDayStart`,
+straight after `plantDay`; the six analytics helpers stay out of the root and are deep-imported by their tests), `packages/domain/test/shift-kpis-split.test.ts` +
+`packages/domain/test/shift-kpis-backlog.test.ts` (new; the fixtures are the small purpose-built ones described above,
+with the arithmetic in comments), `apps/web/src/screens/analytics/figure-content.ts`
 (`KIND` + `PAGE_KEYS` for the two keys), `packages/shared/src/i18n/analytics-breakdowns.en.ts` (two labels),
 `packages/shared/src/i18n/analytics-guide.en.ts` (two `body3` keys), `apps/web/src/screens/analytics/guide-entries.ts`
 (the figure lists of "MTTR and MTBF"), `docs/spec/parity.yaml` (evidence line).
 
 **Red:** `pnpm exec vitest run packages/domain/test/shift-kpis-split.test.ts
-packages/domain/test/shift-kpis-backlog.test.ts`. **Green:** the same, then the covering suite below.
+packages/domain/test/shift-kpis-backlog.test.ts`. **Green:** the same, then
+`pnpm exec vitest run packages/domain/test/registry.test.ts` (the D2 pin with `plantDayStart` added), then the covering
+suite below.
 
 **Acceptance.**
 
 - Given the 11 November workbook, when `shift-kpis.shift-split` is computed, then shift 1 is 821 breakdowns / 2,021.10 h
   / 2,96,517.14 working hours / MTTR 2.46 / MTBF 358.7 / 99.13 %, shift 2 is 456 / 1,031.12 / 2,97,459.96 / 2.26 /
-  650.1 / 99.59 %, shift 3 is 2 / 3.00 with `—` hours, and the three rows add to the plant total exactly
-  (3,055.22 h, 5,93,977.10 working hours, MTTR 2.39, MTBF 462.0, 99.36 %) — asserted as sums, not as five separate
-  numbers.
+  650.1 / 99.59 %, and shift 3 is 2 / 3.00 with `—` hours.
+- Given the same, when the rows are added up, then **only the counts, the BD hours, the PM hours and the working hours
+  sum** — 1,279 breakdowns, 3,055.22 h, 759.27 h and 5,93,977.10 h — and each of those is asserted cell by cell; the
+  plant's MTTR, MTBF and availability are **recomputed from the summed totals**, never added or averaged from the shift
+  rows: 3,055.2167 ÷ 1,279 = 2.39, (5,93,977.10 − 3,055.2167) ÷ 1,279 = 462.0, and 1 − 3,814.4834 ÷ 5,93,977.10 =
+  99.36 %. The PM and working-hour cells are asserted on their unrounded values, because the printed 2-dp cells add to
+  759.26 against the plant's 759.27 (a 0.01 h rounding difference, never a data difference); only the BD hours are asserted
+  cell by cell at two decimals, since `2,021.10 + 1,031.12 + 3.00 = 3,055.22` exactly.
 - Given a row recorded as `1ST` and one as `2ND`, when the split is computed, then they count in shifts 1 and 2 and no
   row is dropped; given a shift code the Settings have no window for, then its row prints with `—` hours and its
   breakdowns and hours are still in the plant total.
@@ -447,7 +479,8 @@ packages/domain/test/shift-kpis-backlog.test.ts`. **Green:** the same, then the 
   re-derives its shift from the clock.
 - Given the backlog fixture, when `shift-kpis.backlog` is computed at `asOf` 2026-11-11, then the count is 3, the oldest
   is 36.0 working hours, the buckets are 0 / 2 / 1 / 0, the rows are T3, T1, T2 in that order, and the drill names
-  those three tickets; a closed ticket, a cancelled ticket, a history row and a PM ticket are not in it.
+  those three tickets; a closed ticket, a cancelled ticket, a history row, a PM ticket, an **open support ticket** and
+  an **open general work request** are not in it (R4's predicate, not `status !== 'closed'` alone).
 - Given a ticket reported at 23:59 on the as-of day, when its age is computed, then it is under one working hour and
   never negative (the window ends at the start of the next plant day); given a Saturday and a Sunday, when ages are
   computed, then the plant's shift calendar covers them (the plant has no holiday calendar and this figure does not
@@ -459,10 +492,10 @@ apps/web/src/screens/analytics`, plus `pnpm exec vitest run packages/domain/test
 
 ## Packet 48c — the Pareto and the heatmaps (engine + screen, one PR)
 
-**Files (15).** `packages/domain/src/analytics/breakdown-map.ts` (new: the four dimensions, the cumulative shares, the
+**Files (14).** `packages/domain/src/analytics/breakdown-map.ts` (new: the four dimensions, the cumulative shares, the
 50 % point, the heat grids), `packages/domain/src/analytics/computers.ts` (one key),
-`packages/domain/src/analytics/registry.ts` (one figure), `packages/domain/src/analytics/index.ts`,
-`packages/domain/test/shift-kpis-map.test.ts` (new), `apps/web/src/screens/analytics/screen-charts.ts` (four chart ids,
+`packages/domain/src/analytics/registry.ts` (one figure), `packages/domain/test/shift-kpis-map.test.ts` (new; it
+deep-imports `breakdown-map.js` like the other figure tests import their modules, so the D2 root list does not move), `apps/web/src/screens/analytics/screen-charts.ts` (four chart ids,
 the `mixed` kind, the titles/axes read from the catalogue), `apps/web/src/screens/analytics/parts.tsx` (`HeatTable`),
 `apps/web/src/screens/analytics/PageFigure.tsx` (the heat branch), `apps/web/src/screens/analytics/page-content.ts`
 (at most two lines: the `heat` passthrough and its field — R14), `apps/web/src/screens/analytics/figure-content.ts`
@@ -507,9 +540,12 @@ covering suite.
 Red first in every packet (the named test is red before the source edit; a browser packet's red is the failing
 journey); never delete, skip or weaken a test — the two owner assertions in `analytics-engine.test.ts:68-69,87-92`
 change to say 38–45 **and** 48, which is stricter than before, and no other assertion moves. One writer per packet, one
-PR, one `changes/48-shift-kpis.md` section per packet in packet order. No new dependency (ECharts and the design kit
-already draw bars, lines and mixed charts; no calendar library, because there is no calendar screen here). No new table
-and no migration (D17; 46 owns M4b's and 48 stores only in `kpi_snapshot`, R15). Every new query names `tenant_id` and
+PR, one `changes/48-shift-kpis.md` section per packet in packet order. The root export list is a pinned public API (`packages/domain/test/registry.test.ts`, D2): a new _function_ in
+`business-hours.ts` or `analytics/index.ts` reaches it through `export *` and breaks the pin, so only `plantDayStart`
+joins it (48b lists that test) and the six analytics helpers stay module-private, deep-imported by the tests the way
+`analytics-breakdown.test.ts:17-30` already imports `availability.js` and `hours.js`. No new dependency (ECharts and
+the design kit already draw bars, lines and mixed charts; no calendar library, because there is no calendar screen
+here). No new table and no migration (D17; 46 owns M4b's and 48 stores only in `kpi_snapshot`, R15). Every new query names `tenant_id` and
 runs inside the tenant transaction; `app_user` keeps its existing grants. Modules talk through their published
 interfaces: `analytics` may call `plant` (it already does, `load.ts:20-24`), and the new `shiftsForEngine` is the plant
 module's own read. File ≤ 400 lines, function ≤ 60, `pnpm format:check` on the plan and the fragment, `pnpm precheck`
