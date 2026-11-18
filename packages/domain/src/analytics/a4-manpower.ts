@@ -55,12 +55,18 @@ function teamPeople(data: EngineData): PersonRow[] {
   return data.people.filter((person) => person.team === 'maintenance' || person.team === 'vendor');
 }
 
-/** The machine categories the specialization prints, in fleet order, with Robot dropped (case-insensitive). */
-function categoryList(machines: readonly MachineRow[]): string[] {
+/**
+ * The specialization's category columns: the plant's Settings category list in its own order when present, with
+ * Robot dropped case-insensitively (a configured category with no machines prints an all-dash column); otherwise
+ * the production fleet's categories in fleet order.
+ */
+function categoryList(data: EngineData, machines: readonly MachineRow[]): string[] {
+  const configured = data.settings?.categories;
+  const source = configured ?? machines.map((machine) => machine.category ?? '');
   const seen = new Set<string>();
-  for (const machine of machines) {
-    const category = machine.category?.trim();
-    if (category === undefined || category === '') continue;
+  for (const value of source) {
+    const category = value.trim();
+    if (category === '') continue;
     if (category.toLowerCase() === 'robot' || seen.has(category)) continue;
     seen.add(category);
   }
@@ -97,7 +103,7 @@ function newMember(person: PersonRow, categoryCount: number): Member {
 function buildContext(data: EngineData, asOf: string): A4Context {
   const people = teamPeople(data);
   const production = data.machines.filter(isProduction);
-  const categories = categoryList(production);
+  const categories = categoryList(data, production);
   const categoryIndex = new Map(categories.map((category, position) => [category, position]));
   const machineCategory = new Map(
     production.map((machine) => [machine.id, machine.category?.trim() ?? null]),

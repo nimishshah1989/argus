@@ -304,6 +304,10 @@ function engineData(workbook: Workbook): EngineData {
       problemFixes: workbook.settings.problemFix ?? {},
       // The Settings team list in its own order (R6): the plant's list, not a filter over the people rows.
       teamCodes: workbook.settings.team.map((member) => personCode(member.name)),
+      // The plant's three Settings lists in their own order: A4's Specialization and A5's grids read them.
+      categories: workbook.settings.categories,
+      cells: workbook.settings.cells.map(String),
+      locations: workbook.settings.locations,
     },
     // No Why-Why record exists in the workbook: ticket 41's form writes one, and the figure reads it here.
     whyWhy: [],

@@ -148,6 +148,15 @@ export interface EngineSettings {
    * "for historical completeness", so the list is the plant's, not a filter over the people rows (R6).
    */
   teamCodes?: readonly string[];
+  /**
+   * The plant's machine categories, in the Settings order: A4's Specialization prints every entry except Robot,
+   * including one with no machines (an all-dash column). Absent falls back to the fleet's categories.
+   */
+  categories?: readonly string[];
+  /** The plant's cells, in the Settings order (A5 buckets by this list, not by machines' first appearance). */
+  cells?: readonly string[];
+  /** The plant's locations, in the Settings order; a machine whose location is unlisted belongs to no bucket. */
+  locations?: readonly string[];
   /** The plant's edited problem-group list; absent reads the platform default (`PROBLEM_GROUPS`), never a subset. */
   problemGroups?: readonly ProblemGroup[];
 }

@@ -27,6 +27,37 @@ const TEAM_CODES: readonly string[] = [
   'person-51',
 ];
 
+/** The plant's Settings category list, in its own order: all 15, Robot included (the figures drop Robot). */
+const SETTINGS_CATEGORIES: readonly string[] = [
+  'Turning Center',
+  'Vertical Machining Center',
+  'Vertical Double Column Machining Center',
+  'Cnc Sliding Head  Automatic Lathe',
+  'Horizontal Machining Center',
+  'CAM Profile Machine',
+  'Vertical Turning Lathe',
+  'Turnmill',
+  'Cylinderical rotary Grinding',
+  'CNC Surface Grinding',
+  'CNC Angular Grinding',
+  'CNC Internal Grinding',
+  'Centerless Grinding Machine',
+  'WaterJet CNC',
+  'Robot',
+];
+
+/** The plant's Settings cells and locations, in their own order: A5 buckets by these, not by first appearance. */
+const SETTINGS_CELLS: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const SETTINGS_LOCATIONS: readonly string[] = [
+  '434',
+  '435/4',
+  '445',
+  '486',
+  '841-A',
+  '841-B',
+  '381',
+];
+
 /** The platform's own problem groups in the order it tests them, with the family the plan gives each. */
 const PLATFORM_GROUPS: ReadonlyArray<readonly [string, string]> = [
   ['Machine accident / crash', 'Crashes and setup'],
@@ -153,6 +184,14 @@ describe('the 41h shared seam', () => {
   describe('the Settings team list', () => {
     it("carries the workbook's 14 team codes in settings order", () => {
       expect(ENGINE_DATA.settings?.teamCodes).toEqual(TEAM_CODES);
+    });
+  });
+
+  describe('the Settings plant lists', () => {
+    it("carries the plant's three lists in the workbook order, Robot included", () => {
+      expect(ENGINE_DATA.settings?.categories).toEqual(SETTINGS_CATEGORIES);
+      expect(ENGINE_DATA.settings?.cells).toEqual(SETTINGS_CELLS);
+      expect(ENGINE_DATA.settings?.locations).toEqual(SETTINGS_LOCATIONS);
     });
   });
 

@@ -73,6 +73,10 @@ export interface Workbook {
   settings: {
     codes: Array<{ code: string; description: string }>;
     team: Array<{ name: string; type: string }>;
+    /** The plant's Settings lists, in their own order: categories (Robot included), cells and locations. */
+    categories: string[];
+    cells: string[];
+    locations: string[];
     /** Machines left out of production data (the Robot is the platform's own default). */
     excludedMachines?: string[];
     /** The plant's shifts, with the wall-clock start the log date belongs to. */
