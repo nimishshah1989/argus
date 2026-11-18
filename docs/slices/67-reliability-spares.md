@@ -592,6 +592,9 @@ registry and the catalogue), `pnpm exec vitest run apps/web/src/screens/analytic
   2025 report moves neither the fit nor the spares, and the live close enters as an event (48's set, read not
   re-implemented).
 - **G** the data with no production machine, **W** the figure, **T** `{value: null, drillIds: []}`.
+- **G** the owner pin at the packet's head, **W** `packages/domain/test/analytics-engine.test.ts`, **T** the bound is
+  `38–67` and the set is the landed owners **plus 48, 50 and 67** (`[38,39,40,41,42,43,44,45,48,50,67]` once all three
+  land), so 50's `pm-compliance` is in it and 67's edit has not dropped it.
 
 **Covering suite:** the three test files, `pnpm exec vitest run packages/domain/test packages/shared/test`, and
 `pnpm exec vitest run apps/web/src/screens/analytics` (the registry/label/Guide coupling).
