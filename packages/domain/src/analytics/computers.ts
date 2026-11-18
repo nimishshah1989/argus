@@ -5,6 +5,7 @@ import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
 import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
+import { a9BottleneckFigure } from './a9-bottleneck.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -178,6 +179,11 @@ const manpowerComputers: Readonly<Record<string, Computer>> = {
   'a10-problems': a10ProblemsFigure,
 };
 
+/** Owner 42's figures: the bottleneck and forecast page and, as packets 42b to 42d land, the Forecast Lab. */
+const forecastComputers: Readonly<Record<string, Computer>> = {
+  'a9-bottleneck-forecast': a9BottleneckFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -196,4 +202,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...registerComputers,
   ...breakdownComputers,
   ...manpowerComputers,
+  ...forecastComputers,
 };
