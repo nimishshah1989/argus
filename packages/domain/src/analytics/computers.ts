@@ -5,7 +5,7 @@ import { a3MttrMtbfFigure } from './a3-mttr-mtbf.js';
 import { a4ManpowerFigure } from './a4-manpower.js';
 import { a5EnergyFigure } from './a5-energy.js';
 import { a6WhyWhyFigure } from './a6-why-why.js';
-import { a9BottleneckFigure } from './a9-bottleneck.js';
+import { a9BottleneckForecastFigure } from './a9-forecast.js';
 import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
@@ -181,7 +181,8 @@ const manpowerComputers: Readonly<Record<string, Computer>> = {
 
 /** Owner 42's figures: the bottleneck and forecast page and, as packets 42b to 42d land, the Forecast Lab. */
 const forecastComputers: Readonly<Record<string, Computer>> = {
-  'a9-bottleneck-forecast': a9BottleneckFigure,
+  // 42b composes 42a's page and fills its own five KPIs and three tables.
+  'a9-bottleneck-forecast': a9BottleneckForecastFigure,
 };
 
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
