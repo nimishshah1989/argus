@@ -3,7 +3,7 @@
 # status: todo | in-progress | done | waived | external. A done row must name at least one test or PR in evidence.
 # A row is done only when the whole v3 behaviour is covered; in-progress means part of it ships.
 version: 1
-expected_rows: 119
+expected_rows: 120
 rows:
   - id: v3.signin.01
     feature: Username and password; 30-day sliding session; "Show password"; last username remembered
@@ -1675,3 +1675,18 @@ rows:
     source: docs/plan/m4a-triage.md
     screen: oem-analytics
     ticket: '36'
+  - id: m4b.shift-kpis
+    feature:
+      'Shift-calendar KPIs: MTBF, MTTR and availability on real working hours (standard profile) beside the
+      legacy figures; shift split, backlog, Pareto and heatmaps by machine, cell, code and shift'
+    disposition: keep
+    milestone: M4b
+    milestones:
+      - M4b
+    status: in-progress
+    evidence:
+      - 'packages/domain/test/shift-kpis.test.ts :: prints the whole expected table: the platform basis beside
+        the working-hour basis'
+    source: docs/slices/48-shift-kpis.md
+    screen: shift-kpis
+    ticket: '48'
