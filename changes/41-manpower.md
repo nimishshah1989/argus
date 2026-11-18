@@ -108,7 +108,7 @@ its cell's connected load unchanged while running load rises by exactly `power �
 committed workbook lacks); blanking one machine's cell adds a last `—` bucket with that machine while it keeps its
 location bucket; a plant with no CNC machine prints `null`. Red first: 5 failed as `not_computed`, because the
 computer was not registered. Green: the named file 5/5, then `pnpm exec vitest run packages/domain/test` — 27
-files, 378 tests (372 before, plus the 5 and the new file's clock-purity case).
+files, 378 tests (373 before, plus the 5 new tests).
 
 **Files.** `packages/domain/src/analytics/a5-energy.ts` (new, 117 lines), its `computers.ts` entry,
 `packages/domain/test/analytics-energy.test.ts` and this fragment.
