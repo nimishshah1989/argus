@@ -1518,9 +1518,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/monthly-report.json
+      - 'apps/web/src/screens/analytics/report-view.test.ts :: maps the key page whole: no KPIs, all eight tables in the key order and both charts'
+      - 'apps/web/e2e/analytics-reports.spec.ts :: a head opens the reports, switches to the annual report, reads both keys and follows the PDF link'
     source: docs/plan/m4a-triage.md
     screen: monthly-report
     ticket: '45'
@@ -1530,9 +1532,11 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/annual-report.json
+      - 'apps/web/src/screens/analytics/report-view.test.ts :: maps the key page whole: no KPIs, all twelve tables in the key order and both charts'
+      - 'apps/web/e2e/analytics-reports.spec.ts :: a head opens the reports, switches to the annual report, reads both keys and follows the PDF link'
     source: docs/plan/m4a-triage.md
     screen: annual-report
     ticket: '45'
@@ -1558,9 +1562,12 @@ rows:
     milestone: M4a
     milestones:
       - M4a
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/guide.json
+      - 'apps/web/src/screens/analytics/guide-entries.test.ts :: lists the key’s 36 headings, in order, through the en catalogue'
+      - 'apps/web/src/screens/analytics/guide-entries.test.ts :: names every figure once and no figure the registry does not have'
+      - 'apps/web/e2e/analytics-guide.spec.ts :: a head opens the Guide, reads the Reports entry and follows its figure links'
     source: docs/plan/m4a-triage.md
     screen: guide
     ticket: '45'

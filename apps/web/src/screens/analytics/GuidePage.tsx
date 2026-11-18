@@ -1,37 +1,92 @@
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FIGURES } from '@uptimo/domain';
 import { Stack } from '../../ui/layout.js';
-import { ANALYTICS_GROUPS, FIGURE_LABELS, SCREEN_LABELS } from './groups.js';
+import { FIGURE_LABELS } from './groups.js';
+import { GUIDE_ENTRIES, guideFigureLinks, type GuideEntry } from './guide-entries.js';
 
-/** The Guide (ticket 37b): every screen and the figures it will show, with the labels the face uses. */
+/**
+ * The Guide (ticket 45, packet 45f): the key's 36 headings as a contents list, then one entry per heading with
+ * our plain-English rule and a link to every figure it explains. The entries and their links are data in
+ * `guide-entries.ts`; this file only renders them. The five features this build does not have print the
+ * not-built line instead of a rule.
+ */
+
+/** The anchor id for one entry; the contents and the section share it. */
+const anchorOf = (id: string): string => `guide-${id}`;
+
+function FigureLinks({ entry }: { entry: GuideEntry }) {
+  const { t } = useTranslation();
+  const links = guideFigureLinks(entry);
+  if (links.length === 0) return null;
+  return (
+    <ul className="mt-3 flex flex-wrap gap-2">
+      {links.map((link) => (
+        <li key={link.figure}>
+          <Link
+            to={link.href}
+            className="flex min-h-target-min items-center rounded-xl bg-accent-tint px-3 text-footnote font-semibold text-accent-text"
+          >
+            {t('analytics.guide.openFigure')} —{' '}
+            {t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function GuideSection({ entry }: { entry: GuideEntry }) {
+  const { t } = useTranslation();
+  const anchor = anchorOf(entry.id);
+  return (
+    <section
+      id={anchor}
+      aria-labelledby={`${anchor}-title`}
+      className="rounded-2xl bg-surface p-4 shadow-card"
+    >
+      <h2 id={`${anchor}-title`} className="text-title3 font-semibold">
+        {t(entry.titleKey)}
+      </h2>
+      <div className="mt-2 flex flex-col gap-2 text-body text-neutral-900">
+        {entry.bodyKeys.map((key) => (
+          <p key={key}>{t(key)}</p>
+        ))}
+        {entry.formulaKey === undefined ? null : (
+          <p className="rounded-xl bg-neutral-100 px-3 py-2 font-mono text-footnote text-neutral-700">
+            {t(entry.formulaKey)}
+          </p>
+        )}
+      </div>
+      <FigureLinks entry={entry} />
+    </section>
+  );
+}
+
 export function GuidePage() {
   const { t } = useTranslation();
   return (
     <Stack gap={6}>
       <p className="max-w-3xl text-body text-neutral-600">{t('analytics.guide.intro')}</p>
-      {ANALYTICS_GROUPS.filter((group) => group.screens.length > 0).map((group) => (
-        <section key={group.id} className="flex flex-col gap-3">
-          <h2 className="text-title2 font-semibold">{t(group.labelKey)}</h2>
-          {group.screens.map((screen) => {
-            const figures = FIGURES.filter((figure) => figure.screen === screen);
-            if (figures.length === 0) return null;
-            return (
-              <div key={screen} className="rounded-2xl bg-surface p-4 shadow-card">
-                <h3 className="text-title3 font-semibold">
-                  {t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown')}
-                </h3>
-                <ul className="mt-2 list-disc pl-5 text-body text-neutral-900">
-                  {figures.map((figure) => (
-                    <li key={figure.key}>
-                      {t(FIGURE_LABELS[figure.key] ?? 'analytics.figure.unknown')}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </section>
-      ))}
+      <nav aria-label={t('analytics.guide.contents')}>
+        <h2 className="text-title3 font-semibold">{t('analytics.guide.contents')}</h2>
+        <ol className="mt-2 grid grid-cols-1 gap-1 text-body sm:grid-cols-2">
+          {GUIDE_ENTRIES.map((entry) => (
+            <li key={entry.id}>
+              <a
+                href={`#${anchorOf(entry.id)}`}
+                className="flex min-h-target-min items-center rounded-lg px-2 text-neutral-700 hover:bg-neutral-200"
+              >
+                {t(entry.titleKey)}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <div className="flex flex-col gap-4">
+        {GUIDE_ENTRIES.map((entry) => (
+          <GuideSection key={entry.id} entry={entry} />
+        ))}
+      </div>
     </Stack>
   );
 }

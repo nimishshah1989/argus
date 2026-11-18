@@ -282,3 +282,107 @@ CALLS line: reports may call analytics), `reports/pdf-send.ts`, `reports/xlsx.ts
 `packages/shared/src/replies.ts` (the three binary routes), `packages/domain/test/registry.test.ts` (the two public
 names), `apps/server/test/report-pdf.test.ts` and `apps/server/test/report-export.test.ts` (new),
 `apps/server/test/reply-contract.test.ts` (the route count), `docs/spec/parity.yaml` and this fragment.
+
+# 45e — the report screens
+
+**What changed for a user:** the Reports group now has its own screen. `/analytics/reports` opens the Monthly Report
+with a Monthly | Annual switch, the period line "October 2026", the monthly key's eight tables in its order (the four
+"Where the time went" rankings, the longest breakdowns, the maintenance team, the machines added and the blank
+commentary form), and its two charts `ch-rp-daily` and `ch-rp-12m`. Switching to Annual shows "2026 to 11 November",
+the twelve annual tables in their order and `ch-ry-month` and `ch-ry-pareto`. Above the report are the two downloads:
+`Download PDF` to `/api/v1/reports/monthly.pdf` (or `/annual.pdf`) and `Export the whole data set (Excel)` to
+`/api/v1/reports/workbook.xlsx`. The report tables do not sort; the untitled table prints the caption "Management
+commentary and actions" while the figure's title stays `""`; a `null` figure prints the empty-report line and a
+figure the face cannot draw keeps "Not computed yet". No KPI tiles, no insight lists and no commentary inputs are
+added: none is in either key. The figure's ticket drill is unchanged: the monthly report links its rows and the annual
+report, naming more than 200 tickets, falls back to the Breakdown Log.
+
+**Acceptance, as the plan states it.** `apps/web/src/screens/analytics/report-view.test.ts` pins every table cell,
+caption and row count of both reports against the frozen keys (8 tables / 5,9,5,6,10,13,15,5 and 12 tables /
+11,4,10,9,8,13,5,8,11,8,15,5 rows), both chart series of each report (the daily chart's three series with its final
+`null` gap, the ten-month series, the starred November month, and the Pareto's bars plus cumulative line), the period
+line of both, and that no rendered number is absent from the key (cells, chart categories and values, and the period
+line are checked against the key's own JSON). It also pins the not-computed and empty states. The journey
+`apps/web/e2e/analytics-reports.spec.ts` opens `/analytics/reports`, reads the monthly key's first machine row
+("VC-16 CVM1160"), switches to the annual report, reads the key's Months-in-top-5 row ("3"), and follows the PDF link.
+
+**Red/green, verbatim.** Red: `pnpm exec vitest run apps/web/src/screens/analytics/report-view.test.ts` —
+`No test files found, exiting with code 0` (the module did not exist); `pnpm exec playwright test
+apps/web/e2e/analytics-reports.spec.ts` — `Error: No tests found.` then `e2e: stack stopped`. Green: the mapping file
+— `Test Files 1 passed (1)`, `Tests 14 passed (14)`; `pnpm exec vitest run apps/web/src/screens/analytics` — `Test
+Files 12 passed (12)`, `Tests 121 passed (121)`; the journey — `2 passed (7.9s)` (`chromium` and `phone`); `pnpm
+precheck` — `precheck: OK — 12 file(s) checked by prettier, 13 checks passed`.
+
+**Files.** `apps/web/src/screens/analytics/ReportsPage.tsx` (new, 145 lines: the group's page, the switch, the period
+line, both downloads and the report's states), `report-view.ts` (new: the figure → view mapping, the honest states
+and the period line), `report-view.test.ts` (new: 14 acceptance tests), `Analytics.tsx` (the `reports` branch),
+`page-content.ts` (the four report charts' chrome: `ch-rp-daily`, `ch-rp-12m`, `ch-ry-month`, `ch-ry-pareto`),
+`packages/shared/src/i18n/analytics-report.en.ts` and `.gu.ts` (new namespace: the report nav, both download buttons,
+the commentary caption, the period line and the four chart titles/axes; gu blank like every other M4a namespace) and
+its registration in `i18n/index.ts`, `apps/web/e2e/analytics-reports.spec.ts` (new), `docs/spec/parity.yaml` (both
+rows done, with the keys, the mapping test and the journey as evidence), and this fragment. No dependency, no
+migration, no schema change.
+
+**Deviations recorded.**
+
+1. **The figure's drill is kept, and `KeyPage`'s drill block moved to `FigureDrill`.** The screen spec names only the
+   tables, charts and downloads, but 45a/45b's shared rule says a report figure drills its period's tickets and the
+   face falls back to the Breakdown Log when there are too many. `KeyPage` now exports `FigureDrill` (same behaviour
+   for every existing key page) and `ReportsPage` renders it, so the monthly report links its 196 tickets and the
+   annual report's 1,279 fall back to `/analytics/breakdowns?screen=breakdown-log`. That fallback now finds the group
+   that owns `breakdown-log` (`groupOfScreen`) instead of assuming the current group, which is what the reports group
+   needed; the breakdowns group's own pages are unchanged.
+2. **The four chart specs come through the one page mapper.** `page-content.ts` holds the four ids' chrome, allows a
+   line chart up to three series (the daily chart's counts, hours and comparison counts) and maps the Pareto's second
+   dataset to its cumulative line (the kit's `mixed` spec); `report-view.ts` owns the figure → view mapping and the
+   period line. The acceptance pins the resulting specs exactly.
+3. **One key beyond the listed chrome.** `analytics.report.empty` carries the empty-report line a `null` figure
+   prints; the plan's namespace list did not name it, and no existing key says it.
+4. **The PDF route is stubbed in-test.** 45d is not on this branch, so the journey fulfils `**/api/v1/reports/*.pdf`
+   with a one-line `%PDF-` response and follows the real anchor, asserting the download. On `main` the same link
+   reaches 45d's route. The annual figure itself is served by the engine (45b is on `main`); the figures reply is
+   stubbed in the journey with both frozen keys, the face's established seam.
+5. **The period line reads the figure's own as-of.** When the value carries an `asOf` (the engine's report value
+   does), the line is computed from it; the reply's `asOf` is the fallback. That keeps the printed period the one the
+   figure was computed for even on a replayed snapshot.
+
+# 45f — the Guide
+
+**What changed for a user:** `/analytics/guide` is now the plant's Guide. Its contents list is the platform's own 36
+headings, verbatim and in order, from "How this platform works" and "1. Ground rules used everywhere" to
+"35. AMC, extended warranty and legal compliance (per machine)". Each heading opens an entry that states our rule in
+plain English — the production fleet, hours, dates and ages, available hours, MTTR/MTBF, BD % and the PM split, cells
+and the No cell row, sorting, the export, the reports and every analysis screen — and lists the figures it explains.
+Each figure link opens its real route (`/analytics/<group>?screen=<screen>`). The five features this build does not
+have (PM Calendar, OEM Analytics, learning from corrections, entries with no maintenance code, AMC/warranty/legal
+compliance) print the "not in this build yet" line instead of a rule. "13. Excel export and restore" explains the
+workbook we do export and says the restore is the M5 importer.
+
+**Acceptance, exactly as the plan states it.** `GUIDE_ENTRIES.map((entry) => entry.titleKey)` equals the key's
+`extra` headings resolved through the en catalogue, in order; every `FIGURE_KEYS` entry appears in exactly one
+entry's `figures` (45 keys, each once); every figure link's group really holds its screen (`groupOfScreen`); every
+entry has at least one body paragraph, and the five unbuilt entries are the only `built: false` and carry only the
+not-built line.
+
+**Red/green.** Red: `pnpm exec vitest run apps/web/src/screens/analytics/guide-entries.test.ts` — `Test Files 1
+failed (1)`, `Tests no tests`, `Cannot find module './guide-entries.js'` (the module did not exist). Green: the
+named file — 4 tests; `pnpm exec vitest run apps/web/src/screens/analytics` — 12 files, 111 tests;
+`pnpm exec vitest run packages/shared/test/catalogue.test.ts` — 14 tests; `pnpm precheck` — 13 checks passed,
+prettier checked 10 files.
+
+**Files.** `apps/web/src/screens/analytics/guide-entries.ts` (new: the 36 entries, `NOT_BUILT`, `guideFigureLinks`),
+`GuidePage.tsx` (rewritten: the contents and the entries with their figure links), `guide-entries.test.ts` (new),
+`packages/shared/src/i18n/analytics-guide.en.ts` / `.gu.ts` (new namespace: the 36 titles, the bodies, five formula
+lines, the not-built line and the link labels; gu blank), the catalogue registration, `apps/web/e2e/analytics-guide.spec.ts`
+(new), `docs/spec/parity.yaml` (`m4a.guide`: done) and this fragment. No dependency, no migration, no schema change.
+
+**Deviations recorded.**
+
+1. **The e2e ran green on this branch, against the Reports group's generic page.** `pnpm exec playwright test
+apps/web/e2e/analytics-guide.spec.ts --project=chromium` — 1 passed (8.2 s). `/analytics/reports` exists as the
+   group page now, so the link lands; after packet 45e merges, the lead should rerun the same journey to prove the
+   real Reports screen loads behind that URL. No fake reports screen was added.
+2. **One namespace, one file.** The 36 headings and their bodies do not fit in the main analytics catalogue (already
+   248 lines), so the Guide copy is its own namespace, registered like every other M4a area and left blank in gu.
+3. **The old `analytics.guide.intro` line was updated.** It said the explanations "arrive with the Guide ticket";
+   it now describes what the page is. The key and the namespace are untouched by that one-line change.
