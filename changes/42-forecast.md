@@ -122,3 +122,65 @@ figure), `a9-bottleneck.ts` (one word: `export` on 42a's `printed`), `test/analy
    `a9-forecast.ts`.
 9. **The screen slug sits behind a `SCREEN` constant** in both the source and the test, so CI's secret scanner does
    not read the figure lookup as an API key (42a's own test still holds the literal next to `key`).
+
+## 42d — the Forecast Lab backtest and page
+
+**What changed for a user:** the Forecast Lab now scores four forecasting methods against what really happened in the
+seven complete months the plant has lived since its history began — **Apr 26 to Oct 26**, 762 machine-months, 1,000
+simulations per machine. Table 0 puts the current model against the three challengers: accuracy **1.85 / 1.85 / 1.84 /
+1.84 h**, change **+0.2% / −0.3% / −0.3%**, above the 80% line **21.1% / 21.4% / 20.6% / 21.4%**, above the 90% line
+**10.0% / 11.0% / 9.8% / 10.6%**, the plant inside its 80% range **4 / 4 / 5 / 5 of 7**, top-10 caught **32.8% /
+36.5% / 32.8% / 39.8%**, and better than current **— / 2 / 6 / 4 of 7**. Every challenger says **Do not adopt**: the
+age-adjusted model is 0.2% worse with less reliable ranges and wins only 2 of 7 months; the other two gain only 0.3%,
+under the 1% the rule needs. Table 1 prints each month's actual hours (**377.8, 73.9, 660.4, 300.9, 370.7, 194.4,
+248.8**) and each method's median with its 10–90 range (September: 307 (182–545), 297 (179–515), 316 (194–537), 307
+(188–535); actual 194.4). The **ch-fl** chart draws the actual line and one line per method.
+
+**The rules the key pins.** Months run from the period start plus three months through the last month that ended by
+the period end. Each month's cut is the previous month's last calendar day; data is cut there inclusive, and a
+machine is in that month's base only when its purchase **calendar day** is strictly before the cut (a TZ-neutral day
+number, not a local-millisecond compare), observed from the later of the period start and its purchase. Actual hours
+are the month's base machines only, raw non-PM entries (no episode merge), start to end inclusive, NO DT 0 h. M0 uses
+the machine's own episode count and days; M1 and M3 replace the starting rate with a multiplicative category × age
+band IPF fit over the five bands (0–3, 3–6, 6–10, 10–15, 15+ years at the cut, unknown/negative age factor 1), 40
+rounds, pseudo-count 4, mean-normalised each pass; M2 and M3 use `nw = Σ 0.5^(days/hl)`, `Tw = (hl/ln2)(1 −
+0.5^(T/hl))` and `ρ = Tw/T`. Every method then feeds the plan's 42b rate with the same 180-day prior and 0.25 ×
+fleet-rate floor, and the same pool/cap/mu mixture. Each machine is simulated 1,000 times, seeded `fcRng(1000 + idx)`
+in the month's base order with 42b's draw order. The score is the pinball loss at .5/.8/.9, averaged per machine-month
+then over months; the plant count is its total inside its p10–p90; the top-10 is ranked by `expH` desc. A challenger
+is adopted only when `dLoss ≤ −1%`, `dRange ≤ +1%` and it wins in more than half the months. The page prints 0 KPIs,
+the two tables and the chart, and drills the production machines.
+
+**Tests that prove it.** `pnpm exec vitest run packages/domain/test/analytics-forecast-lab.test.ts` (2 new tests):
+(1) `expect(figure.value).toEqual(FL)` — the whole `forecast-lab.json`, both tables and the ch-fl chart, no
+tolerance; (2) the drill is the 125 production machines, derived from `ENGINE_DATA`. Red first, before the computer
+was registered: 2 of 2 failed — `expected 'not_computed' to be 'ready'` and the drill's `[]` against the 125 ids.
+Green: the named file 2/2; then `pnpm exec vitest run packages/domain/test` — 32 files, 409 tests (407 before).
+`pnpm precheck`: OK, 13 checks passed, 10 files prettier-checked (only the repo's soft size warnings).
+
+**Files.** `packages/domain/src/analytics/forecast-lab.ts` (new, 264 lines: the page, the key's words and the Adopt
+rule), `forecast-lab-sim.ts` (new, 395 lines: months, cut, base, rates, age fit, simulation and scores), `computers.ts`
+(registers `forecast-lab`), `test/analytics-forecast-lab.test.ts` (new) and this fragment. No new dependency; no
+table, schema, migration or settings seam; A9 untouched.
+
+**Deviations and notes recorded.**
+
+1. **Two new source files, not one (the hard 400-line budget).** A single `forecast-lab.ts` was 646 lines, so
+   the backtest moved to `forecast-lab-sim.ts`; the split is the same one 42b recorded, and the page
+   file keeps the key's labels, verdict sentences and formatting while the sim file keeps the arithmetic.
+2. **The September base this workbook gives is 112, not the plan's 124.** The production fleet is 125 machines; 13
+   carry purchase dates on or after 31 Aug 2026 (VC-51 plus VC-52, VC-53, VC-54, VC-55, VC-56, VC-57, TC-37, TC-38,
+   TC-39, TC-40, TC-41, VTL-12), so the calendar cut drops all 13. The key's September cells — M0 **307 (182–545)**,
+   chart **306.9**, and 4 of 7 inside the range — reproduce exactly under that base, so the key is the authority here;
+   the plan's "124" does not match this workbook. September's actual **194.4** also matches: VC-51 has no September
+   downtime, so dropping it from the base changes no actual hour.
+3. **M0's method cell carries " in use".** There is no `fcModel` setting, so the page's live model is always M0; the
+   key prints the badge text inside the first cell ("Current model in useEach machine's own…"), and the table does too.
+4. **Age is the plant-day difference over 365.25.** The platform's purchase date parses as UTC and the cut as local
+   midnight, so its age is fractionally smaller; no machine crosses an age-band boundary at any of the seven cuts, so
+   the TZ-neutral form prints the same bands.
+5. **The detail range is p10–p90.** The key's title says "80% range", but its cells print the low 10% and high 90%
+   quantiles (September's 182–545), as the platform's own table does; the chart rounds actual and medians to 0.1 and
+   the detail prints them to 0 dp.
+6. **A plant with no production breakdown prints no page; fewer than four months prints an empty page.** Neither is
+   in the key; the empty page keeps the figure ready and the production drill without inventing rows.
