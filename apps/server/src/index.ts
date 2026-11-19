@@ -9,6 +9,7 @@ import {
 } from './kernel/index.js';
 import {
   startJobs,
+  startJobWatch,
   reconcileTicket,
   type SlaTicketReconciler,
 } from './modules/accountability/index.js';
@@ -45,6 +46,7 @@ await startRegisterJobs(jobs.boss, { pool }, role);
 await startPmJobs(jobs.boss, { pool }, role);
 await startEngineJobs(jobs.boss, { pool }, role);
 await startRetentionJobs(jobs.boss, { pool }, role);
+await startJobWatch(jobs.boss, { pool });
 
 if (role === 'worker') {
   console.log('SLA worker started (no HTTP listener)');

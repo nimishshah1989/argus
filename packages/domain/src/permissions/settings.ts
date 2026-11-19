@@ -33,6 +33,11 @@ export function canReadAudit(ctx: ActorContext): boolean {
   return (HEAD_ADMIN as readonly string[]).includes(ctx.role);
 }
 
+/** Failed background jobs, and retrying one (DATA-MAP section 4): the admin on a personal login, so the audit names a person. */
+export function canSeeFailedJobs(ctx: ActorContext): boolean {
+  return ctx.role === 'admin' && !ctx.shared;
+}
+
 /** Only the admin exports the trail (LOCK: "admin and head read, only admin exports"). */
 export function canExportAudit(ctx: ActorContext): boolean {
   return ctx.role === 'admin';

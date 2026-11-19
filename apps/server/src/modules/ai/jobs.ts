@@ -1,6 +1,6 @@
 import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
-import type { JobRole } from '../../kernel/index.js';
+import { logFailures, type JobRole } from '../../kernel/index.js';
 import type { AiConfig } from './config.js';
 import { diagnosisFeature } from './diagnosis.js';
 import { pickProvider, type AiProvider } from './provider.js';
@@ -43,7 +43,11 @@ export async function startAiJobs(boss: PgBoss, deps: AiJobDeps, role: JobRole):
     now: deps.now ?? (() => new Date()),
     log: deps.log ?? ((line: AiLogLine) => console.log(JSON.stringify(line))),
   };
-  await boss.work(AI_SUGGEST_QUEUE, { batchSize: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
-    if (job) await runSuggest(job.data, runtime);
-  });
+  await boss.work(
+    AI_SUGGEST_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds: 2 },
+    logFailures(AI_SUGGEST_QUEUE, async ([job]) => {
+      if (job) await runSuggest(job.data, runtime);
+    }),
+  );
 }

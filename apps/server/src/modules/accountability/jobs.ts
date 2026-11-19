@@ -7,7 +7,7 @@ import {
   type SlaConsistencyPayload,
   type SlaTicketReconciler,
 } from './consistency.js';
-import type { JobRole, JobsHandle } from '../../kernel/index.js';
+import { logFailures, type JobRole, type JobsHandle } from '../../kernel/index.js';
 
 export type { JobRole, JobsHandle };
 
@@ -57,30 +57,30 @@ async function registerWorkers(boss: PgBoss, options: StartJobsOptions): Promise
   await boss.work<SlaTimerPayload>(
     'sla.timer',
     { batchSize: 1, pollingIntervalSeconds },
-    async ([job]) => {
+    logFailures('sla.timer', async ([job]) => {
       if (!job) return false;
       return processSlaTimerJob(job.data, { pool: options.pool, now, boss });
-    },
+    }),
   );
   await boss.work<EscalationJob>(
     ESCALATION_QUEUE,
     { batchSize: 1, pollingIntervalSeconds },
-    async ([job]) => {
+    logFailures(ESCALATION_QUEUE, async ([job]) => {
       if (!job) return false;
       return processEscalationJob(job.data, { pool: options.pool, now, boss });
-    },
+    }),
   );
   await boss.work<SlaConsistencyPayload>(
     'sla.consistency',
     { batchSize: 1, pollingIntervalSeconds },
-    async ([job]) => {
+    logFailures('sla.consistency', async ([job]) => {
       if (!job) return { tenants: 0, tickets: 0 };
       return processSlaConsistencyJob(job.data, {
         pool: options.pool,
         reconcileTicket: options.reconcileTicket,
         now,
       });
-    },
+    }),
   );
 }
 
