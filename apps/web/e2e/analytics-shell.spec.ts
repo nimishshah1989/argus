@@ -54,7 +54,7 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
   await signIn(page, 'head');
   await page.goto('/analytics/today');
 
-  // Wait for the shell to mount so the key listener exists. A phone has no keyboard shortcut: it uses the button.
+  // Wait for the shell to mount so the key listener exists. A phone has no keyboard, so it clicks Search.
   const search = page.getByRole('button', { name: /^Search/ });
   await expect(search).toBeVisible();
   if (info.project.name === 'chromium') await page.keyboard.press('Control+k');
