@@ -360,14 +360,17 @@ describe('storing a run', () => {
   });
 });
 
-/** The stored figures of a plant, read the way an operator must never be able to: from the table itself. */
+/**
+ * The stored figures of a plant, read the way an operator must never be able to: from the table itself. The `served`
+ * rows are the figures read's kept copy of a whole run (ticket 75a), not stored figures, and are left out.
+ */
 const snapshots = async (tenant: string) =>
   (
     await f.admin.query(
       `SELECT id, key, profile, subject_kind, subject_key, period_start::text AS period_start,
               period_end::text AS period_end, as_of::text AS as_of, run_id::text AS run_id,
               value, computed_at, updated_at
-         FROM kpi_snapshot WHERE tenant_id = $1 ORDER BY key`,
+         FROM kpi_snapshot WHERE tenant_id = $1 AND profile <> 'served' ORDER BY key`,
       [tenant],
     )
   ).rows as Array<Record<string, unknown>>;

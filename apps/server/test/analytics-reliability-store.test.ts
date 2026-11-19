@@ -95,13 +95,16 @@ const engineResult = (asOf: string, value: ReliabilityValue): EngineResult => ({
   figures: [figureOf('dashboard.total-machines', 5), reliabilityFigure(value)],
 });
 
-/** The stored rows of a plant, read from the table itself (nothing here goes through the API). */
+/**
+ * The stored rows of a plant, read from the table itself (nothing here goes through the API). The `served` rows are
+ * the figures read's kept copy of a run (ticket 75a), not stored figures, and are left out.
+ */
 const snapshots = async (tenant: string) =>
   (
     await f.admin.query(
       `SELECT id, key, profile, subject_kind, subject_key, period_start::text AS period_start,
               period_end::text AS period_end, as_of::text AS as_of, run_id::text AS run_id, value
-         FROM kpi_snapshot WHERE tenant_id = $1 ORDER BY key, subject_key`,
+         FROM kpi_snapshot WHERE tenant_id = $1 AND profile <> 'served' ORDER BY key, subject_key`,
       [tenant],
     )
   ).rows as Array<Record<string, unknown>>;

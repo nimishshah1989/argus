@@ -1,0 +1,1 @@
+- The analytics figures are now kept per plant and date and served from the kept copy while the plant's data is unchanged; the engine runs again only after a ticket, report, machine, setting or person changes (a second reader of the same figures no longer waits for a full run).

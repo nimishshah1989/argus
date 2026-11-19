@@ -29,6 +29,7 @@ import { loadEngineData } from './load.js';
 import { registerNudgeRoutes, type NudgeBoardOf } from './nudges.js';
 import { profileResource, readProfile } from './profile.js';
 import { notStored, runForTenant, type FigureStore } from './service.js';
+import { servedRun } from './served.js';
 import { snapshotStore } from './snapshot.js';
 
 const MONEY = new Set(FIGURES.filter((figure) => figure.money).map((figure) => figure.key));
@@ -54,11 +55,15 @@ async function figuresReply(input: {
   money: boolean;
   asked: string | undefined;
   store: FigureStore;
+  /** True for a read: the stored run is served while the data is unchanged. A POST always computes. */
+  serve: boolean;
 }): Promise<FiguresReply> {
-  const { pool, tenantId, money, asked, store } = input;
-  const result = await withTenant(pool, tenantId, async (tx) =>
-    runForTenant(tx, { tenantId, asOf: asked ?? (await plantToday(tx, tenantId)), store }),
-  );
+  const { pool, tenantId, money, asked, store, serve } = input;
+  const result = await withTenant(pool, tenantId, async (tx) => {
+    const asOf = asked ?? (await plantToday(tx, tenantId));
+    const compute = () => runForTenant(tx, { tenantId, asOf, store });
+    return serve ? servedRun(tx, { tenantId, asOf, compute }) : compute();
+  });
   return {
     ...result,
     profile: shownProfile(result.profile, money),
@@ -151,11 +156,11 @@ function drillProblem(error: ZodError) {
  * `GET /analytics/figures?asOf=YYYY-MM-DD` (default: the plant's today): the registry's figures as of one date,
  * with the profile used. Supervisor, heads and admin read it (DOMAIN §3). Money is for heads and admin: for
  * anyone else the money numbers of the profile are null and the money figures are left out. A kiosk head login
- * counts as a head, like every other money check. The run is read-only and costs one pass over the plant's rows
- * per request (see the PR's known follow-ups: serve from `kpi_snapshot` once it exists).
+ * counts as a head, like every other money check. The figures come from the plant's kept run for that date
+ * (`served.ts`, ticket 75a): the engine runs only when nothing is kept or the plant's data changed since.
  *
  * `POST /analytics/run` runs the same engine and stores one `kpi_snapshot` for the day, replying the same shape.
- * Only heads and admin may store a run (a stored day carries money figures). The GET never writes.
+ * Only heads and admin may store a run (a stored day carries money figures). It always computes.
  *
  * `GET /analytics/drill?type&ids` answers the rows behind one figure, in the order asked.
  */
@@ -177,6 +182,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void 
         money: canMoney(actor),
         asked,
         store: notStored,
+        serve: true,
       }),
     );
   });
@@ -195,6 +201,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void 
         money: true,
         asked: asked as string | undefined,
         store: snapshotStore,
+        serve: false,
       }),
     );
   });
