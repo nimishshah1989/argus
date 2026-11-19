@@ -25,7 +25,7 @@ type, depth, motion change); the approved analytics design (Instrument look, whi
 
 - Merged 19 Nov night: 85 templates (#473), 83 elements (#474), 83b (#475), 83c-1 (#478), 86 Today (#476), fix (#477), and 87
   pages: Action Center, checklist, Team Focus (#479), Money (#480), Reports (#481), Breakdown Log, registers, machine page (#482),
-  forecast and Forecast Lab (#483), Energy (#484), PM calendar + Guide (#486), desk lists and ticket detail (#487, #488), floor phone (#489), board/TV and settings (#490), shared-element gaps 83d (#491). Earlier 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 86a/b.
+  forecast and Forecast Lab (#483), Energy (#484), PM calendar + Guide (#486). Wave 3: 88a desk lists and ticket detail (#487, #488), 88b board/TV and settings (#490). Wave 4: 89a floor phone (#489). 83d shared-element gaps (#491). Earlier 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 86a/b.
 - Active: **84 Charts** (in progress: draw-in #475; bundle size after 83c-2 unmeasured); **91 Utility loss** (in progress: 2023 hours
   unreconciled); **85** in progress until the 19-of-27 count and critique scores are recorded.
 - Left in 87: other analytics group screens (A1-A10, Fix Finder, Shift KPIs, Cell change log, Compare), `ui:check` guard (22 raw colours, ~30 hand-written cards). Then 83c-2 (showcase tile, heat map, trend, Pareto onto shared elements; report the dark heat-map shift), 75b/c/d/f, 69d, 88c, 89b (compare thirds of screen with Bhavin's phone tool in one environment), 90, 92-96.
