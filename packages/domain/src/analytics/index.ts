@@ -15,6 +15,16 @@ export type {
 export type { ProblemGroup } from './problem-groups.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
 export type {
+  CategoryFit,
+  FitBlock,
+  MachineReliability,
+  Quartiles,
+  ReliabilityValue,
+  SpareRow,
+  Trend,
+  TrendLabel,
+} from './reliability.js';
+export type {
   AmcLine,
   Computed,
   ComputeInput,
