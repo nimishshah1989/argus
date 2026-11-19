@@ -1,5 +1,6 @@
 import { MAX_DRILL_IDS, addDays, isPlannedChannel, pmToleranceDays } from '@uptimo/shared';
 import { effectivePmPlan } from '../pm-schedule.js';
+import { yearToDate } from './availability.js';
 import { plantDay } from './plant-day.js';
 import type { Computer, EngineData, FigureValue, PmPlanRow, TicketRow } from './types.js';
 
@@ -209,10 +210,12 @@ export function computePmCompliance(
 }
 
 /**
- * The `pm-calendar` screen's figure (owner 50): the calendar year of the run's as-of day up to that day. 53 freezes
- * the month-end row by calling `computePmCompliance` with its own window; nothing here reads the clock.
+ * The `pm-calendar` screen's figure (owner 50): the run's span when it names one, else the calendar year of the run's
+ * as-of day up to that day. 53 freezes the month-end row by calling `computePmCompliance` with its own window;
+ * nothing here reads the clock.
  */
 export const pmComplianceFigure: Computer = ({ data, asOf }) => {
-  const result = computePmCompliance(data, { from: `${asOf.slice(0, 4)}-01-01`, to: asOf, asOf });
+  const { from, to } = data.period ?? yearToDate(asOf);
+  const result = computePmCompliance(data, { from, to, asOf });
   return { value: result.value as unknown as FigureValue, drillIds: result.drillIds };
 };
