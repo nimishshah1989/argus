@@ -12,8 +12,8 @@ export interface CellItem {
   /** The value already printed without its unit; `null` (no records) prints a dash and the `empty` words. */
   value: string | null;
   unit?: string;
-  /** How the cell did against the whole, by the direction of good. Said in words by `tag`. */
-  tone: Tone4;
+  /** Not used: the tile's tone is its tag's tone, drawn only when there is a value, so a colour always has its word. */
+  tone?: Tone4;
   tag?: TagSpec;
   /** Its months, a null for a month with no records. */
   series: readonly (number | null)[];
@@ -35,6 +35,7 @@ export function CellPanel({
   active,
   partial = false,
   empty,
+  headingLevel = 3,
 }: {
   title: string;
   summary?: string;
@@ -45,11 +46,14 @@ export function CellPanel({
   partial?: boolean;
   /** The words for a cell with no records. */
   empty: string;
+  /** The heading level of the title: one below the heading the panel sits under. */
+  headingLevel?: 2 | 3 | 4;
 }) {
+  const Heading = `h${headingLevel}` as const;
   return (
     <section aria-label={title} className="flex min-w-0 flex-col gap-3">
       <header className="flex flex-col gap-1">
-        <h3 className="text-body font-semibold">{title}</h3>
+        <Heading className="text-body font-semibold">{title}</Heading>
         {summary ? <p className="text-footnote text-neutral-600">{summary}</p> : null}
         {note ? <p className="text-footnote text-neutral-600">{note}</p> : null}
       </header>
@@ -83,7 +87,7 @@ function CellTile({
   empty: string;
 }) {
   // A colour is only used where the tag says it in words.
-  const tone = cell.tag ? cell.tone : 'neutral';
+  const tone = cell.value !== null && cell.tag ? cell.tag.tone : 'neutral';
   return (
     <li
       data-tone={tone}

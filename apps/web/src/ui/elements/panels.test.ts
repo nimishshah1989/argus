@@ -4,34 +4,58 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CellPanel, type CellItem } from './cell-panel.js';
 import { Sparkline } from './sparkline.js';
-import { Tag, TagGlyph, Tags, tagHtml } from './tags.js';
+import { tagHtml } from './tag-html.js';
+import { Tag, TagGlyph, Tags } from './tags.js';
 
 const html = (element: ReactElement) => renderToStaticMarkup(element);
 
+/** What a sighted person reads: the markup without the text that is only for a screen reader. */
+const visible = (markup: string) =>
+  markup
+    .replace(/<span class="sr-only">.*?<\/span>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+/** What a screen reader reads: all the text. */
+const spoken = (markup: string) =>
+  markup
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 describe('tags', () => {
-  it('print the word, the hidden extra for a screen reader, and an icon', () => {
+  it('print the word, say the hidden extra only to a screen reader, and hide the icon from one', () => {
     const out = html(
       createElement(Tag, { tag: { tone: 'good', word: 'Improving', more: 'of May' } }),
     );
-    expect(out).toContain('Improving');
-    expect(out).toContain('of May');
-    expect(out).toContain('<svg');
+    expect(visible(out)).toBe('Improving');
+    expect(spoken(out)).toBe('Improving of May');
+    expect(out).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
 
   it('draw nothing for an empty list', () => {
     expect(html(createElement(Tags, { list: [] }))).toBe('');
   });
 
-  it('leave the word for a screen reader when only the icon shows', () => {
+  it('leave the word for a screen reader only when just the icon shows', () => {
     const out = html(createElement(TagGlyph, { tag: { tone: 'bad', word: 'Repeat offender' } }));
-    expect(out).toContain('Repeat offender');
-    expect(out).toContain('sr-only');
+    expect(visible(out)).toBe('');
+    expect(spoken(out)).toBe('Repeat offender');
+    expect(out).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
 
-  it('make tooltip markup that says the same words and cannot carry markup of its own', () => {
+  it('wear the same icon in a tooltip as on the page', () => {
+    const tag = { tone: 'bad' as const, word: 'Worse' };
+    const icon = (markup: string) => markup.match(/<svg[\s\S]*?<\/svg>/)?.[0];
+    expect(icon(tagHtml(tag))).toBe(icon(html(createElement(Tag, { tag }))));
+  });
+
+  it('make tooltip markup that reads as the same words and cannot carry markup of its own', () => {
     const out = tagHtml({ tone: 'watch', word: '<b>Spike</b>', more: 'of "May"' });
-    expect(out).toContain('&#60;b&#62;Spike&#60;/b&#62;');
-    expect(out).toContain('&#34;May&#34;');
+    const decoded = spoken(out)
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
+    expect(decoded).toBe('<b>Spike</b> of "May"');
     expect(out).not.toContain('<b>');
   });
 });
@@ -95,6 +119,42 @@ describe('cell panel', () => {
   it('shows each cell with its figure and the word for how it did', () => {
     for (const text of ['Every cell', '1 of 2 did better', 'Cell A', '1.25', 'Lower than plant'])
       expect(out).toContain(text);
+  });
+
+  it('draws a colour only where its word is, and takes it from the tag', () => {
+    const odd: CellItem[] = [
+      {
+        id: 'x',
+        name: 'X',
+        value: '2',
+        tone: 'good',
+        tag: { tone: 'bad', word: 'Higher' },
+        series: [1, 2],
+        seriesLabel: 'x',
+      },
+      {
+        id: 'y',
+        name: 'Y',
+        value: null,
+        tone: 'bad',
+        tag: { tone: 'bad', word: 'Higher' },
+        series: [null, null],
+        seriesLabel: 'y',
+      },
+    ];
+    const o = html(createElement(CellPanel, { title: 't', cells: odd, empty: 'None' }));
+    expect(o.match(/data-tone="bad"/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(o).not.toContain('data-tone="good"');
+    const withNull = o.slice(o.indexOf('>Y<'));
+    expect(withNull).not.toContain('Higher');
+    expect(withNull).not.toContain('data-tone="bad"');
+  });
+
+  it('puts its title at the heading level it is told', () => {
+    const o = html(
+      createElement(CellPanel, { title: 'Cells', cells, empty: 'None', headingLevel: 2 }),
+    );
+    expect(o).toMatch(/<h2[^>]*>Cells<\/h2>/);
   });
 
   it('prints a dash and the no-records words, never 0, for a cell with no value', () => {

@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { settle } from './chart-parts.js';
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
+import { frameOption, settle } from './chart-parts.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
 import { contrast, mix, parseHex } from './chart-color.js';
 import type { Palette } from './chart-palette.js';
@@ -312,5 +312,12 @@ describe('draw-in', () => {
     const asked = chartOption({ ...specs.line!, draw: true } as ChartSpec, palette);
     expect(settle(asked, true).animation).toBe(false);
     expect(settle(asked, false).animation).toBe(true);
+  });
+
+  it('animates only the first draw of a chart: a data update into the same chart does not redraw', () => {
+    const asked = chartOption({ ...specs.line!, draw: true } as ChartSpec, palette);
+    expect(frameOption(asked, { first: true, reduced: false }).animation).toBe(true);
+    expect(frameOption(asked, { first: false, reduced: false }).animation).toBe(false);
+    expect(frameOption(asked, { first: true, reduced: true }).animation).toBe(false);
   });
 });

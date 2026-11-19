@@ -68,9 +68,10 @@ export function KpiSheet({
       onClose={onClose}
       title={metric ? t(`tile.${metric.id}`) : ''}
       closeLabel={t('sheet.close')}
+      family={metric ? FAMILY[metric.id] : undefined}
     >
       {metric ? (
-        <div className="sc-sheet" data-family={FAMILY[metric.id]} data-testid="kpi-sheet">
+        <div className="sc-sheet" data-testid="kpi-sheet">
           <p className="sc-sheet-value">
             <span className="sc-num">{fixed(metric.headline, metric.digits)}</span>
             {metric.unit ? <span className="sc-unit">{metric.unit}</span> : null}

@@ -2,7 +2,8 @@ import type { TFunction } from 'i18next';
 import type { TagSpec } from '../../ui/elements/tags.js';
 import { FULL, change, monthLong, rangePos, type Metric } from './data.js';
 
-export { Tag, TagGlyph, Tags, tagHtml, type TagSpec } from '../../ui/elements/tags.js';
+export { Tag, TagGlyph, Tags, type TagSpec } from '../../ui/elements/tags.js';
+export { tagHtml } from '../../ui/elements/tag-html.js';
 
 type TagTone = TagSpec['tone'];
 const spec = (tone: TagTone, word: string, more?: string, icon?: 'clock'): TagSpec => ({

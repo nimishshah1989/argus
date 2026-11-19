@@ -41,7 +41,7 @@
 .sc-tip[data-family] .sc-tip-value b {
   color: var(--sc-family-ink);
 }
-.sc-sheet[data-family] {
+.el-panel[data-family] {
   border-top: 3px solid var(--sc-family);
 }
 .sc-spark .sc-spark-line {

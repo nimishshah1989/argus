@@ -25,6 +25,6 @@ export {
   type TableQuery,
   tableView,
 } from './table-model.js';
-export { Tag, TagGlyph, Tags, tagHtml, type TagSpec } from './tags.js';
+export { Tag, TagGlyph, Tags, type TagSpec } from './tags.js';
 export { Timeline, type TimelineEvent } from './timeline.js';
 export { TrendDelta } from './trend-delta.js';

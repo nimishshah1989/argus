@@ -109,6 +109,9 @@
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.1);
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.16);
+  /* A panel on the right edge casts to the left; the scrim behind a sheet or panel stays dark in light and dark. */
+  --shadow-panel: -8px 0 24px rgb(0 0 0 / 0.16);
+  --color-scrim: rgb(0 0 0 / 0.4);
 
   /* Tap targets: 52 px for primary and secondary buttons and fields; 44 px is the floor for anything smaller. */
   --spacing-target: 52px;
@@ -248,6 +251,8 @@
 
   --shadow-card: 0 0 0 1px #2c2c2e;
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.5);
+  --shadow-panel: -8px 0 24px rgb(0 0 0 / 0.5);
+  --color-scrim: rgb(0 0 0 / 0.6);
 
   --color-series-1: #76e5e5;
   --color-series-2: #c63968;

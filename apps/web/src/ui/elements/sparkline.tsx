@@ -8,17 +8,6 @@ const PAD = 3;
 type Series = readonly (number | null)[];
 type Point = [number, number];
 
-/** The polyline points of a series scaled into the box; a flat series runs through the middle. */
-export function sparklinePoints(values: number[]): Point[] {
-  const lo = Math.min(...values);
-  const span = Math.max(...values) - lo;
-  const step = (WIDTH - 2 * PAD) / (values.length - 1);
-  return values.map((v, at) => [
-    PAD + at * step,
-    span === 0 ? HEIGHT / 2 : HEIGHT - PAD - ((v - lo) / span) * (HEIGHT - 2 * PAD),
-  ]);
-}
-
 /** A series on a shared scale; a gap (null) is left out, so a missing month breaks the line instead of bridging it. */
 function lay(values: Series, lo: number, hi: number): (Point | null)[] {
   const step = (WIDTH - 2 * PAD) / Math.max(1, values.length - 1);
@@ -114,7 +103,7 @@ export function Sparkline({
       aria-label={label}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="none"
-      className={`h-7 shrink-0 overflow-visible ${wide ? 'w-full' : 'w-24'}`}
+      className={`el-draw h-7 shrink-0 overflow-visible ${wide ? 'w-full' : 'w-24'}`}
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -139,7 +128,7 @@ export function Sparkline({
           className="stroke-neutral-300"
         />
       ) : null}
-      <path d={g.line} {...line} pathLength={1} className={`el-draw ${TONE_STROKE[tone]}`} />
+      <path d={g.line} {...line} className={TONE_STROKE[tone]} />
       {g.running ? (
         <path d={g.running} {...line} strokeDasharray="3 3" className={TONE_STROKE[tone]} />
       ) : null}

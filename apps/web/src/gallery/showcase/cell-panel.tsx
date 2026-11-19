@@ -51,6 +51,7 @@ export function CellPanel({ hover }: { hover: Hover }) {
         active={hover.month}
         partial={PARTIAL}
         empty={t('cells.noRecords')}
+        headingLevel={2}
       />
     </div>
   );

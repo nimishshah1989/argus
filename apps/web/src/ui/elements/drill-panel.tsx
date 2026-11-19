@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Dialog } from 'radix-ui';
 import { X } from '../icon.js';
 import { WRAP } from './tone.js';
@@ -13,21 +13,34 @@ export function DrillPanel({
   onClose,
   title,
   closeLabel,
+  family,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   closeLabel: string;
+  /** An identity family of the figure the panel explains; it sets `data-family` on the panel, so the family's edge sits on the panel's top edge. Identity, not verdict. */
+  family?: string;
   children: ReactNode;
 }) {
+  // Whatever had focus when the panel opened (the button that asked for it) gets it back when the panel closes.
+  const opener = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (open) opener.current = document.activeElement as HTMLElement | null;
+  }, [open]);
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="el-fade fixed inset-0 z-20 bg-neutral-900/40" />
+        <Dialog.Overlay className="el-scrim fixed inset-0 z-20 bg-scrim" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="el-slide-in fixed inset-y-0 right-0 z-30 flex w-full max-w-md flex-col gap-4 overflow-y-auto bg-surface p-4 shadow-sheet sm:p-6"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            opener.current?.focus();
+          }}
+          data-family={family}
+          className="el-panel fixed inset-y-0 right-0 z-30 flex w-full max-w-md flex-col gap-4 overflow-y-auto bg-surface p-4 shadow-panel sm:p-6"
         >
           <div className="flex items-start justify-between gap-3">
             <Dialog.Title className={`text-title3 font-semibold ${WRAP}`}>{title}</Dialog.Title>
