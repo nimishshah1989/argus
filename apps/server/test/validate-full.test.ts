@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FIGURES, run } from '@uptimo/domain';
 import { connect } from '../src/seed/legacy-load.js';
 import { validate, type Engine } from '../../../tools/validate-full.js';
+import { parseAllowlist } from '../../../tools/validate-checks.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const T = '70000000-0000-0000-0000-000000000001';
@@ -127,6 +128,27 @@ describe('validate:full on a small invented plant', () => {
     await expect(
       connect('postgres://app_api@db.example.com:5432/argus', 'vf-plant'),
     ).rejects.toThrow(/remote host/);
-    await expect(connect(db.container.getConnectionUri(), 'vf-plant')).rejects.toThrow();
+    await expect(
+      connect('postgres://app_api:x@localhost:5432/argus?host=remote.example', 'vf-plant'),
+    ).rejects.toThrow(/remote host/);
+    await expect(
+      connect('postgres://app_api:x@localhost:5432/argus?hostaddr=203.0.113.9', 'vf-plant'),
+    ).rejects.toThrow(/remote host/);
+    await expect(connect(db.container.getConnectionUri(), 'vf-plant')).rejects.toThrow(
+      /app_api role without superuser/,
+    );
   });
+
+  it('accepts only an allowlist id that names whole segments before its star', () => {
+    expect(parseAllowlist('- coverage:* - a cause').map((a) => a.id)).toEqual(['coverage:*']);
+    for (const id of ['*', 'cov*', 'coverage:WR*', ':*']) {
+      expect(() => parseAllowlist(`- ${id} - a cause`)).toThrow(/whole segments/);
+    }
+  });
+
+  it('with an earlier run date, does not call a later ticket unread', async () => {
+    const report = await validate(db.app, tenant, { asOf: '2023-06-30' });
+    expect(report.unexplained).toEqual([]);
+    expect(report.lines.some((line) => line.startsWith('coverage: 7 of 7 tickets'))).toBe(true);
+  }, 120_000);
 });

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
   FIGURES,
+  plantDay,
   type EngineData,
   type EngineResult,
   type FigureResult,
@@ -215,7 +216,9 @@ export function checkCoverage(
   whole: EngineResult,
   inDatabase: number,
 ): { read: number; total: number; diffs: Diff[] } {
-  const tickets = [...data.tickets, ...data.tasks];
+  const all = [...data.tickets, ...data.tasks];
+  // The engine rightly leaves out a ticket reported after the run date (plant time zone): it is not unread.
+  const tickets = all.filter((ticket) => plantDay(ticket.reportedAt, data.timeZone) <= whole.asOf);
   const read = new Set(
     whole.figures.filter((f) => f.drill.type === 'ticket').flatMap((f) => f.drill.ids),
   );
@@ -224,20 +227,32 @@ export function checkCoverage(
     id: `coverage:${ticket.ref}`,
     text: `ticket ${ticket.ref} (${ticket.kind}) is read by no figure`,
   }));
-  if (tickets.length !== inDatabase) {
+  if (all.length !== inDatabase) {
     diffs.unshift({
       id: 'coverage:loader',
-      text: `the loader read ${tickets.length} tickets, the database holds ${inDatabase}`,
+      text: `the loader read ${all.length} tickets, the database holds ${inDatabase}`,
     });
   }
-  return { read: tickets.length - unread.length, total: inDatabase, diffs };
+  const total = inDatabase - (all.length - tickets.length);
+  return { read: tickets.length - unread.length, total, diffs };
 }
 
-/** The allowlist file: `- <id> - <cause>` lines; an id ending in `*` names every difference that starts with it. */
+/**
+ * The allowlist file: `- <id> - <cause>` lines. An id ends in `*` only as `coverage:*` or `years:x:*`: a `*` right after
+ * whole segments and a colon, never alone and never inside a segment. Anything else throws, so a loose line cannot
+ * silently explain everything.
+ */
 export function parseAllowlist(markdown: string): { id: string; cause: string }[] {
   return markdown.split('\n').flatMap((line) => {
     const match = /^- (\S+)\s+[-–—:]\s+(\S.*)$/.exec(line.trim());
-    return match ? [{ id: match[1]!, cause: match[2]! }] : [];
+    if (!match) return [];
+    const id = match[1]!;
+    if (id.includes('*') && !/^[a-z]+:([^*\s:]+:)*\*$/.test(id)) {
+      throw new Error(
+        `allowlist id "${id}": a * must follow whole segments and a colon, like coverage:*`,
+      );
+    }
+    return [{ id, cause: match[2]! }];
   });
 }
 

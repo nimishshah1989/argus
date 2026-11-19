@@ -118,8 +118,12 @@ export function assertLocalUrl(url: string, allowRemote: boolean): void {
   let host: string;
   try {
     const parsed = new URL(url);
-    const socket = parsed.searchParams.get('host') ?? '';
-    host = socket.startsWith('/') ? '' : parsed.hostname;
+    // node-postgres lets `?host=` and `?hostaddr=` override the URL's host, and PGHOST fill an empty one: the host
+    // that counts is the one the driver dials. A socket folder (a path) is this machine.
+    host =
+      parsed.searchParams.get('hostaddr') ?? parsed.searchParams.get('host') ?? parsed.hostname;
+    if (host === '') host = process.env.PGHOST ?? '';
+    if (host.startsWith('/')) host = '';
   } catch {
     throw new Error('DATABASE_URL is not a valid URL');
   }

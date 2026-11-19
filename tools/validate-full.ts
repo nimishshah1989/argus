@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Pool } from 'pg';
 import { run, type EngineData, type EngineResult } from '../packages/domain/src/index.js';
 import type { AnalyticsProfile } from '../packages/shared/src/index.js';
@@ -34,7 +34,9 @@ import {
  */
 const USAGE =
   'usage: validate:full --tenant <slug> [--as-of YYYY-MM-DD] [--allowlist <file>] [--allow-remote]';
-const DEFAULT_ALLOWLIST = new URL('../docs/plan/validate-explained.md', import.meta.url).pathname;
+const DEFAULT_ALLOWLIST = fileURLToPath(
+  new URL('../docs/plan/validate-explained.md', import.meta.url),
+);
 const LISTED_REFS = 25;
 
 export interface Report {
