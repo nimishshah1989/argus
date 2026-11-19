@@ -9,3 +9,4 @@
 - The history plan gains what Bhavin's 2023 workbooks show: utility rows written once per machine, real rows the
   year rule would drop, the workbooks' own code legend, and a hole in early 2022.
 - Nothing a user sees changes in this change.
+- `pnpm docs:check` now fails when a merged `feat` or `fix` commit names a ticket whose tracker row still says `todo`, so the tracker cannot fall behind `main` again.
