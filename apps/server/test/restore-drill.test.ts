@@ -81,6 +81,17 @@ describe('restore drill (Drill B)', () => {
     expect(report).toContain('RESTORE DRILL FAIL: 2 of 3 largest tables differ');
   });
 
+  it('ignores the one setting a newer pg_dump writes that an older server does not know, and nothing else', () => {
+    const newer =
+      'pg_restore: error: could not execute query: ERROR:  unrecognized configuration parameter "transaction_timeout"\n' +
+      'Command was: SET transaction_timeout = 0;\n' +
+      'pg_restore: warning: errors ignored on restore: 1';
+    expect(realRestoreErrors(newer)).toEqual([]);
+    const other =
+      'pg_restore: error: could not execute query: ERROR:  unrecognized configuration parameter "lock_timeout_x"';
+    expect(realRestoreErrors(`${newer}\n${other}`)).toEqual([other]);
+  });
+
   it('ignores "already exists" notes from pg_restore but not a real error', () => {
     const notes =
       'pg_restore: error: could not execute query: ERROR:  schema "public" already exists\n' +

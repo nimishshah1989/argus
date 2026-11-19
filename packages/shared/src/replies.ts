@@ -82,7 +82,20 @@ export const devicesReplySchema = z
   })
   .strict();
 export const healthReplySchema = z.union([
-  z.object({ status: z.literal('ok') }).strict(),
+  z
+    .object({
+      status: z.literal('ok'),
+      /** The git commit this server was built from; null when the deploy did not say. */
+      commit: z.string().nullable(),
+      /** Migration ledger rows against migration files in the image; null when unknown. */
+      migrations: z
+        .object({
+          applied: z.number().int().nullable(),
+          expected: z.number().int().nullable(),
+        })
+        .strict(),
+    })
+    .strict(),
   z.object({ status: z.literal('down'), db: z.boolean(), queue: z.boolean() }).strict(),
 ]);
 /**

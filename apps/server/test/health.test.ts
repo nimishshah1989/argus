@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { releaseFromEnv, type AppConfig } from '../src/kernel/index.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -30,6 +30,29 @@ describe('health', () => {
       expect(res.statusCode).toBe(200);
       expect(res.json().status).toBe('ok');
     }
+  });
+
+  it('keeps the reply contract when the pool answers nothing and no release is set', async () => {
+    // The guard test's setup, with the reply check CI turns on: a bare pool and no `release`.
+    vi.stubEnv('CHECK_REPLIES', '1');
+    const bare = {
+      query: async () => ({ rows: [], rowCount: 0 }),
+    } as unknown as Pool;
+    const checked = await buildApp({
+      pool: bare,
+      logger: false,
+      rateLimitMax: 100000,
+      jobBoss: { getQueue: async () => ({}) } as unknown as PgBoss,
+    });
+    vi.unstubAllEnvs();
+    extra.push(checked);
+    const res = await checked.inject({ method: 'GET', url: '/api/v1/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      status: 'ok',
+      commit: null,
+      migrations: { applied: null, expected: null },
+    });
   });
 
   describe('names the release it is running', () => {

@@ -113,6 +113,9 @@ needs `pg_dump` and `pg_restore` 16 on the PATH, network access to the database,
 from row security (the same need as the weekly dump). The script and its test run against a scratch Postgres in CI; **it has not yet
 been run against staging** (the server image holds no `pg_dump`, so that run is the first test of where it can live).
 
+Run it on a quiet database: it counts the source rows just before `pg_dump` takes its snapshot, so writes in between can show a false `FAIL`.
+A `SET transaction_timeout` error from a `pg_dump` newer than the server is ignored (the one known harmless difference); any other `pg_restore` error stops the drill.
+
 ## 3. A real loss (not a drill)
 
 1. Stop the server so nothing writes: `run_on_instance "cd /opt/uptimo && docker compose stop server"`.

@@ -88,11 +88,17 @@ function withDatabase(url: string, database: string): string {
   return parsed.toString();
 }
 
-/** pg_restore ends with "errors ignored" for harmless notes such as an existing `public` schema; real errors are the rest. */
+/**
+ * pg_restore ends with "errors ignored" for harmless notes such as an existing `public` schema, and a dump from a
+ * newer pg_dump starts with `SET transaction_timeout`, which an older server rejects. Those two are the only
+ * errors ignored; every other `pg_restore: error:` line is real. The row counts still decide PASS.
+ */
 export function realRestoreErrors(stderr: string): string[] {
   return stderr
     .split('\n')
-    .filter((line) => line.startsWith('pg_restore: error:') && !/already exists/i.test(line));
+    .filter((line) => line.startsWith('pg_restore: error:'))
+    .filter((line) => !/already exists/i.test(line))
+    .filter((line) => !line.endsWith('unrecognized configuration parameter "transaction_timeout"'));
 }
 
 async function mayBypassRowSecurity(pool: Pool): Promise<boolean> {
