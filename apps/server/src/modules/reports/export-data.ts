@@ -5,8 +5,8 @@ import type { EngineData, ExportData, ExportSettings } from '@uptimo/domain';
  * The workbook's input, built from what the server already loads (ticket 45, packet 45d): the engine's plant rows,
  * the analytics profile and the tenant's name. The Settings sheet's lists are read off those rows — the segment,
  * category, cell, location and shift values the plant actually holds, then the configured lists' own codes — so a
- * live export needs no extra query. The PM registers and the platform's App Settings are absent until M4b 49/51:
- * their sheets print their header row today.
+ * live export needs no extra query. The AMC & Warranty and Legal Compliance sheets print the asset register's own
+ * rows (51c); the platform's App Settings is still absent, so its sheet prints its header row today.
  */
 
 /** The distinct values of `values`, in the order they first appear, skipping blanks. */

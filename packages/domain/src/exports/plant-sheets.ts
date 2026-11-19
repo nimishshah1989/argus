@@ -245,14 +245,16 @@ function pmPlanSheet(data: ExportData): ExportSheet {
 function amcSheet(data: ExportData): ExportSheet {
   const rows = (data.data.amc ?? []).map((line, index) => {
     const months = Number(line.months);
-    const end = line.start !== null && months > 0 ? dmy(endOfTerm(line.start, months) ?? '') : '';
+    // The register stores the end, not a tenure (51c): the stored day wins and a tenure row derives as before.
+    const derived = line.start !== null && months > 0 ? endOfTerm(line.start, months) : null;
+    const end = line.endsOn ?? derived;
     return [
       index + 1,
       line.machineId,
       text(line.type),
       text(line.start),
-      line.months,
-      end,
+      months > 0 ? line.months : '',
+      end === null ? '' : dmy(end),
       text(line.vendor),
       line.noRenew ? 'yes' : '',
     ];
@@ -266,15 +268,17 @@ function amcSheet(data: ExportData): ExportSheet {
 function legalSheet(data: ExportData): ExportSheet {
   const rows = (data.data.legal ?? []).map((line, index) => {
     const months = Number(line.months);
-    const due = line.last !== null && months > 0 ? (addMonths(line.last, months) ?? '') : '';
+    // The register stores the next due day (51c): the stored day wins and a last-plus-validity row derives as before.
+    const derived = line.last !== null && months > 0 ? addMonths(line.last, months) : null;
+    const due = line.dueOn ?? derived;
     return [
       index + 1,
       line.machineId,
       line.name,
       text(line.form),
       text(line.last),
-      line.months,
-      due,
+      months > 0 ? line.months : '',
+      due ?? '',
       text(line.cert),
     ];
   });
