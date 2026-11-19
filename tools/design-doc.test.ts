@@ -6,6 +6,13 @@ const text = readFileSync(new URL('../docs/DESIGN.md', import.meta.url), 'utf8')
 const [, frontMatter = '', body = ''] = text.split(/^---\s*$/m);
 
 const SECTIONS = ['Overview', 'Colors', 'Typography', 'Layout'];
+const NEUTRAL_ROLES = ['page', 'surface', 'surface-2', 'line', 'control', 'ink', 'ink-2'];
+const ACCENT_ROLES = ['accent', 'on-accent', 'accent-tint'];
+const SERIES = Array.from({ length: 8 }, (_, i) => `series-${i + 1}`);
+const RAMPS = ['seq', 'div'];
+const TEMPLATES = ['overview', 'analysis', 'register', 'entity', 'work queue'];
+const has = (haystack: string, name: string): boolean =>
+  new RegExp(`(?<![\\w-])${name.replace(/ /g, '\\s+')}(?![\\w-])`, 'i').test(haystack);
 
 function section(name: string): string {
   const start = body.search(new RegExp(`^## ${name}\\s*$`, 'm'));
@@ -29,6 +36,20 @@ describe('docs/DESIGN.md', () => {
     for (const name of SECTIONS) expect(section(name).trim().length, name).toBeGreaterThan(200);
   });
 
+  it('defines every colour role, 8 series, 2 ramps and 5 templates', () => {
+    const colours = (parse(frontMatter) as { colors: Record<string, string> }).colors;
+    for (const role of [...NEUTRAL_ROLES, ...ACCENT_ROLES]) {
+      expect(colours, role).toHaveProperty([role]);
+      expect(has(section('Colors'), role), `${role} in Colors`).toBe(true);
+    }
+    for (const name of [...SERIES, ...RAMPS]) {
+      expect(has(section('Colors'), name), name).toBe(true);
+    }
+    const layout = section('Layout');
+    expect(layout).toMatch(/^### Templates\s*$/m);
+    for (const template of TEMPLATES) expect(has(layout, template), template).toBe(true);
+  });
+
   it('names the five tones and the three density tiers', () => {
     for (const tone of ['critical', 'attention', 'good', 'info', 'neutral']) {
       expect(section('Colors'), tone).toMatch(new RegExp(`\\b${tone}\\b`, 'i'));
@@ -39,14 +60,17 @@ describe('docs/DESIGN.md', () => {
   });
 
   it.each([
-    ['Running is grey', /running[^.\n]{0,60}\bgrey\b/i],
-    ['Waiting is amber', /waiting[^.\n]{0,60}\bamber\b/i],
-    ['Transferred is blue', /transferred[^.\n]{0,60}\bblue\b/i],
-    ['Indian grouping', /indian grouping/i],
-    ['analytics follows the system theme', /analytics follows the device/i],
-    ['the TV is always dark', /\bTV\b[^.\n]{0,80}always dark/i],
-    ['the TV is 50 inch or larger', /50 inch or larger/i],
+    ['Running is grey', /\brunning\s+(?:is|stays|reads)\s+grey\b/i],
+    ['Waiting is amber', /\bwaiting\s+(?:is|stays|reads)\s+amber\b/i],
+    ['Transferred is blue', /\btransferred\s+(?:is|stays|reads)\s+blue\b/i],
+    ['numbers use Indian grouping', /\bnumbers\s+use\s+indian grouping/i],
+    [
+      'analytics follows the system theme',
+      /analytics follows the (?:device|system)(?:'s)?\s+(?:light or dark\s+)?(?:setting|theme)/i,
+    ],
+    ['the TV is always dark', /\bTV(?: board)?\s+(?:is|stays)\s+always dark/i],
+    ['the TV is 50 inch or larger', /\bTV\s+is\s+50 inch or larger/i],
   ])('states the settled fact: %s', (_name, pattern) => {
-    expect(text).toMatch(pattern);
+    expect(text.replace(/\s+/g, ' ')).toMatch(pattern);
   });
 });
