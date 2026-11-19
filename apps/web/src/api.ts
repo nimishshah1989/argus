@@ -171,6 +171,18 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
 
 /**
+ * The same figures as of an earlier plant date (`?asOf=`), read like the current figures: Today's change against the
+ * prior period. `asOf` of `undefined` keeps the query off until the current figures say which date to go back from.
+ */
+export const useAnalyticsFiguresAt = (asOf: string | undefined) =>
+  useQuery({
+    queryKey: ['analytics-figures', 'at', asOf ?? null],
+    enabled: asOf !== undefined,
+    queryFn: async (): Promise<FiguresReply> =>
+      (await analyticsFigures.list({ asOf })) as unknown as FiguresReply,
+  });
+
+/**
  * `GET /pm/calendar?from&to` (50c): the six-week grid's occurrences, parsed at this boundary. The range is the
  * calendar's own, so the query key carries it and a month change refetches.
  */

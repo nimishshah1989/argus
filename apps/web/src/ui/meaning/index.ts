@@ -32,9 +32,12 @@ export function figureMeasure(key: string, part?: string): Measure {
   return measure;
 }
 
-/** A figure's value with its unit: `82.5%`, `₹1,20,000`, `12.5 hrs`, `7`. */
-export function formatFigure(measure: Measure, value: number): string {
-  const text = value.toLocaleString('en-IN', { maximumFractionDigits: 1 });
+/**
+ * A figure's value with its unit: `82.5%`, `₹1,20,000`, `12.5 hrs`, `7`. It rounds to one decimal unless the screen
+ * says how many digits the engine's own value has (`digits`), so a figure the engine gives to 2 places prints whole.
+ */
+export function formatFigure(measure: Measure, value: number, digits = 1): string {
+  const text = value.toLocaleString('en-IN', { maximumFractionDigits: digits });
   const symbol = UNIT_SYMBOL[measure.unit];
   if (measure.unit === 'money') return `${symbol}${text}`;
   if (measure.unit === 'percent') return `${text}${symbol}`;

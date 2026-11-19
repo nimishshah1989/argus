@@ -10,7 +10,7 @@ export function TrendDelta({ measure, delta }: { measure: Measure; delta: number
   return (
     <span
       data-tone={tone}
-      className={`inline-flex items-center gap-1 text-footnote font-semibold ${TONE_INK[tone]}`}
+      className={`inline-flex min-w-0 flex-wrap items-center gap-1 text-footnote font-semibold ${TONE_INK[tone]}`}
     >
       <Icon aria-hidden size={16} className="shrink-0" />
       <span>{text}</span>

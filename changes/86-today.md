@@ -1,0 +1,1 @@
+- The analytics Today screen is rebuilt in the new look: each number is a tile with its unit (a percentage prints %, Indian grouping, a dash when missing) and how it moved against 30 days earlier, in words and an icon. Totals to date show the change without calling it better or worse. The problems that cost the most downtime are a ranked list. Waiting for approval before merge.

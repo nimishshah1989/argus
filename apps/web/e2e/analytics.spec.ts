@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
-import { HOUR_FIGURES } from '../src/screens/analytics/groups.js';
+import { figureMeasure, formatFigure } from '../src/ui/meaning/index.js';
 import { signIn } from './fixtures.js';
 
 /** A fake id: the figure drills to it and the drill reply names the same machine row. */
@@ -57,11 +57,7 @@ type Figure = FiguresReply['figures'][number];
  */
 const valueText = (figure: Figure): string | null => {
   const value = figure.value;
-  if (typeof value === 'number')
-    return new Intl.NumberFormat('en-GB', {
-      minimumFractionDigits: HOUR_FIGURES.has(figure.key) ? 1 : 0,
-      maximumFractionDigits: 2,
-    }).format(value);
+  if (typeof value === 'number') return formatFigure(figureMeasure(figure.key), value, 2);
   if (typeof value === 'string') return value;
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return null;

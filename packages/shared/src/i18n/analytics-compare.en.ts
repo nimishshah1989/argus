@@ -15,6 +15,8 @@ export const analyticsCompareEn = {
   'analytics.content.mm.value': 'Money lost (₹ lakh)',
   'analytics.content.mm.valueAxis': 'Money lost in the period (₹ lakh)',
   'analytics.today.nav': 'Today screens',
+  'analytics.today.vs': 'Changes are against {{date}}, {{days}} days earlier',
+  'analytics.today.costliest.line': '{{hours}} · {{share}} · {{count}} breakdowns',
   'analytics.teamFocus.listTitle': "The month's actions",
   'analytics.teamFocus.openOf': '{{open}} open of {{total}}',
   'analytics.teamFocus.machine': 'Machine {{code}}',

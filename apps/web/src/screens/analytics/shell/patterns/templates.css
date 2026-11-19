@@ -110,10 +110,14 @@
     top: calc(var(--spacing-step-4) + 72px);
   }
   .at-figures {
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
   }
   .at[data-template='overview'] .at-main {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* A region that needs the whole row (a strip, a table) says so; the pictures share the rest two to a row. */
+  .at-main > [data-span='full'] {
+    grid-column: 1 / -1;
   }
 }
