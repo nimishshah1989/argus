@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STATUS, type StatusGroup, type StatusId } from '../../ui/status/index.js';
+import { controlRoom } from './direction-control-room.js';
 import { instrument } from './direction-instrument.js';
 import {
   formatIN,
@@ -168,7 +169,7 @@ describe('Indian grouping', () => {
   });
 });
 
-const DIRECTIONS: Record<string, Direction> = { instrument };
+const DIRECTIONS: Record<string, Direction> = { instrument, 'control-room': controlRoom };
 
 const channel = (hex: string, at: number) => {
   const c = parseInt(hex.slice(at, at + 2), 16) / 255;
