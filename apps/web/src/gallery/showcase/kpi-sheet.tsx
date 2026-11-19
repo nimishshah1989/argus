@@ -2,9 +2,8 @@
  * The side sheet follows shadcn/ui's `sheet` (https://github.com/shadcn-ui/ui, MIT licence, Copyright (c) 2023
  * shadcn): a Radix Dialog that slides in from the right edge. Rewritten with plain class strings and our tokens.
  */
-import { Dialog } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
-import { X } from '../../ui/icon.js';
+import { DrillPanel } from '../../ui/elements/index.js';
 import { FULL, S, change, fixed, monthLong, type Metric } from './data.js';
 import { Arrow, changeText } from './delta.js';
 import { FAMILY } from './families.js';
@@ -64,45 +63,34 @@ export function KpiSheet({
 }) {
   const { t } = useTranslation('showcase');
   return (
-    <Dialog.Root open={open} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="sc-overlay" />
-        <Dialog.Content
-          className="sc-sheet"
-          aria-describedby={undefined}
-          data-family={metric ? FAMILY[metric.id] : undefined}
-          data-testid="kpi-sheet"
-        >
-          {metric ? (
-            <>
-              <div className="sc-sheet-head">
-                <Dialog.Title className="sc-sheet-title">{t(`tile.${metric.id}`)}</Dialog.Title>
-                <Dialog.Close className="sc-close" aria-label={t('sheet.close')}>
-                  <X aria-hidden size={18} />
-                </Dialog.Close>
-              </div>
-              <p className="sc-sheet-value">
-                <span className="sc-num">{fixed(metric.headline, metric.digits)}</span>
-                {metric.unit ? <span className="sc-unit">{metric.unit}</span> : null}
-                <span className="sc-tile-span">{t('tile.span')}</span>
-              </p>
-              <section>
-                <h3>{t('sheet.definition')}</h3>
-                <p>{t(`def.${metric.id}`)}</p>
-              </section>
-              <section>
-                <h3>{t('sheet.formula')}</h3>
-                <p>{t(`formula.${metric.id}`)}</p>
-              </section>
-              <section>
-                <h3>{t('sheet.months')}</h3>
-                <MonthsTable metric={metric} />
-              </section>
-              <p className="sc-sheet-note">{t('sheet.source')}</p>
-            </>
-          ) : null}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DrillPanel
+      open={open}
+      onClose={onClose}
+      title={metric ? t(`tile.${metric.id}`) : ''}
+      closeLabel={t('sheet.close')}
+    >
+      {metric ? (
+        <div className="sc-sheet" data-family={FAMILY[metric.id]} data-testid="kpi-sheet">
+          <p className="sc-sheet-value">
+            <span className="sc-num">{fixed(metric.headline, metric.digits)}</span>
+            {metric.unit ? <span className="sc-unit">{metric.unit}</span> : null}
+            <span className="sc-tile-span">{t('tile.span')}</span>
+          </p>
+          <section>
+            <h3>{t('sheet.definition')}</h3>
+            <p>{t(`def.${metric.id}`)}</p>
+          </section>
+          <section>
+            <h3>{t('sheet.formula')}</h3>
+            <p>{t(`formula.${metric.id}`)}</p>
+          </section>
+          <section>
+            <h3>{t('sheet.months')}</h3>
+            <MonthsTable metric={metric} />
+          </section>
+          <p className="sc-sheet-note">{t('sheet.source')}</p>
+        </div>
+      ) : null}
+    </DrillPanel>
   );
 }

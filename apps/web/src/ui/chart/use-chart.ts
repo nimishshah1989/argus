@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { chartOption } from './chart-option.js';
+import { settle } from './chart-parts.js';
 import { readPalette } from './chart-palette.js';
 import type { ChartSpec, ChartState } from './chart-spec.js';
 
@@ -61,7 +62,12 @@ export function useChart(spec: ChartSpec): {
         let chart: { setOption(o: unknown): void; resize(): void; dispose(): void } | undefined;
         try {
           chart = echarts.init(el, null, { renderer: 'svg' });
-          chart.setOption(chartOption(JSON.parse(key) as ChartSpec, readPalette(el)));
+          chart.setOption(
+            settle(
+              chartOption(JSON.parse(key) as ChartSpec, readPalette(el)),
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+            ),
+          );
         } catch {
           chart?.dispose();
           setState('error');

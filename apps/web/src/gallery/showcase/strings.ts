@@ -104,6 +104,7 @@ const en = {
   'cells.note': 'Breakdown share of available hours, by month. The dotted line is the plant.',
   'cells.latest': '{{month}}',
   'cells.noRecords': 'No records yet',
+  'cells.line': '{{cell}}: share of hours lost to breakdowns, by month',
 
   // Status tags: the engine has no targets, so these read the plant's own usual range. With targets they become
   // "On target" and "Off target".

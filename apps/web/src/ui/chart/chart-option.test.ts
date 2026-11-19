@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { settle } from './chart-parts.js';
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
@@ -291,5 +292,25 @@ describe('review fixes', () => {
     const legend = view({ ...mixed, legend: true });
     expect(legend.series?.map((s) => s.color)).toEqual(['#a1', '#a2', '#a3']);
     expect(legend.legend?.data).toEqual(['A', 'B', 'L']);
+  });
+});
+
+describe('draw-in', () => {
+  const kinds = ['bar', 'line', 'pareto'] as const;
+
+  it.each(kinds)('a %s chart that asks to draw in animates once, in under 800 ms', (kind) => {
+    const option = view({ ...specs[kind]!, draw: true } as ChartSpec) as Record<string, unknown>;
+    expect(option.animation).toBe(true);
+    expect(option.animationDuration as number).toBeLessThan(800);
+  });
+
+  it.each(kinds)('a %s chart that does not ask stays still', (kind) => {
+    expect(view(specs[kind]!).animation).toBe(false);
+  });
+
+  it('is switched off by reduced motion, whatever the spec asked for', () => {
+    const asked = chartOption({ ...specs.line!, draw: true } as ChartSpec, palette);
+    expect(settle(asked, true).animation).toBe(false);
+    expect(settle(asked, false).animation).toBe(true);
   });
 });

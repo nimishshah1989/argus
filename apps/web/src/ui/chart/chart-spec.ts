@@ -27,6 +27,8 @@ export interface ScatterPoint {
  */
 export interface LegendChoice {
   legend?: boolean;
+  /** Draw the chart in once, in 700 ms (ease-out), when it first appears; never under reduced motion. Absent: no animation. */
+  draw?: true;
 }
 export type ChartSpec =
   | ({

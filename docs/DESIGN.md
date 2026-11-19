@@ -378,19 +378,19 @@ all other motion runs once and is purposeful. Reduced motion switches all of it 
 - **Two zones.** The analytics elements (`ui/elements`, `ui/elements/elements.css`, `motion.ts`) move as below. The
   floor and the desk stay locked to v3: they gain no motion beyond colour, type, depth and what they already have
   (below).
-- **Built in the analytics elements (ticket 83).** A figure counts up from zero over 600 ms (ease-out) when it first
-  appears and eases from the old value to the new one when it changes (`useCountUp`); heat-grid squares pop in over
-  460 ms, staggered 32 ms per column; a sparkline draws in over 800 ms; a table or list cross-fades over 200 ms when
-  its filter, sort or page changes.
-- **Target, not built yet (ticket 83b).** The trend line and the chart door drawing in (800 ms), and a drill panel
-  sliding in from the right (320 ms). Until they are built, charts draw with no animation (ticket 84).
+- **Built in the analytics elements (tickets 83 and 83b).** A figure counts up from zero over 600 ms (ease-out) when it
+  first appears and eases from the old value to the new one when it changes (`useCountUp`); heat-grid squares pop in
+  over 460 ms, staggered 32 ms per column; a sparkline draws in over 800 ms; a table or list cross-fades over 200 ms
+  when its filter, sort or page changes; a drill panel (`DrillPanel`) slides in from the right over 320 ms; a chart
+  drawn through the chart door with `draw: true` (bar, line, Pareto) draws in once over 700 ms.
+- **Not built yet.** Charts that do not ask for `draw` still draw with no animation (ticket 84); the screens opt in.
 - **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms.
 - **What moves, today, on floor and desk.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a
   floor tile (150 ms, `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives. Floor rows never
   animate in or reorder, and floor and desk figures never count up.
 - **Reduced motion.** Changes are instant: a figure shows its final value, squares and lines appear drawn, lists do not
   fade, the skeleton holds still, and charts draw with no animation. The browser test `elements.spec.ts` checks that
-  the heat-grid pop is off under reduced motion and on otherwise.
+  the heat-grid pop and the drill-panel slide are off under reduced motion and on otherwise, and `chart-option.test.ts` checks that a chart's draw-in is off under reduced motion.
 - **Tone.** A KPI tile's edge and trend line take their tone from the figure's direction of good (down is good for
   downtime), not from the sign of the change, and a tone is only drawn where an icon and a word say it too.
 

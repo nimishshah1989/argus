@@ -21,6 +21,17 @@ export function baseOption(
   };
 }
 
+/** The draw-in a spec asks for with `draw: true`: once, 700 ms (under the 800 ms of DESIGN.md), ease-out. */
+export const DRAW_MS = 700;
+export function drawOption(draw: true | undefined): Option {
+  return draw ? { animation: true, animationDuration: DRAW_MS, animationEasing: 'cubicOut' } : {};
+}
+
+/** The option as the browser draws it: under reduced motion nothing animates, whatever the spec asked for. */
+export function settle(option: Option, reducedMotion: boolean): Option {
+  return reducedMotion ? { ...option, animation: false } : option;
+}
+
 /** The tooltip of a chart read by category: one row per series at the pointer, or a tap on a phone. */
 export function axisTooltip(kind: 'shadow' | 'line'): Option {
   return { trigger: 'axis', axisPointer: { type: kind }, confine: true };

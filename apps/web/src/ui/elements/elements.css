@@ -1,6 +1,6 @@
 /* Motion of the shared elements (ticket 83, from the analytics showcase). It shows what changed or is new: a figure
    eases to its value (motion.ts), a heat-grid square pops in by column, a trend line draws in, a filtered list
-   cross-fades. Each runs once, nothing loops, and reduced motion switches every one off. */
+   cross-fades, a drill panel slides in. Each runs once, nothing loops, and reduced motion switches every one off. */
 @keyframes el-pop {
   from {
     opacity: 0;
@@ -10,6 +10,11 @@
 @keyframes el-draw {
   from {
     stroke-dashoffset: 1;
+  }
+}
+@keyframes el-slide-in {
+  from {
+    transform: translateX(100%);
   }
 }
 @keyframes el-fade {
@@ -29,11 +34,15 @@
 .el-fade {
   animation: el-fade 200ms ease-out;
 }
+.el-slide-in {
+  animation: el-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .el-pop,
   .el-draw,
-  .el-fade {
+  .el-fade,
+  .el-slide-in {
     animation: none;
   }
 }
