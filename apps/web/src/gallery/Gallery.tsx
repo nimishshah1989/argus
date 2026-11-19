@@ -41,6 +41,14 @@ const ShowcaseView = () => (
   </Suspense>
 );
 
+// The chart door's one chart per kind (ticket 84), for the e2e check of the numbers table and reduced motion.
+const ChartDoor = lazy(() => import('./chart-door-view.js'));
+const ChartDoorView = () => (
+  <Suspense fallback={null}>
+    <ChartDoor />
+  </Suspense>
+);
+
 function Switcher({
   label,
   param,
@@ -123,6 +131,15 @@ function useDocumentAttributes(
   );
 }
 
+/** The gallery's views that are not the section list. */
+function otherView(view: string | null) {
+  if (view === 'desktop') return <DesktopView />;
+  if (view === 'directions') return <DirectionsView />;
+  if (view === 'showcase') return <ShowcaseView />;
+  if (view === 'charts') return <ChartDoorView />;
+  return null;
+}
+
 export default function Gallery() {
   const { t } = useTranslation('gallery');
   const [params] = useSearchParams();
@@ -131,9 +148,8 @@ export default function Gallery() {
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
 
   useDocumentAttributes(lang, accent, theme);
-  if (params.get('view') === 'desktop') return <DesktopView />;
-  if (params.get('view') === 'directions') return <DirectionsView />;
-  if (params.get('view') === 'showcase') return <ShowcaseView />;
+  const other = otherView(params.get('view'));
+  if (other) return other;
 
   return (
     <div data-testid="gallery-root">
