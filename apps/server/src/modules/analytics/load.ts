@@ -1,6 +1,8 @@
 import type { PoolClient } from 'pg';
 import type {
+  AmcLine,
   EngineData,
+  LegalLine,
   ListRow,
   MachineRow,
   PersonRow,
@@ -25,6 +27,7 @@ import {
   type Redactor,
 } from '../identity/index.js';
 import {
+  assetRegistersForEngine,
   failureCodeIndexOf,
   listsForEngine,
   machinesForEngine,
@@ -198,6 +201,62 @@ function listsOf(rows: Row[]): Record<string, ListRow[]> {
   return lists;
 }
 
+/** R4's one separator between a legal note's name and its form, and the AMC not-renewing suffix (51c, R12). */
+const NOTE_SEPARATOR = '·';
+const NOT_RENEWING = ' · not renewing';
+const AMC_KINDS: ReadonlySet<string> = new Set(['amc', 'warranty']);
+const LEGAL_KINDS: ReadonlySet<string> = new Set(['legal', 'calibration']);
+
+/** The AMC type a register note carries back: the note without the flag, or the kind's own label when empty. */
+function amcTypeOf(kind: string, note: string): string {
+  const type = (note.endsWith(NOT_RENEWING) ? note.slice(0, -NOT_RENEWING.length) : note).trim();
+  if (type !== '') return type;
+  return kind === 'warranty' ? 'Warranty' : 'AMC';
+}
+
+/** A legal note's first `·` segment is the test's name and the rest its form; an empty note has neither (R12). */
+function legalPartsOf(note: string): { name: string; form: string | null } {
+  const at = note.indexOf(NOTE_SEPARATOR);
+  if (at < 0) return { name: note.trim(), form: null };
+  return { name: note.slice(0, at).trim(), form: note.slice(at + 1).trim() || null };
+}
+
+/** The cleaned note a register row carries: the raw text never reaches a figure, as with `problem` (R12). */
+const noteOf = (row: Row, clean: Cleaner): string => cleanOrNull(row.notes, clean) ?? '';
+
+/** One register row as an AMC/warranty line: the stored end, a zero tenure and the row id as the item. */
+const registerAmc = (row: Row, clean: Cleaner): AmcLine => {
+  const note = noteOf(row, clean);
+  return {
+    id: row.id as string,
+    machineId: (row.machine_id as string | null) ?? '',
+    type: amcTypeOf(row.kind as string, note),
+    start: text(row.starts_on),
+    months: 0,
+    vendor: text(row.vendor),
+    noRenew: note.endsWith(NOT_RENEWING),
+    endsOn: text(row.ends_on) ?? undefined,
+    itemKey: row.id as string,
+  };
+};
+
+/** One register row as a legal/calibration line: the test's name and form back from the note, the stored due. */
+const registerLegal = (row: Row, clean: Cleaner): LegalLine => {
+  const { name, form } = legalPartsOf(noteOf(row, clean));
+  return {
+    id: row.id as string,
+    machineId: (row.machine_id as string | null) ?? '',
+    tid: row.id as string,
+    name,
+    form,
+    last: text(row.starts_on),
+    months: 0,
+    cert: text(row.reference),
+    dueOn: text(row.due_on) ?? undefined,
+    itemKey: row.id as string,
+  };
+};
+
 /**
  * The plant's rows as the engine's plain `data`, read through the plant, tickets and identity interfaces. The
  * transaction is the tenant's (`withTenant`), so only this plant's rows can be read. Everything is loaded, history
@@ -218,6 +277,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const failureIndex = await failureCodeIndexOf(tx, tenantId);
   const savedWhyWhy = await whyWhyEventRows(tx);
   const nudgeAcks = await readNudgeAcks(tx);
+  const registers = await assetRegistersForEngine(tx, tenantId);
   const plantLists = listsOf(lists);
   return {
     timeZone,
@@ -236,6 +296,13 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     reports: reports.map((row) => report(row, clean, failureIndex)),
     shifts: shifts.map(shift),
     people: people.map(person),
+    // 51c: the register is the live source of the two reminder rules and the workbook's two register sheets.
+    amc: registers
+      .filter((row) => AMC_KINDS.has(row.kind as string))
+      .map((row) => registerAmc(row, clean)),
+    legal: registers
+      .filter((row) => LEGAL_KINDS.has(row.kind as string))
+      .map((row) => registerLegal(row, clean)),
     lists: plantLists,
     whyWhy: savedWhyWhy.flatMap((row) => {
       const record = whyWhyRow(row);

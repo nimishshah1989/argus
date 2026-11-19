@@ -28,6 +28,22 @@ const inputOf = (values: Row) => ({
   notes: (values.notes as string | null | undefined) ?? null,
 });
 
+/**
+ * The plant's register rows as the engine reads them (51c, R12): the note carries the AMC type, the legal
+ * name/form and the not-renewing flag back, and `ends_on`/`due_on` are the stored days the reminder and the
+ * sheets print. Every column the engine needs, tenant-scoped like every other store read.
+ */
+export async function assetRegistersForEngine(tx: Db, tenantId: string): Promise<Row[]> {
+  return (
+    await tx.query(
+      `SELECT id, kind, machine_id, vendor, reference, starts_on::text AS starts_on,
+              ends_on::text AS ends_on, due_on::text AS due_on, lead_days, notes
+         FROM asset_register WHERE tenant_id = $1 ${ORDER}`,
+      [tenantId],
+    )
+  ).rows as Row[];
+}
+
 export const registerStore: Store = {
   async all(tx) {
     return (await tx.query(`SELECT ${ASSET_COLUMNS} FROM asset_register ${ORDER}`)).rows as Row[];
