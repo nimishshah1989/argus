@@ -211,7 +211,10 @@ function labPage(
   halfLife: number,
 ): Page {
   const periodStart = dayNumber(core.from) ?? 0;
-  const months = monthsOf(core.from, dayNumber(core.to) ?? 0);
+  const gaps = core.noRecords ?? [];
+  const months = monthsOf(core.from, dayNumber(core.to) ?? 0).filter(
+    (month) => !gaps.includes(new Date(month.start * 86_400_000).toISOString().slice(0, 7)),
+  );
   const actuals: number[] = [];
   const scores: Scores = { M0: [], M1: [], M2: [], M3: [] };
   for (const month of months) {
@@ -249,7 +252,8 @@ function labPage(
 
 /**
  * The Forecast Lab figure: the four methods backtested on the months the plant has already lived, whole against
- * the key. The drill is every production machine; a plant with no production breakdown prints no page.
+ * the key, a month the plant recorded nothing in left untested (a gap in the log is not a month without a failure).
+ * The drill is every production machine; a plant with no production breakdown prints no page.
  */
 export const forecastLabFigure: Computer = ({ data, asOf, profile }) => {
   const core = a9RiskCore(data, profile);
