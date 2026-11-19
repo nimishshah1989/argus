@@ -3,7 +3,7 @@
 - Source: `https://github.com/emilkowalski/skills`, `skills/` folder (20 skills).
 - Commit: 64eb3de, copied 2026-11-19.
 - Licence: MIT, Copyright (c) 2026 Emil Kowalski (see LICENSE beside this file and in each copied skill folder).
-- Copied unchanged into `.claude/skills/<name>/`, each with the upstream `LICENSE`: `prototype` (with `PICKER.md`),
+- Copied unchanged (except one local line in `learn-taste`, see Local changes) into `.claude/skills/<name>/`, each with the upstream `LICENSE`: `prototype` (with `PICKER.md`),
   `emil-design-eng`, `apple-design`, `break-ui` (with `CATALOG.md`), `mobile-native`, `animation-performance`,
   `review-animations` (with `STANDARDS.md`), `learn-taste`.
 - Left out (12): `animate`, `improve-animations`, `find-animation-opportunities`, `choreograph`, `remove-animations`,
