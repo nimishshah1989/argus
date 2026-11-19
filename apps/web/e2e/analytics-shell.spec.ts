@@ -54,7 +54,11 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
   await signIn(page, 'head');
   await page.goto('/analytics/today');
 
-  await page.keyboard.press('Control+k');
+  // Wait for the shell to mount so the key listener exists. A phone has no keyboard shortcut: it uses the button.
+  const search = page.getByRole('button', { name: /^Search/ });
+  await expect(search).toBeVisible();
+  if (info.project.name === 'chromium') await page.keyboard.press('Control+k');
+  else await search.click();
   const palette = page.getByRole('dialog', { name: 'Search sections and screens', exact: true });
   await expect(palette).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Type a section or screen name' })).toBeFocused();
