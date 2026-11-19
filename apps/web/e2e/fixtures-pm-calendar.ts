@@ -3,7 +3,7 @@ import { SEGMENT, TENANT, scopedId, type MachineFixture, type SeedStatement } fr
 
 /**
  * The PM calendar's fixtures (ticket 50c): three machines of its own so no other journey's tickets or plans move,
- * two plans due today (the crowded pair) and a third machine holding an open PM job and an open breakdown, both
+ * two plans due today (the crowded pair) and a third machine holding an open PM job and an open work request, both
  * for the machine page's Tasks block. Dates come from the plant's today, so the journey is not tied to a month.
  */
 
@@ -22,7 +22,7 @@ export function pmCalendarMachine(projectName: string): MachineFixture {
   return machine;
 }
 
-/** The machine whose page holds the open breakdown and PM job: its plan is the one the job suppresses. */
+/** The machine whose page holds the open work request and PM job: its plan is the one the job suppresses. */
 export function pmCalendarTaskMachine(projectName: string): MachineFixture {
   const machine = PM_CALENDAR_MACHINES[PM_CALENDAR_MACHINES.length - 1];
   if (!machine) throw new Error(`No PM task machine for ${projectName}`);
@@ -123,10 +123,10 @@ export function pmCalendarSeedStatements(): SeedStatement[] {
     ticketOf({
       machine: third,
       id: scopedId('10000000-0000-0000-0007-000000000002'),
-      ref: 'BD-PMC3',
-      kind: 'stopped',
+      ref: 'WR-PMC3B',
+      kind: 'general',
       channel: 'floor',
-      problem: 'Spindle alarm',
+      problem: 'Guard door sticks',
       reportedOn: calendarDay(-1),
       scheduledOn: null,
     }),

@@ -29,6 +29,20 @@ untouched; `pnpm precheck` and `pnpm parity` are the only checks this PR claims.
 - The page's cards, spacing and pixel sizes (`pm-calendar-parts.tsx`, `PmCalendar.tsx`, `machine-tasks.tsx`,
   `pm-calendar.css`) are hand-written, not the kit's. Ticket 87 restyles them.
 
+## What CI caught in the browser journeys (19 November 2026)
+
+- **PM close journey (49c) timed out.** The calendar's seed held an open stopped breakdown (`BD-PMC3`) in every worker's
+  plant. On a wide screen the ticket page sits beside the Open list, whose Breakdowns tab shows a "Start work" card for
+  each open breakdown, so the 49c journey's one "Start work" click matched two buttons (the card and the ticket's own).
+  The seed's third item is now an open work request (`WR-PMC3B`): it still fills the machine page's "Open tasks", and
+  it is not a breakdown, so no Start card appears in the Open list. The 49c journey is untouched.
+- **A drag landed a row away (27 instead of 20 November).** The grid was measured while the month's second fetch could
+  still grow a row. The drag now waits for the network to settle and holds the pointer until the page reports the
+  asked-for day under it, so the drop is on that day or the test fails loudly.
+- **`desk-lists` "Already reported".** That journey raises on the shared desk machine; it failed once after a
+  neighbouring journey in the same worker left the machine's breakdown open. The calendar seed does not touch that
+  machine, and the fix above removes the stray open breakdown it did add; it is watched, not separately changed.
+
 ## Prerequisites
 
 49a is merged (`e10b5bb2`): 125 `pm_plan` rows and the generated `/settings/pm-plans` screen. 49b/49c land first and

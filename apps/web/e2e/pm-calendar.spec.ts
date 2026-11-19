@@ -13,7 +13,7 @@ import {
 /**
  * 50c: the PM calendar screen. A head opens `/analytics/pm`, reads the two compliance tiles, sees the month's two
  * crowded plans, drags one to a free working day and finds it there after a reload, then opens the machine page
- * whose Tasks block lists that machine's open breakdown and PM job. An operator is refused the screen and the
+ * whose Tasks block lists that machine's open work request and PM job. An operator is refused the screen and the
  * write. The figures reply is stubbed (the established seam); the calendar, the reschedule and the ticket list are
  * the real APIs, so the drag proves the write and the reload proves it survived.
  */
@@ -95,7 +95,39 @@ const shownDay = (day: string): string => day.split('-').reverse().join('-');
 /** FullCalendar's own cell for a day; the library's class names are hashed, `[data-date]` is the stable hook. */
 const cellOf = (page: Page, day: string) => page.locator(`[data-date="${day}"]`).first();
 
+/** The day cell under a point, read from the page itself: the pointer's real target, not a measured guess. */
+const dayUnder = (page: Page, x: number, y: number): Promise<string | null> =>
+  page.evaluate(
+    ([px, py]) =>
+      document
+        .elementsFromPoint(px!, py!)
+        .find((element) => element.hasAttribute('data-date'))
+        ?.getAttribute('data-date') ?? null,
+    [x, y],
+  );
+
+/**
+ * Holds the pointer over `day`'s cell until the page itself says the pointer is on it. The month's second fetch
+ * (the six-week grid) can grow a row after the cell was measured, so one measurement may land a row away; each
+ * pass measures again, and the drop happens only on the day asked for.
+ */
+async function hoverDay(page: Page, day: string): Promise<void> {
+  for (let pass = 0; pass < 8; pass += 1) {
+    const box = await cellOf(page, day).boundingBox();
+    if (box) {
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await page.mouse.move(x, y, { steps: 10 });
+      if ((await dayUnder(page, x, y)) === day) return;
+    }
+    await page.waitForTimeout(150);
+  }
+  throw new Error(`the pointer never settled on ${day}`);
+}
+
 async function dragEvent(page: Page, code: string, day: string): Promise<void> {
+  // Both fetches of the month have landed, so no row grows under the pointer.
+  await page.waitForLoadState('networkidle');
   const event = page.getByText(code, { exact: true }).first();
   const cell = cellOf(page, day);
   // The tiles sit above the grid: on a laptop the month's last rows start below the fold.
@@ -103,15 +135,13 @@ async function dragEvent(page: Page, code: string, day: string): Promise<void> {
   await expect(event).toBeVisible();
   await expect(cell).toBeVisible();
   const from = await event.boundingBox();
-  const to = await cell.boundingBox();
-  if (!from || !to) throw new Error(`cannot drag ${code} onto ${day}: no box`);
+  if (!from) throw new Error(`cannot drag ${code} onto ${day}: no box`);
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
   // A first nudge inside the event starts FullCalendar's drag; jumping straight to the target can outrun it.
   await page.mouse.move(from.x + from.width / 2 + 20, from.y + from.height / 2 + 20, { steps: 5 });
   await page.waitForTimeout(200);
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
-  await page.waitForTimeout(100);
+  await hoverDay(page, day);
   await page.mouse.up();
 }
 
@@ -221,7 +251,7 @@ async function openTasks(page: Page, machine: { id: string; code: string }): Pro
   await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible();
   await expect(page.getByText('Open tasks', { exact: true })).toBeVisible();
   await expect(page.getByText('PM tasks', { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'BD-PMC3', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'WR-PMC3B', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'WR-PMC3', exact: true })).toBeVisible();
   await expect(page.getByText('Overdue', { exact: true })).toBeVisible();
   await expect(
@@ -267,7 +297,7 @@ test('a head drags a PM to a free day, reads the tiles and opens a machine’s T
   await test.step('a drag to a Sunday is refused with the server’s message and snaps back', () =>
     refuseSunday(page, machine, target));
   await test.step('next month opens and stays on the next month', () => nextMonth(page));
-  await test.step('the machine page lists its open breakdown and PM job under Tasks', () =>
+  await test.step('the machine page lists its open work request and PM job under Tasks', () =>
     openTasks(page, taskMachine));
 });
 
