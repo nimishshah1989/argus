@@ -232,7 +232,6 @@ describe('the A9 page', () => {
       'analytics.content.a9.hoursLabel',
       'analytics.content.a9.forecastChart',
       'analytics.content.a9.forecastCategory',
-      'analytics.forecast.nav',
     ]) {
       expect(en[key as MessageKey], key).toBeTruthy();
       expect(Object.hasOwn(gu, key), key).toBe(true);

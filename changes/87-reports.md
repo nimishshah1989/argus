@@ -1,0 +1,1 @@
+- The Monthly and Annual reports are rebuilt in the new look. The report opens with its period line, the two downloads, its two charts (they draw in once and keep "Show the numbers") and its tables, with every cell exactly as before. Monthly and Annual are now tabs in the shell's own tab row, so there is one navigation and not two.

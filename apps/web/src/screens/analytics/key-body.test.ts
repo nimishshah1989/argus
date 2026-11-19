@@ -169,6 +169,36 @@ describe('a KPI tile', () => {
   );
 
   it('prints a blank value blank, not a dash of its own', () => {
-    expect(printed('')).toContain('tabular-nums min-w-0 break-words"></dd>');
+    expect(printed('')).toMatch(/Label<\/span><\/dt><dd[^>]*><\/dd>/);
+  });
+});
+
+describe('a money table in both directions', () => {
+  const money: PageTable = {
+    title: 'Money',
+    header: ['Problem', 'Money'],
+    rows: [
+      ['A', '₹ -1.20 cr'],
+      ['B', '₹ 0'],
+      ['C', '₹ 90.00 lakh'],
+      ['D', '₹ 71,784'],
+      ['E', '—'],
+    ],
+    rowCount: 5,
+    truncated: false,
+    sortable: true,
+  };
+  const rows = money.rows.map((cells, at) => ({ at, cells }));
+  const order = (dir: 'asc' | 'desc') =>
+    tableView(
+      rows,
+      columnsOf(money, rows),
+      { sort: { column: '1', dir }, filter: '', page: 0, pageSize: 50 },
+      (row) => row.cells.join(' '),
+    ).rows.map((row) => row.cells[0]);
+
+  it('orders a negative crore, zero, a plain sum and a lakh by value, a dash last', () => {
+    expect(order('asc')).toEqual(['A', 'B', 'D', 'C', 'E']);
+    expect(order('desc')).toEqual(['C', 'D', 'B', 'A', 'E']);
   });
 });

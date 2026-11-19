@@ -4,7 +4,6 @@
  * under the 250-line catalogue cap. Every key keeps its family prefix, so the face reads one flat catalogue.
  */
 export const analyticsForecastEn = {
-  'analytics.forecast.nav': 'Forecast screens',
   'analytics.content.a9.mapChart': 'Risk map — every machine, grouped by kind',
   'analytics.content.a9.machineLabel': 'Machine',
   'analytics.content.a9.hoursLabel': 'BD hrs',

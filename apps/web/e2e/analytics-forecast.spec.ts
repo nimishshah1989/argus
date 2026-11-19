@@ -80,7 +80,10 @@ async function firstRiskMachine(page: Page): Promise<string> {
 /** A9: the key page, its 14 KPIs, the risk table and both charts drawn by the one chart kit. */
 async function openA9(page: Page): Promise<void> {
   await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_A9}`);
-  const nav = page.getByRole('navigation', { name: 'Forecast screens', exact: true });
+  const nav = page.getByRole('navigation', {
+    name: 'Screens in Reliability & forecast',
+    exact: true,
+  });
   await expect(
     nav.getByRole('link', { name: 'A9 bottleneck and forecast', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
@@ -144,7 +147,10 @@ async function openMachineDrill(page: Page): Promise<void> {
 /** The Lab: its method table, its month detail and the one line chart titled with the key's y axis. */
 async function openLab(page: Page): Promise<void> {
   await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_LAB}`);
-  const nav = page.getByRole('navigation', { name: 'Forecast screens', exact: true });
+  const nav = page.getByRole('navigation', {
+    name: 'Screens in Reliability & forecast',
+    exact: true,
+  });
   await expect(nav.getByRole('link', { name: 'Forecast Lab', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
