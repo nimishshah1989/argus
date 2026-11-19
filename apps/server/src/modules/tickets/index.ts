@@ -14,6 +14,7 @@ export {
   type PlannedTicketResult,
 } from './planned.js';
 export { runPmGenerate, type PmGenerateOptions, type PmGenerateResult } from './pm-generate.js';
+export { pmReportsForExport, type PmExportReportRow } from './repo/pm.js';
 export { startPmJobs } from './pm-jobs.js';
 export { activeTicketRefsOfPerson } from './repo/people.js';
 export { ticketAlertFacts, type AlertFacts } from './repo/alerts.js';

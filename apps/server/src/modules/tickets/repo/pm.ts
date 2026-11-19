@@ -151,3 +151,40 @@ export async function setPmScheduledOn(
   );
   return { ref: moved.ref as string, seq: moved.last_event_seq as number };
 }
+
+/** One closed PM job's stored report, as the workbook's PM Reports sheet prints it (50b, R15). */
+export interface PmExportReportRow {
+  ticketId: string;
+  machineId: string;
+  closedAt: Date;
+  /** The job's scheduled day (`task_expected_on`), when it had one. */
+  scheduledOn: string | null;
+  /** The stored `pm_report` object; its shape is the close's (`pmReportSchema`). */
+  report: unknown;
+}
+
+/**
+ * The closed PM jobs that carry a stored report (ticket 50b, R15): the live PM Reports sheet's rows, one per job.
+ * A mark-done close stores no `pm_report` and is not a report row; the machine's code is the caller's lookup so
+ * this repo never names the plant's table (boundaries).
+ */
+export async function pmReportsForExport(tx: Db, tenantId: string): Promise<PmExportReportRow[]> {
+  const rows = (
+    await tx.query(
+      `SELECT t.id, t.machine_id, t.closed_at, t.task_expected_on::text AS task_expected_on, r.pm_report
+         FROM ticket t
+         JOIN breakdown_report r ON r.tenant_id = t.tenant_id AND r.ticket_id = t.id
+        WHERE t.tenant_id = $1 AND t.raised_channel = 'pm' AND t.parent_id IS NULL
+          AND t.status = 'closed' AND r.pm_report IS NOT NULL
+        ORDER BY t.closed_at, t.id`,
+      [tenantId],
+    )
+  ).rows;
+  return rows.map((row) => ({
+    ticketId: row.id as string,
+    machineId: row.machine_id as string,
+    closedAt: new Date(row.closed_at as string | number | Date),
+    scheduledOn: (row.task_expected_on as string | null) ?? null,
+    report: row.pm_report,
+  }));
+}

@@ -36,6 +36,7 @@ export {
   listsForEngine,
   machinesForEngine,
   movesForEngine,
+  pmPlansForEngine,
   shiftsForEngine,
 } from './repo/analytics.js';
 export { settingRowStore } from './repo/setting-row.js';

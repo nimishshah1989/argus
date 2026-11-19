@@ -119,6 +119,17 @@ export interface TicketRow {
   downtimeMin: number | null;
   repairMin: number | null;
   workType: string | null;
+  /**
+   * The channel the work came in through (`raised_channel`): 46c's shared predicate reads it, so planned work is
+   * told apart from a live breakdown without a second field (ticket 50b). Optional: a fixture that predates the
+   * field reads as no channel at all.
+   */
+  raisedChannel?: string | null;
+  /**
+   * The planned job's scheduled plant date, `task_expected_on` (50 R11): a PM job's due or moved day, an
+   * inspection's target. NULL on a live breakdown; a ticket with none falls back to its reported day (R6).
+   */
+  scheduledOn?: string | null;
 }
 
 /** A follow-up job under a ticket: a ticket with a parent. */
@@ -244,6 +255,22 @@ export interface EngineSettings {
   legalRemindDays?: number;
 }
 
+/**
+ * One PM plan as the engine reads it (ticket 50b): the recurrence's target, its interval and its clock. `createdAt`
+ * is an ISO instant whose plant-local day is the anchor; `updatedAt` is how the effective plan is chosen when a
+ * machine could match more than one (the machine's own plan first, then the newest category plan, 49 R3).
+ */
+export interface PmPlanRow {
+  id: string;
+  machineId: string | null;
+  category: string | null;
+  intervalDays: number | null;
+  createdAt: string;
+  lastDoneOn: string | null;
+  active: boolean;
+  updatedAt: string;
+}
+
 export interface EngineData {
   /** The plant's IANA time zone. Every date the engines compare is a plant date, made with `plantDay`. */
   timeZone: string;
@@ -266,6 +293,11 @@ export interface EngineData {
   amc?: readonly AmcLine[];
   /** The legal test and calibration lines (ticket 44's reminder rule); empty until the register lands. */
   legal?: readonly LegalLine[];
+  /**
+   * Every PM plan of the plant, switched-off ones too (ticket 50b): the effective plan decides a PM job's tolerance
+   * and the workbook's next-due row. Optional, so a fixture with no plans reads every PM ticket at the default ±15.
+   */
+  pmPlans?: readonly PmPlanRow[];
 }
 
 /** What one figure is: a value the face prints, and the rows behind it. */

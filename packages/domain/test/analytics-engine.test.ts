@@ -83,9 +83,9 @@ describe('the figure registry', () => {
     for (const key of Object.keys(COMPUTERS)) expect(FIGURE_KEYS, key).toContain(key);
   });
 
-  it('covers a screen of every engine ticket from 38 to 45, 48 and 67', () => {
+  it('covers a screen of every engine ticket from 38 to 45, 48, 50 and 67', () => {
     const owners = new Set(FIGURES.map((figure) => figure.owner));
-    expect([...owners].sort()).toEqual([38, 39, 40, 41, 42, 43, 44, 45, 48, 67]);
+    expect([...owners].sort()).toEqual([38, 39, 40, 41, 42, 43, 44, 45, 48, 50, 67]);
   });
 });
 

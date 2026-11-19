@@ -1,5 +1,14 @@
-import type { AnalyticsProfile } from '@uptimo/shared';
-import type { EngineData, ExportData, ExportSettings } from '@uptimo/domain';
+import { pmNextDue, pmReportSchema, type AnalyticsProfile } from '@uptimo/shared';
+import {
+  effectivePmPlan,
+  plantDay,
+  type EngineData,
+  type ExportData,
+  type ExportPmPlan,
+  type ExportPmReport,
+  type ExportSettings,
+} from '@uptimo/domain';
+import type { PmExportReportRow } from '../tickets/index.js';
 
 /**
  * The workbook's input, built from what the server already loads (ticket 45, packet 45d): the engine's plant rows,
@@ -80,12 +89,71 @@ function spareCostsOf(data: EngineData): Readonly<Record<string, readonly (numbe
   return costs;
 }
 
+/**
+ * The live PM Plan sheet's rows (ticket 50, R15): one per machine's effective plan, dated by its next due. This is
+ * the product's 125 next dates, never the platform's 427 projected visits (49 R2's reduction); a plan with no
+ * interval has no next due and prints no row. A category plan answers once per machine it covers, so every row
+ * names the machine the sheet is about.
+ */
+function pmPlanRowsOf(data: EngineData): ExportPmPlan[] {
+  const rows: ExportPmPlan[] = [];
+  for (const machine of data.machines) {
+    const plan = effectivePmPlan(data.pmPlans ?? [], machine);
+    const date = plan === null ? null : pmNextDue(plan, data.timeZone);
+    if (plan === null || date === null) continue;
+    rows.push({
+      id: plan.id,
+      machineId: machine.code,
+      date,
+      source: 'plan',
+      done: plan.lastDoneOn,
+    });
+  }
+  return rows;
+}
+
+/** One closed PM job as the PM Reports sheet prints it: the stored report's own numbers, its close and plan dates. */
+function pmReportRowOf(
+  row: PmExportReportRow,
+  codes: ReadonlyMap<string, string>,
+  timeZone: string,
+): ExportPmReport | null {
+  const parsed = pmReportSchema.safeParse(row.report);
+  if (!parsed.success) return null;
+  const { total, undone, readings, comments, doneBy } = parsed.data;
+  return {
+    id: row.ticketId,
+    machineId: codes.get(row.machineId) ?? row.machineId,
+    date: plantDay(row.closedAt, timeZone),
+    planDate: row.scheduledOn,
+    total,
+    undone,
+    measurements: Object.fromEntries(
+      Object.entries(readings).map(([key, value]) => [key, String(value)]),
+    ),
+    comments: comments === null ? [] : [comments],
+    doneBy,
+    data: parsed.data,
+  };
+}
+
+/** The live PM Reports sheet's rows (50b, R15): one per closed PM job, printed from its own stored report. */
+function pmReportRowsOf(rows: readonly PmExportReportRow[], data: EngineData): ExportPmReport[] {
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
+  return rows.flatMap((row) => {
+    const report = pmReportRowOf(row, codes, data.timeZone);
+    return report === null ? [] : [report];
+  });
+}
+
 /** Everything `workbookSheets` reads, from the load the routes already make. */
 export function exportDataFor(input: {
   data: EngineData;
   profile: AnalyticsProfile;
   tenant: string;
   asOf: string;
+  /** The closed PM jobs' stored reports (50b); absent prints the PM Reports sheet's header row only. */
+  pmReports?: readonly PmExportReportRow[];
 }): ExportData {
   return {
     tenant: input.tenant,
@@ -94,5 +162,7 @@ export function exportDataFor(input: {
     data: input.data,
     settings: exportSettingsFor(input.data),
     spareCosts: spareCostsOf(input.data),
+    pmPlan: pmPlanRowsOf(input.data),
+    pmReports: pmReportRowsOf(input.pmReports ?? [], input.data),
   };
 }

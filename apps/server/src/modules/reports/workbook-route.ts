@@ -5,6 +5,7 @@ import { withTenant } from '@uptimo/db';
 import { requireAuth, tenantInfo, tenantSlugFromHost } from '../identity/index.js';
 import { actorOf, forbidden, plantToday } from '../plant/index.js';
 import { loadEngineData, readProfile } from '../analytics/index.js';
+import { pmReportsForExport } from '../tickets/index.js';
 import { exportDataFor } from './export-data.js';
 import { sendBytes, type PdfDeps } from './pdf-send.js';
 import { writeXlsx } from './xlsx.js';
@@ -40,7 +41,9 @@ async function buildWorkbook(
     const data = await loadEngineData(tx, tenantId);
     const profile = await readProfile(tx, tenantId);
     const tenant = await tenantInfo(tx, tenantId);
-    const exportData = exportDataFor({ data, profile, tenant: tenant.name, asOf });
+    // The PM sheets are the plant's own plans and closed jobs (50 R15), never the platform's frozen key.
+    const pmReports = await pmReportsForExport(tx, tenantId);
+    const exportData = exportDataFor({ data, profile, tenant: tenant.name, asOf, pmReports });
     return { asOf, bytes: writeXlsx(workbookSheets(exportData)) };
   });
 }
