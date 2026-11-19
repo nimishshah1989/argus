@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- the template's kind is a prop value, not copy */
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
@@ -9,7 +8,7 @@ import { FigureDrill } from './KeyPage.js';
 import { KeyBody, KeyKpi } from './key-body.js';
 import { contentOf } from './figure-content.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
-import { NotReady, useFiguresState } from './screen-state.js';
+import { NotReady, OVERVIEW, useFiguresState } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
 
 /** Neutral screen constants, so CI's secret scanner never reads a figure lookup as an API key. */
@@ -20,9 +19,46 @@ const SCREEN_LAB = 'forecast-lab';
 const SCREENS = [SCREEN_A9, SCREEN_LAB] as const;
 
 type Screen = (typeof SCREENS)[number];
+type Page = Extract<NonNullable<ReturnType<typeof contentOf>>, { kind: 'page' }>;
 
 function screenOf(raw: string | null): Screen {
   return SCREENS.find((screen) => screen === raw) ?? SCREEN_A9;
+}
+
+/** What sits under the title: the machine drill, the page's tables and charts, and the way to its rows. */
+function ForecastMain({
+  page,
+  figure,
+  group,
+}: {
+  page: Page | null;
+  figure: FiguresReply['figures'][number] | undefined;
+  group: AnalyticsGroup;
+}) {
+  const { t } = useTranslation();
+  const [params] = useSearchParams();
+  const drill = parseDrill(params.get('drill'));
+  return (
+    <>
+      {drill === null ? null : (
+        <div data-span="full">
+          <DrillTable group={group} drill={drill} headingLevel={3} />
+        </div>
+      )}
+      {page === null ? (
+        <div data-span="full">
+          <EmptyState title={t('analytics.notComputed')} />
+        </div>
+      ) : (
+        <KeyBody tables={page.tables} charts={page.charts} />
+      )}
+      {figure === undefined || page === null ? null : (
+        <div data-span="full">
+          <FigureDrill figure={figure} group={group} />
+        </div>
+      )}
+    </>
+  );
 }
 
 /** One screen's page whole, or the honest line when the engine has not computed it. */
@@ -36,43 +72,21 @@ function ForecastReady({
   group: AnalyticsGroup;
 }) {
   const { t } = useTranslation();
-  const [params] = useSearchParams();
   const title = t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown');
   const figure = reply.figures.find((candidate) => candidate.screen === screen);
   const content = figure?.status === 'ready' ? contentOf(figure, t) : null;
-  const drill = parseDrill(params.get('drill'));
-  const page = figure && content?.kind === 'page' ? content : null;
+  const page = content?.kind === 'page' ? content : null;
   return (
     <Template
-      title={page === null || page.title === '' ? title : page.title}
-      kind="overview"
+      title={page?.title || title}
+      kind={OVERVIEW}
       lede={t('analytics.asOf', { date: reply.asOf })}
       figures={
-        page === null || page.kpis.length === 0
-          ? undefined
-          : page.kpis.map((kpi, at) => <KeyKpi key={`${kpi.label}-${at}`} kpi={kpi} />)
+        page?.kpis.length
+          ? page.kpis.map((kpi, at) => <KeyKpi key={`${kpi.label}-${at}`} kpi={kpi} />)
+          : undefined
       }
-      main={
-        <>
-          {drill === null ? null : (
-            <div data-span="full">
-              <DrillTable group={group} drill={drill} />
-            </div>
-          )}
-          {page === null ? (
-            <div data-span="full">
-              <EmptyState title={t('analytics.notComputed')} />
-            </div>
-          ) : (
-            <KeyBody tables={page.tables} charts={page.charts} />
-          )}
-          {figure === undefined || page === null ? null : (
-            <div data-span="full">
-              <FigureDrill figure={figure} group={group} />
-            </div>
-          )}
-        </>
-      }
+      main={<ForecastMain page={page} figure={figure} group={group} />}
     />
   );
 }
@@ -94,8 +108,9 @@ export function ForecastPage({ group }: { group: AnalyticsGroup }) {
     return (
       <NotReady
         title={t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown')}
-        state={state === 'ready' ? 'loading' : state}
+        state={state}
         onRetry={() => void figures.refetch()}
+        empty={t('analytics.empty')}
       />
     );
   return <ForecastReady reply={figures.data} screen={screen} group={group} />;

@@ -1,37 +1,59 @@
-/* eslint-disable i18next/no-literal-string -- the template's kind and state are prop values, not copy */
-import { useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
-import { viewState } from '../../patterns/view-state.js';
+import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Template } from './shell/patterns/template.js';
 
-type Figures = ReturnType<typeof useAnalyticsFigures>;
+/** The part of a query a screen's state reads. */
+interface Loaded {
+  data: unknown;
+  error: unknown;
+}
+
+/** What a key screen shows: its page, or the state line in its place. */
+export type ScreenState = ViewState;
+
+export const OVERVIEW = 'overview' as const;
+export const LOADING = 'loading' as const;
 
 /**
- * The frame of an analytics screen with the state line in place of its content: loading, offline, or the error
- * with Retry. Every key screen asks `useFiguresState` first and draws this when the figures are not there.
+ * The frame of an analytics screen with the state line in place of its content: loading, offline, the error with
+ * Retry, or the screen's own words for "nothing here" (`empty`). A screen that is `ready` has nothing to show yet,
+ * so it reads as loading.
  */
 export function NotReady({
   title,
   state,
   onRetry,
+  empty = '',
 }: {
   title: string;
-  state: 'loading' | 'offline' | 'error';
+  state: ScreenState;
   onRetry: () => void;
+  empty?: string;
 }) {
   if (state === 'error')
-    return <Template title={title} kind="overview" state="error" onRetry={onRetry} main={null} />;
-  return <Template title={title} kind="overview" state={state} main={null} />;
+    return <Template title={title} kind={OVERVIEW} state={state} onRetry={onRetry} main={null} />;
+  if (state === 'empty')
+    return <Template title={title} kind={OVERVIEW} state={state} empty={empty} main={null} />;
+  return (
+    <Template
+      title={title}
+      kind={OVERVIEW}
+      state={state === 'offline' ? state : LOADING}
+      main={null}
+    />
+  );
 }
 
-/** The figures reply as a screen sees it: either ready, or the state to show in its place. */
-export function useFiguresState(figures: Figures): 'ready' | 'loading' | 'offline' | 'error' {
+/**
+ * A query as a screen sees it: ready, or the state to show in its place. `isEmpty` is true when the query answered
+ * with nothing to draw, and that stays `empty` and is never read as still loading.
+ */
+export function useFiguresState(figures: Loaded, isEmpty = false): ScreenState {
   const online = useOnline();
-  const state = viewState({
+  return viewState({
     online,
     hasData: figures.data !== undefined,
-    isEmpty: false,
+    isEmpty,
     error: figures.error,
   });
-  return state === 'ready' || state === 'error' || state === 'offline' ? state : 'loading';
 }
