@@ -125,3 +125,61 @@ file(s) checked by prettier, 13 checks passed`.
 6. **Plant-wide spares.** 215 reports carry a spare field (236 fields, 205 spellings, 30 "No" and 1 "Yes"); the rule
    leaves a listed part on 181 reports across 67 machines, and 58 production machines list none. The plan's 78 and
    47 count every raw field, the 31 No/Yes included; the test pins both readings.
+
+## Packet 67b — the reliability rows in kpi_snapshot
+
+**What changed.** `apps/server/src/modules/analytics/snapshot.ts` now writes ticket 67's per-subject rows in the
+existing run. 48 R15's one exported helper gains one clause — `key === 'reliability'` — so `reliability` is
+`standard` beside `shift-kpis.*` and 50's `pm-compliance`, and no second mapping exists. `save` generates one run id
+in the writer (`randomUUID()`) and passes it to two statements: the plant rows (every ready figure **except**
+`reliability`, each with its own `profileOfKey`) and one `jsonb_to_recordset` insert of the figure's machine and
+category rows (`key 'reliability'`, profile from the same helper, `subject_kind` `machine`/`category`, `subject_key`
+the machine id or the trimmed category label, `period_start` the value's `windowStart`, `period_end = as_of =
+result.asOf`, value = that subject's own block or fit). There is **no** plant row for `reliability`; a same-day
+re-run replaces the rows through the table's unique key and a next day starts a series. A category label the schema
+cannot hold (over 80 characters) writes no category row while the machines' rows still land (R12). The seeded
+`analytics-engine` assertion is now stricter: one plant row per computed figure except `reliability`, every plant row
+a plant subject, the reliability rows machine/category only, and all of a batch's rows one `run_id`.
+`docs/DATA-MAP.md`'s `kpi_snapshot` row says the same. No new table, column, migration, dependency, job or route; the
+tenant transaction and RLS are the existing ones.
+
+**What it proves.** The new store test writes 125 machine rows and 10 category rows beside one plant row (135
+reliability rows, 136 in the day), with no `reliability` plant row, one run id, `profile 'standard'` on every subject
+row, `period_start '2026-01-01'` and `period_end = as_of '2026-11-11'`, and each value equal to that subject's own
+block or fit. A changed block on the same day replaces the same 5 rows (count unchanged, run id moved), the next day
+adds its five; an 81-character category label writes no category row. Through `POST /analytics/run` on the seeded
+plant, every computed figure except `reliability` keeps one plant row, the reliability rows are exactly the figure's
+machine/category subjects (M_USED one `insufficient` block with `ownEvents: 1` and no category row), every row of the
+batch shares one run id, a `GET` writes nothing, and tenant B's rows are untouched. The helper returns `standard` for
+`shift-kpis.compare`, `pm-compliance` and `reliability`, and `legacy` for `dashboard.total-machines`, so 67 cannot
+reclassify 50's row.
+
+**Evidence.**
+
+- **Red.** `pnpm exec vitest run apps/server/test/analytics-reliability-store.test.ts` → `Test Files 1 failed (1)`,
+  `Tests 4 failed (4)`: the store wrote `reliability` as a plant row (one row, not 135) and
+  `profileOfKey('reliability')` was `legacy`. `apps/server/test/analytics-engine.test.ts` → `1 failed | 18 passed
+(19)`: the plant-row list had `reliability` twice (the plant row plus a machine row), so the old assertion could no
+  longer hold.
+- **Green.** The same store test: `4 passed (4)`. The moved assertion: `19 passed (19)`.
+  `pnpm exec vitest run packages/domain/test apps/server/test` → `Test Files 194 passed (194)`,
+  `Tests 2237 passed (2237)`. `pnpm boundaries` → `234 files scanned, 0 problem(s)`. `pnpm precheck` →
+  `OK — 5 file(s) checked by prettier, 13 checks passed`.
+- **Lines.** `snapshot.ts` 119 (was 41), `analytics-reliability-store.test.ts` 287 (new),
+  `analytics-engine.test.ts` 633; all under the 400-line file cap, `save` well under 60 lines.
+
+**Deviations from the plan, each with its evidence.**
+
+1. **The owner pin was already moved by the merged 67a.** `packages/domain/test/analytics-engine.test.ts` on this
+   branch already has the bound `67` and the set `[38, 39, 40, 41, 42, 43, 44, 45, 48, 67]`; 50b has not merged
+   (`pm-compliance` is not in `FIGURES` here), so 67b keeps the landed set untouched rather than inventing 50's
+   entry, as the packet allows.
+2. **The batch's `run_id` is generated in the writer.** The plant statement used to generate it inline
+   (`gen_random_uuid()`); two statements cannot share an inline id, so `save` generates it once with `randomUUID()`
+   and passes it to both inserts — the plan's "one `run_id` generated in the writer and passed to both inserts".
+3. **The 125 + 10 store test uses an `EngineResult` of that size**, because the server fixture DB has no
+   answer-key fleet to run the engine over; the real 125 machines / 10 fit-ready categories over the key are 67a's
+   domain proof. The scaled value exercises exactly the store's expansion, counts and values.
+4. **The 80-character guard is in the store, not the schema.** `kpi_snapshot.subject_key` already caps at 80; the
+   writer drops an over-long category label before the insert (R12) so one renamed category cannot fail the whole
+   run's transaction. The test pins the drop and the surviving machine rows.

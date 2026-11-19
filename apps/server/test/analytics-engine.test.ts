@@ -494,8 +494,26 @@ describe('running and storing through HTTP, and the drill-down', () => {
       ).toBe(true);
     }
     const after = await snapshots(A);
-    // The run keeps one row per ready figure; the seeded row of the same day and key is replaced, not added.
-    expect(after.map((row) => row.key).sort()).toEqual(Object.keys(COMPUTERS).sort());
+    // One plant row per computed figure except 67's `reliability`, whose rows are one per machine or category and
+    // never a plant row; the seeded row of the same day and key is replaced, not added. One batch covers both.
+    const plantRows = after.filter((row) => row.key !== 'reliability');
+    expect(plantRows.map((row) => row.key).sort()).toEqual(
+      Object.keys(COMPUTERS)
+        .filter((key) => key !== 'reliability')
+        .sort(),
+    );
+    expect(plantRows.every((row) => row.subject_kind === 'plant' && row.subject_key === '')).toBe(
+      true,
+    );
+    const reliabilityRows = after.filter((row) => row.key === 'reliability');
+    expect(reliabilityRows.length).toBeGreaterThan(0);
+    expect(
+      reliabilityRows.every(
+        (row) => row.subject_kind === 'machine' || row.subject_kind === 'category',
+      ),
+    ).toBe(true);
+    expect(reliabilityRows.some((row) => row.subject_kind === 'plant')).toBe(false);
+    expect(new Set(after.map((row) => row.run_id)).size).toBe(1);
     expect(after.find((row) => row.key === 'dashboard.total-machines')).toMatchObject({
       id: seeded,
       value: 2,
