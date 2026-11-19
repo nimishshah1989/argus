@@ -24,7 +24,7 @@ function JobStatus({ ticket }: { ticket: Ticket }) {
 /** One PM job: the machine, its reference, the plan's title and where the job stands. */
 function PmJob({ data, ticket }: { data: FloorData; ticket: Ticket }) {
   return (
-    <Link to={`/desk/${ticket.id}`} className="block">
+    <Link to={`/desk/${ticket.id}`}>
       <MachineCard
         code={machineLabel(ticket, data.config.machines)}
         detail={ticket.ref}
