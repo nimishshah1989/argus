@@ -29,6 +29,6 @@ export type RampStep = (typeof RAMP_STEPS)[number];
  * of 240. Nothing (zero or less) is step 0, no colour.
  */
 export function familyStep(value: number, max: number): 0 | RampStep {
-  if (value <= 0 || max <= 0) return 0;
+  if (!Number.isFinite(value) || !Number.isFinite(max) || value <= 0 || max <= 0) return 0;
   return Math.min(5, Math.max(1, Math.ceil(Math.sqrt(value / max) * 5))) as RampStep;
 }

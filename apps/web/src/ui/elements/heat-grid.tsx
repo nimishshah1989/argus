@@ -15,7 +15,7 @@ const LEVELS = [
 
 /** Which of the three depths a value falls in, by thirds of the range; a flat grid is the lightest. */
 export function heatLevel(value: number, min: number, max: number): 0 | 1 | 2 {
-  if (max === min) return 0;
+  if (!Number.isFinite(value) || max === min) return 0;
   const share = (value - min) / (max - min);
   return share < 1 / 3 ? 0 : share < 2 / 3 ? 1 : 2;
 }
@@ -41,7 +41,7 @@ export function HeatGrid({
   family?: Family;
 }) {
   if (rows.length === 0 || columns.length === 0) return null;
-  const present = values.flat().filter((v): v is number => v !== undefined);
+  const present = values.flat().filter((v): v is number => v !== undefined && Number.isFinite(v));
   const min = Math.min(...present);
   const max = Math.max(...present);
   return (
@@ -104,7 +104,8 @@ function HeatRow({
       </th>
       {columns.map((column, c) => {
         const value = values[c];
-        const level = value === undefined ? null : levelOf(value, { min, max, family, mostValue });
+        const missing = value === undefined || !Number.isFinite(value);
+        const level = missing ? null : levelOf(value, { min, max, family, mostValue });
         return (
           <td
             key={column}
@@ -118,7 +119,7 @@ function HeatRow({
               level ? level.ink : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            {value === undefined ? '—' : format(value)}
+            {missing ? '—' : format(value)}
           </td>
         );
       })}

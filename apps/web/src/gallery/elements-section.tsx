@@ -275,7 +275,9 @@ const FAMILIES = [
 /** Identity families: a tile and a heat grid in each family's colour; the tone is still said by the chip and the change. */
 function Families({ worst }: { worst: boolean }) {
   const { t } = useTranslation('gallery');
-  const [open, setOpen] = useState<string>();
+  // The panel keeps its family while it slides out (200 ms), so it does not lose its title or edge on the way.
+  const [open, setOpen] = useState(false);
+  const [family, setFamily] = useState<string>();
   const rows = worst ? [] : ['Cell 1', 'Cell 2', 'Cell 3'];
   return (
     <Part id="family" title={t('elements.family')}>
@@ -289,7 +291,10 @@ function Families({ worst }: { worst: boolean }) {
             format={f.fmt}
             change={{ measure: f.measure, delta: f.delta }}
             trend={{ values: [4, 6, 5, 8, 7, 9], label: `${f.label}, last 6 months` }}
-            onOpen={() => setOpen(f.family)}
+            onOpen={() => {
+              setFamily(f.family);
+              setOpen(true);
+            }}
           />
         ))}
       </Grid>
@@ -302,11 +307,11 @@ function Families({ worst }: { worst: boolean }) {
         format={hours}
       />
       <DrillPanel
-        open={open !== undefined}
-        onClose={() => setOpen(undefined)}
-        title={FAMILIES.find((f) => f.family === open)?.label ?? ''}
+        open={open}
+        onClose={() => setOpen(false)}
+        title={FAMILIES.find((f) => f.family === family)?.label ?? ''}
         closeLabel="Close"
-        family={open}
+        family={family}
       >
         <p>What this figure is, and how it is worked out.</p>
       </DrillPanel>

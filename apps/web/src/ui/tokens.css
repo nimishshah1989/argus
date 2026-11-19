@@ -184,8 +184,10 @@
   --color-family-planned-ink: var(--color-accent-text);
   --color-family-planned-tint: var(--color-accent-tint);
 
-  /* Family ramps (ticket 83c): five steps from the card's surface toward the family's fill (the mix the showcase heat
-     map made from raw hex), each with the ink that reads on it. Ink is black or white, whichever reaches 4.5:1
+  /* Family ramps (ticket 83c): five steps from the card's surface toward the family's fill, mixed in the same shares
+     (14, 32, 52, 72 and 92 %) as the showcase heat map but from this kit's own surface (#ffffff light, #1c1c1e dark: the
+     showcase mixed its dark steps from its own #171a1f, so its dark squares will shift slightly when it moves onto
+     these), each with the ink that reads on it. Ink is black or white, whichever reaches 4.5:1
      (tokens.test checks every step, light and dark). A heat grid of one family picks a step by the square root of
      its share, so 20 hours still shows beside 240. */
   --color-ramp-ink-dark: #000000;

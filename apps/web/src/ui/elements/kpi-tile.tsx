@@ -1,3 +1,4 @@
+import { ChevronRight } from '../icon.js';
 import { toneOfChange, type Measure, type Tone4 } from '../meaning/index.js';
 import { FAMILY_EDGE, type Family } from './family.js';
 import { useCountUp } from './motion.js';
@@ -58,7 +59,11 @@ export function KpiTile(props: KpiTileProps) {
   return props.onOpen ? <KpiButton {...shownProps} /> : <KpiPlain {...shownProps} />;
 }
 
-/** The tile that opens an explanation: one button, its parts as phrasing content. */
+/**
+ * The tile that opens an explanation: one button, its parts as phrasing content. A chevron at the top right marks that
+ * a tap goes somewhere, and the tile darkens while pressed.  Its name is its own text (an `aria-label` that left out the change would break
+ * label-in-name, WCAG 2.5.3); the figure counts up, so a screen reader may hear it settle.
+ */
 function KpiButton(p: Shown) {
   return (
     <button
@@ -67,9 +72,12 @@ function KpiButton(p: Shown) {
       data-family={p.family}
       aria-haspopup="dialog"
       onClick={p.onOpen}
-      className={`${p.frame} min-h-target-min w-full text-left`}
+      className={`${p.frame} min-h-target-min w-full text-left transition-colors duration-(--motion-fast) active:bg-neutral-200`}
     >
-      <span className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</span>
+      <span className="flex items-start justify-between gap-2">
+        <span className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</span>
+        <ChevronRight aria-hidden size={16} className="mt-0.5 shrink-0 text-neutral-600" />
+      </span>
       <span className={`text-title2 font-bold tabular-nums ${WRAP}`}>{p.figure}</span>
       {p.verdict ? (
         <span>

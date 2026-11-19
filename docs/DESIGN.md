@@ -328,8 +328,10 @@ Anatomy, states and sizes per tier are written here as each element is built; wh
 - **Anatomy.** A translated label, the value with its unit, a trend delta, and the mark that says where a tap drills.
   The tile is a card (level 1) and a tap on it goes to its drill target, so it is at least 44 px high.
 - **Value size.** 28, 32 or 40 px, as the pick decides (not known yet). On the TV it takes one of the six TV sizes.
-- **Tone.** The delta and any edge take their tone from the direction of good. One critical fill per card, and a fill
-  never carries text.
+- **Tone.** The delta takes its tone from the direction of good, and so does the edge unless the tile has a family:
+  then the edge and the trend line are the family's identity colour and the delta and chip keep the tone. One critical
+  fill per card, and a fill never carries text. A tile that drills shows a chevron at its top right and darkens while
+  pressed.
 - **Tier.** Phone: 2 tiles a row. Laptop: 4 to 6. TV: scoreboard tiles, no money.
 - **States.** Ready, empty, loading, error and offline, as below. A missing value prints "—", never 0.
 
@@ -398,7 +400,11 @@ all other motion runs once and is purposeful. Reduced motion switches all of it 
   `family` (availability, downtime, repairs, planned), the tile's edge and trend line wear the family's identity
   colour instead (`--color-family-*`); a family says what a figure is, never whether it is good, so it never replaces
   the tone's icon and word. A heat grid of one family shades in that family's five-step ramp
-  (`--color-family-<name>-ramp-1..5`, ink 4.5:1, checked by `tokens.test.ts`).
+  (`--color-family-<name>-ramp-1..5`, ink 4.5:1, checked by `tokens.test.ts`). The family hues are an exempt identity
+  palette (Colors bans status hues for chart series; these are not series) used only as a 4 px edge, a sparkline
+  stroke, a panel's top edge and a heat ramp. Repairs shares the info blue with Transferred and downtime sits near the
+  red and amber bands, so a family colour is never read as a status: it never appears without the figure's own
+  label, and a status is always an icon and a word (Transferred is a chip with the word), never an edge colour alone.
 
 ### Numbers
 

@@ -288,7 +288,6 @@ describe('named tokens of ticket 81', () => {
 describe('family ramps (ticket 83c)', () => {
   const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
   const { light, dark } = readTokens(css);
-  const FAMILIES = ['availability', 'downtime', 'repairs', 'planned'];
 
   for (const [name, tokens] of [
     ['light', light],
@@ -307,16 +306,20 @@ describe('family ramps (ticket 83c)', () => {
       expect(errors).toEqual([]);
     });
 
-    it(`runs each family's ramp from the surface toward its fill, step by step, in ${name}`, () => {
-      for (const family of FAMILIES) {
-        const surface = colour(tokens, 'color-surface');
-        const fill = colour(tokens, `color-family-${family}-ramp-5`);
-        const steps = [1, 2, 3, 4, 5].map((n) =>
-          ratio(colour(tokens, `color-family-${family}-ramp-${n}`), surface),
+    it(`runs each family's ramp from the surface toward its fill, nearer at every step, in ${name}`, () => {
+      const dist = (a: string, b: string) =>
+        Math.hypot(
+          ...[1, 3, 5].map(
+            (i) => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16),
+          ),
         );
-        expect(steps, family).toEqual([...steps].sort((a, b) => a - b));
-        expect(steps[0], family).toBeLessThan(steps[4]!);
-        expect(fill).toMatch(/^#[0-9a-f]{6}$/);
+      for (const family of FAMILIES) {
+        const fill = colour(tokens, `color-family-${family}`);
+        const away = [1, 2, 3, 4, 5].map((n) =>
+          dist(colour(tokens, `color-family-${family}-ramp-${n}`), fill),
+        );
+        expect(away, family).toEqual([...away].sort((x, y) => y - x));
+        expect(away[4], family).toBeLessThan(away[0]! / 5);
       }
     });
   }
