@@ -1,0 +1,1 @@
+- Repeat reads of the analytics figures after a run finishes are served from the kept copy instead of running the engine again; readers that arrive during a run wait for it. The engine runs again after any change to the plant's data, settings or build.
