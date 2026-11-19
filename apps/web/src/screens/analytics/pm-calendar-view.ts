@@ -93,6 +93,13 @@ export function monthRange(day: string): { from: string; to: string } {
   return { from: first, to: last };
 }
 
+/** The month the grid shows (YYYY-MM): day 21 of a six-week grid is always inside it, the edge days belong to its neighbours. */
+export function shownMonth(range: { from: string }): string {
+  return new Date(Date.parse(`${range.from}T00:00:00Z`) + 20 * 86_400_000)
+    .toISOString()
+    .slice(0, 7);
+}
+
 /** The grid's inclusive range: FullCalendar's `end` is exclusive, the API's `to` is inclusive. */
 export function gridRange(start: string, endExclusive: string): { from: string; to: string } {
   const end = new Date(Date.parse(`${endExclusive.slice(0, 10)}T00:00:00Z`) - 86_400_000);

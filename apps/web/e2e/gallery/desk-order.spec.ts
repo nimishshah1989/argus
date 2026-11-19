@@ -140,3 +140,14 @@ for (const scheme of ['light', 'dark'] as const) {
     });
   });
 }
+
+test('a technician session acts as the technician: Mine lists their own job only', async ({
+  page,
+}) => {
+  await page.setViewportSize(PHONE);
+  await mockDesk(page, 'technician');
+  await page.goto('/desk/mine');
+  await expect(page.getByRole('heading', { name: 'My tickets', level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^CNC-02\s*T-F1/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^DRL-04\s*T-B1/ })).toHaveCount(0);
+});

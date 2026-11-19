@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { addDays } from '@uptimo/shared';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { apiFetch, apiLogin, signIn } from './fixtures.js';
@@ -300,6 +301,83 @@ test('a head drags a PM to a free day, reads the tiles and opens a machine’s T
   await test.step('next month opens and stays on the next month', () => nextMonth(page));
   await test.step('the machine page lists its open work request and PM job under Tasks', () =>
     openTasks(page, taskMachine));
+});
+
+/** The first Monday-Saturday after `day`: a day the server accepts. */
+function workingDayAfter(day: string): string {
+  let next = addDays(day, 1);
+  while (new Date(`${next}T00:00:00Z`).getUTCDay() === 0) next = addDays(next, 1);
+  return next;
+}
+
+/** Types a day into the focused native date field, in the order the browser's own locale lays its parts out. */
+async function typeDay(page: Page, day: string): Promise<void> {
+  const order = await page.evaluate(() =>
+    new Intl.DateTimeFormat(navigator.language)
+      .formatToParts(new Date(2000, 10, 22))
+      .map((part) => part.type)
+      .filter((type) => type === 'day' || type === 'month' || type === 'year'),
+  );
+  const [year, month, date] = day.split('-') as [string, string, string];
+  const parts: Record<string, string> = { year, month, day: date };
+  for (const type of order) await page.keyboard.type(parts[type] ?? '');
+}
+
+/**
+ * The calendar's drag has no keyboard, so every movable job is also listed with "Move to date" (ticket 87). The write
+ * is answered by the test (`page.route`), never by the server: a real keyboard move would create a PM ticket for a
+ * machine other specs use (pm-plans, desk-lists count open tickets), and a retry would add another. The real write is
+ * covered by the drag test above; this journey proves the keyboard path: the request it sends, the sheet closing, the
+ * status line and focus coming back to the job's button. The same 409 "day full" exposure as the drag test does not
+ * arise, since the server is not asked.
+ */
+test('a head moves a PM job to a date with the keyboard alone', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'chromium')
+    await page.setViewportSize({ width: 1440, height: 900 });
+  const machine = pmCalendarMachine(testInfo.project.name);
+  const target = workingDayAfter(nextWorkingDay());
+  const sent: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/pm/reschedule', async (route) => {
+    sent.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({
+      json: {
+        ticketId: '30000000-0000-4000-8000-000000000001',
+        ref: 'PM-KBD',
+        scheduledOn: target,
+        created: false,
+      },
+    });
+  });
+  await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
+  await signIn(page, 'head');
+  await page.goto('/analytics/pm');
+  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
+  const open = page.getByRole('button', { name: `Move to date, ${machine.code}` });
+  // The job sits on today or, when the drag test ran first, on the next working day: that may be next month.
+  await expect(page.getByRole('heading', { name: 'Jobs this month' })).toBeVisible();
+  if (!(await open.isVisible())) {
+    await page.getByRole('button', { name: /next/i }).click();
+    await expect(open).toBeVisible();
+  }
+  await open.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  const field = dialog.getByLabel('New date');
+  for (let tab = 0; tab < 3; tab += 1) {
+    if (await field.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(field).toBeFocused();
+  await typeDay(page, target);
+  await page.keyboard.press('Enter');
+  await expect(dialog).toHaveCount(0);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]).toMatchObject({ machineId: machine.id, scheduledOn: target });
+  await expect(
+    page.getByRole('status').filter({ hasText: `moved to ${shownDay(target)}` }),
+  ).toBeVisible();
+  await expect(open).toBeFocused();
 });
 
 test('an operator is refused the PM calendar and the move', async ({ page }, testInfo) => {

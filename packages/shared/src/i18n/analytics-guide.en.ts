@@ -5,6 +5,7 @@
  * flat catalogue. The wording is ours; the headings are the key's, verbatim, and the coverage test keeps them so.
  */
 export const analyticsGuideEn = {
+  'analytics.guide.heading': 'The rule behind every figure',
   'analytics.guide.contents': 'Contents',
   'analytics.guide.openFigure': 'Open this figure',
   'analytics.guide.notBuilt':
