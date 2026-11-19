@@ -121,7 +121,7 @@ export function availableByCell(
     const from = purchased !== null && purchased > window.from ? purchased : window.from;
     if (from > window.to) return total;
     const share = cellFrac(machine, moves, { from, to: window.to }, cell);
-    return total + window.annualHours * periodFraction(from, window.to) * share;
+    return total + window.annualHours * periodFraction(from, window.to, window.noRecords) * share;
   }, 0);
 }
 

@@ -192,7 +192,7 @@ export function observedDays(
 ): number {
   const start = purchasedOn != null && purchasedOn > from ? purchasedOn : from;
   let days = daysInclusive(start, to);
-  for (const key of period.noRecords ?? []) {
+  for (const key of new Set(period.noRecords)) {
     const [year, month] = key.split('-').map(Number) as [number, number];
     const monthStart = plantDate(year, month, 1);
     const monthEnd = plantDate(year, month, daysInMonth(year, month));

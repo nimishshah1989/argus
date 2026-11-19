@@ -5,9 +5,11 @@ import {
   monthLabel,
   observedDays,
   yearLabel,
+  type PeriodMonth,
   yearToDate,
   type Period,
 } from '../src/analytics/availability.js';
+import { availableByCell, availableHoursFor, type HoursWindow } from '../src/analytics/hours.js';
 import type { EngineData } from '../src/index.js';
 import { MANY_YEARS } from './many-years/fixture.js';
 import { AS_OF_ENGINE, HAND, NO_RECORDS, SPAN_KEYS, type SpanKey } from './many-years/hand.js';
@@ -140,9 +142,11 @@ describe('labels', () => {
     expect(SPAN_KEYS.map((key) => yearLabel(period(key)))).toEqual(['2025', '2026', '2025–2026']);
   });
 
-  it('prints a month with no records as the words, never a zero', () => {
-    expect(NO_RECORDS).toBe('no records');
-    expect(HAND['2025'].a1PlantBdPct['2025-07']).toBe(NO_RECORDS);
+  it('marks July 2025 as the no-records month the figures print as words, never a zero', () => {
+    const july = calendarMonths(period('both')).find((month) => month.key === '2025-07');
+    expect(july?.state).toBe('no-records');
+    expect(HAND.both.a1PlantBdPct[july?.key ?? '']).toBe(NO_RECORDS);
+    expect(monthLabel(july as PeriodMonth, period('both'))).toBe('Jul 25');
   });
 });
 
@@ -158,6 +162,18 @@ describe('observedDays', () => {
   it('counts a machine from its purchase date: VC-2, bought 1 January 2026, observes 354 days', () => {
     expect(observedDays('2025-01-05', '2026-12-20', period('both'), '2026-01-01')).toBe(354);
     expect(observedDays('2025-01-05', '2026-12-20', period('both'), null)).toBe(684);
+  });
+
+  it('takes out only the part of a no-records month that lies inside the days counted', () => {
+    const july = { from: '2025-01-01', to: '2025-12-31', noRecords: ['2025-07'] };
+    // 5 January to 10 July is 187 days; the 10 days of July in them come out.
+    expect(observedDays('2025-01-05', '2025-07-10', july)).toBe(177);
+    expect(observedDays('2025-07-20', '2025-12-20', july)).toBe(154 - 12);
+  });
+
+  it('takes a month named twice out once', () => {
+    const twice = { from: '2025-01-01', to: '2025-12-31', noRecords: ['2025-07', '2025-07'] };
+    expect(observedDays('2025-01-05', '2025-12-20', twice)).toBe(319);
   });
 
   it('leaves the days alone when the span names no gap month', () => {
@@ -194,5 +210,25 @@ describe('historyOf', () => {
   it('falls back to the year so far when the plant holds no record', () => {
     const empty: EngineData = { ...MANY_YEARS, reports: [], tickets: [], tasks: [] };
     expect(historyOf(empty, '2026-11-11')).toEqual(yearToDate('2026-11-11'));
+  });
+});
+
+describe('a window that carries a no-records month', () => {
+  const annualHours = 6_000;
+  const window: HoursWindow = { ...period('both'), annualHours };
+
+  it('gives a cell the hours of its machines, the gap month left out', () => {
+    const cell = (name: string): number => availableByCell(MANY_YEARS.machines, [], window, name);
+    // Cell 1 holds TC-1 and VC-1 (23 months each), cell 2 TC-2 (23 months) and VC-2 (12 months), 500 hours a month.
+    expect(cell('1')).toBe(2 * 23 * 500);
+    expect(cell('2')).toBe((23 + 12) * 500);
+    expect(cell('1') + cell('2')).toBe(
+      MANY_YEARS.machines.reduce((sum, row) => sum + availableHoursFor(row, window), 0),
+    );
+  });
+
+  it('is unchanged when the window names no gap month', () => {
+    const plain: HoursWindow = { from: '2025-01-01', to: '2025-12-31', annualHours };
+    expect(availableByCell(MANY_YEARS.machines, [], plain, '1')).toBe(2 * 12 * 500);
   });
 });
