@@ -101,4 +101,5 @@ export const analyticsMachinesEn = {
   'analytics.machine.field.assetCode': 'Asset code',
   'analytics.machine.field.cell': 'Cell',
   'analytics.machine.field.location': 'Location',
+  'analytics.figure.reliability': 'Reliability and critical spares',
 };

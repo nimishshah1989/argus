@@ -65,3 +65,63 @@ column, no schema change) when the gate wants uncertainty (R7). (2) The KM curve
 rather than stored (R8). (3) The daily `kpi_snapshot` series and its 90-day purge remain 37d's (R12; the run route is
 the only writer today, as for 48's figures). (4) A category id instead of the category label as the stored subject key
 (R12). (5) A first-failure interval for a machine purchased inside the window (R3).
+
+## Packet 67a — the reliability maths and the critical spares
+
+**What changed.** `packages/domain/src/analytics/reliability.ts` reads 48's `failureEvents` as one event a failure
+date, clocks it in 48's month-spread `workingHoursFor` hours, and builds the machine block (own fit, category
+fallback, "not enough history", `no_basis`) plus one pooled fit per fit-ready category;
+`packages/domain/src/analytics/reliability-maths.ts` holds the estimators (Lanczos Γ, the profile-likelihood
+golden-section, the product-limit, the Crow-AMSAA MLE); `critical-spares.ts` reads `spareNames`, keys part names
+with their digits kept, and ranks uses then downtime, top five, no cost. The registry gains one figure,
+`reliability`, on the machine-page screen (owner 67, drill `machine`), the machine page is not yet redrawn (packet
+3), and both catalogues gain its label. No new table, column, migration, setting, route or dependency; no runtime
+export joins the domain root; no chart and no `analytics.en.ts` key.
+
+**What it proves.** Every reference number in the plan, recomputed from the fixture through 48's own two functions:
+HMC-2 `k 0.879204344`, `λ 107.012214493`, mean `114.085658462` on 43 events / 42 intervals / 70 censored hours,
+its KM quartiles `18.75 / 51.370968 / 135.483871` and its `β 1.734918780` "worsening"; the same 42 intervals with
+the tail dropped `k 0.872804221`, `λ 104.576012925`; TC-17 `k 0.612598299`, `λ 373.227247135` with the 857.5-hour
+tail, its hand-checked KM steps `0.8 / 0.6 / 0.4 / 0.2`, and `β 3.390578197` "no clear trend"; the Turning Center
+pool `k 0.812341247`, `λ 493.425375085`, `260 / 225 / 35`, KM `101.612903 / 274.354839 / 701.129032` and
+`β 1.114657295`; Vertical and Horizontal Machining Center beside it; the coverage `83` own fits / `36` category
+fallbacks / `6` "not enough history" over 125 machines and 10 fit-ready categories; the 1,185 events from 1,279
+reports (94 same-date repeats on 46 machines); WJ-01's five-row spares list (`total 15`), HMC-2's four parts with
+the two `NO DT` zeros in key order, and TC-17's three.
+
+**Evidence.**
+
+- **Red.** `pnpm exec vitest run packages/domain/test/reliability.test.ts packages/domain/test/critical-spares.test.ts
+packages/domain/test/analytics-engine.test.ts` → `Cannot find module '../src/analytics/reliability.js'` and
+  `.../critical-spares.js`, `2 failed | 1 passed`, 80 tests. With the figure registered and the owner pin untouched,
+  `analytics-engine.test.ts` → `2 failed | 81 passed`: `expected 67 to be less than or equal to 48` and the owner set
+  missing 67.
+- **Green.** The same three files: `Test Files 3 passed (3)`, `Tests 120 passed (120)`. Then
+  `pnpm exec vitest run packages/domain/test packages/shared/test` → `53 passed`, `596 passed`;
+  `apps/web/src/screens/analytics` → `13 passed`, `125 passed`; `apps/server/test` → `140 passed`, `1621 passed`;
+  `pnpm boundaries` → `228 files scanned, 0 problem(s)`; `pnpm typecheck` → clean; `pnpm precheck` → `OK — 14
+file(s) checked by prettier, 13 checks passed`.
+- **Lines.** `reliability.ts` 295 (296 by `pnpm size`, under the hard 400 and over the soft 250 like the rest of
+  the analytics folder), `reliability-maths.ts` 176, `critical-spares.ts` 156; `reliability.test.ts`,
+  `critical-spares.test.ts` and `reliability-expected.ts` hold the pinned arithmetic and its comments.
+
+**Deviations from the plan, each with its evidence.**
+
+1. **HMC-2's median is 51.370968, not 52.5.** The plan's own step line has `S = 0.418604651 at 52.5 h`, and the
+   survival is already below a half at 51.370968 (`0.511627907` at 50.806452, then `0.488372093`). Under the rule
+   the plan states — "the first step time with S ≤ 0.5" — the median is 51.370968, and the test pins those three
+   steps so the arithmetic is visible. TC-17's and the category's quartiles match the plan exactly.
+2. **The MLE tolerance is 1e-6 on the shape and 2e-8 relative on the scale and mean.** The plan's two independent
+   solvers spread by 5.8e-6 on the 322-hour Vertical Machining Center scale (its printed `λ 322.381876700` is the
+   score-equation root; the golden-section fit gives `322.381870904`), so a 1e-6 absolute pin cannot hold on the
+   scale. The shape stays at 1e-6 and every printed number is inside the relative pin.
+3. **The maths lives in `reliability-maths.ts` (176 lines).** One file with the value types would have been 458
+   lines against the 400-line cap; `reliability.ts` re-exports `weibullOf`, `kmOf` and `amsaaOf`, so the plan's
+   deep-import seam is unchanged.
+4. **The spares test is `critical-spares.test.ts`**, the packet's own name for it, not the plan's
+   `reliability-spares.test.ts`.
+5. **The owner pin is the landed set plus 67.** 50 has not landed (`pm-compliance` is not on main), so the bound is
+   67 and the set is `[38, 39, 40, 41, 42, 43, 44, 45, 48, 67]`; nothing else moved.
+6. **Plant-wide spares.** 215 reports carry a spare field (236 fields, 205 spellings, 30 "No" and 1 "Yes"); the rule
+   leaves a listed part on 181 reports across 67 machines, and 58 production machines list none. The plan's 78 and
+   47 count every raw field, the 31 No/Yes included; the test pins both readings.
