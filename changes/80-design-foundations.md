@@ -60,3 +60,14 @@
 - The palette check now also names a chart colour that is not a hex value or is used twice, and the Indian-grouping
   formatter prints a dash for a figure that is not a number and rounds to at most 3 decimals.
 - No user-visible change.
+
+## 80j — the Control Room direction
+
+- The design preview gets its second direction, Control Room, in `apps/web/src/gallery/directions/direction-control-room.ts`:
+  flat panels with a 3 px tone edge, the change shown in tone ink beside the value, a compact 160 px chart on the
+  second surface, no shadows, 6/8/12 corners, figures set 0.02em tighter, and every colour role in light and dark
+  exactly as the plan's table sets them, with 8 chart series and two 5-step ramps per theme.
+- The same test that checks Instrument now runs for it, and every value passed as written, so no colour moved.
+- The check that no chart series is grey now also catches a near-grey (channels within 8 of 255), not only an exact
+  grey, because Running is the grey.
+- No user-visible change.
