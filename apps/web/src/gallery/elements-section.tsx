@@ -1,0 +1,241 @@
+/* eslint-disable i18next/no-literal-string -- English-only dev fixtures with invented numbers (like chart-door-view); the section's own headings go through t() */
+import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../ui/button.js';
+import {
+  DataTable,
+  DrillTrail,
+  EmptyState,
+  ErrorState,
+  GroupedNav,
+  HeatGrid,
+  InsightBanner,
+  KpiTile,
+  LoadingState,
+  PeriodPicker,
+  RankedList,
+  StatusChip,
+  Timeline,
+  useClientTable,
+} from '../ui/elements/index.js';
+import { ServerLogTable } from './server-log-table.js';
+import { Grid, Stack } from '../ui/layout.js';
+import {
+  CAUSES,
+  DOWN_IS_GOOD,
+  LONG_LABEL,
+  LOG_COLUMNS,
+  SMALL_ROWS,
+  NAV_GROUPS,
+  PERIODS,
+  TABLE_LABELS,
+  UP_IS_GOOD,
+  logText,
+  hours,
+  money,
+  percent,
+} from './elements-data.js';
+
+function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section data-testid={`element-${id}`} aria-label={title} className="flex flex-col gap-2">
+      <h3 className="text-body font-semibold">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function SmallTable({ rows }: { rows: typeof SMALL_ROWS }) {
+  const table = useClientTable(rows, LOG_COLUMNS, logText, 25);
+  return (
+    <DataTable
+      columns={LOG_COLUMNS}
+      rows={table.rows}
+      rowKey={(r) => String(r.id)}
+      total={table.total}
+      page={table.page}
+      pageSize={table.pageSize}
+      sort={table.sort}
+      filter={table.filter}
+      labels={TABLE_LABELS}
+      onSort={table.onSort}
+      onFilter={table.onFilter}
+      onPage={table.onPage}
+    />
+  );
+}
+
+function Figures({ worst }: { worst: boolean }) {
+  const { t } = useTranslation('gallery');
+  const label = worst ? LONG_LABEL : 'Downtime';
+  return (
+    <>
+      <Part id="kpi" title={t('elements.kpi')}>
+        <Grid columns={2}>
+          <KpiTile
+            label={label}
+            value={worst ? 1234567 : 12.5}
+            format={worst ? money : hours}
+            tone="good"
+            verdict="On target"
+            change={{ measure: DOWN_IS_GOOD, delta: -3 }}
+            trend={{ values: [9, 8, 8, 6, 5, 4], label: 'Last 6 weeks' }}
+          />
+          <KpiTile
+            label={worst ? LONG_LABEL : 'Availability'}
+            value={worst ? 1234567 : 82.5}
+            format={percent}
+            tone="bad"
+            verdict="Below target"
+            change={{ measure: UP_IS_GOOD, delta: -2.5 }}
+          />
+        </Grid>
+      </Part>
+      <Part id="chip" title={t('elements.chip')}>
+        <div className="flex flex-wrap gap-2">
+          <StatusChip tone="good">On target</StatusChip>
+          <StatusChip tone="watch">Close to limit</StatusChip>
+          <StatusChip tone="bad">{worst ? LONG_LABEL : 'Over limit'}</StatusChip>
+          <StatusChip tone="neutral">No target set</StatusChip>
+        </div>
+      </Part>
+      <Part id="insight" title={t('elements.insight')}>
+        <Stack gap={2}>
+          <InsightBanner tone="bad" title={worst ? LONG_LABEL : 'Three breakdowns this week'}>
+            Two on the same machine.
+          </InsightBanner>
+          <InsightBanner tone="good" title="Downtime is down 3 hrs" />
+        </Stack>
+      </Part>
+    </>
+  );
+}
+
+function Lists({ worst }: { worst: boolean }) {
+  const { t } = useTranslation('gallery');
+  const causes = worst ? [] : CAUSES;
+  return (
+    <>
+      <Part id="heat" title={t('elements.heat')}>
+        <HeatGrid
+          label={t('elements.heat')}
+          rows={causes}
+          columns={['Mon', 'Tue', 'Wed']}
+          values={causes.map((_, r) => [r + 1, (r * 3) % 7, r === 2 ? undefined : 9 - r])}
+          format={(v) => `${v} h`}
+        />
+      </Part>
+      <Part id="ranked" title={t('elements.ranked')}>
+        <RankedList
+          items={causes.map((cause, at) => ({
+            id: cause,
+            label: at === 0 && worst ? LONG_LABEL : cause,
+            value: ((at * 5) % 11) + 1,
+            display: `${((at * 5) % 11) + 1} hrs`,
+            tone: at === 0 ? 'bad' : 'neutral',
+            word: at === 0 ? 'Longest' : undefined,
+          }))}
+        />
+      </Part>
+      <Part id="timeline" title={t('elements.timeline')}>
+        <Timeline
+          label={t('elements.timeline')}
+          events={causes.slice(0, 3).map((cause, at) => ({
+            id: cause,
+            time: `0${5 + at}:02 AM`,
+            title: cause,
+            detail: at === 0 ? 'Reported by Person 04' : undefined,
+            tone: (['bad', 'watch', 'good'] as const)[at],
+          }))}
+        />
+      </Part>
+    </>
+  );
+}
+
+function Tables({ worst }: { worst: boolean }) {
+  const { t } = useTranslation('gallery');
+  return (
+    <>
+      <Part id="states" title={t('elements.states')}>
+        <Stack gap={2}>
+          <EmptyState title="No breakdowns" hint="Try a longer period." />
+          <LoadingState label="Loading…" tiles={1} />
+          <ErrorState title="Could not load" retryLabel="Try again" onRetry={() => {}} />
+        </Stack>
+      </Part>
+      <Part id="table" title={t('elements.table')}>
+        <SmallTable rows={worst ? [] : SMALL_ROWS} />
+      </Part>
+      <Part id="table-server" title={t('elements.tableServer')}>
+        <ServerLogTable />
+      </Part>
+    </>
+  );
+}
+
+function Controls({ worst }: { worst: boolean }) {
+  const { t } = useTranslation('gallery');
+  const [period, setPeriod] = useState<string | undefined>('d7');
+  const [range, setRange] = useState({ from: '', to: '' });
+  return (
+    <>
+      <Part id="period" title={t('elements.period')}>
+        <PeriodPicker
+          label={t('elements.period')}
+          periods={PERIODS}
+          value={period}
+          onChange={setPeriod}
+          range={{
+            from: { label: 'From', value: range.from },
+            to: { label: 'To', value: range.to },
+            onChange: (next) => {
+              setPeriod(undefined);
+              setRange(next);
+            },
+          }}
+        />
+      </Part>
+      <Part id="nav" title={t('elements.nav')}>
+        <GroupedNav
+          label={t('elements.nav')}
+          groups={NAV_GROUPS}
+          current="/gallery"
+          headingLevel={4}
+        />
+      </Part>
+      <Part id="trail" title={t('elements.trail')}>
+        <DrillTrail
+          label={t('elements.trail')}
+          steps={[
+            { label: 'Plant', to: '/gallery' },
+            { label: 'Cell 4', to: '/gallery?x=1' },
+            { label: worst ? LONG_LABEL : 'Machine 17' },
+          ]}
+        />
+      </Part>
+    </>
+  );
+}
+
+/** Ticket 83: the shared elements of the analytics screens; "Worst case" feeds them a 40-letter label, a 7-digit number and no items. */
+export function ElementsSection() {
+  const { t } = useTranslation('gallery');
+  const [worst, setWorst] = useState(false);
+  return (
+    <section data-testid="gallery-elements" aria-labelledby="gallery-elements-h">
+      <Stack>
+        <h2 id="gallery-elements-h" className="text-title3 font-semibold">
+          {t('section.elements')}
+        </h2>
+        <Button variant="secondary" aria-pressed={worst} onClick={() => setWorst(!worst)}>
+          {t('elements.worst')}
+        </Button>
+        <Figures worst={worst} />
+        <Lists worst={worst} />
+        <Tables worst={worst} />
+        <Controls worst={worst} />
+      </Stack>
+    </section>
+  );
+}
