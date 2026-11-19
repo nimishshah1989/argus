@@ -18,14 +18,20 @@ interface Regions {
   figures?: ReactNode;
   main: ReactNode;
   /** The drill area: a panel under the content, or beside it on a register and a work queue. */
-  drill?: ReactNode;
-  drillTitle?: string;
-  /** Anything but 'ready' replaces figures, main, aside and drill with the state line. */
-  state?: ViewState;
-  /** The words for an empty page, written by the screen that owns it. */
-  empty?: string;
-  onRetry?: () => void;
 }
+
+/** A drill area is always named: its heading labels the region. */
+type DrillProps =
+  { drill?: undefined; drillTitle?: never } | { drill: ReactNode; drillTitle: string };
+
+/**
+ * Anything but 'ready' replaces figures, main, aside and drill with the state line. An empty page needs the
+ * screen's own words and an error needs the Retry action, so the type asks for them.
+ */
+type StateProps =
+  | { state?: 'ready' | 'loading' | 'offline'; empty?: never; onRetry?: never }
+  | { state: 'empty'; empty: string; onRetry?: never }
+  | { state: 'error'; onRetry: () => void; empty?: never };
 
 /**
  * The five templates (ticket 85): overview (tiles over a grid of charts), analysis (a chart with its ranking
@@ -33,10 +39,14 @@ interface Regions {
  * work queue (a list, the item beside it). Only analysis and entity take `aside`; the type says so.
  */
 export type TemplateProps = Regions &
+  DrillProps &
+  StateProps &
   (
     | { kind: 'overview' | 'register' | 'queue'; aside?: never }
     | { kind: 'analysis' | 'entity'; aside?: ReactNode }
   );
+
+const noRetry = () => {};
 
 /** Which region sits beside the content on a wide screen; the rest stack full width. */
 function sideOf(p: TemplateProps): 'aside' | 'drill' | undefined {
@@ -79,7 +89,7 @@ export function Template(p: TemplateProps) {
           </>
         ) : (
           <div className="at-notice">
-            <StateNotice state={state} empty={p.empty ?? ''} onRetry={p.onRetry ?? (() => {})} />
+            <StateNotice state={state} empty={p.empty ?? ''} onRetry={p.onRetry ?? noRetry} />
           </div>
         )}
       </div>

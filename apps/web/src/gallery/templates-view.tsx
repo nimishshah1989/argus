@@ -139,7 +139,19 @@ const DEMOS: { id: string; props: TemplateProps }[] = [
   },
 ];
 
-const STATES: ViewState[] = ['loading', 'empty', 'error', 'offline'];
+const NO_DATA = {
+  kind: 'overview',
+  title: 'Overview with no data',
+  filters: FILTERS,
+  figures: tiles(4),
+  main: <Chart spec={CHART} />,
+} as const;
+const STATES: { id: ViewState; props: TemplateProps }[] = [
+  { id: 'loading', props: { ...NO_DATA, state: 'loading' } },
+  { id: 'empty', props: { ...NO_DATA, state: 'empty', empty: 'Nothing to show for this period.' } },
+  { id: 'error', props: { ...NO_DATA, state: 'error', onRetry: () => {} } },
+  { id: 'offline', props: { ...NO_DATA, state: 'offline' } },
+];
 
 function Demo({ id, children }: { id: string; children: ReactNode }) {
   return (
@@ -158,18 +170,9 @@ export default function TemplatesView() {
           <Template {...props} />
         </Demo>
       ))}
-      {STATES.map((state) => (
-        <Demo key={state} id={`state-${state}`}>
-          <Template
-            kind="overview"
-            title={`Overview, ${state}`}
-            filters={FILTERS}
-            figures={tiles(4)}
-            main={<Chart spec={CHART} />}
-            state={state}
-            empty="Nothing to show for this period."
-            onRetry={() => {}}
-          />
+      {STATES.map(({ id, props }) => (
+        <Demo key={id} id={`state-${id}`}>
+          <Template {...props} />
         </Demo>
       ))}
     </main>

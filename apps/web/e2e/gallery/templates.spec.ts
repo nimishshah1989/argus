@@ -122,5 +122,6 @@ test('a template with no data keeps its filters and says why', async ({ page }) 
   await expect(loading.locator('.at-figures, .at-main')).toHaveCount(0);
   await expect(demo(page, 'state-error').getByRole('alert')).toBeVisible();
   await expect(demo(page, 'state-error').getByRole('button', { name: /try again/i })).toBeVisible();
+  await expect(demo(page, 'state-offline').getByRole('status')).toContainText(/offline/i);
   await expect(demo(page, 'state-empty')).toContainText('Nothing to show for this period.');
 });

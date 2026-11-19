@@ -83,9 +83,16 @@ describe('which region sits beside the content on a wide screen', () => {
 describe('a template that has no data to show', () => {
   const base = { kind: 'analysis', ...FULL, aside: 'ASIDE' } as const;
 
+  const states: TemplateProps[] = [
+    { ...base, state: 'loading' },
+    { ...base, state: 'empty', empty: 'NOTHING' },
+    { ...base, state: 'error', onRetry: () => {} },
+    { ...base, state: 'offline' },
+  ];
+
   it('keeps the title and the filters and drops the figures, content and drill', () => {
-    for (const state of ['loading', 'empty', 'error', 'offline'] as const) {
-      const page = html({ ...base, state, empty: 'NOTHING', onRetry: () => {} });
+    for (const p of states) {
+      const page = html(p);
       expect(page).toContain('TITLE');
       expect(page).toContain('FILTERS');
       for (const word of ['FIGURES', 'MAIN', 'ASIDE', 'DRILL']) expect(page).not.toContain(word);
@@ -93,9 +100,10 @@ describe('a template that has no data to show', () => {
   });
 
   it("says what happened: loading is announced, empty uses the screen's words, an error offers Retry", () => {
-    expect(html({ ...base, state: 'loading' })).toContain('role="status"');
-    expect(html({ ...base, state: 'empty', empty: 'NOTHING' })).toContain('NOTHING');
-    const error = html({ ...base, state: 'error' });
+    expect(html(states[0]!)).toContain('role="status"');
+    expect(html(states[3]!)).toContain('role="status"');
+    expect(html(states[1]!)).toContain('NOTHING');
+    const error = html(states[2]!);
     expect(error).toContain('role="alert"');
     expect(error).toMatch(/<button[^>]*>[^<]+<\/button>/);
   });
@@ -103,5 +111,23 @@ describe('a template that has no data to show', () => {
   it('shows everything again when the state is ready', () => {
     const page = html({ ...base, state: 'ready' });
     for (const word of ['FIGURES', 'MAIN', 'ASIDE', 'DRILL']) expect(page).toContain(word);
+  });
+});
+
+describe('what the type asks of a screen', () => {
+  it('needs its own words for an empty page, Retry for an error and a title for a drill', () => {
+    // @ts-expect-error an empty page without its words would print a blank line
+    const noWords: TemplateProps = { kind: 'overview', title: 'T', main: 'M', state: 'empty' };
+    // @ts-expect-error an error without Retry would offer a button that does nothing
+    const noRetry: TemplateProps = { kind: 'overview', title: 'T', main: 'M', state: 'error' };
+    // @ts-expect-error a drill without a title is an unnamed region
+    const noTitle: TemplateProps = { kind: 'overview', title: 'T', main: 'M', drill: 'D' };
+    expect([noWords, noRetry, noTitle]).toHaveLength(3);
+  });
+
+  it('gives only an analysis and an entity a side region', () => {
+    // @ts-expect-error an overview has no aside
+    const aside: TemplateProps = { kind: 'overview', title: 'T', main: 'M', aside: 'A' };
+    expect(aside.kind).toBe('overview');
   });
 });
