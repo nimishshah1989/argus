@@ -148,10 +148,14 @@ export async function activeMachineByCode(
 }
 
 /** A machine by code whatever its status: a past breakdown or plant-event line may name one that is switched off. */
-export async function machineByCode(tx: Db, tenantId: string, code: string): Promise<MachineRow[]> {
+export async function machineByCode(
+  tx: Db,
+  tenantId: string,
+  code: string,
+): Promise<Omit<MachineRow, 'status'>[]> {
   return (
     await tx.query(
-      'SELECT id, code, category, cell, criticality, status FROM machine WHERE tenant_id = $1 AND code = $2',
+      'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2',
       [tenantId, code],
     )
   ).rows;
