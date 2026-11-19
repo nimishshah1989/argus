@@ -8,8 +8,10 @@ import { ENGINE_DATA } from '../packages/domain/test/answer-key/fixture.js';
 /**
  * The design preview's figures (ticket 80, packet 80g). The three directions print the plant's real figure shapes,
  * so this runs the engine's pure `run()` on the frozen answer key (11 Nov 2026) and keeps the screens the preview
- * draws: the dashboard, the machine page (one machine), the breakdown log and the four breakdown analyses. Drill
- * ids are dropped and every table is cut to 50 rows, so the file stays small and holds only fixture data.
+ * draws: the dashboard, the machine page (one machine), the breakdown log and the four breakdown analyses. Every
+ * drill id is dropped (each figure's own, and VC-28's nested breakdown, PM and move lists), so the machine's
+ * breakdown list must be drawn from the log's rows or sample data. Every table is cut to 50 rows, so the file stays
+ * small and holds only fixture data.
  *
  *   pnpm tsx tools/directions-figures.ts           writes the snapshot
  *   pnpm tsx tools/directions-figures.ts --check   exits 1 when it is missing or stale
@@ -49,7 +51,8 @@ function oneMachine(value: unknown): unknown {
   const byMachine = (value as { byMachine: Record<string, unknown> }).byMachine;
   const machine = byMachine[MACHINE];
   if (machine === undefined) throw new Error(`the answer key has no machine ${MACHINE}`);
-  return { byMachine: { [MACHINE]: machine } };
+  const record = machine as { drill: { breakdowns: string[]; pm: string[]; moves: string[] } };
+  return { byMachine: { [MACHINE]: { ...record, drill: { breakdowns: [], pm: [], moves: [] } } } };
 }
 
 function keep(figure: FigureResult): FigureResult {
