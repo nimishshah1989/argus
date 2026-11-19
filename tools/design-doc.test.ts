@@ -6,11 +6,59 @@ const text = readFileSync(new URL('../docs/DESIGN.md', import.meta.url), 'utf8')
 const [, frontMatter = '', body = ''] = text.split(/^---\s*$/m);
 
 const SECTIONS = ['Overview', 'Colors', 'Typography', 'Layout'];
+const LATER = ['Elevation & Depth', 'Shapes', 'Components', "Do's and Don'ts"];
+const ELEMENTS = [
+  'KPI tile',
+  'status chip',
+  'sparkline',
+  'trend delta',
+  'heat grid',
+  'ranked list',
+  'timeline',
+  'insight banner',
+  'data table',
+  'period picker',
+  'grouped navigation',
+  'drill trail',
+];
 const NEUTRAL_ROLES = ['page', 'surface', 'surface-2', 'line', 'control', 'ink', 'ink-2'];
 const ACCENT_ROLES = ['accent', 'on-accent', 'accent-tint'];
 const SERIES = Array.from({ length: 8 }, (_, i) => `series-${i + 1}`);
 const RAMPS = ['seq', 'div'];
 const TEMPLATES = ['overview', 'analysis', 'register', 'entity', 'work queue'];
+// Known limit: a hedge about another clause ("Running is grey, and stopped is never grey") still rejects.
+const HEDGE =
+  /\b(?:not|never|no longer|unless|may|might|maybe|perhaps|could|if|until|yet|cannot|except|though|pending|provided|tbd|later|will|however|although|but|unknown|to be confirmed|subject to)\b|n't\b/i;
+const CHIP_DEFINED = /\b9999 px\b.*\bdefined in this document\b/i;
+const LOCK_ONLY_ROUND = /\bLOCK\.md\b.*\bonly\b.*\bround\b/i;
+const DEFERS_TO_DESIGN =
+  /^(?=.*docs\/DESIGN\.md)(?=.*\bcolou?r\b)(?=.*\bshape\b)(?=.*\bdepth\b)(?=.*\bmotion\b)/i;
+const ABBREVIATION = /\b(?:e\.g|i\.e|vs|etc)\./gi;
+
+/** Sentences of a markdown text: a blank line, a list item, a table row or a heading ends one. */
+function sentences(markdown: string): string[] {
+  return markdown
+    .split(/\n\s*\n|\n(?=\s*(?:[-*]\s|\d+\.\s|\||#))/)
+    .flatMap((block) =>
+      block
+        .replace(/[*`]/g, '')
+        .replace(/’/g, "'")
+        .replace(ABBREVIATION, (abbreviation) => abbreviation.replace(/\./g, '·'))
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(/(?<=[.!?])\s+/),
+    )
+    .filter(Boolean);
+}
+
+/** A fact is stated when every sentence that holds it is positive, and at least one does. */
+function states(doc: string, pattern: RegExp): boolean {
+  const holding = sentences(doc).filter((sentence) => pattern.test(sentence));
+  return (
+    holding.length > 0 &&
+    holding.every((sentence) => !HEDGE.test(sentence.replace(/\([^)]*\)/g, '')))
+  );
+}
 const has = (haystack: string, name: string): boolean =>
   new RegExp(`(?<![\\w-])${name.replace(/ /g, '\\s+')}(?![\\w-])`, 'i').test(haystack);
 
@@ -34,6 +82,41 @@ describe('docs/DESIGN.md', () => {
     const found = [...body.matchAll(/^## (.+?)\s*$/gm)].map((m) => m[1]);
     expect(found.slice(0, SECTIONS.length)).toEqual(SECTIONS);
     for (const name of SECTIONS) expect(section(name).trim().length, name).toBeGreaterThan(200);
+  });
+
+  it('has sections 5 to 8 after them, answers what the slice asks, and TAG-SYSTEM points here', () => {
+    const found = [...body.matchAll(/^## (.+?)\s*$/gm)].map((m) => m[1]);
+    expect(found.slice(SECTIONS.length)).toEqual(LATER);
+    for (const name of LATER) expect(section(name).trim().length, name).toBeGreaterThan(200);
+    const depth = section('Elevation & Depth');
+    for (const level of ['level 0', 'level 1', 'level 2'])
+      expect(has(depth, level), level).toBe(true);
+    const shapes = section('Shapes');
+    for (const role of ['control', 'card', 'sheet', 'chip', 'tile', 'focus ring']) {
+      expect(has(shapes, role), role).toBe(true);
+    }
+    const components = section('Components');
+    for (const element of ELEMENTS) expect(has(components, element), element).toBe(true);
+    for (const heading of ['Empty, loading and error', 'Charts', 'Icons', 'Motion', 'Numbers']) {
+      expect(components, heading).toMatch(new RegExp(`^### ${heading}\\s*$`, 'm'));
+    }
+    for (const fact of ['150 ms', '250 ms', '300 ms', 'reduced motion']) {
+      expect(has(components, fact), fact).toBe(true);
+    }
+    expect(section("Do's and Don'ts")).toMatch(/^### Don't\s*$/m);
+    expect(text).not.toMatch(/sections? 5 to 8 (?:are|follow)/i);
+    const tagSystem = readFileSync(
+      new URL('../docs/design/TAG-SYSTEM.md', import.meta.url),
+      'utf8',
+    );
+    expect(states(tagSystem, DEFERS_TO_DESIGN)).toBe(true);
+  });
+
+  it('says where the 9999 px chip radius is defined, and that LOCK.md only says round', () => {
+    const all = sentences(body);
+    expect(states(body, CHIP_DEFINED)).toBe(true);
+    expect(states(body, LOCK_ONLY_ROUND)).toBe(true);
+    expect(all.filter((s) => /9999 px/.test(s) && /come from .*LOCK\.md/.test(s))).toEqual([]);
   });
 
   it('defines every colour role, 8 series, 2 ramps and 5 templates', () => {
@@ -71,6 +154,83 @@ describe('docs/DESIGN.md', () => {
     ['the TV is always dark', /\bTV(?: board)?\s+(?:is|stays)\s+always dark/i],
     ['the TV is 50 inch or larger', /\bTV\s+is\s+50 inch or larger/i],
   ])('states the settled fact: %s', (_name, pattern) => {
-    expect(text.replace(/\s+/g, ' ')).toMatch(pattern);
+    expect(states(body, pattern)).toBe(true);
+  });
+});
+
+describe('a settled fact must be its own positive sentence', () => {
+  const running = /\brunning\s+is\s+grey\b/i;
+
+  it('accepts the fact as a sentence, in prose, a bullet or a wrapped line', () => {
+    expect(states('Stopped stands out. Running is grey. Waiting is amber.', running)).toBe(true);
+    expect(states('- **Running is grey.** Stopped and waiting stand out.', running)).toBe(true);
+    expect(states('Running\nis grey.', running)).toBe(true);
+  });
+
+  it('accepts the fact when a qualifier sits in a different sentence', () => {
+    expect(states('Running is grey. The TV distance is not known yet.', running)).toBe(true);
+    expect(states('- Running is grey.\n- The pick may change the tone values.', running)).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    'It is not true that Running is grey.',
+    'Running is grey unless the pick says otherwise.',
+    'Running is grey, though that may change.',
+    'Running is grey for now if the pick keeps it.',
+    'Running is grey and never green. Running is no longer grey.',
+    'Running is grey, not yet confirmed.',
+    'Running is grey. Later: it is not true that Running is grey.',
+    'Running is grey, e.g. if the pick may keep it.',
+    'Running is grey, vs. green, i.e. unless the pick changes it.',
+    'Running is grey, which isn’t final.',
+    'Running is grey, though that is still open.',
+    'Running is grey pending the pick.',
+    'Running is grey provided the pick agrees.',
+    'Running is grey, tbd.',
+    'Running is grey and will change.',
+    'Running is grey for now, later it moves.',
+    'It is not so that Running is grey (see D33).',
+    'Running is grey; however, the pick may differ.',
+    'Running is grey, although the pick decides.',
+    'Running is grey but the pick decides.',
+    'Running is grey, unknown for the TV.',
+    'Running is grey, to be confirmed.',
+    'Running is grey, subject to the pick.',
+  ])('rejects a negated or qualified statement: %s', (sample) => {
+    expect(states(sample, running)).toBe(false);
+  });
+
+  it('accepts an abbreviation and a parenthetical remark that hedge nothing', () => {
+    expect(states('Running is grey, e.g. in a list. Stopped is red.', running)).toBe(true);
+    expect(states('Running is grey (not green).', running)).toBe(true);
+    expect(states('Running is grey (it may be dark in the dark theme).', running)).toBe(true);
+  });
+
+  it('applies the same guard to the chip radius, LOCK.md and TAG-SYSTEM checks', () => {
+    expect(states('The 9999 px radius is defined in this document.', CHIP_DEFINED)).toBe(true);
+    expect(states('The 9999 px radius is not defined in this document.', CHIP_DEFINED)).toBe(false);
+    expect(states('LOCK.md says only that chips are round.', LOCK_ONLY_ROUND)).toBe(true);
+    expect(states('LOCK.md does not say only that chips are round.', LOCK_ONLY_ROUND)).toBe(false);
+    const rules = 'Colour, shape, depth and motion rules live in docs/DESIGN.md.';
+    expect(states(rules, DEFERS_TO_DESIGN)).toBe(true);
+    expect(
+      states('See docs/DESIGN.md. Colour, shape, depth and motion differ.', DEFERS_TO_DESIGN),
+    ).toBe(false);
+    expect(
+      states(
+        'Colour, shape, depth and motion are in docs/DESIGN.md unless noted.',
+        DEFERS_TO_DESIGN,
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects the opposite statement', () => {
+    expect(states('Running is not grey.', running)).toBe(false);
+  });
+
+  it('rejects a fact that is missing', () => {
+    expect(states('Stopped is red.', running)).toBe(false);
   });
 });
