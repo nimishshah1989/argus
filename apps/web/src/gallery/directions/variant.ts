@@ -79,7 +79,7 @@ export interface Shape {
   /** Box-shadow of level 1 (raised) and level 2 (overlay); `none` where a direction draws lines instead. */
   depth: { raised: string; overlay: string };
   /** Corner radius in px per role. */
-  radius: { control: number; card: number; sheet: number; chip: number };
+  radius: { control: number; card: number; sheet: number; chip: number; tile: number };
   /** Font family for figures and headings (`inherit` keeps the system stack) and their letter spacing. */
   type: { display: string; tracking: string };
 }

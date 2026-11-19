@@ -28,9 +28,8 @@ function keyOf(heading: string): keyof typeof en {
   return key;
 }
 
-/** The five headings this build does not have yet, in the key's order. */
+/** The four headings this build does not have yet, in the key's order. */
 const UNBUILT = [
-  '31. PM Calendar',
   '32. OEM Analytics',
   '33. Learning from your corrections',
   '34. Entries with no maintenance code',
@@ -43,7 +42,7 @@ describe('the Guide follows the answer key', () => {
     expect(GUIDE_ENTRIES.map((entry) => entry.titleKey)).toEqual(GUIDE.extra.map(keyOf));
   });
 
-  it('gives every entry at least one body paragraph, and keeps the five unbuilt entries to the not-built line', () => {
+  it('gives every entry at least one body paragraph, and keeps the four unbuilt entries to the not-built line', () => {
     for (const entry of GUIDE_ENTRIES) {
       expect(entry.bodyKeys.length, entry.id).toBeGreaterThan(0);
       for (const key of entry.bodyKeys) expect(en[key], `${entry.id}: ${key}`).toBeTruthy();

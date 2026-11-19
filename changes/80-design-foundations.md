@@ -16,6 +16,15 @@
 - `THIRD_PARTY.md` lists them with impeccable 4.8.1 and pstack 0.15.36; the tracker marks ticket 80 in progress.
 - No user-visible change.
 
+## 80b — PRODUCT.md
+
+- Builders get `PRODUCT.md` at the repo root: every user (operator, technician, supervisor, head, plant head, admin,
+  board), the device in their hand, where they stand and their job, with Nimish's 19 Nov answers (TV 50 inch or larger
+  and always dark, Gujarati on the floor and English on the desk, Indian number grouping, analytics follows the device
+  theme). Facts nobody has given yet say "not known yet".
+- The impeccable and learn-taste skills now say where `PRODUCT.md` and `docs/DESIGN.md` live.
+- No user-visible change.
+
 ## 80h — the design preview's variant contract
 
 - The design preview gets its shared contract in `apps/web/src/gallery/directions/variant.ts`. It holds the six

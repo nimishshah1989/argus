@@ -5,6 +5,7 @@ import { TENANT_WEB_URL, seedStatements } from './fixtures.js';
 import { actionSeedStatements } from './fixtures-actions.js';
 import { signoffSeedStatements } from './fixtures-signoff.js';
 import { pmSeedStatements } from './fixtures-pm.js';
+import { pmCalendarSeedStatements } from './fixtures-pm-calendar.js';
 
 /** Seeds this worker's own tenant (e2e-w<n>) into the run's database. */
 async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
@@ -18,6 +19,7 @@ async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
       ...actionSeedStatements(hash),
       ...signoffSeedStatements(),
       ...pmSeedStatements(),
+      ...pmCalendarSeedStatements(),
     ])
       await pool.query(statement.text, statement.values);
   } finally {

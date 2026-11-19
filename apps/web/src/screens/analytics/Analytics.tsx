@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useWide } from '../../patterns/wide.js';
@@ -25,6 +25,10 @@ import { MachinePage } from './MachinePage.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
 import { ReportsPage } from './ReportsPage.js';
+
+// The PM calendar is the one lazy page (ADR 0009 R1): FullCalendar and its theme load only when a head opens
+// `/analytics/pm`, never in the start-up files.
+const PmCalendarPage = lazy(() => import('./PmCalendarPage.js'));
 
 const DESK = '/desk';
 
@@ -82,6 +86,10 @@ export function AnalyticsFace() {
         <MoneyPage group={found} />
       ) : found.id === 'reports' ? (
         <ReportsPage group={found} />
+      ) : found.id === 'pm' ? (
+        <Suspense fallback={null}>
+          <PmCalendarPage group={found} />
+        </Suspense>
       ) : (
         <GroupPage group={found} />
       )}
