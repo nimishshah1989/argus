@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import { BIG_HOURS, FULL, LAST_FULL, PARTIAL, S, fixed, usualRange, type Metric } from './data.js';
 import { tipHtml } from './trend-tip.js';
-import { tooltipBase, type Ink } from './use-echart.js';
+import { tooltipBase, type Ink } from './chart-ink.js';
 
 const axisText = (metric: Metric, v: number): string =>
   `${fixed(v, metric.id === 'availability' ? 1 : 0)}${metric.unit ? ` ${metric.unit}` : ''}`;
@@ -132,7 +132,6 @@ export function trendOption(ink: Ink, metric: Metric, t: TFunction) {
     series: series(ink, metric, t),
     dataZoom: zoom(ink),
     tooltip: tooltipBase(
-      ink,
       {
         type: 'cross',
         snap: true,

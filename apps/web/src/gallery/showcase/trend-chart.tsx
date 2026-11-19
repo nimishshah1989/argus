@@ -12,7 +12,8 @@ import {
 } from './data.js';
 import { Delta } from './delta.js';
 import { trendOption } from './trend-option.js';
-import { useEchart } from './use-echart.js';
+import { useEchart } from '../../ui/chart/use-echart.js';
+import { readInk } from './chart-ink.js';
 
 /** The month pointed at in a chart other than the trend. */
 export const pointed = (month: number | null): Hover => ({ month, from: 'other' });
@@ -76,7 +77,7 @@ export function TrendChart({ hover, onHover }: { hover: Hover; onHover: (h: Hove
   const emit = useRef(onHover);
   emit.current = onHover;
   const { ref, chart, ready } = useEchart(
-    (ink) => trendOption(ink, metric, t),
+    (el) => trendOption(readInk(el), metric, t),
     [id, i18n.language],
     (instance) => {
       instance.on('updateAxisPointer', (e: unknown) => {

@@ -1,7 +1,8 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { S, fixed } from './data.js';
-import { NARROW, tooltipBase, useEchart, type Ink } from './use-echart.js';
+import { useEchart, NARROW } from '../../ui/chart/use-echart.js';
+import { readInk, tooltipBase, type Ink } from './chart-ink.js';
 
 const CAUSES = S.causes;
 /** Running share of all breakdown hours after each cause, as a percent. */
@@ -98,7 +99,7 @@ function paretoOption(ink: Ink, t: TFunction) {
     grid: { left: 4, right: 16, top: 30, bottom: 4, containLabel: true },
     ...axes(ink),
     series: series(ink),
-    tooltip: tooltipBase(ink, { type: 'shadow', shadowStyle: { color: `${ink.ink}0d` } }, (i) =>
+    tooltip: tooltipBase({ type: 'shadow', shadowStyle: { color: `${ink.ink}0d` } }, (i) =>
       tip(t, i),
     ),
   };
@@ -112,7 +113,7 @@ function paretoOption(ink: Ink, t: TFunction) {
 export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void }) {
   const { t, i18n } = useTranslation('showcase');
   const { ref } = useEchart(
-    (ink) => paretoOption(ink, t),
+    (el) => paretoOption(readInk(el), t),
     [i18n.language],
     (chart) => {
       chart.on('updateAxisPointer', (e: unknown) => {
