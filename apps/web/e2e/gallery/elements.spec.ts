@@ -33,7 +33,7 @@ async function expectNoBreakage(page: Page): Promise<void> {
     [...root.querySelectorAll<HTMLElement>('button, a, input, select')]
       .filter((el) => el.offsetParent !== null)
       .map((el) => ({ el, box: el.getBoundingClientRect() }))
-      .filter(({ box }) => box.height < 43.5)
+      .filter(({ box }) => box.height < 43.5 || box.width < 43.5)
       .map(({ el }) => `${el.tagName} ${el.textContent?.slice(0, 20) ?? ''}`),
   );
   expect(small, 'tap targets under 44 px').toEqual([]);
@@ -63,23 +63,43 @@ for (const size of [
   }
 }
 
-test('the data table paints 50 rows first, pages, sorts and filters', async ({ page }) => {
+test('a list held in the browser pages, sorts and filters', async ({ page }) => {
   await open(page, 'lang=en');
   const table = page.getByTestId('element-table');
-  await expect(table.locator('tbody tr')).toHaveCount(50);
-  await expect(table).toContainText('1 to 50 of 1,343');
+  await expect(table.locator('tbody tr')).toHaveCount(25);
+  await expect(table).toContainText('1 to 25 of 120');
   await table.getByRole('button', { name: 'Next' }).click();
-  await expect(table).toContainText('51 to 100 of 1,343');
+  await expect(table).toContainText('26 to 50 of 120');
   await table.getByRole('button', { name: /Hours/ }).click();
   await expect(table.getByRole('columnheader', { name: /Hours/ })).toHaveAttribute(
     'aria-sort',
     'ascending',
   );
-  await expect(table).toContainText('1 to 50 of 1,343');
-  await table.getByRole('searchbox').fill('Machine 13');
-  await expect(table).toContainText('1 to 50 of 55');
+  await expect(table).toContainText('1 to 25 of 120');
   await table.getByRole('searchbox').fill('zzz');
   await expect(table).toContainText('No rows match');
+});
+
+test('a long list pages on the server: 50 rows first, then the next 50, filtered by the server', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const table = page.getByTestId('element-table-server');
+  await expect(table.locator('tbody tr')).toHaveCount(50);
+  await expect(table).toContainText('1 to 50 of 1,343');
+  await table.getByRole('button', { name: 'Next' }).click();
+  await expect(table).toContainText('51 to 100 of 1,343');
+  await table.getByRole('searchbox').fill('Machine 13');
+  await expect(table).toContainText('1 to 50 of 55');
+});
+
+test('the heat grid pops in with motion, and not under reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, 'lang=en');
+  const cell = page.getByTestId('element-heat').locator('td').nth(1);
+  await expect(cell).toHaveCSS('animation-name', 'el-pop');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(cell).toHaveCSS('animation-name', 'none');
 });
 
 test('the period picker presses the chosen period; own dates clear it', async ({ page }) => {

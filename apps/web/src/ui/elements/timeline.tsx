@@ -32,7 +32,7 @@ export function Timeline({ label, events }: { label: string; events: TimelineEve
                 <span aria-hidden className="w-0.5 flex-1 bg-neutral-200" />
               ) : null}
             </div>
-            <div className={`flex flex-col gap-0.5 pb-4 ${WRAP}`}>
+            <div className={`flex flex-col gap-1 pb-4 ${WRAP}`}>
               <span className="text-footnote text-neutral-600">{event.time}</span>
               <span className="text-body font-semibold">{event.title}</span>
               {event.detail ? (

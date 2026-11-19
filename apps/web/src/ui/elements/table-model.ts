@@ -36,7 +36,7 @@ export interface TableView<R> {
 }
 
 export const pageSizeOf = (size: number): number =>
-  Math.min(MAX_PAGE_ROWS, Math.max(1, Math.floor(size)));
+  Math.min(MAX_PAGE_ROWS, Math.max(1, Math.floor(size) || 1));
 
 /** Filter by text, order by the sort column, cut one page. Numbers order as numbers, words in the reader's order. */
 export function tableView<R>(
@@ -52,6 +52,10 @@ export function tableView<R>(
     const sign = query.sort.dir === 'asc' ? 1 : -1;
     shown = [...shown].sort((a, b) => {
       const [x, y] = [by(a), by(b)];
+      const nanX = typeof x === 'number' && Number.isNaN(x);
+      const nanY = typeof y === 'number' && Number.isNaN(y);
+      // NaN has no order: it sorts last in both directions, like a missing cell.
+      if (nanX || nanY) return nanX === nanY ? 0 : nanX ? 1 : -1;
       return (
         sign *
         (typeof x === 'number' && typeof y === 'number'
@@ -79,6 +83,8 @@ export function useClientTable<R>(
   filterText: (row: R) => string,
   pageSize = 25,
 ) {
+  if (rows.length > CLIENT_LIMIT)
+    throw new Error(`a list of ${rows.length} rows pages on the server (limit ${CLIENT_LIMIT})`);
   const [sort, setSort] = useState<Sort>();
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(0);

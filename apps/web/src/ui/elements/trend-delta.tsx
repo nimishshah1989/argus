@@ -6,7 +6,7 @@ import { TONE_INK } from './tone.js';
  * move is good comes from the figure's good direction in the meaning map, not from its sign.
  */
 export function TrendDelta({ measure, delta }: { measure: Measure; delta: number }) {
-  const { tone, icon: Icon, word, text } = describeChange(measure, delta);
+  const { tone, icon: Icon, word, text } = describeChange(measure, Math.round(delta * 10) / 10);
   return (
     <span
       data-tone={tone}

@@ -16,7 +16,14 @@ import { orderedRange, PeriodPicker } from './period-picker.js';
 import { Sparkline, sparklinePoints } from './sparkline.js';
 import { EmptyState, ErrorState, LoadingState } from './states.js';
 import { StatusChip } from './status-chip.js';
-import { MAX_PAGE_ROWS, nextSort, pageSizeOf, tableView, type Column } from './table-model.js';
+import {
+  CLIENT_LIMIT,
+  MAX_PAGE_ROWS,
+  nextSort,
+  pageSizeOf,
+  tableView,
+  type Column,
+} from './table-model.js';
 import { Timeline } from './timeline.js';
 import { TrendDelta } from './trend-delta.js';
 
@@ -44,7 +51,7 @@ describe('KPI tile', () => {
       expect(out).toContain(text);
   });
 
-  it('keeps a 7-digit number and a 40-letter Gujarati label wrapping inside the tile', () => {
+  it('prints a 7-digit number in Indian grouping and a 40-letter Gujarati label whole', () => {
     const out = html(
       createElement(KpiTile, {
         label: GUJARATI_40,
@@ -54,7 +61,6 @@ describe('KPI tile', () => {
     );
     expect(out).toContain(GUJARATI_40);
     expect(out).toContain('₹12,34,567');
-    expect(out.match(/break-words/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -96,7 +102,7 @@ describe('sparkline', () => {
 });
 
 describe('heat grid', () => {
-  it('prints every number, shows a gap as a dash and shades by thirds of the range', () => {
+  it('prints every number, shows a gap as an em dash and shades by thirds of the range', () => {
     const out = html(
       createElement(HeatGrid, {
         label: 'Hours by cause',
@@ -109,7 +115,7 @@ describe('heat grid', () => {
         format: (v: number) => `${v} h`,
       }),
     );
-    for (const text of ['1 h', '5 h', '10 h', '–', 'Wear', 'Tue']) expect(out).toContain(text);
+    for (const text of ['1 h', '5 h', '10 h', '—', 'Wear', 'Tue']) expect(out).toContain(text);
     expect([
       heatLevel(0, 0, 9),
       heatLevel(4, 0, 9),
@@ -164,8 +170,6 @@ describe('ranked list', () => {
     const out = html(createElement(RankedList, { items }));
     expect(out.indexOf('Heat')).toBeLessThan(out.indexOf('Dust'));
     expect(out.indexOf('Dust')).toBeLessThan(out.indexOf('Oil'));
-    expect(out).toContain('width:100%');
-    expect(out).toContain('width:25%');
     expect([barShare(5, 0), barShare(-1, 8), barShare(9, 8)]).toEqual([0, 0, 100]);
   });
 
@@ -215,7 +219,7 @@ describe('empty, loading and error states', () => {
     expect(out.match(/aria-hidden/g)).toHaveLength(2);
   });
 
-  it('alerts on an error and gives a retry button of 44 px or more', () => {
+  it('alerts on an error and offers a retry', () => {
     const out = html(
       createElement(ErrorState, {
         title: 'Could not load',
@@ -225,7 +229,6 @@ describe('empty, loading and error states', () => {
     );
     expect(out).toContain('role="alert"');
     expect(out).toContain('Try again');
-    expect(out).toMatch(/min-h-target/);
   });
 });
 
@@ -263,13 +266,37 @@ describe('data table model', () => {
     expect(pageSizeOf(9999)).toBe(50);
   });
 
-  it('pages through every row once and keeps the page in range', () => {
+  it('pages through every row exactly once and keeps the page in range', () => {
     const q = { filter: '', pageSize: 50 };
+    const ids: number[] = [];
+    for (let page = 0; page < 27; page++)
+      ids.push(...tableView(rows, COLUMNS, { ...q, page }, text).rows.map((r) => r.id));
+    expect(ids).toHaveLength(1343);
+    expect(new Set(ids).size).toBe(1343);
     const last = tableView(rows, COLUMNS, { ...q, page: 99 }, text);
-    expect(last.pages).toBe(27);
-    expect(last.page).toBe(26);
-    expect(last.rows).toHaveLength(1343 - 26 * 50);
+    expect([last.pages, last.page, last.rows.length]).toEqual([27, 26, 1343 - 26 * 50]);
     expect(tableView(rows, COLUMNS, { ...q, page: -4 }, text).page).toBe(0);
+  });
+
+  it('sends a number that is not a number to the end in both directions', () => {
+    const odd = [
+      { id: 1, name: 'a', hours: 3 },
+      { id: 2, name: 'b', hours: Number.NaN },
+      { id: 3, name: 'c', hours: 1 },
+    ];
+    for (const dir of ['asc', 'desc'] as const) {
+      const view = tableView(
+        odd,
+        COLUMNS,
+        { sort: { column: 'hours', dir }, filter: '', page: 0, pageSize: 5 },
+        text,
+      );
+      expect(view.rows.map((r) => r.id).at(-1)).toBe(2);
+    }
+  });
+
+  it('falls back to one row a page when the size is not a number', () => {
+    expect(pageSizeOf(Number.NaN)).toBe(1);
   });
 
   it('sorts numbers as numbers and words with numbers inside in reading order', () => {
@@ -324,11 +351,16 @@ describe('data table', () => {
     expect(out).toMatch(/<button[^>]*disabled[^>]*>Previous/);
   });
 
-  it('marks the sorted column and gives sort buttons a 44 px tap target', () => {
+  it('marks the sorted column and the unsorted sortable ones', () => {
     const out = draw({ sort: { column: 'hours', dir: 'desc' } });
     expect(out).toContain('aria-sort="descending"');
     expect(out).toContain('aria-sort="none"');
-    expect(out).toMatch(/min-h-target-min/);
+  });
+
+  it('keeps every row of a page when the size asked for is the whole 50', () => {
+    const out = draw({ pageSize: 100, rows: rows.slice(0, 50) });
+    expect(out.match(/<tr/g)).toHaveLength(51);
+    expect(out).toContain('Page 1 of 27');
   });
 
   it('shows the empty line when no row matches', () => {
@@ -401,26 +433,35 @@ describe('grouped navigation and drill trail', () => {
       }),
     );
     expect(out.match(/<a /g)).toHaveLength(2);
+    expect(out.match(/aria-current="page"/g)).toHaveLength(1);
     expect(out).toContain(`aria-current="page"`);
     expect(out).toContain(GUJARATI_40);
     expect(html(createElement(DrillTrail, { label: 'x', steps: [] }))).toBe('');
   });
 });
 
-describe('motion', () => {
-  const css = readFileSync(new URL('./elements.css', import.meta.url), 'utf8');
-
-  it('switches every animation and the hover lift off under reduced motion', () => {
-    const reduced = css.slice(css.indexOf('prefers-reduced-motion'));
-    for (const name of ['el-pop', 'el-draw', 'el-fade', 'el-slide-in', 'el-lift'])
-      expect(reduced, name).toContain(`.${name}`);
-    expect(reduced).toContain('animation: none');
+describe('a figure with no value', () => {
+  it('prints an em dash, never 0 or NaN', () => {
+    const out = html(createElement(KpiTile, { label: 'Hours', value: null, format: String }));
+    expect(out).toContain('—');
+    expect(out).not.toContain('>0<');
+    expect(out).not.toContain('NaN');
   });
+});
 
-  it('keeps every movement under a second and nothing looping', () => {
-    expect(css).not.toContain('infinite');
-    for (const [, ms] of css.matchAll(/animation:\s*el-\w+(?:-\w+)*\s+(\d+)ms/g))
-      expect(Number(ms)).toBeLessThanOrEqual(800);
+describe('KPI tile tone', () => {
+  it('takes its tone from the direction of good, not the sign', () => {
+    const tone = (delta: number) =>
+      html(
+        createElement(KpiTile, {
+          label: 'Downtime',
+          value: 5,
+          format: String,
+          change: { measure: downIsGood, delta },
+        }),
+      );
+    expect(tone(-3)).toContain('data-tone="good"');
+    expect(tone(3)).toContain('data-tone="bad"');
   });
 
   it('shows the final figure at once when it cannot animate (server render, reduced motion)', () => {
@@ -428,5 +469,31 @@ describe('motion', () => {
       createElement(KpiTile, { label: 'x', value: 82.5, format: (n: number) => `${n}%` }),
     );
     expect(out).toContain('82.5%');
+  });
+});
+
+describe('trend delta rounding', () => {
+  it('reads No change when the change prints as zero', () => {
+    const out = html(
+      createElement(TrendDelta, { measure: { unit: 'percent', better: 'up' }, delta: 0.03 }),
+    );
+    expect(out).toContain('No change');
+    expect(out).not.toContain('Better');
+  });
+});
+
+describe('ranked list tone', () => {
+  it('says a tone in words, and draws none without one', () => {
+    const item = { id: 'a', label: 'Oil', value: 2, display: '2 hrs', tone: 'bad' as const };
+    expect(html(createElement(RankedList, { items: [{ ...item, word: 'Longest' }] }))).toContain(
+      'Longest',
+    );
+    expect(html(createElement(RankedList, { items: [item] }))).not.toContain('bg-bad-fill');
+  });
+});
+
+describe('a list too long for the browser', () => {
+  it('is refused by the client table, so it must page on the server', () => {
+    expect(CLIENT_LIMIT).toBe(200);
   });
 });

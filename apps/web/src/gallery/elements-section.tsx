@@ -18,13 +18,14 @@ import {
   Timeline,
   useClientTable,
 } from '../ui/elements/index.js';
+import { ServerLogTable } from './server-log-table.js';
 import { Grid, Stack } from '../ui/layout.js';
 import {
   CAUSES,
   DOWN_IS_GOOD,
   LONG_LABEL,
   LOG_COLUMNS,
-  LOG_ROWS,
+  SMALL_ROWS,
   NAV_GROUPS,
   PERIODS,
   TABLE_LABELS,
@@ -38,14 +39,14 @@ import {
 function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section data-testid={`element-${id}`} aria-label={title} className="flex flex-col gap-2">
-      <h3 className="text-footnote font-semibold text-neutral-600">{title}</h3>
+      <h3 className="text-body font-semibold">{title}</h3>
       {children}
     </section>
   );
 }
 
-function LogTable({ rows }: { rows: typeof LOG_ROWS }) {
-  const table = useClientTable(rows, LOG_COLUMNS, logText, 50);
+function SmallTable({ rows }: { rows: typeof SMALL_ROWS }) {
+  const table = useClientTable(rows, LOG_COLUMNS, logText, 25);
   return (
     <DataTable
       columns={LOG_COLUMNS}
@@ -132,6 +133,7 @@ function Lists({ worst }: { worst: boolean }) {
             value: ((at * 5) % 11) + 1,
             display: `${((at * 5) % 11) + 1} hrs`,
             tone: at === 0 ? 'bad' : 'neutral',
+            word: at === 0 ? 'Longest' : undefined,
           }))}
         />
       </Part>
@@ -163,7 +165,10 @@ function Tables({ worst }: { worst: boolean }) {
         </Stack>
       </Part>
       <Part id="table" title={t('elements.table')}>
-        <LogTable rows={worst ? [] : LOG_ROWS} />
+        <SmallTable rows={worst ? [] : SMALL_ROWS} />
+      </Part>
+      <Part id="table-server" title={t('elements.tableServer')}>
+        <ServerLogTable />
       </Part>
     </>
   );
@@ -192,7 +197,12 @@ function Controls({ worst }: { worst: boolean }) {
         />
       </Part>
       <Part id="nav" title={t('elements.nav')}>
-        <GroupedNav label={t('elements.nav')} groups={NAV_GROUPS} current="/gallery" />
+        <GroupedNav
+          label={t('elements.nav')}
+          groups={NAV_GROUPS}
+          current="/gallery"
+          headingLevel={4}
+        />
       </Part>
       <Part id="trail" title={t('elements.trail')}>
         <DrillTrail

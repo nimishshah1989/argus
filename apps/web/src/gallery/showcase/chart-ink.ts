@@ -1,5 +1,5 @@
 import type { Family } from './families.js';
-import { reducedMotion } from './motion.js';
+import { reducedMotion } from '../../ui/elements/motion.js';
 
 /** The colours a chart reads from the page's custom properties, so a direction or theme change reaches it. */
 export interface Ink {

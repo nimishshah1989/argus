@@ -2,7 +2,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from '../icon.js';
 import { Button } from '../button.js';
 import { Input } from '../input.js';
-import { MAX_PAGE_ROWS, type Column, type Sort } from './table-model.js';
+import { pageSizeOf, type Column, type Sort } from './table-model.js';
 import { WRAP } from './tone.js';
 
 export interface TableLabels {
@@ -55,9 +55,10 @@ export function DataTable<R>({
   onFilter,
   onPage,
 }: DataTableProps<R>) {
-  const shown = rows.slice(0, MAX_PAGE_ROWS);
-  const pages = Math.max(1, Math.ceil(total / Math.min(pageSize, MAX_PAGE_ROWS)));
-  const from = total === 0 ? 0 : page * pageSize + 1;
+  const size = pageSizeOf(pageSize);
+  const shown = rows.slice(0, size);
+  const pages = Math.max(1, Math.ceil(total / size));
+  const from = total === 0 ? 0 : page * size + 1;
   return (
     <div className="flex min-w-0 flex-col gap-3">
       {onFilter ? (
@@ -66,7 +67,6 @@ export function DataTable<R>({
       <div
         role="region"
         aria-label={labels.caption}
-
         tabIndex={0}
         className="overflow-x-auto rounded-card bg-surface shadow-card"
       >

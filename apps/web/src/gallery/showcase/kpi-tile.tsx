@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { LAST_FULL, PARTIAL, fixed, type Metric } from './data.js';
 import { Delta } from './delta.js';
-import { useCountUp } from './motion.js';
+import { useCountUp } from '../../ui/elements/motion.js';
 import { FAMILY } from './families.js';
 import { Spark } from './spark.js';
 import { Tags, monthTags } from './tags.js';

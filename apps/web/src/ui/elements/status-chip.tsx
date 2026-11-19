@@ -18,7 +18,7 @@ export function StatusChip({
   return (
     <span
       data-tone={tone}
-      className={`inline-flex min-h-chip max-w-full items-center gap-1.5 rounded-chip px-2.5 text-caption font-bold ${TONE_BOX[tone]}`}
+      className={`inline-flex min-h-chip max-w-full items-center gap-2 rounded-chip px-3 text-caption font-bold ${TONE_BOX[tone]}`}
     >
       <Icon aria-hidden size={16} className="shrink-0" />
       <span className="min-w-0 break-words">{children}</span>

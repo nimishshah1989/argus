@@ -25,7 +25,7 @@ export function InsightBanner({
       className={`flex min-w-0 flex-col gap-3 rounded-card p-4 ${TONE_BOX[tone]}`}
     >
       <div className="flex gap-2">
-        <Icon aria-hidden size={20} className="mt-0.5 shrink-0" />
+        <Icon aria-hidden size={20} className="shrink-0" />
         <div className={`flex flex-col gap-1 ${WRAP}`}>
           <p className="text-body font-bold">{title}</p>
           {children ? <div className="text-footnote">{children}</div> : null}

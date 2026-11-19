@@ -20,7 +20,7 @@ export function heatLevel(value: number, min: number, max: number): 0 | 1 | 2 {
 }
 
 /**
- * Rows by columns, each cell shaded by its value and printing it. A missing value (`undefined`) prints `–` and
+ * Rows by columns, each cell shaded by its value and printing it. A missing value (`undefined`) prints `—` and
  * is not shaded. `label` names the grid; `format` prints a value with its unit.
  */
 export function HeatGrid({
@@ -41,13 +41,7 @@ export function HeatGrid({
   const min = Math.min(...present);
   const max = Math.max(...present);
   return (
-    <div
-      role="region"
-      aria-label={label}
-
-      tabIndex={0}
-      className="overflow-x-auto rounded-card"
-    >
+    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-card">
       <table className="w-full border-separate border-spacing-1 text-footnote">
         <caption className="sr-only">{label}</caption>
         <thead>
@@ -111,7 +105,7 @@ function HeatRow({
               level ? level.ink : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            {value === undefined ? '–' : format(value)}
+            {value === undefined ? '—' : format(value)}
           </td>
         );
       })}

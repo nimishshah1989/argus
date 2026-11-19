@@ -20,6 +20,8 @@ export {
   useClientTable,
   type Column,
   type Sort,
+  type TableQuery,
+  tableView,
 } from './table-model.js';
 export { Timeline, type TimelineEvent } from './timeline.js';
 export { TrendDelta } from './trend-delta.js';

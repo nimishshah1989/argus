@@ -1,4 +1,5 @@
 import type { Tone4 } from '../meaning/index.js';
+import { StatusChip } from './status-chip.js';
 import { TONE_BAR, WRAP } from './tone.js';
 
 export interface RankedItem {
@@ -8,6 +9,8 @@ export interface RankedItem {
   /** The value printed with its unit. */
   display: string;
   tone?: Tone4;
+  /** What the tone means in words ("Over target"); a tone with no word is not drawn, so colour is never alone. */
+  word?: string;
 }
 
 /** A bar's share of the longest bar, as a whole percentage; a negative or empty total is 0. */
@@ -33,15 +36,18 @@ export function RankedList({ items }: { items: RankedItem[] }) {
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex items-baseline justify-between gap-3">
               <span className={`text-body ${WRAP}`}>{item.label}</span>
-              <span className="shrink-0 text-body font-semibold tabular-nums">{item.display}</span>
+              <span className={`text-right text-body font-semibold tabular-nums ${WRAP}`}>
+                {item.display}
+              </span>
             </div>
             <span aria-hidden className="block h-2 rounded-full bg-neutral-200">
               <span
                 data-bar
                 style={{ width: `${barShare(item.value, max)}%` }}
-                className={`block h-2 rounded-full ${TONE_BAR[item.tone ?? 'neutral']}`}
+                className={`block h-2 rounded-full ${TONE_BAR[item.word ? (item.tone ?? 'neutral') : 'neutral']}`}
               />
             </span>
+            {item.word ? <StatusChip tone={item.tone ?? 'neutral'}>{item.word}</StatusChip> : null}
           </div>
         </li>
       ))}

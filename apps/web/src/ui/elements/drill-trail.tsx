@@ -18,13 +18,16 @@ export function DrillTrail({ label, steps }: { label: string; steps: TrailStep[]
         {steps.map((step, at) => (
           <li key={`${at}-${step.label}`} className="flex min-w-0 items-center gap-1">
             {at === last || !step.to ? (
-              <span aria-current="page" className={`text-footnote font-semibold ${WRAP}`}>
+              <span
+                aria-current={at === last ? 'page' : undefined}
+                className={`text-footnote font-semibold ${WRAP}`}
+              >
                 {step.label}
               </span>
             ) : (
               <Link
                 to={step.to}
-                className={`inline-flex min-h-target-min items-center text-footnote text-accent-text underline ${WRAP}`}
+                className={`inline-flex min-h-target-min min-w-target-min items-center justify-center text-footnote text-accent-text underline ${WRAP}`}
               >
                 {step.label}
               </Link>
