@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
@@ -6,6 +6,7 @@ import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { BreakdownLog } from './BreakdownLog.js';
+import { ScreenMenu } from './screen-menu.js';
 import { KeyPage } from './KeyPage.js';
 import { ManpowerPage } from './ManpowerPage.js';
 import { ShiftKpisPage } from './ShiftKpisPage.js';
@@ -40,22 +41,15 @@ function screenOf(raw: string | null): Screen {
 function ScreenNav({ current }: { current: Screen }) {
   const { t } = useTranslation();
   return (
-    <nav aria-label={t('analytics.breakdowns.nav')}>
-      <ul className="flex flex-wrap gap-1 rounded-xl bg-neutral-200 p-1">
-        {SCREENS.map((screen) => (
-          <li key={screen}>
-            <Link
-              to={`/analytics/breakdowns?screen=${screen}`}
-              // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={screen === current ? 'page' : undefined}
-              className="flex min-h-target-min items-center rounded-lg px-3 text-footnote font-semibold text-neutral-700 aria-[current=page]:bg-surface aria-[current=page]:text-neutral-900 aria-[current=page]:shadow-card"
-            >
-              {t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown')}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <ScreenMenu
+      label={t('analytics.breakdowns.nav')}
+      current={current}
+      items={SCREENS.map((screen) => ({
+        id: screen,
+        to: `/analytics/breakdowns?screen=${screen}`,
+        label: t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown'),
+      }))}
+    />
   );
 }
 
@@ -86,16 +80,24 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const screen = screenOf(params.get('screen'));
   const figureOf = (key: string) => figures.data?.figures.find((figure) => figure.screen === key);
   const drill = parseDrill(params.get('drill'));
+  const drillTable = drill ? <DrillTable group={group} drill={drill} /> : null;
+  if (screen === LOG)
+    return (
+      <BreakdownLog
+        figure={figureOf(LOG)}
+        menu={<ScreenNav current={screen} />}
+        asOf={figures.data.asOf}
+        drill={drillTable}
+      />
+    );
   return (
     <Stack gap={6}>
       <ScreenNav current={screen} />
       <p className="text-footnote text-neutral-600">
         {t('analytics.asOf', { date: figures.data.asOf })}
       </p>
-      {drill ? <DrillTable group={group} drill={drill} /> : null}
-      {screen === LOG ? (
-        <BreakdownLog figure={figureOf(LOG)} />
-      ) : screen === A6 ? (
+      {drillTable}
+      {screen === A6 ? (
         <WhyWhyPage figure={figureOf(A6)} group={group} />
       ) : screen === A10 ? (
         <ProblemsPage figure={figureOf(A10)} group={group} />

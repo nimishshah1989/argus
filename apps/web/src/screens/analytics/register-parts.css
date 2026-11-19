@@ -1,0 +1,245 @@
+/*
+ * The small shared pieces of the Breakdown Log, the registers and the machine page (ticket 87): the group's screen
+ * menu, a table's title, a filter row and a list of facts. Tokens only; the look matches the shell's tab row.
+ */
+.rg-menu {
+  border-bottom: 1px solid var(--color-neutral-200);
+  overflow-x: auto;
+}
+.rg-menu ul {
+  display: flex;
+  gap: var(--spacing-step-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rg-menu a {
+  display: flex;
+  align-items: center;
+  min-height: var(--spacing-target-min);
+  padding: 0 var(--spacing-step-3);
+  border-bottom: 2px solid transparent;
+  color: var(--color-neutral-600);
+  font-size: var(--text-footnote);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.rg-menu a[aria-current='page'] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-neutral-900);
+  font-weight: 650;
+}
+.rg-menu a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The register's own switch: a row of pills, each its own link. */
+.rg-pills ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-step-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rg-pills a {
+  display: flex;
+  align-items: center;
+  min-height: var(--spacing-target-min);
+  padding: 0 var(--spacing-step-4);
+  border: 1px solid var(--color-control);
+  border-radius: var(--radius-chip);
+  background: var(--color-surface);
+  color: var(--color-neutral-900);
+  font-size: var(--text-footnote);
+  text-decoration: none;
+}
+.rg-pills a[aria-current='page'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+  color: var(--color-accent-text);
+  font-weight: 650;
+}
+.rg-pills a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.rg-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-step-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.rg-filters > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-1);
+  min-width: 10rem;
+  flex: 1 1 10rem;
+}
+.rg-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-step-1) var(--spacing-step-3);
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: var(--text-footnote);
+}
+.rg-counts strong {
+  color: var(--color-neutral-900);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.rg-counts p {
+  margin: 0;
+}
+
+.rg-title {
+  margin: 0 0 var(--spacing-step-2);
+  font-size: var(--text-body);
+  font-weight: 650;
+}
+.rg-tables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-5);
+}
+.rg-note {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: var(--text-footnote);
+}
+.rg-note a {
+  color: var(--color-accent-text);
+  font-weight: 650;
+}
+
+/* One thing's facts: a label over its value, as many to a row as fit. */
+.rg-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--spacing-step-3);
+  margin: 0;
+}
+.rg-facts div {
+  min-width: 0;
+}
+.rg-facts dt {
+  color: var(--color-neutral-600);
+  font-size: var(--text-caption);
+}
+.rg-facts dd {
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.rg-facts dd.rg-fact-note {
+  color: var(--color-neutral-600);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+
+.rg-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--spacing-target-min);
+  color: var(--color-accent-text);
+  font-size: var(--text-footnote);
+  font-weight: 650;
+}
+.rg-icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-step-2);
+}
+.rg-wide {
+  width: 100%;
+}
+.rg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-3);
+  min-width: 0;
+}
+
+/* A figure tile that opens its rows: the whole tile is the link. */
+.rg-tile {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+}
+.rg-tile-link {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-tile);
+}
+.rg-tile-link:hover,
+.rg-tile-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+/* A titled block of the entity page: its heading names it, its way to the rows sits on the heading's line. */
+.rg-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-3);
+  min-width: 0;
+}
+.rg-block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-step-2);
+}
+.rg-block-head h3 {
+  margin: 0;
+  font-size: var(--text-title3);
+  font-weight: 650;
+}
+
+/* The lines of a short list: one row each, a hairline between. */
+.rg-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rg-rows li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-step-2);
+  padding: var(--spacing-step-2) 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+.rg-rows li:first-child {
+  border-top: 0;
+}
+.rg-sub {
+  display: block;
+  color: var(--color-neutral-600);
+  font-size: var(--text-caption);
+  overflow-wrap: anywhere;
+}
+.rg-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-step-2);
+}
+.rg-subhead {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 650;
+}

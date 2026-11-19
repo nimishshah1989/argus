@@ -30,10 +30,10 @@ export const LOG_FILTERS: readonly LogFilter[] = [
   { id: 'code', column: 9, labelKey: 'analytics.log.filter.code' },
 ];
 
-const DATE_COLUMN = 3;
+export const DATE_COLUMN = 3;
 
 /** Sortable day: the platform's DD-MM-YYYY becomes YYYYMMDD; anything else sorts as text. */
-function dayKey(value: string): string {
+export function dayKey(value: string): string {
   const platform = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
   return platform ? `${platform[3]}${platform[2]}${platform[1]}` : value;
 }

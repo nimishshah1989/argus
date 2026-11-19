@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest';
+import { en, gu } from '../src/i18n/index.js';
+
+/**
+ * The words the Breakdown Log, the registers and the machine page print (ticket 87) all have Gujarati: none of
+ * them falls back to English. A key added to one of these families later fails here until it is translated.
+ */
+const FAMILIES = [
+  'analytics.log.',
+  'analytics.breakdowns.nav',
+  'analytics.table.',
+  'analytics.register.',
+  'analytics.registers.',
+  'analytics.machines.nav',
+  'analytics.machine.',
+  'pm.tasks.',
+  'analytics.screen.breakdown-log',
+  'analytics.screen.registers',
+  'analytics.screen.machine-page',
+];
+
+describe('the register screens in Gujarati', () => {
+  const keys = Object.keys(en).filter((key) => FAMILIES.some((family) => key.startsWith(family)));
+
+  it('covers a real set of keys', () => {
+    expect(keys.length).toBeGreaterThan(100);
+  });
+
+  it.each(keys)('translates %s', (key) => {
+    const value = (gu as Record<string, string>)[key];
+    expect(value?.trim().length ?? 0).toBeGreaterThan(0);
+  });
+});
