@@ -653,6 +653,7 @@ Ruling, 19 Nov: runs before 75 unless the two plans' file lists are disjoint (se
 1. [Engine] Every figure takes an explicit period. On a hand-computed two-year fixture (at least 200 rows, one month with no records) 100 % of the period figures equal the hand values.
 2. [Engine] 0 figures bucket by month number alone or divide many years' downtime by one year's hours (9 such sites; re-read on 19 Nov and listed in the ledger's correction of that day. 3 more places are one year by design, the annual report, PM compliance and the breakdown map, and take their period under goal 1). A month with no records prints "no records", never 0.
 3. [Engine] The 2026 answer key stays whole: parity 0 problems and no done row regresses, no test edited.
+4. [Engine] (76x, the history-gap tail; added 19 Nov, packets 76a–76y merged) Three leftovers are closed with hand values on the two-year fixture: the Forecast Lab's exposure days count 0 no-records days (`forecast-lab-sim.ts`), the 90/180-day health trends in Team Focus and Compare scale each window by its observed days (a fixture with a gap inside the latest 180 days), and `cellFrac` stops counting a gap month's days. Until then "history figures count a no-records month as observed time" stays written in the ledger.
 
 **77 Machines out of production data** · Blocked by: 74 (77a); 85 (77b)
 Delivers: Bhavin's setting — a spare-capacity machine is recorded but does not move the plant's figures.
