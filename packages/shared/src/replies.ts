@@ -39,7 +39,12 @@ import {
   settingsPage,
   shiftReplySchema,
 } from './plant-settings.js';
-import { pmPlanForJobSchema, pmPlanReplySchema } from './pm.js';
+import {
+  pmCalendarReplySchema,
+  pmPlanForJobSchema,
+  pmPlanReplySchema,
+  pmRescheduleReplySchema,
+} from './pm.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
@@ -196,6 +201,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('settings/pm-plans', pmPlanReplySchema),
+  [`GET ${P}/pm/calendar`]: pmCalendarReplySchema,
+  [`POST ${P}/pm/reschedule`]: pmRescheduleReplySchema,
   ...settingsResource('settings/registers', assetRegisterReplySchema),
   ...settingsResource('roster', rosterReplySchema),
   [`POST ${P}/roster/copy`]: rosterCopyReplySchema,

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { isPlannedChannel, type PlannedChannel } from '@uptimo/shared';
-import { raiseTicket } from '@uptimo/domain';
+import { raiseTicket, type Ticket, type TicketEvent } from '@uptimo/domain';
 import { machinesByIds } from '../plant/index.js';
 import * as tm from './mapper.js';
 import { buildRaiseExtras, loadSeverityMatrix } from './severity.js';
@@ -18,6 +18,8 @@ export interface PlannedTicketInput {
   raisedLoginId?: string | null;
   /** When the job is raised; defaults to now. */
   at?: Date;
+  /** The planned job's scheduled plant day (50 R12); the ticket's `task_expected_on`, never the plan's. */
+  scheduledOn?: string;
 }
 
 export interface PlannedTicketResult {
@@ -32,6 +34,27 @@ export class PlannedRaiseError extends Error {
     super(message);
     this.field = field;
   }
+}
+
+/** Inserts the ticket, its scheduled date and its raise events in the caller's transaction (50 R12). */
+async function persistRaise(
+  client: PoolClient,
+  input: PlannedTicketInput,
+  raised: { ticket: Ticket; events: TicketEvent[] },
+  extras: tm.RaiseExtras,
+): Promise<void> {
+  await sql.insertTicket(client, input.tenantId, raised.ticket, extras);
+  if (input.scheduledOn)
+    await sql.setTaskExpectedOn(client, input.tenantId, raised.ticket.id, input.scheduledOn);
+  await sql.persistEvents(client, input.tenantId, raised.ticket.id, {
+    events: raised.events,
+    startSeq: 0,
+    idempotencyKey: `planned:${raised.ticket.id}`,
+    loginId: input.raisedLoginId ?? null,
+    actingPersonId: input.reportedByPersonId ?? null,
+    textFor: () => input.problem,
+    payloadFor: () => (input.scheduledOn ? { scheduledOn: input.scheduledOn } : {}),
+  });
 }
 
 /**
@@ -92,14 +115,6 @@ export async function raisePlannedTicket(
     machine.criticality,
     matrix,
   );
-  await sql.insertTicket(client, input.tenantId, raised.ticket, extras);
-  await sql.persistEvents(client, input.tenantId, raised.ticket.id, {
-    events: raised.events,
-    startSeq: 0,
-    idempotencyKey: `planned:${raised.ticket.id}`,
-    loginId: input.raisedLoginId ?? null,
-    actingPersonId: input.reportedByPersonId ?? null,
-    textFor: () => input.problem,
-  });
+  await persistRaise(client, input, raised, extras);
   return { id: raised.ticket.id, ref: raised.ticket.ref };
 }

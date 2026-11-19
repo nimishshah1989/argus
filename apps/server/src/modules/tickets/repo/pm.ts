@@ -52,3 +52,102 @@ export async function latestPmReadings(
     if (row.meter !== null) readings.set(row.machine_id as string, Number(row.meter));
   return readings;
 }
+
+/** An open PM ticket as the calendar reads it: its scheduled date plus what a move must not touch. */
+export interface PmCalendarTicketRow {
+  ticketId: string;
+  machineId: string;
+  ref: string;
+  title: string;
+  status: string;
+  /** `task_expected_on`, or null when the job has no scheduled date (the mapper falls back to `reported_at`). */
+  scheduledOn: string | null;
+  reportedAt: Date;
+  startedAt: Date | null;
+}
+
+/**
+ * The open PM jobs of one plant (R2): they replace their machine's plan occurrence. One row per job, oldest
+ * first, so a machine with more than one (a bad import) keeps a deterministic first one in the pure calendar.
+ */
+export async function pmTicketsForCalendar(
+  tx: Db,
+  tenantId: string,
+): Promise<PmCalendarTicketRow[]> {
+  const rows = (
+    await tx.query(
+      `SELECT id, machine_id, ref, problem, status, task_expected_on::text AS task_expected_on,
+              reported_at, started_at
+         FROM ticket
+        WHERE tenant_id = $1 AND raised_channel = 'pm' AND parent_id IS NULL
+          AND status IN ('open', 'working', 'waiting')
+        ORDER BY reported_at, id`,
+      [tenantId],
+    )
+  ).rows;
+  return rows.map((row) => ({
+    ticketId: row.id as string,
+    machineId: row.machine_id as string,
+    ref: row.ref as string,
+    title: row.problem as string,
+    status: row.status as string,
+    scheduledOn: (row.task_expected_on as string | null) ?? null,
+    reportedAt: new Date(row.reported_at as string | number | Date),
+    startedAt: row.started_at === null ? null : new Date(row.started_at as string | number | Date),
+  }));
+}
+
+export interface PmScheduleMove {
+  ticketId: string;
+  /** The scheduled day before the move, for the audit line. */
+  from: string;
+  to: string;
+  /** The effective plan the window came from, when the machine still has one. */
+  planId: string | null;
+  loginId: string | null;
+  actingPersonId: string | null;
+}
+
+/**
+ * Moves one open PM job to another day (R3): `task_expected_on`, `updated_at` and one `update` event with the
+ * from/to dates; `reported_at`, `started_at` and every `pm_plan` row stay untouched. The UPDATE's status/started
+ * guard makes a started job a refusal even if another request raced in; null means "no longer movable".
+ */
+export async function setPmScheduledOn(
+  tx: Db,
+  tenantId: string,
+  move: PmScheduleMove,
+): Promise<{ ref: string; seq: number } | null> {
+  const moved = (
+    await tx.query(
+      `UPDATE ticket SET
+         task_expected_on = $3,
+         updated_at = now(),
+         last_event_seq = GREATEST(last_event_seq,
+           (SELECT COALESCE(MAX(seq), -1) FROM ticket_event
+             WHERE tenant_id = $1 AND ticket_id = $2)) + 1
+       WHERE tenant_id = $1 AND id = $2 AND raised_channel = 'pm' AND parent_id IS NULL
+         AND status = 'open' AND started_at IS NULL
+       RETURNING ref, last_event_seq`,
+      [tenantId, move.ticketId, move.to],
+    )
+  ).rows[0];
+  if (!moved) return null;
+  await tx.query(
+    `INSERT INTO ticket_event
+       (tenant_id, ticket_id, seq, type, at, login_id, acting_person_id, payload)
+     VALUES ($1, $2, $3, 'update', now(), $4, $5, $6)`,
+    [
+      tenantId,
+      move.ticketId,
+      moved.last_event_seq,
+      move.loginId,
+      move.actingPersonId,
+      JSON.stringify({
+        changes: [{ field: 'scheduledOn', from: move.from, to: move.to }],
+        planId: move.planId,
+      }),
+    ],
+  );
+  return { ref: moved.ref as string, seq: moved.last_event_seq as number };
+}
