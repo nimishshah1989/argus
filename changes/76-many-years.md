@@ -65,5 +65,5 @@
 - Known defect, pinned as it is today: the Breakdown Log numbers its rows by position in the span when a row has no
   stored number, and the loader never stores one, so a row's number changes with the span (the 2026 log starts at 1
   instead of continuing from 82). The test pins that behaviour so a later fix is deliberate. The right fix is to number
-  the log from the whole uncut history and then cut; it is a separate packet and will change this test's 2026 and
-  both-years numbers.
+  the log from the whole uncut history and then cut; it is a separate packet and will change only the 2026 numbers in
+  this test (2025 and both years keep theirs, as they already start at the first record).
