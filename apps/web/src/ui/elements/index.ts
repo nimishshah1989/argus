@@ -10,7 +10,7 @@ export { DrillPanel } from './drill-panel.js';
 export { DrillTrail, type TrailStep } from './drill-trail.js';
 export { GroupedNav, type NavGroup, type NavItem } from './grouped-nav.js';
 export { familyStep, RAMP_STEPS, type Family, type RampStep } from './family.js';
-export { HeatGrid } from './heat-grid.js';
+export { HeatGrid, type HeatPoint } from './heat-grid.js';
 export { InsightBanner } from './insight-banner.js';
 export { KpiTile, NO_VALUE } from './kpi-tile.js';
 export { PeriodPicker, type DateRange, type Period } from './period-picker.js';

@@ -27,6 +27,7 @@ const en = {
   'delta.planned': 'planned work',
   'tile.open': 'Explain this figure',
   'tile.span': 'Year to date',
+  'tile.line': '{{metric}}, month by month',
 
   'sheet.close': 'Close',
   'sheet.definition': 'What it is',

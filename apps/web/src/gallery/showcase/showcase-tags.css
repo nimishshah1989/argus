@@ -29,7 +29,6 @@
 }
 
 /* Identity: a 3 px edge on tiles, cards, the tooltip and the sheet; the line and its key; the end dot */
-.sc-tile[data-family],
 .sc-card[data-family] {
   box-shadow:
     inset 0 3px 0 var(--sc-family),
@@ -40,18 +39,6 @@
 }
 .sc-tip[data-family] .sc-tip-value b {
   color: var(--sc-family-ink);
-}
-.sc-spark .sc-spark-line {
-  stroke: var(--sc-family, var(--color-accent));
-}
-.sc-spark .sc-spark-dot {
-  background: var(--sc-family, var(--color-accent));
-}
-.sc-spark .sc-spark-dot[data-partial] {
-  background: var(--color-surface);
-  box-shadow:
-    inset 0 0 0 1.5px var(--sc-family, var(--color-accent)),
-    0 0 0 2px var(--color-surface);
 }
 .sc-card[data-family] .sc-key-line:not(.sc-key-grey),
 .sc-card[data-family] .sc-key-bar {
@@ -70,9 +57,6 @@
   gap: 6px;
   margin: 8px 0 0;
   padding: 0;
-}
-.sc-tile .sc-tags {
-  margin-top: 8px;
 }
 .sc-tags-head {
   gap: 8px;

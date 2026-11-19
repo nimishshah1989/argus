@@ -5,6 +5,7 @@ import { FAMILY_EDGE, type Family } from './family.js';
 import { useCountUp } from './motion.js';
 import { Sparkline } from './sparkline.js';
 import { StatusChip } from './status-chip.js';
+import { Tags, type TagSpec } from './tags.js';
 import { TONE_EDGE, WRAP } from './tone.js';
 import { TrendDelta } from './trend-delta.js';
 
@@ -17,7 +18,16 @@ interface KpiTileBase {
   /** The word for the verdict chip ("On target"); absent shows no chip. */
   verdict?: string;
   change?: { measure: Measure; delta: number };
-  trend?: { values: number[]; label: string };
+  trend?: {
+    values: readonly (number | null)[];
+    label: string;
+    /** The last value is a month still running: dashed, ending on a hollow dot. */
+    partial?: boolean;
+    /** The point being pointed at in another chart on the page. */
+    active?: number | null;
+    /** Fill the tile's width instead of a small line beside the change. */
+    wide?: boolean;
+  };
   /** The word unit, printed smaller beside the value (`format` then returns the number alone). */
   unit?: string;
   /** A quiet line in no tone, for what is not a verdict (an amount added since the last period). */
@@ -30,6 +40,13 @@ interface KpiTileBase {
    * change, each with its icon and word.
    */
   family?: Family;
+  /** Status tags (tone, icon and word) under the note. */
+  tags?: TagSpec[];
+  /** Anything else a screen prints between the tags and the change (its own words for how the figure moved). */
+  detail?: ReactNode;
+  /** `data-testid` of the tile, and of the printed figure alone (without its unit). */
+  testId?: string;
+  valueTestId?: string;
   /** Makes the whole tile a button that opens an explanation (a `DrillPanel`); absent keeps the tile a plain figure. */
   onOpen?: () => void;
 }
@@ -77,10 +94,20 @@ function figureText(props: KpiTileProps, shown: number): string {
 }
 
 /** The value, with its word unit smaller beside it (under it on a phone, so a long unit never breaks). */
-function Headline({ figure, unit, as: Tag }: { figure: string; unit?: string; as: 'span' | 'dd' }) {
+function Headline({
+  figure,
+  unit,
+  as: Tag,
+  testId,
+}: {
+  figure: string;
+  unit?: string;
+  as: 'span' | 'dd';
+  testId?: string;
+}) {
   return (
     <Tag className={`text-title2 font-bold tabular-nums ${WRAP}`}>
-      {figure}
+      {testId ? <span data-testid={testId}>{figure}</span> : figure}
       {unit && figure !== NO_VALUE ? (
         <>
           {' '}
@@ -104,6 +131,7 @@ function KpiButton(p: Shown) {
       type="button"
       data-tone={p.own}
       data-family={p.family}
+      data-testid={p.testId}
       aria-haspopup="dialog"
       onClick={p.onOpen}
       className={`${p.frame} min-h-target-min w-full text-left transition-colors duration-(--motion-fast) active:bg-neutral-100`}
@@ -116,6 +144,7 @@ function KpiButton(p: Shown) {
         figure={p.figure}
         unit={typeof p.value === 'string' ? undefined : p.unit}
         as="span"
+        testId={p.valueTestId}
       />
       {p.verdict ? (
         <span>
@@ -123,6 +152,8 @@ function KpiButton(p: Shown) {
         </span>
       ) : null}
       {p.note ? <span className="text-footnote text-neutral-600">{p.note}</span> : null}
+      {p.tags ? <Tags list={p.tags} /> : null}
+      {p.detail}
       <Moves {...p} as="span" />
     </button>
   );
@@ -131,18 +162,29 @@ function KpiButton(p: Shown) {
 /** A plain figure: a definition list, label and value. */
 function KpiPlain(p: Shown) {
   return (
-    <dl data-tone={p.own} data-family={p.family} className={p.frame}>
+    <dl data-tone={p.own} data-family={p.family} data-testid={p.testId} className={p.frame}>
       <dt className="flex items-start justify-between gap-2 text-footnote text-neutral-600">
         <span className={WRAP}>{p.label}</span>
         {p.action}
       </dt>
-      <Headline figure={p.figure} unit={typeof p.value === 'string' ? undefined : p.unit} as="dd" />
+      <Headline
+        figure={p.figure}
+        unit={typeof p.value === 'string' ? undefined : p.unit}
+        as="dd"
+        testId={p.valueTestId}
+      />
       {p.verdict ? (
         <dd>
           <StatusChip tone={p.own}>{p.verdict}</StatusChip>
         </dd>
       ) : null}
       {p.note ? <dd className="text-footnote text-neutral-600">{p.note}</dd> : null}
+      {p.tags ? (
+        <dd>
+          <Tags list={p.tags} />
+        </dd>
+      ) : null}
+      {p.detail ? <dd>{p.detail}</dd> : null}
       <Moves {...p} as="dd" />
     </dl>
   );
@@ -155,7 +197,15 @@ function Moves({ change, trend, own, family, as: Tag }: Shown & { as: 'span' | '
     <Tag className="flex flex-wrap items-center justify-between gap-2">
       {change ? <TrendDelta measure={change.measure} delta={change.delta} /> : null}
       {trend ? (
-        <Sparkline values={trend.values} tone={own} family={family} label={trend.label} />
+        <Sparkline
+          values={trend.values}
+          tone={own}
+          family={family}
+          label={trend.label}
+          partial={trend.partial}
+          active={trend.active}
+          wide={trend.wide}
+        />
       ) : null}
     </Tag>
   );

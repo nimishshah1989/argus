@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { instrument } from '../directions/direction-instrument.js';
-import { inkOn } from '../directions/parts-palette.js';
 import { FAMILY_COLOURS } from '../directions/family-colours.js';
 import { FULL, PARTIAL, metricOf } from './data.js';
-import { rampOf } from './heat-map.js';
 import { rangeTag } from './tags.js';
 import type { TFunction } from 'i18next';
 
@@ -71,9 +69,23 @@ for (const theme of ['light', 'dark'] as const) {
         }
       }
     });
-    it('every heat square prints its hours at 4.5:1 or better', () => {
-      for (const step of rampOf(theme)) {
-        expect(ratio(step, inkOn(step))).toBeGreaterThanOrEqual(4.5);
+    it('every heat square prints its hours at 4.5:1 or better (the shared downtime ramp)', () => {
+      const css = readFileSync(new URL('../../ui/tokens.css', import.meta.url), 'utf8');
+      const dark = css.indexOf(":root[data-theme='dark']");
+      const part = theme === 'light' ? css.slice(0, dark) : css.slice(dark);
+      const hex = (name: string): string =>
+        new RegExp(`--color-${name}: (#[0-9a-f]{6});`).exec(css)![1]!;
+      const ink = (step: number): string => {
+        const given = new RegExp(
+          `--color-family-downtime-ramp-ink-${step}: var\\(--color-([a-z-]+)\\);`,
+        ).exec(part)?.[1];
+        return hex(given ?? `ramp-ink-dark`);
+      };
+      for (const step of [1, 2, 3, 4, 5]) {
+        const square = new RegExp(`--color-family-downtime-ramp-${step}: (#[0-9a-f]{6});`).exec(
+          part,
+        )![1]!;
+        expect(ratio(square, ink(step))).toBeGreaterThanOrEqual(4.5);
       }
     });
   });
