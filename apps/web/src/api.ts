@@ -45,7 +45,12 @@ import type {
 } from '@uptimo/shared/replies';
 import type { SlaPoliciesUpdate, SlaPolicy, SlaProjection, SlaTimer } from '@uptimo/shared/sla';
 import type { SignoffFeed } from '@uptimo/shared/signoff';
-import type { BreakdownReportBody, CommandAction, RaiseTicketBody } from '@uptimo/shared/ticket';
+import type {
+  BreakdownReportBody,
+  CommandAction,
+  PmReport,
+  RaiseTicketBody,
+} from '@uptimo/shared/ticket';
 import type { WhyWhyPayload, WhyWhyWrite } from '@uptimo/shared/why-why';
 import type { TaskInput } from '@uptimo/shared/tasks';
 import type {
@@ -247,6 +252,7 @@ export type {
   ListItem,
   Machine,
   Person,
+  PmReport,
   RaiseTicketBody,
   Segment,
   Severity,
@@ -282,6 +288,8 @@ export type TicketListQuery = {
   raisedBy?: string;
   from?: string;
   to?: string;
+  /** The channel a ticket was raised through; `['pm']` is the technician's PM job list (49c). */
+  channel?: string[];
   cursor?: string;
   limit?: number;
 };

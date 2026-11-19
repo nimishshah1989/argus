@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { isBreakdownChannel } from '@uptimo/shared/channel';
 import { useState } from 'react';
 import {
   ApiError,
@@ -14,8 +15,10 @@ import { rememberRecent, type FloorData } from './use-floor.js';
 
 const OPEN: Ticket['status'][] = ['open', 'working', 'waiting'];
 
+/** The open breakdown on a machine after a conflict: a planned PM job or a task is not what the raise collided with. */
 async function openTicketOn(machineId: string): Promise<Ticket | undefined> {
-  return (await listTickets({ machineId, status: OPEN, limit: 1 })).items[0];
+  const items = (await listTickets({ machineId, status: OPEN, limit: 10 })).items;
+  return items.find((ticket) => isBreakdownChannel(ticket.raisedChannel));
 }
 
 /**

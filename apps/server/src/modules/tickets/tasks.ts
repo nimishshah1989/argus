@@ -4,7 +4,8 @@ import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as repo from './repo/tasks.js';
 import { tenantInfo } from '../identity/index.js';
-import { activeListItems } from '../plant/index.js';
+import { activeListItems, recordPmCompletion } from '../plant/index.js';
+import { plantDateAt, type StoredReport } from './repo/report.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix } from './severity.js';
 
 type Outcome = tm.Outcome;
@@ -134,6 +135,7 @@ export async function afterClose(
 ): Promise<{ task?: { id: string; ref: string } }> {
   if (tx.action !== 'close') return {};
   const at = ticket.closedAt ?? new Date();
+  await movePmPlan(client, tx, loaded, at);
   const line = {
     tenantId: tx.tenantId,
     loginId: tx.auth.loginId,
@@ -176,6 +178,32 @@ export async function afterClose(
   });
   if (created.parentId === tx.ticketId) ticket.lastEventSeq = seq;
   return { task: { id: created.id, ref: created.ref } };
+}
+
+/** The meter reading a PM report carries, when the plan has a meter (R6/R8). */
+function meterOf(tx: tm.Tx): number | null {
+  const report = tx.body.report as { pmReport?: StoredReport['pmReport'] } | undefined;
+  const meter = report?.pmReport?.readings?.['meter'];
+  return typeof meter === 'number' ? meter : null;
+}
+
+/**
+ * A PM job's close moves its plan in the same transaction (49c, R8): the accepted plan's `last_done_on` becomes the
+ * close's plant day and its reading the later of the two. A switched-off plan is accepted but not moved, and an
+ * API mark-done close moves it too, so no close can make the next nightly run owe the same period again.
+ */
+async function movePmPlan(
+  client: PoolClient,
+  tx: tm.Tx,
+  loaded: tm.LoadedCtx,
+  at: Date,
+): Promise<void> {
+  if (loaded.extras.raisedChannel !== 'pm' || !tx.pmPlanId) return;
+  await recordPmCompletion(client, tx.tenantId, {
+    planId: tx.pmPlanId,
+    doneOn: await plantDateAt(client, tx.tenantId, at),
+    meter: meterOf(tx),
+  });
 }
 
 /**

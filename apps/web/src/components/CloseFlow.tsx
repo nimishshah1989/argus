@@ -8,6 +8,7 @@ import { FactList, MinuteTiles } from '../ui/detail-kit.js';
 import { TopBar } from '../ui/top-bar.js';
 import { closeAt, earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
 import { NO_TASK, TaskLeaveCard, taskInput, taskReady, type TaskDraft } from './FollowUpTask.js';
+import { PmClose } from './PmClose.js';
 import { formatClock, formatMinutes, machineLabel } from './format.js';
 import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
 import { StatusBadge } from './StatusBadge.js';
@@ -206,6 +207,13 @@ function ReportStep(
 
 /** The two full screens of Write report and close, or the late report's one (design lock, slice 2). */
 export function CloseFlow(props: CloseFlowProps) {
+  // A PM job closes on its plan's checklist: no finish step and no breakdown report (ticket 49c, R8).
+  if (props.detail.ticket.raisedChannel === 'pm') return <PmClose {...props} />;
+  return <CloseScreens {...props} />;
+}
+
+/** The breakdown close's own two screens. */
+function CloseScreens(props: CloseFlowProps) {
   const [step, setStep] = useState<1 | 2>(props.mode === 'late' ? 2 : 1);
   const [finish, setFinish] = useState<Opened | null>(null);
   const [task, setTask] = useState<TaskDraft>(NO_TASK);

@@ -1,11 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
+import { isBreakdownChannel } from '@uptimo/shared/channel';
 import { getConfig, getMe, getState, type Config, type Me, type Ticket } from '../../api.js';
 
 const MAINTENANCE = ['technician', 'supervisor', 'head', 'admin'];
 const RECENT = 'floor.recent';
 
-/** The floor's addresses; `m` is the deep link's machine (v3.reporting.10). */
-export const FLOOR = { report: '/floor', other: '/floor/other', mine: '/floor/mine', machine: 'm' };
+/** The floor's addresses; `m` is the deep link's machine (v3.reporting.10), `pm` the PM jobs (49c). */
+export const FLOOR = {
+  report: '/floor',
+  other: '/floor/other',
+  mine: '/floor/mine',
+  pm: '/floor/pm',
+  machine: 'm',
+};
 
 export interface FloorData {
   config: Config;
@@ -56,10 +63,15 @@ export function useFloorData(): FloorLoad {
   return { data, error: null, retry };
 }
 
-/** The open ticket on each machine; a follow-up task has no machine id of its own. */
-function openOnMachines(tickets: readonly Ticket[]): Map<string, Ticket> {
+/**
+ * The open breakdown on each machine; a follow-up task has no machine id of its own, and a planned job (`pm`,
+ * `inspection`) is not a live breakdown: it must not read "already reported" or block a breakdown report (R10).
+ */
+export function openOnMachines(tickets: readonly Ticket[]): Map<string, Ticket> {
   const byMachine = new Map<string, Ticket>();
-  for (const ticket of tickets) if (ticket.machineId) byMachine.set(ticket.machineId, ticket);
+  for (const ticket of tickets)
+    if (ticket.machineId && isBreakdownChannel(ticket.raisedChannel))
+      byMachine.set(ticket.machineId, ticket);
   return byMachine;
 }
 

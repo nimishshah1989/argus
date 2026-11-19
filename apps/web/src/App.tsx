@@ -11,6 +11,7 @@ import { SignIn } from './faces/signin/sign-in.js';
 import { Who } from './faces/signin/who.js';
 import { MyComplaints } from './faces/floor/my-complaints.js';
 import { OtherWork } from './faces/floor/other-work.js';
+import { PmJobs } from './faces/floor/pm-jobs.js';
 import { Report } from './faces/floor/report.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
@@ -43,6 +44,7 @@ export function App() {
         <Route path="/floor" element={<Report />} />
         <Route path="/floor/other" element={<OtherWork />} />
         <Route path="/floor/mine" element={<MyComplaints />} />
+        <Route path="/floor/pm" element={<PmJobs />} />
         <Route path="/desk/mine" element={<Desk view="mine" />} />
         <Route path="/desk/team" element={<Desk view="team" />} />
         <Route path="/desk/board" element={<Board />} />

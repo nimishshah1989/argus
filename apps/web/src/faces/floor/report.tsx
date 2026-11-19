@@ -78,7 +78,7 @@ export function Report() {
   const load = useFloorData();
   const data = load.data;
   return (
-    <FloorShell>
+    <FloorShell maintenance={data?.maintenance}>
       {data ? (
         <ReportFlow
           key={round}

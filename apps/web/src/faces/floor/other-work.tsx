@@ -56,7 +56,7 @@ export function OtherWork() {
   };
   const ready = Boolean(location && form.workType && form.needed.trim());
   return (
-    <FloorShell>
+    <FloorShell maintenance={maintenance}>
       <WizardPage
         title={t('floor.title')}
         quietOnline

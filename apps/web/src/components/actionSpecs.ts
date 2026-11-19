@@ -97,6 +97,9 @@ function specFor(
     return { action: 'close', label: 'detail.action.closeNoReport', preset: 'no_report' };
   }
   if (slot === 'close') {
+    // A PM job closes on its plan's checklist, not with "Mark done" and a note (ticket 49c).
+    if (ticket.raisedChannel === 'pm')
+      return { action: 'close', label: 'pm.close.action', preset: 'report' };
     return ticket.kind === 'general'
       ? { action: 'close', label: 'closes.action.markDone', preset: 'done' }
       : { action: 'close', label: 'detail.action.closeReport', preset: 'report' };
