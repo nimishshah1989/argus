@@ -5,13 +5,25 @@ import {
   availableHoursFor,
   cellAt,
   cellKey,
-  monthlyWindow,
   NO_CELL,
-  quarterAverage,
   type HoursWindow,
 } from './hours.js';
+import {
+  cellName,
+  inr,
+  MONTHS,
+  monthlyRows,
+  monthlySeries,
+  bdHoursTable,
+  percentTable,
+  pmHoursTable,
+  safeFraction,
+  type A1Entry,
+  type CellStats,
+  type MonthsContext,
+} from './a1-months.js';
 import { isProduction } from './machine-facts.js';
-import { effectiveHours, isHistory, isPm, sourcedReports, type SourcedReport } from './rows.js';
+import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow, MoveRow } from './types.js';
 
 /**
@@ -20,63 +32,19 @@ import type { Computer, EngineData, FigureValue, MachineRow, MoveRow } from './t
  * dash, PLANT TOTAL prefixes and a Total that is the recomputed aggregate.
  */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DASH = '—';
-
 function inrUpTo2(value: number): string {
   const text = value.toFixed(2).replace(/\.?0+$/, '');
   const decimals = text.includes('.') ? text.split('.')[1]!.length : 0;
   return formatInr(Number(text), decimals);
 }
 
-function inr(value: number, decimals: number): string {
-  return formatInr(Number(value.toFixed(decimals)), decimals);
-}
-
 const fractionText = (fraction: number): string => `${(fraction * 100).toFixed(2)}%`;
 
-const pointsText = (points: number): string => `${points.toFixed(2)}%`;
-
-const safeFraction = (part: number, whole: number): number => (whole > 0 ? part / whole : 0);
-
-const cellName = (cell: string): string => (cell === NO_CELL ? 'No cell' : `Cell ${cell}`);
-
-interface A1Entry {
-  row: SourcedReport;
-  hours: number;
-  cell: string;
-  month: number;
-}
-
-interface MonthRow {
-  cell: string;
-  hours: number[];
-  total: number;
-}
-
-interface CellStats {
-  cell: string;
-  machines: number;
-  available: number;
-  bdHours: number;
-  pmHours: number;
-}
-
-interface A1Context {
-  data: EngineData;
-  asOf: string;
-  annual: number;
-  machines: MachineRow[];
-  cells: string[];
+interface A1Context extends MonthsContext {
   entries: A1Entry[];
-  bdRows: MonthRow[];
-  pmRows: MonthRow[];
-  stats: CellStats[];
   totalAvailable: number;
   bdHours: number;
   pmHours: number;
-  bdPercent: number;
-  pmPercent: number;
 }
 
 function analysisEntries(data: EngineData, machines: readonly MachineRow[]): A1Entry[] {
@@ -110,20 +78,6 @@ function plantCells(
         ? -1
         : Number(left) - Number(right) || left.localeCompare(right),
   );
-}
-
-function monthlyRows(
-  cells: readonly string[],
-  entries: readonly A1Entry[],
-  want: (row: SourcedReport) => boolean,
-): MonthRow[] {
-  return cells.map((cell) => {
-    const own = entries.filter((entry) => entry.cell === cell && want(entry.row));
-    const hours = MONTHS.map((_, index) =>
-      own.filter((entry) => entry.month === index + 1).reduce((sum, entry) => sum + entry.hours, 0),
-    );
-    return { cell, hours, total: hours.reduce((sum, value) => sum + value, 0) };
-  });
 }
 
 function cellStats(input: {
@@ -226,112 +180,6 @@ function byCellTable(ctx: A1Context) {
       fractionText(safeFraction(stat.bdHours + stat.pmHours, stat.available)),
     ]),
     rowCount: ctx.stats.length,
-  };
-}
-
-function monthlyAvailability(ctx: A1Context, cell: string | null): number[] {
-  return MONTHS.map((_, index) => {
-    const window: HoursWindow = { ...monthlyWindow(ctx.asOf, index + 1), annualHours: ctx.annual };
-    return cell === null
-      ? ctx.machines.reduce((sum, machine) => sum + availableHoursFor(machine, window), 0)
-      : availableByCell(ctx.machines, ctx.data.moves, window, cell);
-  });
-}
-
-function monthlyPoints(hours: readonly number[], available: readonly number[]): (number | null)[] {
-  return hours.map((value, index) =>
-    available[index]! > 0 ? (value / available[index]!) * 100 : null,
-  );
-}
-
-function percentCells(points: readonly (number | null)[], year: string): string[] {
-  const months = points.map((value) => (value === null ? DASH : pointsText(value)));
-  const quarters = [0, 1, 2, 3].map((quarter) => {
-    const average = quarterAverage(points.slice(quarter * 3, quarter * 3 + 3));
-    return average === null ? DASH : pointsText(average);
-  });
-  return [...months, ...quarters, year];
-}
-
-function percentRows(ctx: A1Context, cell: string | null): { bd: string[]; pm: string[] } {
-  const index = cell === null ? -1 : ctx.cells.indexOf(cell);
-  const available = monthlyAvailability(ctx, cell);
-  const bdHours = cell === null ? monthlySeries(ctx.bdRows) : ctx.bdRows[index]!.hours;
-  const pmHours = cell === null ? monthlySeries(ctx.pmRows) : ctx.pmRows[index]!.hours;
-  const bdYear =
-    cell === null
-      ? ctx.bdPercent * 100
-      : safeFraction(ctx.stats[index]!.bdHours, ctx.stats[index]!.available) * 100;
-  const pmYear =
-    cell === null
-      ? ctx.pmPercent * 100
-      : safeFraction(ctx.stats[index]!.pmHours, ctx.stats[index]!.available) * 100;
-  return {
-    bd: percentCells(monthlyPoints(bdHours, available), pointsText(bdYear)),
-    pm: percentCells(monthlyPoints(pmHours, available), pointsText(pmYear)),
-  };
-}
-
-function monthlySeries(rows: readonly MonthRow[]): number[] {
-  return MONTHS.map((_, index) => rows.reduce((sum, row) => sum + row.hours[index]!, 0));
-}
-
-function percentTable(ctx: A1Context) {
-  const rows: string[][] = [];
-  for (const cell of ctx.cells) {
-    const pair = percentRows(ctx, cell);
-    rows.push([`${cellName(cell)}BD % / PM %`, ...pair.bd]);
-    rows.push([...pair.pm]);
-  }
-  const plant = percentRows(ctx, null);
-  rows.push([`PLANT TOTALBD % / PM %`, ...plant.bd]);
-  rows.push([...plant.pm]);
-  return {
-    title: `Month-on-Month — BD % and PM % (${ctx.asOf.slice(0, 4)})`,
-    header: [
-      'Cell',
-      ...MONTHS,
-      'Q1 Avg',
-      'Q2 Avg',
-      'Q3 Avg',
-      'Q4 Avg',
-      `Year ${ctx.asOf.slice(0, 4)}`,
-    ],
-    rows,
-    rowCount: rows.length,
-  };
-}
-
-function bdHoursCell(hours: number, yearTotal: number): string {
-  if (!hours) return DASH;
-  const share = yearTotal > 0 ? (hours / yearTotal) * 100 : 0;
-  return `${inr(hours, 1)}${share.toFixed(1)}%`;
-}
-
-function bdHoursTable(ctx: A1Context) {
-  const yearTotal = monthlySeries(ctx.bdRows).reduce((sum, value) => sum + value, 0);
-  return {
-    title: `Month-on-Month — BD Hours by Cell (${ctx.asOf.slice(0, 4)})`,
-    header: ['Cell', ...MONTHS, 'Total'],
-    rows: ctx.bdRows.map((row) => [
-      cellName(row.cell),
-      ...row.hours.map((hours) => bdHoursCell(hours, yearTotal)),
-      inr(row.total, 1),
-    ]),
-    rowCount: ctx.bdRows.length,
-  };
-}
-
-function pmHoursTable(ctx: A1Context) {
-  return {
-    title: `Month-on-Month — PM Hours by Cell (${ctx.asOf.slice(0, 4)})`,
-    header: ['Cell', ...MONTHS, 'Total'],
-    rows: ctx.pmRows.map((row) => [
-      cellName(row.cell),
-      ...row.hours.map((hours) => (hours ? inr(hours, 1) : DASH)),
-      inr(row.total, 1),
-    ]),
-    rowCount: ctx.pmRows.length,
   };
 }
 
