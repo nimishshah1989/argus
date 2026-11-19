@@ -300,7 +300,7 @@ function charts(a: Compared, b: Compared) {
 export const compareFigure: Computer = ({ data, asOf, profile }) => {
   const machines = compareMachines(data);
   const rows = historyRows(data);
-  const period = periodOf(rows);
+  const period = periodOf(rows, data.gaps);
   if (period === null || machines.length < 2) return { value: null, drillIds: [] };
   const perDay = (profile.prodHrsPerDay * profile.workDaysPerYear) / 365;
   const breakdowns = new Map<string, SourcedReport[]>();

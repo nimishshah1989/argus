@@ -1,3 +1,4 @@
+import { observedDays, type Period } from './availability.js';
 import { formatNumber } from './format.js';
 import { dayNumber } from './plant-date.js';
 import { effectiveHours, isHistory, sourcedReports, type SourcedReport } from './rows.js';
@@ -40,9 +41,8 @@ const sum = (values: readonly number[]): number =>
 const categoryOf = (machine: MachineRow): string => machine.category ?? '';
 const isRobotCategory = (machine: MachineRow): boolean =>
   /^robot/i.test((machine.category ?? '').trim());
-const dayOf = (date: string): number | null => dayNumber(date);
 export const boughtOf = (machine: MachineRow): number | null =>
-  machine.purchasedOn === null ? null : dayOf(machine.purchasedOn.slice(0, 10));
+  machine.purchasedOn === null ? null : dayNumber(machine.purchasedOn.slice(0, 10));
 
 /** The CNC machines the page ranks: the platform's machine list, minus a machine whose category is Robot. */
 export const compareMachines = (data: EngineData): MachineRow[] =>
@@ -52,18 +52,21 @@ export const compareMachines = (data: EngineData): MachineRow[] =>
 export const historyRows = (data: EngineData): SourcedReport[] =>
   sourcedReports(data).filter((row) => isHistory(row));
 
-/** The period: 1 January of the first entry's year to the last entry, both plant dates. */
-export function periodOf(rows: readonly SourcedReport[]): { start: number; end: number } | null {
+/** The period: 1 January of the first entry's year to the last entry, and the months in it with no records. */
+export type ComparePeriod = Period & { start: number; end: number };
+export function periodOf(rows: readonly SourcedReport[], noRecords: readonly string[] = []) {
   const dates = rows.map((row) => row.report.date).sort();
   const first = dates[0];
   const last = dates.at(-1);
-  const start = first === undefined ? null : dayNumber(`${first.slice(0, 4)}-01-01`);
+  const from = `${first?.slice(0, 4)}-01-01`;
+  const start = first === undefined ? null : dayNumber(from);
   const end = last === undefined ? null : dayNumber(last);
-  return start === null || end === null ? null : { start, end };
+  if (start === null || end === null || last === undefined) return null;
+  return { from, to: last, start, end, noRecords } satisfies ComparePeriod;
 }
 
 /** The age band the Guide's scorecard groups a machine in; -1 when its purchase date is unknown. */
-function bandOf(machine: MachineRow, period: { start: number; end: number }): number {
+function bandOf(machine: MachineRow, period: ComparePeriod): number {
   const bought = boughtOf(machine);
   if (bought === null) return -1;
   const age = (period.end - bought) / 365.25;
@@ -99,7 +102,7 @@ function tallyOf(list: readonly SourcedReport[]) {
   return { codes, shifts, em, months };
 }
 
-export type Window = { period: { start: number; end: number }; perDay: number };
+export type Window = { period: ComparePeriod; perDay: number };
 
 /** One machine's figures over its own service window, as the platform's cmpStats reads them. */
 export function statsOf(
@@ -111,9 +114,9 @@ export function statsOf(
   const { period, perDay } = window;
   const bought = boughtOf(machine);
   const start = bought !== null && bought > period.start ? bought : period.start;
-  const days = start > period.end ? 0 : period.end - start + 1;
+  const days = observedDays(period.from, period.to, period, machine.purchasedOn?.slice(0, 10));
   const inWindow = (row: SourcedReport): boolean => {
-    const day = dayOf(row.report.date);
+    const day = dayNumber(row.report.date);
     return day !== null && day >= start && day <= period.end;
   };
   const list = rows.filter(inWindow);
@@ -121,12 +124,13 @@ export function statsOf(
   const h = sum(list.map((row) => effectiveHours(row.report)));
   const avail = Math.max(1, days) * perDay;
   const last = rows.reduce<number | null>((latest, row) => {
-    const day = dayOf(row.report.date);
+    const day = dayNumber(row.report.date);
     return day === null || (latest !== null && day <= latest) ? latest : day;
   }, null);
-  const inLast = (row: SourcedReport): boolean => (dayOf(row.report.date) ?? 0) > period.end - 90;
+  const inLast = (row: SourcedReport): boolean =>
+    (dayNumber(row.report.date) ?? 0) > period.end - 90;
   const inPrior = (row: SourcedReport): boolean => {
-    const day = dayOf(row.report.date);
+    const day = dayNumber(row.report.date);
     return day !== null && day <= period.end - 90 && day > period.end - 180;
   };
   return {
@@ -260,7 +264,7 @@ function repeatOf(
   const byCode = new Map<string, number[]>();
   for (const row of list) {
     const code = String(row.report.maintCode ?? '').trim();
-    const day = dayOf(row.report.date);
+    const day = dayNumber(row.report.date);
     if (code === '' || code === '—' || day === null) continue;
     byCode.set(code, [...(byCode.get(code) ?? []), day]);
   }
