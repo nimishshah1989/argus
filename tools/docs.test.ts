@@ -8,6 +8,7 @@ import {
   instructionPaths,
   processErrors,
   readDocs,
+  trackerErrors,
 } from './check-docs.js';
 
 describe('docs check', () => {
@@ -54,5 +55,54 @@ describe('docs check', () => {
   it("the repository's instruction and stack files pass", () => {
     expect(processErrors(readDocs(instructionPaths()))).toEqual([]);
     expect(drizzleErrors(readDocs([...STACK_FILES]))).toEqual([]);
+  });
+
+  describe('tracker against merged commits', () => {
+    const tracker = (status: string): string =>
+      `## Progress tracker\n\n| #   | Ticket | Milestone | Status | PR |\n| --- | --- | --- | --- | --- |\n| 52  | Nudges | M4b | ${status} | #405 |\n| 53  | Other | M4b | todo | |\n\n## Next\n\n| 99 | Not a tracker row | M9 | todo | |\n`;
+
+    it('fails a todo row whose ticket has a feat commit, and names the ticket', () => {
+      const errors = trackerErrors(tracker('todo'), [
+        'feat(52c): an accepted nudge opens a ticket',
+      ]);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('ticket 52');
+      expect(errors[0]).toContain('todo');
+    });
+
+    it('fails a todo row whose ticket has a fix commit', () => {
+      expect(trackerErrors(tracker('todo'), ['fix(52): a nudge bug'])).toHaveLength(1);
+    });
+
+    it.each(['in progress', 'done', 'parked'])('passes when the row says %s', (status) => {
+      expect(trackerErrors(tracker(status), ['feat(52c): x'])).toEqual([]);
+    });
+
+    it('does not count a docs commit, a plan is not a build', () => {
+      expect(trackerErrors(tracker('todo'), ['docs(52): plan the nudges'])).toEqual([]);
+    });
+
+    it.each([
+      ['feat(52c): x', 52],
+      ['feat(52): x', 52],
+      ['fix(53.5): x', 53],
+    ])('maps %s to its ticket %i', (subject, ticket) => {
+      expect(trackerErrors(tracker('todo'), [subject]).join()).toContain(`ticket ${ticket}`);
+    });
+
+    it('ignores subjects with no ticket number, tickets with no row and rows outside the tracker', () => {
+      expect(
+        trackerErrors(tracker('todo'), [
+          'chore: tidy',
+          'feat(web): x',
+          'feat(77): x',
+          'feat(99): x',
+        ]),
+      ).toEqual([]);
+    });
+
+    it('passes with no commits', () => {
+      expect(trackerErrors(tracker('todo'), [])).toEqual([]);
+    });
   });
 });
