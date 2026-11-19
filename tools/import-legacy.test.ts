@@ -65,6 +65,18 @@ describe('import:legacy command', () => {
     expect(loadPlant(write('c.json', { machines: ['ZZ-1'], terms: ['x'] })).terms).toEqual(['x']);
   });
 
+  it('rejects a plant person without a string name and code', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'legacy-plant-'));
+    const file = join(dir, 'p.json');
+    const base = { machines: ['ZZ-1'], terms: [] };
+    for (const bad of [{ name: 'a' }, { code: 'P-1' }, { name: 1, code: 'P-1' }, null]) {
+      writeFileSync(file, JSON.stringify({ ...base, people: [bad] }));
+      expect(() => loadPlant(file)).toThrow(/--plant file: "people\[0\]"/);
+    }
+    writeFileSync(file, JSON.stringify({ ...base, people: [{ name: 'a', code: 'P-1' }] }));
+    expect(loadPlant(file).people).toHaveLength(1);
+  });
+
   it('finds workbooks by the year in their name and skips hidden files, __MACOSX and nameless years', () => {
     const dir = mkdtempSync(join(tmpdir(), 'legacy-find-'));
     mkdirSync(join(dir, 'a'));

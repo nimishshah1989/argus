@@ -97,7 +97,7 @@ Time" is their minutes; 500 h a month available). This is 69c's reconciliation r
 (`identity.activePeople`) and replaces a name with that person's `personCode` on an exact normalised match, else a
 stable `LG-` + 8 hex of `sha256(normalised name)` (the same in every year); role spellings drop, team spellings fold
 to `Maint. Team`, a typo mints its own code and is listed as `possible_duplicate_person`. Cost if wrong: a
-placeholder person to merge later; nothing leaks.
+placeholder person to merge later. The code is a reversible pseudonym (see Pseudonyms, 69b).
 
 **R9 — an alias target may be a person code** (`^P-[0-9a-f]{8}$` resolves against `personCode` in
 `imports/references.ts`). Cost if wrong: matched history loses its person link.

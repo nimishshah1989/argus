@@ -124,6 +124,11 @@ export function loadPlant(file: string | undefined): PlantContext {
     const plant = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
     const people = plant.people ?? [];
     if (!Array.isArray(people)) throw new Error('--plant file: "people" must be an array');
+    people.forEach((p, i) => {
+      const entry = p as Record<string, unknown> | null;
+      if (typeof entry?.name !== 'string' || typeof entry.code !== 'string')
+        throw new Error(`--plant file: "people[${i}]" needs a string "name" and a string "code"`);
+    });
     return {
       machines: new Set(strings(plant.machines, 'machines')),
       people: people as { name: string; code: string }[],

@@ -209,4 +209,9 @@ describe('legacy export', () => {
     const out = JSON.parse(convert({}, { people }).files[0]?.json ?? '{}') as Obj;
     expect(out.tickets[0].reports[0].doneBy[0]).toBe('P-0a1b2c3d');
   });
+
+  it('refuses a file whose configured person code is phone-shaped', () => {
+    const people = [{ name: 'zorbo quixle', code: '+91 98765 43210' }];
+    expect(() => convert({}, { people })).toThrow(/token/);
+  });
 });

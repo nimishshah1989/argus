@@ -238,6 +238,7 @@ function assertClean(
   ]);
   const leaked =
     people.leaks(json) +
+    people.phoneLeaks(json) +
     free.reduce((n, text) => n + people.phoneLeaks(text), 0) +
     terms.filter((t) => t && lower.includes(t.toLowerCase())).length;
   if (leaked > 0)
