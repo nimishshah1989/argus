@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- the template's kind is a prop value, not copy */
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +10,7 @@ import { FigureDrill } from './KeyPage.js';
 import { KeyBody, KeyKpi } from './key-body.js';
 import { contentOf } from './figure-content.js';
 import { parseDrill, type AnalyticsGroup } from './groups.js';
-import { NotReady, useFiguresState } from './screen-state.js';
+import { NotReady, OVERVIEW, useFiguresState } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
 
 /** A neutral screen constant, so CI's secret scanner never reads a figure lookup as an API key. */
@@ -41,14 +40,14 @@ function MoneyReady({ reply, group }: { reply: FiguresReply; group: AnalyticsGro
     return (
       <Template
         title={title}
-        kind="overview"
+        kind={OVERVIEW}
         main={<EmptyState title={t('analytics.notComputed')} />}
       />
     );
   return (
     <Template
-      title={content.title === '' ? title : content.title}
-      kind="overview"
+      title={title}
+      kind={OVERVIEW}
       lede={t('analytics.asOf', { date: reply.asOf })}
       figures={content.kpis.map((kpi, at) => (
         <KeyKpi key={`${kpi.label}-${at}`} kpi={kpi} />
@@ -57,7 +56,7 @@ function MoneyReady({ reply, group }: { reply: FiguresReply; group: AnalyticsGro
         <>
           {drill === null ? null : (
             <div data-span="full">
-              <DrillTable group={group} drill={drill} />
+              <DrillTable group={group} drill={drill} headingLevel={3} />
             </div>
           )}
           <KeyBody tables={content.tables} charts={content.charts} />
@@ -81,13 +80,23 @@ export function MoneyPage({ group }: { group: AnalyticsGroup }) {
   const figures = useAnalyticsFigures();
   const state = useFiguresState(figures);
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const meState = useFiguresState(me);
   const title = t('analytics.screen.money-matters');
-  if (me.isLoading) return <NotReady title={title} state="loading" onRetry={() => {}} />;
-  if (!mayReadMoney(me.data?.user.role))
+  // Who is asking is not known yet: never show the refusal for a login that has not been read.
+  if (meState !== 'ready' || !me.data)
+    return (
+      <NotReady
+        title={title}
+        state={meState}
+        onRetry={() => void me.refetch()}
+        empty={t('analytics.empty')}
+      />
+    );
+  if (!mayReadMoney(me.data.user.role))
     return (
       <Template
         title={title}
-        kind="overview"
+        kind={OVERVIEW}
         main={
           <EmptyState
             title={t('analytics.money.refusedTitle')}
@@ -100,8 +109,9 @@ export function MoneyPage({ group }: { group: AnalyticsGroup }) {
     return (
       <NotReady
         title={title}
-        state={state === 'ready' ? 'loading' : state}
+        state={state}
         onRetry={() => void figures.refetch()}
+        empty={t('analytics.empty')}
       />
     );
   return <MoneyReady reply={figures.data} group={group} />;

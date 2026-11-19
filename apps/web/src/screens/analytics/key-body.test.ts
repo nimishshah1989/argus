@@ -126,3 +126,31 @@ describe('money columns', () => {
     ]);
   });
 });
+
+describe('signs, blank headers and blank cells', () => {
+  it('reads a negative sum of money as a negative number', () => {
+    expect(sortNumber('₹ -1.20 cr')).toBe(-12000000);
+    expect(sortNumber('-₹ 38.23 lakh')).toBe(-3823000);
+    expect(sortNumber('₹ +90.00 lakh')).toBe(9000000);
+  });
+
+  const odd: PageTable = {
+    title: 'Odd',
+    header: ['Machine', ''],
+    rows: [
+      ['TC-1', ''],
+      ['TC-2', '5'],
+    ],
+    rowCount: 2,
+    truncated: false,
+    sortable: true,
+  };
+  const oddRows = odd.rows.map((cells, at) => ({ at, cells }));
+
+  it('offers no sort on a column with no header, and prints a blank cell blank', () => {
+    const columns = columnsOf(odd, oddRows);
+    expect(columns[0]!.sortValue).toBeDefined();
+    expect(columns[1]!.sortValue).toBeUndefined();
+    expect(oddRows.map((row) => columns[1]!.cell(row))).toEqual(['', '5']);
+  });
+});

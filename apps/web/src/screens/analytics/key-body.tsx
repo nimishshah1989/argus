@@ -1,4 +1,4 @@
-import { useId, useMemo, type ReactNode } from 'react';
+import { useId, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../ui/card.js';
 import { Chart } from '../../ui/chart/chart.js';
@@ -6,13 +6,14 @@ import type { ChartSpec } from '../../ui/chart/use-chart.js';
 import {
   DataTable,
   KpiTile,
-  NO_VALUE,
-  useClientTable,
+  tableView,
   type Column,
+  type Sort,
   type TableLabels,
 } from '../../ui/elements/index.js';
 import { drawnChart } from './key-chart.js';
 import type { PageKpi, PageTable } from './page-content.js';
+import { HeatTable } from './parts.js';
 import { cellNumber, isMissing } from './sort-table.js';
 
 /**
@@ -40,7 +41,7 @@ interface Row {
 }
 
 const RUPEES: Record<string, number> = { lakh: 1e5, cr: 1e7, crore: 1e7 };
-const MONEY = /^₹\s*(\d[\d,]*(?:\.\d+)?)\s*(lakh|crore|cr)?\b/i;
+const MONEY = /^([-+])?\s*₹\s*([-+])?\s*(\d[\d,]*(?:\.\d+)?)\s*(lakh|crore|cr)?\b/i;
 
 /**
  * The number a printed cell carries, for ordering only: a plain number or percentage, or money in the form the
@@ -51,8 +52,11 @@ export function sortNumber(cell: string): number | null {
   if (plain !== null) return plain;
   const found = MONEY.exec(cell.trim());
   if (found === null) return null;
-  const value = Number((found[1] ?? '').replaceAll(',', ''));
-  return Math.round(value * (RUPEES[(found[2] ?? '').toLowerCase()] ?? 1) * 100) / 100;
+  const value = Number((found[3] ?? '').replaceAll(',', ''));
+  const sign = found[1] === '-' || found[2] === '-' ? -1 : 1;
+  return (
+    sign * (Math.round(value * (RUPEES[(found[4] ?? '').toLowerCase()] ?? 1) * 100) / 100) || 0
+  );
 }
 
 /** A column is numeric when every printed cell that is not a dash is a number: it aligns right and sorts as one. */
@@ -61,7 +65,11 @@ function isNumeric(rows: readonly Row[], at: number): boolean {
   return cells.length > 0 && cells.every((cell) => sortNumber(cell) !== null);
 }
 
-/** The columns of an engine table: a header per cell, sorted by the number it carries (a dash sorts last). */
+/**
+ * The columns of an engine table: a header per cell, sorted by the number it carries (a dash sorts last). A cell is
+ * printed exactly as the engine wrote it: the engine's own dash stays a dash and a blank cell stays blank. A
+ * column with no header cannot be sorted, because its sort button would have no name.
+ */
 export function columnsOf(table: PageTable, rows: readonly Row[]): Column<Row>[] {
   return table.header.map((header, at) => {
     const numeric = isNumeric(rows, at);
@@ -70,8 +78,8 @@ export function columnsOf(table: PageTable, rows: readonly Row[]): Column<Row>[]
       id: String(at),
       header,
       numeric,
-      cell: (row) => (isMissing(printed(row)) ? NO_VALUE : printed(row)),
-      ...(table.sortable === true
+      cell: printed,
+      ...(table.sortable === true && header.trim() !== ''
         ? {
             sortValue: (row: Row): number | string => {
               if (isMissing(printed(row))) return Number.NaN;
@@ -102,6 +110,33 @@ export function useTableLabels(caption: string): TableLabels {
   };
 }
 
+const rowText = (row: Row) => row.cells.join(' ');
+const PAGE_SIZE = 50;
+
+/**
+ * The state of a table held in memory: the sort and the page. Unlike `useClientTable` it has no row limit, because an
+ * engine table is already bounded by the engine and a limit that throws would blank the whole screen.
+ */
+function usePagedRows(rows: Row[], columns: Column<Row>[]) {
+  const [sort, setSort] = useState<Sort>();
+  const [page, setPage] = useState(0);
+  const view = useMemo(
+    () => tableView(rows, columns, { sort, filter: '', page, pageSize: PAGE_SIZE }, rowText),
+    [rows, columns, sort, page],
+  );
+  const onSort = (column: string) => {
+    setSort(
+      sort?.column !== column
+        ? { column, dir: 'asc' }
+        : sort.dir === 'asc'
+          ? { column, dir: 'desc' }
+          : undefined,
+    );
+    setPage(0);
+  };
+  return { ...view, sort, pageSize: PAGE_SIZE, onSort, onPage: setPage };
+}
+
 /** One engine table: its title over the data table; a table the engine left untitled is named by its header. */
 export function KeyTable({ table }: { table: PageTable }) {
   const headingId = useId();
@@ -109,7 +144,15 @@ export function KeyTable({ table }: { table: PageTable }) {
   const columns = useMemo(() => columnsOf(table, rows), [table, rows]);
   const caption = table.title === '' ? table.header.join(' · ') : table.title;
   const labels = useTableLabels(caption);
-  const view = useClientTable(rows, columns, (row) => row.cells.join(' '), 50);
+  const view = usePagedRows(rows, columns);
+  if (table.heat === true)
+    return (
+      <HeatTable
+        title={table.title === '' ? null : table.title}
+        header={table.header}
+        rows={table.rows}
+      />
+    );
   return (
     <section
       aria-labelledby={table.title === '' ? undefined : headingId}
