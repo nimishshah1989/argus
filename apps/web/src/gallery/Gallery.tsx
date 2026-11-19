@@ -57,6 +57,10 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   navmap: NavMapView,
 };
 
+/** Own keys only, so `?view=constructor` is not a view. */
+const viewFor = (view: string | null) =>
+  view !== null && Object.hasOwn(VIEWS, view) ? VIEWS[view] : undefined;
+
 function Switcher({
   label,
   param,
@@ -146,7 +150,7 @@ export default function Gallery() {
   const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
   useDocumentAttributes(lang, accent, theme);
-  const View = VIEWS[params.get('view') ?? ''];
+  const View = viewFor(params.get('view'));
   if (View) return <View />;
 
   return (

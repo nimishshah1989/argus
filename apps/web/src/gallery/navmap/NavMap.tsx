@@ -93,19 +93,24 @@ export default function NavMap() {
   const menuBtn = useRef<HTMLButtonElement>(null);
   const searchBtn = useRef<HTMLButtonElement>(null);
   useInstrumentTokens(nav.theme);
+  const closeDrawer = () => {
+    setDrawer(false);
+    menuBtn.current?.focus();
+  };
   useGlobalKeys(
-    () => setPalette((open) => !open),
-    () => setDrawer(false),
+    () => {
+      setPalette((open) => !open);
+      setDrawer(false); // the palette must never sit under an open drawer
+    },
+    () => {
+      if (drawer) closeDrawer();
+    },
   );
   useEffect(() => {
     if (drawer)
       document.querySelector<HTMLElement>('[data-testid="menu"] [data-nav-item]')?.focus();
   }, [drawer]);
 
-  const closeDrawer = () => {
-    setDrawer(false);
-    menuBtn.current?.focus();
-  };
   const closePalette = () => {
     setPalette(false);
     searchBtn.current?.focus();

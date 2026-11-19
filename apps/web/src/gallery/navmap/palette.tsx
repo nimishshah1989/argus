@@ -25,7 +25,6 @@ function entriesFor(sections: Section[], t: (k: never, o?: object) => string): E
       hint: t('search.section' as never),
       match: secName,
     });
-    if (sec.screens.length < 2) continue;
     for (const scr of sec.screens)
       out.push({
         key: `${sec.id}/${scr.id}`,

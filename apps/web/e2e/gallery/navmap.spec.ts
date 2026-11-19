@@ -93,13 +93,34 @@ test.describe('the navigation map preview, search and look', () => {
 
     await page.keyboard.press(`${MOD}+k`);
     await page.keyboard.type('reports');
+    await expect(options.nth(0)).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowDown');
+    await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await expect(options.nth(0)).toHaveAttribute('aria-selected', 'false');
     await page.keyboard.press('Enter');
     await expect(palette).toBeHidden();
     await expect(page.getByTestId('page')).toContainText('Reports');
     await page.getByTestId('search-button').click();
     await page.keyboard.type('zzzz');
     await expect(palette).toContainText('Nothing matches');
+  });
+});
+
+test.describe('the navigation map preview, search coverage', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('every screen is searchable, the Guide included', async ({ page }) => {
+    await open(page);
+    await page.keyboard.press(`${MOD}+k`);
+    await page.keyboard.type('How this app works');
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('menu-guide')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('page')).toContainText('How this app works');
+  });
+
+  test('an unknown view name shows the section list, not a crash', async ({ page }) => {
+    await page.goto('/gallery?view=constructor');
+    await expect(page.getByTestId('gallery-root')).toBeVisible();
   });
 
   test('the period picker defaults to this year so far and offers a custom range', async ({
@@ -151,6 +172,16 @@ test.describe('the navigation map preview, phone', () => {
     expect(wide).toBe(false);
     await page.getByTestId('menu-button').click();
     await page.keyboard.press('Escape');
+    await expect(page.getByTestId('menu')).toBeHidden();
+    await expect(page.getByTestId('menu-button')).toBeFocused();
+  });
+
+  test('the palette opens above the drawer, which closes', async ({ page }) => {
+    await open(page);
+    await page.getByTestId('menu-button').click();
+    await expect(page.getByTestId('menu')).toBeVisible();
+    await page.keyboard.press(`${MOD}+k`);
+    await expect(page.getByTestId('palette')).toBeVisible();
     await expect(page.getByTestId('menu')).toBeHidden();
   });
 });
