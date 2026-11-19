@@ -6,7 +6,7 @@ Read this first, then the 19 Nov tail of `docs/plan/ledger.md`, then "Road to v1
 ## START HERE (V0, then two lanes)
 
 **State:** `main` = `69aed57` (main moves; `git log` is the truth). M0, M2 and M4a are gated. M4b is mostly merged:
-46, 47, 48, 49, 51, 52 and 67 are done; **50c (the PM calendar screen), 53 and 54 are open**. M1's open tail is 24,
+46, 47, 48, 49, 51, 52 and 67 are done; **53 and 54 are open** (50c, the PM calendar screen, merged in #407; its 50d polish is open). M1's open tail is 24,
 26, 27, 28 and 68. M6 has plumbing merged ahead (55 mostly, 71, 72 in shadow), nothing a user can see. Tracker reconciled
 against the code on 19 Nov (suites not rerun). `pnpm parity`: 120 rows, 0 problems on 19 Nov 2026.
 
@@ -23,8 +23,8 @@ rely on going private.
   (both rewrite the engine); 77a, 78a are the API parts (re-plan `docs/slices/69-legacy-history.md` first: its 19 Nov
   amendment supersedes R1, R6 and R14); 79 after 75 and 76; the load after 79; then 90–96.
 - **Frontend lane (F):** 80 (foundations and three directions for Nimish to pick from), 81, then 82 and 84, 83,
-  85, then 50c, 77b and 78b (the screens), and the waves 86 → 87 with 88 and 89 beside them. 87 only restyles 50c.
-- **Then:** 53 and 54 (the M4b gate, with 50c, waits for 85 but not for 86–89), M6 in shadow, and P (97, 98, 27, then 28).
+  85, then 77b and 78b (the screens), and the waves 86 → 87 with 88 and 89 beside them. 87 restyles 50c and adds its keyboard move.
+- **Then:** 53 and 54 (the M4b gate waits for 85 but not for 86–89), M6 in shadow, and P (97, 98, 27, then 28).
 
 **Rules added 19 Nov (MILESTONES "Rules added on 19 Nov", D33, D34):** every goal has a number; an engine,
 figure, report or import ticket is `done` only after `validate:full` is green on the whole staging database; the
