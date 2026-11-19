@@ -108,12 +108,16 @@ async function load() {
     charts.ScatterChart,
     components.GridComponent,
     components.TooltipComponent,
+    components.MarkLineComponent,
+    components.MarkAreaComponent,
+    components.MarkPointComponent,
+    components.DataZoomComponent,
     renderers.SVGRenderer,
   ]);
   return core;
 }
 
-function loadEcharts(): ReturnType<typeof load> {
+export function loadEcharts(): ReturnType<typeof load> {
   loader ??= load().catch((error: unknown) => {
     loader = null;
     throw error;
