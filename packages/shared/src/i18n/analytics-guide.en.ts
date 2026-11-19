@@ -40,6 +40,10 @@ export const analyticsGuideEn = {
     'MTTR is the mean time to repair: downtime hours divided by the number of breakdowns in the period. MTBF is the mean time between failures: the fleet’s available hours minus those downtime hours, divided by the same count. Both print to two decimals.',
   'analytics.guide.mttr-mtbf.body2':
     'PM is not a breakdown, and a period with no breakdown has no MTTR — it prints —. The A3 page applies the same rules to the plant, a cell, a category and an age band.',
+  'analytics.guide.mttr-mtbf.body3':
+    'The shift split groups breakdowns by the shift recorded on the report, never by re-reading the clock, and each shift divides by its own share of the plant’s working hours: the day’s minutes split 629 and 631 with the overlap minute on the later shift, so the counts, BD hours, PM hours and working hours of the rows add to the plant exactly. The plant’s own MTTR, MTBF and availability are recomputed from those summed totals, never averaged from the rows, and a code the Settings have no window for keeps its row with dashes where a denominator is missing.',
+  'analytics.guide.mttr-mtbf.body4':
+    'The backlog is every breakdown ticket still open at the end of the as-of plant day, aged in the plant’s working hours to the next midnight and bucketed under 4, 4 to 24, 24 to 72 and over 72 hours. A support ticket, a PM job and a general work request are not breakdowns, and a closed or cancelled ticket is not open; the plant has no holiday calendar, so Saturday and Sunday are working time, and a plant with no shift window prints dashes instead of an age.',
   'analytics.guide.mttr-mtbf.formula':
     'MTTR = BD hours ÷ breakdowns; MTBF = (available hours − BD hours) ÷ breakdowns',
   'analytics.guide.bd-pm.title': '5. BD % and PM split',

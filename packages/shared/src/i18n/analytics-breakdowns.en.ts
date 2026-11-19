@@ -6,6 +6,8 @@ export const analyticsBreakdownsEn = {
   'analytics.breakdowns.nav': 'Breakdowns screens',
   'analytics.screen.shift-kpis': 'Shift-calendar KPIs',
   'analytics.figure.shift-kpis.compare': 'Platform basis beside the working-hour basis',
+  'analytics.figure.shift-kpis.shift-split': 'Breakdowns, hours and MTTR by shift',
+  'analytics.figure.shift-kpis.backlog': 'Open breakdowns, aged in working hours',
   'analytics.log.intro':
     'Every breakdown and PM entry the plant logged, newest first. The log keeps the PM rows; the analyses leave them out. A NO DT entry prints a dash, never zero hours.',
   'analytics.log.filter.title': 'Filter the log',

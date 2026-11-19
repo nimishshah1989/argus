@@ -25,6 +25,8 @@ import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
+import { shiftKpisBacklogFigure } from './backlog.js';
+import { shiftKpisShiftSplitFigure } from './shift-split.js';
 import { reliabilityFigure } from './reliability.js';
 import { shiftKpisCompareFigure } from './standard-kpis.js';
 import { teamFocusFigure } from './team-focus.js';
@@ -219,9 +221,11 @@ const reportComputers: Readonly<Record<string, Computer>> = {
   'annual-report': annualReportFigure,
 };
 
-/** Owner 48's shift-calendar figures: the comparison first; the split, backlog and map arrive with 48b and 48c. */
+/** Owner 48's shift-calendar figures: the comparison, the shift split and the backlog; the map arrives with 48c. */
 const shiftComputers: Readonly<Record<string, Computer>> = {
   'shift-kpis.compare': shiftKpisCompareFigure,
+  'shift-kpis.shift-split': shiftKpisShiftSplitFigure,
+  'shift-kpis.backlog': shiftKpisBacklogFigure,
 };
 
 /** Owner 67's reliability fit and critical-spares list, one figure on the machine page (67a). */
