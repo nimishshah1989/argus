@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { S, fixed } from './data.js';
 import { useEchart, NARROW } from '../../ui/chart/use-echart.js';
 import { readInk, tooltipBase, type Ink } from './chart-ink.js';
+import { Tag, causeTag, tagHtml } from './tags.js';
+import { useTheme } from './theme.js';
 
 const CAUSES = S.causes;
 /** Running share of all breakdown hours after each cause, as a percent. */
@@ -20,7 +22,8 @@ function tip(t: TFunction, i: number): string {
   const machines = c.machines
     .map((m) => `<li><span>${esc(m.id)}</span><b>${fixed(m.hours, 1)} h</b></li>`)
     .join('');
-  return `<div class="sc-tip"><header>${esc(c.name)}</header><p class="sc-tip-value"><b>${fixed(c.hours, 1)}</b> <i>h</i> <span class="sc-tip-sub">${fixed(share, 1)} %</span></p><dl><dt>${esc(t('pareto.cum'))}</dt><dd>${fixed(CUM[i], 1)} %</dd><dt>${esc(t('tip.breakdowns'))}</dt><dd>${fixed(c.breakdowns, 0)}</dd></dl><p class="sc-tip-sub">${esc(t('pareto.machines'))}</p><ul class="sc-tip-list">${machines}</ul></div>`;
+  const top = i === 0 ? `<p class="sc-tags">${tagHtml(causeTag(t))}</p>` : '';
+  return `<div class="sc-tip" data-family="downtime"><header>${esc(c.name)}</header>${top}<p class="sc-tip-value"><b>${fixed(c.hours, 1)}</b> <i>h</i> <span class="sc-tip-sub">${fixed(share, 1)} %</span></p><dl><dt>${esc(t('pareto.cum'))}</dt><dd>${fixed(CUM[i], 1)} %</dd><dt>${esc(t('tip.breakdowns'))}</dt><dd>${fixed(c.breakdowns, 0)}</dd></dl><p class="sc-tip-sub">${esc(t('pareto.machines'))}</p><ul class="sc-tip-list">${machines}</ul></div>`;
 }
 
 function axes(ink: Ink) {
@@ -160,9 +163,10 @@ function CausesTable() {
  */
 export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void }) {
   const { t, i18n } = useTranslation('showcase');
+  const theme = useTheme();
   const { ref } = useEchart(
-    (el) => paretoOption(readInk(el), t),
-    [i18n.language],
+    (el) => paretoOption(readInk(el, 'downtime'), t),
+    [i18n.language, theme],
     (chart) => {
       chart.on('updateAxisPointer', (e: unknown) => {
         const axes = (e as { axesInfo?: { axisDim: string; value: number | string }[] }).axesInfo;
@@ -174,11 +178,15 @@ export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void
     },
   );
   return (
-    <section className="sc-card" aria-labelledby="sc-pareto-title">
+    <section className="sc-card" data-family="downtime" aria-labelledby="sc-pareto-title">
       <header className="sc-card-head">
         <div>
           <h2 id="sc-pareto-title">{t('pareto.title')}</h2>
           <p className="sc-sum">{t('pareto.sum', { n: VITAL, pct: fixed(CUM[VITAL - 1], 0) })}</p>
+          <p className="sc-tags sc-tags-head">
+            <Tag tag={causeTag(t)} />
+            <span className="sc-tag-name">{CAUSES[0]?.name}</span>
+          </p>
         </div>
       </header>
       <ParetoKey />

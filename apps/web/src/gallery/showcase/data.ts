@@ -172,6 +172,15 @@ export function usualRange(metric: Metric): [number, number] {
   return [Math.max(0, r2(mean - sd)), metric.unit === '%' ? Math.min(100, r2(hi)) : r2(hi)];
 }
 
+export type RangePos = 'within' | 'above' | 'below';
+
+/** Where a value sits against the plant's own usual range (the band on the trend); the engine has no targets. */
+export function rangePos(metric: Metric, value: number | null): RangePos | null {
+  if (value === null) return null;
+  const [lo, hi] = usualRange(metric);
+  return value > hi ? 'above' : value < lo ? 'below' : 'within';
+}
+
 const YEAR = S.asOf.slice(0, 4);
 const monthDate = (i: number) => new Date(Date.UTC(Number(YEAR), i, 1));
 /** `October` for month index 9. */

@@ -49,6 +49,27 @@ const ChartDoorView = () => (
   </Suspense>
 );
 
+// The navigation map preview of ticket 80v: also its own chunk, and not wired to the product's routing.
+const NavMap = lazy(() => import('./navmap/NavMap.js'));
+const NavMapView = () => (
+  <Suspense fallback={null}>
+    <NavMap />
+  </Suspense>
+);
+
+/** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
+const VIEWS: Record<string, () => React.JSX.Element> = {
+  desktop: DesktopView,
+  directions: DirectionsView,
+  showcase: ShowcaseView,
+  navmap: NavMapView,
+  charts: ChartDoorView,
+};
+
+/** Own keys only, so `?view=constructor` is not a view. */
+const viewFor = (view: string | null) =>
+  view !== null && Object.hasOwn(VIEWS, view) ? VIEWS[view] : undefined;
+
 function Switcher({
   label,
   param,
@@ -131,25 +152,15 @@ function useDocumentAttributes(
   );
 }
 
-/** The gallery's views that are not the section list. */
-function otherView(view: string | null) {
-  if (view === 'desktop') return <DesktopView />;
-  if (view === 'directions') return <DirectionsView />;
-  if (view === 'showcase') return <ShowcaseView />;
-  if (view === 'charts') return <ChartDoorView />;
-  return null;
-}
-
 export default function Gallery() {
   const { t } = useTranslation('gallery');
   const [params] = useSearchParams();
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
   const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
-
   useDocumentAttributes(lang, accent, theme);
-  const other = otherView(params.get('view'));
-  if (other) return other;
+  const View = viewFor(params.get('view'));
+  if (View) return <View />;
 
   return (
     <div data-testid="gallery-root">
