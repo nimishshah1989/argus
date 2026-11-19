@@ -1,1 +1,0 @@
-- The head can now see the failed background jobs and retry them, as well as the admin. The head finds Background jobs in Settings, with the same count of failed jobs. Operators, technicians, supervisors, the plant head and the board still cannot. A shared phone cannot see it either, because a retry is written to the audit trail under one named person.
