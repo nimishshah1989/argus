@@ -130,6 +130,21 @@ export function locate(
   return best;
 }
 
+/**
+ * The section and tab to mark for a page, among the sections this login has. A page the login may not open (a
+ * supervisor on the Money URL) is marked as nothing and the frame shows the first section it has instead.
+ */
+export function place(
+  sections: readonly ShellSection[],
+  pathname: string,
+  search: string,
+): { section: ShellSection; tab: ShellTab | null } {
+  const found = locate(pathname, search);
+  const section = sections.find((s) => s.id === found?.section.id);
+  const tab = section?.tabs.find((t) => t.to === found?.tab.to);
+  return tab && section ? { section, tab } : { section: sections[0] ?? SECTIONS[0]!, tab: null };
+}
+
 export interface SearchEntry {
   to: string;
   name: MessageKey;

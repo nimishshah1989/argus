@@ -36,7 +36,10 @@ export function useOverlays() {
       if (drawer) closeDrawer();
     },
   );
-  useEffect(() => setDrawer(false), [location.pathname, location.search]);
+  useEffect(() => {
+    setDrawer(false);
+    setPalette(false); // a Back or Forward must not leave the search open over the new page
+  }, [location.pathname, location.search]);
   useEffect(() => {
     if (drawer) document.querySelector<HTMLElement>('#analytics-menu [data-nav-item]')?.focus();
   }, [drawer]);

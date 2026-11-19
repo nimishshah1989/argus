@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { en, gu } from '@uptimo/shared/i18n';
 import { ANALYTICS_GROUPS } from '../groups.js';
-import { SECTIONS, locate, searchEntries, sectionsFor } from './shell-data.js';
+import { SECTIONS, locate, place, searchEntries, sectionsFor } from './shell-data.js';
 
 const names = (role: string | undefined) => sectionsFor(role).map((section) => section.id);
 const tabsOf = (role: string, id: string) =>
@@ -79,5 +79,15 @@ describe('the search entries', () => {
     expect(searchEntries(sectionsFor('supervisor')).map((entry) => entry.to)).not.toContain(
       '/analytics/cost',
     );
+  });
+});
+
+describe('a page the login may not open', () => {
+  it('is not marked or headed as the Money page for a supervisor', () => {
+    const shown = place(sectionsFor('supervisor'), '/analytics/cost', '');
+    expect(shown.tab).toBeNull();
+    expect(shown.section.id).toBe('today');
+    expect(place(sectionsFor('head'), '/analytics/cost', '').tab?.to).toBe('/analytics/cost');
+    expect(place(sectionsFor('board'), '/analytics/machines', '').section.id).toBe('guide');
   });
 });

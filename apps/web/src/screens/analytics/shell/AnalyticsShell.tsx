@@ -6,7 +6,7 @@ import { getBrand, getMe } from '../../../api.js';
 import { useSystemTheme } from '../../desk/Shell.js';
 import { ShellPalette } from './ShellPalette.js';
 import { Header, useOverlays } from './shell-header.js';
-import { SECTIONS, locate, sectionsFor, type ShellSection } from './shell-data.js';
+import { place, sectionsFor, type ShellSection } from './shell-data.js';
 import './shell.css';
 
 /** Arrow keys move focus between the sibling links of one list; Home and End jump to its ends. */
@@ -117,8 +117,7 @@ export function AnalyticsShell({ children }: { children: ReactNode }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
   const company = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
   const sections = useMemo(() => sectionsFor(role), [role]);
-  const here = locate(location.pathname, location.search);
-  const section = here?.section ?? SECTIONS[0]!;
+  const { section, tab } = place(sections, location.pathname, location.search);
   const ui = useOverlays();
   return (
     <div className="as">
@@ -141,16 +140,13 @@ export function AnalyticsShell({ children }: { children: ReactNode }) {
         ) : null}
         <SideMenu
           sections={sections}
-          current={here?.section.id}
+          current={tab ? section.id : undefined}
           open={ui.drawer}
-          onGo={() => ui.setDrawer(false)}
+          onGo={ui.closeDrawer}
         />
         <main className="as-main">
           <h1 className="as-title">{t(section.label)}</h1>
-          <Tabs
-            section={sections.find((s) => s.id === section.id) ?? section}
-            current={here?.tab.to}
-          />
+          <Tabs section={section} current={tab?.to} />
           <div className="as-content">{children}</div>
         </main>
       </div>
