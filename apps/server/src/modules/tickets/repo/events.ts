@@ -157,7 +157,11 @@ export async function plantEventLines(
 ): Promise<{ ticketId: string; machineId: string; minutes: number }[]> {
   const rows = (
     await client.query(
-      `SELECT ticket_id, payload FROM ticket_event WHERE type = 'utility_loss' ORDER BY ticket_id, seq`,
+      `SELECT e.ticket_id, e.payload
+         FROM ticket_event e
+         JOIN ticket t ON t.tenant_id = e.tenant_id AND t.id = e.ticket_id
+        WHERE e.type = 'utility_loss' AND t.kind = 'general' AND t.status = 'closed'
+        ORDER BY e.ticket_id, e.seq`,
     )
   ).rows;
   return rows.flatMap((row) => {

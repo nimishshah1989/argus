@@ -5,7 +5,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FIGURES, run } from '@uptimo/domain';
-import { assertLocalUrl, connect } from '../src/seed/legacy-load.js';
+import { assertLocalUrl, connect, engineData } from '../src/seed/legacy-load.js';
+import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { validate, type Engine } from '../../../tools/validate-full.js';
 import { parseAllowlist } from '../../../tools/validate-checks.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -108,6 +109,13 @@ describe('validate:full on a small invented plant', () => {
       expect(report.unexplained).toEqual([]);
       expect(report.lines.some((line) => line.startsWith('coverage: 14 of 14 tickets'))).toBe(true);
       expect(report.lines.some((line) => line.startsWith('dashboard.plant-events'))).toBe(true);
+      const result = run(await engineData(db.app, T), AS_OF, DEFAULT_PROFILE, {
+        from: '2022-01-01',
+        to: AS_OF,
+      });
+      const value = (key: string) => result.figures.find((f) => f.key === key)!.value;
+      expect(value('dashboard.plant-events')).toBe(2);
+      expect(value('dashboard.total-breakdowns')).toBe(12);
     } finally {
       await db.admin.query('DELETE FROM ticket_event WHERE tenant_id = $1', [T]);
       await db.admin.query("DELETE FROM ticket WHERE tenant_id = $1 AND ref = 'VF-EVT'", [T]);

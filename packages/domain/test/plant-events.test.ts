@@ -74,9 +74,32 @@ describe('plant events (ticket 91)', () => {
     expect(now).toBeLessThan(was);
     const same = before.figures
       .filter((f) => !['dashboard.plant-events', 'dashboard.fleet-availability'].includes(f.key))
-      .filter((f) => f.key !== 'data-checklist')
       .filter((f) => JSON.stringify(f) !== JSON.stringify(figure(after, f.key)));
     expect(same.map((f) => f.key)).toEqual([]);
+  });
+
+  it('does not count an event whose ticket was closed after the run date, or is not closed', () => {
+    const late = { ...eventTicket('pe-late', '2026-11-10'), closedAt: '2026-11-15T10:00:00.000Z' };
+    const open = { ...eventTicket('pe-open', '2026-11-09'), status: 'open' as const };
+    const data = withEvents();
+    const result = run(
+      {
+        ...data,
+        tickets: [...data.tickets, late, open],
+        plantEvents: [
+          ...data.plantEvents!,
+          { ticketId: 'pe-late', lines: [{ machineId: production[0]!.id, minutes: 6_000 }] },
+          { ticketId: 'pe-open', lines: [{ machineId: production[0]!.id, minutes: 6_000 }] },
+        ],
+      },
+      AS_OF,
+      DEFAULT_PROFILE,
+      span,
+    );
+    expect(figure(result, 'dashboard.plant-events')).toMatchObject({
+      value: 600,
+      drill: { ids: ['pe-1'] },
+    });
   });
 
   it('adds nothing to the breakdown count, MTTR or MTBF', () => {
