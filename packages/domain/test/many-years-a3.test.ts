@@ -398,4 +398,31 @@ describe('A3 per span', () => {
     expect(plant[1]!.at(-1)).toBe(HAND[key].mtbf.toFixed(1));
     expect(plant[0]![7]).toBe(NO_RECORDS);
   });
+
+  it('with no span reads the as-of year to date throughout, so the page agrees with itself', () => {
+    // As of 30 Nov 2026 with no span the plant is 2026, January to November: 2025's rows are not read at all.
+    // Per machine: 11 months x 3 breakdowns + 1 NO DT = 34 failures, 11 x 6 = 66 h, 11 x 500 = 5,500 h available.
+    const result = runWith(
+      { 'a3-mttr-mtbf': COMPUTERS['a3-mttr-mtbf']! },
+      { data: MANY_YEARS, asOf: '2026-11-30', profile: DEFAULT_PROFILE },
+    );
+    const value = result.figures.find((entry) => entry.key === 'a3-mttr-mtbf')!.value as ReturnType<
+      typeof page
+    >;
+    const tables = value.pages[0]!.tables;
+    // By Cell: each cell holds 2 machines = (68, 132 h, 11,000 h): MTTR 132 / 68 = 1.94, MTBF 10,868 / 68 = 159.82.
+    expect(tables[1]!.rows).toEqual([
+      ['Cell 1', '2', '68', '132.00', '1.94', '159.82'],
+      ['Cell 2', '2', '68', '132.00', '1.94', '159.82'],
+    ]);
+    // Plant: 4 x (34, 66 h, 5,500 h) = (136, 264 h, 22,000 h): 264 / 136 = 1.94, 21,736 / 136 = 159.8.
+    const plant = tables[2]!.rows.slice(-2);
+    expect(plant[0]![0]).toBe('PLANT TOTALMTTR / MTBF · 136 breakdowns');
+    expect(plant[0]!.at(-1)).toBe('1.94');
+    expect(plant[1]!.at(-1)).toBe('159.8');
+    // January 2026: 4 x (3 + 1, 6 h) = (16, 24 h) of 2,000 h: MTTR 1.50, MTBF 1,976 / 16 = 123.5; December is not reached.
+    expect([plant[0]![1], plant[1]![0]]).toEqual(['1.50', '123.5']);
+    expect([plant[0]![12], plant[1]![11]]).toEqual(['—', '—']);
+    expect(tables[2]!.header.slice(1, 13)).toEqual(MONTH_NAMES);
+  });
 });

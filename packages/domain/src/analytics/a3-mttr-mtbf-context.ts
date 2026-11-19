@@ -99,11 +99,13 @@ function breakdownEntries(
   data: EngineData,
   machines: readonly MachineRow[],
   asOf: string,
+  period: Period,
 ): A3Entry[] {
   const byId = new Map(machines.map((machine) => [machine.id, machine]));
   const entries: A3Entry[] = [];
   for (const row of sourcedReports(data)) {
     if (!isHistory(row) || isPm(row)) continue;
+    if (row.report.date < period.from || row.report.date > period.to) continue;
     const machine = byId.get(row.report.machineId);
     if (machine === undefined) continue;
     entries.push({
@@ -212,8 +214,8 @@ function ageBands(
 
 export function buildContext(data: EngineData, asOf: string, annual: number): A3Context {
   const machines = data.machines.filter(isProduction);
-  const entries = breakdownEntries(data, machines, asOf);
   const period = spanOf(data, asOf);
+  const entries = breakdownEntries(data, machines, asOf, period);
   const window: HoursWindow = { ...period, annualHours: annual };
   const categories = categoryOrder(machines);
   const cells = cellOrder(machines, data.moves);
