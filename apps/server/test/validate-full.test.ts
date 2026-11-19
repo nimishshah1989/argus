@@ -5,7 +5,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FIGURES, run } from '@uptimo/domain';
-import { assertLocalUrl, connect } from '../src/seed/legacy-load.js';
+import { assertLocalUrl, connect, engineData } from '../src/seed/legacy-load.js';
+import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { validate, type Engine } from '../../../tools/validate-full.js';
 import { parseAllowlist } from '../../../tools/validate-checks.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -93,6 +94,31 @@ describe('validate:full on a small invented plant', () => {
       expect(listed.explained.map((diff) => diff.id)).toEqual(['coverage:VF-LONE']);
     } finally {
       await db.admin.query("DELETE FROM ticket WHERE tenant_id = $1 AND ref = 'VF-LONE'", [T]);
+    }
+  }, 120_000);
+
+  it('reads a plant event (a general ticket with utility_loss lines) as plant-event hours, never a breakdown', async () => {
+    await ticket('VF-EVT', M1, '2023-07-08', { minutes: null });
+    await db.admin.query(
+      `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, payload)
+       SELECT $1, id, 1, 'utility_loss', '2023-07-08T04:00:00Z', $3::jsonb FROM ticket WHERE tenant_id = $1 AND ref = $2`,
+      [T, 'VF-EVT', JSON.stringify({ machineId: M1, minutes: 120, code: 'UTI' })],
+    );
+    try {
+      const report = await validate(db.app, tenant, { asOf: AS_OF });
+      expect(report.unexplained).toEqual([]);
+      expect(report.lines.some((line) => line.startsWith('coverage: 14 of 14 tickets'))).toBe(true);
+      expect(report.lines.some((line) => line.startsWith('dashboard.plant-events'))).toBe(true);
+      const result = run(await engineData(db.app, T), AS_OF, DEFAULT_PROFILE, {
+        from: '2022-01-01',
+        to: AS_OF,
+      });
+      const value = (key: string) => result.figures.find((f) => f.key === key)!.value;
+      expect(value('dashboard.plant-events')).toBe(2);
+      expect(value('dashboard.total-breakdowns')).toBe(12);
+    } finally {
+      await db.admin.query('DELETE FROM ticket_event WHERE tenant_id = $1', [T]);
+      await db.admin.query("DELETE FROM ticket WHERE tenant_id = $1 AND ref = 'VF-EVT'", [T]);
     }
   }, 120_000);
 

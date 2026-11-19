@@ -96,6 +96,7 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
         'dashboard.costliest-problems',
         'dashboard.bubble-chart',
         'dashboard.expansion-timeline',
+        'dashboard.plant-events',
         'dashboard.fleet-availability',
         'dashboard.plant-bd-pct',
         'dashboard.avg-complaints-per-day',

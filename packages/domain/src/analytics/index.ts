@@ -71,3 +71,4 @@ export type {
   TicketRow,
   WhyWhyRow,
 } from './types.js';
+export type { PlantEventRow } from './plant-events.js';

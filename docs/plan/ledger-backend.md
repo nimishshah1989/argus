@@ -197,3 +197,11 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   (Skill tool, playbook named in the PR), delegates as poteto-agent subagents, models per
   .claude/rules/pstack-models.md; my adversarial reviews follow .claude/skills/interrogate/SKILL.md (findings only
   when proven by a run). All three builders told; each confirms poteto-mode is loaded.
+- 19 Nov, ticket 91 (utility loss). Ruling (Nimish): plant-event downtime counts. Done: `dashboard.plant-events` (machine-hours
+  lost to power and air failures, drilled to every event ticket) and the same hours taken from `dashboard.fleet-availability`;
+  a plant event adds 0 to any breakdown count, MTTR or MTBF. The basis is one constant read by the calculation
+  (`PLANT_EVENT_BASIS = 'named-machines'`): a machine loses only its own line's minutes, so the hours are a lower bound.
+  Questions for Bhavin, in plain English, each with the default in force until he answers (relayed by the orchestrator):
+  (1) When the power goes, do we count the lost hours against every machine in the plant, or only the machines the log names?
+  Default: only the machines named. (2) Do power and air-failure lines coded PM or UTI both count as lost time? Default: yes,
+  every recorded line counts. Cost if wrong: availability is overstated for machines a cut stopped but no line names.

@@ -141,6 +141,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'dashboard.costliest-problems': 'analytics.figure.dashboard.costliest-problems',
   'dashboard.bubble-chart': 'analytics.figure.dashboard.bubble-chart',
   'dashboard.expansion-timeline': 'analytics.figure.dashboard.expansion-timeline',
+  'dashboard.plant-events': 'analytics.figure.dashboard.plant-events',
   'dashboard.fleet-availability': 'analytics.figure.dashboard.fleet-availability',
   'dashboard.plant-bd-pct': 'analytics.figure.dashboard.plant-bd-pct',
   'dashboard.avg-complaints-per-day': 'analytics.figure.dashboard.avg-complaints-per-day',
@@ -188,6 +189,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
 export const HOUR_FIGURES: ReadonlySet<string> = new Set([
   'dashboard.total-downtime-hours',
   'dashboard.pm-hours',
+  'dashboard.plant-events',
   'dashboard.no-downtime-hours',
   'dashboard.avg-bd-hours-per-day',
   'dashboard.avg-bd-hours-per-machine',

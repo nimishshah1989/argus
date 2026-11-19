@@ -5,7 +5,7 @@ import { isProduction } from '../src/analytics/machine-facts.js';
 import { ENGINE_DATA } from './answer-key/fixture.js';
 
 /**
- * Ticket 77a's audit of the 51 figures: which of them read the production machines (a machine the plant leaves out
+ * Ticket 77a's audit of the 52 figures: which of them read the production machines (a machine the plant leaves out
  * of production data changes them) and which read every machine (it does not). The three busiest production machines
  * of the 11 November plant are named in the settings list only, so the list alone must be enough to leave them out.
  * A figure that moves between the two lists is a decision, so it changes this test on purpose.
@@ -31,6 +31,7 @@ const READ_THE_PRODUCTION_MACHINES = [
   'dashboard.bubble-chart',
   'dashboard.costliest-problems',
   'dashboard.fleet-availability',
+  'dashboard.plant-events',
   'dashboard.plant-bd-pct',
   'dashboard.total-breakdowns',
   'fix-finder',
@@ -71,7 +72,7 @@ const READ_EVERY_MACHINE = [
 /** Registered, and not computed by any engine yet: they read nothing, so the flag cannot move them. */
 const NOT_COMPUTED = ['action-center.spares-spend', 'compare.spares-cost', 'team-focus.cost'];
 
-describe('the 51 figures and the machines left out of production data', () => {
+describe('the 52 figures and the machines left out of production data', () => {
   const busiest = ENGINE_DATA.machines
     .filter(isProduction)
     .map((machine) => ({
@@ -81,14 +82,29 @@ describe('the 51 figures and the machines left out of production data', () => {
     .sort((a, b) => b.rows - a.rows || a.id.localeCompare(b.id))
     .slice(0, 3)
     .map((entry) => entry.id);
-  const named: EngineData = {
+  // Ticket 91: one plant event on those three machines (the 2026 plant holds none), so the figures that read plant
+  // events are tested like the rest: leaving the machines out of production data removes their lines.
+  const event = {
+    ...ENGINE_DATA.tickets[0]!,
+    id: 'pe-77a',
+    kind: 'general' as const,
+    machineId: null,
+  };
+  const base: EngineData = {
     ...ENGINE_DATA,
+    tickets: [...ENGINE_DATA.tickets, { ...event, reportedAt: '2026-11-02T04:00:00.000Z' }],
+    plantEvents: [
+      { ticketId: 'pe-77a', lines: busiest.map((machineId) => ({ machineId, minutes: 600 })) },
+    ],
+  };
+  const named: EngineData = {
+    ...base,
     settings: {
-      ...ENGINE_DATA.settings!,
-      excludedMachineIds: [...ENGINE_DATA.settings!.excludedMachineIds, ...busiest],
+      ...base.settings!,
+      excludedMachineIds: [...base.settings!.excludedMachineIds, ...busiest],
     },
   };
-  const before = run(ENGINE_DATA, AS_OF, DEFAULT_PROFILE);
+  const before = run(base, AS_OF, DEFAULT_PROFILE);
   const after = run(named, AS_OF, DEFAULT_PROFILE);
   const moved = (keys: readonly string[]) =>
     keys.filter(
@@ -97,6 +113,16 @@ describe('the 51 figures and the machines left out of production data', () => {
         JSON.stringify(after.figures.find((figure) => figure.key === key)),
     );
 
+  it('removes the plant-event lines of a machine left out of production data, from the hours and the availability', () => {
+    const hours = (result: typeof before) =>
+      Number(result.figures.find((f) => f.key === 'dashboard.plant-events')!.value);
+    const availability = (result: typeof before) =>
+      Number(result.figures.find((f) => f.key === 'dashboard.fleet-availability')!.value);
+    expect(hours(before)).toBe(30);
+    expect(hours(after)).toBe(0);
+    expect(availability(after)).toBeGreaterThan(availability(before));
+  });
+
   it('leaves out three machines that between them hold real breakdowns', () => {
     expect(busiest).toHaveLength(3);
     const held = ENGINE_DATA.reports.filter((entry) => busiest.includes(entry.machineId));
@@ -104,8 +130,8 @@ describe('the 51 figures and the machines left out of production data', () => {
     expect(after.excludedMachines).toBe(before.excludedMachines + 3);
   });
 
-  it('moves the 30 figures that read the production machines, and no other', () => {
-    expect(READ_THE_PRODUCTION_MACHINES).toHaveLength(30);
+  it('moves the 31 figures that read the production machines, and no other', () => {
+    expect(READ_THE_PRODUCTION_MACHINES).toHaveLength(31);
     expect(moved(before.figures.map((figure) => figure.key)).sort()).toEqual(
       [...READ_THE_PRODUCTION_MACHINES].sort(),
     );
