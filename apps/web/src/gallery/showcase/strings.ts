@@ -20,6 +20,7 @@ const en = {
   'delta.more': '{{n}} more in {{to}} than in {{month}}',
   'delta.less': '{{n}} less in {{to}} than in {{month}}',
   'delta.same': 'Same in {{to}} as in {{month}}',
+  'delta.running': '{{month}} is still running',
   'delta.none': 'No earlier month to compare',
   'delta.better': 'better',
   'delta.worse': 'worse',

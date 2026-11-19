@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { change, fixed, monthLong, type Change, type Metric } from './data.js';
+import { FULL, PARTIAL, change, fixed, monthLong, type Change, type Metric } from './data.js';
 
 /** The arrow's stroke, shared by the component and the tooltip's markup. */
 export const arrowPath = (dir: Change['dir']): string =>
@@ -54,7 +54,14 @@ export function changeText(t: TFunction, metric: Metric, ch: Change, short = fal
 export function Delta({ metric, i }: { metric: Metric; i: number }) {
   const { t } = useTranslation('showcase');
   const ch = change(metric, i);
-  if (!ch) return <span className="sc-delta">{t('delta.none')}</span>;
+  if (!ch) {
+    const running = PARTIAL && i >= FULL;
+    return (
+      <span className="sc-delta">
+        {running ? t('delta.running', { month: monthLong(i) }) : t('delta.none')}
+      </span>
+    );
+  }
   const verdict =
     ch.tone === 'flat'
       ? t('delta.planned')

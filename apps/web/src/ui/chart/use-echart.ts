@@ -19,7 +19,8 @@ export interface Instance {
 /** Below this width a chart builds its narrow layout; crossing it rebuilds the option. */
 export const NARROW = 520;
 
-const reduced = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const REDUCED = '(prefers-reduced-motion: reduce)';
+const reduced = (): boolean => window.matchMedia(REDUCED).matches;
 
 /** The draw-in every interactive chart shares: once, 700 ms, ease-out; off under reduced motion. */
 export function motionOption(): object {
@@ -54,11 +55,15 @@ export function useEchart(
   useEffect(() => {
     let dead = false;
     let watch: ResizeObserver | undefined;
+    let stopMotion = (): void => undefined;
     void loadEcharts().then((core) => {
       const el = ref.current;
       if (dead || !el) return;
       const instance = core.init(el, undefined, { renderer: 'svg' }) as unknown as Instance;
       chart.current = instance;
+      const motion = window.matchMedia(REDUCED);
+      const onMotion = () => instance.setOption({ animation: !motion.matches });
+      stopMotion = () => motion.removeEventListener('change', onMotion);
       const narrow = () => el.clientWidth < NARROW;
       let wasNarrow = narrow();
       watch = new ResizeObserver(() => {
@@ -68,12 +73,14 @@ export function useEchart(
         instance.setOption({ ...make0.current(el), animation: false });
       });
       watch.observe(el);
+      motion.addEventListener('change', onMotion);
       ready0.current?.(instance);
       setReady(true);
     });
     return () => {
       dead = true;
       watch?.disconnect();
+      stopMotion();
       chart.current?.dispose();
       chart.current = null;
       setReady(false);

@@ -38,6 +38,27 @@ async function tooltipOfJune(page: Page): Promise<string> {
   return tip.first().innerText();
 }
 
+/** Sweep down the first bars of the Pareto until a cause is pointed at (its machines then light in the heat map). */
+async function hoverParetoBars(page: Page): Promise<void> {
+  const chart = page.getByTestId('pareto-chart');
+  await chart.scrollIntoViewIfNeeded();
+  const box = (await chart.boundingBox())!;
+  for (let y = 0.08; y < 0.4; y += 0.04) {
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * y);
+    if ((await page.locator('.sc-heat tr[data-link]').count()) > 0) return;
+  }
+}
+
+const scrollsSideways = (page: Page): Promise<boolean> =>
+  page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+
+async function axeViolations(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations;
+}
+
 for (const width of [360, 1440]) {
   test.describe(`the analytics showcase at ${width} px`, () => {
     test.use({ viewport: { width, height: 900 } });
@@ -68,13 +89,7 @@ for (const width of [360, 1440]) {
 
     test('pointing at a Pareto bar lights its machines in the heat map', async ({ page }) => {
       await open(page);
-      const chart = page.getByTestId('pareto-chart');
-      await chart.scrollIntoViewIfNeeded();
-      const box = (await chart.boundingBox())!;
-      for (let y = 0.08; y < 0.4; y += 0.04) {
-        await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * y);
-        if ((await page.locator('.sc-heat tr[data-link]').count()) > 0) break;
-      }
+      await hoverParetoBars(page);
       await expect(page.locator('.sc-heat tr[data-link]').first()).toBeAttached();
       await expect(page.locator('.sc-tip').last()).toContainText('Mostly on');
     });
@@ -93,15 +108,9 @@ for (const width of [360, 1440]) {
 
     test('no sideways scroll and no axe violation', async ({ page }) => {
       await open(page);
-      const wide = await page.evaluate(
-        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      );
-      expect(wide).toBe(false);
+      expect(await scrollsSideways(page)).toBe(false);
       await page.getByTestId('kpi-pm').click();
-      const results = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-        .analyze();
-      expect(results.violations).toEqual([]);
+      expect(await axeViolations(page)).toEqual([]);
     });
 
     test('with reduced motion the numbers are at their final values at once', async ({ page }) => {

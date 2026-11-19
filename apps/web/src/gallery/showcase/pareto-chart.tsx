@@ -105,6 +105,54 @@ function paretoOption(ink: Ink, t: TFunction) {
   };
 }
 
+function ParetoKey() {
+  const { t } = useTranslation('showcase');
+  return (
+    <ul className="sc-key">
+      <li>
+        <span className="sc-key-bar" />
+        {t('pareto.hours')}
+      </li>
+      <li>
+        <span className="sc-key-line sc-key-grey" />
+        {t('pareto.cum')}
+      </li>
+      <li>
+        <span className="sc-key-dash" />
+        {t('pareto.line')}
+      </li>
+    </ul>
+  );
+}
+
+/** The chart's numbers as a table for screen readers: each cause with its hours and cumulative share. */
+function CausesTable() {
+  const { t } = useTranslation('showcase');
+  return (
+    <div className="sr-only">
+      <table>
+        <caption>{t('pareto.table')}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t('pareto.cause')}</th>
+            <th scope="col">{t('pareto.hours')}</th>
+            <th scope="col">{t('pareto.cum')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {CAUSES.map((c, i) => (
+            <tr key={c.name}>
+              <th scope="row">{c.name}</th>
+              <td>{fixed(c.hours, 1)}</td>
+              <td>{fixed(CUM[i], 1)} %</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * Downtime by cause: hours as bars and the running share as a line, with the 80 % mark. The causes that carry the
  * first 80 % are drawn solid and the long tail pale. Pointing at a bar lists the machines it is made of, and tells
@@ -133,20 +181,7 @@ export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void
           <p className="sc-sum">{t('pareto.sum', { n: VITAL, pct: fixed(CUM[VITAL - 1], 0) })}</p>
         </div>
       </header>
-      <ul className="sc-key">
-        <li>
-          <span className="sc-key-bar" />
-          {t('pareto.hours')}
-        </li>
-        <li>
-          <span className="sc-key-line sc-key-grey" />
-          {t('pareto.cum')}
-        </li>
-        <li>
-          <span className="sc-key-dash" />
-          {t('pareto.line')}
-        </li>
-      </ul>
+      <ParetoKey />
       <div
         ref={ref}
         className="sc-chart sc-chart-pareto"
@@ -154,27 +189,7 @@ export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void
         role="img"
         aria-label={t('pareto.title')}
       />
-      <div className="sr-only">
-        <table>
-          <caption>{t('pareto.table')}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('pareto.cause')}</th>
-              <th scope="col">{t('pareto.hours')}</th>
-              <th scope="col">{t('pareto.cum')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CAUSES.map((c, i) => (
-              <tr key={c.name}>
-                <th scope="row">{c.name}</th>
-                <td>{fixed(c.hours, 1)}</td>
-                <td>{fixed(CUM[i], 1)} %</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CausesTable />
     </section>
   );
 }

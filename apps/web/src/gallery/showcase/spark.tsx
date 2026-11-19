@@ -30,10 +30,35 @@ function pathOf(points: (Point | null)[]): string {
 
 const dotStyle = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
+/** Everything the sparkline draws, worked out from its series: the solid line, the running stretch, the end and the pointed month. */
+function shape(
+  values: Series,
+  reference: Series | undefined,
+  partial: boolean,
+  active?: number | null,
+) {
+  const all = [...values, ...(reference ?? [])].filter((v): v is number => v !== null);
+  const lo = Math.min(...all);
+  const hi = Math.max(...all);
+  const own = layout(values, lo, hi);
+  const n = own.length;
+  return {
+    ref: reference ? pathOf(layout(reference, lo, hi)) : null,
+    line: pathOf(partial ? own.map((p, i) => (i === n - 1 ? null : p)) : own),
+    running: partial ? pathOf(own.map((p, i) => (i >= n - 2 ? p : null))) : null,
+    last: [...own].reverse().find((p): p is Point => p !== null),
+    at: active === null || active === undefined ? undefined : own[active],
+    cursor:
+      active === null || active === undefined || active >= n
+        ? null
+        : (active / Math.max(1, n - 1)) * 100,
+  };
+}
+
 /**
  * A word-sized trend line with no axes (the figure beside it carries the value). `reference` draws a second dotted
- * series on the same scale; `active` is the month the person is pointing at elsewhere on the page. It is drawn in
- * once (CSS) and not at all under reduced motion.
+ * series on the same scale; `active` is the month the person is pointing at elsewhere on the page; `partial` marks
+ * the last value as a month still running (dashed, hollow dot). It is drawn in once (CSS), not under reduced motion.
  */
 export function Spark({
   values,
@@ -46,24 +71,16 @@ export function Spark({
   reference?: Series;
   active?: number | null;
   tone?: 'accent' | 'ink';
-  /** The last value is a month still running: drawn dashed, with a hollow dot. */
   partial?: boolean;
 }) {
-  const all = [...values, ...(reference ?? [])].filter((v): v is number => v !== null);
-  const lo = Math.min(...all);
-  const hi = Math.max(...all);
-  const own = layout(values, lo, hi);
-  const ref = reference ? layout(reference, lo, hi) : null;
-  const n = own.length;
-  const line = pathOf(partial ? own.map((p, i) => (i === n - 1 ? null : p)) : own);
-  const running = partial ? pathOf(own.map((p, i) => (i >= n - 2 ? p : null))) : null;
-  const last = [...own].reverse().find((p): p is Point => p !== null);
-  const at = active !== null && active !== undefined ? own[active] : undefined;
+  const { ref, line, running, last, at, cursor } = shape(values, reference, partial, active);
   return (
     <span className="sc-spark" data-tone={tone} aria-hidden="true">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        {ref ? <path className="sc-spark-ref" d={pathOf(ref)} /> : null}
-        {at ? <line className="sc-spark-cursor" x1={at.x} x2={at.x} y1="0" y2="100" /> : null}
+        {ref ? <path className="sc-spark-ref" d={ref} /> : null}
+        {cursor !== null ? (
+          <line className="sc-spark-cursor" x1={cursor} x2={cursor} y1="0" y2="100" />
+        ) : null}
         <path className="sc-spark-line" d={line} pathLength={1} />
         {running ? <path className="sc-spark-line sc-spark-part" d={running} /> : null}
       </svg>

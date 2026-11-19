@@ -26,7 +26,17 @@ export function useCountUp(target: number): number {
       if (p < 1) frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+    const query = window.matchMedia(QUERY);
+    const stop = () => {
+      if (!query.matches) return;
+      cancelAnimationFrame(frame);
+      setValue(target);
+    };
+    query.addEventListener('change', stop);
+    return () => {
+      cancelAnimationFrame(frame);
+      query.removeEventListener('change', stop);
+    };
   }, [target]);
   return value;
 }
