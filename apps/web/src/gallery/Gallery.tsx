@@ -33,6 +33,14 @@ const DirectionsView = () => (
   </Suspense>
 );
 
+// The analytics showcase of ticket 80t: also its own chunk (ECharts and the snapshot come with it).
+const Showcase = lazy(() => import('./showcase/Showcase.js'));
+const ShowcaseView = () => (
+  <Suspense fallback={null}>
+    <Showcase />
+  </Suspense>
+);
+
 function Switcher({
   label,
   param,
@@ -125,6 +133,7 @@ export default function Gallery() {
   useDocumentAttributes(lang, accent, theme);
   if (params.get('view') === 'desktop') return <DesktopView />;
   if (params.get('view') === 'directions') return <DirectionsView />;
+  if (params.get('view') === 'showcase') return <ShowcaseView />;
 
   return (
     <div data-testid="gallery-root">
