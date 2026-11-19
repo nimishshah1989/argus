@@ -162,6 +162,31 @@ const firstHeld = (reply: FiguresReply) =>
   reply.figures.find((figure) => figure.screen === 'dashboard' && figure.status !== 'ready');
 
 /**
+ * The shell's menu (86a): six sections and the Guide. On a phone it is a drawer behind the Menu button; the data
+ * checklist is a tab of Today, not a menu entry.
+ */
+async function expectShellMenu(page: Page, wide: boolean) {
+  if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
+  for (const name of [
+    'Today',
+    'Machines',
+    'Problems',
+    'Reliability & forecast',
+    'People & money',
+    'Reports',
+    'Guide',
+  ])
+    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Screens in Today', exact: true })
+      .getByRole('link', { name: 'Data checklist', exact: true }),
+  ).toBeVisible();
+  return menu;
+}
+
+/**
  * Ticket 37b: the analytics face, its Guide entry and the profile screen. The computable Dashboard
  * figures are ready and the held ones stay honestly "Not computed yet". The drill test stubs both analytics
  * replies, so it never waits for the live engine.
@@ -186,19 +211,7 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   await expect(page).toHaveURL(/\/analytics\/today$/);
   const reply = (await (await response).json()) as FiguresReply;
 
-  const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
-  for (const name of [
-    'Today',
-    'Machines',
-    'Breakdowns',
-    'Forecast & scorecard',
-    'PM',
-    'Cost',
-    'Reports',
-    'Guide',
-    'Data checklist',
-  ])
-    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
+  const menu = await expectShellMenu(page, wide);
 
   // The honest state: a held figure claims no value it does not have.
   const held = firstHeld(reply);
@@ -282,10 +295,10 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
 
-  // The data checklist has its own route, at the foot of the menu. Its tile lists the open items it computes,
+  // The data checklist has its own route, a tab of Today. Its tile lists the open items it computes,
   // grouped and counted, and never claims a "Ready" it does not have.
-  const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
-  await menu.getByRole('link', { name: 'Data checklist', exact: true }).click();
+  const tabs = page.getByRole('navigation', { name: 'Screens in Today', exact: true });
+  await tabs.getByRole('link', { name: 'Data checklist', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
   await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
   const checklistTile = tile(page, 'data-checklist');

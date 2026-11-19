@@ -79,6 +79,8 @@ export const machinePatchSchema = z
     code,
     criticality: z.preprocess(blank, criticalitySchema.nullable()),
     ...machineFields,
+    // Sent back unchanged by a form that echoes the whole row; changed only by `PUT /machines/:id/production-data`.
+    excludedFromProduction: flag,
     effectiveFrom: day,
     active: flag,
   })
@@ -88,8 +90,16 @@ export type MachinePatch = z.infer<typeof machinePatchSchema>;
 
 const activeField = { active: z.boolean() };
 
+/** `excludedFromProduction` rides on the row so the list can show the switch (ticket 77b); it is saved by its own route. */
 export const machineReplySchema = z
-  .object({ id, code, ...machineFields, criticality: criticalitySchema.nullable(), ...activeField })
+  .object({
+    id,
+    code,
+    ...machineFields,
+    criticality: criticalitySchema.nullable(),
+    excludedFromProduction: z.boolean(),
+    ...activeField,
+  })
   .strict();
 export type MachineReply = z.infer<typeof machineReplySchema>;
 

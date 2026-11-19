@@ -94,6 +94,7 @@ async function stubFigures(page: Page): Promise<void> {
   const reply: FiguresReply = {
     asOf: AS_OF,
     profile: {} as FiguresReply['profile'],
+    excludedMachines: 0,
     rows: { machines: MACHINES.length, moves: 0, tickets: 1, tasks: 0, reports: 0, people: 4 },
     figures: [
       figureOf(SCREEN_COMPARE, COMPARE, { type: 'machine', ids: MACHINE_IDS.slice(0, 2) }),

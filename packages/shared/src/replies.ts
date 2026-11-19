@@ -77,13 +77,14 @@ export const failedJobsReplySchema = z
           queue: z.string(),
           error: z.string(),
           attempts: z.number().int(),
-          createdAt: z.string(),
-          failedAt: z.string().nullable(),
+          createdAt: isoDateTimeSchema,
+          failedAt: isoDateTimeSchema.nullable(),
         })
         .strict(),
     ),
   })
   .strict();
+export type FailedJobsReply = z.infer<typeof failedJobsReplySchema>;
 export const devicesReplySchema = z
   .object({
     items: z.array(

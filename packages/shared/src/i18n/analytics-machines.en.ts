@@ -134,4 +134,7 @@ export const analyticsMachinesEn = {
   'analytics.machine.field.cell': 'Cell',
   'analytics.machine.field.location': 'Location',
   'analytics.figure.reliability': 'Reliability and critical spares',
+  'analytics.excludedMachines': '{{count}} machines not counted in production data',
+  'analytics.excludedMachines_one': '1 machine not counted in production data',
+  'analytics.excludedMachines_other': '{{count}} machines not counted in production data',
 };

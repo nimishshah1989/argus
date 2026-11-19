@@ -19,6 +19,7 @@ import {
   exists,
   groupSegment,
   insertMove,
+  isLeftOut,
   latestMoveDate,
   hasOtherActiveShift,
   segmentHasLiveMachines,
@@ -126,6 +127,7 @@ function machineReply(row: Row): Reply {
     serial: row.serial,
     year: row.year,
     status: row.status,
+    excludedFromProduction: isLeftOut(row),
     active: row.status !== 'scrapped',
   };
 }
@@ -225,7 +227,7 @@ const machines: Resource = {
     year: 'year',
     status: 'status',
   },
-  fixed: ['criticality'],
+  fixed: ['criticality', 'excludedFromProduction'],
   create: machineCreateSchema,
   patch: machinePatchSchema,
   switchTo: (active, before) => ({

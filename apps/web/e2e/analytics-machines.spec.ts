@@ -21,6 +21,7 @@ const AS_OF = '2026-11-17';
 const FIGURES: FiguresReply = {
   asOf: AS_OF,
   profile: {} as FiguresReply['profile'],
+  excludedMachines: 0,
   rows: { machines: 2, moves: 1, tickets: 0, tasks: 0, reports: 0, people: 0 },
   figures: [
     {
@@ -248,7 +249,7 @@ test('a head opens a register page, the cell change log and a machine page that 
   // One machine page: its nameplate and every figure the record holds.
   await page.goto(`/analytics/machines/${FULL.id}`);
   await expect(page.getByRole('heading', { name: FULL.code, exact: true })).toBeVisible();
-  await expect(page.getByText('Cosmos', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText('Cosmos', { exact: true })).toBeVisible();
   await expect(page.getByText('CVM-800', { exact: true })).toBeVisible();
   await expect(page.getByText('10.00 m²', { exact: true })).toBeVisible();
   await expect(page.getByText('4.20 KVA', { exact: true })).toBeVisible();

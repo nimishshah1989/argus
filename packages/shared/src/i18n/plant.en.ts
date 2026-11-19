@@ -14,6 +14,17 @@ export const plantEn = {
   'plant.menu.shifts.sub': 'Business hours of each shift',
   'plant.audit': 'Saved changes go to the audit trail.',
   'plant.machines.title': 'Machines',
+  'plant.machines.production.intro':
+    'Its breakdowns are still recorded and count in manpower hours and the energy list, but not in BD %, MTTR, MTBF or availability',
+  'plant.machines.production.switch': 'Not counted in production data',
+  'plant.machines.production.switchFor': 'Not counted in production data: {{name}}',
+  'plant.machines.production.tag': 'Not in production data',
+  'plant.machines.production.count': '{{count}} machines not counted',
+  'plant.machines.production.count_one': '1 machine not counted',
+  'plant.machines.production.count_other': '{{count}} machines not counted',
+  'plant.machines.production.error':
+    'Could not save {{name}}. The switch is back as it was; try again.',
+  'plant.machines.production.column': 'Production data',
   'plant.machines.count': '{{count}} machines',
   'plant.machines.add': 'Add machine',
   'plant.machines.empty': 'No machines yet.',

@@ -66,6 +66,8 @@ import { crudEn } from './crud.en.js';
 import { crudGu } from './crud.gu.js';
 import { auditEn } from './audit.en.js';
 import { auditGu } from './audit.gu.js';
+import { jobsEn } from './jobs.en.js';
+import { jobsGu } from './jobs.gu.js';
 import { analyticsEn } from './analytics.en.js';
 import { analyticsGu } from './analytics.gu.js';
 import { analyticsMachinesEn } from './analytics-machines.en.js';
@@ -82,6 +84,8 @@ import { analyticsGuideEn } from './analytics-guide.en.js';
 import { analyticsGuideGu } from './analytics-guide.gu.js';
 import { analyticsReportEn } from './analytics-report.en.js';
 import { analyticsReportGu } from './analytics-report.gu.js';
+import { analyticsShellEn } from './analytics-shell.en.js';
+import { analyticsShellGu } from './analytics-shell.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -117,6 +121,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   people: peopleEn,
   crud: crudEn,
   audit: auditEn,
+  jobs: jobsEn,
   lists: listsEn,
   company: companyEn,
   analytics: analyticsEn,
@@ -127,6 +132,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-action-center': analyticsActionCenterEn,
   'analytics-guide': analyticsGuideEn,
   'analytics-report': analyticsReportEn,
+  'analytics-shell': analyticsShellEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -163,6 +169,7 @@ export const en = {
   ...peopleEn,
   ...crudEn,
   ...auditEn,
+  ...jobsEn,
   ...listsEn,
   ...companyEn,
   ...analyticsEn,
@@ -173,6 +180,7 @@ export const en = {
   ...analyticsActionCenterEn,
   ...analyticsGuideEn,
   ...analyticsReportEn,
+  ...analyticsShellEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -211,6 +219,7 @@ export const gu = {
   ...peopleGu,
   ...crudGu,
   ...auditGu,
+  ...jobsGu,
   ...listsGu,
   ...companyGu,
   ...analyticsGu,
@@ -221,6 +230,7 @@ export const gu = {
   ...analyticsActionCenterGu,
   ...analyticsGuideGu,
   ...analyticsReportGu,
+  ...analyticsShellGu,
 };
 
 export * from './overrides.js';

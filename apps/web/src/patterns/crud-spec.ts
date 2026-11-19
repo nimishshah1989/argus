@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ResourceSpec } from '../data/index.js';
+import type { IconComponent } from '../ui/icon.js';
 
 export type LabelKey = MessageKey | `gallery:${string}`;
 export interface CrudRow {
@@ -44,6 +45,10 @@ export interface CrudLook {
   sub?: string;
   lead?: ReactNode;
   chip?: ReactNode;
+  /** A tag under the row's sub line (icon and word), shown on the phone row and in the table's first column. */
+  tag?: ReactNode;
+  /** A full-width line under the phone row (a row's own switch). */
+  extra?: ReactNode;
 }
 export interface CrudColumn<Row> {
   labelKey: LabelKey;
@@ -113,6 +118,8 @@ export interface CrudSpec<Row extends CrudRow> extends ResourceSpec {
     options: (c: CrudCtx) => { code: string; name: string }[];
     of: (row: Row, c: CrudCtx) => string | null;
   };
+  /** One more chip after the filters: the rows `test` passes, with their count ("2 machines not counted"). */
+  flag?: { labelKey: LabelKey; icon: IconComponent; test: (row: Row) => boolean };
   search?: { labelKey: LabelKey; text: (row: Row, c: CrudCtx) => string };
   /** Phone rows grouped under a heading (groups under their segment). */
   section?: (row: Row, c: CrudCtx) => { key: string; title: string; lead?: ReactNode };

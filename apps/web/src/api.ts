@@ -136,6 +136,10 @@ const criticality = defineResource({
   key: 'machines',
   path: '/api/v1/machines/:id/criticality',
 });
+const production = defineResource({
+  key: 'machines',
+  path: '/api/v1/machines/:id/production-data',
+});
 
 export function getConfig(): Promise<Config> {
   return cacheFirst({
@@ -358,6 +362,13 @@ export const putMachineCriticality = (
   machineId: string,
   c: 'A' | 'B' | 'C' | null,
 ): Promise<{ ok: boolean }> => criticality.update<{ ok: boolean }>(machineId, { criticality: c });
+
+/** PUT `/machines/:id/production-data` (ticket 77a): switch one machine out of (or back into) production data. */
+export const putMachineProduction = (
+  machineId: string,
+  excludedFromProduction: boolean,
+): Promise<{ id: string; code: string; excludedFromProduction: boolean }> =>
+  production.update(machineId, { excludedFromProduction });
 
 /** PATCH `/machines/:id/moves/:moveId`: one cell move's corrected date; a refusal is an ApiError. */
 export const correctMove = (
