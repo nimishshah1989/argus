@@ -343,9 +343,8 @@ atBothWidths('the floor step', () => {
           label,
         ).toEqual(['search', 'other', 'groups']);
         await holdsEverywhere(page, label);
-        await expect(
-          page.locator('[data-status="ticket.running"][data-tone="neutral"]'),
-        ).toHaveCount(0);
+        // The real browse step shows no status chip, so the floor screen draws none (neither grey nor green Running).
+        await expect(screen.locator('[data-status]'), label).toHaveCount(0);
       }
     }
   });
