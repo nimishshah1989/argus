@@ -3,6 +3,16 @@
  * list, the checklist close and the closed report's card. Tick points carry no stored text: "Point N" is copy (R5).
  */
 export const pmEn = {
+  // Ticket 50b: the interim PM group page's screen, its one figure and the two compliance rates (50c draws the
+  // calendar on top of these keys; the `gu` namespace stays blank, as 49 left it).
+  'pm.screen.calendar': 'PM calendar',
+  'pm.figure.compliance': 'PM compliance and schedule compliance',
+  'pm.compliance.period': 'Period',
+  'pm.compliance.pm': 'PM compliance',
+  'pm.compliance.schedule': 'Schedule compliance',
+  'pm.compliance.counts':
+    '{{onTime}} of {{pmEligible}} PM jobs on time; {{done}} of {{plannedEligible}} planned jobs done by their week.',
+  'pm.compliance.empty': 'No PM work orders in this window.',
   'pm.menu.plans': 'PM plans',
   'pm.menu.plans.sub': 'Intervals, checklists and the next due',
   'pm.plans.title': 'PM plans',

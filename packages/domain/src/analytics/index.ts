@@ -28,6 +28,16 @@ export type {
 } from './forecast-freeze.js';
 export type { ForecastBand, ForecastConfidence } from './a9-forecast-sim.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
+export { computePmCompliance } from './pm-compliance.js';
+export type {
+  PmComplianceCounts,
+  PmComplianceOptions,
+  PmComplianceResult,
+  PmComplianceValue,
+  PmOutcome,
+  ScheduleComplianceCounts,
+  ScheduleOutcome,
+} from './pm-compliance.js';
 export type {
   CategoryFit,
   FitBlock,
@@ -54,6 +64,7 @@ export type {
   MoveRow,
   NudgeAck,
   PersonRow,
+  PmPlanRow,
   ReportRow,
   ShiftRow,
   TaskRow,

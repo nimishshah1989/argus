@@ -66,3 +66,18 @@ export async function ensureSettingRow(
     [tenantId, key, JSON.stringify(defaults)],
   );
 }
+
+/**
+ * Every PM plan of the plant, switched-off ones too (ticket 50b): the engine resolves each machine's effective plan
+ * itself (`effectivePmPlan`), so a category plan has to arrive as well as a machine's own. The plan's plant-local
+ * `created_at` day is its clock anchor, which is why the instant is read and not a date.
+ */
+export async function pmPlansForEngine(tx: Db): Promise<Row[]> {
+  return (
+    await tx.query(
+      `SELECT id, machine_id, category, interval_days, created_at, last_done_on::text AS last_done_on,
+              active, updated_at
+         FROM pm_plan ORDER BY created_at, id`,
+    )
+  ).rows;
+}

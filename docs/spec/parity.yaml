@@ -1288,6 +1288,10 @@ rows:
       - apps/server/src/seed/pm-plans.test.ts
       - apps/web/src/screens/settings/pm-plans-spec.test.ts
       - apps/web/e2e/pm-plans.spec.ts
+      - 'packages/domain/test/pm-compliance.test.ts :: computes both definitions from the hand-computed fixture: 2
+        of 8 PM and 3 of 11 planned'
+      - 'apps/server/test/report-export.test.ts :: prints the live PM Plan and PM Reports rows: one next due per
+        plan, one row per closed PM job'
     source: docs/plan/m4a-triage.md
     screen: pm-plan
     ticket: '49'

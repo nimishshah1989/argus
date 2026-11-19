@@ -6,6 +6,7 @@ import type {
   ListRow,
   MachineRow,
   PersonRow,
+  PmPlanRow,
   ReportRow,
   ShiftRow,
   TaskRow,
@@ -32,6 +33,7 @@ import {
   listsForEngine,
   machinesForEngine,
   movesForEngine,
+  pmPlansForEngine,
   shiftsForEngine,
 } from '../plant/index.js';
 import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
@@ -89,6 +91,21 @@ const ticket = (row: Row): TicketRow => ({
   downtimeMin: row.downtime_min as number | null,
   repairMin: row.repair_min as number | null,
   workType: text(row.work_type),
+  // Ticket 50b: the channel tells planned work from a breakdown, and the scheduled day is the planned job's date.
+  raisedChannel: text(row.raised_channel),
+  scheduledOn: text(row.task_expected_on),
+});
+
+/** One PM plan as the engine reads it (50b): the recurrence's target, interval and clock anchor. */
+const pmPlan = (row: Row): PmPlanRow => ({
+  id: row.id as string,
+  machineId: text(row.machine_id),
+  category: text(row.category),
+  intervalDays: row.interval_days as number | null,
+  createdAt: iso(row.created_at)!,
+  lastDoneOn: text(row.last_done_on),
+  active: row.active as boolean,
+  updatedAt: iso(row.updated_at)!,
 });
 
 const task = (row: Row): TaskRow => ({
@@ -278,6 +295,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const savedWhyWhy = await whyWhyEventRows(tx);
   const nudgeAcks = await readNudgeAcks(tx);
   const registers = await assetRegistersForEngine(tx, tenantId);
+  const pmPlans = await pmPlansForEngine(tx);
   const plantLists = listsOf(lists);
   return {
     timeZone,
@@ -304,6 +322,8 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
       .filter((row) => LEGAL_KINDS.has(row.kind as string))
       .map((row) => registerLegal(row, clean)),
     lists: plantLists,
+    // Ticket 50b: every plan, so the engine resolves each machine's own or its category's and reads the tolerance.
+    pmPlans: pmPlans.map(pmPlan),
     whyWhy: savedWhyWhy.flatMap((row) => {
       const record = whyWhyRow(row);
       return record ? [record] : [];

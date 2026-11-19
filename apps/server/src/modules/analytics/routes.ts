@@ -88,6 +88,15 @@ function asTicket(task: EngineData['tasks'][number]): EngineData['tickets'][numb
 }
 
 /**
+ * The ticket row a drill reply carries: the engine also reads the raised channel and the planned job's scheduled
+ * date (ticket 50b), and the reply contract has never named either, so they stop at this boundary.
+ */
+function asDrillTicket(ticket: EngineData['tickets'][number]): EngineData['tickets'][number] {
+  const { raisedChannel, scheduledOn, ...rest } = ticket;
+  return rest;
+}
+
+/**
  * The rows of one drill type. Tasks are tickets too: they drill as the ticket row the reply carries. The loader's
  * optional nameplate fields become the null the reply contract names, so the strict schema still sees every key.
  */
@@ -105,7 +114,7 @@ function drillRows(data: EngineData, type: DrillType): DrillReplyRow[] {
       fromLocation: move.fromLocation ?? null,
       toLocation: move.toLocation ?? null,
     }));
-  return [...data.tickets, ...data.tasks.map(asTicket)];
+  return [...data.tickets.map(asDrillTicket), ...data.tasks.map(asTicket).map(asDrillTicket)];
 }
 
 /**

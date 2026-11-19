@@ -161,3 +161,77 @@ is 259 lines against the plan's ≤200 because the repo's 60-line/complexity rul
 write steps into separate functions; no behaviour is split across modules. The ticket audit uses the history
 contract's existing `changes` array, not the plan's shorthand object, because `ticketEventSchema` has always
 defined `changes` as `{ field, from, to }[]`.
+
+## 50b — the two compliance figures, the interim page and the live PM sheets (built)
+
+**What changed for a user:** the `PM` group on the analytics face is no longer an empty menu. `/analytics/pm` shows
+the `PM calendar` screen with one figure — a one-row table of the **period, PM compliance and schedule compliance**,
+with the counts behind it (`2 of 8 PM jobs on time; 3 of 11 planned jobs done by their week`) and a dash, never 0 %,
+when a denominator is empty. A plant with no planned work order in the window reads "No PM work orders in this
+window." The same figure is what an analytics run stores, and the workbook's PM Plan and PM Reports sheets now carry
+the plant's own rows: one next due per plan and one row per closed PM job, instead of two header-only sheets.
+
+**The definitions, once.** `packages/domain/src/analytics/pm-compliance.ts` exports
+`computePmCompliance(data, { from, to, asOf }) → { value, drillIds }`. **PM compliance** counts PM work orders
+(`raised_channel = 'pm'`) whose scheduled date is in the window: on time when closed inside `scheduled ± tolerance`,
+early before it, late after it, overdue when still open past it, cancelled when cancelled past it, pending while
+still inside it (not judged). **Schedule compliance** counts planned work orders (PM or inspection) whose scheduled
+date is in the window: done when closed on or before the Sunday of its Monday–Sunday week, missed when the week has
+ended otherwise, pending inside the week (not judged). The scheduled date is `task_expected_on`, else the plant day
+of `reported_at`; the tolerance is the machine's effective plan's (`pmToleranceDays`, 15 with no plan), resolved with
+50a's `effectivePmPlan`, so a category plan answers for every machine it covers. Percentages are one-decimal numbers
+(`25`, `27.3`) or `null`; the drill is the window's planned work orders in scheduled order, deduplicated and capped
+at 200.
+
+**The figure.** `pm-compliance` is registered with `screen: 'pm-calendar'`, `owner: 50` and `drill: 'ticket'`; its
+computer reads the calendar year of the run's as-of day to that day, so the same function is what 53 will freeze at
+month end. `computePmCompliance` is exported through `@uptimo/domain` for 53; `packages/domain/test/registry.test.ts`
+names it in the D2 pin and the engine's owner set gains 50 (the ≤ bound stays 67, which 67a already raised).
+
+**The per-row snapshot profile.** 48b had already landed the store this packet needed: `profileOfKey(key)` is
+`standard` for `shift-kpis.*` and `pm-compliance`, `legacy` for everything else, and the store writes one statement
+per run with each row's own profile. 50b changes no line of `snapshot.ts`; it extends the server tests to store
+`pm-compliance` beside a `shift-kpis` and a legacy figure and to assert one `run_id` for the batch, and to assert the
+stored `pm-compliance` row's `profile` and its true-zero value on this fixture (no planned work order).
+
+**The live workbook (R15).** `apps/server/src/modules/plant/repo/analytics.ts` gains `pmPlansForEngine` (every plan,
+switched-off ones too) so `loadEngineData` carries `pmPlans`; `apps/server/src/modules/tickets/repo/pm.ts` gains
+`pmReportsForExport` (closed PM jobs with a stored `pm_report`). `exportDataFor` maps each machine's effective plan to
+an `ExportPmPlan` row (`date` = its next due, `source = 'plan'`, `done` = `last_done_on`, `machineId` = the machine
+code) and each stored report to an `ExportPmReport` row (`date` = close plant day, `planDate` = scheduled day,
+`total`, `undone`, `measurements` as text, one comment, `doneBy` the stored person id, `data` the `pm_report`);
+`workbook-route.ts` reads the reports once and passes both. The PM Plan sheet therefore prints the product's 125 next
+dates, not the platform's 427 visits (49 R2), and the PM Reports sheet prints the live closed jobs, not the two
+October reports that stay in 45's frozen key.
+
+**Tests.** `packages/domain/test/pm-compliance.test.ts` (10 cases: the plan's 11-row fixture and the 2/8 = **25.0 %**,
+3/11 = **27.3 %** arithmetic; the 11 drilled tickets once in scheduled order; the G1 close on both sides of the +15
+boundary; the no-report close; the cancelled job; a window with no planned work order; an inspection ticket closed
+Saturday vs the Monday after its week; a 30-day plan's ±2 against a 182-day plan's ±15 on the same three-day-late
+close; the category plan and the plan-less default; the figure's registration and calendar-year window) with
+`pm-compliance-expected.ts` holding the arithmetic. `apps/server/test/analytics-engine.test.ts` gains the loader's
+`raisedChannel`/`scheduledOn`, the per-row stored profile and the one-run assertion; `apps/server/test/report-export.test.ts`
+builds a PM plan and a closed PM job and asserts both sheets' exact rows; `apps/server/test/cosmos-seed.test.ts`
+asserts the 125 seeded plans are each machine-scoped and dated (the export test proves the per-machine mapping);
+`apps/web/src/screens/analytics/figure-content.test.ts` asserts the table, the dash with one null rate and the
+"no PM work orders" line; `groups.test.ts` and `guide-entries.test.ts` prove the new screen's labels and that the
+`pm-compliance` figure is explained exactly once.
+
+**Deviations.** (1) 48b, not 50b, landed the per-row `kpi_snapshot` store; this packet consumes it and adds no code
+there. (2) The figure carries `mixed: true`: the engine refuses a ready value with no drill ids unless the value is
+empty, and a zero-denominator window is a true answer with no ticket behind it. `FigureDef.mixed`'s comment now
+documents that second reason; the alternative (empty `from`/`to`) was rejected because 53 stores the window's own
+value. (3) The mapper is `apps/web/src/screens/analytics/pm-compliance-content.ts`, not inline in
+`figure-content.ts`, which is at 385/400 lines — the same split `page-content.ts` already uses. (4)
+`pmReportsForExport` returns the machine's id, not its code: the tickets module may not name the plant's `machine`
+table (`pnpm boundaries`), so `export-data.ts` resolves the code from the machines the load already carries. (5)
+`ExportPmReport.undone` is widened to `(string | number)[]`: 49c stores each point's id, and the sheet joins them as
+text. (6) The ticket drill reply strips `raisedChannel`/`scheduledOn` at the analytics boundary, so the strict
+ticket-row schema (11 keys) is unchanged. (7) The Guide's `pm-calendar` entry now names `figures: ['pm-compliance']`
+(the once-per-figure test); 50c adds its body paragraph and takes it out of `UNBUILT`. (8) `m4a.pm-plan` keeps
+`status: in-progress` and gains the two test evidence lines: per R14 50c flips it with the calendar journey.
+`pnpm parity` is 120 rows / 0 problems in this checkout (the plan's 119 predates one row that has since landed).
+(9) The export test's fixture gained a PM job, so the Breakdown Log sheet prints its report too (the log keeps PM
+rows); the test now finds the breakdown row by its spare cost and asserts the new row count instead of a fixed index.
+(10) The report-export test proves the sheet's per-machine mapping on a two-machine plant while the Cosmos seed test
+proves 125 dated machine plans; the seeded plant is not built into the export test, which runs on the small fixture.

@@ -60,7 +60,11 @@ export interface ExportPmReport {
   readonly planDate?: string | null;
   readonly doneBy?: string | null;
   readonly total?: number | null;
-  readonly undone?: readonly number[];
+  /**
+   * The checklist points left undone: the platform numbered them, our close stores each point's id (49c), so a live
+   * row carries the ids and the sheet joins them as text.
+   */
+  readonly undone?: readonly (string | number)[];
   readonly measurements?: Readonly<Record<string, string>>;
   readonly comments?: readonly string[];
   readonly measComment?: string | null;

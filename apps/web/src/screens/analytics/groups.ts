@@ -26,7 +26,7 @@ export interface AnalyticsGroup {
   id: GroupId;
   labelKey: MessageKey;
   icon: IconComponent;
-  /** The registry screens this group shows, in menu order. PM is empty until M4b registers it. */
+  /** The registry screens this group shows, in menu order. PM is the calendar (50b's compliance, 50c's page). */
   screens: readonly string[];
 }
 
@@ -73,7 +73,7 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
     icon: FlaskConical,
     screens: ['a9-bottleneck-forecast', 'forecast-lab'],
   },
-  { id: 'pm', labelKey: 'analytics.group.pm', icon: CalendarCheck, screens: [] },
+  { id: 'pm', labelKey: 'analytics.group.pm', icon: CalendarCheck, screens: ['pm-calendar'] },
   { id: 'cost', labelKey: 'analytics.group.cost', icon: Fuel, screens: ['money-matters'] },
   {
     id: 'reports',
@@ -122,6 +122,7 @@ export const SCREEN_LABELS: Record<string, MessageKey> = {
   'monthly-report': 'analytics.screen.monthly-report',
   'annual-report': 'analytics.screen.annual-report',
   'shift-kpis': 'analytics.screen.shift-kpis',
+  'pm-calendar': 'pm.screen.calendar',
 };
 
 /** The registry figure key to the label a tile and the Guide print. */
@@ -174,6 +175,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'shift-kpis.compare': 'analytics.figure.shift-kpis.compare',
   'shift-kpis.shift-split': 'analytics.figure.shift-kpis.shift-split',
   'shift-kpis.backlog': 'analytics.figure.shift-kpis.backlog',
+  'pm-compliance': 'pm.figure.compliance',
   'shift-kpis.breakdown-map': 'analytics.figure.shift-kpis.breakdown-map',
   reliability: 'analytics.figure.reliability',
 };

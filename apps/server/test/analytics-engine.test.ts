@@ -321,6 +321,12 @@ describe('the data loader', () => {
     expect(text).not.toMatch(/phone/i);
     expect(data.reports[0]!.problem).toMatch(/^Spindle noise, told \[P\d+\]$/);
     expect(data.timeZone).toBe('Asia/Kolkata');
+    // Ticket 50b: the channel and the planned job's scheduled day reach the engine; a live ticket has neither day.
+    expect(data.tickets.find((row) => row.ref === 'BD-0001')).toMatchObject({
+      raisedChannel: 'floor',
+      scheduledOn: null,
+    });
+    expect(data.pmPlans).toEqual([]);
     expect(data.people.every((p) => /^P-[0-9a-f]{8}$/.test(p.code))).toBe(true);
     // The standard family's basis: the plant's own shift window, read beside every other row (ticket 48).
     expect(data.shifts).toEqual([
@@ -445,14 +451,18 @@ describe('the snapshot writer', () => {
         figures: [
           figureOf('dashboard.total-machines', 1, 'ready'),
           figureOf('shift-kpis.compare', { screen: 'shift-kpis' }, 'ready'),
+          figureOf('pm-compliance', { from: '2026-01-01', to: day }, 'ready'),
         ],
       }),
     );
     const rows = (await snapshots(B)).filter((row) => row.as_of === day);
     expect(rows.map((row) => [row.key, row.profile])).toEqual([
       ['dashboard.total-machines', 'legacy'],
+      ['pm-compliance', 'standard'],
       ['shift-kpis.compare', 'standard'],
     ]);
+    // One run, one statement: the two families share the batch's run id.
+    expect(new Set(rows.map((row) => row.run_id)).size).toBe(1);
   });
 });
 
@@ -518,6 +528,13 @@ describe('running and storing through HTTP, and the drill-down', () => {
       id: seeded,
       value: 2,
     });
+    // The per-row profile (48 R15, 50b): this plant has no planned work order, so the figure is a true zero.
+    const compliance = after.find((row) => row.key === 'pm-compliance')!;
+    expect(compliance).toMatchObject({ profile: 'standard' });
+    expect(compliance.value).toMatchObject({ pm: { eligible: 0, pct: null } });
+    expect(after.find((row) => row.key === 'shift-kpis.compare')?.profile).toBe('standard');
+    expect(after.find((row) => row.key === 'a3-mttr-mtbf')?.profile).toBe('legacy');
+    expect(new Set(after.map((row) => row.run_id)).size).toBe(1);
   });
 
   it('returns the asked machines and tickets in the asked order, dropping ids this plant does not have', async () => {

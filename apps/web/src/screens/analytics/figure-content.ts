@@ -3,6 +3,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSpec } from '../../ui/chart/use-chart.js';
 import { pageContent, type PageKpi, type PageTable } from './page-content.js';
+import { pmComplianceContent } from './pm-compliance-content.js';
 
 /**
  * The five object-valued figures (ticket 38.5) become renderable content here, and nowhere else. The engine
@@ -139,6 +140,8 @@ const KIND: Record<string, ContentKind> = {
   'shift-kpis.compare': 'page',
   'shift-kpis.shift-split': 'page',
   'shift-kpis.backlog': 'page',
+  // Ticket 50b's interim PM group page: the two compliance rates as one row, 50c draws the calendar instead.
+  'pm-compliance': 'table',
   'shift-kpis.breakdown-map': 'page',
 };
 
@@ -206,6 +209,8 @@ export function contentOf(figure: Figure, t: TFunction): FigureContent | null {
       return checklist(figure.value, t);
     case 'a5-energy':
       return energyContent(figure.value);
+    case 'pm-compliance':
+      return pmComplianceContent(figure.value, t);
     default:
       return null;
   }

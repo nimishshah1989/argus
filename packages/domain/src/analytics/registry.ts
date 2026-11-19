@@ -22,9 +22,10 @@ export interface FigureDef {
    */
   money?: true;
   /**
-   * A figure whose value carries rows of more than one kind, so its one drill can name only the rows it can open.
-   * The data checklist is the only one: machine-record items have no ticket to drill to, and the screen renders
-   * those items from the value itself.
+   * A figure whose one drill cannot name every row its value stands on: the value carries rows of more than one
+   * kind, or its counts can be honestly zero with no row behind them. The data checklist is the first (machine
+   * records have no ticket to drill to); `pm-compliance` is the second (a window with no planned work order still
+   * has a true answer, and no ticket to open).
    */
   mixed?: true;
 }
@@ -121,8 +122,16 @@ export const FIGURES: readonly FigureDef[] = [
   tile(48, 'shift-kpis', 'compare', 'Platform basis beside the working-hour basis'),
   tile(48, 'shift-kpis', 'shift-split', 'Breakdowns, hours and MTTR by shift'),
   tile(48, 'shift-kpis', 'backlog', 'Open breakdowns by working-hour age'),
-  tile(48, 'shift-kpis', 'breakdown-map', 'Pareto and heat grids by machine, cell, code and shift'),
-  // Ticket 67's reliability fit and critical spares: a second key on the machine page, never a screen of its own
+  // Ticket 50's two compliance figures: one key on the PM calendar's screen, owned with the calendar (50 R8).
+  {
+    key: 'pm-compliance',
+    screen: 'pm-calendar',
+    owner: 50,
+    label: 'PM compliance and schedule compliance',
+    drill: 'ticket',
+    mixed: true,
+  },
+  tile(48, 'shift-kpis', 'breakdown-map', 'Pareto and heat grids by machine, cell, code and shift'), // Ticket 67's reliability fit and critical spares: a second key on the machine page, never a screen of its own
   // (R11). Its value is per machine and per category, so the figure's own drill is the production fleet.
   {
     key: 'reliability',

@@ -331,6 +331,67 @@ describe('the A5 energy figure', () => {
   });
 });
 
+describe('the pm-compliance figure', () => {
+  const COMPLIANCE = {
+    from: '2026-01-01',
+    to: '2026-11-11',
+    pm: {
+      eligible: 8,
+      onTime: 2,
+      early: 1,
+      late: 2,
+      overdue: 2,
+      cancelled: 1,
+      pending: 1,
+      pct: 25,
+    },
+    schedule: { eligible: 11, done: 3, missed: 8, pending: 0, pct: 27.3 },
+  };
+
+  it('prints the period and both rates as one row, with the counts behind them in the caption', () => {
+    const { t, calls } = translator();
+    const source = figure('pm-compliance', COMPLIANCE, 'pm-calendar');
+    expect(contentKind(source)).toBe('table');
+    expect(contentOf(source, t)).toEqual({
+      kind: 'table',
+      header: ['Period', 'PM compliance', 'Schedule compliance'],
+      rows: [['2026-01-01 – 2026-11-11', '25.0 %', '27.3 %']],
+      caption: '2 of 8 PM jobs on time; 3 of 11 planned jobs done by their week.',
+    });
+    expect(calls.map((call) => call.key)).toEqual([
+      'pm.compliance.period',
+      'pm.compliance.pm',
+      'pm.compliance.schedule',
+      'pm.compliance.counts',
+    ]);
+  });
+
+  it('says so in words, never 0 %, when the window holds no planned work order', () => {
+    const { t } = translator();
+    const empty = {
+      from: '2026-01-01',
+      to: '2026-11-11',
+      pm: { ...COMPLIANCE.pm, eligible: 0, onTime: 0, pct: null },
+      schedule: { ...COMPLIANCE.schedule, eligible: 0, done: 0, pct: null },
+    };
+    expect(contentOf(figure('pm-compliance', empty, 'pm-calendar'), t)).toEqual({
+      kind: 'text',
+      text: 'No PM work orders in this window.',
+    });
+  });
+
+  it('prints a dash for a null rate even when the other rate has a denominator', () => {
+    const { t } = translator();
+    const pmOnly = {
+      ...COMPLIANCE,
+      pm: { ...COMPLIANCE.pm, eligible: 0, onTime: 0, pct: null },
+    };
+    const content = contentOf(figure('pm-compliance', pmOnly, 'pm-calendar'), t);
+    if (content?.kind !== 'table') throw new Error('expected a table');
+    expect(content.rows[0]).toEqual(['2026-01-01 – 2026-11-11', '—', '27.3 %']);
+  });
+});
+
 describe('values the mapper cannot draw', () => {
   it('maps a ready null value to nothing for every object figure', () => {
     const { t } = translator();
@@ -390,6 +451,11 @@ describe('the copy catalogue', () => {
       'analytics.checklist.group.mc_pw',
       'analytics.checklist.group.mc_cell',
       'analytics.checklist.group.mc_loc',
+      'pm.compliance.period',
+      'pm.compliance.pm',
+      'pm.compliance.schedule',
+      'pm.compliance.counts',
+      'pm.compliance.empty',
     ];
     for (const key of keys) {
       expect(en[key], key).toBeTruthy();

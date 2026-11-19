@@ -279,7 +279,8 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
     ['analytics.guide.money.body1', 'analytics.guide.money.body2'],
     { figures: ['money-matters'] },
   ),
-  entry('pm-calendar', 'analytics.guide.pm-calendar.title', []),
+  // 50b registers `pm-compliance`; the entry explains it now and 50c gives it the page and its body paragraph.
+  entry('pm-calendar', 'analytics.guide.pm-calendar.title', [], { figures: ['pm-compliance'] }),
   entry('oem', 'analytics.guide.oem.title', []),
   entry('learning', 'analytics.guide.learning.title', []),
   entry('no-code', 'analytics.guide.no-code.title', []),

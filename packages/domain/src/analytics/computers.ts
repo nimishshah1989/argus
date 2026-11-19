@@ -23,6 +23,7 @@ import { dataChecklist } from './data-checklist.js';
 import { footprint } from './footprint.js';
 import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
+import { pmComplianceFigure } from './pm-compliance.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
 import { shiftKpisBacklogFigure } from './backlog.js';
@@ -230,6 +231,11 @@ const shiftComputers: Readonly<Record<string, Computer>> = {
   'shift-kpis.breakdown-map': shiftKpisBreakdownMapFigure,
 };
 
+/** Owner 50's compliance figure: PM compliance and schedule compliance on the pm-calendar screen (50b). */
+const pmComputers: Readonly<Record<string, Computer>> = {
+  'pm-compliance': pmComplianceFigure,
+};
+
 /** Owner 67's reliability fit and critical-spares list, one figure on the machine page (67a). */
 const reliabilityComputers: Readonly<Record<string, Computer>> = {
   reliability: reliabilityFigure,
@@ -260,4 +266,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...reportComputers,
   ...shiftComputers,
   ...reliabilityComputers,
+  ...pmComputers,
 };

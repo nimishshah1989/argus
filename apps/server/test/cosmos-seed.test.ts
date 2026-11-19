@@ -111,6 +111,15 @@ describe('cosmos real plant seed', () => {
         WHERE (created_at AT TIME ZONE 'Asia/Kolkata')::date > DATE '2026-11-11'`,
     );
     expect(future.n).toBeGreaterThan(0);
+    // 50b: the workbook's PM Plan sheet is one next-due row per machine's effective plan — 125, not the platform's
+    // 427 visits. Every seeded plan is machine-scoped and has an interval, so each machine yields exactly one row
+    // (the mapping itself is proved in report-export.test.ts).
+    const shape = await one<{ plans: number; dated: number }>(
+      `SELECT count(*)::int AS plans,
+              count(*) FILTER (WHERE machine_id IS NOT NULL AND interval_days > 0)::int AS dated
+         FROM pm_plan`,
+    );
+    expect(shape).toEqual({ plans: 125, dated: 125 });
   });
 
   it("loads the workbook's three register lines: 2 AMC and 1 legal, no invented date, lead 15", async () => {
