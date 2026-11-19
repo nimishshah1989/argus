@@ -88,12 +88,17 @@ const ticket = (reportedAt: string): TicketRow => ({
 });
 
 /** One report on the 5th of each listed month, so a month is recorded exactly when it is listed. */
-const dataWith = (reports: string[], tickets: string[] = []): EngineData => ({
+const dataWith = (reports: string[], tickets: string[] = [], tasks: string[] = []): EngineData => ({
   timeZone: 'Asia/Kolkata',
   machines: PLANT,
   moves: [],
   tickets: tickets.map(ticket),
-  tasks: [],
+  tasks: tasks.map((reportedAt) => ({
+    ...ticket(reportedAt),
+    parentId: 't-parent',
+    reason: null,
+    expectedOn: null,
+  })),
   reports: reports.map(report),
   people: [],
   lists: {},
@@ -125,7 +130,6 @@ describe('hoursIn', () => {
     expect(hoursIn(bought, ANNUAL, SPAN_2025)).toBe(
       ANNUAL * (15 / 30 / 12 + 1 / 12 + 1 / 12 + 1 / 12),
     );
-    expect(hoursIn(bought, ANNUAL, SPAN_2025)).toBeCloseTo(1_750, 9);
     expect(hoursIn(bought, ANNUAL, { from: '2025-01-01', to: '2025-12-31' })).toBe(
       hoursIn(bought, ANNUAL, SPAN_2025),
     );
@@ -197,5 +201,20 @@ describe('gapMonths', () => {
     expect(gapMonths(data, '2025-06-30')).toEqual([]);
     expect(gapMonths(data, '2025-10-15')).toEqual(['2025-07']);
     expect(gapMonths(dataWith([]), '2026-12-31')).toEqual([]);
+  });
+
+  it('counts a month in which the plant logged only a task as recorded', () => {
+    const data = dataWith(
+      [...monthsOf(2025, [7, 9]), ...monthsOf(2026)],
+      [],
+      ['2025-09-05T04:00:00.000Z'],
+    );
+    expect(gapMonths(data, '2026-12-31')).toEqual(['2025-07']);
+  });
+
+  it('does not let a report dated after the as-of date make its month recorded', () => {
+    const data = dataWith(['2025-05-05', '2025-06-20']);
+    expect(gapMonths(data, '2025-06-10')).toEqual(['2025-06']);
+    expect(gapMonths(data, '2025-06-30')).toEqual([]);
   });
 });

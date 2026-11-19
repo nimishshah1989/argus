@@ -107,13 +107,13 @@ function monthIndex(key: string): number {
 }
 
 /**
- * The months, first record to `asOf`, in which the plant has no report and no ticket: a gap in the log, not a month
- * without a failure. A ticket belongs to its plant day; a row after `asOf` is not read.
+ * The months, first record to `asOf`, in which the plant has no report, ticket or task: a gap in the log, not a month
+ * without a failure. A ticket or task belongs to its plant day; a row after `asOf` is not read.
  */
 export function gapMonths(data: EngineData, asOf: string): string[] {
   const seen = new Set<string>();
   for (const { date } of data.reports) if (date <= asOf) seen.add(date.slice(0, 7));
-  for (const { reportedAt } of data.tickets) {
+  for (const { reportedAt } of [...data.tickets, ...data.tasks]) {
     const day = plantDay(reportedAt, data.timeZone);
     if (day <= asOf) seen.add(day.slice(0, 7));
   }

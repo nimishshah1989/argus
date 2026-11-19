@@ -11,6 +11,8 @@
 
 - The analytics engine can now describe a span of plant dates and the months inside it the plant never recorded
   (July 2025 in the hand-computed two-year plant), count a machine's available hours over that span (16,500 in 2025,
-  24,000 in 2026, 40,500 across both), and list the months with no report and no ticket. Two whole years now add up to
+  24,000 in 2026, 40,500 across both), and list the months with no report, ticket or task. Two whole years now add up to
   exactly two years of hours instead of a rounding short of it. Nothing is wired in yet: every existing figure reads
   the same window as before and returns the same numbers, so the 2026 answer key is untouched. No screen changes.
+- Known edge for 76d: `gapMonths` treats the as-of month as a gap until its first record arrives, so on the 1st of a
+  month a span covering only that month has 0 available hours. 76d must handle it when it wires the span in.
