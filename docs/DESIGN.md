@@ -4,6 +4,7 @@ description: A quiet maintenance tool for the shop floor, the desk and the analy
 colors:
   page: '#f5f5f7'
   surface: '#ffffff'
+  surface-2: '#fafafa'
   line: '#e8e8ed'
   control: '#8e8e93'
   ink: '#1d1d1f'
@@ -69,10 +70,16 @@ components:
 # Design System: Uptimo
 
 This file is the design language of the product (D33). Sections 1 to 4 are here; sections 5 to 8
-(depth, shapes, components, do's and don'ts) follow in packet 80d. The front matter holds **today's
-light values** from `apps/web/src/ui/tokens.css`, which keeps the numbers until ticket 81 adds a test that the
-two agree. Dark values live in `tokens.css`. Three things are not final until Nimish picks a direction (packet
-80s): the exact tone values, `surface-2` and the chart palette. Where a value is not known yet, the text says so.
+(depth, shapes, components, do's and don'ts) follow in packet 80d. The front matter holds **today's light
+values**, and `apps/web/src/ui/tokens.css` keeps the numbers until ticket 81 adds a test that the two agree. Dark
+values live in `tokens.css`. Where each value comes from:
+
+- Colours, type sizes, radii (control, card, sheet), the 52 and 44 px targets and the line height come from
+  `tokens.css`. `surface-2` is today's `neutral-50`.
+- The round chip (9999 px), the spacing steps 4 to 32 and the 28 px chip height come from `docs/design/LOCK.md`.
+
+Nimish's pick of a direction (packet 80s) may still change the tone values, `surface-2` and the chart palette.
+Where a value is not known yet, the text says so.
 
 ## Overview
 
@@ -96,8 +103,9 @@ The interface follows Apple's three principles, Nimish's stated preference (`doc
 - `/analytics/*` (Today, the analyses and the machine page) is redesigned freely. Its figures stay exact.
 
 **Operate mode.** Use impeccable's Operate and Read modes (precision and restraint) and not its bolder modes,
-unless Nimish asks. One accent colour for actions and one primary action per screen. Space is generous: when in
-doubt, fewer items per screen.
+unless Nimish asks. One accent colour for actions. One primary action per screen; secondary actions look
+secondary. Every screen shows a visible focus state, works at phone width and passes an accessibility check.
+Space is generous: when in doubt, fewer items per screen.
 
 **The bar for a screen.** `impeccable critique` scores at least 32 of 40 with 0 P0 findings, axe reports 0
 violations, and the 360 px layout is built first (ticket 85).
@@ -122,8 +130,8 @@ status is colour, icon and word.
 
 Ten roles, each with a light and a dark value (`tokens.css`).
 
-- **page**, **surface**, **surface-2**: the three grounds. Surface-2 is a second ground step for panels; its value
-  is not known yet (the pick sets it).
+- **page**, **surface**, **surface-2**: the three grounds. Surface-2 is a second ground step for panels (light
+  `#fafafa`, dark `#151517`, today's `neutral-50`); the pick may change it.
 - **line**: card edges and dividers. **control**: the border of anything you tap or type in, 3.26:1 on white.
 - **ink** and **ink-2**: primary and secondary text.
 - **accent** is also the focus ring. **on-accent** is the text on an accent fill. **accent-tint** is the soft fill
@@ -160,9 +168,9 @@ not from the arrow. Ticket 82 holds the direction for each of the 51 figures; a 
 
 ### Chart colours
 
-- **Categorical:** 8 colours per direction. Never a status value, and never in the red (345 to 50 degrees), green
+- **Categorical:** 8 series, `series-1`, `series-2`, `series-3`, `series-4`, `series-5`, `series-6`, `series-7` and `series-8`, per direction. Never a status value, and never in the red (345 to 50 degrees), green
   (90 to 160) or info-blue (205 to 235) hue bands, so a series is never mistaken for a status.
-- **Ramps:** one sequential and one diverging ramp of 5 steps. A ramp cell carries a computed black or white label
+- **Ramps:** one sequential (`seq`) and one diverging (`div`) ramp of 5 steps. A ramp cell carries a computed black or white label
   at 4.5:1.
 - Every series is named by a legend or an end label, because separation for a colour-vision difference is weak
   (minimum deuteranopia distance 3.2 for the 8, `docs/slices/80-design-foundations.md` R11).
