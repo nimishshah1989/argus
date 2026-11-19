@@ -7,15 +7,15 @@ import {
   type PeriodMonth,
 } from './availability.js';
 import { formatInr, formatPercent } from './format.js';
-import { isProduction } from './machine-facts.js';
 import { effectiveHours, isPm, sourcedReports } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow, PersonRow } from './types.js';
 
 /**
  * A4, manpower efficiency (ticket 41, packet 41a): the platform's own page, whole — the three KPIs, the five tables
- * and the chart. The team is the Settings list in its own order (R6); the breakdowns are production data and never
- * PM; hours are the effective recorded hours. The table is sorted by done count, while the matrices keep the team
- * order, so the settings decide the rows and the sort only decides the one table.
+ * and the chart. The team is the Settings list in its own order (R6); the breakdowns are every CNC machine's, the ones
+ * the plant leaves out of production data included (ticket 77a), and never PM; hours are the effective recorded
+ * hours. The table is sorted by done count, while the matrices keep the team order, so the settings decide the rows
+ * and the sort only decides the one table.
  */
 
 const DASH = '—';
@@ -111,11 +111,15 @@ function newMember(person: PersonRow, categoryCount: number, monthCount: number)
 /** One pass over the sourced reports: production rows count as breakdowns unless PM; PM is its own month matrix. */
 function buildContext(data: EngineData, asOf: string): A4Context {
   const people = teamPeople(data);
-  const production = data.machines.filter(isProduction);
-  const categories = categoryList(data, production);
+  // A machine the plant leaves out of production data still has its breakdowns handled by the team: they count here.
+  // A Robot (segment or category, as the loader reads it) is never counted.
+  const handled = data.machines.filter(
+    (machine) => machine.segment === 'CNC' && machine.category?.trim().toLowerCase() !== 'robot',
+  );
+  const categories = categoryList(data, handled);
   const categoryIndex = new Map(categories.map((category, position) => [category, position]));
   const machineCategory = new Map(
-    production.map((machine) => [machine.id, machine.category?.trim() ?? null]),
+    handled.map((machine) => [machine.id, machine.category?.trim() ?? null]),
   );
   const index = new Map(people.map((person, position) => [person.code, position]));
   const period = spanOf(data, asOf);
@@ -307,7 +311,7 @@ function countChart(members: readonly Member[]) {
 
 /**
  * The A4 figure: the key's page whole. An empty plant (no production breakdown or no team) has no page to print,
- * so the value is null rather than a fabricated zero. The drill names the production non-PM tickets it read.
+ * so the value is null rather than a fabricated zero. The drill names the non-PM tickets of every CNC machine it read.
  */
 export const a4ManpowerFigure: Computer = ({ data, asOf }) => {
   const ctx = buildContext(data, asOf);

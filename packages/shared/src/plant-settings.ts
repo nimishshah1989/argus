@@ -93,6 +93,19 @@ export const machineReplySchema = z
   .strict();
 export type MachineReply = z.infer<typeof machineReplySchema>;
 
+/**
+ * `PUT /machines/:id/production-data` (ticket 77a): the plant switches one machine to "not counted in production data"
+ * (`true`) or back (`false`). Its breakdowns stay on record and keep counting in the manpower hours and the energy
+ * list, and leave BD %, MTTR, MTBF, availability and the other production figures.
+ */
+export const machineProductionPatchSchema = z.object({ excludedFromProduction: flag }).strict();
+export type MachineProductionPatch = z.infer<typeof machineProductionPatchSchema>;
+
+export const machineProductionReplySchema = z
+  .object({ id, code, excludedFromProduction: z.boolean() })
+  .strict();
+export type MachineProductionReply = z.infer<typeof machineProductionReplySchema>;
+
 export const machineMoveReplySchema = z
   .object({
     id,

@@ -31,6 +31,7 @@ import { supportMayWrite, writableSetting } from './settings.js';
 import { fingerprint, loadConfig } from './service.js';
 import { actorOf, forbidden } from './actor.js';
 import { registerCompanyRoutes } from './company-routes.js';
+import { registerMachineProductionRoute } from './machine-production.js';
 import { registerPlantSettingsRoutes } from './settings-routes.js';
 
 function withoutPhone(p: unknown): Record<string, unknown> {
@@ -214,5 +215,6 @@ export function registerPlantRoutes(app: FastifyInstance, config: AppConfig): vo
   );
   app.put('/api/v1/translations/:id', (request, reply) => putTranslation(pool, request, reply));
   registerPlantSettingsRoutes(app, pool);
+  registerMachineProductionRoute(app, pool);
   registerCompanyRoutes(app, config);
 }

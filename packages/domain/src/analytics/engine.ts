@@ -3,6 +3,7 @@ import { dataAsOf } from './as-of.js';
 import { gapMonths, recordedMonths, type Period } from './availability.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
+import { listedExclusions, withListedExclusions } from './machine-facts.js';
 import { isHistory, logNumbers, sourcedReports } from './rows.js';
 import type {
   Computed,
@@ -142,7 +143,7 @@ export function runWith(
   const { asOf, profile } = input;
   if (!isPlantDate(asOf))
     throw new RangeError(`asOf must be a plant date like 2026-11-11, got ${asOf}`);
-  const data = dataAsOf(input.data, asOf);
+  const data = dataAsOf(withListedExclusions(input.data), asOf);
   const known = knownIds(data);
   const views = viewsOf(data, asOf, input.span);
   const figures = FIGURES.map((def): FigureResult => {
@@ -166,7 +167,15 @@ export function runWith(
     reports: data.reports.length,
     people: data.people.length,
   };
-  return { asOf, profile, rows, figures, ...(views.period ? { period: views.period } : {}) };
+  const excludedMachines = listedExclusions(data);
+  return {
+    asOf,
+    profile,
+    rows,
+    excludedMachines,
+    figures,
+    ...(views.period ? { period: views.period } : {}),
+  };
 }
 
 /**
