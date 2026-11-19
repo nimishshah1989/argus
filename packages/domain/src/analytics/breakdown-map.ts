@@ -1,3 +1,4 @@
+import { calendarMonths, monthLabel, NO_RECORDS, spanOf, type Period } from './availability.js';
 import { formatInr, roundValue } from './format.js';
 import { cellKey } from './hours.js';
 import { isProduction } from './machine-facts.js';
@@ -13,28 +14,15 @@ import type { Computer, EngineData, FigureValue, MachineRow } from './types.js';
  * the shift split already use. The cell is the machine's registered cell (the plan's own grouping: cell 2's 621.17 h
  * and cell 6's 593.57 h are the workbook's static cells), so a machine that moved does not split its hours.
  *
- * The map is the window the working hours divide: the as-of year to `asOf`, so the month columns are the months
- * that have happened and every row's cells add to that row's Pareto hours exactly (the invariant the tests pin).
+ * The map is the run's period (the as-of year to `asOf` when no span was named), so the month columns are the months
+ * of it that have happened, each keyed with its year, and every row's cells add to that row's Pareto hours exactly
+ * (the invariant the tests pin). A month the plant recorded nothing in prints `no records`, never a zero.
  * The machine grid prints the Pareto's own top fifteen and says how many it left out; the three smaller dimensions
  * print every row. A code prints the code as recorded with its `maint_code` label (R11), and an unlisted code prints
  * as recorded.
  */
 
 const DASH = '—';
-const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
 /** The annual report's Pareto size, so the two Paretos on the face read at one length. */
 const PARETO_BARS = 15;
 
@@ -81,6 +69,8 @@ export interface HeatRow {
 export interface HeatGrid {
   dimension: MapDimension;
   months: string[];
+  /** Per month, true when the plant recorded nothing in it: its cells are not zeroes. */
+  gap: boolean[];
   rows: HeatRow[];
   /** Every key with a failure, printed or not (the machine grid's top fifteen leave the rest out). */
   total: number;
@@ -106,14 +96,13 @@ function shown(raw: string | null): string {
   return value === '' ? DASH : value;
 }
 
-/** The failure events on the production fleet, in the as-of year, at or before the run date. */
-function mapEvents(data: EngineData, asOf: string): FailureEvent[] {
+/** The failure events on the production fleet, inside the period. */
+function mapEvents(data: EngineData, period: Period): FailureEvent[] {
   const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
-  const year = asOf.slice(0, 4);
   return failureEvents(data).filter(
     (event) =>
-      event.report.date <= asOf &&
-      event.report.date.slice(0, 4) === year &&
+      event.report.date >= period.from &&
+      event.report.date <= period.to &&
       production.has(event.report.machineId),
   );
 }
@@ -180,28 +169,30 @@ function dimensionOf(
 }
 
 /**
- * The four ranked dimensions and their heat grids over the as-of year's happened months. A plant with no failure
+ * The four ranked dimensions and their heat grids over the period's happened months. A plant with no failure
  * returns empty dimensions and grids; the figure then prints nothing rather than a page of zeroes.
  */
 export function breakdownMap(data: EngineData, asOf: string): BreakdownMap {
-  const months = MONTHS.slice(0, Number(asOf.slice(5, 7)));
+  const period = spanOf(data, asOf);
+  const happened = calendarMonths(period).filter((month) => month.state !== 'outside');
+  const months = happened.map((month) => monthLabel(month, period));
+  const monthIndex = new Map(happened.map((month, index) => [month.key, index]));
   const production = data.machines.filter(isProduction);
   const byId = new Map(data.machines.map((machine) => [machine.id, machine]));
-  const events = mapEvents(data, asOf);
+  const events = mapEvents(data, period);
   const cells = new Map<MapDimension, Map<string, Cell>>(
     DIMENSIONS.map((dimension) => [dimension, new Map<string, Cell>()]),
   );
   for (const event of events) {
     const machine = byId.get(event.report.machineId);
-    const month = Number(event.report.date.slice(5, 7)) - 1;
-    const inWindow = month >= 0 && month < months.length;
+    const month = monthIndex.get(event.report.date.slice(0, 7));
     for (const dimension of DIMENSIONS) {
       const key = keyOf(dimension, event, machine);
       const group = cells.get(dimension)!;
       const cell = group.get(key) ?? { breakdowns: 0, hours: 0, months: months.map(() => 0) };
       cell.breakdowns += 1;
       cell.hours += event.hours;
-      if (inWindow) cell.months[month] = (cell.months[month] ?? 0) + event.hours;
+      if (month !== undefined) cell.months[month] = (cell.months[month] ?? 0) + event.hours;
       group.set(key, cell);
     }
   }
@@ -220,6 +211,7 @@ export function breakdownMap(data: EngineData, asOf: string): BreakdownMap {
     return {
       dimension,
       months: [...months],
+      gap: happened.map((month) => month.state === 'no-records'),
       rows: printed.map((row) => ({ key: row.key, values: [...group.get(row.key)!.months] })),
       total: ranked.length,
       omitted: ranked.length - printed.length,
@@ -257,7 +249,9 @@ function heatTable(data: EngineData, entry: DimensionMap, grid: HeatGrid): PageT
     .slice(0, grid.rows.length)
     .map((row, index) => [
       labelOf(entry.dimension, row.key, data),
-      ...grid.rows[index]!.values.map((value) => (value === 0 ? DASH : formatInr(value, 2))),
+      ...grid.rows[index]!.values.map((value, month) =>
+        grid.gap[month] ? NO_RECORDS : value === 0 ? DASH : formatInr(value, 2),
+      ),
       formatInr(row.hours, 2),
       formatInr(row.cumulativePct, 2),
     ]);
