@@ -1,6 +1,11 @@
 import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { assertClockNearDatabase, withTenant, type JobRole } from '../../kernel/index.js';
+import {
+  assertClockNearDatabase,
+  logFailures,
+  withTenant,
+  type JobRole,
+} from '../../kernel/index.js';
 import { activePerson, jobTenantIds } from '../identity/index.js';
 import { dueRegisterItems, plantToday } from '../plant/index.js';
 import { notify } from './notify.js';
@@ -101,9 +106,13 @@ export async function startRegisterJobs(
   if (!(await boss.getQueue(REGISTER_DUE_QUEUE))) await boss.createQueue(REGISTER_DUE_QUEUE, QUEUE);
   if (role === 'api') return;
   const now = deps.now ?? (() => new Date());
-  await boss.work(REGISTER_DUE_QUEUE, { batchSize: 1, pollingIntervalSeconds: 30 }, async () => {
-    const summary = await runRegisterDue({ pool: deps.pool, boss, now: now() });
-    console.log(JSON.stringify({ job: REGISTER_DUE_QUEUE, ...summary }));
-  });
+  await boss.work(
+    REGISTER_DUE_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds: 30 },
+    logFailures(REGISTER_DUE_QUEUE, async () => {
+      const summary = await runRegisterDue({ pool: deps.pool, boss, now: now() });
+      console.log(JSON.stringify({ job: REGISTER_DUE_QUEUE, ...summary }));
+    }),
+  );
   await boss.schedule(REGISTER_DUE_QUEUE, REGISTER_DUE_CRON, {}, { tz: 'UTC' });
 }

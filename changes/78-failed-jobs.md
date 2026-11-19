@@ -1,0 +1,1 @@
+- The admin's API can now list the plant's failed background jobs with their error and retry one (the retry is on the audit trail). A failed job, or a timer more than 2 minutes late, writes a log line the staging alarm counts, so Nimish is told within 5 minutes. The screen for this is the next ticket (78b).

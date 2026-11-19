@@ -45,6 +45,32 @@ resource "aws_cloudwatch_metric_alarm" "server_errors" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
+# One failed job or one late timer is enough (ticket 78a): the server writes a level-50 line carrying `alarm`
+# ("job-failed" or "timer-late"), and a one-minute period raises this within the five minutes the plan allows.
+resource "aws_cloudwatch_log_metric_filter" "job_alarms" {
+  name           = "${var.app}-job-alarms"
+  log_group_name = aws_cloudwatch_log_group.server.name
+  pattern        = "{ $.alarm = \"job-failed\" || $.alarm = \"timer-late\" }"
+  metric_transformation {
+    name      = "JobAlarms"
+    namespace = "Uptimo"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "job_alarms" {
+  alarm_name          = "${var.app}-job-alarms"
+  namespace           = "Uptimo"
+  metric_name         = "JobAlarms"
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
 # Route 53 health checks publish their metric only in us-east-1, so the alarm and its topic live there.
 resource "aws_route53_health_check" "site" {
   count             = var.external_uptime_ping ? 1 : 0

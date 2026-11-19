@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import type { PgBoss } from 'pg-boss';
-import { assertClockNearDatabase, withTenant, type JobRole } from './kernel/index.js';
+import { assertClockNearDatabase, logFailures, withTenant, type JobRole } from './kernel/index.js';
 import { jobTenantIds, purgeDeadSessions } from './modules/identity/index.js';
 import { stripOldImportPayloads } from './modules/imports/index.js';
 import { purgeRoster } from './modules/accountability/index.js';
@@ -130,7 +130,7 @@ export async function startRetentionJobs(
     await boss.work<RetentionPayload>(
       name,
       { batchSize: 1, pollingIntervalSeconds: 30 },
-      async ([job]) => {
+      logFailures(name, async ([job]) => {
         const payload = job?.data ?? {};
         if (payload.tenantId && !/^[0-9a-f-]{36}$/i.test(payload.tenantId))
           throw new Error(`Invalid ${name} tenant id`);
@@ -141,7 +141,7 @@ export async function startRetentionJobs(
         log({ job: name, ...summary });
         for (const line of report) log({ job: name, drift: line });
         return summary;
-      },
+      }),
     );
     await boss.schedule(name, JOBS[name].cron, {}, { tz: 'UTC' });
   }
