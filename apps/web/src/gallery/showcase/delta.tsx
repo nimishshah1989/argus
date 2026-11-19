@@ -63,9 +63,7 @@ export function Delta({ metric, i }: { metric: Metric; i: number }) {
     <span className="sc-delta" data-tone={ch.tone}>
       <Arrow dir={ch.dir} />
       <span>{changeText(t, metric, ch)}</span>
-      {ch.dir !== 'flat' && ch.tone !== 'flat' ? (
-        <span className="sr-only">, {verdict}</span>
-      ) : null}
+      {ch.dir !== 'flat' && ch.tone !== 'flat' ? <span className="sr-only"> {verdict}</span> : null}
     </span>
   );
 }

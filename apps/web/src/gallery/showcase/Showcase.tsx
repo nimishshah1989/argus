@@ -12,6 +12,8 @@ import { TrendChart, type Hover } from './trend-chart.js';
 import { figure } from '../directions/figures.js';
 import './strings.js';
 import './showcase.css';
+import './showcase-grids.css';
+import './showcase-overlay.css';
 
 /**
  * `/gallery?view=showcase` (ticket 80t): the analytics overview at production quality, the reference the page

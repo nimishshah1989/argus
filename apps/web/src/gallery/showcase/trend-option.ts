@@ -55,7 +55,6 @@ function marks(ink: Ink, metric: Metric, t: TFunction) {
       silent: true,
       symbol: 'diamond',
       symbolSize: 10,
-      symbolOffset: [0, -16],
       itemStyle: { color: ink.ink, borderColor: ink.surface, borderWidth: 1.5 },
       label: { show: false },
       data: big,
