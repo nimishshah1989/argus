@@ -25,7 +25,8 @@ export interface FigureDef {
    * A figure whose one drill cannot name every row its value stands on: the value carries rows of more than one
    * kind, or its counts can be honestly zero with no row behind them. The data checklist is the first (machine
    * records have no ticket to drill to); `pm-compliance` is the second (a window with no planned work order still
-   * has a true answer, and no ticket to open).
+   * has a true answer, and no ticket to open); `dashboard.breakdown-free` is the third (a plant where every machine
+   * broke down this month answers "0 of N" and has no breakdown-free machine to open).
    */
   mixed?: true;
 }
@@ -82,7 +83,8 @@ export const FIGURES: readonly FigureDef[] = [
   dashboard('pm-hours', 'PM hours', 'ticket'),
   dashboard('no-downtime-hours', 'Breakdown hours with no downtime', 'ticket'),
   // The two Dashboard cards the platform drew as figures but the face had not registered (Revision 2 R3).
-  dashboard('breakdown-free', 'Breakdown-free machines', 'machine'),
+  // Mixed: "0 of N machines are breakdown-free" is a true answer with no machine behind it to open.
+  { ...dashboard('breakdown-free', 'Breakdown-free machines', 'machine'), mixed: true },
   dashboard('costliest-problems', 'Problems costing the most downtime', 'ticket'),
   dashboard('bubble-chart', 'Bubble chart', 'machine'),
   dashboard('expansion-timeline', 'Expansion timeline', 'machine'),
