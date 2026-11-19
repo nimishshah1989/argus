@@ -3,7 +3,10 @@ import {
   addedTable,
   categoryTable,
   cellTable,
+  changeText,
+  monthTable,
   numberText,
+  pmTable,
   percentText,
   shareOf,
   tableOf,
@@ -139,44 +142,6 @@ function quarterPoints(
   return points;
 }
 
-/** A change against the window before it: an arrow and a whole percent, or a dash with nothing to compare. */
-function changeText(current: number, previous: number): string {
-  if (previous === 0) return DASH;
-  const change = ((current - previous) / previous) * 100;
-  return `${change > 0 ? '▲' : '▼'} ${numberText(Math.abs(change), 0)}%`;
-}
-
-/** The key's "Month by month": each month's counts and hours, its change, MTTR, BD %, PM and availability. */
-function monthTable(points: readonly MonthPoint[]): Table {
-  const rows = points.map((point, index) => {
-    const stats = point.stats;
-    return [
-      point.label,
-      String(stats.count),
-      numberText(stats.hours, 1),
-      index === 0 ? DASH : changeText(stats.hours, points[index - 1]!.stats.hours),
-      stats.count > 0 ? numberText(stats.mttr, 2) : DASH,
-      percentText(stats.bdPct),
-      numberText(stats.pmHours, 1),
-      percentText(stats.avail),
-    ];
-  });
-  return tableOf(
-    'Month by month',
-    [
-      'Month',
-      'Breakdowns',
-      'Downtime hrs',
-      'vs prior month',
-      'MTTR',
-      'BD %',
-      'PM hrs',
-      'Availability',
-    ],
-    rows,
-  );
-}
-
 /** The key's "Quarter by quarter": the same arithmetic for each quarter that has started. */
 function quarterTable(points: readonly QuarterPoint[]): Table {
   const rows = points.map((point, index) => {
@@ -234,20 +199,6 @@ function ageTable(machines: readonly MachineRow[], stats: ReportStats, asOf: str
   return tableOf(
     'Machine age',
     ['Age band', 'Machines', 'Breakdowns', 'Hours', 'Hrs / machine'],
-    rows,
-  );
-}
-
-/** The key's PM table: each month's PM entries and their hours. */
-function pmTable(points: readonly MonthPoint[]): Table {
-  const rows = points.map((point) => [
-    MONTHS_SHORT[point.index - 1]!,
-    String(point.stats.pmCount),
-    numberText(point.stats.pmHours, 1),
-  ]);
-  return tableOf(
-    'Preventive maintenance and long breakdowns',
-    ['Month', 'PM entries', 'PM hours'],
     rows,
   );
 }

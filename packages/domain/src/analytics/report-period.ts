@@ -1,5 +1,11 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { availableHours, daysInclusive, periodFraction } from './availability.js';
+import {
+  calendarMonths,
+  daysInclusive,
+  hoursIn,
+  periodFraction,
+  type Period,
+} from './availability.js';
 import { formatNumber, formatPercent, normalizeLabel } from './format.js';
 import { cellAt, NO_CELL } from './hours.js';
 import { isProduction } from './machine-facts.js';
@@ -148,16 +154,29 @@ export function groupBy(
   return sortGroups([...groups.values()]);
 }
 
-/** The span a report's stats cover, both ends included. */
-export interface ReportWindow {
-  from: string;
-  to: string;
+/**
+ * The window a report reads: the span, plus the gap months inside it when the run named a span (`data.gaps`). With no
+ * gap list it is the plain span, so a run with no span reads exactly the hours and days it read before ticket 76.
+ */
+export function windowOf(from: string, to: string, gaps: readonly string[] = []): Period {
+  const noRecords = gaps.filter((key) => key >= from.slice(0, 7) && key <= to.slice(0, 7));
+  return noRecords.length === 0 ? { from, to } : { from, to, noRecords };
+}
+
+/** A window every month of which the plant recorded nothing in: a table prints it as no records, never as zeros. */
+export function isGapWindow(window: Period): boolean {
+  const months = calendarMonths(window).filter((month) => month.state !== 'outside');
+  return months.length > 0 && months.every((month) => month.state === 'no-records');
 }
 
 /** One window's report arithmetic: its counts, hours, available hours, BD %, PM % and availability. */
 export interface ReportStats {
   start: string;
   end: string;
+  /** The gap months inside the window; their days and hours are not counted. */
+  noRecords: readonly string[];
+  /** The plant recorded nothing in any month of the window. */
+  gap: boolean;
   days: number;
   fraction: number;
   available: number;
@@ -183,7 +202,7 @@ export function reportStats(
   entries: readonly SourcedReport[],
   machines: readonly MachineRow[],
   profile: Pick<AnalyticsProfile, 'prodHrsPerDay' | 'workDaysPerYear'>,
-  window: ReportWindow,
+  window: Period,
 ): ReportStats {
   const { from, to } = window;
   const inPeriod = entries.filter((row) => row.report.date >= from && row.report.date <= to);
@@ -193,15 +212,17 @@ export function reportStats(
   const pmHours = sumHours(pm);
   const annual = annualHours(profile);
   const available = machines.reduce(
-    (total, machine) => total + availableHours(machine, annual, from, to),
+    (total, machine) => total + hoursIn(machine, annual, window),
     0,
   );
   const count = breakdowns.length;
   return {
     start: from,
     end: to,
+    noRecords: window.noRecords ?? [],
+    gap: isGapWindow(window),
     days: daysInclusive(from, to),
-    fraction: fraction(from, to),
+    fraction: fraction(from, to, window.noRecords),
     available,
     breakdowns,
     pm,
