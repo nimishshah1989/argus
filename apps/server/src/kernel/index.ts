@@ -39,7 +39,7 @@ export {
   type RosterLookup,
 } from './guards.js';
 export { registerReplyCheck, replyProblem } from './reply-check.js';
-export { registerHealth } from './health.js';
+export { registerHealth, releaseFromEnv, type Release } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
 export { createPool } from './db.js';
 export { assertClockNearDatabase, jobDb, type JobRole, type JobsHandle } from './jobs.js';

@@ -3,6 +3,7 @@ import {
   createPool,
   loggerOptions,
   publicBaseDomainFromEnv,
+  releaseFromEnv,
   rateLimitFromEnv,
   type JobRole,
 } from './kernel/index.js';
@@ -61,6 +62,7 @@ if (role === 'worker') {
     jobBoss: jobs.boss,
     jobsHandle: jobs,
     supportKeys,
+    release: releaseFromEnv(process.env),
     rateLimitMax: rateLimitFromEnv(process.env),
     publicBaseDomain: publicBaseDomainFromEnv(process.env),
   });

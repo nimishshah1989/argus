@@ -106,6 +106,13 @@ real problem: paste the lines under it back. (`pg_restore` prints harmless `alre
 the script ignores those and nothing else.) The drill takes 1 to 3 minutes; if `Status` is `InProgress`, run the
 `get-command-invocation` line from Drill A step 2 again.
 
+**The ten-largest-tables check (`scripts/restore-drill.ts`).** `tsx scripts/restore-drill.ts` with `DRILL_SOURCE_URL` set dumps that
+database, restores the dump into a new empty database beside it, drops that database again, and prints `RESTORE DRILL PASS: 10 of 10
+largest tables have equal row counts` (or `FAIL` with the tables that differ, or `STOP` with the reason; exit code 1 unless PASS). It
+needs `pg_dump` and `pg_restore` 16 on the PATH, network access to the database, and a login that may create a database and is exempt
+from row security (the same need as the weekly dump). The script and its test run against a scratch Postgres in CI; **it has not yet
+been run against staging** (the server image holds no `pg_dump`, so that run is the first test of where it can live).
+
 ## 3. A real loss (not a drill)
 
 1. Stop the server so nothing writes: `run_on_instance "cd /opt/uptimo && docker compose stop server"`.
