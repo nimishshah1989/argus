@@ -22,6 +22,27 @@ untouched; `pnpm precheck` and `pnpm parity` are the only checks this PR claims.
 - **ADR 0009** says plainly that the `/tmp` prototype numbers are a record; the reproducible proof is 50c's
   source/chunk guard plus the E2E drag. It also names `THIRD_PARTY.md` as the repo-root file.
 
+## Known limits of 50c (second review, 19 November 2026)
+
+- There is no keyboard way to move every job yet: only crowded jobs get a Move button, and only to the suggested day.
+  Ticket 87 gives every movable job a keyboard "Move to date".
+- The page's cards, spacing and pixel sizes (`pm-calendar-parts.tsx`, `PmCalendar.tsx`, `machine-tasks.tsx`,
+  `pm-calendar.css`) are hand-written, not the kit's. Ticket 87 restyles them.
+
+## What CI caught in the browser journeys (19 November 2026)
+
+- **PM close journey (49c) timed out.** The calendar's seed held an open stopped breakdown (`BD-PMC3`) in every worker's
+  plant. On a wide screen the ticket page sits beside the Open list, whose Breakdowns tab shows a "Start work" card for
+  each open breakdown, so the 49c journey's one "Start work" click matched two buttons (the card and the ticket's own).
+  The seed's third item is now an open work request (`WR-PMC3B`): it still fills the machine page's "Open tasks", and
+  it is not a breakdown, so no Start card appears in the Open list. The 49c journey is untouched.
+- **A drag landed a row away (27 instead of 20 November).** The grid was measured while the month's second fetch could
+  still grow a row. The drag now waits for the network to settle and holds the pointer until the page reports the
+  asked-for day under it, so the drop is on that day or the test fails loudly.
+- **`desk-lists` "Already reported".** That journey raises on the shared desk machine; it failed once after a
+  neighbouring journey in the same worker left the machine's breakdown open. The calendar seed does not touch that
+  machine, and the fix above removes the stray open breakdown it did add; it is watched, not separately changed.
+
 ## Prerequisites
 
 49a is merged (`e10b5bb2`): 125 `pm_plan` rows and the generated `/settings/pm-plans` screen. 49b/49c land first and
@@ -235,3 +256,67 @@ ticket-row schema (11 keys) is unchanged. (7) The Guide's `pm-calendar` entry no
 rows); the test now finds the breakdown row by its spare cost and asserts the new row count instead of a fixed index.
 (10) The report-export test proves the sheet's per-machine mapping on a two-machine plant while the Cosmos seed test
 proves 125 dated machine plans; the seeded plant is not built into the export test, which runs on the small fixture.
+
+## 50c — the PM screen, the machine block and the words (built)
+
+**What changed for a user:** the `PM` group is now the calendar. `/analytics/pm` shows the two compliance rates as
+tiles (one decimal and a `%`, or `—` with no denominator), a Monday–Saturday month grid of each machine's next PM,
+the "Spread the load" panel for any day holding more than one, and the rows behind the rates when the figure names
+them. A head or admin drags an occurrence to another day; the server writes the job (never the plan), the month
+redraws, and a reload finds the job on its new day. A refused day (a Sunday, a day outside the plan's tolerance, a
+day that already has a PM, a started job) snaps back and prints the server's own 422/409 message. Everyone else sees
+the grid read-only; the server refuses the write regardless. The machine page gains a live **Tasks** block: its open
+(non-PM) tickets and its open PM jobs, each with its reference linking to the desk, its status, and on a PM row its
+scheduled day and an **Overdue** chip.
+
+**The one lazy door (ADR 0009 R1).** `apps/web/src/screens/analytics/PmCalendar.tsx` is the only file that names
+`@fullcalendar`; it imports the `daygrid`, `interaction` and classic-theme subpaths and the three stylesheets, maps
+the API's occurrences to all-day events and reverts a refused drop. `Analytics.tsx` reaches its page only through
+`lazy(() => import('./PmCalendarPage.js'))`, so the library and its theme are a `PmCalendarPage` chunk and never a
+start-up file. 50a's guard now proves it for real: the source check finds no `@fullcalendar` outside the door, the
+lazy check finds the one `import()`, no file or test targets a hashed `.fc-*` name, and the production build finds
+the `fc-classic-` marker only in assets named `PmCalendar*`.
+
+**The screen and the words.** `PmCalendarPage.tsx` reads `pm-compliance` from the figures reply (its `asOf` is the
+month the grid opens on), draws the tiles and the panel, and mounts the lazy grid; `datesSet` drives the fetched
+six-week range through `usePmCalendar`. `usePmCalendar` parses `GET /api/v1/pm/calendar` at the boundary and
+`schedulePm` posts `POST /api/v1/pm/reschedule` with one idempotency key per move (the page's `machineCode` is for
+the status line only and is stripped before the strict body). `pm-calendar-view.ts` is the pure mapping (events,
+day load, tiles, the machine split) with `pm-calendar-view.test.ts`; `pm-calendar.css` sets the classic theme's
+variables from the design tokens in light and dark and adds our event chips, never a raw colour and never a `.fc-*`
+selector. Every new word is in `packages/shared/src/i18n/pm.en.ts` (`gu` stays blank); no shipped namespace moved.
+The Guide's `31. PM Calendar` leaves `UNBUILT` (four remain) with one body paragraph and `figures:
+['pm-compliance']`; `analytics-guide.en.ts` gains its `body1` and the 36 headings stay the key's.
+
+**The machine block (R9).** `machine-tasks.tsx` reads `useTicketPages({ machineId, status: open/working/waiting,
+limit: 200 })`, splits with `isPlannedChannel`, and renders inside `RecordBody` after the PM visits block. Its own
+loading line and its quiet "Tasks are not available right now" never replace the analytics body. The split and the
+overdue rule (`task_expected_on`, else the plant day of `reported_at`, against the page's as-of) are proved in
+`pm-calendar-view.test.ts` without a DOM.
+
+**The journey.** `apps/web/e2e/pm-calendar.spec.ts` (chromium and phone, `--workers=1`) stubs `/analytics/figures`
+with a `25.0 % / 27.3 %` `pm-compliance` value and runs the real calendar, reschedule and ticket list: the two crowded
+plans, the two tiles, the drag to a free working day, the reload that keeps it, a drop on a Sunday that shows the
+422 and snaps back, the machine page's Tasks block with the open breakdown and overdue PM job, and an operator
+refused both the screen and the write (403). `fixtures-pm-calendar.ts` seeds three machines of its own, two plans
+due the plant's today and a third machine with an open PM job and an open breakdown, every date relative to the
+plant day.
+
+**Tests.** `apps/web/src/screens/analytics/pm-calendar-view.test.ts` (9 cases: the event mapping and ids, the day's
+load, the inclusive month/grid ranges, both tiles at `25.0`/`27.3` and the dash with no denominator, malformed
+values, the machine split, the plant-day fallback and the overdue rule); `pm-calendar-guard.test.ts` (5 cases,
+including the build); `guide-entries.test.ts` keeps the 36 headings, the four unbuilt ones and the once-per-figure
+check; `pnpm exec vitest run apps/web/src/screens/analytics` is 142 passed; the both-project PM journey is 4 passed;
+`analytics-machines.spec.ts` and `analytics.spec.ts` rerun unchanged. `docs/spec/parity.yaml` flips `m4a.pm-plan` to
+`done` with the compliance, calendar and E2E evidence added (it stays `ticket: '49'`); `m4a.pm-reports` stays `done`;
+`pnpm parity` is 120 rows / 0 problems in this checkout.
+
+**Deviations.** (1) The machine page's Tasks fixture lives on the calendar's own third machine (`PMC-3`), not on
+`MACHINES[0]`: the first machine is one of the crowded pair, so an open PM job there would suppress the plan and
+remove the crowded case, and `MACHINES[0]` is shared by the desk and floor suites. (2) The machine split is tested in
+`pm-calendar-view.test.ts`, not in a separate `machine-tasks.test.ts`: the vitest environment is `node`, and the
+component has no mapping of its own beyond the pure module. (3) The drag helper scrolls the event into view and
+nudges it inside its own box before crossing to the target: with the two tiles above a 1440×900 viewport the month's
+last rows begin below the fold, and FullCalendar needs the first pointermove on the event to start its drag. (4)
+FullCalendar 7 has no top-level `buttonText`; the Today label is the v7 `buttons.today.text` form (ADR 0009 R4's
+intent). (5) `pnpm parity` reports 120 rows, as 50b recorded; the slice's 119 predates a row that has since landed.
