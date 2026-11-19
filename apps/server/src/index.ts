@@ -13,7 +13,7 @@ import {
 } from './modules/accountability/index.js';
 import { aiConfigFromEnv, startAiJobs } from './modules/ai/index.js';
 import { parseSupportKeys } from './modules/identity/index.js';
-import { startNotifyJobs } from './modules/notifications/index.js';
+import { startNotifyJobs, startRegisterJobs } from './modules/notifications/index.js';
 import { startPmJobs } from './modules/tickets/index.js';
 import { startRetentionJobs } from './retention.js';
 import type { PgBoss } from 'pg-boss';
@@ -39,6 +39,7 @@ const jobs = await startJobs({
 });
 await startAiJobs(jobs.boss, { pool, config: aiConfigFromEnv(process.env) }, role);
 await startNotifyJobs(jobs.boss, { pool }, role);
+await startRegisterJobs(jobs.boss, { pool }, role);
 await startPmJobs(jobs.boss, { pool }, role);
 await startRetentionJobs(jobs.boss, { pool }, role);
 

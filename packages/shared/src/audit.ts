@@ -16,6 +16,7 @@ export const AUDIT_AREAS = [
   'shift',
   'list_item',
   'glossary_term',
+  'asset_register',
   'roster_entry',
   'escalation_rule',
   'analytics_profile',

@@ -73,8 +73,15 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
   entry(
     'available-hours',
     'analytics.guide.available-hours.title',
-    ['analytics.guide.available-hours.body1', 'analytics.guide.available-hours.body2'],
-    { formula: 'analytics.guide.available-hours.formula' },
+    [
+      'analytics.guide.available-hours.body1',
+      'analytics.guide.available-hours.body2',
+      'analytics.guide.available-hours.body3',
+    ],
+    {
+      figures: ['shift-kpis.compare'],
+      formula: 'analytics.guide.available-hours.formula',
+    },
   ),
   entry(
     'dashboard',

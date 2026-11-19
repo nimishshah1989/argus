@@ -197,14 +197,16 @@ async function remove(
   tx: PoolClient,
   ctx: Ctx,
   resource: Resource,
-  before: Reply,
+  target: { before: Reply; reason?: string },
 ): Promise<Outcome> {
+  const { before, reason } = target;
   const id = before.id as string;
   await storeOf(resource).remove?.(tx, id);
   await audit.record(tx, {
     ...auditEntry(ctx, resource, `${resource.kind}.remove`, id),
     before,
-    after: null,
+    // The screen's reason lives on the audit line alone (R7); a client that sends none keeps the old line.
+    after: reason ? { reason } : null,
   });
   return { status: 200, body: { ...before, active: false } };
 }
@@ -222,7 +224,10 @@ async function edit(
   if (!current) return notFound(resource.kind);
   const before = resource.reply(current);
   if (resource.store?.remove && target.patch.active === false)
-    return remove(tx, ctx, resource, before);
+    return remove(tx, ctx, resource, {
+      before,
+      reason: typeof target.patch.reason === 'string' ? target.patch.reason : undefined,
+    });
   return update(tx, ctx, resource, { ...target, before });
 }
 

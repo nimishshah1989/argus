@@ -32,6 +32,7 @@ export const auditEn = {
   'audit.area.shift': 'Shifts',
   'audit.area.list_item': 'Lists',
   'audit.area.glossary_term': 'Glossary',
+  'audit.area.asset_register': 'Asset register',
   'audit.area.roster_entry': 'Duty roster',
   'audit.area.escalation_rule': 'Escalation rules',
   'audit.area.analytics_profile': 'Analytics settings',

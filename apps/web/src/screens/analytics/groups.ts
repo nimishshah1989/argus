@@ -64,6 +64,7 @@ export const ANALYTICS_GROUPS: readonly AnalyticsGroup[] = [
       'a6-why-why',
       'a10-problems',
       'fix-finder',
+      'shift-kpis',
     ],
   },
   {
@@ -120,6 +121,7 @@ export const SCREEN_LABELS: Record<string, MessageKey> = {
   'action-center': 'analytics.screen.action-center',
   'monthly-report': 'analytics.screen.monthly-report',
   'annual-report': 'analytics.screen.annual-report',
+  'shift-kpis': 'analytics.screen.shift-kpis',
 };
 
 /** The registry figure key to the label a tile and the Guide print. */
@@ -169,6 +171,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'action-center.spares-spend': 'analytics.figure.action-center.spares-spend',
   'monthly-report': 'analytics.figure.monthly-report',
   'annual-report': 'analytics.figure.annual-report',
+  'shift-kpis.compare': 'analytics.figure.shift-kpis.compare',
 };
 
 /**

@@ -36,8 +36,10 @@ export {
   listsForEngine,
   machinesForEngine,
   movesForEngine,
+  shiftsForEngine,
 } from './repo/analytics.js';
 export { settingRowStore } from './repo/setting-row.js';
+export { dueRegisterItems, type DueRegisterItem } from './repo/asset-registers.js';
 export { actorOf, forbidden } from './actor.js';
 export { mayViewBoard } from './board-access.js';
 export { registerResource } from './settings-routes.js';

@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   List,
   Menu,
+  ShieldCheck,
   type IconComponent,
 } from '../../ui/icon.js';
 import { SideNav } from '../../ui/side-nav.js';
@@ -33,6 +34,7 @@ import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { ladderSpec } from './ladder-spec.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { pmPlansSpec } from './pm-plans-spec.js';
+import { registersSpec } from './registers-spec.js';
 import { RosterScreen } from './roster-spec.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
@@ -43,6 +45,7 @@ export type PlantPage =
   | 'groups'
   | 'shifts'
   | 'pm-plans'
+  | 'registers'
   | 'roster'
   | 'ladder'
   | 'people'
@@ -58,6 +61,7 @@ type Key =
   | 'plant.menu.groups'
   | 'plant.menu.shifts'
   | 'pm.menu.plans'
+  | 'plant.menu.registers'
   | 'plant.menu.roster'
   | 'plant.menu.ladder'
   | 'people.menu.people'
@@ -87,6 +91,12 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
   { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
   { page: 'pm-plans', icon: CalendarCheck, key: 'pm.menu.plans', spec: pmPlansSpec as never },
+  {
+    page: 'registers',
+    icon: ShieldCheck,
+    key: 'plant.menu.registers',
+    spec: registersSpec as never,
+  },
   { page: 'roster', icon: CalendarClock, key: 'plant.menu.roster', screen: RosterScreen },
   { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder', spec: ladderSpec as never },
   ...(PEOPLE_PAGES as readonly PlantPageSpec[]),

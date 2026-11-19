@@ -76,7 +76,7 @@ const PM_PLAN_SCHEDULE_COLUMNS = `p.id, p.machine_id, p.category, p.title, p.int
   p.last_meter_reading::float8 AS last_meter_reading, p.last_done_on::text AS last_done_on,
   p.checklist, p.active, p.created_at, p.updated_at`;
 
-const ASSET_COLUMNS = `id, kind, machine_id, vendor, reference, starts_on::text AS starts_on,
+export const ASSET_COLUMNS = `id, kind, machine_id, vendor, reference, starts_on::text AS starts_on,
   ends_on::text AS ends_on, due_on::text AS due_on, lead_days, owner_person_id, notes,
   created_at, updated_at`;
 
@@ -252,13 +252,16 @@ export async function recordPmCompletion(
   );
 }
 
-/** One AMC, warranty, legal or calibration row of the plant's register. */
-export async function insertAssetRegister(
+/**
+ * The one INSERT into `asset_register`, shared by the published `insertAssetRegister` and the settings store (51a).
+ * Returns the raw row so a caller with its own reply shape (the generated screen) reads the same columns.
+ */
+export async function insertAssetRow(
   tx: Db,
   tenantId: string,
   asset: AssetRegisterInput,
-): Promise<AssetRegisterRow> {
-  const row = (
+): Promise<Record<string, unknown>> {
+  return (
     await tx.query(
       `INSERT INTO asset_register (tenant_id, kind, machine_id, vendor, reference, starts_on,
          ends_on, due_on, lead_days, owner_person_id, notes)
@@ -278,8 +281,16 @@ export async function insertAssetRegister(
         asset.notes ?? null,
       ],
     )
-  ).rows[0];
-  return assetRow(row as Record<string, unknown>);
+  ).rows[0] as Record<string, unknown>;
+}
+
+/** One AMC, warranty, legal or calibration row of the plant's register. */
+export async function insertAssetRegister(
+  tx: Db,
+  tenantId: string,
+  asset: AssetRegisterInput,
+): Promise<AssetRegisterRow> {
+  return assetRow(await insertAssetRow(tx, tenantId, asset));
 }
 
 export async function assetRegisterById(

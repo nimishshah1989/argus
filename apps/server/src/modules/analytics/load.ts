@@ -5,6 +5,7 @@ import type {
   MachineRow,
   PersonRow,
   ReportRow,
+  ShiftRow,
   TaskRow,
   TicketRow,
   WhyWhyRow,
@@ -28,6 +29,7 @@ import {
   listsForEngine,
   machinesForEngine,
   movesForEngine,
+  shiftsForEngine,
 } from '../plant/index.js';
 import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
 import { readNudgeAcks } from './nudges.js';
@@ -146,6 +148,21 @@ const report = (row: Row, clean: Cleaner, index: FailureCodeIndex): ReportRow =>
   };
 };
 
+/** A Postgres `time` text (`08:00:00`) as minutes from local midnight. */
+function minuteOf(value: unknown): number {
+  const [hour, minute] = String(value).split(':').map(Number) as [number, number];
+  return hour * 60 + minute;
+}
+
+const shift = (row: Row): ShiftRow => ({
+  code: row.code as string,
+  name: row.name as string,
+  startMinute: minuteOf(row.starts_at),
+  endMinute: minuteOf(row.ends_at),
+  crossesMidnight: row.crosses_midnight as boolean,
+  active: row.active as boolean,
+});
+
 const person = (row: Row): PersonRow => ({
   id: row.id as string,
   code: personCode(row.id as string),
@@ -193,6 +210,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const clean = cleanerOf(createRedactor(await redactionTerms(tx, tenantId)));
   const machines = await machinesForEngine(tx);
   const moves = await movesForEngine(tx);
+  const shifts = await shiftsForEngine(tx, tenantId);
   const tickets = await ticketsForEngine(tx);
   const reports = await reportsForEngine(tx);
   const people = await peopleForEngine(tx);
@@ -216,6 +234,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     tickets: tickets.filter((row) => row.parent_id === null).map(ticket),
     tasks: tickets.filter((row) => row.parent_id !== null).map(task),
     reports: reports.map((row) => report(row, clean, failureIndex)),
+    shifts: shifts.map(shift),
     people: people.map(person),
     lists: plantLists,
     whyWhy: savedWhyWhy.flatMap((row) => {

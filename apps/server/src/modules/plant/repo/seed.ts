@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { insertPmPlan } from './records.js';
+import { insertAssetRegister, insertPmPlan, type AssetKind } from './records.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -228,4 +228,57 @@ export async function insertPmPlans(
       createdAt: localMidnight(plan.anchorOn, timeZone),
     });
   }
+}
+
+export interface NewAssetRegister {
+  /** The machine's register code; the seed resolves it to the machine's id. */
+  machineCode: string;
+  kind: AssetKind;
+  vendor: string | null;
+  reference: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
+  dueOn: string | null;
+  leadDays: number;
+  notes: string | null;
+}
+
+/**
+ * The workbook's three register lines, written through the 46b seam after the machines exist in the same
+ * transaction. A pre-0015 schema has no `asset_register` table (the migration tests seed an older schema), so the
+ * insert is a no-op there (49a's guard). An unknown machine code skips its row with a conflict, never a failed seed.
+ */
+export async function insertAssetRegisters(
+  tx: Db,
+  tenantId: string,
+  items: readonly NewAssetRegister[],
+): Promise<string[]> {
+  const exists = (await tx.query("SELECT to_regclass('public.asset_register') AS table")).rows[0]
+    ?.table;
+  if (!exists) return [];
+  const machines = (await tx.query('SELECT id, code FROM machine')).rows as Array<{
+    id: string;
+    code: string;
+  }>;
+  const byCode = new Map(machines.map((machine) => [machine.code, machine.id]));
+  const conflicts: string[] = [];
+  for (const item of items) {
+    const machineId = byCode.get(item.machineCode);
+    if (!machineId) {
+      conflicts.push(`register line for ${item.machineCode} has no machine`);
+      continue;
+    }
+    await insertAssetRegister(tx, tenantId, {
+      kind: item.kind,
+      machineId,
+      vendor: item.vendor,
+      reference: item.reference,
+      startsOn: item.startsOn,
+      endsOn: item.endsOn,
+      dueOn: item.dueOn,
+      leadDays: item.leadDays,
+      notes: item.notes,
+    });
+  }
+  return conflicts;
 }

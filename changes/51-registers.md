@@ -84,3 +84,92 @@ overdue run, a moved date and a removed row rather than a pasted number. The sec
 not-renewing round-trip through `notes`, `months = 0`, `itemKey = row id`), the third is R7 (the switch deletes a
 contract row; the audit keeps it 3 years, then only the workbook), and the fourth is the reply contract (`active: true`
 on a listed row, `false` on the remove).
+
+## 51a — the workbook load and the registers screen (this PR)
+
+**What changed for a user:** a head or admin now has an **Asset register** page at `/settings/registers` (Plant
+settings, `ShieldCheck`). It lists the plant's AMC, warranty, statutory tests and calibrations with the watch day
+(`due_on ?? ends_on`), the lead and the owner, filters by kind and edits every field; switching an item off asks why
+and the audit keeps the line and the reason. The Cosmos seed loads the 11 November workbook's two AMC/Warranty rows and
+one Legal Compliance row as three register items, so the plant can see and edit them without retyping.
+
+**The load (R1–R5).** A pure mapper (`apps/server/src/seed/asset-registers.ts` + its test) reads the answer-key
+fixture's `settings.machAmc`, `settings.machLegal`, `amcTypes` and `legalTypes` and returns three drafts: TC-11
+“AMC (Comprehensive)” and A/TANK-1 “AMC” as `amc`, and A/TANK-1 “Test Of Pressure Vessel · Form No 11” as `legal`;
+0 warranty and 0 calibration; every date NULL because the workbook's date cells are empty; `lead_days` 15; no owner.
+`notes` carries R4's convention exactly (the AMC type, or `type · not renewing`; the legal `name · form`), the AMC
+“Vendor / contract no.” cell goes to `vendor` and the legal certificate cell to `reference`. A line's own `months`
+wins over its `legalTypes` fallback, and `endOfTerm`/`addMonths` compute `ends_on`/`due_on` from the shared helpers.
+The Cosmos seed resolves the machine codes after `insertMachines` in the same transaction, writes each row through 46b's
+`insertAssetRegister`, reports `registers: 3` (with `registers_amc`/`registers_legal`) and an unknown-code conflict
+(`register line for <code> has no machine`) instead of failing. The register source is listed **before** the people
+fixture, so `sources.at(-1)` stays the people entry. A pre-0015 schema has no table: `insertAssetRegisters` checks
+`to_regclass('public.asset_register')` and is a no-op, so the migration tests still seed an older schema.
+
+**The screen and its replies (R6/R7).** The resource `settings-registers.ts` (with the store in
+`repo/asset-registers.ts`, sharing `records.ts`'s one INSERT and `ASSET_COLUMNS`) is appended to `RESOURCES`: ten fields
+(kind, machine, vendor, reference, starts/ends/due, lead days, owner, notes), head/admin, `register.create/update/remove`
+on entity `asset_register`. The reply always carries `active: true` (there is no column) and the generic remove answers
+`{...before, active:false}`; the remove path gained the optional `reason`, recorded as the audit's `after: {reason}`.
+The kind chips, search, watch/lead/owner columns, `switchOff: {sendReason: true}` and the R4 notes hint are in
+`registers-spec.tsx`; the owner lookup reads `/api/v1/config`'s people through a transport because `/api/v1/people` is
+admin-only. `assetRegisterReplySchema` is registered in `packages/shared/src/replies.ts` as
+`settingsResource('settings/registers', ...)`, so the list, create and edit replies are covered and the route count
+goes from 143 to 146 with the equality assertion kept.
+
+**The export keeps its arithmetic (R3).** `addMonths` and `endOfTerm` now live in
+`packages/domain/src/analytics/plant-date.ts`, exported from the analytics index and pinned in D2's list; the 45
+workbook's AMC end and legal due read the same helpers, and its 17 sheets and row counts stay exact.
+
+**Evidence.** `apps/server/src/seed/asset-registers.test.ts` (the 3 rows and kinds, the notes/vendor/reference mapping,
+the month-end end and 24-month legal due, the type fallback, the classifiers, the missing-machine conflict and the empty
+source); `apps/server/test/cosmos-seed.test.ts` (3 rows, 2 amc + 1 legal, no date/owner, lead 15, notes, replace
+re-run); `apps/server/test/asset-registers.test.ts` (list, create, edit, remove with its reason, audit lines, 404/422,
+tenancy and the settings gate); `apps/server/test/asset-registers-pre0015.test.ts` (the no-op); the reply contract at
+146; `apps/web/src/screens/settings/registers-spec.test.ts` (D05, the date/choice fields, the chips and the note); the
+browser path in `apps/web/e2e/settings-registers.spec.ts`. `pnpm boundaries` is green: no new table, migration or
+dependency, and the only module edge is plant → identity, already allowed.
+
+**Deviation recorded for review:** the plan's reply count `137 → 140` predates this checkout: 47a's failure-code list
+and 49a's PM plans already took it to 143, so 51a takes **143 → 146** (the equality assertion unchanged). The plan's
+`mapAssetRegisters` signature has no machine list, so the pure mapper can only name a line that has no machine code
+(`register line N has no machine`); the unknown-code conflict is the seed's, as the plan's field map describes. An
+unknown or another plant's machine is a **422** on `machineId` (R6 and 51a's Given/When/Then 6), unlike PM plans'
+`Problem.missing` 404; another plant's **row id** is a 404.
+
+## 51b — the `register.due` notice (this PR)
+
+**What changed for a user:** an owner now gets one push per register item on the first day of its lead window, and no
+second one that day. The watch day is `due_on`, else `ends_on` — never `starts_on`; the window opens inclusive at
+`watchOn − lead_days` and has no upper bound, so an item that was missed while the server was down still gets its one
+message. Moving a date is a new window and sends a new message; switching the item off stops it; an owner who is no
+longer active is skipped; an item with no owner notifies nobody.
+
+**The rule is plant's, the job is notifications' (R8–R11).**
+`apps/server/src/modules/plant/repo/asset-registers.ts` gains `dueRegisterItems(tx, tenantId, today)`: the tenant's
+rows with an owner, a watch date and `COALESCE(due_on, ends_on) - lead_days <= today`, returning
+`{ id, ownerPersonId, watchOn, leadDays }` ordered by watch day, exported through `plant/index.ts`.
+`apps/server/src/modules/notifications/register-jobs.ts` runs it: `runRegisterDue` checks the clock, loops
+`jobTenantIds()` (or the one named tenant) under `withTenant`, computes `plantToday`, skips an owner `activePerson`
+does not return, and calls `notify` in the same transaction with `kind: 'register.due'` and the key
+`register:<row id>:<watchOn>`; `notify` appends the person and channel, so the stored key is
+`register:<id>:<date>:<person>:push`. `startRegisterJobs` creates the queue for every role and, off the `api` role, the
+worker and the daily UTC schedule `15 0 * * *`; there is no boot enqueue, and a re-run writes nothing because of the
+unique key. `notifications/kinds.ts` adds the push body (“Register item due”), and `index.ts` starts the job after the
+notify jobs. The 24-hour database clock guard moved from `retention.ts` to `kernel/jobs.ts`
+(`assertClockNearDatabase`, exported by `kernel/index.ts`); the message and the rule are unchanged and retention now
+imports it.
+
+**Evidence.** `apps/server/test/register-due.test.ts`, on the fake clock at 11:30 IST: the day before the window
+(silent), the inclusive boundary (one), a second run that day (still one), `due_on` winning over `ends_on` with lead 0,
+an overdue row (one on the next run, not a stream), a moved date (a new key, the old one never repeated), a new owner
+(a second message for the same date, the old owner not repeated), a removed row (nothing new, the earlier row stays),
+no owner / an inactive owner / a start-only row (none), one tenant's run leaving the other tenant's due row alone, the
+clock guard refusing before writing, the row holding ids only, and the registration (queue for `api`, worker and
+`15 0 * * *` UTC off it). The existing `notify.test.ts`, `retention-jobs.test.ts` (the moved guard still refuses) and
+`sla-timers.test.ts` stay green.
+
+**Rails.** No new table, column, migration or dependency (D17; 0015 untouched). `notifications → plant/identity` is
+already in `CALLS`, so `pnpm boundaries` needs no edit; `pnpm size` stays inside 400 lines; every new function is under 60. **Deviation recorded for review:** the frozen plan names the test file `apps/server/test/asset-register-notice.test.ts`
+and this packet names it `apps/server/test/register-due.test.ts` to match the `register.due` job; the cases are the
+plan's, none dropped.

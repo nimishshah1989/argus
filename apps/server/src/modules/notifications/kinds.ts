@@ -8,6 +8,7 @@ export const KINDS = {
   'complaint.fixed': 'Complaint fixed',
   'handback.disputed': 'Fix sent back',
   'escalation.step': 'A ticket needs attention',
+  'register.due': 'Register item due',
   'push.test': 'Push works',
 } as const;
 

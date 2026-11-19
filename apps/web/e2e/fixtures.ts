@@ -278,7 +278,8 @@ export function seedStatements(
         login.cell,
       ],
     })),
-    ...LISTS.map((item) => ({
+    // Every code above also exists in `failure_code` (ticket 47): the e2e list is seeded, not the bridge.
+    ...LISTS.flatMap((item) => [item, { ...item, list: 'failure_code' as const }]).map((item) => ({
       text: 'INSERT INTO list_item (tenant_id, list, code, label, sort, active, is_vendor, pauses_sla) VALUES ($1, $2, $3, $4, $5, true, $6, false)',
       values: [TENANT.id, item.list, item.code, item.label, item.sort, item.isVendor],
     })),

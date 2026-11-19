@@ -10,6 +10,7 @@ import {
   lockTenantBySlug,
 } from '../modules/identity/index.js';
 import {
+  insertAssetRegisters,
   insertGlossaryTerms,
   insertListItems,
   insertMachines,
@@ -37,6 +38,8 @@ export const SEED_FILES = {
   shifts: fileURLToPath(new URL('./cosmos-shifts.json', import.meta.url)),
   peopleFixture: fileURLToPath(new URL('./fixtures/cosmos-people.fixture.json', import.meta.url)),
   pm: fileURLToPath(new URL('../../../../fixtures/answer-key/input.json', import.meta.url)),
+  /** The AMC/Warranty and Legal Compliance sheets (51a): one answer-key fixture, read for its register lines. */
+  registers: fileURLToPath(new URL('../../../../fixtures/answer-key/input.json', import.meta.url)),
 };
 
 /** For dev and CI only: the fixture people file is fake. */
@@ -73,6 +76,7 @@ function buildFromFiles(paths: Paths) {
     shifts: loadJson(SEED_FILES.shifts),
     people: loadJson(paths.peoplePath ?? SEED_FILES.peopleFixture),
     pm: loadJson(paths.pmPath ?? SEED_FILES.pm),
+    registers: loadJson(SEED_FILES.registers),
   };
   return buildSeed(
     loadJson(paths.exportPath),
@@ -115,6 +119,7 @@ export async function seedCosmos(
   const seed = buildFromFiles(paths);
   const passwordHash = await hashPassword(paths.peoplePath ? initialPassword! : FIXTURE_PASSWORD);
   const client = await pool.connect();
+  let registerConflicts!: string[];
   try {
     await client.query('BEGIN');
     const existing = await lockTenantBySlug(client, 'cosmos');
@@ -132,6 +137,7 @@ export async function seedCosmos(
     await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
     const segmentIds = await insertSegments(client, tenantId, SEGMENT_CODES);
     await insertMachines(client, tenantId, segmentIds, seed.machines);
+    registerConflicts = await insertAssetRegisters(client, tenantId, seed.assetRegisters);
     await insertPeople(client, tenantId, seed.people, passwordHash);
     await insertListItems(client, tenantId, seed.lists);
     await insertShifts(client, tenantId, seed.shifts);
@@ -148,7 +154,7 @@ export async function seedCosmos(
   }
   return {
     counts: seed.counts,
-    conflicts: seed.conflicts,
+    conflicts: [...seed.conflicts, ...registerConflicts],
     sources: [
       paths.exportPath,
       paths.livePath,
@@ -156,6 +162,7 @@ export async function seedCosmos(
       SEED_FILES.machines,
       SEED_FILES.shifts,
       paths.pmPath ?? SEED_FILES.pm,
+      SEED_FILES.registers,
       paths.peoplePath ? 'people file (outside repo)' : SEED_FILES.peopleFixture,
     ],
   };

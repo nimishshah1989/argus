@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { ListItemReply } from '@uptimo/shared/plant-settings';
+import type { CrudCtx } from '../../patterns/crud-spec.js';
 import { LIST_PAGES, glossarySpec, listMenu } from './lists-specs.js';
 
 /**
@@ -54,6 +56,40 @@ describe('the lists screen is grown from its page config', () => {
 describe('a list edit refreshes what the desk reads its labels from', () => {
   it('every list names the config among the keys a write invalidates', () => {
     for (const page of LIST_PAGES) expect(page.spec.invalidates, page.page).toContain('config');
+  });
+});
+
+describe('the failure-code list (ticket 47)', () => {
+  const failure = LIST_PAGES.find((page) => page.page === 'failure_code');
+
+  it('is a generated page on the hub with its own title', () => {
+    expect(failure).toBeDefined();
+    expect(failure!.titleKey).toBe('lists.failureCode.title');
+    expect(listMenu(LIST_PAGES).map((row) => row.to)).toContain(
+      '/settings/lists?list=failure_code',
+    );
+  });
+
+  it('shows the old codes there and hides them on every other list', () => {
+    const fields = failure!.spec.fields.map((field) => field.name);
+    expect(fields).toEqual(expect.arrayContaining(['label', 'code', 'sort', 'aliases']));
+    expect(failure!.spec.hidden?.aliases).toBeUndefined();
+    for (const page of LIST_PAGES.filter((it) => it.page !== 'failure_code'))
+      expect(page.spec.hidden?.aliases, page.page).toBeTruthy();
+  });
+
+  it('reads a row as its label with the old codes under it', () => {
+    const ctx = { lookups: {}, t: (key: string) => key } as unknown as CrudCtx;
+    const row = {
+      code: 'E',
+      label: 'Electronics/Electrical',
+      aliases: ['ele'],
+      active: true,
+    } as unknown as ListItemReply;
+    expect(failure!.spec.look!(row, ctx)).toEqual({
+      title: 'Electronics/Electrical',
+      sub: 'ele',
+    });
   });
 });
 

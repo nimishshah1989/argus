@@ -28,6 +28,7 @@ import {
 } from './escalation-settings.js';
 import { PEOPLE_REPLIES } from './people.js';
 import {
+  assetRegisterReplySchema,
   glossaryReplySchema,
   groupReplySchema,
   listItemReplySchema,
@@ -195,6 +196,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('settings/pm-plans', pmPlanReplySchema),
+  ...settingsResource('settings/registers', assetRegisterReplySchema),
   ...settingsResource('roster', rosterReplySchema),
   [`POST ${P}/roster/copy`]: rosterCopyReplySchema,
   ...settingsResource('escalation-rules', ruleReplySchema),
