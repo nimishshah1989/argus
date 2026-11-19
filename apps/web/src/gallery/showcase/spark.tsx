@@ -87,7 +87,7 @@ export function Spark({
       {last ? (
         <span
           className="sc-spark-dot"
-          data-partial={partial ? '' : undefined}
+          data-partial={partial && values[values.length - 1] !== null ? '' : undefined}
           style={dotStyle(last)}
         />
       ) : null}
