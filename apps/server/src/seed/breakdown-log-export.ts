@@ -20,7 +20,7 @@
  * only checks the close. The row's exact downtime survives through the import's report overrides, so
  * `closed_at` is approximate.
  */
-type AliasMap = Record<string, string>;
+export type AliasMap = Record<string, string>;
 
 /** The same shape as `SyntheticExport` in modules/imports/schema.ts; seed code may not import module internals. */
 export interface SyntheticExport {
@@ -51,13 +51,13 @@ interface BreakdownRow {
 
 const SOURCE = 'argus.synthetic-bhavin/v1' as const;
 const LIVE_ROW_PREFIX = 'bd_live_';
-const PLANT_OFFSET = '+05:30';
-const SUBMITTER_FALLBACK = 'Maint. Team';
-const NO_PROBLEM_TEXT = 'Breakdown recorded without a problem description';
+export const PLANT_OFFSET = '+05:30';
+export const SUBMITTER_FALLBACK = 'Maint. Team';
+export const NO_PROBLEM_TEXT = 'Breakdown recorded without a problem description';
 const REF_BAND = 90_000;
-const CLOSE_INTO_SHIFT_MIN = 120;
+export const CLOSE_INTO_SHIFT_MIN = 120;
 /** The two seeded windows (`cosmos-shifts.json`); the close lands two hours after the start. */
-const SHIFT_START: Record<string, string> = {
+export const SHIFT_START: Record<string, string> = {
   '1': '08:00',
   '2': '18:29',
 };
@@ -76,7 +76,7 @@ const SHIFT_CODES: AliasMap = {
  * The active `observed_by` list's codes. The history spells `Operator` three ways; a person name in that
  * column is not a code, so it stays null instead of becoming a guessed list item.
  */
-const OBSERVED_BY: AliasMap = {
+export const OBSERVED_BY: AliasMap = {
   operator: 'Operator',
   opeartor: 'Operator',
   opeator: 'Operator',
@@ -152,7 +152,7 @@ function readRows(input: unknown): BreakdownRow[] {
   return breakdowns.map(readRow);
 }
 
-function normalizeKey(value: string): string {
+export function normalizeKey(value: string): string {
   return value.normalize('NFC').trim().replace(/\s+/gu, ' ').toLowerCase();
 }
 
@@ -193,7 +193,7 @@ function closedAt(row: BreakdownRow): string {
   return addMinutes(start, CLOSE_INTO_SHIFT_MIN);
 }
 
-function addMinutes(at: string, minutes: number): string {
+export function addMinutes(at: string, minutes: number): string {
   return new Date(Date.parse(at) + minutes * 60_000).toISOString();
 }
 
@@ -244,7 +244,7 @@ function peopleAliases(rows: readonly BreakdownRow[]): AliasMap {
   return identityAliases(byNormalized);
 }
 
-function figuresFor(responseMin: number, downMin: number): Record<string, unknown> {
+export function figuresFor(responseMin: number, downMin: number): Record<string, unknown> {
   return {
     responseMin,
     activeMin: 0,
@@ -258,7 +258,7 @@ function figuresFor(responseMin: number, downMin: number): Record<string, unknow
   };
 }
 
-function stateFor(closedAt: string, submittedBy: string): Record<string, unknown> {
+export function stateFor(closedAt: string, submittedBy: string): Record<string, unknown> {
   return {
     selfStarted: false,
     startedAt: null,

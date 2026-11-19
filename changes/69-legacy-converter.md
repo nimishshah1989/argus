@@ -1,0 +1,1 @@
+- A new command, `pnpm import:legacy`, turns the 2022–2025 maintenance workbooks into one import file per year, with no name, phone number or row text of a person in it. Nothing changes in the product yet: the files are loaded by the next packet. Newly decided: `Star 1`/`Star-01` sheets count as `S-1`, `Star 2`/`Star-02` as `S-2`, and the codes `MEC` and `ELE` become `M` and `E`.

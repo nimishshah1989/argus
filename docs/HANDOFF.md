@@ -40,8 +40,7 @@ assertion, ≤ 3 files / ≤ 150 lines, a named red and green command; a fresh r
 `escalation`, `state-scale` and `who-is-acting` are timing flakes — rerun, and treat a repeat as a finding; a
 checkout path with a space breaks `tools/backup-dump` and `tools/staging-deploy`; prettier runs over `docs/` too.
 
-**Waiting on people (`docs/plan/NEEDS.md`):** N16 Bhavin's machine answers (Star sheets, retired machines, which
-machines are out of production data); N17 February–March 2022, any 2020–21 files, and the 2023 and 2024 workbooks
+**Waiting on people (`docs/plan/NEEDS.md`):** N17 February–March 2022, any 2020–21 files, and the 2023 and 2024 workbooks
 placed with the others outside git; N18 the ranking method (54); N19 AI thresholds; N5 Gujarati sign-off; N10 the
 security reviewer; N15 usability sessions; N7 the production account; N20 (not blocking).
 
