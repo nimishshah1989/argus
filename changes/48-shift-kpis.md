@@ -49,3 +49,33 @@ no legacy figure changed — the platform's pages stay byte-for-byte what the an
   same-day repeat both ways, the no-shift and no-failure cases, and the two-shift windows plus a third row the test
   writes itself. The server test reads the fixture's `DAY` shift through the loader and stores a mixed run under two
   profiles. The owner assertions in `analytics-engine.test.ts` become 38-45 and 48.
+
+## 48b — the shift split and the backlog
+
+- The shift split groups the failure set by the shift recorded on each report (`1ST`/`2ND` normalised to `1`/`2`),
+  each shift dividing by its own share of the plant's working hours: 629 and 631 minutes of the 1,260-minute day, so
+  the rows add to the plant exactly. A code the Settings have no window for keeps its row (2 breakdowns, 3.00 h for
+  code `3` on the workbook) and prints dashes where a denominator is missing. On 11 November: shift 1 821
+  breakdowns / 2,021.10 BD h / 571.28 PM h / 2,96,517.14 working h, MTTR 2.46, MTBF 358.7, availability 99.13 %;
+  shift 2 456 / 1,031.12 / 187.98 / 2,97,459.96, MTTR 2.26, MTBF 650.1, availability 99.59 %; the plant row 1,279 /
+  3,055.22 / 759.27 / 5,93,977.10, 2.39, 462.0, 99.36 %. Only the counts and the three hour cells add; the plant's
+  MTTR, MTBF and availability are recomputed from the summed totals, never averaged from the rows.
+- The backlog is every breakdown ticket (`kind: 'stopped'`) still open at the as-of plant date, aged in the plant's
+  working hours to the start of the next plant day and bucketed under 4, 4 to 24, 24 to 72 and over 72 hours. On
+  the purpose-built fixture (the answer key holds no open ticket) the three open tickets age 36.0, 23.0 and 15.0
+  hours, the buckets are 0 / 2 / 1 / 0, the rows are T3, T1, T2 oldest first and the drill names those tickets. A
+  closed live ticket, a cancelled one, a closed history row, a PM job, an open support ticket and an open general
+  work request are not in it. The plant has no holiday calendar, so Saturday and Sunday count; a ticket reported at
+  23:59 is one working minute old; a plant with no shift window prints dashes, not a zero.
+- `plantDayStart(plantDate, timeZone)` joins `business-hours.ts`: local midnight of a plant date, the one zone-aware
+  midnight, built on the same DST-safe step as the SLA windows. It adds one name to the public API, and the D2 pin
+  gains `plantDayStart` after `plantDay`; the SLA clocks are untouched and their suite stays green.
+- The screen's two new figures render through the house key page (one table each) and their drill; the Guide's
+  "MTTR and MTBF" entry names both and carries two new paragraphs (the split and the backlog definitions). The two
+  figure labels live in `analytics-breakdowns.en.ts`; the registry, `computers.ts` and `figure-content.ts` gain the
+  keys. `parity.yaml` records both test lines. No new table, no migration, no dependency, no legacy figure moved.
+- Tests: `shift-kpis-split.test.ts` (the whole printed table, the 629/631 shares, the unrounded sum invariant, the
+  plant rates recomputed and proven different from the row average, the `1ST`/`2ND` aliases, the windowless row, the
+  01:00 live close, the no-window dashes and the drill), `shift-kpis-backlog.test.ts` (the zone-aware midnight and
+  its DST cases, the three ages and buckets, the exclusions, the 23:59 edge, the weekend, the no-window dashes and
+  the empty queue) and the D2 pin.

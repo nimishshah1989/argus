@@ -51,8 +51,11 @@ export interface KpiTotals {
   machinesWithoutFailure: number;
 }
 
-/** A report's shift as the settings spell it: `1ST` and `2ND` are shift 1 and shift 2 (R8). */
-function shiftKey(report: ReportRow): string {
+/**
+ * A report's shift as the settings spell it: `1ST` and `2ND` are shift 1 and shift 2 (R8). The shift split groups by
+ * this same key, so a row cannot count in one shift for one figure and another shift for the other.
+ */
+export function shiftKey(report: ReportRow): string {
   const raw = report.shift.trim().toUpperCase();
   return SHIFT_ALIASES[raw] ?? raw;
 }

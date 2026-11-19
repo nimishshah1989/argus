@@ -137,6 +137,8 @@ const KIND: Record<string, ContentKind> = {
   'money-matters': 'page',
   'fix-finder': 'page',
   'shift-kpis.compare': 'page',
+  'shift-kpis.shift-split': 'page',
+  'shift-kpis.backlog': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -181,6 +183,8 @@ const PAGE_KEYS = new Set([
   'money-matters',
   'fix-finder',
   'shift-kpis.compare',
+  'shift-kpis.shift-split',
+  'shift-kpis.backlog',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */

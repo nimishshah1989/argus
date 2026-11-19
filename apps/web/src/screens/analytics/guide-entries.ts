@@ -113,8 +113,16 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
   entry(
     'mttr-mtbf',
     'analytics.guide.mttr-mtbf.title',
-    ['analytics.guide.mttr-mtbf.body1', 'analytics.guide.mttr-mtbf.body2'],
-    { figures: ['a3-mttr-mtbf'], formula: 'analytics.guide.mttr-mtbf.formula' },
+    [
+      'analytics.guide.mttr-mtbf.body1',
+      'analytics.guide.mttr-mtbf.body2',
+      'analytics.guide.mttr-mtbf.body3',
+      'analytics.guide.mttr-mtbf.body4',
+    ],
+    {
+      figures: ['a3-mttr-mtbf', 'shift-kpis.shift-split', 'shift-kpis.backlog'],
+      formula: 'analytics.guide.mttr-mtbf.formula',
+    },
   ),
   entry(
     'bd-pm',

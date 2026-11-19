@@ -172,6 +172,8 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'monthly-report': 'analytics.figure.monthly-report',
   'annual-report': 'analytics.figure.annual-report',
   'shift-kpis.compare': 'analytics.figure.shift-kpis.compare',
+  'shift-kpis.shift-split': 'analytics.figure.shift-kpis.shift-split',
+  'shift-kpis.backlog': 'analytics.figure.shift-kpis.backlog',
 };
 
 /**

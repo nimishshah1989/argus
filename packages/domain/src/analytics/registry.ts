@@ -119,6 +119,8 @@ export const FIGURES: readonly FigureDef[] = [
   screen(45, 'annual-report', 'Annual report', 'ticket'),
   // Ticket 48's second definition of five measures: four figures on one screen, the comparison first (R12).
   tile(48, 'shift-kpis', 'compare', 'Platform basis beside the working-hour basis'),
+  tile(48, 'shift-kpis', 'shift-split', 'Breakdowns, hours and MTTR by shift'),
+  tile(48, 'shift-kpis', 'backlog', 'Open breakdowns by working-hour age'),
 ];
 
 export const FIGURE_KEYS: readonly string[] = FIGURES.map((figure) => figure.key);

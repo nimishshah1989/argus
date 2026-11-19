@@ -126,6 +126,21 @@ function localParts(at: Date, format: PartsFormatter): LocalParts {
   return { day, minute: values.hour! * 60 + values.minute! };
 }
 
+const PLANT_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * The instant a plant date begins in the plant's own zone: local midnight of that day, as the working-time window
+ * ends it. The one zone-aware midnight in the codebase (the backlog age and any working-time span need it), built on
+ * the same DST-safe local-to-UTC step the SLA windows use. A malformed plant date is a caller bug, never a guess.
+ */
+export function plantDayStart(plantDate: string, timeZone: string): Date {
+  const match = PLANT_DATE.exec(plantDate);
+  if (!match) throw new RangeError(`not a plant date: ${plantDate}`);
+  const localDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / DAY_MS;
+  if (!Number.isFinite(localDay)) throw new RangeError(`not a plant date: ${plantDate}`);
+  return new Date(localToUtc(localDay, 0, formatter(timeZone)));
+}
+
 function localToUtc(day: number, minute: number, format: PartsFormatter): number {
   const localTime = day * DAY_MS + minute * MINUTE_MS;
   const offsets = new Set<number>();
