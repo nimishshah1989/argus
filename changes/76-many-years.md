@@ -59,6 +59,11 @@
 - Six figures need nothing but the span cut to be right on a run over many years: the costliest problems, the bubble
   chart, the Breakdown Log, the category and cell analysis (A2), the Why-Why list (A6) and the age analysis (A8). On the
   two-year test plant each now has its page worked out by hand for 2025, 2026 and both years (for example 2025 lists
-  33 axis and 33 panel breakdowns of 1 hour, 2026 lists 96 and 48 of 2 hours, and the log of 2026 starts again at
-  number 1), and a test holds every one whole. They already came out right, so no figure changes and no screen
-  changes; the test makes sure a later edit to the cut cannot quietly undo it.
+  33 axis and 33 panel breakdowns of 1 hour, 2026 lists 96 and 48 of 2 hours), and a test holds every one whole. They
+  already came out right, so no figure changes and no screen changes; the test makes sure a later edit to the cut
+  cannot quietly undo it.
+- Known defect, pinned as it is today: the Breakdown Log numbers its rows by position in the span when a row has no
+  stored number, and the loader never stores one, so a row's number changes with the span (the 2026 log starts at 1
+  instead of continuing from 82). The test pins that behaviour so a later fix is deliberate. The right fix is to number
+  the log from the whole uncut history and then cut; it is a separate packet and will change this test's 2026 and
+  both-years numbers.

@@ -115,6 +115,8 @@ describe('the cut fixes the six span figures', () => {
   it('prints the log of the span newest first, numbered in date order from the span start', () => {
     // `entries` is the rule in stored order (month, machine, entry); the log numbers them in date order, ties by
     // stored order, and prints the highest number first. Counts: 2025 69 + 12 PM = 81, 2026 148 + 16 = 164, both 245.
+    // Known defect pinned as it is today: the loader stores no number, so the 2026 log starts at 1, not 82. Numbering
+    // from the uncut history, then cutting, is a separate packet and will change the 2026 and both-years numbers here.
     const header = [
       '',
       'Sr No',
