@@ -15,7 +15,7 @@ import type { Computer, EngineData, MachineRow } from './types.js';
  * lower bound. Whether Bhavin counts an outage against every machine, and whether the PM and UTI line codes all
  * count, is an open question (docs/plan/ledger-backend.md); every recorded line counts today.
  */
-export const PLANT_EVENT_BASIS: 'named-machines' = 'named-machines';
+export const PLANT_EVENT_BASIS = 'named-machines' as const;
 
 export interface PlantEventRow {
   ticketId: string;
