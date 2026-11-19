@@ -103,6 +103,11 @@ export function yearToDate(asOf: string): Period {
   return { from: plantDate(Number(asOf.slice(0, 4)), 1, 1), to: asOf };
 }
 
+/** The span a figure reads: the one the run named, else the as-of year to date with no gap month. */
+export function spanOf(data: EngineData, asOf: string): Period {
+  return data.period ?? yearToDate(asOf);
+}
+
 /** A month's position on a line of months, the year times twelve plus the month. */
 function monthIndex(key: string): number {
   return Number(key.slice(0, 4)) * 12 + Number(key.slice(5, 7)) - 1;
