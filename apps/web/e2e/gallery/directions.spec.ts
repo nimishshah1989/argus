@@ -280,3 +280,98 @@ atBothWidths('the three screens', () => {
     await expect(page.getByTestId('chart')).toHaveCount(3);
   });
 });
+
+/** The floor step's three landmarks in page order, each with the third of the frame its top edge falls in. */
+const floorLayout = (page: Page) =>
+  page.evaluate(() => {
+    const frame = document.querySelector('[data-floor-frame]')!.getBoundingClientRect();
+    return [...document.querySelectorAll('[data-part]')].map((el) => ({
+      part: el.getAttribute('data-part'),
+      third: Math.floor(((el.getBoundingClientRect().top - frame.top) / frame.height) * 3),
+    }));
+  });
+
+/** Every box of the floor step that leaves its frame, or has text wider or taller than itself, and every placeholder that does not fit. */
+const clipped = (page: Page) =>
+  page.evaluate(() => {
+    const frame = document.querySelector('[data-floor-frame]')!.getBoundingClientRect();
+    const bad: string[] = [];
+    for (const el of document.querySelectorAll<HTMLElement>('[data-floor-frame] *')) {
+      const box = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const name = `${el.tagName} ${el.textContent?.trim().slice(0, 24) ?? ''}`;
+      if (box.left < frame.left - 0.5 || box.right > frame.right + 0.5)
+        bad.push(`${name}: outside`);
+      const block = style.display !== 'inline';
+      if (block && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1))
+        bad.push(`${name}: clipped`);
+      if (el instanceof HTMLInputElement) {
+        const ctx = document.createElement('canvas').getContext('2d')!;
+        ctx.font = style.font;
+        const room =
+          el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        if (ctx.measureText(el.placeholder).width > room) bad.push(`${name}: placeholder`);
+      }
+    }
+    return bad;
+  });
+
+atBothWidths('the floor step', () => {
+  test('keeps its words and order in every direction and theme, and says Running is still green', async ({
+    page,
+  }) => {
+    for (const theme of ['light', 'dark']) {
+      for (const [i, id] of DIRECTIONS.entries()) {
+        await arrive(page, 'floor', i + 1, theme);
+        const label = `floor ${id} ${theme}`;
+        const screen = page.locator('[data-screen="floor"]');
+        for (const words of [
+          'Report a problem',
+          'Which machine?',
+          'Find a machine',
+          'Other work (not a machine)',
+          'Vertical Machining Center',
+          '52 machines',
+          'My complaints',
+        ])
+          await expect(screen.getByText(words).first(), label).toBeVisible();
+        await expect(screen, label).toContainText(
+          'The real floor step still shows Running in green until ticket 82',
+        );
+        expect(
+          (await floorLayout(page)).map((p) => p.part),
+          label,
+        ).toEqual(['search', 'other', 'groups']);
+        await holdsEverywhere(page, label);
+        await expect(
+          page.locator('[data-status="ticket.running"][data-tone="neutral"]'),
+        ).toHaveCount(0);
+      }
+    }
+  });
+});
+
+test.describe('the floor step in Gujarati at 360 px', () => {
+  test.use({ viewport: { width: 360, height: 900 } });
+
+  test('no label clips, and search, Other work and the group tiles keep their place in all three', async ({
+    page,
+  }) => {
+    for (const theme of ['light', 'dark']) {
+      const layouts: unknown[] = [];
+      for (const [i, id] of DIRECTIONS.entries()) {
+        await open(page, `&v=${i + 1}&theme=${theme}&s=floor&lang=gu`);
+        const label = `floor gu ${id} ${theme}`;
+        const screen = page.locator('[data-screen="floor"]');
+        await expect(screen, label).toContainText('કયું મશીન?');
+        await expect(screen, label).toContainText('બીજું કામ (મશીન નહીં)');
+        await expect(screen, label).toContainText('“ચાલુ”');
+        expect(await clipped(page), label).toEqual([]);
+        await holdsEverywhere(page, label);
+        layouts.push(await floorLayout(page));
+      }
+      expect(layouts[1], `control room ${theme}`).toEqual(layouts[0]);
+      expect(layouts[2], `ledger ${theme}`).toEqual(layouts[0]);
+    }
+  });
+});
