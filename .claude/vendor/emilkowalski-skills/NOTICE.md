@@ -15,6 +15,6 @@
   `animate-expo`, `improve-animations`, `pick-ui-library`) and advice to add the Motion library do not apply here: a new
   dependency needs an ADR (`docs/LEAN.md`, D20). `learn-taste` can read earlier session transcripts from
   `~/.claude/projects/` when its user names a session; it runs only when Nimish invokes it.
-- Local changes: none yet. Packet 80b adds one line to `learn-taste` naming `docs/DESIGN.md` and `PRODUCT.md`; this
-  file will say so then.
+- Local changes: one line added under the title of `learn-taste/SKILL.md` naming `docs/DESIGN.md` (where rules go) and
+  `PRODUCT.md` (where product facts live). Nothing else differs from upstream.
 - To update: copy the same folders from a newer commit and change the commit line above.
