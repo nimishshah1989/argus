@@ -1,55 +1,50 @@
 # Where things stand — handoff for the next orchestrator session
 
 Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `docs/plan/MILESTONES.md`.
-`git log origin/main` and the PR list beat this text where they differ. State as of 13:50 UTC, 19 Nov 2026.
+`git log origin/main` and the PR list beat this text where they differ. State as of 17:00 UTC, 19 Nov 2026.
+Open PRs via `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>`, non-draft. Staging deploys on
+every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit it serves.
 
 ## How to work (Nimish: non-technical, wants short plain answers, to be challenged, uncertainty flagged)
 
-- Never ask him a technology question; settle it by running something. Ask product questions only.
-- No whole-suite local runs, no comprehensive reviews. Builders run only the tests they touch; CI runs the rest.
-- Builders: Agent tool, `poteto-agent`, sonnet, worktree. Checks: opus, one narrow independent check only where a
-  wrong number, data loss, auth or tenancy bug is possible. Never review your own work.
-- Merge squash with `expectedHeadSha` when CI is green on the CURRENT head and nothing blocks. Infra flakes (apt
-  mirror 503, `migration-runner` timing) get one rerun.
-- Open PRs with `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>` (title, head, base, body;
-  `gh pr create` is blocked); CI runs on non-draft only.
-  Run `pnpm lint` as well as `pnpm precheck`. New routes need their reply in `packages/shared/src/replies.ts`.
-- Cubic reviews every push: verify each finding, fix valid ones in the builder's first push, decline wrong ones
-  on the thread. A "minor" suggestion that changes behaviour can break CI: test it.
-- Server tests need local Postgres 16 (`/usr/lib/postgresql/16/bin`) and `TEST_PG_URL` (localhost only).
+- Never ask him a technology question; settle it by running something. Product questions only. Technical questions
+  for Bhavin: write them as a short plain list; Nimish forwards them on WhatsApp.
+- Builders: Agent tool, `poteto-agent`, sonnet, worktree; resume the same builder with SendMessage for its own PR.
+  Tell every builder up front: run `pnpm lint` AND `pnpm precheck` before EVERY push (a push after a failed precheck
+  cost a CI cycle on #471), a `Large PR:` line over 800 lines, a `Tests removed:` line for any edited assertion.
+- Checks: opus, one narrow independent check only where a number, permission or data-loss bug is possible (it caught
+  3 guard bypasses on #465). Give it the right database: `argus_local` is on port 5433, not 5432.
+- Merge squash with `expectedHeadSha` only after READING the check runs of the CURRENT head. A "check suite
+  completed" event can be for an old head: it says nothing. Merge main into a PR (`update_pull_request_branch`) once
+  its builder is idle.
 
-## Rulings (Nimish, 19 Nov)
+## Rulings (Nimish)
 
-Running grey, Waiting amber, Transferred blue; Indian number grouping; analytics follows system dark/light; floor
-and desk keep Bhavin's flow, analytics is redesigned freely. AI work paused (55, 72, 68). Production hardening
-(97, 98, 26–28) only when it slows nothing. Weekly staging dump parked. Real data already in the public repo is an
-accepted development risk; add no more. Purge it or make the repo private before cutover (N20). Staging deploys on every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health`.
-Bhavin: Star-01 = S-1, Star-02 = S-2 (bare "Star" sheet kept out and counted); retired TC-2, VC-2, VC-3, VC-5 left
-out of history; out of production figures: TC-5, TC-3, VC-6 (only three given); MEC becomes M, ELE becomes E.
+Earlier: Running grey, Waiting amber, Transferred blue; Indian number grouping; analytics follows system dark/light;
+floor and desk keep Bhavin's flow; AI work paused (55, 72, 68); weekly staging dump parked; purge real data or make the
+repo private before cutover (N20). 19 Nov, later: power and air failures COUNT in plant downtime and availability (91);
+heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all merged.
 
 ## Frontier
 
-- Merged today: 76 (all), 80a–80r, 80t showcase (#448), 78a (#447), 74, 69 plan, 69a importer (#449).
-- Merged since: #449 (69a), #451 (69b converter), #452 (77a machines out of production data, API and engine). Nothing of mine is open.
-- Next backend: 69c (load four years into a LOCAL Postgres, run the engine per year, compare the workbooks' own
-  MTTR/MTBF sheets; adds list entries location 'Plant' and workType 'Utility failure' first), 75 (figures served,
-  not recomputed), 79 (`validate:full`), 69d staging load after 79, 77b/78b screens after templates, 90–96 after.
-- Frontend: Nimish judges the showcase (https://claude.ai/artifact/MuBThrzeXCNPsKbuXVPLQx); then the navigation
-  map, then templates 81–89 in bulk. 80e/80f need his go for one CLAUDE.md line.
-- NIMISH MUST RE-UPLOAD the four workbook zips (BD-22..25) before 69b/69c real-file runs. Counts only may enter the repo.
+- Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79, 69a/b/c, 81, 82, 84, 86a frame, 86b desk link, 91; fixes #463, #468.
+- No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked) with a before and after for his
+  approval (screens only from mockups he approved, `docs/design/LOCK.md`). Also 75b (smaller replies via `?keys=`), 75c/d/f,
+  69d (staging load: needs his yes to real data on staging), 90, 92-96. Follow-ups: shared search palette (87),
+  nightly validate workflow (`docs/TESTING.md` 10), failed-jobs 5-minute alarm.
 
-## Tracker
+## Open numbers (do not state as final)
 
-Artifact https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, dataset `datasets/tickets` (blob `tickets.json`): refresh
-half-hourly from merged commits and PRs; do not edit the page file.
+History vs Bhavin's sheets: 89% of 2,084 machine-months match with his rules; 229 unexplained until he answers
+(`docs/plan/evidence/69c-real-load.md`). Plant events: hours are a LOWER BOUND (named machines only). Unreconciled:
+2023 plant-event hours 1,646.6 against the ticket's about 1,480; at most 44.4 h could double count with breakdowns
+(96 machine-days); lost hours may include non-CNC machines (older than 91). Staging has demo data only.
 
-## Parked
+## Tracker and waiting on people
 
-CI downloads fonts on every browser/gallery run (use the prebuilt Playwright image); 78b: reply schema uses
-`isoDateTimeSchema` for `createdAt`/`failedAt`; check in 69c whether `recordedMonths` counts plant events; converter
-pseudonyms are unsalted hashes (files stay outside git, D21).
-
-## Waiting on people (`docs/plan/NEEDS.md`)
-
-N16 Bhavin's answers (bare Star sheet, more out-of-production machines), N17 Feb–Mar 2022 and older files, N18
-ranking method, N19 AI thresholds, N5 Gujarati, N20 purge-or-private before cutover.
+Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, `datasets/tickets`, refresh half-hourly, never edit the page
+file. Waiting on Nimish: which way is good for PM hours, breakdown hours with no downtime, manpower hours and spend
+figures (all "neither" now); staging history yes or no. `docs/plan/NEEDS.md`: N16 Bhavin (bare Star sheet, more
+out-of-production machines), N17 Feb–Mar 2022 and older files, Bhavin's batch (power cut against every machine or the
+plant; PM/UTI rows count; blank-minute rows; sheet vs log; typed hours vs minutes), N18 ranking, N19 AI thresholds,
+N5 Gujarati (jobs screen words need a native reader), N20 purge-or-private.
