@@ -1,0 +1,1 @@
+- The desk lists (Open, Mine, Team, needs report) and the ticket detail now use the shared cards, shadows, type sizes and button colours in light and dark; every control, word and button keeps its place.

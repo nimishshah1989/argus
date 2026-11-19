@@ -5,11 +5,11 @@ import { buildCorrectChanges, hasCorrectChanges } from './correctChanges.js';
 import { useCommand } from '../data/index.js';
 
 const inputClass =
-  'mt-1 min-h-13 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base';
+  'mt-1 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
 const secondaryButton =
-  'min-h-13 rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100';
+  'min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 [@media(hover:hover)]:hover:bg-neutral-100';
 const primaryButton =
-  'min-h-13 flex-1 rounded-xl bg-accent px-4 text-base font-semibold text-white hover:bg-accent/90 disabled:opacity-50';
+  'min-h-target flex-1 rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600 [@media(hover:hover)]:hover:bg-accent-strong/90';
 
 const FIELD = {
   reason: 'reason',
@@ -44,7 +44,7 @@ interface InputProps {
 function AdminInput({ name, label, value, onChange, type = 'text' }: InputProps) {
   return (
     <label htmlFor={`admin-${name}`} className="block">
-      <span className="text-sm font-medium text-neutral-600">{label}</span>
+      <span className="text-footnote font-medium text-neutral-600">{label}</span>
       <input
         id={`admin-${name}`}
         type={type}
@@ -68,7 +68,7 @@ function AdminSelect({ name, label, value, options, onChange }: SelectProps) {
   const { t } = useTranslation();
   return (
     <label htmlFor={`admin-${name}`} className="block">
-      <span className="text-sm font-medium text-neutral-600">{label}</span>
+      <span className="text-footnote font-medium text-neutral-600">{label}</span>
       <select
         id={`admin-${name}`}
         value={value}
@@ -109,7 +109,9 @@ function RestoreForm({ ticket, onDone }: RestoreProps) {
       className="mt-3 rounded-xl bg-neutral-50 p-3"
     >
       <label htmlFor="admin-restore-reason" className="block">
-        <span className="text-sm font-medium text-neutral-600">{t('admin.restoreReason')}</span>
+        <span className="text-footnote font-medium text-neutral-600">
+          {t('admin.restoreReason')}
+        </span>
         <textarea
           id="admin-restore-reason"
           value={reason}
@@ -118,7 +120,7 @@ function RestoreForm({ ticket, onDone }: RestoreProps) {
         />
       </label>
       {error && (
-        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
+        <p role="alert" className="mt-2 rounded-xl bg-danger-tint p-3 text-danger-ink">
           {error}
         </p>
       )}
@@ -205,7 +207,7 @@ function CorrectForm({ ticket, config, onDone }: CorrectProps) {
   return (
     <form onSubmit={submit} aria-label={t('admin.correct')} className="mt-3 space-y-3">
       <label htmlFor="admin-reason" className="block">
-        <span className="text-sm font-medium text-neutral-600">{t('admin.reason')}</span>
+        <span className="text-footnote font-medium text-neutral-600">{t('admin.reason')}</span>
         <textarea
           id="admin-reason"
           value={values[FIELD.reason] ?? ''}
@@ -214,12 +216,12 @@ function CorrectForm({ ticket, config, onDone }: CorrectProps) {
         />
       </label>
       <CorrectFields values={values} config={config} update={update} />
-      <p className="text-xs text-neutral-500">{t('admin.onlyFilled')}</p>
+      <p className="text-caption text-neutral-600">{t('admin.onlyFilled')}</p>
       {!ready && Object.keys(values).length > 1 && (
-        <p className="text-xs text-waiting">{t('admin.needsReasonAndChange')}</p>
+        <p className="text-caption text-hold-ink">{t('admin.needsReasonAndChange')}</p>
       )}
       {error && (
-        <p role="alert" className="rounded-xl bg-stopped/10 p-3 text-stopped">
+        <p role="alert" className="rounded-xl bg-danger-tint p-3 text-danger-ink">
           {error}
         </p>
       )}
@@ -247,11 +249,8 @@ export function AdminPanel({ ticket, config, me }: Props) {
   const [mode, setMode] = useState<'restore' | 'correct' | null>(null);
   if (!config || !me || me.role !== 'admin') return null;
   return (
-    <section
-      aria-label={t('admin.title')}
-      className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
-    >
-      <h2 className="text-sm font-medium text-neutral-600">{t('admin.title')}</h2>
+    <section aria-label={t('admin.title')} className="mt-3 rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">{t('admin.title')}</h2>
       {mode === null && (
         <div className="mt-3 flex flex-wrap gap-2">
           {ticket.status === 'cancelled' && (

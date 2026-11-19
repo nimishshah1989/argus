@@ -5,7 +5,7 @@ import type { Machine, Ticket } from '../../api.js';
 import { machineLabel } from '../../components/format.js';
 
 export const rowClass =
-  'flex min-h-target items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-surface px-4 py-3';
+  'flex min-h-target items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 shadow-card';
 
 /** The small capitals over a group of cards or rows. */
 export function ListHeading({ children }: { children: ReactNode }) {

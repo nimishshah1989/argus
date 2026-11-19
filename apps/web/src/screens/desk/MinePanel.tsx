@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getMe, getToken, type Machine, type Ticket } from '../../api.js';
 import { elapsedLabel, errorMessage, machineLabel } from '../../components/format.js';
 import { Banner } from '../../ui/banner.js';
+import { LoadingState } from '../../ui/elements/states.js';
 import { CardList, type CardContext } from './Board.js';
 import { Empty, Section, TicketRow, rowClass } from './parts.js';
 import { useTicketWindow } from './useTicketWindow.js';
@@ -101,11 +102,7 @@ export function MinePanel({ ctx }: { ctx: CardContext }) {
   const waiting = tickets.filter((ticket) => ticket.status === 'waiting');
   const closed = closedLast30Days(tickets);
   if (mine.loading && tickets.length === 0)
-    return (
-      <p role="status" className="text-body text-neutral-600">
-        {t('common.loading')}
-      </p>
-    );
+    return <LoadingState label={t('common.loading')} tiles={1} />;
   if (mine.error) return <Banner tone="error" title={errorMessage(mine.error)} />;
   return (
     <>

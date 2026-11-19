@@ -21,7 +21,7 @@ import {
   workRequests,
   type ChipFilter,
 } from './openLists.js';
-import { ListHeading } from './parts.js';
+import { ListHeading, rowClass } from './parts.js';
 import { TasksList } from './TasksList.js';
 
 type Segment = 'breakdowns' | 'tasks' | 'work';
@@ -121,10 +121,7 @@ function TeamNowLink({ count }: { count: number }) {
   const { t } = useTranslation();
   const key = count === 0 ? 'none' : count === 1 ? 'one' : 'many';
   return (
-    <Link
-      to="/desk/team"
-      className="flex min-h-target items-center gap-3 rounded-2xl border border-neutral-200 bg-surface px-4 text-body"
-    >
+    <Link to="/desk/team" className={`${rowClass} text-body`}>
       <Users aria-hidden size={20} />
       <span className="flex-1">{t(`deskLists.teamNow.${key}`, { count })}</span>
       <ChevronRight aria-hidden size={20} className="text-neutral-600" />
