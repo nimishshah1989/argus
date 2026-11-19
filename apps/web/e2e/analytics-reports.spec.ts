@@ -108,7 +108,7 @@ test('a head opens the reports, switches to the annual report, reads both keys a
   await page.goto('/analytics/reports');
 
   // The monthly report opens by default: its switch, period line, title, tables and charts.
-  const nav = page.getByRole('navigation', { name: 'Report screens', exact: true });
+  const nav = page.getByRole('navigation', { name: 'Screens in Reports', exact: true });
   await expect(nav.getByRole('link', { name: 'Monthly report', exact: true })).toHaveAttribute(
     'aria-current',
     'page',

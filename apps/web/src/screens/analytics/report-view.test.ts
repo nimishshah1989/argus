@@ -353,7 +353,6 @@ describe('the period line and the honest states', () => {
 describe('the 45e copy catalogue', () => {
   it('names every new chrome string in both catalogues', () => {
     const keys: MessageKey[] = [
-      'analytics.report.nav',
       'analytics.report.downloadPdf',
       'analytics.report.downloadWorkbook',
       'analytics.report.commentary',
