@@ -5,6 +5,7 @@ import { MACHINE_FIELD_LABELS, type MachineRecord } from './machine-record.js';
 import { displayDay } from './machine-values.js';
 import { DataTable, Section, StatCard } from './parts.js';
 import { DrillAction, MachineFigures, NOT_AVAILABLE, Nameplate, number } from './machine-parts.js';
+import { MachineTasks } from './machine-tasks.js';
 
 /** The machine page's breakdown, PM, completeness and move blocks, gathered into one record body. */
 
@@ -169,6 +170,7 @@ export function RecordBody({
       <MachineFigures record={record} asOf={asOf} machineId={machineId} />
       <Breakdowns record={record} machineId={machineId} />
       <Pm record={record} machineId={machineId} />
+      <MachineTasks machineId={machineId} today={asOf} />
       <Completeness record={record} />
       <Moves record={record} machineId={machineId} />
     </Stack>

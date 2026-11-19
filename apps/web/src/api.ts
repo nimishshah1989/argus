@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { correctionBody } from './screens/analytics/machine-values.js';
 import {
@@ -13,8 +14,13 @@ import {
 } from './data/index.js';
 import {
   actionCenterBoardSchema,
+  pmCalendarReplySchema,
+  pmRescheduleReplySchema,
   type ActionCenterBoardReply,
   type NudgeAckBody,
+  type PmCalendarReply,
+  type PmRescheduleBody,
+  type PmRescheduleReply,
 } from '@uptimo/shared';
 import type { BoardToday } from '@uptimo/shared/board';
 import {
@@ -159,6 +165,32 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 /** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
+
+/**
+ * `GET /pm/calendar?from&to` (50c): the six-week grid's occurrences, parsed at this boundary. The range is the
+ * calendar's own, so the query key carries it and a month change refetches.
+ */
+export const usePmCalendar = (range: { from: string; to: string }) =>
+  useQuery({
+    queryKey: ['pm-calendar', range.from, range.to],
+    queryFn: async (): Promise<PmCalendarReply> => {
+      const query = `from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`;
+      return pmCalendarReplySchema.parse(await http(`/api/v1/pm/calendar?${query}`));
+    },
+  });
+
+/**
+ * `POST /pm/reschedule` (50c): the one move. A refusal is an `ApiError` whose message the page shows (a full day
+ * is 409, a Sunday or a date outside the tolerance is 422); each call carries its own idempotency key.
+ */
+export const schedulePm = async (body: PmRescheduleBody): Promise<PmRescheduleReply> =>
+  pmRescheduleReplySchema.parse(
+    await http('/api/v1/pm/reschedule', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey() },
+      body: JSON.stringify(body),
+    }),
+  );
 
 /** `GET /analytics/action-center`: the Action Center board, as of the plant's today by default. */
 export const useActionCenterBoard = () => actionCenter.useOne();

@@ -5,8 +5,8 @@ import { groupOfScreen } from './groups.js';
 /**
  * The Guide's content (ticket 45, packet 45f): one entry per heading of the answer key's table of contents, in
  * the key's own order. Each entry states our rule in plain English, names the registered figures it explains and
- * flags the five features this build does not have yet. `guide-entries.test.ts` holds it to the key, the registry
- * and the menu's groups; `GuidePage.tsx` is the only renderer.
+ * flags the four features this build does not have yet. `guide-entries.test.ts` holds it to the key, the
+ * registry and the menu's groups; `GuidePage.tsx` is the only renderer.
  */
 
 export interface GuideEntry {
@@ -24,17 +24,11 @@ export interface GuideEntry {
   readonly built?: boolean;
 }
 
-/** The one line the five unbuilt entries print instead of a rule. */
+/** The one line the four unbuilt entries print instead of a rule. */
 export const NOT_BUILT: MessageKey = 'analytics.guide.notBuilt';
 
-/** The five features this build does not have, each with the entry id it fills. */
-const UNBUILT: ReadonlySet<string> = new Set([
-  'pm-calendar',
-  'oem',
-  'learning',
-  'no-code',
-  'amc-legal',
-]);
+/** The four features this build does not have, each with the entry id it fills. */
+const UNBUILT: ReadonlySet<string> = new Set(['oem', 'learning', 'no-code', 'amc-legal']);
 
 interface EntryOptions {
   readonly figures?: readonly string[];
@@ -279,8 +273,9 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
     ['analytics.guide.money.body1', 'analytics.guide.money.body2'],
     { figures: ['money-matters'] },
   ),
-  // 50b registers `pm-compliance`; the entry explains it now and 50c gives it the page and its body paragraph.
-  entry('pm-calendar', 'analytics.guide.pm-calendar.title', [], { figures: ['pm-compliance'] }),
+  entry('pm-calendar', 'analytics.guide.pm-calendar.title', ['analytics.guide.pm-calendar.body1'], {
+    figures: ['pm-compliance'],
+  }),
   entry('oem', 'analytics.guide.oem.title', []),
   entry('learning', 'analytics.guide.learning.title', []),
   entry('no-code', 'analytics.guide.no-code.title', []),

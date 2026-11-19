@@ -1283,7 +1283,7 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: in-progress
+    status: done
     evidence:
       - apps/server/src/seed/pm-plans.test.ts
       - apps/web/src/screens/settings/pm-plans-spec.test.ts
@@ -1292,6 +1292,10 @@ rows:
         of 8 PM and 3 of 11 planned'
       - 'apps/server/test/report-export.test.ts :: prints the live PM Plan and PM Reports rows: one next due per
         plan, one row per closed PM job'
+      - 'apps/server/test/pm-calendar.test.ts :: reads the next due as one occurrence per machine and refuses a
+        move outside the plan tolerance, on a Sunday or onto a day that already holds a PM'
+      - 'apps/web/e2e/pm-calendar.spec.ts :: drags the month’s PM to another day and sees it survive a reload, reads
+        the two compliance tiles and the crowded day, and opens a machine’s Tasks'
     source: docs/plan/m4a-triage.md
     screen: pm-plan
     ticket: '49'
