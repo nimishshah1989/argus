@@ -35,6 +35,9 @@ describe('ui guard (ticket 82)', () => {
         '<Link className="min-h-target rounded-xl border bg-surface px-4">',
       ),
     ).toEqual([]);
+    expect(
+      where('screens/Board.tsx', '<Link className="min-h-target rounded-xl bg-surface p-4">'),
+    ).toEqual([]);
     expect(where('components/I.tsx', "'mt-2 min-h-13 w-full rounded-xl bg-surface px-4'")).toEqual(
       [],
     );
