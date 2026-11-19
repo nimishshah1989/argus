@@ -139,6 +139,7 @@ describe('the expansion timeline figure', () => {
       ],
       line: { name: 'Cumulative Fleet Size', values: [2, 4, 5] },
       legend: true,
+      draw: true,
     });
     expect(calls.map((call) => call.key)).toEqual([
       'analytics.content.timeline.title',

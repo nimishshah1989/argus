@@ -29,7 +29,7 @@ export interface LegendChoice {
   legend?: boolean;
 }
 
-/** Draw the chart in once, in 700 ms (ease-out), when it first appears; never under reduced motion. Absent: no animation. Bar, line and Pareto only. */
+/** Draw the chart in once, in 700 ms (ease-out), when it first appears; never under reduced motion. Absent: no animation. Bar, line, mixed and Pareto only. */
 export interface DrawChoice {
   draw?: true;
 }
@@ -78,7 +78,8 @@ export type ChartSpec =
       categories: string[];
       bars: ChartSeries[];
       line?: ChartSeries;
-    } & LegendChoice)
+    } & LegendChoice &
+      DrawChoice)
   | {
       /** Two dimensions: one row per category, one series per column; a cell's depth of colour is its value. */
       kind: 'heatmap';

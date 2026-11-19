@@ -79,6 +79,7 @@ export function mixedOption(spec: MixedSpec, p: Palette): Option {
   const names = [...spec.bars, ...(spec.line === undefined ? [] : [spec.line])].map((s) => s.name);
   return {
     ...baseOption(p, 16, legend, names),
+    ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
     xAxis: categoryAxis(spec.categories, p),
     yAxis: [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }],

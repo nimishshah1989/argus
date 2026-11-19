@@ -297,7 +297,7 @@ describe('review fixes', () => {
 });
 
 describe('draw-in', () => {
-  const kinds = ['bar', 'line', 'pareto'] as const;
+  const kinds = ['bar', 'line', 'mixed', 'pareto'] as const;
 
   it.each(kinds)('a %s chart that asks to draw in animates once, in under 800 ms', (kind) => {
     const option = view({ ...specs[kind]!, draw: true } as ChartSpec) as Record<string, unknown>;

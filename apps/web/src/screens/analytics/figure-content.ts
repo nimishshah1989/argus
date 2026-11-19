@@ -266,6 +266,7 @@ function timeline(value: ObjectValue, t: TFunction): FigureContent | null {
       bars: series.slice(0, -1),
       line,
       legend: true,
+      draw: true,
     },
   };
 }
