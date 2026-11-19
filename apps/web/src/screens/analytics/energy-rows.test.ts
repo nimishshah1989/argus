@@ -1,15 +1,22 @@
+import { createElement as h } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
+import '../../i18n/index.js';
+import { ApiError } from '../../data/index.js';
 
-const asked = vi.hoisted(() => ({ runs: [] as string[][] }));
+const asked = vi.hoisted(() => ({ runs: [] as string[][], failRun: -1 }));
 
 vi.mock('../../api.js', () => ({
   getDrill: async (_type: string, ids: readonly string[]) => {
     asked.runs.push([...ids]);
+    if (asked.runs.length - 1 === asked.failRun) throw new Error('refused');
     return { rows: ids.map((id) => ({ id, code: `M-${id}`, cell: '1' })) };
   },
 }));
 
-const { chunkIds, fetchMachineRows, machinePage } = await import('./energy-rows.js');
+const { EnergyRows, chunkIds, fetchMachineRows, machinePage } = await import('./energy-rows.js');
 
 const ids = (count: number) => Array.from({ length: count }, (_, at) => String(at));
 
@@ -51,5 +58,50 @@ describe('the panel table of a large tile', () => {
     const sorted = machinePage(rows, { column: 'code', dir: 'desc' }, 0);
     expect(sorted.rows[0]!.code).toBe('M-449');
     expect(sorted.rows).toHaveLength(50);
+  });
+});
+
+const KEY = 'analytics-energy-rows';
+
+function panel(prepare: (client: QueryClient) => void, ids: string[]): string {
+  const client = new QueryClient({ defaultOptions: { queries: { retryOnMount: false } } });
+  prepare(client);
+  return renderToStaticMarkup(
+    h(
+      QueryClientProvider,
+      { client },
+      h(MemoryRouter, null, h(EnergyRows, { ids, caption: 'Machine-wise Load — Cell 1' })),
+    ),
+  );
+}
+
+describe('the energy panel states', () => {
+  it('fails as a whole when one run of a large tile is refused, and says so without throwing', async () => {
+    asked.runs.length = 0;
+    asked.failRun = 1;
+    await expect(fetchMachineRows(ids(450))).rejects.toThrow('refused');
+    asked.failRun = -1;
+    const page = panel(
+      (client) =>
+        client
+          .getQueryCache()
+          .build(client, { queryKey: [KEY, ['a']], queryFn: async () => [] })
+          .setState({ status: 'error', error: new ApiError('boom', 'bad'), data: undefined }),
+      ['a'],
+    );
+    expect(page).toContain('role="alert"');
+    expect(page).toContain('Could not load');
+  });
+
+  it('shows loading while the machines are on their way', () => {
+    const page = panel(() => {}, ['a']);
+    expect(page).toContain('Loading');
+    expect(page).not.toContain('<table');
+  });
+
+  it('says there are no rows for a tile with no machines', () => {
+    const page = panel((client) => client.setQueryData([KEY, []], []), []);
+    expect(page).toContain('No rows.');
+    expect(page).not.toContain('<table');
   });
 });

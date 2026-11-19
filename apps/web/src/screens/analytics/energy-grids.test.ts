@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { heatColor, heatInk, heatT } from './EnergyGrids.js';
 
 /**
- * A5's tile colour is the platform's green scale, not a face token (41e-1): light green at the grid's minimum
- * load, dark green at its maximum, mid green when the whole grid is flat. The screen only applies these three
- * pure functions, so this file pins the paint rule the journey cannot read reliably from a computed style.
+ * The platform's green heat scale (41e-1): light green at a grid's minimum, dark green at its maximum, mid green
+ * when the whole grid is flat. The energy screen no longer paints with it; it now colours only the breakdown month
+ * grids (`parts.tsx`), so this file pins the paint rule the journeys cannot read reliably from a computed style.
  */
 describe('the energy heat scale', () => {
   it('ranges the grid from light to dark green and falls back to mid green when flat', () => {
