@@ -74,7 +74,7 @@ work orders or dashboards. Uptimo reaches the operator who does not use computer
 - **Not decided.** Hindi strings; the escalation ladder, roster and notification payload (answered after two weeks of
   live use, `docs/BRIEF.md`); the technician ranking method; which of the old platform's screens Cosmos uses
   (`docs/BRIEF.md`).
-- **Parked.** WhatsApp and voice (M3). Not built, so no screen mentions them.
+- **Parked.** Real WhatsApp sending and voice input (M3). The M1 share-text button remains (`apps/web/src/components/ShareButton.tsx`); no voice-input screen is built.
 - **Server decides.** Every permission is checked on the server; a screen only hides what a role cannot do.
 - **No money on the TV.** Downtime cost shows on the plant head's phone only (`docs/design/LOCK.md`).
 

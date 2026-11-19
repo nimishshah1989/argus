@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Learning Taste
 
-> Argus: write rules to `docs/DESIGN.md` (not a root `DESIGN.md`); product facts (users, devices, settings) live in `PRODUCT.md` at the root.
+> Argus: wherever this skill says `DESIGN.md` at the repository root (including Phase 4 and the missing-file checks), use `docs/DESIGN.md`. Product facts (users, devices, settings) live in `PRODUCT.md` at the root.
 
 Every correction a user makes is taste the agent didn't have. If it isn't written down, the next session makes the same mistake and the user corrects it again. This skill finds those corrections, turns each one into a rule with its reason, and writes it where the next agent will read it.
 
