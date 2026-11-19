@@ -22,10 +22,14 @@ export function withListedExclusions(data: EngineData): EngineData {
   };
 }
 
-/** How many of the plant's machines its settings leave out of production data (an id that is no machine adds none). */
+/**
+ * How many machines are left out of production data: the row flag (a Robot, a plant's switch) united with the listed
+ * ids, each machine once. An id that is no machine adds none.
+ */
 export function listedExclusions(data: EngineData): number {
   const listed = new Set(data.settings?.excludedMachineIds ?? []);
-  return data.machines.filter((machine) => listed.has(machine.id)).length;
+  return data.machines.filter((machine) => machine.excludedFromProduction || listed.has(machine.id))
+    .length;
 }
 
 /** The year the platform files a machine under: the purchase date's year, else the Year field, else none. */

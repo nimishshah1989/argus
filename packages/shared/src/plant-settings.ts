@@ -98,9 +98,7 @@ export type MachineReply = z.infer<typeof machineReplySchema>;
  * (`true`) or back (`false`). Its breakdowns stay on record and keep counting in the manpower hours and the energy
  * list, and leave BD %, MTTR, MTBF, availability and the other production figures.
  */
-export const machineProductionPatchSchema = z
-  .object({ excludedFromProduction: z.boolean() })
-  .strict();
+export const machineProductionPatchSchema = z.object({ excludedFromProduction: flag }).strict();
 export type MachineProductionPatch = z.infer<typeof machineProductionPatchSchema>;
 
 export const machineProductionReplySchema = z

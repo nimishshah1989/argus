@@ -100,13 +100,14 @@ describe('switching a machine out of production data', () => {
   });
 
   it('names the field when the body is not a yes or a no', async () => {
-    for (const body of [
-      {},
-      { excludedFromProduction: 'yes' },
-      { excludedFromProduction: true, x: 1 },
-    ]) {
+    for (const [body, field] of [
+      [{}, 'excludedFromProduction'],
+      [{ excludedFromProduction: 'yes' }, 'excludedFromProduction'],
+      [{ excludedFromProduction: true, x: 1 }, 'x'],
+    ] as const) {
       const res = await f.call('PUT', path(M_USED), f.tokens.head!, body);
       expect(res.statusCode, JSON.stringify(body)).toBe(422);
+      expect(res.json().error.field, JSON.stringify(body)).toBe(field);
     }
     expect(await lines(M_USED)).toHaveLength(0);
   });
@@ -124,5 +125,19 @@ describe('switching a machine out of production data', () => {
     const after = await figures();
     expect([after.excludedMachines, production(after)]).toEqual([0, 2]);
     expect(await lines(M_USED)).toHaveLength(2);
+  });
+
+  it('leaves the downtime tiles that read every machine as they were: costliest problems, bubbles, breakdown-free', async () => {
+    const keys = [
+      'dashboard.costliest-problems',
+      'dashboard.bubble-chart',
+      'dashboard.breakdown-free',
+    ];
+    const before = await figures();
+    await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: true });
+    const during = await figures();
+    await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: false });
+    // Whether these tiles drop a left-out machine is an open product question (ledger, 19 Nov): they stay as on main.
+    for (const key of keys) expect(figureOf(during, key), key).toEqual(figureOf(before, key));
   });
 });

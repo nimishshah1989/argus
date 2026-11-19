@@ -70,8 +70,14 @@ describe('the A4 manpower figure', () => {
   });
 
   it('counts a breakdown row on a machine left out of production data: one more breakdown, its hours, its drill id', () => {
-    const excluded = ENGINE_DATA.machines.find((machine) => machine.excludedFromProduction);
-    expect(excluded).toBeDefined();
+    // The key's one left-out machine is a Robot-category machine (never counted); this plant switched off a lathe.
+    const left = ENGINE_DATA.machines.find((machine) => machine.excludedFromProduction)!;
+    const excluded = {
+      ...left,
+      id: 'a4-left-out',
+      category: 'Lathe',
+      excludedFromProduction: true,
+    };
     const donor = CARRIED.find(
       (row) => effectiveHours(row.report) > 0 && row.report.doneBy.length > 0,
     );
@@ -83,7 +89,7 @@ describe('the A4 manpower figure', () => {
       ...donor!.ticket,
       id: ticketId,
       ref: 'BD-A4-EXCLUDED',
-      machineId: excluded!.id,
+      machineId: excluded.id,
       reportedAt: '2026-01-01T04:00:00.000Z',
       closedAt: '2026-01-01T05:00:00.000Z',
     };
@@ -91,11 +97,12 @@ describe('the A4 manpower figure', () => {
       ...donor!.report,
       id: reportId,
       ticketId,
-      machineId: excluded!.id,
+      machineId: excluded.id,
       date: '2026-01-01',
     };
     const grown: EngineData = {
       ...ENGINE_DATA,
+      machines: [...ENGINE_DATA.machines, excluded],
       tickets: [...ENGINE_DATA.tickets, ticket],
       reports: [...ENGINE_DATA.reports, report],
     };
@@ -163,6 +170,48 @@ describe('the A4 manpower figure', () => {
       ),
     };
     expect({ ...value, pages: [rest] }).toEqual(A4);
+  });
+
+  it('adds nothing for a Robot-category machine in the CNC segment, and a fully excluded category keeps its column', () => {
+    const donor = CARRIED.find(
+      (row) => effectiveHours(row.report) > 0 && row.report.doneBy.length > 0,
+    )!;
+    const base = ENGINE_DATA.machines.find((machine) => machine.id === donor.report.machineId)!;
+    const clone = (id: string, category: string, excluded: boolean) => ({
+      machine: { ...base, id, category, excludedFromProduction: excluded },
+      ticket: { ...donor.ticket, id: `${id}-t`, ref: `BD-${id}`, machineId: id },
+      report: { ...donor.report, id: `${id}-r`, ticketId: `${id}-t`, machineId: id },
+    });
+    const robot = clone('a4-robot', 'Robot', true);
+    const lone = clone('a4-lone', 'Zeta Lathe', true);
+    const withRows = (...added: ReturnType<typeof clone>[]): EngineData => ({
+      ...ENGINE_DATA,
+      // No configured list: the columns come from the machines A4 reads.
+      settings: { ...SETTINGS, categories: undefined },
+      machines: [...ENGINE_DATA.machines, ...added.map((entry) => entry.machine)],
+      tickets: [...ENGINE_DATA.tickets, ...added.map((entry) => entry.ticket)],
+      reports: [...ENGINE_DATA.reports, ...added.map((entry) => entry.report)],
+    });
+    const count = (value: FigureKey) => Number(value.pages[0]!.kpis[0]!.value.replaceAll(',', ''));
+    const plain = valueOf(withRows());
+    expect(count(valueOf(withRows(robot)))).toBe(count(plain));
+    expect(table(valueOf(withRows(robot)), 'Specialization')).toEqual(
+      table(plain, 'Specialization'),
+    );
+    const grown = valueOf(withRows(lone));
+    expect(count(grown)).toBe(count(plain) + 1);
+    const spec = table(grown, 'Specialization');
+    expect(spec.header).toHaveLength(table(plain, 'Specialization').header.length + 1);
+    expect(spec.header.at(-1)).toBe('Zeta Lathe');
+    const done = new Map(
+      table(grown, 'Manpower Table').rows.map((row) => [row[0], Number(row[2])]),
+    );
+    for (const row of spec.rows) {
+      const cells = row
+        .slice(1)
+        .reduce((total, cell) => total + (cell === '—' ? 0 : Number(cell)), 0);
+      expect(cells).toBe(done.get(row[0]) ?? 0);
+    }
   });
 
   it('prints no page for an empty plant: no production breakdowns or no team', () => {

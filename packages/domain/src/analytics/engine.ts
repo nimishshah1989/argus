@@ -167,7 +167,7 @@ export function runWith(
     reports: data.reports.length,
     people: data.people.length,
   };
-  const excludedMachines = listedExclusions(input.data);
+  const excludedMachines = listedExclusions(data);
   return {
     asOf,
     profile,

@@ -335,7 +335,9 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     }),
     // The Action Center's saved acks. The figure echoes them whole and the board gives each nudge its status.
     settings: {
-      excludedMachineIds: machines.filter(leftOutByPlant).map((row) => row.id as string),
+      // Left empty: the plant's switch rides on each machine row (`excludedFromProduction`); this list would also
+      // change the downtime tiles that read it directly, an open product question (ticket 77a).
+      excludedMachineIds: [],
       problemFixes: {},
       nudgeAcks,
       // The report's cell table folds an unlisted cell into "No cell"; the plant's own cell list is the list.

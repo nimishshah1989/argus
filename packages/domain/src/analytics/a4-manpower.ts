@@ -7,7 +7,6 @@ import {
   type PeriodMonth,
 } from './availability.js';
 import { formatInr, formatPercent } from './format.js';
-import { isProduction } from './machine-facts.js';
 import { effectiveHours, isPm, sourcedReports } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow, PersonRow } from './types.js';
 
@@ -112,14 +111,15 @@ function newMember(person: PersonRow, categoryCount: number, monthCount: number)
 /** One pass over the sourced reports: production rows count as breakdowns unless PM; PM is its own month matrix. */
 function buildContext(data: EngineData, asOf: string): A4Context {
   const people = teamPeople(data);
-  const production = data.machines.filter(isProduction);
-  const categories = categoryList(data, production);
-  const categoryIndex = new Map(categories.map((category, position) => [category, position]));
   // A machine the plant leaves out of production data still has its breakdowns handled by the team: they count here.
+  // A Robot (segment or category, as the loader reads it) is never counted.
+  const handled = data.machines.filter(
+    (machine) => machine.segment === 'CNC' && machine.category?.trim().toLowerCase() !== 'robot',
+  );
+  const categories = categoryList(data, handled);
+  const categoryIndex = new Map(categories.map((category, position) => [category, position]));
   const machineCategory = new Map(
-    data.machines
-      .filter((machine) => machine.segment === 'CNC')
-      .map((machine) => [machine.id, machine.category?.trim() ?? null]),
+    handled.map((machine) => [machine.id, machine.category?.trim() ?? null]),
   );
   const index = new Map(people.map((person, position) => [person.code, position]));
   const period = spanOf(data, asOf);

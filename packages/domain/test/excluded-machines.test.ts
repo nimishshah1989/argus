@@ -125,4 +125,19 @@ describe('machines the plant leaves out of production data', () => {
     };
     expect(runOf(stray).excludedMachines).toBe(5);
   });
+
+  it('counts a machine flagged on its row once, and not one bought after the as-of date', () => {
+    const data = plant('settings');
+    const [first, ...rest] = data.machines;
+    const flagged = { ...first!, excludedFromProduction: true };
+    const robot = { ...first!, id: 'R-1', excludedFromProduction: true };
+    const later = { ...first!, id: 'L-1', purchasedOn: '2027-01-01' };
+    const grown = {
+      ...data,
+      machines: [flagged, ...rest, robot, later],
+      settings: { ...data.settings!, excludedMachineIds: [...LEFT_OUT, 'L-1'] },
+    };
+    // Five listed, one flagged on its row, a Robot by its row flag; the listed machine bought after the as-of date is not yet in the plant.
+    expect(runOf(grown).excludedMachines).toBe(7);
+  });
 });
