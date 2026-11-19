@@ -1,19 +1,22 @@
-import { useId } from 'react';
+/* eslint-disable i18next/no-literal-string -- the template's kind and state are prop values, not copy */
+import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { useActionCenterBoard, useAnalyticsFigures } from '../../api.js';
+import { useActionCenterBoard, useAnalyticsFigures, useAnalyticsFiguresAt } from '../../api.js';
 import { useOnline } from '../../data/index.js';
-import { StateNotice } from '../../patterns/frame.js';
-import { viewState, type ViewState } from '../../patterns/view-state.js';
+import { viewState } from '../../patterns/view-state.js';
+import { InsightBanner } from '../../ui/elements/index.js';
 import { Stack } from '../../ui/layout.js';
+import { Template, type TemplateProps } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
-import { FigureTile } from './FigureTile.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
 import { bannerOf } from './action-center.js';
-import { contentKind } from './figure-content.js';
+import { contentOf } from './figure-content.js';
+import { ContentFigure, NumberFigure, isNumberFigure } from './TodayFigures.js';
+import { COMPARE_DAYS, changeOf, priorDate } from './today-change.js';
 import { NeedsNow } from './NeedsNow.js';
-import { ACTION_CENTER_PATH, CHECKLIST_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
+import { ACTION_CENTER_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -30,17 +33,6 @@ function screenOf(raw: string | null): TodayScreen {
   return TODAY_SCREENS.find((screen) => screen === raw) ?? SCREEN_TODAY;
 }
 
-/** The Today group's screen menu; Action Center is its own route, like the checklist's. */
-const TODAY_LINKS = [
-  { screen: SCREEN_TODAY, to: '/analytics/today', labelKey: 'analytics.screen.dashboard' },
-  { screen: 'action-center', to: ACTION_CENTER_PATH, labelKey: 'analytics.screen.action-center' },
-  {
-    screen: SCREEN_TEAM,
-    to: `/analytics/today?screen=${SCREEN_TEAM}`,
-    labelKey: 'analytics.screen.team-focus',
-  },
-] as const;
-
 /** The platform's Action Center banner: the open high and medium counts, linking to the screen; hidden when none. */
 function ActionCenterBanner() {
   const { t } = useTranslation();
@@ -48,80 +40,107 @@ function ActionCenterBanner() {
   const banner = board.data === undefined ? null : bannerOf(board.data);
   if (banner === null) return null;
   return (
-    <Link
-      to={ACTION_CENTER_PATH}
-      className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-warning-tint p-4 text-body font-semibold text-warning-ink"
-    >
-      <span>
-        {t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium })}
-      </span>
-      <span className="text-footnote font-bold">{t('analytics.actionCenter.banner.open')}</span>
-    </Link>
-  );
-}
-
-function TodayNav({ current }: { current: string }) {
-  const { t } = useTranslation();
-  return (
-    <nav aria-label={t('analytics.today.nav')}>
-      <ul className="flex flex-wrap gap-1 rounded-xl bg-neutral-200 p-1">
-        {TODAY_LINKS.map((link) => (
-          <li key={link.screen}>
-            <Link
-              to={link.to}
-              // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={link.screen === current ? 'page' : undefined}
-              className="flex min-h-target-min items-center rounded-lg px-3 text-footnote font-semibold text-neutral-700 aria-[current=page]:bg-surface aria-[current=page]:text-neutral-900 aria-[current=page]:shadow-card"
-            >
-              {t(link.labelKey)}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
-/** The Dashboard tiles: every figure the engine registered for the home screen, plus the checklist's link. */
-function DashboardSection({ figures, group }: { figures: Figure[]; group: AnalyticsGroup }) {
-  const { t } = useTranslation();
-  const headingId = useId();
-  return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={headingId} className="text-title3 font-semibold">
-          {t('analytics.screen.dashboard')}
-        </h2>
+    <InsightBanner
+      tone="watch"
+      title={t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium })}
+      action={
         <Link
-          to={CHECKLIST_PATH}
-          className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
+          to={ACTION_CENTER_PATH}
+          className="inline-flex min-h-target-min items-center self-start text-footnote font-bold"
         >
-          {t('analytics.screen.data-checklist')}
+          {t('analytics.actionCenter.banner.open')}
         </Link>
-      </div>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {figures.map((figure) => {
-          const kind = contentKind(figure);
-          return (
-            <li
-              key={figure.key}
-              className={
-                kind !== null && kind !== 'text' ? 'sm:col-span-2 lg:col-span-3' : undefined
-              }
-            >
-              <FigureTile figure={figure} group={group} />
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+      }
+    />
   );
 }
 
 /**
- * The Today group (packet 38.3, extended by 43e): the Dashboard as the home, with its own screen menu for
- * Team Focus and Action Center. The strip above the tiles is built from the desk's existing /state. No money
- * appears on Today.
+ * The Dashboard on the overview template: number tiles in the figures row, then the strip, the pictures, the
+ * sentence and the ranked list. The change of each figure is against the same figure 30 days earlier.
+ */
+function DashboardTemplate({
+  frame,
+  figures,
+  group,
+  asOf,
+  excluded,
+  drill,
+}: {
+  frame: Frame;
+  figures: Figure[];
+  group: AnalyticsGroup;
+  asOf: string;
+  excluded: number;
+  drill: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const before = useAnalyticsFiguresAt(priorDate(asOf));
+  const prior = (figure: Figure) =>
+    changeOf(
+      figure,
+      before.data?.figures.find((other) => other.key === figure.key),
+      priorDate(asOf).slice(0, 4) === asOf.slice(0, 4),
+    );
+  const lede = [
+    t('analytics.asOf', { date: asOf }),
+    excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
+    before.data ? t('analytics.today.vs', { date: priorDate(asOf), days: COMPARE_DAYS }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ');
+  return (
+    <Template
+      {...frame}
+      kind="overview"
+      lede={lede}
+      figures={figures.filter(isNumberFigure).map((figure) => (
+        <NumberFigure key={figure.key} figure={figure} group={group} change={prior(figure)} />
+      ))}
+      main={
+        <>
+          {drill === null ? null : <div data-span="full">{drill}</div>}
+          <div data-span="full">
+            <NeedsNow />
+          </div>
+          {figures
+            .filter((figure) => !isNumberFigure(figure))
+            .map((figure) => (
+              <ContentFigure
+                key={figure.key}
+                figure={figure}
+                group={group}
+                change={prior(figure)}
+                content={contentOf(figure, t)}
+              />
+            ))}
+        </>
+      }
+    />
+  );
+}
+
+type Frame = Pick<TemplateProps, 'title'>;
+
+/** The screen's frame with the state line in place of the figures: loading, offline or the error with Retry. */
+function NotReady({ frame, state, onRetry }: { frame: Frame; state: string; onRetry: () => void }) {
+  if (state === 'error')
+    return <Template {...frame} kind="overview" state="error" onRetry={onRetry} main={null} />;
+  return (
+    <Template
+      {...frame}
+      kind="overview"
+      state={state === 'offline' ? 'offline' : 'loading'}
+      main={null}
+    />
+  );
+}
+
+/**
+ * The Today group (packet 38.3, extended by 43e; rebuilt in the Instrument look by ticket 86): the Dashboard as the
+ * home, on the overview template, with its own screen menu for Team Focus and Action Center. Every number is the
+ * engine's own value with its unit and, against the figure 30 days earlier, its change. The strip is built from the
+ * desk's existing /state. No money appears on Today.
  */
 export function Dashboard({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
@@ -135,35 +154,47 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
     isEmpty: false,
     error: figures.error,
   });
+  const team = screen === SCREEN_TEAM;
+  const title = t(team ? 'analytics.screen.team-focus' : 'analytics.screen.dashboard');
+  const frame = {
+    title,
+  };
   if (state !== 'ready' || !figures.data)
     return (
-      <StateNotice
-        state={state as Exclude<ViewState, 'ready'>}
-        empty={t('analytics.empty')}
-        onRetry={() => void figures.refetch()}
-      />
+      <Stack gap={4}>
+        <ActionCenterBanner />
+        <NotReady frame={frame} state={state} onRetry={() => void figures.refetch()} />
+      </Stack>
     );
   const loaded = figures.data;
   const drill = parseDrill(params.get('drill'));
   const figureOf = (key: string) => loaded.figures.find((figure) => figure.key === key);
+  const drillTable = drill === null ? null : <DrillTable group={group} drill={drill} />;
   return (
-    <Stack gap={6}>
+    <Stack gap={4}>
       <ActionCenterBanner />
-      <TodayNav current={screen} />
-      <p className="text-footnote text-neutral-600">
-        {t('analytics.asOf', { date: loaded.asOf })}
-        {loaded.excludedMachines > 0
-          ? ` · ${t('analytics.excludedMachines', { count: loaded.excludedMachines })}`
-          : ''}
-      </p>
-      {screen === SCREEN_TEAM ? null : <NeedsNow />}
-      {drill === null ? null : <DrillTable group={group} drill={drill} />}
-      {screen === SCREEN_TEAM ? (
-        <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
+      {team ? (
+        <Template
+          {...frame}
+          kind="overview"
+          lede={t('analytics.asOf', { date: loaded.asOf })}
+          main={
+            <>
+              {drillTable === null ? null : <div data-span="full">{drillTable}</div>}
+              <div data-span="full">
+                <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
+              </div>
+            </>
+          }
+        />
       ) : (
-        <DashboardSection
+        <DashboardTemplate
+          frame={frame}
           figures={loaded.figures.filter((figure) => figure.screen === SCREEN_TODAY)}
           group={group}
+          asOf={loaded.asOf}
+          excluded={loaded.excludedMachines}
+          drill={drillTable}
         />
       )}
     </Stack>

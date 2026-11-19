@@ -265,6 +265,8 @@ function timeline(value: ObjectValue, t: TFunction): FigureContent | null {
       categories: (Array.isArray(value.labels) ? value.labels : []).map((label) => String(label)),
       bars: series.slice(0, -1),
       line,
+      legend: true,
+      draw: true,
     },
   };
 }

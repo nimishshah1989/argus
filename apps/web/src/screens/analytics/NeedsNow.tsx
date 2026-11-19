@@ -1,9 +1,10 @@
-import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getConfig, getState, type Ticket } from '../../api.js';
 import { formatMinutes, formatTime } from '../../components/format.js';
+import { Card } from '../../ui/card.js';
+import { LoadingState, StatusChip } from '../../ui/elements/index.js';
 import { typeLine, timeLine, pausedBreakdowns, pendingTasks } from '../desk/openLists.js';
 
 /** A clock that has run out on this ticket: the acknowledgement or the restore target. */
@@ -49,24 +50,20 @@ function NeedRow({ ticket, now, code }: { ticket: Ticket; now: string; code: str
   const line = timeLine(ticket, now);
   const breach = breachOf(ticket);
   return (
-    <li className="flex flex-wrap items-start justify-between gap-3 border-t border-neutral-200 py-3">
-      <span className="min-w-0">
-        <span className="block text-footnote font-semibold text-neutral-900">
+    <li className="flex flex-wrap items-start justify-between gap-3 border-t border-neutral-200 pt-3">
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-footnote font-semibold text-neutral-900">
           {code} · {ticket.ref}
         </span>
-        <span className="block text-body text-neutral-900">{ticket.problem}</span>
-        <span className="block text-footnote text-neutral-600">
+        <span className="text-body text-neutral-900">{ticket.problem}</span>
+        <span className="text-footnote text-neutral-600">
           {t(kind.key, { date: kind.date })} ·{' '}
           {t(line.key, {
             time: formatMinutes(line.minutes),
             since: line.since ? formatTime(line.since) : '',
           })}
         </span>
-        {breach ? (
-          <span className="mt-1 inline-block rounded-full bg-danger-tint px-2.5 py-1 text-caption font-bold text-danger-ink">
-            {t(BREACH_KEY[breach])}
-          </span>
-        ) : null}
+        {breach ? <StatusChip tone="bad">{t(BREACH_KEY[breach])}</StatusChip> : null}
       </span>
       <Link
         to={`/desk/${ticket.id}`}
@@ -84,7 +81,6 @@ function NeedRow({ ticket, now, code }: { ticket: Ticket; now: string; code: str
  */
 export function NeedsNow() {
   const { t } = useTranslation();
-  const headingId = useId();
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const loaded = state.data !== undefined;
@@ -99,31 +95,23 @@ export function NeedsNow() {
     ticket.location ??
     ticket.ref;
   return (
-    <section
-      aria-labelledby={headingId}
-      className="flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={headingId} className="text-title3 font-semibold">
-          {t('analytics.needsNow.title')}
-        </h2>
+    <Card named title={t('analytics.needsNow.title')}>
+      {loaded ? (
         <p className="text-footnote text-neutral-600">
-          {loaded ? t('analytics.needsNow.counts', { items: items.length, clocks }) : null}
+          {t('analytics.needsNow.counts', { items: items.length, clocks })}
         </p>
-      </div>
+      ) : null}
       {!loaded ? (
-        <p role="status" className="text-body text-neutral-600">
-          {t('common.loading')}
-        </p>
+        <LoadingState label={t('common.loading')} tiles={1} />
       ) : items.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.needsNow.empty')}</p>
       ) : (
-        <ul>
+        <ul className="flex flex-col gap-3">
           {items.map((ticket) => (
             <NeedRow key={ticket.id} ticket={ticket} now={now} code={code(ticket)} />
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

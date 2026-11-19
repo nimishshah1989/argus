@@ -11,7 +11,7 @@ export { GroupedNav, type NavGroup, type NavItem } from './grouped-nav.js';
 export { familyStep, RAMP_STEPS, type Family, type RampStep } from './family.js';
 export { HeatGrid } from './heat-grid.js';
 export { InsightBanner } from './insight-banner.js';
-export { KpiTile } from './kpi-tile.js';
+export { KpiTile, NO_VALUE } from './kpi-tile.js';
 export { PeriodPicker, type DateRange, type Period } from './period-picker.js';
 export { RankedList, type RankedItem } from './ranked-list.js';
 export { Sparkline } from './sparkline.js';

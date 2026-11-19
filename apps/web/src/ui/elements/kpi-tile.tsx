@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import { ChevronRight } from '../icon.js';
-import { toneOfChange, type Measure, type Tone4 } from '../meaning/index.js';
+import { roundMove, toneOfChange, type Measure, type Tone4 } from '../meaning/index.js';
 import { FAMILY_EDGE, type Family } from './family.js';
 import { useCountUp } from './motion.js';
 import { Sparkline } from './sparkline.js';
@@ -21,6 +22,12 @@ interface KpiTileProps {
   verdict?: string;
   change?: { measure: Measure; delta: number };
   trend?: { values: number[]; label: string };
+  /** The word unit, printed smaller beside the value (`format` then returns the number alone). */
+  unit?: string;
+  /** A quiet line in no tone, for what is not a verdict (an amount added since the last period). */
+  note?: string;
+  /** A small mark at the label's end on a plain tile that something else (a link over it) makes tappable. A tile with `onOpen` draws its own chevron and ignores this, so a tile never shows two. */
+  action?: ReactNode;
   /**
    * The figure's identity family (availability, downtime, repairs, planned): the edge and the trend line wear its
    * colour. A family says what the figure is, never whether it is good: the tone is still said by the chip and the
@@ -42,14 +49,14 @@ type Shown = KpiTileProps & { own: Tone4; frame: string; figure: string };
 export function KpiTile(props: KpiTileProps) {
   const { value, format, tone = 'neutral', verdict, change, family } = props;
   const shown = useCountUp(value ?? 0);
-  // A colour is only used when a word or icon says it too: the change's own, or the verdict chip.
+  // A colour is only used when a word or icon says it too: the rounded change's own, or the verdict chip.
   const own = change
-    ? toneOfChange(change.measure.better, change.delta)
+    ? toneOfChange(change.measure.better, roundMove(change.delta))
     : verdict
       ? tone
       : 'neutral';
   const edge = family ? FAMILY_EDGE[family] : TONE_EDGE[own];
-  const frame = `flex min-w-0 flex-col gap-1 rounded-tile border-l-4 bg-surface p-4 shadow-card ${edge}`;
+  const frame = `flex h-full min-w-0 flex-col gap-1 rounded-tile border-l-4 bg-surface p-4 shadow-card ${edge}`;
   const shownProps: Shown = {
     ...props,
     own,
@@ -57,6 +64,23 @@ export function KpiTile(props: KpiTileProps) {
     figure: value === null ? NO_VALUE : format(shown),
   };
   return props.onOpen ? <KpiButton {...shownProps} /> : <KpiPlain {...shownProps} />;
+}
+
+/** The value, with its word unit smaller beside it (under it on a phone, so a long unit never breaks). */
+function Headline({ figure, unit, as: Tag }: { figure: string; unit?: string; as: 'span' | 'dd' }) {
+  return (
+    <Tag className={`text-title2 font-bold tabular-nums ${WRAP}`}>
+      {figure}
+      {unit && figure !== NO_VALUE ? (
+        <>
+          {' '}
+          <span className="block whitespace-nowrap text-footnote font-semibold text-neutral-600 sm:inline">
+            {unit}
+          </span>
+        </>
+      ) : null}
+    </Tag>
+  );
 }
 
 /**
@@ -78,12 +102,13 @@ function KpiButton(p: Shown) {
         <span className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</span>
         <ChevronRight aria-hidden size={16} className="mt-0.5 shrink-0 text-neutral-600" />
       </span>
-      <span className={`text-title2 font-bold tabular-nums ${WRAP}`}>{p.figure}</span>
+      <Headline figure={p.figure} unit={p.unit} as="span" />
       {p.verdict ? (
         <span>
           <StatusChip tone={p.own}>{p.verdict}</StatusChip>
         </span>
       ) : null}
+      {p.note ? <span className="text-footnote text-neutral-600">{p.note}</span> : null}
       <Moves {...p} as="span" />
     </button>
   );
@@ -93,13 +118,17 @@ function KpiButton(p: Shown) {
 function KpiPlain(p: Shown) {
   return (
     <dl data-tone={p.own} data-family={p.family} className={p.frame}>
-      <dt className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</dt>
-      <dd className={`text-title2 font-bold tabular-nums ${WRAP}`}>{p.figure}</dd>
+      <dt className="flex items-start justify-between gap-2 text-footnote text-neutral-600">
+        <span className={WRAP}>{p.label}</span>
+        {p.action}
+      </dt>
+      <Headline figure={p.figure} unit={p.unit} as="dd" />
       {p.verdict ? (
         <dd>
           <StatusChip tone={p.own}>{p.verdict}</StatusChip>
         </dd>
       ) : null}
+      {p.note ? <dd className="text-footnote text-neutral-600">{p.note}</dd> : null}
       <Moves {...p} as="dd" />
     </dl>
   );

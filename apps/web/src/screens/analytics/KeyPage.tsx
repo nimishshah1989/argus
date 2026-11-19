@@ -22,11 +22,14 @@ export function KeyPage({
   figure,
   group,
   renderTable,
+  untitled,
 }: {
   figure: Figure | undefined;
   group: AnalyticsGroup;
   /** A screen's own card for one table (A4's Specialization); every other table keeps the shared renderer. */
   renderTable?: (table: PageTable, index: number) => ReactNode;
+  /** The screen's own header already names the page, so the engine's title is not printed a second time. */
+  untitled?: boolean;
 }) {
   const { t } = useTranslation();
   const content = figure ? contentOf(figure, t) : null;
@@ -38,7 +41,10 @@ export function KeyPage({
     );
   return (
     <Stack gap={4}>
-      <PageFigure content={content} renderTable={renderTable} />
+      <PageFigure
+        content={untitled ? { ...content, title: '' } : content}
+        renderTable={renderTable}
+      />
       <FigureDrill figure={figure} group={group} />
     </Stack>
   );

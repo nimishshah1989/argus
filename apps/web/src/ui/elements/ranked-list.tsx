@@ -22,7 +22,7 @@ export function barShare(value: number, max: number): number {
  * Items in falling order of value (the list sorts them), each with its rank, label, printed value and a bar. The
  * bar repeats the number; it never carries it.
  */
-export function RankedList({ items }: { items: RankedItem[] }) {
+export function RankedList({ items, anchor }: { items: RankedItem[]; anchor?: boolean }) {
   if (items.length === 0) return null;
   const sorted = [...items].sort((a, b) => b.value - a.value);
   const max = sorted[0]!.value;
@@ -44,7 +44,7 @@ export function RankedList({ items }: { items: RankedItem[] }) {
               <span
                 data-bar
                 style={{ width: `${barShare(item.value, max)}%` }}
-                className={`block h-2 rounded-full ${TONE_BAR[item.word ? (item.tone ?? 'neutral') : 'neutral']}`}
+                className={`block h-2 rounded-full ${anchor && at === 0 && !item.word ? 'bg-accent-strong' : TONE_BAR[item.word ? (item.tone ?? 'neutral') : 'neutral']}`}
               />
             </span>
             {item.word ? <StatusChip tone={item.tone ?? 'neutral'}>{item.word}</StatusChip> : null}

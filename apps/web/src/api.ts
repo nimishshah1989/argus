@@ -167,8 +167,13 @@ export function getState(): Promise<State> {
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
-/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
+/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today (or an earlier date, for a change). */
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
+export const useAnalyticsFiguresAt = (asOf: string) =>
+  useQuery({
+    queryKey: ['analytics-figures', 'at', asOf],
+    queryFn: () => analyticsFigures.list({ asOf }) as unknown as Promise<FiguresReply>,
+  });
 
 /**
  * `GET /pm/calendar?from&to` (50c): the six-week grid's occurrences, parsed at this boundary. The range is the

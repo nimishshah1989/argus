@@ -141,7 +141,7 @@ async function openCompare(page: Page): Promise<void> {
 /** Team Focus: the three KPIs, the six lane groups and all 31 actions with their defaults. */
 async function openTeamFocus(page: Page): Promise<void> {
   await page.goto(`/analytics/today?screen=${SCREEN_TEAM}`);
-  const nav = page.getByRole('navigation', { name: 'Today screens', exact: true });
+  const nav = page.getByRole('navigation', { name: 'Screens in People & money', exact: true });
   await expect(nav.getByRole('link', { name: 'Team Focus', exact: true })).toHaveAttribute(
     'aria-current',
     'page',

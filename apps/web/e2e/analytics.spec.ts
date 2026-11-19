@@ -1,7 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
-import { HOUR_FIGURES } from '../src/screens/analytics/groups.js';
 import { signIn } from './fixtures.js';
 
 /** A fake id: the figure drills to it and the drill reply names the same machine row. */
@@ -51,17 +50,36 @@ const DRILL_ROW = {
 
 type Figure = FiguresReply['figures'][number];
 
+/** The unit each Today number prints after its value; the six fleet counts have none. */
+const UNIT_AFTER: Record<string, string> = {
+  'dashboard.total-downtime-hours': ' hrs',
+  'dashboard.pm-hours': ' hrs',
+  'dashboard.no-downtime-hours': ' hrs',
+  'dashboard.plant-events': ' hrs',
+  'dashboard.fleet-availability': '%',
+  'dashboard.plant-bd-pct': '%',
+  'dashboard.avg-complaints-per-day': ' /day',
+  'dashboard.avg-bd-hours-per-day': ' hrs/day',
+  'dashboard.avg-bd-hours-per-machine': ' hrs/machine',
+};
+
 /**
  * The text a tile prints for a scalar value: a number's exact face, a string as it came, yes/no. Null when the
  * value is not a scalar: a ready null prints "—" and an object renders its own content, both asserted structurally.
  */
 const valueText = (figure: Figure): string | null => {
   const value = figure.value;
-  if (typeof value === 'number')
-    return new Intl.NumberFormat('en-GB', {
-      minimumFractionDigits: HOUR_FIGURES.has(figure.key) ? 1 : 0,
-      maximumFractionDigits: 2,
+  if (typeof value === 'number') {
+    // Written out here, not taken from the product's formatter: Indian grouping, the engine's own places (an hours
+    // figure at least one), and the unit after it, e.g. 1,343 and 2,145.5 hrs and 94.37%.
+    const places = Math.min(2, (String(value).split('.')[1] ?? '').length);
+    const hours = UNIT_AFTER[figure.key]?.startsWith(' hrs') === true;
+    const number = new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: hours ? Math.max(1, places) : places,
+      maximumFractionDigits: hours ? Math.max(1, places) : places,
     }).format(value);
+    return `${number}${UNIT_AFTER[figure.key] ?? ''}`;
+  }
   if (typeof value === 'string') return value;
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return null;
@@ -282,7 +300,9 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   // One drill opens the rows behind its figure, in the table the face already has.
   const drilled = ready.find((figure) => figure.drill.ids.length > 0);
   expect(drilled).toBeTruthy();
-  await tile(page, drilled!.key).getByRole('link', { name: 'See the rows', exact: true }).click();
+  await tile(page, drilled!.key)
+    .getByRole('link', { name: /^See the rows/ })
+    .click();
   await expect(page).toHaveURL(/\/analytics\/today\?drill=/);
   const drill = page
     .locator('section')
@@ -356,7 +376,7 @@ test('a ready figure opens the table of rows behind it', async ({ page }, testIn
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');
   await expect(tile(page, 'dashboard.total-machines')).toContainText('12');
   await tile(page, 'dashboard.total-machines')
-    .getByRole('link', { name: 'See the rows', exact: true })
+    .getByRole('link', { name: /^See the rows/ })
     .click();
 
   // The drill table is the plain list of what identifies each row.

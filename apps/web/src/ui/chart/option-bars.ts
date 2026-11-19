@@ -79,6 +79,7 @@ export function mixedOption(spec: MixedSpec, p: Palette): Option {
   const names = [...spec.bars, ...(spec.line === undefined ? [] : [spec.line])].map((s) => s.name);
   return {
     ...baseOption(p, 16, legend, names),
+    ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
     xAxis: categoryAxis(spec.categories, p),
     yAxis: [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }],
@@ -98,6 +99,8 @@ export function mixedOption(spec: MixedSpec, p: Palette): Option {
               spec.line.name,
               spec.line.values,
               legend ? seriesColor(p, spec.bars.length) : p.series[1],
+              // With a legend the line is named there; an end label would crowd the right axis.
+              legend ? { endLabel: { show: false } } : {},
             ),
           ]),
     ],

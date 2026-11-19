@@ -70,6 +70,9 @@
   border-radius: var(--radius-control);
   background: var(--color-surface);
 }
+.as-period select {
+  min-width: 10.5rem;
+}
 .as-period select:disabled {
   color: var(--color-neutral-600);
   cursor: not-allowed;
@@ -169,6 +172,19 @@
   border-bottom: 2px solid transparent;
   white-space: nowrap;
   color: var(--color-neutral-600);
+}
+@media (max-width: 480px) {
+  /* Tight padding so the three Today tabs fit on a phone, each on one line; a longer row scrolls. */
+  .as-tabs ul {
+    gap: 0;
+  }
+  .as-tabs a {
+    padding: 0 var(--spacing-step-2);
+    font-size: var(--text-footnote);
+  }
+  .as-search {
+    min-width: 0;
+  }
 }
 .as-tabs a[aria-current='page'] {
   border-bottom-color: var(--color-accent);

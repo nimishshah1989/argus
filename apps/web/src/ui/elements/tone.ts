@@ -31,7 +31,7 @@ export const TONE_EDGE: Record<Tone4, string> = {
   good: 'border-good-fill',
   watch: 'border-watch-fill',
   bad: 'border-bad-fill',
-  neutral: 'border-neutral-fill',
+  neutral: 'border-transparent',
 };
 
 export const TONE_STROKE: Record<Tone4, string> = {

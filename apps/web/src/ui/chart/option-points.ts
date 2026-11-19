@@ -55,6 +55,8 @@ export function scatterOption(spec: ScatterSpec, p: Palette): Option {
   };
   return {
     ...baseOption(p, 24, false),
+    // Room for both axis titles, which sit outside the labels.
+    grid: { ...(baseOption(p, 24, false).grid as object), left: 28, bottom: 32 },
     tooltip: {
       trigger: 'item',
       confine: true,
