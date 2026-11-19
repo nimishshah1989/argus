@@ -31,6 +31,23 @@ function arrows(keys: [string, string]) {
   };
 }
 
+/** Tab and Shift Tab loop inside the open drawer, so focus never reaches the page behind it. */
+function trap(e: KeyboardEvent<HTMLElement>) {
+  if (e.key !== 'Tab') return;
+  const links = [...e.currentTarget.querySelectorAll<HTMLElement>('a[href]')];
+  const first = links[0];
+  const last = links[links.length - 1];
+  if (!first || !last) return;
+  const here = document.activeElement;
+  if (e.shiftKey && here === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && here === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 /** The left menu: one link per section the login may open, then the way back to the desk. */
 function SideMenu({
   sections,
@@ -45,34 +62,41 @@ function SideMenu({
 }) {
   const { t } = useTranslation();
   return (
-    <nav
-      id="analytics-menu"
+    <div
       className="as-side"
       data-open={open}
-      aria-label={t('analytics.menu')}
-      onKeyDown={arrows(['ArrowDown', 'ArrowUp'])}
+      role={open ? 'dialog' : undefined}
+      aria-modal={open ? true : undefined}
+      aria-label={open ? t('analytics.menu') : undefined}
+      onKeyDown={open ? trap : undefined}
     >
-      <ul>
-        {sections.map((section) => (
-          <li key={section.id}>
-            <Link
-              to={section.tabs[0]!.to}
-              data-nav-item
-              onClick={onGo}
-              // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={section.id === current ? 'page' : undefined}
-            >
-              {t(section.label)}
+      <nav
+        id="analytics-menu"
+        aria-label={t('analytics.menu')}
+        onKeyDown={arrows(['ArrowDown', 'ArrowUp'])}
+      >
+        <ul>
+          {sections.map((section) => (
+            <li key={section.id}>
+              <Link
+                to={section.tabs[0]!.to}
+                data-nav-item
+                onClick={onGo}
+                // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
+                aria-current={section.id === current ? 'page' : undefined}
+              >
+                {t(section.label)}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link to="/desk" data-nav-item onClick={onGo}>
+              {t('nav.desk')}
             </Link>
           </li>
-        ))}
-        <li>
-          <Link to="/desk" data-nav-item>
-            {t('nav.desk')}
-          </Link>
-        </li>
-      </ul>
-    </nav>
+        </ul>
+      </nav>
+    </div>
   );
 }
 
@@ -126,6 +150,7 @@ export function AnalyticsShell({ children }: { children: ReactNode }) {
         drawer={ui.drawer}
         menuRef={ui.menuBtn}
         searchRef={ui.searchBtn}
+        inert={ui.drawer || ui.palette}
         onMenu={() => ui.setDrawer(true)}
         onSearch={() => ui.setPalette(true)}
       />
@@ -144,7 +169,7 @@ export function AnalyticsShell({ children }: { children: ReactNode }) {
           open={ui.drawer}
           onGo={ui.closeDrawer}
         />
-        <main className="as-main">
+        <main className="as-main" inert={ui.drawer || ui.palette}>
           <h1 className="as-title">{t(section.label)}</h1>
           <Tabs section={section} current={tab?.to} />
           <div className="as-content">{children}</div>

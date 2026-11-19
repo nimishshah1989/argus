@@ -18,6 +18,7 @@ export const analyticsShellEn = {
   'ashell.period.ytd': 'This year so far',
   'ashell.search.open': 'Search',
   'ashell.search.shortcut': 'Ctrl K',
+  'ashell.search.shortcutApple': '⌘ K',
   'ashell.search.title': 'Search sections and screens',
   'ashell.search.input': 'Type a section or screen name',
   'ashell.search.results': 'Results',

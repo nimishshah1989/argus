@@ -23,10 +23,9 @@ export function useOverlays() {
   const [drawer, setDrawer] = useState(false);
   const menuBtn = useRef<HTMLButtonElement>(null);
   const searchBtn = useRef<HTMLButtonElement>(null);
-  const closeDrawer = () => {
-    setDrawer(false);
-    menuBtn.current?.focus();
-  };
+  const was = useRef({ palette: false, drawer: false });
+  const closeDrawer = () => setDrawer(false);
+  const closePalette = () => setPalette(false);
   useGlobalKeys(
     () => {
       setPalette((open) => !open);
@@ -38,16 +37,25 @@ export function useOverlays() {
   );
   useEffect(() => {
     setDrawer(false);
-    setPalette(false); // a Back or Forward must not leave the search open over the new page
+    setPalette(false); // a Back or Forward must not leave either open over the new page
   }, [location.pathname, location.search]);
   useEffect(() => {
     if (drawer) document.querySelector<HTMLElement>('#analytics-menu [data-nav-item]')?.focus();
   }, [drawer]);
-  const closePalette = () => {
-    setPalette(false);
-    searchBtn.current?.focus();
-  };
+  // Whatever closes an overlay (Esc, the scrim, a choice, the shortcut, Back), focus returns to its opener once
+  // the page behind it is live again (it is inert while the overlay is open).
+  useEffect(() => {
+    if (was.current.palette && !palette) searchBtn.current?.focus();
+    else if (was.current.drawer && !drawer && !palette) menuBtn.current?.focus();
+    was.current = { palette, drawer };
+  }, [palette, drawer]);
   return { palette, setPalette, closePalette, drawer, setDrawer, closeDrawer, menuBtn, searchBtn };
+}
+
+/** True on an Apple device, where the search key is Cmd and not Ctrl. */
+function isApple(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 }
 
 /** Plant, period and search: the same header on every page. */
@@ -58,6 +66,7 @@ export function Header({
   searchRef,
   onMenu,
   onSearch,
+  inert,
 }: {
   company: string | undefined;
   drawer: boolean;
@@ -65,10 +74,11 @@ export function Header({
   searchRef: RefObject<HTMLButtonElement | null>;
   onMenu: () => void;
   onSearch: () => void;
+  inert: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <header className="as-header">
+    <header className="as-header" inert={inert}>
       <button
         ref={menuRef}
         type="button"
@@ -93,10 +103,11 @@ export function Header({
         type="button"
         className="as-search"
         aria-haspopup="dialog"
+        aria-keyshortcuts="Control+K Meta+K"
         onClick={onSearch}
       >
         <span>{t('ashell.search.open')}</span>
-        <kbd>{t('ashell.search.shortcut')}</kbd>
+        <kbd>{t(isApple() ? 'ashell.search.shortcutApple' : 'ashell.search.shortcut')}</kbd>
       </button>
     </header>
   );
