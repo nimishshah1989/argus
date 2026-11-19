@@ -1,0 +1,1 @@
+- Internal: the design document's Motion section says again that nothing on floor or desk runs past 300 ms (a test needs it). No change for a user.

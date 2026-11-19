@@ -69,3 +69,17 @@
     animation: none;
   }
 }
+
+/* A drill panel for a figure of an identity family wears the family's colour on its top edge (identity, not verdict). */
+.el-panel[data-family='availability'] {
+  border-top: 3px solid var(--color-family-availability);
+}
+.el-panel[data-family='downtime'] {
+  border-top: 3px solid var(--color-family-downtime);
+}
+.el-panel[data-family='repairs'] {
+  border-top: 3px solid var(--color-family-repairs);
+}
+.el-panel[data-family='planned'] {
+  border-top: 3px solid var(--color-family-planned);
+}

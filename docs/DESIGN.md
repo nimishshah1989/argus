@@ -266,7 +266,7 @@ rgb(0 0 0 / 0.1)`. Dark: a 1 px hairline, `0 0 0 1px #2c2c2e`, with no blur (LOC
   shadow, dark cards a hairline).
 - **Level 2, overlay.** A sheet or side panel over a scrim. Light: `0 -8px 24px rgb(0 0 0 / 0.16)`. Dark: the same
   with 0.5 opacity. **Today** the scrim is `neutral-900` at 40 % (`ui/sheet.tsx`); in dark `neutral-900` is `#f5f5f7`, so
-  the scrim lightens the backdrop there. **Target:** a black scrim at 40 % in both themes. The code does not change in
+  the scrim lightens the backdrop there. **Target:** a black scrim at 40 % in both themes; the token `--color-scrim` (`bg-scrim`) is that scrim and only `DrillPanel` uses it so far, `ui/sheet.tsx` keeps its own until the gallery baselines are regenerated. The code does not change in
   this packet.
 
 **The No-Nesting Rule.** No level 1 inside level 1. A tile on a card is a flat region (a `line` rule or surface-2),
@@ -385,7 +385,8 @@ all other motion runs once and is purposeful. Reduced motion switches all of it 
   when its filter, sort or page changes; a drill panel (`DrillPanel`) slides in from the right over 320 ms and out over 200 ms (its scrim fades over 200 ms each way); a chart
   drawn through the chart door with `draw: true` (bar, line, Pareto) draws in once over 700 ms.
 - **Opt in.** A chart that does not ask for `draw` stays still; a screen opts in per chart.
-- **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms.
+- **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms. Nothing on floor or desk runs past 300 ms.
+
 - **What moves, today, on floor and desk.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a
   floor tile (150 ms, `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives. Floor rows never
   animate in or reorder, and floor and desk figures never count up.

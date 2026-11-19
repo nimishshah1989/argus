@@ -46,7 +46,7 @@ export function loadEcharts(): ReturnType<typeof load> {
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
-interface Instance {
+export interface Instance {
   setOption(option: unknown, opts?: { notMerge: boolean }): void;
   resize(): void;
   dispose(): void;
@@ -78,6 +78,21 @@ function attach(
       made.dispose();
     },
   };
+}
+
+/**
+ * Replace the option of a live chart with new data: measured again first (its box may have changed width since it was
+ * made), then drawn in place with no animation. `ready` if it drew, `error` if the spec could not be drawn; the next
+ * good spec recovers.
+ */
+export function refresh(made: Instance, build: () => unknown): ChartState {
+  try {
+    made.resize();
+    made.setOption(build(), { notMerge: true });
+    return 'ready';
+  } catch {
+    return 'error';
+  }
 }
 
 /** The option for the spec held in `key`, framed for the first draw of an instance or for a later update. */
@@ -140,11 +155,7 @@ export function useChart(spec: ChartSpec): {
   useEffect(() => {
     const el = ref.current;
     if (!chart.current || !el) return;
-    try {
-      chart.current.setOption(optionFor(el, key, false), { notMerge: true });
-    } catch {
-      setState('error');
-    }
+    setState(refresh(chart.current, () => optionFor(el, key, false)));
   }, [key]);
   return { ref, state };
 }

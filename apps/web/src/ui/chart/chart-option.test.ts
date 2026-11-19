@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
+import { refresh } from './use-chart.js';
 import { frameOption, settle } from './chart-parts.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
 import { contrast, mix, parseHex } from './chart-color.js';
@@ -319,5 +320,32 @@ describe('draw-in', () => {
     expect(frameOption(asked, { first: true, reduced: false }).animation).toBe(true);
     expect(frameOption(asked, { first: false, reduced: false }).animation).toBe(false);
     expect(frameOption(asked, { first: true, reduced: true }).animation).toBe(false);
+  });
+});
+
+describe('a live chart that gets new data', () => {
+  const fake = () => {
+    const calls: string[] = [];
+    return {
+      calls,
+      made: {
+        resize: () => calls.push('resize'),
+        setOption: () => calls.push('setOption'),
+        dispose: () => undefined,
+      },
+    };
+  };
+
+  it('is measured again before the new data is drawn, so a width change since mount is picked up', () => {
+    const { made, calls } = fake();
+    expect(refresh(made, () => chartOption(specs.bar!, palette))).toBe('ready');
+    expect(calls).toEqual(['resize', 'setOption']);
+  });
+
+  it('recovers: a spec that cannot be drawn is an error, the next good one is ready again', () => {
+    const { made } = fake();
+    const bad = { ...specs.line!, secondAxis: true } as ChartSpec; // needs exactly two series
+    expect(refresh(made, () => chartOption(bad, palette))).toBe('error');
+    expect(refresh(made, () => chartOption(specs.line!, palette))).toBe('ready');
   });
 });

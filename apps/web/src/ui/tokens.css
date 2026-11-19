@@ -252,7 +252,7 @@
   --shadow-card: 0 0 0 1px #2c2c2e;
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.5);
   --shadow-panel: -8px 0 24px rgb(0 0 0 / 0.5);
-  --color-scrim: rgb(0 0 0 / 0.6);
+  --color-scrim: rgb(0 0 0 / 0.4);
 
   --color-series-1: #76e5e5;
   --color-series-2: #c63968;
