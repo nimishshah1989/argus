@@ -1,0 +1,1 @@
+- Money Matters is rebuilt in the new look. The ten money figures are tiles that print the engine's own text (for example "₹ 38.23 lakh"), then the chart (it draws in once and keeps "Show the numbers"), the two tables with paging and sorting, and "See the rows". A login that may not read money still sees the plain refusal.
