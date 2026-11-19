@@ -1,4 +1,4 @@
-import { a9RiskCore } from './a9-bottleneck.js';
+import { a9RiskCore, coreDays } from './a9-bottleneck.js';
 import {
   episodesOf,
   fleetRows,
@@ -337,7 +337,8 @@ export const teamFocusFigure: Computer = ({ data, asOf, profile }) => {
   if (core === null) return { value: null, drillIds: [] };
   const board = forecastBoard(core, episodesOf(fleetRows(data)), FC_RUNS);
   const analysis = analyzeProblems(data);
-  const months = Math.max(1, ((dayNumber(core.to) ?? 0) - (dayNumber(core.from) ?? 0)) / 30.44);
+  // The platform's day difference (to - from) over 30.44, less the days of a month the plant recorded nothing in.
+  const months = Math.max(1, (coreDays(core) - 1) / 30.44);
   const month = focusMonthOf(core.to, board.month.label);
   const actions = [
     ...laneA(board.models, month),
