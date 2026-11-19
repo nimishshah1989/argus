@@ -1,10 +1,7 @@
 /**
- * The platform's green heat scale, now used only by the engine's heat matrices (`parts.tsx`: the breakdown month
- * grids). The energy screen draws its tiles from the shared elements and no longer paints its own.
- */
-/**
- * The platform's flat green scale: light green for a low load, dark green for a high one, mid green for a grid
- * whose loads are all equal. Kept as the platform's own formula because A5's tile colour is the figure's data.
+ * The platform's flat green scale for the engine's heat matrices (`parts.tsx`: the breakdown month grids): light
+ * green for a low value, dark green for a high one, mid green for a grid whose values are all equal. Kept as the
+ * platform's own formula because the colour is the figure's data. The energy screen no longer paints its own tiles.
  */
 export function heatT(value: number, min: number, max: number): number {
   return max <= min ? 0.5 : Math.max(0, Math.min(1, (value - min) / (max - min)));

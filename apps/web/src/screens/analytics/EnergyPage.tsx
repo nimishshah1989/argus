@@ -59,6 +59,7 @@ function Grids({
           grid={content.byCell}
           id="cell"
           title={t('analytics.energy.cellTitle')}
+          axisLabel={t('analytics.drill.cell')}
           description={t('analytics.energy.cellDescription', { pct: content.effFactorPct })}
           onPick={(key) => onPick({ axis: AXIS_CELL, key })}
         />
@@ -68,6 +69,7 @@ function Grids({
           grid={content.byLocation}
           id="location"
           title={t('analytics.energy.locationTitle')}
+          axisLabel={t('analytics.energy.axisLocation')}
           description={t('analytics.energy.locationDescription')}
           onPick={(key) => onPick({ axis: AXIS_LOCATION, key })}
         />
@@ -77,6 +79,7 @@ function Grids({
           grid={content.byMachine}
           id="machine"
           title={t('analytics.energy.machineTitle')}
+          axisLabel={t('analytics.drill.cell')}
           description={t('analytics.energy.machineDescription')}
         />
       </div>
@@ -91,6 +94,35 @@ function Grids({
         </div>
       ) : null}
     </>
+  );
+}
+
+/** The side panel of the machines behind a tile; the last tile stays in it while it slides out. */
+function TilePanel({
+  content,
+  pick,
+  open,
+  ids,
+  onClose,
+}: {
+  content: EnergyContent;
+  pick: Pick | null;
+  open: boolean;
+  ids: readonly string[];
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DrillPanel
+      open={open && pick !== null && tileOf(content, pick) !== null}
+      onClose={onClose}
+      title={pick === null ? '' : titleOf(t, pick)}
+      closeLabel={t('analytics.energy.back')}
+    >
+      {pick === null ? null : (
+        <EnergyRows ids={ids} where={(row) => matches(row, pick)} caption={titleOf(t, pick)} />
+      )}
+    </DrillPanel>
   );
 }
 
@@ -111,6 +143,8 @@ export function EnergyPage({
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const [pick, setPick] = useState<Pick | null>(null);
+  // The panel closes by its own flag, so the last tile's title and rows stay while it slides out.
+  const [open, setOpen] = useState(false);
   const content = figure ? contentOf(figure, t) : null;
   if (!figure || figure.status !== 'ready' || content?.kind !== 'energy')
     return (
@@ -140,21 +174,21 @@ export function EnergyPage({
               figure={figure}
               group={group}
               linked={linked}
-              onPick={setPick}
+              onPick={(next) => {
+                setPick(next);
+                setOpen(true);
+              }}
             />
           </>
         }
       />
-      <DrillPanel
-        open={pick !== null && tileOf(content, pick) !== null}
-        onClose={() => setPick(null)}
-        title={pick === null ? '' : titleOf(t, pick)}
-        closeLabel={t('analytics.energy.back')}
-      >
-        {pick === null ? null : (
-          <EnergyRows ids={ids} where={(row) => matches(row, pick)} caption={titleOf(t, pick)} />
-        )}
-      </DrillPanel>
+      <TilePanel
+        content={content}
+        pick={pick}
+        open={open}
+        ids={ids}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }

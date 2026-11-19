@@ -2,11 +2,25 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { MachineRow } from '@uptimo/domain';
+import { MAX_DRILL_IDS } from '@uptimo/shared/analytics';
 import { getDrill } from '../../api.js';
 import { DataTable, LoadingState, useClientTable, type Column } from '../../ui/elements/index.js';
 import { useTableLabels } from './key-body.js';
 
 const NO_CELL = '—';
+
+/** The ids in runs of at most one drill ask may take (the endpoint refuses more than `MAX_DRILL_IDS`). */
+export function chunkIds(ids: readonly string[], size = MAX_DRILL_IDS): string[][] {
+  const runs: string[][] = [];
+  for (let at = 0; at < ids.length; at += size) runs.push(ids.slice(at, at + size));
+  return runs;
+}
+
+/** Every machine behind a figure, asked for in runs the endpoint accepts, in the figure's order. */
+export async function fetchMachineRows(ids: readonly string[]): Promise<MachineRow[]> {
+  const replies = await Promise.all(chunkIds(ids).map((run) => getDrill('machine', run)));
+  return replies.flatMap((reply) => reply.rows as MachineRow[]);
+}
 
 const text = (row: MachineRow) => `${row.code} ${row.cell ?? ''}`;
 
@@ -25,11 +39,11 @@ export function EnergyRows({
 }) {
   const { t } = useTranslation();
   const reply = useQuery({
-    queryKey: ['analytics-drill', 'machine', ids],
-    queryFn: () => getDrill('machine', ids),
+    queryKey: ['analytics-energy-rows', ids],
+    queryFn: () => fetchMachineRows(ids),
   });
   const labels = useTableLabels(caption);
-  const rows = ((reply.data?.rows ?? []) as MachineRow[]).filter(where);
+  const rows = (reply.data ?? []).filter(where);
   const columns: Column<MachineRow>[] = [
     {
       id: 'code',

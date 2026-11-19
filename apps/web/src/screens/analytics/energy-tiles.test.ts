@@ -27,6 +27,7 @@ const draw = (onPick?: (key: string) => void) =>
       grid,
       id: 'cell',
       title: 'Load by Cell',
+      axisLabel: 'Cell',
       description: 'About the grid',
       ...(onPick === undefined ? {} : { onPick }),
     }),

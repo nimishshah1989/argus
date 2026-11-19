@@ -68,13 +68,13 @@ function EnergyTileView({
 }
 
 /** Connected beside running load for each tile of a load grid, the picture the tiles' colour used to give. */
-function loadChart(grid: EnergyGrid, title: string, t: TFunction): ChartSpec {
+function loadChart(grid: EnergyGrid, title: string, axisLabel: string, t: TFunction): ChartSpec {
   const unit = t('analytics.energy.unit');
   const present = (value: number, tile: EnergyTile) => (tile.machines === 0 ? undefined : value);
   return {
     kind: 'bar',
     title,
-    categoryLabel: title,
+    categoryLabel: axisLabel,
     categories: grid.tiles.map((tile) => nameOf(tile, t)),
     valueLabel: unit,
     series: [
@@ -97,12 +97,15 @@ export function EnergyGridView({
   grid,
   id,
   title,
+  axisLabel,
   description,
   onPick,
 }: {
   grid: EnergyGrid;
   id: GridId;
   title: string;
+  /** The short word for what the tiles are (Cell, Location): the first column of the chart's numbers. */
+  axisLabel: string;
   description: string;
   /** Absent on the average grid: the platform drills the two load grids, not the normalized one. */
   onPick?: (key: string) => void;
@@ -116,7 +119,7 @@ export function EnergyGridView({
       </div>
       {grid.showRunning ? (
         <Card>
-          <Chart spec={loadChart(grid, title, t)} quietTitle />
+          <Chart spec={loadChart(grid, title, axisLabel, t)} quietTitle />
         </Card>
       ) : null}
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
