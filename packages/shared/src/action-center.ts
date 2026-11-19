@@ -84,6 +84,30 @@ export const nudgeAckBodySchema = z
   .strict();
 export type NudgeAckBody = z.infer<typeof nudgeAckBodySchema>;
 
+/**
+ * `POST /analytics/action-center/nudges/:key/ticket`: accept a nudge into one linked inspection ticket (52 R17).
+ * A nudge that names one machine needs no choice; one that names several needs one of its own machines.
+ */
+export const nudgeAcceptSchema = z
+  .object({
+    machineId: z.string().uuid().optional(),
+  })
+  .strict();
+export type NudgeAcceptBody = z.infer<typeof nudgeAcceptSchema>;
+
+/**
+ * The ticket an accepted nudge raised: the ticket's id and reference, and whether this call raised it. A second
+ * accept names the same ticket (`created:false`) for the nudge key's lifetime.
+ */
+export const nudgeTicketReplySchema = z
+  .object({
+    ticketId: z.string().uuid(),
+    ref: z.string().min(1),
+    created: z.boolean(),
+  })
+  .strict();
+export type NudgeTicketReply = z.infer<typeof nudgeTicketReplySchema>;
+
 /** One board card: the figure's six fields plus its status, evidence, exclusion and stored ack. */
 export const boardNudgeSchema = z
   .object({

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { actionCenterBoardSchema } from './action-center.js';
+import { actionCenterBoardSchema, nudgeTicketReplySchema } from './action-center.js';
 import {
   drillReplySchema,
   figuresReplySchema,
@@ -215,6 +215,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/analytics/action-center`]: actionCenterBoardSchema,
   [`PUT ${P}/analytics/action-center/nudges/:key`]: actionCenterBoardSchema,
   [`DELETE ${P}/analytics/action-center/nudges/:key`]: actionCenterBoardSchema,
+  [`POST ${P}/analytics/action-center/nudges/:key/ticket`]: nudgeTicketReplySchema,
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   [`PATCH ${P}/machines/:id/moves/:moveId`]: z.object({ move: machineMoveReplySchema }).strict(),
   ...commands,
