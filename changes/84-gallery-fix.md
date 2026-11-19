@@ -1,1 +1,1 @@
-- Charts keep drawing their first two series in the accent and the neutral grey (as before), so the dashboard looks the same on every tenant accent; the other six series use the new palette.
+- Charts keep drawing their first two series in the accent and the neutral grey, as before; the other six series use the new palette.
