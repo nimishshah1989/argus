@@ -23,7 +23,7 @@ export interface ShellTab {
   label: MessageKey;
   /** Money screens: hidden from a login the engine withholds money from (the server's own rule). */
   money?: boolean;
-  /** The group whose own screens the search lists under this tab (the group pages keep their screen menus). */
+  /** The group whose own screens the search lists under this tab (a group page lists its screens here; Reports and Reliability list theirs as tabs instead). */
   group?: GroupId;
 }
 

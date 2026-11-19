@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- the template's kind and state are prop values, not copy */
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
@@ -9,7 +8,7 @@ import { FigureDrill } from './KeyPage.js';
 import { KeyBody } from './key-body.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 import { reportView, type ReportKind } from './report-view.js';
-import { NotReady, useFiguresState } from './screen-state.js';
+import { NotReady, OVERVIEW, useFiguresState } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
 
 /**
@@ -83,7 +82,7 @@ function ReportReady({
   return (
     <Template
       title={ready && view.content.title !== '' ? view.content.title : title}
-      kind="overview"
+      kind={OVERVIEW}
       lede={view.period}
       actions={<Downloads kind={kind} />}
       main={
