@@ -1,19 +1,18 @@
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useAnalyticsFigures } from '../../api.js';
-import { useOnline } from '../../data/index.js';
 import { StateNotice } from '../../patterns/frame.js';
-import { viewState, type ViewState } from '../../patterns/view-state.js';
+import type { ViewState } from '../../patterns/view-state.js';
+import { useFiguresState } from './screen-state.js';
 import { Stack } from '../../ui/layout.js';
 import { BreakdownLog } from './BreakdownLog.js';
 import { ScreenMenu } from './screen-menu.js';
-import { KeyPage } from './KeyPage.js';
-import { ManpowerPage } from './ManpowerPage.js';
-import { ShiftKpisPage } from './ShiftKpisPage.js';
-import { ProblemsPage } from './ProblemsPage.js';
+import { KeyScreen } from './key-screen.js';
+import { manpowerTable } from './ManpowerPage.js';
+import { problemTable } from './ProblemsPage.js';
 import { WhyWhyPage } from './WhyWhyPage.js';
 import { DrillTable } from './DrillTable.js';
-import { FixFinderPage } from './FixFinderPage.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
 const LOG = 'breakdown-log';
@@ -38,6 +37,12 @@ function screenOf(raw: string | null): Screen {
   return SCREENS.find((screen) => screen === raw) ?? LOG;
 }
 
+/** The shift-calendar screen draws all of its figures; every other screen is the one figure the engine sent for it. */
+function screenFigures(all: FiguresReply['figures'], screen: Screen): FiguresReply['figures'] {
+  const own = all.filter((figure) => figure.screen === screen);
+  return screen === SHIFT ? own : own.slice(0, 1);
+}
+
 function ScreenNav({ current }: { current: Screen }) {
   const { t } = useTranslation();
   return (
@@ -55,20 +60,14 @@ function ScreenNav({ current }: { current: Screen }) {
 
 /**
  * The Breakdowns group (packets 40e-1, 40e-2, 41e-1 and 41e-2): its own screen menu, opening on the Breakdown
- * Log and switching to A1, A2, A3, A4, A6 or A10 in the group's route. The drill a screen links to renders
- * above it, in the face's one drill table.
+ * Log and switching to A1, A2, A3, A4, A6, A10, Fix Finder or the shift-calendar KPIs in the group's route. The
+ * drill a screen links to renders above its page, in the face's one drill table. A6 is still on the old frame.
  */
 export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const figures = useAnalyticsFigures();
-  const online = useOnline();
-  const state = viewState({
-    online,
-    hasData: figures.data !== undefined,
-    isEmpty: false,
-    error: figures.error,
-  });
+  const state = useFiguresState(figures);
   if (state !== 'ready' || !figures.data)
     return (
       <StateNotice
@@ -81,7 +80,12 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const figureOf = (key: string) => figures.data?.figures.find((figure) => figure.screen === key);
   const drill = parseDrill(params.get('drill'));
   const drillTable = drill ? (
-    <DrillTable bare={screen === LOG} group={group} drill={drill} />
+    <DrillTable
+      bare={screen === LOG}
+      group={group}
+      drill={drill}
+      headingLevel={screen === LOG || screen === A6 ? undefined : 3}
+    />
   ) : null;
   if (screen === LOG)
     return (
@@ -92,6 +96,18 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         drill={drillTable}
       />
     );
+  if (screen !== A6)
+    return (
+      <KeyScreen
+        screen={screen}
+        figures={screenFigures(figures.data.figures, screen)}
+        group={group}
+        menu={<ScreenNav current={screen} />}
+        asOf={figures.data.asOf}
+        drill={drillTable}
+        renderTable={screen === A4 ? manpowerTable : screen === A10 ? problemTable : undefined}
+      />
+    );
   return (
     <Stack gap={6}>
       <ScreenNav current={screen} />
@@ -99,22 +115,7 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         {t('analytics.asOf', { date: figures.data.asOf })}
       </p>
       {drillTable}
-      {screen === A6 ? (
-        <WhyWhyPage figure={figureOf(A6)} group={group} />
-      ) : screen === A10 ? (
-        <ProblemsPage figure={figureOf(A10)} group={group} />
-      ) : screen === A4 ? (
-        <ManpowerPage figure={figureOf(A4)} group={group} />
-      ) : screen === FIX ? (
-        <FixFinderPage figure={figureOf(FIX)} group={group} />
-      ) : screen === SHIFT ? (
-        <ShiftKpisPage
-          figures={figures.data.figures.filter((figure) => figure.screen === SHIFT)}
-          group={group}
-        />
-      ) : (
-        <KeyPage figure={figureOf(screen)} group={group} />
-      )}
+      <WhyWhyPage figure={figureOf(A6)} group={group} />
     </Stack>
   );
 }

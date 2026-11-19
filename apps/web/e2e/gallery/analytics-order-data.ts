@@ -91,7 +91,8 @@ export const SCREENS: [string, string[], string[]][] = [
   [
     '/analytics/breakdowns?screen=shift-kpis',
     BREAKDOWNS_MENU,
-    ['h2: Shift compar', 'h3: By shift', 'h2: Backlog', 'h3: Open at shif'],
+    // Deliberate (one h2 a screen): the screen's name is the h2, and the two figures' titles are h3s under it.
+    ['h2: Shift-calend', 'h3: Shift compar', 'h3: By shift', 'h3: Backlog', 'h3: Open at shif'],
   ],
   [
     '/analytics/machines?screen=compare',
@@ -110,6 +111,8 @@ export const SCREENS: [string, string[], string[]][] = [
     '/analytics/machines?screen=cell-change-log',
     MACHINES_MENU,
     [
+      // Deliberate: the screen had no heading; it now has its one h2, the name its menu entry carries.
+      'h2: Cell change ',
       'button: Export to CS',
       'a: CNC-01',
       'button: Correct date',
