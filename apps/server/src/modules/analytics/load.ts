@@ -52,6 +52,10 @@ const numberOrNull = (value: unknown): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+/** The plant has switched this machine to "not counted in production data" (ticket 77a); the flag lives in `metadata`. */
+const leftOutByPlant = (row: Row): boolean =>
+  (row.metadata as Record<string, unknown> | null)?.excludedFromProduction === true;
+
 const machine = (row: Row): MachineRow => ({
   id: row.id as string,
   code: row.code as string,
@@ -73,8 +77,9 @@ const machine = (row: Row): MachineRow => ({
   status: row.status as MachineRow['status'],
   criticality: row.criticality as MachineRow['criticality'],
   // The plant files a Robot in its own segment (and the imported master also marks its category Robot): it is never
-  // production data. A machine a plant excludes by hand has no column yet; that is an additive follow-up.
-  excludedFromProduction: row.segment === 'Robot' || row.category === 'Robot',
+  // production data. Any other machine is left out only when the plant switched it off in Settings.
+  excludedFromProduction:
+    row.segment === 'Robot' || row.category === 'Robot' || leftOutByPlant(row),
   metadata: row.metadata as Record<string, unknown>,
 });
 
@@ -330,7 +335,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     }),
     // The Action Center's saved acks. The figure echoes them whole and the board gives each nudge its status.
     settings: {
-      excludedMachineIds: [],
+      excludedMachineIds: machines.filter(leftOutByPlant).map((row) => row.id as string),
       problemFixes: {},
       nudgeAcks,
       // The report's cell table folds an unlisted cell into "No cell"; the plant's own cell list is the list.

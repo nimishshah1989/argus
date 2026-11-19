@@ -103,6 +103,25 @@ export async function groupSegment(tx: Db, id: string): Promise<string | undefin
   return row?.segment_id as string | undefined;
 }
 
+/**
+ * Whether the plant has left this machine out of production data (ticket 77a). The switch is one key of the machine's
+ * `metadata`; it is absent, not false, when the machine is counted.
+ */
+export const isLeftOut = (row: Row): boolean =>
+  (row.metadata as Record<string, unknown> | null)?.excludedFromProduction === true;
+
+/** Switch the machine out of production data or back in, leaving the rest of its metadata as it is. */
+export async function setLeftOut(tx: Db, id: string, leftOut: boolean): Promise<void> {
+  await tx.query(
+    `UPDATE machine
+        SET metadata = CASE WHEN $2::boolean THEN metadata || '{"excludedFromProduction": true}'::jsonb
+                            ELSE metadata - 'excludedFromProduction' END,
+            updated_at = now()
+      WHERE id = $1`,
+    [id, leftOut],
+  );
+}
+
 export interface NewMove {
   tenantId: string;
   machineId: string;
