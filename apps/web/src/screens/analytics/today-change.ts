@@ -30,9 +30,10 @@ const NO_PRIOR: ReadonlySet<string> = new Set([
 
 /**
  * Totals of the whole log to date. Their change over 30 days is what was added in that time, which is above zero
- * for every plant, so reading it as "Worse" would be wrong: it keeps no good direction. These six are the
- * sums (breakdowns, downtime, PM, no-downtime and plant-event hours, and the costliest problems' hours). A rate, a
- * share or an average per day or per machine is normalised, moves both ways and keeps its own direction.
+ * for every plant, so reading it as "Worse" would be wrong: it keeps no good direction. These seven are the
+ * sums (breakdowns, downtime, PM, no-downtime and plant-event hours, the costliest problems' hours, and the whole
+ * downtime divided by the constant CNC count, which only rises too). A rate, a share or a per-day average moves both
+ * ways and keeps its own direction.
  */
 const RUNNING_TOTALS: ReadonlySet<string> = new Set([
   'dashboard.total-breakdowns',
@@ -40,7 +41,15 @@ const RUNNING_TOTALS: ReadonlySet<string> = new Set([
   'dashboard.pm-hours',
   'dashboard.no-downtime-hours',
   'dashboard.plant-events',
+  'dashboard.avg-bd-hours-per-machine',
   'dashboard.costliest-problems',
+]);
+
+/** Figures of the plant's year to date: they restart each January, so a change across New Year is no change at all. */
+const YEAR_TO_DATE: ReadonlySet<string> = new Set([
+  'dashboard.plant-events',
+  'dashboard.plant-bd-pct',
+  'dashboard.fleet-availability',
 ]);
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -65,9 +74,17 @@ export interface Change {
   added: boolean;
 }
 
-/** The change of `now` against the same figure `before`; none when the figure has no prior period or either value is missing. */
-export function changeOf(now: Figure, before: Figure | undefined): Change | undefined {
+/**
+ * The change of `now` against the same figure `before`; none when the figure has no prior period, either value is
+ * missing, or the prior date is in an earlier year (`sameYear` false) for a year-to-date figure.
+ */
+export function changeOf(
+  now: Figure,
+  before: Figure | undefined,
+  sameYear = true,
+): Change | undefined {
   if (before === undefined || NO_PRIOR.has(now.key)) return undefined;
+  if (!sameYear && YEAR_TO_DATE.has(now.key)) return undefined;
   const [current, prior] = [scalarOf(now), scalarOf(before)];
   if (current === null || prior === null) return undefined;
   const own = figureMeasure(now.key);

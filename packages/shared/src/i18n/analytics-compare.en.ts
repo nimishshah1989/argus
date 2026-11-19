@@ -14,7 +14,7 @@ export const analyticsCompareEn = {
   'analytics.content.mm.problemAxis': 'Problem',
   'analytics.content.mm.value': 'Money lost (₹ lakh)',
   'analytics.content.mm.valueAxis': 'Money lost in the period (₹ lakh)',
-  'analytics.today.nav': 'Today screens',
+  'analytics.unit.points': 'pts',
   'analytics.today.vs': 'Changes are against {{date}}, {{days}} days earlier',
   'analytics.today.rowsFor': 'See the rows for {{figure}}',
   'analytics.today.added': '{{amount}} in {{days}} days',

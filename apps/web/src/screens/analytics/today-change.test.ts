@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { toneOfChange } from '../../ui/meaning/index.js';
+import { figureMeasure, figurePlaces, formatFigure, toneOfChange } from '../../ui/meaning/index.js';
 import { changeOf, priorDate } from './today-change.js';
 
 type Figure = FiguresReply['figures'][number];
@@ -39,6 +39,28 @@ describe('Today change against the prior period', () => {
     expect(rate?.added).toBe(false);
   });
 
+  it('the whole downtime per CNC machine is a running total too', () => {
+    const change = changeOf(
+      figure('dashboard.avg-bd-hours-per-machine', 41.26),
+      figure('dashboard.avg-bd-hours-per-machine', 40.1),
+    );
+    expect(change?.added).toBe(true);
+  });
+
+  it('a year-to-date figure shows no change when the prior date is in the year before', () => {
+    const now = figure('dashboard.fleet-availability', 96);
+    const december = figure('dashboard.fleet-availability', 91);
+    expect(priorDate('2026-01-15')).toBe('2025-12-16');
+    expect(changeOf(now, december, false)).toBeUndefined();
+    expect(changeOf(now, december, true)?.delta).toBe(5);
+    const total = changeOf(
+      figure('dashboard.total-breakdowns', 1343),
+      figure('dashboard.total-breakdowns', 1300),
+      false,
+    );
+    expect(total?.delta).toBe(43);
+  });
+
   it('shows no change for a fleet count, a held figure or a figure with no prior value', () => {
     expect(
       changeOf(figure('dashboard.cnc-machines', 52), figure('dashboard.cnc-machines', 50)),
@@ -56,5 +78,27 @@ describe('Today change against the prior period', () => {
     const now = figure('dashboard.breakdown-free', { runningClean: 41, inService: 90 });
     const was = figure('dashboard.breakdown-free', { runningClean: 38, inService: 90 });
     expect(changeOf(now, was)?.delta).toBe(3);
+  });
+});
+
+describe('how a Today figure prints exactly', () => {
+  const print = (key: string, value: number) => {
+    const measure = figureMeasure(key);
+    const places = figurePlaces(measure, value);
+    return formatFigure(measure, value, places, places);
+  };
+
+  it("keeps the engine's places, with Indian grouping and the unit", () => {
+    expect(print('dashboard.total-breakdowns', 1343)).toBe('1,343');
+    expect(print('dashboard.total-downtime-hours', 2145.5)).toBe('2,145.5 hrs');
+    expect(print('dashboard.pm-hours', 412.25)).toBe('412.25 hrs');
+    expect(print('dashboard.fleet-availability', 94.37)).toBe('94.37%');
+    expect(print('dashboard.total-breakdowns', 120000)).toBe('1,20,000');
+  });
+
+  it('prints a whole number of hours with one decimal, as the old platform did', () => {
+    expect(print('dashboard.total-downtime-hours', 120)).toBe('120.0 hrs');
+    expect(print('dashboard.avg-bd-hours-per-day', 3)).toBe('3.0 hrs/day');
+    expect(print('dashboard.cnc-machines', 52)).toBe('52');
   });
 });

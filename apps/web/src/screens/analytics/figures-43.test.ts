@@ -297,7 +297,6 @@ describe('the 43e copy catalogue', () => {
       'analytics.content.mm.problemAxis',
       'analytics.content.mm.value',
       'analytics.content.mm.valueAxis',
-      'analytics.today.nav',
       'analytics.teamFocus.listTitle',
       'analytics.teamFocus.openOf',
       'analytics.teamFocus.machine',

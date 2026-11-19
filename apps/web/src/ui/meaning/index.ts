@@ -36,8 +36,8 @@ export function figureMeasure(key: string, part?: string): Measure {
  * A figure's value with its unit: `82.5%`, `₹1,20,000`, `12.5 hrs`, `7`. It rounds to one decimal unless the screen
  * passes `digits`: a figure the engine gives to 2 places keeps both (`digits` 2 prints `3.12%`, not `3.1%`).
  */
-export function formatFigure(measure: Measure, value: number, digits = 1): string {
-  const { text, unit } = splitFigure(measure, value, digits);
+export function formatFigure(measure: Measure, value: number, digits = 1, min = 0): string {
+  const { text, unit } = splitFigure(measure, value, digits, min);
   return unit ? `${text} ${unit}` : text;
 }
 
@@ -49,12 +49,28 @@ export function splitFigure(
   measure: Measure,
   value: number,
   digits = 1,
+  min = 0,
 ): { text: string; unit: string } {
-  const text = value.toLocaleString('en-IN', { maximumFractionDigits: digits });
+  const text = value.toLocaleString('en-IN', {
+    minimumFractionDigits: min,
+    maximumFractionDigits: digits,
+  });
   const symbol = UNIT_SYMBOL[measure.unit];
   if (measure.unit === 'money') return { text: `${symbol}${text}`, unit: '' };
   if (measure.unit === 'percent') return { text: `${text}${symbol}`, unit: '' };
   return { text, unit: symbol };
+}
+
+const HOUR_UNITS: ReadonlySet<string> = new Set(['hours', 'hoursPerDay', 'hoursPerMachine']);
+
+/**
+ * How many decimal places print a value exactly as the engine gave it (at most 2). A figure in hours prints at least
+ * one, as the old platform did ("120.0 hrs"). Use it as both the minimum and the maximum, so a count that eases to
+ * its value shows the same places all the way and never flickers.
+ */
+export function figurePlaces(measure: Measure, value: number): number {
+  const given = (String(Math.abs(value)).split('.')[1] ?? '').length;
+  return Math.min(2, Math.max(given, HOUR_UNITS.has(measure.unit) ? 1 : 0));
 }
 
 /** Whether a move of `delta` is good, bad or neither for a figure that improves in `better`. */

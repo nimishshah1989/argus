@@ -16,7 +16,7 @@ import { contentOf } from './figure-content.js';
 import { ContentFigure, NumberFigure, isNumberFigure } from './TodayFigures.js';
 import { COMPARE_DAYS, changeOf, priorDate } from './today-change.js';
 import { NeedsNow } from './NeedsNow.js';
-import { ACTION_CENTER_PATH, CHECKLIST_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
+import { ACTION_CENTER_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -80,6 +80,7 @@ function DashboardTemplate({
     changeOf(
       figure,
       before.data?.figures.find((other) => other.key === figure.key),
+      priorDate(asOf).slice(0, 4) === asOf.slice(0, 4),
     );
   const lede = [
     t('analytics.asOf', { date: asOf }),
@@ -119,7 +120,7 @@ function DashboardTemplate({
   );
 }
 
-type Frame = Pick<TemplateProps, 'title' | 'actions'>;
+type Frame = Pick<TemplateProps, 'title'>;
 
 /** The screen's frame with the state line in place of the figures: loading, offline or the error with Retry. */
 function NotReady({ frame, state, onRetry }: { frame: Frame; state: string; onRetry: () => void }) {
@@ -132,18 +133,6 @@ function NotReady({ frame, state, onRetry }: { frame: Frame; state: string; onRe
       state={state === 'offline' ? 'offline' : 'loading'}
       main={null}
     />
-  );
-}
-
-function ChecklistLink() {
-  const { t } = useTranslation();
-  return (
-    <Link
-      to={CHECKLIST_PATH}
-      className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-    >
-      {t('analytics.screen.data-checklist')}
-    </Link>
   );
 }
 
@@ -169,7 +158,6 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
   const title = t(team ? 'analytics.screen.team-focus' : 'analytics.screen.dashboard');
   const frame = {
     title,
-    actions: team ? undefined : <ChecklistLink />,
   };
   if (state !== 'ready' || !figures.data)
     return (

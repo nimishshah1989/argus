@@ -9,11 +9,6 @@ import { TrendDelta } from './trend-delta.js';
 /** What a figure with no value prints: a dash, never 0 (a missing month is not zero hours). */
 export const NO_VALUE = '—';
 
-/**
- * One headline figure: what it is, its value, how it moved and, when the screen has a verdict, a chip with the tone's
- * icon and word. With a `change`, the 4 px edge, the chip and the trend line take their tone from the figure's good
- * direction (down is good for downtime), not from the sign; without one they take `tone`, and only when there is a `verdict` to say it in words.
- */
 /** A colour is only used when a word or icon says it too: the rounded change's own, or the verdict chip. */
 function toneOf(
   tone: Tone4,
@@ -41,6 +36,11 @@ function Headline({ text, unit }: { text: string; unit?: string }) {
   );
 }
 
+/**
+ * One headline figure: what it is, its value, how it moved and, when the screen has a verdict, a chip with the tone's
+ * icon and word. With a `change`, the 4 px edge, the chip and the trend line take their tone from the figure's good
+ * direction (down is good for downtime), not from the sign; without one they take `tone`, and only when there is a `verdict` to say it in words.
+ */
 export function KpiTile({
   label,
   value,

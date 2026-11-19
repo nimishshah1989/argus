@@ -95,7 +95,7 @@ export function NeedsNow() {
     ticket.location ??
     ticket.ref;
   return (
-    <Card title={t('analytics.needsNow.title')}>
+    <Card named title={t('analytics.needsNow.title')}>
       {loaded ? (
         <p className="text-footnote text-neutral-600">
           {t('analytics.needsNow.counts', { items: items.length, clocks })}

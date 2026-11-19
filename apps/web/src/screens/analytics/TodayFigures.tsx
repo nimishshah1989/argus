@@ -5,9 +5,15 @@ import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { Card } from '../../ui/card.js';
 import { Chart } from '../../ui/chart/chart.js';
-import { KpiTile, RankedList, TrendDelta, type RankedItem } from '../../ui/elements/index.js';
+import {
+  NO_VALUE,
+  KpiTile,
+  RankedList,
+  TrendDelta,
+  type RankedItem,
+} from '../../ui/elements/index.js';
 import { ChevronRight } from '../../ui/icon.js';
-import { figureMeasure, formatFigure, splitFigure } from '../../ui/meaning/index.js';
+import { figurePlaces, figureMeasure, formatFigure, splitFigure } from '../../ui/meaning/index.js';
 import type { FigureContent } from './figure-content.js';
 import { FigureTile } from './FigureTile.js';
 import { FIGURE_LABELS, drillHref, type AnalyticsGroup } from './groups.js';
@@ -70,7 +76,7 @@ function addedNote(change: Change | undefined, t: TFunction): string | undefined
   if (!change?.added) return undefined;
   const sign = change.delta > 0 ? '+' : '';
   return t('analytics.today.added', {
-    amount: `${sign}${formatFigure(change.measure, change.delta, ENGINE_DIGITS)}`,
+    amount: `${sign}${formatFigure(change.measure, change.delta, ENGINE_DIGITS, figurePlaces(change.measure, change.delta))}`,
     days: COMPARE_DAYS,
   });
 }
@@ -93,13 +99,15 @@ export function NumberFigure({
   const measure = figureMeasure(figure.key);
   const held = figure.status !== 'ready';
   const value = held ? null : scalarOf(figure);
+  // The places of the engine's own value, held through the count-up so a whole count never shows decimals.
+  const places = value === null ? 0 : figurePlaces(measure, value);
   return (
     <Cell figure={figure}>
       <KpiTile
         label={t(FIGURE_LABELS[figure.key] ?? 'analytics.figure.unknown')}
         value={value}
-        format={(shown) => splitFigure(measure, shown, ENGINE_DIGITS).text}
-        unit={value === null ? undefined : splitFigure(measure, value, ENGINE_DIGITS).unit}
+        format={(shown) => splitFigure(measure, shown, places, places).text}
+        unit={value === null ? undefined : splitFigure(measure, value, places, places).unit}
         verdict={held ? t('analytics.notComputed') : undefined}
         change={change?.added ? undefined : change}
         note={addedNote(change, t)}
@@ -140,7 +148,7 @@ function problemItems(figure: Figure, t: TFunction): RankedItem[] {
         value: hours,
         display: t('analytics.today.costliest.line', {
           hours: formatFigure(measure, hours),
-          share: `${Number(row.share).toFixed(2)}%`,
+          share: Number.isFinite(Number(row.share)) ? `${Number(row.share).toFixed(2)}%` : NO_VALUE,
           count: Number(row.breakdowns),
         }),
       },
