@@ -12,6 +12,7 @@ export interface PlantPerson {
 }
 
 const ROLE_WORD = /^(operator|opeartor|opeator|setter|supervisor|engineer)$/i;
+const TEAM_PREFIX = /^\s*main\w*[. ]*team\b[. ]*/i;
 const TEAM_WORD = /^(main\w*[. ]*team|team|maint\w*\.?)$/i;
 /** Words that look like name parts but are plant vocabulary: never redacted, never a leak. */
 const PLANT_WORDS = new Set(
@@ -116,16 +117,14 @@ export function createPeople(
   const byName = new Map(tenant.map((person) => [normalizeKey(person.name), person.code]));
   const words = new Set<string>();
   const addWords = (cell: string, inName: boolean): void => {
-    for (const name of splitNames(cell)) {
+    // The team code is no name: only a cell's `Maint. Team` prefix is left out, so a person's own "Team" or "Maint" stays redacted.
+    for (const name of splitNames(cell.replace(TEAM_PREFIX, ''))) {
       if (!ROLE_WORD.test(name) && !TEAM_WORD.test(name))
         wordsOf(name, inName).forEach((w) => words.add(w));
     }
   };
   for (const cell of [...nameCells, ...tenant.map((p) => p.name)]) addWords(cell, true);
   for (const term of terms) addWords(term, false);
-  // The team code every output carries is no name: a cell like "Maint. Team <name>" must not turn its words into leaks.
-  const teamWords = new Set(wordsOf(SUBMITTER_FALLBACK, true).map((w) => w.toLowerCase()));
-  for (const w of [...words]) if (teamWords.has(w.toLowerCase())) words.delete(w);
   const pattern = [...words].sort((a, b) => b.length - a.length || (a < b ? -1 : 1)).join('|');
   const wordRe = pattern
     ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${pattern})(?![\\p{L}\\p{N}])`, 'giu')
@@ -162,6 +161,8 @@ export function createPeople(
       return count;
     },
     phoneLeaks: (text) => (text.match(PHONE) ?? []).filter((run) => scrubRun(run) !== run).length,
-    leaks: (text) => (wordRe ? (text.match(wordRe) ?? []).length : 0),
+    // The team code every output carries (`Maint. Team`) is not a leak, whatever words a person's cell put in the set.
+    leaks: (text) =>
+      wordRe ? (text.split(SUBMITTER_FALLBACK).join('').match(wordRe) ?? []).length : 0,
   };
 }

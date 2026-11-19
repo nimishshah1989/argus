@@ -27,6 +27,8 @@ export interface LegacyRow {
   elecMech: string;
   pmHours: number;
   utiHours: number;
+  /** The log's own hours column (typed by hand), or `null` when the sheet has none: the summary sheets read it. */
+  hours: number | null;
 }
 
 export interface SheetRead {
@@ -94,6 +96,7 @@ interface Columns {
   correctiveAction: number;
   doneBy: number;
   minutes: number;
+  hours: number;
   code: number;
   elecMech: number;
   pm: number;
@@ -116,6 +119,7 @@ export function findColumns(grid: readonly Cell[][]): Columns | null {
       correctiveAction: at((n) => n === 'CORRECTIVEACTION'),
       doneBy: at((n) => n === 'DONEBY'),
       minutes: at((n) => /^(TOTAL)?DOWNTIMEINMIN$/.test(n)),
+      hours: at((n) => /^(TOTAL)?DOWNTIMEINHR$/.test(n)),
       code: at((n) => n === 'MAINTCODE'),
       elecMech: at((n) => n === 'ELECTMECH'),
       pm: at((n) => n === 'PM' || n === 'PMMCACCIDENT'),
@@ -143,6 +147,7 @@ function rowOf(cells: readonly Cell[], cols: Columns, base: Omit<LegacyRow, 'dat
     elecMech: text(pick(cols.elecMech)).toUpperCase(),
     pmHours: Math.max(0, number(pick(cols.pm))),
     utiHours: Math.max(0, number(pick(cols.uti))),
+    hours: cols.hours < 0 || text(pick(cols.hours)) === '' ? null : number(pick(cols.hours)),
   };
 }
 

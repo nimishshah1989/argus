@@ -129,9 +129,14 @@ function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string
 const lossMinutes = (row: LegacyRow): number =>
   row.utiHours > 0 ? Math.round(row.utiHours * 60) : row.minutes;
 
-/** A machine with two rows on one plant date is one line: the importer takes one `utility_loss` line per machine. */
+/**
+ * A machine with two rows on one plant date is one line: the importer takes one `utility_loss` line per machine. The
+ * minutes add up; the code is the first non-blank one, and two different non-blank codes keep the first and count one
+ * conflict in `tally`.
+ */
 function mergeByMachine(
   lines: readonly ClassifiedRow[],
+  tally: { codeConflicts: number },
 ): { row: LegacyRow; machine: string; minutes: number; code: string }[] {
   const merged = new Map<
     string,
@@ -139,14 +144,18 @@ function mergeByMachine(
   >();
   for (const l of lines) {
     const was = merged.get(l.machine);
-    if (was) was.minutes += lossMinutes(l.row);
-    else
+    if (!was) {
       merged.set(l.machine, {
         row: l.row,
         machine: l.machine,
         minutes: lossMinutes(l.row),
         code: l.row.code,
       });
+      continue;
+    }
+    was.minutes += lossMinutes(l.row);
+    if (was.code === '') was.code = l.row.code;
+    else if (l.row.code !== '' && l.row.code !== was.code) tally.codeConflicts++;
   }
   return [...merged.values()];
 }
@@ -156,9 +165,10 @@ function plantEvent(
   plantDay: { year: number; date: string; lines: readonly ClassifiedRow[] },
   people: People,
   fold: AliasMap,
+  tally: { codeConflicts: number },
 ): Record<string, unknown> {
   const { year, date } = plantDay;
-  const lines = mergeByMachine(plantDay.lines);
+  const lines = mergeByMachine(plantDay.lines, tally);
   const longest = Math.max(0, ...lines.map((l) => l.minutes));
   const close = closeOf(date, '1');
   const at = addMinutes(close, -longest);
@@ -213,16 +223,24 @@ function yearExport(
   year: number,
   people: People,
   fold: AliasMap,
-): { out: SyntheticExport; tickets: number; events: number; merged: number; codes: Set<string> } {
+): {
+  out: SyntheticExport;
+  tickets: number;
+  events: number;
+  merged: number;
+  codeConflicts: number;
+  codes: Set<string>;
+} {
   const own = rows.filter((c) => c.row.year === year);
   const tickets = own.filter((c) => c.cls === 'ticket').map((c) => ticket(c, people, fold));
   const days = new Map<string, ClassifiedRow[]>();
   for (const c of own.filter((x) => x.cls === 'utility')) {
     days.set(c.row.date ?? '', [...(days.get(c.row.date ?? '') ?? []), c]);
   }
+  const tally = { codeConflicts: 0 };
   const events = [...days]
     .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([d, l]) => plantEvent({ year, date: d, lines: l }, people, fold));
+    .map(([d, l]) => plantEvent({ year, date: d, lines: l }, people, fold, tally));
   const all = [...tickets, ...events] as Array<Record<string, unknown>>;
   const reports = all.flatMap((t) => (t.reports as Array<Record<string, unknown>>) ?? []);
   const named = reports.flatMap((r) => [...(r.doneBy as string[]), r.submittedBy as string]);
@@ -240,14 +258,19 @@ function yearExport(
     },
     tickets: all,
   };
-  const merged =
-    own.filter((c) => c.cls === 'utility').length -
-    events.reduce(
-      (n, e) =>
-        n + (e.events as { type: string }[]).filter((x) => x.type === 'utility_loss').length,
-      0,
-    );
-  return { out, tickets: tickets.length, events: events.length, merged, codes: new Set(named) };
+  // Counted from the input (rows of a day less its distinct machines), so a line lost on the way breaks the identity.
+  const merged = [...days.values()].reduce(
+    (n, l) => n + l.length - new Set(l.map((c) => c.machine)).size,
+    0,
+  );
+  return {
+    out,
+    tickets: tickets.length,
+    events: events.length,
+    merged,
+    codeConflicts: tally.codeConflicts,
+    codes: new Set(named),
+  };
 }
 
 /** The proof that no name reaches a file: a leaked name word, or a tenant term, refuses the write (R10). */
@@ -316,6 +339,7 @@ export function convertLegacy(
     // The contract name `argus.synthetic-bhavin/v1` is not data: only aliases and tickets are checked.
     assertClean(built.out, report.year, people, plant.terms);
     report.utilityMerged = built.merged;
+    report.utilityCodeConflicts = built.codeConflicts;
     report.identity = writtenIdentity(report, json);
     report.events = built.events;
     report.possibleDuplicatePeople = people.possibleDuplicates(built.codes);

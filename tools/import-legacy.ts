@@ -173,7 +173,7 @@ export function formatReport(report: YearReport, sheets: readonly string[]): str
     `sheets: ${sheets.join(' ')}`,
     `rows read ${report.read} | bad date ${report.badDate} | moved out ${report.movedOut} in ${report.movedIn}`,
     `duplicate ${report.duplicate} | stray year ${report.strayYear} | gap month ${report.gapMonth} | unknown machine ${unknown} (${list(report.unknownMachine)})`,
-    `utility rows ${report.utilityRows} -> ${report.events} events (${report.eventDays} days, ${report.utilityMerged ?? 0} merged into a same-machine line) | tickets loaded ${report.tickets}`,
+    `utility rows ${report.utilityRows} -> ${report.events} events (${report.eventDays} days, ${report.utilityMerged ?? 0} merged into a same-machine line, ${report.utilityCodeConflicts ?? 0} with two codes) | tickets loaded ${report.tickets}`,
     `stray shift ${report.strayShift} | blank code ${report.blankCode} | blank minutes ${report.blankMinutes} | uti hours on breakdown ${report.utiOnBreakdown} | possible repeat ${m.repeats} | possible duplicate person ${report.possibleDuplicatePeople}`,
     `codes: ${list(report.codes)}`,
     `loaded by machine: ${list(report.machines)}`,
