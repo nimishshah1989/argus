@@ -167,19 +167,12 @@ export function getState(): Promise<State> {
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
-/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today. */
+/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today (or an earlier date, for a change). */
 export const useAnalyticsFigures = () => analyticsFigures.useOne();
-
-/**
- * The same figures as of an earlier plant date (`?asOf=`), read like the current figures: Today's change against the
- * prior period. `asOf` of `undefined` keeps the query off until the current figures say which date to go back from.
- */
-export const useAnalyticsFiguresAt = (asOf: string | undefined) =>
+export const useAnalyticsFiguresAt = (asOf: string) =>
   useQuery({
-    queryKey: ['analytics-figures', 'at', asOf ?? null],
-    enabled: asOf !== undefined,
-    queryFn: async (): Promise<FiguresReply> =>
-      (await analyticsFigures.list({ asOf })) as unknown as FiguresReply,
+    queryKey: ['analytics-figures', 'at', asOf],
+    queryFn: () => analyticsFigures.list({ asOf }) as unknown as Promise<FiguresReply>,
   });
 
 /**
