@@ -36,6 +36,8 @@ Total: 1,561 raw equal, 1,855 rule-aware (89.0 %), 229 unexplained. Loaded month
 
 Explained, by rule (counts over the four years): the sheet counts only blank-minute rows 60 (a count with 0 h); loaded breakdowns plus PM rows 9, plus utility rows 8, plus blank-minute rows 4 (one also with gap rows); range stops short 19, starts late 12; hours differ by more than 0.05 h and up to 0.1 h 38 (mostly the quarter sets); leaves out code NI 1; only PM rows 2. The 16 gap-month cases of 2022 fall under blank-minute and gap-row rules.
 
+Plant-event tickets' 3,201 `utility_loss` events and their downtime are loaded but counted by no figure yet (found by `validate:full`, #465; ticket 91), so the plant-level downtime above comes from breakdown tickets only.
+
 ## Left for Bhavin (the 229 unexplained, 21 of them with the same count and hours that no rule gives)
 
 1. Does a sheet count a row with blank or 0 minutes as a breakdown (60 months say yes, 3 more with the loaded ones)? Which is the rule?
