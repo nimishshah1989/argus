@@ -93,7 +93,7 @@ export function TeamFocusPage({
   const lanes = focusLaneGroups(actions);
   return (
     <Stack gap={6}>
-      <KeyPage figure={figure} group={group} />
+      <KeyPage figure={figure} group={group} untitled />
       {lanes.length === 0 ? null : (
         <section className="flex flex-col gap-4">
           <h2 className="text-title3 font-semibold">{t('analytics.teamFocus.listTitle')}</h2>

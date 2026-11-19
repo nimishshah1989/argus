@@ -96,6 +96,8 @@ export function mixedOption(spec: MixedSpec, p: Palette): Option {
               spec.line.name,
               spec.line.values,
               legend ? seriesColor(p, spec.bars.length) : p.series[1],
+              // With a legend the line is named there; an end label would crowd the right axis.
+              legend ? { endLabel: { show: false } } : {},
             ),
           ]),
     ],

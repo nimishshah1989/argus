@@ -55,6 +55,8 @@ export function scatterOption(spec: ScatterSpec, p: Palette): Option {
   };
   return {
     ...baseOption(p, 24, false),
+    // Room for the rotated y title, which sits outside the labels.
+    grid: { ...(baseOption(p, 24, false).grid as object), left: 28 },
     tooltip: {
       trigger: 'item',
       confine: true,

@@ -51,7 +51,7 @@ export function KpiTile({
   trend,
   unit,
   note,
-  footer,
+  action,
 }: {
   label: string;
   /** The figure; it eases to a new value (600 ms, none under reduced motion). `null` prints a dash. */
@@ -67,8 +67,8 @@ export function KpiTile({
   unit?: string;
   /** A quiet line in no tone, for what is not a verdict (an amount added since the last period). */
   note?: string;
-  /** Pinned to the bottom of the tile, so tiles in a row line up whatever their label's length. */
-  footer?: ReactNode;
+  /** A small mark at the label's end (a chevron on a tile that opens something). */
+  action?: ReactNode;
 }) {
   const shown = useCountUp(value ?? 0);
   const own = toneOf(tone, verdict, change);
@@ -77,7 +77,10 @@ export function KpiTile({
       data-tone={own}
       className={`flex min-w-0 flex-col gap-1 h-full rounded-tile border-l-4 bg-surface p-4 shadow-card ${TONE_EDGE[own]}`}
     >
-      <dt className={`text-footnote text-neutral-600 ${WRAP}`}>{label}</dt>
+      <dt className="flex items-start justify-between gap-2 text-footnote text-neutral-600">
+        <span className={WRAP}>{label}</span>
+        {action}
+      </dt>
       <Headline
         text={value === null ? NO_VALUE : format(shown)}
         unit={value === null ? undefined : unit}
@@ -94,7 +97,6 @@ export function KpiTile({
           {trend ? <Sparkline values={trend.values} tone={own} label={trend.label} /> : null}
         </dd>
       ) : null}
-      {footer ? <dd className="mt-auto pt-1">{footer}</dd> : null}
     </dl>
   );
 }

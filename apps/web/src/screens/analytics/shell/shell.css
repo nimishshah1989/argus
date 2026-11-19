@@ -174,20 +174,13 @@
   color: var(--color-neutral-600);
 }
 @media (max-width: 480px) {
-  /* The tabs share the row and wrap their words, so no label is ever cut off. */
+  /* Tight padding so the three Today tabs fit on a phone, each on one line; a longer row scrolls. */
   .as-tabs ul {
     gap: 0;
   }
-  .as-tabs li {
-    flex: 1 1 0;
-    min-width: 0;
-  }
   .as-tabs a {
-    justify-content: center;
-    padding: var(--spacing-step-1);
-    text-align: center;
-    white-space: normal;
-    line-height: 1.2;
+    padding: 0 var(--spacing-step-2);
+    font-size: var(--text-footnote);
   }
   .as-search {
     min-width: 0;

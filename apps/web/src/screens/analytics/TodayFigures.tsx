@@ -18,6 +18,12 @@ type Figure = FiguresReply['figures'][number];
 /** The engine gives its figures to 2 places at most; printing 2 keeps every value exact. */
 const ENGINE_DIGITS = 2;
 
+/** A sentence is short and a timeline is wide: each takes a whole row, so no card is mostly empty space. */
+const FULL_ROW: ReadonlySet<string> = new Set([
+  'dashboard.breakdown-free',
+  'dashboard.expansion-timeline',
+]);
+
 /** The way to the rows behind a figure; it sits at the foot of its tile or card, in the same place on each. */
 function DrillLink({ figure, group }: { figure: Figure; group: AnalyticsGroup }) {
   const { t } = useTranslation();
@@ -49,7 +55,11 @@ function TileLink({ figure, group }: { figure: Figure; group: AnalyticsGroup }) 
 /** One figure's cell, as tall as its row. `data-figure` lets a test find it by registry key. */
 function Cell({ figure, children }: { figure: Figure; children: ReactNode }) {
   return (
-    <div data-figure={figure.key} className="relative h-full min-w-0">
+    <div
+      data-figure={figure.key}
+      data-span={FULL_ROW.has(figure.key) ? 'full' : undefined}
+      className="relative h-full min-w-0"
+    >
       {children}
     </div>
   );
@@ -93,7 +103,11 @@ export function NumberFigure({
         verdict={held ? t('analytics.notComputed') : undefined}
         change={change?.added ? undefined : change}
         note={addedNote(change, t)}
-        footer={figure.drill.ids.length > 0 ? <ChevronRight aria-hidden size={16} /> : undefined}
+        action={
+          figure.drill.ids.length > 0 ? (
+            <ChevronRight aria-hidden size={16} className="shrink-0" />
+          ) : undefined
+        }
       />
       <TileLink figure={figure} group={group} />
     </Cell>
@@ -143,7 +157,7 @@ function ProblemsList({ figure, caption }: { figure: Figure; caption: string | u
       {ranked.length === 0 ? (
         <p className="text-body text-neutral-600">{t('analytics.drill.empty')}</p>
       ) : (
-        <RankedList items={ranked} />
+        <RankedList items={ranked} anchor />
       )}
     </>
   );
