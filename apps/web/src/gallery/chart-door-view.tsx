@@ -7,7 +7,14 @@ const hours = { name: 'Hours', values: [6, 2, 9, 4] };
 const jobs = { name: 'Jobs', values: [3, 5, 1, 2] };
 
 const SPECS: ChartSpec[] = [
-  { kind: 'bar', title: 'Bars', categoryLabel: 'Cause', categories: CAUSES, series: [hours] },
+  {
+    kind: 'bar',
+    draw: true,
+    title: 'Bars',
+    categoryLabel: 'Cause',
+    categories: CAUSES,
+    series: [hours],
+  },
   {
     kind: 'bar',
     title: 'Stacked bars',
@@ -26,6 +33,7 @@ const SPECS: ChartSpec[] = [
   },
   {
     kind: 'line',
+    draw: true,
     title: 'Lines',
     categoryLabel: 'Cause',
     categories: CAUSES,
@@ -55,6 +63,7 @@ const SPECS: ChartSpec[] = [
   },
   {
     kind: 'pareto',
+    draw: true,
     title: 'Pareto',
     categoryLabel: 'Cause',
     categories: CAUSES,

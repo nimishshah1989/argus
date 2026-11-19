@@ -14,6 +14,7 @@ const PARTS = [
   'period',
   'nav',
   'trail',
+  'panels',
 ];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -116,4 +117,58 @@ test('the period picker presses the chosen period; own dates clear it', async ({
   );
   await picker.getByLabel('From').fill('2026-03-10');
   await expect(picker.locator('[aria-pressed="true"]')).toHaveCount(0);
+});
+
+test('the drill panel slides in, keeps focus inside, closes on Escape and with its button, and gives focus back', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, 'lang=en');
+  const opener = page.getByRole('button', { name: 'Open the drill panel' });
+  await opener.click();
+  const panel = page.getByRole('dialog', { name: 'Cell B' });
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveCSS('animation-name', 'el-slide-in');
+  const close = panel.getByRole('button', { name: 'Close' });
+  const box = await close.boundingBox();
+  expect(box!.width).toBeGreaterThanOrEqual(43.5);
+  expect(box!.height).toBeGreaterThanOrEqual(43.5);
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    expect(await panel.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await panel.getByRole('button', { name: 'Close' }).click();
+  await expect(panel).toBeHidden();
+  await expect(opener).toBeFocused();
+});
+
+test('the drill panel slides out in 200 ms, not instantly', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, 'lang=en');
+  await page.getByRole('button', { name: 'Open the drill panel' }).click();
+  const panel = page.getByRole('dialog', { name: 'Cell B' });
+  await expect(panel).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCSS('animation-name', 'el-slide-out');
+  await expect(panel).toHaveCSS('animation-duration', '0.2s');
+});
+
+test('the trend line is revealed once, and not under reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, 'lang=en');
+  const line = page.getByTestId('element-kpi').getByRole('img', { name: 'Last 6 weeks' });
+  await expect(line).toHaveCSS('animation-name', 'el-draw');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(line).toHaveCSS('animation-name', 'none');
+});
+
+test('the drill panel does not slide under reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await open(page, 'lang=en');
+  await page.getByRole('button', { name: 'Open the drill panel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cell B' })).toHaveCSS('animation-name', 'none');
 });

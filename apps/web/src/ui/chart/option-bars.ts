@@ -2,6 +2,7 @@ import { seriesColor, toneColor, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
   baseOption,
+  drawOption,
   categoryAxis,
   titledValueAxis,
   valueAxis,
@@ -23,6 +24,7 @@ export function barOption(spec: BarSpec, p: Palette): Option {
       legend,
       spec.series.map((s) => s.name),
     ),
+    ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
     xAxis: horizontal ? value : category,
     yAxis: horizontal ? category : value,
@@ -110,6 +112,7 @@ export function paretoOption(spec: ParetoSpec, p: Palette): Option {
   const names = [spec.series[0].name, spec.cumulativeLabel];
   return {
     ...baseOption(p, 40, spec.legend ?? true, names),
+    ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
     xAxis: categoryAxis(
       rows.map((row) => row.category),

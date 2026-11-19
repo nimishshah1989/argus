@@ -13,7 +13,7 @@ import { HeatGrid, heatLevel } from './heat-grid.js';
 import { InsightBanner } from './insight-banner.js';
 import { KpiTile } from './kpi-tile.js';
 import { orderedRange, PeriodPicker } from './period-picker.js';
-import { Sparkline, sparklinePoints } from './sparkline.js';
+import { Sparkline } from './sparkline.js';
 import { EmptyState, ErrorState, LoadingState } from './states.js';
 import { StatusChip } from './status-chip.js';
 import {
@@ -90,14 +90,25 @@ describe('sparkline', () => {
     expect(out).toContain('aria-label="Rising"');
   });
 
-  it('keeps every point inside the box, a flat series in the middle', () => {
-    for (const [x, y] of sparklinePoints([4, 9, 1, 7])) {
+  it('keeps every drawn point inside the box, also when a reference line shares the scale', () => {
+    const out = html(
+      createElement(Sparkline, { values: [4, 9, 1, 7], reference: [2, 12, 3, 3], label: 'x' }),
+    );
+    const numbers = [...out.matchAll(/ d="([^"]+)"/g)].flatMap((m) =>
+      [...m[1]!.matchAll(/([ML])(-?[\d.]+) (-?[\d.]+)/g)].map((p) => [Number(p[2]), Number(p[3])]),
+    );
+    expect(numbers.length).toBeGreaterThan(6);
+    for (const [x, y] of numbers) {
       expect(x).toBeGreaterThanOrEqual(0);
       expect(x).toBeLessThanOrEqual(96);
       expect(y).toBeGreaterThanOrEqual(0);
       expect(y).toBeLessThanOrEqual(28);
     }
-    expect(sparklinePoints([5, 5, 5]).map(([, y]) => y)).toEqual([14, 14, 14]);
+  });
+
+  it('runs a flat series through the middle of the box', () => {
+    const out = html(createElement(Sparkline, { values: [5, 5, 5], label: 'x' }));
+    expect(out).toContain('M3.0 14.0L48.0 14.0L93.0 14.0');
   });
 });
 

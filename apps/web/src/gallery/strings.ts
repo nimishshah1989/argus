@@ -30,6 +30,8 @@ export const galleryEn: Record<string, string> = {
   'elements.period': 'Period picker',
   'elements.nav': 'Grouped navigation',
   'elements.trail': 'Drill trail',
+  'elements.panels': 'Cell panel, tags and drill panel',
+  'elements.openPanel': 'Open the drill panel',
   'meaning.filters': 'Filter machines',
   'meaning.all': 'All',
   'meaning.cnc': 'CNC',
