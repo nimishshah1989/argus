@@ -60,3 +60,17 @@
 - The palette check now also names a chart colour that is not a hex value or is used twice, and the Indian-grouping
   formatter prints a dash for a figure that is not a number and rounds to at most 3 decimals.
 - No user-visible change.
+
+## 80d — DESIGN.md sections 5 to 8
+
+- Builders get the last four sections of `docs/DESIGN.md`: elevation and depth (three levels, light and dark, no raised card
+  in a raised card, the TV uses two), shapes (radius per role, border or shadow, tables, focus ring), components (the 13
+  elements, the KPI tile in full, empty, loading and error as `viewState` and `StateNotice` split them, chart rules,
+  icons, motion, numbers) and the do's and don'ts with the floor and desk prohibitions first.
+- The motion rules of the old file are back: under 300 ms, two durations of 150 and 250 ms, none under reduced motion.
+  Anything nobody has given yet says "not known yet".
+- `docs/design/TAG-SYSTEM.md` gets one line saying `docs/DESIGN.md` wins on colour, shape, depth and motion.
+- The 9999 px chip radius is now said to be defined in DESIGN.md; `LOCK.md` only says chips are round.
+- The design-doc test now needs each settled fact (Running grey, Waiting amber, and the rest) as its own positive sentence,
+  so a negation or a "may change" around the phrase fails it.
+- No user-visible change.

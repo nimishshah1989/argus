@@ -6,6 +6,21 @@ const text = readFileSync(new URL('../docs/DESIGN.md', import.meta.url), 'utf8')
 const [, frontMatter = '', body = ''] = text.split(/^---\s*$/m);
 
 const SECTIONS = ['Overview', 'Colors', 'Typography', 'Layout'];
+const LATER = ['Elevation & Depth', 'Shapes', 'Components', "Do's and Don'ts"];
+const ELEMENTS = [
+  'KPI tile',
+  'status chip',
+  'sparkline',
+  'trend delta',
+  'heat grid',
+  'ranked list',
+  'timeline',
+  'insight banner',
+  'data table',
+  'period picker',
+  'grouped navigation',
+  'drill trail',
+];
 const NEUTRAL_ROLES = ['page', 'surface', 'surface-2', 'line', 'control', 'ink', 'ink-2'];
 const ACCENT_ROLES = ['accent', 'on-accent', 'accent-tint'];
 const SERIES = Array.from({ length: 8 }, (_, i) => `series-${i + 1}`);
@@ -56,6 +71,41 @@ describe('docs/DESIGN.md', () => {
     const found = [...body.matchAll(/^## (.+?)\s*$/gm)].map((m) => m[1]);
     expect(found.slice(0, SECTIONS.length)).toEqual(SECTIONS);
     for (const name of SECTIONS) expect(section(name).trim().length, name).toBeGreaterThan(200);
+  });
+
+  it('has sections 5 to 8 after them, answers what the slice asks, and TAG-SYSTEM points here', () => {
+    const found = [...body.matchAll(/^## (.+?)\s*$/gm)].map((m) => m[1]);
+    expect(found.slice(SECTIONS.length)).toEqual(LATER);
+    for (const name of LATER) expect(section(name).trim().length, name).toBeGreaterThan(200);
+    const depth = section('Elevation & Depth');
+    for (const level of ['level 0', 'level 1', 'level 2'])
+      expect(has(depth, level), level).toBe(true);
+    const shapes = section('Shapes');
+    for (const role of ['control', 'card', 'sheet', 'chip', 'tile', 'focus ring']) {
+      expect(has(shapes, role), role).toBe(true);
+    }
+    const components = section('Components');
+    for (const element of ELEMENTS) expect(has(components, element), element).toBe(true);
+    for (const heading of ['Empty, loading and error', 'Charts', 'Icons', 'Motion', 'Numbers']) {
+      expect(components, heading).toMatch(new RegExp(`^### ${heading}\\s*$`, 'm'));
+    }
+    for (const fact of ['150 ms', '250 ms', '300 ms', 'reduced motion']) {
+      expect(has(components, fact), fact).toBe(true);
+    }
+    expect(section("Do's and Don'ts")).toMatch(/^### Don't\s*$/m);
+    expect(text).not.toMatch(/sections? 5 to 8 (?:are|follow)/i);
+    const tagSystem = readFileSync(
+      new URL('../docs/design/TAG-SYSTEM.md', import.meta.url),
+      'utf8',
+    );
+    expect(tagSystem).toContain('docs/DESIGN.md');
+  });
+
+  it('says where the 9999 px chip radius is defined, and that LOCK.md only says round', () => {
+    const all = sentences(body);
+    expect(all.some((s) => /9999 px/.test(s) && /defined in this document/.test(s))).toBe(true);
+    expect(all.some((s) => /LOCK\.md/.test(s) && /only/.test(s) && /round/.test(s))).toBe(true);
+    expect(all.filter((s) => /9999 px/.test(s) && /come from .*LOCK\.md/.test(s))).toEqual([]);
   });
 
   it('defines every colour role, 8 series, 2 ramps and 5 templates', () => {

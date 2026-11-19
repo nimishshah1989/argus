@@ -1,6 +1,6 @@
 # Tag System Design
 
-Controlled tag vocabulary for Argus. No ad-hoc tags.
+Controlled tag vocabulary for Argus. No ad-hoc tags. Colour, shape, depth and motion rules live in `docs/DESIGN.md` (D33); where this page differs, `docs/DESIGN.md` wins.
 
 ## Tag Categories
 
