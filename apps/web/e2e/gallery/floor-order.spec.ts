@@ -21,7 +21,7 @@ import {
 /**
  * LOCK.md rule 1 (ticket 89a): the new look never moves a control on the floor phone. These lists were read off
  * the floor screens BEFORE the restyle (same invented plant, `floor-mock.ts`, one refused close in the Drafts
- * card) and are written out in full, in `floor-order-lists.ts` (with each control's third of the screen); a restyle that reorders, adds or drops a control, a tab or a heading fails
+ * card) and are written out in full, in `floor-order-lists.ts`; a restyle that reorders, adds or drops a control, a tab or a heading fails
  * here. No database: the API is answered in the browser. 360 x 740, light and dark.
  */
 async function settled(page: Page, expected: string[], message: string): Promise<void> {

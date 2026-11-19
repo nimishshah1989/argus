@@ -254,10 +254,7 @@ export async function mockFloor(
 }
 
 /**
- * Every control and heading that is on screen, top to bottom, as "tag: first 40 letters @third", where third is
- * the third of a 740 px screen the control's vertical centre falls in (0, 1, 2), "fold" when it is below the first screen, or
- * "edge" when the centre is within 32 px of a boundary: fonts and Docker move heights by a few pixels, and a
- * control that close to a line could flip with them. Fields are named by
+ * Every control and heading that is on screen, top to bottom, as "tag: first 40 letters". Fields are named by
  * their label or placeholder, so a restyle that moves, drops or adds a control changes the list.
  */
 export function controlOrder(page: Page): Promise<string[]> {
@@ -269,11 +266,7 @@ export function controlOrder(page: Page): Promise<string[]> {
         const field = el as HTMLInputElement;
         const own = el.getAttribute('aria-label') ?? field.labels?.[0]?.textContent ?? '';
         const name = (own || el.textContent || field.placeholder || '').replace(/\s+/g, ' ');
-        const box = el.getBoundingClientRect();
-        const line = (box.top + box.height / 2 + scrollY) / (740 / 3);
-        const near = Math.abs(line - Math.round(line)) * (740 / 3) < 32;
-        const third = line >= 3 ? 'fold' : near ? 'edge' : String(Math.floor(line));
-        return `${el.tagName.toLowerCase()}: ${name.trim().slice(0, 40)} @${third}`;
+        return `${el.tagName.toLowerCase()}: ${name.trim().slice(0, 40)}`;
       });
   });
 }
