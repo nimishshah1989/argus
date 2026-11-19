@@ -9,7 +9,7 @@ Date: 19 November 2026 · Status: accepted (Nimish) · Owner: backend orchestrat
    database — 2022 to today, history and live — and compares every figure with its reference: the 2026 answer key,
    the legacy workbooks' own summary sheets, and the figures Nimish spot-checks on Bhavin's platform.
 2. **A ticket that touches the engine, a figure, a report or an import is `done` only with a green run linked.**
-   It also runs nightly; a red nightly run is a required status check on the next pull request (a workflow under `.github/workflows/`).
+   It also runs nightly; a red nightly run is a required status check on every pull request until the nightly run is green again (a workflow under `.github/workflows/`).
 3. **The pull-request suite stays, and stays fast.** It runs on the 2026 log with names and phones swapped
    (1,343 real rows). That is real plant data, not invented data; what it lacked was the other four years.
 4. **The data stays where it is safe.** The full database lives on staging. The command prints counts and machine
@@ -23,8 +23,9 @@ one year (re-read and listed in the ledger on 19 Nov; 3 more are one year by des
 
 ## Rejected
 
-- **Commit the full history as a fixture.** The history files are a client's operating record: five years of
-  tickets, far more than the 2026 log already in `docs/discovery/`. Q13 forbids it either way. The public
+- **Commit the full history as a fixture.** The history files are a client's operating record: slice 69
+  counts about 7,800 dated rows for 2022–2025 (4,745 in 2022, 2024 and 2025, and 3,078 in 2023), against the
+  1,354-row Breakdown Log already in `docs/discovery/real-2026-11-13/`. Q13 forbids it either way. The public
   development repository is an accepted risk for what is already there (Nimish, 19 Nov; N20), not a reason to add
   to it.
 - **Run the full database on every pull request.** A full run takes tens of seconds per engine pass and needs the

@@ -37,7 +37,7 @@ number. Nothing here is judged by eye: the proof is a command, a test, or a reco
 
 Sizes are estimates (± 40 %) in the repo's own unit: one reviewed change of about 150 lines. The backend lane works
 E then H then I; the frontend lane works F beside it; each stage stops at its gate for Nimish. This table holds the
-gates of V0, E, H, F, I, P, M4b and M6; the milestones table below refers to it. The sizes cover the work left:
+gates of V0, E, H, F, I, P, M4b and M6; the milestones table below refers to it. Stage E's gate counts 77a and 78a; 77b and 78b wait for 85 and close with F. The sizes cover the work left:
 Changes sum to 189 and Lines to 26,600.
 
 | Stage | What it is                     | Tickets                    | Gate (Nimish checks)                                                                                 | Changes |      Lines |
@@ -68,7 +68,9 @@ Changes sum to 189 and Lines to 26,600.
    craft: `prototype` for the three directions, `emil-design-eng` and `apple-design` for feel, `mobile-native` for the
    floor phone, `break-ui` for worst-case data, `animation-performance`, and `learn-taste` to write each of Nimish's
    corrections into `DESIGN.md`.
-6. **The tracker changes in the pull request that changes the code.** Ticket 73 adds the check that enforces it.
+6. **The tracker changes in the pull request that changes the code.** Ticket 73 adds the check that enforces it, and
+   every gate report states that the tracker rows were reconciled against the code (so a stale `in progress` row is
+   caught there).
 
 ## Progress tracker
 
@@ -626,14 +628,13 @@ Split from draft ticket 39: the schema and adapter must land before any feature 
 Delivers: one tracker that matches `main`, and a check that keeps it so.
 
 1. [Process] This file, `docs/HANDOFF.md` and the ledger agree with `main`: 0 tracker rows contradict a merged commit (18 rows were wrong on 19 Nov).
-2. [Process] `pnpm docs:check` fails when `main` holds a `feat(NN…)` commit and ticket NN's row still says `todo`; proven by one planted row. Honest limit: this catches `todo` rows only. A stale `in progress` row is caught by the milestone gate report, not by this check.
+2. [Process] `pnpm docs:check` fails when `main` holds a `feat(NN…)` commit and ticket NN's row still says `todo`; proven by one planted row. Honest limit: this catches `todo` rows only. A stale `in progress` row is caught by the milestone gate report, which states the rows were reconciled against the code (rule 6), not by this check.
 
 **74 Pipes proven** · Blocked by: 73
 Delivers: every merge is tested again, and staging runs what `main` holds.
 
 1. [Process] Ruling R10 is withdrawn: 0 merges without a green CI run on the pull request; the full suite is green on `main` (2,803 tests was the last local count).
 2. [API] Staging's health answer names `main`'s commit and migration 15 of 15; the weekly dump runs, and one dump is restored into an empty database with equal row counts on the ten largest tables (drill B, never yet run).
-3. [Process] The repository returns to private before cutover (ticket 28) only once GitHub Actions billing is fixed: private-repository runs were refused for failed payments on 13, 14 and 18 Nov (ledger), which is why R10 existed. Until then it stays public and nothing waits on it (Nimish, 19 Nov). Proved by a green CI run on a pull request after the switch.
 
 ## E — Engine at history scale
 
@@ -655,7 +656,7 @@ Ruling, 19 Nov: runs before 75 unless the two plans' file lists are disjoint (se
 
 **77 Machines out of production data** · Blocked by: 74 (77a); 85 (77b)
 Delivers: Bhavin's setting — a spare-capacity machine is recorded but does not move the plant's figures.
-Ruling, 19 Nov: two parts. 77a is the API and engine part (backend lane); 77b is the screen part (frontend lane, after 85).
+Ruling, 19 Nov: two parts. 77a is the API and engine part (backend lane); 77b is the screen part (frontend lane, after 85). Stage E's gate counts 77a; 77b closes with F.
 
 1. [Browser] (77b) An admin marks any machine "not counted in production data" on the machine settings screen; the dashboard prints how many are excluded.
 2. [Engine] (77a) With five machines excluded, their breakdowns count in 0 of BD %, MTTR, MTBF and availability, and in 2 of 2 of manpower hours and the energy list; hand-computed fixture.
@@ -663,7 +664,7 @@ Ruling, 19 Nov: two parts. 77a is the API and engine part (backend lane); 77b is
 
 **78 Failed jobs are seen** · Blocked by: 74 (78a); 85 (78b)
 Delivers: ticket 35's first goal, carried twice and never built.
-Ruling, 19 Nov: two parts. 78a is the API part (backend lane); 78b is the screen part (frontend lane, after 85).
+Ruling, 19 Nov: two parts. 78a is the API part (backend lane); 78b is the screen part (frontend lane, after 85). Stage E's gate counts 78a; 78b closes with F.
 
 1. [API] (78a) A planted failing job is in the failed-jobs list within 60 s with its error, and the retry command runs it once.
 2. [API] (78a) The same failure raises the alarm within 5 minutes; a timer more than 2 minutes late raises it too; 0 job handlers fail without a log line (a check counts them).
@@ -674,7 +675,7 @@ Delivers: D34 — one command that tests every figure on every ticket the plant 
 
 1. [API] `pnpm validate:full` on staging runs the 51 figures for every year and month with records and reports: tickets read (100 % of the database), figures run, mismatches against each reference, and the time each took.
 2. [API] Its references are the 2026 answer key (exact), the legacy workbooks' own summary sheets (ticket 69) and the ten figures Nimish spot-checks against Bhavin's platform; it prints counts and machine codes only, never a name.
-3. [Process] It runs nightly, from a scheduled workflow in `.github/workflows/` (a new `validate-full.yml`, beside `backup.yml`); a red nightly run is a required status check on the next pull request, carried by `.github/workflows/ci.yml` (`pnpm main:check` runs after a merge, Q15, so it cannot be the gate; this is a plan, nothing is built); a ticket under rule 2 links its green run. `docs/TESTING.md` gains D34's nightly whole-database gate in its layers table.
+3. [Process] It runs nightly, from a scheduled workflow in `.github/workflows/` (a new `validate-full.yml`, beside `backup.yml`); a red nightly run is a required status check on every pull request until the nightly run is green again, carried by `.github/workflows/ci.yml` (`pnpm main:check` runs after a merge, Q15, so it cannot be the gate; this is a plan, nothing is built); a ticket under rule 2 links its green run. `docs/TESTING.md` gains D34's nightly whole-database gate in its layers table.
 
 ## H — History in
 
@@ -683,7 +684,7 @@ Delivers: every workbook year Bhavin holds, as closed history. `docs/slices/69-l
 
 1. [API] The 19 workbooks (2022: 4, 2023: 5, 2024: 5, 2025: 5) convert with 0 rows unaccounted: dated source rows = loaded + excluded, every exclusion counted under a named reason.
 2. [API] A row dated in another year loads under its own date unless that year's workbook already holds it (about 75 late-2022 rows live only in the 2023 workbooks); each is listed for Bhavin.
-3. [API] A power or air failure is one plant event with its machines and hours, not one breakdown per machine: 2023's roughly 1,820 utility rows become roughly 150 event-days and add 0 to any breakdown count. Ruling, 19 Nov: 69's re-plan names the home of a plant event from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why no existing table fits (CLAUDE.md), and it would exceed D17's budget (this plan already adds its 12), so it also needs a D17 amendment. Ticket 91 reads the same home.
+3. [API] A power or air failure is one plant event with its machines and hours, not one breakdown per machine: 2023's roughly 1,820 utility rows become roughly 150 event-days and add 0 to any breakdown count. Ruling, 19 Nov: 69's re-plan names the home of a plant event from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why no existing table fits (CLAUDE.md), and it would exceed D17's budget (this plan already adds its 12), so it also needs a D17 amendment. Ticket 91 reads the same home. Tickets 69 and 91 are not built before the home is named; if no existing table fits (`docs/DATA-MAP.md` defines a ticket as single-machine and `ticket_event` as ticket history), the first packet of 69's re-plan records the D17 amendment.
 4. [API] 0 codes with a meaning in the workbooks' own legend are folded into MIS: TR, T, FS, MS, NI, PP, CP, PAR, PC and HM load as switched-off codes that still show on old reports (ticket 47's rule).
 5. [API] For 100 % of the machine-months on the workbooks' MTTR and MTBF sheets, the recomputed count and hours equal the sheet, or the pair is printed on the named-difference list; 0 unexplained.
 6. [API] 0 personal names in any stored text (sentinel test); a second run of the same files adds 0 rows; March 2022 shows no records, and February 2022 is flagged partial (8 rows) until N17 answers.
@@ -718,7 +719,7 @@ Delivers: the design file everything else is built from. No application code.
 **84 Charts** · Blocked by: 81
 
 1. [Browser] The one chart door draws stacked and horizontal bars, lines, scatter, heatmap and Pareto with a legend and a tooltip, in the 8-colour palette; `use-chart.ts` is split so no file passes 400 lines (394 today).
-2. [Browser] 100 % of charts keep "Show the numbers"; the sum of the chunks `use-chart.ts` loads (the 8 lazy chunks behind its four `echarts/*` imports), each gzipped at level 6, does not grow by more than 15 % from the baseline measured in ticket 81's PR; reduced motion draws with no animation. Measured on 19 Nov with `pnpm build:web` at `58161f2`: 8 chunks, 364,192 bytes in all (vite's own report sums to 368.0 kB), the largest 84.7 KB. The earlier "220 KB, 174 KB today" figure is withdrawn.
+2. [Browser] 100 % of charts keep "Show the numbers"; the sum of the chunks `use-chart.ts` loads (the 8 lazy chunks behind its four `echarts/*` imports), each gzipped at level 6 (`gzip -6`), does not grow by more than 15 % from the baseline measured in ticket 81's PR; reduced motion draws with no animation. Baseline measured on 19 Nov with `pnpm build:web` at `58161f2`, in `gzip -6` bytes: the sum is 364,192 B and the largest single chunk is 83,894 B. Vite's own report (368.04 kB in all, 84.7 kB the largest) is a different unit and is not the baseline. The earlier "220 KB, 174 KB today" figure is withdrawn.
 
 **85 Page templates** · Blocked by: 83, 84
 
@@ -786,6 +787,7 @@ Tickets 24, 26, 27, 28 and 68 (M1) finish here; 28 now also waits for 78, 97 and
 
 1. [API] Production is its own stack: its own secrets, deletion protection on, the history-owner role of D24 §3 in place, and 0 secrets a Terraform apply can erase (planted apply on staging).
 2. [API] The site sends CSP, HSTS and frame headers; base images are pinned; a deploy outside 05:00–08:00 IST is refused (the only allowed window: SPEC, ARCHITECTURE, INFRASTRUCTURE and ticket 28); one deploy and one rollback are run and logged.
+3. [Process] The repository returns to private before cutover (ticket 28 waits for this ticket) only once GitHub Actions billing is fixed: private-repository Actions was refused runners on 13 Nov (a $0 budget) and stopped or stalled on 14 and 18 Nov for causes the ledger does not confirm, which is why R10 existed. Until then it stays public and nothing waits on it (Nimish, 19 Nov). Proved by a green CI run on a pull request after the switch. Moved here from 74, which blocks the E stage and cannot wait for cutover.
 
 **98 Load proof on the whole database** · Blocked by: 69, 75
 
