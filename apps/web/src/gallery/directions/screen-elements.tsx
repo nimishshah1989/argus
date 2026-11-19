@@ -1,10 +1,10 @@
 /* eslint-disable i18next/no-literal-string -- only class names, snapshot keys and the sample figure remain; every word goes through t() */
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import snapshot from './generated/figures.json' with { type: 'json' };
-import type { ScreenProps } from './direction-props.js';
+import { DISPLAY_STYLE, type ScreenProps } from './direction-props.js';
 import { FramedChart } from './parts-chart.js';
 import { PaletteStrip } from './parts-palette.js';
+import { Section } from './parts-section.js';
 import { Tile, TileGrid, type TileFigure } from './parts-tile.js';
 import { addStrings } from './strings.js';
 import { formatIN } from './variant.js';
@@ -39,17 +39,6 @@ function byCell(): { cells: string[]; bd: number[]; pm: number[] } {
   const column = (name: string) =>
     rows.map((row) => Math.round(Number(row[table.header.indexOf(name)]!.replace(/,/g, ''))));
   return { cells: rows.map((row) => row[0]!), bd: column('BD Hrs'), pm: column('PM Hrs') };
-}
-
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-body font-semibold">
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
 }
 
 function Tiles({ direction }: Pick<ScreenProps, 'direction'>) {
@@ -110,11 +99,7 @@ export default function ScreenElements(props: ScreenProps) {
       <Section id="elements-tiles" title={t('elements.tiles')}>
         <Tiles direction={props.direction} />
         <p className="text-footnote text-neutral-600">{t('elements.sample')}</p>
-        <p
-          data-sample
-          className="text-title1 font-semibold"
-          style={{ fontFamily: 'var(--proto-display)', letterSpacing: 'var(--proto-tracking)' }}
-        >
+        <p data-sample className="text-title1 font-semibold" style={DISPLAY_STYLE}>
           {formatIN(1000000)}
         </p>
       </Section>

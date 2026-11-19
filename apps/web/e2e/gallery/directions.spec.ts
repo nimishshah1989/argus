@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const DIRECTIONS = ['instrument', 'control-room', 'ledger'];
@@ -108,5 +108,66 @@ atBothWidths('the Elements screen', () => {
       await open(page, `&v=${v}`);
       await expect(page.locator('[data-sample]')).toHaveText('10,00,000');
     }
+  });
+});
+
+atBothWidths('the picker polish', () => {
+  test('a fractional ?v= falls back to the first direction instead of crashing', async ({
+    page,
+  }) => {
+    await open(page, '&v=1.5');
+    await expect(stage(page)).toHaveAttribute('data-direction', 'instrument');
+  });
+
+  test('every chart caption is the first or last child of its figure', async ({ page }) => {
+    await open(page);
+    await expect(page.getByTestId('chart')).toHaveAttribute('data-chart-state', 'ready');
+    const stray = await page.locator('figure').evaluateAll(
+      (figures) =>
+        figures.filter((f) => {
+          const caption = f.querySelector(':scope > figcaption');
+          return !caption || (caption !== f.firstElementChild && caption !== f.lastElementChild);
+        }).length,
+    );
+    expect(stray).toBe(0);
+  });
+
+  test('the pill stays inside the screen in Gujarati and its highlight follows the words', async ({
+    page,
+  }) => {
+    await open(page, '&lang=gu');
+    const pill = page.locator('.proto-picker');
+    await expect(pill).toContainText('ક ખ ગ');
+    const width = page.viewportSize()!.width;
+    const box = (await pill.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const item = document.querySelector<HTMLElement>('.proto-picker-item[data-active]')!;
+          const mark = document.querySelector<HTMLElement>('.proto-picker-highlight')!;
+          return Math.abs(mark.offsetWidth - item.offsetWidth);
+        }),
+      )
+      .toBeLessThan(1);
+  });
+
+  test('headings wear the direction’s display type and tracking, not only the figures', async ({
+    page,
+  }) => {
+    const headings = () => [
+      page.locator('h1'),
+      stage(page).getByRole('heading', { level: 2 }),
+      stage(page).locator('h3').first(),
+    ];
+    const style = (h: Locator, name: 'fontFamily' | 'letterSpacing') =>
+      h.evaluate((e, n) => getComputedStyle(e)[n], name);
+    await open(page, '&v=3');
+    await expect(stage(page).locator('h3').first()).toBeVisible();
+    for (const h of headings()) expect(await style(h, 'fontFamily')).toContain('Georgia');
+    await open(page, '&v=2');
+    await expect(stage(page).locator('h3').first()).toBeVisible();
+    for (const h of headings()) expect(await style(h, 'letterSpacing')).not.toBe('normal');
   });
 });

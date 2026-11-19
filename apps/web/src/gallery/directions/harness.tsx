@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import { SegmentedBar } from '../../ui/segmented-bar.js';
 import { controlRoom } from './direction-control-room.js';
-import { directionProps, type ScreenProps } from './direction-props.js';
+import { directionProps, DISPLAY_STYLE, type ScreenProps } from './direction-props.js';
 import { instrument } from './direction-instrument.js';
 import { ledger } from './direction-ledger.js';
 import { addStrings } from './strings.js';
@@ -90,16 +90,21 @@ function Picker({ index, onPick }: { index: number; onPick: (to: number) => void
   const [ready, setReady] = useState(false);
   useLayoutEffect(() => {
     const move = () => {
-      const item = nav.current?.querySelectorAll<HTMLElement>('.proto-picker-item')[index];
-      const mark = nav.current?.querySelector<HTMLElement>('.proto-picker-highlight');
-      if (!item || !mark) return;
+      const bar = nav.current;
+      const item = bar?.querySelectorAll<HTMLElement>('.proto-picker-item')[index];
+      const mark = bar?.querySelector<HTMLElement>('.proto-picker-highlight');
+      if (!bar || !item || !mark) return;
+      // A pill wider than the screen scrolls inside itself; keep the current word in view.
+      if (item.offsetLeft < bar.scrollLeft) bar.scrollLeft = item.offsetLeft;
+      const end = item.offsetLeft + item.offsetWidth;
+      if (end > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = end - bar.clientWidth;
       mark.style.width = `${item.offsetWidth}px`;
       mark.style.transform = `translateX(${item.offsetLeft}px)`;
     };
     move();
     window.addEventListener('resize', move);
     return () => window.removeEventListener('resize', move);
-  }, [index]);
+  }, [index, t]);
   // The slide starts after first paint, so loading the page does not animate it.
   useEffect(() => {
     const frame = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
@@ -151,7 +156,7 @@ export default function Directions() {
   const { t } = useTranslation('directions');
   const [params, setParams] = useSearchParams();
   const asked = Number(params.get('v'));
-  const index = asked >= 1 && asked <= DIRECTIONS.length ? asked - 1 : 0;
+  const index = Number.isInteger(asked) && asked >= 1 && asked <= DIRECTIONS.length ? asked - 1 : 0;
   const current = DIRECTIONS[index]!;
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
@@ -170,7 +175,9 @@ export default function Directions() {
   useDirectionKeys(index, go);
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4 pb-24">
-      <h1 className="text-title2 font-semibold">{t('title')}</h1>
+      <h1 className="text-title2 font-semibold" style={DISPLAY_STYLE}>
+        {t('title')}
+      </h1>
       <Link to="/gallery" className="min-h-target-min text-footnote text-accent-text underline">
         {t('back')}
       </Link>
@@ -192,7 +199,7 @@ export default function Directions() {
         aria-labelledby="directions-name"
         className="flex flex-col gap-4"
       >
-        <h2 id="directions-name" className="text-title3 font-semibold">
+        <h2 id="directions-name" className="text-title3 font-semibold" style={DISPLAY_STYLE}>
           {t(`name.${current.id}`)}
         </h2>
         <p className="text-footnote text-neutral-600">{t(`idea.${current.id}`)}</p>

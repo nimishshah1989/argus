@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- only class names, style values and the pct sign remain; every word goes through t() */
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DISPLAY_STYLE } from './direction-props.js';
 import { ChevronDown, ChevronUp } from '../../ui/icon.js';
 import { addStrings } from './strings.js';
 import { formatIN, type ToneRole, type Variant } from './variant.js';
@@ -86,12 +87,7 @@ export function Tile({ variant, figure }: { variant: Variant; figure: TileFigure
     borderRadius: 'var(--proto-radius-tile)',
     boxShadow: 'var(--proto-shadow-raised)',
   };
-  const value: CSSProperties = {
-    fontSize: shape.size,
-    fontWeight: shape.weight,
-    fontFamily: 'var(--proto-display)',
-    letterSpacing: 'var(--proto-tracking)',
-  };
+  const value: CSSProperties = { ...DISPLAY_STYLE, fontSize: shape.size, fontWeight: shape.weight };
   return (
     <div
       data-tile={variant.tile}
