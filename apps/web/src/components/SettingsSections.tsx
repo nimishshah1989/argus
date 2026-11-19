@@ -12,7 +12,7 @@ const WORK_FIELDS = [
   { key: 'urgentWorkRequest', label: 'settings.matrixUrgentWorkRequest' },
 ] as const;
 const selectClass =
-  'min-h-target rounded-lg border border-control bg-surface px-2 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-600';
+  'min-h-target rounded-lg border border-control bg-surface px-2 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-700';
 
 function SeveritySelect({
   value,

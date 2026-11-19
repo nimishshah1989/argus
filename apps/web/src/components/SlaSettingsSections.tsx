@@ -99,7 +99,7 @@ function PolicyFieldset({ severity, draft, disabled, onMinute, onBusiness }: Fie
               required
               value={draft[field]}
               onChange={(event) => onMinute(severity, field, event.target.value)}
-              className="mt-1 min-h-target w-full rounded-lg border border-control bg-surface px-3 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-600"
+              className="mt-1 min-h-target w-full rounded-lg border border-control bg-surface px-3 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-700"
             />
           </label>
         ))}

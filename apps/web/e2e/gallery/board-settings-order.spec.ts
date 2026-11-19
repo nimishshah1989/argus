@@ -65,6 +65,8 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect.poll(() => controlOrder(page)).toEqual(TV);
       await expect.poll(() => tiles(page)).toEqual(TILES);
       await expect(page.getByTestId('age-overDay')).toHaveText('0');
+      await expect(page.getByTestId('count-running')).toHaveText('1');
+      await expect(page.getByTestId('count-stopped')).toHaveText('3');
     });
   });
 }

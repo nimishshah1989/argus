@@ -77,7 +77,7 @@ const MACHINE_ROWS = ['CNC-01', 'CNC-02', 'DRL-04'].map((code, at) => ({
   model: null,
   serial: null,
   year: null,
-  status: 'in_service',
+  status: 'active',
   criticality: 'B',
   excludedFromProduction: at === 1,
   active: true,
@@ -115,64 +115,53 @@ const LISTS: Record<string, unknown[]> = {
   '/shifts': SHIFTS,
 };
 
+/** The fixed replies of the invented plant, by path. */
+function fixed(path: string): unknown {
+  const now = new Date().toISOString();
+  const job = { id: 'j1', queue: 'report-mail', error: 'Mail server said no', attempts: 3 };
+  const day = { now, from: now, to: now, tickets: 5, notStarted: 2, stillOpen: 4, waitingMin: 10 };
+  const score = { responseMin: 12, repairMin: 45, responseCount: 5, responseClosed: 3 };
+  const bySegment = SEGMENTS.map((s) => ({
+    id: s.id,
+    code: s.code,
+    name: s.name,
+    sort: s.sort,
+    show_on_board: true,
+    group_by: s.groupBy,
+  }));
+  const replies: Record<string, unknown> = {
+    '/auth/me': ADMIN,
+    '/config': {
+      ...CONFIG,
+      segments: bySegment,
+      lists: { wait_reason: WAIT_REASON },
+      severityMatrix: MATRIX,
+      slaPolicies: SLA,
+    },
+    '/board/today': { ...day, ...score, repairCount: 4, repairClosed: 2 },
+    '/jobs/failed': { items: [{ ...job, createdAt: now, failedAt: now }] },
+    '/brand': { company: 'Sample Works', logo: null },
+    '/settings': [
+      { key: 'company_name', value: 'Sample Works' },
+      { key: 'language', value: 'en' },
+      { key: 'time_zone', value: 'Asia/Kolkata' },
+      { key: 'features', value: {} },
+    ],
+  };
+  if (path in LISTS) return { items: LISTS[path], nextCursor: null };
+  return replies[path];
+}
+
 /** Answer the board, the Settings screens and everything the desk mock answers. */
 export async function mockPlant(page: Page): Promise<void> {
   await mockDesk(page);
   await page.route('**/api/v1/**', (route: Route) => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
-    const json = (body: unknown) => route.fulfill({ json: body });
-    if (path === '/auth/me') return json(ADMIN);
-    if (path === '/config') {
-      return json({
-        ...CONFIG,
-        segments: SEGMENTS.map((s) => ({
-          id: s.id,
-          code: s.code,
-          name: s.name,
-          sort: s.sort,
-          show_on_board: true,
-          group_by: s.groupBy,
-        })),
-        lists: { wait_reason: WAIT_REASON },
-        severityMatrix: MATRIX,
-        slaPolicies: SLA,
-      });
-    }
-    if (path === '/board/today') {
-      const now = new Date().toISOString();
-      return json({
-        now,
-        from: now,
-        to: now,
-        tickets: 5,
-        notStarted: 2,
-        stillOpen: 4,
-        responseMin: 12,
-        repairMin: 45,
-        waitingMin: 10,
-        responseCount: 5,
-        responseClosed: 3,
-        repairCount: 4,
-        repairClosed: 2,
-      });
-    }
-    if (path === '/jobs/failed') {
-      const at = new Date().toISOString();
-      const job = { id: 'j1', queue: 'report-mail', error: 'Mail server said no', attempts: 3 };
-      return json({ items: [{ ...job, createdAt: at, failedAt: at }] });
-    }
-    if (path === '/settings') {
-      return json([
-        { key: 'company_name', value: 'Sample Works' },
-        { key: 'language', value: 'en' },
-        { key: 'time_zone', value: 'Asia/Kolkata' },
-        { key: 'features', value: {} },
-      ]);
-    }
-    if (path in LISTS) return json({ items: LISTS[path], nextCursor: null });
+    const body = fixed(path);
+    if (body !== undefined) return route.fulfill({ json: body });
     // Any other Settings list (people, logins, registers, the audit trail...) is empty.
     if (!/^\/(state|tickets|board)/.test(path) && route.request().method() === 'GET') {
-      return json({ items: [], nextCursor: null });
+      return route.fulfill({ json: { items: [], nextCursor: null } });
     }
     return route.fallback();
   });

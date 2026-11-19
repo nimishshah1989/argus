@@ -61,7 +61,7 @@ export function ProductionTag({ row }: { row: MachineReply }) {
   );
 }
 
-/** The labelled switch: 44 px tall tap target around a 31 px pill, a real `switch` so keys and screen readers work. */
+/** The labelled switch: 44 px tall tap target around a 32 px pill, a real `switch` so keys and screen readers work. */
 export function ProductionSwitch({ row, boxed }: { row: MachineReply; boxed?: boolean }) {
   const { t } = useTranslation();
   const save = useProductionSwitch(row);
