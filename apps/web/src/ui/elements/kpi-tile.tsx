@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { toneOfChange, type Measure, type Tone4 } from '../meaning/index.js';
+import { roundMove, toneOfChange, type Measure, type Tone4 } from '../meaning/index.js';
 import { useCountUp } from './motion.js';
 import { Sparkline } from './sparkline.js';
 import { StatusChip } from './status-chip.js';
@@ -15,7 +15,7 @@ function toneOf(
   verdict: string | undefined,
   change: { measure: Measure; delta: number } | undefined,
 ): Tone4 {
-  if (change) return toneOfChange(change.measure.better, Math.round(change.delta * 10) / 10);
+  if (change) return toneOfChange(change.measure.better, roundMove(change.delta));
   return verdict ? tone : 'neutral';
 }
 

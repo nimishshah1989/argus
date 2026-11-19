@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { figureMeasure, figurePlaces, formatFigure, toneOfChange } from '../../ui/meaning/index.js';
+import {
+  figureMeasure,
+  figurePlaces,
+  formatFigure,
+  roundMove,
+  toneOfChange,
+} from '../../ui/meaning/index.js';
+import { problemItems } from './TodayFigures.js';
 import { changeOf, priorDate } from './today-change.js';
 
 type Figure = FiguresReply['figures'][number];
@@ -100,5 +107,32 @@ describe('how a Today figure prints exactly', () => {
     expect(print('dashboard.total-downtime-hours', 120)).toBe('120.0 hrs');
     expect(print('dashboard.avg-bd-hours-per-day', 3)).toBe('3.0 hrs/day');
     expect(print('dashboard.cnc-machines', 52)).toBe('52');
+  });
+});
+
+describe('rounding a move', () => {
+  it('treats +0.05 and -0.05 alike, so neither is called no change while the other is a change', () => {
+    expect(roundMove(0.05)).toBe(0.1);
+    expect(roundMove(-0.05)).toBe(-0.1);
+    expect(roundMove(0.04)).toBe(0);
+    expect(roundMove(-0.04)).toBe(0);
+    expect(Object.is(roundMove(-0.04), 0)).toBe(true);
+    expect(roundMove(-0.005, 2)).toBe(-0.01);
+  });
+});
+
+describe('the problems line', () => {
+  const t = ((_key: string, options: Record<string, unknown>) =>
+    `${options.share}|${options.count}`) as unknown as Parameters<typeof problemItems>[1];
+  const costliest = (share: unknown) =>
+    figure('dashboard.costliest-problems', {
+      rows: [{ problem: 'Spindle', hours: 4, share, breakdowns: 2 }],
+      totalHours: 4,
+    });
+
+  it('prints a dash, never 0.00%, for a missing share', () => {
+    expect(problemItems(costliest(null), t)[0]?.display).toBe('—|2');
+    expect(problemItems(costliest(undefined), t)[0]?.display).toBe('—|2');
+    expect(problemItems(costliest(19.2), t)[0]?.display).toBe('19.20%|2');
   });
 });

@@ -1,5 +1,5 @@
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { figureMeasure, type Measure } from '../../ui/meaning/index.js';
+import { figureMeasure, roundMove, type Measure } from '../../ui/meaning/index.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -89,5 +89,5 @@ export function changeOf(
   if (current === null || prior === null) return undefined;
   const own = figureMeasure(now.key);
   const added = RUNNING_TOTALS.has(now.key);
-  return { measure: own, delta: Math.round((current - prior) * 100) / 100, added };
+  return { measure: own, delta: roundMove(current - prior, 2), added };
 }

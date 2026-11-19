@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { describeChange, formatFigure, type Measure } from '../meaning/index.js';
+import { describeChange, formatFigure, roundMove, type Measure } from '../meaning/index.js';
 import { TONE_INK } from './tone.js';
 
 /**
@@ -8,7 +8,7 @@ import { TONE_INK } from './tone.js';
  */
 export function TrendDelta({ measure, delta }: { measure: Measure; delta: number }) {
   const { t } = useTranslation();
-  const rounded = Math.round(delta * 10) / 10;
+  const rounded = roundMove(delta);
   const { tone, icon: Icon, word, text } = describeChange(measure, rounded);
   // A move in a share is in percentage points, not a percent of a percent.
   const shown =

@@ -128,7 +128,7 @@ export function isNumberFigure(figure: Figure): boolean {
 }
 
 /** The problems that cost the most downtime, ranked: the engine's own hours, share and count on each line. */
-function problemItems(figure: Figure, t: TFunction): RankedItem[] {
+export function problemItems(figure: Figure, t: TFunction): RankedItem[] {
   const value = figure.value as { rows?: unknown };
   const measure = figureMeasure('dashboard.costliest-problems');
   const rows = Array.isArray(value.rows) ? value.rows : [];
@@ -148,7 +148,10 @@ function problemItems(figure: Figure, t: TFunction): RankedItem[] {
         value: hours,
         display: t('analytics.today.costliest.line', {
           hours: formatFigure(measure, hours),
-          share: Number.isFinite(Number(row.share)) ? `${Number(row.share).toFixed(2)}%` : NO_VALUE,
+          share:
+            typeof row.share === 'number' && Number.isFinite(row.share)
+              ? `${row.share.toFixed(2)}%`
+              : NO_VALUE,
           count: Number(row.breakdowns),
         }),
       },

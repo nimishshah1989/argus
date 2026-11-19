@@ -73,6 +73,12 @@ export function figurePlaces(measure: Measure, value: number): number {
   return Math.min(2, Math.max(given, HOUR_UNITS.has(measure.unit) ? 1 : 0));
 }
 
+/** Round to `places` decimals the same way either side of zero: +0.05 and -0.05 are the same size, never 0.1 and 0. */
+export function roundMove(value: number, places = 1): number {
+  const scale = 10 ** places;
+  return Math.sign(value) * (Math.round(Math.abs(value) * scale) / scale) || 0;
+}
+
 /** Whether a move of `delta` is good, bad or neither for a figure that improves in `better`. */
 export function toneOfChange(better: Direction, delta: number): Tone4 {
   if (delta === 0 || better === 'neither') return 'neutral';
