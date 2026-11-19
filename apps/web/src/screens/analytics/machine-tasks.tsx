@@ -3,31 +3,29 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { getConfig, useTicketPages } from '../../api.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
+import { Card } from '../../ui/card.js';
 import { StatusPill } from '../../ui/status/status-pill.js';
-import { Section } from './parts.js';
 import { displayDay } from './machine-values.js';
 import { readMachineTasks, type MachineTaskRow } from './pm-calendar-view.js';
+import './register-parts.css';
 
 /** One task's words: its reference (the link to the desk), the problem, its status and, on a PM row, its day. */
 function TaskRow({ row }: { row: MachineTaskRow }) {
   const { t } = useTranslation();
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200 p-2">
-      <div className="flex min-w-0 flex-col">
-        <Link
-          to={`/desk/${encodeURIComponent(row.id)}`}
-          className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-        >
+    <li>
+      <div>
+        <Link to={`/desk/${encodeURIComponent(row.id)}`} className="rg-link">
           {row.ref}
         </Link>
-        <span className="truncate text-footnote text-neutral-600">{row.problem}</span>
+        <span className="rg-sub">{row.problem}</span>
         {row.scheduledOn === null ? null : (
-          <span className="text-caption text-neutral-600">
+          <span className="rg-sub">
             {t('pm.tasks.scheduled', { date: displayDay(row.scheduledOn) })}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="rg-pair">
         {row.overdue ? (
           // eslint-disable-next-line i18next/no-literal-string -- prop values, not copy
           <StatusPill group="pm" id="overdue" />
@@ -49,12 +47,12 @@ function TaskList({
   rows: readonly MachineTaskRow[];
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-body font-semibold">{title}</h3>
+    <div className="rg-stack">
+      <h4 className="rg-subhead">{title}</h4>
       {rows.length === 0 ? (
-        <p className="text-body text-neutral-600">{empty}</p>
+        <p className="rg-note">{empty}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="rg-rows">
           {rows.map((row) => (
             <TaskRow key={row.id} row={row} />
           ))}
@@ -66,8 +64,8 @@ function TaskList({
 
 /**
  * A machine page's Tasks block (ticket 50c, R9): its open (non-PM) tickets and its open PM jobs, live from the one
- * ticket list — no new endpoint. The split is the shared planned predicate; each row links to the desk. A failed
- * list says so quietly and never replaces the analytics body above it.
+ * ticket list, no new endpoint. The split is the shared planned predicate; each row links to the desk. A failed
+ * list says so quietly and never replaces the analytics body beside it.
  */
 export function MachineTasks({ machineId, today }: { machineId: string; today: string }) {
   const { t } = useTranslation();
@@ -83,22 +81,20 @@ export function MachineTasks({ machineId, today }: { machineId: string; today: s
     timeZone: config.data?.timeZone,
   });
   return (
-    <Section title={t('pm.tasks.title')}>
-      <p className="text-footnote text-neutral-600">
-        {t('pm.tasks.asOf', { date: displayDay(today) })}
-      </p>
+    <Card title={t('pm.tasks.title')}>
+      <p className="rg-note">{t('pm.tasks.asOf', { date: displayDay(today) })}</p>
       {pages.isLoading ? (
-        <p role="status" className="text-body text-neutral-600">
+        <p role="status" className="rg-note">
           {t('pm.tasks.loading')}
         </p>
       ) : pages.error ? (
-        <p className="text-body text-neutral-600">{t('pm.tasks.unavailable')}</p>
+        <p className="rg-note">{t('pm.tasks.unavailable')}</p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="rg-stack">
           <TaskList title={t('pm.tasks.open')} empty={t('pm.tasks.openEmpty')} rows={tasks.open} />
           <TaskList title={t('pm.tasks.pm')} empty={t('pm.tasks.pmEmpty')} rows={tasks.pm} />
         </div>
       )}
-    </Section>
+    </Card>
   );
 }
