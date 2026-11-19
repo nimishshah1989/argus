@@ -37,7 +37,7 @@ export async function ensureLegacyListEntries(
       loginId: who.loginId,
       action: 'list_item.legacy_history',
       entity: 'list_item',
-      before: null,
+      before: woken ? { list: entry.list, code: entry.code, active: false } : null,
       after: { list: entry.list, code: entry.code, active: entry.active, switchedOn: woken },
     });
   }

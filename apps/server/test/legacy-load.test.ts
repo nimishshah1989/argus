@@ -231,6 +231,14 @@ describe('where the runner may write', () => {
         ensureLegacyListEntries(c, { tenantId, loginId: null }, ['UTI']),
       );
     expect(await run()).toEqual(['location:Plant', 'work_type:Utility failure']);
+    const audits = await q(
+      "SELECT before, after FROM audit_log WHERE tenant_id = $1 AND action = 'list_item.legacy_history' AND after->>'switchedOn' = 'true' ORDER BY after->>'code'",
+      [tenantId],
+    );
+    expect(audits.rows.map((r) => r.before)).toEqual([
+      { list: 'location', code: 'Plant', active: false },
+      { list: 'work_type', code: 'Utility failure', active: false },
+    ]);
     expect(await run()).toEqual([]);
     const rows = await q(
       "SELECT code, active FROM list_item WHERE tenant_id = $1 AND code IN ('Plant', 'Utility failure', 'UTI') ORDER BY code",
