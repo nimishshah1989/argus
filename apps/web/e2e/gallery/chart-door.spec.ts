@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const TITLES = [
   'Bars',
@@ -12,6 +12,10 @@ const TITLES = [
 
 test.use({ reducedMotion: 'reduce' });
 
+/** The figure whose caption is exactly `title` ('Bars' is not 'Stacked bars'). */
+const figureOf = (page: Page, title: string) =>
+  page.locator('figure').filter({ has: page.getByText(title, { exact: true }) });
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/gallery?view=charts');
   await expect(page.getByTestId('chart')).toHaveCount(TITLES.length);
@@ -21,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 
 test('every kind draws an SVG and keeps "Show the numbers" with its table', async ({ page }) => {
   for (const title of TITLES) {
-    const figure = page.locator('figure', { hasText: title }).first();
+    const figure = figureOf(page, title);
     await expect(figure.locator('svg').first()).toBeVisible();
     await figure.locator('summary').click();
     const table = figure.locator('table');
@@ -31,10 +35,10 @@ test('every kind draws an SVG and keeps "Show the numbers" with its table', asyn
 });
 
 test('stacked bars and the Pareto name each series in a legend', async ({ page }) => {
-  const stacked = page.locator('figure', { hasText: 'Stacked bars' }).locator('svg').first();
+  const stacked = figureOf(page, 'Stacked bars').locator('svg').first();
   await expect(stacked.locator('text', { hasText: 'Hours' })).not.toHaveCount(0);
   await expect(stacked.locator('text', { hasText: 'Jobs' })).not.toHaveCount(0);
-  const pareto = page.locator('figure', { hasText: 'Pareto' }).locator('svg').first();
+  const pareto = figureOf(page, 'Pareto').locator('svg').first();
   await expect(pareto.locator('text', { hasText: 'Cumulative %' })).not.toHaveCount(0);
 });
 

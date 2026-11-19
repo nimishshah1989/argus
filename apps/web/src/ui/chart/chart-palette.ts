@@ -1,3 +1,4 @@
+import { luminance, parseHex } from './chart-color.js';
 import type { ChartTone } from './chart-spec.js';
 
 export interface Palette {
@@ -12,24 +13,32 @@ export interface Palette {
 
 const TONES = ['danger', 'warning', 'info', 'hold', 'moved', 'ok', 'muted'] as const;
 
-/** The 8 categorical slots, each as the design tokens to try in order (ticket 81 adds `--color-series-N`). */
+/**
+ * Slots 3 to 8 until ticket 81 adds `--color-series-N`: eight colours apart in hue and lightness, none in the
+ * red (345 to 50), green (90 to 160) or info-blue (205 to 235) bands, so none can pass for a status.
+ * Slots 1 and 2 keep the chart tokens.
+ */
+export const FALLBACK_LIGHT = ['#7a7a00', '#9b59b6', '#3f2fa0', '#5bc0de', '#c2308f', '#2e2a5e'];
+export const FALLBACK_DARK = ['#c9c94a', '#a64bd0', '#6a5cf0', '#7fd3ec', '#e0509f', '#ecebff'];
+
+/** The 8 slots' tokens: the design token first, then (slots 1 and 2) the chart token. */
 const SLOTS: string[][] = [
   ['--color-series-1', '--color-chart-1'],
   ['--color-series-2', '--color-chart-2'],
-  ['--color-series-3', '--color-info'],
-  ['--color-series-4', '--color-moved'],
-  ['--color-series-5', '--color-warning'],
-  ['--color-series-6', '--color-hold'],
-  ['--color-series-7', '--color-ok'],
-  ['--color-series-8', '--color-muted'],
+  ...[3, 4, 5, 6, 7, 8].map((n) => [`--color-series-${n}`]),
 ];
 
 /** The one place a chart reads its colours: the 8-colour palette, the axis and grid inks and the tones. */
 export function readPalette(el: HTMLElement): Palette {
   const css = getComputedStyle(el);
   const read = (name: string) => css.getPropertyValue(name).trim();
+  const surface = parseHex(read('--color-surface'));
+  const fallback =
+    surface !== undefined && luminance(surface) < 0.4 ? FALLBACK_DARK : FALLBACK_LIGHT;
   return {
-    series: SLOTS.map((names) => names.map(read).find((value) => value !== '') ?? ''),
+    series: SLOTS.map(
+      (names, at) => names.map(read).find((value) => value !== '') ?? fallback[at - 2] ?? '',
+    ),
     axis: read('--color-chart-axis'),
     grid: read('--color-chart-grid'),
     font: read('--font-sans'),

@@ -3,7 +3,11 @@ import { paretoRows, type ChartSpec } from './chart-spec.js';
 export interface TableView {
   categoryLabel: string;
   categories: string[];
-  series: { name: string; values: (number | undefined)[] }[];
+  series: { name: string; values: (string | number | undefined)[] }[];
+}
+
+function laneOf(ticks: string[] | undefined, y: number): string | number {
+  return ticks === undefined ? y : (ticks[Math.round(y)] ?? y);
 }
 
 /** The one table every kind shares ("Show the numbers"): categories down, series across. */
@@ -15,10 +19,11 @@ export function tableView(spec: ChartSpec): TableView {
         categories: spec.points.map((point) => point.label),
         series: [
           { name: spec.xLabel, values: spec.points.map((point) => point.x) },
-          // A labelled lane axis (A9's map) is a category, not a number to read down the table.
-          ...(spec.yTickLabels === undefined
-            ? [{ name: spec.yLabel, values: spec.points.map((point) => point.y) }]
-            : []),
+          // A labelled lane axis (A9's map) prints the lane's name, not its number.
+          {
+            name: spec.yLabel,
+            values: spec.points.map((point) => laneOf(spec.yTickLabels, point.y)),
+          },
           { name: spec.mttrLabel, values: spec.points.map((point) => point.mttr) },
         ],
       };

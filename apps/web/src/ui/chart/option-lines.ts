@@ -11,7 +11,9 @@ import type { LineSpec } from './chart-spec.js';
 /** Lines on one axis or two; an end label names each line, a legend does too when the spec asks. */
 export function lineOption(spec: LineSpec, p: Palette): Option {
   const longest = Math.max(...spec.series.map((s) => s.name.length));
-  const secondAxis = spec.secondAxis === true && spec.series.length === 2;
+  if (spec.secondAxis === true && spec.series.length !== 2)
+    throw new Error(`secondAxis needs exactly 2 series, got ${spec.series.length}`);
+  const secondAxis = spec.secondAxis === true;
   const axis = titledValueAxis(spec.valueLabel, p);
   return {
     ...baseOption(

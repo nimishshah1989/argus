@@ -21,7 +21,10 @@ export interface ScatterPoint {
   showLabel?: boolean;
 }
 
-/** `legend` forces the legend on or off; absent keeps each kind's default (stacked bars and Pareto show one). */
+/**
+ * `legend` forces the legend on or off; absent keeps each kind's default (stacked bars and Pareto show one). A
+ * caller drawing several series with no end labels (side-by-side bars, mixed) must pass `legend: true`.
+ */
 export interface LegendChoice {
   legend?: boolean;
 }
@@ -96,10 +99,16 @@ export type MixedSpec = Extract<ChartSpec, { kind: 'mixed' }>;
 export type HeatmapSpec = Extract<ChartSpec, { kind: 'heatmap' }>;
 export type ParetoSpec = Extract<ChartSpec, { kind: 'pareto' }>;
 
-/** A Pareto spec in falling order with the cumulative share of each step; the option and the table share it. */
+/**
+ * A Pareto spec in falling order with the cumulative share of each step; the option and the table share it. A
+ * category with no value (a gap) is left out: it is neither a bar nor a zero in the total.
+ */
 export function paretoRows(spec: ParetoSpec): { category: string; value: number; share: number }[] {
   const rows = spec.categories
-    .map((category, at) => ({ category, value: spec.series[0].values[at] ?? 0 }))
+    .flatMap((category, at) => {
+      const value = spec.series[0].values[at];
+      return value === undefined ? [] : [{ category, value }];
+    })
     .sort((a, b) => b.value - a.value);
   const total = rows.reduce((sum, row) => sum + row.value, 0);
   let running = 0;

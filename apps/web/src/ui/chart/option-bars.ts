@@ -73,23 +73,31 @@ function secondAxisLine(
 }
 
 export function mixedOption(spec: MixedSpec, p: Palette): Option {
+  const legend = spec.legend === true;
   const names = [...spec.bars, ...(spec.line === undefined ? [] : [spec.line])].map((s) => s.name);
   return {
-    ...baseOption(p, 16, spec.legend === true, names),
+    ...baseOption(p, 16, legend, names),
     tooltip: axisTooltip('shadow'),
     xAxis: categoryAxis(spec.categories, p),
     yAxis: [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }],
     series: [
-      ...spec.bars.map((s) => ({
+      ...spec.bars.map((s, i) => ({
         type: 'bar' as const,
         name: s.name,
         data: s.values,
-        color: p.series[0],
+        // One colour for the stack unless a legend must tell its parts apart.
+        color: legend ? seriesColor(p, i) : p.series[0],
         stack: 'total',
       })),
       ...(spec.line === undefined
         ? []
-        : [secondAxisLine(spec.line.name, spec.line.values, p.series[1])]),
+        : [
+            secondAxisLine(
+              spec.line.name,
+              spec.line.values,
+              legend ? seriesColor(p, spec.bars.length) : p.series[1],
+            ),
+          ]),
     ],
   };
 }

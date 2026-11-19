@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
+import { contrast, mix, parseHex } from './chart-color.js';
 import type { Palette } from './chart-palette.js';
 
 const SERIES = ['#a1', '#a2', '#a3', '#a4', '#a5', '#a6', '#a7', '#a8'];
@@ -143,7 +144,7 @@ describe('heatmap', () => {
   it('draws one cell per value on a category grid, a gap staying empty, a scale from the grid ink to the series colour', () => {
     const option = view(heat);
     expect(option.series?.[0]?.type).toBe('heatmap');
-    const cells = option.series?.[0]?.data as number[][];
+    const cells = (option.series?.[0]?.data as { value: number[] }[]).map((c) => c.value);
     expect(cells).toEqual([
       [0, 0, 4],
       [1, 0, 2],
@@ -189,5 +190,106 @@ describe('pareto', () => {
       series: [{ name: 'Hours', values: [0, 0, 0] }] as [{ name: string; values: number[] }],
     };
     expect(paretoRows(zero).map((r) => r.share)).toEqual([0, 0, 0]);
+  });
+});
+
+describe('review fixes', () => {
+  it('escapes markup in the scatter and heatmap tooltips', () => {
+    const evil = '<img src=x onerror=alert(1)><b>';
+    const scatter = chartOption(
+      {
+        kind: 'scatter',
+        title: 't',
+        machineLabel: 'm',
+        xLabel: 'x',
+        yLabel: 'y',
+        mttrLabel: 'r',
+        points: [{ x: 1, y: 1, r: 5, label: evil, mttr: 2 }],
+      },
+      palette,
+    ) as unknown as { tooltip: { formatter: (p: unknown) => string } };
+    const text = scatter.tooltip.formatter({ name: evil });
+    expect(text).not.toContain('<img');
+    expect(text).not.toContain('<b>');
+    expect(text).toContain('&#60;img');
+    const heat = chartOption(
+      {
+        kind: 'heatmap',
+        title: 't',
+        categoryLabel: 'c',
+        categories: [evil],
+        series: [{ name: evil, values: [1] }],
+      },
+      palette,
+    ) as unknown as { tooltip: { formatter: (p: unknown) => string } };
+    expect(heat.tooltip.formatter({ value: [0, 0, 1] })).not.toContain('<img');
+  });
+
+  it('keeps every heatmap label at 4.5:1 or better against its cell', () => {
+    const real: Palette = { ...palette, series: ['#0f766e'], grid: '#e8e8ed' };
+    const spec: ChartSpec = {
+      kind: 'heatmap',
+      title: 't',
+      categoryLabel: 'c',
+      categories: ['a', 'b', 'c', 'd'],
+      series: [{ name: 'x', values: [0, 3, 6, 10] }],
+    };
+    const cells = (chartOption(spec, real) as unknown as OptionView).series?.[0]?.data as {
+      value: number[];
+      label: { color: string };
+    }[];
+    const light = parseHex('#e8e8ed')!;
+    const dark = parseHex('#0f766e')!;
+    for (const cell of cells) {
+      const fill = mix(light, dark, cell.value[2]! / 10);
+      expect(contrast(fill, parseHex(cell.label.color)!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('leaves a Pareto category with no value out instead of making it a zero', () => {
+    const rows = paretoRows({
+      kind: 'pareto',
+      title: 't',
+      categoryLabel: 'c',
+      categories: ['a', 'b', 'c'],
+      series: [{ name: 'n', values: [4, undefined, 4] }],
+      cumulativeLabel: 'cum',
+    });
+    expect(rows.map((r) => r.category)).toEqual(['a', 'c']);
+    expect(rows.map((r) => r.share)).toEqual([50, 100]);
+  });
+
+  it('refuses secondAxis unless there are exactly two series', () => {
+    const three = {
+      kind: 'line' as const,
+      title: 't',
+      categoryLabel: 'c',
+      categories: ['x'],
+      secondAxis: true,
+      series: [
+        { name: 'A', values: [1] },
+        { name: 'B', values: [1] },
+        { name: 'C', values: [1] },
+      ],
+    };
+    expect(() => chartOption(three, palette)).toThrow(/exactly 2 series/);
+  });
+
+  it('colours a mixed chart per series when its legend is on, and keeps one colour otherwise', () => {
+    const mixed = {
+      kind: 'mixed' as const,
+      title: 't',
+      categoryLabel: 'c',
+      categories: ['x'],
+      bars: [
+        { name: 'A', values: [1] },
+        { name: 'B', values: [2] },
+      ],
+      line: { name: 'L', values: [3] },
+    };
+    expect(view(mixed).series?.map((s) => s.color)).toEqual(['#a1', '#a1', '#a2']);
+    const legend = view({ ...mixed, legend: true });
+    expect(legend.series?.map((s) => s.color)).toEqual(['#a1', '#a2', '#a3']);
+    expect(legend.legend?.data).toEqual(['A', 'B', 'L']);
   });
 });

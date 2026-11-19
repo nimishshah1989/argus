@@ -1,5 +1,6 @@
 import { seriesColor, toneColor, type Palette } from './chart-palette.js';
 import { baseOption, categoryAxis, valueAxis, type Option } from './chart-parts.js';
+import { escapeHtml, inkOn, mix, parseHex } from './chart-color.js';
 import type { HeatmapSpec, ScatterPoint, ScatterSpec } from './chart-spec.js';
 
 /** One point: its arm, its rating tone and, only where the spec asks, its machine label. */
@@ -60,15 +61,21 @@ export function scatterOption(spec: ScatterSpec, p: Palette): Option {
       formatter: (params: unknown) => {
         const name = (params as { name?: string }).name;
         const mttr = spec.points.find((point) => point.label === name)?.mttr;
-        return mttr === undefined
-          ? String(name ?? '')
-          : `${name ?? ''}\n${spec.mttrLabel}: ${mttr}`;
+        const label = escapeHtml(String(name ?? ''));
+        return mttr === undefined ? label : `${label}<br/>${escapeHtml(spec.mttrLabel)}: ${mttr}`;
       },
     },
     xAxis: { ...named, name: spec.xLabel },
     yAxis: scatterYAxis(spec, named, p),
     series: [{ type: 'scatter', data: spec.points.map((point) => scatterItem(point, p)) }],
   };
+}
+
+/** The label ink for a cell `t` (0 to 1) up the scale from the grid ink to the series colour: black or white. */
+function cellInk(t: number, p: Palette, color: string | undefined): string {
+  const from = parseHex(p.grid);
+  const to = color === undefined ? undefined : parseHex(color);
+  return from && to ? inkOn(mix(from, to, Math.max(0, t))) : p.axis;
 }
 
 /**
@@ -90,7 +97,8 @@ export function heatmapOption(spec: HeatmapSpec, p: Palette): Option {
       formatter: (params: unknown) => {
         const [c, r] = (params as { value?: number[] }).value ?? [];
         const value = spec.series[c ?? 0]?.values[r ?? 0];
-        return `${spec.categories[r ?? 0] ?? ''}, ${columns[c ?? 0] ?? ''}: ${value ?? ''}`;
+        const row = escapeHtml(spec.categories[r ?? 0] ?? '');
+        return `${row}, ${escapeHtml(columns[c ?? 0] ?? '')}: ${value ?? ''}`;
       },
     },
     xAxis: { ...categoryAxis(columns, p), splitArea: { show: false } },
@@ -100,7 +108,10 @@ export function heatmapOption(spec: HeatmapSpec, p: Palette): Option {
     series: [
       {
         type: 'heatmap' as const,
-        data: cells.map((cell) => [cell.c, cell.r, cell.value]),
+        data: cells.map((cell) => ({
+          value: [cell.c, cell.r, cell.value],
+          label: { color: cellInk(cell.value / top, p, color) },
+        })),
         label: { show: true, color: p.axis },
         itemStyle: { borderColor: p.grid, borderWidth: 1 },
       },

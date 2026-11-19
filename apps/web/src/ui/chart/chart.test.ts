@@ -80,11 +80,35 @@ describe('Chart keeps "Show the numbers" for every kind', () => {
     expect(html).toContain('Cell 2');
   });
 
-  it('prints the Pareto table in falling order with the cumulative share', () => {
-    const html = renderToStaticMarkup(createElement(Chart, { spec: specs.pareto! }));
-    expect(html).toContain('Cumulative %');
-    expect(html).toContain('75');
-    expect(html).toContain('100');
+  it('prints the Pareto table in falling order with the cumulative share, from ascending input', () => {
+    const spec: ChartSpec = {
+      kind: 'pareto',
+      title: 'Pareto',
+      categoryLabel: 'Cause',
+      categories: ['Cell 1', 'Cell 2'],
+      series: [{ name: 'Hours', values: [2, 6] }],
+      cumulativeLabel: 'Cumulative %',
+    };
+    const html = renderToStaticMarkup(createElement(Chart, { spec }));
+    expect(html.indexOf('>Cell 2<')).toBeLessThan(html.indexOf('>Cell 1<'));
+    expect(html).toContain('>75<');
+    expect(html).toContain('>100<');
+  });
+
+  it('prints the lane name of each machine on the A9 map', () => {
+    const spec: ChartSpec = {
+      kind: 'scatter',
+      title: 'Map',
+      machineLabel: 'Machine',
+      xLabel: 'Hours',
+      yLabel: 'Rating',
+      mttrLabel: 'MTTR',
+      yTickLabels: ['Low', 'High'],
+      points: [{ x: 1, y: 1, r: 5, label: 'M-1' }],
+    };
+    const html = renderToStaticMarkup(createElement(Chart, { spec }));
+    expect(html).toContain('>Rating<');
+    expect(html).toContain('>High<');
   });
 
   it('prints one table column per heatmap column', () => {
