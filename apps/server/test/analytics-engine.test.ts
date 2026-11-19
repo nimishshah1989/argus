@@ -390,6 +390,7 @@ const engineResult = (asOf: string, machines: number): EngineResult => ({
   asOf,
   profile: DEFAULT_PROFILE,
   rows: { machines: 0, moves: 0, tickets: 0, tasks: 0, reports: 0, people: 0 },
+  excludedMachines: 0,
   figures: [
     figureOf('dashboard.total-machines', machines, 'ready'),
     figureOf('dashboard.utilities', null, 'not_computed'),

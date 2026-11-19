@@ -349,6 +349,8 @@ export interface EngineResult {
   profile: AnalyticsProfile;
   /** How many rows of each kind the run was given. */
   rows: Record<'machines' | 'moves' | 'tickets' | 'tasks' | 'reports' | 'people', number>;
+  /** How many machines the plant leaves out of production data (ticket 77a); 0 when it leaves none out. */
+  excludedMachines: number;
   figures: FigureResult[];
   /** The span the figures were computed for, with its gap months; absent when the run named no span. */
   period?: Period;

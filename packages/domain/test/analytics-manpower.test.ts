@@ -1,7 +1,6 @@
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
 import { COMPUTERS, runWith, type EngineData, type FigureResult } from '../src/index.js';
-import { isProduction } from '../src/analytics/machine-facts.js';
 import { effectiveHours, isPm, sourcedReports } from '../src/analytics/rows.js';
 import { A4, ENGINE_DATA, type FigureKey } from './answer-key/fixture.js';
 
@@ -33,12 +32,14 @@ function table(value: FigureKey, title: string) {
 /** The fixture always carries settings; the order tests read the team list and write it back. */
 const SETTINGS = ENGINE_DATA.settings!;
 
-/** The production fleet: CNC machines the plant counts in production data. */
-const PRODUCTION = new Set(ENGINE_DATA.machines.filter(isProduction).map((machine) => machine.id));
+/** Every CNC machine, the ones the plant leaves out of production data included: the machines A4 reads. */
+const CNC = new Set(
+  ENGINE_DATA.machines.filter((machine) => machine.segment === 'CNC').map((machine) => machine.id),
+);
 
-/** Every production report that is not PM: the rows the 1,279 breakdowns and the drill are derived from. */
+/** Every CNC report that is not PM: the rows the 1,279 breakdowns and the drill are derived from. */
 const CARRIED = sourcedReports(ENGINE_DATA).filter(
-  (row) => PRODUCTION.has(row.report.machineId) && !isPm(row),
+  (row) => CNC.has(row.report.machineId) && !isPm(row),
 );
 
 describe('the A4 manpower figure', () => {
@@ -49,7 +50,7 @@ describe('the A4 manpower figure', () => {
     expect(computed.value).toEqual(A4);
   });
 
-  it('drills the production non-PM tickets it read, derived from the workbook', () => {
+  it('drills the non-PM tickets of every CNC machine it read, derived from the workbook', () => {
     const computed = compute();
     const known = new Set(
       [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
@@ -68,7 +69,7 @@ describe('the A4 manpower figure', () => {
     expect(computed.drill.type).toBe('ticket');
   });
 
-  it('ignores a production-looking row on an excluded machine: the whole page stays identical', () => {
+  it('counts a breakdown row on a machine left out of production data: one more breakdown, its hours, its drill id', () => {
     const excluded = ENGINE_DATA.machines.find((machine) => machine.excludedFromProduction);
     expect(excluded).toBeDefined();
     const donor = CARRIED.find(
@@ -100,11 +101,18 @@ describe('the A4 manpower figure', () => {
     };
     const before = compute();
     const after = compute(grown);
-    // The proof: without the production filter this row would add a breakdown, its hours and its attribution to
-    // every A4 table (and one drill id). The whole page and the drill count staying byte-identical is the filter.
-    expect(after.value).toEqual(before.value);
-    expect(after.value).toEqual(A4);
-    expect(after.drill.ids).toEqual(before.drill.ids);
+    // Bhavin, 19 Nov: a machine left out of production data keeps its breakdowns in the manpower hours. The key's one
+    // left-out machine has no breakdown, so the key cannot say otherwise; this row is the proof the filter is gone.
+    const kpis = (figure: FigureResult) =>
+      (figure.value as unknown as FigureKey).pages[0]!.kpis.map((entry) =>
+        Number(entry.value.replaceAll(',', '')),
+      );
+    const [countBefore = NaN, hoursBefore = NaN] = kpis(before);
+    const [countAfter = NaN, hoursAfter = NaN] = kpis(after);
+    expect(countAfter).toBe(countBefore + 1);
+    expect(Math.abs(hoursAfter - hoursBefore - effectiveHours(report))).toBeLessThan(0.1);
+    expect(after.drill.ids).toEqual([...before.drill.ids, ticketId].sort());
+    expect(before.value).toEqual(A4);
   });
 
   it('takes the team order from the settings: reversing it reverses the matrices but not the sorted table', () => {
