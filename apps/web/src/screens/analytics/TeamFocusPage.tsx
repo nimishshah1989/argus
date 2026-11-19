@@ -6,6 +6,7 @@ import { Card } from '../../ui/card.js';
 import { KpiTile, NO_VALUE } from '../../ui/elements/index.js';
 import { Template } from './shell/patterns/template.js';
 import { FigureDrill } from './KeyPage.js';
+import { PageFigure } from './PageFigure.js';
 import { contentOf } from './figure-content.js';
 import type { AnalyticsGroup } from './groups.js';
 import {
@@ -14,6 +15,7 @@ import {
   focusActions,
   focusLaneGroups,
   focusStatusKey,
+  countedText,
   printedNumber,
   stakeText,
   type FocusAction,
@@ -103,15 +105,19 @@ export function TeamFocusPage({
   const content = figure?.status === 'ready' ? contentOf(figure, t) : null;
   if (!figure || content?.kind !== 'page')
     return (
-      <Template
-        title={title}
-        kind="overview"
-        state="empty"
-        empty={t('analytics.teamFocus.notReady')}
-        main={null}
-      />
+      <>
+        <Template
+          title={title}
+          kind="overview"
+          state="empty"
+          empty={t('analytics.teamFocus.notReady')}
+          main={null}
+        />
+        {drill}
+      </>
     );
   const lanes = focusLaneGroups(focusActions(figure.value));
+  const extra = { ...content, kpis: [], title: '' };
   return (
     <Template
       title={title}
@@ -122,7 +128,7 @@ export function TeamFocusPage({
           <KpiTile
             label={kpi.label}
             value={kpi.value === NO_VALUE ? null : (printedNumber(kpi.value) ?? 0)}
-            format={() => kpi.value}
+            format={(shown) => countedText(kpi.value, shown)}
             note={kpi.sub ?? undefined}
           />
         </div>
@@ -133,10 +139,15 @@ export function TeamFocusPage({
           <div data-span="full">
             <FigureDrill figure={figure} group={group} />
           </div>
+          {extra.tables.length + extra.charts.length === 0 ? null : (
+            <div data-span="full">
+              <PageFigure content={extra} />
+            </div>
+          )}
           {lanes.length === 0 ? null : (
-            <h3 data-span="full" className="text-title3 font-semibold">
+            <p data-span="full" className="text-title3 font-semibold">
               {t('analytics.teamFocus.listTitle')}
-            </h3>
+            </p>
           )}
           {lanes.map((lane) => (
             <LaneCard key={lane.lane} group={lane} />

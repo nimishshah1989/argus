@@ -16,10 +16,12 @@ import {
 } from '../../api.js';
 import { useOnline } from '../../data/index.js';
 import { viewState } from '../../patterns/view-state.js';
-import { DataTable, EmptyState, StatusChip, useClientTable } from '../../ui/elements/index.js';
+import { DataTable, EmptyState, useClientTable } from '../../ui/elements/index.js';
 import type { Column, TableLabels } from '../../ui/elements/index.js';
+import { TONE_INK } from '../../ui/elements/tone.js';
 import { NUDGE_SEVERITY } from '../../ui/meaning/index.js';
 import { Template } from './shell/patterns/template.js';
+import { NotReady } from './screen-states.js';
 import { FilterBar, SeverityTiles } from './action-center-filters.js';
 import { NudgeCardView, type Person } from './action-center-parts.js';
 import {
@@ -158,7 +160,7 @@ function useNudgeWrites() {
   return { write, reopen };
 }
 
-/** A priority heading: its meaning's tone, icon and word in one chip, then how many cards sit under it. */
+/** A priority heading: its meaning's icon, word and count in the tone's ink, larger than the nudge titles under it. */
 function GroupHeading({
   severity,
   label,
@@ -169,12 +171,12 @@ function GroupHeading({
   count: number;
 }) {
   const meaning = NUDGE_SEVERITY[severity];
+  const Icon = meaning.icon;
   return (
-    <h3 className="flex items-center gap-2">
-      <StatusChip tone={meaning.tone} icon={meaning.icon}>
-        {label}
-      </StatusChip>
-      <span className="text-footnote font-semibold tabular-nums text-neutral-600">{count}</span>
+    <h3 className={`flex items-center gap-2 text-title3 font-semibold ${TONE_INK[meaning.tone]}`}>
+      <Icon aria-hidden size={20} className="shrink-0" />
+      {label}
+      <span className="text-footnote tabular-nums text-neutral-600">{count}</span>
     </h3>
   );
 }
@@ -187,14 +189,18 @@ function CardList({
   snoozeDays,
   people,
   writes,
+  form,
+  setForm,
 }: {
   cards: readonly NudgeCard[];
   snoozeDays: number;
   people: readonly Person[];
   writes: Writes;
+  /** The one card whose form is open, held by the board so opening another closes it. */
+  form: string | null;
+  setForm: (key: string | null) => void;
 }) {
   const { write, reopen } = writes;
-  const [form, setForm] = useState<string | null>(null);
   const act = (card: NudgeCard, action: CardAction) => {
     if (action === REOPEN) reopen.mutate(card.key);
     else if (action === SNOOZE || action === RESOLVED)
@@ -235,6 +241,7 @@ function Cards({
 }) {
   const { t } = useTranslation();
   const writes = useNudgeWrites();
+  const [form, setForm] = useState<string | null>(null);
   const groups = severityGroups(filterCards(view.cards, filters));
   return (
     <>
@@ -264,6 +271,8 @@ function Cards({
               snoozeDays={view.snoozeDays}
               people={people}
               writes={writes}
+              form={form}
+              setForm={setForm}
             />
           </section>
         ))
@@ -299,8 +308,11 @@ function Board({ view, people }: { view: ActionCenterView; people: readonly Pers
   );
 }
 
-/** The screen's frame with its state line in place of the board: loading, offline, the refusal or the error with Retry. */
-function Waiting({
+/**
+ * The screen's frame with its state line in place of the board: loading, offline, empty, the error with Retry, or the
+ * refusal. A refusal keeps its own look and role (a status line in the danger ink), as it always had.
+ */
+export function Waiting({
   state,
   refused,
   onRetry,
@@ -316,19 +328,21 @@ function Waiting({
       <Template
         title={title}
         kind="overview"
-        state="empty"
-        empty={t('analytics.actionCenter.refused')}
-        main={null}
+        main={
+          <div data-page="refused">
+            <p role="status" className="text-body font-medium text-bad-ink">
+              {t('analytics.actionCenter.refused')}
+            </p>
+          </div>
+        }
       />
     );
-  if (state === 'error')
-    return <Template title={title} kind="overview" state="error" onRetry={onRetry} main={null} />;
   return (
-    <Template
+    <NotReady
       title={title}
-      kind="overview"
-      state={state === 'offline' ? 'offline' : 'loading'}
-      main={null}
+      state={state}
+      emptyText={t('analytics.actionCenter.emptyOpen')}
+      onRetry={onRetry}
     />
   );
 }

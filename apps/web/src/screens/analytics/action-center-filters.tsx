@@ -4,7 +4,7 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import { Input, Label, Select } from '../../ui/input.js';
 import { KpiTile } from '../../ui/elements/index.js';
 import { NUDGE_SEVERITY, figureMeasure, formatFigure } from '../../ui/meaning/index.js';
-import type { ActionCenterView, CardFilters } from './action-center.js';
+import { RULE_LABELS, type ActionCenterView, type CardFilters } from './action-center.js';
 
 /** The filter bar and the four priority tiles of the Action Center (packet 44d, rebuilt by ticket 87). */
 
@@ -106,7 +106,7 @@ function FilterFields({
           <option value="">{t('analytics.actionCenter.type')}</option>
           {view.types.map((option) => (
             <option key={option.rule} value={option.rule}>
-              {option.label}
+              {t(RULE_LABELS[option.rule])}
             </option>
           ))}
         </Select>

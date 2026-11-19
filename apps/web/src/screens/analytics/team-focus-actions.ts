@@ -110,15 +110,33 @@ export function stakeText(stake: number): string {
   return splitFigure(measure, stake, places, places).text;
 }
 
+const PRINTED_NUMBER = /-?\d[\d,]*(?:\.\d+)?/;
+
 /**
  * The number inside a figure the engine printed as text ("31", "0%", "1,343 hrs"), or null when there is none ("—").
- * The tile prints the engine's own text; this number is only what its count-up eases to.
+ * The tile counts up to it; at rest it prints the engine's own text.
  */
 export function printedNumber(text: string): number | null {
-  const match = /-?\d[\d,]*(?:\.\d+)?/.exec(text);
+  const match = PRINTED_NUMBER.exec(text);
   if (match === null) return null;
   const parsed = Number(match[0].replaceAll(',', ''));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * The engine's text with its number replaced by `shown` while the tile counts up (same decimals, Indian grouping).
+ * At the target it returns the engine's text itself, character for character.
+ */
+export function countedText(text: string, shown: number): string {
+  const match = PRINTED_NUMBER.exec(text);
+  const target = printedNumber(text);
+  if (match === null || target === null || shown === target) return text;
+  const places = (match[0].split('.')[1] ?? '').length;
+  const counted = shown.toLocaleString('en-IN', {
+    minimumFractionDigits: places,
+    maximumFractionDigits: places,
+  });
+  return text.replace(match[0], counted);
 }
 
 /** The actions grouped by lane, in the platform's lane order; a lane with no action prints no group. */

@@ -11,7 +11,7 @@ import { Stack } from '../../ui/layout.js';
 import { Template, type TemplateProps } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
-import { bannerOf } from './action-center.js';
+import { bannerOf, dmy } from './action-center.js';
 import { contentOf } from './figure-content.js';
 import { ContentFigure, NumberFigure, isNumberFigure } from './TodayFigures.js';
 import { COMPARE_DAYS, changeOf, priorDate } from './today-change.js';
@@ -83,7 +83,7 @@ function DashboardTemplate({
       priorDate(asOf).slice(0, 4) === asOf.slice(0, 4),
     );
   const lede = [
-    t('analytics.asOf', { date: asOf }),
+    t('analytics.asOf', { date: dmy(asOf) }),
     excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
     before.data ? t('analytics.today.vs', { date: priorDate(asOf), days: COMPARE_DAYS }) : null,
   ]
@@ -178,7 +178,7 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
           figure={figureOf(SCREEN_TEAM)}
           group={group}
           title={title}
-          lede={t('analytics.asOf', { date: loaded.asOf })}
+          lede={t('analytics.asOf', { date: dmy(loaded.asOf) })}
           drill={drillTable}
         />
       ) : (

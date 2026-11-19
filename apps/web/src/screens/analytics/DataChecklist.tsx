@@ -8,11 +8,20 @@ import { Card } from '../../ui/card.js';
 import { EmptyState, KpiTile, RankedList, type RankedItem } from '../../ui/elements/index.js';
 import { figureMeasure, formatFigure } from '../../ui/meaning/index.js';
 import { Template } from './shell/patterns/template.js';
+import { dmy } from './action-center.js';
 import { SECTION_LABELS, SECTION_ORDER, checklistTotals } from './checklist-view.js';
 import { contentOf, type FigureContent } from './figure-content.js';
+import { groupFor, type AnalyticsGroup } from './groups.js';
+import { FigureDrill } from './KeyPage.js';
+import { NotReady } from './screen-states.js';
 
 type Figure = FiguresReply['figures'][number];
 type Groups = Extract<FigureContent, { kind: 'list' }>['groups'];
+
+/** No list paints more than 50 rows first (DESIGN.md Components); a group shows this many and folds the rest. */
+const SHOWN_FIRST = 20;
+
+const grouped = (count: number): string => count.toLocaleString('en-IN');
 
 /** One tile: a count of things still to do. A count has no earlier period to compare with, so it shows no change. */
 function CountTile({ label, count }: { label: string; count: number }) {
@@ -24,32 +33,72 @@ function CountTile({ label, count }: { label: string; count: number }) {
   );
 }
 
-/** The open items, one card a group with its count; each item is the engine's own sentence. */
-function GroupCards({ groups }: { groups: Groups }) {
-  return groups.map((group) => (
-    <div key={group.label} data-span="full">
-      <Card title={`${group.label} · ${group.rows.length}`}>
-        <ul className="flex flex-col gap-2 text-footnote">
-          {group.rows.map((row, index) => (
-            <li key={`${group.label}-${index}`} className="border-t border-neutral-200 pt-2">
-              {row}
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
-  ));
+/** One item: the engine's own sentence, ruled from the one above. */
+function Item({ row }: { row: string }) {
+  return <li className="border-t border-neutral-200 pt-2">{row}</li>;
 }
 
-/** Everything the figure computes: the totals as tiles, the groups ranked by size, then every open item. */
-function Ready({ figure, groups, title, lede }: Props & { figure: Figure; groups: Groups }) {
+/**
+ * The open items, one card a group with its count. The first few show; the rest sit in a native disclosure, still in
+ * the page, so nothing is dropped and a keyboard or a screen reader opens them with the summary.
+ */
+function GroupCards({ groups }: { groups: Groups }) {
+  const { t } = useTranslation();
+  return groups.map((group) => {
+    const first = group.rows.slice(0, SHOWN_FIRST);
+    const rest = group.rows.slice(SHOWN_FIRST);
+    return (
+      <div key={group.label} data-span="full">
+        <Card
+          title={t('analytics.checklist.groupTitle', {
+            label: group.label,
+            count: grouped(group.rows.length),
+          })}
+        >
+          <ul className="flex flex-col gap-2 text-footnote">
+            {first.map((row, index) => (
+              <Item key={`${group.label}-${index}`} row={row} />
+            ))}
+          </ul>
+          {rest.length === 0 ? null : (
+            <details className="text-footnote">
+              <summary className="flex min-h-target-min cursor-pointer items-center font-semibold text-accent-text">
+                {t('analytics.checklist.showAll', { count: group.rows.length })}
+              </summary>
+              <ul className="flex flex-col gap-2">
+                {rest.map((row, index) => (
+                  <Item key={`${group.label}-more-${index}`} row={row} />
+                ))}
+              </ul>
+            </details>
+          )}
+        </Card>
+      </div>
+    );
+  });
+}
+
+interface ReadyProps {
+  figure: Figure;
+  groups: Groups;
+  group: AnalyticsGroup;
+  title: string;
+  lede: string;
+}
+
+/**
+ * Everything the figure computes: the totals as tiles, the groups ranked by size, every open item under its group,
+ * and the way to the tickets behind the gaps when the engine names any.
+ */
+export function ChecklistReady({ figure, groups, group, title, lede }: ReadyProps) {
   const { t } = useTranslation();
   const totals = checklistTotals(figure.value);
-  const ranked: RankedItem[] = groups.map((group) => ({
-    id: group.label,
-    label: group.label,
-    value: group.rows.length,
-    display: formatFigure(figureMeasure('data-checklist'), group.rows.length, 0),
+  const measure = figureMeasure('data-checklist');
+  const ranked: RankedItem[] = groups.map((item) => ({
+    id: item.label,
+    label: item.label,
+    value: item.rows.length,
+    display: formatFigure(measure, item.rows.length, 0),
   }));
   return (
     <Template
@@ -85,16 +134,14 @@ function Ready({ figure, groups, title, lede }: Props & { figure: Figure; groups
             <div data-span="full" data-figure={figure.key} className="flex flex-col gap-4">
               <GroupCards groups={groups} />
             </div>
+            <div data-span="full">
+              <FigureDrill figure={figure} group={group} />
+            </div>
           </>
         )
       }
     />
   );
-}
-
-interface Props {
-  title: string;
-  lede: string;
 }
 
 /**
@@ -113,45 +160,37 @@ export function DataChecklist() {
     isEmpty: false,
     error: figures.error,
   });
-  if (state === 'error')
+  const today = groupFor('today');
+  if (state !== 'ready' || !figures.data || !today)
     return (
-      <Template
+      <NotReady
         title={title}
-        kind="overview"
-        state="error"
+        state={state === 'ready' ? 'empty' : state}
+        emptyText={t('analytics.empty')}
         onRetry={() => void figures.refetch()}
-        main={null}
-      />
-    );
-  if (state !== 'ready' || !figures.data)
-    return (
-      <Template
-        title={title}
-        kind="overview"
-        state={state === 'offline' ? 'offline' : 'loading'}
-        main={null}
       />
     );
   const figure = figures.data.figures.find((candidate) => candidate.key === 'data-checklist');
   const content = figure?.status === 'ready' ? contentOf(figure, t) : null;
   if (!figure || content?.kind !== 'list')
     return (
-      <Template
+      <NotReady
         title={title}
-        kind="overview"
         state="empty"
-        empty={figure === undefined ? t('analytics.empty') : t('analytics.notComputed')}
-        main={null}
+        emptyText={figure === undefined ? t('analytics.empty') : t('analytics.notComputed')}
+        onRetry={() => void figures.refetch()}
       />
     );
   return (
-    <Ready
+    <ChecklistReady
       figure={figure}
       groups={content.groups}
+      group={today}
       title={title}
-      lede={[t('analytics.checklist.intro'), t('analytics.asOf', { date: figures.data.asOf })].join(
-        ' · ',
-      )}
+      lede={[
+        t('analytics.checklist.intro'),
+        t('analytics.asOf', { date: dmy(figures.data.asOf) }),
+      ].join(' · ')}
     />
   );
 }

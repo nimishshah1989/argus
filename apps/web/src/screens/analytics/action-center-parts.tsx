@@ -7,7 +7,7 @@ import { Card } from '../../ui/card.js';
 import { Input, Label, Select } from '../../ui/input.js';
 import { StatusChip } from '../../ui/elements/index.js';
 import { NUDGE_STATUS } from '../../ui/meaning/index.js';
-import type { CardAction, CardMachine, NudgeCard } from './action-center.js';
+import { RULE_LABELS, type CardAction, type CardMachine, type NudgeCard } from './action-center.js';
 
 /** The Action Center's nudge card with its acknowledgement form (packet 44d, rebuilt by ticket 87). */
 
@@ -87,11 +87,7 @@ function StatusLine({ card }: { card: NudgeCard }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-neutral-600">
       <StatusChip tone={meaning.tone} icon={meaning.icon}>
-        {card.status === 'snoozed'
-          ? t('analytics.actionCenter.status.snoozed', { date: ack.until })
-          : card.status === 'resolved'
-            ? t('analytics.actionCenter.status.resolved')
-            : t('analytics.actionCenter.status.ack')}
+        {'key' in meaning ? t(meaning.key, { date: ack.until }) : meaning.word}
       </StatusChip>
       {ack.owner === '' ? null : (
         <span>{t('analytics.actionCenter.owner', { owner: ack.owner })}</span>
@@ -107,7 +103,7 @@ function CardTop({ card }: { card: NudgeCard }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-neutral-600">
-      <span className="font-semibold">{card.type}</span>
+      <span className="font-semibold">{t(RULE_LABELS[card.rule])}</span>
       {card.evidence === '' ? null : (
         <span>{t('analytics.actionCenter.latestEntry', { date: card.evidence })}</span>
       )}
@@ -201,7 +197,8 @@ export function NudgeCardView({
   const { t } = useTranslation();
   return (
     <li data-nudge={card.key}>
-      <Card title={card.title}>
+      <Card>
+        <h4 className="text-body font-semibold">{card.title}</h4>
         <CardTop card={card} />
         <MachineLinks machines={card.machines} />
         <p className="text-footnote text-neutral-600">
