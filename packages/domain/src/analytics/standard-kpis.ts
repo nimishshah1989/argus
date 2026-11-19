@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { availableHours, availabilityWindow } from './availability.js';
+import { hoursIn, yearToDate } from './availability.js';
 import { formatInr } from './format.js';
 import { isProduction } from './machine-facts.js';
 import {
@@ -125,12 +125,9 @@ function totalsOf(parts: {
 export function legacyTotals(data: EngineData, profile: AnalyticsProfile, asOf: string): KpiTotals {
   const machines = data.machines.filter(isProduction);
   const ids = new Set(machines.map((machine) => machine.id));
-  const window = availabilityWindow(asOf, asOf);
+  const window = data.period ?? yearToDate(asOf);
   const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
-  const workingHours = machines.reduce(
-    (sum, machine) => sum + availableHours(machine, annual, window.from, window.to),
-    0,
-  );
+  const workingHours = machines.reduce((sum, machine) => sum + hoursIn(machine, annual, window), 0);
   const history = sourcedReports(data).filter(
     (row) => isHistory(row) && ids.has(row.report.machineId) && row.report.date <= asOf,
   );

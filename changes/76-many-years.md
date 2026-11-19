@@ -52,3 +52,15 @@
 - Known edge for later: `cellFrac` (`hours.ts`) is a day share inside the window and still counts a gap month's days
   for a machine that moved cells mid-window. The two-year plant has no move, so no 76 hand value meets it; 76n or
   the first packet that reads a moved machine over a gap fixes it.
+
+## 76m — the shift-calendar figures read the span
+
+- The two shift-calendar figures, the comparison and the shift split, now divide by the working hours of the span they
+  are run for, with a month the plant kept no records in left out. On the two-year test plant at 31 January 2027, 2025
+  has 17,325 working hours (three machines, eleven recorded months at 525 each) where it printed 18,900, and both years
+  together have 42,525 where it printed 25,200 (one year's hours under two years' breakdowns, MTBF 109.0 instead of the
+  right 185.0 on the platform basis and 194.3 on the working-hour basis). The platform column and the shift rows follow
+  the same hours. A run that names no span is unchanged, so the 2026 answer key and every existing test stay as they were.
+- For the next packet: `workingHoursFor` in `working-hours.ts` now counts a month listed in its window's `noRecords` as
+  no hours (TC-1 over both years is 23 months, 12,075; VC-2 is its 12 months, 6,300). A window with no `noRecords`
+  counts every month, as before, so 76n's reliability can pass the span's own period and read the gap without a new function.
