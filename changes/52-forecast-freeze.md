@@ -274,3 +274,96 @@ like `forecast.freeze`/`forecast.score`; the mutation is still the ticket's, wri
 No new table, no migration, no new dependency; every file is under 400 lines. **No parity:** the freeze, scoring and
 inspection loop are not in the v3 platform; the planning forecast's own row `m4a.a9-bottleneck-forecast` is already
 done.
+
+## Packet 3 (52c) — the accepted nudge
+
+**What landed.** `POST /api/v1/analytics/action-center/nudges/:key/ticket` (R17): one `withTenant` transaction reads
+the board at the plant's today, refuses an unknown key (404), a good-news nudge (409, "Good news has nothing to
+raise", field `key`), then takes `pg_advisory_xact_lock(hashtext('nudge-accept:<tenantId>:<key>'))` and reads the
+link through `tickets.raisedTicketsFor(…, 'nudge', [key])` (R16) — an already-linked nudge answers that same ticket
+with `created:false` and writes nothing. Only then is the machine chosen: a nudge naming one machine needs no body, a
+nudge naming several needs `machineId` from its own list (422 on `machineId` for a missing, foreign or non-uuid
+choice), and a nudge naming no machine (a shift/team card) is a 422 on `key`. The raise is
+`tickets.raisePlannedTicket` unchanged (kind `general`, `WR-`, channel `inspection`, problem = the nudge's title,
+`reportedByPersonId` = the acting person, `raisedLoginId` = the caller) with `source:{nudge:key}`, which the seam
+writes on the raise event's `payload.source`; the nudge's `setting` row is written `done` with `owner`/`due`/`note`
+empty, and one `nudge.accept` line names entity `ticket`, the new ticket, `before` = the existing ack or null and
+`after {key, ticketId, ref, ack}`. Reply: `{ticketId, ref, created}`.
+
+`packages/shared/src/action-center.ts` (141 → 165) adds `nudgeAcceptSchema` (strict `{machineId?: uuid}`) and
+`nudgeTicketReplySchema`; `packages/shared/src/replies.ts` (239 → 240) registers the route's reply.
+`apps/server/src/modules/analytics/nudges.ts` (214 → 329) gains `acceptNudge`, `machineFor` and the POST route, and
+`nudgeFor` becomes the pure lookup: the good-news 409 moves to its two old callers (worded "acknowledge") and to the
+accept (worded "raise"), so 44c's suite stays green untouched. The accept takes `canAnalytics` and `canRaise` (the
+board login is refused by the first; `canRaise` is the plan's second gate). No screen: the Action Center already
+renders the board, and the card's accept button (and its linked ticket) is the recorded frontend follow-up.
+
+**Red first** (the packet's route absent, its test in place).
+
+```
+$ pnpm exec vitest run apps/server/test/nudge-accept.test.ts
+ ❯ apps/server/test/nudge-accept.test.ts (9 tests | 8 failed) 2034ms
+   × accepts the live freq nudge into one inspection ticket linked by its raise event 19ms
+     AssertionError: expected 404 to be 200
+   × needs a machine for a nudge that names several, and raises the chosen one 8ms
+     AssertionError: expected 404 to be 422
+   … (the 404 test passes trivially: there is no route to answer it)
+ Test Files  1 failed (1)
+      Tests  8 failed | 1 passed (9)
+```
+
+**Green.**
+
+```
+$ pnpm exec vitest run apps/server/test/nudge-accept.test.ts
+ ✓ apps/server/test/nudge-accept.test.ts (9 tests) 7239ms
+
+$ pnpm exec vitest run apps/server/test/analytics-nudges.test.ts \
+    apps/server/test/reply-contract.test.ts apps/server/test/m4b-write.test.ts \
+    apps/server/test/forecast-loop.test.ts
+ Test Files  4 passed (4)
+      Tests  37 passed (37)
+
+$ pnpm exec vitest run apps/server/test packages/domain/test
+ Test Files  198 passed (198)
+      Tests  2293 passed (2293)
+
+$ pnpm boundaries
+boundaries: 235 files scanned, 0 problem(s)
+
+$ pnpm precheck
+precheck: OK
+```
+
+The acceptance, as the test pins it: the live `freq|M_USED` nudge accepts into exactly one ticket
+(`kind general`, `WR-`, `raised_channel inspection`, `machine_id M_USED`, problem = the card's title, reporter =
+the acting supervisor's person and login), the raise event's `payload.source` is exactly `{nudge:'freq|M_USED'}`,
+`raisedTicketsFor` reads that ticket back, the `nudge:freq|…` `setting` row is `done` with empty owner/due/note, the
+board shows the card resolved and there is one `nudge.accept` line. A second accept answers
+`{ticketId, ref, created:false}` with no second ticket and no second audit line (and 44c's `PUT` still refuses the
+resolved nudge with 409). A `cell` nudge naming two machines is 422 without a choice, 422 for a machine that is not
+its own (another tenant's), and raises the chosen one with the same link. A snoozed nudge still accepts into its one
+ticket, and a second accept still reads the link (R17). A `shift` card (no machine) is 422 on `key`; the good-news
+card is 409; an operator and the board login are 403 with nothing written; a made-up key and another tenant's key are
+404; a non-uuid `machineId` and an unknown body field are 422. No new table, migration or dependency.
+
+**Deviations (each recorded, none weakening a rail).**
+
+1. **A snoozed or resolved nudge still accepts — R17's words, not a 409.** The packet brief's shorthand ("a
+   closed/snoozed nudge refused, a nudge that is not open 409") describes 44c's _acknowledge_ route, which 52c leaves
+   exactly as it was (and the suite above re-proves: `PUT` on a resolved nudge is still 409). R17 is explicit that the
+   accept is "accepted whatever its ack status (a resolved or snoozed nudge can still become a ticket; the link check
+   comes first)"; the test pins that reading, and the link check precedes the machine choice so a second accept of a
+   multi-machine nudge needs no body.
+2. **`nudgeFor` is the pure lookup and the info 409 moved out.** The plan asks for this: the two 44c callers now refuse
+   good news as "nothing to acknowledge", the accept as "nothing to raise" — one status, two actions' words. 44c's
+   `analytics-nudges.test.ts` is green with no edit.
+3. **The reply-contract literal is 149, not 138.** The plan wrote 137 → 138 when it was drafted; later tickets added
+   routes, and the branch's base already pinned 148. The count gains the one new route (`+1`) and the equality
+   assertion is untouched.
+4. **The raise event's payload also carries its base `reason`/`isVendor` keys.** The link assertion therefore pins
+   `payload.source` exactly rather than the whole payload, the same way 52b's forecast-link test does; the source key
+   holds only `nudge`.
+5. **The test's five nudge cards are seeded as data.** `nudge-accept.test.ts` seeds the `freq`, `cell`, `shift`,
+   `long` (snoozed branch) and good-news evidence for plant A; no product code, shared fixture or rail changes, and no
+   other test file is edited except the route-count literal.

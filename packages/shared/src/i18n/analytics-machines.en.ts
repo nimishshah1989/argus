@@ -85,6 +85,38 @@ export const analyticsMachinesEn = {
   'analytics.machine.fact.cell': 'Cell',
   'analytics.machine.fact.location': 'Location',
   'analytics.machine.fact.conveyor': 'Conveyor side',
+  'analytics.machine.reliability': 'Reliability fit',
+  'analytics.machine.spares': 'Critical spares',
+  'analytics.machine.fit.shape': 'Shape',
+  'analytics.machine.fit.scale': 'Scale',
+  'analytics.machine.fit.mean': 'Mean',
+  'analytics.machine.fit.hours': 'Standard working hours',
+  'analytics.machine.fit.ownFailures': "This machine's own failures",
+  'analytics.machine.fit.categoryFit': 'Category fit: {{category}}',
+  'analytics.machine.fit.sample':
+    '{{events}} failures · {{intervals}} intervals · {{hours}} censored hours',
+  'analytics.machine.fit.categorySample':
+    '{{events}} failures · {{intervals}} intervals · {{hours}} censored hours · {{own}} on this machine',
+  'analytics.machine.fit.quartiles':
+    'Kaplan-Meier: a quarter under {{q25}} h, half under {{median}} h, three quarters under {{q75}} h',
+  'analytics.machine.fit.trend': 'slope {{beta}} across {{n}} failures',
+  'analytics.machine.fit.improving': 'failures are getting further apart',
+  'analytics.machine.fit.worsening': 'failures are coming faster',
+  'analytics.machine.fit.noTrend': 'no clear trend yet',
+  'analytics.machine.fit.notEnough': 'Not enough history',
+  'analytics.machine.fit.notEnoughDetail':
+    '{{own}} failures on this machine, {{categoryEvents}} in {{category}}; the fit needs {{minimum}}.',
+  'analytics.machine.fit.notEnoughNoCategory':
+    '{{own}} failures on this machine; the fit needs {{minimum}}.',
+  'analytics.machine.fit.noBasis':
+    'No shift windows in Settings, so there is no working-hours basis to fit.',
+  'analytics.machine.spares.ranked': 'Ranked by uses, then by the downtime they caused.',
+  'analytics.machine.spares.none': 'No spare was recorded on this machine’s breakdowns.',
+  'analytics.machine.spares.topFive': '{{total}} parts, {{shown}} shown',
+  'analytics.machine.spares.part': 'Part',
+  'analytics.machine.spares.uses': 'Uses',
+  'analytics.machine.spares.hours': 'Downtime h',
+  'analytics.machine.spares.lastUsed': 'Last used',
   'analytics.machine.unit.kva': 'KVA',
   'analytics.machine.unit.m2': 'm²',
   'analytics.machine.unit.years': 'yrs',

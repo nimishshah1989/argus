@@ -1,10 +1,12 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /**
  * Docs guard (ticket 01): CI fails when an instruction file names a build process other than
- * pstack (D23), or when a stack document names Drizzle (the repo uses raw SQL on pg, D02).
+ * pstack (D23), when a stack document names Drizzle (the repo uses raw SQL on pg, D02), or when the
+ * progress tracker still says `todo` for a ticket that has a merged feat or fix commit (ticket 73).
  */
 
 export interface DocFile {
@@ -97,12 +99,92 @@ export function drizzleErrors(files: DocFile[]): string[] {
   );
 }
 
+export const TRACKER_PATH = 'docs/plan/MILESTONES.md';
+
+const STATUSES: readonly string[] = ['todo', 'in progress', 'done', 'parked', 'withdrawn'];
+const NOT_FOUND = `${TRACKER_PATH}: tracker table not found or its Status column moved`;
+
+/** The tracker's ticket rows as [ticket, status], the Status column found by its header cell. */
+function trackerRows(tracker: string): [string, string][] {
+  const section = /^## Progress tracker.*$([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(tracker)?.[1] ?? '';
+  const rows = section.split('\n').map((line) => line.split('|').map((cell) => cell.trim()));
+  const column = rows.find((cells) => cells.includes('Status'))?.indexOf('Status') ?? -1;
+  if (column < 0) return [];
+  return rows
+    .filter((cells) => /^\d+$/.test(cells[1] ?? ''))
+    .map((cells) => [cells[1] ?? '', cells[column] ?? '']);
+}
+
+/**
+ * Tickets whose tracker row says `todo` while a `feat(NN…)` or `fix(NN…)` commit exists. Fails loudly
+ * when the table, its Status column or a status word cannot be read, so a rename cannot go green.
+ */
+export function trackerErrors(tracker: string, subjects: readonly string[]): string[] {
+  const rows = trackerRows(tracker);
+  if (!rows.some(([, status]) => STATUSES.includes(status.toLowerCase()))) return [NOT_FOUND];
+  const errors = rows
+    .filter(([, status]) => !STATUSES.includes(status.toLowerCase()))
+    .map(
+      ([ticket, status]) => `${TRACKER_PATH}: ticket ${ticket} has an unknown status "${status}"`,
+    );
+  const todo = new Set(
+    rows.filter(([, status]) => status.toLowerCase() === 'todo').map(([ticket]) => Number(ticket)),
+  );
+  const built = new Map<number, string>();
+  for (const subject of subjects) {
+    const match = /^(?:feat|fix)\((\d+)/.exec(subject);
+    const ticket = match ? Number(match[1]) : NaN;
+    if (todo.has(ticket) && !built.has(ticket)) built.set(ticket, subject);
+  }
+  const stale = [...built]
+    .sort(([x], [y]) => x - y)
+    .map(
+      ([ticket, subject]) =>
+        `${TRACKER_PATH}: ticket ${ticket} still says todo but main has "${subject}"`,
+    );
+  return [...errors, ...stale];
+}
+
+/**
+ * Commit subjects on HEAD, or null when git or its history is unavailable. A shallow clone returns
+ * only part of history (CI uses fetch-depth 0), so main() says so in the summary line.
+ */
+export function commitSubjects(): string[] | null {
+  try {
+    const out = execFileSync('git', ['log', '--format=%s'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const subjects = out.split('\n').filter(Boolean);
+    return subjects.length > 0 ? subjects : null;
+  } catch {
+    return null;
+  }
+}
+
+function isShallow(): boolean {
+  try {
+    const out = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out.trim() === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function main(): void {
   const instructions = readDocs(instructionPaths());
   const stack = readDocs([...STACK_FILES]);
-  const errors = [...processErrors(instructions), ...drizzleErrors(stack)];
+  const subjects = commitSubjects();
+  const tracker = trackerErrors(readDocs([TRACKER_PATH])[0]?.text ?? '', subjects ?? []);
+  const errors = [...processErrors(instructions), ...drizzleErrors(stack), ...tracker];
+  const checked = subjects
+    ? `${subjects.length} commits vs tracker${isShallow() ? ' (shallow history)' : ''}`
+    : 'commits not checked (no git history)';
   console.log(
-    `docs: ${instructions.length} instruction files, ${stack.length} stack files, ${errors.length} problem(s)`,
+    `docs: ${instructions.length} instruction files, ${stack.length} stack files, ${checked}, ${errors.length} problem(s)`,
   );
   for (const error of errors) console.error(`docs: ${error}`);
   if (errors.length > 0) process.exitCode = 1;

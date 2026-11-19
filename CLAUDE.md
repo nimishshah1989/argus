@@ -1,7 +1,7 @@
 # How work is done here (pstack)
 
 Product spec: `docs/spec/SPEC.md`. Current state: `docs/HANDOFF.md` (read first). The one plan:
-`docs/plan/MILESTONES.md` (68 tickets, their goals, blockers and live status). Anti-bloat: `docs/LEAN.md` (400-line file, 60-line function, no
+`docs/plan/MILESTONES.md` (the road to v1, every ticket, its numeric goals, blockers and live status). Anti-bloat: `docs/LEAN.md` (400-line file, 60-line function, no
 new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: `docs/DATA-MAP.md`. Design:
 `docs/DESIGN.md`. Discovery in `docs/discovery/` is reference only, never code to copy.
 

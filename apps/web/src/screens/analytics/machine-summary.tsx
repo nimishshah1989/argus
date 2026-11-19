@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { Stack } from '../../ui/layout.js';
 import { MACHINE_FIELD_LABELS, type MachineRecord } from './machine-record.js';
@@ -6,8 +7,11 @@ import { displayDay } from './machine-values.js';
 import { DataTable, Section, StatCard } from './parts.js';
 import { DrillAction, MachineFigures, NOT_AVAILABLE, Nameplate, number } from './machine-parts.js';
 import { MachineTasks } from './machine-tasks.js';
+import { Reliability } from './reliability-parts.js';
 
-/** The machine page's breakdown, PM, completeness and move blocks, gathered into one record body. */
+/** The machine page's breakdown, reliability, PM, completeness and move blocks, gathered into one record body. */
+
+type Figure = FiguresReply['figures'][number];
 
 const UNIT_HOURS: MessageKey = 'analytics.machine.unit.hours';
 
@@ -159,16 +163,20 @@ export function RecordBody({
   record,
   asOf,
   machineId,
+  reliability,
 }: {
   record: MachineRecord;
   asOf: string;
   machineId: string;
+  /** The stored `reliability` figure, found by key: the block reads this machine's entry from it. */
+  reliability: Figure | undefined;
 }) {
   return (
     <Stack gap={6}>
       <Nameplate machine={record.machine} machineId={machineId} />
       <MachineFigures record={record} asOf={asOf} machineId={machineId} />
       <Breakdowns record={record} machineId={machineId} />
+      <Reliability figure={reliability} machineId={machineId} />
       <Pm record={record} machineId={machineId} />
       <MachineTasks machineId={machineId} today={asOf} />
       <Completeness record={record} />

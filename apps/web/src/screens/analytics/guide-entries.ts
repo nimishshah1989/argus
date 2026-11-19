@@ -112,6 +112,7 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
       'analytics.guide.mttr-mtbf.body2',
       'analytics.guide.mttr-mtbf.body3',
       'analytics.guide.mttr-mtbf.body4',
+      'analytics.guide.mttr-mtbf.body5',
     ],
     {
       figures: ['a3-mttr-mtbf', 'shift-kpis.shift-split', 'shift-kpis.backlog', 'reliability'],
