@@ -30,3 +30,50 @@ export async function reportsForEngine(tx: Db): Promise<Row[]> {
     )
   ).rows;
 }
+
+/** A ticket as the engine reads it back: its close state only, never its text or the people on it (52 R12). */
+export interface RaisedTicket {
+  id: string;
+  ref: string;
+  status: string;
+  closeKind: string | null;
+  closedAt: Date | null;
+}
+
+/**
+ * The ticket whose raise event carries `{source:{<kind>: id}}`, for each id in the batch (52 R16). The link lives on
+ * `ticket_event.payload`, the only place the schema keeps it; the read is narrowed to one tenant, `type = 'down'` and
+ * the batch's ids, and takes the latest raise of a source key. There is no index on the payload, so this scans the
+ * tenant's `down` events: bounded by the batch (at most one id per frozen row a month) and recorded as a follow-up.
+ */
+export async function raisedTicketsFor(
+  tx: Db,
+  tenantId: string,
+  kind: 'nudge' | 'forecast',
+  ids: readonly string[],
+): Promise<Map<string, RaisedTicket>> {
+  if (ids.length === 0) return new Map();
+  const rows = (
+    await tx.query(
+      `SELECT DISTINCT ON (e.payload->'source'->>$3) e.payload->'source'->>$3 AS source_id,
+              t.id, t.ref, t.status, t.close_kind, t.closed_at
+         FROM ticket_event e
+         JOIN ticket t ON t.tenant_id = e.tenant_id AND t.id = e.ticket_id
+        WHERE e.tenant_id = $1 AND e.type = 'down' AND e.payload->'source'->>$3 = ANY($2::text[])
+        ORDER BY e.payload->'source'->>$3, e.at DESC`,
+      [tenantId, ids, kind],
+    )
+  ).rows;
+  return new Map(
+    rows.map((row) => [
+      row.source_id as string,
+      {
+        id: row.id as string,
+        ref: row.ref as string,
+        status: row.status as string,
+        closeKind: (row.close_kind as string | null) ?? null,
+        closedAt: (row.closed_at as Date | null) ?? null,
+      },
+    ]),
+  );
+}

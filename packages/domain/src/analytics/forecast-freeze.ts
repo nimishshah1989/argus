@@ -11,8 +11,11 @@ import {
   type ForecastBand,
   type ForecastConfidence,
 } from './a9-forecast-sim.js';
+import { formatNumber } from './format.js';
 import { dayNumber } from './plant-date.js';
+import { effectiveHours } from './rows.js';
 import type { EngineData } from './types.js';
+import type { Status } from '../types.js';
 
 /**
  * The monthly freeze (ticket 52, packet 52a): one `FrozenForecast` per production machine, holding the A9 M0
@@ -88,4 +91,87 @@ export function frozenForMonth(
       },
     },
   }));
+}
+
+/**
+ * What actually happened to one machine in a frozen month (R13): the effective hours of its production, non-PM
+ * reports dated in the month, and the merged episodes that **began** in it. A month-boundary episode therefore
+ * counts its hours in the month it ran into but its one episode in the month it began.
+ */
+export interface ForecastActual {
+  hours: number;
+  episodes: number;
+}
+
+/** The inspection ticket's close, mapped one-to-one (R12): no problem text, note or person is copied. */
+export interface InspectionOutcome {
+  ticketId: string;
+  ref: string;
+  status: Status;
+  closeKind: 'report' | 'no_report' | 'done' | null;
+  closedAt: string | null;
+}
+
+/** One frozen row's score: what happened, whether the plan-for held, and its inspection's close state. */
+export interface ForecastOutcome {
+  hours: number;
+  episodes: number;
+  /** `hours <= predicted.p80`, exactly: plan-for exceedance, not model accuracy (R13). */
+  hit: boolean;
+  inspection: InspectionOutcome | null;
+}
+
+/**
+ * The month's actuals per machine, on the same fleet and hour definitions the A9 model reads: every production,
+ * non-PM report dated in the month adds its effective hours; every merged episode whose first day is in the month
+ * counts once. A machine with no activity in the month has no entry (the caller reads it as 0 hours, 0 episodes).
+ */
+export function monthActuals(data: EngineData, month: string): Map<string, ForecastActual> {
+  if (dayNumber(month) === null) throw new RangeError(`not a plant date: ${month}`);
+  if (!month.endsWith('-01')) throw new RangeError(`a scored month is its 1st: ${month}`);
+  const start = dayNumber(month) as number;
+  const end = start + monthAt(month).days - 1;
+  const rows = fleetRows(data);
+  const actuals = new Map<string, ForecastActual>();
+  const at = (machineId: string): ForecastActual => {
+    const known = actuals.get(machineId);
+    if (known) return known;
+    const fresh: ForecastActual = { hours: 0, episodes: 0 };
+    actuals.set(machineId, fresh);
+    return fresh;
+  };
+  for (const { report } of rows) {
+    const day = dayNumber(report.date);
+    if (day === null || day < start || day > end) continue;
+    at(report.machineId).hours += effectiveHours(report);
+  }
+  for (const [machineId, episodes] of episodesOf(rows)) {
+    const begun = episodes.filter(
+      (episode) => episode.first >= start && episode.first <= end,
+    ).length;
+    if (begun > 0) at(machineId).episodes = begun;
+  }
+  return actuals;
+}
+
+/** One frozen row scored: the predicted plan-for against the month's actuals and the inspection's close (R8/R12). */
+export function outcomeFor(
+  predicted: FrozenPrediction,
+  actual: ForecastActual,
+  inspection: InspectionOutcome | null,
+): ForecastOutcome {
+  return {
+    hours: actual.hours,
+    episodes: actual.episodes,
+    hit: actual.hours <= predicted.p80,
+    inspection,
+  };
+}
+
+/**
+ * The inspection ticket's problem text, the plant's own words (pinned by the domain test): the machine's code, the
+ * frozen month's label and its plan-for at one decimal, the same text a person reads on the ticket.
+ */
+export function inspectionProblem(input: { code: string; month: string; p80: number }): string {
+  return `${input.code} is Hot for ${monthAt(input.month).label}: plan for ${formatNumber(input.p80, 1)} hrs`;
 }

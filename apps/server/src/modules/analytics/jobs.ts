@@ -3,15 +3,20 @@ import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import type { JobRole } from '../../kernel/index.js';
 import { ENGINE_FREEZE_QUEUE, runEngineFreeze } from './freeze.js';
+import { ENGINE_RUN_QUEUE, runEngineRun } from './run.js';
 
 /**
  * The engine's queues (ticket 52, R18): created for every role so a caller can enqueue, worked and scheduled only
  * by a non-`api` replica. The payload names one customer or, when absent, the handler fans out over every plant.
+ * The freeze runs at 00:10 UTC; the scoring and inspection run at 00:40 UTC, after it.
  */
 
 export const ENGINE_FREEZE_VERSION = 1;
+export const ENGINE_RUN_VERSION = 1;
 /** 00:10 UTC daily: the 1st freezes the current plant month, a later day catches a missed 1st up (R6). */
 export const ENGINE_FREEZE_CRON = '10 0 * * *';
+/** 00:40 UTC daily: score the closed months still in their window, then raise the current month's inspections (R8). */
+export const ENGINE_RUN_CRON = '40 0 * * *';
 const QUEUE = {
   policy: 'standard',
   retryLimit: 1,
@@ -23,24 +28,24 @@ const payloadSchema = z.object({
   v: z.literal(ENGINE_FREEZE_VERSION),
   tenantId: z.string().uuid().optional(),
 });
-type EngineFreezePayload = z.infer<typeof payloadSchema>;
+type EnginePayload = z.infer<typeof payloadSchema>;
 
 export interface EngineJobDeps {
   pool: Pool;
   now?: () => Date;
 }
 
-/** Creates the queue for every role and, unless the role is `api`, the worker and the daily UTC schedule. */
+/** Creates both queues for every role and, unless the role is `api`, their workers and daily UTC schedules. */
 export async function startEngineJobs(
   boss: PgBoss,
   deps: EngineJobDeps,
   role: JobRole,
 ): Promise<void> {
-  if (!(await boss.getQueue(ENGINE_FREEZE_QUEUE)))
-    await boss.createQueue(ENGINE_FREEZE_QUEUE, QUEUE);
+  for (const queue of [ENGINE_FREEZE_QUEUE, ENGINE_RUN_QUEUE])
+    if (!(await boss.getQueue(queue))) await boss.createQueue(queue, QUEUE);
   if (role === 'api') return;
   const now = deps.now ?? (() => new Date());
-  await boss.work<EngineFreezePayload>(
+  await boss.work<EnginePayload>(
     ENGINE_FREEZE_QUEUE,
     { batchSize: 1, pollingIntervalSeconds: 30 },
     async ([job]) => {
@@ -54,4 +59,18 @@ export async function startEngineJobs(
     },
   );
   await boss.schedule(ENGINE_FREEZE_QUEUE, ENGINE_FREEZE_CRON, {}, { tz: 'UTC' });
+  await boss.work<EnginePayload>(
+    ENGINE_RUN_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds: 30 },
+    async ([job]) => {
+      const { tenantId } = payloadSchema.parse(job?.data ?? { v: ENGINE_RUN_VERSION });
+      const summary = await runEngineRun(deps.pool, {
+        now: now(),
+        ...(tenantId ? { tenantId } : {}),
+      });
+      console.log(JSON.stringify({ job: ENGINE_RUN_QUEUE, ...summary }));
+      return summary;
+    },
+  );
+  await boss.schedule(ENGINE_RUN_QUEUE, ENGINE_RUN_CRON, {}, { tz: 'UTC' });
 }
