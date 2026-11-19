@@ -50,6 +50,11 @@
 - The design-doc test now needs each settled fact (Running grey, Waiting amber, and the rest) as its own positive sentence,
   so a negation or a "may change" around the phrase fails it.
 
+## 80g — the design preview figures
+
+- The design preview will print the plant's real figure shapes, so a new script (`tools/directions-figures.ts`) runs the engine on the 11 November answer key and saves the dashboard, one machine (VC-28), the breakdown log and the four breakdown analyses as one small file (about 100 KB, every table cut to 50 rows, every drill id dropped, nested ones included, so the machine page's breakdown list must come from the log's rows or sample data).
+- `pnpm tsx tools/directions-figures.ts --check` fails when that file is missing or out of date.
+
 ## 80h — the design preview's variant contract
 
 - The design preview gets its shared contract in `apps/web/src/gallery/directions/variant.ts`. It holds the six
