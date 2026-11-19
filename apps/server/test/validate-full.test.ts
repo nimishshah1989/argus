@@ -169,5 +169,10 @@ describe('validate:full on a small invented plant', () => {
     const report = await validate(db.app, tenant, { asOf: '2023-06-30' });
     expect(report.unexplained).toEqual([]);
     expect(report.lines.some((line) => line.startsWith('coverage: 7 of 7 tickets'))).toBe(true);
+    expect(
+      report.lines.some((line) =>
+        line.startsWith('database: 13 tickets (7 reported on or before 2023-06-30)'),
+      ),
+    ).toBe(true);
   }, 120_000);
 });

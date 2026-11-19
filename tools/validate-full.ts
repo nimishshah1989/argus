@@ -204,11 +204,11 @@ function render(g: Gathered, report: Report): string[] {
   );
   return [
     `validate:full as of ${first.asOf}, years ${years[0]}..${years.at(-1)}`,
-    `database: ${coverage.total} tickets, ${first.data.machines.length} machines, ${first.data.reports.length} reports`,
+    `database: ${coverage.inDatabase} tickets (${coverage.total} reported on or before ${first.asOf}), ${first.data.machines.length} machines, ${first.data.reports.length} reports`,
     ...g.pass.lines,
     `second load and run: ${g.second.whole.figures.length} figures, ${g.stable.length} differ from the first`,
     ...tableOf(g.whole.rows, badColumns(g.diffs)),
-    `coverage: ${coverage.read} of ${coverage.total} tickets read by a figure (${percent.toFixed(1)} %), ${unread.length} unread`,
+    `coverage: ${coverage.read} of ${coverage.total} tickets reported on or before ${first.asOf} read by a figure (${percent.toFixed(1)} %), ${unread.length} unread`,
     ...unread.slice(0, LISTED_REFS).map((diff) => `  unread: ${diff.text}`),
     ...(unread.length > LISTED_REFS ? [`  ... ${unread.length - LISTED_REFS} more unread`] : []),
     ...report.explained.map((d) => `explained: ${d.id} (${d.cause})`),

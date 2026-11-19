@@ -215,7 +215,7 @@ export function checkCoverage(
   data: EngineData,
   whole: EngineResult,
   inDatabase: number,
-): { read: number; total: number; diffs: Diff[] } {
+): { read: number; total: number; inDatabase: number; diffs: Diff[] } {
   const all = [...data.tickets, ...data.tasks];
   // The engine rightly leaves out a ticket reported after the run date (plant time zone): it is not unread.
   const tickets = all.filter((ticket) => plantDay(ticket.reportedAt, data.timeZone) <= whole.asOf);
@@ -234,7 +234,7 @@ export function checkCoverage(
     });
   }
   const total = inDatabase - (all.length - tickets.length);
-  return { read: tickets.length - unread.length, total, diffs };
+  return { read: tickets.length - unread.length, total, inDatabase, diffs };
 }
 
 /**
