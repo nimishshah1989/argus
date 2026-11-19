@@ -21,8 +21,7 @@ interface Regions {
 
 /** A drill area is always named: its heading labels the region. */
 type DrillProps =
-  | { drill?: undefined; drillTitle?: never }
-  | { drill: ReactNode; drillTitle: string };
+  { drill?: undefined; drillTitle?: never } | { drill: ReactNode; drillTitle: string };
 
 /**
  * Anything but 'ready' replaces figures, main, aside and drill with the state line. An empty page needs the
