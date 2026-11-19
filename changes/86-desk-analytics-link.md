@@ -1,0 +1,1 @@
+- A supervisor sees the Analytics entry on the desk menu, like heads, plant heads and admins; operators, technicians and the board login do not.

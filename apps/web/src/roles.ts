@@ -1,3 +1,5 @@
+import { canAnalytics, type Role } from '@uptimo/domain';
+
 /**
  * Who may work at the desk (DOMAIN §3, B4): the technician and above. The floor is everyone's;
  * the desk screen itself still checks each view with `mayOpen` (Mine is not for the plant head).
@@ -30,3 +32,7 @@ const HOME: Readonly<Record<string, LandingPath>> = {
 export function landingPath(role: string): LandingPath {
   return HOME[role] ?? (mayOpenDesk(role) ? '/desk' : '/floor');
 }
+
+/** The server's own check (`canAnalytics`) on the role the browser knows: the desk menu and the analytics shell share it. */
+export const readsAnalytics = (role: string): boolean =>
+  canAnalytics({ role: role as Role, loginId: '', personId: null, shared: false, cell: null });
