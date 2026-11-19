@@ -88,6 +88,8 @@ export interface Period {
   to: string;
   /** `YYYY-MM` months inside `[from, to]` with no report and no ticket at all; absent unless a span was named. */
   noRecords?: readonly string[];
+  /** The `from` the caller asked for, set only when the run moved it up to the plant's first record (ticket 76d). */
+  requestedFrom?: string;
 }
 
 /** What a month prints when the plant recorded nothing in it: never a 0. */
@@ -107,7 +109,7 @@ function monthIndex(key: string): number {
 }
 
 /** The months holding a report, ticket or task up to `asOf`; a ticket or task belongs to its plant day. */
-function recordedMonths(data: EngineData, asOf: string): Set<string> {
+export function recordedMonths(data: EngineData, asOf: string): Set<string> {
   const seen = new Set<string>();
   for (const { date } of data.reports) if (date <= asOf) seen.add(date.slice(0, 7));
   for (const { reportedAt } of [...data.tickets, ...data.tasks]) {

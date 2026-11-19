@@ -29,8 +29,9 @@ const results = Object.fromEntries(
   SPAN_KEYS.map((key) => [key, run(MANY_YEARS, AS_OF_ENGINE, DEFAULT_PROFILE, named(key))]),
 ) as Record<SpanKey, ReturnType<typeof run>>;
 
-const tiles = (key: SpanKey): unknown[] =>
-  TILES.map((tile) => results[key].figures.find((figure) => figure.key === tile)?.value);
+const tilesOf = (result: ReturnType<typeof run>): unknown[] =>
+  TILES.map((tile) => result.figures.find((figure) => figure.key === tile)?.value);
+const tiles = (key: SpanKey): unknown[] => tilesOf(results[key]);
 
 /** The figures that read the run date or the whole history, never the span, whole (value and drill). */
 const fixedFigures = (key: SpanKey) =>
@@ -59,10 +60,70 @@ describe('run with a span', () => {
     expect(fixedFigures('2026')).toHaveLength(27);
   });
 
-  it('marks 24 figures as reading the span, 18 the run date and 9 the whole history', () => {
-    const count = (reads: 'asOf' | 'history' | undefined) =>
-      FIGURES.filter((def) => def.reads === reads).length;
-    expect([count(undefined), count('asOf'), count('history')]).toEqual([24, 18, 9]);
+  it('marks which figures read the span, the run date and the whole history, by key', () => {
+    const marked = (reads: 'asOf' | 'history' | undefined) =>
+      FIGURES.filter((def) => def.reads === reads)
+        .map((def) => def.key)
+        .sort();
+    expect({ span: marked(undefined), asOf: marked('asOf'), history: marked('history') }).toEqual({
+      span: [
+        'a1-bd-pm',
+        'a10-problems',
+        'a2-category-cell',
+        'a3-mttr-mtbf',
+        'a4-manpower',
+        'a6-why-why',
+        'a8-age',
+        'breakdown-log',
+        'dashboard.avg-bd-hours-per-day',
+        'dashboard.avg-bd-hours-per-machine',
+        'dashboard.avg-complaints-per-day',
+        'dashboard.bubble-chart',
+        'dashboard.costliest-problems',
+        'dashboard.fleet-availability',
+        'dashboard.no-downtime-hours',
+        'dashboard.plant-bd-pct',
+        'dashboard.pm-hours',
+        'dashboard.total-breakdowns',
+        'dashboard.total-downtime-hours',
+        'pm-compliance',
+        'reliability',
+        'shift-kpis.breakdown-map',
+        'shift-kpis.compare',
+        'shift-kpis.shift-split',
+      ],
+      asOf: [
+        'a5-energy',
+        'a7-footprint',
+        'action-center',
+        'action-center.spares-spend',
+        'annual-report',
+        'cell-change-log',
+        'dashboard.breakdown-free',
+        'dashboard.cnc-machines',
+        'dashboard.conventional-machines',
+        'dashboard.dg-sets',
+        'dashboard.expansion-timeline',
+        'dashboard.process-machines',
+        'dashboard.total-machines',
+        'dashboard.utilities',
+        'machine-page',
+        'monthly-report',
+        'registers',
+        'shift-kpis.backlog',
+      ],
+      history: [
+        'a9-bottleneck-forecast',
+        'compare',
+        'compare.spares-cost',
+        'data-checklist',
+        'fix-finder',
+        'forecast-lab',
+        'money-matters',
+        'team-focus',
+        'team-focus.cost',
+      ],
+    });
   });
 
   it('hands a period figure the span cut at its end, and a history figure the whole plant', () => {
@@ -143,5 +204,27 @@ describe('run with a span', () => {
     });
     expect(() => only('2026-11-11', { from: '2027-01-01', to: '2027-12-31' })).toThrow(RangeError);
     expect(() => only(AS_OF_ENGINE, { from: '2026-12-31', to: '2026-01-01' })).toThrow(RangeError);
+  });
+
+  it('does not count the years before the first record as available hours', () => {
+    const early = run(MANY_YEARS, AS_OF_ENGINE, DEFAULT_PROFILE, {
+      from: '2020-01-01',
+      to: '2025-12-31',
+    });
+    expect({ period: early.period, tiles: tilesOf(early) }).toEqual({
+      period: { ...results['2025'].period, requestedFrom: '2020-01-01' },
+      tiles: tiles('2025'),
+    });
+    expect(results['2025'].period).not.toHaveProperty('requestedFrom');
+  });
+
+  it('refuses a date the calendar does not have', () => {
+    for (const span of [
+      { from: '2026-02-30', to: '2026-03-31' },
+      { from: '2026-01-01', to: '2026-13-01' },
+    ]) {
+      expect(() => only(AS_OF_ENGINE, span)).toThrow(RangeError);
+    }
+    expect(() => only('2027-02-29', named('2025'))).toThrow(RangeError);
   });
 });

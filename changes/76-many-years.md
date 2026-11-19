@@ -45,6 +45,10 @@
 - Rulings: a span cannot run past the run date (2026 asked for on 11 November is read to 11 November), and a span that
   starts after it is refused. The month still running is never a gap, so on the 1st a span of that month has its first
   day of hours and no "no records"; the month is a gap only if it is over (the run date is its last day) with no record.
+- A span that starts before the plant's first recorded month is moved up to that month: the empty years before the first
+  record are not available hours (2020 to 2025 on a plant whose log starts in 2025 reads exactly as 2025). The result's
+  period carries the moved `from` and, as `requestedFrom`, what was asked, so a screen can say so. A span wholly before
+  the first record has no hours and no rows. A span with a date the calendar does not have (30 February) is refused.
 - Known edge for later: `cellFrac` (`hours.ts`) is a day share inside the window and still counts a gap month's days
   for a machine that moved cells mid-window. The two-year plant has no move, so no 76 hand value meets it; 76n or
   the first packet that reads a moved machine over a gap fixes it.

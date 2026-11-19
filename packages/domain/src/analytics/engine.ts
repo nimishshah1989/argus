@@ -1,6 +1,6 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
 import { dataAsOf } from './as-of.js';
-import { gapMonths, type Period } from './availability.js';
+import { gapMonths, recordedMonths, type Period } from './availability.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
 import type {
@@ -13,6 +13,16 @@ import type {
 } from './types.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A plant date the calendar has: `2026-02-30` and `2026-13-01` are not. */
+function isPlantDate(day: string): boolean {
+  if (!DAY.test(day)) return false;
+  const [year, month, date] = day.split('-').map(Number) as [number, number, number];
+  const utc = new Date(Date.UTC(year, month - 1, date));
+  return (
+    utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === date
+  );
+}
 
 /** The span a caller names: plant dates, both ends included. */
 type Span = Pick<Period, 'from' | 'to'>;
@@ -65,17 +75,23 @@ function plantGaps(data: EngineData, asOf: string): string[] {
   return gapMonths(data, asOf).filter((key) => key !== monthOf(asOf) || monthIsOver(asOf));
 }
 
-/** The span a run reads: never past the run date, with the gap months inside it. */
-function periodOf(span: Span, asOf: string, gaps: readonly string[]): Period {
-  if (!DAY.test(span.from) || !DAY.test(span.to) || span.from > span.to) {
+/**
+ * The span a run reads: never past the run date, never before the plant's first recorded month (the empty years
+ * before it are not available hours; `requestedFrom` says what was asked), with the gap months inside it.
+ */
+function periodOf(span: Span, asOf: string, data: EngineData, gaps: readonly string[]): Period {
+  if (!isPlantDate(span.from) || !isPlantDate(span.to) || span.from > span.to) {
     throw new RangeError(
       `span must run from one plant date to a later one, got ${span.from} to ${span.to}`,
     );
   }
   if (span.from > asOf) throw new RangeError(`span starts after asOf ${asOf}: ${span.from}`);
+  const first = [...recordedMonths(data, asOf)].sort()[0];
+  const floor = first === undefined ? span.from : `${first}-01`;
+  const from = span.from > floor ? span.from : floor;
   const to = span.to < asOf ? span.to : asOf;
-  const noRecords = gaps.filter((key) => key >= monthOf(span.from) && key <= monthOf(to));
-  return { from: span.from, to, noRecords };
+  const noRecords = gaps.filter((key) => key >= monthOf(from) && key <= monthOf(to));
+  return { from, to, noRecords, ...(from === span.from ? {} : { requestedFrom: span.from }) };
 }
 
 /** What a figure that reads the span sees: the plant cut to it. Tickets stay, so a breakdown closed after `to` counts. */
@@ -95,7 +111,7 @@ function cutToPeriod(data: EngineData, period: Period): EngineData {
 function viewsOf(data: EngineData, asOf: string, span?: Span) {
   if (!span) return { whole: data, cut: data, cutAsOf: asOf, period: undefined };
   const gaps = plantGaps(data, asOf);
-  const period = periodOf(span, asOf, gaps);
+  const period = periodOf(span, asOf, data, gaps);
   const whole = { ...data, period, gaps };
   return { whole, cut: cutToPeriod(whole, period), cutAsOf: period.to, period };
 }
@@ -109,7 +125,7 @@ export function runWith(
   input: { data: EngineData; asOf: string; profile: AnalyticsProfile; span?: Span },
 ): EngineResult {
   const { asOf, profile } = input;
-  if (!DAY.test(asOf))
+  if (!isPlantDate(asOf))
     throw new RangeError(`asOf must be a plant date like 2026-11-11, got ${asOf}`);
   const data = dataAsOf(input.data, asOf);
   const known = knownIds(data);
