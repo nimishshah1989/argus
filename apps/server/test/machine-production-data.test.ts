@@ -74,6 +74,25 @@ describe('switching a machine out of production data', () => {
     expect(await metadata(M_FREE)).toEqual({ efficiency: 60 });
   });
 
+  it('shows the switch on the machine list, and a form that echoes the row back cannot change it', async () => {
+    const listed = async () =>
+      (await f.call('GET', '/api/v1/machines', f.tokens.head!))
+        .json()
+        .items.find((m: { id: string }) => m.id === M_FREE) as Record<string, unknown>;
+    expect((await listed()).excludedFromProduction).toBe(false);
+    await f.call('PUT', path(M_FREE), f.tokens.head!, { excludedFromProduction: true });
+    const row = await listed();
+    expect(row.excludedFromProduction).toBe(true);
+    const echoed = await f.call('PUT', `/api/v1/machines/${M_FREE}`, f.tokens.head!, {
+      code: row.code,
+      excludedFromProduction: false,
+    });
+    expect(echoed.statusCode).toBe(422);
+    expect((await listed()).excludedFromProduction).toBe(true);
+    await f.call('PUT', path(M_FREE), f.tokens.head!, { excludedFromProduction: false });
+    expect((await listed()).excludedFromProduction).toBe(false);
+  });
+
   it('is refused for the floor, a supervisor, the plant head and the board, and for another plant', async () => {
     for (const role of ['operator', 'technician', 'supervisor', 'plant_head', 'board']) {
       const res = await f.call('PUT', path(M_USED), f.tokens[role]!, {

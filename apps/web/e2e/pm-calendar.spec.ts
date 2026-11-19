@@ -70,6 +70,7 @@ function figuresFor(machine: {
   return {
     asOf: PLANT_TODAY,
     profile: {} as FiguresReply['profile'],
+    excludedMachines: 0,
     rows: { machines: 3, moves: 0, tickets: 2, tasks: 0, reports: 0, people: 0 },
     figures: [
       {

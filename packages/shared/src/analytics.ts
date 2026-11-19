@@ -196,11 +196,8 @@ export const figuresReplySchema = z
         people: z.number().int(),
       })
       .strict(),
-    /**
-     * How many machines the plant leaves out of production data (ticket 77a); the server always sends it. Optional in
-     * the contract only so the web fixtures written before it keep compiling; 77b makes it required with the screen.
-     */
-    excludedMachines: z.number().int().min(0).optional(),
+    /** How many machines the plant leaves out of production data (tickets 77a and 77b); the server always sends it. */
+    excludedMachines: z.number().int().min(0),
     figures: z.array(figureReplySchema),
   })
   .strict();

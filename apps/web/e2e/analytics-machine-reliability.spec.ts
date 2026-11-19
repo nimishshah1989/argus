@@ -65,6 +65,7 @@ const SHOWN_PARTS = [
 const FIGURES: FiguresReply = {
   asOf: AS_OF,
   profile: {} as FiguresReply['profile'],
+  excludedMachines: 0,
   rows: { machines: 4, moves: 0, tickets: 0, tasks: 0, reports: 0, people: 0 },
   figures: [
     {

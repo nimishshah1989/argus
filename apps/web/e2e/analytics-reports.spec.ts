@@ -69,6 +69,7 @@ async function stubFigures(page: Page): Promise<void> {
   const reply: FiguresReply = {
     asOf: MONTHLY.asOf,
     profile: {} as FiguresReply['profile'],
+    excludedMachines: 0,
     rows: { machines: 125, moves: 0, tickets: 0, tasks: 0, reports: 0, people: 0 },
     figures: [figureOf(MONTHLY), figureOf(ANNUAL)],
   };
