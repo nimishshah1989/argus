@@ -28,7 +28,11 @@ const RAMPS = ['seq', 'div'];
 const TEMPLATES = ['overview', 'analysis', 'register', 'entity', 'work queue'];
 // Known limit: a hedge about another clause ("Running is grey, and stopped is never grey") still rejects.
 const HEDGE =
-  /\b(?:not|never|no longer|unless|may|might|maybe|perhaps|could|if|until|yet|cannot|except|though|pending|provided|tbd|later|will)\b|n't\b/i;
+  /\b(?:not|never|no longer|unless|may|might|maybe|perhaps|could|if|until|yet|cannot|except|though|pending|provided|tbd|later|will|however|although|but|unknown|to be confirmed|subject to)\b|n't\b/i;
+const CHIP_DEFINED = /\b9999 px\b.*\bdefined in this document\b/i;
+const LOCK_ONLY_ROUND = /\bLOCK\.md\b.*\bonly\b.*\bround\b/i;
+const DEFERS_TO_DESIGN =
+  /^(?=.*docs\/DESIGN\.md)(?=.*\bcolou?r\b)(?=.*\bshape\b)(?=.*\bdepth\b)(?=.*\bmotion\b)/i;
 const ABBREVIATION = /\b(?:e\.g|i\.e|vs|etc)\./gi;
 
 /** Sentences of a markdown text: a blank line, a list item, a table row or a heading ends one. */
@@ -105,13 +109,13 @@ describe('docs/DESIGN.md', () => {
       new URL('../docs/design/TAG-SYSTEM.md', import.meta.url),
       'utf8',
     );
-    expect(tagSystem).toContain('docs/DESIGN.md');
+    expect(states(tagSystem, DEFERS_TO_DESIGN)).toBe(true);
   });
 
   it('says where the 9999 px chip radius is defined, and that LOCK.md only says round', () => {
     const all = sentences(body);
-    expect(all.some((s) => /9999 px/.test(s) && /defined in this document/.test(s))).toBe(true);
-    expect(all.some((s) => /LOCK\.md/.test(s) && /only/.test(s) && /round/.test(s))).toBe(true);
+    expect(states(body, CHIP_DEFINED)).toBe(true);
+    expect(states(body, LOCK_ONLY_ROUND)).toBe(true);
     expect(all.filter((s) => /9999 px/.test(s) && /come from .*LOCK\.md/.test(s))).toEqual([]);
   });
 
@@ -188,6 +192,12 @@ describe('a settled fact must be its own positive sentence', () => {
     'Running is grey and will change.',
     'Running is grey for now, later it moves.',
     'It is not so that Running is grey (see D33).',
+    'Running is grey; however, the pick may differ.',
+    'Running is grey, although the pick decides.',
+    'Running is grey but the pick decides.',
+    'Running is grey, unknown for the TV.',
+    'Running is grey, to be confirmed.',
+    'Running is grey, subject to the pick.',
   ])('rejects a negated or qualified statement: %s', (sample) => {
     expect(states(sample, running)).toBe(false);
   });
@@ -196,6 +206,24 @@ describe('a settled fact must be its own positive sentence', () => {
     expect(states('Running is grey, e.g. in a list. Stopped is red.', running)).toBe(true);
     expect(states('Running is grey (not green).', running)).toBe(true);
     expect(states('Running is grey (it may be dark in the dark theme).', running)).toBe(true);
+  });
+
+  it('applies the same guard to the chip radius, LOCK.md and TAG-SYSTEM checks', () => {
+    expect(states('The 9999 px radius is defined in this document.', CHIP_DEFINED)).toBe(true);
+    expect(states('The 9999 px radius is not defined in this document.', CHIP_DEFINED)).toBe(false);
+    expect(states('LOCK.md says only that chips are round.', LOCK_ONLY_ROUND)).toBe(true);
+    expect(states('LOCK.md does not say only that chips are round.', LOCK_ONLY_ROUND)).toBe(false);
+    const rules = 'Colour, shape, depth and motion rules live in docs/DESIGN.md.';
+    expect(states(rules, DEFERS_TO_DESIGN)).toBe(true);
+    expect(
+      states('See docs/DESIGN.md. Colour, shape, depth and motion differ.', DEFERS_TO_DESIGN),
+    ).toBe(false);
+    expect(
+      states(
+        'Colour, shape, depth and motion are in docs/DESIGN.md unless noted.',
+        DEFERS_TO_DESIGN,
+      ),
+    ).toBe(false);
   });
 
   it('rejects the opposite statement', () => {
