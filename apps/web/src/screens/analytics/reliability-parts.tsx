@@ -1,9 +1,12 @@
+/* eslint-disable i18next/no-literal-string -- template kind, state and fact ids are prop values, not copy */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
+import { Card } from '../../ui/card.js';
 import { displayDay } from './machine-values.js';
 import { NOT_AVAILABLE, number } from './machine-parts.js';
-import { DataTable, Section, StatCard } from './parts.js';
+import { Block, Facts } from './facts.js';
+import { EngineTable } from './engine-table.js';
 import {
   TREND_WORDS,
   drillLinkOf,
@@ -35,18 +38,13 @@ function DrillFoot({
   if (link === null) return null;
   if (link.kind === 'log')
     return (
-      <p className="text-footnote text-neutral-600">
+      <p className="rg-note">
         {t('analytics.page.drillTooMany', { tickets: number(link.count, 0) })}{' '}
-        <Link to={link.href} className="font-semibold text-accent-text">
-          {t('analytics.page.openLog')}
-        </Link>
+        <Link to={link.href}>{t('analytics.page.openLog')}</Link>
       </p>
     );
   return (
-    <Link
-      to={link.href}
-      className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-    >
+    <Link to={link.href} className="rg-link">
       {t('analytics.machine.seeRows')}
     </Link>
   );
@@ -63,45 +61,43 @@ function Fitted({ view, machineId }: { view: ReliabilityView; machineId: string 
     hours: number(fit.censoredHours, 1),
   };
   return (
-    <div className="flex flex-col gap-3">
-      <p data-reliability="basis" className="text-footnote text-neutral-600">
+    <div className="rg-stack">
+      <p data-reliability="basis" className="rg-note">
         {fit.basis === 'category'
           ? t('analytics.machine.fit.categoryFit', { category: fit.category })
           : t('analytics.machine.fit.ownFailures')}
       </p>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <li>
-          <StatCard label={t('analytics.machine.fit.shape')} value={number(fit.shape, 2)} />
-        </li>
-        <li>
-          <StatCard
-            label={t('analytics.machine.fit.scale')}
-            value={number(fit.scale, 1)}
-            sub={t('analytics.machine.fit.hours')}
-          />
-        </li>
-        <li>
-          <StatCard
-            label={t('analytics.machine.fit.mean')}
-            value={number(fit.meanHours, 1)}
-            sub={t('analytics.machine.fit.hours')}
-          />
-        </li>
-      </ul>
-      <p data-reliability="sample" className="text-footnote text-neutral-600">
+      <Facts
+        facts={[
+          { id: 'shape', label: t('analytics.machine.fit.shape'), value: number(fit.shape, 2) },
+          {
+            id: 'scale',
+            label: t('analytics.machine.fit.scale'),
+            value: number(fit.scale, 1),
+            note: t('analytics.machine.fit.hours'),
+          },
+          {
+            id: 'mean',
+            label: t('analytics.machine.fit.mean'),
+            value: number(fit.meanHours, 1),
+            note: t('analytics.machine.fit.hours'),
+          },
+        ]}
+      />
+      <p data-reliability="sample" className="rg-note">
         {fit.basis === 'category'
           ? t('analytics.machine.fit.categorySample', { ...sample, own: number(fit.ownEvents, 0) })
           : t('analytics.machine.fit.sample', sample)}
       </p>
-      <p data-reliability="quartiles" className="text-footnote text-neutral-600">
+      <p data-reliability="quartiles" className="rg-note">
         {t('analytics.machine.fit.quartiles', {
           q25: number(fit.quartiles.q25, 1),
           median: number(fit.quartiles.median, 1),
           q75: number(fit.quartiles.q75, 1),
         })}
       </p>
-      <p data-reliability="trend" className="text-footnote text-neutral-600">
-        <span className="font-semibold text-neutral-900">{t(TREND_WORDS[fit.trend.word])}</span>{' '}
+      <p data-reliability="trend" className="rg-note">
+        <strong>{t(TREND_WORDS[fit.trend.word])}</strong>{' '}
         <span>
           {t('analytics.machine.fit.trend', {
             beta: number(fit.trend.beta, 2),
@@ -119,12 +115,12 @@ function FitBody({ view, machineId }: { view: ReliabilityView; machineId: string
   const { t } = useTranslation();
   if (view.fit.status === 'fitted') return <Fitted view={view} machineId={machineId} />;
   if (view.fit.status === 'no_basis')
-    return <p className="text-body text-neutral-600">{t('analytics.machine.fit.noBasis')}</p>;
+    return <p className="rg-note">{t('analytics.machine.fit.noBasis')}</p>;
   const fit = view.fit;
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card">
-      <p className="text-body font-semibold">{t('analytics.machine.fit.notEnough')}</p>
-      <p data-reliability="shortfall" className="text-footnote text-neutral-600">
+    <div className="rg-stack">
+      <p className="rg-subhead">{t('analytics.machine.fit.notEnough')}</p>
+      <p data-reliability="shortfall" className="rg-note">
         {fit.category === null
           ? t('analytics.machine.fit.notEnoughNoCategory', {
               own: number(fit.ownEvents, 0),
@@ -146,27 +142,31 @@ function FitBody({ view, machineId }: { view: ReliabilityView; machineId: string
 function SparesBody({ view, machineId }: { view: ReliabilityView; machineId: string }) {
   const { t } = useTranslation();
   const { rows, total } = view.spares;
-  if (rows.length === 0)
-    return <p className="text-body text-neutral-600">{t('analytics.machine.spares.none')}</p>;
+  if (rows.length === 0) return <p className="rg-note">{t('analytics.machine.spares.none')}</p>;
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-footnote text-neutral-600">{t('analytics.machine.spares.ranked')}</p>
-      <DataTable
+    <div className="rg-stack">
+      <p className="rg-note">{t('analytics.machine.spares.ranked')}</p>
+      <EngineTable
+        caption={t('analytics.machine.spares.part')}
         header={[
           t('analytics.machine.spares.part'),
           t('analytics.machine.spares.uses'),
           t('analytics.machine.spares.hours'),
           t('analytics.machine.spares.lastUsed'),
         ]}
-        rows={rows.map((row) => [
-          row.name,
-          number(row.uses, 0),
-          number(row.downtimeHours, 1),
-          row.lastOn === null ? t(NOT_AVAILABLE) : displayDay(row.lastOn),
-        ])}
+        rows={rows.map((row, index) => ({
+          index,
+          row: [
+            row.name,
+            number(row.uses, 0),
+            number(row.downtimeHours, 1),
+            row.lastOn === null ? t(NOT_AVAILABLE) : displayDay(row.lastOn),
+          ],
+        }))}
+        unsortable={new Set([3])}
       />
       {total !== null && total > rows.length ? (
-        <p data-reliability="top" className="text-footnote text-neutral-600">
+        <p data-reliability="top" className="rg-note">
           {t('analytics.machine.spares.topFive', {
             total: number(total, 0),
             shown: number(rows.length, 0),
@@ -190,18 +190,16 @@ export function Reliability({
   const ready = figure?.status === 'ready';
   const view = ready && figure ? reliabilityOf(figure.value, machineId) : null;
   const fallback = (
-    <p className="text-body text-neutral-600">
-      {ready ? t(NOT_AVAILABLE) : t('analytics.notComputed')}
-    </p>
+    <p className="rg-note">{ready ? t(NOT_AVAILABLE) : t('analytics.notComputed')}</p>
   );
   return (
     <>
-      <Section title={t('analytics.machine.reliability')}>
+      <Card named title={t('analytics.machine.reliability')}>
         {view === null ? fallback : <FitBody view={view} machineId={machineId} />}
-      </Section>
-      <Section title={t('analytics.machine.spares')}>
+      </Card>
+      <Block title={t('analytics.machine.spares')}>
         {view === null ? fallback : <SparesBody view={view} machineId={machineId} />}
-      </Section>
+      </Block>
     </>
   );
 }

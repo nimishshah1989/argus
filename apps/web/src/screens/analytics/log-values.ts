@@ -1,5 +1,5 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
-import { toCsv } from './machine-values.js';
+import { dayKey, toCsv } from './machine-values.js';
 
 /**
  * The Breakdown Log's filters and export (packet 40e-1). Pure: the columns are the platform's own order in the
@@ -30,13 +30,9 @@ export const LOG_FILTERS: readonly LogFilter[] = [
   { id: 'code', column: 9, labelKey: 'analytics.log.filter.code' },
 ];
 
-const DATE_COLUMN = 3;
+export const DATE_COLUMN = 3;
 
-/** Sortable day: the platform's DD-MM-YYYY becomes YYYYMMDD; anything else sorts as text. */
-function dayKey(value: string): string {
-  const platform = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
-  return platform ? `${platform[3]}${platform[2]}${platform[1]}` : value;
-}
+export { dayKey } from './machine-values.js';
 
 /** The distinct values a filter may pick from, dates newest first and the rest alphabetically. */
 export function filterOptions(rows: readonly (readonly string[])[], column: number): string[] {
