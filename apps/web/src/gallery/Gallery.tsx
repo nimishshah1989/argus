@@ -41,6 +41,22 @@ const ShowcaseView = () => (
   </Suspense>
 );
 
+// The navigation map preview of ticket 80v: also its own chunk, and not wired to the product's routing.
+const NavMap = lazy(() => import('./navmap/NavMap.js'));
+const NavMapView = () => (
+  <Suspense fallback={null}>
+    <NavMap />
+  </Suspense>
+);
+
+/** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
+const VIEWS: Record<string, () => React.JSX.Element> = {
+  desktop: DesktopView,
+  directions: DirectionsView,
+  showcase: ShowcaseView,
+  navmap: NavMapView,
+};
+
 function Switcher({
   label,
   param,
@@ -129,11 +145,9 @@ export default function Gallery() {
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
   const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
-
   useDocumentAttributes(lang, accent, theme);
-  if (params.get('view') === 'desktop') return <DesktopView />;
-  if (params.get('view') === 'directions') return <DirectionsView />;
-  if (params.get('view') === 'showcase') return <ShowcaseView />;
+  const View = VIEWS[params.get('view') ?? ''];
+  if (View) return <View />;
 
   return (
     <div data-testid="gallery-root">
