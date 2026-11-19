@@ -10,6 +10,7 @@ import type { EventDisplayInfo, EventDropInfo } from '@fullcalendar/react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { CalendarCheck, CalendarClock, TriangleAlert } from '../../ui/icon.js';
+import { Card } from '../../ui/card.js';
 import { displayDay } from './machine-values.js';
 import { gridRange, type PmEvent } from './pm-calendar-view.js';
 import './pm-calendar.css';
@@ -99,25 +100,27 @@ export default function PmCalendar({
     }
   };
   return (
-    <div className="pm-calendar overflow-x-auto rounded-card bg-surface p-3 shadow-card">
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin, classicThemePlugin]}
-        initialView="dayGridMonth"
-        initialDate={initialDate}
-        firstDay={1}
-        locale="en"
-        height="auto"
-        dayMaxEvents={false}
-        events={[...events]}
-        editable={editable}
-        eventStartEditable={editable}
-        eventDurationEditable={false}
-        headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
-        buttons={{ today: { text: t('pm.calendar.today'), display: 'text' } }}
-        eventContent={(info) => <EventChip info={info} />}
-        eventDrop={(info) => void drop(info)}
-        datesSet={(info) => onRange(gridRange(info.startStr, info.endStr))}
-      />
-    </div>
+    <Card>
+      <div className="pm-calendar overflow-x-auto">
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin, classicThemePlugin]}
+          initialView="dayGridMonth"
+          initialDate={initialDate}
+          firstDay={1}
+          locale="en"
+          height="auto"
+          dayMaxEvents={false}
+          events={[...events]}
+          editable={editable}
+          eventStartEditable={editable}
+          eventDurationEditable={false}
+          headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
+          buttons={{ today: { text: t('pm.calendar.today'), display: 'text' } }}
+          eventContent={(info) => <EventChip info={info} />}
+          eventDrop={(info) => void drop(info)}
+          datesSet={(info) => onRange(gridRange(info.startStr, info.endStr))}
+        />
+      </div>
+    </Card>
   );
 }

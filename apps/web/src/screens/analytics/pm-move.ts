@@ -25,7 +25,8 @@ export function usePmMove() {
   const [moved, setMoved] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const keys = useRef(moveKeys(idempotencyKey)).current;
-  const move = async (request: PmMove): Promise<void> => {
+  const later = useRef<string | null>(null);
+  const move = async (request: PmMove, defer = false): Promise<void> => {
     setRefusal(null);
     setMoved(null);
     setPending(true);
@@ -44,12 +45,13 @@ export function usePmMove() {
         client.invalidateQueries({ queryKey: ['tickets'] }),
         client.invalidateQueries({ queryKey: ['analytics-figures'] }),
       ]);
-      setMoved(
-        t('pm.calendar.moved', {
-          machine: request.machineCode,
-          date: displayDay(reply.scheduledOn),
-        }),
-      );
+      const line = t('pm.calendar.moved', {
+        machine: request.machineCode,
+        date: displayDay(reply.scheduledOn),
+      });
+      // A keyboard move says it once its sheet has gone: the page behind an open sheet is hidden from a screen reader.
+      if (defer) later.current = line;
+      else setMoved(line);
     } catch (error) {
       // A refusal is the server's answer, so the next try is a new attempt; a dropped connection retries the same key.
       if (error instanceof ApiError) keys.settled();
@@ -65,11 +67,12 @@ export function usePmMove() {
   /** The keyboard move: true when the server took the day, false on its refusal (already worded in `refusal`). */
   const moveJob = async (item: PmCalendarItem, target: string): Promise<boolean> => {
     try {
-      await move(moveOf(item, target));
+      await move(moveOf(item, target), true);
       return true;
     } catch {
       return false;
     }
   };
-  return { refusal, moved, pending, move, moveItem, moveJob };
+  const announce = (): void => setMoved(later.current);
+  return { refusal, moved, pending, move, moveItem, moveJob, announce };
 }

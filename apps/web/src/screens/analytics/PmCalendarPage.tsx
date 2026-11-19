@@ -19,7 +19,7 @@ import {
 } from './pm-calendar-parts.js';
 import { NotReady, useFiguresState } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
-import { eventsOf, loadOf, monthRange, readPmCompliance } from './pm-calendar-view.js';
+import { eventsOf, loadOf, monthRange, readPmCompliance, shownMonth } from './pm-calendar-view.js';
 import { parseDrill, type AnalyticsGroup } from './groups.js';
 import { displayDay } from './machine-values.js';
 
@@ -78,7 +78,7 @@ function PmCalendarBody({
       kind={KIND}
       lede={t('pm.calendar.asOf', { date: displayDay(asOf) })}
       figures={compliance ? <ComplianceTiles view={compliance} /> : null}
-      aside={<PmAside items={items} canMove={canMove} pmMove={pmMove} />}
+      aside={<PmAside items={items} month={shownMonth(range)} canMove={canMove} pmMove={pmMove} />}
       main={
         <>
           {drill ? <DrillTable group={group} drill={drill} headingLevel={3} /> : null}
@@ -111,10 +111,12 @@ function PmCalendarBody({
 /** The lists beside the calendar: the crowded days, then every job with its keyboard Move to date. */
 function PmAside({
   items,
+  month,
   canMove,
   pmMove,
 }: {
   items: readonly PmCalendarItem[];
+  month: string;
   canMove: boolean;
   pmMove: ReturnType<typeof usePmMove>;
 }) {
@@ -129,9 +131,11 @@ function PmAside({
       {canMove ? (
         <JobList
           items={items}
+          month={month}
           refusal={pmMove.refusal}
           pending={pmMove.pending}
           move={pmMove.moveJob}
+          announce={pmMove.announce}
         />
       ) : null}
     </>

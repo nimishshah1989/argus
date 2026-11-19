@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { PmCalendarItem, PmCalendarReply } from '@uptimo/shared';
 import { StateNotice } from '../../patterns/frame.js';
 import { Button } from '../../ui/button.js';
+import { Card } from '../../ui/card.js';
 import { CalendarCheck, CalendarClock, TriangleAlert } from '../../ui/icon.js';
 import { KpiTile, StatusChip } from '../../ui/elements/index.js';
 import PmCalendar, { type PmMove } from './PmCalendar.js';
@@ -129,36 +130,33 @@ export function SpreadPanel({
       </p>
       <ul className="flex flex-col gap-3">
         {crowded.map((item) => (
-          <li
-            key={item.ticketId ?? item.planId ?? item.machineId}
-            data-crowded={item.machineCode}
-            data-tone="watch"
-            className="flex flex-col gap-2 rounded-tile border-l-4 border-watch-fill bg-surface p-3 shadow-card"
-          >
-            <span className="text-body font-semibold">
-              {item.machineCode} · {displayDay(item.scheduledOn)}
-            </span>
-            <span>
-              <StatusChip tone="watch" icon={TriangleAlert}>
-                {t('pm.calendar.legend.crowded')}
-              </StatusChip>
-            </span>
-            {item.suggestedOn === null ? (
-              <span className="text-footnote text-neutral-600">{t('pm.calendar.noFreeDay')}</span>
-            ) : canMove && item.movable ? (
-              <Button
-                // eslint-disable-next-line i18next/no-literal-string -- a variant value, not copy
-                variant="tonal"
-                disabled={pending}
-                onClick={() => onMove(item, item.suggestedOn!)}
-              >
-                {t('pm.calendar.moveTo', { date: displayDay(item.suggestedOn) })}
-              </Button>
-            ) : (
-              <span className="text-footnote text-neutral-600">
-                {t('pm.calendar.suggested', { date: displayDay(item.suggestedOn) })}
+          <li key={item.ticketId ?? item.planId ?? item.machineId} data-crowded={item.machineCode}>
+            <Card>
+              <span className="text-body font-semibold">
+                {item.machineCode} · {displayDay(item.scheduledOn)}
               </span>
-            )}
+              <span>
+                <StatusChip tone="watch" icon={TriangleAlert}>
+                  {t('pm.calendar.legend.crowded')}
+                </StatusChip>
+              </span>
+              {item.suggestedOn === null ? (
+                <span className="text-footnote text-neutral-600">{t('pm.calendar.noFreeDay')}</span>
+              ) : canMove && item.movable ? (
+                <Button
+                  // eslint-disable-next-line i18next/no-literal-string -- a variant value, not copy
+                  variant="tonal"
+                  disabled={pending}
+                  onClick={() => onMove(item, item.suggestedOn!)}
+                >
+                  {t('pm.calendar.moveTo', { date: displayDay(item.suggestedOn) })}
+                </Button>
+              ) : (
+                <span className="text-footnote text-neutral-600">
+                  {t('pm.calendar.suggested', { date: displayDay(item.suggestedOn) })}
+                </span>
+              )}
+            </Card>
           </li>
         ))}
       </ul>

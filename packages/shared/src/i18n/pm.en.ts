@@ -41,7 +41,7 @@ export const pmEn = {
   'pm.calendar.moveSheet.confirm': 'Move job',
   'pm.calendar.jobs.title': 'Jobs this month',
   'pm.calendar.jobs.hint':
-    'Every PM job in this month can be moved here with the keyboard: choose Move to date, type the day and press Enter.',
+    'Each PM job this month that can still move is listed here: choose Move to date, type the day and press Enter.',
   'pm.calendar.suggested': 'Nearest free day {{date}}',
   'pm.calendar.noFreeDay': 'No free day inside its tolerance.',
   'pm.calendar.moved': '{{machine}} moved to {{date}}.',

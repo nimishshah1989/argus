@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FIGURE_LABELS } from './groups.js';
+import { Card } from '../../ui/card.js';
 import { Template } from './shell/patterns/template.js';
 import { GUIDE_ENTRIES, guideFigureLinks, type GuideEntry } from './guide-entries.js';
 
@@ -40,28 +41,22 @@ function FigureLinks({ entry }: { entry: GuideEntry }) {
 
 function GuideSection({ entry }: { entry: GuideEntry }) {
   const { t } = useTranslation();
-  const anchor = anchorOf(entry.id);
   return (
-    <section
-      id={anchor}
-      aria-labelledby={`${anchor}-title`}
-      className="scroll-mt-24 rounded-card bg-surface p-4 shadow-card"
-    >
-      <h3 id={`${anchor}-title`} className="text-body font-semibold">
-        {t(entry.titleKey)}
-      </h3>
-      <div className="mt-2 flex max-w-3xl flex-col gap-2 text-body text-neutral-900">
-        {entry.bodyKeys.map((key) => (
-          <p key={key}>{t(key)}</p>
-        ))}
-        {entry.formulaKey === undefined ? null : (
-          <p className="rounded-xl bg-neutral-100 px-3 py-2 font-mono text-footnote text-neutral-700">
-            {t(entry.formulaKey)}
-          </p>
-        )}
-      </div>
-      <FigureLinks entry={entry} />
-    </section>
+    <div id={anchorOf(entry.id)} className="scroll-mt-16">
+      <Card title={t(entry.titleKey)} named>
+        <div className="flex max-w-3xl flex-col gap-2 text-body text-neutral-900">
+          {entry.bodyKeys.map((key) => (
+            <p key={key}>{t(key)}</p>
+          ))}
+          {entry.formulaKey === undefined ? null : (
+            <p className="rounded-xl bg-neutral-100 px-3 py-2 font-mono text-footnote text-neutral-700">
+              {t(entry.formulaKey)}
+            </p>
+          )}
+        </div>
+        <FigureLinks entry={entry} />
+      </Card>
+    </div>
   );
 }
 
@@ -76,7 +71,7 @@ export function GuidePage() {
         <>
           <nav aria-label={t('analytics.guide.contents')} className="flex flex-col gap-2">
             <h3 className="text-body font-semibold">{t('analytics.guide.contents')}</h3>
-            <ol className="grid grid-cols-1 gap-1 text-body lg:grid-cols-2">
+            <ol className="grid grid-cols-1 gap-1 text-body sm:grid-cols-2">
               {GUIDE_ENTRIES.map((entry) => (
                 <li key={entry.id}>
                   <a
