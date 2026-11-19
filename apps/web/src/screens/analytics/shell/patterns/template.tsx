@@ -1,6 +1,5 @@
 import { useId, type ReactNode } from 'react';
 import { StateNotice } from '../../../../patterns/frame.js';
-import type { ViewState } from '../../../../patterns/view-state.js';
 import './templates.css';
 
 /** Regions every template has. The phone shows them in this order, in one column. */
@@ -22,7 +21,8 @@ interface Regions {
 
 /** A drill area is always named: its heading labels the region. */
 type DrillProps =
-  { drill?: undefined; drillTitle?: never } | { drill: ReactNode; drillTitle: string };
+  | { drill?: undefined; drillTitle?: never }
+  | { drill: ReactNode; drillTitle: string };
 
 /**
  * Anything but 'ready' replaces figures, main, aside and drill with the state line. An empty page needs the
