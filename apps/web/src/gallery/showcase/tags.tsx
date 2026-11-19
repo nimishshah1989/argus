@@ -36,6 +36,8 @@ const spec = (tone: TagTone, word: string, more?: string, icon?: TagIcon): TagSp
 
 /** Where the month sits in the plant's own usual range. Outside it, green or red says whether that is good for THIS figure. */
 export function rangeTag(t: TFunction, metric: Metric, i: number): TagSpec | null {
+  // A running month's sum is not a full month's: set against the usual range it would falsely read "below".
+  if (metric.additive && i >= FULL) return null;
   const pos = rangePos(metric, metric.values[i] ?? null);
   if (!pos) return null;
   const more = t('tag.of', { month: monthLong(i) });

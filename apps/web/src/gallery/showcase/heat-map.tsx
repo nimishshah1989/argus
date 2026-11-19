@@ -3,13 +3,14 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { instrument } from '../directions/direction-instrument.js';
 import type { Theme } from '../directions/direction-props.js';
+import { FAMILY_COLOURS } from '../directions/family-colours.js';
 import { inkOn } from '../directions/parts-palette.js';
 import { S, fixed, monthLong } from './data.js';
 import { Tag, TagGlyph, riskTag, type TagSpec } from './tags.js';
 import { useTheme } from './theme.js';
 import { pointed, type Hover } from './trend-chart.js';
 
-/** Share of the downtime family's ink at each of the five steps; the rest is the card's own surface. */
+/** Share of the downtime family's fill at each of the five steps; the rest is the card's own surface. */
 const SHARE = [0.14, 0.32, 0.52, 0.72, 0.92];
 
 const channel = (hex: string, i: number): number => parseInt(hex.slice(i, i + 2), 16);
@@ -24,8 +25,8 @@ const mix = (from: string, to: string, share: number): string =>
 
 /** The heat map's ramp: the downtime family's ink (orange) thinned into the surface, so hours read as the colour of lost time. */
 export const rampOf = (theme: Theme): string[] => {
-  const p = instrument[theme];
-  return SHARE.map((share) => mix(p.surface, p['attention-ink'], share));
+  const surface = instrument[theme].surface;
+  return SHARE.map((share) => mix(surface, FAMILY_COLOURS[theme].downtime.fill, share));
 };
 const MOST = Math.max(...S.heat.flatMap((r) => r.hours));
 const TOP = S.heat

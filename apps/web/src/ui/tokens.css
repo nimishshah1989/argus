@@ -103,15 +103,17 @@
   --color-chart-axis: var(--color-neutral-600);
   --color-chart-grid: var(--color-neutral-200);
 
-  /* Identity families (ticket 80u, the analytics showcase): one hue per metric family, aliases of the tone tokens so
-     a direction or theme change reaches them. fill = a line, bar or 3 px edge (3:1); ink = text (4.5:1); tint = a
-     soft band. A family is identity, never a verdict: good and bad are said by a tag with an icon and a word. */
-  --color-family-availability: var(--color-ok);
-  --color-family-availability-ink: var(--color-ok-ink);
-  --color-family-availability-tint: var(--color-ok-tint);
-  --color-family-downtime: var(--color-hold);
-  --color-family-downtime-ink: var(--color-hold-ink);
-  --color-family-downtime-tint: var(--color-hold-tint);
+  /* Identity families (ticket 80u, the analytics showcase): one hue per metric family. fill = a line, bar or 3 px
+     edge (3:1); ink = text (4.5:1); tint = a soft band. Identity never signals a verdict: availability is a
+     lime-leaning green apart from the teal-leaning "good" tone, downtime is terracotta apart from the amber
+     "watch" and red "bad" tones; good and bad are said by a tag with an icon and a word. Repairs reuses info and
+     planned reuses the accent. Values match gallery/directions/family-colours.ts (a test keeps them in step). */
+  --color-family-availability: #5a8f12;
+  --color-family-availability-ink: #3f6b0c;
+  --color-family-availability-tint: #eef5e1;
+  --color-family-downtime: #c2552b;
+  --color-family-downtime-ink: #9a3a18;
+  --color-family-downtime-tint: #fbece6;
   --color-family-repairs: var(--color-info);
   --color-family-repairs-ink: var(--color-info-ink);
   --color-family-repairs-tint: var(--color-info-tint);
@@ -176,6 +178,12 @@
   --color-hold-tint: #3a2314;
   --color-moved-tint: #2a2140;
   --color-ok-tint: #16301f;
+  --color-family-availability: #8ccf3a;
+  --color-family-availability-ink: #a6dc62;
+  --color-family-availability-tint: #1e2a0f;
+  --color-family-downtime: #e8825a;
+  --color-family-downtime-ink: #f4a583;
+  --color-family-downtime-tint: #3a1d14;
   --color-muted-tint: #2c2c2e;
 
   --shadow-card: 0 0 0 1px #2c2c2e;
