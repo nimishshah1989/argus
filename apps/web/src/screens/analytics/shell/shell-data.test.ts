@@ -82,6 +82,21 @@ describe('the search entries', () => {
   });
 });
 
+describe('the reliability tabs', () => {
+  it('has A9 and the Forecast Lab as tabs, so the section needs no second menu', () => {
+    expect(tabsOf('head', 'reliability')).toEqual([
+      '/analytics/forecast-scorecard',
+      '/analytics/forecast-scorecard?screen=forecast-lab',
+    ]);
+    expect(locate('/analytics/forecast-scorecard', '')?.tab.to).toBe(
+      '/analytics/forecast-scorecard',
+    );
+    expect(locate('/analytics/forecast-scorecard', 'screen=forecast-lab')?.tab.to).toBe(
+      '/analytics/forecast-scorecard?screen=forecast-lab',
+    );
+  });
+});
+
 describe('the reports tabs', () => {
   it('has Monthly, Annual and the PM calendar as tabs, so the reports need no second menu', () => {
     expect(tabsOf('head', 'reports')).toEqual([

@@ -57,10 +57,10 @@ export const SECTIONS: readonly ShellSection[] = [
     id: 'reliability',
     label: 'ashell.section.reliability',
     tabs: [
+      { to: '/analytics/forecast-scorecard', label: 'analytics.screen.a9-bottleneck-forecast' },
       {
-        to: '/analytics/forecast-scorecard',
-        label: 'ashell.section.reliability',
-        group: 'forecast-scorecard',
+        to: '/analytics/forecast-scorecard?screen=forecast-lab',
+        label: 'analytics.screen.forecast-lab',
       },
     ],
   },
