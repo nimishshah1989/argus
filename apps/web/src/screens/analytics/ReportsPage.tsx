@@ -90,7 +90,7 @@ function ReportReady({
         <>
           {drill === null ? null : (
             <div data-span="full">
-              <DrillTable group={group} drill={drill} />
+              <DrillTable group={group} drill={drill} headingLevel={3} />
             </div>
           )}
           {ready ? (
@@ -125,8 +125,9 @@ export function ReportsPage({ group }: { group: AnalyticsGroup }) {
     return (
       <NotReady
         title={t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown')}
-        state={state === 'ready' ? 'loading' : state}
+        state={state}
         onRetry={() => void figures.refetch()}
+        empty={t('analytics.empty')}
       />
     );
   return <ReportReady reply={figures.data} screen={screen} group={group} />;
