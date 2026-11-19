@@ -66,6 +66,7 @@ describe('link that looks like a button', () => {
     expect(link).toContain('href="/today"');
     const button = html(createElement(Button, null, 'Today'));
     const classes = (s: string) => /class="([^"]*)"/.exec(s)?.[1] ?? '';
-    for (const name of classes(button).split(' ')) expect(classes(link)).toContain(name);
+    const linkTokens = classes(link).split(' ');
+    for (const name of classes(button).split(' ')) expect(linkTokens).toContain(name);
   });
 });

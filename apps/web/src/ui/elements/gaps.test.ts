@@ -24,7 +24,14 @@ const ROWS: Row[] = [
 ];
 const COLUMNS: Column<Row>[] = [
   { id: 'name', header: 'Machine', cell: (r) => r.name, sortValue: (r) => r.name },
-  { id: 'hours', header: 'Hours', cell: (r) => r.hours, numeric: true, sortValue: (r) => r.hours },
+  {
+    id: 'hours',
+    header: 'Hours',
+    cell: (r) => r.hours,
+    numeric: true,
+    align: 'center',
+    sortValue: (r) => r.hours,
+  },
   { id: 'note', header: 'Note', cell: (r) => r.note, align: 'center', sortValue: (r) => r.note },
   { id: 'tail', header: 'Tail', cell: (r) => r.id, align: 'right' },
 ];
@@ -54,7 +61,7 @@ const table = (over: Partial<Parameters<typeof DataTable<Row>>[0]> = {}) =>
   );
 
 describe('KPI tile with a word for a value', () => {
-  it('prints the word as given, with no count-up and no unit', () => {
+  it('prints the word as given, with no count-up', () => {
     const out = html(createElement(KpiTile, { label: 'Trend', value: 'Stable' }));
     expect(out).toContain('Trend');
     expect(out).toContain('Stable');
@@ -62,17 +69,30 @@ describe('KPI tile with a word for a value', () => {
   });
 
   it('still prints a dash for none and a number through its format', () => {
-    expect(html(createElement(KpiTile, { label: 'A', value: null }))).toContain('—');
+    expect(html(createElement(KpiTile, { label: 'A', value: null, format: String }))).toContain(
+      '—',
+    );
     const out = html(createElement(KpiTile, { label: 'A', value: 3, format: (n) => `${n} hrs` }));
     expect(out).toContain('3 hrs');
   });
 
-  it('lets a word share the tile with a verdict chip and a unit', () => {
+  it('lets a word share the tile with a verdict chip, and never prints a unit beside a word', () => {
     const out = html(
-      createElement(KpiTile, { label: 'Mood', value: 'Calm', tone: 'good', verdict: 'On target' }),
+      createElement(KpiTile, {
+        label: 'Mood',
+        value: 'Calm',
+        unit: 'hrs',
+        tone: 'good',
+        verdict: 'On target',
+      }),
     );
     expect(out).toContain('Calm');
     expect(out).toContain('On target');
+    expect(out).not.toContain('hrs');
+    const number = html(
+      createElement(KpiTile, { label: 'A', value: 3, unit: 'hrs', format: (n) => String(n) }),
+    );
+    expect(number).toContain('hrs');
   });
 });
 
@@ -90,20 +110,21 @@ describe('data table: pager and alignment', () => {
     expect(out).toContain('Page 1 of 4');
   });
 
-  it('aligns each column as asked: numbers right by default, a word left, a chosen side wins', () => {
+  it('aligns each column as asked: a word left, a chosen side wins even over the numeric right', () => {
     const out = table();
     const header = (name: string) =>
       new RegExp(
         `<th[^>]*class="[^"]*text-(left|right|center)[^"]*"[^>]*>(?:(?!</th>).)*${name}`,
       ).exec(out)?.[1];
     expect(header('Machine')).toBe('left');
-    expect(header('Hours')).toBe('right');
+    expect(header('Hours')).toBe('center');
     expect(header('Note')).toBe('center');
     expect(header('Tail')).toBe('right');
     const cell = (text: string) =>
       new RegExp(`<td[^>]*class="([^"]*)"[^>]*>${text}</td>`).exec(out)?.[1];
     expect(cell('Press 1')).toContain('text-left');
-    expect(cell('4.5')).toContain('text-right');
+    expect(cell('4.5')).toContain('text-center');
+    expect(cell('4.5')).not.toContain('text-right');
     expect(cell('4.5')).toContain('tabular-nums');
     expect(cell('ok')).toContain('text-center');
   });
@@ -134,17 +155,18 @@ describe('disclosure', () => {
     const out = draw(false);
     expect(out).toMatch(/<button[^>]*type="button"[^>]*aria-expanded="false"/);
     expect(out).toContain('Show details');
-    expect(out).toMatch(/<div[^>]*role="region"[^>]*hidden/);
+    expect(out).toMatch(/<div[^>]*id="[^"]+-region"[^>]*hidden/);
   });
 
-  it('says open, shows the region and names it by the button', () => {
+  it('says open, shows the region and ties the button to it by id', () => {
     const out = draw(true);
     expect(out).toContain('aria-expanded="true"');
-    expect(out).not.toMatch(/role="region"[^>]*hidden/);
-    const controls = /aria-controls="([^"]+)"/.exec(out)?.[1];
-    const labelled = /aria-labelledby="([^"]+)"/.exec(out)?.[1];
-    expect(out).toContain(`id="${controls}"`);
-    expect(out).toContain(`id="${labelled}"`);
+    expect(out).not.toMatch(/<div[^>]*id="[^"]+-region"[^>]*hidden/);
+    const button = /<button[^>]*>/.exec(out)?.[0] ?? '';
+    const region = /<div[^>]*-region"[^>]*>/.exec(out)?.[0] ?? '';
+    const controls = /aria-controls="([^"]+)"/.exec(button)?.[1];
+    expect(controls).toBeTruthy();
+    expect(region).toContain(`id="${controls}"`);
     expect(out).toContain('The details');
   });
 
@@ -158,7 +180,7 @@ describe('disclosure', () => {
     const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reduced).toMatch(/\.el-chevron\s*[,{]/);
     expect(reduced).toContain('transition: none');
-    expect(reduced).toContain('.el-fade');
+    expect(reduced).toMatch(/\.el-fade[^{]*\{[^}]*animation:\s*none/);
     expect(draw(true)).toContain('el-fade');
   });
 });

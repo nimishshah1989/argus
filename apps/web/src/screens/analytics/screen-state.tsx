@@ -17,8 +17,8 @@ export const LOADING = 'loading' as const;
 
 /**
  * The frame of an analytics screen with the state line in place of its content: loading, offline, the error with
- * Retry, or the screen's own words for "nothing here" (`empty`; absent, the shared "Nothing to show here yet"). A screen that is `ready` has nothing to show yet,
- * so it reads as loading.
+ * Retry, or the screen's own words for "nothing here" (`empty`; absent, the shared "Nothing to show here yet").
+ * A screen that is `ready` has nothing to show yet, so it reads as loading.
  */
 export function NotReady({
   title,

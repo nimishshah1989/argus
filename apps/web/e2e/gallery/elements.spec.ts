@@ -16,6 +16,7 @@ const PARTS = [
   'trail',
   'panels',
   'family',
+  'gaps',
 ];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -187,4 +188,19 @@ test('a family tile opens its explanation, which wears the family edge, and stil
   await expect(panel).toHaveCSS('border-top-width', '3px');
   await page.keyboard.press('Escape');
   await expect(tile).toBeFocused();
+});
+
+test('the disclosure opens on a click and closes on Enter', async ({ page }) => {
+  await open(page, 'lang=en');
+  const button = page.getByTestId('element-gaps').getByRole('button', { name: 'Show details' });
+  const region = page.getByText('Hidden until the button is pressed.');
+  await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await expect(region).toBeHidden();
+  await button.click();
+  await expect(button).toHaveAttribute('aria-expanded', 'true');
+  await expect(region).toBeVisible();
+  await button.focus();
+  await page.keyboard.press('Enter');
+  await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await expect(region).toBeHidden();
 });

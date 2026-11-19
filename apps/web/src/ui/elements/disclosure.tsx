@@ -4,7 +4,7 @@ import { WRAP } from './tone.js';
 
 /**
  * A button that shows or hides one region ("Show details"): `aria-expanded` says which, the button is a 44 px
- * target and the region is named by it. The chevron turns and the region fades in, both off under reduced motion.
+ * target and it controls the region. The chevron turns and the region fades in, both off under reduced motion.
  */
 export function Disclosure({
   label,
@@ -31,13 +31,7 @@ export function Disclosure({
         <ChevronDown aria-hidden size={16} className="el-chevron shrink-0" />
         <span className={WRAP}>{label}</span>
       </button>
-      <div
-        role="region"
-        id={`${id}-region`}
-        aria-labelledby={`${id}-button`}
-        hidden={!open}
-        className={`el-fade ${WRAP}`}
-      >
+      <div id={`${id}-region`} hidden={!open} className={`el-fade ${WRAP}`}>
         {children}
       </div>
     </div>

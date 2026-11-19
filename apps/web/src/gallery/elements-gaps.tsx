@@ -53,7 +53,7 @@ export function ElementsGaps() {
           total={LINES.length}
           page={0}
           pageSize={25}
-          labels={TABLE_LABELS}
+          labels={{ ...TABLE_LABELS, caption: 'Short list' }}
           onSort={() => {}}
           onPage={() => {}}
           hidePagerWhenFits
