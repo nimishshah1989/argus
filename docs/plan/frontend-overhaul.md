@@ -5,8 +5,8 @@ frontend… a much richer frontend language. Right now, everything is very plain
 no red/amber/green. Most things look like a long list. Screens are not analytical, not coherent. There's barely any
 chart, graph."
 
-**Status:** noted, not started, not in the current plan's tickets. Finish the core build (M4a → M4b → M6) first; the
-history-registers workstream runs beside it; this comes after.
+**Status (19 Nov 2026):** taken up. It is stage F of the road to v1 — tickets 80–89 in `docs/plan/MILESTONES.md`,
+under D33. The notes below are the original brief; the tickets are the plan.
 
 **What it is about (for whoever scopes it):**
 

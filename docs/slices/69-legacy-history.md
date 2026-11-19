@@ -1,5 +1,45 @@
 # M4b-69 — legacy history 2020–2025
 
+## Amendment, 19 Nov 2026 — read this first
+
+Bhavin sent the 2023 workbooks on 19 Nov, and Nimish ruled on three points this plan had settled the other way. The
+goals are now ticket 69's six in `docs/plan/MILESTONES.md`; **this plan must be revised before 69a is built**, and
+the rulings below that it contradicts (R1, R6, R14) are superseded and R16's file list grows. The 2023 and 2025 figures here come from a
+throwaway parser run on 19 Nov; on the sets this plan measured it agrees within 1 % (2022: 1,337 rows with an SR.NO
+against 1,335; 2025: 1,329 dated rows against 1,328), so treat them as close, not exact, until the converter counts.
+
+| Fact (machine sheets only)                     | 2022   | 2023        | 2025     |
+| ---------------------------------------------- | ------ | ----------- | -------- |
+| workbooks / machine sheets                     | 4 / 52 | 5 / 68      | 5 / 87   |
+| rows with a usable date                        | 1,098  | 3,078       | 1,329    |
+| of those, dated in the workbook's own year     | 1,091  | 2,994       | 1,322    |
+| utility rows (`UTI`, `UTY`)                    | 85     | 1,821       | 130      |
+| days on which a utility row appears            | 38     | 151         | 34       |
+| hours in the UTI column                        | —      | about 1,480 | about 56 |
+| breakdowns with downtime (not PM, not utility) | 935    | 912         | 995      |
+| their downtime hours                           | 2,434  | 1,696       | 2,013    |
+
+1. **2023 exists** (`GRD`, `HMC`, `TC & TMC`, `VMC`, `VTL`), so the source set is 19 workbooks and 2023 also passes
+   the 2,000-ticket file limit. A sixth 2023 file, `Jul-23.xlsx`, is a per-unit daily downtime grid for one month; it
+   is a cross-check, not a source.
+2. **A power cut is written once per machine.** In 2023, 1,388 rows read "power fail from GEB side", 43 to 51 rows
+   on a single day. Loaded as tickets they triple 2023's event count. Ruling: one plant event per failure, with its
+   machines and its UTI hours (goal 3). R6's "load as tickets with 0 minutes" is superseded for utility rows.
+3. **R1 drops real rows.** 80 rows in the 2023 workbooks are dated 2022; 5 are also in the 2022 workbooks; 67 fall
+   in October to December, mostly on sheets first seen in 2023 (`VC-27`, `VC-28`, `VC-29`, `VC-22`, `TC-19`). Ruling:
+   a row loads under its own date unless that year's workbook already holds it (goal 2).
+4. **R14 is superseded.** Every workbook has a `Code Abrivation` sheet with the real meanings (N12 in
+   `docs/plan/NEEDS.md`); the codes are kept (goal 4).
+5. **2022 has a hole:** 139 breakdowns in January, 8 in February, 0 in March, 76 in April. It is missing records,
+   not a quiet plant (goal 6, N17).
+6. **Nothing is lost by dropping the optional columns.** `SPARES REPLACED`, `ROOT CAUSE`, `CRITICAL SPARES`,
+   `B/D REPORT TIME` and `HANDOVER TIME` exist on a few sheets and are filled on at most 3 dated rows in any year.
+7. **Shift spellings widen:** 2025 writes `1` and `2` (1,024 rows) beside `1ST`/`2ND`, with strays `4` to `7`.
+8. **The big files are bigger than the plan saw:** one sheet in `TC & TMC -Star-2023.xlsx` is 134 MB of XML and two
+   in `VTL-2023.xlsx` are 99 MB each, nearly all empty styled cells. The reader must be proven on these files.
+9. **The engine must read many years first** (ticket 76): §Verification point 4 says a multi-year window "includes"
+   the old years, but 14 places in the engine assume one year.
+
 Ticket 69 (M4b; the row and detail section are already in `docs/plan/MILESTONES.md` — this plan does not edit it).
 Nimish confirmed the historic data is the whole legacy warehouse, not only the 2026 log. The files are in this
 workspace at `.agents/data/legacy/` (extracted, real names, never committed): `y2022/` (HMC, TC & TMC, VMC, VTL),
