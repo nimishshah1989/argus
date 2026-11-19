@@ -6,7 +6,7 @@ import { Card } from '../../ui/card.js';
 import { MACHINE_FIELD_LABELS, type MachineRecord } from './machine-record.js';
 import { displayDay } from './machine-values.js';
 import { Block, Facts } from './facts.js';
-import { dayKey } from './log-values.js';
+import { dayKey } from './machine-values.js';
 import { EngineTable } from './engine-table.js';
 import { DrillAction, NOT_AVAILABLE, Nameplate, number } from './machine-parts.js';
 import { MachineTasks } from './machine-tasks.js';
@@ -98,6 +98,10 @@ function Completeness({ record }: { record: MachineRecord }) {
   );
 }
 
+/** The moves table's date column sorts as a date: DD-MM-YYYY text would put 28-12-2026 after 05-01-2027. */
+export const moveSortKey = (column: number, cell: string) =>
+  column === 0 ? dayKey(cell) : undefined;
+
 function Moves({ record, machineId }: { record: MachineRecord; machineId: string }) {
   const { t } = useTranslation();
   const absent = t('analytics.value.none');
@@ -128,7 +132,7 @@ function Moves({ record, machineId }: { record: MachineRecord; machineId: string
           ]}
           rows={rows}
           unsortable={new Set([1, 2])}
-          sortKey={(column, cell) => (column === 0 ? dayKey(cell) : undefined)}
+          sortKey={moveSortKey}
         />
       )}
     </Block>

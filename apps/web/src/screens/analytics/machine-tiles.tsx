@@ -58,10 +58,13 @@ const drillOf = (machineId: string, type: string, ids: readonly string[]): strin
 /** Age, floor area and the two loads: what the machine is. */
 function identityTiles(record: MachineRecord, asOf: string, t: TFunction): TileSpec[] {
   const age = ageOf(record.machine, asOf, record.ageYears, record.ageEstimated);
+  // When there is no running load the tile already says "Not available"; the efficiency line says it only otherwise.
   const efficiency =
-    record.efficiencyPct === null
-      ? t(NOT_AVAILABLE)
-      : t('analytics.machine.efficiency', { pct: record.efficiencyPct });
+    record.efficiencyPct !== null
+      ? t('analytics.machine.efficiency', { pct: record.efficiencyPct })
+      : record.runningKva !== null
+        ? t(NOT_AVAILABLE)
+        : null;
   return [
     {
       id: 'age',

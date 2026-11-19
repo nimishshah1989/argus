@@ -106,8 +106,6 @@ const LATIN_TOKENS = [
   'CSV',
   'DG',
   'BD',
-  'NO',
-  'DT',
   'A1',
   'A2',
   'A3',
@@ -152,7 +150,12 @@ function placeholderBreaks(english: Catalogue, guValues: Catalogue): string[] {
 /** `key: word` for each Latin word in a Gujarati value that is neither a placeholder nor an allowed token. */
 function latinLeaks(guValues: Catalogue): string[] {
   return Object.entries(guValues).flatMap(([key, value]) =>
-    (value.replace(/\{\{[^}]*\}\}/g, ' ').match(/[A-Za-z][A-Za-z0-9]*/g) ?? [])
+    (
+      value
+        .replace(/\{\{[^}]*\}\}/g, ' ')
+        .replace(/NO DT/g, ' ')
+        .match(/[A-Za-z][A-Za-z0-9]*/g) ?? []
+    )
       .filter((word) => !LATIN_TOKENS.includes(word))
       .map((word) => `${key}: ${word}`),
   );

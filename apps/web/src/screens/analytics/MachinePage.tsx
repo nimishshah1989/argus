@@ -50,7 +50,7 @@ function ledeOf(record: MachineRecord): string | undefined {
 }
 
 /** The page once the figures are in: the record the engine holds for this machine, or the words for why not. */
-function MachineView({
+export function MachineView({
   group,
   figures,
   id,

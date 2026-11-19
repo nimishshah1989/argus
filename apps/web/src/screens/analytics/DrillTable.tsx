@@ -166,6 +166,7 @@ export function DrillTable({
   onBack,
   backLabel,
   bare = false,
+  headingLevel = 2,
 }: {
   group: AnalyticsGroup;
   drill: Drill;
@@ -177,8 +178,11 @@ export function DrillTable({
   /** A filter's way back stays on the screen; the page drill's way back leaves for the group. */
   onBack?: () => void;
   backLabel?: string;
+  /** Under a template's own h2 the drill's title is an h3. */
+  headingLevel?: 2 | 3;
 }) {
   const { t } = useTranslation();
+  const Heading = `h${headingLevel}` as const;
   const reply = useQuery({
     queryKey: ['analytics-drill', drill.type, drill.ids],
     queryFn: () => getDrill(drill.type, drill.ids),
@@ -194,7 +198,9 @@ export function DrillTable({
     >
       <div className="flex items-center justify-between gap-2">
         {bare ? null : (
-          <h2 className="text-title3 font-semibold">{title ?? t('analytics.drill.title')}</h2>
+          <Heading className="text-title3 font-semibold">
+            {title ?? t('analytics.drill.title')}
+          </Heading>
         )}
         <BackAction group={group} onBack={onBack} backLabel={backLabel} />
       </div>

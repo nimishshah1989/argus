@@ -43,7 +43,10 @@ export interface EngineTableProps {
 }
 
 /** The columns of a table of printed cells: right-aligned and sorted as numbers when every cell is a number. */
-function columnsOf(props: EngineTableProps, numeric: ReadonlySet<number>): Column<EngineRow>[] {
+export function columnsOf(
+  props: EngineTableProps,
+  numeric: ReadonlySet<number>,
+): Column<EngineRow>[] {
   const { header, renderCell, sortKey, unsortable } = props;
   return header.map((label, column) => ({
     id: `c${column}`,

@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- template kind, state and fact ids are prop values, not copy */
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
