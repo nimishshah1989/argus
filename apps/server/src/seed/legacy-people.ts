@@ -12,6 +12,7 @@ export interface PlantPerson {
 }
 
 const ROLE_WORD = /^(operator|opeartor|opeator|setter|supervisor|engineer)$/i;
+const TEAM_PREFIX = /^\s*main\w*[. ]*team\b[. ]*/i;
 const TEAM_WORD = /^(main\w*[. ]*team|team|maint\w*\.?)$/i;
 /** Words that look like name parts but are plant vocabulary: never redacted, never a leak. */
 const PLANT_WORDS = new Set(
@@ -116,7 +117,8 @@ export function createPeople(
   const byName = new Map(tenant.map((person) => [normalizeKey(person.name), person.code]));
   const words = new Set<string>();
   const addWords = (cell: string, inName: boolean): void => {
-    for (const name of splitNames(cell)) {
+    // The team code is no name: only a cell's `Maint. Team` prefix is left out, so a person's own "Team" or "Maint" stays redacted.
+    for (const name of splitNames(cell.replace(TEAM_PREFIX, ''))) {
       if (!ROLE_WORD.test(name) && !TEAM_WORD.test(name))
         wordsOf(name, inName).forEach((w) => words.add(w));
     }
@@ -159,6 +161,8 @@ export function createPeople(
       return count;
     },
     phoneLeaks: (text) => (text.match(PHONE) ?? []).filter((run) => scrubRun(run) !== run).length,
-    leaks: (text) => (wordRe ? (text.match(wordRe) ?? []).length : 0),
+    // The team code every output carries (`Maint. Team`) is not a leak, whatever words a person's cell put in the set.
+    leaks: (text) =>
+      wordRe ? (text.split(SUBMITTER_FALLBACK).join('').match(wordRe) ?? []).length : 0,
   };
 }

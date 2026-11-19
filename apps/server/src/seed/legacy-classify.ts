@@ -79,6 +79,10 @@ export interface YearReport {
   tickets: number;
   events: number;
   possibleDuplicatePeople: number;
+  /** Utility rows folded into another row of the same machine and date: the importer takes one line per machine. */
+  utilityMerged?: number;
+  /** Of those, machines whose merged rows carried two different non-blank codes (the first is kept). */
+  utilityCodeConflicts?: number;
   strayShift: number;
   blankCode: number;
   blankMinutes: number;

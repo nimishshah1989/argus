@@ -87,4 +87,73 @@ describe('legacy check', () => {
     } as unknown as EngineData;
     expect([...loadedFigures(data)]).toEqual([['ZZ-1 2022-01', { count: 2, hours: 1.5 }]]);
   });
+
+  it('reads the real layout: a block per month with Machines, MTTR and MTBF rows, skipping a quarter block', () => {
+    const grid: Cell[][] = [
+      ['ZZ-2022 Month', null, null, null, null],
+      ['Jan ', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'Total No Break', 3, 0, 3],
+      [null, 'MTTR', 0.89, 0, 0.89],
+      [null, 'MTBF', 166.67, 500, 1000],
+      ['Feb', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'MTTR', null, 1.5, 1.5],
+      [null, 'MTBF', null, 500, 500],
+      ['Q-1', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'MTTR', 9, 9, 9],
+    ];
+    const summary = parseSummary({ 'MTTR & MTBF': grid }, 2022, (l) =>
+      l.replace(/^ZZ(\d)/, 'ZZ-$1'),
+    );
+    expect([...summary.cells]).toEqual([
+      ['ZZ-1 2022-01', { mttr: 0.89, mtbf: 166.67 }],
+      ['ZZ-2 2022-01', { mttr: 0, mtbf: 500 }],
+      ['ZZ-1 2022-02', { mttr: null, mtbf: null }],
+      ['ZZ-2 2022-02', { mttr: 1.5, mtbf: 500 }],
+    ]);
+  });
+
+  it('keeps the tight tolerance for equal and names a 0.03 h gap as its own class', () => {
+    const loaded = new Map<string, Loaded>([['ZZ-1 2022-01', { count: 3, hours: 2.67 }]]);
+    const grid: Cell[][] = [
+      ['Jan ', 'Machines', 'ZZ-1', 'Total'],
+      [null, 'MTTR', 0.92, 0.92],
+      [null, 'MTBF', 166.67, 1],
+    ];
+    const result = compare(
+      parseSummary({ 'MTTR & MTBF': grid }, 2022, (l) => l),
+      loaded,
+    );
+    expect(result.equal).toBe(0);
+    expect(result.different.map((d) => d.withinRounding)).toEqual([true]);
+  });
+
+  it('reads a machine written as a bare number and counts a block with no machine column as unreadable', () => {
+    const grid: Cell[][] = [
+      ['Jan ', 'Machines', 3, 'Total'],
+      [null, 'MTTR', 1, 1],
+      [null, 'MTBF', 500, 500],
+      ['Feb ', 'Machines', null, null],
+      [null, 'MTTR', 1, 1],
+    ];
+    const summary = parseSummary({ 'MTTR & MTBF': grid }, 2022, (l) => `TC-${l}`);
+    expect([...summary.cells.keys()]).toEqual(['TC-3 2022-01']);
+    expect(summary.unreadable).toBe(1);
+  });
+
+  it('compares a workbook that keeps only quarters, a quarter being three months of 500 h', () => {
+    const grid: Cell[][] = [
+      ['Q-1 ', 'Machines', 'ZZ-1', 'Total'],
+      [null, 'MTTR', 1.5, 1.5],
+      [null, 'MTBF', 750, 750],
+    ];
+    const loaded = new Map<string, Loaded>([
+      ['ZZ-1 2022-01', { count: 1, hours: 1 }],
+      ['ZZ-1 2022-03', { count: 1, hours: 2 }],
+    ]);
+    const result = compare(
+      parseSummary({ 'Q-MTTR&MTBF': grid }, 2022, (l) => l),
+      loaded,
+    );
+    expect(result).toMatchObject({ compared: 1, equal: 1 });
+  });
 });
