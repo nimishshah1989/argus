@@ -61,7 +61,7 @@ export function KpiTile(props: KpiTileProps) {
 
 /**
  * The tile that opens an explanation: one button, its parts as phrasing content. A chevron at the top right marks that
- * a tap goes somewhere, and the tile darkens while pressed.  Its name is its own text (an `aria-label` that left out the change would break
+ * a tap goes somewhere, and the tile darkens while pressed (neutral-100: the label keeps 4.66:1 in light and 7.29:1 in dark; neutral-200 would drop it to 4.15:1).  Its name is its own text (an `aria-label` that left out the change would break
  * label-in-name, WCAG 2.5.3); the figure counts up, so a screen reader may hear it settle.
  */
 function KpiButton(p: Shown) {
@@ -72,7 +72,7 @@ function KpiButton(p: Shown) {
       data-family={p.family}
       aria-haspopup="dialog"
       onClick={p.onOpen}
-      className={`${p.frame} min-h-target-min w-full text-left transition-colors duration-(--motion-fast) active:bg-neutral-200`}
+      className={`${p.frame} min-h-target-min w-full text-left transition-colors duration-(--motion-fast) active:bg-neutral-100`}
     >
       <span className="flex items-start justify-between gap-2">
         <span className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</span>

@@ -26,7 +26,8 @@ export type RampStep = (typeof RAMP_STEPS)[number];
 
 /**
  * The step of a value against the largest: fifths of the square root, so a month of 20 hours still shows beside one
- * of 240. Nothing (zero or less) is step 0, no colour.
+ * of 240. Nothing is step 0, no colour: a value of zero or less, a value that is NaN or infinite, and a largest value
+ * that is zero, negative, NaN or infinite.
  */
 export function familyStep(value: number, max: number): 0 | RampStep {
   if (!Number.isFinite(value) || !Number.isFinite(max) || value <= 0 || max <= 0) return 0;

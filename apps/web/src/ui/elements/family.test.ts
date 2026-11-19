@@ -36,6 +36,10 @@ describe('families: identity colour that never replaces the tone', () => {
     }
     expect(icons(withFamily)).toBe(icons(plain));
     expect(icons(withFamily)).toBeGreaterThanOrEqual(2); // the verdict's and the change's
+    // The family is applied: it marks the tile and colours its edge.
+    expect(withFamily).toContain('data-family="downtime"');
+    expect(withFamily).toContain('--color-family-downtime');
+    expect(plain).not.toContain('--color-family-downtime');
   });
 
   it('is a plain figure without onOpen, and a button that says everything the plain tile says', () => {
@@ -56,6 +60,9 @@ describe('families: identity colour that never replaces the tone', () => {
       createElement(Sparkline, { values: [1, 2, 3], family: 'repairs', label: 'Last 3 months' }),
     );
     expect(out).toContain('aria-label="Last 3 months"');
+    expect(out).toContain('--color-family-repairs'); // the line wears the family's colour
+    const plain = html(createElement(Sparkline, { values: [1, 2, 3], label: 'x' }));
+    expect(plain).not.toContain('--color-family');
   });
 });
 
@@ -87,6 +94,9 @@ describe('heat grid of one family', () => {
   it('prints every number whatever its shade', () => {
     const out = grid([[0, 20, 240, 5]], 'downtime');
     for (const text of ['0 h', '20 h', '240 h', '5 h']) expect(spoken(out)).toContain(text);
+    // The family ramp is applied to a shaded cell, and the largest value takes its deepest step.
+    expect(out).toContain('--color-family-downtime-ramp-5');
+    expect(grid([[0, 20, 240, 5]])).not.toContain('--color-family-downtime');
   });
 
   it('prints an em dash, not 0, for a missing or unusable value', () => {
