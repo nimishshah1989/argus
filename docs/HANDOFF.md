@@ -31,14 +31,14 @@ heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all
 - No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked)
   with a before and after for his approval (screens only from approved mockups, `docs/design/LOCK.md`). Also 75b
   (smaller replies via `?keys=`), 75c/d/f, 69d (staging load: needs his yes to real data on staging), 90, 92-96.
-  Follow-ups: shared search palette (87), nightly validate workflow (`docs/TESTING.md` 10), failed-jobs alarm.
+  Follow-ups: shared search palette (87), nightly validate workflow (`docs/TESTING.md` 10), failed-jobs 5-minute alarm.
 
 ## Open numbers (do not state as final)
 
 History vs Bhavin's sheets (`docs/plan/evidence/69c-real-load.md`): of 2,084 machine-months, 1,561 (75%) match raw and
 1,855 (89%) once his counting rules are applied; 229 unexplained until he answers. Plant-event hours are a LOWER BOUND
 (named machines only); 2023 is 1,646.6 against the ticket's about 1,480; at most 44.4 h may double count with
-breakdowns; lost hours may include non-CNC machines. Staging: demo data.
+breakdowns; lost hours may include non-CNC machines. Staging is the Cosmos tenant without the 2022-2025 history (69d).
 
 ## Tracker and waiting on people
 
