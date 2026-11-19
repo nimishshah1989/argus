@@ -32,14 +32,12 @@ work uses `impeccable` and Emil Kowalski's skills; the tracker changes in the pu
 
 **How this repo is worked (unchanged):** plan first and a fresh plan review; one packet = one acceptance
 assertion, ≤ 3 files / ≤ 150 lines, a named red and green command; a fresh reviewer runs the **covering suite**;
-`pnpm precheck` before push; one PR per packet, merged one at a time, then `pnpm main:check`; never weaken a
-test; whole-figure `toEqual`. PR bodies follow `.github/pull_request_template.md`. Fragments:
-`changes/<digits>-<slug>.md`, one per ticket.
+`pnpm precheck` before push; one PR per packet (template in `.github/`), merged one at a time, then
+`pnpm main:check`; never weaken a test; whole-figure `toEqual`; one `changes/<digits>-<slug>.md` per ticket.
 
 **Known traps:** `check-size` counts the trailing newline (keep files ≤ 399 wc-lines); `migration-runner`,
-`escalation`, `state-scale` and `who-is-acting` are timing flakes on exactly the escalation and migration paths —
-rerun, and treat a repeat as a finding; a checkout path with a space breaks `tools/backup-dump` and
-`tools/staging-deploy`; prettier runs over `docs/` too.
+`escalation`, `state-scale` and `who-is-acting` are timing flakes — rerun, and treat a repeat as a finding; a
+checkout path with a space breaks `tools/backup-dump` and `tools/staging-deploy`; prettier runs over `docs/` too.
 
 **Waiting on people (`docs/plan/NEEDS.md`):** N16 Bhavin's machine answers (Star sheets, retired machines, which
 machines are out of production data); N17 February–March 2022, any 2020–21 files, and the 2023 and 2024 workbooks
