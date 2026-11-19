@@ -6,7 +6,6 @@ import { Card } from '../../ui/card.js';
 import { KpiTile, NO_VALUE } from '../../ui/elements/index.js';
 import { Template } from './shell/patterns/template.js';
 import { FigureDrill } from './KeyPage.js';
-import { PageFigure } from './PageFigure.js';
 import { contentOf } from './figure-content.js';
 import type { AnalyticsGroup } from './groups.js';
 import {
@@ -133,7 +132,6 @@ export function TeamFocusPage({
       </>
     );
   const lanes = focusLaneGroups(focusActions(figure.value));
-  const extra = { ...content, kpis: [], title: '' };
   return (
     <Template
       title={title}
@@ -146,11 +144,6 @@ export function TeamFocusPage({
           <div data-span="full">
             <FigureDrill figure={figure} group={group} />
           </div>
-          {extra.tables.length + extra.charts.length === 0 ? null : (
-            <div data-span="full">
-              <PageFigure content={extra} />
-            </div>
-          )}
           {lanes.length === 0 ? null : (
             <p data-span="full" className="text-title3 font-semibold">
               {t('analytics.teamFocus.listTitle')}

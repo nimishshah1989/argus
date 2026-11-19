@@ -4,7 +4,7 @@ import { analyticsActionCenterEn } from './analytics-action-center.en.js';
 /** Gujarati for the Action Center, Team Focus and the Data checklist; terms follow docs/design/gujarati-glossary.md. */
 export const analyticsActionCenterGu = gujarati(analyticsActionCenterEn, {
   'analytics.actionCenter.intro':
-    'બ્રેકડાઉન લૉગ, પીએમ એન્ટ્રી, મશીન અને ટીમ પરથી કાઢેલી યાદ અપાવણીઓ, {{date}} સુધીની.',
+    'બ્રેકડાઉન લૉગ, PM એન્ટ્રી, મશીન અને ટીમ પરથી કાઢેલી યાદ અપાવણીઓ, {{date}} સુધીની.',
   'analytics.actionCenter.tile.high': 'ઊંચી પ્રાથમિકતા',
   'analytics.actionCenter.tile.med': 'મધ્યમ',
   'analytics.actionCenter.tile.low': 'નીચી',
@@ -28,7 +28,7 @@ export const analyticsActionCenterGu = gujarati(analyticsActionCenterEn, {
   'analytics.actionCenter.rule.newm': 'નવું મશીન',
   'analytics.actionCenter.rule.spares': 'સ્પેર ખર્ચ',
   'analytics.actionCenter.rule.age': 'જૂના મશીન',
-  'analytics.actionCenter.rule.amc': 'એએમસી / વોરંટી પૂરી થાય છે',
+  'analytics.actionCenter.rule.amc': 'AMC / વોરંટી પૂરી થાય છે',
   'analytics.actionCenter.rule.legal': 'કાનૂની પાલન બાકી',
   'analytics.actionCenter.filters': 'ફિલ્ટર',
   'analytics.actionCenter.priorityLabel': 'પ્રાથમિકતા',

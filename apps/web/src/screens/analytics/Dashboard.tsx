@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useActionCenterBoard, useAnalyticsFigures, useAnalyticsFiguresAt } from '../../api.js';
 import { useOnline } from '../../data/index.js';
@@ -55,6 +56,17 @@ function ActionCenterBanner() {
   );
 }
 
+/** The line under the title: the as-of date, the machines left out, and the date the changes are against (dd-mm-yyyy). */
+function ledeOf(t: TFunction, asOf: string, excluded: number, compared: boolean): string {
+  return [
+    t('analytics.asOf', { date: dmy(asOf) }),
+    excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
+    compared ? t('analytics.today.vs', { date: dmy(priorDate(asOf)), days: COMPARE_DAYS }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ');
+}
+
 /**
  * The Dashboard on the overview template: number tiles in the figures row, then the strip, the pictures, the
  * sentence and the ranked list. The change of each figure is against the same figure 30 days earlier.
@@ -82,18 +94,11 @@ function DashboardTemplate({
       before.data?.figures.find((other) => other.key === figure.key),
       priorDate(asOf).slice(0, 4) === asOf.slice(0, 4),
     );
-  const lede = [
-    t('analytics.asOf', { date: dmy(asOf) }),
-    excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
-    before.data ? t('analytics.today.vs', { date: priorDate(asOf), days: COMPARE_DAYS }) : null,
-  ]
-    .filter((part) => part !== null)
-    .join(' · ');
   return (
     <Template
       {...frame}
       kind="overview"
-      lede={lede}
+      lede={ledeOf(t, asOf, excluded, before.data !== undefined)}
       figures={figures.filter(isNumberFigure).map((figure) => (
         <NumberFigure key={figure.key} figure={figure} group={group} change={prior(figure)} />
       ))}

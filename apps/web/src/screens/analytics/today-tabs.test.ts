@@ -7,7 +7,9 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { Waiting } from './ActionCenterPage.js';
 import { ChecklistReady } from './DataChecklist.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
+import { dmy } from './action-center.js';
 import { groupFor } from './groups.js';
+import { priorDate } from './today-change.js';
 import { NotReady } from './screen-states.js';
 
 type Figure = FiguresReply['figures'][number];
@@ -93,5 +95,12 @@ describe('the Today tabs in a state that is not ready', () => {
     expect(page).toContain('role="status"');
     expect(page).toContain('text-bad-ink');
     expect(page).toContain('data-page="refused"');
+  });
+});
+
+describe('the dates in a lede', () => {
+  it('prints the as-of date and the comparison date as dd-mm-yyyy', () => {
+    expect(dmy('2026-11-11')).toBe('11-11-2026');
+    expect(dmy(priorDate('2026-11-11'))).toBe('12-10-2026');
   });
 });

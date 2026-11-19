@@ -85,7 +85,20 @@ const PENDING = [
 ];
 
 /** Latin words that stay Latin in Gujarati (docs/design/gujarati-glossary.md): codes, criticality letters, product names. */
-const LATIN_TOKENS = ['SLA', 'S1', 'S2', 'S3', 'S4', 'WhatsApp', 'Uptimo', 'VC', 'A', 'C'];
+const LATIN_TOKENS = [
+  'SLA',
+  'S1',
+  'S2',
+  'S3',
+  'S4',
+  'WhatsApp',
+  'Uptimo',
+  'VC',
+  'A',
+  'C',
+  'AMC',
+  'PM',
+];
 
 /** Keys of shipped namespaces whose Gujarati is blank, except those a builder is still adding. */
 function untranslated(
