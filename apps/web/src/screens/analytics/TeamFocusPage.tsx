@@ -82,6 +82,22 @@ function LaneCard({ group }: { group: FocusLaneGroup }) {
   );
 }
 
+type Kpi = Extract<ReturnType<typeof contentOf>, { kind: 'page' }>['kpis'][number];
+
+/** The engine's three counts as tiles: its own text, counted up to at first sight, with its second line as the note. */
+function KpiTiles({ kpis }: { kpis: Kpi[] }) {
+  return kpis.map((kpi, index) => (
+    <div key={`${kpi.label}-${index}`} className="h-full min-w-0">
+      <KpiTile
+        label={kpi.label}
+        value={kpi.value === NO_VALUE ? null : (printedNumber(kpi.value) ?? 0)}
+        format={(shown) => countedText(kpi.value, shown)}
+        note={kpi.sub ?? undefined}
+      />
+    </div>
+  ));
+}
+
 /**
  * Team Focus (43e, rebuilt by ticket 87): the engine's three counts as tiles, then its actions in lane cards. Each
  * tile prints the engine's own text, so a figure stays exact; its note is the engine's own second line. Status, owner
@@ -123,16 +139,7 @@ export function TeamFocusPage({
       title={title}
       lede={lede}
       kind="overview"
-      figures={content.kpis.map((kpi, index) => (
-        <div key={`${kpi.label}-${index}`} className="h-full min-w-0">
-          <KpiTile
-            label={kpi.label}
-            value={kpi.value === NO_VALUE ? null : (printedNumber(kpi.value) ?? 0)}
-            format={(shown) => countedText(kpi.value, shown)}
-            note={kpi.sub ?? undefined}
-          />
-        </div>
-      ))}
+      figures={<KpiTiles kpis={content.kpis} />}
       main={
         <>
           {drill === null ? null : <div data-span="full">{drill}</div>}
