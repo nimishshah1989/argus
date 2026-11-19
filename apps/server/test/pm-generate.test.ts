@@ -22,6 +22,7 @@ const T3 = T(3);
 const T4 = T(4);
 const T5 = T(5);
 const T6 = T(6);
+const T7 = T(7);
 const M1 = M(1);
 const M2 = M(2);
 const M3 = M(3);
@@ -32,6 +33,7 @@ const M7 = M(7);
 const M8 = M(8);
 const M10 = M(10);
 const M11 = M(11);
+const M12 = M(12);
 const M9 = M(9);
 
 let db: TestDb;
@@ -113,7 +115,8 @@ async function openPm(tenantId: string, machineId: string): Promise<void> {
 const pmTickets = async (tenantId: string) =>
   (
     await db.admin.query(
-      `SELECT id, ref, kind, status, machine_id, problem, reported_at, work_type, location
+      `SELECT id, ref, kind, status, machine_id, problem, reported_at, work_type, location,
+              task_expected_on::text AS task_expected_on
          FROM ticket WHERE tenant_id = $1 AND raised_channel = 'pm' ORDER BY ref`,
       [tenantId],
     )
@@ -141,8 +144,9 @@ beforeAll(async () => {
     [T5, M10, 'VC-CAT', 'active'],
     [T5, M11, 'VC-MACHINE', 'active'],
     [T6, M9, 'VC-NEXT', 'active'],
+    [T7, M12, 'VC-LATE', 'active'],
   ];
-  for (const [index, id] of [T1, T2, T3, T4, T5, T6].entries())
+  for (const [index, id] of [T1, T2, T3, T4, T5, T6, T7].entries())
     await db.admin.query('INSERT INTO tenant (id, slug, name) VALUES ($1, $2, $2)', [
       id,
       `plant-${index + 1}`,
@@ -213,6 +217,12 @@ beforeAll(async () => {
   // T5: one category plan and one machine plan that must win over its category plan.
   await plan(T5, { category: 'VMC', title: 'Category fallback', lastDoneOn: '2026-05-01' });
   await plan(T5, { machineId: M11, title: 'Machine plan wins', lastDoneOn: '2026-05-01' });
+  // T7: a plan the nightly run reaches late (50 R12: the ticket keeps the due, not the run's day).
+  await plan(T7, {
+    machineId: M12,
+    title: 'VC-LATE preventive maintenance',
+    lastDoneOn: '2026-05-01',
+  });
 }, 180_000);
 
 afterAll(async () => {
@@ -236,6 +246,12 @@ describe('pm.generate by the calendar (R7)', () => {
     // R4: only the merged raise input's fields; no work type or location is invented.
     expect(raised.work_type).toBeNull();
     expect(raised.location).toBeNull();
+  });
+
+  it('records the due, not the late day of the run, as the scheduled date (50 R12)', async () => {
+    expect(await run(new Date('2026-11-02T06:00:00Z'), T7)).toMatchObject({ raised: 1 });
+    const [ticket] = await pmTickets(T7);
+    expect(ticket.task_expected_on).toBe('2026-10-30');
   });
 
   it('raises no second job on a re-run, the same day or the next', async () => {

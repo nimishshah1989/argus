@@ -27,7 +27,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | Radix UI primitives (`radix-ui` 1.8.1)                                                          | web accessibility   | MIT              |
 | Lucide (`lucide-react` 1.72.0)                                                                  | icons               | ISC              |
 | Apache ECharts (`echarts` 6.1.0; brings `zrender` 6.1.0, BSD-3-Clause, and `tslib` 2.3.0, 0BSD) | charts              | Apache-2.0       |
-| FullCalendar standard plugins                                                                   | PM calendar         | MIT              |
+| FullCalendar 7.1.5 (`@fullcalendar/react`) and `temporal-polyfill` 1.0.8                        | PM calendar         | MIT              |
 | vis-timeline                                                                                    | resource timeline   | Apache-2.0 / MIT |
 | react-grid-layout                                                                               | dashboard layout    | MIT              |
 | Playwright                                                                                      | E2E and PDF         | Apache-2.0       |
@@ -49,6 +49,9 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | @axe-core/playwright                                                                            | accessibility tests | MPL-2.0          |
 | fast-check                                                                                      | property tests      | MIT              |
 | pdf-parse                                                                                       | PDF text tests      | MIT              |
+
+FullCalendar 7.1.5 is the `@fullcalendar/react` entry; it brings `@fullcalendar/core` 7.1.5 and
+`@full-ui/headless-calendar` 7.1.5 (both MIT), and `temporal-polyfill` 1.0.8 is its MIT peer.
 
 ## Tools and infrastructure (not shipped as code)
 

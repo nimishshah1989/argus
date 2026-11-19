@@ -147,12 +147,19 @@ export async function insertPmPlan(
   return pmPlanRow(row as Record<string, unknown>);
 }
 
-export async function pmPlanById(tx: Db, tenantId: string, id: string): Promise<PmPlan | null> {
+export async function pmPlanById(
+  tx: Db,
+  tenantId: string,
+  id: string,
+  lock?: 'update',
+): Promise<PmPlan | null> {
   const row = (
-    await tx.query(`SELECT ${PM_PLAN_COLUMNS} FROM pm_plan WHERE tenant_id = $1 AND id = $2`, [
-      tenantId,
-      id,
-    ])
+    await tx.query(
+      `SELECT ${PM_PLAN_COLUMNS} FROM pm_plan WHERE tenant_id = $1 AND id = $2${
+        lock === 'update' ? ' FOR UPDATE' : ''
+      }`,
+      [tenantId, id],
+    )
   ).rows[0];
   return row ? pmPlanRow(row as Record<string, unknown>) : null;
 }
@@ -214,6 +221,7 @@ export async function pmPlanForMachine(
   tx: Db,
   tenantId: string,
   machineId: string,
+  lock?: 'update',
 ): Promise<PmPlan | null> {
   const row = (
     await tx.query(
@@ -223,7 +231,7 @@ export async function pmPlanForMachine(
             OR (p.machine_id IS NULL
               AND p.category = (SELECT category FROM machine WHERE tenant_id = $1 AND id = $2)))
         ORDER BY (p.machine_id IS NOT NULL) DESC, p.updated_at DESC
-        LIMIT 1`,
+        LIMIT 1${lock === 'update' ? ' FOR UPDATE' : ''}`,
       [tenantId, machineId],
     )
   ).rows[0];

@@ -78,6 +78,7 @@ async function generateForTenant(
       channel: 'pm',
       problem: `PM due: ${plan.title}`,
       at: now,
+      scheduledOn: decision.nextDue ?? undefined,
     });
     raised += 1;
   }

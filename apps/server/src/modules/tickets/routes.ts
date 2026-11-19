@@ -37,6 +37,7 @@ import { loginInTicketCell, otherCellRefusal, reopenConflict } from './handback.
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
 import { registerWhyWhyRoutes } from './why-why-routes.js';
+import { registerPmRoutes } from './pm-routes.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -392,4 +393,5 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
     );
   }
   registerWhyWhyRoutes(app, pool);
+  registerPmRoutes(app, pool);
 }

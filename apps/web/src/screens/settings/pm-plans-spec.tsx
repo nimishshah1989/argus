@@ -1,27 +1,13 @@
-import { pmPlanReplySchema, type PmPlanReply } from '@uptimo/shared/pm';
+import { pmNextDue, pmPlanReplySchema, type PmPlanReply } from '@uptimo/shared/pm';
 import type { MachineReply } from '@uptimo/shared/plant-settings';
 import type { CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
+
+/** The one next-due rule (50 R2), shared with the calendar and the server; 49a's name stays for its screen. */
+export const pmPlanNextDue = pmNextDue;
 
 /** The plant's PM plans (ticket 49a): one recurring plan per machine or category, edited on a generated page. */
 
 const machines = { key: 'machines', path: '/api/v1/machines' };
-const DAY = 86_400_000;
-
-/** The calendar day of an instant in the plant's own zone, which is the zone the server's dates use. */
-const dayIn = (instant: string, timeZone?: string): string =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: timeZone ?? 'UTC' }).format(new Date(instant));
-
-/**
- * R7: the plan is due at `last_done_on` else its clock anchor (`created_at`, plant-local) plus its interval.
- * Computed here in the plant's zone so a row made at local midnight never reads as yesterday.
- */
-export function pmPlanNextDue(row: PmPlanReply, timeZone?: string): string | null {
-  if (!row.intervalDays) return null;
-  const anchor = row.lastDoneOn ?? dayIn(row.createdAt, timeZone);
-  return new Date(Date.parse(`${anchor}T00:00:00Z`) + row.intervalDays * DAY)
-    .toISOString()
-    .slice(0, 10);
-}
 
 const machineRows = (c: CrudCtx): MachineReply[] =>
   (c.lookups.machines as MachineReply[] | undefined) ?? [];
