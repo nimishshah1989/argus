@@ -76,7 +76,8 @@ export const SECTIONS: readonly ShellSection[] = [
     id: 'reports',
     label: 'ashell.section.reports',
     tabs: [
-      { to: '/analytics/reports', label: 'ashell.tab.reports', group: 'reports' },
+      { to: '/analytics/reports', label: 'analytics.screen.monthly-report' },
+      { to: '/analytics/reports?screen=annual-report', label: 'analytics.screen.annual-report' },
       { to: '/analytics/pm', label: 'pm.screen.calendar' },
     ],
   },
