@@ -1,0 +1,1 @@
+- Follow-up to the desk restyle: the admin buttons on a ticket keep their disabled look when hovered, and the desk preview check can sign in as a technician.
