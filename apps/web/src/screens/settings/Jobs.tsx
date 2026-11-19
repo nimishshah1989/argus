@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
@@ -29,6 +29,9 @@ const LIST = '/api/v1/jobs/failed';
 const FAILED_KEY = ['jobs', 'failed'] as const;
 /** Same beat as the app's other live lists: a new failure shows within 30 s, far inside the 60 s goal. */
 const POLL_MS = 30_000;
+/** The server lists at most 100 and sends no total, so a full list reads "100+". */
+const SHOWN = 100;
+export const countLabel = (count: number): string => (count >= SHOWN ? `${SHOWN}+` : String(count));
 
 /** The server's own rule (DATA-MAP section 4): the admin on a personal login. */
 export const canSeeJobs = (user: Me | undefined): boolean =>
@@ -99,7 +102,7 @@ export function FailedCount({ count }: { count: number }) {
       className={`inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-caption font-bold ${TONE_FILL.danger}`}
     >
       <TriangleAlert aria-hidden size={16} />
-      {t('jobs.count', { count })}
+      {t('jobs.count', { n: countLabel(count) })}
     </span>
   );
 }
@@ -209,6 +212,11 @@ export function JobsScreen() {
   const jobs = useFailedJobs(allowed);
   const online = useOnline();
   const [done, setDone] = useState<string | null>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  // The Retry button left the page with its row: keyboard focus moves to the result, not to the top.
+  useEffect(() => {
+    if (done) statusRef.current?.focus();
+  }, [done]);
   if (me.data && !allowed) return <NoAccess />;
   const items = jobs.data?.items ?? [];
   const state = viewState({
@@ -220,8 +228,18 @@ export function JobsScreen() {
   return (
     <PatternFrame title={t('jobs.title')}>
       <p className="text-footnote text-neutral-600">{t('jobs.intro')}</p>
+      {items.length > 0 ? (
+        <div>
+          <FailedCount count={items.length} />
+        </div>
+      ) : null}
       {done ? (
-        <p role="status" className="flex items-center gap-2 text-body font-medium text-ok-ink">
+        <p
+          ref={statusRef}
+          tabIndex={-1}
+          role="status"
+          className="flex items-center gap-2 text-body font-medium text-ok-ink"
+        >
           <CircleCheck aria-hidden size={18} />
           {t('jobs.retried', { kind: done })}
         </p>

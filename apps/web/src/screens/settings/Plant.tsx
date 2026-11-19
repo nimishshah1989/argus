@@ -38,7 +38,7 @@ import { registersSpec } from './registers-spec.js';
 import { RosterScreen } from './roster-spec.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
-import { FailedCount, JOBS_PAGE, canSeeJobs, useFailedCount } from './Jobs.js';
+import { FailedCount, JOBS_PAGE, canSeeJobs, countLabel, useFailedCount } from './Jobs.js';
 
 export type PlantPage =
   | 'home'
@@ -208,7 +208,10 @@ export function PlantSettings({ page }: { page: PlantPage }) {
       title: t('plant.menu.plant'),
       items: pages.map(({ page: to, icon, key }) => ({
         to: `/settings/${to}`,
-        label: to === 'jobs' && failed > 0 ? t('jobs.menu.withCount', { count: failed }) : t(key),
+        label:
+          to === 'jobs' && failed > 0
+            ? t('jobs.menu.withCount', { n: countLabel(failed) })
+            : t(key),
         icon,
       })),
     },

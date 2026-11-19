@@ -2,12 +2,12 @@
 export const jobsEn = {
   'jobs.menu': 'Background jobs',
   'jobs.menu.sub': 'Jobs that failed, and a retry',
-  'jobs.menu.withCount': 'Background jobs, {{count}} failed',
+  'jobs.menu.withCount': 'Background jobs, {{n}} failed',
   'jobs.title': 'Background jobs',
   'jobs.intro':
     'Work the system does on its own, such as sending alerts. A job that failed is listed here with the reason. Retry runs it once more.',
   'jobs.empty': 'No failed jobs. Everything ran.',
-  'jobs.count': '{{count}} failed',
+  'jobs.count': '{{n}} failed',
   'jobs.tag.failed': 'Failed',
   'jobs.tag.running': 'Running',
   'jobs.tag.retryFailed': 'Retry failed',

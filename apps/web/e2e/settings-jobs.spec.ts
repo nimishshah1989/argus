@@ -69,7 +69,10 @@ test('an admin sees a failed job with its error and a count on the Settings entr
   await retry.focus();
   await page.keyboard.press('Enter');
 
-  await expect(page.getByRole('status').filter({ hasText: 'was run again' })).toBeVisible();
+  const done = page.getByRole('status').filter({ hasText: 'was run again' });
+  await expect(done).toBeVisible();
+  // The Retry button left the page with its row: focus is on the result, not lost to the page top.
+  await expect(done).toBeFocused();
   await expect(row).toHaveCount(0);
   expect(await stateOf(job.id)).not.toBe('failed');
 });
@@ -116,3 +119,22 @@ for (const username of ['op', 'asha']) {
     await expect(page.getByText('planted failure')).toHaveCount(0);
   });
 }
+
+test('a full list of 100 reads 100+, since the server sends no total', async ({ page, t }) => {
+  await plantFailure();
+  await withPool((pool) =>
+    pool.query(
+      `INSERT INTO pgboss.job (name, data, state, retry_limit, output, completed_on)
+       SELECT $1, $2, 'failed', 0, '{"message":"bulk"}'::jsonb, now() FROM generate_series(1, 100)`,
+      [QUEUE, { tenantId: TENANT.id }],
+    ),
+  );
+  try {
+    await signIn(page, 'admin');
+    await page.goto('/settings/jobs');
+    await expect(page.getByRole('heading', { name: t('jobs.title'), exact: true })).toBeVisible();
+    await expect(page.getByText('100+ failed').first()).toBeVisible();
+  } finally {
+    await withPool((pool) => pool.query('DELETE FROM pgboss.job WHERE name = $1', [QUEUE]));
+  }
+});
