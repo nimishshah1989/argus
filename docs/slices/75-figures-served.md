@@ -100,6 +100,18 @@ counted by `run` calls. Files: drill in `routes.ts`, the report routes' loaders,
 rows today; the forecast simulation is about 60 %). Files: `packages/domain/src/analytics/a9-forecast-sim.ts` and
 its callers, after 76. Red/green: a timed test on the fixture, `vitest run packages/domain/test/engine-scale.test.ts`.
 
+**75e result (20 Nov, local, no database).** A full `run` on an invented 10,000-report plant (150 machines, 1,500
+follow-up jobs, 300 open tickets, 300 moves, PM plans) went from 6.0 s to 1.7 s with byte-identical output (hash in the PR). Whole
+By figure group, in ms (before to after): forecast lab 3,500 to 1,200; backlog 550 to under 20 (its age
+walk asked the same local-midnight question for every open ticket); every other figure together about 2,000 to 500
+(`plantDay`, `dayNumber`, the report-to-ticket join and the quantile sorts were each repeated per figure or per month;
+now remembered once). On this plant the engine is far under the 20 s goal, so the 57 s of the table above was not
+the engine's own arithmetic on this shape of data: the real loader's rows (long problem texts, many open tickets) were
+not reproduced here, so the first read of 75b/75f must be re-timed on the Postgres plant. Next biggest costs, in order:
+the forecast lab's 1,000-draw simulation (0.6 s: 4 methods x 52 months x 150 machines, its draw order is pinned so it
+cannot be skipped, only made cheaper), the sort of each machine-month's 1,000 sims (0.3 s: a selection of three ranks
+would do), the Knuth Poisson draw (0.2 s), then `a10-problems` (0.15 s).
+
 **75f The proof.** Assertion: 30 concurrent readers on 10,000 rows, p95 at most 300 ms
 (`apps/server/test/figures-scale.test.ts`, shaped like `state-scale.test.ts`). Also closes MILESTONES 75 goals 1 to 3.
 

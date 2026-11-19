@@ -1,9 +1,10 @@
 import type { BottleneckCore } from './a9-bottleneck.js';
 import {
-  FC_PRIOR_DAYS,
   episodesOf,
   quantile,
+  quantileOfSorted,
   simulate,
+  sortedAsc,
   type DrawModel,
   type Episode,
 } from './a9-forecast-sim.js';
@@ -21,11 +22,7 @@ import type { MachineRow } from './types.js';
 
 export const LAB_RUNS = 1000;
 const DAY_MS = 86_400_000;
-const IPF_ROUNDS = 40;
-const IPF_PRIOR = 4;
 const SHORT_MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
-const bandOf = (age: number): number =>
-  age < 3 ? 0 : age < 6 ? 1 : age < 10 ? 2 : age < 15 ? 3 : age < 999 ? 4 : -1;
 const purchaseDay = (machine: MachineRow): number | null =>
   machine.purchasedOn === null ? null : dayNumber(machine.purchasedOn.slice(0, 10));
 
@@ -41,7 +38,7 @@ export interface LabMonth {
   label: string;
 }
 
-interface LabMachine {
+export interface LabMachine {
   machine: MachineRow;
   category: string;
   t: number;
@@ -49,12 +46,6 @@ interface LabMachine {
   n: number;
   durations: number[];
 }
-
-type Exposure = { nw: number; Tw: number; rho: number };
-
-type BandRow = { cat: string; yrs: number; n: number; band: number };
-
-type BandFit = { c: Map<string, number>; a: number[]; r0: number };
 
 type LabDraw = DrawModel & { id: string; expH: number };
 
@@ -161,127 +152,6 @@ export function actualOf(
   return actual;
 }
 
-/** A machine's exposure under the method: raw, or recent entries faded with the half-life. */
-function exposureOf(machine: LabMachine, cut: number, halfLife: number, recent: boolean): Exposure {
-  if (!recent) return { nw: machine.n, Tw: machine.t, rho: 1 };
-  const nw = machine.episodes.reduce(
-    (total, episode) => total + 0.5 ** (Math.max(0, cut - episode.last) / halfLife),
-    0,
-  );
-  const Tw = (halfLife / Math.LN2) * (1 - 0.5 ** (machine.t / halfLife));
-  return { nw, Tw, rho: Tw / machine.t };
-}
-
-/** The age band at the cut, or -1 for an unknown or not-yet-positive age. */
-function ageBand(machine: LabMachine, cut: number): number {
-  const bought = purchaseDay(machine.machine);
-  if (bought === null) return -1;
-  const age = (cut - bought) / 365.25;
-  if (!(age >= 0)) return -1;
-  return bandOf(age);
-}
-
-const bandWeight = (band: number, a: readonly number[]): number => (band < 0 ? 1 : (a[band] ?? 1));
-
-const categoryLevel = (list: readonly BandRow[], a: readonly number[], r0: number): number =>
-  (sum(list.map((row) => row.n)) + IPF_PRIOR) /
-  (sum(list.map((row) => row.yrs * bandWeight(row.band, a))) + IPF_PRIOR / r0);
-
-const bandLevel = (list: readonly BandRow[], c: ReadonlyMap<string, number>, r0: number): number =>
-  list.length === 0
-    ? 1
-    : (sum(list.map((row) => row.n)) + IPF_PRIOR) /
-      (sum(list.map((row) => row.yrs * (c.get(row.cat) ?? r0))) + IPF_PRIOR);
-
-/** The multiplicative category × band fit, 40 rounds, pseudo-count 4, mean-normalised each pass. */
-function fitBands(rows: readonly BandRow[]): BandFit {
-  const used = rows.filter((row) => row.yrs > 0);
-  const total = sum(used.map((row) => row.n));
-  const years = sum(used.map((row) => row.yrs)) || 1;
-  const r0 = total / years || 1e-9;
-  const categories = [...new Set(used.map((row) => row.cat))];
-  const c = new Map(categories.map((category) => [category, r0]));
-  const a = [1, 1, 1, 1, 1];
-  for (let round = 0; round < IPF_ROUNDS; round += 1) {
-    for (const category of categories) {
-      c.set(
-        category,
-        categoryLevel(
-          used.filter((row) => row.cat === category),
-          a,
-          r0,
-        ),
-      );
-    }
-    for (let band = 0; band < a.length; band += 1) {
-      a[band] = bandLevel(
-        used.filter((row) => row.band === band),
-        c,
-        r0,
-      );
-    }
-    const banded = used.filter((row) => row.band >= 0);
-    const weight = sum(banded.map((row) => row.yrs)) || 1;
-    const average = sum(banded.map((row) => row.yrs * bandWeight(row.band, a))) / weight || 1;
-    for (let band = 0; band < a.length; band += 1) a[band] = bandWeight(band, a) / average;
-    for (const category of categories) c.set(category, (c.get(category) ?? r0) * average);
-  }
-  return { c, a, r0 };
-}
-
-/** The per-machine daily rate under one method: the plan's 42b rate with this method's exposure. */
-export function ratesOf(
-  base: readonly LabMachine[],
-  cut: number,
-  method: MethodKey,
-  halfLife: number,
-): number[] {
-  const useAge = method === 'M1' || method === 'M3';
-  const recent = method === 'M2' || method === 'M3';
-  const exposures = base.map((machine) => exposureOf(machine, cut, halfLife, recent));
-  const groups = new Map<string, { t: number; nw: number; tw: number }>();
-  base.forEach((machine, index) => {
-    const group = groups.get(machine.category) ?? { t: 0, nw: 0, tw: 0 };
-    group.t += machine.t;
-    group.nw += exposures[index]?.nw ?? 0;
-    group.tw += exposures[index]?.Tw ?? 0;
-    groups.set(machine.category, group);
-  });
-  const fleetNw = sum(exposures.map((item) => item.nw));
-  const fleetTw = sum(exposures.map((item) => item.Tw));
-  const fleetRate = fleetTw > 0 ? fleetNw / fleetTw : 0;
-  const bands: BandRow[] = useAge
-    ? base.map((machine, index) => ({
-        cat: machine.category,
-        yrs: (exposures[index]?.Tw ?? 0) / 365,
-        n: exposures[index]?.nw ?? 0,
-        band: ageBand(machine, cut),
-      }))
-    : [];
-  const fit = useAge ? fitBands(bands) : null;
-  return base.map((machine, index) => {
-    const exposure = exposures[index] ?? { nw: 0, Tw: 0, rho: 1 };
-    const group = groups.get(machine.category) ?? { t: 0, nw: 0, tw: 0 };
-    let lam0: number;
-    if (fit !== null) {
-      const band = bands[index]?.band ?? -1;
-      const perYear =
-        (fit.c.get(machine.category) ?? fit.r0) * (band >= 0 ? (fit.a[band] ?? 1) : 1);
-      lam0 = perYear / 365;
-    } else {
-      lam0 =
-        group.t - machine.t >= FC_PRIOR_DAYS
-          ? (group.nw - exposure.nw) / (group.tw - exposure.Tw)
-          : fleetRate;
-    }
-    lam0 = Math.max(lam0, 0.25 * fleetRate);
-    return (
-      (exposure.nw + lam0 * FC_PRIOR_DAYS * exposure.rho) /
-      (exposure.Tw + FC_PRIOR_DAYS * exposure.rho)
-    );
-  });
-}
-
 /** The draws' inputs: the category pool (or the fleet's), the cap, the mixture weight and the month's count. */
 function drawModels(base: readonly LabMachine[], lam: readonly number[], days: number): LabDraw[] {
   const byCategory = new Map<string, number[]>();
@@ -291,10 +161,15 @@ function drawModels(base: readonly LabMachine[], lam: readonly number[], days: n
     byCategory.set(machine.category, list);
   }
   const fleetDurations = base.flatMap((machine) => machine.durations);
+  const caps = new Map<readonly number[], number>();
   return base.map((machine, index) => {
     const categoryDurations = byCategory.get(machine.category) ?? [];
     const pool = categoryDurations.length >= 15 ? categoryDurations : fleetDurations;
-    const cap = quantile(pool, 0.9);
+    let cap = caps.get(pool);
+    if (cap === undefined) {
+      cap = quantile(pool, 0.9);
+      caps.set(pool, cap);
+    }
     const capped = (values: readonly number[]): number =>
       values.length === 0 ? 0 : sum(values.map((hours) => Math.min(hours, cap))) / values.length;
     const w = machine.n / (machine.n + 4);
@@ -321,18 +196,25 @@ export function runMonth(
   const models = drawModels(base, lam, days);
   const { machine, plant } = simulate(models, LAB_RUNS);
   const results = models.map((model, index) => {
-    const sims = machine[index] ?? [];
-    const p50 = quantile(sims, 0.5);
-    const p80 = Math.max(model.expH, quantile(sims, 0.8));
-    return { id: model.id, expH: model.expH, p50, p80, p90: Math.max(p80, quantile(sims, 0.9)) };
+    const sims = sortedAsc(machine[index] ?? []);
+    const p50 = quantileOfSorted(sims, 0.5);
+    const p80 = Math.max(model.expH, quantileOfSorted(sims, 0.8));
+    return {
+      id: model.id,
+      expH: model.expH,
+      p50,
+      p80,
+      p90: Math.max(p80, quantileOfSorted(sims, 0.9)),
+    };
   });
+  const plantSorted = sortedAsc(plant);
   return {
     results,
     plant: {
-      p10: quantile(plant, 0.1),
-      p50: quantile(plant, 0.5),
-      p80: quantile(plant, 0.8),
-      p90: quantile(plant, 0.9),
+      p10: quantileOfSorted(plantSorted, 0.1),
+      p50: quantileOfSorted(plantSorted, 0.5),
+      p80: quantileOfSorted(plantSorted, 0.8),
+      p90: quantileOfSorted(plantSorted, 0.9),
     },
   };
 }

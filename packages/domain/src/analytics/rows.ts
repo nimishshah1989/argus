@@ -11,12 +11,33 @@ export interface SourcedReport {
 
 /** Every report whose ticket is in the snapshot, so its source resolves; an unlinked report has no source. */
 export function sourcedReports(data: EngineData): SourcedReport[] {
+  const size = data.reports.length + data.tickets.length + data.tasks.length;
+  const kept = sourced.get(data.reports);
+  if (kept && kept.tickets === data.tickets && kept.tasks === data.tasks && kept.size === size) {
+    return kept.rows;
+  }
   const tickets = new Map([...data.tickets, ...data.tasks].map((ticket) => [ticket.id, ticket]));
-  return data.reports.flatMap((report) => {
+  const rows = data.reports.flatMap((report) => {
     const ticket = report.ticketId === null ? undefined : tickets.get(report.ticketId);
     return ticket ? [{ report, ticket }] : [];
   });
+  sourced.set(data.reports, { tickets: data.tickets, tasks: data.tasks, size, rows });
+  return rows;
 }
+
+/**
+ * The join above, kept per report list: fifty figures ask for it on the same data, and a list is never edited in
+ * place once a run holds it, so the same lists give the same rows. Callers filter or copy it and never edit it.
+ */
+const sourced = new WeakMap<
+  readonly ReportRow[],
+  {
+    tickets: readonly TicketRow[];
+    tasks: readonly TicketRow[];
+    size: number;
+    rows: SourcedReport[];
+  }
+>();
 
 /** Preventive maintenance is never a breakdown, whichever figure asks. */
 export const isPm = (row: SourcedReport): boolean => row.report.maintCode === 'PM';

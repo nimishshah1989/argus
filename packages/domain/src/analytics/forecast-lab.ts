@@ -4,7 +4,6 @@ import {
   actualOf,
   baseOf,
   monthsOf,
-  ratesOf,
   runMonth,
   scoreMonth,
   summarize,
@@ -13,6 +12,7 @@ import {
   type Scores,
   type Summary,
 } from './forecast-lab-sim.js';
+import { ratesOf } from './forecast-lab-rates.js';
 import { formatNumber } from './format.js';
 import { dayNumber } from './plant-date.js';
 import type { SourcedReport } from './rows.js';
