@@ -20,7 +20,9 @@
 
 - The design preview gets its shared contract in `apps/web/src/gallery/directions/variant.ts`. It holds the six
   fields each direction sets (tile shape, delta form, legend place, density, chart frame, chart height), the list of
-  25 colour roles every direction defines in light and dark, and one map that gives all 40 statuses a tone with
+  25 colour roles, 8 chart series and two 5-step ramps every direction defines in light and dark, its depth, corner
+  and type values, a check that names what is wrong with a palette (including a series that equals a status
+  colour), and one map that gives all 40 statuses a tone with
   Running grey, Waiting amber and Transferred blue.
 - It also holds the Indian-grouping number formatter ("10,00,000"), which only the preview uses until tickets 83 and 86.
 - Behaviour tests cover the status map and the formatter. No kit file, token or status file changes, so the 70 gallery

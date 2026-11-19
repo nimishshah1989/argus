@@ -16,8 +16,8 @@ export interface Variant {
   density: 'comfortable' | 'compact' | 'roomy';
   /** Card on surface, panel on surface-2, or two rules on the page. */
   chartFrame: 'card' | 'panel' | 'rules';
-  /** Chart height in px (192, 160 or 224 in the three plan directions). */
-  chartHeight: number;
+  /** Chart height in px: the three the plan sets (Instrument, Control Room, Ledger). */
+  chartHeight: 192 | 160 | 224;
 }
 
 export const TONE_ROLES = ['critical', 'attention', 'good', 'info', 'neutral'] as const;
@@ -36,21 +36,79 @@ const SURFACE_ROLES = [
   'accent-tint',
 ] as const;
 
-export type Role = (typeof SURFACE_ROLES)[number] | `${ToneRole}-${'ink' | 'tint' | 'fill'}`;
+type ToneParts = `${ToneRole}-${'ink' | 'tint' | 'fill'}`;
 
 /** Every colour role a direction defines, in both themes: 10 neutral and accent, then ink, tint and fill per tone. */
 export const ROLES = [
   ...SURFACE_ROLES,
-  ...TONE_ROLES.flatMap((t) => [`${t}-ink`, `${t}-tint`, `${t}-fill`] as const),
-] as readonly Role[];
+  'critical-ink',
+  'critical-tint',
+  'critical-fill',
+  'attention-ink',
+  'attention-tint',
+  'attention-fill',
+  'good-ink',
+  'good-tint',
+  'good-fill',
+  'info-ink',
+  'info-tint',
+  'info-fill',
+  'neutral-ink',
+  'neutral-tint',
+  'neutral-fill',
+] as const satisfies readonly ((typeof SURFACE_ROLES)[number] | ToneParts)[];
 
-/** One theme's colours: a value for every role, so light and dark cannot set different keys. */
-export type Palette = Record<Role, string>;
+export type Role = (typeof ROLES)[number];
+
+type Steps<N extends number, A extends string[] = []> = A['length'] extends N
+  ? A
+  : Steps<N, [...A, string]>;
+
+/**
+ * One theme's colours: a value for every role, 8 chart series, and a sequential and a diverging ramp of 5 steps.
+ * One type for both themes, so light and dark cannot set different keys.
+ */
+export type Palette = Record<Role, string> & {
+  series: Steps<8>;
+  seq: Steps<5>;
+  div: Steps<5>;
+};
+
+/** Depth, corners and type: the same in light and dark. Level 0 is the page and has no shadow. */
+export interface Shape {
+  /** Box-shadow of level 1 (raised) and level 2 (overlay); `none` where a direction draws lines instead. */
+  depth: { raised: string; overlay: string };
+  /** Corner radius in px per role. */
+  radius: { control: number; card: number; sheet: number; chip: number };
+  /** Font family for figures and headings (`inherit` keeps the system stack) and their letter spacing. */
+  type: { display: string; tracking: string };
+}
 
 export interface Direction {
   variant: Variant;
+  shape: Shape;
   light: Palette;
   dark: Palette;
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/**
+ * What is wrong with a palette, in words, for the direction tests (80i to 80k): a role that is not a hex colour,
+ * a series or ramp of the wrong length, and a series that equals a status colour. Empty means fine.
+ */
+export function paletteProblems(p: Palette): string[] {
+  const out: string[] = ROLES.filter((r) => !HEX.test(p[r])).map((r) => `${r} is not a hex colour`);
+  if (p.series.length !== 8) out.push(`series has ${p.series.length} colours, not 8`);
+  for (const ramp of ['seq', 'div'] as const) {
+    if (p[ramp].length !== 5) out.push(`${ramp} has ${p[ramp].length} steps, not 5`);
+  }
+  const status = ROLES.filter((r) => TONE_ROLES.some((t) => r.startsWith(`${t}-`)));
+  p.series.forEach((c, i) => {
+    const hit = status.find((r) => p[r].toLowerCase() === c.toLowerCase());
+    if (hit) out.push(`series ${i + 1} equals ${hit}`);
+  });
+  return out;
 }
 
 const ROLE_OF_TONE: Record<Tone, ToneRole> = {

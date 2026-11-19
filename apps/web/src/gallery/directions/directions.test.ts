@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { STATUS, type StatusGroup, type StatusId } from '../../ui/status/index.js';
-import { formatIN, ROLES, statusRole, TONE_ROLES } from './variant.js';
+import {
+  formatIN,
+  paletteProblems,
+  ROLES,
+  statusRole,
+  TONE_ROLES,
+  type Palette,
+} from './variant.js';
 
 const everyStatus = (Object.keys(STATUS) as StatusGroup[]).flatMap((group) =>
   (Object.keys(STATUS[group]) as StatusId<typeof group>[]).map((id) => ({
@@ -44,10 +51,69 @@ describe('the status to tone map', () => {
 
 describe('the role list', () => {
   it('names 10 neutral and accent roles and ink, tint and fill for each of the 5 tones', () => {
-    expect(ROLES).toHaveLength(10 + 5 * 3);
-    expect(new Set(ROLES).size).toBe(ROLES.length);
-    expect(ROLES).toContain('attention-fill');
-    expect(ROLES).toContain('on-accent');
+    const tones = ['critical', 'attention', 'good', 'info', 'neutral'];
+    expect([...ROLES].sort()).toEqual(
+      [
+        ...[
+          'page',
+          'surface',
+          'surface-2',
+          'line',
+          'control',
+          'ink',
+          'ink-2',
+          'accent',
+          'on-accent',
+          'accent-tint',
+        ],
+        ...tones.flatMap((t) => [`${t}-ink`, `${t}-tint`, `${t}-fill`]),
+      ].sort(),
+    );
+  });
+});
+
+describe('a palette', () => {
+  const full = {
+    ...Object.fromEntries(ROLES.map((r, i) => [r, `#${(i + 16).toString(16)}0000`])),
+    series: [
+      '#101010',
+      '#202020',
+      '#303030',
+      '#404040',
+      '#505050',
+      '#606060',
+      '#707070',
+      '#808080',
+    ],
+    seq: ['#111111', '#222222', '#333333', '#444444', '#555555'],
+    div: ['#121212', '#232323', '#343434', '#454545', '#565656'],
+  } as unknown as Palette;
+  const problems = (p: object) => paletteProblems(p as Palette);
+
+  it('has no problem when every role, 8 series and two 5-step ramps are set', () => {
+    expect(problems(full)).toEqual([]);
+  });
+
+  it('names a missing role, a short series and a short ramp', () => {
+    const broken = {
+      ...full,
+      'good-fill': '',
+      series: full.series.slice(0, 7),
+      seq: full.seq.slice(0, 4),
+    };
+    expect(problems(broken)).toEqual([
+      'good-fill is not a hex colour',
+      'series has 7 colours, not 8',
+      'seq has 4 steps, not 5',
+    ]);
+  });
+
+  it('names a series that equals a status colour, whatever its letter case', () => {
+    const clash = {
+      ...full,
+      series: [full['critical-fill'].toUpperCase(), ...full.series.slice(1)],
+    };
+    expect(problems(clash)).toEqual(['series 1 equals critical-fill']);
   });
 });
 
