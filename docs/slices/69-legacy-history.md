@@ -1,4 +1,4 @@
-# M4b-69 — legacy history 2020–2025
+# M4b-69 — legacy history 2022–2025
 
 ## Amendment, 19 Nov 2026 — read this first
 
@@ -24,21 +24,24 @@ against 1,335; 2025: 1,329 dated rows against 1,328), so treat them as close, no
    is a cross-check, not a source.
 2. **A power cut is written once per machine.** In 2023, 1,388 rows read "power fail from GEB side", 43 to 51 rows
    on a single day. Loaded as tickets they triple 2023's event count. Ruling: one plant event per failure, with its
-   machines and its UTI hours (goal 3). R6's "load as tickets with 0 minutes" is superseded for utility rows.
+   machines and its UTI hours (goal 3). R6's "load as tickets with 0 minutes" is superseded for utility rows. The home of a plant event is named in the
+   re-plan from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why none fits.
 3. **R1 drops real rows.** 80 rows in the 2023 workbooks are dated 2022; 5 are also in the 2022 workbooks; 67 fall
    in October to December, mostly on sheets first seen in 2023 (`VC-27`, `VC-28`, `VC-29`, `VC-22`, `TC-19`). Ruling:
    a row loads under its own date unless that year's workbook already holds it (goal 2).
 4. **R14 is superseded.** Every workbook has a `Code Abrivation` sheet with the real meanings (N12 in
    `docs/plan/NEEDS.md`); the codes are kept (goal 4).
 5. **2022 has a hole:** 139 breakdowns in January, 8 in February, 0 in March, 76 in April. It is missing records,
-   not a quiet plant (goal 6, N17).
+   not a quiet plant (goal 6, N17): March 2022 shows no records, and February 2022 is flagged partial (8 rows) until N17
+   answers.
 6. **Nothing is lost by dropping the optional columns.** `SPARES REPLACED`, `ROOT CAUSE`, `CRITICAL SPARES`,
    `B/D REPORT TIME` and `HANDOVER TIME` exist on a few sheets and are filled on at most 3 dated rows in any year.
 7. **Shift spellings widen:** 2025 writes `1` and `2` (1,024 rows) beside `1ST`/`2ND`, with strays `4` to `7`.
 8. **The big files are bigger than the plan saw:** one sheet in `TC & TMC -Star-2023.xlsx` is 134 MB of XML and two
    in `VTL-2023.xlsx` are 99 MB each, nearly all empty styled cells. The reader must be proven on these files.
 9. **The engine must read many years first** (ticket 76): §Verification point 4 says a multi-year window "includes"
-   the old years, but 14 places in the engine assume one year.
+   the old years, but 9 places in the engine assume one year (the verified list is in the ledger's 19 Nov correction;
+   3 more are one year by design).
 
 Ticket 69 (M4b; the row and detail section are already in `docs/plan/MILESTONES.md` — this plan does not edit it).
 Nimish confirmed the historic data is the whole legacy warehouse, not only the 2026 log. The files are in this
