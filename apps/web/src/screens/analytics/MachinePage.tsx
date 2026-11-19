@@ -1,62 +1,125 @@
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+/* eslint-disable i18next/no-literal-string -- template kind, state and fact ids are prop values, not copy */
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
-import { StateNotice } from '../../patterns/frame.js';
-import { viewState, type ViewState } from '../../patterns/view-state.js';
-import { Stack } from '../../ui/layout.js';
+import { viewState } from '../../patterns/view-state.js';
+import { DrillTrail, EmptyState } from '../../ui/elements/index.js';
+import { Template } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
 import { machineRecord, type MachineRecord } from './machine-record.js';
-import { RecordBody } from './machine-summary.js';
+import { MachineAside, MachineMain } from './machine-summary.js';
+import { MachineTiles } from './machine-tiles.js';
 import { MACHINES_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
 
-/** The record's own identity line: category and cell, when the record carries them. */
-function Subtitle({ record }: { record: MachineRecord | null }) {
-  const parts = [record?.machine.category, record?.machine.cell].filter(
-    (part): part is string => typeof part === 'string' && part !== '',
+/** The page's frame with the state line in place of the record: loading, offline or the error with Retry. */
+function NotReady({
+  title,
+  state,
+  empty,
+  onRetry,
+}: {
+  title: string;
+  state: string;
+  empty: string;
+  onRetry: () => void;
+}) {
+  if (state === 'error')
+    return <Template kind="entity" title={title} state="error" onRetry={onRetry} main={null} />;
+  if (state === 'empty')
+    return <Template kind="entity" title={title} state="empty" empty={empty} main={null} />;
+  return (
+    <Template
+      kind="entity"
+      title={title}
+      state={state === 'offline' ? 'offline' : 'loading'}
+      main={null}
+    />
   );
-  if (parts.length === 0) return null;
-  return <p className="text-footnote text-neutral-600">{parts.join(' · ')}</p>;
 }
 
-/** The honest body: not computed, no record, or the whole record. */
-function MachineBody({
-  ready,
-  record,
-  asOf,
-  machineId,
-  reliability,
+/** The machine's category and cell, the line under its code; none when the record holds neither. */
+function ledeOf(record: MachineRecord): string | undefined {
+  const parts = [record.machine.category, record.machine.cell].filter(
+    (part): part is string => typeof part === 'string' && part !== '',
+  );
+  return parts.length === 0 ? undefined : parts.join(' · ');
+}
+
+/** The page once the figures are in: the record the engine holds for this machine, or the words for why not. */
+export function MachineView({
+  group,
+  figures,
+  id,
 }: {
-  ready: boolean;
-  record: MachineRecord | null;
-  asOf: string;
-  machineId: string;
-  reliability: Figure | undefined;
+  group: AnalyticsGroup;
+  figures: FiguresReply;
+  id: string;
 }) {
   const { t } = useTranslation();
-  if (!ready)
-    return (
-      <div data-machine="not-computed" className="rounded-2xl bg-surface p-4 shadow-card">
-        <p className="text-body font-medium text-neutral-600">{t('analytics.notComputed')}</p>
-      </div>
-    );
+  const [params] = useSearchParams();
+  const figure: Figure | undefined = figures.figures.find(
+    (candidate) => candidate.screen === 'machine-page',
+  );
+  // The second figure on this screen (67 R11): the reliability block is found by key, so it never becomes a tile.
+  const reliability: Figure | undefined = figures.figures.find(
+    (candidate) => candidate.key === 'reliability',
+  );
+  const ready = figure?.status === 'ready';
+  const record = ready && figure ? machineRecord(figure.value, id) : null;
+  const drill = parseDrill(params.get('drill'));
+  const code = record?.machine.code ?? t('analytics.machine.title');
+  const frame = {
+    kind: 'entity',
+    title: code,
+    trail: (
+      <DrillTrail
+        label={t('analytics.machine.trail')}
+        steps={[{ label: t('analytics.machine.back'), to: MACHINES_PATH }, { label: code }]}
+      />
+    ),
+  } as const;
+  const drillArea = drill
+    ? {
+        drill: <DrillTable bare group={group} drill={drill} />,
+        drillTitle: t('analytics.drill.title'),
+      }
+    : {};
   if (record === null)
-    return <p className="text-body text-neutral-600">{t('analytics.machine.noRecord')}</p>;
-  return <RecordBody record={record} asOf={asOf} machineId={machineId} reliability={reliability} />;
+    return (
+      <Template
+        {...frame}
+        {...drillArea}
+        main={
+          <EmptyState title={t(ready ? 'analytics.machine.noRecord' : 'analytics.notComputed')} />
+        }
+      />
+    );
+  return (
+    <Template
+      {...frame}
+      {...drillArea}
+      lede={ledeOf(record)}
+      figures={<MachineTiles record={record} asOf={figures.asOf} machineId={id} />}
+      main={
+        <MachineMain record={record} asOf={figures.asOf} machineId={id} reliability={reliability} />
+      }
+      aside={<MachineAside record={record} machineId={id} />}
+    />
+  );
 }
 
 /**
- * One machine's page (39b) at `/analytics/machines/:id`: nameplate, age, floor area, load, breakdown summary,
- * PM visits/hours, record completeness and the cell moves, every block drilled to the rows behind it. A figure
- * that is not computed, a record the engine does not hold and a fact the plant never recorded all say so.
+ * One machine's page (39b) at `/analytics/machines/:id`, on the entity template: its headline figures in a row, its
+ * history in the long column and its nameplate beside it, every block drilled to the rows behind it. A figure that
+ * is not computed, a record the engine does not hold and a fact the plant never recorded all say so.
  */
 export function MachinePage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
   const { id = '' } = useParams();
-  const [params] = useSearchParams();
   const figures = useAnalyticsFigures();
   const online = useOnline();
   const state = viewState({
@@ -67,44 +130,12 @@ export function MachinePage({ group }: { group: AnalyticsGroup }) {
   });
   if (state !== 'ready' || !figures.data)
     return (
-      <StateNotice
-        state={state as Exclude<ViewState, 'ready'>}
+      <NotReady
+        title={t('analytics.machine.title')}
+        state={state}
         empty={t('analytics.empty')}
         onRetry={() => void figures.refetch()}
       />
     );
-  const figure: Figure | undefined = figures.data.figures.find(
-    (candidate) => candidate.screen === 'machine-page',
-  );
-  // The second figure on this screen (67 R11): the reliability block is found by key, so it never becomes a tile.
-  const reliability: Figure | undefined = figures.data.figures.find(
-    (candidate) => candidate.key === 'reliability',
-  );
-  const ready = figure?.status === 'ready';
-  const record = ready && figure ? machineRecord(figure.value, id) : null;
-  const drill = parseDrill(params.get('drill'));
-  return (
-    <Stack gap={6}>
-      <Link
-        to={MACHINES_PATH}
-        className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
-      >
-        {t('analytics.machine.back')}
-      </Link>
-      <div className="flex flex-col gap-1">
-        <h2 className="text-title2 font-semibold">
-          {record?.machine.code ?? t('analytics.machine.title')}
-        </h2>
-        <Subtitle record={record} />
-      </div>
-      {drill ? <DrillTable group={group} drill={drill} /> : null}
-      <MachineBody
-        ready={ready}
-        record={record}
-        asOf={figures.data.asOf}
-        machineId={id}
-        reliability={reliability}
-      />
-    </Stack>
-  );
+  return <MachineView group={group} figures={figures.data} id={id} />;
 }

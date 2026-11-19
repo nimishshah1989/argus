@@ -88,6 +88,8 @@ import { analyticsReportEn } from './analytics-report.en.js';
 import { analyticsReportGu } from './analytics-report.gu.js';
 import { analyticsShellEn } from './analytics-shell.en.js';
 import { analyticsShellGu } from './analytics-shell.gu.js';
+import { analyticsRegisterEn } from './analytics-register.en.js';
+import { analyticsRegisterGu } from './analytics-register.gu.js';
 import { analyticsTablesEn } from './analytics-tables.en.js';
 import { analyticsTablesGu } from './analytics-tables.gu.js';
 
@@ -138,6 +140,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-guide': analyticsGuideEn,
   'analytics-report': analyticsReportEn,
   'analytics-shell': analyticsShellEn,
+  'analytics-register': analyticsRegisterEn,
   'analytics-tables': analyticsTablesEn,
 };
 
@@ -188,6 +191,7 @@ export const en = {
   ...analyticsGuideEn,
   ...analyticsReportEn,
   ...analyticsShellEn,
+  ...analyticsRegisterEn,
   ...analyticsTablesEn,
 };
 
@@ -240,6 +244,7 @@ export const gu = {
   ...analyticsGuideGu,
   ...analyticsReportGu,
   ...analyticsShellGu,
+  ...analyticsRegisterGu,
   ...analyticsTablesGu,
 };
 
