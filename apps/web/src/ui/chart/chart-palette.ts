@@ -18,7 +18,7 @@ const TONES = ['danger', 'warning', 'info', 'hold', 'moved', 'ok', 'muted'] as c
  * red (345 to 50), green (90 to 160) or info-blue (205 to 235) bands, so none can pass for a status.
  * Slots 1 and 2 keep the chart tokens.
  */
-export const FALLBACK_LIGHT = ['#7a7a00', '#9b59b6', '#3f2fa0', '#5bc0de', '#c2308f', '#2e2a5e'];
+export const FALLBACK_LIGHT = ['#7a7a00', '#9b59b6', '#3f2fa0', '#348da6', '#c2308f', '#2e2a5e'];
 export const FALLBACK_DARK = ['#c9c94a', '#a64bd0', '#6a5cf0', '#7fd3ec', '#e0509f', '#ecebff'];
 
 /** The 8 slots' tokens: the design token first, then (slots 1 and 2) the chart token. */

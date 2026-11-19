@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { parseHex, type Rgb } from './chart-color.js';
+import { contrast, parseHex, type Rgb } from './chart-color.js';
 import { FALLBACK_DARK, FALLBACK_LIGHT } from './chart-palette.js';
 
 const TONES = ['#dc2626', '#2563eb', '#b45309', '#c2410c', '#7c3aed', '#15803d', '#6e6e73'];
@@ -16,10 +16,17 @@ function hue([r, g, b]: Rgb): number {
 }
 const distance = (a: Rgb, b: Rgb) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+// The chart surface of each theme (--color-surface light, the dark card), for the 3:1 non-text rule.
+const SURFACE = { light: '#ffffff', dark: '#1c1c1e' };
+
 describe.each([
   ['light', FALLBACK_LIGHT, TOKENS.light],
   ['dark', FALLBACK_DARK, TOKENS.dark],
-])('the %s fallback palette', (_theme, fallback, tokens) => {
+] as const)('the %s fallback palette', (theme, fallback, tokens) => {
+  it('reaches 3:1 against the theme surface, every colour', () => {
+    for (const hex of fallback)
+      expect(contrast(parseHex(hex)!, parseHex(SURFACE[theme])!)).toBeGreaterThanOrEqual(3);
+  });
   const all = [...tokens, ...fallback].map((hex) => parseHex(hex)!);
   it('has eight colours, all different', () => {
     expect(all).toHaveLength(8);
