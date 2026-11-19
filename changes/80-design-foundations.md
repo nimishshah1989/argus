@@ -37,3 +37,14 @@
 - Behaviour tests cover the status map and the formatter. No kit file, token or status file changes, so the 70 gallery
   baselines do not move.
 - No user-visible change.
+
+## 80i — the Instrument direction
+
+- The design preview gets its first direction, Instrument, in `apps/web/src/gallery/directions/direction-instrument.ts`:
+  raised cards, tint chips, a 192 px chart in a card, layered shadows, 10/14/20 corners, and every colour role in
+  light and dark exactly as the plan's table sets them, with 8 chart series and two 5-step ramps per theme.
+- A test checks it: light and dark set the same roles, every text pair is at least 4.5 to 1, every fill, chart series
+  and border is at least 3 to 1 on the page and both surfaces, and no series sits in the red, green or info-blue bands.
+- The palette check now also names a chart colour that is not a hex value or is used twice, and the Indian-grouping
+  formatter prints a dash for a figure that is not a number and rounds to at most 3 decimals.
+- No user-visible change.

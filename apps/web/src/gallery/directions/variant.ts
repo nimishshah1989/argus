@@ -94,8 +94,9 @@ export interface Direction {
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /**
- * What is wrong with a palette, in words, for the direction tests (80i to 80k): a role that is not a hex colour,
- * a series or ramp of the wrong length, and a series that equals a status colour. Empty means fine.
+ * What is wrong with a palette, in words, for the direction tests (80i to 80k): a role, series or ramp entry that
+ * is not a hex colour, a series or ramp of the wrong length, a series colour used twice, and a series that equals
+ * a status colour. Empty means fine.
  */
 export function paletteProblems(p: Palette): string[] {
   const out: string[] = ROLES.filter((r) => !HEX.test(p[r])).map((r) => `${r} is not a hex colour`);
@@ -103,6 +104,19 @@ export function paletteProblems(p: Palette): string[] {
   for (const ramp of ['seq', 'div'] as const) {
     if (p[ramp].length !== 5) out.push(`${ramp} has ${p[ramp].length} steps, not 5`);
   }
+  for (const [name, colours] of [
+    ['series', p.series],
+    ['seq', p.seq],
+    ['div', p.div],
+  ] as const) {
+    colours.forEach((c, i) => {
+      if (!HEX.test(c)) out.push(`${name} ${i + 1} is not a hex colour`);
+    });
+  }
+  p.series.forEach((c, i) => {
+    const first = p.series.findIndex((o) => o.toLowerCase() === c.toLowerCase());
+    if (first < i) out.push(`series ${i + 1} repeats series ${first + 1}`);
+  });
   const status = ROLES.filter((r) => TONE_ROLES.some((t) => r.startsWith(`${t}-`)));
   p.series.forEach((c, i) => {
     const hit = status.find((r) => p[r].toLowerCase() === c.toLowerCase());
@@ -130,9 +144,13 @@ export function statusRole(ref: StatusRef): ToneRole {
   return ROLE_OF_TONE[statusMeaning(ref).tone];
 }
 
-const INDIAN = new Intl.NumberFormat('en-IN');
+const INDIAN = new Intl.NumberFormat('en-IN', {
+  maximumFractionDigits: 3,
+});
 
-/** Indian grouping (N3): 1000000 prints "10,00,000". */
+/** Indian grouping (N3): 1000000 prints "10,00,000". Rounds half away from zero to at most 3 decimals and never prints "-0"; a figure that is not finite prints an em dash. */
 export function formatIN(n: number): string {
-  return INDIAN.format(n);
+  if (!Number.isFinite(n)) return '\u2014';
+  const out = INDIAN.format(n);
+  return out === '-0' ? '0' : out;
 }
