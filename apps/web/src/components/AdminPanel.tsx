@@ -7,9 +7,9 @@ import { useCommand } from '../data/index.js';
 const inputClass =
   'mt-1 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
 const secondaryButton =
-  'min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 [@media(hover:hover)]:hover:bg-neutral-100';
+  'min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 [@media(hover:hover)]:enabled:hover:bg-neutral-100';
 const primaryButton =
-  'min-h-target flex-1 rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600 [@media(hover:hover)]:hover:bg-accent-strong/90';
+  'min-h-target flex-1 rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600 [@media(hover:hover)]:enabled:hover:bg-accent-strong/90';
 
 const FIELD = {
   reason: 'reason',

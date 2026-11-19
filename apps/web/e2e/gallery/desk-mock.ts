@@ -194,7 +194,7 @@ function me(role: DeskRole) {
       title: role,
       role,
       shared: false,
-      actingPersonId: 'p1',
+      actingPersonId: role === 'supervisor' ? 'p1' : 'p2',
     },
   };
 }
