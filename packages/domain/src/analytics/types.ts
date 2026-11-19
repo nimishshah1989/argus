@@ -305,7 +305,10 @@ export interface EngineData {
    * `runWith` with a span makes this: a computer called on its own sees none and reads the as-of year to date.
    */
   period?: Period;
-  /** Every `YYYY-MM` month the plant recorded nothing in, first record to the run date; set with `period`. */
+  /**
+   * Every `YYYY-MM` month the plant recorded nothing in, first record to the run date, except the month still
+   * running (it counts only when the run date is its last day); set with `period`.
+   */
   gaps?: readonly string[];
 }
 
