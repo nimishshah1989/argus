@@ -5,6 +5,7 @@
  */
 export { CellPanel, type CellItem } from './cell-panel.js';
 export { DataTable, type TableLabels } from './data-table.js';
+export { Disclosure } from './disclosure.js';
 export { DrillPanel } from './drill-panel.js';
 export { DrillTrail, type TrailStep } from './drill-trail.js';
 export { GroupedNav, type NavGroup, type NavItem } from './grouped-nav.js';
@@ -20,6 +21,7 @@ export { StatusChip } from './status-chip.js';
 export {
   MAX_PAGE_ROWS,
   CLIENT_LIMIT,
+  nextSort,
   useClientTable,
   type Column,
   type Sort,

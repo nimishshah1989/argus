@@ -2,7 +2,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from '../icon.js';
 import { Button } from '../button.js';
 import { Input } from '../input.js';
-import { pageSizeOf, type Column, type Sort } from './table-model.js';
+import { alignOf, pageSizeOf, type Column, type Sort } from './table-model.js';
 import { WRAP } from './tone.js';
 
 export interface TableLabels {
@@ -16,6 +16,9 @@ export interface TableLabels {
   range: (from: number, to: number, total: number) => string;
   empty: string;
 }
+
+const ALIGN = { left: 'text-left', right: 'text-right', center: 'text-center' } as const;
+const ALIGN_BUTTON = { left: '', right: 'flex-row-reverse', center: 'justify-center' } as const;
 
 const SORT_STATE = { asc: 'ascending', desc: 'descending' } as const;
 
@@ -34,6 +37,8 @@ export interface DataTableProps<R> {
   onSort: (column: string) => void;
   onFilter?: (text: string) => void;
   onPage: (page: number) => void;
+  /** Leave the pager out when every row fits on the one page (a short list needs no "Page 1 of 1"). */
+  hidePagerWhenFits?: boolean;
 }
 
 /**
@@ -54,6 +59,7 @@ export function DataTable<R>({
   onSort,
   onFilter,
   onPage,
+  hidePagerWhenFits,
 }: DataTableProps<R>) {
   const size = pageSizeOf(pageSize);
   const shown = rows.slice(0, size);
@@ -95,6 +101,7 @@ export function DataTable<R>({
         shown={shown.length}
         total={total}
         onPage={onPage}
+        hidden={hidePagerWhenFits === true && total <= size}
       />
     </div>
   );
@@ -134,7 +141,7 @@ function Rows<R>({
       {columns.map((column) => (
         <td
           key={column.id}
-          className={`min-h-target-min p-3 align-top ${WRAP} ${column.numeric ? 'text-right tabular-nums' : ''}`}
+          className={`min-h-target-min p-3 align-top ${WRAP} ${ALIGN[alignOf(column)]} ${column.numeric ? 'tabular-nums' : ''}`}
         >
           {column.cell(row)}
         </td>
@@ -151,6 +158,7 @@ function Pager({
   shown,
   total,
   onPage,
+  hidden,
 }: {
   labels: TableLabels;
   page: number;
@@ -159,7 +167,9 @@ function Pager({
   shown: number;
   total: number;
   onPage: (page: number) => void;
+  hidden: boolean;
 }) {
+  if (hidden) return null;
   return (
     <nav
       aria-label={labels.caption}
@@ -194,13 +204,13 @@ function HeaderCell<R>({
     <th
       scope="col"
       aria-sort={column.sortValue ? (active ? SORT_STATE[active.dir] : 'none') : undefined}
-      className={`p-0 font-semibold ${column.numeric ? 'text-right' : ''}`}
+      className={`p-0 font-semibold ${ALIGN[alignOf(column)]}`}
     >
       {column.sortValue ? (
         <button
           type="button"
           onClick={() => onSort(column.id)}
-          className={`inline-flex min-h-target-min min-w-target-min items-center gap-1 px-3 font-semibold ${column.numeric ? 'flex-row-reverse' : ''}`}
+          className={`inline-flex min-h-target-min min-w-target-min items-center gap-1 px-3 font-semibold ${ALIGN_BUTTON[alignOf(column)]}`}
         >
           <span className={WRAP}>{column.header}</span>
           <Icon aria-hidden size={14} className="shrink-0" />

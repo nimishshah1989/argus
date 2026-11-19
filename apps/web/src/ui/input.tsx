@@ -15,8 +15,10 @@ export function Textarea(props: Bare<'textarea'>) {
   return <textarea rows={3} className={`py-3 ${FIELD}`} {...props} />;
 }
 
-export function Select(props: Bare<'select'>) {
-  return <select className={`min-h-target ${FIELD}`} {...props} />;
+/** Full width by default; `fit` sizes it to its longest option (a period or sort choice beside other controls). */
+export function Select({ fit, ...rest }: Bare<'select'> & { fit?: boolean }) {
+  const field = fit ? FIELD.replace('w-full', 'w-auto') : FIELD;
+  return <select className={`min-h-target ${field}`} {...rest} />;
 }
 
 export function Label(props: Bare<'label'>) {

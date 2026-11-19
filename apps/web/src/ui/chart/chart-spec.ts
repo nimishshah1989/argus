@@ -33,6 +33,10 @@ export interface LegendChoice {
 export interface DrawChoice {
   draw?: true;
 }
+/** Name the category axis with the spec's `categoryLabel` (the value axis is named by `valueLabel`). Bar (vertical) and line only. */
+export interface AxisTitleChoice {
+  axisTitles?: true;
+}
 export type ChartSpec =
   | ({
       kind: 'bar';
@@ -47,7 +51,8 @@ export type ChartSpec =
       /** Stack the series into one bar per category. */
       stacked?: true;
     } & LegendChoice &
-      DrawChoice)
+      DrawChoice &
+      AxisTitleChoice)
   | ({
       kind: 'line';
       title: string;
@@ -59,7 +64,8 @@ export type ChartSpec =
       /** The value axis title. */
       valueLabel?: string;
     } & LegendChoice &
-      DrawChoice)
+      DrawChoice &
+      AxisTitleChoice)
   | {
       kind: 'scatter';
       title: string;

@@ -13,10 +13,13 @@ export const NO_VALUE = '—';
 
 interface KpiTileProps {
   label: string;
-  /** The figure; it eases to a new value (600 ms, none under reduced motion). `null` prints a dash. */
-  value: number | null;
-  /** Prints a value with its unit (`formatFigure`). */
-  format: (value: number) => string;
+  /**
+   * The figure; a number eases to a new value (600 ms, none under reduced motion). `null` prints a dash. A string is
+   * a word the screen needs in the figure's place ("Stable"): it is printed as given and never counts.
+   */
+  value: number | string | null;
+  /** Prints a number with its unit (`formatFigure`); a text value needs none. */
+  format?: (value: number) => string;
   tone?: Tone4;
   /** The word for the verdict chip ("On target"); absent shows no chip. */
   verdict?: string;
@@ -48,7 +51,7 @@ type Shown = KpiTileProps & { own: Tone4; frame: string; figure: string };
  */
 export function KpiTile(props: KpiTileProps) {
   const { value, format, tone = 'neutral', verdict, change, family } = props;
-  const shown = useCountUp(value ?? 0);
+  const shown = useCountUp(typeof value === 'number' ? value : 0);
   // A colour is only used when a word or icon says it too: the rounded change's own, or the verdict chip.
   const own = change
     ? toneOfChange(change.measure.better, roundMove(change.delta))
@@ -61,9 +64,20 @@ export function KpiTile(props: KpiTileProps) {
     ...props,
     own,
     frame,
-    figure: value === null ? NO_VALUE : format(shown),
+    figure: figureText(value, shown, format),
   };
   return props.onOpen ? <KpiButton {...shownProps} /> : <KpiPlain {...shownProps} />;
+}
+
+/** What the figure prints: a dash for none, a word as given, a number through `format` (or plain without one). */
+function figureText(
+  value: number | string | null,
+  shown: number,
+  format: ((value: number) => string) | undefined,
+): string {
+  if (value === null) return NO_VALUE;
+  if (typeof value === 'string') return value;
+  return format ? format(shown) : String(shown);
 }
 
 /** The value, with its word unit smaller beside it (under it on a phone, so a long unit never breaks). */

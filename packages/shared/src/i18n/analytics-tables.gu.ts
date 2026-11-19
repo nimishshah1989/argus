@@ -8,4 +8,5 @@ export const analyticsTablesGu = gujarati(analyticsTablesEn, {
   'analytics.keytable.range': '{{total}} માંથી {{from}} થી {{to}}',
   'analytics.keytable.empty': 'કોઈ હરોળ નથી',
   'analytics.energy.axisLocation': 'સ્થાન',
+  'analytics.state.empty': 'અહીં હજી બતાવવા જેવું કંઈ નથી',
 });

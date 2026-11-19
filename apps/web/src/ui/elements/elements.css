@@ -60,7 +60,18 @@
   animation: el-fade-out 200ms ease-in forwards;
 }
 
+/* A disclosure's chevron turns a half turn when its region opens. */
+.el-chevron {
+  transition: transform 200ms ease-out;
+}
+.el-disclosure[aria-expanded='true'] .el-chevron {
+  transform: rotate(180deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .el-chevron {
+    transition: none;
+  }
   .el-pop,
   .el-draw,
   .el-fade,

@@ -38,4 +38,14 @@ describe('the state of a key screen', () => {
     expect(draw('error')).toContain('role="alert"');
     expect(draw('loading')).not.toContain('role="alert"');
   });
+
+  it('says "nothing to show" in its own default words when the screen gives none, and keeps the screen words when it does', () => {
+    const draw = (empty?: string) =>
+      renderToStaticMarkup(
+        h(NotReady, { title: 'Money Matters', state: 'empty', onRetry: retry, empty }),
+      );
+    expect(draw()).toContain('Nothing to show here yet');
+    expect(draw('Nothing yet')).toContain('Nothing yet');
+    expect(draw('Nothing yet')).not.toContain('Nothing to show here yet');
+  });
 });

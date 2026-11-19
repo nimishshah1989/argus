@@ -1,4 +1,5 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 export type ButtonProps = Omit<ComponentProps<'button'>, 'className' | 'style'> & {
   variant?: 'primary' | 'secondary' | 'tonal' | 'quiet' | 'quiet-danger';
@@ -15,12 +16,32 @@ const VARIANT = {
   'quiet-danger': 'min-h-target-min text-danger-ink',
 };
 
+const BASE = 'rounded-xl px-4 text-body font-semibold';
+
 export function Button({ variant = 'primary', type = 'button', ...rest }: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={`rounded-xl px-4 text-body font-semibold ${VARIANT[variant]}`}
-      {...rest}
-    />
+  return <button type={type} className={`${BASE} ${VARIANT[variant]}`} {...rest} />;
+}
+
+export type ButtonLinkProps = {
+  variant?: ButtonProps['variant'];
+  children: ReactNode;
+  /** A link inside the app (client-side, no reload) or one that leaves it (a plain anchor). */
+} & ({ to: string; href?: never } | { href: string; to?: never });
+
+/**
+ * A link that looks and sizes like a `Button` (a link goes somewhere, a button does something, so it is an `<a>`).
+ * It keeps the 44 or 52 px target and the page's focus ring; it has no disabled state, a link that cannot be followed
+ * is not drawn.
+ */
+export function ButtonLink({ variant = 'primary', to, href, children }: ButtonLinkProps) {
+  const className = `${BASE} inline-flex items-center justify-center text-center ${VARIANT[variant]}`;
+  return to !== undefined ? (
+    <Link to={to} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <a href={href} className={className}>
+      {children}
+    </a>
   );
 }
