@@ -3,7 +3,11 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button.js';
 import {
+  CellPanel,
+  type CellItem,
   DataTable,
+  DrillPanel,
+  Tags,
   DrillTrail,
   EmptyState,
   ErrorState,
@@ -174,6 +178,65 @@ function Tables({ worst }: { worst: boolean }) {
   );
 }
 
+function Panels() {
+  const { t } = useTranslation('gallery');
+  const [open, setOpen] = useState(false);
+  const cells = [
+    {
+      id: 'a',
+      name: 'Cell A',
+      value: '1.25',
+      unit: '%',
+      tone: 'good',
+      tag: { tone: 'good', word: 'Lower than plant' },
+      series: [3, 2, 2, null, 1.5],
+      seriesLabel: 'Cell A by month',
+    },
+    {
+      id: 'b',
+      name: 'Cell B',
+      value: '4.1',
+      unit: '%',
+      tone: 'bad',
+      tag: { tone: 'bad', word: 'Higher than plant', more: 'in May' },
+      series: [2, 3, 5, 4, 4.1],
+      seriesLabel: 'Cell B by month',
+    },
+    {
+      id: 'c',
+      name: 'Cell C',
+      value: null,
+      tone: 'neutral',
+      series: [null, null, null, null, null],
+      seriesLabel: 'Cell C by month',
+    },
+  ] satisfies CellItem[];
+  return (
+    <Stack>
+      <CellPanel
+        title="Cells against the plant"
+        summary="1 of 2 did better"
+        cells={cells}
+        reference={[2.5, 2.5, 3, 3, 3]}
+        partial
+        empty="No records yet"
+      />
+      <Tags
+        list={[
+          { tone: 'good', word: 'Improving' },
+          { tone: 'watch', word: 'Month running', icon: 'clock' },
+        ]}
+      />
+      <Button variant="secondary" onClick={() => setOpen(true)}>
+        {t('elements.openPanel')}
+      </Button>
+      <DrillPanel open={open} onClose={() => setOpen(false)} title="Cell B" closeLabel="Close">
+        <p>Where the hours went, month by month.</p>
+      </DrillPanel>
+    </Stack>
+  );
+}
+
 function Controls({ worst }: { worst: boolean }) {
   const { t } = useTranslation('gallery');
   const [period, setPeriod] = useState<string | undefined>('d7');
@@ -203,6 +266,9 @@ function Controls({ worst }: { worst: boolean }) {
           current="/gallery"
           headingLevel={4}
         />
+      </Part>
+      <Part id="panels" title={t('elements.panels')}>
+        <Panels />
       </Part>
       <Part id="trail" title={t('elements.trail')}>
         <DrillTrail

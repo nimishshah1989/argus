@@ -28,6 +28,11 @@ export interface ScatterPoint {
 export interface LegendChoice {
   legend?: boolean;
 }
+
+/** Draw the chart in once, in 700 ms (ease-out), when it first appears; never under reduced motion. Absent: no animation. Bar, line and Pareto only. */
+export interface DrawChoice {
+  draw?: true;
+}
 export type ChartSpec =
   | ({
       kind: 'bar';
@@ -41,7 +46,8 @@ export type ChartSpec =
       horizontal?: true;
       /** Stack the series into one bar per category. */
       stacked?: true;
-    } & LegendChoice)
+    } & LegendChoice &
+      DrawChoice)
   | ({
       kind: 'line';
       title: string;
@@ -52,7 +58,8 @@ export type ChartSpec =
       secondAxis?: boolean;
       /** The value axis title. */
       valueLabel?: string;
-    } & LegendChoice)
+    } & LegendChoice &
+      DrawChoice)
   | {
       kind: 'scatter';
       title: string;
@@ -88,7 +95,8 @@ export type ChartSpec =
       categories: string[];
       series: [ChartSeries];
       cumulativeLabel: string; // translated; the line's name and the table header
-    } & LegendChoice);
+    } & LegendChoice &
+      DrawChoice);
 
 export type ChartState = 'loading' | 'ready' | 'error';
 

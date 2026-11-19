@@ -83,90 +83,12 @@
   justify-content: space-between;
 }
 
-/* The side sheet */
-.sc-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  background: rgb(16 24 40 / 0.32);
-}
-.sc-overlay[data-state='open'] {
-  animation: sc-fade 200ms ease-out;
-}
-.sc-overlay[data-state='closed'] {
-  animation: sc-fade-out 160ms ease-in forwards;
-}
+/* The sheet's content (the frame, scrim, slide and close button are the shared DrillPanel) */
 .sc-sheet {
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 31;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: min(440px, 100vw);
-  padding: 24px;
-  overflow-y: auto;
-  border-left: 1px solid var(--color-neutral-200);
-  background: var(--color-surface);
-  box-shadow: var(--proto-shadow-overlay);
-  color: var(--color-neutral-900);
-  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-200) transparent;
-}
-.sc-sheet[data-state='open'] {
-  animation: sc-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-.sc-sheet[data-state='closed'] {
-  animation: sc-slide-out 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-@keyframes sc-slide-in {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes sc-slide-out {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes sc-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-.sc-sheet-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.sc-sheet-title {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.3;
-  font-weight: 650;
-  text-wrap: balance;
-}
-.sc-close {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin: -10px -10px 0 0;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--color-neutral-600);
-  cursor: pointer;
-  transition: background-color var(--sc-hover) ease-out;
-}
-@media (hover: hover) {
-  .sc-close:hover {
-    background: var(--color-neutral-100);
-  }
 }
 .sc-sheet-value {
   display: flex;
@@ -237,8 +159,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .sc *,
-  .sc-sheet,
-  .sc-overlay {
+  .sc-sheet {
     animation: none !important;
     transition: none !important;
   }

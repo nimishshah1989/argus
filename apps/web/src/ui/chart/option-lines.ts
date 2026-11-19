@@ -3,6 +3,7 @@ import {
   axisTooltip,
   baseOption,
   categoryAxis,
+  drawOption,
   titledValueAxis,
   type Option,
 } from './chart-parts.js';
@@ -22,6 +23,7 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
       spec.legend === true,
       spec.series.map((s) => s.name),
     ),
+    ...drawOption(spec.draw),
     tooltip: axisTooltip('line'),
     xAxis: categoryAxis(spec.categories, p),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,

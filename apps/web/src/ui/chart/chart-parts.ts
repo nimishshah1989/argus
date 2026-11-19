@@ -21,6 +21,25 @@ export function baseOption(
   };
 }
 
+/** The draw-in a spec asks for with `draw: true`: once, 700 ms (under the 800 ms of DESIGN.md), ease-out. */
+export const DRAW_MS = 700;
+export function drawOption(draw: true | undefined): Option {
+  return draw ? { animation: true, animationDuration: DRAW_MS, animationEasing: 'cubicOut' } : {};
+}
+
+/** The option as the browser draws it: under reduced motion nothing animates, whatever the spec asked for. */
+export function settle(option: Option, reducedMotion: boolean): Option {
+  return reducedMotion ? { ...option, animation: false } : option;
+}
+
+/**
+ * The option for one draw. The first draw of an instance may animate in (when the spec asked); every later draw (new
+ * data into the same chart) is still, so a live update never replays the draw-in. Reduced motion is still always.
+ */
+export function frameOption(option: Option, draw: { first: boolean; reduced: boolean }): Option {
+  return draw.first ? settle(option, draw.reduced) : { ...option, animation: false };
+}
+
 /** The tooltip of a chart read by category: one row per series at the pointer, or a tap on a phone. */
 export function axisTooltip(kind: 'shadow' | 'line'): Option {
   return { trigger: 'axis', axisPointer: { type: kind }, confine: true };

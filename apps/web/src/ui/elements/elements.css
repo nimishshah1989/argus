@@ -1,6 +1,7 @@
-/* Motion of the shared elements (ticket 83, from the analytics showcase). It shows what changed or is new: a figure
-   eases to its value (motion.ts), a heat-grid square pops in by column, a trend line draws in, a filtered list
-   cross-fades. Each runs once, nothing loops, and reduced motion switches every one off. */
+/* Motion of the shared elements (tickets 83 and 83b, from the analytics showcase). It shows what changed or is new:
+   a figure eases to its value (motion.ts), a heat-grid square pops in by column, a trend line is revealed left to
+   right, a filtered list cross-fades, a drill panel slides in (320 ms) and out (200 ms). Each runs once, nothing
+   loops, and reduced motion switches every one off. */
 @keyframes el-pop {
   from {
     opacity: 0;
@@ -9,12 +10,30 @@
 }
 @keyframes el-draw {
   from {
-    stroke-dashoffset: 1;
+    clip-path: inset(-8px 100% -8px -8px);
+  }
+  to {
+    clip-path: inset(-8px -8px -8px -8px);
   }
 }
 @keyframes el-fade {
   from {
     opacity: 0;
+  }
+}
+@keyframes el-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes el-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes el-slide-out {
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -23,17 +42,44 @@
   animation-delay: calc(var(--col, 0) * 32ms);
 }
 .el-draw {
-  stroke-dasharray: 1;
   animation: el-draw 800ms cubic-bezier(0.22, 1, 0.36, 1) 150ms backwards;
 }
 .el-fade {
   animation: el-fade 200ms ease-out;
 }
+.el-panel[data-state='open'] {
+  animation: el-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.el-panel[data-state='closed'] {
+  animation: el-slide-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.el-scrim[data-state='open'] {
+  animation: el-fade 200ms ease-out;
+}
+.el-scrim[data-state='closed'] {
+  animation: el-fade-out 200ms ease-in forwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .el-pop,
   .el-draw,
-  .el-fade {
+  .el-fade,
+  .el-panel[data-state],
+  .el-scrim[data-state] {
     animation: none;
   }
+}
+
+/* A drill panel for a figure of an identity family wears the family's colour on its top edge (identity, not verdict). */
+.el-panel[data-family='availability'] {
+  border-top: 3px solid var(--color-family-availability);
+}
+.el-panel[data-family='downtime'] {
+  border-top: 3px solid var(--color-family-downtime);
+}
+.el-panel[data-family='repairs'] {
+  border-top: 3px solid var(--color-family-repairs);
+}
+.el-panel[data-family='planned'] {
+  border-top: 3px solid var(--color-family-planned);
 }

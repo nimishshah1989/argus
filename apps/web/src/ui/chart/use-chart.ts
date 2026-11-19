@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { chartOption } from './chart-option.js';
+import { frameOption } from './chart-parts.js';
 import { readPalette } from './chart-palette.js';
 import type { ChartSpec, ChartState } from './chart-spec.js';
 
@@ -43,14 +44,83 @@ export function loadEcharts(): ReturnType<typeof load> {
   return loader;
 }
 
-/** Draws `spec` into the returned ref once ECharts has loaded; `error` if it never does. */
+const REDUCED = '(prefers-reduced-motion: reduce)';
+
+export interface Instance {
+  setOption(option: unknown, opts?: { notMerge: boolean }): void;
+  resize(): void;
+  dispose(): void;
+}
+
+/** One chart on `el`: made, drawn the first time, kept sized, and still the moment reduced motion is asked for. */
+function attach(
+  echarts: Awaited<ReturnType<typeof loadEcharts>>,
+  el: HTMLElement,
+  first: (made: Instance) => void,
+): { made: Instance; dispose: () => void } {
+  const made: Instance = echarts.init(el, null, { renderer: 'svg' });
+  try {
+    first(made);
+  } catch (error) {
+    made.dispose();
+    throw error;
+  }
+  const resize = () => made.resize();
+  const query = window.matchMedia(REDUCED);
+  const still = () => query.matches && made.setOption({ animation: false });
+  window.addEventListener('resize', resize);
+  query.addEventListener('change', still);
+  return {
+    made,
+    dispose: () => {
+      window.removeEventListener('resize', resize);
+      query.removeEventListener('change', still);
+      made.dispose();
+    },
+  };
+}
+
+/**
+ * Replace the option of a live chart with new data: measured again first (its box may have changed width since it was
+ * made), then drawn in place with no animation. `ready` if it drew, `error` if the spec could not be drawn; the next
+ * good spec recovers.
+ */
+export function refresh(made: Instance, build: () => unknown): ChartState {
+  try {
+    made.resize();
+    made.setOption(build(), { notMerge: true });
+    return 'ready';
+  } catch {
+    return 'error';
+  }
+}
+
+/** The option for the spec held in `key`, framed for the first draw of an instance or for a later update. */
+function optionFor(el: HTMLElement, key: string, first: boolean) {
+  const reduced = window.matchMedia(REDUCED).matches;
+  return frameOption(chartOption(JSON.parse(key) as ChartSpec, readPalette(el)), {
+    first,
+    reduced,
+  });
+}
+
+/**
+ * Draws `spec` into the returned ref once ECharts has loaded; `error` if it never does. The instance is made once:
+ * the first draw may animate in (`draw: true`), a later change to the spec replaces the option in place with no
+ * animation, so a live data update never replays the draw. If reduced motion is asked for while it lives, its
+ * animation is switched off at once.
+ */
 export function useChart(spec: ChartSpec): {
   ref: RefObject<HTMLDivElement | null>;
   state: ChartState;
 } {
   const ref = useRef<HTMLDivElement | null>(null);
+  const chart = useRef<Instance | null>(null);
   const [state, setState] = useState<ChartState>('loading');
   const key = JSON.stringify(spec);
+  const latest = useRef(key);
+  latest.current = key;
+
   useEffect(() => {
     let live = true;
     let dispose = (): void => undefined;
@@ -58,23 +128,19 @@ export function useChart(spec: ChartSpec): {
       (echarts) => {
         const el = ref.current;
         if (!live || !el) return;
-        let chart: { setOption(o: unknown): void; resize(): void; dispose(): void } | undefined;
         try {
-          chart = echarts.init(el, null, { renderer: 'svg' });
-          chart.setOption(chartOption(JSON.parse(key) as ChartSpec, readPalette(el)));
+          const attached = attach(echarts, el, (made) =>
+            made.setOption(optionFor(el, latest.current, true)),
+          );
+          chart.current = attached.made;
+          dispose = () => {
+            attached.dispose();
+            chart.current = null;
+          };
+          setState('ready');
         } catch {
-          chart?.dispose();
           setState('error');
-          return;
         }
-        const made = chart;
-        const resize = () => made.resize();
-        window.addEventListener('resize', resize);
-        dispose = () => {
-          window.removeEventListener('resize', resize);
-          made.dispose();
-        };
-        setState('ready');
       },
       () => {
         if (live) setState('error');
@@ -84,6 +150,12 @@ export function useChart(spec: ChartSpec): {
       live = false;
       dispose();
     };
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!chart.current || !el) return;
+    setState(refresh(chart.current, () => optionFor(el, key, false)));
   }, [key]);
   return { ref, state };
 }

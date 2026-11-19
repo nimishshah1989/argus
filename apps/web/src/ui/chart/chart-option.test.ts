@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
+import { refresh } from './use-chart.js';
+import { frameOption, settle } from './chart-parts.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
 import { contrast, mix, parseHex } from './chart-color.js';
 import type { Palette } from './chart-palette.js';
@@ -291,5 +293,59 @@ describe('review fixes', () => {
     const legend = view({ ...mixed, legend: true });
     expect(legend.series?.map((s) => s.color)).toEqual(['#a1', '#a2', '#a3']);
     expect(legend.legend?.data).toEqual(['A', 'B', 'L']);
+  });
+});
+
+describe('draw-in', () => {
+  const kinds = ['bar', 'line', 'pareto'] as const;
+
+  it.each(kinds)('a %s chart that asks to draw in animates once, in under 800 ms', (kind) => {
+    const option = view({ ...specs[kind]!, draw: true } as ChartSpec) as Record<string, unknown>;
+    expect(option.animation).toBe(true);
+    expect(option.animationDuration as number).toBeLessThan(800);
+  });
+
+  it.each(kinds)('a %s chart that does not ask stays still', (kind) => {
+    expect(view(specs[kind]!).animation).toBe(false);
+  });
+
+  it('is switched off by reduced motion, whatever the spec asked for', () => {
+    const asked = chartOption({ ...specs.line!, draw: true } as ChartSpec, palette);
+    expect(settle(asked, true).animation).toBe(false);
+    expect(settle(asked, false).animation).toBe(true);
+  });
+
+  it('animates only the first draw of a chart: a data update into the same chart does not redraw', () => {
+    const asked = chartOption({ ...specs.line!, draw: true } as ChartSpec, palette);
+    expect(frameOption(asked, { first: true, reduced: false }).animation).toBe(true);
+    expect(frameOption(asked, { first: false, reduced: false }).animation).toBe(false);
+    expect(frameOption(asked, { first: true, reduced: true }).animation).toBe(false);
+  });
+});
+
+describe('a live chart that gets new data', () => {
+  const fake = () => {
+    const calls: string[] = [];
+    return {
+      calls,
+      made: {
+        resize: () => calls.push('resize'),
+        setOption: () => calls.push('setOption'),
+        dispose: () => undefined,
+      },
+    };
+  };
+
+  it('is measured again before the new data is drawn, so a width change since mount is picked up', () => {
+    const { made, calls } = fake();
+    expect(refresh(made, () => chartOption(specs.bar!, palette))).toBe('ready');
+    expect(calls).toEqual(['resize', 'setOption']);
+  });
+
+  it('recovers: a spec that cannot be drawn is an error, the next good one is ready again', () => {
+    const { made } = fake();
+    const bad = { ...specs.line!, secondAxis: true } as ChartSpec; // needs exactly two series
+    expect(refresh(made, () => chartOption(bad, palette))).toBe('error');
+    expect(refresh(made, () => chartOption(specs.line!, palette))).toBe('ready');
   });
 });
