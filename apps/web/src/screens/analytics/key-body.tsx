@@ -22,15 +22,13 @@ import { cellNumber, isMissing } from './sort-table.js';
  * shown as it came: a figure is never parsed back into a number to be printed again.
  */
 
-/** A KPI the engine printed: its text is the value, so the tile prints it whole and never counts it up. */
+/**
+ * A KPI the engine printed: its text is the value, so the tile prints it exactly as it came (a blank, a hyphen or
+ * an en dash included) and never counts it up. The tile is given a number only so it does not print its own dash.
+ */
 export function KeyKpi({ kpi }: { kpi: PageKpi }) {
   return (
-    <KpiTile
-      label={kpi.label}
-      value={isMissing(kpi.value) ? null : 0}
-      format={() => kpi.value}
-      note={kpi.sub ?? undefined}
-    />
+    <KpiTile label={kpi.label} value={0} format={() => kpi.value} note={kpi.sub ?? undefined} />
   );
 }
 
