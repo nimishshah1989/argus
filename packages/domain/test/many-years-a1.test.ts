@@ -24,15 +24,25 @@ const AXES = { axes: { x: '', y: '' }, tickLabels: { x: [], y: [] } };
 const KPI_SUB = 'hours to 31 Dec · annual 6,000 from Settings';
 const BY_CELL_HEADER = ['Cell', 'Machines', 'Available Hrs', 'BD Hrs', 'BD %', 'PM Hrs', 'PM %'];
 
-/** The page A1 prints for a span, as the engine gives it: only this computer runs, over the span named. */
-function a1Page(key: SpanKey): unknown {
-  const { from, to } = HAND[key];
+interface A1Value {
+  pages: Array<{
+    kpis: Array<{ value: string }>;
+    tables: Array<{ rows: string[][] }>;
+    charts: Array<{ datasets: Array<{ label: string; data: Array<number | null> }> }>;
+  }>;
+}
+
+/** A1's value from the one computer, over the span named (or none) as of a plant date. */
+function a1Value(asOf: string, span?: { from: string; to: string }): A1Value {
   const result = runWith(
     { 'a1-bd-pm': COMPUTERS['a1-bd-pm']! },
-    { data: MANY_YEARS, asOf: AS_OF_ONE_COMPUTER, profile: DEFAULT_PROFILE, span: { from, to } },
+    { data: MANY_YEARS, asOf, profile: DEFAULT_PROFILE, span },
   );
-  return result.figures.find((figure) => figure.key === 'a1-bd-pm')?.value;
+  return result.figures.find((figure) => figure.key === 'a1-bd-pm')?.value as unknown as A1Value;
 }
+
+/** The page A1 prints for one of the three spans. */
+const a1Page = (key: SpanKey): A1Value => a1Value(AS_OF_ONE_COMPUTER, HAND[key]);
 
 /** 2025, eleven months. Cell 1 has two machines (22 + 22 h of breakdown, 12 + 12 h of PM), cell 2 has TC-2 alone. */
 const BD_2025 = [...rep(6, '0.40%'), NR, ...rep(5, '0.40%'), ...rep(4, '0.40%'), '0.40%'];
@@ -271,5 +281,44 @@ describe('A1 over the two-year plant', () => {
 
   it('prints the two-year page whole: 24 months with their years, eight quarters, Jan 25 at 0.40%', () => {
     expect(a1Page('both')).toEqual(PAGE_BOTH);
+  });
+
+  it('with no span reads the as-of year to date throughout, so the page agrees with itself', () => {
+    // As of 30 Nov 2026 with no span the plant is 2026, January to November, and 2025's rows are not read at all.
+    // Four machines x 11 x 500 = 22,000 available; each machine 6 h x 11 = 66 h of breakdown and 3 x 3 = 9 h of PM,
+    // so 264 h = 1.20 % and 36 h = 0.164 -> 0.16 %; availability 100 - 1.2 - 0.164 = 98.64. Cell 1 is 2 machines.
+    const page = a1Value('2026-11-30').pages[0];
+    expect(page.kpis.map((kpi) => kpi.value)).toEqual([
+      '5,500',
+      '4',
+      '22,000',
+      '264.0 hrs',
+      '36.0 hrs',
+      '98.64%',
+    ]);
+    expect(page.tables[0].rows).toEqual([
+      ['Cell 1', '2', '11,000', '132.00', '1.20%', '18.00', '0.16%', '1.36%'],
+      ['Cell 2', '2', '11,000', '132.00', '1.20%', '18.00', '0.16%', '1.36%'],
+    ]);
+    // The plant rows: December has not been reached, so it is a dash and Q4 is October and November alone.
+    expect(page.tables[1].rows.slice(-2)).toEqual([
+      ['PLANT TOTALBD % / PM %', ...rep(11, '1.20%'), '—', ...rep(4, '1.20%'), '1.20%'],
+      [
+        ...['0.00%', '0.00%', '0.60%', '0.00%', '0.00%', '0.60%', '0.00%', '0.00%', '0.60%'],
+        ...['0.00%', '0.00%', '—', '0.20%', '0.20%', '0.20%', '0.00%', '0.16%'],
+      ],
+    ]);
+    // Year to date, the trend chart still plots the months not yet reached as 0, as the 2026 answer key does.
+    expect(page.charts[1].datasets[0].data).toEqual([...rep(11, 24), 0]);
+  });
+
+  it('plots the months outside a named part-year span as null, not as zero', () => {
+    // January to June 2026: 24 h of breakdown a month (4 machines x 6 h), 12 h of PM in March and June.
+    const trend = a1Value(AS_OF_ONE_COMPUTER, { from: '2026-01-01', to: '2026-06-30' }).pages[0]
+      .charts[1];
+    expect(trend.datasets).toEqual([
+      { label: 'BD Hrs', data: [...rep(6, 24), ...rep(6, null)] },
+      { label: 'PM Hrs', data: [0, 0, 12, 0, 0, 12, ...rep(6, null)] },
+    ]);
   });
 });

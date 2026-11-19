@@ -172,12 +172,19 @@ function quarterLabels(ctx: MonthsContext): string[] {
   });
 }
 
-/** A chart series with a null where the plant recorded nothing: a month with no records is not a zero. */
+/**
+ * A chart series with a null where the plant recorded nothing: a month with no records is not a zero. Under a named
+ * span the months outside it are null too; with no span a month not yet reached keeps its 0, as the 2026 key has it.
+ */
 export function withGaps(
   series: readonly number[],
   months: readonly PeriodMonth[],
+  named: boolean,
 ): (number | null)[] {
-  return series.map((value, index) => (months[index]!.state === 'no-records' ? null : value));
+  return series.map((value, index) => {
+    const state = months[index]!.state;
+    return state === 'no-records' || (named && state === 'outside') ? null : value;
+  });
 }
 
 export function percentTable(ctx: MonthsContext) {

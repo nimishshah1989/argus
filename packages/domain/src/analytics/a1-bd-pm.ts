@@ -1,4 +1,4 @@
-import { calendarMonths, yearToDate } from './availability.js';
+import { calendarMonths, yearToDate, type Period } from './availability.js';
 import { formatInr } from './format.js';
 import {
   availableByCell,
@@ -49,10 +49,20 @@ interface A1Context extends MonthsContext {
   pmHours: number;
 }
 
-function analysisEntries(data: EngineData, machines: readonly MachineRow[]): A1Entry[] {
+function analysisEntries(
+  data: EngineData,
+  machines: readonly MachineRow[],
+  period: Period,
+): A1Entry[] {
   const byId = new Map(machines.map((machine) => [machine.id, machine]));
   return sourcedReports(data)
-    .filter((row) => isHistory(row) && byId.has(row.report.machineId))
+    .filter(
+      (row) =>
+        isHistory(row) &&
+        byId.has(row.report.machineId) &&
+        row.report.date >= period.from &&
+        row.report.date <= period.to,
+    )
     .map((row) => ({
       row,
       hours: effectiveHours(row.report),
@@ -104,9 +114,9 @@ function cellStats(input: {
 function buildContext(data: EngineData, asOf: string, annual: number): A1Context {
   const machines = data.machines.filter(isProduction);
   const ids = new Set(machines.map((machine) => machine.id));
-  const entries = analysisEntries(data, machines);
-  const cells = plantCells(machines, data.moves, ids);
   const period = data.period ?? yearToDate(asOf);
+  const entries = analysisEntries(data, machines, period);
+  const cells = plantCells(machines, data.moves, ids);
   const window: HoursWindow = { ...period, annualHours: annual };
   const months = calendarMonths(period);
   const bdRows = monthlyRows(cells, entries, months, (row) => !isPm(row));
@@ -190,6 +200,7 @@ function byCellTable(ctx: A1Context) {
 }
 
 function charts(ctx: A1Context): Array<Record<string, unknown>> {
+  const named = ctx.data.period !== undefined;
   const plot = (part: (stat: CellStats) => number) =>
     ctx.stats.map((stat) => Math.round(safeFraction(part(stat), stat.available) * 10000) / 100);
   return [
@@ -211,8 +222,14 @@ function charts(ctx: A1Context): Array<Record<string, unknown>> {
       tickLabels: { x: [], y: [] },
       labels: monthLabels(ctx),
       datasets: [
-        { label: 'BD Hrs', data: withGaps(monthlySeries(ctx.bdRows, ctx.months), ctx.months) },
-        { label: 'PM Hrs', data: withGaps(monthlySeries(ctx.pmRows, ctx.months), ctx.months) },
+        {
+          label: 'BD Hrs',
+          data: withGaps(monthlySeries(ctx.bdRows, ctx.months), ctx.months, named),
+        },
+        {
+          label: 'PM Hrs',
+          data: withGaps(monthlySeries(ctx.pmRows, ctx.months), ctx.months, named),
+        },
       ],
     },
   ];
