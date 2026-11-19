@@ -1,1 +1,1 @@
-- Notes for the team only: where things stand after today's merges, the open numbers that are not final, and what each ticket's status is. Nothing changes on a screen.
+Internal: the handoff note, ledger and milestone statuses now describe the state of 19 November evening. No change for a user.
