@@ -1,28 +1,31 @@
-import { useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { PmCalendarItem } from '@uptimo/shared';
 import { useSearchParams } from 'react-router-dom';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import type { PmCalendarItem } from '@uptimo/shared';
-import { getMe, schedulePm, useAnalyticsFigures, usePmCalendar } from '../../api.js';
-import { ApiError, idempotencyKey, useOnline } from '../../data/index.js';
-import { StateNotice } from '../../patterns/frame.js';
-import { viewState, type ViewState } from '../../patterns/view-state.js';
-import { Stack } from '../../ui/layout.js';
+import { getMe, useAnalyticsFigures, usePmCalendar } from '../../api.js';
 import { DrillTable } from './DrillTable.js';
 import { FigureDrill } from './KeyPage.js';
-import type { PmMove } from './PmCalendar.js';
+import { usePmMove } from './pm-move.js';
+import { JobList } from './pm-calendar-move.js';
 import {
   CalendarArea,
   ComplianceTiles,
+  ComplianceWindow,
   Legend,
   MoveNotes,
-  PageHead,
   SpreadPanel,
 } from './pm-calendar-parts.js';
-import { eventsOf, loadOf, monthRange, moveKeys, readPmCompliance } from './pm-calendar-view.js';
+import { StateNotice } from '../../patterns/frame.js';
+import { useFiguresState, type ScreenState } from './screen-state.js';
+import { Template } from './shell/patterns/template.js';
+import { eventsOf, loadOf, monthRange, readPmCompliance, shownMonth } from './pm-calendar-view.js';
 import { parseDrill, type AnalyticsGroup } from './groups.js';
 import { displayDay } from './machine-values.js';
+
+/** The template this screen stands on: the calendar in the main region, the lists beside it. */
+const KIND = 'analysis' as const;
 
 type Figure = FiguresReply['figures'][number];
 
@@ -35,77 +38,17 @@ type Figure = FiguresReply['figures'][number];
 export default function PmCalendarPage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
   const figures = useAnalyticsFigures();
-  const online = useOnline();
-  const state = viewState({
-    online,
-    hasData: figures.data !== undefined,
-    isEmpty: false,
-    error: figures.error,
-  });
+  const state = useFiguresState(figures);
   if (state !== 'ready' || !figures.data)
     return (
       <StateNotice
-        state={state as Exclude<ViewState, 'ready'>}
+        state={state as Exclude<ScreenState, 'ready'>}
         empty={t('analytics.empty')}
         onRetry={() => void figures.refetch()}
       />
     );
   const figure = figures.data.figures.find((candidate) => candidate.key === 'pm-compliance');
   return <PmCalendarBody group={group} asOf={figures.data.asOf} figure={figure} />;
-}
-
-/** The move the grid and the panel share: one write, one refusal line, one status line. */
-function usePmMove() {
-  const { t } = useTranslation();
-  const client = useQueryClient();
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const [moved, setMoved] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const keys = useRef(moveKeys(idempotencyKey)).current;
-  const move = async (request: PmMove): Promise<void> => {
-    setRefusal(null);
-    setMoved(null);
-    setPending(true);
-    try {
-      // `machineCode` is the status line's; the strict reschedule body carries only the ids and the day.
-      const body = {
-        machineId: request.machineId,
-        planId: request.planId,
-        ticketId: request.ticketId,
-        scheduledOn: request.scheduledOn,
-      };
-      const reply = await schedulePm(body, keys.keyFor(body));
-      keys.settled();
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['pm-calendar'] }),
-        client.invalidateQueries({ queryKey: ['tickets'] }),
-        client.invalidateQueries({ queryKey: ['analytics-figures'] }),
-      ]);
-      setMoved(
-        t('pm.calendar.moved', {
-          machine: request.machineCode,
-          date: displayDay(reply.scheduledOn),
-        }),
-      );
-    } catch (error) {
-      // A refusal is the server's answer, so the next try is a new attempt; a dropped connection retries the same key.
-      if (error instanceof ApiError) keys.settled();
-      setRefusal(error instanceof ApiError ? error.message : t('pm.calendar.refused'));
-      throw error;
-    } finally {
-      setPending(false);
-    }
-  };
-  const moveItem = (item: PmCalendarItem, target: string): void => {
-    void move({
-      planId: item.planId,
-      machineId: item.machineId,
-      machineCode: item.machineCode,
-      ticketId: item.ticketId,
-      scheduledOn: target,
-    }).catch(() => undefined);
-  };
-  return { refusal, moved, pending, move, moveItem };
 }
 
 /** The ready page: the figure's state is settled, so the calendar and its writes may run. */
@@ -130,37 +73,71 @@ function PmCalendarBody({
   const drill = parseDrill(params.get('drill'));
   const pmMove = usePmMove();
   return (
-    <Stack gap={6}>
-      {drill ? <DrillTable group={group} drill={drill} /> : null}
-      <PageHead asOf={asOf} />
-      {compliance ? (
-        <ComplianceTiles view={compliance} />
-      ) : (
-        <p className="text-body text-neutral-600">{t('pm.calendar.noFigure')}</p>
-      )}
-      {figure && figure.drill.ids.length > 0 ? <FigureDrill figure={figure} group={group} /> : null}
-      <MoveNotes refusal={pmMove.refusal} moved={pmMove.moved} />
-      <CalendarArea
-        calendar={calendar}
-        events={events}
-        canMove={canMove}
-        initialDate={asOf}
-        onMove={pmMove.move}
-        onRange={(next) =>
-          setRange((current) =>
-            current.from === next.from && current.to === next.to ? current : next,
-          )
-        }
-      />
-      {calendar.data ? (
-        <Legend cap={calendar.data.cap} count={items.length} days={loadOf(items).size} />
-      ) : null}
+    <Template
+      title={t('pm.screen.calendar')}
+      kind={KIND}
+      lede={t('pm.calendar.asOf', { date: displayDay(asOf) })}
+      figures={compliance ? <ComplianceTiles view={compliance} /> : null}
+      aside={<PmAside items={items} month={shownMonth(range)} canMove={canMove} pmMove={pmMove} />}
+      main={
+        <>
+          {drill ? <DrillTable group={group} drill={drill} headingLevel={3} /> : null}
+          <ComplianceWindow view={compliance} />
+          {figure && figure.drill.ids.length > 0 ? (
+            <FigureDrill figure={figure} group={group} />
+          ) : null}
+          <MoveNotes refusal={pmMove.refusal} moved={pmMove.moved} />
+          <CalendarArea
+            calendar={calendar}
+            events={events}
+            canMove={canMove}
+            initialDate={asOf}
+            onMove={pmMove.move}
+            onRange={(next) =>
+              setRange((current) =>
+                current.from === next.from && current.to === next.to ? current : next,
+              )
+            }
+          />
+          {calendar.data ? (
+            <Legend cap={calendar.data.cap} count={items.length} days={loadOf(items).size} />
+          ) : null}
+        </>
+      }
+    />
+  );
+}
+
+/** The lists beside the calendar: the crowded days, then every job with its keyboard Move to date. */
+function PmAside({
+  items,
+  month,
+  canMove,
+  pmMove,
+}: {
+  items: readonly PmCalendarItem[];
+  month: string;
+  canMove: boolean;
+  pmMove: ReturnType<typeof usePmMove>;
+}) {
+  return (
+    <>
       <SpreadPanel
         items={items}
         canMove={canMove}
         pending={pmMove.pending}
         onMove={pmMove.moveItem}
       />
-    </Stack>
+      {canMove ? (
+        <JobList
+          items={items}
+          month={month}
+          refusal={pmMove.refusal}
+          pending={pmMove.pending}
+          move={pmMove.moveJob}
+          announce={pmMove.announce}
+        />
+      ) : null}
+    </>
   );
 }
