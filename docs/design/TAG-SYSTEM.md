@@ -1,6 +1,6 @@
 # Tag System Design
 
-Controlled tag vocabulary for Argus. No ad-hoc tags. Colour, shape, depth and motion rules live in `docs/DESIGN.md` (D33); where this page differs, `docs/DESIGN.md` wins.
+Controlled tag vocabulary for Argus. No ad-hoc tags. Colour, shape, depth and motion rules live in `docs/DESIGN.md` (D33); where this page differs, `docs/DESIGN.md` wins. Superseded here: the accent `#0d9488` (the deep-teal line, Selected and Focus-visible) is `#0f766e`, and the chip font is 12 px, not 13.
 
 ## Tag Categories
 

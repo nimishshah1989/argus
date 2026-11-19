@@ -264,7 +264,9 @@ decoration. The values below are today's (`tokens.css`); the pick (packet 80s) m
 rgb(0 0 0 / 0.1)`. Dark: a 1 px hairline, `0 0 0 1px #2c2c2e`, with no blur (LOCK.md: light cards carry one soft
   shadow, dark cards a hairline).
 - **Level 2, overlay.** A sheet or side panel over a scrim. Light: `0 -8px 24px rgb(0 0 0 / 0.16)`. Dark: the same
-  with 0.5 opacity. The scrim is neutral-900 at 40 % (`ui/sheet.tsx`).
+  with 0.5 opacity. **Today** the scrim is `neutral-900` at 40 % (`ui/sheet.tsx`); in dark `neutral-900` is `#f5f5f7`, so
+  the scrim lightens the backdrop there. **Target:** a black scrim at 40 % in both themes. The code does not change in
+  this packet.
 
 **The No-Nesting Rule.** No level 1 inside level 1. A tile on a card is a flat region (a `line` rule or surface-2),
 never a second raised card. Today the card's shadow is written by hand 57 times (slice 80, section A); ticket 82 makes
@@ -286,8 +288,11 @@ Radius per role. A round chip is the only full radius; everything else has a cor
 
 Fields draw at 8 px today (`ui/input.tsx`). Whether they move to the control radius is not known yet.
 
-- **Border or shadow.** A card is lifted by level 1 and has no border of its own. Anything you tap or type in has a
-  1 px `control` border (3.26:1), because it must be found. Dividers and anything that only separates use `line`.
+- **Border or shadow.** A card is lifted by level 1 and has no border of its own. A field and an unfilled button
+  (the secondary variant) have a 1 px `control` border, because they must be found; filled and text-only buttons
+  (primary, tonal, quiet) have none. `control` is 3.26:1 on white (the surface) and 2.99:1 on the light page
+  (`#f5f5f7`), just under the 3.0 rule; in dark it is 5.22:1 on the surface and 5.75:1 on the page. Whether the light
+  value changes is not known yet; the pick may change it. Dividers and anything that only separates use `line`.
 - **Tables.** Laptop rows are 36 px for a pointer only, and a row you tap is at least 44 px. 50 rows a page on a
   laptop, 10 before "more" on a phone, and figures are tabular. How a row is ruled, whether the header sticks and the
   column rules are not known yet. Ticket 83 builds the data table and its mockup sets them.
