@@ -4,7 +4,7 @@
 
 The goals are ticket 69's six in `docs/plan/MILESTONES.md`. Nimish's rulings of 19 Nov are fixed here and not
 reopened: **one plant event per utility failure** (not a ticket per machine), **a row loads under its own date
-unless that year's workbook already holds it**, **codes are kept as the workbook legends define them**, and
+unless that year's workbook already holds it**, **codes are kept as the workbook legends define them** (amended 19 Nov by Bhavin's answer: `MEC` is now `M` and `ELE` is now `E`; every other code stays as written), and
 **February and March 2022 show as a gap ("no records") until Bhavin answers N17**. Every open answer from Bhavin is
 a switch with a stated default (§Switches), so no packet waits on him. Product goal (Nimish, 19 Nov): the whole
 history loaded before the pilot, so tickets 90–96 are built and checked on real data.
@@ -18,23 +18,23 @@ from the private backup bucket (69d). No row, name or file name with a name goes
 A throwaway reader (Python `openpyxl`, read-only) on all four years; the converter's own counts are the truth and
 its real-file smoke asserts the `rows with a date` line against this table (a second, independent reader).
 
-| Fact (machine sheets only)                                                | 2022     | 2023      | 2024       | 2025      |
-| ------------------------------------------------------------------------- | -------- | --------- | ---------- | --------- |
-| workbooks / machine sheets                                                | 4/50     | 5/68      | 5/73       | 5/86      |
-| rows with a date                                                          | 1,098    | 3,078     | 2,327      | 1,329     |
-| of those, dated in the workbook's own year                                | 1,091    | 2,994     | 2,322      | 1,322     |
-| dated in another workbook year (2022–2025)                                | 2        | 83        | 5          | 5         |
-| of those, already in that year's workbook                                 | 0        | 5         | 5          | 5         |
-| dated in a year with no workbook (2002, 2020–21, 2026)                    | 5        | 1         | 0          | 2         |
-| utility rows (code `UTI`/`UTY`)                                           | 85       | 1,821     | 980        | 130       |
-| utility rows with hours only in the UTI column                            | 0        | 93        | 277        | 19        |
-| days with a utility row (event-days)                                      | 38       | 183       | 139        | 40        |
-| most utility rows on one day                                              | 13       | 51        | 48         | 19        |
-| utility machine-hours (UTI column; 2022 has none)                         | 41¹      | 1,573     | 746        | 110       |
-| breakdowns with downtime (not PM, not utility)                            | 941      | 942       | 861        | 996       |
-| their downtime hours                                                      | 2,443    | 1,743     | 1,516      | 2,011     |
-| PM rows / blank code / blank minutes                                      | 53/35/19 | 65/345/38 | 27/452/379 | 156/27/15 |
-| exact repeat rows inside one year (same sheet, day, shift, minutes, text) | 5        | 10        | 15         | 7         |
+| Fact (machine sheets only)                                                                                                                                                                      | 2022     | 2023      | 2024       | 2025      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | ---------- | --------- |
+| workbooks / machine sheets                                                                                                                                                                      | 4/50     | 5/68      | 5/73       | 5/86      |
+| rows with a date                                                                                                                                                                                | 1,098    | 3,078     | 2,327      | 1,329     |
+| of those, dated in the workbook's own year                                                                                                                                                      | 1,091    | 2,994     | 2,322      | 1,322     |
+| dated in another workbook year (2022–2025)                                                                                                                                                      | 2        | 83        | 5          | 5         |
+| of those, already in that year's workbook                                                                                                                                                       | 0        | 5         | 5          | 5         |
+| dated in a year with no workbook (2002, 2020–21, 2026)                                                                                                                                          | 5        | 1         | 0          | 2         |
+| utility rows (code `UTI`/`UTY`)                                                                                                                                                                 | 85       | 1,821     | 980        | 130       |
+| utility rows not coded `UTI`/`UTY` that carry hours only in the UTI column (the converter's own count of every utility row with hours and no minutes, coded or not, is 0 / 1,779 / 1,246 / 136) | 0        | 93        | 277        | 19        |
+| days with a utility row (event-days)                                                                                                                                                            | 38       | 183       | 139        | 40        |
+| most utility rows on one day                                                                                                                                                                    | 13       | 51        | 48         | 19        |
+| utility machine-hours (UTI column; 2022 has none)                                                                                                                                               | 41¹      | 1,573     | 746        | 110       |
+| breakdowns with downtime (not PM, not utility)                                                                                                                                                  | 941      | 942       | 861        | 996       |
+| their downtime hours                                                                                                                                                                            | 2,443    | 1,743     | 1,516      | 2,011     |
+| PM rows / blank code / blank minutes                                                                                                                                                            | 53/35/19 | 65/345/38 | 27/452/379 | 156/27/15 |
+| exact repeat rows inside one year (same sheet, day, shift, minutes, text)                                                                                                                       | 5        | 10        | 15         | 7         |
 
 ¹ 2022 has no UTI column; its 85 utility rows carry minutes in the downtime column (41 h).
 
@@ -69,8 +69,8 @@ its row count. Cost if wrong: a sheet with a lower header contributes nothing, v
 
 **R3 — machine codes are sheet names, folded by one spelling table, validated against the plant.** Fold: leading
 zeros (`GRD-01`→`GRD-1`), `VL-4`→`VTL-4`, `CAM`→`CAM-01`, `TMC-4_CY52`→`TMC-4`, `TMC-5_H-TURN`→`TMC-5`. An unknown
-code is excluded and counted per code, never remapped by guess (switches S1 and S2 decide the Star sheets and the
-retired machines). Cost if wrong: excluded rows load on a later run, with nothing added twice (R18).
+code is excluded and counted per code, never remapped by guess (switches S1 and S2: the numbered Star sheets map to `S-1`/`S-2`, a bare `Star` sheet and the
+retired machines are excluded). Cost if wrong: excluded rows load on a later run, with nothing added twice (R18).
 
 **R4 — columns by flattened header text.** `DATE` is the `SR.NO` column + 1 (some 2022 headers hold a stray date);
 `SHIFT`, `PROBLEM DESCRIPTION`, `OBSERVED BY`, `CORRECTIVE ACTION`, `DONE BY`, `TOTAL DOWN TIME (In Min.)`, `MAINT
@@ -85,8 +85,8 @@ else is `bad_date` and counted. Cost if wrong: serials read as 1970 break every 
 **R6′ — what a row becomes.** A **utility row** is one whose code (or `ELECT/MECH`) is `UTI`/`UTY`, or whose UTI
 column holds hours while its downtime minutes are blank or 0. Utility rows of one plant date become **one plant
 event** (R20) and add 0 to every breakdown figure. A row with breakdown minutes and also UTI hours is a breakdown,
-counted as `uti_hours_on_breakdown`. **PM rows** (code `PM`, or a PM-hours cell) load as past breakdowns with
-`maintCode: 'PM'`, as 37c did. A blank minute cell is 0; a blank problem gets 37c's fallback text. Exact repeat rows
+counted as `uti_hours_on_breakdown`. **PM rows are code `PM` only** (a PM-hours cell does not make a PM row; the row keeps its own code) and load as past
+breakdowns with `maintCode: 'PM'`, as 37c did. A blank minute cell is 0; a blank problem gets 37c's fallback text. Exact repeat rows
 inside a year load (they are separate workbook rows) and are listed as `possible_repeat`. Cost if wrong: a
 utility-hours row with a blank code counted as an event instead of a breakdown moves at most 277 rows (2024).
 
@@ -101,6 +101,10 @@ placeholder person to merge later; nothing leaks.
 
 **R9 — an alias target may be a person code** (`^P-[0-9a-f]{8}$` resolves against `personCode` in
 `imports/references.ts`). Cost if wrong: matched history loses its person link.
+
+**Pseudonyms (69b).** A person field in an output file is an unsalted hash pseudonym (`LG-` + 8 hex of
+`sha256(normalised name)`), so it can be reversed by guessing names. The converter's output files, like the workbooks
+and any free text taken from them, stay outside git and in the private store (D21), as the 37c precedent.
 
 **R10 — the redaction proof is the converter's.** Names in problem and corrective-action text become `[person]`,
 phone-shaped runs `[phone]`; the converter refuses to write when the canonical JSON still holds a workbook name
@@ -123,7 +127,7 @@ close − downMin`, closed by report, figures as `computeTicketFigures` would st
 `1TS` → 1; `2`, `2ND`, `2D` → 2; `3`, `3RD`, `3ND` → 2 (37c's fold); anything else (blank, `A`, `4`–`8`, `4TH`–`8TH`,
 `1 & 2`) → 1 and counted as `stray_shift`. Cost if wrong: only per-shift splits move.
 
-**R14′ — codes are kept as the legends define them.** Every code loads verbatim (blank stays `null`); codes outside
+**R14′ — codes are kept as the legends define them.** Every code loads as written (blank stays `null`) except the two Bhavin answered on 19 Nov, `MEC` → `M` and `ELE` → `E` (S5 default); codes outside
 the plant's active 19 resolve against **switched-off** `maint_code` entries (ticket 47's rule: off for new tickets,
 still shown on old reports). 69c's runner adds a missing legend code as a switched-off entry (audited, idempotent)
 before a load. Nothing is folded into `MIS`. Cost if wrong: a later fold (switch S5) is one undo and one reload of
@@ -248,7 +252,7 @@ machines on one day plus a second day with 2 (→ 2 events, 6 lines, 0 tickets);
 to end inside its shift); a text date `03.11.2022` beside serials; a 2023 sheet holding one row already in the 2022
 grid and one that is not (→ 1 duplicate, 1 moved); a `2020` row (stray); a blank code and a blank minute; shifts
 `1`, `2`, `1ST`, `2ND`, `3ND`, `7TH`, blank; two rows dated February 2022 (S4 on); a header at row 4 with
-`SR.\nNO.`; a sheet of 5 real rows followed by 50,000 empty styled rows; a 3-row `Star-01` sheet with S1 off and on
+`SR.\nNO.`; a sheet of 5 real rows followed by 50,000 empty styled rows; a 3-row `Star-01` sheet with S1 off (excluded) and on (the 19 Nov default: loads as `S-1`)
 (the second run keeps every earlier ref).
 
 **Acceptance.**
@@ -256,7 +260,7 @@ grid and one that is not (→ 1 duplicate, 1 moved); a `2020` row (stray); a bla
 - Given the fixture, when converted, then the report's numbers equal the hand-worked ones (read 31, loaded tickets
   18 of which 1 moved, utility rows 6 → 2 events, duplicate 1, stray year 1, unknown machine 3, gap month 2) and the
   identity holds; the file parses with `parseSyntheticExport`.
-- Given the same input twice, then the canonical JSON is byte-identical; given S1 turned on, then every ref and
+- Given the same input twice, then the canonical JSON is byte-identical; given S1 turned on (the default; the fixture's first run uses `--star off`), then every ref and
   `legacyId` of the first run is unchanged and only the `Star-01` rows are added.
 - Given sentinel names in DONE BY, OBSERVED BY, problem and corrective action, then none is in the output, and a
   file that would hold one is refused.

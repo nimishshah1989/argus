@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -30,9 +30,39 @@ describe('import:legacy command', () => {
   });
 
   it('refuses an output folder inside the repository and accepts one outside', () => {
-    expect(() => assertOutsideRepo('out')).toThrow(/outside the repository/);
-    expect(() => assertOutsideRepo('tools/x')).toThrow(/outside the repository/);
+    expect(() => assertOutsideRepo('out')).toThrow(/outside any git checkout/);
+    expect(() => assertOutsideRepo('tools/x')).toThrow(/outside any git checkout/);
+    expect(() => assertOutsideRepo('tools/..private/out')).toThrow(/outside any git checkout/);
+    const link = join(mkdtempSync(join(tmpdir(), 'legacy-link-')), 'into-repo');
+    symlinkSync(join(process.cwd(), 'tools'), link);
+    expect(() => assertOutsideRepo(join(link, 'new-out'))).toThrow(/outside any git checkout/);
     expect(() => assertOutsideRepo(join(tmpdir(), 'legacy-out'))).not.toThrow();
+  });
+
+  it('refuses an output folder inside any other git checkout, such as the main checkout of a worktree', () => {
+    const checkout = mkdtempSync(join(tmpdir(), 'legacy-checkout-'));
+    writeFileSync(join(checkout, '.git'), 'gitdir: elsewhere');
+    expect(() => assertOutsideRepo(join(checkout, 'deep', 'out'))).toThrow(
+      /outside any git checkout/,
+    );
+  });
+
+  it('rejects a bad --gap month, an unknown option, and a plant file missing machines or terms', () => {
+    expect(() => parseSwitches(new Map([['gap', '2022-2']]))).toThrow(/YYYY-MM/);
+    expect(() => parseSwitches(new Map([['gap', '2022-13']]))).toThrow(/YYYY-MM/);
+    expect(parseSwitches(new Map([['gap', '2022-02, 2022-04']])).gap).toEqual([
+      '2022-02',
+      '2022-04',
+    ]);
+    expect(() => parseArgs(['--retierd', 'keep'])).toThrow(/unknown option/);
+    const dir = mkdtempSync(join(tmpdir(), 'legacy-plant-'));
+    const write = (name: string, body: unknown) => {
+      writeFileSync(join(dir, name), JSON.stringify(body));
+      return join(dir, name);
+    };
+    expect(() => loadPlant(write('a.json', { machines: ['ZZ-1'] }))).toThrow(/"terms"/);
+    expect(() => loadPlant(write('b.json', { terms: [] }))).toThrow(/"machines"/);
+    expect(loadPlant(write('c.json', { machines: ['ZZ-1'], terms: ['x'] })).terms).toEqual(['x']);
   });
 
   it('finds workbooks by the year in their name and skips hidden files, __MACOSX and nameless years', () => {
@@ -44,6 +74,7 @@ describe('import:legacy command', () => {
       'a/HMC-2022.xlsx',
       'a/Jul-23.xlsx',
       'a/.hidden-2022.xlsx',
+      'a/~$VTL-2023.xlsx',
       '__MACOSX/X-2022.xlsx',
       'a/notes-2022.txt',
     ]) {

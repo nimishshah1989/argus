@@ -15,6 +15,7 @@ import {
 import {
   classifyLegacy,
   isPm,
+  sum,
   type ClassifiedRow,
   type Switches,
   type YearReport,
@@ -62,6 +63,11 @@ const shiftOf = (raw: string): { code: string; stray: boolean } => {
 const closeOf = (date: string, shift: string): string =>
   addMinutes(`${date}T${SHIFT_START[shift] ?? '08:00'}:00${PLANT_OFFSET}`, CLOSE_INTO_SHIFT_MIN);
 
+const observedOf = (cell: string): string | null => {
+  const key = normalizeKey(cell);
+  return Object.hasOwn(OBSERVED_BY, key) ? (OBSERVED_BY[key] ?? null) : null;
+};
+
 function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string, unknown> {
   const { row } = c;
   const date = row.date ?? '';
@@ -100,7 +106,7 @@ function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string
         problem,
         date,
         shiftCode: shift.code,
-        observedBy: OBSERVED_BY[normalizeKey(row.observedBy)] ?? null,
+        observedBy: observedOf(row.observedBy),
         correctiveAction: action || null,
         downtimeMin: row.minutes,
         responseMin: 0,
@@ -215,14 +221,44 @@ function yearExport(
 }
 
 /** The proof that no name reaches a file: a leaked name word, or a tenant term, refuses the write (R10). */
-function assertClean(json: string, year: number, people: People, terms: readonly string[]): void {
+function assertClean(
+  out: SyntheticExport,
+  year: number,
+  people: People,
+  terms: readonly string[],
+): void {
+  const json = JSON.stringify([out.aliases, out.tickets]);
   const lower = json.toLowerCase();
+  const free = (out.tickets as Array<Record<string, unknown>>).flatMap((t) => [
+    String(t.problem),
+    ...((t.reports as Array<Record<string, unknown>>) ?? []).flatMap((r) => [
+      String(r.problem),
+      String(r.correctiveAction ?? ''),
+    ]),
+  ]);
   const leaked =
-    people.leaks(json) + terms.filter((t) => t && lower.includes(t.toLowerCase())).length;
+    people.leaks(json) +
+    free.reduce((n, text) => n + people.phoneLeaks(text), 0) +
+    terms.filter((t) => t && lower.includes(t.toLowerCase())).length;
   if (leaked > 0)
     throw new Error(
-      `legacy ${year}: ${leaked} name token(s) would reach the file; refusing to write`,
+      `legacy ${year}: ${leaked} name or phone token(s) would reach the file; refusing to write`,
     );
+}
+
+/**
+ * The reconciliation, counted from the WRITTEN file: rows read = tickets in the file + utility lines in the file
+ * + the rows each dropped class held out. A ticket lost between classification and the file breaks it.
+ */
+export function writtenIdentity(report: YearReport, json: string): boolean {
+  const out = JSON.parse(json) as { tickets: { entryType: string; events: { type: string }[] }[] };
+  const tickets = out.tickets.filter((t) => t.entryType === 'pastBreakdown').length;
+  const lines = out.tickets
+    .flatMap((t) => t.events)
+    .filter((e) => e.type === 'utility_loss').length;
+  const dropped =
+    report.duplicate + report.strayYear + report.gapMonth + sum(report.unknownMachine);
+  return report.read === tickets + lines + dropped;
 }
 
 export function convertLegacy(
@@ -247,12 +283,8 @@ export function convertLegacy(
     if (Buffer.byteLength(json) > IMPORT_LIMITS.fileBytes)
       throw new Error(`legacy ${report.year}: file too large`);
     // The contract name `argus.synthetic-bhavin/v1` is not data: only aliases and tickets are checked.
-    assertClean(
-      JSON.stringify([built.out.aliases, built.out.tickets]),
-      report.year,
-      people,
-      plant.terms,
-    );
+    assertClean(built.out, report.year, people, plant.terms);
+    report.identity = writtenIdentity(report, json);
     report.events = built.events;
     report.possibleDuplicatePeople = people.possibleDuplicates(built.codes);
     report.strayShift = classified.filter(

@@ -149,7 +149,8 @@ function emptyReport(year: number): YearReport {
     codes: {},
     machines: {},
     measured: emptyMeasured(),
-    identity: true,
+    /** Set from the written file by `convertLegacy`, never from the classes that produced it. */
+    identity: false,
   };
 }
 
@@ -299,12 +300,9 @@ export function classifyLegacy(
       const report = emptyReport(year);
       tally(own, report, classified);
       measure(own, report, years);
-      const gone =
-        report.duplicate + report.strayYear + report.gapMonth + sum(report.unknownMachine);
-      report.identity = report.read === report.tickets + report.utilityRows + gone;
       return report;
     });
   return { rows: classified, reports };
 }
 
-const sum = (counter: Counter): number => Object.values(counter).reduce((a, b) => a + b, 0);
+export const sum = (counter: Counter): number => Object.values(counter).reduce((a, b) => a + b, 0);

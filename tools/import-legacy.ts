@@ -1,5 +1,13 @@
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   DEFAULT_SWITCHES,
@@ -23,6 +31,7 @@ const SEED_MACHINES = new URL(
   '../apps/server/src/seed/generated/cosmos-machines.json',
   import.meta.url,
 );
+const OPTIONS = ['data', 'out', 'plant', 'star', 'retired', 'gap', 'fold'];
 const USAGE =
   'usage: import:legacy --data <folder> --out <folder> [--plant <file>] [--star A=B,..] [--retired drop|keep] [--gap none|YYYY-MM,..] [--fold A=B,..]';
 
@@ -38,6 +47,13 @@ function pairs(value: string, fallback: Record<string, string>): Record<string, 
   );
 }
 
+function months(value: string): string[] {
+  const list = value.split(',').map((month) => month.trim());
+  const bad = list.find((month) => !/^\d{4}-(0[1-9]|1[0-2])$/.test(month));
+  if (bad !== undefined) throw new Error(`--gap takes YYYY-MM months or none, got "${bad}"`);
+  return list;
+}
+
 export function parseSwitches(args: ReadonlyMap<string, string>): Switches {
   const retired = args.get('retired') ?? 'drop';
   if (retired !== 'drop' && retired !== 'keep') throw new Error('--retired is drop or keep');
@@ -45,15 +61,36 @@ export function parseSwitches(args: ReadonlyMap<string, string>): Switches {
   return {
     star: pairs(args.get('star') ?? 'default', DEFAULT_SWITCHES.star),
     retired,
-    gap: gap === undefined ? DEFAULT_SWITCHES.gap : gap === 'none' ? [] : gap.split(','),
+    gap: gap === undefined ? DEFAULT_SWITCHES.gap : gap === 'none' ? [] : months(gap),
     fold: pairs(args.get('fold') ?? 'default', DEFAULT_SWITCHES.fold),
   };
 }
 
+/** The folder with symlinks resolved, also when it does not exist yet (its nearest existing ancestor is resolved). */
+function canonical(folder: string): string {
+  const tail: string[] = [];
+  let at = resolve(folder);
+  while (!existsSync(at) && dirname(at) !== at) {
+    tail.unshift(basename(at));
+    at = dirname(at);
+  }
+  return join(realpathSync(at), ...tail);
+}
+
+/** True when `folder` or any parent holds a `.git` entry: any checkout, worktrees included. */
+function insideCheckout(folder: string): boolean {
+  for (let at = folder; ; at = dirname(at)) {
+    if (existsSync(join(at, '.git'))) return true;
+    if (dirname(at) === at) return false;
+  }
+}
+
 export function assertOutsideRepo(out: string): void {
-  const rel = relative(REPO, resolve(out));
-  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
-    throw new Error('--out must be a folder outside the repository: the output holds history');
+  const target = canonical(out);
+  const rel = relative(realpathSync(REPO), target);
+  const inside = rel === '' || (rel.split(sep)[0] !== '..' && !isAbsolute(rel));
+  if (inside || insideCheckout(target)) {
+    throw new Error('--out must be a folder outside any git checkout: the output holds history');
   }
 }
 
@@ -63,7 +100,7 @@ export function findWorkbooks(dir: string): { path: string; year: number }[] {
   const walk = (folder: string): void => {
     for (const entry of readdirSync(folder).sort()) {
       const path = join(folder, entry);
-      if (entry.startsWith('.') || entry === '__MACOSX') continue;
+      if (entry.startsWith('.') || entry.startsWith('~$') || entry === '__MACOSX') continue;
       if (statSync(path).isDirectory()) walk(path);
       else if (entry.endsWith('.xlsx')) {
         const year = /(20\d\d)/.exec(basename(entry))?.[1];
@@ -75,17 +112,22 @@ export function findWorkbooks(dir: string): { path: string; year: number }[] {
   return found.sort((a, b) => a.year - b.year || (a.path < b.path ? -1 : 1));
 }
 
+function strings(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new Error(`--plant file: "${field}" must be an array of strings`);
+  }
+  return value as string[];
+}
+
 export function loadPlant(file: string | undefined): PlantContext {
   if (file) {
-    const plant = JSON.parse(readFileSync(file, 'utf8')) as {
-      machines: string[];
-      people?: { name: string; code: string }[];
-      terms?: string[];
-    };
+    const plant = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+    const people = plant.people ?? [];
+    if (!Array.isArray(people)) throw new Error('--plant file: "people" must be an array');
     return {
-      machines: new Set(plant.machines),
-      people: plant.people ?? [],
-      terms: plant.terms ?? [],
+      machines: new Set(strings(plant.machines, 'machines')),
+      people: people as { name: string; code: string }[],
+      terms: strings(plant.terms, 'terms'),
     };
   }
   const seed = JSON.parse(readFileSync(SEED_MACHINES, 'utf8')) as { machines: { code: string }[] };
@@ -141,6 +183,7 @@ export function parseArgs(argv: readonly string[]): Map<string, string> {
     const flag = argv[i];
     const value = argv[i + 1];
     if (!flag?.startsWith('--') || value === undefined) throw new Error(USAGE);
+    if (!OPTIONS.includes(flag.slice(2))) throw new Error(`unknown option ${flag}\n${USAGE}`);
     args.set(flag.slice(2), value);
   }
   return args;
@@ -157,14 +200,15 @@ export function main(argv = process.argv.slice(2)): void {
   const plant = loadPlant(args.get('plant'));
   const { rows, sheets } = readAll(data, plant.machines);
   const { files, reports } = convertLegacy(rows, plant, switches);
-  mkdirSync(out, { recursive: true });
-  for (const file of files) writeFileSync(join(out, `legacy-${file.year}.json`), file.json);
   for (const report of reports) {
     console.log(formatReport(report, sheets.get(report.year) ?? []).join('\n'));
   }
+  if (files.length === 0) throw new Error('no workbook with a year in its name was found');
   if (reports.some((report) => !report.identity)) {
-    throw new Error('the reconciliation identity is broken');
+    throw new Error('the reconciliation identity is broken; nothing was written');
   }
+  mkdirSync(out, { recursive: true });
+  for (const file of files) writeFileSync(join(out, `legacy-${file.year}.json`), file.json);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

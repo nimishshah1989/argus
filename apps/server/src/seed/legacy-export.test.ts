@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line no-restricted-imports
 import { parseSyntheticExport, parseTicket } from '../modules/imports/schema.js';
 import { DEFAULT_SWITCHES, type Switches } from './legacy-classify.js';
-import { convertLegacy, type PlantContext } from './legacy-export.js';
+import { convertLegacy, writtenIdentity, type PlantContext } from './legacy-export.js';
 import { KNOWN, fixtureRows } from './legacy-fixture.js';
 
 const plant: PlantContext = { machines: KNOWN, people: [], terms: [] };
@@ -18,6 +18,18 @@ const tickets = (year: number, switches: Partial<Switches> = {}): Obj[] =>
   (JSON.parse(convert(switches).files.find((f) => f.year === year)?.json ?? '{}') as Obj).tickets;
 
 describe('legacy export', () => {
+  it('reconciles rows read against the written file, and fails when a ticket is missing from it', () => {
+    const { files, reports } = convert();
+    expect(reports.map((r) => r.identity)).toEqual([true, true]);
+    const written = JSON.parse(files[0]?.json ?? '{}') as Obj;
+    written.tickets.splice(0, 1);
+    expect(writtenIdentity(reports[0] as never, JSON.stringify(written))).toBe(false);
+    const noLine = JSON.parse(files[0]?.json ?? '{}') as Obj;
+    const event = noLine.tickets.find((t: Obj) => t.entryType === 'pastUtility');
+    event.events.splice(1, 1);
+    expect(writtenIdentity(reports[0] as never, JSON.stringify(noLine))).toBe(false);
+  });
+
   it('writes one file per workbook year that parses (hand-worked: 16 tickets + 2 events in 2022)', () => {
     const { files } = convert();
     expect(files.map((f) => [f.year, f.tickets, f.events])).toEqual([
@@ -163,10 +175,33 @@ describe('legacy export', () => {
     expect(first.reports[0].doneBy[0]).toMatch(/^LG-[0-9a-f]{8}$/);
     const leaky = { ...plant, machines: new Set([...KNOWN, 'ZORBO-1']) };
     const rows = fixtureRows().map((r, i) => (i === 0 ? { ...r, machine: 'ZORBO-1' } : r));
-    expect(() => convertLegacy(rows, leaky, { ...DEFAULT_SWITCHES, star: {} })).toThrow(
-      /name token/,
+    expect(() => convertLegacy(rows, leaky, { ...DEFAULT_SWITCHES, star: {} })).toThrow(/token/);
+    expect(() => convert({}, { terms: ['ZZ-2'] })).toThrow(/token/);
+  });
+
+  it('redacts every phone format and short name parts, keeps dates and ordinary words, and maps observedBy by own key', () => {
+    const rows = fixtureRows().map((r, i) =>
+      i === 0
+        ? {
+            ...r,
+            doneBy: 'Li Quixle',
+            observedBy: 'constructor',
+            problem:
+              'Li said it is ok on 03-11-2022: (987) 654-3210, 987.654.3210, +91 98765 43210',
+          }
+        : r,
     );
-    expect(() => convert({}, { terms: ['ZZ-2'] })).toThrow(/name token/);
+    const out = JSON.parse(
+      convertLegacy(rows, plant, { ...DEFAULT_SWITCHES, star: {} }).files[0]?.json ?? '{}',
+    ) as Obj;
+    expect(out.tickets[0].problem).toBe(
+      '[person] said it is ok on 03-11-2022: [phone], [phone], [phone]',
+    );
+    expect(out.tickets[0].reports[0].observedBy).toBeNull();
+  });
+
+  it('counts stray shifts from the written tickets (7TH and a blank shift; 3ND is a known spelling)', () => {
+    expect(convert().reports[0]?.strayShift).toBe(2);
   });
 
   it('uses the tenant person code on an exact match', () => {
