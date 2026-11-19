@@ -37,3 +37,16 @@
 - Behaviour tests cover the status map and the formatter. No kit file, token or status file changes, so the 70 gallery
   baselines do not move.
 - No user-visible change.
+
+## 80c — DESIGN.md sections 1 to 4
+
+- Builders get the first four sections of `docs/DESIGN.md` in impeccable's shape: the overview with the two zones by
+  route and Nimish's 19 Nov answers, the colour roles and the five-tone grammar with the one rule that maps all 40
+  statuses, typography (UI sizes, TV sizes, Gujarati), and layout (breakpoints, the phone, laptop and TV tiers, the
+  five templates, and how tickets 88 and 89 measure that the floor and desk keep v3 positions).
+- It replaces the 22-line file and keeps what is still true: Apple's three principles, one accent, one primary
+  action, the system font. Facts nobody has given yet say "not known yet". Sections 5 to 8 follow in 80d.
+- A small test (`tools/design-doc.test.ts`) fails if a section goes missing or empties, or if a settled fact (Running
+  grey, Waiting amber, Transferred blue, Indian grouping, analytics follows the device theme, the TV always dark and
+  50 inch or larger) is dropped.
+- No user-visible change.
