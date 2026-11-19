@@ -325,6 +325,7 @@ export const compareFigure: Computer = ({ data, asOf, profile }) => {
     base: categoryMttr(fit),
     threshold: profile.whyWhyThresholdHours,
     end: period.end,
+    noRecords: period.noRecords,
   };
   const scored = stats.map((row) => scoreOf(row, context));
   const category = categoriesOf(machines)[0]?.name;

@@ -1,4 +1,10 @@
-import { hoursIn, periodFraction, type Period, type PeriodMonth } from './availability.js';
+import {
+  hoursIn,
+  observedDayCount,
+  periodFraction,
+  type Period,
+  type PeriodMonth,
+} from './availability.js';
 import { dayNumber } from './plant-date.js';
 import type { MachineRow, MoveRow } from './types.js';
 
@@ -79,14 +85,20 @@ export function cellAt(machine: MachineRow, moves: readonly MoveRow[], day: stri
   return cell;
 }
 
-/** The days of `[from, to]` a machine in `current` counts for `cell`: zero when the cells differ. */
-function daysInCell(current: string, cell: string, from: number, to: number): number {
-  return from <= to && current === cell ? to - from + 1 : 0;
+/** The days of `[from, to]` a machine in `current` counts for `cell`, no gap month's days: zero when the cells differ. */
+function daysInCell(
+  current: string,
+  cell: string,
+  range: readonly [number, number],
+  noRecords?: readonly string[],
+): number {
+  return current === cell ? observedDayCount(range[0], range[1], noRecords) : 0;
 }
 
 /**
- * The share of a window's days a machine was in `cell`, both ends included: the platform's own walk of the move
- * log, so a machine that moved mid-window counts in each cell for the days it was there.
+ * The share of a window's observed days a machine was in `cell`, both ends included: the platform's own walk of the
+ * move log, so a machine that moved mid-window counts in each cell for the days it was there. A no-records month's
+ * days count in neither the cell's days nor the window's.
  */
 export function cellFrac(
   machine: MachineRow,
@@ -105,14 +117,15 @@ export function cellFrac(
     const change = dayNumber(move.effectiveFrom);
     if (change === null) continue;
     if (change > cursor) {
-      inCell += daysInCell(current, cell, cursor, Math.min(change - 1, end));
+      inCell += daysInCell(current, cell, [cursor, Math.min(change - 1, end)], window.noRecords);
       cursor = Math.max(cursor, change);
       if (cursor > end) break;
     }
     current = cellKey(move.toCell);
   }
-  if (cursor <= end) inCell += daysInCell(current, cell, cursor, end);
-  return inCell / (end - start + 1);
+  if (cursor <= end) inCell += daysInCell(current, cell, [cursor, end], window.noRecords);
+  const observed = observedDayCount(start, end, window.noRecords);
+  return observed > 0 ? inCell / observed : 0;
 }
 
 /**
@@ -129,7 +142,12 @@ export function availableByCell(
     const purchased = machine.purchasedOn;
     const from = purchased !== null && purchased > window.from ? purchased : window.from;
     if (from > window.to) return total;
-    const share = cellFrac(machine, moves, { from, to: window.to }, cell);
+    const share = cellFrac(
+      machine,
+      moves,
+      { from, to: window.to, noRecords: window.noRecords },
+      cell,
+    );
     return total + window.annualHours * periodFraction(from, window.to, window.noRecords) * share;
   }, 0);
 }
