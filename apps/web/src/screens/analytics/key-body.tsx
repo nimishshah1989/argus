@@ -68,7 +68,7 @@ export function columnsOf(table: PageTable, rows: readonly Row[]): Column<Row>[]
 }
 
 /** The pager's words, in the catalogue, with Indian grouping on the counts. */
-function useLabels(caption: string): TableLabels {
+export function useTableLabels(caption: string): TableLabels {
   const { t } = useTranslation();
   return {
     caption,
@@ -92,7 +92,7 @@ export function KeyTable({ table }: { table: PageTable }) {
   const rows = useMemo(() => table.rows.map((cells, at) => ({ at, cells })), [table]);
   const columns = useMemo(() => columnsOf(table, rows), [table, rows]);
   const caption = table.title === '' ? table.header.join(' · ') : table.title;
-  const labels = useLabels(caption);
+  const labels = useTableLabels(caption);
   const view = useClientTable(rows, columns, (row) => row.cells.join(' '), 50);
   return (
     <section
