@@ -1,0 +1,1 @@
+- No change for users. A test of the Shift-calendar KPIs drill now looks for the ticket inside the drill table instead of anywhere on the page (the backlog table lists the same ticket), so it no longer passes or fails by timing.
