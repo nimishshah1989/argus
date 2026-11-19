@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { tableView } from '../../ui/elements/index.js';
 import type { ChartSpec } from '../../ui/chart/use-chart.js';
-import { columnsOf, sortNumber } from './key-body.js';
+import { createElement as h } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { KeyKpi, columnsOf, sortNumber } from './key-body.js';
 import { drawnChart } from './key-chart.js';
 import type { PageTable } from './page-content.js';
 
@@ -152,5 +154,21 @@ describe('signs, blank headers and blank cells', () => {
     expect(columns[0]!.sortValue).toBeDefined();
     expect(columns[1]!.sortValue).toBeUndefined();
     expect(oddRows.map((row) => columns[1]!.cell(row))).toEqual(['', '5']);
+  });
+});
+
+describe('a KPI tile', () => {
+  const printed = (value: string) =>
+    renderToStaticMarkup(h(KeyKpi, { kpi: { label: 'Label', value, sub: null } }));
+
+  it.each(['₹ 44.87 lakh a year', '—', '–', '-', '0', '12.50%'])(
+    'prints %j exactly as the engine wrote it',
+    (value) => {
+      expect(printed(value)).toContain(`>${value}</dd>`);
+    },
+  );
+
+  it('prints a blank value blank, not a dash of its own', () => {
+    expect(printed('')).toContain('tabular-nums min-w-0 break-words"></dd>');
   });
 });
