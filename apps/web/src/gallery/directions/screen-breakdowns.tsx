@@ -61,9 +61,9 @@ function heat(): { cells: string[]; rows: HeatRow[] } {
         const values = names.map(() => 0);
         for (const machine of byType[i]!.rows) {
           const at = names.indexOf(`Cell ${machine[1]}`);
-          values[at] = values[at]! + Math.round(cellNumber(machine[3]!));
+          values[at] = values[at]! + cellNumber(machine[3]!);
         }
-        return { name: type[0]!, values };
+        return { name: type[0]!, values: values.map((value) => Math.round(value)) };
       })
       .sort((a, b) => sum(b.values) - sum(a.values))
       .slice(0, HEAT_ROWS),

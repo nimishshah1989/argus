@@ -100,7 +100,7 @@ export function Tile({ variant, figure }: { variant: Variant; figure: TileFigure
   return (
     <div
       data-tile={variant.tile}
-      className={`flex min-w-0 flex-col gap-1 ${shape.frame} ${variant.tile === 'edge' ? TONE[figure.tone ?? figure.change?.tone ?? 'neutral'].edge : ''}`}
+      className={`flex min-w-0 flex-col gap-1 ${shape.frame} ${variant.tile === 'edge' ? TONE[figure.change?.tone ?? figure.tone ?? 'neutral'].edge : ''}`}
       style={style}
     >
       <p className="text-footnote text-neutral-600">{figure.label}</p>
