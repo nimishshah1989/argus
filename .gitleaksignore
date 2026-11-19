@@ -17,3 +17,5 @@ d8ef0b71534ae90e15efe58b48d29cf0ba624a03:apps/server/test/people-api.test.ts:gen
 # (since replaced by the 'test-p256dh' / 'test-auth' placeholders). A later commit cannot remove it from that commit's diff.
 f0a1d96fffdb21bbd9f4a1dc8e9bb74619202cd9:apps/server/test/acting-person.test.ts:generic-api-key:340
 13f328f10a8b3eb2d2c3b843dd90ced03f039a26:packages/domain/test/analytics-bottleneck.test.ts:generic-api-key:24
+# false positive: a figure name held in a constant (many-years-risk.test.ts), renamed afterwards
+539ca38c757fafa39536ef0cda5dc5020fc6f8ae:packages/domain/test/many-years-risk.test.ts:generic-api-key:36

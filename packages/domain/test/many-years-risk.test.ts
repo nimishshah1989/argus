@@ -33,14 +33,14 @@ interface Page {
 const pageOf = (figure: FigureResult): Page =>
   (figure.value as unknown as { pages: Page[] }).pages[0]!;
 
-const KEY = 'a9-bottleneck-forecast';
+const FIGURE_NAME = 'a9-bottleneck-forecast';
 
 const runFor = (key: SpanKey) => {
   let core: ReturnType<typeof a9RiskCore> = null;
-  const figure = COMPUTERS[KEY]!;
+  const figure = COMPUTERS[FIGURE_NAME]!;
   const result = runWith(
     {
-      [KEY]: (input) => {
+      [FIGURE_NAME]: (input) => {
         core = a9RiskCore(input.data, input.profile);
         return figure(input);
       },
@@ -52,7 +52,7 @@ const runFor = (key: SpanKey) => {
       span: { from: HAND[key].from, to: HAND[key].to },
     },
   );
-  const page = pageOf(result.figures.find((f: FigureResult) => f.key === KEY)!);
+  const page = pageOf(result.figures.find((f: FigureResult) => f.key === FIGURE_NAME)!);
   return { core: core as ReturnType<typeof a9RiskCore>, page };
 };
 
