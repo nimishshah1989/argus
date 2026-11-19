@@ -20,21 +20,6 @@ import type { EngineData, MachineRow, MoveRow } from './types.js';
  * its available hours, while an empty month is null so the page can print the dash.
  */
 
-export const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 const BANDS: ReadonlyArray<{ label: string; low: number; high: number }> = [
   { label: '0-5 yrs', low: 0, high: 5 },
   { label: '5-10 yrs', low: 5, high: 10 },

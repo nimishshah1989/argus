@@ -204,6 +204,66 @@ const SPECS: Partial<Record<SpanKey, Spec>> = {
       ['TC-2', 'Turning Center', '2', '23', '22.00', '0.96', '238.17'],
     ],
   },
+  // Both years: TC-1, VC-1, TC-2 hold 23 + 37 = 60 failures, 22 + 72 = 94 h and 11,500 h; VC-2 (2026 only) 37, 72 h, 6,000 h.
+  both: {
+    years: [2025, 2026],
+    header: {
+      months: ['2025', '2026'].flatMap((year) =>
+        MONTH_NAMES.map((name) => `${name} ${year.slice(2)}`),
+      ),
+      quarters: ['25', '26'].flatMap((year) => [1, 2, 3, 4].map((q) => `Q${q} ${year} Avg`)),
+      total: 'Total 2025–2026',
+    },
+    // Turning Center: TC-1 + TC-2 = 2 x (60, 94, 11,500) = (120, 188, 23,000); Vertical: VC-1 + VC-2 = (97, 166, 17,500).
+    categories: [
+      group(
+        'Turning Center',
+        [2025, 2026],
+        { 2025: 2, 2026: 2 },
+        { machines: 2, count: 120, hours: 188, available: 23000 },
+      ),
+      group(
+        'Vertical Machining Center',
+        [2025, 2026],
+        { 2025: 1, 2026: 2 },
+        { machines: 2, count: 97, hours: 166, available: 17500 },
+      ),
+    ],
+    // Cell 1: TC-1 + VC-1 = (120, 188, 23,000); cell 2: TC-2 + VC-2 = (60 + 37, 94 + 72, 11,500 + 6,000).
+    cells: [
+      group(
+        'Cell 1',
+        [2025, 2026],
+        { 2025: 2, 2026: 2 },
+        { machines: 2, count: 120, hours: 188, available: 23000 },
+      ),
+      group(
+        'Cell 2',
+        [2025, 2026],
+        { 2025: 1, 2026: 2 },
+        { machines: 2, count: 97, hours: 166, available: 17500 },
+      ),
+    ],
+    // On 31 Dec 2026 VC-2 is 0 years old (0-5); the other three are 6 (5-10): 3 x (60, 94, 11,500) = (180, 282, 34,500).
+    bands: bandsOf([2025, 2026], { 2025: 0, 2026: 1 }, { 2025: 3, 2026: 3 }, [
+      { machines: 1, count: 37, hours: 72, available: 6000 },
+      { machines: 3, count: 180, hours: 282, available: 34500 },
+    ]),
+    // 69 + 148 = 217 failures, 66 + 288 = 354 h, 16,500 + 24,000 = 40,500 h: MTBF (40,500 - 354) / 217 = 185.0.
+    plant: group(
+      'PLANT TOTAL',
+      [2025, 2026],
+      { 2025: 3, 2026: 4 },
+      { machines: 4, count: 217, hours: 354, available: 40500 },
+    ),
+    // 94 / 60 = 1.57; (11,500 - 94) / 60 = 190.10; VC-2: 72 / 37 = 1.95, (6,000 - 72) / 37 = 160.22.
+    machines: [
+      ['TC-1', 'Turning Center', '1', '60', '94.00', '1.57', '190.10'],
+      ['VC-1', 'Vertical Machining Center', '1', '60', '94.00', '1.57', '190.10'],
+      ['TC-2', 'Turning Center', '2', '60', '94.00', '1.57', '190.10'],
+      ['VC-2', 'Vertical Machining Center', '2', '37', '72.00', '1.95', '160.22'],
+    ],
+  },
 };
 
 const page = (spec: Spec, key: SpanKey) => {
@@ -330,12 +390,13 @@ const figure = (key: SpanKey) => {
 };
 
 describe('A3 per span', () => {
-  it('prints the whole page of the 2025 span, July as no records and MTBF 238.2', () => {
-    const found = figure('2025');
-    expect(found.value).toEqual(page(SPECS['2025']!, '2025'));
-    // The headline cells, read off the engine's own page and held to hand.ts: the plant's MTBF and July.
-    const plant = (found.value as ReturnType<typeof page>).pages[0]!.tables[2]!.rows.slice(-2);
-    expect(plant[1]!.at(-1)).toBe(HAND['2025'].mtbf.toFixed(1));
+  it.each(['2025', 'both'] as const)('prints the whole page of span %s', (key) => {
+    const found = figure(key);
+    expect(found.value).toEqual(page(SPECS[key]!, key));
+    // The headline cells, read off the engine's own page and held to hand.ts: the plant's MTBF and July 2025.
+    const tables = (found.value as ReturnType<typeof page>).pages[0]!.tables;
+    const plant = tables[2]!.rows.slice(-2);
+    expect(plant[1]!.at(-1)).toBe(HAND[key].mtbf.toFixed(1));
     expect(plant[0]![7]).toBe(NO_RECORDS);
   });
 });
