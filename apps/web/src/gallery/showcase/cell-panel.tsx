@@ -1,9 +1,19 @@
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { LAST_FULL, PARTIAL, S, against, fixed, monthLong } from './data.js';
 import { Spark } from './spark.js';
+import { Tag, type TagSpec } from './tags.js';
 import type { Hover } from './trend-chart.js';
 
 const PLANT = S.plant.bdPct;
+
+/** A cell against the plant: a lower breakdown share is better, so lower is green and higher is red. */
+const againstTag = (t: TFunction, tone: ReturnType<typeof against>): TagSpec =>
+  tone === 'good'
+    ? { tone: 'good', icon: 'check', word: t('tag.lowerThanPlant') }
+    : tone === 'bad'
+      ? { tone: 'bad', icon: 'cross', word: t('tag.higherThanPlant') }
+      : { tone: 'neutral', icon: 'dash', word: t('tag.samePlant') };
 
 /**
  * One small chart per cell: its share of available hours lost to breakdowns, month by month, against the plant's
@@ -32,28 +42,16 @@ export function CellPanel({ hover }: { hover: Hover }) {
           const value = c.bdPct[month] ?? null;
           const tone = against(value, plant);
           return (
-            <li key={c.cell} className="sc-cell" data-tone={tone}>
+            <li key={c.cell} className="sc-cell" data-tone={tone} data-family="downtime">
               <span className="sc-cell-name">{c.cell}</span>
               <span className="sc-cell-value">
                 <span className="sc-num">{value === null ? '\u2014' : fixed(value, 2)}</span>
                 {value === null ? null : <span className="sc-unit">%</span>}
               </span>
               <span className="sc-cell-vs">
-                {value === null
-                  ? t('cells.noRecords')
-                  : plant === null
-                    ? ' '
-                    : value === plant
-                      ? t('cells.plant', { value: `${fixed(plant, 2)} %` })
-                      : t(value < plant ? 'cells.lower' : 'cells.higher')}
+                {value === null ? t('cells.noRecords') : <Tag tag={againstTag(t, tone)} />}
               </span>
-              <Spark
-                values={c.bdPct}
-                reference={PLANT}
-                active={hover.month}
-                tone="ink"
-                partial={PARTIAL}
-              />
+              <Spark values={c.bdPct} reference={PLANT} active={hover.month} partial={PARTIAL} />
             </li>
           );
         })}

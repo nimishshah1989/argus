@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { familyProps } from './family-colours.js';
 import { TONE_ROLES, type Direction, type ToneRole } from './variant.js';
 
 export type Theme = 'light' | 'dark';
@@ -59,6 +60,7 @@ export function directionProps(direction: Direction, theme: Theme): Record<strin
       out[`--color-${token}-tint`] = p[`${role}-tint`];
     }
   }
+  Object.assign(out, familyProps(theme));
   p.series.slice(2).forEach((c, i) => (out[`--proto-series-${i + 3}`] = c));
   p.seq.forEach((c, i) => (out[`--proto-seq-${i + 1}`] = c));
   p.div.forEach((c, i) => (out[`--proto-div-${i + 1}`] = c));

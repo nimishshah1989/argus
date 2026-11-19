@@ -8,10 +8,13 @@ import {
   change,
   fixed,
   monthLong,
+  rangePos,
   usualRange,
   type Metric,
 } from './data.js';
 import { amount, arrowPath, changeText } from './delta.js';
+import { FAMILY } from './families.js';
+import { monthTags, tagHtml } from './tags.js';
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const esc = (text: string): string => text.replace(/[&<>"]/g, (c) => ESC[c]!);
@@ -32,14 +35,10 @@ export function tipHtml(t: TFunction, metric: Metric, i: number): string {
   const arrow = ch
     ? `<span class="sc-delta" data-tone="${ch.tone}"><svg viewBox="0 0 12 12" width="12" height="12" class="sc-arrow" data-dir="${ch.dir}"><path d="${arrowPath(ch.dir)}"/></svg>${esc(changeText(t, metric, ch))}</span>`
     : '';
-  const range =
-    value === null
-      ? ''
-      : value > hi
-        ? t('tip.above', { hi: fixed(hi, metric.digits) })
-        : value < lo
-          ? t('tip.below', { lo: fixed(lo, metric.digits) })
-          : t('tip.within', { lo: fixed(lo, metric.digits), hi: fixed(hi, metric.digits) });
+  const pos = rangePos(metric, value);
+  const range = pos
+    ? t(`tip.${pos}`, { lo: fixed(lo, metric.digits), hi: fixed(hi, metric.digits) })
+    : '';
   const lines = [
     row(t('tip.range'), esc(range)),
     row(t('tip.breakdowns'), fixed(detail.breakdowns, 0)),
@@ -66,5 +65,6 @@ export function tipHtml(t: TFunction, metric: Metric, i: number): string {
     i >= FULL
       ? `<em>${esc(t('tip.running', { date: AS_OF_TEXT.replace(` ${YEAR_TEXT}`, '') }))}</em>`
       : '';
-  return `<div class="sc-tip"><header>${esc(monthLong(i))} ${YEAR_TEXT}${running}</header><p class="sc-tip-value"><b>${fixed(value, metric.digits)}</b>${unit}</p>${arrow}<dl>${lines.join('')}</dl></div>`;
+  const tags = monthTags(t, metric, i).map(tagHtml).join('');
+  return `<div class="sc-tip" data-family="${FAMILY[metric.id]}"><header>${esc(monthLong(i))} ${YEAR_TEXT}${running}</header><p class="sc-tip-value"><b>${fixed(value, metric.digits)}</b>${unit}</p>${arrow}${tags ? `<p class="sc-tags">${tags}</p>` : ''}<dl>${lines.join('')}</dl></div>`;
 }

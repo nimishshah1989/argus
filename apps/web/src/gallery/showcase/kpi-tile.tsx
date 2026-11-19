@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { LAST_FULL, PARTIAL, fixed, type Metric } from './data.js';
 import { Delta } from './delta.js';
 import { useCountUp } from './motion.js';
+import { FAMILY } from './families.js';
 import { Spark } from './spark.js';
+import { Tags, monthTags } from './tags.js';
 
 /** The unit as it prints beside a figure: `%` and `h` stay short, a count has none. */
 export const unitOf = (metric: Metric): string => metric.unit;
@@ -26,6 +28,7 @@ export function KpiTile({
     <button
       type="button"
       className="sc-tile"
+      data-family={FAMILY[metric.id]}
       data-testid={`kpi-${metric.id}`}
       aria-haspopup="dialog"
       onClick={() => onOpen(metric)}
@@ -38,6 +41,7 @@ export function KpiTile({
         {metric.unit ? <span className="sc-unit">{unitOf(metric)}</span> : null}
       </span>
       <span className="sc-tile-span">{t('tile.span')}</span>
+      <Tags list={monthTags(t, metric, LAST_FULL)} />
       <Delta metric={metric} i={LAST_FULL} />
       <Spark values={metric.values} active={active} partial={PARTIAL} />
     </button>
