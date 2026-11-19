@@ -165,7 +165,7 @@ describe('a settled fact must be its own positive sentence', () => {
 
   it.each([
     'It is not true that Running is grey.',
-    'Running is grey unless Nimish says otherwise.',
+    'Running is grey unless the pick says otherwise.',
     'Running is grey, though that may change.',
     'Running is grey for now if the pick keeps it.',
     'Running is grey and never green. Running is no longer grey.',
