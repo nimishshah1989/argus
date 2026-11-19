@@ -6,7 +6,7 @@ import { createPool } from '../kernel/index.js';
 import { reconcileSlaPolicies } from '../modules/accountability/index.js';
 import { loadEngineData } from '../modules/analytics/index.js';
 import { activePeople, ensurePendingPerson, resolveTenant } from '../modules/identity/index.js';
-import { importBhavin } from '../modules/imports/index.js';
+import { assertAppApiRole, importBhavin, legacyYearByTicket } from '../modules/imports/index.js';
 import { ensureLegacyListEntries } from '../modules/plant/index.js';
 import type { YearFile } from './legacy-export.js';
 
@@ -110,13 +110,49 @@ export function figureOf(result: EngineResult, key: string): unknown {
   return result.figures.find((figure) => figure.key === key)?.value;
 }
 
-/** The pool on `DATABASE_URL` (the app role: tenant rules apply) and the tenant named by its slug. */
-export async function connect(url: string, slug: string): Promise<{ pool: Pool; tenant: Tenant }> {
-  const pool = createPool(url);
-  const found = await resolveTenant(pool, slug);
-  if (!found) {
-    await pool.end();
-    throw new Error(`Unknown tenant: ${slug}`);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '']);
+
+/** A database on this machine (a host name, a loopback address or a socket folder), unless the caller allows a remote one. */
+export function assertLocalUrl(url: string, allowRemote: boolean): void {
+  if (allowRemote) return;
+  let host: string;
+  try {
+    const parsed = new URL(url);
+    const socket = parsed.searchParams.get('host') ?? '';
+    host = socket.startsWith('/') ? '' : parsed.hostname;
+  } catch {
+    throw new Error('DATABASE_URL is not a valid URL');
   }
-  return { pool, tenant: { id: found.id, timeZone: found.time_zone } };
+  if (!LOCAL_HOSTS.has(host)) {
+    throw new Error(
+      'DATABASE_URL names a remote host; pass --allow-remote to load there on purpose',
+    );
+  }
+}
+
+/**
+ * The pool on `DATABASE_URL` and the tenant named by its slug. The login must be the app role (no superuser, no row
+ * security bypass), and the host must be this machine unless `allowRemote`; both are checked before any write.
+ */
+export async function connect(
+  url: string,
+  slug: string,
+  allowRemote = false,
+): Promise<{ pool: Pool; tenant: Tenant }> {
+  assertLocalUrl(url, allowRemote);
+  const pool = createPool(url);
+  try {
+    await assertAppApiRole(pool);
+    const found = await resolveTenant(pool, slug);
+    if (!found) throw new Error(`Unknown tenant: ${slug}`);
+    return { pool, tenant: { id: found.id, timeZone: found.time_zone } };
+  } catch (error) {
+    await pool.end();
+    throw error;
+  }
+}
+
+/** The workbook year each imported legacy ticket was loaded from (its `lg-<year>-` source reference), by ticket id. */
+export async function workbookYears(pool: Pool, tenantId: string): Promise<Map<string, number>> {
+  return withTenant(pool, tenantId, (client) => legacyYearByTicket(client, tenantId));
 }

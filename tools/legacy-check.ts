@@ -111,12 +111,17 @@ export function parseSummary(
 }
 
 /** Breakdowns and hours per machine and month from the loaded plant: non-PM reports with downtime (R7). */
-export function loadedFigures(data: EngineData): Map<string, Loaded> {
+export function loadedFigures(
+  data: EngineData,
+  /** Only the reports the named workbook holds: its tickets by id and the year it is. */
+  workbook?: { year: number; yearOf: ReadonlyMap<string, number> },
+): Map<string, Loaded> {
   const code = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const minutes = new Map<string, { count: number; min: number }>();
   for (const report of data.reports) {
     const machine = code.get(report.machineId);
     if (!machine || report.maintCode === 'PM' || !(report.downtimeMin > 0)) continue;
+    if (workbook && workbook.yearOf.get(report.ticketId ?? '') !== workbook.year) continue;
     const at = key(machine, Number(report.date.slice(0, 4)), Number(report.date.slice(5, 7)));
     const was = minutes.get(at) ?? { count: 0, min: 0 };
     minutes.set(at, { count: was.count + 1, min: was.min + report.downtimeMin });

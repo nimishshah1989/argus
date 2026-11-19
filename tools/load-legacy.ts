@@ -5,6 +5,8 @@ import {
   engineData,
   figureOf,
   loadLegacyYears,
+  type LoadedYear,
+  workbookYears,
   runYear,
 } from '../apps/server/src/seed/legacy-load.js';
 import { foldMachine } from '../apps/server/src/seed/legacy-sheets.js';
@@ -21,19 +23,26 @@ import { compare, formatDifference, loadedFigures, parseSummary } from './legacy
 
 /**
  * `pnpm exec tsx tools/load-legacy.ts --data <folder> --tenant <slug> [--plant <file>] [--star ..] [--retired ..]
- * [--gap ..] [--fold ..]` (ticket 69c). Converts the workbooks as `pnpm import:legacy` does, adds the list entries the
+ * [--gap ..] [--fold ..] [--allow-remote]` (ticket 69c). Converts the workbooks as `pnpm import:legacy` does, adds the list entries the
  * old history names, loads each year in order through the importer into the database on `DATABASE_URL`, runs the
- * engine once per year and sets each workbook's MTTR and MTBF sheets against what was loaded. Local database only
- * until 69d; the printed lines carry counts and machine codes, never a row's text.
+ * engine once per year and sets each workbook's MTTR and MTBF sheets against what was loaded. DATABASE_URL must be the app role and a
+ * local host (`--allow-remote` lifts the host rule for 69d); the printed lines carry counts and machine codes, never a row's text.
  */
 const USAGE =
-  'usage: load-legacy --data <folder> --tenant <slug> [--plant <file>] [--star|--retired|--gap|--fold ..]';
+  'usage: load-legacy --data <folder> --tenant <slug> [--plant <file>] [--star|--retired|--gap|--fold ..] [--allow-remote]';
 
-function split(argv: readonly string[]): { tenant: string; rest: string[] } {
+function split(argv: readonly string[]): { tenant: string; allowRemote: boolean; rest: string[] } {
   const at = argv.indexOf('--tenant');
   const tenant = at < 0 ? undefined : argv[at + 1];
   if (!tenant) throw new Error(USAGE);
-  return { tenant, rest: argv.filter((_, i) => i !== at && i !== at + 1) };
+  const rest = argv.filter((a, i) => i !== at && i !== at + 1 && a !== '--allow-remote');
+  return { tenant, allowRemote: argv.includes('--allow-remote'), rest };
+}
+
+export interface LoadResult {
+  loaded: LoadedYear[];
+  /** Machine-months on the summary sheets that differ from the loaded plant. */
+  named: number;
 }
 
 type Plant = ReturnType<typeof loadPlant>;
@@ -65,51 +74,67 @@ function printEngine(plantData: PlantData, years: readonly number[]): void {
   }
 }
 
-/** Each workbook's MTTR and MTBF sheets against the loaded plant: equal, or the named pair. */
-function printCheck(data: string, plant: Plant, plantData: PlantData): void {
-  const mine = loadedFigures(plantData);
+/**
+ * Each workbook's MTTR and MTBF sheets against the rows that workbook holds (a row dated in another year loads under
+ * its own date but sits in its workbook's file, so it is matched by workbook, not by date). Loaded months dated
+ * outside the workbook's year have no column on its sheets: they are counted as unmatched, named, never as differences.
+ */
+function printCheck(
+  data: string,
+  plant: Plant,
+  plantData: PlantData,
+  yearOf: Map<string, number>,
+): number {
   const machineOf = (label: string): string | null => {
     const code = foldMachine(label, plant.machines);
     return plant.machines.has(code) ? code : null;
   };
+  let named = 0;
   for (const { path, year } of findWorkbooks(data)) {
+    const mine = loadedFigures(plantData, { year, yearOf });
+    const unmatched = [...mine.keys()].filter((at) => !at.includes(` ${year}-`)).length;
     const summary = parseSummary(readWorkbook(path), year, machineOf);
     const result = compare(summary, mine);
+    named += result.different.length;
     console.log(
       `check ${year}: ${result.compared} machine-months, equal ${result.equal}, named ${result.different.length}` +
+        ` | unmatched, named (loaded months outside the year) ${unmatched}` +
         ` | labels not in the plant ${summary.notPlant.length} | unreadable summary sheets ${summary.unreadable}`,
     );
     for (const difference of result.different) console.log(`  ${formatDifference(difference)}`);
   }
+  return named;
 }
 
-export async function main(argv = process.argv.slice(2)): Promise<void> {
-  const { tenant: slug, rest } = split(argv);
+export async function main(argv = process.argv.slice(2)): Promise<LoadResult> {
+  const { tenant: slug, allowRemote, rest } = split(argv);
   const args = parseArgs(rest);
+  if (args.has('out')) throw new Error(`unknown option --out (nothing is written to a folder)\n${USAGE}`);
   const data = args.get('data');
   const url = process.env.DATABASE_URL;
   if (!data || !url) throw new Error(`${USAGE}\nDATABASE_URL is required`);
   const plant = loadPlant(args.get('plant'));
   const files = convert(data, plant, args);
-  const { pool, tenant } = await connect(url, slug);
+  const { pool, tenant } = await connect(url, slug, allowRemote);
   try {
     const loaded = await loadLegacyYears(pool, tenant, files);
     for (const l of loaded) {
       console.log(
         `load ${l.year}: batch ${l.batchId} ${l.status} | imported ${l.imported} skipped ${l.skipped} errored ${l.errored}` +
-          ` | list entries added ${l.added.length} | placeholder people ${l.people}`,
+          ` | list entries added or switched on ${l.added.length} | placeholder people ${l.people}`,
       );
     }
     if (loaded.length < files.length || loaded.some((l) => l.status !== 'done')) {
       process.exitCode = 1;
-      return;
+      return { loaded, named: 0 };
     }
     const plantData = await engineData(pool, tenant.id);
     printEngine(
       plantData,
       files.map((file) => file.year),
     );
-    printCheck(data, plant, plantData);
+    const named = printCheck(data, plant, plantData, await workbookYears(pool, tenant.id));
+    return { loaded, named };
   } finally {
     await pool.end();
   }

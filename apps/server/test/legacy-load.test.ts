@@ -13,7 +13,17 @@ import { FIXTURE_PASSWORD, seedCosmos } from '../src/seed/cosmos.js';
 import { DEFAULT_SWITCHES, type Switches } from '../src/seed/legacy-classify.js';
 import { convertLegacy } from '../src/seed/legacy-export.js';
 import { KNOWN, fixtureRows, serial, sheet } from '../src/seed/legacy-fixture.js';
-import { engineData, figureOf, loadLegacyYears, runYear } from '../src/seed/legacy-load.js';
+import { withTenant } from '@uptimo/db';
+import { ensureLegacyListEntries } from '../src/modules/plant/index.js';
+import {
+  assertLocalUrl,
+  connect,
+  engineData,
+  figureOf,
+  loadLegacyYears,
+  runYear,
+  workbookYears,
+} from '../src/seed/legacy-load.js';
 import { loadedFigures } from '../../../tools/legacy-check.js';
 import { readSheet, type LegacyRow } from '../src/seed/legacy-sheets.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -191,6 +201,58 @@ describe('the converter fixture loaded year by year', () => {
     );
     expect(reply.statusCode, reply.body).toBe(200);
     expect(reply.json().rows).toHaveLength(16);
+  });
+});
+
+describe('where the runner may write', () => {
+  it('refuses a login that is not the app role, and a remote host unless allowed', async () => {
+    await expect(connect(db.container.getConnectionUri(), 'cosmos')).rejects.toThrow(/role/i);
+    expect(() => assertLocalUrl('postgres://u@db.example.com:5432/x', false)).toThrow(
+      /--allow-remote/,
+    );
+    expect(() => assertLocalUrl('postgres://u@db.example.com:5432/x', true)).not.toThrow();
+    for (const local of [
+      'postgres://u@localhost/x',
+      'postgres://u@127.0.0.1/x',
+      'postgres://u@[::1]/x',
+      'postgres:///x?host=/var/run/postgresql',
+    ]) {
+      expect(() => assertLocalUrl(local, false)).not.toThrow();
+    }
+  });
+
+  it('switches the two plant-event entries back on when they exist switched off, once, and leaves legend codes alone', async () => {
+    await q(
+      "UPDATE list_item SET active = false WHERE tenant_id = $1 AND code IN ('Plant', 'Utility failure', 'UTI')",
+      [tenantId],
+    );
+    const run = () =>
+      withTenant(db.app, tenantId, (c) =>
+        ensureLegacyListEntries(c, { tenantId, loginId: null }, ['UTI']),
+      );
+    expect(await run()).toEqual(['location:Plant', 'work_type:Utility failure']);
+    expect(await run()).toEqual([]);
+    const rows = await q(
+      "SELECT code, active FROM list_item WHERE tenant_id = $1 AND code IN ('Plant', 'Utility failure', 'UTI') ORDER BY code",
+      [tenantId],
+    );
+    expect(rows.rows).toEqual([
+      { code: 'Plant', active: true },
+      { code: 'UTI', active: false },
+      { code: 'Utility failure', active: true },
+    ]);
+  });
+});
+
+describe('the summary check matches rows by the workbook that holds them', () => {
+  it('leaves the late-2022 row in the 2023 workbook out of the 2022 sheets and keeps it with the 2023 workbook', async () => {
+    const data = await engineData(db.app, tenantId);
+    const yearOf = await workbookYears(db.app, tenantId);
+    const in2022 = loadedFigures(data, { year: 2022, yearOf });
+    const in2023 = loadedFigures(data, { year: 2023, yearOf });
+    expect(in2022.has('ZZ-1 2022-12')).toBe(false);
+    expect(in2022.get('ZZ-1 2022-11')).toEqual({ count: 1, hours: 0.5 });
+    expect([...in2023.keys()].sort()).toEqual(['ZZ-1 2022-12', 'ZZ-1 2023-01']);
   });
 });
 

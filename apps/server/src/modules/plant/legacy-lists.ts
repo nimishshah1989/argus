@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { audit } from '../ops/index.js';
-import { insertListEntryIfMissing } from './repo/legacy-lists.js';
+import { activateListEntry, insertListEntryIfMissing } from './repo/legacy-lists.js';
 
 /** The two entries a plant event (ticket 69) names, switched on like any list entry the importer needs. */
 const PLANT_EVENT_ENTRIES = [
@@ -11,8 +11,9 @@ const PLANT_EVENT_ENTRIES = [
 /**
  * Before the old history loads: the list entries `Plant` (location) and `Utility failure` (work type), and every
  * maintenance code the workbooks' legends use that the plant does not hold yet, as a switched-off entry (off for
- * new tickets, still shown on old reports: ticket 47). An entry that exists is never touched, so a second call adds
- * nothing. Each new entry is one audit line. Returns the entries added, as `list:code`.
+ * new tickets, still shown on old reports: ticket 47). The two plant-event entries are switched back on if
+ * they exist switched off (the importer reads active entries only); a legend code that exists is never touched. A second
+ * call changes nothing. Each change is one audit line. Returns the entries added or switched on, as `list:code`.
  */
 export async function ensureLegacyListEntries(
   tx: PoolClient,
@@ -27,7 +28,9 @@ export async function ensureLegacyListEntries(
   ];
   const added: string[] = [];
   for (const entry of wanted) {
-    if (!(await insertListEntryIfMissing(tx, who.tenantId, entry))) continue;
+    const made = await insertListEntryIfMissing(tx, who.tenantId, entry);
+    const woken = !made && entry.active && (await activateListEntry(tx, who.tenantId, entry));
+    if (!made && !woken) continue;
     added.push(`${entry.list}:${entry.code}`);
     await audit.record(tx, {
       tenantId: who.tenantId,
@@ -35,7 +38,7 @@ export async function ensureLegacyListEntries(
       action: 'list_item.legacy_history',
       entity: 'list_item',
       before: null,
-      after: { list: entry.list, code: entry.code, active: entry.active },
+      after: { list: entry.list, code: entry.code, active: entry.active, switchedOn: woken },
     });
   }
   return added;

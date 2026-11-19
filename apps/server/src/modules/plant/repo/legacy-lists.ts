@@ -21,3 +21,17 @@ export async function insertListEntryIfMissing(
   );
   return (done.rowCount ?? 0) > 0;
 }
+
+/** Switches an existing entry back on (the importer reads active entries only). True when a row was switched on. */
+export async function activateListEntry(
+  tx: Db,
+  tenantId: string,
+  row: { list: string; code: string },
+): Promise<boolean> {
+  const done = await tx.query(
+    `UPDATE list_item SET active = true, updated_at = now()
+      WHERE tenant_id = $1 AND list = $2 AND upper(code) = upper($3) AND NOT active`,
+    [tenantId, row.list, row.code],
+  );
+  return (done.rowCount ?? 0) > 0;
+}

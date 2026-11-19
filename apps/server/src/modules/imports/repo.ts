@@ -174,3 +174,13 @@ export async function countImportBatches(tx: Db, tenantId: string): Promise<numb
   );
   return result.rows[0].n as number;
 }
+
+/** The workbook year (`lg-<year>-…` source reference) of each ticket a legacy load imported, by ticket id. */
+export async function legacyYearByTicket(tx: Db, tenantId: string): Promise<Map<string, number>> {
+  const rows = await tx.query(
+    `SELECT ticket_id, substring(source_ref from '^lg-(\\d{4})-') AS year FROM import_row
+      WHERE tenant_id = $1 AND status = 'imported' AND ticket_id IS NOT NULL AND source_ref ~ '^lg-\\d{4}-'`,
+    [tenantId],
+  );
+  return new Map(rows.rows.map((row) => [row.ticket_id as string, Number(row.year)]));
+}

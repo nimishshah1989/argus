@@ -19,16 +19,18 @@ describe('load:legacy command', () => {
   });
 
   it('refuses an option it does not know', async () => {
-    await expect(main(['--tenant', 'x', '--out', 'y'])).rejects.toThrow();
+    await expect(main(['--tenant', 'x', '--out', 'y'])).rejects.toThrow(/unknown option --out/);
   });
 
   // The real workbooks never sit in the repository or in CI: LEGACY_DATA_DIR, DATABASE_URL (a local, migrated and
   // seeded database) and LEGACY_TENANT turn this on. It prints counts and codes only and loads four batches.
   it.skipIf(!real || !database || !tenant)(
-    'real workbooks: four batches load done and the run ends without an error code',
+    'real workbooks: four batches load done and no summary machine-month is named as different',
     async () => {
       process.exitCode = undefined;
-      await main(['--data', real ?? '', '--tenant', tenant ?? '']);
+      const result = await main(['--data', real ?? '', '--tenant', tenant ?? '']);
+      expect(result.loaded.map((l) => l.status)).toEqual(['done', 'done', 'done', 'done']);
+      expect(result.named).toBe(0);
       expect(process.exitCode).toBeUndefined();
     },
     3_600_000,
