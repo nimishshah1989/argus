@@ -27,10 +27,10 @@ heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all
 ## Frontier
 
 - Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 84 (size goal unmeasured), 86a
-  frame, 86b desk link, 91 (2023 hours unreconciled, so still in progress); fixes #463, #468. 77b and 78b went in ahead of
-  the page templates as additions to existing Settings lists (no new layout); restyle them in wave 3.
+  frame, 86b desk link, 91 (2023 hours unreconciled, so still in progress); fixes #463, #468. 77b and 78b went in
+  ahead of the page templates as additions to existing Settings lists; restyle in wave 3.
 - No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked) with a before and after for his
-  approval (screens only from mockups he approved, `docs/design/LOCK.md`). Also 75b (smaller replies via `?keys=`), 75c/d/f,
+  approval (screens only from approved mockups, `docs/design/LOCK.md`). Also 75b (smaller replies via `?keys=`), 75c/d/f,
   69d (staging load: needs his yes to real data on staging), 90, 92-96. Follow-ups: shared search palette (87),
   nightly validate workflow (`docs/TESTING.md` 10), failed-jobs 5-minute alarm.
 
@@ -45,6 +45,5 @@ about 1,480; at most 44.4 h may double count with breakdowns; lost hours may inc
 Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, `datasets/tickets`, refresh half-hourly, never edit the page
 file. Waiting on Nimish: which way is good for PM hours, breakdown hours with no downtime, manpower hours and spend
 figures (all "neither" now); staging history yes or no. `docs/plan/NEEDS.md`: N16 Bhavin (bare Star sheet, more
-out-of-production machines), N17 Feb–Mar 2022 and older files, Bhavin's batch (power cut against every machine or the
-plant; PM/UTI rows count; blank-minute rows; sheet vs log; typed hours vs minutes), N18 ranking, N19 AI thresholds,
-N5 Gujarati (jobs screen words need a native reader), N20 purge-or-private.
+out-of-production machines), N17 older files, Bhavin's batch (power cut against every machine or the plant; PM/UTI
+rows count; blank-minute rows; sheet vs log; hours vs minutes), N18, N19, N5 Gujarati (native reader), N20 purge.
