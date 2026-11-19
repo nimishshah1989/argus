@@ -140,7 +140,7 @@ export function displayDay(raw: string): string {
 }
 
 /** A sortable day: ISO stays, the platform's DD-MM-YYYY becomes ISO, anything else sorts as text. */
-function dayKey(raw: string): string {
+export function dayKey(raw: string): string {
   const platform = /^(\d{2})-(\d{2})-(\d{4})$/.exec(raw);
   return platform ? `${platform[3]}-${platform[2]}-${platform[1]}` : raw;
 }
