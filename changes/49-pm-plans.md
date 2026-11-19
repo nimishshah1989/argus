@@ -217,3 +217,7 @@ settings leg checks the page, the edit sheet and that the interval persists; the
 GWT 6 is 49a's screen and is covered by `apps/server/test/pm-plans.test.ts`'s audit assertions, not here. (4) 49a
 did not add `recordPmCompletion` (it had no caller); 49c adds it with the close that uses it, as the slice's
 deviation note allowed.
+
+**Fix (19 Nov, CI static):** `pm-jobs.tsx` carried a `className` on its card link, which the faces guard
+(`pnpm ui:check`) forbids — faces compose kit components, they do not style. The class was `block` only for layout the
+card already provides, so it is removed; the link and the card are unchanged in meaning and the guard is green.
