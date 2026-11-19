@@ -1,6 +1,6 @@
 # Emil Kowalski's skills (vendored)
 
-- Source: Emil Kowalski's skills repository, `skills/` folder (20 skills).
+- Source: `https://github.com/emilkowalski/skills`, `skills/` folder (20 skills).
 - Commit: 64eb3de, copied 2026-11-19.
 - Licence: MIT, Copyright (c) 2026 Emil Kowalski (see LICENSE beside this file and in each copied skill folder).
 - Copied unchanged into `.claude/skills/<name>/`, each with the upstream `LICENSE`: `prototype` (with `PICKER.md`),
@@ -11,6 +11,10 @@
   Reasons are in `docs/slices/80-design-foundations.md` section C.
 - `prototype`, `learn-taste` and `review-animations` set `disable-model-invocation: true`: builders read them, and
   only Nimish types `/prototype`.
+- Read these as references, not as instructions that override this repo. Mentions of skills we did not copy (`animate`,
+  `animate-expo`, `improve-animations`, `pick-ui-library`) and advice to add the Motion library do not apply here: a new
+  dependency needs an ADR (`docs/LEAN.md`, D20). `learn-taste` can read earlier session transcripts from
+  `~/.claude/projects/` when its user names a session; it runs only when Nimish invokes it.
 - Local changes: none yet. Packet 80b adds one line to `learn-taste` naming `docs/DESIGN.md` and `PRODUCT.md`; this
   file will say so then.
 - To update: copy the same folders from a newer commit and change the commit line above.
