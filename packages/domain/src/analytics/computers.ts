@@ -26,6 +26,7 @@ import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
 import { shiftKpisBacklogFigure } from './backlog.js';
+import { shiftKpisBreakdownMapFigure } from './breakdown-map.js';
 import { shiftKpisShiftSplitFigure } from './shift-split.js';
 import { reliabilityFigure } from './reliability.js';
 import { shiftKpisCompareFigure } from './standard-kpis.js';
@@ -221,11 +222,12 @@ const reportComputers: Readonly<Record<string, Computer>> = {
   'annual-report': annualReportFigure,
 };
 
-/** Owner 48's shift-calendar figures: the comparison, the shift split and the backlog; the map arrives with 48c. */
+/** Owner 48's shift-calendar figures: the comparison, the shift split, the backlog and the breakdown map. */
 const shiftComputers: Readonly<Record<string, Computer>> = {
   'shift-kpis.compare': shiftKpisCompareFigure,
   'shift-kpis.shift-split': shiftKpisShiftSplitFigure,
   'shift-kpis.backlog': shiftKpisBacklogFigure,
+  'shift-kpis.breakdown-map': shiftKpisBreakdownMapFigure,
 };
 
 /** Owner 67's reliability fit and critical-spares list, one figure on the machine page (67a). */

@@ -8,6 +8,8 @@ export const analyticsBreakdownsEn = {
   'analytics.figure.shift-kpis.compare': 'Platform basis beside the working-hour basis',
   'analytics.figure.shift-kpis.shift-split': 'Breakdowns, hours and MTTR by shift',
   'analytics.figure.shift-kpis.backlog': 'Open breakdowns, aged in working hours',
+  'analytics.figure.shift-kpis.breakdown-map':
+    'Pareto and heat grids by machine, cell, code and shift',
   'analytics.log.intro':
     'Every breakdown and PM entry the plant logged, newest first. The log keeps the PM rows; the analyses leave them out. A NO DT entry prints a dash, never zero hours.',
   'analytics.log.filter.title': 'Filter the log',
@@ -47,6 +49,14 @@ export const analyticsBreakdownsEn = {
   'analytics.content.a3.ageMttrChart': 'MTTR by machine age band',
   'analytics.content.a3.ageMtbfChart': 'MTBF by machine age band',
   'analytics.content.a3.plantTrendChart': 'Plant MTTR and MTBF by month',
+  'analytics.content.sk.machineChart': 'BD hours by machine — Pareto',
+  'analytics.content.sk.cellChart': 'BD hours by cell — Pareto',
+  'analytics.content.sk.codeChart': 'BD hours by maintenance code — Pareto',
+  'analytics.content.sk.shiftChart': 'BD hours by shift — Pareto',
+  'analytics.content.sk.machineAxis': 'Machine',
+  'analytics.content.sk.cellAxis': 'Cell',
+  'analytics.content.sk.codeAxis': 'Maintenance code',
+  'analytics.content.sk.shiftAxis': 'Shift',
   'analytics.page.drillTooMany':
     '{{tickets}} tickets are behind this page; open them one by one in the Breakdown log.',
   'analytics.page.openLog': 'Open the Breakdown log',

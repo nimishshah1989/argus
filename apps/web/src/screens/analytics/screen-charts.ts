@@ -3,10 +3,12 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
 
 /**
- * The three charts this packet's pages own (43e): Compare's hours by maintenance code and by month, and
- * Money Matters' money lost by problem. They sit beside `forecast-charts.ts` so the one page mapper keeps
- * its other chart ids and stays inside the 400-line hard budget. The engine's labels and datasets are data;
- * every title and axis is a catalogue lookup, and a blank dataset name is named by the catalogue.
+ * The screen-own charts this file places (43e, extended by 48c): Compare's hours by maintenance code and by month,
+ * Money Matters' money lost by problem, and the shift-calendar KPIs' four Paretos. They sit beside
+ * `forecast-charts.ts` so the one page mapper keeps its other chart ids and stays inside the 400-line hard budget.
+ * The engine's labels and datasets are data; every title and axis is a catalogue lookup, and a blank dataset name
+ * is named by the catalogue. A mixed chart is the annual report's Pareto shape: the bars are hours, the line their
+ * running share.
  */
 
 type ObjectValue = Record<string, unknown>;
@@ -14,11 +16,15 @@ type ObjectValue = Record<string, unknown>;
 const CMP_CODE = 'ch-cmp-code';
 const CMP_MONTH = 'ch-cmp-month';
 const MM_CHART = 'ch-mm';
+const SK_MACHINE = 'ch-sk-machine';
+const SK_CELL = 'ch-sk-cell';
+const SK_CODE = 'ch-sk-code';
+const SK_SHIFT = 'ch-sk-shift';
 
 interface ChartMeta {
   title: MessageKey;
   category: MessageKey;
-  kind: 'bar' | 'line';
+  kind: 'bar' | 'line' | 'mixed';
   /** The value axis title; absent leaves the axis unnamed. */
   valueLabel?: MessageKey;
   /** The series name when the engine sends none. */
@@ -47,6 +53,27 @@ const CHART_META: Record<string, ChartMeta> = {
     valueLabel: 'analytics.content.mm.valueAxis',
     value: 'analytics.content.mm.value',
     horizontal: true,
+  },
+  // 48c: the four Paretos, ranked worst first; the line is the running share of the dimension's hours.
+  [SK_MACHINE]: {
+    title: 'analytics.content.sk.machineChart',
+    category: 'analytics.content.sk.machineAxis',
+    kind: 'mixed',
+  },
+  [SK_CELL]: {
+    title: 'analytics.content.sk.cellChart',
+    category: 'analytics.content.sk.cellAxis',
+    kind: 'mixed',
+  },
+  [SK_CODE]: {
+    title: 'analytics.content.sk.codeChart',
+    category: 'analytics.content.sk.codeAxis',
+    kind: 'mixed',
+  },
+  [SK_SHIFT]: {
+    title: 'analytics.content.sk.shiftChart',
+    category: 'analytics.content.sk.shiftAxis',
+    kind: 'mixed',
   },
 };
 
@@ -100,6 +127,20 @@ export function screenChart(raw: unknown, t: TFunction): ChartSpec[] | null {
   const series = seriesOfChart(raw);
   if (categories.length === 0 || series.length === 0 || series.length > 2) return [];
   const named = namedSeries(series, meta, t);
+  if (meta.kind === 'mixed') {
+    const [bars, line] = named;
+    if (bars === undefined) return [];
+    return [
+      {
+        kind: 'mixed',
+        title: t(meta.title),
+        categoryLabel: t(meta.category),
+        categories,
+        bars: [bars],
+        line,
+      },
+    ];
+  }
   const pair = named as [ChartSeries] | [ChartSeries, ChartSeries];
   if (meta.kind === 'bar')
     return [

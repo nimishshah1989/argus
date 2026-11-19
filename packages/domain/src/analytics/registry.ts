@@ -121,6 +121,7 @@ export const FIGURES: readonly FigureDef[] = [
   tile(48, 'shift-kpis', 'compare', 'Platform basis beside the working-hour basis'),
   tile(48, 'shift-kpis', 'shift-split', 'Breakdowns, hours and MTTR by shift'),
   tile(48, 'shift-kpis', 'backlog', 'Open breakdowns by working-hour age'),
+  tile(48, 'shift-kpis', 'breakdown-map', 'Pareto and heat grids by machine, cell, code and shift'),
   // Ticket 67's reliability fit and critical spares: a second key on the machine page, never a screen of its own
   // (R11). Its value is per machine and per category, so the figure's own drill is the production fleet.
   {

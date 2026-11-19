@@ -58,6 +58,8 @@ export const analyticsGuideEn = {
     'Category analysis groups the period’s breakdowns by the machine’s category. Cell analysis groups them by the cell the machine was in on the day of the breakdown, read from the cell-change log, so a machine that moved counts in each cell it actually worked in.',
   'analytics.guide.category-cell.body2':
     'A blank cell, or one Settings does not list, is grouped under No cell. A breakdown with no category is dropped from the category tables, and both tables rank groups by hours and then by count.',
+  'analytics.guide.category-cell.body3':
+    'The breakdown map ranks the same failure hours four ways — by machine, cell, maintenance code and shift — worst first, with each row’s running share and the point where half the lost hours have been named: 13 of the 125 production machines, 3 of 9 cells, 3 of 23 codes and 1 of 3 shifts on the 11 November workbook. Its heat grids cut each row by the month of the report’s own date, and the cell is the machine’s registered cell, so a machine that moved does not split its hours.',
   'analytics.guide.age.title': '7. Age analysis',
   'analytics.guide.age.body1':
     'Age is completed years at the plant date. The analysis bands the fleet by age and compares each band’s breakdowns and downtime hours with the machines in it, so an old fleet is judged against its own size rather than against the plant as a whole.',
