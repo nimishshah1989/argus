@@ -12,6 +12,7 @@ import {
   cellName,
   inr,
   MONTHS,
+  monthLabels,
   monthlyRows,
   monthlySeries,
   bdHoursTable,
@@ -56,7 +57,7 @@ function analysisEntries(data: EngineData, machines: readonly MachineRow[]): A1E
       row,
       hours: effectiveHours(row.report),
       cell: cellAt(byId.get(row.report.machineId)!, data.moves, row.report.date),
-      month: Number(row.report.date.slice(5, 7)),
+      month: row.report.date.slice(0, 7),
     }));
 }
 
@@ -107,8 +108,9 @@ function buildContext(data: EngineData, asOf: string, annual: number): A1Context
   const cells = plantCells(machines, data.moves, ids);
   const period = data.period ?? yearToDate(asOf);
   const window: HoursWindow = { ...period, annualHours: annual };
-  const bdRows = monthlyRows(cells, entries, (row) => !isPm(row));
-  const pmRows = monthlyRows(cells, entries, (row) => isPm(row));
+  const months = calendarMonths(period);
+  const bdRows = monthlyRows(cells, entries, months, (row) => !isPm(row));
+  const pmRows = monthlyRows(cells, entries, months, (row) => isPm(row));
   const stats = cellStats({ cells, machines, moves: data.moves, window, entries });
   const totalAvailable = machines.reduce(
     (sum, machine) => sum + availableHoursFor(machine, window),
@@ -125,7 +127,7 @@ function buildContext(data: EngineData, asOf: string, annual: number): A1Context
     asOf,
     annual,
     period,
-    months: calendarMonths(period),
+    months,
     machines,
     cells,
     entries,
@@ -207,10 +209,10 @@ function charts(ctx: A1Context): Array<Record<string, unknown>> {
       type: 'line',
       axes: { x: '', y: '' },
       tickLabels: { x: [], y: [] },
-      labels: MONTHS,
+      labels: monthLabels(ctx),
       datasets: [
-        { label: 'BD Hrs', data: withGaps(monthlySeries(ctx.bdRows), ctx.months) },
-        { label: 'PM Hrs', data: withGaps(monthlySeries(ctx.pmRows), ctx.months) },
+        { label: 'BD Hrs', data: withGaps(monthlySeries(ctx.bdRows, ctx.months), ctx.months) },
+        { label: 'PM Hrs', data: withGaps(monthlySeries(ctx.pmRows, ctx.months), ctx.months) },
       ],
     },
   ];
