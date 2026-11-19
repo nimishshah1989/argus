@@ -11,7 +11,8 @@ Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `d
   wrong number, data loss, auth or tenancy bug is possible. Never review your own work.
 - Merge squash with `expectedHeadSha` when CI is green on the CURRENT head and nothing blocks. Infra flakes (apt
   mirror 503, `migration-runner` timing) get one rerun.
-- Open PRs with `gh api repos/nimishshah1989/argus/pulls` (`gh pr create` is blocked); CI runs on non-draft only.
+- Open PRs with `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>` (title, head, base, body;
+  `gh pr create` is blocked); CI runs on non-draft only.
   Run `pnpm lint` as well as `pnpm precheck`. New routes need their reply in `packages/shared/src/replies.ts`.
 - Cubic reviews every push: verify each finding, fix valid ones in the builder's first push, decline wrong ones
   on the thread. A "minor" suggestion that changes behaviour can break CI: test it.
@@ -21,8 +22,8 @@ Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `d
 
 Running grey, Waiting amber, Transferred blue; Indian number grouping; analytics follows system dark/light; floor
 and desk keep Bhavin's flow, analytics is redesigned freely. AI work paused (55, 72, 68). Production hardening
-(97, 98, 26–28) only when it slows nothing. Weekly staging dump parked. Real data in the public repo accepted until
-cutover (N20). Staging deploys on every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health`.
+(97, 98, 26–28) only when it slows nothing. Weekly staging dump parked. Real data already in the public repo is an
+accepted development risk; add no more. Purge it or make the repo private before cutover (N20). Staging deploys on every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health`.
 Bhavin: Star-01 = S-1, Star-02 = S-2 (bare "Star" sheet kept out and counted); retired TC-2, VC-2, VC-3, VC-5 left
 out of history; out of production figures: TC-5, TC-3, VC-6 (only three given); MEC becomes M, ELE becomes E.
 
