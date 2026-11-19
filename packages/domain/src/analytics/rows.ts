@@ -19,16 +19,18 @@ export function sourcedReports(data: EngineData): SourcedReport[] {
   const tickets = new Map([...data.tickets, ...data.tasks].map((ticket) => [ticket.id, ticket]));
   const rows = data.reports.flatMap((report) => {
     const ticket = report.ticketId === null ? undefined : tickets.get(report.ticketId);
-    return ticket ? [{ report, ticket }] : [];
+    return ticket ? [Object.freeze({ report, ticket })] : [];
   });
+  Object.freeze(rows);
   sourced.set(data.reports, { tickets: data.tickets, tasks: data.tasks, size, rows });
   return rows;
 }
 
 /**
  * The join above, kept per report list: fifty figures ask for it on the same data, and a list is never edited in
- * place once a run holds it, so the same lists give the same rows. Callers filter or copy it and never edit it
- * (`engine-scale.test.ts` runs the engine on a deep-frozen copy of the data to keep that true).
+ * place once a run holds it, so the same lists give the same rows. The joined list and each of its rows are frozen,
+ * so a figure that sorts, pushes to or edits the shared join throws; callers filter or copy it first. (The frozen-input
+ * test in `engine-scale.test.ts` covers the input rows; this freeze covers the join.)
  */
 const sourced = new WeakMap<
   readonly ReportRow[],
