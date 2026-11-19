@@ -3,6 +3,7 @@ import { dataAsOf } from './as-of.js';
 import { gapMonths, recordedMonths, type Period } from './availability.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
+import { isHistory, logNumbers, sourcedReports } from './rows.js';
 import type {
   Computed,
   Computer,
@@ -94,13 +95,27 @@ function periodOf(span: Span, asOf: string, data: EngineData, gaps: readonly str
   return { from, to, noRecords, ...(from === span.from ? {} : { requestedFrom: span.from }) };
 }
 
+/**
+ * The reports with each history row's log number written on it, counted over the whole history before any cut: the
+ * loader stores none, and a span that numbered its own rows would start again at 1.
+ */
+function numbered(data: EngineData): EngineData['reports'] {
+  const rows = sourcedReports(data).filter(isHistory);
+  const numbers = logNumbers(rows);
+  const byReport = new Map(rows.map((row, index) => [row.report.id, numbers[index]!]));
+  return data.reports.map((report) => {
+    const srNo = byReport.get(report.id);
+    return srNo === undefined ? report : { ...report, srNo };
+  });
+}
+
 /** What a figure that reads the span sees: the plant cut to it. Tickets stay, so a breakdown closed after `to` counts. */
 function cutToPeriod(data: EngineData, period: Period): EngineData {
   return {
     ...data,
     machines: data.machines.filter((m) => m.purchasedOn === null || m.purchasedOn <= period.to),
     moves: data.moves.filter((move) => move.effectiveFrom <= period.to),
-    reports: data.reports.filter((r) => r.date >= period.from && r.date <= period.to),
+    reports: numbered(data).filter((r) => r.date >= period.from && r.date <= period.to),
   };
 }
 

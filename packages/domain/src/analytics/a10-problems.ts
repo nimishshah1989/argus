@@ -1,4 +1,4 @@
-import { availableHours, availabilityWindow } from './availability.js';
+import { availableHours, availabilityWindow, hoursIn } from './availability.js';
 import { formatInr, formatNumber, formatPercent, normalizeLabel } from './format.js';
 import { isProduction } from './machine-facts.js';
 import { dmy } from './plant-date.js';
@@ -19,8 +19,8 @@ import type { Computer, EngineData, FigureValue } from './types.js';
  * grouping, families, repeats and words come from 41d-1's core; the unplaced card's suggestions come from
  * `problem-suggest.ts`; the editor prints the plant's own group list (the key's own rendered cells).
  *
- * The what-if reads the top group at 50% and the production fleet's available hours from 1 January of the data year
- * to the run date — each machine from its purchase date, as the platform's `availSum` does.
+ * The what-if reads the top group at 50% and the production fleet's available hours over the span the run names, or
+ * 1 January of the latest breakdown's year to the run date when it names none — each machine from its purchase date.
  */
 
 /** The platform prints the top 15 repeat pairs and the first 16 bars, and slices the action cell to 110 chars. */
@@ -32,22 +32,26 @@ const WHAT_SHARE = 0.5;
 /** The words table offers the plant's groups after its placeholder. */
 const WORD_PLACEHOLDER = 'Choose group…';
 
-/** The production fleet's available hours for the run's window: 1 January of the data year to the run date. */
+/**
+ * The production fleet's available hours: over the named span (each machine from its purchase, no gap month counted),
+ * or, with no span, 1 January of the latest breakdown's year to the run date as before.
+ */
 function availableTotal(
   data: EngineData,
   asOf: string,
   profile: { prodHrsPerDay: number; workDaysPerYear: number },
 ): number {
+  const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
+  const fleet = data.machines.filter(isProduction);
+  const span = data.period;
+  if (span !== undefined) return fleet.reduce((total, m) => total + hoursIn(m, annual, span), 0);
   const latest = sourcedReports(data)
     .filter(isHistory)
     .map((row) => row.report.date)
     .sort()
     .at(-1);
   const window = availabilityWindow(asOf, latest ?? null);
-  const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
-  return data.machines
-    .filter(isProduction)
-    .reduce((total, machine) => total + availableHours(machine, annual, window.from, window.to), 0);
+  return fleet.reduce((total, m) => total + availableHours(m, annual, window.from, window.to), 0);
 }
 
 /** The four page KPIs, in the platform's order and its own formats. */

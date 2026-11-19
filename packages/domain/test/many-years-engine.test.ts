@@ -35,8 +35,10 @@ const tiles = (key: SpanKey): unknown[] => tilesOf(results[key]);
 
 /** The figures that read the run date or the whole history, never the span, whole (value and drill). */
 const fixedFigures = (key: SpanKey) =>
-  results[key].figures.filter((figure) =>
-    FIGURES.some((def) => def.key === figure.key && def.reads !== undefined),
+  results[key].figures.filter(
+    (figure) =>
+      figure.key !== 'machine-page' &&
+      FIGURES.some((def) => def.key === figure.key && def.reads !== undefined),
   );
 
 describe('run with a span', () => {
@@ -55,9 +57,11 @@ describe('run with a span', () => {
   });
 
   it('leaves the as-of and history figures identical across spans', () => {
+    // The machine page is the one as-of figure whose breakdown, PM and drill block follows the span (packet 76o); it
+    // is held to hand values per span in `many-years-a10-machine.test.ts`, so the other 26 are compared here.
     expect(fixedFigures('2025')).toEqual(fixedFigures('2026'));
     expect(fixedFigures('both')).toEqual(fixedFigures('2026'));
-    expect(fixedFigures('2026')).toHaveLength(27);
+    expect(fixedFigures('2026')).toHaveLength(26);
   });
 
   it('marks which figures read the span, the run date and the whole history, by key', () => {

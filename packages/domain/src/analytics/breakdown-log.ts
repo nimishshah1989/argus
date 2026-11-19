@@ -3,6 +3,7 @@ import {
   effectiveHours,
   isHistory,
   isNoDowntime,
+  logNumbers,
   sourcedReports,
   type SourcedReport,
 } from './rows.js';
@@ -33,30 +34,6 @@ const EYE = '👁';
 
 /** A dash where the platform printed nothing: an empty Done By or code, and a NO-DT row's hours. */
 const DASH = '—';
-
-/**
- * The stable log number of each row: the workbook's own number where it has one (the platform's permanent Sr No,
- * gaps and all), else the row's place in date order, which is how the platform numbers a log it did not import.
- */
-function logNumbers(rows: readonly SourcedReport[]): number[] {
-  const order = rows.map((row, index) => ({ row, index }));
-  order.sort((left, right) =>
-    left.row.report.date === right.row.report.date
-      ? left.index - right.index
-      : left.row.report.date < right.row.report.date
-        ? -1
-        : 1,
-  );
-  const numbers = new Array<number>(rows.length);
-  order.forEach(({ index }, position) => {
-    numbers[index] = position + 1;
-  });
-  rows.forEach((row, index) => {
-    const recorded = row.report.srNo;
-    if (recorded !== null && recorded !== undefined) numbers[index] = recorded;
-  });
-  return numbers;
-}
 
 /** The log's entries, newest first: every history row, PM included, the highest Sr No at the head. */
 function logEntries(data: EngineData): Array<{ srNo: number; row: SourcedReport }> {

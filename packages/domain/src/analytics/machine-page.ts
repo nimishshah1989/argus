@@ -1,4 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
+import type { Period } from './availability.js';
 import { metadataNumber, roundValue } from './format.js';
 import { machineAge } from './machine-facts.js';
 import { effectiveHours, isHistory, isPm, sourcedReports, type SourcedReport } from './rows.js';
@@ -125,11 +126,12 @@ function completenessOf(machine: MachineRow): MachineRecord['completeness'] {
   return { recorded: fields.length - missing.length, of: fields.length, missing };
 }
 
-/** One machine's actual breakdowns: PM excluded, NO-DT counted but worth zero hours. */
+/** One machine's breakdowns in the span: PM excluded, NO-DT counted but worth zero hours; `lastOn` is the latest ever. */
 function breakdownsOf(
   machine: MachineRow,
   rows: readonly SourcedReport[],
   annual: number,
+  lastOn: string | null,
 ): MachineBreakdowns | null {
   if (machine.segment !== 'CNC' || machine.excludedFromProduction) return null;
   const actual = rows.filter((row) => !isPm(row));
@@ -143,13 +145,12 @@ function breakdownsOf(
   let topProblem: MachineBreakdowns['topProblem'] = null;
   for (const [problem, n] of counts)
     if (!topProblem || n > topProblem.count) topProblem = { problem, count: n };
-  const dates = actual.map((row) => row.report.date).sort();
   return {
     count,
     hours: roundValue(hours, 2),
     mttr: count > 0 ? roundValue(hours / count, 2) : null,
     mtbf: count > 0 ? roundValue((annual - hours) / count, 1) : null,
-    lastOn: dates.at(-1) ?? null,
+    lastOn,
     topProblem,
   };
 }
@@ -186,14 +187,41 @@ const movesOf = (data: EngineData, machineId: string): MachineMove[] =>
 interface RecordContext {
   rows: readonly SourcedReport[];
   annual: number;
+  period: Period | undefined;
   efficiencyPct: number;
   asOf: string;
   moves: MachineMove[];
 }
 
-/** One machine's page record: nameplate, age, area, load, breakdown summary, PM, completeness and its drills. */
+/**
+ * The flat year the MTBF divides by: the profile's annual hours for each calendar year of the span from the machine's
+ * purchase year on, less its no-records months. One year gives the annual hours; no span names one year.
+ */
+function annualOver(machine: MachineRow, annual: number, period: Period | undefined): number {
+  if (period === undefined) return annual;
+  const bought = machine.purchasedOn === null ? 0 : Number(machine.purchasedOn.slice(0, 4));
+  const first = Math.max(Number(period.from.slice(0, 4)), bought);
+  const last = Number(period.to.slice(0, 4));
+  const gaps = (period.noRecords ?? []).filter((key) => key >= `${first}-01`).length;
+  return first > last ? 0 : (annual * (12 * (last - first + 1) - gaps)) / 12;
+}
+
+/**
+ * One machine's page record: nameplate, age, area, load, completeness and moves as of the run date, its last failure
+ * from the whole history, and its breakdown summary, PM and drills from the span's own rows.
+ */
 function recordOf(machine: MachineRow, context: RecordContext): MachineRecord {
-  const { rows, annual, efficiencyPct, asOf, moves } = context;
+  const { annual, efficiencyPct, asOf, moves, period } = context;
+  const lastOn =
+    context.rows
+      .filter((row) => !isPm(row))
+      .map((row) => row.report.date)
+      .sort()
+      .at(-1) ?? null;
+  const rows =
+    period === undefined
+      ? context.rows
+      : context.rows.filter(({ report }) => report.date >= period.from && report.date <= period.to);
   const connected = machine.segment === 'DG' ? null : machine.powerKw;
   const running = connected === null ? null : roundValue((connected * efficiencyPct) / 100, 2);
   const length = metadataNumber(machine, 'length');
@@ -212,7 +240,7 @@ function recordOf(machine: MachineRow, context: RecordContext): MachineRecord {
     efficiencyPct,
     connectedKva: connected,
     runningKva: running,
-    breakdowns: breakdownsOf(machine, rows, annual),
+    breakdowns: breakdownsOf(machine, rows, annualOver(machine, annual, period), lastOn),
     pm: pmOf(machine, rows),
     completeness: completenessOf(machine),
     moves,
@@ -233,6 +261,7 @@ export const machinePage: Computer = ({ data, asOf, profile }) => {
     byMachine[machine.id] = recordOf(machine, {
       rows: history.filter((row) => row.report.machineId === machine.id),
       annual,
+      period: data.period,
       efficiencyPct: profile.efficiencyFactor,
       asOf,
       moves: movesOf(data, machine.id),
