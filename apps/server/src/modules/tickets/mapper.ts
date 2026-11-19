@@ -100,6 +100,8 @@ export interface Tx {
   body: Record<string, unknown>;
   auth: ActorAuth;
   actingPersonId: string | null;
+  /** Set by a PM close (49c): the plan the close is allowed to move, and `null` when there is none. */
+  pmPlanId?: string | null;
 }
 
 export interface LoadedCtx {

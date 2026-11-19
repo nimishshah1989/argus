@@ -8,6 +8,8 @@ type Rows = QueryResult['rows'];
 export interface ListFilters {
   statuses: string[] | null;
   kinds: string[] | null;
+  /** The channel a ticket was raised through (`pm` is the technician's PM job list, 49c). */
+  channels?: string[] | null;
   machineId?: string;
   personId?: string;
   raisedBy?: string;
@@ -33,6 +35,7 @@ export async function selectTicketPage(
 
   if (filters.statuses) where.push(`status = ANY(${place(filters.statuses)})`);
   if (filters.kinds) where.push(`kind = ANY(${place(filters.kinds)})`);
+  if (filters.channels) where.push(`raised_channel = ANY(${place(filters.channels)})`);
   if (filters.machineId) where.push(`machine_id = ${place(filters.machineId)}`);
   if (filters.personId) {
     const ph = place(filters.personId);

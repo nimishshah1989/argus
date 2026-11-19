@@ -230,6 +230,28 @@ export async function pmPlanForMachine(
   return row ? pmPlanRow(row as Record<string, unknown>) : null;
 }
 
+/**
+ * Moves the plan's clock after a PM job closes (49c, R8): `last_done_on` is the later done day and
+ * `last_meter_reading` the later reading, so a late close never walks the plan backwards. Inside the ticket's own
+ * transaction; an **active** plan only — a plan switched off after the job opened keeps its dates (R8). The close
+ * event is the authority for who and when; the plan carries no history of its own (D17).
+ */
+export async function recordPmCompletion(
+  tx: Db,
+  tenantId: string,
+  input: { planId: string; doneOn: string; meter: number | null },
+): Promise<void> {
+  await tx.query(
+    `UPDATE pm_plan
+        SET last_done_on = GREATEST(last_done_on, $3::date),
+            last_meter_reading = CASE WHEN $4::float8 IS NULL THEN last_meter_reading
+                                      ELSE GREATEST(COALESCE(last_meter_reading, $4::float8), $4::float8) END,
+            updated_at = now()
+      WHERE tenant_id = $1 AND id = $2 AND active`,
+    [tenantId, input.planId, input.doneOn, input.meter],
+  );
+}
+
 /** One AMC, warranty, legal or calibration row of the plant's register. */
 export async function insertAssetRegister(
   tx: Db,

@@ -5,20 +5,29 @@ import { AccountButtonRow, AccountSheet } from '../../components/AccountSheet.js
 import { Drafts } from '../../components/Drafts.js';
 import { useOnline } from '../../data/index.js';
 import { PatternFrame, StateNotice } from '../../patterns/frame.js';
-import { CirclePlus, List } from '../../ui/icon.js';
+import { CirclePlus, List, Wrench } from '../../ui/icon.js';
 import { Loading, Skeleton } from '../../ui/loading.js';
 import { Page, Shell, Stack } from '../../ui/layout.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { FLOOR, type FloorLoad } from './use-floor.js';
 
-/** The floor's two tabs (A1 to A3): Report and My complaints. Other work counts as Report. */
-export function FloorShell({ children }: { children: ReactNode }) {
+/** The floor's tabs (A1 to A3): Report and My complaints. Other work counts as Report. */
+export function FloorShell({
+  children,
+  maintenance = false,
+}: {
+  children: ReactNode;
+  /** Maintenance also gets the PM jobs tab (ticket 49c); the list itself is the tab's home. */
+  maintenance?: boolean;
+}) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const current = pathname === FLOOR.mine ? FLOOR.mine : FLOOR.report;
+  const current =
+    pathname === FLOOR.mine ? FLOOR.mine : pathname === FLOOR.pm ? FLOOR.pm : FLOOR.report;
   const tabs = [
     { to: FLOOR.report, label: t('nav.report'), icon: CirclePlus },
     { to: FLOOR.mine, label: t('floor.complaints'), icon: List },
+    ...(maintenance ? [{ to: FLOOR.pm, label: t('pm.jobs.tab'), icon: Wrench }] : []),
   ];
   const [account, setAccount] = useState(false);
   return (

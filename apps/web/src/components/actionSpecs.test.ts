@@ -128,6 +128,17 @@ describe('actionSpecs', () => {
     ]);
   });
 
+  it('offers a PM job the checklist close, not Mark done (49c)', () => {
+    const specs = actionSpecs(
+      working({ kind: 'general', raisedChannel: 'pm' } as Partial<Ticket>),
+      [],
+      actor({ role: 'supervisor' }),
+    );
+    expect(specs.filter((spec) => spec.action === 'close')).toEqual([
+      { action: 'close', label: 'pm.close.action', preset: 'report', primary: true },
+    ]);
+  });
+
   it('says Pick up on a handed-over open ticket', () => {
     const [first] = actionSpecs(ticket({ handedOver: true }), [], actor());
     expect(first).toEqual({ action: 'start', label: 'action.label.pickUp', primary: true });

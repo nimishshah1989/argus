@@ -52,6 +52,7 @@ export {
   pmPlanById,
   pmPlanForMachine,
   pmPlansForScheduling,
+  recordPmCompletion,
   type AssetKind,
   type AssetRegisterInput,
   type AssetRegisterRow,

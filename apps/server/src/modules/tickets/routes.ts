@@ -31,6 +31,7 @@ import {
 } from './admin-fixes.js';
 import { resolveActingPerson } from './acting.js';
 import { afterClose, checkTaskInput } from './tasks.js';
+import { preparePmClose } from './pm-close.js';
 import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, otherCellRefusal, reopenConflict } from './handback.js';
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
@@ -89,6 +90,15 @@ async function loadTicketContext(client: PoolClient, tx: tm.Tx): Promise<tm.Load
   };
 }
 
+/** The refusals a command earns before anything is written: a bad task, and a PM report that does not check out. */
+async function commandRefusal(
+  client: PoolClient,
+  tx: tm.Tx,
+  loaded: tm.LoadedCtx,
+): Promise<Outcome | null> {
+  return (await checkTaskInput(client, tx, loaded)) ?? (await preparePmClose(client, tx, loaded));
+}
+
 async function executeCommand(
   client: PoolClient,
   tx: tm.Tx,
@@ -112,8 +122,9 @@ async function executeCommand(
   if (unknown) return unknown;
   const lockout = await checkLockout(client, tx);
   if (lockout) return lockout;
-  const badTask = await checkTaskInput(client, tx, loaded);
-  if (badTask) return badTask;
+  // The PM report is built before the close stores it (49c, R8); a refusal here has written nothing.
+  const refused = await commandRefusal(client, tx, loaded);
+  if (refused) return refused;
   const command = buildCommand(tx, tx.actingPersonId ?? '', loaded);
   const result = tm.applyTransition(tx, tx.actingPersonId, loaded, command);
   if ('status' in result) return otherCellRefusal(tx, loaded.row, result);

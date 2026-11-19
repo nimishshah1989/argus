@@ -1273,10 +1273,11 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: in-progress
     evidence:
-      - fixtures/answer-key/pm-plan.json
-      - fixtures/answer-key/input.json
+      - apps/server/src/seed/pm-plans.test.ts
+      - apps/web/src/screens/settings/pm-plans-spec.test.ts
+      - apps/web/e2e/pm-plans.spec.ts
     source: docs/plan/m4a-triage.md
     screen: pm-plan
     ticket: '49'
@@ -1286,10 +1287,11 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: done
     evidence:
-      - fixtures/answer-key/input.json
-      - fixtures/answer-key/workbook-export.json
+      - apps/server/test/pm-close.test.ts
+      - apps/web/e2e/pm-plans.spec.ts
+      - apps/server/src/seed/pm-plans.test.ts
     source: docs/plan/m4a-triage.md
     screen: pm-reports
     ticket: '49'

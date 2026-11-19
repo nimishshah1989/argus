@@ -68,7 +68,7 @@ export function MyComplaints() {
       </FloorShell>
     );
   return (
-    <FloorShell>
+    <FloorShell maintenance={data.maintenance}>
       <QueuePage
         title={t('floor.complaints')}
         quietOnline

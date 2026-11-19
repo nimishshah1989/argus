@@ -88,6 +88,13 @@ describe('Open lists (v3.views.01 sort rules)', () => {
     expect(workRequests([old, urgent, task])).toEqual([urgent, old]);
   });
 
+  it('leaves a planned PM job out of the desk’s work requests (R10)', () => {
+    const pm = ticket({ kind: 'general', raisedChannel: 'pm' } as Partial<Ticket>);
+    const inspection = ticket({ kind: 'general', raisedChannel: 'inspection' } as Partial<Ticket>);
+    const work = ticket({ kind: 'general' });
+    expect(workRequests([pm, inspection, work])).toEqual([work]);
+  });
+
   it('counts breakdowns that are open or paused, not working ones', () => {
     const open = [ticket({}), ticket({ status: 'waiting' }), ticket({ status: 'working' })];
     expect(breakdownCount(open)).toBe(2);
