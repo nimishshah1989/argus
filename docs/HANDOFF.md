@@ -9,11 +9,10 @@ every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the comm
 
 - Never ask him a technology question; settle it by running something. Product questions only. Technical questions
   for Bhavin: write them as a short plain list; Nimish forwards them on WhatsApp.
-- Builders: Agent tool, `poteto-agent`, sonnet, worktree; resume the same builder with SendMessage for its own PR.
-  Tell every builder up front: run `pnpm lint` AND `pnpm precheck` before EVERY push (a push after a failed precheck
-  cost a CI cycle on #471), a `Large PR:` line over 800 lines, a `Tests removed:` line for any edited assertion.
-- Checks: opus, one narrow independent check only where a number, permission or data-loss bug is possible (it caught
-  3 guard bypasses on #465). Give it the right database: `argus_local` is on port 5433, not 5432.
+- Builders: Agent tool, `poteto-agent`, sonnet, worktree; resume the same builder for its own PR. Tell every builder:
+  `pnpm lint` AND `pnpm precheck` before EVERY push, a `Large PR:` line over 800 lines, a `Tests removed:` line.
+- Checks: opus, one narrow independent check only where a number, permission or data-loss bug is possible. The local
+  history database `argus_local` is on port 5433, not 5432.
 - Merge squash with `expectedHeadSha` only after READING the check runs of the CURRENT head. A "check suite
   completed" event can be for an old head: it says nothing. Merge main into a PR (`update_pull_request_branch`) once
   its builder is idle.
@@ -22,12 +21,14 @@ every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the comm
 
 Earlier: Running grey, Waiting amber, Transferred blue; Indian number grouping; analytics follows system dark/light;
 floor and desk keep Bhavin's flow; AI work paused (55, 72, 68); weekly staging dump parked; purge real data or make the
-repo private before cutover (N20). 19 Nov, later: power and air failures COUNT in plant downtime and availability (91);
+repo private before cutover (N20); real data already in the public repo is an accepted risk, add NO more. 19 Nov, later: power and air failures COUNT in plant downtime and availability (91);
 heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all merged.
 
 ## Frontier
 
-- Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79, 69a/b/c, 81, 82, 84, 86a frame, 86b desk link, 91; fixes #463, #468.
+- Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 84 (size goal unmeasured), 86a
+  frame, 86b desk link, 91 (2023 hours unreconciled, so still in progress); fixes #463, #468. 77b and 78b went in ahead of
+  the page templates as additions to existing Settings lists (no new layout); restyle them in wave 3.
 - No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked) with a before and after for his
   approval (screens only from mockups he approved, `docs/design/LOCK.md`). Also 75b (smaller replies via `?keys=`), 75c/d/f,
   69d (staging load: needs his yes to real data on staging), 90, 92-96. Follow-ups: shared search palette (87),
