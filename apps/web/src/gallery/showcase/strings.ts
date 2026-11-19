@@ -103,10 +103,27 @@ const en = {
   'cells.sum': '{{n}} of {{total}} cells lost less time to breakdowns than the plant in {{month}}.',
   'cells.note': 'Breakdown share of available hours, by month. The dotted line is the plant.',
   'cells.latest': '{{month}}',
-  'cells.plant': 'Plant {{value}}',
-  'cells.lower': 'lower than the plant',
-  'cells.higher': 'higher than the plant',
   'cells.noRecords': 'No records yet',
+
+  // Status tags: the engine has no targets, so these read the plant's own usual range. With targets they become
+  // "On target" and "Off target".
+  'tag.within': 'Within usual range',
+  'tag.above': 'Above usual',
+  'tag.below': 'Below usual',
+  'tag.of': 'in {{month}}',
+  'tag.improving': 'Improving vs {{month}}',
+  'tag.worsening': 'Worsening vs {{month}}',
+  'tag.steady': 'Steady vs {{month}}',
+  'tag.planned': 'Planned work',
+  'tag.partial': 'Partial month',
+  'tag.topCause': 'Top cause',
+  'tag.repeat': 'Repeat offender',
+  'tag.spike': 'One bad month',
+  'tag.lowerThanPlant': 'Lower than plant',
+  'tag.higherThanPlant': 'Higher than plant',
+  'tag.samePlant': 'Same as plant',
+  'heat.risk':
+    'Repeat offender: 10 hours or more in four or more months. One bad month: a single month holds 60 % or more of its hours.',
 };
 
 export type ShowcaseKey = keyof typeof en;

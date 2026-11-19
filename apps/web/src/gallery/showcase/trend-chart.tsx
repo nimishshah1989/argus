@@ -14,6 +14,9 @@ import { Delta } from './delta.js';
 import { trendOption } from './trend-option.js';
 import { useEchart } from '../../ui/chart/use-echart.js';
 import { readInk } from './chart-ink.js';
+import { FAMILY } from './families.js';
+import { Tags, monthTags } from './tags.js';
+import { useTheme } from './theme.js';
 
 /** The month pointed at in a chart other than the trend. */
 export const pointed = (month: number | null): Hover => ({ month, from: 'other' });
@@ -74,11 +77,12 @@ export function TrendChart({ hover, onHover }: { hover: Hover; onHover: (h: Hove
   const { t, i18n } = useTranslation('showcase');
   const [id, setId] = useState<MetricId>('availability');
   const metric = metricOf(id);
+  const theme = useTheme();
   const emit = useRef(onHover);
   emit.current = onHover;
   const { ref, chart, ready } = useEchart(
-    (el) => trendOption(readInk(el), metric, t),
-    [id, i18n.language],
+    (el) => trendOption(readInk(el, FAMILY[id]), metric, t),
+    [id, i18n.language, theme],
     (instance) => {
       instance.on('updateAxisPointer', (e: unknown) => {
         const value = (e as { axesInfo?: { value: number | string }[] }).axesInfo?.[0]?.value;
@@ -97,7 +101,7 @@ export function TrendChart({ hover, onHover }: { hover: Hover; onHover: (h: Hove
   }, [hover, ready, chart]);
   const shown = hover.month ?? LAST_FULL;
   return (
-    <section className="sc-card sc-hero" aria-labelledby="sc-trend-title">
+    <section className="sc-card sc-hero" data-family={FAMILY[id]} aria-labelledby="sc-trend-title">
       <header className="sc-card-head">
         <div>
           <h2 id="sc-trend-title">{t('trend.title')}</h2>
@@ -109,6 +113,7 @@ export function TrendChart({ hover, onHover }: { hover: Hover; onHover: (h: Hove
             })}{' '}
             <Delta metric={metric} i={shown} />
           </p>
+          <Tags list={monthTags(t, metric, shown)} />
         </div>
         <MetricToggle id={id} onChange={setId} />
       </header>

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { X } from '../../ui/icon.js';
 import { FULL, S, change, fixed, monthLong, type Metric } from './data.js';
 import { Arrow, changeText } from './delta.js';
+import { FAMILY } from './families.js';
 
 function MonthRow({ metric, i }: { metric: Metric; i: number }) {
   const { t } = useTranslation('showcase');
@@ -66,7 +67,12 @@ export function KpiSheet({
     <Dialog.Root open={open} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="sc-overlay" />
-        <Dialog.Content className="sc-sheet" aria-describedby={undefined} data-testid="kpi-sheet">
+        <Dialog.Content
+          className="sc-sheet"
+          aria-describedby={undefined}
+          data-family={metric ? FAMILY[metric.id] : undefined}
+          data-testid="kpi-sheet"
+        >
           {metric ? (
             <>
               <div className="sc-sheet-head">
