@@ -64,6 +64,7 @@ atBothWidths('the picker', () => {
       for (const [i, id] of DIRECTIONS.entries()) {
         await open(page, `&v=${i + 1}&theme=${theme}`);
         await expect(stage(page)).toHaveAttribute('data-direction', id);
+        await expect(page.getByTestId('chart')).toHaveAttribute('data-chart-state', 'ready');
         const room = await page.evaluate(
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         );
@@ -84,6 +85,22 @@ atBothWidths('the picker', () => {
 });
 
 atBothWidths('the Elements screen', () => {
+  test('chart variants: key place, frame and height differ, and series 3 to 8 and both ramps show', async ({
+    page,
+  }) => {
+    expect(await acrossDirections(page, 'legend')).toEqual(['above', 'inline', 'below']);
+    expect(await acrossDirections(page, 'chart-frame')).toEqual(['card', 'panel', 'rules']);
+    for (const [v, height] of [192, 160, 224].entries()) {
+      await open(page, `&v=${v + 1}`);
+      const chart = page.getByTestId('chart');
+      await expect(chart).toHaveAttribute('data-chart-state', 'ready');
+      expect((await chart.boundingBox())?.height).toBe(height);
+      await expect(page.locator('[data-series]')).toHaveCount(8);
+      for (const ramp of ['seq', 'div'])
+        await expect(page.locator(`[data-ramp="${ramp}"] [data-step]`)).toHaveCount(5);
+    }
+  });
+
   test('variants differ: tile shape, delta form and the Indian sample', async ({ page }) => {
     expect(await acrossDirections(page, 'tile')).toEqual(['card', 'edge', 'ruled']);
     expect(await acrossDirections(page, 'delta')).toEqual(['chip', 'inline', 'words']);
