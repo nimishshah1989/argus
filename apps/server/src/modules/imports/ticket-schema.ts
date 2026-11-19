@@ -163,7 +163,7 @@ export const ticketSchema = z
   .object({
     legacyId: z.string().trim().min(1).max(128).refine(noNul, 'NUL is not allowed'),
     ref,
-    entryType: z.enum(['ordinary', 'pastBreakdown']),
+    entryType: z.enum(['ordinary', 'pastBreakdown', 'pastUtility']),
     kind: z.enum(['stopped', 'support', 'general']),
     status: z.enum(['open', 'working', 'waiting', 'closed', 'cancelled']),
     machineCode: nullableShort,
@@ -214,6 +214,9 @@ export const ticketSchema = z
     }
   })
   .superRefine((ticket, context) => {
+    if (ticket.entryType === 'pastUtility' && ticket.kind !== 'general') {
+      addIssue(context, ['entryType'], 'Plant event requires general/WR');
+    }
     if (ticket.entryType !== 'pastBreakdown') return;
     if (ticket.kind !== 'stopped')
       addIssue(context, ['entryType'], 'Past breakdown requires stopped/BD');

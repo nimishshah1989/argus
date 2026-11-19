@@ -1,5 +1,11 @@
-import { activePeople, ensurePendingPerson } from '../identity/index.js';
-import { activeListItems, activeMachineByCode, shiftsOf } from '../plant/index.js';
+import { activePeople, ensurePendingPerson, personCode } from '../identity/index.js';
+import {
+  activeListItems,
+  activeMachineByCode,
+  machineByCode,
+  shiftsOf,
+  switchedOffListItems,
+} from '../plant/index.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import type { ImportCtx } from './batch.js';
 import type {
@@ -58,6 +64,8 @@ function names(ticket: BhavinTicket): string[] {
   return [...result];
 }
 
+const PERSON_CODE = /^p-[0-9a-f]{8}$/;
+
 function displayName(value: string): string {
   return value.normalize('NFC').trim().replace(/\s+/gu, ' ');
 }
@@ -68,7 +76,10 @@ function addCode<T extends CodeReference>(map: Map<string, T>, key: string, valu
   map.set(normalized, value);
 }
 
-async function loadLists(ctx: ImportCtx): Promise<{
+async function loadLists(
+  ctx: ImportCtx,
+  past: boolean,
+): Promise<{
   workTypes: Map<string, CodeReference>;
   locations: Map<string, CodeReference>;
   waitReasons: Map<string, WaitReasonReference>;
@@ -102,6 +113,12 @@ async function loadLists(ctx: ImportCtx): Promise<{
         : {}),
     });
   }
+  // A past row may carry a code that is switched off today (ticket 47: off for new tickets, shown on old reports).
+  const off = past ? await switchedOffListItems(ctx.client, ctx.tenantId, ['maint_code']) : [];
+  for (const row of off) {
+    const known = maps.maintenanceCodes.has(normalizeCode(row.code as string));
+    if (!known) addCode(maps.maintenanceCodes, row.code as string, { code: row.code as string });
+  }
   return maps;
 }
 
@@ -118,37 +135,76 @@ async function loadShifts(ctx: ImportCtx): Promise<Map<string, ShiftReference>> 
   return shifts;
 }
 
-async function loadMachine(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasConfig) {
-  if (ticket.machineCode === null) return null;
-  const aliasesBySource = new Map(
+function machineAliases(aliases: AliasConfig): Map<string, string> {
+  return new Map(
     Object.entries(aliases.machines).map(([source, target]) => [
       normalizeCode(source),
       normalizeCode(target),
     ]),
   );
-  const source = normalizeCode(ticket.machineCode);
-  const code = aliasesBySource.get(source) ?? source;
-  const rows = await activeMachineByCode(ctx.client, ctx.tenantId, code);
+}
+
+type MachineRef = NonNullable<ReconcileReferences['machine']>;
+
+/** A live ticket needs an active machine; a past row may name one that is no longer active. */
+async function findMachine(
+  ctx: ImportCtx,
+  source: string,
+  aliases: Map<string, string>,
+  past: boolean,
+): Promise<MachineRef> {
+  const normalized = normalizeCode(source);
+  const code = aliases.get(normalized) ?? normalized;
+  const find = past ? machineByCode : activeMachineByCode;
+  const rows = await find(ctx.client, ctx.tenantId, code);
   if (rows.length !== 1) throw new Error(`Unknown or inactive machine: ${code}`);
-  return rows[0] as {
-    id: string;
-    code: string;
-    category: string | null;
-    cell: string | null;
-    criticality: 'A' | 'B' | 'C' | null;
-  };
+  return rows[0] as MachineRef;
+}
+
+async function loadMachine(
+  ctx: ImportCtx,
+  ticket: BhavinTicket,
+  aliases: AliasConfig,
+): Promise<MachineRef | null> {
+  if (ticket.machineCode === null) return null;
+  const past = ticket.entryType !== 'ordinary';
+  return findMachine(ctx, ticket.machineCode, machineAliases(aliases), past);
+}
+
+/** The machine each `utility_loss` line names, by the code as the export wrote it. */
+async function loadLineMachines(
+  ctx: ImportCtx,
+  ticket: BhavinTicket,
+  aliases: AliasConfig,
+): Promise<Map<string, string>> {
+  const byAlias = machineAliases(aliases);
+  const ids = new Map<string, string>();
+  for (const event of ticket.events) {
+    if (event.type !== 'utility_loss') continue;
+    const machine = await findMachine(ctx, event.payload.machineCode, byAlias, true);
+    ids.set(normalizeCode(event.payload.machineCode), machine.id);
+  }
+  return ids;
+}
+
+type PersonHit = { id: string; name: string };
+
+/** Active people by normalised name, and by `P-` code (the first eight characters of their id, R9). */
+async function peopleIndex(ctx: ImportCtx) {
+  const byName = new Map<string, PersonHit[]>();
+  const byCode = new Map<string, PersonHit[]>();
+  const add = (map: Map<string, PersonHit[]>, key: string, hit: PersonHit) =>
+    map.set(key, [...(map.get(key) ?? []), hit]);
+  for (const row of await activePeople(ctx.client, ctx.tenantId)) {
+    const hit = { id: row.id as string, name: row.name as string };
+    add(byName, normalizeKey(hit.name), hit);
+    add(byCode, personCode(hit.id).toLowerCase(), hit);
+  }
+  return { byName, byCode };
 }
 
 async function loadPeople(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasConfig) {
-  const existing = await activePeople(ctx.client, ctx.tenantId);
-  const byName = new Map<string, Array<{ id: string; name: string }>>();
-  for (const row of existing) {
-    const key = normalizeKey(row.name as string);
-    byName.set(key, [
-      ...(byName.get(key) ?? []),
-      { id: row.id as string, name: row.name as string },
-    ]);
-  }
+  const { byName, byCode } = await peopleIndex(ctx);
   const aliasBySource = new Map(
     Object.entries(aliases.people).map(([source, target]) => [
       normalizeKey(source),
@@ -160,7 +216,8 @@ async function loadPeople(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasCo
   for (const sourceName of names(ticket)) {
     const source = normalizeKey(sourceName);
     const target = aliasBySource.get(source) ?? source;
-    const matches = byName.get(target) ?? [];
+    const matches =
+      byName.get(target) ?? (PERSON_CODE.test(target) ? byCode.get(target) : undefined) ?? [];
     if (matches.length > 1) throw new Error(`Ambiguous active person: ${target}`);
     if (matches.length === 1) {
       people.set(source, (matches[0] as { id: string }).id);
@@ -182,13 +239,15 @@ export async function loadTicketReferences(
   timeZone?: string,
 ): Promise<ReconcileReferences> {
   const machine = await loadMachine(ctx, ticket, aliases);
+  const lineMachines = await loadLineMachines(ctx, ticket, aliases);
   const people = await loadPeople(ctx, ticket, aliases);
-  const lists = await loadLists(ctx);
+  const lists = await loadLists(ctx, ticket.entryType !== 'ordinary');
   const shifts = await loadShifts(ctx);
   const zone = timeZone ?? (await ctx.client.query('SHOW TIME ZONE')).rows[0].TimeZone;
   return {
     timeZone: zone as string,
     machine,
+    lineMachines,
     ...people,
     ...lists,
     maintenanceAliases: new Map(

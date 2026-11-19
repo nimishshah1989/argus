@@ -28,7 +28,10 @@ export interface AliasConfig {
   people: Record<string, string>;
   maintenanceCodes: Record<string, string>;
 }
-export type EntryType = 'ordinary' | 'pastBreakdown';
+export type EntryType = 'ordinary' | 'pastBreakdown' | 'pastUtility';
+/** The channel a ticket is raised through: only a live import is `import`; every past row is `backfill`. */
+export const channelOfEntry = (entryType: EntryType): 'import' | 'backfill' =>
+  entryType === 'ordinary' ? 'import' : 'backfill';
 export type BhavinState = z.infer<typeof stateSchema>;
 export type StoredFigures = z.infer<typeof figuresSchema>;
 export type BhavinTicket = z.infer<typeof ticketSchema>;
