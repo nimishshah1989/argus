@@ -155,8 +155,10 @@ describe('failed jobs are seen (API)', () => {
       (await listed(head)).some((job) => job.id === id) ? true : undefined,
     );
     broken = false;
+    const before = runs;
     const res = await t.call('POST', `${LIST}/${id}/retry`, head, {});
     expect(res.statusCode, res.body).toBe(200);
+    await eventually(async () => (runs > before ? true : undefined));
     expect(await listed(head)).toEqual([]);
     const trail = await t.db.admin.query(
       `SELECT l.username FROM audit_log a JOIN login l ON l.id = a.login_id WHERE a.action = 'job.retry' AND a.entity_id = $1`,
