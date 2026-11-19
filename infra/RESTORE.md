@@ -106,14 +106,14 @@ real problem: paste the lines under it back. (`pg_restore` prints harmless `alre
 the script ignores those and nothing else.) The drill takes 1 to 3 minutes; if `Status` is `InProgress`, run the
 `get-command-invocation` line from Drill A step 2 again.
 
-**The ten-largest-tables check (`scripts/restore-drill.ts`).** `tsx scripts/restore-drill.ts` with `DRILL_SOURCE_URL` set dumps that
+**The ten-largest-tables check (`scripts/restore-drill.ts`).** `DRILL_SOURCE_URL=<url> pnpm exec tsx scripts/restore-drill.ts` dumps that
 database, restores the dump into a new empty database beside it, drops that database again, and prints `RESTORE DRILL PASS: 10 of 10
 largest tables have equal row counts` (or `FAIL` with the tables that differ, or `STOP` with the reason; exit code 1 unless PASS). It
 needs `pg_dump` and `pg_restore` 16 on the PATH, network access to the database, and a login that may create a database and is exempt
 from row security (the same need as the weekly dump). The script and its test run against a scratch Postgres in CI; **it has not yet
 been run against staging** (the server image holds no `pg_dump`, so that run is the first test of where it can live).
 
-Run it on a quiet database: it counts the source rows just before `pg_dump` takes its snapshot, so writes in between can show a false `FAIL`.
+The counts and the dump are taken inside one exported snapshot, so writes during the drill cannot cause a false `FAIL`. Any failure (no connection, no `pg_dump`, no right to create a database) prints `RESTORE DRILL STOP: <reason>` and exits 1.
 A `SET transaction_timeout` error from a `pg_dump` newer than the server is ignored (the one known harmless difference); any other `pg_restore` error stops the drill.
 
 ## 3. A real loss (not a drill)

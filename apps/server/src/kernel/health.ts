@@ -10,7 +10,7 @@ export interface Release {
   expectedMigrations: number | null;
 }
 
-/** `GIT_COMMIT` is set by the deploy (the image tag is the git SHA); the migration files sit under `root` in the image. */
+/** `GIT_COMMIT` is set by the deploy (the image tag, which is the git SHA unless a deploy names another tag); the migration files sit under `root` in the image. */
 export function releaseFromEnv(
   env: Record<string, string | undefined>,
   root: string = process.cwd(),
@@ -23,7 +23,9 @@ export function releaseFromEnv(
   } catch {
     // A build without the migration folder reports null rather than a wrong number.
   }
-  return { commit: env.GIT_COMMIT?.trim() || null, expectedMigrations };
+  // An image tag may be any word; only a full 40-hex git SHA is a commit worth naming.
+  const tag = env.GIT_COMMIT?.trim() ?? '';
+  return { commit: /^[0-9a-f]{40}$/i.test(tag) ? tag.toLowerCase() : null, expectedMigrations };
 }
 
 /** The check's answer, or undefined when it rejects or is slower than `ms`. */

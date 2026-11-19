@@ -55,6 +55,15 @@ describe('health', () => {
     });
   });
 
+  it('names a commit only when GIT_COMMIT is a full git SHA, lowercased', () => {
+    const sha = 'ABCDEF0123456789abcdef0123456789ABCDEF01';
+    expect(releaseFromEnv({ GIT_COMMIT: sha }).commit).toBe(sha.toLowerCase());
+    expect(releaseFromEnv({ GIT_COMMIT: 'latest' }).commit).toBeNull();
+    expect(releaseFromEnv({ GIT_COMMIT: 'abc1234' }).commit).toBeNull();
+    expect(releaseFromEnv({ GIT_COMMIT: `${sha}0` }).commit).toBeNull();
+    expect(releaseFromEnv({}).commit).toBeNull();
+  });
+
   describe('names the release it is running', () => {
     const repoRoot = new URL('../../../', import.meta.url).pathname;
     const files = readdirSync(new URL('packages/db/migrations/', `file://${repoRoot}`))

@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   compareCounts,
   formatReport,
+  libpqUrl,
   realRestoreErrors,
   runRestoreDrill,
 } from '../../../scripts/restore-drill.js';
@@ -32,6 +36,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.stop();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 const databases = async () =>
@@ -100,5 +108,40 @@ describe('restore drill (Drill B)', () => {
     expect(realRestoreErrors(`${notes}\npg_restore: error: relation "ticket" is broken`)).toEqual([
       'pg_restore: error: relation "ticket" is broken',
     ]);
+  });
+
+  it('names only the public-schema note as harmless: another "already exists" is a real error', () => {
+    const table =
+      'pg_restore: error: could not execute query: ERROR:  relation "ticket" already exists';
+    expect(realRestoreErrors(table)).toEqual([table]);
+  });
+
+  it('keeps every libpq setting and rewrites only the node-pg-only sslmode=no-verify', () => {
+    expect(libpqUrl('postgresql://u:p@h/db?sslmode=no-verify')).toBe(
+      'postgresql://u:p@h/db?sslmode=require',
+    );
+    const strict = 'postgresql://u:p@h/db?sslmode=verify-full&sslrootcert=%2Fetc%2Fca.pem';
+    expect(libpqUrl(strict)).toBe(strict);
+  });
+
+  it('never prints PASS when pg_restore dies without finishing', async () => {
+    const bin = mkdtempSync(join(tmpdir(), 'fake-pg-'));
+    writeFileSync(join(bin, 'pg_restore'), '#!/bin/sh\nkill -9 $$\n');
+    chmodSync(join(bin, 'pg_restore'), 0o755);
+    vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+    const before = await databases();
+    const result = await runRestoreDrill(db.container.getConnectionUri());
+    expect(result.ok).toBe(false);
+    expect(result.stopped).toMatch(/pg_restore did not finish/);
+    expect(formatReport(result)).not.toMatch(/PASS/);
+    expect(await databases()).toEqual(before);
+  }, 120_000);
+
+  it('turns an unreachable database into a STOP line that holds no password and no stack', async () => {
+    const result = await runRestoreDrill('postgresql://someone:s3cret-pw@127.0.0.1:1/nothing');
+    expect(result.ok).toBe(false);
+    const report = formatReport(result);
+    expect(report).toMatch(/^RESTORE DRILL STOP: .+Nothing was compared\.$/);
+    expect(report).not.toMatch(/s3cret-pw|\n\s+at /);
   });
 });

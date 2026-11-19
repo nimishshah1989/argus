@@ -17,6 +17,8 @@ import { Pool } from 'pg';
 export const DRILL_TABLES = 10;
 const APP_ROLES = ['app_user', 'app_router', 'app_api'];
 
+type Queryable = Pick<Pool, 'query'>;
+
 export interface TableCount {
   table: string;
   rows: number;
@@ -36,7 +38,7 @@ export interface DrillResult {
 }
 
 /** The tables of the public schema with their exact row counts, largest first (name breaks ties). */
-export async function largestTables(pool: Pool, limit = DRILL_TABLES): Promise<TableCount[]> {
+export async function largestTables(pool: Queryable, limit = DRILL_TABLES): Promise<TableCount[]> {
   const names = await pool.query(
     `SELECT quote_ident(c.relname) AS name FROM pg_class c
      JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -49,7 +51,7 @@ export async function largestTables(pool: Pool, limit = DRILL_TABLES): Promise<T
   return counted.slice(0, limit);
 }
 
-async function countRows(pool: Pool, quotedTable: string): Promise<number> {
+async function countRows(pool: Queryable, quotedTable: string): Promise<number> {
   return Number(
     (await pool.query(`SELECT count(*)::text AS n FROM public.${quotedTable}`)).rows[0].n,
   );
@@ -63,23 +65,26 @@ export function compareCounts(source: TableCount[], restored: Map<string, number
   });
 }
 
-/** libpq cannot read node-pg's `sslmode=no-verify`: drop the query string and ask for SSL when the URL asked for any. */
-function libpqEnv(url: string): { url: string; env: NodeJS.ProcessEnv } {
+/** libpq cannot read node-pg's `sslmode=no-verify` (it means "encrypt, do not check": libpq's `require`). Every other setting stays. */
+export function libpqUrl(url: string): string {
   const parsed = new URL(url);
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  if (parsed.searchParams.has('sslmode')) env.PGSSLMODE = 'require';
-  parsed.search = '';
-  return { url: parsed.toString(), env };
+  if (parsed.searchParams.get('sslmode') === 'no-verify')
+    parsed.searchParams.set('sslmode', 'require');
+  return parsed.toString();
 }
 
-/** Runs a Postgres client command; the URL and file go in the environment, so no password reaches the process list. */
-function tool(script: string, url: string, file: string): { ok: boolean; stderr: string } {
-  const { url: plain, env } = libpqEnv(url);
+/** Runs a Postgres client command; the URL, file and snapshot go in the environment, so no password reaches the process list. */
+function tool(script: string, url: string, file: string, snapshot = ''): ToolRun {
   const run = spawnSync('sh', ['-c', script], {
     encoding: 'utf8',
-    env: { ...env, DRILL_URL: plain, DRILL_FILE: file },
+    env: { ...process.env, DRILL_URL: libpqUrl(url), DRILL_FILE: file, DRILL_SNAPSHOT: snapshot },
   });
   return { ok: run.status === 0, stderr: (run.stderr ?? '') + (run.error?.message ?? '') };
+}
+
+interface ToolRun {
+  ok: boolean;
+  stderr: string;
 }
 
 function withDatabase(url: string, database: string): string {
@@ -89,7 +94,7 @@ function withDatabase(url: string, database: string): string {
 }
 
 /**
- * pg_restore ends with "errors ignored" for harmless notes such as an existing `public` schema, and a dump from a
+ * pg_restore ends with "errors ignored" for one harmless note (the `public` schema already exists), and a dump from a
  * newer pg_dump starts with `SET transaction_timeout`, which an older server rejects. Those two are the only
  * errors ignored; every other `pg_restore: error:` line is real. The row counts still decide PASS.
  */
@@ -97,7 +102,7 @@ export function realRestoreErrors(stderr: string): string[] {
   return stderr
     .split('\n')
     .filter((line) => line.startsWith('pg_restore: error:'))
-    .filter((line) => !/already exists/i.test(line))
+    .filter((line) => !line.endsWith('ERROR:  schema "public" already exists'))
     .filter((line) => !line.endsWith('unrecognized configuration parameter "transaction_timeout"'));
 }
 
@@ -129,19 +134,52 @@ async function restoredCounts(url: string, wanted: TableCount[]): Promise<Map<st
   return found;
 }
 
+/** What went wrong in one line, with any connection string removed (it can hold the password). */
+function describe(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error);
+  return (text.split('\n')[0] ?? '').replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, '<url>');
+}
+
+/** Any thrown failure (connection refused, no `pg_dump`, no right to create a database) becomes a STOP, never a stack trace. */
 export async function runRestoreDrill(sourceUrl: string): Promise<DrillResult> {
-  const source = new Pool({ connectionString: sourceUrl, max: 1 });
+  try {
+    return await drill(sourceUrl);
+  } catch (error) {
+    return stop(describe(error));
+  }
+}
+
+/** Counts the largest tables and dumps inside one exported snapshot, so writes during the drill cannot make a FAIL. */
+async function snapshotDump(
+  source: Pool,
+  sourceUrl: string,
+  file: string,
+): Promise<{ largest: TableCount[]; dump: ToolRun }> {
+  const client = await source.connect();
+  try {
+    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    const id = (await client.query('SELECT pg_export_snapshot() AS id')).rows[0].id as string;
+    const largest = await largestTables(client);
+    const script = 'pg_dump "$DRILL_URL" -Fc --snapshot="$DRILL_SNAPSHOT" -f "$DRILL_FILE"';
+    return { largest, dump: tool(script, sourceUrl, file, id) };
+  } finally {
+    await client.query('ROLLBACK').catch(() => undefined);
+    client.release();
+  }
+}
+
+async function drill(sourceUrl: string): Promise<DrillResult> {
+  const source = new Pool({ connectionString: sourceUrl, max: 2 });
   const work = mkdtempSync(join(tmpdir(), 'restore-drill-'));
   const scratch = `restore_drill_${Date.now()}`;
   let created = false;
   try {
     if (!(await mayBypassRowSecurity(source)))
       return stop('this login is subject to row security; a dump from it would be incomplete');
-    const largest = await largestTables(source);
-    if ((largest[0]?.rows ?? 0) === 0) return stop('the source database holds no rows to compare');
     const file = join(work, 'drill.dump');
-    const dump = tool('pg_dump "$DRILL_URL" -Fc -f "$DRILL_FILE"', sourceUrl, file);
+    const { largest, dump } = await snapshotDump(source, sourceUrl, file);
     if (!dump.ok) return stop(`pg_dump failed: ${dump.stderr.trim().split('\n')[0]}`);
+    if ((largest[0]?.rows ?? 0) === 0) return stop('the source database holds no rows to compare');
     await ensureRoles(source);
     await source.query(`CREATE DATABASE ${scratch}`);
     created = true;
@@ -153,10 +191,18 @@ export async function runRestoreDrill(sourceUrl: string): Promise<DrillResult> {
     );
     const errors = realRestoreErrors(restore.stderr);
     if (errors.length > 0) return stop(`the restore had errors: ${errors[0]}`);
+    // pg_restore exits 1 for the harmless notes above; an exit with no error line at all is a kill or a crash.
+    if (!restore.ok && !restore.stderr.includes('pg_restore: error:'))
+      return stop('pg_restore did not finish');
     const rows = compareCounts(largest, await restoredCounts(scratchUrl, largest));
     return { ok: rows.every((r) => r.equal), dumpBytes: statSync(file).size, rows };
   } finally {
-    if (created) await source.query(`DROP DATABASE IF EXISTS ${scratch} WITH (FORCE)`);
+    if (created)
+      await source
+        .query(`DROP DATABASE IF EXISTS ${scratch} WITH (FORCE)`)
+        .catch(() =>
+          console.error(`could not drop the scratch database ${scratch}; drop it by hand`),
+        );
     await source.end();
     rmSync(work, { recursive: true, force: true });
   }
@@ -182,15 +228,11 @@ export function formatReport(result: DrillResult): string {
 
 async function main(): Promise<void> {
   const url = process.env.DRILL_SOURCE_URL ?? process.env.MIGRATION_DATABASE_URL;
-  if (!url) throw new Error('DRILL_SOURCE_URL or MIGRATION_DATABASE_URL is required');
-  const result = await runRestoreDrill(url);
+  const result = url
+    ? await runRestoreDrill(url)
+    : stop('DRILL_SOURCE_URL or MIGRATION_DATABASE_URL is required');
   console.log(formatReport(result));
   if (!result.ok) process.exitCode = 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  });
-}
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) await main();
