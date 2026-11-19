@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Criticality, Machine, Severity, SeverityMatrix } from '../api.js';
+import { Button } from '../ui/button.js';
+import { CircleCheck } from '../ui/icon.js';
 
 const SEVERITIES: Severity[] = ['S1', 'S2', 'S3', 'S4'];
 const CRITICALITIES: Criticality[] = ['A', 'B', 'C'];
@@ -10,7 +12,7 @@ const WORK_FIELDS = [
   { key: 'urgentWorkRequest', label: 'settings.matrixUrgentWorkRequest' },
 ] as const;
 const selectClass =
-  'min-h-13 rounded-lg border border-neutral-300 bg-white px-2 text-base text-neutral-900 disabled:opacity-60';
+  'min-h-target rounded-lg border border-control bg-surface px-2 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-600';
 
 function SeveritySelect({
   value,
@@ -53,13 +55,15 @@ export function CriticalitySection({
 }) {
   const { t } = useTranslation();
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('settings.criticalityTitle')}</h2>
-      <p className="mt-1 text-sm text-neutral-600">{t('settings.criticalityHelp')}</p>
-      <ul className="mt-3 divide-y divide-neutral-100">
+    <section className="mt-6 rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">
+        {t('settings.criticalityTitle')}
+      </h2>
+      <p className="mt-1 text-footnote text-neutral-600">{t('settings.criticalityHelp')}</p>
+      <ul className="mt-3 divide-y divide-neutral-200">
         {machines.map((machine) => (
           <li key={machine.id} className="flex items-center justify-between gap-3 py-2">
-            <span className="text-base font-medium">{machine.code}</span>
+            <span className="text-body font-medium">{machine.code}</span>
             <select
               aria-label={t('settings.criticalityFor', { code: machine.code })}
               className={selectClass}
@@ -96,7 +100,7 @@ function WorkRequestFields({
   return (
     <div className="mt-4 grid grid-cols-2 gap-3">
       {WORK_FIELDS.map((field) => (
-        <label key={field.key} className="text-sm text-neutral-600">
+        <label key={field.key} className="text-footnote text-neutral-600">
           {t(field.label)}
           <span className="mt-1 block">
             <SeveritySelect
@@ -123,7 +127,7 @@ function MatrixGrid({
 }) {
   const { t } = useTranslation();
   return (
-    <table className="mt-3 w-full text-sm">
+    <table className="mt-3 w-full text-footnote">
       <thead>
         <tr className="text-left text-neutral-600">
           <th className="py-2 font-medium">{t('settings.matrixCriticality')}</th>
@@ -133,7 +137,7 @@ function MatrixGrid({
       </thead>
       <tbody>
         {CRITICALITIES.map((criticality) => (
-          <tr key={criticality} className="border-t border-neutral-100">
+          <tr key={criticality} className="border-t border-neutral-200">
             <td className="py-2 font-semibold">{criticality}</td>
             {KINDS.map((kind) => {
               const kindLabel = t(
@@ -170,22 +174,18 @@ export function MatrixSection(props: {
   const { t } = useTranslation();
   const { matrix, dirty, disabled, saving, saved, onCell, onField, onSave } = props;
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('settings.matrixTitle')}</h2>
-      <p className="mt-1 text-sm text-neutral-600">{t('settings.matrixHelp')}</p>
+    <section className="mt-6 rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">{t('settings.matrixTitle')}</h2>
+      <p className="mt-1 text-footnote text-neutral-600">{t('settings.matrixHelp')}</p>
       <MatrixGrid matrix={matrix} disabled={disabled} onCell={onCell} />
       <WorkRequestFields matrix={matrix} disabled={disabled} onField={onField} />
       <div className="mt-4 flex items-center gap-3">
-        <button
-          type="button"
-          disabled={disabled || saving || !dirty}
-          onClick={onSave}
-          className="min-h-13 rounded-xl bg-neutral-900 px-5 text-base font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-        >
+        <Button disabled={disabled || saving || !dirty} onClick={onSave}>
           {t('settings.saveMatrix')}
-        </button>
+        </Button>
         {saved && (
-          <p role="status" className="text-sm text-running">
+          <p role="status" className="inline-flex items-center gap-1 text-footnote text-ok-ink">
+            <CircleCheck aria-hidden size={16} />
             {t('settings.saved')}
           </p>
         )}
@@ -198,10 +198,10 @@ export function SettingsHeader() {
   const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('settings.title')}</h1>
+      <h1 className="text-title2 font-semibold tracking-tight">{t('settings.title')}</h1>
       <Link
         to="/desk"
-        className="inline-flex min-h-13 items-center rounded-xl border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-900 hover:bg-neutral-100"
+        className="inline-flex min-h-target items-center rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 [@media(hover:hover)]:hover:bg-neutral-100"
       >
         {t('settings.back')}
       </Link>

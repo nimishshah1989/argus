@@ -79,7 +79,7 @@ export function StopColumn({
     >
       <div className="flex items-center justify-between">
         <span
-          className={`inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5 ${scale.chip} ${TONE_FILL[tone]}`}
+          className={`inline-flex min-h-chip items-center gap-2 rounded-full px-3 ${scale.chip} ${TONE_FILL[tone]}`}
         >
           <Icon aria-hidden size={tv ? 32 : 16} />
           {t(label)}

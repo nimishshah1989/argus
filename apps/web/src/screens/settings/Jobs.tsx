@@ -83,7 +83,7 @@ function Tag({ look }: { look: Look }) {
   const { tone, icon: Icon, label } = LOOK[look];
   return (
     <span
-      className={`inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-caption font-bold ${TONE_FILL[tone]}`}
+      className={`inline-flex min-h-chip shrink-0 items-center gap-2 rounded-full px-3 text-caption font-bold ${TONE_FILL[tone]}`}
     >
       <Icon aria-hidden size={16} />
       {t(label)}
@@ -97,7 +97,7 @@ export function FailedCount({ count }: { count: number }) {
   if (count === 0) return null;
   return (
     <span
-      className={`inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-caption font-bold ${TONE_FILL.danger}`}
+      className={`inline-flex min-h-chip shrink-0 items-center gap-2 rounded-full px-3 text-caption font-bold ${TONE_FILL.danger}`}
     >
       <TriangleAlert aria-hidden size={16} />
       {t('jobs.count', { n: countLabel(count) })}
@@ -140,7 +140,7 @@ function RetryRow({
   });
   const look: Look = retry.isPending ? 'running' : retry.isError ? 'retryFailed' : 'failed';
   return (
-    <li className="flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card">
+    <li className="flex flex-col gap-2 rounded-card bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 break-words text-body font-semibold">{kind}</p>
         <Tag look={look} />

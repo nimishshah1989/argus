@@ -2,6 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getConfig, putSlaPolicies, type Severity, type SlaPolicy } from '../api.js';
+import { Banner } from '../ui/banner.js';
+import { Button } from '../ui/button.js';
+import { CircleCheck } from '../ui/icon.js';
 import { invalidateSlaData } from './slaQueries.js';
 
 const SEVERITIES: Severity[] = ['S1', 'S2', 'S3', 'S4'];
@@ -83,10 +86,10 @@ function PolicyFieldset({ severity, draft, disabled, onMinute, onBusiness }: Fie
   ] as const;
   return (
     <fieldset className="rounded-xl border border-neutral-200 p-3" disabled={disabled}>
-      <legend className="px-1 text-base font-semibold">{severity}</legend>
+      <legend className="px-1 text-body font-semibold">{severity}</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map(([field, label]) => (
-          <label key={field} className="text-sm font-medium text-neutral-700">
+          <label key={field} className="text-footnote font-medium text-neutral-700">
             {label}
             <input
               type="number"
@@ -96,17 +99,17 @@ function PolicyFieldset({ severity, draft, disabled, onMinute, onBusiness }: Fie
               required
               value={draft[field]}
               onChange={(event) => onMinute(severity, field, event.target.value)}
-              className="mt-1 min-h-13 w-full rounded-lg border border-neutral-300 bg-white px-3 text-base text-neutral-900 disabled:opacity-60"
+              className="mt-1 min-h-target w-full rounded-lg border border-control bg-surface px-3 text-body text-neutral-900 disabled:bg-neutral-200 disabled:text-neutral-600"
             />
           </label>
         ))}
       </div>
-      <label className="mt-2 flex min-h-13 items-center gap-3 rounded-lg px-1 text-base text-neutral-800">
+      <label className="mt-2 flex min-h-target items-center gap-3 rounded-lg px-1 text-body text-neutral-800">
         <input
           type="checkbox"
           checked={draft.businessHoursOnly}
           onChange={(event) => onBusiness(severity, event.target.checked)}
-          className="h-5 w-5 accent-accent"
+          className="size-5 accent-accent-strong"
         />
         {t('settings.slaBusinessHours')}
       </label>
@@ -126,11 +129,11 @@ interface PolicyFormProps {
 function PolicyForm({ policies, online, draft, saving, error, onSave }: PolicyFormProps) {
   const { t } = useTranslation();
   return (
-    <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('settings.slaTitle')}</h2>
-      <p className="mt-1 text-sm text-neutral-600">{t('settings.slaHelp')}</p>
+    <section className="mt-6 rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">{t('settings.slaTitle')}</h2>
+      <p className="mt-1 text-footnote text-neutral-600">{t('settings.slaHelp')}</p>
       {policies.length === 0 && (
-        <p className="mt-3 text-sm text-neutral-700">{t('settings.slaEmpty')}</p>
+        <p className="mt-3 text-footnote text-neutral-700">{t('settings.slaEmpty')}</p>
       )}
       <form onSubmit={onSave}>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -146,23 +149,23 @@ function PolicyForm({ policies, online, draft, saving, error, onSave }: PolicyFo
           ))}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={!online || saving || !draft.dirty || !draft.valid}
-            className="min-h-13 rounded-xl bg-neutral-900 px-5 text-base font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={!online || saving || !draft.dirty || !draft.valid}>
             {saving ? t('common.saving') : t('settings.slaSave')}
-          </button>
+          </Button>
           {draft.saved && (
-            <p role="status" className="text-sm font-medium text-green-800">
+            <p
+              role="status"
+              className="inline-flex items-center gap-1 text-footnote font-medium text-ok-ink"
+            >
+              <CircleCheck aria-hidden size={16} />
               {t('settings.slaSaved')}
             </p>
           )}
         </div>
         {error && (
-          <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">
-            {error}
-          </p>
+          <div className="mt-3">
+            <Banner tone="error" title={error} />
+          </div>
         )}
       </form>
     </section>
@@ -200,8 +203,8 @@ function SlaPolicySection({ policies, online }: { policies?: SlaPolicy[]; online
   }
   if (!policies) {
     return (
-      <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-medium text-neutral-600">{t('settings.slaTitle')}</h2>
+      <section className="mt-6 rounded-card bg-surface p-4 shadow-card">
+        <h2 className="text-footnote font-medium text-neutral-600">{t('settings.slaTitle')}</h2>
         <p className="mt-2 text-neutral-600">{t('settings.slaUnavailable')}</p>
       </section>
     );

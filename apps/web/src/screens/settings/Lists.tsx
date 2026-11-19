@@ -32,7 +32,7 @@ function ListsHub() {
   return (
     <PatternFrame title={t('lists.title')}>
       <p className="text-footnote text-neutral-600">{t('lists.intro')}</p>
-      <ul className="rounded-2xl bg-surface px-4 shadow-card">
+      <ul className="rounded-card bg-surface px-4 shadow-card">
         {rows.map((row, index) => {
           const Icon = ICON[LIST_PAGES[index]!.page] ?? List;
           return (

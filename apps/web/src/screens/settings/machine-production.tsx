@@ -53,7 +53,7 @@ export function ProductionTag({ row }: { row: MachineReply }) {
   if (!row.excludedFromProduction) return null;
   return (
     <span
-      className={`mt-1 inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-caption font-semibold ${TONE_FILL.muted}`}
+      className={`mt-1 inline-flex h-chip items-center gap-1 whitespace-nowrap rounded-full px-3 text-caption font-semibold ${TONE_FILL.muted}`}
     >
       <Ban aria-hidden size={14} />
       {t('plant.machines.production.tag')}
@@ -81,17 +81,17 @@ export function ProductionSwitch({ row, boxed }: { row: MachineReply; boxed?: bo
       >
         <span className="text-footnote font-medium">{t('plant.machines.production.switch')}</span>
         <span
-          className={`relative block h-[31px] w-[51px] flex-none rounded-full ${on ? 'bg-accent-strong' : 'bg-neutral-200'}`}
+          className={`relative block h-8 w-13 flex-none rounded-full transition-colors duration-(--motion-fast) ${on ? 'bg-accent-strong' : 'bg-neutral-500'}`}
         >
           <span
-            className={`absolute top-0.5 h-[27px] w-[27px] rounded-full bg-white shadow-card ${on ? 'left-[22px]' : 'left-0.5'}`}
+            className={`absolute top-0.5 size-7 rounded-full bg-surface shadow-card transition-[left] duration-(--motion-fast) ${on ? 'left-5.5' : 'left-0.5'}`}
           />
         </span>
       </button>
       {save.isError ? (
         <p
           role="alert"
-          className={`flex items-start gap-1.5 text-footnote font-medium ${TONE_TEXT.danger}`}
+          className={`flex items-start gap-2 text-footnote font-medium ${TONE_TEXT.danger}`}
         >
           <TriangleAlert aria-hidden size={16} className="mt-0.5 flex-none" />
           {t('plant.machines.production.error', { name: row.code })}
