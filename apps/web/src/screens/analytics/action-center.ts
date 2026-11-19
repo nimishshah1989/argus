@@ -30,6 +30,26 @@ export const SEVERITY_LABELS: Record<NudgeSeverity, MessageKey> = {
   info: 'analytics.actionCenter.tile.info',
 };
 
+/** The words for each nudge type, so Gujarati readers do not see the server's English map. */
+export const RULE_LABELS: Record<NudgeRule, MessageKey> = {
+  recur: 'analytics.actionCenter.rule.recur',
+  freq: 'analytics.actionCenter.rule.freq',
+  rise: 'analytics.actionCenter.rule.rise',
+  cell: 'analytics.actionCenter.rule.cell',
+  long: 'analytics.actionCenter.rule.long',
+  spike: 'analytics.actionCenter.rule.spike',
+  good: 'analytics.actionCenter.rule.good',
+  mttr: 'analytics.actionCenter.rule.mttr',
+  hum: 'analytics.actionCenter.rule.hum',
+  shift: 'analytics.actionCenter.rule.shift',
+  team: 'analytics.actionCenter.rule.team',
+  newm: 'analytics.actionCenter.rule.newm',
+  spares: 'analytics.actionCenter.rule.spares',
+  age: 'analytics.actionCenter.rule.age',
+  amc: 'analytics.actionCenter.rule.amc',
+  legal: 'analytics.actionCenter.rule.legal',
+};
+
 export const TAB_LABELS: Record<NudgeStatus, MessageKey> = {
   open: 'analytics.actionCenter.tab.open',
   ack: 'analytics.actionCenter.tab.ack',
