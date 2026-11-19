@@ -109,7 +109,8 @@ function printCheck(
 export async function main(argv = process.argv.slice(2)): Promise<LoadResult> {
   const { tenant: slug, allowRemote, rest } = split(argv);
   const args = parseArgs(rest);
-  if (args.has('out')) throw new Error(`unknown option --out (nothing is written to a folder)\n${USAGE}`);
+  if (args.has('out'))
+    throw new Error(`unknown option --out (nothing is written to a folder)\n${USAGE}`);
   const data = args.get('data');
   const url = process.env.DATABASE_URL;
   if (!data || !url) throw new Error(`${USAGE}\nDATABASE_URL is required`);
