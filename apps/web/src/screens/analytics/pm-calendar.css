@@ -60,23 +60,3 @@
   text-decoration: underline dotted;
   text-underline-offset: 2px;
 }
-
-/* The key's dots: the same token tones a chip uses, and the word beside each one carries the meaning. */
-.pm-key {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 9999px;
-}
-
-.pm-key-planned {
-  background: var(--color-accent);
-}
-
-.pm-key-open {
-  background: var(--color-info);
-}
-
-.pm-key-crowded {
-  background: var(--color-warning);
-}
