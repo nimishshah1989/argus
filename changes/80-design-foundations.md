@@ -37,6 +37,19 @@
   grey, Waiting amber, Transferred blue, Indian grouping, analytics follows the device theme, the TV always dark and
   50 inch or larger) is dropped.
 
+## 80d — DESIGN.md sections 5 to 8
+
+- Builders get the last four sections of `docs/DESIGN.md`: elevation and depth (three levels, light and dark, no raised card
+  in a raised card, the TV uses two), shapes (radius per role, border or shadow, tables, focus ring), components (the 13
+  elements, the KPI tile in full, empty, loading and error as `viewState` and `StateNotice` split them, chart rules,
+  icons, motion, numbers) and the do's and don'ts with the floor and desk prohibitions first.
+- The motion rules of the old file are back: under 300 ms, two durations of 150 and 250 ms, none under reduced motion.
+  Anything nobody has given yet says "not known yet".
+- `docs/design/TAG-SYSTEM.md` gets one line saying `docs/DESIGN.md` wins on colour, shape, depth and motion.
+- The 9999 px chip radius is now said to be defined in DESIGN.md; `LOCK.md` only says chips are round.
+- The design-doc test now needs each settled fact (Running grey, Waiting amber, and the rest) as its own positive sentence,
+  so a negation or a "may change" around the phrase fails it.
+
 ## 80h — the design preview's variant contract
 
 - The design preview gets its shared contract in `apps/web/src/gallery/directions/variant.ts`. It holds the six
@@ -61,16 +74,13 @@
   formatter prints a dash for a figure that is not a number and rounds to at most 3 decimals.
 - No user-visible change.
 
-## 80d — DESIGN.md sections 5 to 8
+## 80j — the Control Room direction
 
-- Builders get the last four sections of `docs/DESIGN.md`: elevation and depth (three levels, light and dark, no raised card
-  in a raised card, the TV uses two), shapes (radius per role, border or shadow, tables, focus ring), components (the 13
-  elements, the KPI tile in full, empty, loading and error as `viewState` and `StateNotice` split them, chart rules,
-  icons, motion, numbers) and the do's and don'ts with the floor and desk prohibitions first.
-- The motion rules of the old file are back: under 300 ms, two durations of 150 and 250 ms, none under reduced motion.
-  Anything nobody has given yet says "not known yet".
-- `docs/design/TAG-SYSTEM.md` gets one line saying `docs/DESIGN.md` wins on colour, shape, depth and motion.
-- The 9999 px chip radius is now said to be defined in DESIGN.md; `LOCK.md` only says chips are round.
-- The design-doc test now needs each settled fact (Running grey, Waiting amber, and the rest) as its own positive sentence,
-  so a negation or a "may change" around the phrase fails it.
+- The design preview gets its second direction, Control Room, in `apps/web/src/gallery/directions/direction-control-room.ts`:
+  flat panels with a 3 px tone edge, the change shown in tone ink beside the value, a compact 160 px chart on the
+  second surface, no shadows, 6/8/12 corners, figures set 0.02em tighter, and every colour role in light and dark
+  exactly as the plan's table sets them, with 8 chart series and two 5-step ramps per theme.
+- The same test that checks Instrument now runs for it, and every value passed as written, so no colour moved.
+- The check that no chart series is grey now also catches a near-grey (channels within 8 of 255), not only an exact
+  grey, because Running is the grey.
 - No user-visible change.

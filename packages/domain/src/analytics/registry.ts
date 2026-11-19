@@ -28,6 +28,11 @@ export interface FigureDef {
    * has a true answer, and no ticket to open).
    */
   mixed?: true;
+  /**
+   * What the figure is a function of (ticket 76). Absent: the span the run names, cut to it by the engine. `asOf`: the
+   * plant at the run date, never cut. `history`: every record up to the run date, never cut, learning across years.
+   */
+  reads?: 'asOf' | 'history';
 }
 
 const dashboard = (name: string, label: string, drill: DrillType): FigureDef => ({
@@ -70,7 +75,7 @@ const tile = (owner: number, screenId: string, name: string, label: string): Fig
  * AMC, legal and PM report registers (loaded by M4b tickets 49 and 51, no rows on main to drill to yet), the
  * Guide, the settings and the workbook export (not figures), and OEM analytics (deferred).
  */
-export const FIGURES: readonly FigureDef[] = [
+const DEFS: readonly FigureDef[] = [
   dashboard('total-machines', 'Total machines', 'machine'),
   dashboard('utilities', 'Utilities', 'machine'),
   dashboard('dg-sets', 'DG sets', 'machine'),
@@ -141,5 +146,33 @@ export const FIGURES: readonly FigureDef[] = [
     drill: 'machine',
   },
 ];
+
+const dashboardKeys = (...names: string[]): string[] => names.map((name) => `dashboard.${name}`);
+
+/** The figures that read the run date: the machine counts, the registers, the energy map, the reports and the page. */
+const AS_OF_KEYS: ReadonlySet<string> = new Set([
+  ...dashboardKeys(
+    'total-machines',
+    'utilities',
+    'dg-sets',
+    'cnc-machines',
+    'conventional-machines',
+  ),
+  ...dashboardKeys('process-machines', 'breakdown-free', 'expansion-timeline'),
+  ...['registers', 'cell-change-log', 'a7-footprint', 'a5-energy', 'action-center'],
+  ...['action-center.spares-spend', 'shift-kpis.backlog', 'monthly-report', 'annual-report'],
+  'machine-page',
+]);
+
+/** The figures that learn from every year the plant recorded, gaps left out. */
+const HISTORY_KEYS: ReadonlySet<string> = new Set([
+  ...['a9-bottleneck-forecast', 'forecast-lab', 'compare', 'compare.spares-cost'],
+  ...['team-focus', 'team-focus.cost', 'money-matters', 'fix-finder', 'data-checklist'],
+]);
+
+export const FIGURES: readonly FigureDef[] = DEFS.map((def): FigureDef => {
+  if (AS_OF_KEYS.has(def.key)) return { ...def, reads: 'asOf' };
+  return HISTORY_KEYS.has(def.key) ? { ...def, reads: 'history' } : def;
+});
 
 export const FIGURE_KEYS: readonly string[] = FIGURES.map((figure) => figure.key);
