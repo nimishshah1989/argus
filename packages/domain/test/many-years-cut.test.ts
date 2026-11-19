@@ -112,12 +112,12 @@ describe('the cut fixes the six span figures', () => {
     });
   });
 
-  it('prints the log of the span newest first, numbered in date order from the span start', () => {
-    // `entries` is the rule in stored order (month, machine, entry); the log numbers them in date order, ties by
-    // stored order, and prints the highest number first. Counts: 2025 69 + 12 PM = 81, 2026 148 + 16 = 164, both 245.
-    // Known defect pinned as it is today: the loader stores no number, so the 2026 log starts at 1, not 82. Numbering
-    // from the uncut history, then cutting, is a separate packet and will change only the 2026 numbers here
-    // (2025 and both years keep theirs).
+  it('prints the log of the span newest first, numbered in date order from the whole history', () => {
+    // `entries` is the rule in stored order (month, machine, entry); the log numbers the whole uncut history in date
+    // order, ties by stored order, cuts it to the span and prints the highest number first. Counts: 2025 69 + 12 PM =
+    // 81, 2026 148 + 16 = 164, both 245. The loader stores no number, so a span must not renumber: 2026 holds rows
+    // 82 to 245 (2025's 81 rows come first), where it once started again at 1 (fixed in packet 76y); 2025 and both
+    // years keep their numbers.
     const header = [
       '',
       'Sr No',
@@ -131,13 +131,14 @@ describe('the cut fixes the six span figures', () => {
       'Code',
     ];
     const page = (key: SpanKey) => {
-      const all = (key === 'both' ? [2025, 2026] : [Number(key)]).flatMap(entries);
-      const numbered = all
+      const numbered = [2025, 2026]
+        .flatMap(entries)
         .map((entry, index) => ({ entry, index }))
         .sort((a, b) =>
           a.entry[0] < b.entry[0] ? -1 : a.entry[0] > b.entry[0] ? 1 : a.index - b.index,
         )
         .map(({ entry }, position) => ({ entry, srNo: position + 1 }))
+        .filter(({ entry }) => entry[0] >= HAND[key].from && entry[0] <= HAND[key].to)
         .sort((a, b) => b.srNo - a.srNo);
       const rows = numbered.map(({ entry: [date, id, code, hours], srNo }) => {
         const [shift, problem, by] = KIND[code]!;
@@ -170,6 +171,8 @@ describe('the cut fixes the six span figures', () => {
       };
     };
     expect(SPAN_KEYS.map((key) => page(key).pages[0]!.tables[0]!.rowCount)).toEqual([81, 164, 245]);
+    const srNos = (key: SpanKey) => page(key).pages[0]!.tables[0]!.rows.map((row) => row[1]);
+    expect([srNos('2026').at(0), srNos('2026').at(-1)]).toEqual(['245', '82']);
     everySpan('breakdown-log', { '2025': page('2025'), '2026': page('2026'), both: page('both') });
   });
 
