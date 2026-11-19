@@ -179,7 +179,8 @@ not from the arrow. Ticket 82 holds the direction for each of the 51 figures; a 
 - **Ramps:** one sequential (`seq`) and one diverging (`div`) ramp of 5 steps. A ramp cell carries a computed black or white label
   at 4.5:1.
 - Every series is named by a legend or an end label, because separation for a colour-vision difference is weak
-  (minimum deuteranopia distance 3.2 for the 8, `docs/slices/80-design-foundations.md` R11).
+  (minimum deuteranopia distance 11.2 for the 8 in the light theme, measured in `tokens.test.ts`; the earlier
+  showcase series measured 3.2, `docs/slices/80-design-foundations.md` R11).
 
 ## Typography
 
