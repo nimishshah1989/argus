@@ -22,7 +22,7 @@ export function TabBar({
   return (
     <nav
       aria-label={label}
-      className="sticky bottom-0 z-10 flex border-t border-neutral-200 bg-surface"
+      className="sticky bottom-0 z-10 flex border-t border-neutral-200 bg-surface pb-[env(safe-area-inset-bottom)]"
     >
       {tabs.map(({ to, label: tabLabel, icon: Icon, badge }) => (
         <Link

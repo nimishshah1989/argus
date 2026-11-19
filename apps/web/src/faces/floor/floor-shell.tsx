@@ -8,6 +8,7 @@ import { PatternFrame, StateNotice } from '../../patterns/frame.js';
 import { CirclePlus, List, Wrench } from '../../ui/icon.js';
 import { Loading, Skeleton } from '../../ui/loading.js';
 import { Page, Shell, Stack } from '../../ui/layout.js';
+import { useSystemTheme } from '../../ui/system-theme.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { FLOOR, type FloorLoad } from './use-floor.js';
 
@@ -22,6 +23,7 @@ export function FloorShell({
 }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  useSystemTheme();
   const current =
     pathname === FLOOR.mine ? FLOOR.mine : pathname === FLOOR.pm ? FLOOR.pm : FLOOR.report;
   const tabs = [

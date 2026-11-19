@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
@@ -19,6 +19,7 @@ import {
   type IconComponent,
 } from '../../ui/icon.js';
 import { SideNav } from '../../ui/side-nav.js';
+import { useSystemTheme } from '../../ui/system-theme.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { TopBar } from '../../ui/top-bar.js';
 
@@ -45,25 +46,7 @@ export function mayOpen(view: DeskView, role: string): boolean {
   return MAY_OPEN[view].includes(role);
 }
 
-/**
- * The desk follows the phone's light or dark setting (design lock B6) and gives it back when it closes.
- * `alwaysDark` is the wall TV, which is dark whatever the device says.
- */
-export function useSystemTheme(alwaysDark = false): void {
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => {
-      if (alwaysDark || query.matches) document.documentElement.dataset.theme = 'dark';
-      else delete document.documentElement.dataset.theme;
-    };
-    apply();
-    query.addEventListener('change', apply);
-    return () => {
-      query.removeEventListener('change', apply);
-      delete document.documentElement.dataset.theme;
-    };
-  }, [alwaysDark]);
-}
+export { useSystemTheme };
 
 /** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */
 function deskTabs(t: TFunction, badge: number) {

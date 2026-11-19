@@ -37,7 +37,7 @@ const LANGUAGES: { id: Language; label: string }[] = [
   { id: 'gu', label: 'ગુજરાતી' },
 ];
 
-const CHIP = 'inline-block rounded-full px-2.5 py-1 text-caption font-bold';
+const CHIP = 'inline-block rounded-chip px-3 py-1 text-caption font-bold';
 const ROW =
   'flex min-h-target items-center justify-between gap-3 border-t border-neutral-200 text-body';
 
@@ -105,7 +105,7 @@ function Header({ user, company }: { user: Me; company: string }) {
           {t('account.signedInAs', { username: user.username, company })}
         </p>
         <span
-          className={`mt-1.5 ${CHIP} ${grant || !user.shared ? 'bg-info-tint text-info-ink' : 'bg-muted-tint text-muted-ink'}`}
+          className={`mt-2 ${CHIP} ${grant || !user.shared ? 'bg-info-tint text-info-ink' : 'bg-muted-tint text-muted-ink'}`}
         >
           {chip}
         </span>

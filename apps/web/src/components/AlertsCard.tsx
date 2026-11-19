@@ -151,7 +151,7 @@ export function AlertsCard({ personId }: { personId: string | undefined }) {
           <Icon aria-hidden size={20} />
           {t('alerts.title')}
         </h3>
-        <span className={`rounded-full px-2.5 py-1 text-caption font-bold ${copy.tone}`}>
+        <span className={`rounded-chip px-3 py-1 text-caption font-bold ${copy.tone}`}>
           {t(copy.chip)}
         </span>
       </div>
