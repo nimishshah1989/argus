@@ -6,6 +6,7 @@ import { getBrand } from '../../api.js';
 import { defineResource, putLogo } from '../../data/index.js';
 import { PatternFrame } from '../../patterns/frame.js';
 import { Button } from '../../ui/button.js';
+import { Card } from '../../ui/card.js';
 import { Checkbox, Input, Label, Select } from '../../ui/input.js';
 import { Inline, Stack } from '../../ui/layout.js';
 import {
@@ -129,7 +130,7 @@ function LogoSection() {
   return (
     <Stack gap={2}>
       <h3 className="px-1 text-footnote font-semibold text-neutral-600">{t('company.logo')}</h3>
-      <div className="rounded-2xl bg-surface p-4 shadow-card">
+      <Card>
         <Stack gap={2}>
           {logo ? (
             <img src={logo} alt={t('company.logo.current')} className="h-16 w-auto self-start" />
@@ -143,12 +144,12 @@ function LogoSection() {
             </p>
           ) : null}
           {note === 'failed' ? (
-            <p role="alert" className="text-footnote text-danger">
+            <p role="alert" className="text-footnote text-danger-ink">
               {t('company.logo.failed')}
             </p>
           ) : null}
         </Stack>
-      </div>
+      </Card>
     </Stack>
   );
 }
@@ -166,7 +167,7 @@ function CompanySections(p: {
           <h3 className="px-1 text-footnote font-semibold text-neutral-600">
             {t(section.titleKey)}
           </h3>
-          <div className="rounded-2xl bg-surface p-4 shadow-card">
+          <Card>
             <Stack gap={3}>
               {section.fields.map((field) => (
                 <CompanyFieldRow
@@ -178,7 +179,7 @@ function CompanySections(p: {
                 />
               ))}
             </Stack>
-          </div>
+          </Card>
         </Stack>
       ))}
     </>
@@ -204,7 +205,7 @@ function SaveRow(p: {
         </p>
       ) : null}
       {p.failed ? (
-        <p role="alert" className="text-footnote text-danger">
+        <p role="alert" className="text-footnote text-danger-ink">
           {t('company.error')}
         </p>
       ) : null}

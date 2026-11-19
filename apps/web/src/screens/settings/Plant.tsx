@@ -129,7 +129,7 @@ function Home({ pages, failed }: { pages: readonly PlantPageSpec[]; failed: numb
   return (
     <div className="flex flex-col gap-2">
       <h2 className="px-1 text-footnote font-semibold text-neutral-600">{t('plant.menu.plant')}</h2>
-      <ul className="rounded-2xl bg-surface px-4 shadow-card">
+      <ul className="rounded-card bg-surface px-4 shadow-card">
         {pages.map(({ page, icon: Icon, key }) => (
           <li key={page} className="border-t border-neutral-200 first:border-t-0">
             <Link to={`/settings/${page}`} className="flex min-h-16 items-center gap-3 py-2">

@@ -18,6 +18,8 @@ import {
   SettingsHeader,
 } from '../components/SettingsSections.js';
 import { SlaSettingsSections } from '../components/SlaSettingsSections.js';
+import { Banner } from '../ui/banner.js';
+import { LoadingState } from '../ui/elements/states.js';
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(!isOffline());
@@ -143,9 +145,9 @@ function SettingsPanels({
   return (
     <>
       {error && (
-        <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">
-          {error}
-        </p>
+        <div className="mt-4">
+          <Banner tone="error" title={error} />
+        </div>
       )}
       <CriticalitySection
         machines={machines}
@@ -186,11 +188,17 @@ function SettingsBody({
   draft: ReturnType<typeof useMatrixDraft>;
 }) {
   const { t } = useTranslation();
-  if (loading) return <p className="mt-6 text-neutral-600">{t('settings.loading')}</p>;
+  if (loading) {
+    return (
+      <div className="mt-6">
+        <LoadingState label={t('settings.loading')} tiles={1} />
+      </div>
+    );
+  }
   if (hasMe && !allowed) {
     return (
-      <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold">{t('settings.forbiddenTitle')}</h2>
+      <section className="mt-6 rounded-card bg-surface p-4 shadow-card">
+        <h2 className="text-title3 font-semibold">{t('settings.forbiddenTitle')}</h2>
         <p className="mt-2 text-neutral-600">{t('settings.forbiddenHelp')}</p>
         <p className="mt-2 text-neutral-600">{t('settings.forbiddenSlaHelp')}</p>
       </section>
@@ -198,9 +206,9 @@ function SettingsBody({
   }
   if (unavailable) {
     return (
-      <p role="alert" className="mt-6 text-red-800">
-        {t('settings.loadFailed')}
-      </p>
+      <div className="mt-6">
+        <Banner tone="error" title={t('settings.loadFailed')} />
+      </div>
     );
   }
   return <SettingsEditor machines={machines} online={online} draft={draft} />;
@@ -222,9 +230,9 @@ export function Settings() {
     <main className="mx-auto max-w-3xl p-4 pb-16">
       <SettingsHeader />
       {!online && (
-        <p role="status" className="mt-4 rounded-xl bg-neutral-100 p-3 text-sm text-neutral-700">
-          {t('settings.offline')}
-        </p>
+        <div className="mt-4 overflow-hidden rounded-xl">
+          <Banner tone="offline" title={t('settings.offline')} />
+        </div>
       )}
       <SettingsBody
         loading={loading}

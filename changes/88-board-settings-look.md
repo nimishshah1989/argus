@@ -1,0 +1,1 @@
+- The live board, the TV view and the Settings screens now use the shared cards, type sizes, button colours and corner radius in light and dark; the on/off switches are easier to see, and every control, word and button keeps its place.

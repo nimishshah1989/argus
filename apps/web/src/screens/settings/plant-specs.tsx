@@ -26,7 +26,7 @@ const segmentOf = (c: CrudCtx, id: string | null) =>
 function Chip({ children }: { children: string }) {
   return (
     <span
-      className={`inline-flex h-7 items-center whitespace-nowrap rounded-full px-2.5 text-caption font-semibold ${TONE_FILL.muted}`}
+      className={`inline-flex h-chip items-center whitespace-nowrap rounded-full px-3 text-caption font-semibold ${TONE_FILL.muted}`}
     >
       {children}
     </span>

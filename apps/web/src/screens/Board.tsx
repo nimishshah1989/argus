@@ -12,6 +12,8 @@ import {
 } from '../api.js';
 import { errorMessage, formatTime } from '../components/format.js';
 import { SyncStatus } from '../patterns/sync-status.js';
+import { Banner } from '../ui/banner.js';
+import { LoadingState } from '../ui/elements/states.js';
 import { Tv } from '../ui/icon.js';
 import { COLUMNS, liveBoard } from './board/data.js';
 import { Pulse } from './board/Pulse.js';
@@ -22,13 +24,16 @@ import { useSystemTheme } from './desk/Shell.js';
 
 const REFETCH_MS = 30_000;
 const KIOSK = '/desk/board?kiosk=1';
-const navLink = 'inline-flex min-h-13 items-center rounded-lg px-4 font-medium';
+const navLink = 'inline-flex min-h-target items-center rounded-lg px-4 text-body font-medium';
 
 function BoardNav() {
   const { t } = useTranslation();
   return (
     <nav className="flex flex-wrap gap-2">
-      <Link to="/floor" className={`${navLink} text-neutral-600 hover:bg-neutral-200`}>
+      <Link
+        to="/floor"
+        className={`${navLink} text-neutral-600 [@media(hover:hover)]:hover:bg-neutral-200`}
+      >
         {t('nav.report')}
       </Link>
       <Link to="/desk" className={`${navLink} bg-neutral-200 text-neutral-900`}>
@@ -127,7 +132,7 @@ function BoardBody({ tv, state, config, clock, today }: BodyProps) {
 }
 
 function Frame({ tv, children }: { tv: boolean; children: ReactNode }) {
-  const tvFrame = 'flex h-dvh flex-col gap-6 overflow-hidden px-10 py-10';
+  const tvFrame = 'flex h-dvh flex-col gap-6 overflow-hidden p-8';
   return (
     <main className={tv ? tvFrame : 'mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4'}>
       {children}
@@ -149,7 +154,7 @@ export function Board() {
   const header = (
     <BoardHeader tv={tv} now={state.data?.now} timeZone={config.data?.timeZone ?? undefined} />
   );
-  let body: ReactNode = <p className="text-neutral-600">{t('common.loading')}</p>;
+  let body: ReactNode = <LoadingState label={t('common.loading')} tiles={2} />;
   if (state.data && config.data)
     body = (
       <BoardBody
@@ -160,12 +165,7 @@ export function Board() {
         today={today.data}
       />
     );
-  else if (error)
-    body = (
-      <p role="alert" className="rounded-xl bg-danger-tint p-3 text-danger-ink">
-        {errorMessage(error)}
-      </p>
-    );
+  else if (error) body = <Banner tone="error" title={errorMessage(error)} />;
   return (
     <Frame tv={tv}>
       {tv ? null : <BoardNav />}
