@@ -11,10 +11,12 @@ import { PatternFrame, StateNotice } from '../../patterns/frame.js';
 import { viewState } from '../../patterns/view-state.js';
 import { Button } from '../../ui/button.js';
 import { CircleCheck, CircleX, Cog, RefreshCw, TriangleAlert } from '../../ui/icon.js';
+import { canSeeJobs } from './jobs-access.js';
 import { TONE_FILL, type ChipTone } from '../../ui/meaning.js';
 
 type FailedJob = FailedJobsReply['items'][number];
 type Me = Awaited<ReturnType<typeof getMe>>['user'];
+export { canSeeJobs };
 
 /** The nav entry; the screen reads its own access, as the audit screen does. */
 export const JOBS_PAGE = {
@@ -22,7 +24,7 @@ export const JOBS_PAGE = {
   icon: Cog,
   key: 'jobs.menu',
   screen: JobsScreen,
-  adminOnly: true,
+  needsJobsAccess: true,
 } as const;
 
 const LIST = '/api/v1/jobs/failed';
@@ -32,10 +34,6 @@ const POLL_MS = 30_000;
 /** The server lists at most 100 and sends no total, so a full list reads "100+". */
 const SHOWN = 100;
 export const countLabel = (count: number): string => (count >= SHOWN ? `${SHOWN}+` : String(count));
-
-/** The server's own rule (DATA-MAP section 4): the admin on a personal login. */
-export const canSeeJobs = (user: Me | undefined): boolean =>
-  user?.role === 'admin' && !user.shared && !user.supportGrantId;
 
 /** The failed jobs, polled; `enabled` is false for anyone the server would refuse. */
 export function useFailedJobs(enabled = true) {
@@ -204,7 +202,7 @@ function FailedList({
   );
 }
 
-/** Background jobs (ticket 78b): the failed ones with their error, and a Retry for each. Admin only, as the API is. */
+/** Background jobs (ticket 78b): the failed ones with their error, and a Retry for each. Admin and head, as the API is. */
 export function JobsScreen() {
   const { t } = useTranslation();
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
