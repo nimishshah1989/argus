@@ -287,7 +287,7 @@ describe('A1 over the two-year plant', () => {
     // As of 30 Nov 2026 with no span the plant is 2026, January to November, and 2025's rows are not read at all.
     // Four machines x 11 x 500 = 22,000 available; each machine 6 h x 11 = 66 h of breakdown and 3 x 3 = 9 h of PM,
     // so 264 h = 1.20 % and 36 h = 0.164 -> 0.16 %; availability 100 - 1.2 - 0.164 = 98.64. Cell 1 is 2 machines.
-    const page = a1Value('2026-11-30').pages[0];
+    const page = a1Value('2026-11-30').pages[0]!;
     expect(page.kpis.map((kpi) => kpi.value)).toEqual([
       '5,500',
       '4',
@@ -296,12 +296,12 @@ describe('A1 over the two-year plant', () => {
       '36.0 hrs',
       '98.64%',
     ]);
-    expect(page.tables[0].rows).toEqual([
+    expect(page.tables[0]!.rows).toEqual([
       ['Cell 1', '2', '11,000', '132.00', '1.20%', '18.00', '0.16%', '1.36%'],
       ['Cell 2', '2', '11,000', '132.00', '1.20%', '18.00', '0.16%', '1.36%'],
     ]);
     // The plant rows: December has not been reached, so it is a dash and Q4 is October and November alone.
-    expect(page.tables[1].rows.slice(-2)).toEqual([
+    expect(page.tables[1]!.rows.slice(-2)).toEqual([
       ['PLANT TOTALBD % / PM %', ...rep(11, '1.20%'), '—', ...rep(4, '1.20%'), '1.20%'],
       [
         ...['0.00%', '0.00%', '0.60%', '0.00%', '0.00%', '0.60%', '0.00%', '0.00%', '0.60%'],
@@ -309,13 +309,13 @@ describe('A1 over the two-year plant', () => {
       ],
     ]);
     // Year to date, the trend chart still plots the months not yet reached as 0, as the 2026 answer key does.
-    expect(page.charts[1].datasets[0].data).toEqual([...rep(11, 24), 0]);
+    expect(page.charts[1]!.datasets[0]!.data).toEqual([...rep(11, 24), 0]);
   });
 
   it('plots the months outside a named part-year span as null, not as zero', () => {
     // January to June 2026: 24 h of breakdown a month (4 machines x 6 h), 12 h of PM in March and June.
-    const trend = a1Value(AS_OF_ONE_COMPUTER, { from: '2026-01-01', to: '2026-06-30' }).pages[0]
-      .charts[1];
+    const trend = a1Value(AS_OF_ONE_COMPUTER, { from: '2026-01-01', to: '2026-06-30' }).pages[0]!
+      .charts[1]!;
     expect(trend.datasets).toEqual([
       { label: 'BD Hrs', data: [...rep(6, 24), ...rep(6, null)] },
       { label: 'PM Hrs', data: [0, 0, 12, 0, 0, 12, ...rep(6, null)] },
