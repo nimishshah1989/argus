@@ -1,5 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { failedJobsReplySchema } from '@uptimo/shared/replies';
 import { logFailures } from '../src/kernel/index.js';
 import { LATE_AFTER_SECONDS, runJobWatch } from '../src/modules/accountability/index.js';
 import { APP_API_PASSWORD } from './harness.js';
@@ -100,6 +101,16 @@ describe('failed jobs are seen (API)', () => {
       (await listed()).find((one) => one.queue === FAILING),
     );
     expect(item.error).toBe(ERROR);
+    // The reply is pinned to the schema: both times are ISO date-times with an offset, not any string.
+    const reply = (await t.call('GET', LIST, admin)).json();
+    expect(failedJobsReplySchema.parse(reply).items.length).toBeGreaterThan(0);
+    const [first] = (reply as { items: object[] }).items;
+    expect(
+      failedJobsReplySchema.safeParse({ items: [{ ...first, createdAt: 'yesterday' }] }).success,
+    ).toBe(false);
+    expect(
+      failedJobsReplySchema.safeParse({ items: [{ ...first, failedAt: '19/11 10:30' }] }).success,
+    ).toBe(false);
     expect(Date.parse(item.failedAt)).not.toBeNaN();
     const alarm = alarms().find((line) => line.alarm === 'job-failed' && line.job === FAILING);
     expect(alarm).toMatchObject({ level: 50, jobId: item.id, error: ERROR });
