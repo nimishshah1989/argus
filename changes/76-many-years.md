@@ -64,3 +64,6 @@
 - For the next packet: `workingHoursFor` in `working-hours.ts` now counts a month listed in its window's `noRecords` as
   no hours (TC-1 over both years is 23 months, 12,075; VC-2 is its 12 months, 6,300). A window with no `noRecords`
   counts every month, as before, so 76n's reliability can pass the span's own period and read the gap without a new function.
+- The exact fix for a last-bit rounding in the hours (2025 sums to 17,325.000000000004): add the day shares first and
+  divide by 12 once per year in `periodFraction`. That is a later packet, because `periodFraction` also feeds the 2026
+  answer key. The 76m test compares at six decimals and says why.

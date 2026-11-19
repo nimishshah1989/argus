@@ -118,9 +118,10 @@ function totalsOf(parts: {
 }
 
 /**
- * The platform's column, with its own frozen rules: history rows only (a live close is invisible to it), the
+ * The platform's column, with the platform's own rules: history rows only (a live close is invisible to it), the
  * workbook's recorded hours (`effectiveHours`, NO DT at zero) and the flat annual hours `prodHrsPerDay x days`.
- * This is what makes its five cells A1's and A3's own printed cells rather than a retyped copy.
+ * Its hours cover the run's span, with no-records months left out, or the as-of year to date when no span is named.
+ * Only in that no-span case are its five cells A1's and A3's own printed cells rather than a retyped copy.
  */
 export function legacyTotals(data: EngineData, profile: AnalyticsProfile, asOf: string): KpiTotals {
   const machines = data.machines.filter(isProduction);

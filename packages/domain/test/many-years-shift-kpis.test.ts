@@ -14,7 +14,11 @@ import { AS_OF_ENGINE, HAND, SPAN_KEYS, type SpanKey } from './many-years/hand.j
  * The day is 629 minutes of shift 1 and 631 of shift 2, so each shift holds 629/1,260 and 631/1,260 of the hours.
  */
 
-/** A hand value is exact to the double's own noise: twelfths summed in a different order differ in the last bit. */
+/**
+ * Every number is rounded to six decimals on both sides before the whole-value `toEqual`. `periodFraction` adds one
+ * twelfth per month, so 11 months sum to 0.9166666666666667 and 17,325 comes out as 17325.000000000004. The
+ * tolerance is 5e-7 hours, far below one day of one month (about 17 hours), so it cannot hide a real error.
+ */
 const settle = <T>(value: T): T =>
   JSON.parse(JSON.stringify(value), (_key, found) =>
     typeof found === 'number' ? Math.round(found * 1e6) / 1e6 : found,
