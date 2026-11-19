@@ -183,3 +183,65 @@ reclassify 50's row.
 4. **The 80-character guard is in the store, not the schema.** `kpi_snapshot.subject_key` already caps at 80; the
    writer drops an over-long category label before the insert (R12) so one renamed category cannot fail the whole
    run's transaction. The test pins the drop and the surviving machine rows.
+
+## Packet 67c — the machine page's reliability block
+
+**What changed.** `apps/web/src/screens/analytics/reliability-values.ts` is the block's total reader over the stored
+`reliability` figure: the machine's own 67a/67b block, `{machines: {[id]: MachineReliability}}`, read into the fit's
+numbers, its spares rows and its two drills, with the house drill link (the machine's own ticket list below the
+200-id cap, the Breakdown log above it). `reliability-parts.tsx` renders the two plain sections — the fit in three
+`StatCard`s with its basis line, sample line, Kaplan-Meier quartiles and Crow-AMSAA word beside the slope, and the
+critical spares as a four-column `DataTable` with the empty and "N parts, M shown" lines. `MachinePage.tsx` finds the
+`reliability` figure **by key** (so it never becomes a group tile) and passes it through `RecordBody` in
+`machine-summary.tsx`, where the block sits after the breakdown summary. `analytics-machines.en.ts` gains the block's
+copy (its `.gu` stays `blank(...)`), `analytics-guide.en.ts` gains `analytics.guide.mttr-mtbf.body5`, and
+`guide-entries.ts` lists it in the existing MTTR/MTBF entry, whose `figures` already names `reliability` (67a). No new
+figure, screen, route, chart, dependency or `analytics.en.ts` key; the drill reuses `analytics.machine.seeRows` and
+the house `analytics.page.drillTooMany` / `openLog` fallback. No existing test moved or weakened.
+
+**What it proves.** The reader pins the stored shape: one machine's own fit (shape, scale, mean, 43 events / 42
+intervals / 70 censored hours, the quartiles and the trend), a category fallback with the machine's own count, "not
+enough history" with both counts and the minimum, `no_basis`, a missing total kept unknown, a malformed spare row
+dropped rather than invented, an unknown trend word never read as a trend, and a fitted block missing any number read
+as nothing. The drill link opens `/analytics/machines/<id>?drill=ticket%3A…` with its ids, and **above 201 ids** the
+Breakdown log with the count and no `drill=` query; no ids means no link. The journey: the FULL machine (HMC-2's
+numbers) prints "This machine's own failures", `0.88` / `107.0` / `114.1`, the sample, the quartiles
+(`18.8 / 51.4 / 135.5 h`), "failures are coming faster" with "slope 1.73 across 43 failures", the four-row spares
+table (`4.0 / 3.0 / 0.0 / 0.0 h`, the two `NO DT` parts both on `03-10-2026`) and follows both "See the rows" links;
+the PARTIAL machine prints "Not enough history" with "4 failures on this machine, 3 in Turning Center; the fit needs
+5.", its own drill and "15 parts, 5 shown"; the SPARELESS machine prints "Not enough history", "No spare was recorded
+on this machine’s breakdowns." and no link in either section; a machine outside the figure's fleet says "Not
+available" in both sections, a `not_computed` reliability figure says "Not computed yet" in both, and an operator gets
+the analytics refusal with neither section. The existing machines journey stays green.
+
+**Evidence.**
+
+- **Red.** `pnpm exec vitest run apps/web/src/screens/analytics/reliability-values.test.ts` →
+  `Cannot find module './reliability-values.js' imported from …`, `Test Files 1 failed (1)`, `Tests no tests`.
+- **Green.** The same file: `14 passed (14)`. `pnpm exec vitest run apps/web/src/screens/analytics` →
+  `Test Files 15 passed (15)`, `Tests 147 passed (147)`. `pnpm exec vitest run packages/shared/test` →
+  `Test Files 8 passed (8)`, `Tests 74 passed (74)`. `pnpm exec playwright test
+apps/web/e2e/analytics-machine-reliability.spec.ts apps/web/e2e/analytics-machines.spec.ts --workers=1
+--project=chromium` → `6 passed (26.7s)` (4 new, 2 existing). `pnpm ui:check` → `ui: 320 files, 0 problem(s)`;
+  `pnpm boundaries` → `235 files scanned, 0 problem(s)`; `pnpm precheck` → see the tail below.
+- **Lines.** `reliability-values.ts` 183 (new), `reliability-values.test.ts` 300 (new), `reliability-parts.tsx`
+  207 (new), `MachinePage.tsx` 110 (was 98), `machine-summary.tsx` 190 (was 182), `analytics-machines.en.ts` 137
+  (was 105), `analytics-guide.en.ts` 197 (was 195), `guide-entries.ts` 316 (was 315), the e2e spec 358 (new). Every
+  screen file is under the 300-line cap and every source file under 400.
+
+**Deviations from the plan, each with its evidence.**
+
+1. **The Guide paragraph is `analytics.guide.mttr-mtbf.body5`, not `body3`.** 48b and 48c landed `body3` (the shift
+   split) and `body4` (the backlog) in the same MTTR/MTBF entry; adding the reliability paragraph as `body3` would
+   either overwrite 48's copy or renumber it. The paragraph is the reliability block and no existing paragraph moved.
+2. **The e2e file is `apps/web/e2e/analytics-machine-reliability.spec.ts`**, the task's name, not the plan's
+   `analytics-reliability.spec.ts`.
+3. **HMC-2's Kaplan-Meier median prints 51.4 h**, the 67a-pinned `51.370968`, not the plan's 52.5 h (67a's deviation
+   1: the first step at or below a half is 51.370968, not 52.5).
+4. **The journey stubs the drill reply with one ticket row** instead of seeding breakdowns. The figures reply is the
+   established stub seam; the drill row's `id` is the figure's own drill id, so the table proves the link's ids and
+   the row's identity without a second fixture.
+5. **The spares' downtime column prints one decimal** (`4.0 / 3.0 / 0.0`) to match the acceptance's own line; the
+   stored four-decimal `downtimeHours` is unchanged.
+6. **A fitted block missing any of its numbers is not printed** — the reader returns null and both sections say "Not
+   available", never a zero — and the unit test pins that.

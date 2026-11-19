@@ -28,11 +28,13 @@ function MachineBody({
   record,
   asOf,
   machineId,
+  reliability,
 }: {
   ready: boolean;
   record: MachineRecord | null;
   asOf: string;
   machineId: string;
+  reliability: Figure | undefined;
 }) {
   const { t } = useTranslation();
   if (!ready)
@@ -43,7 +45,7 @@ function MachineBody({
     );
   if (record === null)
     return <p className="text-body text-neutral-600">{t('analytics.machine.noRecord')}</p>;
-  return <RecordBody record={record} asOf={asOf} machineId={machineId} />;
+  return <RecordBody record={record} asOf={asOf} machineId={machineId} reliability={reliability} />;
 }
 
 /**
@@ -74,6 +76,10 @@ export function MachinePage({ group }: { group: AnalyticsGroup }) {
   const figure: Figure | undefined = figures.data.figures.find(
     (candidate) => candidate.screen === 'machine-page',
   );
+  // The second figure on this screen (67 R11): the reliability block is found by key, so it never becomes a tile.
+  const reliability: Figure | undefined = figures.data.figures.find(
+    (candidate) => candidate.key === 'reliability',
+  );
   const ready = figure?.status === 'ready';
   const record = ready && figure ? machineRecord(figure.value, id) : null;
   const drill = parseDrill(params.get('drill'));
@@ -92,7 +98,13 @@ export function MachinePage({ group }: { group: AnalyticsGroup }) {
         <Subtitle record={record} />
       </div>
       {drill ? <DrillTable group={group} drill={drill} /> : null}
-      <MachineBody ready={ready} record={record} asOf={figures.data.asOf} machineId={id} />
+      <MachineBody
+        ready={ready}
+        record={record}
+        asOf={figures.data.asOf}
+        machineId={id}
+        reliability={reliability}
+      />
     </Stack>
   );
 }
