@@ -80,7 +80,9 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const screen = screenOf(params.get('screen'));
   const figureOf = (key: string) => figures.data?.figures.find((figure) => figure.screen === key);
   const drill = parseDrill(params.get('drill'));
-  const drillTable = drill ? <DrillTable group={group} drill={drill} /> : null;
+  const drillTable = drill ? (
+    <DrillTable bare={screen === LOG} group={group} drill={drill} />
+  ) : null;
   if (screen === LOG)
     return (
       <BreakdownLog

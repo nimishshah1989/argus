@@ -113,3 +113,43 @@ test('the Breakdown Log opens on 50 of its 1,343 rows and pages on from the newe
     PAGE,
   );
 });
+
+test('a sorted log keeps each ticket link right, puts dashes last and keeps its sort through a filter', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply() }));
+  await signIn(page, 'head');
+  await page.goto('/analytics/breakdowns');
+
+  const rows = page.locator('tbody tr');
+  const downtime = page.getByRole('columnheader', { name: 'Downtime (Hrs)' });
+  const sortButton = downtime.getByRole('button');
+  await sortButton.click();
+  await expect(downtime).toHaveAttribute('aria-sort', 'ascending');
+  await sortButton.click();
+  await expect(downtime).toHaveAttribute('aria-sort', 'descending');
+  // The dash means no downtime recorded: it sorts last whichever way, so none is on the first page.
+  await expect(rows).toHaveCount(PAGE);
+  await expect(rows.locator('td:nth-child(9)', { hasText: '—' })).toHaveCount(0);
+
+  // On page 2 of the sorted log each eye link still opens the ticket of its own row (id is 1343 minus the Sr No).
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('51 to 100 of 1,343', { exact: true })).toBeVisible();
+  const srNo = Number(await rows.first().getByRole('cell').nth(1).innerText());
+  await expect(rows.first().getByRole('link')).toHaveAttribute(
+    'href',
+    `/desk/fake-${TOTAL - srNo}`,
+  );
+  await expect(rows.first().getByRole('link')).toHaveAttribute(
+    'aria-label',
+    `Open the ticket for Sr No ${srNo}`,
+  );
+
+  // A filter keeps the sort, and the dashes of the narrowed log are on its last row.
+  await page.getByLabel('Machine', { exact: true }).selectOption('VC-2');
+  await expect(downtime).toHaveAttribute('aria-sort', 'descending');
+  await expect(rows).toHaveCount(34);
+  await expect(rows.last().locator('td:nth-child(9)')).toHaveText('—');
+  await expect(rows.first().locator('td:nth-child(9)')).not.toHaveText('—');
+});

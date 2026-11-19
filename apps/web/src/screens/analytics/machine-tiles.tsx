@@ -60,7 +60,7 @@ function identityTiles(record: MachineRecord, asOf: string, t: TFunction): TileS
   const age = ageOf(record.machine, asOf, record.ageYears, record.ageEstimated);
   const efficiency =
     record.efficiencyPct === null
-      ? null
+      ? t(NOT_AVAILABLE)
       : t('analytics.machine.efficiency', { pct: record.efficiencyPct });
   return [
     {

@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- template kind, state and variant are prop values, not copy */
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -85,6 +85,13 @@ function Filters({
   onChange: (id: keyof LogFilters, value: string) => void;
 }) {
   const { t } = useTranslation();
+  const options = useMemo(
+    () =>
+      Object.fromEntries(
+        LOG_FILTERS.map((filter) => [filter.id, filterOptions(rows, filter.column)]),
+      ) as Record<keyof LogFilters, string[]>,
+    [rows],
+  );
   return (
     <fieldset className="rg-filters">
       <legend className="sr-only">{t('analytics.log.filter.title')}</legend>
@@ -99,7 +106,7 @@ function Filters({
               onChange={(event) => onChange(filter.id, event.target.value)}
             >
               <option value="">{t('analytics.log.filter.all')}</option>
-              {filterOptions(rows, filter.column).map((option) => (
+              {options[filter.id].map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -203,43 +210,40 @@ interface LogProps {
   menu: ReactNode;
   /** The line under the title: the date the records run to. */
   asOf: string;
-  /** The rows behind a figure the page was opened from, above the log. */
+  /** The rows behind a figure the page was opened from; they sit in the template's drill area. */
   drill: ReactNode;
 }
 
-/**
- * The Breakdown Log on the register template: the platform's whole log, PM rows included, newest first, 50 rows to a
- * page. The eye opens the row's ticket, the filters narrow the rows and never the rowCount, and the export writes the
- * filtered table. A NO DT row prints the engine's dash as it came.
- */
-export function BreakdownLog({ figure, menu, asOf, drill }: LogProps) {
+/** The template's drill area, kept whatever the log is doing: a drill in the address always shows its rows. */
+const drillSlot = (drill: ReactNode, title: string) =>
+  drill === null ? {} : { drill, drillTitle: title };
+
+/** The filters narrow the rows, the count says how many are left and the table pages them, 50 to a page. */
+function LogReady({
+  page,
+  frame,
+  drill,
+  asOf,
+}: {
+  page: Extract<LogPage, { state: 'ready' }>;
+  frame: ReactNode;
+  drill: ReactNode;
+  asOf: string;
+}) {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<LogFilters>(EMPTY_FILTERS);
-  const page = logPageOf(figure, t);
-  const lede = `${t('analytics.asOf', { date: asOf })} · ${t('analytics.log.intro')}`;
-  if (page.state !== 'ready')
-    return (
-      <Template
-        kind="register"
-        trail={menu}
-        title={t('analytics.screen.breakdown-log')}
-        lede={lede}
-        state="empty"
-        empty={t(page.state === 'notComputed' ? 'analytics.notComputed' : 'analytics.log.empty')}
-        main={null}
-      />
-    );
   const { title, table, ids } = page;
-  const shown = filterRows(table.rows, filters);
+  const shown = useMemo(() => filterRows(table.rows, filters), [table.rows, filters]);
+  const exported = useMemo(() => shown.map((entry) => entry.row), [shown]);
   const active = LOG_FILTERS.some((filter) => filters[filter.id] !== '');
   const key = LOG_FILTERS.map((filter) => filters[filter.id]).join('|');
   return (
     <Template
       kind="register"
-      trail={menu}
+      trail={frame}
       title={title === '' ? t('analytics.screen.breakdown-log') : title}
-      lede={lede}
-      actions={<ExportButton table={table} rows={shown.map((entry) => entry.row)} />}
+      lede={`${t('analytics.asOf', { date: asOf })} · ${t('analytics.log.intro')}`}
+      actions={<ExportButton table={table} rows={exported} />}
       filters={
         <div className="rg-stack rg-wide">
           <Filters
@@ -251,15 +255,40 @@ export function BreakdownLog({ figure, menu, asOf, drill }: LogProps) {
         </div>
       }
       main={
-        <>
-          {drill === null ? null : <div data-span="full">{drill}</div>}
-          {shown.length === 0 ? (
-            <EmptyState title={t('analytics.log.noMatches')} />
-          ) : (
-            <LogTable table={table} shown={shown} ids={ids} resetKey={key} />
-          )}
-        </>
+        shown.length === 0 ? (
+          <EmptyState title={t('analytics.log.noMatches')} />
+        ) : (
+          <LogTable table={table} shown={shown} ids={ids} resetKey={key} />
+        )
       }
+      {...drillSlot(drill, t('analytics.drill.title'))}
+    />
+  );
+}
+
+/**
+ * The Breakdown Log on the register template: the platform's whole log, PM rows included, newest first, 50 rows to a
+ * page. The eye opens the row's ticket, the filters narrow the rows and never the rowCount, and the export writes the
+ * filtered table. A NO DT row prints the engine's dash as it came. The log is cut into pages in memory for now: the
+ * reply carries every row (ruling in `docs/plan/ledger.md`, until 75b or a paged endpoint).
+ */
+export function BreakdownLog({ figure, menu, asOf, drill }: LogProps) {
+  const { t } = useTranslation();
+  const page = useMemo(() => logPageOf(figure, t), [figure, t]);
+  if (page.state === 'ready')
+    return <LogReady page={page} frame={menu} drill={drill} asOf={asOf} />;
+  return (
+    <Template
+      kind="register"
+      trail={menu}
+      title={t('analytics.screen.breakdown-log')}
+      lede={`${t('analytics.asOf', { date: asOf })} · ${t('analytics.log.intro')}`}
+      main={
+        <EmptyState
+          title={t(page.state === 'notComputed' ? 'analytics.notComputed' : 'analytics.log.empty')}
+        />
+      }
+      {...drillSlot(drill, t('analytics.drill.title'))}
     />
   );
 }

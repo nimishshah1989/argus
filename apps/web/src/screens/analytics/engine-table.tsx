@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -98,8 +98,16 @@ export function EngineTable(props: EngineTableProps) {
   }
   const numeric = useMemo(() => numericColumns(rows, header.length), [rows, header.length]);
   const columns = columnsOf(props, numeric);
-  const view = tableView(rows as EngineRow[], columns, { sort, filter, page, pageSize }, (item) =>
-    item.row.join(' '),
+  // The sort and the search run over every row, so they run again only when the rows, the sort, the search or the
+  // page change, not on each paint; the column functions are read from the latest props.
+  const latest = useRef(columns);
+  latest.current = columns;
+  const view = useMemo(
+    () =>
+      tableView(rows as EngineRow[], latest.current, { sort, filter, page, pageSize }, (item) =>
+        item.row.join(' '),
+      ),
+    [rows, sort, filter, page, pageSize, numeric],
   );
   const table = (
     <DataTable

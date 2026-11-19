@@ -5,7 +5,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
 import { viewState } from '../../patterns/view-state.js';
-import { DrillTrail } from '../../ui/elements/index.js';
+import { DrillTrail, EmptyState } from '../../ui/elements/index.js';
 import { Template } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
 import { machineRecord, type MachineRecord } from './machine-record.js';
@@ -19,14 +19,18 @@ type Figure = FiguresReply['figures'][number];
 function NotReady({
   title,
   state,
+  empty,
   onRetry,
 }: {
   title: string;
   state: string;
+  empty: string;
   onRetry: () => void;
 }) {
   if (state === 'error')
     return <Template kind="entity" title={title} state="error" onRetry={onRetry} main={null} />;
+  if (state === 'empty')
+    return <Template kind="entity" title={title} state="empty" empty={empty} main={null} />;
   return (
     <Template
       kind="entity"
@@ -78,30 +82,30 @@ function MachineView({
       />
     ),
   } as const;
+  const drillArea = drill
+    ? {
+        drill: <DrillTable bare group={group} drill={drill} />,
+        drillTitle: t('analytics.drill.title'),
+      }
+    : {};
   if (record === null)
     return (
       <Template
         {...frame}
-        state="empty"
-        empty={t(ready ? 'analytics.machine.noRecord' : 'analytics.notComputed')}
-        main={null}
+        {...drillArea}
+        main={
+          <EmptyState title={t(ready ? 'analytics.machine.noRecord' : 'analytics.notComputed')} />
+        }
       />
     );
   return (
     <Template
       {...frame}
+      {...drillArea}
       lede={ledeOf(record)}
       figures={<MachineTiles record={record} asOf={figures.asOf} machineId={id} />}
       main={
-        <>
-          {drill ? <DrillTable group={group} drill={drill} /> : null}
-          <MachineMain
-            record={record}
-            asOf={figures.asOf}
-            machineId={id}
-            reliability={reliability}
-          />
-        </>
+        <MachineMain record={record} asOf={figures.asOf} machineId={id} reliability={reliability} />
       }
       aside={<MachineAside record={record} machineId={id} />}
     />
@@ -129,6 +133,7 @@ export function MachinePage({ group }: { group: AnalyticsGroup }) {
       <NotReady
         title={t('analytics.machine.title')}
         state={state}
+        empty={t('analytics.empty')}
         onRetry={() => void figures.refetch()}
       />
     );

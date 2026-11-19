@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { KpiTile } from '../../ui/elements/index.js';
+import { EmptyState, KpiTile } from '../../ui/elements/index.js';
 import { Template } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
 import { EngineTable } from './engine-table.js';
@@ -76,7 +76,7 @@ function Tables({ tables }: { tables: readonly RegisterTable[] }) {
           title={table.title}
           header={table.header}
           rows={table.rows.map((row, at) => ({ row, index: at }))}
-          searchable={table.rows.length > 25}
+          searchable
         />
       ))}
     </div>
@@ -131,32 +131,29 @@ export function Registers({
     lede: `${t('analytics.asOf', { date: asOf })} · ${t('analytics.registers.intro')}`,
   } as const;
   const notice = noticeOf(ready, page, t);
+  const drillArea = drill
+    ? {
+        drill: <DrillTable bare group={group} drill={drill} />,
+        drillTitle: t('analytics.drill.title'),
+      }
+    : {};
   if (notice !== null || !page)
     return (
       <Template
         {...frame}
+        {...drillArea}
         title={page?.title ?? t('analytics.screen.registers')}
-        state="empty"
-        empty={notice ?? ''}
-        main={null}
+        main={<EmptyState title={notice ?? ''} />}
       />
     );
   return (
     <Template
       {...frame}
+      {...drillArea}
       title={page.title}
       actions={<SeeMachines selected={selected} ids={figure?.drill.ids ?? []} />}
       figures={page.kpis.length > 0 ? <Kpis page={page} /> : undefined}
-      main={
-        <>
-          {drill ? (
-            <div data-span="full">
-              <DrillTable group={group} drill={drill} />
-            </div>
-          ) : null}
-          <Tables tables={page.tables} />
-        </>
-      }
+      main={<Tables tables={page.tables} />}
     />
   );
 }

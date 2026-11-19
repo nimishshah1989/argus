@@ -6,6 +6,7 @@ import { Card } from '../../ui/card.js';
 import { MACHINE_FIELD_LABELS, type MachineRecord } from './machine-record.js';
 import { displayDay } from './machine-values.js';
 import { Block, Facts } from './facts.js';
+import { dayKey } from './log-values.js';
 import { EngineTable } from './engine-table.js';
 import { DrillAction, NOT_AVAILABLE, Nameplate, number } from './machine-parts.js';
 import { MachineTasks } from './machine-tasks.js';
@@ -127,6 +128,7 @@ function Moves({ record, machineId }: { record: MachineRecord; machineId: string
           ]}
           rows={rows}
           unsortable={new Set([1, 2])}
+          sortKey={(column, cell) => (column === 0 ? dayKey(cell) : undefined)}
         />
       )}
     </Block>

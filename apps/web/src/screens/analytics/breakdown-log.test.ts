@@ -1,10 +1,13 @@
-import { createElement as h } from 'react';
+import { createElement as h, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import '../../i18n/index.js';
 import { BreakdownLog } from './BreakdownLog.js';
+import { DrillTable } from './DrillTable.js';
+import { groupFor } from './groups.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -52,12 +55,12 @@ function logFigure(count: number): Figure {
   } as Figure;
 }
 
-const page = (figure: Figure) =>
+const page = (figure: Figure, drill: ReactNode = null) =>
   renderToStaticMarkup(
     h(
       MemoryRouter,
       { initialEntries: ['/analytics/breakdowns'] },
-      h(BreakdownLog, { figure, menu: null, asOf: '2026-11-11', drill: null }),
+      h(BreakdownLog, { figure, menu: null, asOf: '2026-11-11', drill }),
     ),
   );
 
@@ -89,5 +92,45 @@ describe('the Breakdown Log opens on one page of rows', () => {
 
   it('paints a short log whole', () => {
     expect(bodyRows(page(logFigure(12)))).toBe(12);
+  });
+});
+
+const DROWS = h('p', null, 'DRILL ROWS');
+
+describe('a drill opened on the log', () => {
+  it('sits in the template drill area under one h2 for the screen', () => {
+    const html = page(logFigure(12), DROWS);
+    expect(html.match(/<h2/g)).toHaveLength(1);
+    expect(html).toMatch(/<h3[^>]*>The rows behind this figure<\/h3>/);
+    expect(html).toContain('DRILL ROWS');
+  });
+
+  it('still shows its rows when the log is not computed or has no entries', () => {
+    const missing = page(
+      { ...logFigure(12), status: 'not_computed', value: null } as Figure,
+      DROWS,
+    );
+    expect(missing).toContain('Not computed yet');
+    expect(missing).toContain('DRILL ROWS');
+    const empty = page(logFigure(0), DROWS);
+    expect(empty).toContain('No breakdown log entries yet.');
+    expect(empty).toContain('DRILL ROWS');
+  });
+
+  it('the shared drill table adds no heading of its own inside the template area', () => {
+    const group = groupFor('breakdowns');
+    expect(group).toBeDefined();
+    const html = renderToStaticMarkup(
+      h(
+        QueryClientProvider,
+        { client: new QueryClient() },
+        h(
+          MemoryRouter,
+          null,
+          h(DrillTable, { bare: true, group: group!, drill: { type: 'ticket', ids: ['a'] } }),
+        ),
+      ),
+    );
+    expect(html).not.toContain('<h2');
   });
 });

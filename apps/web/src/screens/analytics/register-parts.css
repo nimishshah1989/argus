@@ -29,6 +29,19 @@
   color: var(--color-neutral-900);
   font-weight: 650;
 }
+@media (max-width: 480px) {
+  /* A phone: the links wrap onto a second line rather than scroll sideways. */
+  .rg-menu {
+    overflow-x: visible;
+  }
+  .rg-menu ul {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .rg-menu a {
+    padding: 0 var(--spacing-step-2);
+  }
+}
 .rg-menu a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

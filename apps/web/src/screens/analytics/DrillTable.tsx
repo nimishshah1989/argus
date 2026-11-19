@@ -165,9 +165,12 @@ export function DrillTable({
   title,
   onBack,
   backLabel,
+  bare = false,
 }: {
   group: AnalyticsGroup;
   drill: Drill;
+  /** Inside a template's drill area, which has the card and the heading: only the way back and the rows. */
+  bare?: boolean;
   /** A tile's filter over the reply's rows; absent for the figure's own drill. */
   where?: (row: Row) => boolean;
   title?: string;
@@ -184,9 +187,15 @@ export function DrillTable({
   const rows =
     where === undefined ? (reply.data?.rows ?? []) : (reply.data?.rows ?? []).filter(where);
   return (
-    <section className="flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card">
+    <section
+      className={
+        bare ? 'flex flex-col gap-2' : 'flex flex-col gap-2 rounded-2xl bg-surface p-4 shadow-card'
+      }
+    >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-title3 font-semibold">{title ?? t('analytics.drill.title')}</h2>
+        {bare ? null : (
+          <h2 className="text-title3 font-semibold">{title ?? t('analytics.drill.title')}</h2>
+        )}
         <BackAction group={group} onBack={onBack} backLabel={backLabel} />
       </div>
       <DrillBody
