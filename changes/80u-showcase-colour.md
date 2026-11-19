@@ -1,0 +1,1 @@
+- The analytics showcase design preview (`/gallery?view=showcase`) gains meaning-carrying colour: status tags with an icon and a word (within, above or below the plant's own usual range; improving or worsening; partial month; top cause; repeat offender), one identity colour per metric family, and a dark theme that follows the system.

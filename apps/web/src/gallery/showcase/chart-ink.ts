@@ -1,3 +1,4 @@
+import type { Family } from './families.js';
 import { reducedMotion } from './motion.js';
 
 /** The colours a chart reads from the page's custom properties, so a direction or theme change reaches it. */
@@ -14,12 +15,13 @@ export interface Ink {
   width: number;
 }
 
-export function readInk(el: HTMLElement): Ink {
+/** `family` swaps the chart's accent for that metric family's identity colour (ticket 80u); the rest stays neutral. */
+export function readInk(el: HTMLElement, family?: Family): Ink {
   const css = getComputedStyle(el);
   const read = (name: string) => css.getPropertyValue(name).trim();
   return {
-    accent: read('--color-accent'),
-    accentTint: read('--color-accent-tint'),
+    accent: read(family ? `--color-family-${family}` : '--color-accent'),
+    accentTint: read(family ? `--color-family-${family}-tint` : '--color-accent-tint'),
     ink: read('--color-neutral-900'),
     ink2: read('--color-neutral-600'),
     line: read('--color-neutral-200'),

@@ -10,10 +10,12 @@ import { KpiTile } from './kpi-tile.js';
 import { ParetoChart } from './pareto-chart.js';
 import { TrendChart, type Hover } from './trend-chart.js';
 import { figure } from '../directions/figures.js';
+import { useTheme } from './theme.js';
 import './strings.js';
 import './showcase.css';
 import './showcase-grids.css';
 import './showcase-overlay.css';
+import './showcase-tags.css';
 
 /**
  * `/gallery?view=showcase` (ticket 80t): the analytics overview at production quality, the reference the page
@@ -22,13 +24,18 @@ import './showcase-overlay.css';
  */
 export default function Showcase() {
   const { t } = useTranslation('showcase');
-  const props = useMemo(() => directionProps(instrument, 'light'), []);
+  const theme = useTheme();
+  const props = useMemo(() => directionProps(instrument, theme), [theme]);
   // On <html>, not on the root, so the sheet (a portal) and the chart tooltips inherit the same tokens.
   useLayoutEffect(() => {
     const style = document.documentElement.style;
     for (const [name, value] of Object.entries(props)) style.setProperty(name, value);
-    return () => Object.keys(props).forEach((name) => style.removeProperty(name));
-  }, [props]);
+    style.colorScheme = theme;
+    return () => {
+      Object.keys(props).forEach((name) => style.removeProperty(name));
+      style.removeProperty('color-scheme');
+    };
+  }, [props, theme]);
   const [hover, setHover] = useState<Hover>({ month: null, from: 'other' });
   const [machines, setMachines] = useState<string[]>([]);
   const [sheet, setSheet] = useState<{ metric: Metric | null; open: boolean }>({
@@ -36,7 +43,7 @@ export default function Showcase() {
     open: false,
   });
   return (
-    <div className="sc" data-testid="showcase">
+    <div className="sc" data-testid="showcase" data-theme={theme}>
       <main className="sc-page">
         <header className="sc-header">
           <div>

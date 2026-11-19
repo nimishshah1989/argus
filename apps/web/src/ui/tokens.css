@@ -102,6 +102,22 @@
   --color-chart-2: var(--color-neutral-600);
   --color-chart-axis: var(--color-neutral-600);
   --color-chart-grid: var(--color-neutral-200);
+
+  /* Identity families (ticket 80u, the analytics showcase): one hue per metric family, aliases of the tone tokens so
+     a direction or theme change reaches them. fill = a line, bar or 3 px edge (3:1); ink = text (4.5:1); tint = a
+     soft band. A family is identity, never a verdict: good and bad are said by a tag with an icon and a word. */
+  --color-family-availability: var(--color-ok);
+  --color-family-availability-ink: var(--color-ok-ink);
+  --color-family-availability-tint: var(--color-ok-tint);
+  --color-family-downtime: var(--color-hold);
+  --color-family-downtime-ink: var(--color-hold-ink);
+  --color-family-downtime-tint: var(--color-hold-tint);
+  --color-family-repairs: var(--color-info);
+  --color-family-repairs-ink: var(--color-info-ink);
+  --color-family-repairs-tint: var(--color-info-tint);
+  --color-family-planned: var(--color-accent);
+  --color-family-planned-ink: var(--color-accent-text);
+  --color-family-planned-tint: var(--color-accent-tint);
 }
 
 /* The page language is set on <html> (i18n/index.ts), so this follows the tenant without a component prop. */

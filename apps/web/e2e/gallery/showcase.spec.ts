@@ -125,3 +125,120 @@ for (const width of [360, 1440]) {
     });
   });
 }
+
+for (const width of [360, 1440]) {
+  test.describe(`the showcase's colour and tags at ${width} px`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    test('every tile carries status tags and its family colour', async ({ page }) => {
+      await open(page);
+      const families = {
+        availability: 'availability',
+        downtime: 'downtime',
+        breakdowns: 'downtime',
+      };
+      for (const [id, family] of Object.entries(families)) {
+        await expect(page.getByTestId(`kpi-${id}`)).toHaveAttribute('data-family', family);
+      }
+      await expect(page.getByTestId('kpi-mttr')).toHaveAttribute('data-family', 'repairs');
+      await expect(page.getByTestId('kpi-pm')).toHaveAttribute('data-family', 'planned');
+      for (const [id] of TILES) {
+        const tags = page.getByTestId(`kpi-${id}`).getByTestId('tag');
+        await expect(tags.filter({ hasText: /usual/ })).toHaveCount(1);
+        await expect(
+          tags.filter({ hasText: /Improving|Worsening|Steady|Planned work/ }),
+        ).toHaveCount(1);
+      }
+      // Planned work is neither good nor bad, so it never turns green or red.
+      await expect(page.getByTestId('kpi-pm').getByTestId('tag').first()).toHaveAttribute(
+        'data-tone',
+        'neutral',
+      );
+    });
+
+    test('the charts carry their tags: top cause, machine risk and the month in the trend', async ({
+      page,
+    }) => {
+      await open(page);
+      await expect(page.getByTestId('trend-chart').locator('xpath=../..')).toContainText(/usual/);
+      await expect(
+        page.locator('.sc-card', { has: page.getByTestId('pareto-chart') }),
+      ).toContainText('Top cause');
+      const risk = page.getByTestId('heat-risk');
+      await expect(risk).toContainText('Repeat offender');
+      await expect(risk).toContainText('One bad month');
+      await expect(page.getByTestId('cell-panel').getByTestId('tag').first()).toContainText(
+        /plant/,
+      );
+    });
+  });
+}
+
+for (const width of [360, 1440]) {
+  test.describe(`the showcase's tags read without colour at ${width} px`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    test('a tag never relies on colour alone: each has an icon and a word', async ({ page }) => {
+      await open(page);
+      const tags = page.getByTestId('tag');
+      expect(await tags.count()).toBeGreaterThan(20);
+      const bare = await tags.evaluateAll(
+        (nodes) =>
+          nodes.filter(
+            (n) => !n.querySelector('svg path') || (n.textContent ?? '').trim().length < 4,
+          ).length,
+      );
+      expect(bare).toBe(0);
+      const shapes = await page.evaluate(() => {
+        const byTone = new Map<string, Set<string>>();
+        for (const n of document.querySelectorAll('[data-testid="tag"]')) {
+          const tone = n.getAttribute('data-tone')!;
+          const d = n.querySelector('path')!.getAttribute('d')!;
+          byTone.set(tone, (byTone.get(tone) ?? new Set()).add(d));
+        }
+        return [...byTone.values()].flatMap((set) => [...set]);
+      });
+      // Different tones never share an icon shape, so they differ without colour.
+      expect(new Set(shapes).size).toBe(shapes.length);
+    });
+
+    test('pointing at the partial month tags it in the tooltip', async ({ page }) => {
+      await open(page);
+      await page.getByTestId('trend-chart').scrollIntoViewIfNeeded();
+      const box = (await page.getByTestId('trend-chart').boundingBox())!;
+      const tip = page.locator('.sc-tip');
+      for (let x = 0.99; x > 0.88; x -= 0.01) {
+        await page.mouse.move(box.x + box.width * x, box.y + box.height * 0.4);
+        if ((await tip.count()) > 0 && (await tip.first().innerText()).includes('November')) break;
+      }
+      await expect(tip.first()).toContainText('Partial month');
+    });
+  });
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  test.describe(`the analytics showcase in ${mode} (system)`, () => {
+    test.use({ viewport: { width: 1440, height: 900 }, colorScheme: mode });
+
+    test('renders with its tags, no axe violation, and the right ground', async ({ page }) => {
+      await open(page);
+      await expect(page.getByTestId('tag').first()).toBeVisible();
+      const ground = await page
+        .getByTestId('showcase')
+        .evaluate((el) => getComputedStyle(el).backgroundColor);
+      const channels = ground.match(/\d+/g)!.map(Number);
+      const bright = (channels[0]! + channels[1]! + channels[2]!) / 3 > 128;
+      expect(bright).toBe(mode === 'light');
+      expect(await axeViolations(page)).toEqual([]);
+      await page.getByTestId('kpi-mttr').click();
+      await expect(page.getByTestId('kpi-sheet')).toBeVisible();
+      expect(await axeViolations(page)).toEqual([]);
+    });
+  });
+}
+
+test('?theme=dark overrides a light system', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/gallery?view=showcase&theme=dark');
+  await expect(page.getByTestId('showcase')).toHaveAttribute('data-theme', 'dark');
+});
