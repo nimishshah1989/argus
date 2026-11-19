@@ -28,13 +28,15 @@ describe('Today change against the prior period', () => {
     expect(toneOfChange(change!.measure.better, change!.delta)).toBe('bad');
   });
 
-  it('a running total keeps no good direction, so growth is not called worse', () => {
+  it('a running total is an amount added, with no verdict', () => {
     const change = changeOf(
       figure('dashboard.total-downtime-hours', 120.5),
       figure('dashboard.total-downtime-hours', 100),
     );
     expect(change?.delta).toBe(20.5);
-    expect(toneOfChange(change!.measure.better, change!.delta)).toBe('neutral');
+    expect(change?.added).toBe(true);
+    const rate = changeOf(figure('dashboard.plant-bd-pct', 3), figure('dashboard.plant-bd-pct', 4));
+    expect(rate?.added).toBe(false);
   });
 
   it('shows no change for a fleet count, a held figure or a figure with no prior value', () => {

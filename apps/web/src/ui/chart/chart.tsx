@@ -3,13 +3,15 @@ import { tableView } from './chart-table.js';
 import { useChart, type ChartSpec } from './use-chart.js';
 
 /** A chart with its numbers in a table underneath; colour is never the only signal. */
-export function Chart({ spec }: { spec: ChartSpec }) {
+export function Chart({ spec, quietTitle }: { spec: ChartSpec; quietTitle?: boolean }) {
   const { t } = useTranslation();
   const { ref, state } = useChart(spec);
   const table = tableView(spec);
   return (
     <figure className="flex flex-col gap-2">
-      <figcaption className="text-body font-semibold">{spec.title}</figcaption>
+      <figcaption className={quietTitle ? 'sr-only' : 'text-body font-semibold'}>
+        {spec.title}
+      </figcaption>
       <div
         ref={ref}
         data-testid="chart"

@@ -3,5 +3,8 @@ import { analyticsCompareEn } from './analytics-compare.en.js';
 
 export const analyticsCompareGu = gujarati(analyticsCompareEn, {
   'analytics.today.vs': 'ફેરફાર {{date}} સાથે સરખાવ્યો છે, {{days}} દિવસ પહેલાંની તારીખ',
-  'analytics.today.costliest.line': '{{hours}} · {{share}} · {{count}} બ્રેકડાઉન',
+  'analytics.today.rowsFor': '{{figure}} પાછળની હરોળો જુઓ',
+  'analytics.today.added': '{{days}} દિવસમાં {{amount}}',
+  'analytics.today.costliest.line_one': '{{hours}} · {{share}} · {{count}} બ્રેકડાઉન',
+  'analytics.today.costliest.line_other': '{{hours}} · {{share}} · {{count}} બ્રેકડાઉન',
 });

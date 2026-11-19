@@ -110,7 +110,7 @@
     top: calc(var(--spacing-step-4) + 72px);
   }
   .at-figures {
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .at[data-template='overview'] .at-main {
     display: grid;

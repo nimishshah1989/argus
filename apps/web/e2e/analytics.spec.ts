@@ -278,7 +278,9 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   // One drill opens the rows behind its figure, in the table the face already has.
   const drilled = ready.find((figure) => figure.drill.ids.length > 0);
   expect(drilled).toBeTruthy();
-  await tile(page, drilled!.key).getByRole('link', { name: 'See the rows', exact: true }).click();
+  await tile(page, drilled!.key)
+    .getByRole('link', { name: /^See the rows/ })
+    .click();
   await expect(page).toHaveURL(/\/analytics\/today\?drill=/);
   const drill = page
     .locator('section')
@@ -352,7 +354,7 @@ test('a ready figure opens the table of rows behind it', async ({ page }, testIn
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');
   await expect(tile(page, 'dashboard.total-machines')).toContainText('12');
   await tile(page, 'dashboard.total-machines')
-    .getByRole('link', { name: 'See the rows', exact: true })
+    .getByRole('link', { name: /^See the rows/ })
     .click();
 
   // The drill table is the plain list of what identifies each row.

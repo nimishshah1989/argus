@@ -30,8 +30,9 @@ const NO_PRIOR: ReadonlySet<string> = new Set([
 
 /**
  * Totals of the whole log to date. Their change over 30 days is what was added in that time, which is above zero
- * for every plant, so reading it as "Worse" would be wrong: it keeps no good direction. A rate or a share (a
- * percentage, a per-day average) does move both ways, so it keeps its own.
+ * for every plant, so reading it as "Worse" would be wrong: it keeps no good direction. These six are the
+ * sums (breakdowns, downtime, PM, no-downtime and plant-event hours, and the costliest problems' hours). A rate, a
+ * share or an average per day or per machine is normalised, moves both ways and keeps its own direction.
  */
 const RUNNING_TOTALS: ReadonlySet<string> = new Set([
   'dashboard.total-breakdowns',
@@ -39,7 +40,6 @@ const RUNNING_TOTALS: ReadonlySet<string> = new Set([
   'dashboard.pm-hours',
   'dashboard.no-downtime-hours',
   'dashboard.plant-events',
-  'dashboard.avg-bd-hours-per-machine',
   'dashboard.costliest-problems',
 ]);
 
@@ -61,6 +61,8 @@ export function scalarOf(figure: Figure): number | null {
 export interface Change {
   measure: Measure;
   delta: number;
+  /** A running total: the change is what was added, a quiet amount with no verdict. */
+  added: boolean;
 }
 
 /** The change of `now` against the same figure `before`; none when the figure has no prior period or either value is missing. */
@@ -69,6 +71,6 @@ export function changeOf(now: Figure, before: Figure | undefined): Change | unde
   const [current, prior] = [scalarOf(now), scalarOf(before)];
   if (current === null || prior === null) return undefined;
   const own = figureMeasure(now.key);
-  const measure: Measure = RUNNING_TOTALS.has(now.key) ? { ...own, better: 'neither' } : own;
-  return { measure, delta: Math.round((current - prior) * 100) / 100 };
+  const added = RUNNING_TOTALS.has(now.key);
+  return { measure: own, delta: Math.round((current - prior) * 100) / 100, added };
 }

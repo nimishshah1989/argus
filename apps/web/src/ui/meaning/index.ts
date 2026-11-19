@@ -34,14 +34,27 @@ export function figureMeasure(key: string, part?: string): Measure {
 
 /**
  * A figure's value with its unit: `82.5%`, `₹1,20,000`, `12.5 hrs`, `7`. It rounds to one decimal unless the screen
- * says how many digits the engine's own value has (`digits`), so a figure the engine gives to 2 places prints whole.
+ * passes `digits`: a figure the engine gives to 2 places keeps both (`digits` 2 prints `3.12%`, not `3.1%`).
  */
 export function formatFigure(measure: Measure, value: number, digits = 1): string {
+  const { text, unit } = splitFigure(measure, value, digits);
+  return unit ? `${text} ${unit}` : text;
+}
+
+/**
+ * A value as the number and its word unit apart, so a tile can print the unit smaller: `%` and `₹` stay on the
+ * number (`94.4%`, `₹1,20,000`); `hrs`, `/day` and the like come back as `unit`.
+ */
+export function splitFigure(
+  measure: Measure,
+  value: number,
+  digits = 1,
+): { text: string; unit: string } {
   const text = value.toLocaleString('en-IN', { maximumFractionDigits: digits });
   const symbol = UNIT_SYMBOL[measure.unit];
-  if (measure.unit === 'money') return `${symbol}${text}`;
-  if (measure.unit === 'percent') return `${text}${symbol}`;
-  return symbol ? `${text} ${symbol}` : text;
+  if (measure.unit === 'money') return { text: `${symbol}${text}`, unit: '' };
+  if (measure.unit === 'percent') return { text: `${text}${symbol}`, unit: '' };
+  return { text, unit: symbol };
 }
 
 /** Whether a move of `delta` is good, bad or neither for a figure that improves in `better`. */

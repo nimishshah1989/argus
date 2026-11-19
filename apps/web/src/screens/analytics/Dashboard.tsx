@@ -33,17 +33,6 @@ function screenOf(raw: string | null): TodayScreen {
   return TODAY_SCREENS.find((screen) => screen === raw) ?? SCREEN_TODAY;
 }
 
-/** The Today group's screen menu; Action Center is its own route, like the checklist's. */
-const TODAY_LINKS = [
-  { screen: SCREEN_TODAY, to: '/analytics/today', labelKey: 'analytics.screen.dashboard' },
-  { screen: 'action-center', to: ACTION_CENTER_PATH, labelKey: 'analytics.screen.action-center' },
-  {
-    screen: SCREEN_TEAM,
-    to: `/analytics/today?screen=${SCREEN_TEAM}`,
-    labelKey: 'analytics.screen.team-focus',
-  },
-] as const;
-
 /** The platform's Action Center banner: the open high and medium counts, linking to the screen; hidden when none. */
 function ActionCenterBanner() {
   const { t } = useTranslation();
@@ -63,28 +52,6 @@ function ActionCenterBanner() {
         </Link>
       }
     />
-  );
-}
-
-function TodayNav({ current }: { current: string }) {
-  const { t } = useTranslation();
-  return (
-    <nav aria-label={t('analytics.today.nav')}>
-      <ul className="flex flex-wrap gap-1 rounded-xl bg-neutral-200 p-1">
-        {TODAY_LINKS.map((link) => (
-          <li key={link.screen}>
-            <Link
-              to={link.to}
-              // eslint-disable-next-line i18next/no-literal-string -- ARIA value, not copy
-              aria-current={link.screen === current ? 'page' : undefined}
-              className="flex min-h-target-min items-center rounded-lg px-3 text-footnote font-semibold text-neutral-700 aria-[current=page]:bg-surface aria-[current=page]:text-neutral-900 aria-[current=page]:shadow-card"
-            >
-              {t(link.labelKey)}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
   );
 }
 
@@ -152,7 +119,7 @@ function DashboardTemplate({
   );
 }
 
-type Frame = Pick<TemplateProps, 'title' | 'filters' | 'actions'>;
+type Frame = Pick<TemplateProps, 'title' | 'actions'>;
 
 /** The screen's frame with the state line in place of the figures: loading, offline or the error with Retry. */
 function NotReady({ frame, state, onRetry }: { frame: Frame; state: string; onRetry: () => void }) {
@@ -202,7 +169,6 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
   const title = t(team ? 'analytics.screen.team-focus' : 'analytics.screen.dashboard');
   const frame = {
     title,
-    filters: <TodayNav current={screen} />,
     actions: team ? undefined : <ChecklistLink />,
   };
   if (state !== 'ready' || !figures.data)
@@ -226,8 +192,10 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
           lede={t('analytics.asOf', { date: loaded.asOf })}
           main={
             <>
-              {drillTable}
-              <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
+              {drillTable === null ? null : <div data-span="full">{drillTable}</div>}
+              <div data-span="full">
+                <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
+              </div>
             </>
           }
         />

@@ -70,6 +70,9 @@
   border-radius: var(--radius-control);
   background: var(--color-surface);
 }
+.as-period select {
+  min-width: 10.5rem;
+}
 .as-period select:disabled {
   color: var(--color-neutral-600);
   cursor: not-allowed;
@@ -169,6 +172,26 @@
   border-bottom: 2px solid transparent;
   white-space: nowrap;
   color: var(--color-neutral-600);
+}
+@media (max-width: 480px) {
+  /* The tabs share the row and wrap their words, so no label is ever cut off. */
+  .as-tabs ul {
+    gap: 0;
+  }
+  .as-tabs li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .as-tabs a {
+    justify-content: center;
+    padding: var(--spacing-step-1);
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .as-search {
+    min-width: 0;
+  }
 }
 .as-tabs a[aria-current='page'] {
   border-bottom-color: var(--color-accent);
