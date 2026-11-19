@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   STACK_FILES,
+  TRACKER_PATH,
   drizzleErrors,
   instructionPaths,
   processErrors,
@@ -55,6 +56,7 @@ describe('docs check', () => {
   it("the repository's instruction and stack files pass", () => {
     expect(processErrors(readDocs(instructionPaths()))).toEqual([]);
     expect(drizzleErrors(readDocs([...STACK_FILES]))).toEqual([]);
+    expect(trackerErrors(readDocs([TRACKER_PATH])[0]?.text ?? '', [])).toEqual([]);
   });
 
   describe('tracker against merged commits', () => {
@@ -99,6 +101,33 @@ describe('docs check', () => {
           'feat(99): x',
         ]),
       ).toEqual([]);
+    });
+
+    const NOT_FOUND = 'tracker table not found or its Status column moved';
+
+    it.each([
+      ['a renamed heading still matches by prefix', '## Progress tracker (19 Nov)', false],
+      ['a demoted heading is not found', '### Progress tracker', true],
+      ['a different heading is not found', '## Tracker', true],
+    ])('%s', (_name, heading, missing) => {
+      const text = tracker('todo').replace('## Progress tracker', heading);
+      const errors = trackerErrors(text, ['feat(52c): x']);
+      expect(errors.some((e) => e.includes(NOT_FOUND))).toBe(missing);
+      if (!missing) expect(errors.join()).toContain('ticket 52');
+    });
+
+    it('finds Status by its header, and fails loudly when the column is gone', () => {
+      const wider = tracker('todo').replace(/^\| (#|52|53|---)/gm, '| $1 | x');
+      expect(trackerErrors(wider.replace('| Status |', '| Phase |'), [])).toEqual([
+        `${TRACKER_PATH}: ${NOT_FOUND}`,
+      ]);
+      expect(trackerErrors(wider, ['feat(52c): x'])).toHaveLength(1);
+    });
+
+    it('reports a status outside the known set and accepts withdrawn and any case', () => {
+      expect(trackerErrors(tracker('Done'), [])).toEqual([]);
+      expect(trackerErrors(tracker('withdrawn'), [])).toEqual([]);
+      expect(trackerErrors(tracker('blocked'), []).join()).toContain('ticket 52');
     });
 
     it('passes with no commits', () => {
