@@ -1,9 +1,36 @@
 import { dayNumber } from './plant-date.js';
-import type { MachineRow } from './types.js';
+import type { EngineData, MachineRow } from './types.js';
 
 /** A CNC machine the plant counts in production data: the Robot and any Settings exclusion are left out. */
 export const isProduction = (machine: MachineRow): boolean =>
   machine.segment === 'CNC' && !machine.excludedFromProduction;
+
+/**
+ * The plant's own list of machines left out of production data counts as the flag on each machine row: a figure reads
+ * one or the other, and a machine named only in the list is left out of every production figure all the same.
+ */
+export function withListedExclusions(data: EngineData): EngineData {
+  const listed = new Set(data.settings?.excludedMachineIds ?? []);
+  if (listed.size === 0) return data;
+  return {
+    ...data,
+    machines: data.machines.map((machine) =>
+      listed.has(machine.id) && !machine.excludedFromProduction
+        ? { ...machine, excludedFromProduction: true }
+        : machine,
+    ),
+  };
+}
+
+/**
+ * How many machines are left out of production data: the row flag (a Robot, a plant's switch) united with the listed
+ * ids, each machine once. An id that is no machine adds none.
+ */
+export function listedExclusions(data: EngineData): number {
+  const listed = new Set(data.settings?.excludedMachineIds ?? []);
+  return data.machines.filter((machine) => machine.excludedFromProduction || listed.has(machine.id))
+    .length;
+}
 
 /** The year the platform files a machine under: the purchase date's year, else the Year field, else none. */
 export function machineYear(machine: MachineRow): number | null {

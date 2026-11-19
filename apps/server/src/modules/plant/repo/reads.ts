@@ -147,6 +147,34 @@ export async function activeMachineByCode(
   ).rows;
 }
 
+/** A machine by code whatever its status: a past breakdown or plant-event line may name one that is switched off. */
+export async function machineByCode(
+  tx: Db,
+  tenantId: string,
+  code: string,
+): Promise<Omit<MachineRow, 'status'>[]> {
+  return (
+    await tx.query(
+      'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2',
+      [tenantId, code],
+    )
+  ).rows;
+}
+
+/** Entries of these lists that are switched off: off for new tickets, still shown on old reports (ticket 47). */
+export async function switchedOffListItems(
+  tx: Db,
+  tenantId: string,
+  lists: readonly string[],
+): Promise<Record<string, unknown>[]> {
+  return (
+    await tx.query(
+      `SELECT list, code FROM list_item WHERE tenant_id = $1 AND NOT active AND list = ANY($2)`,
+      [tenantId, lists],
+    )
+  ).rows;
+}
+
 export async function activeListItems(
   tx: Db,
   tenantId: string,

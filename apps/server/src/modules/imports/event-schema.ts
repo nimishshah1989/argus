@@ -42,6 +42,7 @@ export type BhavinEvent =
   | Event<'transfer', { to: string | null; toShift: string | null }>
   | Event<'update', { spare: string | null; expectedBackAt: Date | null }>
   | Event<'close', { kind: 'report' | 'no_report' | 'done' }>
+  | Event<'utility_loss', { machineCode: string; minutes: number; code: string | null }>
   | Event<'cancel', { previousStatus: 'open' | 'working' | 'waiting' }>
   | Event<'edit', { changes: BhavinEditChange[] }>;
 
@@ -169,6 +170,10 @@ const eventUnion = z
       z.object({ spare: free.nullable(), expectedBackAt: timestamp.nullable() }).strict(),
     ),
     event('close', z.object({ kind: z.enum(['report', 'no_report', 'done']) }).strict()),
+    event(
+      'utility_loss',
+      z.object({ machineCode: short, minutes: minute, code: nullableShort }).strict(),
+    ),
     event('cancel', z.object({ previousStatus: z.enum(['open', 'working', 'waiting']) }).strict()),
     event('report', empty),
     event('edit', editPayload),
@@ -184,12 +189,18 @@ const eventUnion = z
       'resume',
       'transfer',
       'update',
-      'close',
       'cancel',
       'report',
       'edit',
     ]);
     const reasons = new Set(['leave', 'restore', 'transfer', 'update', 'cancel', 'edit']);
+    if (event.type === 'utility_loss' && event.by !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['by'],
+        message: 'A utility line has no actor',
+      });
+    }
     if (actors.has(event.type) && event.by === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ['by'], message: 'Actor is required' });
     }

@@ -31,6 +31,8 @@ export interface ReconcileReferences {
     cell: string | null;
     criticality: 'A' | 'B' | 'C' | null;
   } | null;
+  /** The machine id of each `utility_loss` line of a plant event, by the code as the export wrote it. */
+  lineMachines?: ReadonlyMap<string, string>;
   people: ReadonlyMap<string, string>;
   workTypes: ReadonlyMap<string, CodeReference>;
   locations: ReadonlyMap<string, CodeReference>;

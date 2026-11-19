@@ -1,7 +1,6 @@
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
 import { COMPUTERS, runWith, type EngineData, type FigureResult } from '../src/index.js';
-import { isProduction } from '../src/analytics/machine-facts.js';
 import { effectiveHours, isPm, sourcedReports } from '../src/analytics/rows.js';
 import { A4, ENGINE_DATA, type FigureKey } from './answer-key/fixture.js';
 
@@ -33,12 +32,14 @@ function table(value: FigureKey, title: string) {
 /** The fixture always carries settings; the order tests read the team list and write it back. */
 const SETTINGS = ENGINE_DATA.settings!;
 
-/** The production fleet: CNC machines the plant counts in production data. */
-const PRODUCTION = new Set(ENGINE_DATA.machines.filter(isProduction).map((machine) => machine.id));
+/** Every CNC machine, the ones the plant leaves out of production data included: the machines A4 reads. */
+const CNC = new Set(
+  ENGINE_DATA.machines.filter((machine) => machine.segment === 'CNC').map((machine) => machine.id),
+);
 
-/** Every production report that is not PM: the rows the 1,279 breakdowns and the drill are derived from. */
+/** Every CNC report that is not PM: the rows the 1,279 breakdowns and the drill are derived from. */
 const CARRIED = sourcedReports(ENGINE_DATA).filter(
-  (row) => PRODUCTION.has(row.report.machineId) && !isPm(row),
+  (row) => CNC.has(row.report.machineId) && !isPm(row),
 );
 
 describe('the A4 manpower figure', () => {
@@ -49,7 +50,7 @@ describe('the A4 manpower figure', () => {
     expect(computed.value).toEqual(A4);
   });
 
-  it('drills the production non-PM tickets it read, derived from the workbook', () => {
+  it('drills the non-PM tickets of every CNC machine it read, derived from the workbook', () => {
     const computed = compute();
     const known = new Set(
       [...ENGINE_DATA.tickets, ...ENGINE_DATA.tasks].map((ticket) => ticket.id),
@@ -68,9 +69,15 @@ describe('the A4 manpower figure', () => {
     expect(computed.drill.type).toBe('ticket');
   });
 
-  it('ignores a production-looking row on an excluded machine: the whole page stays identical', () => {
-    const excluded = ENGINE_DATA.machines.find((machine) => machine.excludedFromProduction);
-    expect(excluded).toBeDefined();
+  it('counts a breakdown row on a machine left out of production data: one more breakdown, its hours, its drill id', () => {
+    // The key's one left-out machine is a Robot-category machine (never counted); this plant switched off a lathe.
+    const left = ENGINE_DATA.machines.find((machine) => machine.excludedFromProduction)!;
+    const excluded = {
+      ...left,
+      id: 'a4-left-out',
+      category: 'Lathe',
+      excludedFromProduction: true,
+    };
     const donor = CARRIED.find(
       (row) => effectiveHours(row.report) > 0 && row.report.doneBy.length > 0,
     );
@@ -82,7 +89,7 @@ describe('the A4 manpower figure', () => {
       ...donor!.ticket,
       id: ticketId,
       ref: 'BD-A4-EXCLUDED',
-      machineId: excluded!.id,
+      machineId: excluded.id,
       reportedAt: '2026-01-01T04:00:00.000Z',
       closedAt: '2026-01-01T05:00:00.000Z',
     };
@@ -90,21 +97,29 @@ describe('the A4 manpower figure', () => {
       ...donor!.report,
       id: reportId,
       ticketId,
-      machineId: excluded!.id,
+      machineId: excluded.id,
       date: '2026-01-01',
     };
     const grown: EngineData = {
       ...ENGINE_DATA,
+      machines: [...ENGINE_DATA.machines, excluded],
       tickets: [...ENGINE_DATA.tickets, ticket],
       reports: [...ENGINE_DATA.reports, report],
     };
     const before = compute();
     const after = compute(grown);
-    // The proof: without the production filter this row would add a breakdown, its hours and its attribution to
-    // every A4 table (and one drill id). The whole page and the drill count staying byte-identical is the filter.
-    expect(after.value).toEqual(before.value);
-    expect(after.value).toEqual(A4);
-    expect(after.drill.ids).toEqual(before.drill.ids);
+    // Bhavin, 19 Nov: a machine left out of production data keeps its breakdowns in the manpower hours. The key's one
+    // left-out machine has no breakdown, so the key cannot say otherwise; this row is the proof the filter is gone.
+    const kpis = (figure: FigureResult) =>
+      (figure.value as unknown as FigureKey).pages[0]!.kpis.map((entry) =>
+        Number(entry.value.replaceAll(',', '')),
+      );
+    const [countBefore = NaN, hoursBefore = NaN] = kpis(before);
+    const [countAfter = NaN, hoursAfter = NaN] = kpis(after);
+    expect(countAfter).toBe(countBefore + 1);
+    expect(Math.abs(hoursAfter - hoursBefore - effectiveHours(report))).toBeLessThan(0.1);
+    expect(after.drill.ids).toEqual([...before.drill.ids, ticketId].sort());
+    expect(before.value).toEqual(A4);
   });
 
   it('takes the team order from the settings: reversing it reverses the matrices but not the sorted table', () => {
@@ -155,6 +170,48 @@ describe('the A4 manpower figure', () => {
       ),
     };
     expect({ ...value, pages: [rest] }).toEqual(A4);
+  });
+
+  it('adds nothing for a Robot-category machine in the CNC segment, and a fully excluded category keeps its column', () => {
+    const donor = CARRIED.find(
+      (row) => effectiveHours(row.report) > 0 && row.report.doneBy.length > 0,
+    )!;
+    const base = ENGINE_DATA.machines.find((machine) => machine.id === donor.report.machineId)!;
+    const clone = (id: string, category: string, excluded: boolean) => ({
+      machine: { ...base, id, category, excludedFromProduction: excluded },
+      ticket: { ...donor.ticket, id: `${id}-t`, ref: `BD-${id}`, machineId: id },
+      report: { ...donor.report, id: `${id}-r`, ticketId: `${id}-t`, machineId: id },
+    });
+    const robot = clone('a4-robot', 'Robot', true);
+    const lone = clone('a4-lone', 'Zeta Lathe', true);
+    const withRows = (...added: ReturnType<typeof clone>[]): EngineData => ({
+      ...ENGINE_DATA,
+      // No configured list: the columns come from the machines A4 reads.
+      settings: { ...SETTINGS, categories: undefined },
+      machines: [...ENGINE_DATA.machines, ...added.map((entry) => entry.machine)],
+      tickets: [...ENGINE_DATA.tickets, ...added.map((entry) => entry.ticket)],
+      reports: [...ENGINE_DATA.reports, ...added.map((entry) => entry.report)],
+    });
+    const count = (value: FigureKey) => Number(value.pages[0]!.kpis[0]!.value.replaceAll(',', ''));
+    const plain = valueOf(withRows());
+    expect(count(valueOf(withRows(robot)))).toBe(count(plain));
+    expect(table(valueOf(withRows(robot)), 'Specialization')).toEqual(
+      table(plain, 'Specialization'),
+    );
+    const grown = valueOf(withRows(lone));
+    expect(count(grown)).toBe(count(plain) + 1);
+    const spec = table(grown, 'Specialization');
+    expect(spec.header).toHaveLength(table(plain, 'Specialization').header.length + 1);
+    expect(spec.header.at(-1)).toBe('Zeta Lathe');
+    const done = new Map(
+      table(grown, 'Manpower Table').rows.map((row) => [row[0], Number(row[2])]),
+    );
+    for (const row of spec.rows) {
+      const cells = row
+        .slice(1)
+        .reduce((total, cell) => total + (cell === '—' ? 0 : Number(cell)), 0);
+      expect(cells).toBe(done.get(row[0]) ?? 0);
+    }
   });
 
   it('prints no page for an empty plant: no production breakdowns or no team', () => {

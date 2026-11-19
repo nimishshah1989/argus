@@ -30,7 +30,7 @@ out of history; out of production figures: TC-5, TC-3, VC-6 (only three given); 
 ## Frontier
 
 - Merged today: 76 (all), 80a–80r, 80t showcase (#448), 78a (#447), 74, 69 plan, 69a importer (#449).
-- Open: #451 69b converter (needs #449, merged), #452 77a machines out of production data (independent check passed, review findings fixed, CI running).
+- Merged since: #449 (69a), #451 (69b converter), #452 (77a machines out of production data, API and engine). Nothing of mine is open.
 - Next backend: 69c (load four years into a LOCAL Postgres, run the engine per year, compare the workbooks' own
   MTTR/MTBF sheets; adds list entries location 'Plant' and workType 'Utility failure' first), 75 (figures served,
   not recomputed), 79 (`validate:full`), 69d staging load after 79, 77b/78b screens after templates, 90–96 after.
@@ -43,7 +43,13 @@ out of history; out of production figures: TC-5, TC-3, VC-6 (only three given); 
 Artifact https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, dataset `datasets/tickets` (blob `tickets.json`): refresh
 half-hourly from merged commits and PRs; do not edit the page file.
 
+<<<<<<< HEAD
 ## Parked
+=======
+**Waiting on people (`docs/plan/NEEDS.md`):** N17 February–March 2022, any 2020–21 files, and the 2023 and 2024 workbooks
+placed with the others outside git; N18 the ranking method (54); N19 AI thresholds; N5 Gujarati sign-off; N10 the
+security reviewer; N15 usability sessions; N7 the production account; N20 (not blocking).
+>>>>>>> origin/main
 
 CI downloads fonts on every browser/gallery run (use the prebuilt Playwright image); 78b: reply schema uses
 `isoDateTimeSchema` for `createdAt`/`failedAt`; check in 69c whether `recordedMonths` counts plant events; converter
