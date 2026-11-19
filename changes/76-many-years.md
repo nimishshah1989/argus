@@ -23,3 +23,12 @@
   rows over 2025 and 2026, July 2025 with no records, one machine that exists in 2026 only, and the figures worked out
   by hand (BD % 0.87, MTBF 185.0, 684 observed days, 42,525 working hours). A test counts the rows and holds them to
   the hand values, so a wrong hand value fails before any figure reads it. Nothing a user sees changes in this change.
+
+## 76c — the period's months, labels and observed days
+
+- The analytics engine can now lay out a span as calendar months (twelve for 2025, twelve for 2026, twenty-four across
+  both, July 2025 marked as having no records), label them `Jan` inside one year and `Jan 25` across years, title the
+  span `2025`, `2026` or `2025–2026`, and count the days between two records with a no-records month left out (319, 350
+  and 684 on the two-year plant). It can also name the window of a figure that learns from all history, 1 January of the
+  first record's year to the run date. Nothing is wired in yet, so every existing figure returns the same numbers and
+  the 2026 answer key is untouched. No screen changes.
