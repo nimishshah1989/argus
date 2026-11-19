@@ -97,6 +97,20 @@ describe('the reliability tabs', () => {
   });
 });
 
+describe('the reports tabs', () => {
+  it('has Monthly, Annual and the PM calendar as tabs, so the reports need no second menu', () => {
+    expect(tabsOf('head', 'reports')).toEqual([
+      '/analytics/reports',
+      '/analytics/reports?screen=annual-report',
+      '/analytics/pm',
+    ]);
+    expect(locate('/analytics/reports', '')?.tab.to).toBe('/analytics/reports');
+    expect(locate('/analytics/reports', 'screen=annual-report')?.tab.to).toBe(
+      '/analytics/reports?screen=annual-report',
+    );
+  });
+});
+
 describe('a page the login may not open', () => {
   it('is not marked or headed as the Money page for a supervisor', () => {
     const shown = place(sectionsFor('supervisor'), '/analytics/cost', '');

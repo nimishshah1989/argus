@@ -10,7 +10,6 @@ export const analyticsShellEn = {
   'ashell.section.people': 'People & money',
   'ashell.section.reports': 'Reports',
   'ashell.section.guide': 'Guide',
-  'ashell.tab.reports': 'Monthly and annual reports',
   'ashell.tabs': 'Screens in {{section}}',
   'ashell.menu.open': 'Menu',
   'ashell.menu.close': 'Close menu',

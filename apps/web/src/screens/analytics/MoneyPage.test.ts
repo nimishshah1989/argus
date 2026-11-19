@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '../../i18n/index.js';
-import { OnlineContext } from '../../data/index.js';
+import { ApiError, OnlineContext } from '../../data/index.js';
 import { groupFor } from './groups.js';
 
 const reply = vi.hoisted(() => ({ current: undefined as unknown }));
@@ -91,6 +91,32 @@ describe('Money Matters', () => {
   it('never shows the refusal while the login is not known yet', () => {
     expect(render(null)).not.toContain('for heads and admin');
     expect(render(null, { online: false })).not.toContain('for heads and admin');
+  });
+
+  it('shows Retry, never the refusal, when the login cannot be read', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retryOnMount: false } } });
+    client
+      .getQueryCache()
+      .build(client, { queryKey: ['me'], queryFn: async () => ({ user: { role: 'head' } }) })
+      .setState({ status: 'error', error: new ApiError('boom', 'bad'), data: undefined });
+    const page = renderToStaticMarkup(
+      h(
+        OnlineContext.Provider,
+        { value: true },
+        h(
+          QueryClientProvider,
+          { client },
+          h(
+            MemoryRouter,
+            { initialEntries: ['/analytics/cost'] },
+            h(MoneyPage, { group: groupFor('cost')! }),
+          ),
+        ),
+      ),
+    );
+    expect(page).toContain('role="alert"');
+    expect(page).toContain('Try again');
+    expect(page).not.toContain('for heads and admin');
   });
 
   it('says so when the engine has not computed the page', () => {

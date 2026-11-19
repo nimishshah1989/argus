@@ -4,7 +4,6 @@
  * catalogue and this screen's copy never edit one file and both stay under the 250-line catalogue cap.
  */
 export const analyticsReportEn = {
-  'analytics.report.nav': 'Report screens',
   'analytics.report.downloadPdf': 'Download PDF',
   'analytics.report.downloadWorkbook': 'Export the whole data set (Excel)',
   'analytics.report.commentary': 'Management commentary and actions',
