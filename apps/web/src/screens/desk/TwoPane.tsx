@@ -7,7 +7,7 @@ export function TwoPane({ list, ticketId }: { list: ReactNode; ticketId: string 
   const { t } = useTranslation();
   return (
     <div className="grid grid-cols-[minmax(0,28.75rem)_minmax(0,1fr)] items-start gap-4">
-      <div>{list}</div>
+      <div className="flex flex-col gap-4">{list}</div>
       <section
         aria-label={t('deskWide.ticket')}
         className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl bg-surface shadow-card"

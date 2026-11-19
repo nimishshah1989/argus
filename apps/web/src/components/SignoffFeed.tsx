@@ -47,7 +47,7 @@ export function SignoffFeed({ now }: { now?: string }) {
             <li key={row.ticketId}>
               <Link
                 to={`/desk/${row.ticketId}`}
-                className="flex min-h-target items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-surface px-4 py-3"
+                className="flex min-h-target items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 shadow-card"
               >
                 <span className="min-w-0">
                   <span className="block text-body font-semibold">{row.ref}</span>

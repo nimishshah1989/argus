@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { taskState } from '@uptimo/shared/tasks';
 import type { Config, Ticket } from '../../api.js';
 import { machineLabel } from '../../components/format.js';
+import { EmptyState } from '../../ui/elements/states.js';
 import { AlarmClock, Clock } from '../../ui/icon.js';
 import { StatusPill } from '../../ui/status/status-pill.js';
 import { TicketCard as Card } from '../../ui/ticket-card.js';
@@ -32,8 +33,7 @@ export function TasksList({
   const today = plantToday(config?.timeZone ?? 'UTC', new Date(ctx.now));
   const labels: Record<string, string> = {};
   for (const item of config?.lists.task_reason ?? []) labels[item.code] = item.label;
-  if (tasks.length === 0)
-    return <p className="text-body text-neutral-600">{t('tasks.tabEmpty')}</p>;
+  if (tasks.length === 0) return <EmptyState title={t('tasks.tabEmpty')} />;
   return (
     <div data-testid="tasks-tab" className="flex flex-col gap-2">
       <p className="text-footnote text-neutral-600">{t('tasks.tabHint')}</p>

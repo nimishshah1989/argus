@@ -38,13 +38,13 @@ export function Drafts() {
   if (drafts.length === 0) return null;
 
   return (
-    <section data-testid="drafts" className="mt-4 rounded-2xl bg-surface p-4 shadow-sm">
-      <h2 className="text-sm font-medium text-neutral-600">{t('drafts.title')}</h2>
+    <section data-testid="drafts" className="mt-4 rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">{t('drafts.title')}</h2>
       <ul className="mt-3 space-y-3">
         {drafts.map((draft) => (
           <li key={draft.id} className="rounded-xl border border-neutral-200 p-3">
-            <p className="text-base font-semibold tracking-tight">{draft.ref}</p>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="text-body font-semibold tracking-tight">{draft.ref}</p>
+            <p className="mt-1 text-footnote text-neutral-600">
               {draft.reasonKey
                 ? t(draft.reasonKey)
                 : t('drafts.couldNotApply', {
@@ -55,7 +55,7 @@ export function Drafts() {
             <button
               type="button"
               onClick={() => void dismiss(draft.id)}
-              className="mt-3 min-h-13 rounded-xl border border-control bg-surface px-4 text-base font-semibold text-neutral-900 "
+              className="mt-3 min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900"
             >
               {t('drafts.dismiss')}
             </button>

@@ -33,21 +33,21 @@ function TimerDetails({ timer, status, timeZone }: Omit<RowProps, 'label' | 'det
   return (
     <>
       {timeZone && timer?.dueAt && timer.state !== 'stopped' && (
-        <dd className="mt-0.5 text-xs text-neutral-600">
+        <dd className="mt-0.5 text-caption text-neutral-600">
           {t('sla.due')} <time dateTime={timer.dueAt}>{formatDateTime(timer.dueAt, timeZone)}</time>
         </dd>
       )}
       {timer?.state === 'paused' && !timer.dueAt && (
-        <dd className="mt-0.5 text-xs text-neutral-600">{t('sla.dueAfterResume')}</dd>
+        <dd className="mt-0.5 text-caption text-neutral-600">{t('sla.dueAfterResume')}</dd>
       )}
       {timeZone && timer?.stoppedAt && (
-        <dd className="mt-0.5 text-xs text-neutral-600">
+        <dd className="mt-0.5 text-caption text-neutral-600">
           {t('sla.stoppedAt')}{' '}
           <time dateTime={timer.stoppedAt}>{formatDateTime(timer.stoppedAt, timeZone)}</time>
         </dd>
       )}
       {status === 'cancelled' && (
-        <dd className="mt-0.5 text-xs text-neutral-600">{t('sla.cancelledRestore')}</dd>
+        <dd className="mt-0.5 text-caption text-neutral-600">{t('sla.cancelledRestore')}</dd>
       )}
     </>
   );
@@ -58,16 +58,16 @@ function TimerRow({ label, timer, detailed, status, timeZone }: RowProps) {
   if (!timer) {
     return (
       <div>
-        <dt className="text-xs font-medium text-neutral-600">{label}</dt>
-        <dd className="mt-0.5 text-sm text-neutral-600">{t('sla.notApplicable')}</dd>
+        <dt className="text-caption font-medium text-neutral-600">{label}</dt>
+        <dd className="mt-0.5 text-footnote text-neutral-600">{t('sla.notApplicable')}</dd>
       </div>
     );
   }
   return (
     <div>
-      <dt className="text-xs font-medium text-neutral-600">{label}</dt>
+      <dt className="text-caption font-medium text-neutral-600">{label}</dt>
       <dd
-        className={`mt-0.5 text-sm tabular-nums ${
+        className={`mt-0.5 text-footnote tabular-nums ${
           timer.breached ? 'font-semibold text-danger-ink' : 'text-neutral-700'
         }`}
       >
@@ -89,11 +89,11 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
   const timeZone = config?.timeZone;
   if (!ticket.sla) {
     const message = ticket.sla === undefined ? t('sla.unavailable') : t('sla.notConfigured');
-    if (!detailed) return <p className="mt-2 text-xs text-neutral-600">{message}</p>;
+    if (!detailed) return <p className="mt-2 text-caption text-neutral-600">{message}</p>;
     return (
-      <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
-        <h2 className="text-sm font-medium text-neutral-600">{t('sla.title')}</h2>
-        <p className="mt-2 text-sm text-neutral-600">{message}</p>
+      <section aria-label={t('sla.title')} className="rounded-card bg-surface p-4 shadow-card">
+        <h2 className="text-footnote font-medium text-neutral-600">{t('sla.title')}</h2>
+        <p className="mt-2 text-footnote text-neutral-600">{message}</p>
       </section>
     );
   }
@@ -115,10 +115,10 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
       />
     </>
   );
-  if (!detailed) return <dl className="mt-2 grid grid-cols-2 gap-3 text-sm">{rows}</dl>;
+  if (!detailed) return <dl className="mt-2 grid grid-cols-2 gap-3 text-footnote">{rows}</dl>;
   return (
-    <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
-      <h2 className="text-sm font-medium text-neutral-600">{t('sla.title')}</h2>
+    <section aria-label={t('sla.title')} className="rounded-card bg-surface p-4 shadow-card">
+      <h2 className="text-footnote font-medium text-neutral-600">{t('sla.title')}</h2>
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">{rows}</dl>
     </section>
   );
