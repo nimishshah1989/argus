@@ -38,19 +38,19 @@ number. Nothing here is judged by eye: the proof is a command, a test, or a reco
 Sizes are estimates (± 40 %) in the repo's own unit: one reviewed change of about 150 lines. The backend lane works
 E then H then I; the frontend lane works F beside it; each stage stops at its gate for Nimish. This table holds the
 gates of V0, E, H, F, I, P, M4b and M6; the milestones table below refers to it. Stage E's gate counts 77a and 78a; 77b and 78b wait for 85 and close with F. The sizes cover the work left:
-Changes sum to 189 and Lines to 26,600.
+Changes sum to 206 and Lines to 28,600. Stage E was raised from 22 changes and 2,800 lines to 39 and 4,800 after slice 76 was planned (76 alone is about 23 changes and 2,830 lines).
 
 | Stage | What it is                     | Tickets                    | Gate (Nimish checks)                                                                                 | Changes |      Lines |
 | ----- | ------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- | ------: | ---------: |
 | V0    | Truth and pipes                | 73, 74                     | A green CI run on a PR, and staging showing main's commit                                            |       5 |        300 |
-| E     | Engine at history scale        | 75–79                      | The Breakdowns page opens in under 2 s on a 10,000-row plant                                         |      22 |      2,800 |
+| E     | Engine at history scale        | 75–79                      | The Breakdowns page opens in under 2 s on a 10,000-row plant                                         |      39 |      4,800 |
 | H     | History in                     | 69                         | The reconciliation sheet: each year's workbook against what was loaded, year by year                 |      14 |      2,000 |
 | F     | Frontend rebuild               | 80–89                      | One direction picked (80); then each of the four waves approved, before and after                    |      60 |     10,500 |
 | M4b   | The loop, finished             | 50c, 53, 54                | The first monthly scorecard, from live data                                                          |      12 |      1,800 |
 | I     | Intelligence                   | 90–96                      | Seven insights on real data, each naming machines and hours                                          |      16 |      2,200 |
 | M6    | AI in shadow                   | 55–60, 72                  | Nimish agrees the capabilities and thresholds T1–T6, and sees shadow scores per feature against them |      30 |      4,000 |
 | P     | Production                     | 24, 26, 27, 28, 68, 97, 98 | Day-3 and day-7 go/no-go                                                                             |      30 |      3,000 |
-|       | **Total to v1 (M6 in shadow)** |                            |                                                                                                      | **189** | **26,600** |
+|       | **Total to v1 (M6 in shadow)** |                            |                                                                                                      | **206** | **28,600** |
 
 ### Rules added on 19 Nov
 
@@ -127,7 +127,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 47  | Coded closes                                      | M4b       | done        | #379, #384, #388                                                                                                                     |
 | 48  | Shift-calendar KPIs                               | M4b       | done        | #391, #398, #401                                                                                                                     |
 | 49  | PM plans on the phone                             | M4b       | done        | #380, #385, #393, #400                                                                                                               |
-| 50  | PM calendar and compliance                        | M4b       | in progress | data and move #397, compliance #403; the calendar screen (50c) todo, blocked by 85                                                   |
+| 50  | PM calendar and compliance                        | M4b       | in progress | data and move #397, compliance #403; the calendar screen #407 (50c); follow-up 50d: change-note fixes, retry and stale-panel polish  |
 | 51  | Registers                                         | M4b       | done        | #390, #392, #394                                                                                                                     |
 | 52  | Forecast freeze and inspections                   | M4b       | done        | #395, #402, #405; the Action Center accept button rides in 87                                                                        |
 | 53  | Monthly scorecard                                 | M4b       | todo        | —                                                                                                                                    |
@@ -150,7 +150,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 70  | (withdrawn)                                       | —         | withdrawn   | withdrawn in `docs/plan/CLAUDE-ADOPTION.md`                                                                                          |
 | 71  | Real Claude provider                              | M6        | done        | merged with 55b/55c; production stays gated                                                                                          |
 | 72  | Diagnosis on the ticket                           | M6        | in progress | 72a, 72b and the queue merged (stored in shadow); route and card todo                                                                |
-| 73  | The plan tells the truth                          | V0        | in progress | #408, #409 (73b)                                                                                                                     |
+| 73  | The plan tells the truth                          | V0        | done        | #408, #409 (73b), #410, the tracker check (73d)                                                                                      |
 | 74  | Pipes proven                                      | V0        | todo        | —                                                                                                                                    |
 | 75  | Figures are served, not recomputed                | E         | todo        | —                                                                                                                                    |
 | 76  | The engine reads many years                       | E         | in progress | —                                                                                                                                    |
@@ -736,6 +736,7 @@ Exceptions, proposed on 19 Nov by reading `packages/domain/src/analytics/registr
 
 1. [Browser] Today, Action Center (with the accept button from 52), Team Focus, the machine page, the registers, Breakdowns, the forecast, Money, Reports, Energy, the PM calendar and the Guide are rebuilt on templates (the PM calendar already stands on one from 50c); each scores ≥ 32 of 40 with 0 P0; Nimish approves each.
 2. [Process] `ui:check` now fails on a raw colour or a hand-written card anywhere in `screens/`.
+3. [Browser] Every job that can be moved on the PM calendar has a keyboard "Move to date" control (0 jobs are movable by drag only); a journey moves one job with the keyboard alone.
 
 **88 Wave 3: desk, ticket, board, settings** · Blocked by: 82
 
