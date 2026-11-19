@@ -129,14 +129,37 @@ function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string
 const lossMinutes = (row: LegacyRow): number =>
   row.utiHours > 0 ? Math.round(row.utiHours * 60) : row.minutes;
 
+/** A machine with two rows on one plant date is one line: the importer takes one `utility_loss` line per machine. */
+function mergeByMachine(
+  lines: readonly ClassifiedRow[],
+): { row: LegacyRow; machine: string; minutes: number; code: string }[] {
+  const merged = new Map<
+    string,
+    { row: LegacyRow; machine: string; minutes: number; code: string }
+  >();
+  for (const l of lines) {
+    const was = merged.get(l.machine);
+    if (was) was.minutes += lossMinutes(l.row);
+    else
+      merged.set(l.machine, {
+        row: l.row,
+        machine: l.machine,
+        minutes: lossMinutes(l.row),
+        code: l.row.code,
+      });
+  }
+  return [...merged.values()];
+}
+
 /** One plant event: a closed general ticket, one `utility_loss` line per machine row of the date (R20). */
 function plantEvent(
   plantDay: { year: number; date: string; lines: readonly ClassifiedRow[] },
   people: People,
   fold: AliasMap,
 ): Record<string, unknown> {
-  const { year, date, lines } = plantDay;
-  const longest = Math.max(0, ...lines.map((l) => lossMinutes(l.row)));
+  const { year, date } = plantDay;
+  const lines = mergeByMachine(plantDay.lines);
+  const longest = Math.max(0, ...lines.map((l) => l.minutes));
   const close = closeOf(date, '1');
   const at = addMinutes(close, -longest);
   const texts = new Map<string, number>();
@@ -169,8 +192,8 @@ function plantEvent(
         text: null,
         payload: {
           machineCode: l.machine,
-          minutes: lossMinutes(l.row),
-          code: (fold[l.row.code] ?? l.row.code) || null,
+          minutes: l.minutes,
+          code: (fold[l.code] ?? l.code) || null,
         },
       })),
       { type: 'close', at: close, by: null, text: null, payload: { kind: 'done' } },
@@ -190,7 +213,7 @@ function yearExport(
   year: number,
   people: People,
   fold: AliasMap,
-): { out: SyntheticExport; tickets: number; events: number; codes: Set<string> } {
+): { out: SyntheticExport; tickets: number; events: number; merged: number; codes: Set<string> } {
   const own = rows.filter((c) => c.row.year === year);
   const tickets = own.filter((c) => c.cls === 'ticket').map((c) => ticket(c, people, fold));
   const days = new Map<string, ClassifiedRow[]>();
@@ -217,7 +240,14 @@ function yearExport(
     },
     tickets: all,
   };
-  return { out, tickets: tickets.length, events: events.length, codes: new Set(named) };
+  const merged =
+    own.filter((c) => c.cls === 'utility').length -
+    events.reduce(
+      (n, e) =>
+        n + (e.events as { type: string }[]).filter((x) => x.type === 'utility_loss').length,
+      0,
+    );
+  return { out, tickets: tickets.length, events: events.length, merged, codes: new Set(named) };
 }
 
 /** The proof that no name reaches a file: a leaked name word, or a tenant term, refuses the write (R10). */
@@ -259,7 +289,7 @@ export function writtenIdentity(report: YearReport, json: string): boolean {
     .filter((e) => e.type === 'utility_loss').length;
   const dropped =
     report.duplicate + report.strayYear + report.gapMonth + sum(report.unknownMachine);
-  return report.read === tickets + lines + dropped;
+  return report.read === tickets + lines + (report.utilityMerged ?? 0) + dropped;
 }
 
 export function convertLegacy(
@@ -285,6 +315,7 @@ export function convertLegacy(
       throw new Error(`legacy ${report.year}: file too large`);
     // The contract name `argus.synthetic-bhavin/v1` is not data: only aliases and tickets are checked.
     assertClean(built.out, report.year, people, plant.terms);
+    report.utilityMerged = built.merged;
     report.identity = writtenIdentity(report, json);
     report.events = built.events;
     report.possibleDuplicatePeople = people.possibleDuplicates(built.codes);

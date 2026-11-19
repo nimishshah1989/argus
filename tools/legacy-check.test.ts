@@ -87,4 +87,28 @@ describe('legacy check', () => {
     } as unknown as EngineData;
     expect([...loadedFigures(data)]).toEqual([['ZZ-1 2022-01', { count: 2, hours: 1.5 }]]);
   });
+
+  it('reads the real layout: a block per month with Machines, MTTR and MTBF rows, skipping a quarter block', () => {
+    const grid: Cell[][] = [
+      ['ZZ-2022 Month', null, null, null, null],
+      ['Jan ', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'Total No Break', 3, 0, 3],
+      [null, 'MTTR', 0.89, 0, 0.89],
+      [null, 'MTBF', 166.67, 500, 1000],
+      ['Feb', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'MTTR', null, 1.5, 1.5],
+      [null, 'MTBF', null, 500, 500],
+      ['Q-1', 'Machines', 'ZZ1', 'ZZ-2', 'Total'],
+      [null, 'MTTR', 9, 9, 9],
+    ];
+    const summary = parseSummary({ 'MTTR & MTBF': grid }, 2022, (l) =>
+      l.replace(/^ZZ(\d)/, 'ZZ-$1'),
+    );
+    expect([...summary.cells]).toEqual([
+      ['ZZ-1 2022-01', { mttr: 0.89, mtbf: 166.67 }],
+      ['ZZ-2 2022-01', { mttr: 0, mtbf: 500 }],
+      ['ZZ-1 2022-02', { mttr: null, mtbf: null }],
+      ['ZZ-2 2022-02', { mttr: 1.5, mtbf: 500 }],
+    ]);
+  });
 });

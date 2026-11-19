@@ -69,8 +69,11 @@ function printEngine(plantData: PlantData, years: readonly number[]): void {
   for (const year of years) {
     const result = runYear(plantData, year);
     const none = result.period?.noRecords ?? [];
-    const count = String(figureOf(result, 'dashboard.total-breakdowns'));
-    console.log(`engine ${year}: breakdowns ${count} | no records: ${none.join(' ') || '-'}`);
+    const value = (key: string): string => JSON.stringify(figureOf(result, key));
+    console.log(
+      `engine ${year}: breakdowns ${value('dashboard.total-breakdowns')} | downtime hours ${value('dashboard.total-downtime-hours')}` +
+        ` | fleet availability ${value('dashboard.fleet-availability')} | no records: ${none.join(' ') || '-'}`,
+    );
   }
 }
 

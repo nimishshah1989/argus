@@ -10,6 +10,8 @@ import type { Cell } from '../apps/server/src/seed/legacy-sheets.js';
  */
 export const HOURS_A_MONTH = 500;
 const ROUNDING = 0.005 + 1e-9;
+/** The sheets work from the log's own hours column, which is rounded by hand: an MTTR within 0.05 h is the same figure. */
+const HOURS_TOLERANCE = 0.05 + 1e-9;
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 export interface Shown {
@@ -72,6 +74,97 @@ function header(grid: readonly Cell[][]): { row: number; months: Map<number, num
 const key = (machine: string, year: number, month: number): string =>
   `${machine} ${year}-${String(month).padStart(2, '0')}`;
 
+const text = (cell: Cell | undefined): string => (typeof cell === 'string' ? cell.trim() : '');
+type MachineOf = (label: string) => string | null;
+type Which = 'mttr' | 'mtbf';
+
+/** One cell of a summary sheet into the summary; a blank, text or error value (`#DIV/0!`) reads as no figure. */
+function put(summary: Summary, at: string, which: Which, value: Cell | undefined): void {
+  const shown = summary.cells.get(at) ?? { mttr: null, mtbf: null };
+  shown[which] = typeof value === 'number' && Number.isFinite(value) ? value : null;
+  summary.cells.set(at, shown);
+}
+
+/** A machine label of a sheet as the plant's code; a label that is no plant machine is counted once. */
+function machineIn(summary: Summary, label: string, machineOf: MachineOf): string | null {
+  const machine = machineOf(label);
+  if (machine === null && !summary.notPlant.includes(label)) summary.notPlant.push(label);
+  return machine;
+}
+
+/** The machine columns of a block header row: from the cell after `Machines` to the `Total` column. */
+function blockColumns(line: readonly Cell[], from: number): number[] {
+  const columns: number[] = [];
+  for (let k = from; text(line[k]) !== '' && !/^total/i.test(text(line[k])); k++) columns.push(k);
+  return columns;
+}
+
+/** The rows under a block header, by their label in the `Machines` column, up to the next block or a blank label. */
+function blockRows(grid: readonly Cell[][], r: number, c: number): [number, Which][] {
+  const rows: [number, Which][] = [];
+  for (let i = r + 1; ; i++) {
+    const label = text(grid[i]?.[c]);
+    if (label === '' || label.toLowerCase() === 'machines') return rows;
+    if (/^mttr/i.test(label)) rows.push([i, 'mttr']);
+    else if (/^mtbf/i.test(label)) rows.push([i, 'mtbf']);
+  }
+}
+
+/**
+ * The real layout: one block per month, stacked down the sheet (or side by side). A `Machines` cell opens a block, the
+ * month name sits just left of it or just above that, the machine codes run right of it, and the rows below are
+ * labelled `MTTR` and `MTBF` (hours). A block with no month name (a quarter) is not read. Returns the blocks read.
+ */
+function parseBlocks(
+  grid: readonly Cell[][],
+  year: number,
+  machineOf: MachineOf,
+  summary: Summary,
+): number {
+  let blocks = 0;
+  grid.forEach((line, r) => {
+    line.forEach((cell, c) => {
+      if (text(cell).toLowerCase() !== 'machines' || c === 0) return;
+      const month = monthOf(grid[r]?.[c - 1]) ?? monthOf(grid[r - 1]?.[c - 1]);
+      if (month === null) return;
+      blocks++;
+      const codes = blockColumns(line, c + 1).map((k): [number, string | null] => [
+        k,
+        machineIn(summary, text(line[k]), machineOf),
+      ]);
+      for (const [i, which] of blockRows(grid, r, c)) {
+        for (const [k, machine] of codes) {
+          if (machine !== null) put(summary, key(machine, year, month), which, grid[i]?.[k]);
+        }
+      }
+    });
+  });
+  return blocks;
+}
+
+/** The first layout assumed: months across a header row, a machine down the first column. */
+function parseAcross(
+  grid: readonly Cell[][],
+  which: Which,
+  at: { year: number; machineOf: MachineOf },
+  summary: Summary,
+): void {
+  const { year, machineOf } = at;
+  const head = header(grid);
+  if (!head) {
+    summary.unreadable++;
+    return;
+  }
+  for (const line of grid.slice(head.row + 1)) {
+    const label = text(line[0]);
+    const machine = label ? machineIn(summary, label, machineOf) : null;
+    if (machine === null) continue;
+    for (const [column, month] of head.months) {
+      put(summary, key(machine, year, month), which, line[column]);
+    }
+  }
+}
+
 /**
  * Reads the MTTR and MTBF sheets of one workbook year. `machineOf` turns a row label into the plant's machine code,
  * or null when the label is not a plant machine.
@@ -79,33 +172,14 @@ const key = (machine: string, year: number, month: number): string =>
 export function parseSummary(
   sheets: Readonly<Record<string, Cell[][]>>,
   year: number,
-  machineOf: (label: string) => string | null,
+  machineOf: MachineOf,
 ): Summary {
   const summary: Summary = { cells: new Map(), notPlant: [], unreadable: 0 };
   for (const [name, grid] of Object.entries(sheets)) {
+    const blocky = /MTTR|MTBF/i.test(name) && !/^Q-/i.test(name);
+    if (blocky && parseBlocks(grid, year, machineOf, summary) > 0) continue;
     const which = kind(name);
-    if (!which) continue;
-    const head = header(grid);
-    if (!head) {
-      summary.unreadable++;
-      continue;
-    }
-    for (const line of grid.slice(head.row + 1)) {
-      const label = typeof line[0] === 'string' ? line[0].trim() : '';
-      if (!label) continue;
-      const machine = machineOf(label);
-      if (machine === null) {
-        if (!summary.notPlant.includes(label)) summary.notPlant.push(label);
-        continue;
-      }
-      for (const [column, month] of head.months) {
-        const value = line[column];
-        const at = key(machine, year, month);
-        const shown = summary.cells.get(at) ?? { mttr: null, mtbf: null };
-        shown[which] = typeof value === 'number' ? value : null;
-        summary.cells.set(at, shown);
-      }
-    }
+    if (which) parseAcross(grid, which, { year, machineOf }, summary);
   }
   return summary;
 }
@@ -129,15 +203,20 @@ export function loadedFigures(
   return new Map([...minutes].map(([at, m]) => [at, { count: m.count, hours: m.min / 60 }]));
 }
 
-const near = (a: number | null, b: number): boolean => Math.abs((a ?? 0) - b) <= ROUNDING;
+const near = (a: number | null, b: number, tolerance = ROUNDING): boolean =>
+  Math.abs((a ?? 0) - b) <= tolerance;
 
 /** Whether the sheet's pair is what `loaded` gives: no breakdown reads blank, 0 or (MTBF only) the full month. */
 export function agrees(sheet: Shown, loaded: Loaded): boolean {
   if (loaded.count === 0) {
-    return near(sheet.mttr, 0) && (near(sheet.mtbf, 0) || near(sheet.mtbf, HOURS_A_MONTH));
+    return (
+      near(sheet.mttr, 0, HOURS_TOLERANCE) &&
+      (near(sheet.mtbf, 0) || near(sheet.mtbf, HOURS_A_MONTH))
+    );
   }
   return (
-    near(sheet.mttr, loaded.hours / loaded.count) && near(sheet.mtbf, HOURS_A_MONTH / loaded.count)
+    near(sheet.mttr, loaded.hours / loaded.count, HOURS_TOLERANCE) &&
+    near(sheet.mtbf, HOURS_A_MONTH / loaded.count)
   );
 }
 

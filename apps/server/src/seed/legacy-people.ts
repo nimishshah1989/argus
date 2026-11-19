@@ -123,6 +123,9 @@ export function createPeople(
   };
   for (const cell of [...nameCells, ...tenant.map((p) => p.name)]) addWords(cell, true);
   for (const term of terms) addWords(term, false);
+  // The team code every output carries is no name: a cell like "Maint. Team <name>" must not turn its words into leaks.
+  const teamWords = new Set(wordsOf(SUBMITTER_FALLBACK, true).map((w) => w.toLowerCase()));
+  for (const w of [...words]) if (teamWords.has(w.toLowerCase())) words.delete(w);
   const pattern = [...words].sort((a, b) => b.length - a.length || (a < b ? -1 : 1)).join('|');
   const wordRe = pattern
     ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${pattern})(?![\\p{L}\\p{N}])`, 'giu')
