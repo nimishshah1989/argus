@@ -50,6 +50,14 @@ const ChartDoorView = () => (
   </Suspense>
 );
 
+// The page templates of ticket 85, filled with placeholders: its own chunk too.
+const Templates = lazy(() => import('./templates-view.js'));
+const TemplatesView = () => (
+  <Suspense fallback={null}>
+    <Templates />
+  </Suspense>
+);
+
 // The navigation map preview of ticket 80v: also its own chunk, and not wired to the product's routing.
 const NavMap = lazy(() => import('./navmap/NavMap.js'));
 const NavMapView = () => (
@@ -65,6 +73,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   showcase: ShowcaseView,
   navmap: NavMapView,
   charts: ChartDoorView,
+  templates: TemplatesView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
