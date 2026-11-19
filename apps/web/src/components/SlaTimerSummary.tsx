@@ -91,7 +91,7 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
     const message = ticket.sla === undefined ? t('sla.unavailable') : t('sla.notConfigured');
     if (!detailed) return <p className="mt-2 text-caption text-neutral-600">{message}</p>;
     return (
-      <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
+      <section aria-label={t('sla.title')} className="rounded-card bg-surface p-4 shadow-card">
         <h2 className="text-footnote font-medium text-neutral-600">{t('sla.title')}</h2>
         <p className="mt-2 text-footnote text-neutral-600">{message}</p>
       </section>
@@ -117,7 +117,7 @@ export function SlaTimerSummary({ ticket, detailed = false, config }: Props) {
   );
   if (!detailed) return <dl className="mt-2 grid grid-cols-2 gap-3 text-footnote">{rows}</dl>;
   return (
-    <section aria-label={t('sla.title')} className="rounded-2xl bg-surface p-4 shadow-card">
+    <section aria-label={t('sla.title')} className="rounded-card bg-surface p-4 shadow-card">
       <h2 className="text-footnote font-medium text-neutral-600">{t('sla.title')}</h2>
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">{rows}</dl>
     </section>

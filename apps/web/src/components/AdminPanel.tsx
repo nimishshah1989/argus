@@ -7,9 +7,9 @@ import { useCommand } from '../data/index.js';
 const inputClass =
   'mt-1 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
 const secondaryButton =
-  'min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900';
+  'min-h-target rounded-xl border border-control bg-surface px-4 text-body font-semibold text-neutral-900 [@media(hover:hover)]:hover:bg-neutral-100';
 const primaryButton =
-  'min-h-target flex-1 rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600';
+  'min-h-target flex-1 rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink disabled:bg-neutral-200 disabled:text-neutral-600 [@media(hover:hover)]:hover:bg-accent-strong/90';
 
 const FIELD = {
   reason: 'reason',
@@ -120,7 +120,7 @@ function RestoreForm({ ticket, onDone }: RestoreProps) {
         />
       </label>
       {error && (
-        <p role="alert" className="mt-2 rounded-xl bg-stopped/10 p-3 text-stopped">
+        <p role="alert" className="mt-2 rounded-xl bg-danger-tint p-3 text-danger-ink">
           {error}
         </p>
       )}
@@ -221,7 +221,7 @@ function CorrectForm({ ticket, config, onDone }: CorrectProps) {
         <p className="text-caption text-hold-ink">{t('admin.needsReasonAndChange')}</p>
       )}
       {error && (
-        <p role="alert" className="rounded-xl bg-stopped/10 p-3 text-stopped">
+        <p role="alert" className="rounded-xl bg-danger-tint p-3 text-danger-ink">
           {error}
         </p>
       )}

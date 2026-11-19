@@ -143,6 +143,15 @@ const CLOSED = ticket('d1', {
   closedAt: ago(200),
   figures: FIGURES,
 });
+const OTHERS = ticket('f1', {
+  machineId: 'm2',
+  status: 'working',
+  leadPersonId: 'p2',
+  startedAt: ago(50),
+  figures: FIGURES,
+});
+/** Whose jobs Mine lists (the server matches the lead or an active crew member): the acting supervisor's own. */
+const WORKED_BY: Record<string, string[]> = { p1: ['b1', 'c1', 'd1'], p2: ['f1'] };
 const NEED_REPORT = [CLOSED];
 
 const TASKS = { pending: 0, inProgress: 0, overdue: 0, done: 0, box: 'none' };
@@ -185,7 +194,7 @@ function me(role: DeskRole) {
       title: role,
       role,
       shared: false,
-      actingPersonId: role === 'supervisor' ? 'p1' : 'p2',
+      actingPersonId: 'p1',
     },
   };
 }
@@ -193,7 +202,8 @@ function me(role: DeskRole) {
 /** Answer every /api/v1 call from the invented plant and sign the page in. */
 export async function mockDesk(page: Page, role: DeskRole = 'supervisor'): Promise<void> {
   await page.addInitScript(() => localStorage.setItem('uptimo_token', 'e2e'));
-  const everyone = [...OPEN, CLOSED];
+  // Another person's job, in no desk list: it shows up in Mine only if the personId filter is ignored.
+  const everyone = [...OPEN, CLOSED, OTHERS];
   await page.route('**/api/v1/**', (route: Route) => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/api/v1', '');
@@ -203,8 +213,14 @@ export async function mockDesk(page: Page, role: DeskRole = 'supervisor'): Promi
     if (path === '/auth/me') return json(me(role));
     if (path === '/board/signoff') return json({ items: [] });
     if (path === '/tickets') {
-      const wanted = url.searchParams.getAll('status').flatMap((value) => value.split(','));
-      const items = everyone.filter((item) => wanted.length === 0 || wanted.includes(item.status));
+      const param = (name: string) => url.searchParams.getAll(name).flatMap((v) => v.split(','));
+      const [statuses, kinds, person] = [param('status'), param('kind'), param('personId')[0]];
+      const items = everyone.filter(
+        (item) =>
+          (statuses.length === 0 || statuses.includes(item.status)) &&
+          (kinds.length === 0 || kinds.includes(item.kind as string)) &&
+          (!person || (WORKED_BY[person] ?? []).includes(item.id)),
+      );
       return json({ items, nextCursor: null });
     }
     const one = path.match(/^\/tickets\/(\w+)$/)?.[1];
@@ -214,7 +230,7 @@ export async function mockDesk(page: Page, role: DeskRole = 'supervisor'): Promi
   });
 }
 
-export const TICKETS = { working: 'b1', open: 'a1', closed: 'd1' };
+export const TICKETS = { working: 'b1', closed: 'd1' };
 
 /**
  * Every control and heading that is on screen, top to bottom, as "tag: first 12 letters". Card names carry
