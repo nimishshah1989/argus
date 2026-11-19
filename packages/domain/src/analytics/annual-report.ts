@@ -28,6 +28,7 @@ import {
   productionMachines,
   reportEntries,
   reportStats,
+  windowOf,
   type ReportStats,
 } from './report-period.js';
 import { effectiveHours, type SourcedReport } from './rows.js';
@@ -86,13 +87,11 @@ export function annualPeriod(asOf: string): AnnualPeriod {
   return { year, start: `${year}-01-01`, end: asOf, lastMonth: Number(asOf.slice(5, 7)) };
 }
 
+/** One window's stats: the report's entries and fleet over `from` to `to`, the run's gap months left out. */
+type StatsOf = (from: string, to: string) => ReportStats;
+
 /** Every month of the report year to the run date, a month whose last day is past it marked partial. */
-function monthPoints(
-  entries: readonly SourcedReport[],
-  machines: readonly MachineRow[],
-  profile: Pick<AnalyticsProfile, 'prodHrsPerDay' | 'workDaysPerYear'>,
-  period: AnnualPeriod,
-): MonthPoint[] {
+function monthPoints(period: AnnualPeriod, statsOf: StatsOf): MonthPoint[] {
   const points: MonthPoint[] = [];
   for (let month = 1; month <= period.lastMonth; month += 1) {
     const window = monthWindow(period.year, month);
@@ -101,10 +100,7 @@ function monthPoints(
       index: month,
       partial,
       label: `${MONTH_NAMES[month - 1]}${partial ? ' (to date)' : ''}`,
-      stats: reportStats(entries, machines, profile, {
-        from: window.start,
-        to: partial ? period.end : window.end,
-      }),
+      stats: statsOf(window.start, partial ? period.end : window.end),
     });
   }
   return points;
@@ -118,12 +114,7 @@ interface QuarterPoint {
 }
 
 /** Every quarter that has started by the run date, the last one cut at it when it is still running. */
-function quarterPoints(
-  entries: readonly SourcedReport[],
-  machines: readonly MachineRow[],
-  profile: Pick<AnalyticsProfile, 'prodHrsPerDay' | 'workDaysPerYear'>,
-  period: AnnualPeriod,
-): QuarterPoint[] {
+function quarterPoints(period: AnnualPeriod, statsOf: StatsOf): QuarterPoint[] {
   const points: QuarterPoint[] = [];
   for (let quarter = 1; quarter <= 4; quarter += 1) {
     const first = monthWindow(period.year, quarter * 3 - 2);
@@ -133,10 +124,7 @@ function quarterPoints(
     points.push({
       q: quarter,
       partial,
-      stats: reportStats(entries, machines, profile, {
-        from: first.start,
-        to: partial ? period.end : last.end,
-      }),
+      stats: statsOf(first.start, partial ? period.end : last.end),
     });
   }
   return points;
@@ -250,10 +238,10 @@ function monthChart(points: readonly MonthPoint[]): Chart {
     'ch-ry-month',
     points.map((point) => `${MONTHS_SHORT[point.index - 1]}${point.partial ? '*' : ''}`),
     [
-      { label: 'Breakdowns', data: points.map((point) => point.stats.count) },
+      { label: 'Breakdowns', data: points.map(({ stats }) => (stats.gap ? null : stats.count)) },
       {
         label: 'Downtime hrs',
-        data: points.map((point) => Math.round(point.stats.hours * 10) / 10),
+        data: points.map(({ stats }) => (stats.gap ? null : Math.round(stats.hours * 10) / 10)),
       },
     ],
   );
@@ -293,10 +281,12 @@ export function annualReport(
   const machines = productionMachines(data);
   const entries = reportEntries(data);
   const period = annualPeriod(asOf);
-  const stats = reportStats(entries, machines, profile, { from: period.start, to: period.end });
+  const statsOf: StatsOf = (from, to) =>
+    reportStats(entries, machines, profile, windowOf(from, to, data.gaps));
+  const stats = statsOf(period.start, period.end);
   if (stats.count === 0) return { value: null, drillIds: [] };
-  const months = monthPoints(entries, machines, profile, period);
-  const quarters = quarterPoints(entries, machines, profile, period);
+  const months = monthPoints(period, statsOf);
+  const quarters = quarterPoints(period, statsOf);
   const page: Page = {
     page: 'rep_year',
     title: 'Annual Report',
