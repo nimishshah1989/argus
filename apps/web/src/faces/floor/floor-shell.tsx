@@ -10,6 +10,7 @@ import { Loading, Skeleton } from '../../ui/loading.js';
 import { Page, Shell, Stack } from '../../ui/layout.js';
 import { TabBar } from '../../ui/tab-bar.js';
 import { FLOOR, type FloorLoad } from './use-floor.js';
+import { useFloorTheme } from './use-theme.js';
 
 /** The floor's tabs (A1 to A3): Report and My complaints. Other work counts as Report. */
 export function FloorShell({
@@ -22,6 +23,7 @@ export function FloorShell({
 }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  useFloorTheme();
   const current =
     pathname === FLOOR.mine ? FLOOR.mine : pathname === FLOOR.pm ? FLOOR.pm : FLOOR.report;
   const tabs = [

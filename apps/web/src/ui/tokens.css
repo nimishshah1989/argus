@@ -13,6 +13,9 @@
   --color-surface: #ffffff;
   /* Border of anything you can tap or type in: 3.26:1 on white (WCAG non-text 3:1). Card edges stay neutral-200. */
   --color-control: #8e8e93;
+  /* The fill of a card or row while a finger is on it: 4.54:1 under neutral-600 text and 4.9:1 under accent text
+     (neutral-200 gave 4.15 and 4.48). The press also drops the card's shadow, so it reads as pushed in. */
+  --color-pressed: #f2f2f5;
 
   /* Neutral scale. */
   --color-neutral-50: #fafafa;
@@ -258,6 +261,7 @@
   --color-accent-tint: #12302c;
   --color-surface: #1c1c1e;
   --color-control: #8e8e93;
+  --color-pressed: #2c2c2e;
 
   --color-neutral-50: #151517;
   --color-neutral-100: #111214;

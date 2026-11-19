@@ -1,0 +1,1 @@
+- The floor phone (report a breakdown, other work, My complaints, PM jobs, sign-off) now follows the phone's dark setting, shows a clearer pressed state on cards, and behaves like an installed app (no tap flash, safe areas, status bar in the page colour); every control, word and button keeps its place.

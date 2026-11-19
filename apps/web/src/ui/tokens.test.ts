@@ -58,6 +58,9 @@ const PAIRS: [string, string][] = [
   ['color-accent-text', 'color-accent-tint'],
   ['color-neutral-900', 'color-surface'],
   ['color-neutral-600', 'color-surface'],
+  ['color-neutral-600', 'color-pressed'],
+  ['color-neutral-900', 'color-pressed'],
+  ['color-accent-text', 'color-pressed'],
 ];
 
 /** The pairs under 4.5:1, as readable lines; empty when the set is fine. */
@@ -82,6 +85,7 @@ describe('token contrast', () => {
       'color-accent-tint': '#e3f2f0',
       'color-neutral-900': '#1d1d1f',
       'color-neutral-600': '#6e6e73',
+      'color-pressed': '#f2f2f5',
       ...Object.fromEntries(
         TONES.filter((t) => t !== 'danger').flatMap((t) => [
           [`color-${t}-ink`, '#000000'],
@@ -102,6 +106,13 @@ describe('token contrast', () => {
 
   it('keeps the same pairs at 4.5:1 or better in dark', () => {
     expect(contrastErrors(dark)).toEqual([]);
+  });
+
+  it('keeps the pressed fill (a card under a finger) at 4.5:1 under neutral-600, in light and dark', () => {
+    for (const tokens of [light, dark])
+      expect(
+        ratio(colour(tokens, 'color-neutral-600'), colour(tokens, 'color-pressed')),
+      ).toBeGreaterThanOrEqual(4.5);
   });
 
   it('gives dark its own accent: #14b8a6 with dark text, #0f766e stays in light', () => {

@@ -3,8 +3,8 @@ import type { IconComponent } from './icon.js';
 
 /** Floor kit pieces (lock: machine row, group tile, choice card, quick-problem chip, machine card). */
 
-const CARD = 'rounded-2xl bg-surface shadow-card';
-const TAP = `${CARD} w-full text-left transition-colors duration-(--motion-fast) active:bg-neutral-200`;
+const CARD = 'rounded-card bg-surface shadow-card';
+const TAP = `${CARD} w-full text-left transition-colors duration-(--motion-fast) active:bg-pressed active:shadow-none`;
 
 /** One machine in a search or group list: code, a detail line, its status pill on the right. */
 export function MachineRow(p: {
@@ -74,7 +74,7 @@ export function ChoiceCard(p: {
       className={`${TAP} flex min-h-21 items-center gap-4 border border-control p-4`}
     >
       <span
-        className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${CHOICE_TONE[p.tone]}`}
+        className={`flex size-12 shrink-0 items-center justify-center rounded-control ${CHOICE_TONE[p.tone]}`}
       >
         <Icon aria-hidden size={22} />
       </span>
@@ -93,7 +93,7 @@ export function QuickChip(p: { label: string; pressed?: boolean; onClick: () => 
       type="button"
       aria-pressed={p.pressed}
       onClick={p.onClick}
-      className="min-h-target-min rounded-full border border-control bg-surface px-4 text-footnote text-neutral-900 aria-pressed:border-accent-strong aria-pressed:bg-accent-tint aria-pressed:text-accent-text"
+      className="min-h-target-min rounded-chip border border-control bg-surface px-4 text-footnote text-neutral-900 aria-pressed:border-accent-strong aria-pressed:bg-accent-tint aria-pressed:text-accent-text"
     >
       {p.label}
     </button>
