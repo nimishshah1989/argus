@@ -39,5 +39,8 @@ test('a head opens the Guide, reads the Reports entry and follows its figure lin
   await expect(page).toHaveURL(/\/analytics\/today\?screen=dashboard$/);
 
   await page.goto('/analytics/guide');
-  await expect(page.locator('#guide-pm-calendar')).toContainText('not in this build yet');
+  // 50c built the PM calendar, so its entry now explains the screen; OEM is still unbuilt and keeps the line.
+  await expect(page.locator('#guide-pm-calendar')).toContainText('preventive maintenance');
+  await expect(page.locator('#guide-pm-calendar')).not.toContainText('not in this build yet');
+  await expect(page.locator('#guide-oem')).toContainText('not in this build yet');
 });

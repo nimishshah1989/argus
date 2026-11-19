@@ -6,3 +6,64 @@
   (for example the dashboard's BD % doubles from 0.54 to 1.03 when the same rows sit in two years), and designs one
   shared period that every figure reads. The work is cut into 23 small changes, two builders at most.
 - Nothing a user sees changes in this change.
+
+## 76a — the period seam
+
+- The analytics engine can now describe a span of plant dates and the months inside it the plant never recorded
+  (July 2025 in the hand-computed two-year plant), count a machine's available hours over that span (16,500 in 2025,
+  24,000 in 2026, 40,500 across both), and list the months with no report, ticket or task. Two whole years now add up to
+  exactly two years of hours instead of a rounding short of it. Nothing is wired in yet: every existing figure reads
+  the same window as before and returns the same numbers, so the 2026 answer key is untouched. No screen changes.
+- Known edge for 76d: `gapMonths` treats the as-of month as a gap until its first record arrives, so on the 1st of a
+  month a span covering only that month has 0 available hours. 76d must handle it when it wires the span in.
+
+## 76b — the two-year test plant
+
+- The engine tests now have a two-year plant to measure against: 245 invented breakdown, no-downtime and PM
+  rows over 2025 and 2026, July 2025 with no records, one machine that exists in 2026 only, and the figures worked out
+  by hand (BD % 0.87, MTBF 185.0, 684 observed days, 42,525 working hours). A test counts the rows and holds them to
+  the hand values, so a wrong hand value fails before any figure reads it. Nothing a user sees changes in this change.
+
+## 76c — the period's months, labels and observed days
+
+- The analytics engine can now lay out a span as calendar months (twelve for 2025, twelve for 2026, twenty-four across
+  both, July 2025 marked as having no records), label them `Jan` inside one year and `Jan 25` across years, title the
+  span `2025`, `2026` or `2025–2026`, and count the days between two records with a no-records month left out (319, 350
+  and 684 on the two-year plant). It can also name the window of a figure that learns from all history, 1 January of the
+  first record's year to the run date. Nothing is wired in yet, so every existing figure returns the same numbers and
+  the 2026 answer key is untouched. No screen changes.
+
+## 76d — the engine runs on a named span
+
+- The analytics engine can now be run for one span of plant dates. Run on the two-year test plant at 31 January 2027,
+  2025 gives 69 breakdowns, 66.0 downtime hours, 36.0 PM hours and 1.5 no-downtime hours, 2026 gives 148, 288.0, 48.0
+  and 2.0, and both years give their sum (217, 354.0, 84.0, 3.5). The machine counts, the registers and the figures
+  that learn from all the history read the same in every span. A run that names no span is unchanged: it reads the
+  as-of year to date with no gap month, so the 2026 answer key and every existing test stay as they were. No screen
+  changes yet: the 24 span figures already receive the span-cut plant, and the packets that follow add each figure's
+  period-aware formula and gap-month handling.
+- Every figure now says what it reads: 24 the span, 18 the run date, 9 the whole history.
+- Rulings: a span cannot run past the run date (2026 asked for on 11 November is read to 11 November), and a span that
+  starts after it is refused. The month still running is never a gap, so on the 1st a span of that month has its first
+  day of hours and no "no records"; the month is a gap only if it is over (the run date is its last day) with no record.
+- A span that starts before the plant's first recorded month is moved up to that month: the empty years before the first
+  record are not available hours (2020 to 2025 on a plant whose log starts in 2025 reads exactly as 2025). The result's
+  period carries the moved `from` and, as `requestedFrom`, what was asked, so a screen can say so. A span wholly before
+  the first record has no hours and no rows. A span with a date the calendar does not have (30 February) is refused.
+- Known edge for later: `cellFrac` (`hours.ts`) is a day share inside the window and still counts a gap month's days
+  for a machine that moved cells mid-window. The two-year plant has no move, so no 76 hand value meets it; 76n or
+  the first packet that reads a moved machine over a gap fixes it.
+
+## 76e — the span cut is pinned
+
+- Six figures need nothing but the span cut to be right on a run over many years: the costliest problems, the bubble
+  chart, the Breakdown Log, the category and cell analysis (A2), the Why-Why list (A6) and the age analysis (A8). On the
+  two-year test plant each now has its page worked out by hand for 2025, 2026 and both years (for example 2025 lists
+  33 axis and 33 panel breakdowns of 1 hour, 2026 lists 96 and 48 of 2 hours), and a test holds every one whole. They
+  already came out right, so no figure changes and no screen changes; the test makes sure a later edit to the cut
+  cannot quietly undo it.
+- Known defect, pinned as it is today: the Breakdown Log numbers its rows by position in the span when a row has no
+  stored number, and the loader never stores one, so a row's number changes with the span (the 2026 log starts at 1
+  instead of continuing from 82). The test pins that behaviour so a later fix is deliberate. The right fix is to number
+  the log from the whole uncut history and then cut; it is a separate packet and will change only the 2026 numbers in
+  this test (2025 and both years keep theirs, as they already start at the first record).

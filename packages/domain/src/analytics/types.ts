@@ -1,4 +1,5 @@
 import type { AnalyticsProfile, DrillType } from '@uptimo/shared';
+import type { Period } from './availability.js';
 import type { ProblemGroup } from './problem-groups.js';
 
 /**
@@ -298,6 +299,17 @@ export interface EngineData {
    * and the workbook's next-due row. Optional, so a fixture with no plans reads every PM ticket at the default ±15.
    */
   pmPlans?: readonly PmPlanRow[];
+  /**
+   * The span the run was asked for (ticket 76), set by the engine only when a span was named. A figure that reads the
+   * span gets the plant cut to it: its reports, machines and moves end at `period.to`, its tickets are all kept. Only
+   * `runWith` with a span makes this: a computer called on its own sees none and reads the as-of year to date.
+   */
+  period?: Period;
+  /**
+   * Every `YYYY-MM` month the plant recorded nothing in, first record to the run date, except the month still
+   * running (it counts only when the run date is its last day); set with `period`.
+   */
+  gaps?: readonly string[];
 }
 
 /** What one figure is: a value the face prints, and the rows behind it. */
@@ -338,4 +350,6 @@ export interface EngineResult {
   /** How many rows of each kind the run was given. */
   rows: Record<'machines' | 'moves' | 'tickets' | 'tasks' | 'reports' | 'people', number>;
   figures: FigureResult[];
+  /** The span the figures were computed for, with its gap months; absent when the run named no span. */
+  period?: Period;
 }
