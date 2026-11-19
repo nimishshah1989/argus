@@ -1,11 +1,11 @@
-import { availabilityWindow } from './availability.js';
+import { calendarMonths, spanOf, type Period, type PeriodMonth } from './availability.js';
 import {
   availableByCell,
   availableHoursFor,
   cellAt,
   cellKey,
-  monthlyWindow,
   NO_CELL,
+  periodMonthWindow,
   type HoursWindow,
 } from './hours.js';
 import { isProduction, machineAge } from './machine-facts.js';
@@ -19,21 +19,6 @@ import type { EngineData, MachineRow, MoveRow } from './types.js';
  * a quarter is the average of its unrounded monthly values. A group with no breakdowns prints MTTR 0.00 and MTBF
  * its available hours, while an empty month is null so the page can print the dash.
  */
-
-export const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 const BANDS: ReadonlyArray<{ label: string; low: number; high: number }> = [
   { label: '0-5 yrs', low: 0, high: 5 },
@@ -50,7 +35,8 @@ export interface A3Entry {
   cell: string;
   band: string | null;
   hours: number;
-  month: number;
+  /** The month the report falls in, `YYYY-MM`: a month never stands without its year. */
+  month: string;
 }
 
 export interface Group {
@@ -62,7 +48,7 @@ export interface Group {
 }
 
 export interface MomGroup extends Group {
-  monthly: (month: number) => { count: number; hours: number; available: number };
+  monthly: (month: PeriodMonth) => { count: number; hours: number; available: number };
 }
 
 export interface MomRow {
@@ -78,6 +64,8 @@ export interface A3Context {
   data: EngineData;
   asOf: string;
   annual: number;
+  period: Period;
+  months: PeriodMonth[];
   machines: MachineRow[];
   entries: A3Entry[];
   categories: string[];
@@ -111,11 +99,13 @@ function breakdownEntries(
   data: EngineData,
   machines: readonly MachineRow[],
   asOf: string,
+  period: Period,
 ): A3Entry[] {
   const byId = new Map(machines.map((machine) => [machine.id, machine]));
   const entries: A3Entry[] = [];
   for (const row of sourcedReports(data)) {
     if (!isHistory(row) || isPm(row)) continue;
+    if (row.report.date < period.from || row.report.date > period.to) continue;
     const machine = byId.get(row.report.machineId);
     if (machine === undefined) continue;
     entries.push({
@@ -125,7 +115,7 @@ function breakdownEntries(
       cell: cellAt(machine, data.moves, row.report.date),
       band: bandOf(machine, asOf),
       hours: effectiveHours(row.report),
-      month: Number(row.report.date.slice(5, 7)),
+      month: row.report.date.slice(0, 7),
     });
   }
   return entries;
@@ -224,14 +214,17 @@ function ageBands(
 
 export function buildContext(data: EngineData, asOf: string, annual: number): A3Context {
   const machines = data.machines.filter(isProduction);
-  const entries = breakdownEntries(data, machines, asOf);
-  const window: HoursWindow = { ...availabilityWindow(asOf, asOf), annualHours: annual };
+  const period = spanOf(data, asOf);
+  const entries = breakdownEntries(data, machines, asOf, period);
+  const window: HoursWindow = { ...period, annualHours: annual };
   const categories = categoryOrder(machines);
   const cells = cellOrder(machines, data.moves);
   return {
     data,
     asOf,
     annual,
+    period,
+    months: calendarMonths(period),
     machines,
     entries,
     categories,
@@ -244,8 +237,8 @@ export function buildContext(data: EngineData, asOf: string, annual: number): A3
   };
 }
 
-const windowFor = (ctx: A3Context, month: number): HoursWindow => ({
-  ...monthlyWindow(ctx.asOf, month),
+const windowFor = (ctx: A3Context, month: PeriodMonth): HoursWindow => ({
+  ...periodMonthWindow(month, ctx.period),
   annualHours: ctx.annual,
 });
 
@@ -253,7 +246,7 @@ function momGroup(
   label: string,
   group: Group,
   entries: readonly A3Entry[],
-  monthlyAvailable: (month: number) => number,
+  monthlyAvailable: (month: PeriodMonth) => number,
 ): MomGroup {
   return {
     ...group,
@@ -261,7 +254,7 @@ function momGroup(
     count: entries.length,
     hours: sumHours(entries),
     monthly: (month) => {
-      const own = entries.filter((entry) => entry.month === month);
+      const own = entries.filter((entry) => entry.month === month.key);
       return { count: own.length, hours: sumHours(own), available: monthlyAvailable(month) };
     },
   };
@@ -292,13 +285,16 @@ export function plantMomGroup(ctx: A3Context): MomGroup {
   );
 }
 
-function monthlyValues(group: MomGroup): {
+function monthlyValues(
+  group: MomGroup,
+  months: readonly PeriodMonth[],
+): {
   mttr: Array<number | null>;
   mtbf: Array<number | null>;
 } {
   const mttr: Array<number | null> = [];
   const mtbf: Array<number | null> = [];
-  for (let month = 1; month <= 12; month += 1) {
+  for (const month of months) {
     const values = group.monthly(month);
     if (values.count === 0) {
       mttr.push(null);
@@ -311,8 +307,8 @@ function monthlyValues(group: MomGroup): {
   return { mttr, mtbf };
 }
 
-export function momRow(group: MomGroup): MomRow {
-  const values = monthlyValues(group);
+export function momRow(group: MomGroup, months: readonly PeriodMonth[]): MomRow {
+  const values = monthlyValues(group, months);
   return {
     label: group.label,
     count: group.count,

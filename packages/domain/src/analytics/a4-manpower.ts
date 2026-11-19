@@ -1,3 +1,11 @@
+import {
+  calendarMonths,
+  monthLabel,
+  NO_RECORDS,
+  spanOf,
+  type Period,
+  type PeriodMonth,
+} from './availability.js';
 import { formatInr, formatPercent } from './format.js';
 import { isProduction } from './machine-facts.js';
 import { effectiveHours, isPm, sourcedReports } from './rows.js';
@@ -10,7 +18,6 @@ import type { Computer, EngineData, FigureValue, MachineRow, PersonRow } from '.
  * order, so the settings decide the rows and the sort only decides the one table.
  */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DASH = '—';
 /** The key prints a 12-character label whole ("WaterJet CNC") and shortens anything longer to 11 characters + "…". */
 const LABEL_WIDTH = 11;
@@ -32,6 +39,8 @@ interface Member {
 }
 
 interface A4Context {
+  period: Period;
+  months: PeriodMonth[];
   members: Member[];
   categories: string[];
   totalBD: number;
@@ -83,7 +92,7 @@ function memberIndexes(codes: readonly string[], index: ReadonlyMap<string, numb
   return found;
 }
 
-function newMember(person: PersonRow, categoryCount: number): Member {
+function newMember(person: PersonRow, categoryCount: number, monthCount: number): Member {
   return {
     person,
     type: person.team === 'vendor' ? 'Vendor' : 'Team',
@@ -92,14 +101,14 @@ function newMember(person: PersonRow, categoryCount: number): Member {
     supportedCount: 0,
     supportedHours: 0,
     spec: Array.from({ length: categoryCount }, () => 0),
-    bdCounts: Array.from({ length: MONTHS.length }, () => 0),
-    bdHours: Array.from({ length: MONTHS.length }, () => 0),
-    pmCounts: Array.from({ length: MONTHS.length }, () => 0),
-    pmHours: Array.from({ length: MONTHS.length }, () => 0),
+    bdCounts: Array.from({ length: monthCount }, () => 0),
+    bdHours: Array.from({ length: monthCount }, () => 0),
+    pmCounts: Array.from({ length: monthCount }, () => 0),
+    pmHours: Array.from({ length: monthCount }, () => 0),
   };
 }
 
-/** One pass over the sourced reports: production rows count as breakdowns unless PM; PM is its own year's matrix. */
+/** One pass over the sourced reports: production rows count as breakdowns unless PM; PM is its own month matrix. */
 function buildContext(data: EngineData, asOf: string): A4Context {
   const people = teamPeople(data);
   const production = data.machines.filter(isProduction);
@@ -109,8 +118,10 @@ function buildContext(data: EngineData, asOf: string): A4Context {
     production.map((machine) => [machine.id, machine.category?.trim() ?? null]),
   );
   const index = new Map(people.map((person, position) => [person.code, position]));
-  const members = people.map((person) => newMember(person, categories.length));
-  const year = asOf.slice(0, 4);
+  const period = spanOf(data, asOf);
+  const months = calendarMonths(period);
+  const monthIndex = new Map(months.map((month, position) => [month.key, position]));
+  const members = people.map((person) => newMember(person, categories.length, months.length));
   let totalBD = 0;
   let totalH = 0;
   const drillIds: string[] = [];
@@ -118,9 +129,9 @@ function buildContext(data: EngineData, asOf: string): A4Context {
     const category = machineCategory.get(row.report.machineId);
     if (category === undefined) continue;
     const hours = effectiveHours(row.report);
-    const month = Number(row.report.date.slice(5, 7)) - 1;
+    const month = monthIndex.get(row.report.date.slice(0, 7));
     if (isPm(row)) {
-      if (row.report.date.slice(0, 4) !== year) continue;
+      if (month === undefined) continue;
       for (const position of memberIndexes(row.report.doneBy, index)) {
         const member = members[position]!;
         member.pmCounts[month]! += 1;
@@ -131,14 +142,13 @@ function buildContext(data: EngineData, asOf: string): A4Context {
     totalBD += 1;
     totalH += hours;
     drillIds.push(row.ticket.id);
-    // The two BD month matrices read the year selector, as the platform's filterBD does; the table and the
-    // specialization read the whole log (the key has one year, so both rules print the same page).
-    const inYear = row.report.date.slice(0, 4) === year;
+    // The two BD month matrices read the period's months, as the platform's filterBD reads its year selector; the
+    // table and the specialization read the whole log (the key has one year, so both rules print the same page).
     for (const position of memberIndexes(row.report.doneBy, index)) {
       const member = members[position]!;
       member.doneCount += 1;
       member.doneHours += hours;
-      if (inYear) {
+      if (month !== undefined) {
         member.bdCounts[month]! += 1;
         member.bdHours[month]! += hours;
       }
@@ -151,7 +161,7 @@ function buildContext(data: EngineData, asOf: string): A4Context {
       member.supportedHours += hours;
     }
   }
-  return { members, categories, totalBD, totalH, drillIds };
+  return { period, months, members, categories, totalBD, totalH, drillIds };
 }
 
 function kpis(ctx: A4Context) {
@@ -161,6 +171,23 @@ function kpis(ctx: A4Context) {
     { label: 'Team Members Tracked', value: String(ctx.members.length), sub: 'incl. vendors' },
   ];
 }
+
+/** A month matrix's cells: `no records` for a month the plant recorded nothing in, the dash for an empty one. */
+const monthCells = (
+  months: readonly PeriodMonth[],
+  values: readonly number[],
+  print: (value: number) => string,
+): string[] =>
+  values.map((value, index) =>
+    months[index]!.state === 'no-records' ? NO_RECORDS : value ? print(value) : DASH,
+  );
+
+/** The month column labels: `Jan` inside one year, `Jan 25` across years. */
+const monthHeader = (ctx: A4Context): string[] => [
+  'Name',
+  ...ctx.months.map((month) => monthLabel(month, ctx.period)),
+  'Total',
+];
 
 function manpowerTable(members: readonly Member[], totalBD: number) {
   return {
@@ -191,35 +218,32 @@ function manpowerTable(members: readonly Member[], totalBD: number) {
   };
 }
 
-function pmTable(printRows: readonly Member[], team: readonly Member[]) {
+function pmTable(ctx: A4Context, printRows: readonly Member[]) {
+  const team = ctx.members;
   const rows: string[][] = [];
   for (const member of printRows) {
     rows.push([
       member.person.displayName,
-      ...member.pmCounts.map((count) => (count ? String(count) : DASH)),
+      ...monthCells(ctx.months, member.pmCounts, String),
       String(sum(member.pmCounts)),
     ]);
     rows.push([
-      ...member.pmHours.map((hours) => (hours ? formatInr(hours, 1) : DASH)),
+      ...monthCells(ctx.months, member.pmHours, (hours) => formatInr(hours, 1)),
       formatInr(sum(member.pmHours), 1),
     ]);
   }
   // The plant total is the sum over the Settings team order: the platform reduces its
   // momPMHours rows in team order, and this code does the same.
-  const counts = MONTHS.map((_, month) => sum(team.map((member) => member.pmCounts[month]!)));
-  const hours = MONTHS.map((_, month) => sum(team.map((member) => member.pmHours[month]!)));
+  const counts = ctx.months.map((_, month) => sum(team.map((member) => member.pmCounts[month]!)));
+  const hours = ctx.months.map((_, month) => sum(team.map((member) => member.pmHours[month]!)));
+  rows.push(['PLANT TOTAL', ...monthCells(ctx.months, counts, String), String(sum(counts))]);
   rows.push([
-    'PLANT TOTAL',
-    ...counts.map((count) => (count ? String(count) : DASH)),
-    String(sum(counts)),
-  ]);
-  rows.push([
-    ...hours.map((value) => (value ? formatInr(value, 1) : DASH)),
+    ...monthCells(ctx.months, hours, (value) => formatInr(value, 1)),
     formatInr(sum(hours), 1),
   ]);
   return {
     title: 'Preventive Maintenance (PM) — Month-on-Month by Team Member',
-    header: ['Name', ...MONTHS, 'Total'],
+    header: monthHeader(ctx),
     rows,
     rowCount: rows.length,
   };
@@ -242,15 +266,16 @@ function specializationTable(members: readonly Member[], categories: readonly st
   };
 }
 
-function breakdownTables(members: readonly Member[]) {
-  const header = ['Name', ...MONTHS, 'Total'];
+function breakdownTables(ctx: A4Context) {
+  const { members } = ctx;
+  const header = monthHeader(ctx);
   return [
     {
       title: 'Month-on-Month — # Breakdowns Handled',
       header,
       rows: members.map((member) => [
         member.person.displayName,
-        ...member.bdCounts.map((count) => (count ? String(count) : DASH)),
+        ...monthCells(ctx.months, member.bdCounts, String),
         String(sum(member.bdCounts)),
       ]),
       rowCount: members.length,
@@ -260,7 +285,7 @@ function breakdownTables(members: readonly Member[]) {
       header,
       rows: members.map((member) => [
         member.person.displayName,
-        ...member.bdHours.map((hours) => (hours ? formatInr(hours, 1) : DASH)),
+        ...monthCells(ctx.months, member.bdHours, (hours) => formatInr(hours, 1)),
         formatInr(sum(member.bdHours), 1),
       ]),
       rowCount: members.length,
@@ -299,9 +324,9 @@ export const a4ManpowerFigure: Computer = ({ data, asOf }) => {
         kpis: kpis(ctx),
         tables: [
           manpowerTable(byDone, ctx.totalBD),
-          pmTable(byPm, ctx.members),
+          pmTable(ctx, byPm),
           specializationTable(ctx.members, ctx.categories),
-          ...breakdownTables(ctx.members),
+          ...breakdownTables(ctx),
         ],
         charts: [countChart(byDone)],
       },

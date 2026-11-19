@@ -1,7 +1,7 @@
+import { monthLabel, NO_RECORDS, yearLabel, type PeriodMonth } from './availability.js';
 import { formatInr, normalizeLabel } from './format.js';
 import { availableHoursFor, cellKey, quarterAverage } from './hours.js';
 import {
-  MONTHS,
   ageMomGroups,
   buildContext,
   cellMomGroups,
@@ -90,6 +90,10 @@ function machineTable(ctx: A3Context) {
 const text = (value: number | null, decimals: number): string =>
   value === null ? DASH : inr(value, decimals);
 
+/** A month's cell: a month the plant recorded nothing in says so, an empty one is the dash. */
+const monthText = (value: number | null, month: PeriodMonth, decimals: number): string =>
+  month.state === 'no-records' ? NO_RECORDS : text(value, decimals);
+
 function quarterText(
   series: readonly (number | null)[],
   quarter: number,
@@ -99,28 +103,48 @@ function quarterText(
   return value === null ? DASH : inr(value, decimals);
 }
 
+/** The month column labels: `Jan` inside one year, `Jan 25` across years. */
+const monthLabels = (ctx: A3Context): string[] =>
+  ctx.months.map((month) => monthLabel(month, ctx.period));
+
+/** `Q1 Avg` inside one year, `Q1 25 Avg` across years: a quarter never loses its year. */
+const quarterLabels = (ctx: A3Context): string[] =>
+  Array.from({ length: ctx.months.length / 3 }, (_, quarter) => {
+    const year =
+      ctx.months.length === 12
+        ? ''
+        : ` ${String(ctx.months[quarter * 3]!.year % 100).padStart(2, '0')}`;
+    return `Q${(quarter % 4) + 1}${year} Avg`;
+  });
+
 /** The key's pair: MTTR on the labelled row, MTBF on the next row with no label, one column left. */
-function momRows(rows: readonly MomRow[]): string[][] {
+function momRows(rows: readonly MomRow[], months: readonly PeriodMonth[]): string[][] {
+  const quarters = Array.from({ length: months.length / 3 }, (_, quarter) => quarter);
   return rows.flatMap((row) => [
     [
       row.label + 'MTTR / MTBF · ' + row.count + ' breakdowns',
-      ...row.mttr.map((value) => text(value, 2)),
-      ...[0, 1, 2, 3].map((quarter) => quarterText(row.mttr, quarter, 2)),
+      ...row.mttr.map((value, index) => monthText(value, months[index]!, 2)),
+      ...quarters.map((quarter) => quarterText(row.mttr, quarter, 2)),
       text(row.totalMttr, 2),
     ],
     [
-      ...row.mtbf.map((value) => text(value, 1)),
-      ...[0, 1, 2, 3].map((quarter) => quarterText(row.mtbf, quarter, 1)),
+      ...row.mtbf.map((value, index) => monthText(value, months[index]!, 1)),
+      ...quarters.map((quarter) => quarterText(row.mtbf, quarter, 1)),
       text(row.totalMtbf, 1),
     ],
   ]);
 }
 
-function momTable(title: string, firstHeader: string, rows: readonly MomRow[], year: string) {
-  const printed = momRows(rows);
+function momTable(title: string, firstHeader: string, rows: readonly MomRow[], ctx: A3Context) {
+  const printed = momRows(rows, ctx.months);
   return {
     title,
-    header: [firstHeader, ...MONTHS, 'Q1 Avg', 'Q2 Avg', 'Q3 Avg', 'Q4 Avg', 'Total ' + year],
+    header: [
+      firstHeader,
+      ...monthLabels(ctx),
+      ...quarterLabels(ctx),
+      'Total ' + yearLabel(ctx.period),
+    ],
     rows: printed,
     rowCount: printed.length,
   };
@@ -138,8 +162,8 @@ function barChart(id: string, labels: readonly string[], data: readonly number[]
 }
 
 /** The platform's mixed chart: MTTR on the left axis, MTBF on the right (y1), its type left undefined. */
-function plantTrend(group: MomGroup) {
-  const row = momRow(group);
+function plantTrend(group: MomGroup, ctx: A3Context) {
+  const row = momRow(group, ctx.months);
   const plot = (series: readonly (number | null)[]) =>
     series.map((value) => (value === null ? null : chartValue(value)));
   return {
@@ -147,7 +171,7 @@ function plantTrend(group: MomGroup) {
     type: 'undefined',
     axes: { x: '', y: '', y1: '' },
     tickLabels: { x: [], y: [], y1: [] },
-    labels: MONTHS,
+    labels: monthLabels(ctx),
     datasets: [
       { label: 'Plant MTTR (Hrs)', data: plot(row.mttr) },
       { label: 'Plant MTBF (Hrs)', data: plot(row.mtbf) },
@@ -168,7 +192,7 @@ function charts(ctx: A3Context, plant: MomGroup) {
     barChart('ch-a3-cellmtbf', cells, between(ctx.cellGroups), 'MTBF'),
     barChart('ch-a3-agemttr', bands, series(ctx.ageGroups), 'MTTR'),
     barChart('ch-a3-agemtbf', bands, between(ctx.ageGroups), 'MTBF'),
-    plantTrend(plant),
+    plantTrend(plant, ctx),
   ];
 }
 
@@ -181,14 +205,14 @@ function a3Tables(ctx: A3Context, plant: MomGroup) {
     momTable(
       'Month-on-Month MTTR & MTBF — Cell-wise and Plant-wide',
       'Cell',
-      [...cellMomGroups(ctx), plant].map(momRow),
-      ctx.asOf.slice(0, 4),
+      [...cellMomGroups(ctx), plant].map((group) => momRow(group, ctx.months)),
+      ctx,
     ),
     momTable(
       'Month-on-Month MTTR & MTBF — Age Band-wise and Plant-wide',
       'Age Band',
-      [...ageMomGroups(ctx), plant].map(momRow),
-      ctx.asOf.slice(0, 4),
+      [...ageMomGroups(ctx), plant].map((group) => momRow(group, ctx.months)),
+      ctx,
     ),
     summaryTable('By Machine Age Band', 'Age Band', ctx.ageGroups, (group) => group.label),
     machineTable(ctx),
