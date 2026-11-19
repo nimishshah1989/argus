@@ -237,6 +237,88 @@ function Panels() {
   );
 }
 
+const FAMILIES = [
+  {
+    family: 'availability',
+    label: 'Availability',
+    value: 82.5,
+    fmt: percent,
+    delta: 1.2,
+    measure: UP_IS_GOOD,
+  },
+  {
+    family: 'downtime',
+    label: 'Downtime',
+    value: 12.5,
+    fmt: hours,
+    delta: 3,
+    measure: DOWN_IS_GOOD,
+  },
+  {
+    family: 'repairs',
+    label: 'Repair time',
+    value: 4.2,
+    fmt: hours,
+    delta: -0.4,
+    measure: DOWN_IS_GOOD,
+  },
+  {
+    family: 'planned',
+    label: 'Planned work',
+    value: 64,
+    fmt: percent,
+    delta: 0,
+    measure: UP_IS_GOOD,
+  },
+] as const;
+
+/** Identity families: a tile and a heat grid in each family's colour; the tone is still said by the chip and the change. */
+function Families({ worst }: { worst: boolean }) {
+  const { t } = useTranslation('gallery');
+  // The panel keeps its family while it slides out (200 ms), so it does not lose its title or edge on the way.
+  const [open, setOpen] = useState(false);
+  const [family, setFamily] = useState<string>();
+  const rows = worst ? [] : ['Cell 1', 'Cell 2', 'Cell 3'];
+  return (
+    <Part id="family" title={t('elements.family')}>
+      <Grid columns={2}>
+        {FAMILIES.map((f) => (
+          <KpiTile
+            key={f.family}
+            family={f.family}
+            label={worst ? LONG_LABEL : f.label}
+            value={f.value}
+            format={f.fmt}
+            change={{ measure: f.measure, delta: f.delta }}
+            trend={{ values: [4, 6, 5, 8, 7, 9], label: `${f.label}, last 6 months` }}
+            onOpen={() => {
+              setFamily(f.family);
+              setOpen(true);
+            }}
+          />
+        ))}
+      </Grid>
+      <HeatGrid
+        label="Downtime by cell and month"
+        family="downtime"
+        rows={rows}
+        columns={['May', 'Jun', 'Jul', 'Aug']}
+        values={rows.map((_, r) => [0, 20 + r * 30, 60 + r * 60, 240 - r * 70])}
+        format={hours}
+      />
+      <DrillPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        title={FAMILIES.find((f) => f.family === family)?.label ?? ''}
+        closeLabel="Close"
+        family={family}
+      >
+        <p>What this figure is, and how it is worked out.</p>
+      </DrillPanel>
+    </Part>
+  );
+}
+
 function Controls({ worst }: { worst: boolean }) {
   const { t } = useTranslation('gallery');
   const [period, setPeriod] = useState<string | undefined>('d7');
@@ -298,6 +380,7 @@ export function ElementsSection() {
           {t('elements.worst')}
         </Button>
         <Figures worst={worst} />
+        <Families worst={worst} />
         <Lists worst={worst} />
         <Tables worst={worst} />
         <Controls worst={worst} />

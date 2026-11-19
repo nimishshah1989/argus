@@ -1,5 +1,9 @@
 import type { Tone4 } from '../meaning/index.js';
+import { FAMILY_STROKE, type Family } from './family.js';
 import { TONE_STROKE } from './tone.js';
+
+/** Lines only, with round ends and joins. */
+const BASE = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
 const WIDTH = 96;
 const HEIGHT = 28;
@@ -54,7 +58,7 @@ function shape(
 }
 
 /** A round dot of fixed size, however the box is stretched: a zero-length line with round caps. */
-function Dot({ at, hollow = false, tone }: { at: Point; hollow?: boolean; tone: Tone4 }) {
+function Dot({ at, hollow = false, ink }: { at: Point; hollow?: boolean; ink: string }) {
   const d = `M${at[0]} ${at[1]}h0`;
   const common = {
     d,
@@ -64,7 +68,7 @@ function Dot({ at, hollow = false, tone }: { at: Point; hollow?: boolean; tone: 
   return (
     <>
       <path {...common} strokeWidth={9} className="stroke-surface" />
-      <path {...common} strokeWidth={6} className={TONE_STROKE[tone]} />
+      <path {...common} strokeWidth={6} className={ink} />
       {hollow ? <path {...common} strokeWidth={3} className="stroke-surface" /> : null}
     </>
   );
@@ -83,6 +87,7 @@ export function Sparkline({
   active,
   partial = false,
   tone = 'neutral',
+  family,
   label,
   wide = false,
 }: {
@@ -91,11 +96,14 @@ export function Sparkline({
   active?: number | null;
   partial?: boolean;
   tone?: Tone4;
+  /** The figure's identity family: the line wears its colour instead of the tone's. Identity, not verdict. */
+  family?: Family;
   label: string;
   wide?: boolean;
 }) {
   const g = shape(values, reference, active, partial);
   if (!g) return null;
+  const ink = family ? FAMILY_STROKE[family] : TONE_STROKE[tone];
   const line = { vectorEffect: 'non-scaling-stroke' as const, strokeWidth: 2 };
   return (
     <svg
@@ -104,9 +112,7 @@ export function Sparkline({
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="none"
       className={`el-draw h-7 shrink-0 overflow-visible ${wide ? 'w-full' : 'w-24'}`}
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      {...BASE}
     >
       {g.ref ? (
         <path
@@ -128,12 +134,10 @@ export function Sparkline({
           className="stroke-neutral-300"
         />
       ) : null}
-      <path d={g.line} {...line} className={TONE_STROKE[tone]} />
-      {g.running ? (
-        <path d={g.running} {...line} strokeDasharray="3 3" className={TONE_STROKE[tone]} />
-      ) : null}
-      <Dot at={g.last} tone={tone} hollow={g.hollow} />
-      {g.at && g.at !== g.last ? <Dot at={g.at} tone={tone} /> : null}
+      <path d={g.line} {...line} className={ink} />
+      {g.running ? <path d={g.running} {...line} strokeDasharray="3 3" className={ink} /> : null}
+      <Dot at={g.last} ink={ink} hollow={g.hollow} />
+      {g.at && g.at !== g.last ? <Dot at={g.at} ink={ink} /> : null}
     </svg>
   );
 }

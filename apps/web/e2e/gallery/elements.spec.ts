@@ -15,6 +15,7 @@ const PARTS = [
   'nav',
   'trail',
   'panels',
+  'family',
 ];
 
 async function open(page: Page, query: string): Promise<void> {
@@ -171,4 +172,19 @@ test('the drill panel does not slide under reduced motion', async ({ page }) => 
   await open(page, 'lang=en');
   await page.getByRole('button', { name: 'Open the drill panel' }).click();
   await expect(page.getByRole('dialog', { name: 'Cell B' })).toHaveCSS('animation-name', 'none');
+});
+
+test('a family tile opens its explanation, which wears the family edge, and still says its tone in words', async ({
+  page,
+}) => {
+  await open(page, 'lang=en');
+  const tile = page.getByTestId('element-family').getByRole('button', { name: /Downtime/ });
+  await expect(tile).toContainText('Worse');
+  await tile.click();
+  const panel = page.getByRole('dialog', { name: 'Downtime' });
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveAttribute('data-family', 'downtime');
+  await expect(panel).toHaveCSS('border-top-width', '3px');
+  await page.keyboard.press('Escape');
+  await expect(tile).toBeFocused();
 });
