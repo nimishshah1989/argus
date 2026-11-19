@@ -68,14 +68,14 @@ function Toggle<Row extends CrudRow>(p: ListProps<Row> & { row: Row; name: strin
       aria-label={t(toggle.labelKey, { name: p.name })}
       disabled={p.busy}
       onClick={() => p.onToggle(p.row)}
-      className="flex min-h-target-min w-[51px] flex-none items-center"
+      className="flex min-h-target-min w-13 flex-none items-center"
     >
-      {/* The pill stays 31 px tall; the button around it keeps the kit's 44 px tap target. */}
+      {/* The pill stays 32 px tall; the button around it keeps the kit's 44 px tap target. */}
       <span
-        className={`relative block h-[31px] w-[51px] rounded-full ${on ? 'bg-accent-strong' : 'bg-neutral-200'}`}
+        className={`relative block h-8 w-13 rounded-full transition-colors duration-(--motion-fast) ${on ? 'bg-accent-strong' : 'bg-neutral-500'}`}
       >
         <span
-          className={`absolute top-0.5 h-[27px] w-[27px] rounded-full bg-white shadow-card ${on ? 'left-[22px]' : 'left-0.5'}`}
+          className={`absolute top-0.5 size-7 rounded-full bg-surface shadow-card transition-[left] duration-(--motion-fast) ${on ? 'left-5.5' : 'left-0.5'}`}
         />
       </span>
     </button>
@@ -208,7 +208,7 @@ function FlagChip<Row extends CrudRow>(p: {
       type="button"
       aria-pressed={p.pressed}
       onClick={p.onPress}
-      className={`inline-flex min-h-target-min items-center gap-1.5 self-start whitespace-nowrap rounded-full px-3 text-footnote font-semibold ${p.pressed ? 'bg-accent-tint text-accent-text ring-2 ring-accent-strong' : `${TONE_FILL.muted}`}`}
+      className={`inline-flex min-h-target-min items-center gap-2 self-start whitespace-nowrap rounded-full px-3 text-footnote font-semibold ${p.pressed ? 'bg-accent-tint text-accent-text ring-2 ring-accent-strong' : `${TONE_FILL.muted}`}`}
     >
       <Icon aria-hidden size={18} />
       {t(flag.labelKey, { count })}

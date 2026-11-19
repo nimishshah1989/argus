@@ -64,7 +64,7 @@ function Change({ row, timeZone }: { row: AuditRow; timeZone?: string }) {
     : humanise(row.entity);
   const shown = changes(row.before, row.after, t('audit.none'));
   return (
-    <li className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card">
+    <li className="flex flex-col gap-1 rounded-card bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <p className="text-body font-semibold">{humanise(row.action)}</p>
         <time dateTime={row.at} className="text-caption text-neutral-600">

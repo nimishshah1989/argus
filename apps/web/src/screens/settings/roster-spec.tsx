@@ -133,7 +133,7 @@ function CopyRoster() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card">
       <Inline gap={3}>
         <Stack gap={1}>
           <Label htmlFor="roster-copy-date">{t('plant.roster.copyDate')}</Label>

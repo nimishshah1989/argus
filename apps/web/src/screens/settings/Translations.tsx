@@ -5,6 +5,7 @@ import { defineResource } from '../../data/index.js';
 import i18n, { applyOverrides, setLanguage } from '../../i18n/index.js';
 import { PatternFrame } from '../../patterns/frame.js';
 import { Button } from '../../ui/button.js';
+import { Card } from '../../ui/card.js';
 import { Input, Label } from '../../ui/input.js';
 import { Inline, Stack } from '../../ui/layout.js';
 import {
@@ -32,7 +33,7 @@ function TranslationField(p: {
 }) {
   const id = fieldId(p.row.key);
   return (
-    <div className="rounded-2xl bg-surface p-4 shadow-card">
+    <Card>
       <Stack gap={1}>
         <p className="text-caption text-neutral-600">{p.row.key}</p>
         <Label htmlFor={id}>{p.row.en}</Label>
@@ -43,7 +44,7 @@ function TranslationField(p: {
           onChange={(event) => p.onChange(event.target.value)}
         />
       </Stack>
-    </div>
+    </Card>
   );
 }
 

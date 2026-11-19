@@ -11,7 +11,7 @@ const PHONE = {
   code: 'text-title3 font-bold',
   age: 'text-title3 font-bold',
   big: 'text-title2 font-extrabold',
-  card: 'rounded-2xl p-4',
+  card: 'rounded-card p-4',
   icon: 18,
   /** A row: on the phone the icon and age stand beside both lines; on the TV the place line runs under the age. */
   machineIcon: 'md' as 'md' | 'lg',
@@ -34,7 +34,7 @@ const TV: Scale = {
   code: 'text-tv-48 font-extrabold leading-none',
   age: 'text-tv-48 font-bold',
   big: 'text-tv-80 font-extrabold leading-none',
-  card: 'rounded-3xl px-6 py-6',
+  card: 'rounded-card p-6',
   icon: 56,
   machineIcon: 'lg',
   rowSide: '',
