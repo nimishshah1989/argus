@@ -1,6 +1,7 @@
 import {
   a9BottleneckFigure,
   a9RiskCore,
+  coreDays,
   printed,
   type BottleneckCore,
   type BottleneckRisk,
@@ -261,7 +262,7 @@ function forecastKpis(
   const sorted = [...models].sort((left, right) => right.expH - left.expH || right.p80 - left.p80);
   const expTotal = sum(models.map((model) => model.expH));
   const expN = sum(models.map((model) => model.expN));
-  const periodDays = Math.max(1, (dayNumber(core.to) ?? 0) - (dayNumber(core.from) ?? 0) + 1);
+  const periodDays = Math.max(1, coreDays(core));
   const hist = (sum(core.fleet.map((risk) => risk.hours)) / periodDays) * month.days;
   const hot = sorted.filter((model) => bandOf(model.expH) === 'Hot');
   const likely = sorted.filter((model) => bandOf(model.expH) === 'Likely');

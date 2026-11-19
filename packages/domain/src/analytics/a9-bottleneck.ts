@@ -1,6 +1,6 @@
+import { observedDays, type Period } from './availability.js';
 import { formatInr, formatPercent, normalizeLabel } from './format.js';
 import { isProduction } from './machine-facts.js';
-import { dayNumber } from './plant-date.js';
 import { effectiveHours, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow } from './types.js';
 
@@ -62,7 +62,13 @@ export interface BottleneckCore {
   from: string;
   to: string;
   fleetUnav: number;
+  /** The months inside the window the plant recorded nothing in; absent when the run named no span. */
+  noRecords?: readonly string[];
 }
+
+/** The days the plant itself is observed: the core's window less the months it recorded nothing in. */
+export const coreDays = (core: BottleneckCore): number =>
+  observedDays(core.from, core.to, { from: core.from, to: core.to, noRecords: core.noRecords });
 
 /** A category's or a cell's capacity numbers, shared by the two grids. */
 interface Capacity {
@@ -110,21 +116,12 @@ function productionRows(data: EngineData): SourcedReport[] {
 }
 
 /** 1 January of the earliest breakdown year to the latest breakdown date, both from the rows read. */
-function periodOf(rows: readonly SourcedReport[]): { from: string; to: string } | null {
+function periodOf(rows: readonly SourcedReport[]): Period | null {
   const dates = rows.map((row) => row.report.date).sort();
   const first = dates[0];
   const last = dates.at(-1);
   if (first === undefined || last === undefined) return null;
   return { from: `${first.slice(0, 4)}-01-01`, to: last };
-}
-
-/** The days a machine is observed: from the later of the period start and its purchase date, both included. */
-function observationDays(machine: MachineRow, from: string, to: string): number {
-  const bought = machine.purchasedOn === null ? null : machine.purchasedOn.slice(0, 10);
-  const start = bought !== null && bought > from ? bought : from;
-  const startDay = dayNumber(start);
-  const endDay = dayNumber(to);
-  return startDay === null || endDay === null || endDay < startDay ? 0 : endDay - startDay + 1;
 }
 
 interface Hours {
@@ -149,7 +146,7 @@ function machineHours(rows: readonly SourcedReport[]): Hours {
 function factsOf(
   data: EngineData,
   rows: readonly SourcedReport[],
-  period: { from: string; to: string },
+  period: Period,
   perDay: number,
 ): BottleneckFact[] {
   const byMachine = new Map<string, SourcedReport[]>();
@@ -160,7 +157,7 @@ function factsOf(
   }
   return data.machines.filter(isProduction).map((machine) => {
     const { hours, count, longest } = machineHours(byMachine.get(machine.id) ?? []);
-    const days = observationDays(machine, period.from, period.to);
+    const days = observedDays(period.from, period.to, period, machine.purchasedOn?.slice(0, 10));
     const avail = days * perDay;
     const unav = avail > 0 ? Math.min(1, hours / avail) : 0;
     return {
@@ -209,8 +206,9 @@ function rate(fact: BottleneckFact, peers: number, fleetUnav: number): Bottlenec
 /** The whole risk core, or null when the plant has no production breakdown to observe. */
 export function a9RiskCore(data: EngineData, profile: HoursProfile): BottleneckCore | null {
   const rows = productionRows(data);
-  const period = periodOf(rows);
-  if (period === null) return null;
+  const span = periodOf(rows);
+  if (span === null) return null;
+  const period = { ...span, noRecords: data.gaps };
   const perDay = (profile.prodHrsPerDay * profile.workDaysPerYear) / 365;
   const facts = factsOf(data, rows, period, perDay);
   if (facts.length === 0) return null;
@@ -219,7 +217,7 @@ export function a9RiskCore(data: EngineData, profile: HoursProfile): BottleneckC
   const fleetUnav = sum(facts.map((fact) => fact.hours)) / totalAvail;
   const peers = countsOf(facts, (fact) => fact.category);
   const fleet = facts.map((fact) => rate(fact, peers.get(fact.category) ?? 1, fleetUnav));
-  return { fleet, from: period.from, to: period.to, fleetUnav };
+  return { fleet, from: period.from, to: period.to, fleetUnav, noRecords: data.gaps };
 }
 
 /** KPIs 0–3: the two rating counts, the sole-of-kind count and the plant's availability. */

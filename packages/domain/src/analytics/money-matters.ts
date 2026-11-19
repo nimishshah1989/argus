@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { a9RiskCore, printed, type BottleneckCore } from './a9-bottleneck.js';
+import { a9RiskCore, coreDays, printed, type BottleneckCore } from './a9-bottleneck.js';
 import {
   FC_RUNS,
   episodesOf,
@@ -12,7 +12,6 @@ import {
 import { formatNumber } from './format.js';
 import { healthRows, type Health } from './money-health.js';
 import { levers, stakeHours, type FocusContext, type LeverResult } from './money-focus.js';
-import { dayNumber } from './plant-date.js';
 import { analyzeProblems, type ProblemAnalysis } from './problem-analysis.js';
 import type { Computer, EngineData, FigureValue } from './types.js';
 
@@ -104,7 +103,7 @@ function moneyOf(data: EngineData, profile: AnalyticsProfile): Money | null {
   const core = a9RiskCore(data, profile);
   if (core === null) return null;
   const threshold = profile.whyWhyThresholdHours;
-  const days = (dayNumber(core.to) ?? 0) - (dayNumber(core.from) ?? 0) + 1;
+  const days = coreDays(core);
   const board = forecastBoard(core, episodesOf(fleetRows(data)), FC_RUNS);
   const throughput = profile.mmThroughput > 0 ? profile.mmThroughput : 1800;
   return {
