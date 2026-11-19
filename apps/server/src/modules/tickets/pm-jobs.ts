@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { pmGeneratePayloadSchema } from '@uptimo/shared';
-import type { JobRole } from '../../kernel/index.js';
+import { logFailures, type JobRole } from '../../kernel/index.js';
 import { runPmGenerate } from './pm-generate.js';
 
 export const PM_GENERATE_QUEUE = 'pm.generate';
@@ -29,7 +29,7 @@ export async function startPmJobs(boss: PgBoss, deps: PmJobDeps, role: JobRole):
   await boss.work(
     PM_GENERATE_QUEUE,
     { batchSize: 1, pollingIntervalSeconds: 30 },
-    async ([job]) => {
+    logFailures(PM_GENERATE_QUEUE, async ([job]) => {
       if (!job) return;
       const payload = pmGeneratePayloadSchema.parse(job.data);
       const summary = await runPmGenerate(deps.pool, {
@@ -38,7 +38,7 @@ export async function startPmJobs(boss: PgBoss, deps: PmJobDeps, role: JobRole):
       });
       console.log(JSON.stringify({ job: PM_GENERATE_QUEUE, ...summary }));
       return summary;
-    },
+    }),
   );
   await boss.schedule(
     PM_GENERATE_QUEUE,

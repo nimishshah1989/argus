@@ -67,6 +67,23 @@ import {
 export { errorBodySchema } from './error.js';
 
 export const okReplySchema = z.object({ ok: z.literal(true) }).strict();
+/** A failed background job as the admin's list shows it (ticket 78a). */
+export const failedJobsReplySchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          id: z.string(),
+          queue: z.string(),
+          error: z.string(),
+          attempts: z.number().int(),
+          createdAt: z.string(),
+          failedAt: z.string().nullable(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
 export const devicesReplySchema = z
   .object({
     items: z.array(
@@ -182,11 +199,13 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/auth/me`]: meReplySchema,
   [`GET ${P}/auth/sessions`]: devicesReplySchema,
   [`GET ${P}/auth/acting`]: actingChoicesReplySchema,
+  [`GET ${P}/jobs/failed`]: failedJobsReplySchema,
   ...ok(
     `POST ${P}/auth/logout`,
     `POST ${P}/auth/password`,
     `POST ${P}/auth/acting`,
     `DELETE ${P}/auth/sessions/:id`,
+    `POST ${P}/jobs/failed/:id/retry`,
     `PUT ${P}/settings/:key`,
     `PUT ${P}/settings/sla-policies`,
     `PUT ${P}/machines/:id/criticality`,

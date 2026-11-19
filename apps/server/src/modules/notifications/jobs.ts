@@ -1,7 +1,7 @@
 import type { PgBoss } from 'pg-boss';
 import type { Pool } from 'pg';
 import { z } from 'zod';
-import type { JobRole } from '../../kernel/index.js';
+import { logFailures, type JobRole } from '../../kernel/index.js';
 import { markQueueReady, NOTIFY_SEND_QUEUE, NOTIFY_SEND_VERSION, SEND_QUEUE } from './notify.js';
 import { processNotification } from './send.js';
 import { sweepNotifications } from './sweep.js';
@@ -46,19 +46,23 @@ export async function startNotifyJobs(
   await boss.work(
     NOTIFY_SEND_QUEUE,
     { batchSize: 1, pollingIntervalSeconds: deps.pollingIntervalSeconds ?? 2 },
-    async ([job]) => {
+    logFailures(NOTIFY_SEND_QUEUE, async ([job]) => {
       if (!job) return;
       const { tenantId, notificationId } = sendJob.parse(job.data);
       await processNotification(
         { pool: deps.pool, boss, now: now() },
         { tenantId, notificationId },
       );
-    },
+    }),
   );
-  await boss.work(NOTIFY_SWEEP_QUEUE, { batchSize: 1, pollingIntervalSeconds: 30 }, async () => {
-    const swept = await sweepNotifications({ pool: deps.pool, boss, now: now() });
-    if (swept.requeued + swept.dead > 0)
-      console.log(JSON.stringify({ job: NOTIFY_SWEEP_QUEUE, ...swept }));
-  });
+  await boss.work(
+    NOTIFY_SWEEP_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds: 30 },
+    logFailures(NOTIFY_SWEEP_QUEUE, async () => {
+      const swept = await sweepNotifications({ pool: deps.pool, boss, now: now() });
+      if (swept.requeued + swept.dead > 0)
+        console.log(JSON.stringify({ job: NOTIFY_SWEEP_QUEUE, ...swept }));
+    }),
+  );
   await boss.schedule(NOTIFY_SWEEP_QUEUE, '*/5 * * * *', {}, { tz: 'UTC' });
 }

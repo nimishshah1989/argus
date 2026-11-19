@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
-import type { JobRole } from '../../kernel/index.js';
+import { logFailures, type JobRole } from '../../kernel/index.js';
 import { ENGINE_FREEZE_QUEUE, runEngineFreeze } from './freeze.js';
 import { ENGINE_RUN_QUEUE, runEngineRun } from './run.js';
 
@@ -48,7 +48,7 @@ export async function startEngineJobs(
   await boss.work<EnginePayload>(
     ENGINE_FREEZE_QUEUE,
     { batchSize: 1, pollingIntervalSeconds: 30 },
-    async ([job]) => {
+    logFailures(ENGINE_FREEZE_QUEUE, async ([job]) => {
       const { tenantId } = payloadSchema.parse(job?.data ?? { v: ENGINE_FREEZE_VERSION });
       const summary = await runEngineFreeze(deps.pool, {
         now: now(),
@@ -56,13 +56,13 @@ export async function startEngineJobs(
       });
       console.log(JSON.stringify({ job: ENGINE_FREEZE_QUEUE, ...summary }));
       return summary;
-    },
+    }),
   );
   await boss.schedule(ENGINE_FREEZE_QUEUE, ENGINE_FREEZE_CRON, {}, { tz: 'UTC' });
   await boss.work<EnginePayload>(
     ENGINE_RUN_QUEUE,
     { batchSize: 1, pollingIntervalSeconds: 30 },
-    async ([job]) => {
+    logFailures(ENGINE_RUN_QUEUE, async ([job]) => {
       const { tenantId } = payloadSchema.parse(job?.data ?? { v: ENGINE_RUN_VERSION });
       const summary = await runEngineRun(deps.pool, {
         now: now(),
@@ -70,7 +70,7 @@ export async function startEngineJobs(
       });
       console.log(JSON.stringify({ job: ENGINE_RUN_QUEUE, ...summary }));
       return summary;
-    },
+    }),
   );
   await boss.schedule(ENGINE_RUN_QUEUE, ENGINE_RUN_CRON, {}, { tz: 'UTC' });
 }
