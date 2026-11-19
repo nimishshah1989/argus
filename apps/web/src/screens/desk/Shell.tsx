@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getMe } from '../../api.js';
 import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
-import { DESK_ROLES } from '../../roles.js';
+import { DESK_ROLES, readsAnalytics } from '../../roles.js';
 import { SyncStatus } from '../../patterns/sync-status.js';
 import { useWide } from '../../patterns/wide.js';
 import {
@@ -76,9 +76,6 @@ function deskTabs(t: TFunction, badge: number) {
   ];
 }
 
-/** The face is for heads, the plant head and admin (LOCK, analytics face); the browser adds no other rule. */
-const ANALYTICS_ROLES: readonly string[] = ['head', 'plant_head', 'admin'];
-
 interface DeskTab {
   to: string;
   label: string;
@@ -88,7 +85,7 @@ interface DeskTab {
 
 /** The desktop menu adds the analytics face for the roles the lock names; the phone keeps its five tabs. */
 function menuTabs(role: string | undefined, tabs: DeskTab[], t: TFunction): DeskTab[] {
-  if (!role || !ANALYTICS_ROLES.includes(role)) return tabs;
+  if (!role || !readsAnalytics(role)) return tabs;
   return [...tabs, { to: '/analytics', label: t('analytics.entry'), icon: FlaskConical }];
 }
 

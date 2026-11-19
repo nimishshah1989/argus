@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { landingPath, mayOpenDesk } from './roles.js';
+import { landingPath, mayOpenDesk, readsAnalytics } from './roles.js';
 
 /**
  * Row 38: each role's home opens on what needs that person now (MILESTONES row 38). The operator opens
@@ -33,5 +33,14 @@ describe('landingPath', () => {
       'board',
     ])
       expect(mayOpenDesk(role), role).toBe(!landingPath(role).startsWith('/floor'));
+  });
+});
+
+describe('who gets the Analytics entry on the desk menu', () => {
+  it('is supervisor, head, plant head and admin, and nobody else', () => {
+    for (const role of ['supervisor', 'head', 'plant_head', 'admin'])
+      expect(readsAnalytics(role), role).toBe(true);
+    for (const role of ['operator', 'technician', 'board', 'unknown'])
+      expect(readsAnalytics(role), role).toBe(false);
   });
 });

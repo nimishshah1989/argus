@@ -1,4 +1,4 @@
-import { canAnalytics, type Role } from '@uptimo/domain';
+import { readsAnalytics } from '../../../roles.js';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import {
   ACTION_CENTER_PATH,
@@ -86,10 +86,6 @@ export const SECTIONS: readonly ShellSection[] = [
     tabs: [{ to: '/analytics/guide', label: 'ashell.section.guide' }],
   },
 ];
-
-/** The server's own check (`canAnalytics`), run on the role the browser knows. */
-const readsAnalytics = (role: string): boolean =>
-  canAnalytics({ role: role as Role, loginId: '', personId: null, shared: false, cell: null });
 
 /**
  * Which sections a login sees, by the app's own permission checks: supervisor, head, plant head and admin read
