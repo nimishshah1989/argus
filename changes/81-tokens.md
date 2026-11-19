@@ -1,0 +1,2 @@
+- The design tokens now name the four status tones (good, watch, bad, neutral, each with fill, ink and tint), the chart palette (8 series colours, a sequential and a diverging ramp), three depth levels and a size for every role, in light and dark. No screen changes: the old names stay and the new ones are not used yet.
+- A test checks every ink on its tint at 4.5:1, every status fill, identity fill and chart colour at 3:1, and that the 8 series stay apart under simulated colour-blind sight.

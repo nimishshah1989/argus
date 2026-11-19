@@ -53,6 +53,22 @@
   --color-ok-tint: #e6f4ea;
   --color-muted-tint: #ececf0;
 
+  /* The four status tones (ticket 81): good, watch, bad, neutral, each with fill (a bar, a dot, a 3 px edge:
+     3:1), ink (text and icon on the tint: 4.5:1) and tint (the soft background). They name the tones above, so
+     the old names (danger, warning, ok, muted) and these can never drift apart, in light or in dark. */
+  --color-good-fill: var(--color-ok);
+  --color-good-ink: var(--color-ok-ink);
+  --color-good-tint: var(--color-ok-tint);
+  --color-watch-fill: var(--color-warning);
+  --color-watch-ink: var(--color-warning-ink);
+  --color-watch-tint: var(--color-warning-tint);
+  --color-bad-fill: var(--color-danger);
+  --color-bad-ink: var(--color-danger-ink);
+  --color-bad-tint: var(--color-danger-tint);
+  --color-neutral-fill: var(--color-muted);
+  --color-neutral-ink: var(--color-muted-ink);
+  --color-neutral-tint: var(--color-muted-tint);
+
   /* Old status names, kept so existing screens look the same. */
   --color-stopped: var(--color-danger);
   --color-in-progress: var(--color-info);
@@ -84,6 +100,12 @@
   --radius-xl: 12px;
   --radius-2xl: 16px;
   --radius-sheet: 20px;
+  /* Roles (DESIGN.md Shapes): the names later tickets use; the sizes above stay for today's screens. */
+  --radius-field: var(--radius-lg);
+  --radius-control: var(--radius-xl);
+  --radius-card: var(--radius-2xl);
+  --radius-tile: var(--radius-2xl);
+  --radius-chip: 9999px;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.1);
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.16);
@@ -91,6 +113,14 @@
   /* Tap targets: 52 px for primary and secondary buttons and fields; 44 px is the floor for anything smaller. */
   --spacing-target: 52px;
   --spacing-target-min: 44px;
+  /* The spacing steps of docs/design/LOCK.md and the status chip's height. */
+  --spacing-step-1: 4px;
+  --spacing-step-2: 8px;
+  --spacing-step-3: 12px;
+  --spacing-step-4: 16px;
+  --spacing-step-5: 24px;
+  --spacing-step-6: 32px;
+  --spacing-chip: 28px;
 }
 
 :root {
@@ -102,6 +132,36 @@
   --color-chart-2: var(--color-neutral-600);
   --color-chart-axis: var(--color-neutral-600);
   --color-chart-grid: var(--color-neutral-200);
+
+  /* Depth (DESIGN.md Elevation): level 0 is the page, 1 a raised card, 2 a sheet or side panel over a scrim.
+     Levels 1 and 2 are the card and sheet shadows, so a theme that changes them changes the level. */
+  --shadow-depth-0: none;
+  --shadow-depth-1: var(--shadow-card);
+  --shadow-depth-2: var(--shadow-sheet);
+
+  /* Chart palette (ticket 81, read by the chart door as --color-series-N). 8 categorical colours in the hue bands
+     that are no status (never red 345-50, green 90-160 or info-blue 205-235), each 3:1 on the surface and the page.
+     They differ in lightness as well as hue so a colour-vision difference still separates them; tokens.test checks
+     the distance under simulated deuteranopia and protanopia. ramp-seq is light to dark, ramp-div runs
+     teal, light, grey, light, plum. Values match ui/chart-palette.ts (a test keeps them in step). */
+  --color-series-1: #2a9278;
+  --color-series-2: #642b3e;
+  --color-series-3: #78922a;
+  --color-series-4: #6931d8;
+  --color-series-5: #245e7b;
+  --color-series-6: #9469bf;
+  --color-series-7: #7d6f26;
+  --color-series-8: #27206f;
+  --color-ramp-seq-1: #e5fbf9;
+  --color-ramp-seq-2: #b0f2ed;
+  --color-ramp-seq-3: #73e8de;
+  --color-ramp-seq-4: #18958b;
+  --color-ramp-seq-5: #10605a;
+  --color-ramp-div-1: #13726a;
+  --color-ramp-div-2: #7beae0;
+  --color-ramp-div-3: #f8f9fb;
+  --color-ramp-div-4: #d47bea;
+  --color-ramp-div-5: #5f1372;
 
   /* Identity families (ticket 80u, the analytics showcase): one hue per metric family. fill = a line, bar or 3 px
      edge (3:1); ink = text (4.5:1); tint = a soft band. Identity never signals a verdict: availability is a
@@ -188,6 +248,25 @@
 
   --shadow-card: 0 0 0 1px #2c2c2e;
   --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.5);
+
+  --color-series-1: #76e5e5;
+  --color-series-2: #c63968;
+  --color-series-3: #9cd629;
+  --color-series-4: #ab29d6;
+  --color-series-5: #9090ea;
+  --color-series-6: #b3a64d;
+  --color-series-7: #ce8da3;
+  --color-series-8: #c9e198;
+  --color-ramp-seq-1: #0a3d39;
+  --color-ramp-seq-2: #10605a;
+  --color-ramp-seq-3: #15847a;
+  --color-ramp-seq-4: #58e4d8;
+  --color-ramp-seq-5: #9fefe9;
+  --color-ramp-div-1: #8dece4;
+  --color-ramp-div-2: #15847a;
+  --color-ramp-div-3: #1e2228;
+  --color-ramp-div-4: #6e1584;
+  --color-ramp-div-5: #d98dec;
 }
 
 /* The comparison accent (the old default); only the gallery sets data-accent. */
