@@ -20,3 +20,6 @@ docs/design/slices/*.html
 
 # Generated answer key: one row per line, written by tools/answer-key/generate.ts.
 fixtures/answer-key
+
+# Design preview figures, written by tools/directions-figures.ts (ticket 80g).
+apps/web/src/gallery/directions/generated

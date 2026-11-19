@@ -15,3 +15,9 @@
   licence into `.claude/skills/`, and a source note in `.claude/vendor/emilkowalski-skills/`.
 - `THIRD_PARTY.md` lists them with impeccable 4.8.1 and pstack 0.15.36; the tracker marks ticket 80 in progress.
 - No user-visible change.
+
+## 80g — the design preview figures
+
+- The design preview will print the plant's real figure shapes, so a new script (`tools/directions-figures.ts`) runs the engine on the 11 November answer key and saves the dashboard, one machine (VC-28), the breakdown log and the four breakdown analyses as one small file (about 100 KB, every table cut to 50 rows, no drill ids).
+- `pnpm tsx tools/directions-figures.ts --check` fails when that file is missing or out of date.
+- No user-visible change.
