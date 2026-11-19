@@ -82,8 +82,8 @@ export interface PlantPageSpec {
   key: Key;
   /** A page that is not one generated list (the lists hub, the company form). */
   screen?: ComponentType;
-  /** Listed only for an admin on a personal login (the API's own rule). */
-  adminOnly?: boolean;
+  /** Listed only for who may see failed jobs: the admin and the head on a personal login (the API's own rule). */
+  needsJobsAccess?: boolean;
   spec?: CrudSpec<never>;
 }
 
@@ -181,7 +181,7 @@ function Body({
 /** The entries this person may open, and how many background jobs failed (0 for anyone who cannot see them). */
 function useVisiblePages(user: Parameters<typeof canSeeJobs>[0]) {
   const failed = useFailedCount(user);
-  return { failed, pages: PLANT_PAGES.filter((p) => !p.adminOnly || canSeeJobs(user)) };
+  return { failed, pages: PLANT_PAGES.filter((p) => !p.needsJobsAccess || canSeeJobs(user)) };
 }
 
 /** Plant settings for an admin or head: the desktop left menu, or on a phone a list and back to it. */

@@ -6,6 +6,7 @@ import {
   canManageSupportAccess,
   canRaise,
   canRestore,
+  canSeeFailedJobs,
   canSettingsAi,
   canSettingsLists,
   canSettingsPeople,
@@ -80,6 +81,15 @@ describe('permissions', () => {
       'board',
     ] as const)
       expect(canSettingsPeople(actor(role)), role).toBe(false);
+  });
+
+  it('shows failed jobs to the admin and the head on a personal login, and to nobody else', () => {
+    for (const role of ['admin', 'head'] as const) {
+      expect(canSeeFailedJobs(actor(role)), role).toBe(true);
+      expect(canSeeFailedJobs(actor(role, { shared: true })), `${role} shared`).toBe(false);
+    }
+    for (const role of ['operator', 'technician', 'supervisor', 'plant_head', 'board'] as const)
+      expect(canSeeFailedJobs(actor(role)), role).toBe(false);
   });
 
   it('refuses an admin on a shared login: an admin action must name a person', () => {
