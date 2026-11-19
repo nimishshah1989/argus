@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useActionCenterBoard, useAnalyticsFigures, useAnalyticsFiguresAt } from '../../api.js';
 import { useOnline } from '../../data/index.js';
@@ -11,7 +12,7 @@ import { Stack } from '../../ui/layout.js';
 import { Template, type TemplateProps } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
-import { bannerOf } from './action-center.js';
+import { bannerOf, dmy } from './action-center.js';
 import { contentOf } from './figure-content.js';
 import { ContentFigure, NumberFigure, isNumberFigure } from './TodayFigures.js';
 import { COMPARE_DAYS, changeOf, priorDate } from './today-change.js';
@@ -55,6 +56,17 @@ function ActionCenterBanner() {
   );
 }
 
+/** The line under the title: the as-of date, the machines left out, and the date the changes are against (dd-mm-yyyy). */
+function ledeOf(t: TFunction, asOf: string, excluded: number, compared: boolean): string {
+  return [
+    t('analytics.asOf', { date: dmy(asOf) }),
+    excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
+    compared ? t('analytics.today.vs', { date: dmy(priorDate(asOf)), days: COMPARE_DAYS }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ');
+}
+
 /**
  * The Dashboard on the overview template: number tiles in the figures row, then the strip, the pictures, the
  * sentence and the ranked list. The change of each figure is against the same figure 30 days earlier.
@@ -82,18 +94,11 @@ function DashboardTemplate({
       before.data?.figures.find((other) => other.key === figure.key),
       priorDate(asOf).slice(0, 4) === asOf.slice(0, 4),
     );
-  const lede = [
-    t('analytics.asOf', { date: asOf }),
-    excluded > 0 ? t('analytics.excludedMachines', { count: excluded }) : null,
-    before.data ? t('analytics.today.vs', { date: priorDate(asOf), days: COMPARE_DAYS }) : null,
-  ]
-    .filter((part) => part !== null)
-    .join(' · ');
   return (
     <Template
       {...frame}
       kind="overview"
-      lede={lede}
+      lede={ledeOf(t, asOf, excluded, before.data !== undefined)}
       figures={figures.filter(isNumberFigure).map((figure) => (
         <NumberFigure key={figure.key} figure={figure} group={group} change={prior(figure)} />
       ))}
@@ -174,18 +179,12 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
     <Stack gap={4}>
       <ActionCenterBanner />
       {team ? (
-        <Template
-          {...frame}
-          kind="overview"
-          lede={t('analytics.asOf', { date: loaded.asOf })}
-          main={
-            <>
-              {drillTable === null ? null : <div data-span="full">{drillTable}</div>}
-              <div data-span="full">
-                <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
-              </div>
-            </>
-          }
+        <TeamFocusPage
+          figure={figureOf(SCREEN_TEAM)}
+          group={group}
+          title={title}
+          lede={t('analytics.asOf', { date: dmy(loaded.asOf) })}
+          drill={drillTable}
         />
       ) : (
         <DashboardTemplate

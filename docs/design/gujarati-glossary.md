@@ -136,3 +136,4 @@ the `એ` suffix, because a placeholder cannot take it. Durations inside `{{time
 - hour, કલાક, ours
 - day, દિવસ, ours
 - e.g., દા.ત., ours
+- acronyms (AMC, PM, SLA), stay in Latin letters, ours

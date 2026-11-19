@@ -218,6 +218,12 @@ async function assertBoard(page: Page): Promise<void> {
 async function ackAndReload(page: Page): Promise<void> {
   const tabs = page.getByRole('tablist', { name: 'Action Center status' });
   const freq = page.locator('[data-nudge="freq|VC-1"]');
+  // One form at a time, even across two priorities: opening the medium card's form closes the high card's.
+  await freq.getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  const mttr = page.locator('[data-nudge="mttr|VC-3"]');
+  await mttr.getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(1);
+  await expect(mttr.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toBeVisible();
   await freq.getByRole('button', { name: 'Acknowledge', exact: true }).click();
   const form = freq.getByRole('form', { name: 'Acknowledge nudge', exact: true });
   await form.getByLabel('Owner', { exact: true }).selectOption('Asha');
