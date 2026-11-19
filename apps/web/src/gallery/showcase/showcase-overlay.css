@@ -1,0 +1,283 @@
+/* The showcase tooltip card, side sheet and reduced-motion rules (ticket 80t). */
+/* The designed tooltip */
+.sc-tip {
+  width: 268px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--proto-shadow-overlay);
+  color: var(--color-neutral-900);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.sc-tip header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sc-tip header em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--color-neutral-600);
+}
+.sc-tip-value {
+  margin: 6px 0 0;
+}
+.sc-tip-value b {
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.sc-tip-value i {
+  font-style: normal;
+  font-size: 14px;
+  color: var(--color-neutral-600);
+}
+.sc-tip .sc-delta {
+  margin: 4px 0 0;
+}
+.sc-tip dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 14px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+.sc-tip dt {
+  color: var(--color-neutral-600);
+}
+.sc-tip dd {
+  margin: 0;
+  text-align: right;
+}
+.sc-tip dd b {
+  font-weight: 650;
+}
+.sc-tip-sub {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+.sc-tip-value .sc-tip-sub {
+  margin: 0 0 0 6px;
+}
+.sc-tip-list {
+  display: grid;
+  gap: 3px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sc-tip-list li {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* The side sheet */
+.sc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(16 24 40 / 0.32);
+}
+.sc-overlay[data-state='open'] {
+  animation: sc-fade 200ms ease-out;
+}
+.sc-overlay[data-state='closed'] {
+  animation: sc-fade-out 160ms ease-in forwards;
+}
+.sc-sheet {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(440px, 100vw);
+  padding: 24px;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-neutral-200);
+  background: var(--color-surface);
+  box-shadow: var(--proto-shadow-overlay);
+  color: var(--color-neutral-900);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-200) transparent;
+}
+.sc-sheet[data-state='open'] {
+  animation: sc-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.sc-sheet[data-state='closed'] {
+  animation: sc-slide-out 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes sc-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes sc-slide-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes sc-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.sc-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sc-sheet-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 650;
+  text-wrap: balance;
+}
+.sc-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px 0 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-neutral-600);
+  cursor: pointer;
+  transition: background-color var(--sc-hover) ease-out;
+}
+@media (hover: hover) {
+  .sc-close:hover {
+    background: var(--color-neutral-100);
+  }
+}
+.sc-sheet-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0;
+}
+.sc-sheet-value .sc-num {
+  font-size: 36px;
+}
+.sc-sheet h3 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--color-neutral-600);
+}
+.sc-sheet section p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.sc-months {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sc-months th,
+.sc-months td {
+  padding: 8px 0;
+  border-top: 1px solid var(--color-neutral-200);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+.sc-months thead th {
+  border-top: 0;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+.sc-months td.sc-num {
+  padding-right: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.sc-months .sc-delta {
+  margin: 0;
+  font-size: 12px;
+}
+.sc-running {
+  color: var(--color-neutral-600);
+}
+.sc-sheet-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+@media (max-width: 640px) {
+  .sc-page {
+    padding: 24px 16px 48px;
+  }
+  .sc-card {
+    padding: 16px 16px 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc *,
+  .sc-sheet,
+  .sc-overlay {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.sc-key-bar {
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+.sc-key-grey {
+  background: var(--color-neutral-600);
+}
+.sc-key-dash {
+  width: 16px;
+  border-top: 1.5px dashed var(--color-neutral-900);
+}
+@media (max-width: 640px) {
+  .sc-toggle {
+    width: 100%;
+  }
+  .sc-toggle-item {
+    flex: 1;
+    padding: 0 6px;
+  }
+}
+
+/* Visually hidden text that screen readers still read; defined here so the page does not depend on a utility build. */
+.sc .sr-only,
+.sc-sheet .sr-only,
+.sc-tip .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

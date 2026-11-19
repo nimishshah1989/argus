@@ -1,0 +1,172 @@
+/* The showcase heat map and the per-cell small multiples (ticket 80t). */
+/* Heat map */
+.sc-heat {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: separate;
+  border-spacing: 3px;
+  table-layout: fixed;
+  text-align: center;
+}
+.sc-heat th {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-neutral-600);
+}
+.sc-heat-name {
+  width: 64px;
+}
+.sc-heat tbody th {
+  padding-right: 4px;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-neutral-900);
+}
+.sc-heat td {
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  background: var(--color-neutral-50);
+  font-size: 11px;
+  font-weight: 500;
+  transition: box-shadow var(--sc-hover) ease-out;
+  animation: sc-pop 460ms var(--sc-out) backwards;
+  animation-delay: calc(var(--col) * 32ms);
+}
+.sc-heat td[data-on] {
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
+}
+.sc-heat th[data-on] {
+  color: var(--color-neutral-900);
+  font-weight: 700;
+}
+.sc-heat tr[data-link] td {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+.sc-heat tr[data-link] th {
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+@keyframes sc-pop {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+.sc-readout {
+  min-height: 20px;
+  margin-top: 12px;
+}
+.sc-ramp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+.sc-ramp span:first-child {
+  margin-right: 4px;
+}
+.sc-ramp span:last-child {
+  margin-left: 4px;
+}
+.sc-ramp i {
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+}
+@media (max-width: 480px) {
+  .sc-heat td {
+    font-size: 10px;
+  }
+  .sc-heat-name {
+    width: 52px;
+  }
+  .sc-heat tbody th {
+    font-size: 11px;
+  }
+  .sc-heat {
+    border-spacing: 2px;
+  }
+}
+
+/* Cells: small multiples, separated by hairlines rather than boxed */
+.sc-cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 20px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 760px) {
+  .sc-cells {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1180px) {
+  .sc-cells {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 20px 16px;
+  }
+}
+.sc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+.sc-cell-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-neutral-600);
+}
+.sc-cell-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-height: 26px;
+}
+.sc-cell-value .sc-num {
+  font-size: 20px;
+}
+.sc-cell-value .sc-unit {
+  font-size: 12px;
+}
+.sc-cell-vs {
+  min-height: 17px;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+.sc-cell[data-tone='good'] .sc-cell-vs {
+  color: var(--color-ok-ink);
+}
+.sc-cell[data-tone='bad'] .sc-cell-vs {
+  color: var(--color-danger-ink);
+}
+.sc-cell .sc-spark {
+  height: 30px;
+  margin-top: 6px;
+  padding-top: 0;
+}
+
+.sc-spark-part {
+  stroke-dasharray: 3 3;
+}
+.sc-spark-dot[data-partial] {
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-accent),
+    0 0 0 2px var(--color-surface);
+}
+.sc-spark[data-tone='ink'] .sc-spark-dot[data-partial] {
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-neutral-900),
+    0 0 0 2px var(--color-surface);
+}
