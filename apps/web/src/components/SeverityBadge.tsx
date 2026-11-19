@@ -14,7 +14,7 @@ export function SeverityBadge({ severity }: { severity: string | null | undefine
   const tone = TONES[severity] ?? TONES.S4;
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-caption font-semibold ${tone}`}
     >
       {severity}
     </span>

@@ -10,9 +10,15 @@ import {
   machineLabel,
 } from '../../components/format.js';
 import { Banner } from '../../ui/banner.js';
+import { Card } from '../../ui/card.js';
+import { LoadingState } from '../../ui/elements/states.js';
 import { ClosedTotals, RecentCancelled } from './ClosedSection.js';
-import { Empty, Section, TicketRow, rowClass } from './parts.js';
+import { Empty, Section, TicketRow } from './parts.js';
 import { workingByPerson } from './views.js';
+
+/** A row inside a card: no second shadow, a tint instead. */
+const innerRow =
+  'flex min-h-target items-center justify-between gap-3 rounded-xl bg-neutral-100 px-4 py-3';
 
 const time = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : Number.NaN);
 
@@ -52,27 +58,29 @@ function WorkingNow({ tickets, config, machines }: WorkingProps) {
       ) : (
         <ul className="flex flex-col gap-3">
           {groups.map((group) => (
-            <li key={group.personId} className="rounded-2xl bg-surface p-4 shadow-card">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-body font-bold">
-                  {people[group.personId] ?? t('common.teamMember')}
-                </p>
-                <p className="rounded-full bg-info-tint px-2.5 py-1 text-caption font-bold text-info-ink">
-                  {formatMinutes(group.minutes)}
-                </p>
-              </div>
-              <ul className="mt-2 flex flex-col gap-2">
-                {group.tickets.map((ticket) => (
-                  <li key={ticket.id}>
-                    <Link to={`/desk/${ticket.id}`} className={rowClass}>
-                      <span className="text-body font-semibold">{ticket.ref}</span>
-                      <span className="text-footnote text-neutral-600">
-                        {machineLabel(ticket, machines)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+            <li key={group.personId}>
+              <Card>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-body font-bold">
+                    {people[group.personId] ?? t('common.teamMember')}
+                  </p>
+                  <p className="rounded-full bg-info-tint px-2.5 py-1 text-caption font-bold text-info-ink">
+                    {formatMinutes(group.minutes)}
+                  </p>
+                </div>
+                <ul className="flex flex-col gap-2">
+                  {group.tickets.map((ticket) => (
+                    <li key={ticket.id}>
+                      <Link to={`/desk/${ticket.id}`} className={innerRow}>
+                        <span className="text-body font-semibold">{ticket.ref}</span>
+                        <span className="text-footnote text-neutral-600">
+                          {machineLabel(ticket, machines)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             </li>
           ))}
         </ul>
@@ -139,12 +147,7 @@ interface Props {
 export function TeamPanel({ state, config, machines }: Props) {
   const { t } = useTranslation();
   const live = state.data?.open ?? [];
-  if (state.isLoading && !state.data)
-    return (
-      <p role="status" className="text-body text-neutral-600">
-        {t('common.loading')}
-      </p>
-    );
+  if (state.isLoading && !state.data) return <LoadingState label={t('common.loading')} tiles={1} />;
   if (state.error) {
     return <Banner tone="error" title={errorMessage(state.error)} />;
   }

@@ -2,6 +2,8 @@
 import { useTranslation } from 'react-i18next';
 import type { Config, Machine } from '../../api.js';
 import { Banner } from '../../ui/banner.js';
+import { Card } from '../../ui/card.js';
+import { LoadingState } from '../../ui/elements/states.js';
 import {
   elapsedLabel,
   errorMessage,
@@ -43,9 +45,9 @@ function MonthList({ totals, config }: { totals: MonthTotals[]; config?: Config 
         {t('desk.view.monthly')}
       </h3>
       {totals.map((month) => (
-        <div key={month.month} className="rounded-2xl bg-surface p-4 shadow-card">
+        <Card key={month.month}>
           <p className="text-body font-semibold">{monthLabel(month.month)}</p>
-          <ul className="mt-1 space-y-1">
+          <ul className="space-y-1">
             {month.rows.map((row) => (
               <li key={row.personId} className="flex justify-between gap-3 text-footnote">
                 <span>{people[row.personId] ?? t('common.teamMember')}</span>
@@ -62,7 +64,7 @@ function MonthList({ totals, config }: { totals: MonthTotals[]; config?: Config 
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -75,9 +77,7 @@ export function RecentCancelled({ machines }: { machines: Machine[] }) {
   return (
     <Section title={t('desk.view.cancelled24h')}>
       {query.loading ? (
-        <p role="status" className="text-body text-neutral-600">
-          {t('common.loading')}
-        </p>
+        <LoadingState label={t('common.loading')} tiles={1} />
       ) : query.error ? (
         <Banner tone="error" title={errorMessage(query.error)} />
       ) : cancelled.length === 0 ? (
@@ -107,9 +107,7 @@ export function ClosedTotals({ machines, config }: { machines: Machine[]; config
   return (
     <Section title={t('desk.view.closed30d')}>
       {query.loading ? (
-        <p role="status" className="text-body text-neutral-600">
-          {t('common.loading')}
-        </p>
+        <LoadingState label={t('common.loading')} tiles={1} />
       ) : query.error ? (
         <Banner tone="error" title={errorMessage(query.error)} />
       ) : closed.length === 0 ? (
