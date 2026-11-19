@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { availabilityWindow } from './availability.js';
+import { yearToDate } from './availability.js';
 import { partsOf, spareDrill, sparesBlock, type SpareRow } from './critical-spares.js';
 import { isProduction } from './machine-facts.js';
 import { amsaaOf, kmOf, weibullOf, type Quartiles, type Trend } from './reliability-maths.js';
@@ -108,11 +108,13 @@ interface PlantInputs {
 
 /**
  * The fit's inputs (R2-R4): 48's `failureEvents`, filtered to the window, grouped into one event a failure date;
- * `H(d)` is `workingHoursFor` from 1 January, the month-spread clock MTBF divides by. The leading interval from the
- * window start to a machine's first failure is not an observation: 1 January is not a renewal point.
+ * `H(d)` is `workingHoursFor` from the window start (the run's span, else 1 January), the month-spread clock MTBF
+ * divides by, with a no-records month of the span counting no hours. The leading interval from the window start to a
+ * machine's first failure is not an observation: the window start is not a renewal point.
  */
 function inputsOf(data: EngineData, asOf: string, profile: AnalyticsProfile): PlantInputs {
-  const windowStart = availabilityWindow(asOf, asOf).from;
+  const period = data.period ?? yearToDate(asOf);
+  const windowStart = period.from;
   const shifts = data.shifts ?? [];
   const byMachine = new Map<string, FailureEvent[]>();
   for (const event of failureEvents(data)) {
@@ -128,7 +130,7 @@ function inputsOf(data: EngineData, asOf: string, profile: AnalyticsProfile): Pl
     const events = byMachine.get(machine.id) ?? [];
     const dates = [...new Set(events.map((event) => event.report.date))].sort();
     const hours = (date: string): number =>
-      workingHoursFor(machine, shifts, profile.workDaysPerYear, { from: windowStart, to: date });
+      workingHoursFor(machine, shifts, profile.workDaysPerYear, { ...period, to: date });
     const endpoints = dates.map(hours);
     const hoursToAsOf = dates.length > 0 ? hours(asOf) : 0;
     const basis: Basis = {

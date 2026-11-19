@@ -68,6 +68,21 @@
   the log from the whole uncut history and then cut; it is a separate packet and will change only the 2026 numbers in
   this test (2025 and both years keep theirs, as they already start at the first record).
 
+## 76f — the plant-wide rates read the span
+
+- The dashboard's breakdown %, fleet availability and the two per-day averages now divide by the hours and days of the
+  span, not by one year. On the two-year test plant at 31 January 2027, 2025 reads 0.40 % and 99.38 % (it was 0.37 %
+  and 99.43 %), a day averaging 0.22 breakdowns and 0.21 downtime hours; both years read 0.87 % and 98.92 % (they
+  read 1.48 % and 98.18 %), 0.32 breakdowns and 0.52 hours a day. 2026 is unchanged at 1.20 % and 98.60 %. Downtime per
+  CNC machine (22, 72, 88.5) was already right. A month with no records adds no available hours and no days.
+- A run that names no span now reads the as-of year to date for the breakdown % and availability. Nothing changes at
+  the 2026 answer-key date, because that plant's data is all in 2026. On a plant with earlier years the two rates
+  change to this year's (they used to put every year's downtime over one year's hours), and in early January before the
+  year's first breakdown they print 0 and 100: on 2 January 2027 on the test plant, where they used to print 2026 in
+  full. This is what Nimish chose: analytics opens on this calendar year so far.
+- Tests pin the first and last day of a span (1 January and 31 December count, the next day's report does not), and,
+  with no span, that 1 January counts and the last day of the year before does not.
+
 ## 76m — the shift-calendar figures read the span
 
 - The two shift-calendar figures, the comparison and the shift split, now divide by the working hours of the span they

@@ -1,0 +1,1 @@
+- A plant where every in-service CNC machine had a breakdown in the last 30 days no longer loses all its analytics figures. The "Breakdown-free machines" card now shows "0 of N" with nothing to open, and every other figure still computes.

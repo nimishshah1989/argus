@@ -12,7 +12,7 @@ import { fixFinderFigure } from './fix-finder.js';
 import { forecastLabFigure } from './forecast-lab.js';
 import { moneyMattersFigure } from './money-matters.js';
 import { monthlyReportFigure } from './monthly-report.js';
-import { availableHours, availabilityWindow, daysInclusive } from './availability.js';
+import { hoursIn, observedDays, spanOf, type Period } from './availability.js';
 import { ageAnalysis } from './age.js';
 import { breakdownLogFigure } from './breakdown-log.js';
 import { cellChangeLog } from './cell-log.js';
@@ -76,32 +76,30 @@ function productionReports(data: EngineData): SourcedReport[] {
 const breakdownLog = (data: EngineData): SourcedReport[] =>
   productionReports(data).filter((row) => isHistory(row) && !isPm(row));
 
-/** The days the breakdown log covers: its first to its last breakdown date, both included. */
-function recordDays(rows: readonly SourcedReport[]): number {
+/** The days the breakdown log covers, first to last breakdown date, a no-records month's days left out. */
+function recordDays(rows: readonly SourcedReport[], period: Period): number {
   const dates = rows.map((row) => row.report.date).sort();
   const first = dates[0];
   const last = dates.at(-1);
-  return first === undefined || last === undefined ? 0 : daysInclusive(first, last);
+  return first === undefined || last === undefined ? 0 : observedDays(first, last, period);
 }
 
-/** The production fleet's available hours and the machines they belong to, for one run. */
+/** The production rows inside the span the rates read: the named span, else the as-of year to date. */
+function spanReports(data: EngineData, asOf: string): SourcedReport[] {
+  const { from, to } = spanOf(data, asOf);
+  return productionReports(data).filter((row) => row.report.date >= from && row.report.date <= to);
+}
+
+/** The production fleet's available hours over the span and the machines they belong to, for one run. */
 function plantAvailability(
   data: EngineData,
   profile: { prodHrsPerDay: number; workDaysPerYear: number },
   asOf: string,
 ): { hours: number; production: MachineRow[] } {
-  const latest = sourcedReports(data)
-    .filter(isHistory)
-    .map((row) => row.report.date)
-    .sort()
-    .at(-1);
-  const window = availabilityWindow(asOf, latest ?? null);
+  const period = spanOf(data, asOf);
   const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
   const production = data.machines.filter(isProduction);
-  const available = production.reduce(
-    (sum, machine) => sum + availableHours(machine, annual, window.from, window.to),
-    0,
-  );
+  const available = production.reduce((sum, machine) => sum + hoursIn(machine, annual, period), 0);
   return { hours: available, production };
 }
 
@@ -111,8 +109,9 @@ function plantAvailability(
  * their own selectors; and the average divides downtime by the CNC machines, as the key's sub-label says.
  *
  * The four Guide figures (packet 38.4) divide that same downtime by the production fleet's available hours: the
- * hours are the profile's annual hours spread month by month from 1 January to the run date, each machine from its
- * purchase date. The daily averages divide the key's own totals by the days the log covers, first to last included.
+ * hours are the profile's annual hours spread month by month over the span (the as-of year to date when none is named,
+ * a no-records month left out), each machine from its purchase date. The daily averages divide the key's own totals
+ * by the days the log covers, first to last included, gap months out.
  */
 export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'dashboard.total-machines': countSegments('CNC', 'Conventional', 'Process'),
@@ -146,26 +145,26 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
   },
   'dashboard.plant-bd-pct': ({ data, asOf, profile }) => {
     const { hours: available } = plantAvailability(data, profile, asOf);
-    const downtime = productionReports(data).filter(isDowntime);
+    const downtime = spanReports(data, asOf).filter(isDowntime);
     const value = available > 0 ? round((minutes(downtime) / 60 / available) * 100, 2) : 0;
     return { value, drillIds: ticketIds(downtime) };
   },
   'dashboard.fleet-availability': ({ data, asOf, profile }) => {
     const { hours: available, production } = plantAvailability(data, profile, asOf);
-    const rows = productionReports(data);
+    const rows = spanReports(data, asOf);
     const lost = minutes(rows.filter(isDowntime)) + minutes(rows.filter(isPm));
     const value = available > 0 ? round((1 - lost / 60 / available) * 100, 2) : 0;
     return { value, drillIds: production.map((machine) => machine.id) };
   },
-  'dashboard.avg-complaints-per-day': ({ data }) => {
+  'dashboard.avg-complaints-per-day': ({ data, asOf }) => {
     const counted = breakdownLog(data);
-    const days = recordDays(counted);
+    const days = recordDays(counted, spanOf(data, asOf));
     const value = days > 0 ? round(counted.length / days, 2) : 0;
     return { value, drillIds: ticketIds(counted) };
   },
-  'dashboard.avg-bd-hours-per-day': ({ data }) => {
+  'dashboard.avg-bd-hours-per-day': ({ data, asOf }) => {
     const downtime = productionReports(data).filter(isDowntime);
-    const days = recordDays(breakdownLog(data));
+    const days = recordDays(breakdownLog(data), spanOf(data, asOf));
     const value = days > 0 ? round(minutes(downtime) / 60 / days, 2) : 0;
     return { value, drillIds: ticketIds(downtime) };
   },
