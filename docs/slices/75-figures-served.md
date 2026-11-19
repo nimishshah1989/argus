@@ -29,7 +29,9 @@ at 10,000 rows. The fork (a smaller reply per screen versus a faster pipe) was s
 `rows`, `excludedMachines`, profile). A new table was rejected: nothing here needs a column the row lacks, and a
 second store of "figures" is the duplicate D17 forbids. Per-figure rows (what `POST /run` writes today) were rejected
 as the served form: they lose each figure's `screen`, `owner` and `drill`, so the reply could not be rebuilt from them.
-Money filtering stays at the reply (the stored result is whole); two roles read the same row.
+Money filtering stays at the reply: the stored result is whole and is never returned unfiltered (every read, the one
+that computes included, goes through the reply's filter; a test reads as a supervisor on a miss). Two roles read the
+same row.
 
 **Frozen interface** (`apps/server/src/modules/analytics/served.ts`, module-private for 75a; 75d exports it):
 `servedRun(tx, { tenantId, asOf, compute }): Promise<EngineResult>` and `dataStamp(tx, tenantId): Promise<string>`.
@@ -37,9 +39,14 @@ The reply shape and routes do not change (`figuresReplySchema`, no new route, ro
 
 **Invalidation: a stamp of the data, compared on every read.** The stamp is, for each table the loader reads
 (`STAMPED_TABLES`: person, login, segment, machine, machine_move, shift, ticket, breakdown_report,
-breakdown_report_person, list_item, pm_plan, asset_register, setting), its row count and its newest row version's
-`xmin`, plus the plant's name and time zone and the build's commit (`GIT_COMMIT`). Any insert, update or delete in
-those tables changes it; the stored row is served only when its stamp equals the current one.
+breakdown_report_person, list_item, pm_plan, asset_register, setting), its row count, its newest row
+version's `xmin` and the SUM of all its row versions' `xmin`, plus the plant's name and time zone and the build (the
+commit when `GIT_COMMIT` is a full SHA, else the process start, so a restart never serves an older build's run). The
+maximum alone is not commit-ordered: a transaction that took its id early and commits late writes a version below the
+newest one, so the maximum stays put; an update always replaces the row's old id, so the sum moves (a test holds two
+transactions open to prove it). Remaining limit: a collision of two different states with equal count, maximum and
+sum, which needs a contrived mix of ids and is not guarded. The stored row is served only when its stamp equals the
+current one, read after the row so a write that commits in between is never served over.
 
 | Change                                                                     | What moves the stamp                                         |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -59,9 +66,11 @@ honest: it records the tables `loadEngineData` queries and fails when one is not
 
 **First read, nothing kept (75a):** the read takes a per-plant-and-date advisory lock, looks again, computes once,
 keeps the run and answers. A burst of readers on a stale date runs the engine once; the rest wait on the lock and
-are served the kept run. The stamp is read before the data, so a write during the compute leaves the kept stamp
-behind and the next read recomputes (never serves a run that misses a committed write). Kept runs older than 7 days
-are dropped on save (one row per date would otherwise grow without bound).
+are served the run saved while they waited, even if a write has moved the stamp past it (otherwise each waiter would
+compute in turn and hold a connection); the next read sees the moved stamp. The stamp is read before the data, so a write during the compute leaves the kept stamp
+behind and the next read recomputes (never serves a run that misses a committed write). A plant keeps its newest 8
+dates; each save drops the rest in a fixed order, skipping rows another reader holds (no deadlock), and a failed drop
+never fails the read.
 
 ## Packets
 

@@ -471,7 +471,7 @@ describe('the snapshot writer', () => {
 });
 
 describe('running and storing through HTTP, and the drill-down', () => {
-  it('a head stores a run, a GET never writes, and an operator or supervisor cannot run', async () => {
+  it('a head stores a run, a GET never writes a stored figure (the kept `served` copy is not counted), and an operator or supervisor cannot run', async () => {
     const day = '2026-11-11';
     const seeded = (
       await f.admin.query(

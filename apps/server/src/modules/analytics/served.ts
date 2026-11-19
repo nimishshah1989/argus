@@ -12,8 +12,8 @@ type Db = Pick<PoolClient, 'query'>;
  */
 export const SERVED_PROFILE = 'served';
 export const SERVED_KEY = 'figures-run';
-/** A kept run computed longer ago than this is dropped when a newer one is saved, so a plant keeps about a week of dates. */
-const KEEP_DAYS = 7;
+/** A plant keeps its newest few dates; each save drops the rest. */
+const KEEP_DATES = 8;
 
 /**
  * Every table `loadEngineData` reads, directly or through another module. A change to any of them changes the stamp.
@@ -37,46 +37,68 @@ export const STAMPED_TABLES = [
 ] as const;
 
 /**
- * What the data and the code looked like when a run was computed: per table the row count and the newest row
- * version's transaction id (`xmin`), the plant's name and time zone, and the build's commit. An insert, an update
- * or a delete in any of those tables changes it, whether or not the writer touched `updated_at` (many do not).
+ * What the data and the code looked like when a run was computed: per table the row count, the newest row
+ * version's transaction id (`xmin`) and the sum of all of them, the plant's name and time zone, and the build. The
+ * sum matters: a transaction that took its id early and commits late writes a version older than the newest one, so
+ * the maximum alone would not move, while an update always replaces the row's old id and so moves the sum. An
+ * insert, an update or a delete in any of those tables changes it, whether or not the writer touched `updated_at` (many do not).
  * Rows of other plants are invisible here (row security), so another plant's writes never move it. The fingerprint
  * is compared for equality only, so the 32-bit transaction id wrapping round is harmless.
  */
 export async function dataStamp(tx: Db, tenantId: string): Promise<string> {
   const parts = STAMPED_TABLES.map(
     (table) =>
-      `(SELECT count(*) || ':' || coalesce(max(xmin::text::bigint), 0) FROM ${table}) AS ${table}`,
+      `(SELECT count(*) || ':' || coalesce(max(xmin::text::bigint), 0) || ':' || coalesce(sum(xmin::text::bigint), 0) FROM ${table}) AS ${table}`,
   );
   const row = (await tx.query(`SELECT ${parts.join(', ')}`)).rows[0] as Record<string, string>;
   const { name, time_zone: zone } = await tenantInfo(tx, tenantId);
-  return [
-    ...STAMPED_TABLES.map((table) => row[table]),
-    name,
-    zone,
-    process.env.GIT_COMMIT ?? '',
-  ].join('|');
+  return [...STAMPED_TABLES.map((table) => row[table]), name, zone, buildOf()].join('|');
 }
 
-const READ_SQL = `SELECT value FROM kpi_snapshot
+/** This process's start: stands in for the build when `GIT_COMMIT` is not a git SHA (unset, or a reused tag). */
+const BOOT = String(Date.now());
+
+/** The deploy's commit when it is a full SHA; otherwise the boot time, so no kept run outlives a restart. */
+function buildOf(): string {
+  const tag = process.env.GIT_COMMIT?.trim() ?? '';
+  return /^[0-9a-f]{40}$/i.test(tag) ? tag.toLowerCase() : `boot-${BOOT}`;
+}
+
+const READ_SQL = `SELECT value, computed_at >= now() AS saved_since FROM kpi_snapshot
   WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}' AND key = '${SERVED_KEY}'
     AND subject_kind = 'plant' AND as_of = $2::date`;
 
-/** The kept run for this date when it was computed from the data in `stamp`; null when none or an older one. */
-async function readServed(tx: Db, tenantId: string, asOf: string, stamp: string) {
-  const rows = (await tx.query(READ_SQL, [tenantId, asOf])).rows;
-  const value = rows[0]?.value as { stamp: string; result: EngineResult } | undefined;
-  return value !== undefined && value.stamp === stamp ? value.result : null;
+type Kept = { value: { stamp: string; result: EngineResult }; savedSince: boolean };
+
+/** The kept row for this date, and whether it was saved after this request's transaction began. */
+async function readKept(tx: Db, tenantId: string, asOf: string): Promise<Kept | null> {
+  const row = (await tx.query(READ_SQL, [tenantId, asOf])).rows[0];
+  return row ? { value: row.value, savedSince: row.saved_since === true } : null;
 }
 
 const SAVE_SQL = `INSERT INTO kpi_snapshot
-       (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of, run_id, value)
-VALUES ($1, '${SERVED_PROFILE}', '${SERVED_KEY}', 'plant', '', $2::date, $2::date, $2::date, $3::uuid, $4::jsonb)
+       (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of, run_id, value, computed_at)
+VALUES ($1, '${SERVED_PROFILE}', '${SERVED_KEY}', 'plant', '', $2::date, $2::date, $2::date, $3::uuid, $4::jsonb, clock_timestamp())
 ON CONFLICT (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of)
-DO UPDATE SET value = EXCLUDED.value, computed_at = now(), updated_at = now(), run_id = EXCLUDED.run_id`;
+DO UPDATE SET value = EXCLUDED.value, computed_at = clock_timestamp(), updated_at = now(), run_id = EXCLUDED.run_id`;
 
-const PRUNE_SQL = `DELETE FROM kpi_snapshot
-  WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}' AND computed_at < now() - $2::int * interval '1 day'`;
+/** All but the newest kept runs of the plant; rows another reader holds are skipped, so readers never wait on each other. */
+const PRUNE_SQL = `DELETE FROM kpi_snapshot WHERE id IN (
+  SELECT id FROM kpi_snapshot
+   WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}'
+   ORDER BY computed_at DESC, id OFFSET $2::int
+   FOR UPDATE SKIP LOCKED)`;
+
+/** Best effort: a failed prune is rolled back to a savepoint and never fails the read. */
+async function prune(tx: Db, tenantId: string): Promise<void> {
+  await tx.query('SAVEPOINT served_prune');
+  try {
+    await tx.query(PRUNE_SQL, [tenantId, KEEP_DATES]);
+    await tx.query('RELEASE SAVEPOINT served_prune');
+  } catch {
+    await tx.query('ROLLBACK TO SAVEPOINT served_prune');
+  }
+}
 
 /**
  * The run for a plant date, served from the kept copy while the data is unchanged. A miss (nothing kept, or the stamp
@@ -90,16 +112,19 @@ export async function servedRun(
   input: { tenantId: string; asOf: string; compute: () => Promise<EngineResult> },
 ): Promise<EngineResult> {
   const { tenantId, asOf, compute } = input;
-  const hit = await readServed(tx, tenantId, asOf, await dataStamp(tx, tenantId));
-  if (hit) return hit;
+  const first = await readKept(tx, tenantId, asOf);
+  if (first && first.value.stamp === (await dataStamp(tx, tenantId))) return first.value.result;
   await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
     `figures.served:${tenantId}:${asOf}`,
   ]);
+  // A run saved while this reader waited is served as it is, even when a later write has moved the stamp past it:
+  // otherwise each waiter would compute in turn, holding a connection each. The next read sees the moved stamp.
+  const kept = await readKept(tx, tenantId, asOf);
+  if (kept && (kept.savedSince || kept.value.stamp === (await dataStamp(tx, tenantId))))
+    return kept.value.result;
   const stamp = await dataStamp(tx, tenantId);
-  const kept = await readServed(tx, tenantId, asOf, stamp);
-  if (kept) return kept;
   const result = await compute();
   await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), JSON.stringify({ stamp, result })]);
-  await tx.query(PRUNE_SQL, [tenantId, KEEP_DAYS]);
+  await prune(tx, tenantId);
   return result;
 }

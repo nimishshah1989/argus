@@ -228,7 +228,7 @@ describe('the reliability rows in kpi_snapshot (67 R12)', () => {
 });
 
 describe('a run through HTTP keeps the reliability rows inside the same transaction', () => {
-  it('writes the plant rows and the subject rows once, with the helper profile, and a GET never writes', async () => {
+  it('writes the plant rows and the subject rows once, with the helper profile, and a GET never writes a stored figure (the kept `served` copy is not counted)', async () => {
     // 48 R15's one helper: 67 adds one line beside the shift family and 50's pm-compliance, never a second mapping.
     expect(profileOfKey('shift-kpis.compare')).toBe('standard');
     expect(profileOfKey('pm-compliance')).toBe('standard');
