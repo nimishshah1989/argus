@@ -384,7 +384,7 @@ all other motion runs once and is purposeful. Reduced motion switches all of it 
   its filter, sort or page changes.
 - **Target, not built yet (ticket 83b).** The trend line and the chart door drawing in (800 ms), and a drill panel
   sliding in from the right (320 ms). Until they are built, charts draw with no animation (ticket 84).
-- **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms.
+- **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms. Nothing on floor or desk runs past 300 ms.
 - **What moves, today, on floor and desk.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a
   floor tile (150 ms, `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives. Floor rows never
   animate in or reorder, and floor and desk figures never count up.
