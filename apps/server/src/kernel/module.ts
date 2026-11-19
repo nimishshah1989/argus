@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import type { JobsHandle } from './jobs.js';
+import type { Release } from './health.js';
 
 export interface AppConfig {
   pool: Pool;
@@ -15,6 +16,8 @@ export interface AppConfig {
   chromiumPath?: string;
   /** Set by production startup; tests create a producer-only boss lazily. */
   databaseUrl?: string;
+  /** The build this process runs (`releaseFromEnv`); `/api/v1/health` reports it. */
+  release?: Release;
   jobBoss?: PgBoss;
   jobsHandle?: JobsHandle;
   /**

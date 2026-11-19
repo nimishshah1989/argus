@@ -11,8 +11,8 @@ Read this first, then the 19 Nov tail of `docs/plan/ledger.md`, then "Road to v1
 against the code on 19 Nov (suites not rerun). `pnpm parity`: 120 rows, 0 problems on 19 Nov 2026.
 
 **CI runs again.** The repository is public for the development phase (Nimish, 19 Nov) and Actions is green. R10
-(merge on local evidence) ends with ticket 74: no merge without a green run. It goes private again before cutover
-only once Actions billing is fixed. Real data already in the public repo is accepted for development and gates
+(merge on local evidence) is withdrawn (ticket 74): 0 merges without a green CI run on the pull request. It goes
+private again before cutover only once Actions billing is fixed. Real data already in the public repo is accepted for development and gates
 nothing; N20: before cutover Nimish decides whether to purge `docs/discovery/real-2026-11-13/` and its history, or
 rely on going private.
 

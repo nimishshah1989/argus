@@ -94,7 +94,7 @@ describe('auth guard', () => {
     ]);
     const health = await app.inject({ method: 'GET', url: '/api/v1/health' });
     expect(health.statusCode).toBe(200);
-    expect(health.json()).toEqual({ status: 'ok' });
+    expect(health.json().status).toBe('ok');
     expect((await app.inject({ method: 'HEAD', url: '/api/v1/health' })).statusCode).toBe(200);
     const brand = await app.inject({
       method: 'GET',
