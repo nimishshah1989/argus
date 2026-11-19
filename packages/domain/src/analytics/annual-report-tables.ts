@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { availableHours } from './availability.js';
+import { NO_RECORDS, hoursIn } from './availability.js';
 import { availableByCell } from './hours.js';
 import { machineAge } from './machine-facts.js';
 import {
@@ -73,6 +73,64 @@ export interface MonthPoint {
   partial: boolean;
   label: string;
   stats: ReportStats;
+}
+
+/** A change against the window before it: an arrow and a whole percent, or a dash with nothing to compare. */
+export function changeText(current: number, previous: number): string {
+  if (previous === 0) return DASH;
+  const change = ((current - previous) / previous) * 100;
+  return `${change > 0 ? '▲' : '▼'} ${numberText(Math.abs(change), 0)}%`;
+}
+
+/**
+ * The key's "Month by month": each month's counts and hours, its change, MTTR, BD %, PM and availability. A month
+ * the plant recorded nothing in prints no records in every cell, and the month after it has nothing to change from.
+ */
+export function monthTable(points: readonly MonthPoint[]): Table {
+  const rows = points.map((point, index) => {
+    const stats = point.stats;
+    if (stats.gap) return [point.label, ...Array<string>(7).fill(NO_RECORDS)];
+    const before = points[index - 1];
+    return [
+      point.label,
+      String(stats.count),
+      numberText(stats.hours, 1),
+      before === undefined || before.stats.gap ? DASH : changeText(stats.hours, before.stats.hours),
+      stats.count > 0 ? numberText(stats.mttr, 2) : DASH,
+      percentText(stats.bdPct),
+      numberText(stats.pmHours, 1),
+      percentText(stats.avail),
+    ];
+  });
+  return tableOf(
+    'Month by month',
+    [
+      'Month',
+      'Breakdowns',
+      'Downtime hrs',
+      'vs prior month',
+      'MTTR',
+      'BD %',
+      'PM hrs',
+      'Availability',
+    ],
+    rows,
+  );
+}
+
+/** The key's PM table: each month's PM entries and their hours, no records for a month the plant kept none. */
+export function pmTable(points: readonly MonthPoint[]): Table {
+  const rows = points.map(({ index, stats }) => {
+    const month = MONTHS_SHORT[index - 1]!;
+    return stats.gap
+      ? [month, NO_RECORDS, NO_RECORDS]
+      : [month, String(stats.pmCount), numberText(stats.pmHours, 1)];
+  });
+  return tableOf(
+    'Preventive maintenance and long breakdowns',
+    ['Month', 'PM entries', 'PM hours'],
+    rows,
+  );
 }
 
 const TOP_MACHINES = 10;
@@ -165,7 +223,7 @@ export function cellTable(
     const available = availableByCell(
       machines,
       data.moves,
-      { from: stats.start, to: stats.end, annualHours: annual },
+      { from: stats.start, to: stats.end, noRecords: stats.noRecords, annualHours: annual },
       group.key,
     );
     const equivalents = stats.fraction > 0 ? available / (annual * stats.fraction) : 0;
@@ -201,7 +259,9 @@ export function categoryTable(
   const rows = groups.map((group) => {
     const inCategory = machines.filter((machine) => categoryOf(machine) === group.key);
     const available = inCategory.reduce(
-      (total, machine) => total + availableHours(machine, annual, stats.start, stats.end),
+      (total, machine) =>
+        total +
+        hoursIn(machine, annual, { from: stats.start, to: stats.end, noRecords: stats.noRecords }),
       0,
     );
     return [
