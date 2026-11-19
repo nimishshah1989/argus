@@ -1,6 +1,6 @@
 # Where things stand — handoff for the next orchestrator session
 
-Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `docs/plan/MILESTONES.md`. `git log origin/main` and the PR list beat this text where they differ. State: night of 19 Nov 2026, after #484.
+Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `docs/plan/MILESTONES.md`. `git log origin/main` and the PR list beat this text where they differ. State: night of 19 Nov 2026, after #491.
 Open PRs via `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>`, non-draft. Staging deploys on every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit it serves.
 
 ## How to work (Nimish: non-technical, wants short plain answers, to be challenged, uncertainty flagged)
@@ -25,14 +25,13 @@ type, depth, motion change); the approved analytics design (Instrument look, whi
 
 - Merged 19 Nov night: 85 templates (#473), 83 elements (#474), 83b (#475), 83c-1 (#478), 86 Today (#476), fix (#477), and 87
   pages: Action Center, checklist, Team Focus (#479), Money (#480), Reports (#481), Breakdown Log, registers, machine page (#482),
-  forecast and Forecast Lab (#483), Energy (#484). Earlier 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 86a/b.
+  forecast and Forecast Lab (#483), Energy (#484), PM calendar + Guide (#486). Wave 3: 88a desk lists and ticket detail (#487, #488), 88b board/TV and settings (#490). Wave 4: 89a floor phone (#489). 83d shared-element gaps (#491). Earlier 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 86a/b.
 - Active: **84 Charts** (in progress: draw-in #475; bundle size after 83c-2 unmeasured); **91 Utility loss** (in progress: 2023 hours
-  unreconciled); **85** in progress until the 19-of-27 count and critique scores are recorded. In flight tonight: PM calendar + Guide (87 rest), 88a desk lists and ticket detail.
-- Left in 87: PM calendar and keyboard Move to date, Guide, other analytics group screens, `ui:check` guard. Then 83d (shared-element
-  gaps), 83c-2 (showcase tile, heat map, trend, Pareto onto shared elements; report the dark heat-map shift), 75b/c/d/f, 69d, 77b/78b restyle, 88, 89, 90, 92-96.
-- Follow-ups (ledger): `screen-state.tsx` `empty` required; pager nav name; spares caption; Today's monthly sparkline needs a
+  unreconciled); **85** in progress until the 19-of-27 count and critique scores are recorded.
+- Left in 87: other analytics group screens (A1-A10, Fix Finder, Shift KPIs, Cell change log, Compare), `ui:check` guard (22 raw colours, ~30 hand-written cards). Then 83c-2 (showcase tile, heat map, trend, Pareto onto shared elements; report the dark heat-map shift), 75b/c/d/f, 69d, 88c, 89b (compare thirds of screen with Bhavin's phone tool in one environment), 90, 92-96.
+- Follow-ups (ledger): pager nav name; Disclosure has no controlled state; ButtonLink has no danger/disabled look; `landed` flag after Escape in PM move (cubic P3); TV loading/error text is 14-16 px; /desk/settings has two filled Save buttons (known exception); floor sheet scrim and desk manifest colour disagree; spares caption; Today's monthly sparkline needs a
   field; shared search palette (87); nightly validate workflow; failed-jobs alarm; DESIGN.md changes should run the api shards; `ui/sheet.tsx` dark
-  scrim, `floor-pieces.tsx` TAP contrast 4.15:1; day-boundary flakes and `sla-timers.test.ts` deadlocks; jsdom ADR; prior-date figures endpoint; machine page prints spares and PM hours twice; engine fetches the whole plant per drill chunk.
+  scrim (needs a Docker gallery baseline); day-boundary flakes and `sla-timers.test.ts` deadlocks; jsdom ADR; prior-date figures endpoint; machine page prints spares and PM hours twice; engine fetches the whole plant per drill chunk.
 
 ## Open numbers (do not state as final)
 
@@ -45,5 +44,5 @@ the ticket's about 1,480; at most 44.4 h may double count with breakdowns; lost 
 Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, `datasets/tickets`, refresh half-hourly, never edit the page file.
 Waiting on Nimish: which way is good for PM hours, breakdown hours with no downtime, manpower hours and spend (all "neither" now); staging history
 (re-upload the four zips BD-22..BD-25; real data stays out of the repo); downtime family colour vs attention orange; Energy heat shading replaced by a chart (#484);
-Monthly/Annual as shell tabs or one tab with a switch (#481); no change shown on Team Focus (#479). `docs/plan/NEEDS.md`: N16 answered (Bhavin, 19 Nov); N17 older files
+Monthly/Annual as shell tabs or one tab with a switch (#481); no change shown on Team Focus (#479); dark mode on the floor (#489, already approved by LOCK A4: look on a preview); a 1440 px TV truncates the machine code (1920 is fine): do 1366/1440 TVs matter? (#490); the Jobs-this-month list as the keyboard Move-to-date place (#486); Guide heading is English only until N5. `docs/plan/NEEDS.md`: N16 answered (Bhavin, 19 Nov); N17 older files
 open (Bhavin, Nimish); N18 technician ranking, N19 AI thresholds open (Nimish); N20 purge open, not blocking (Nimish); N5 Gujarati: a native reader signs off, and Nimish rules whether analytics must be Gujarati.
