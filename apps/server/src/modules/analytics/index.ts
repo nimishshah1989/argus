@@ -12,7 +12,20 @@ export {
   type EngineFreezeOptions,
   type EngineFreezeResult,
 } from './freeze.js';
-export { ENGINE_FREEZE_CRON, startEngineJobs, type EngineJobDeps } from './jobs.js';
+export {
+  ENGINE_FREEZE_CRON,
+  ENGINE_RUN_CRON,
+  startEngineJobs,
+  type EngineJobDeps,
+} from './jobs.js';
+export {
+  ENGINE_RUN_QUEUE,
+  inspectTenant,
+  runEngineRun,
+  scoreTenant,
+  type EngineRunOptions,
+  type EngineRunResult,
+} from './run.js';
 
 export const analyticsModule = defineModule({
   name: 'analytics',

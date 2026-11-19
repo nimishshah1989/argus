@@ -1,6 +1,13 @@
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
-import { FORECAST_MODEL, frozenForMonth, type FrozenForecast } from '../src/index.js';
+import {
+  FORECAST_MODEL,
+  frozenForMonth,
+  inspectionProblem,
+  monthActuals,
+  outcomeFor,
+  type FrozenForecast,
+} from '../src/index.js';
 import { a9RiskCore } from '../src/analytics/a9-bottleneck.js';
 import {
   bandOf,
@@ -116,5 +123,110 @@ describe('the moved helpers', () => {
       confidenceOf(2, 90),
       confidenceOf(2, 89),
     ]).toEqual(['High', 'Medium', 'Medium', 'Low']);
+  });
+});
+
+const NOVEMBER = '2026-11-01';
+const novemberFrozen = frozenForMonth(ENGINE_DATA, DEFAULT_PROFILE, NOVEMBER);
+const wj01November = predictedOf(novemberFrozen, WJ01.id)!;
+
+describe('the month’s actuals', () => {
+  const actuals = monthActuals(ENGINE_DATA, NOVEMBER);
+
+  it('reads WJ-01’s November exactly: 12.02 hours over 1 episode', () => {
+    expect(actuals.get(WJ01.id)).toEqual({ hours: 12.02, episodes: 1 });
+  });
+
+  it('totals the plant at 51.06 hours over 42 episodes from 58 November reports', () => {
+    const rows = fleetRows(ENGINE_DATA).filter((row) => row.report.date.startsWith('2026-11'));
+    expect(rows).toHaveLength(58);
+    const sum = [...actuals.values()].reduce(
+      (total, entry) => ({
+        hours: total.hours + entry.hours,
+        episodes: total.episodes + entry.episodes,
+      }),
+      { hours: 0, episodes: 0 },
+    );
+    expect(sum).toEqual({ hours: 51.06, episodes: 42 });
+  });
+
+  it('counts a month-boundary episode once, in the month it began', () => {
+    // WJ-01's 31 July episode runs into 1 August: July holds all 15.43 h and 4 episodes; August holds the
+    // 4.28 h that fell in it but not a fifth episode.
+    const july = monthActuals(ENGINE_DATA, '2026-07-01').get(WJ01.id)!;
+    const august = monthActuals(ENGINE_DATA, '2026-08-01').get(WJ01.id)!;
+    expect(july).toEqual({ hours: 15.43, episodes: 4 });
+    expect(august.episodes).toBe(3);
+    expect(august.hours).toBeCloseTo(10.95, 10);
+  });
+
+  it('has no entry for a month the plant did not break down in', () => {
+    expect(monthActuals(ENGINE_DATA, '2030-01-01').size).toBe(0);
+  });
+
+  it('refuses a month that is not its 1st', () => {
+    expect(() => monthActuals(ENGINE_DATA, '2026-11-02')).toThrow(RangeError);
+  });
+});
+
+describe('the score', () => {
+  it('scores WJ-01’s November against its frozen plan-for: 12.02 h over a p80 of 10.17 is no hit', () => {
+    expect(wj01November.p80).toBe(10.17);
+    const outcome = outcomeFor(
+      wj01November,
+      monthActuals(ENGINE_DATA, NOVEMBER).get(WJ01.id)!,
+      null,
+    );
+    expect(outcome).toEqual({ hours: 12.02, episodes: 1, hit: false, inspection: null });
+  });
+
+  it('scores the November freeze’s plant at 121 hits of 125', () => {
+    const actuals = monthActuals(ENGINE_DATA, NOVEMBER);
+    const hits = novemberFrozen.filter(
+      (row) =>
+        outcomeFor(row.predicted, actuals.get(row.machineId) ?? { hours: 0, episodes: 0 }, null)
+          .hit,
+    );
+    expect(novemberFrozen).toHaveLength(125);
+    expect(hits).toHaveLength(121);
+  });
+
+  it('is exact: the plan-for itself is a hit and a hair over it is not', () => {
+    const actual = { hours: wj01November.p80, episodes: 1 };
+    expect(outcomeFor(wj01November, actual, null).hit).toBe(true);
+    expect(outcomeFor(wj01November, { ...actual, hours: 10.170001 }, null).hit).toBe(false);
+  });
+
+  it('scores a month with no breakdown as 0 hours, 0 episodes and a hit', () => {
+    expect(outcomeFor(wj01November, { hours: 0, episodes: 0 }, null)).toEqual({
+      hours: 0,
+      episodes: 0,
+      hit: true,
+      inspection: null,
+    });
+  });
+
+  it('carries the inspection’s close state into the outcome untouched', () => {
+    const inspection = {
+      ticketId: '10000000-0000-0000-0000-000000000001',
+      ref: 'WR-0042',
+      status: 'closed' as const,
+      closeKind: 'done' as const,
+      closedAt: '2026-12-03T05:30:00.000Z',
+    };
+    expect(outcomeFor(wj01November, { hours: 12.02, episodes: 1 }, inspection).inspection).toEqual(
+      inspection,
+    );
+  });
+});
+
+describe('the inspection’s problem text', () => {
+  it('says the machine, the frozen month and the plan-for at one decimal', () => {
+    expect(inspectionProblem({ code: 'WJ-01', month: '2026-12-01', p80: 12.02 })).toBe(
+      'WJ-01 is Hot for December 2026: plan for 12.0 hrs',
+    );
+    expect(inspectionProblem({ code: 'WJ-01', month: '2027-02-01', p80: 9.94 })).toBe(
+      'WJ-01 is Hot for February 2027: plan for 9.9 hrs',
+    );
   });
 });

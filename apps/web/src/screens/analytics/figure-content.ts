@@ -142,6 +142,7 @@ const KIND: Record<string, ContentKind> = {
   'shift-kpis.backlog': 'page',
   // Ticket 50b's interim PM group page: the two compliance rates as one row, 50c draws the calendar instead.
   'pm-compliance': 'table',
+  'shift-kpis.breakdown-map': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -188,6 +189,7 @@ const PAGE_KEYS = new Set([
   'shift-kpis.compare',
   'shift-kpis.shift-split',
   'shift-kpis.backlog',
+  'shift-kpis.breakdown-map',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */

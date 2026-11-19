@@ -79,3 +79,31 @@ no legacy figure changed — the platform's pages stay byte-for-byte what the an
   01:00 live close, the no-window dashes and the drill), `shift-kpis-backlog.test.ts` (the zone-aware midnight and
   its DST cases, the three ages and buckets, the exclusions, the 23:59 edge, the weekend, the no-window dashes and
   the empty queue) and the D2 pin.
+
+## 48c — the Pareto and the heat grids
+
+- `breakdown-map.ts` ranks the failure set's exact hours four ways — by machine, cell, maintenance code and shift —
+  worst first, with each row's running share and the row that passes half the lost hours. On the 11 November
+  workbook: TMC-2 20 failures 307.58 h (10.07 %), cell 7 283 failures 776.78 h, code E 314 failures 687.60 h and
+  shift 1 821 failures 2,021.10 h (66.15 %); the 50 % points are 13 of 125 production machines, 3 of 9 cells, 3 of
+  23 codes and 1 of 3 shifts. Every dimension sums to the same 3,055.2167 h and its cumulative share ends at
+  100.00 %. The cell is the machine's registered cell (the plan's own grouping), the code prints the code as
+  recorded with its `maint_code` label, PM is absent from every dimension and a NO DT row sits in its code's row at
+  zero hours.
+- The four heat grids cut those same rows by the months of the as-of year that have happened (Jan to Nov at
+  2026-11-11, never a December column of zeroes). A row's cells always add to that row's Pareto hours; the test
+  asserts the invariant over all four dimensions, and pins shift 1's January (176.65 h), code E's April (260.67 h)
+  and TMC-2's June (242.42 h). The machine grid prints the Pareto's top fifteen and says how many it left out (102
+  of the 117 machines with a failure); the cell, code and shift grids print every row.
+- The face is the existing kit: `screen-charts.ts` gains the four chart ids and the annual report's `mixed` shape
+  (hours bars plus the running-share line), and `parts.tsx` gains one `HeatTable` that `PageFigure` draws for a
+  table the engine marks `heat`. `page-content.ts` gains the flag and stays at 399 lines; `use-chart.ts` and
+  `analytics.en.ts` are untouched, and no new chart kind or dependency is added.
+- The figure is `shift-kpis.breakdown-map` on the existing Shift-calendar KPIs screen; the Guide's "Category and
+  cell analysis" entry names it and carries the map paragraph. `parity.yaml`'s row becomes `done` with the map test
+  and the journey.
+- Tests: `shift-kpis-map.test.ts` (the four rankings and their totals, the 50 % points, the worst rows, the grid
+  invariant and the three pinned cells, the machine "left out" note, the four heat tables and mixed charts, the
+  maintain-code label and the unlisted code, PM/NO DT, the empty plant and the no-window plant) and
+  `apps/web/e2e/analytics-shift-kpis.spec.ts` (the menu journey, the compare row, a heat cell, the four ready
+  charts and the drill, plus the operator's refusal).

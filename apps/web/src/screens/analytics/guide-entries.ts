@@ -133,8 +133,12 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
   entry(
     'category-cell',
     'analytics.guide.category-cell.title',
-    ['analytics.guide.category-cell.body1', 'analytics.guide.category-cell.body2'],
-    { figures: ['a2-category-cell'] },
+    [
+      'analytics.guide.category-cell.body1',
+      'analytics.guide.category-cell.body2',
+      'analytics.guide.category-cell.body3',
+    ],
+    { figures: ['a2-category-cell', 'shift-kpis.breakdown-map'] },
   ),
   entry(
     'age',

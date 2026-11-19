@@ -176,6 +176,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'shift-kpis.shift-split': 'analytics.figure.shift-kpis.shift-split',
   'shift-kpis.backlog': 'analytics.figure.shift-kpis.backlog',
   'pm-compliance': 'pm.figure.compliance',
+  'shift-kpis.breakdown-map': 'analytics.figure.shift-kpis.breakdown-map',
   reliability: 'analytics.figure.reliability',
 };
 

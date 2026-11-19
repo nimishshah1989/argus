@@ -27,6 +27,7 @@ export interface PageTable {
   truncated: boolean;
   /** The face may sort this table client-side (41e-1: A4's Manpower table and its two month matrices). */
   sortable?: boolean;
+  heat?: boolean;
 }
 
 export interface PageContent {
@@ -259,6 +260,7 @@ function pageTable(raw: unknown, page: string, index: number): PageTable[] {
       rows,
       rowCount: Number.isFinite(count) ? count : rows.length,
       truncated: table.truncated === true,
+      ...(table.heat === true ? { heat: true } : {}),
       ...(isSortable(page, title, index) ? { sortable: true } : {}),
     },
   ];

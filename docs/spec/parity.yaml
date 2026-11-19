@@ -1699,7 +1699,7 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: in-progress
+    status: done
     evidence:
       - 'packages/domain/test/shift-kpis.test.ts :: prints the whole expected table: the platform basis beside
         the working-hour basis'
@@ -1707,6 +1707,10 @@ rows:
         from the shift rows averaged'
       - 'packages/domain/test/shift-kpis-backlog.test.ts :: counts the three open breakdowns and ages them in
         working hours, oldest first'
+      - 'packages/domain/test/shift-kpis-map.test.ts :: ranks all four dimensions by hours with the 50 % points,
+        and every heat grid row sums to that row’s Pareto hours'
+      - 'apps/web/e2e/analytics-shift-kpis.spec.ts :: a head opens Shift-calendar KPIs, reads the compare row and
+        a map cell, and drills the map'
     source: docs/slices/48-shift-kpis.md
     screen: shift-kpis
     ticket: '48'

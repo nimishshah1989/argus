@@ -167,3 +167,110 @@ plant (no rows, no audit line) and the clock guard refusing a >24 h fake clock w
 No new table, no migration, no new dependency; every file is under 400 lines. **No parity:** the freeze, the scoring
 window and the inspection loop do not exist in the v3 platform; the planning forecast's own row
 `m4a.a9-bottleneck-forecast` is already done.
+
+## Packet 2 (52b) — the outcome, the score and the inspection run
+
+**What landed.** `packages/domain/src/analytics/forecast-freeze.ts` gains the outcome half: `monthActuals(data,
+month)` (the production, non-PM reports dated in the month, by `effectiveHours`, and the merged episodes whose first
+day is in it — a month-boundary episode counts its hours where they fell but its one episode in the month it began),
+`outcomeFor(predicted, actual, inspection)` (`hit = hours <= predicted.p80`, exactly) and `inspectionProblem({code,
+month, p80})`, whose words are pinned: `WJ-01 is Hot for December 2026: plan for 12.0 hrs`. The `InspectionOutcome`
+and `ForecastOutcome` types are the plan's frozen shapes and `formatNumber` stays off the root. `analytics/index.ts`
+publishes the three runtime names and D2 pins `inspectionProblem`, `monthActuals` and `outcomeFor` (type-only exports
+need no line). `apps/server/src/modules/analytics/repo/forecast.ts` gains `pendingMonths` (closed on the plant's clock
+and either unscored or `today <= month + 1 month + 6 days`), `rowsForMonth`, `hotRows` (the current month's
+`predicted->>'band' = 'Hot'`, read from the row, never recomputed) and `saveOutcomes` (one
+`UPDATE … FROM jsonb_to_recordset` writing only `outcome` and `scored_at`, the two columns the 0015 grant allows).
+`apps/server/src/modules/tickets/repo/analytics.ts` gains `raisedTicketsFor(tx, tenantId, kind, ids)`: one narrowed
+query over `ticket_event`/`ticket` for `type = 'down'` events whose `payload.source.<kind>` is in the batch,
+`DISTINCT ON` the source key, the latest raise first; `planned.ts` gains the one `source` field, written on the `down`
+event's payload as `{source:{nudge|forecast: id}}` and nothing else changes (kind `general`, `WR-`, no new column).
+`apps/server/src/modules/analytics/run.ts` (new) owns `engine.run`: `scoreTenant` (one `loadEngineData` per plant,
+one `raisedTicketsFor` per month, one statement and one `forecast.score` line `{month, rows, hits}` per month) and
+`inspectTenant` (the `engine.inspection:<tenantId>` advisory lock, the current month's Hot rows, their links, one
+`machinesByIds` for the codes, one `raisePlannedTicket` per unlinked row, one `inspection.raise` line `{month, refs}`),
+both per-tenant transactions with aggregated errors and the shared clock guard. `jobs.ts` creates and schedules
+`engine.run` at `40 0 * * *` UTC beside `engine.freeze` (both queues for every role, workers off `api`). No
+`kpi_snapshot` write and no plant-level row.
+
+**Red first** (the packet's source reverted, its tests in place — the missing names and the D2 literal).
+
+```
+$ pnpm exec vitest run packages/domain/test/analytics-forecast-freeze.test.ts \
+    apps/server/test/forecast-loop.test.ts packages/domain/test/registry.test.ts
+ FAIL  packages/domain/test/analytics-forecast-freeze.test.ts [ … ]
+ TypeError: monthActuals is not a function
+ FAIL  apps/server/test/forecast-loop.test.ts > the scoring pass > …
+ TypeError: pendingMonths is not a function
+ FAIL  packages/domain/test/registry.test.ts > domain registries > D2: the public API is unchanged
+ -   "inspectionProblem",
+ -   "monthActuals",
+ -   "outcomeFor",
+ Test Files  3 failed (3)
+      Tests  10 failed | 2 passed (12)
+```
+
+**Green.**
+
+```
+$ pnpm exec vitest run packages/domain/test/analytics-forecast-freeze.test.ts \
+    apps/server/test/forecast-loop.test.ts packages/domain/test/registry.test.ts
+ Test Files  3 passed (3)
+      Tests  33 passed (33)
+
+$ pnpm exec vitest run packages/domain/test apps/server/test
+ Test Files  194 passed (194)
+      Tests  2253 passed (2253)
+
+$ pnpm exec vitest run apps/server/test/m4b-write.test.ts apps/server/test/sla-timers.test.ts
+ Test Files  2 passed (2)
+      Tests  18 passed (18)      # 46c's WR-/general and same-machine breakdown raise, no edit to that file
+
+$ pnpm exec tsc --noEmit
+(no output)
+
+$ pnpm boundaries
+boundaries: 235 files scanned, 0 problem(s)
+```
+
+The pinned numbers, on the frozen 11 November key: `monthActuals(data, '2026-11-01')` gives WJ-01
+`{hours: 12.02, episodes: 1}` and the plant `51.06` hours over 42 episodes from 58 November reports; the November
+freeze's plan-for for WJ-01 is `10.17`, so `outcomeFor` is `{hours: 12.02, episodes: 1, hit: false, inspection:
+null}`, and the plant is 121 hits of 125. The server acceptance runs the whole calendar: a November row scored on
+1 December (0 h / 0 episodes / hit true on a quiet month), a late report growing it on the 4th, a second late report
+changing nothing from the 8th, the America/New_York boundary (1 December 00:30 UTC does not score November; 05:30 UTC
+does), three frozen Hot December rows raising two inspection tickets (`kind general`, `WR-`, `raised_channel
+inspection`, problem `VC-02 is Hot for December 2026: plan for … hrs`, the `down` event carrying `{source:{forecast:<row
+id>}}`), a scrapped Hot machine skipped without failing the job, the same run a night later raising none, a cancelled
+inspection still counting, the link read back through `raisedTicketsFor`, the done close stored on the December row at
+the January score, no `kpi_snapshot` row — and one `forecast.score`/`inspection.raise` audit line where the plan says.
+
+**Deviations (each recorded, none weakening a rail).**
+
+1. **A test-only third machine on the fixture.** The acceptance needs a Hot row scrapped before its inspection run, and
+   the shared fixture has two production machines (one raised, one cancelled in the same run). `forecast-loop.test.ts`
+   seeds `M_EXTRA` / `VC-03` on plant A for that one branch; no product code, fixture or rail changes.
+2. **`hotRaises` is not a separate repo function.** The packet's file list names `hotRows` and `hotRaises`, but the
+   frozen interface puts the link read in `tickets.raisedTicketsFor`, and the score needs the month's rows. The repo
+   therefore adds `pendingMonths`, `rowsForMonth`, `saveOutcomes` and `hotRows`; a `hotRaises` would be `hotRows` +
+   `raisedTicketsFor` under another name.
+3. **The inspection's machine code is read from the row, not assumed.** The packet's acceptance words say `VC-01`; on
+   the shared fixture `M_USED` is `VC-02` (`VC-01` is `M_FREE`), which 52a already recorded. The test reads the code and
+   the `p80` from the database and asserts the real sentence.
+4. **The close is the app's own path and starts the ticket first.** A `general` ticket open on nobody cannot be closed
+   (the state machine answers "Ticket is not being worked on"), so the test has a supervisor start the inspection and
+   then mark it done — the app's own flow. The HTTP close stamps the database's now, so the test asserts
+   `outcome.inspection.closedAt` equals the ticket's stored `closed_at` rather than a fake date.
+5. **Two tenant transactions per run.** Scoring and inspecting are separate `withTenant` transactions (R18's per-pass
+   rule), so a failing inspection never loses the night's scoring; `runEngineRun` aggregates errors exactly as the
+   freeze does and is idempotent on every pass.
+6. **`ForecastActual` is a module type, not a root export.** The public type list stays the plan's (`ForecastOutcome`,
+   `InspectionOutcome`); `monthActuals`/`outcomeFor` keep their frozen signatures (the same shape, named for the
+   implementation).
+
+`inspection.raise` names entity `forecast`, entity id null and no login (the engine's lines are "System" in the trail),
+like `forecast.freeze`/`forecast.score`; the mutation is still the ticket's, written through the tickets seam.
+
+No new table, no migration, no new dependency; every file is under 400 lines. **No parity:** the freeze, scoring and
+inspection loop are not in the v3 platform; the planning forecast's own row `m4a.a9-bottleneck-forecast` is already
+done.
