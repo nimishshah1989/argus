@@ -46,3 +46,6 @@ graphify-out/
 
 # PR bodies are local scratch, never committed.
 .pr-body.md
+
+# Extracted legacy workbooks live here; real names, never committed.
+.agents/data/
