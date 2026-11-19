@@ -30,7 +30,7 @@ out of history; out of production figures: TC-5, TC-3, VC-6 (only three given); 
 ## Frontier
 
 - Merged today: 76 (all), 80a–80r, 80t showcase (#448), 78a (#447), 74, 69 plan, 69a importer (#449).
-- Open: #451 69b converter (needs #449, merged), #452 77a machines out of production data (narrow check running).
+- Open: #451 69b converter (needs #449, merged), #452 77a machines out of production data (independent check passed, review findings fixed, CI running).
 - Next backend: 69c (load four years into a LOCAL Postgres, run the engine per year, compare the workbooks' own
   MTTR/MTBF sheets; adds list entries location 'Plant' and workType 'Utility failure' first), 75 (figures served,
   not recomputed), 79 (`validate:full`), 69d staging load after 79, 77b/78b screens after templates, 90–96 after.
