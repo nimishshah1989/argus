@@ -9,4 +9,5 @@ export const analyticsTablesEn = {
   'analytics.keytable.page': 'Page {{page}} of {{pages}}',
   'analytics.keytable.range': '{{from}} to {{to}} of {{total}}',
   'analytics.keytable.empty': 'No rows',
+  'analytics.energy.axisLocation': 'Location',
 };

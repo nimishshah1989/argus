@@ -96,27 +96,16 @@ function DrillRows({
   );
 }
 
-/** The way back: a link to the group for the page drill, a button that clears the filter for a tile. */
-function BackAction({
-  group,
-  onBack,
-  backLabel,
-}: {
-  group: AnalyticsGroup;
-  onBack?: () => void;
-  backLabel?: string;
-}) {
+/** The way back from the page drill: a link to the group. */
+function BackAction({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
-  const className =
-    'inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text';
-  return onBack === undefined ? (
-    <Link to={`/analytics/${group.id}`} className={className}>
+  return (
+    <Link
+      to={`/analytics/${group.id}`}
+      className="inline-flex min-h-target-min items-center text-footnote font-semibold text-accent-text"
+    >
       {t('analytics.drill.back')}
     </Link>
-  ) : (
-    <button type="button" onClick={onBack} className={className}>
-      {backLabel ?? t('analytics.drill.back')}
-    </button>
   );
 }
 
@@ -154,17 +143,10 @@ function DrillBody({
   return <DrillRows type={type} rows={rows} machines={machines} />;
 }
 
-/**
- * The rows a figure drilled to: a plain table of what identifies each one. A5's tile click (41e-1) narrows the
- * same drill reply by cell or location, and owns the heading and the way back, so the one table keeps one renderer.
- */
+/** The rows a figure drilled to: a plain table of what identifies each one, with the way back to its group. */
 export function DrillTable({
   group,
   drill,
-  where,
-  title,
-  onBack,
-  backLabel,
   bare = false,
   headingLevel = 2,
 }: {
@@ -172,12 +154,6 @@ export function DrillTable({
   drill: Drill;
   /** Inside a template's drill area, which has the card and the heading: only the way back and the rows. */
   bare?: boolean;
-  /** A tile's filter over the reply's rows; absent for the figure's own drill. */
-  where?: (row: Row) => boolean;
-  title?: string;
-  /** A filter's way back stays on the screen; the page drill's way back leaves for the group. */
-  onBack?: () => void;
-  backLabel?: string;
   /** Under a template's own h2 the drill's title is an h3. */
   headingLevel?: 2 | 3;
 }) {
@@ -188,8 +164,7 @@ export function DrillTable({
     queryFn: () => getDrill(drill.type, drill.ids),
   });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
-  const rows =
-    where === undefined ? (reply.data?.rows ?? []) : (reply.data?.rows ?? []).filter(where);
+  const rows = reply.data?.rows ?? [];
   return (
     <section
       className={
@@ -198,11 +173,9 @@ export function DrillTable({
     >
       <div className="flex items-center justify-between gap-2">
         {bare ? null : (
-          <Heading className="text-title3 font-semibold">
-            {title ?? t('analytics.drill.title')}
-          </Heading>
+          <Heading className="text-title3 font-semibold">{t('analytics.drill.title')}</Heading>
         )}
-        <BackAction group={group} onBack={onBack} backLabel={backLabel} />
+        <BackAction group={group} />
       </div>
       <DrillBody
         type={drill.type}
