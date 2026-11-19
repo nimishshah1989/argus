@@ -372,19 +372,27 @@ icon always sits beside its word.
 
 ### Motion
 
-Motion is short and purposeful, under 300 ms, and respects reduced motion.
+Motion shows what changed and what is new (Nimish, 19 Nov: the analytics showcase wins). Nothing loops and nothing
+moves for show; reduced motion switches all of it off.
 
-- **Two durations.** `--motion-fast` 150 ms and `--motion-slow` 250 ms. Both are 0 under
-  `prefers-reduced-motion: reduce`. The target easing is `ease-out`; there is no easing token, so today's
-  transitions use Tailwind's default curve.
-- **What moves, today.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a floor tile (150 ms,
-  `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives.
-- **What moves, target.** A chip, a button's pressed colour and the tab indicator at 150 ms. They do not animate yet.
-- **What never moves.** Figures never count up or slide, and floor rows never animate in or reorder.
-- **Reduced motion.** Changes are instant: colour changes without a fade, the skeleton holds still, and charts draw
-  with no animation (ticket 84).
-- **Charts.** They draw with no animation today (the ECharts default of 1 s broke the 300 ms rule, D27). Whether a
-  chart may animate within 300 ms is not known yet.
+- **Two zones.** The analytics elements (`ui/elements`, `ui/elements/elements.css`, `motion.ts`) move as below. The
+  floor and the desk stay locked to v3: they gain no motion beyond colour, type, depth and what they already have
+  (below).
+- **Durations.** UI feedback stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms. Figures and charts may run
+  longer because they show data arriving: a figure eases 600 ms (ease-out), a heat-grid square pops in 460 ms
+  (staggered 32 ms per column), a trend line draws in 800 ms, a filtered list cross-fades 200 ms, a drill panel
+  slides in 320 ms, a tile lifts 1 px in 150 ms on hover.
+- **What moves in the analytics.** A figure counts up from zero when it first appears and eases from the old value to
+  the new one when it changes (`useCountUp`); heat-grid squares pop in by column; sparklines and trend lines draw in;
+  a table or list cross-fades when its filter, sort or page changes; a drill panel slides in from the right.
+- **What moves, today, on floor and desk.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a
+  floor tile (150 ms, `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives. Floor rows never
+  animate in or reorder, and floor and desk figures never count up.
+- **Reduced motion.** Changes are instant: a figure shows its final value, squares and lines appear drawn, lists do not
+  fade, panels do not slide, the skeleton holds still, and charts draw with no animation. Every `el-*` class has a
+  rule under `prefers-reduced-motion: reduce` (`elements.test.ts` checks it).
+- **Charts.** The chart door (ticket 84) draws with no animation until the draw-in is built on it; when it is, it
+  uses the 800 ms draw above and the reduced-motion rule.
 
 ### Numbers
 
@@ -408,7 +416,7 @@ The floor and desk come first, because they are where a change costs most.
 - **Don't** colour Running green, and don't bring back the old orange (waiting) or violet (transferred).
 - **Don't** give a chart series a status colour, or a hue in the red, green or info-blue bands.
 - **Don't** nest a raised card in a raised card, or give the TV an overlay.
-- **Don't** animate a figure or a floor row, or run a movement past 300 ms.
+- **Don't** animate a floor or desk figure or row, loop any movement, or run one past 800 ms.
 - **Don't** print a percentage without `%`, or group a number in thousands (1,000,000).
 - **Don't** show money on the TV.
 - **Don't** load a webfont; it would be a dependency in all but name.

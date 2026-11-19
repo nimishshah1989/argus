@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { queueByOwner } from '../offline/outbox.js';

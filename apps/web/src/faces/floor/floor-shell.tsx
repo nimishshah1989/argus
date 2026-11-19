@@ -47,9 +47,9 @@ export function FloorWaiting({ title, load }: { title?: string; load: FloorLoad 
   const { t } = useTranslation();
   const online = useOnline();
   if (!load.error) return <FloorLoading title={title} />;
-  /* eslint-disable i18next/no-literal-string -- state names, not copy */
+
   const state = online ? 'error' : 'offline';
-  /* eslint-enable i18next/no-literal-string */
+
   return (
     <PatternFrame title={title ?? t('floor.title')} quietOnline>
       <StateNotice state={state} empty={t('kit.pattern.error')} onRetry={load.retry} />

@@ -1,7 +1,9 @@
 /** The only lucide-react import (D04). Everything else imports icons from here. */
 export {
   AlarmClock,
+  ArrowDown,
   ArrowRightLeft,
+  ArrowUp,
   Ban,
   Bell,
   BellOff,
@@ -37,6 +39,7 @@ export {
   FlaskConical,
   Fuel,
   Hourglass,
+  Inbox,
   Info,
   KeyRound,
   Languages,

@@ -10,6 +10,7 @@ import { ClosesSection } from './closes-section.js';
 import { CrudSection } from './crud-section.js';
 import { DashboardSection } from './dashboard-section.js';
 import { DesktopView } from './desktop-section.js';
+import { ElementsSection } from './elements-section.js';
 import { DeskKitSection } from './desk-kit-section.js';
 import { DetailKitSection } from './detail-kit-section.js';
 import { FloorSection } from './floor-section.js';
@@ -208,6 +209,7 @@ export default function Gallery() {
         <DeskKitSection />
         <DetailKitSection />
         <ClosesSection />
+        <ElementsSection />
       </Page>
     </div>
   );

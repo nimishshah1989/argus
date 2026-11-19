@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
 import type { Config, Machine } from '../../api.js';
 import { Banner } from '../../ui/banner.js';
