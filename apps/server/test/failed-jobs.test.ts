@@ -133,6 +133,24 @@ describe('failed jobs are seen (API)', () => {
     expect(trail.rows.map((row) => row.entity_id)).toEqual([id]);
   });
 
+  it('shows no plant a failed job that names no plant, and refuses to retry it', async () => {
+    broken = true;
+    const id = (await boss.send(FAILING, {}))!;
+    await eventually(async () => {
+      const row = await t.db.admin.query('SELECT state FROM pgboss.job WHERE id = $1', [id]);
+      return row.rows[0]?.state === 'failed' ? true : undefined;
+    });
+    expect(await listed()).toEqual([]);
+    expect(await listed(outsider, t.callB)).toEqual([]);
+    expect((await t.call('POST', `${LIST}/${id}/retry`, admin, {})).statusCode).toBe(404);
+    expect((await t.callB('POST', `${LIST}/${id}/retry`, outsider, {})).statusCode).toBe(404);
+    broken = false;
+  });
+
+  it('answers 404, not 500, for an id that is not a job id', async () => {
+    expect((await t.call('POST', `${LIST}/not-an-id/retry`, admin, {})).statusCode).toBe(404);
+  });
+
   it('raises the alarm for a timer more than 2 minutes late, and not for one 1 minute late', async () => {
     const lateBy = (seconds: number) => new Date(Date.now() - seconds * 1000);
     await boss.send(LATE, { tenantId: A }, { startAfter: lateBy(LATE_AFTER_SECONDS + 30) });
