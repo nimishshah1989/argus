@@ -1,4 +1,4 @@
-import type { Pool } from 'pg';
+import { Client, type Pool } from 'pg';
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { run, type EngineResult } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
@@ -117,12 +117,10 @@ export function assertLocalUrl(url: string, allowRemote: boolean): void {
   if (allowRemote) return;
   let host: string;
   try {
-    const parsed = new URL(url);
-    // node-postgres lets `?host=` and `?hostaddr=` override the URL's host, and PGHOST fill an empty one: the host
-    // that counts is the one the driver dials. A socket folder (a path) is this machine.
-    host =
-      parsed.searchParams.get('hostaddr') ?? parsed.searchParams.get('host') ?? parsed.hostname;
-    if (host === '') host = process.env.PGHOST ?? '';
+    // The host is decided by the driver itself (a Client is built, never connected): `?host=` overrides the URL's
+    // host, the last value wins, an empty one is missing, `hostaddr` is ignored and PGHOST fills a missing one.
+    // A socket folder (a path) is this machine.
+    host = new Client({ connectionString: url }).host ?? '';
     if (host.startsWith('/')) host = '';
   } catch {
     throw new Error('DATABASE_URL is not a valid URL');

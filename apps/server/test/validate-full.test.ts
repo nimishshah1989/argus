@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FIGURES, run } from '@uptimo/domain';
-import { connect } from '../src/seed/legacy-load.js';
+import { assertLocalUrl, connect } from '../src/seed/legacy-load.js';
 import { validate, type Engine } from '../../../tools/validate-full.js';
 import { parseAllowlist } from '../../../tools/validate-checks.js';
 import { startTestDb, type TestDb } from './harness.js';
@@ -131,12 +131,31 @@ describe('validate:full on a small invented plant', () => {
     await expect(
       connect('postgres://app_api:x@localhost:5432/argus?host=remote.example', 'vf-plant'),
     ).rejects.toThrow(/remote host/);
-    await expect(
-      connect('postgres://app_api:x@localhost:5432/argus?hostaddr=203.0.113.9', 'vf-plant'),
-    ).rejects.toThrow(/remote host/);
     await expect(connect(db.container.getConnectionUri(), 'vf-plant')).rejects.toThrow(
       /app_api role without superuser/,
     );
+  });
+
+  it('decides the host the way the pg driver does: empty and repeated values, hostaddr ignored', () => {
+    const remote = [
+      'postgres://u@evil.com/db?host=',
+      'postgres://u@evil.com/db?hostaddr=',
+      'postgres://u@evil.com/db?hostaddr=127.0.0.1',
+      'postgres://u@evil.com/db?hostaddr=%3A%3A1',
+      'postgres://u@localhost/db?host=localhost&host=evil.com',
+      'postgres://u@localhost/db?host=a.example,localhost',
+      'postgres://u@localhost.evil.com/db',
+    ];
+    for (const url of remote) expect(() => assertLocalUrl(url, false), url).toThrow(/remote host/);
+    const local = [
+      'postgres://u@localhost/db',
+      'postgres://u@127.0.0.1:5433/db',
+      'postgres://u@[::1]/db',
+      'postgres://u@localhost/db?host=/var/run/postgresql',
+      'postgres://u@evil.com/db?host=%2Fvar%2Frun%2Fpostgresql',
+    ];
+    for (const url of local) expect(() => assertLocalUrl(url, false), url).not.toThrow();
+    expect(() => assertLocalUrl('postgres://u@evil.com/db', true)).not.toThrow();
   });
 
   it('accepts only an allowlist id that names whole segments before its star', () => {
