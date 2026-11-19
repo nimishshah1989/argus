@@ -17,6 +17,9 @@ const oneDecimal = new Intl.NumberFormat('en-IN', {
 
 const kva = (value: number) => oneDecimal.format(value);
 
+/** The value as its tile prints it (one decimal), so "Show the numbers" never prints a float sum's tail. */
+const oneDecimalOf = (value: number): number => Number(value.toFixed(1));
+
 /** The tile's name: the key, or the words for a machine with no cell. */
 function nameOf(tile: EnergyTile, t: TFunction): string {
   return tile.key === '—' ? t('analytics.energy.noCell') : tile.key;
@@ -70,21 +73,22 @@ function EnergyTileView({
 /** Connected beside running load for each tile of a load grid, the picture the tiles' colour used to give. */
 function loadChart(grid: EnergyGrid, title: string, axisLabel: string, t: TFunction): ChartSpec {
   const unit = t('analytics.energy.unit');
-  const present = (value: number, tile: EnergyTile) => (tile.machines === 0 ? undefined : value);
+  // A tile with no machines is left out: its numbers would print blank, and the tile above says "No machines".
+  const shown = grid.tiles.filter((tile) => tile.machines > 0);
   return {
     kind: 'bar',
     title,
     categoryLabel: axisLabel,
-    categories: grid.tiles.map((tile) => nameOf(tile, t)),
+    categories: shown.map((tile) => nameOf(tile, t)),
     valueLabel: unit,
     series: [
       {
         name: `${t('analytics.energy.connected')} ${unit}`,
-        values: grid.tiles.map((tile) => present(tile.connectedKva, tile)),
+        values: shown.map((tile) => oneDecimalOf(tile.connectedKva)),
       },
       {
         name: `${t('analytics.energy.running')} ${unit}`,
-        values: grid.tiles.map((tile) => present(tile.runningKva, tile)),
+        values: shown.map((tile) => oneDecimalOf(tile.runningKva)),
       },
     ],
     legend: true,

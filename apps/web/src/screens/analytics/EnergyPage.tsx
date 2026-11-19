@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { MAX_DRILL_IDS, type FiguresReply } from '@uptimo/shared/analytics';
-import type { MachineRow } from '@uptimo/domain';
 import { DrillPanel, EmptyState } from '../../ui/elements/index.js';
 import { DrillTable } from './DrillTable.js';
 import { EnergyRows } from './energy-rows.js';
@@ -19,15 +18,14 @@ type Pick = TilePick;
 const AXIS_CELL: Pick['axis'] = 'cell';
 const AXIS_LOCATION: Pick['axis'] = 'location';
 
-function matches(row: MachineRow, pick: Pick): boolean {
-  if (pick.axis === 'location') return row.location === pick.key;
-  const cell = row.cell?.trim() ?? '';
-  return pick.key === '—' ? cell === '' : cell === pick.key;
-}
-
-function tileOf(content: EnergyContent, pick: Pick): EnergyTile | null {
+export function tileOf(content: EnergyContent, pick: Pick): EnergyTile | null {
   const grid = pick.axis === 'cell' ? content.byCell : content.byLocation;
   return grid.tiles.find((tile) => tile.key === pick.key) ?? null;
+}
+
+/** The machines a tile's panel lists: exactly the engine's own for that tile, so the panel always matches its count. */
+export function panelIds(content: EnergyContent, pick: Pick): readonly string[] {
+  return tileOf(content, pick)?.machineIds ?? [];
 }
 
 function titleOf(t: TFunction, pick: Pick): string {
@@ -102,13 +100,11 @@ function TilePanel({
   content,
   pick,
   open,
-  ids,
   onClose,
 }: {
   content: EnergyContent;
   pick: Pick | null;
   open: boolean;
-  ids: readonly string[];
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -120,7 +116,7 @@ function TilePanel({
       closeLabel={t('analytics.energy.back')}
     >
       {pick === null ? null : (
-        <EnergyRows ids={ids} where={(row) => matches(row, pick)} caption={titleOf(t, pick)} />
+        <EnergyRows ids={panelIds(content, pick)} caption={titleOf(t, pick)} />
       )}
     </DrillPanel>
   );
@@ -182,13 +178,7 @@ export function EnergyPage({
           </>
         }
       />
-      <TilePanel
-        content={content}
-        pick={pick}
-        open={open}
-        ids={ids}
-        onClose={() => setOpen(false)}
-      />
+      <TilePanel content={content} pick={pick} open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

@@ -37,7 +37,7 @@ describe('an energy grid', () => {
   it('prints each tile with its connected load, running load, machine count and average', () => {
     const page = draw(() => {});
     expect(page).toContain('data-tile="cell:1"');
-    expect(page).toMatch(/>20\.0 <span/);
+    expect(page).toContain('20.0');
     expect(page).toContain('Connected KVA');
     expect(page).toContain('Running: 12.0 KVA · 2 machines · avg 10.0');
   });
@@ -51,5 +51,28 @@ describe('an energy grid', () => {
 
   it('opens nothing on the average grid, which has no pick', () => {
     expect(draw()).not.toContain('<button');
+  });
+});
+
+describe('the numbers behind an energy chart', () => {
+  it('prints a load as its tile does, not as a float sum, and leaves out a tile with no machines', () => {
+    const sums: EnergyGrid = {
+      axis: 'cell',
+      showRunning: true,
+      tiles: [tile('2', 3, 36, 12.600000000000001), tile('—', 0, 0, 0)],
+    };
+    const page = renderToStaticMarkup(
+      h(EnergyGridView, {
+        grid: sums,
+        id: 'cell',
+        title: 'T',
+        axisLabel: 'Cell',
+        description: 'D',
+      }),
+    );
+    const numbers = page.slice(page.indexOf('<details'), page.indexOf('</details>'));
+    expect(numbers).toContain('>12.6<');
+    expect(numbers).not.toContain('12.600000000000001');
+    expect(numbers).not.toContain('No cell');
   });
 });
