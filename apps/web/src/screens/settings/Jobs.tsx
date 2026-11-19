@@ -24,7 +24,7 @@ export const JOBS_PAGE = {
   icon: Cog,
   key: 'jobs.menu',
   screen: JobsScreen,
-  adminOnly: true,
+  needsJobsAccess: true,
 } as const;
 
 const LIST = '/api/v1/jobs/failed';
