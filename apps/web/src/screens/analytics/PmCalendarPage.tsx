@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { PmCalendarItem } from '@uptimo/shared';
 import { getMe, schedulePm, useAnalyticsFigures, usePmCalendar } from '../../api.js';
-import { ApiError, useOnline } from '../../data/index.js';
+import { ApiError, idempotencyKey, useOnline } from '../../data/index.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
@@ -20,7 +20,7 @@ import {
   PageHead,
   SpreadPanel,
 } from './pm-calendar-parts.js';
-import { eventsOf, loadOf, monthRange, readPmCompliance } from './pm-calendar-view.js';
+import { eventsOf, loadOf, monthRange, moveKeys, readPmCompliance } from './pm-calendar-view.js';
 import { parseDrill, type AnalyticsGroup } from './groups.js';
 import { displayDay } from './machine-values.js';
 
@@ -60,17 +60,22 @@ function usePmMove() {
   const client = useQueryClient();
   const [refusal, setRefusal] = useState<string | null>(null);
   const [moved, setMoved] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const keys = useRef(moveKeys(idempotencyKey)).current;
   const move = async (request: PmMove): Promise<void> => {
     setRefusal(null);
     setMoved(null);
+    setPending(true);
     try {
       // `machineCode` is the status line's; the strict reschedule body carries only the ids and the day.
-      const reply = await schedulePm({
+      const body = {
         machineId: request.machineId,
         planId: request.planId,
         ticketId: request.ticketId,
         scheduledOn: request.scheduledOn,
-      });
+      };
+      const reply = await schedulePm(body, keys.keyFor(body));
+      keys.settled();
       await Promise.all([
         client.invalidateQueries({ queryKey: ['pm-calendar'] }),
         client.invalidateQueries({ queryKey: ['tickets'] }),
@@ -83,8 +88,12 @@ function usePmMove() {
         }),
       );
     } catch (error) {
+      // A refusal is the server's answer, so the next try is a new attempt; a dropped connection retries the same key.
+      if (error instanceof ApiError) keys.settled();
       setRefusal(error instanceof ApiError ? error.message : t('pm.calendar.refused'));
       throw error;
+    } finally {
+      setPending(false);
     }
   };
   const moveItem = (item: PmCalendarItem, target: string): void => {
@@ -96,7 +105,7 @@ function usePmMove() {
       scheduledOn: target,
     }).catch(() => undefined);
   };
-  return { refusal, moved, move, moveItem };
+  return { refusal, moved, pending, move, moveItem };
 }
 
 /** The ready page: the figure's state is settled, so the calendar and its writes may run. */
@@ -135,6 +144,7 @@ function PmCalendarBody({
         calendar={calendar}
         events={events}
         canMove={canMove}
+        initialDate={asOf}
         onMove={pmMove.move}
         onRange={(next) =>
           setRange((current) =>
@@ -145,7 +155,12 @@ function PmCalendarBody({
       {calendar.data ? (
         <Legend cap={calendar.data.cap} count={items.length} days={loadOf(items).size} />
       ) : null}
-      <SpreadPanel items={items} canMove={canMove} onMove={pmMove.moveItem} />
+      <SpreadPanel
+        items={items}
+        canMove={canMove}
+        pending={pmMove.pending}
+        onMove={pmMove.moveItem}
+      />
     </Stack>
   );
 }

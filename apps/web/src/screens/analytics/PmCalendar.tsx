@@ -32,6 +32,8 @@ export interface PmCalendarProps {
   events: readonly PmEvent[];
   /** True only for head and admin (R10); the server refuses everyone else whatever the grid allows. */
   editable: boolean;
+  /** The month first shown: the plant's today from the server, never the browser's clock. */
+  initialDate: string;
   /** The page's move: it throws on a refusal so the event can return to its day. */
   onMove: (move: PmMove) => Promise<void>;
   /** FullCalendar's six-week grid, both ends inclusive plant days. */
@@ -66,7 +68,13 @@ function EventChip({ info }: { info: EventDisplayInfo }) {
   );
 }
 
-export default function PmCalendar({ events, editable, onMove, onRange }: PmCalendarProps) {
+export default function PmCalendar({
+  events,
+  editable,
+  initialDate,
+  onMove,
+  onRange,
+}: PmCalendarProps) {
   const { t } = useTranslation();
   const drop = async (info: EventDropInfo): Promise<void> => {
     const props = info.event.extendedProps as PmEvent['extendedProps'];
@@ -88,6 +96,7 @@ export default function PmCalendar({ events, editable, onMove, onRange }: PmCale
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin, classicThemePlugin]}
         initialView="dayGridMonth"
+        initialDate={initialDate}
         firstDay={1}
         locale="en"
         height="auto"

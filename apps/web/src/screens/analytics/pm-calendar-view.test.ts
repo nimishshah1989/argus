@@ -4,6 +4,7 @@ import {
   eventsOf,
   gridRange,
   loadOf,
+  moveKeys,
   monthRange,
   rateText,
   readMachineTasks,
@@ -207,5 +208,36 @@ describe('the machine page’s task split (R9)', () => {
     );
     expect(view.open[0]?.overdue).toBe(false);
     expect(view.pm[0]?.overdue).toBe(false);
+  });
+});
+
+describe('what the grid lets a head drag', () => {
+  it('lets a movable job be dragged and holds a started one in place', () => {
+    const [free, started] = eventsOf([
+      item(),
+      item({ machineCode: 'VC-2', movable: false, status: 'open' }),
+    ]);
+    expect(free).toMatchObject({ startEditable: true, durationEditable: false });
+    expect(started).toMatchObject({ startEditable: false, durationEditable: false });
+  });
+});
+
+describe('one idempotency key per move attempt', () => {
+  const body = { machineId: 'm1', planId: 'p1', ticketId: null, scheduledOn: '2026-11-20' };
+
+  it('reuses the key for a double tap and a retry of the same move', () => {
+    let made = 0;
+    const keys = moveKeys(() => `key-${++made}`);
+    expect(keys.keyFor(body)).toBe('key-1');
+    expect(keys.keyFor({ ...body })).toBe('key-1');
+  });
+
+  it('takes a new key for another day, and once the server has answered', () => {
+    let made = 0;
+    const keys = moveKeys(() => `key-${++made}`);
+    expect(keys.keyFor(body)).toBe('key-1');
+    expect(keys.keyFor({ ...body, scheduledOn: '2026-11-21' })).toBe('key-2');
+    keys.settled();
+    expect(keys.keyFor({ ...body, scheduledOn: '2026-11-21' })).toBe('key-3');
   });
 });

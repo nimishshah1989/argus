@@ -49,7 +49,6 @@ export const pmEn = {
   'pm.tasks.openEmpty': 'No open tasks.',
   'pm.tasks.pmEmpty': 'No PM tasks.',
   'pm.tasks.scheduled': 'Scheduled {{date}}',
-  'pm.tasks.overdue': 'Overdue',
   'pm.tasks.loading': 'Loading tasks…',
   'pm.tasks.unavailable': 'Tasks are not available right now.',
   'pm.menu.plans': 'PM plans',

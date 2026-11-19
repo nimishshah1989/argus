@@ -13,6 +13,9 @@ export interface PmEvent {
   title: string;
   start: string;
   allDay: true;
+  /** A started job is not draggable: the server would refuse it and the chip would snap back. */
+  startEditable: boolean;
+  durationEditable: false;
   extendedProps: {
     planId: string | null;
     machineId: string;
@@ -46,6 +49,8 @@ export function eventsOf(items: readonly PmCalendarItem[]): PmEvent[] {
     title: item.machineCode,
     start: item.scheduledOn,
     allDay: true,
+    startEditable: item.movable,
+    durationEditable: false,
     extendedProps: {
       planId: item.planId,
       machineId: item.machineId,
@@ -59,6 +64,24 @@ export function eventsOf(items: readonly PmCalendarItem[]): PmEvent[] {
       load: load.get(item.scheduledOn) ?? 1,
     },
   }));
+}
+
+/**
+ * The idempotency key a move carries. One attempt holds one key, so a double tap or a retry of the same move is the
+ * server's one write; `settled` (the server answered) lets the next attempt take a fresh key.
+ */
+export function moveKeys(newKey: () => string) {
+  let held: { signature: string; key: string } | null = null;
+  return {
+    keyFor(body: object): string {
+      const signature = JSON.stringify(body);
+      if (held?.signature !== signature) held = { signature, key: newKey() };
+      return held.key;
+    },
+    settled(): void {
+      held = null;
+    },
+  };
 }
 
 /** The month's own range, before FullCalendar reports its six-week grid (`datesSet`). */

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { correctionBody } from './screens/analytics/machine-values.js';
 import {
@@ -173,6 +173,8 @@ export const useAnalyticsFigures = () => analyticsFigures.useOne();
 export const usePmCalendar = (range: { from: string; to: string }) =>
   useQuery({
     queryKey: ['pm-calendar', range.from, range.to],
+    // The grid stays drawn on the month it shows while the next month loads.
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<PmCalendarReply> => {
       const query = `from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`;
       return pmCalendarReplySchema.parse(await http(`/api/v1/pm/calendar?${query}`));
@@ -181,13 +183,13 @@ export const usePmCalendar = (range: { from: string; to: string }) =>
 
 /**
  * `POST /pm/reschedule` (50c): the one move. A refusal is an `ApiError` whose message the page shows (a full day
- * is 409, a Sunday or a date outside the tolerance is 422); each call carries its own idempotency key.
+ * is 409, a Sunday or a date outside the tolerance is 422); the caller holds one key per move attempt.
  */
-export const schedulePm = async (body: PmRescheduleBody): Promise<PmRescheduleReply> =>
+export const schedulePm = async (body: PmRescheduleBody, key: string): Promise<PmRescheduleReply> =>
   pmRescheduleReplySchema.parse(
     await http('/api/v1/pm/reschedule', {
       method: 'POST',
-      headers: { 'Idempotency-Key': idempotencyKey() },
+      headers: { 'Idempotency-Key': key },
       body: JSON.stringify(body),
     }),
   );

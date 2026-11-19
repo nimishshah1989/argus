@@ -22,6 +22,13 @@ untouched; `pnpm precheck` and `pnpm parity` are the only checks this PR claims.
 - **ADR 0009** says plainly that the `/tmp` prototype numbers are a record; the reproducible proof is 50c's
   source/chunk guard plus the E2E drag. It also names `THIRD_PARTY.md` as the repo-root file.
 
+## Known limits of 50c (second review, 19 November 2026)
+
+- There is no keyboard way to move every job yet: only crowded jobs get a Move button, and only to the suggested day.
+  Ticket 87 gives every movable job a keyboard "Move to date".
+- The page's cards, spacing and pixel sizes (`pm-calendar-parts.tsx`, `PmCalendar.tsx`, `machine-tasks.tsx`,
+  `pm-calendar.css`) are hand-written, not the kit's. Ticket 87 restyles them.
+
 ## Prerequisites
 
 49a is merged (`e10b5bb2`): 125 `pm_plan` rows and the generated `/settings/pm-plans` screen. 49b/49c land first and

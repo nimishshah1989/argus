@@ -189,6 +189,31 @@ async function refuseSunday(page: Page, machine: { code: string }, target: strin
   await expect(cellOf(page, target).getByText(machine.code, { exact: true })).toBeVisible();
 }
 
+/** The 15th of the month `offset` months from the plant's today: a day only that month's six-week grid shows. */
+function midMonth(offset: number): string {
+  const [year, month] = PLANT_TODAY.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(year, month - 1 + offset, 15)).toISOString().slice(0, 10);
+}
+
+/** Next month opens, stays open once its events arrive, and the grid does not snap back to today's month. */
+async function nextMonth(page: Page): Promise<void> {
+  const loaded = page.waitForResponse((reply) => {
+    const url = new URL(reply.url());
+    return (
+      url.pathname === '/api/v1/pm/calendar' &&
+      (url.searchParams.get('to') ?? '') >= midMonth(1) &&
+      reply.status() === 200
+    );
+  });
+  await page.getByRole('button', { name: /next/i }).click();
+  await expect(cellOf(page, midMonth(1))).toBeVisible();
+  await expect(cellOf(page, midMonth(0))).toHaveCount(0);
+  await loaded;
+  await expect(page.getByText('Loading the calendar…')).toHaveCount(0);
+  await expect(cellOf(page, midMonth(1))).toBeVisible();
+  await expect(cellOf(page, midMonth(0))).toHaveCount(0);
+}
+
 /** The machine page's live Tasks block, and the analytics blocks above it still drawn. */
 async function openTasks(page: Page, machine: { id: string; code: string }): Promise<void> {
   await page.goto(`/analytics/machines/${machine.id}`);
@@ -207,6 +232,23 @@ async function openTasks(page: Page, machine: { id: string; code: string }): Pro
   ).toBeVisible();
 }
 
+// The plant head reads the crowded plans before the head's drag spreads them, so this file runs in order.
+test.describe.configure({ mode: 'serial' });
+
+test('a plant head reads the calendar and is offered no move', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'chromium')
+    await page.setViewportSize({ width: 1440, height: 900 });
+  const machine = pmCalendarMachine(testInfo.project.name);
+  await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
+  await signIn(page, 'ph');
+  await page.goto('/analytics/pm');
+  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
+  await expect(cellOf(page, PLANT_TODAY).getByText(machine.code, { exact: true })).toBeVisible();
+  // The crowded plan still names its nearest free day, in words; only the Move button is the head's.
+  await expect(page.locator(`[data-crowded="${machine.code}"]`)).toContainText('Nearest free day');
+  await expect(page.getByRole('button', { name: /^Move to / })).toHaveCount(0);
+});
+
 test('a head drags a PM to a free day, reads the tiles and opens a machine’s Tasks', async ({
   page,
 }, testInfo) => {
@@ -224,6 +266,7 @@ test('a head drags a PM to a free day, reads the tiles and opens a machine’s T
   await test.step('the move survives a reload', () => reloadKeeps(page, machine, target));
   await test.step('a drag to a Sunday is refused with the server’s message and snaps back', () =>
     refuseSunday(page, machine, target));
+  await test.step('next month opens and stays on the next month', () => nextMonth(page));
   await test.step('the machine page lists its open breakdown and PM job under Tasks', () =>
     openTasks(page, taskMachine));
 });

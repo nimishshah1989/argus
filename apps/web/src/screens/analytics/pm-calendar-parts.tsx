@@ -103,10 +103,12 @@ export function Legend({ cap, count, days }: { cap: number; count: number; days:
 export function SpreadPanel({
   items,
   canMove,
+  pending,
   onMove,
 }: {
   items: readonly PmCalendarItem[];
   canMove: boolean;
+  pending: boolean;
   onMove: (item: PmCalendarItem, target: string) => void;
 }) {
   const { t } = useTranslation();
@@ -132,6 +134,7 @@ export function SpreadPanel({
               <Button
                 // eslint-disable-next-line i18next/no-literal-string -- a variant value, not copy
                 variant="tonal"
+                disabled={pending}
                 onClick={() => onMove(item, item.suggestedOn!)}
               >
                 {t('pm.calendar.moveTo', { date: displayDay(item.suggestedOn) })}
@@ -153,12 +156,14 @@ export function CalendarArea({
   calendar,
   events,
   canMove,
+  initialDate,
   onMove,
   onRange,
 }: {
   calendar: { data: PmCalendarReply | undefined; error: unknown; refetch: () => unknown };
   events: ReturnType<typeof eventsOf>;
   canMove: boolean;
+  initialDate: string;
   onMove: (move: PmMove) => Promise<void>;
   onRange: (range: { from: string; to: string }) => void;
 }) {
@@ -168,7 +173,7 @@ export function CalendarArea({
       <StateNotice
         // eslint-disable-next-line i18next/no-literal-string -- a ViewState value, not copy
         state="error"
-        empty={t('pm.calendar.empty')}
+        empty={t('pm.calendar.error')}
         onRetry={() => void calendar.refetch()}
       />
     );
@@ -180,7 +185,13 @@ export function CalendarArea({
     );
   return (
     <>
-      <PmCalendar events={events} editable={canMove} onMove={onMove} onRange={onRange} />
+      <PmCalendar
+        events={events}
+        editable={canMove}
+        initialDate={initialDate}
+        onMove={onMove}
+        onRange={onRange}
+      />
       {calendar.data.items.length === 0 ? (
         <p className="text-body text-neutral-600">{t('pm.calendar.empty')}</p>
       ) : null}

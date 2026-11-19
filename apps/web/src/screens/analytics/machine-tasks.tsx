@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { getConfig, useTicketPages } from '../../api.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
+import { StatusPill } from '../../ui/status/status-pill.js';
 import { Section } from './parts.js';
 import { displayDay } from './machine-values.js';
 import { readMachineTasks, type MachineTaskRow } from './pm-calendar-view.js';
@@ -28,9 +29,8 @@ function TaskRow({ row }: { row: MachineTaskRow }) {
       </div>
       <div className="flex items-center gap-2">
         {row.overdue ? (
-          <span className="rounded-full bg-warning-tint px-2.5 py-1 text-caption font-bold text-warning-ink">
-            {t('pm.tasks.overdue')}
-          </span>
+          // eslint-disable-next-line i18next/no-literal-string -- prop values, not copy
+          <StatusPill group="pm" id="overdue" />
         ) : null}
         <StatusBadge status={row.status} />
       </div>
