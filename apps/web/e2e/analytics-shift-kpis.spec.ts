@@ -405,7 +405,12 @@ test('a head opens Shift-calendar KPIs, reads the compare row and a map cell, an
   await expect(
     page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
+  // The backlog table above also lists this ticket, so look inside the drill's own section: a bare cell
+  // lookup matched the backlog row before the drill rows arrived and two cells once they had.
+  const drill = page.locator('section', {
+    has: page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+  });
+  await expect(drill.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
 });
 
 test('an operator is refused the shift-calendar screen', async ({ page }) => {
