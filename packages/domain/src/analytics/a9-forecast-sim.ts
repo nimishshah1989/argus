@@ -86,8 +86,17 @@ export function categoriesOf(
 }
 
 /** The plan's quantile: the nearest rank, never interpolated, so two runs print the same number. */
-export function quantile(values: readonly number[], q: number): number {
-  const sorted = [...values].sort((left, right) => left - right);
+export function quantile(values: ArrayLike<number>, q: number): number {
+  return quantileOfSorted(sortedAsc(values), q);
+}
+
+/** A copy of the values in ascending order, for a caller that asks several quantiles of one list. */
+export function sortedAsc(values: ArrayLike<number>): Float64Array {
+  return (values instanceof Float64Array ? values.slice() : Float64Array.from(values)).sort();
+}
+
+/** `quantile` of a list `sortedAsc` already ordered: the same nearest rank. */
+export function quantileOfSorted(sorted: ArrayLike<number>, q: number): number {
   const rank = Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1) + 0.5)));
   return sorted[rank] ?? 0;
 }
@@ -220,12 +229,12 @@ export function pois(rng: () => number, mean: number): number {
 export function simulate(
   models: readonly DrawModel[],
   runs: number,
-): { machine: number[][]; plant: number[] } {
-  const machine: number[][] = [];
+): { machine: Float64Array[]; plant: number[] } {
+  const machine: Float64Array[] = [];
   const plant = new Array<number>(runs).fill(0);
   models.forEach((model, index) => {
     const rng = fcRng(SEED + index);
-    const sims = new Array<number>(runs);
+    const sims = new Float64Array(runs);
     for (let run = 0; run < runs; run += 1) {
       const g = -Math.log(rng() || 1e-9) * model.expN;
       const count = pois(rng, g);

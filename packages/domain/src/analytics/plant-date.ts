@@ -3,11 +3,22 @@ const DAY_MS = 86_400_000;
 
 /** A plant date (`YYYY-MM-DD`) as a whole UTC day number, so two dates compare without a time zone or a clock. */
 export function dayNumber(date: string): number | null {
+  const known = parsedDays.get(date);
+  if (known !== undefined) return known;
   const match = PLANT_DATE.exec(date);
-  if (!match) return null;
-  const day = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / DAY_MS;
-  return Number.isFinite(day) ? day : null;
+  let day: number | null = null;
+  if (match) {
+    const value = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / DAY_MS;
+    day = Number.isFinite(value) ? value : null;
+  }
+  if (parsedDays.size >= MEMO_LIMIT) parsedDays.clear();
+  parsedDays.set(date, day);
+  return day;
 }
+
+/** The days already read: a plant has a few thousand distinct dates and the figures read each one many times. */
+const parsedDays = new Map<string, number | null>();
+const MEMO_LIMIT = 100_000;
 
 /** A whole UTC day number as the plant's `DD-MM-YYYY`, the platform's own written form. */
 export function dmyOfDay(day: number): string {
