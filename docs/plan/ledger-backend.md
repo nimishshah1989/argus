@@ -197,3 +197,9 @@ on `claude/orchestrator-m0-gate`. Format for rulings: `Ruling: what, why, cost i
   (Skill tool, playbook named in the PR), delegates as poteto-agent subagents, models per
   .claude/rules/pstack-models.md; my adversarial reviews follow .claude/skills/interrogate/SKILL.md (findings only
   when proven by a run). All three builders told; each confirms poteto-mode is loaded.
+- 19 Nov, ticket 91 (utility loss). Ruling (Nimish): plant-event downtime counts. Done: `dashboard.plant-events` (machine-hours
+  lost to power and air failures, drilled to every event ticket) and the same hours taken from `dashboard.fleet-availability`;
+  a plant event adds 0 to any breakdown count, MTTR or MTBF. Config default `PLANT_EVENT_BASIS = 'named-machines'`
+  (conservative: a machine loses only its own line's minutes, every recorded line counts). Open questions for Bhavin, not
+  guessed: does a power cut count against every machine's availability or against the plant as one event, and do the PM and
+  UTI line codes all count? Cost if wrong: availability is overstated by the machines the cut stopped but no line names.

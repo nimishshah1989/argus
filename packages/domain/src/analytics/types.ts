@@ -1,5 +1,6 @@
 import type { AnalyticsProfile, DrillType } from '@uptimo/shared';
 import type { Period } from './availability.js';
+import type { PlantEventRow } from './plant-events.js';
 import type { ProblemGroup } from './problem-groups.js';
 
 /**
@@ -285,6 +286,8 @@ export interface EngineData {
   settings?: EngineSettings;
   /** The saved Why-Why records, latest per ticket; a ticket with no record is a candidate A6 shows as not started. */
   whyWhy?: readonly WhyWhyRow[];
+  /** The plant events (ticket 91): power and air failures, each with the machines it stopped. Absent: none. */
+  plantEvents?: readonly PlantEventRow[];
   /**
    * The plant's shift windows (ticket 48). Optional so every fixture and test that builds `EngineData` keeps
    * compiling: with it absent the working-hour basis has no hours and prints dashes (R3).

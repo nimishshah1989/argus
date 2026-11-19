@@ -36,7 +36,12 @@ import {
   pmPlansForEngine,
   shiftsForEngine,
 } from '../plant/index.js';
-import { reportsForEngine, ticketsForEngine, whyWhyEventRows } from '../tickets/index.js';
+import {
+  plantEventLines,
+  reportsForEngine,
+  ticketsForEngine,
+  whyWhyEventRows,
+} from '../tickets/index.js';
 import { readNudgeAcks } from './nudges.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -173,6 +178,15 @@ const report = (row: Row, clean: Cleaner, index: FailureCodeIndex): ReportRow =>
   };
 };
 
+/** The plant events (ticket 91): each event ticket with the machines it stopped and their minutes. */
+function plantEventsOf(lines: { ticketId: string; machineId: string; minutes: number }[]) {
+  const byTicket = new Map<string, { machineId: string; minutes: number }[]>();
+  for (const { ticketId, machineId, minutes } of lines) {
+    byTicket.set(ticketId, [...(byTicket.get(ticketId) ?? []), { machineId, minutes }]);
+  }
+  return [...byTicket].map(([ticketId, eventLines]) => ({ ticketId, lines: eventLines }));
+}
+
 /** A Postgres `time` text (`08:00:00`) as minutes from local midnight. */
 function minuteOf(value: unknown): number {
   const [hour, minute] = String(value).split(':').map(Number) as [number, number];
@@ -298,6 +312,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const lists = await listsForEngine(tx);
   const failureIndex = await failureCodeIndexOf(tx, tenantId);
   const savedWhyWhy = await whyWhyEventRows(tx);
+  const plantLines = await plantEventLines(tx);
   const nudgeAcks = await readNudgeAcks(tx);
   const registers = await assetRegistersForEngine(tx, tenantId);
   const pmPlans = await pmPlansForEngine(tx);
@@ -317,6 +332,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     tickets: tickets.filter((row) => row.parent_id === null).map(ticket),
     tasks: tickets.filter((row) => row.parent_id !== null).map(task),
     reports: reports.map((row) => report(row, clean, failureIndex)),
+    plantEvents: plantEventsOf(plantLines),
     shifts: shifts.map(shift),
     people: people.map(person),
     // 51c: the register is the live source of the two reminder rules and the workbook's two register sheets.

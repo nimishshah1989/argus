@@ -23,6 +23,7 @@ import { dataChecklist } from './data-checklist.js';
 import { footprint } from './footprint.js';
 import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
+import { plantEventMinutes, plantEventsFigure } from './plant-events.js';
 import { pmComplianceFigure } from './pm-compliance.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
@@ -143,6 +144,7 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
     if (cnc === 0) return { value: 0, drillIds: [] };
     return { value: round(minutes(downtime) / 60 / cnc, 2), drillIds: ticketIds(downtime) };
   },
+  'dashboard.plant-events': plantEventsFigure,
   'dashboard.plant-bd-pct': ({ data, asOf, profile }) => {
     const { hours: available } = plantAvailability(data, profile, asOf);
     const downtime = spanReports(data, asOf).filter(isDowntime);
@@ -152,7 +154,11 @@ export const dashboardComputers: Readonly<Record<string, Computer>> = {
   'dashboard.fleet-availability': ({ data, asOf, profile }) => {
     const { hours: available, production } = plantAvailability(data, profile, asOf);
     const rows = spanReports(data, asOf);
-    const lost = minutes(rows.filter(isDowntime)) + minutes(rows.filter(isPm));
+    // Plant events (91) take machine-hours from the fleet too; they are in no breakdown or PM count.
+    const lost =
+      minutes(rows.filter(isDowntime)) +
+      minutes(rows.filter(isPm)) +
+      plantEventMinutes(data, asOf, production);
     const value = available > 0 ? round((1 - lost / 60 / available) * 100, 2) : 0;
     return { value, drillIds: production.map((machine) => machine.id) };
   },

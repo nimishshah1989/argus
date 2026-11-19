@@ -150,3 +150,20 @@ export async function loadEvents(client: PoolClient, ticketId: string): Promise<
     };
   });
 }
+
+/** The `utility_loss` lines of every plant event (ticket 91, 69's R20): the ticket, the machine and its minutes. */
+export async function plantEventLines(
+  client: Db,
+): Promise<{ ticketId: string; machineId: string; minutes: number }[]> {
+  const rows = (
+    await client.query(
+      `SELECT ticket_id, payload FROM ticket_event WHERE type = 'utility_loss' ORDER BY ticket_id, seq`,
+    )
+  ).rows;
+  return rows.flatMap((row) => {
+    const { machineId, minutes } = row.payload as { machineId?: unknown; minutes?: unknown };
+    return typeof machineId === 'string' && typeof minutes === 'number'
+      ? [{ ticketId: row.ticket_id as string, machineId, minutes }]
+      : [];
+  });
+}

@@ -5,7 +5,7 @@ import { isProduction } from '../src/analytics/machine-facts.js';
 import { ENGINE_DATA } from './answer-key/fixture.js';
 
 /**
- * Ticket 77a's audit of the 51 figures: which of them read the production machines (a machine the plant leaves out
+ * Ticket 77a's audit of the 52 figures: which of them read the production machines (a machine the plant leaves out
  * of production data changes them) and which read every machine (it does not). The three busiest production machines
  * of the 11 November plant are named in the settings list only, so the list alone must be enough to leave them out.
  * A figure that moves between the two lists is a decision, so it changes this test on purpose.
@@ -59,6 +59,9 @@ const READ_EVERY_MACHINE = [
   'dashboard.expansion-timeline',
   'dashboard.no-downtime-hours',
   'dashboard.pm-hours',
+  // Ticket 91: reads the production fleet, but this fixture holds no plant event, so the flag cannot move it here
+  // (plant-events.test.ts moves it with events).
+  'dashboard.plant-events',
   'dashboard.process-machines',
   'dashboard.total-downtime-hours',
   'dashboard.total-machines',
@@ -71,7 +74,7 @@ const READ_EVERY_MACHINE = [
 /** Registered, and not computed by any engine yet: they read nothing, so the flag cannot move them. */
 const NOT_COMPUTED = ['action-center.spares-spend', 'compare.spares-cost', 'team-focus.cost'];
 
-describe('the 51 figures and the machines left out of production data', () => {
+describe('the 52 figures and the machines left out of production data', () => {
   const busiest = ENGINE_DATA.machines
     .filter(isProduction)
     .map((machine) => ({
@@ -111,8 +114,8 @@ describe('the 51 figures and the machines left out of production data', () => {
     );
   });
 
-  it('keeps the 18 that read every machine, and the 3 not computed yet, exactly as they were', () => {
-    expect(READ_EVERY_MACHINE).toHaveLength(18);
+  it('keeps the 19 that read every machine, and the 3 not computed yet, exactly as they were', () => {
+    expect(READ_EVERY_MACHINE).toHaveLength(19);
     expect(moved([...READ_EVERY_MACHINE, ...NOT_COMPUTED])).toEqual([]);
     const statuses = new Map(after.figures.map((figure) => [figure.key, figure.status]));
     for (const key of NOT_COMPUTED) expect(statuses.get(key), key).toBe('not_computed');

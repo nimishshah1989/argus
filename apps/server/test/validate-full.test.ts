@@ -96,6 +96,24 @@ describe('validate:full on a small invented plant', () => {
     }
   }, 120_000);
 
+  it('reads a plant event (a general ticket with utility_loss lines) as plant-event hours, never a breakdown', async () => {
+    await ticket('VF-EVT', M1, '2023-07-08', { minutes: null });
+    await db.admin.query(
+      `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, payload)
+       SELECT $1, id, 1, 'utility_loss', '2023-07-08T04:00:00Z', $3::jsonb FROM ticket WHERE tenant_id = $1 AND ref = $2`,
+      [T, 'VF-EVT', JSON.stringify({ machineId: M1, minutes: 120, code: 'UTI' })],
+    );
+    try {
+      const report = await validate(db.app, tenant, { asOf: AS_OF });
+      expect(report.unexplained).toEqual([]);
+      expect(report.lines.some((line) => line.startsWith('coverage: 14 of 14 tickets'))).toBe(true);
+      expect(report.lines.some((line) => line.startsWith('dashboard.plant-events'))).toBe(true);
+    } finally {
+      await db.admin.query('DELETE FROM ticket_event WHERE tenant_id = $1', [T]);
+      await db.admin.query("DELETE FROM ticket WHERE tenant_id = $1 AND ref = 'VF-EVT'", [T]);
+    }
+  }, 120_000);
+
   it('fails when a figure drills to one row fewer than its number counts', async () => {
     const short: Engine = (...args) => {
       const result = run(...args);

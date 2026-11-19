@@ -136,6 +136,7 @@ export const analyticsEn = {
   'analytics.figure.dashboard.bubble-chart': 'Bubble chart',
   'analytics.figure.dashboard.expansion-timeline': 'Expansion timeline',
   'analytics.figure.dashboard.fleet-availability': 'Fleet availability',
+  'analytics.figure.dashboard.plant-events': 'Plant events (power and air failures)',
   'analytics.figure.dashboard.plant-bd-pct': 'Plant breakdown percent',
   'analytics.figure.dashboard.avg-complaints-per-day': 'Average complaints per day',
   'analytics.figure.dashboard.avg-bd-hours-per-day': 'Average breakdown hours per day',

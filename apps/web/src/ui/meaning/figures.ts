@@ -26,6 +26,7 @@ export const FIGURE_MEANING: Readonly<Record<string, FigureMeaning>> = {
   'dashboard.costliest-problems': f('hours', 'down'),
   'dashboard.bubble-chart': nothing,
   'dashboard.expansion-timeline': nothing,
+  'dashboard.plant-events': f('hours', 'down'),
   'dashboard.fleet-availability': f('percent', 'up'),
   'dashboard.plant-bd-pct': f('percent', 'down'),
   'dashboard.avg-complaints-per-day': f('perDay', 'down'),

@@ -94,6 +94,8 @@ const DEFS: readonly FigureDef[] = [
   dashboard('bubble-chart', 'Bubble chart', 'machine'),
   dashboard('expansion-timeline', 'Expansion timeline', 'machine'),
   dashboard('fleet-availability', 'Fleet availability', 'machine'),
+  // Ticket 91: power and air failures, machine-hours lost; its own figure so a reader never mistakes them for breakdowns.
+  dashboard('plant-events', 'Plant events: machine-hours lost to power and air failures', 'ticket'),
   dashboard('plant-bd-pct', 'Plant breakdown percent', 'ticket'),
   dashboard('avg-complaints-per-day', 'Average complaints per day', 'ticket'),
   dashboard('avg-bd-hours-per-day', 'Average breakdown hours per day', 'ticket'),
