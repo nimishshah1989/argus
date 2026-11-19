@@ -9,6 +9,8 @@ import {
   FC_PRIOR_DAYS,
   FC_RUNS,
   FC_WINDOW,
+  bandOf,
+  confidenceOf,
   episodesOf,
   fleetRows,
   forecastBoard,
@@ -146,14 +148,6 @@ function whatIfSlots(core: BottleneckCore, rows: readonly SourcedReport[], profi
     tables: [longestTable(own), coverTable(risk, core.fleet)],
   };
 }
-
-/** The plan's confidence: history length and episode count, never the simulated spread. */
-const confidenceOf = (n: number, days: number): string =>
-  n >= 6 && days >= 150 ? 'High' : n >= 2 && days >= 90 ? 'Medium' : 'Low';
-
-/** The plan's band, from the expected hours. */
-const bandOf = (expH: number): string =>
-  expH >= 6 ? 'Hot' : expH >= 3 ? 'Likely' : expH >= 1 ? 'Watch' : 'Stable';
 
 /** A trend verdict's own words. */
 export type TrendVerdict = 'more frequent' | 'less frequent' | 'steady' | 'Too little data';

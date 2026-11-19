@@ -36,6 +36,7 @@ export const auditEn = {
   'audit.area.roster_entry': 'Duty roster',
   'audit.area.escalation_rule': 'Escalation rules',
   'audit.area.analytics_profile': 'Analytics settings',
+  'audit.area.forecast': 'Forecast',
   'audit.area.setting': 'Settings',
   'audit.area.tenant': 'Company',
   'audit.area.ticket': 'Tickets',

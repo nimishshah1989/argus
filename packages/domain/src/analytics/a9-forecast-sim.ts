@@ -251,12 +251,37 @@ const LONG_MONTHS =
 /** The month the planning forecast covers: the first full calendar month after the period end. */
 export type Month = { label: string; days: number };
 
+/** The frozen forecast's risk band, from the expected hours (thresholds 6, 3 and 1). */
+export type ForecastBand = 'Hot' | 'Likely' | 'Watch' | 'Stable';
+
+/** The plan's confidence: history length and episode count, never the simulated spread. */
+export type ForecastConfidence = 'High' | 'Medium' | 'Low';
+
+/** The plan's band, from the expected hours. */
+export function bandOf(expH: number): ForecastBand {
+  return expH >= 6 ? 'Hot' : expH >= 3 ? 'Likely' : expH >= 1 ? 'Watch' : 'Stable';
+}
+
+/** The plan's confidence, from the history length and the episode count. */
+export function confidenceOf(n: number, days: number): ForecastConfidence {
+  return n >= 6 && days >= 150 ? 'High' : n >= 2 && days >= 90 ? 'Medium' : 'Low';
+}
+
 export function nextMonth(end: string): Month {
   const [year = 0, month = 1] = end.split('-').map(Number);
   const index = month % 12;
   const monthsYear = year + Math.floor(month / 12);
   const label = `${LONG_MONTHS[index]} ${monthsYear}`;
   return { label, days: new Date(Date.UTC(monthsYear, index + 1, 0)).getUTCDate() };
+}
+
+/** The calendar month a plant date belongs to: its own month, whatever day it names. */
+export function monthAt(plantDate: string): Month {
+  const day = dayNumber(plantDate);
+  if (day === null) throw new RangeError(`not a plant date: ${plantDate}`);
+  const [year = 0, month = 1] = plantDate.split('-').map(Number);
+  const label = `${LONG_MONTHS[month - 1] ?? ''} ${year}`;
+  return { label, days: new Date(Date.UTC(year, month, 0)).getUTCDate() };
 }
 
 /** One planning forecast: the month it covers, every machine's model and the plant's summed runs. */
@@ -266,13 +291,25 @@ export interface ForecastBoard {
   plant: number[];
 }
 
-/** The A9 board the forecast table and 42c's forecast chart print: M0's models and their 2,000 runs. */
+/**
+ * The A9 board the forecast table and 42c's forecast chart print, for the month after the period end: M0's models
+ * and their 2,000 runs. The freeze calls `forecastBoardFor` with its own month, so this is the page's horizon.
+ */
 export function forecastBoard(
   core: BottleneckCore,
   episodes: Map<string, Episode[]>,
   runs: number,
 ): ForecastBoard {
-  const month = nextMonth(core.to);
+  return forecastBoardFor(core, episodes, runs, nextMonth(core.to));
+}
+
+/** One planning forecast for a named month: the same models and draws, with the calendar the caller supplies. */
+export function forecastBoardFor(
+  core: BottleneckCore,
+  episodes: Map<string, Episode[]>,
+  runs: number,
+  month: Month,
+): ForecastBoard {
   const fleetDurations = core.fleet.flatMap((risk) =>
     (episodes.get(risk.machine.id) ?? []).map((episode) => episode.hours),
   );

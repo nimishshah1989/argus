@@ -13,6 +13,9 @@ export type {
   RiskRow,
 } from './action-center-figure.js';
 export type { ProblemGroup } from './problem-groups.js';
+export { FORECAST_MODEL, frozenForMonth } from './forecast-freeze.js';
+export type { FrozenForecast, FrozenPrediction } from './forecast-freeze.js';
+export type { ForecastBand, ForecastConfidence } from './a9-forecast-sim.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
 export type {
   AmcLine,
