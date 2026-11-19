@@ -190,6 +190,22 @@ export function yearLabel(period: Period): string {
   return inOneYear(period) ? first : `${first}–${period.to.slice(0, 4)}`;
 }
 
+/** The days from day number `start` to `end`, both included, less the days of every no-records month in them. */
+export function observedDayCount(
+  start: number,
+  end: number,
+  noRecords: readonly string[] = [],
+): number {
+  let days = Math.max(0, end - start + 1);
+  for (const key of new Set(noRecords)) {
+    const [year, month] = key.split('-').map(Number) as [number, number];
+    const monthStart = Date.UTC(year, month - 1, 1) / DAY_MS;
+    const monthEnd = Date.UTC(year, month, 0) / DAY_MS;
+    days -= Math.max(0, Math.min(end, monthEnd) - Math.max(start, monthStart) + 1);
+  }
+  return days;
+}
+
 /** The days from `from` to `to` (from `purchasedOn` when later) less the days of every no-records month in them. */
 export function observedDays(
   from: string,
@@ -198,14 +214,7 @@ export function observedDays(
   purchasedOn?: string | null,
 ): number {
   const start = purchasedOn != null && purchasedOn > from ? purchasedOn : from;
-  let days = daysInclusive(start, to);
-  for (const key of new Set(period.noRecords)) {
-    const [year, month] = key.split('-').map(Number) as [number, number];
-    const monthStart = plantDate(year, month, 1);
-    const monthEnd = plantDate(year, month, daysInMonth(year, month));
-    days -= daysInclusive(start > monthStart ? start : monthStart, to < monthEnd ? to : monthEnd);
-  }
-  return days;
+  return observedDayCount(dayNumber(start), dayNumber(to), period.noRecords);
 }
 
 /**

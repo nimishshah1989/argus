@@ -7,6 +7,7 @@ import {
   type DrawModel,
   type Episode,
 } from './a9-forecast-sim.js';
+import { observedDayCount } from './availability.js';
 import { dayNumber } from './plant-date.js';
 import { effectiveHours, type SourcedReport } from './rows.js';
 import type { MachineRow } from './types.js';
@@ -112,7 +113,7 @@ export function monthsOf(from: string, toDay: number): LabMonth[] {
   return months;
 }
 
-/** The month's base, in fleet order: machines bought strictly before the cut, observed from the later start. */
+/** The month's base, in fleet order: machines bought strictly before the cut, observed from the later start, no gap month's days counted. */
 export function baseOf(
   core: BottleneckCore,
   rows: readonly SourcedReport[],
@@ -133,7 +134,7 @@ export function baseOf(
       {
         machine: risk.machine,
         category: risk.category,
-        t: Math.max(1, cut - start + 1),
+        t: Math.max(1, observedDayCount(start, cut, core.noRecords)),
         episodes: own,
         n: own.length,
         durations: own.map((episode) => episode.hours),

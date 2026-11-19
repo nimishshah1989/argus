@@ -1,6 +1,7 @@
-import { observedDays, type Period } from './availability.js';
+import { observedDayCount, observedDays, type Period } from './availability.js';
 import { formatNumber } from './format.js';
 import { dayNumber } from './plant-date.js';
+import { repeatDetail, repeatOf } from './compare-repeat.js';
 import { effectiveHours, isHistory, sourcedReports, type SourcedReport } from './rows.js';
 import type { EngineData, MachineRow } from './types.js';
 
@@ -241,51 +242,13 @@ export function categoryMttr(rows: readonly Compared[]): Map<string, number> {
   );
 }
 
-/** The clusters in one code's sorted days: three or more within 30 days of the cluster's first day. */
-function clustersOf(days: number[]): number {
-  days.sort((left, right) => left - right);
-  let clusters = 0;
-  let index = 0;
-  while (index < days.length) {
-    let end = index;
-    while (end + 1 < days.length && (days[end + 1] ?? 0) - (days[index] ?? 0) <= 30) end += 1;
-    const clustered = end - index + 1 >= 3;
-    if (clustered) clusters += 1;
-    index = clustered ? end + 1 : index + 1;
-  }
-  return clusters;
-}
-
-/** The platform's repeat-fault clusters and very long faults, from the machine's own rows. */
-function repeatOf(
-  list: readonly SourcedReport[],
-  threshold: number,
-): { clusters: number; long: number } {
-  const byCode = new Map<string, number[]>();
-  for (const row of list) {
-    const code = String(row.report.maintCode ?? '').trim();
-    const day = dayNumber(row.report.date);
-    if (code === '' || code === '—' || day === null) continue;
-    byCode.set(code, [...(byCode.get(code) ?? []), day]);
-  }
-  let clusters = 0;
-  for (const days of byCode.values()) clusters += clustersOf(days);
-  return { clusters, long: list.filter((row) => effectiveHours(row.report) > threshold).length };
-}
-
-/** The days a service window covers, from the later of the window and the purchase date to its end. */
-const coverage = (bought: number | null, from: number, to: number, end: number): number =>
-  Math.max(
-    0,
-    Math.round(Math.min(to, end) - (bought === null ? from : Math.max(from, bought))) + 1,
-  );
-
 export type ScoreContext = {
   fitN: Fitted;
   fitH: Fitted;
   base: ReadonlyMap<string, number>;
   threshold: number;
   end: number;
+  noRecords?: readonly string[];
 };
 
 /** A fitted level for one machine: its category's level times its age band's factor. */
@@ -293,18 +256,21 @@ function levelOf(fit: Fitted, category: string, band: number): number {
   return (fit.c[category] ?? fit.r0) * (band >= 0 ? (fit.a[band] ?? 1) : 1);
 }
 
-/** The recent-against-prior ratio, each window against what the machine's rate expected there. */
-function trendOf(row: Compared, levelN: number, end: number): number {
-  const bought = boughtOf(row.machine);
-  const recent = (levelN * coverage(bought, end - 89, end, end)) / 365;
-  const prior = (levelN * coverage(bought, end - 179, end - 90, end)) / 365;
-  return ((row.n90 + 2) / (recent + 2) || 0) / ((row.p90n + 2) / (prior + 2) || 1);
-}
+/** The days a machine was in service and observed inside a window: from its purchase, no gap month's days. */
+const coverage = (
+  bought: number | null,
+  window: readonly [number, number],
+  noRecords?: readonly string[],
+): number =>
+  observedDayCount(bought === null ? window[0] : Math.max(window[0], bought), window[1], noRecords);
 
-/** The repeat part's printed text, with the platform's plural forms. */
-function repeatDetail(repeat: { clusters: number; long: number }, threshold: number): string {
-  const clusters = `${repeat.clusters} repeat-fault cluster${repeat.clusters === 1 ? '' : 's'}`;
-  return `${clusters}, ${repeat.long} breakdown${repeat.long === 1 ? '' : 's'} over ${threshold} hrs`;
+/** The recent-against-prior ratio, each window against what the machine's rate expected over its observed days. */
+function trendOf(row: Compared, levelN: number, context: ScoreContext): number {
+  const { end, noRecords } = context;
+  const bought = boughtOf(row.machine);
+  const recent = (levelN * coverage(bought, [end - 89, end], noRecords)) / 365;
+  const prior = (levelN * coverage(bought, [end - 179, end - 90], noRecords)) / 365;
+  return ((row.n90 + 2) / (recent + 2) || 0) / ((row.p90n + 2) / (prior + 2) || 1);
 }
 
 /** The scorecard's parts, with the platform's short-history protection and its exact printed details. */
@@ -335,7 +301,7 @@ function componentsOf(row: Compared, context: ScoreContext): Component[] {
   );
   add(
     'trend',
-    cmpMap(trendOf(row, levelN, context.end)),
+    cmpMap(trendOf(row, levelN, context)),
     `${row.n90} breakdowns in the last 90 days, ${row.p90n} in the 90 days before`,
   );
   const repeat = repeatOf(row.list, context.threshold);

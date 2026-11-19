@@ -1,5 +1,6 @@
 import { type BottleneckRisk } from './a9-bottleneck.js';
 import { fleetRows } from './a9-forecast-sim.js';
+import { observedDayCount } from './availability.js';
 import { normalizeLabel } from './format.js';
 import { dayNumber } from './plant-date.js';
 import { effectiveHours, type SourcedReport } from './rows.js';
@@ -118,10 +119,14 @@ const healthLabel = (score: number): string =>
           ? 'Poor'
           : 'Critical';
 
-/** Days the machine was in service inside a window, both ends included, or zero when the window is before it. */
-function overlap(purchase: number | null, from: number, to: number): number {
-  const start = Math.max(from, purchase ?? Number.NEGATIVE_INFINITY);
-  return Math.max(0, Math.round(to - start) + 1);
+/** Days the machine was in service and observed inside a window: both ends included, no gap month's days, zero before it. */
+function overlap(
+  purchase: number | null,
+  window: readonly [number, number],
+  noRecords?: readonly string[],
+): number {
+  const start = Math.max(window[0], purchase ?? Number.NEGATIVE_INFINITY);
+  return observedDayCount(start, window[1], noRecords);
 }
 
 /** One machine's entries in its observed window, and its two 90-day counts for the trend component. */
@@ -226,6 +231,7 @@ interface ScoreContext {
   readonly m0: number;
   readonly end: number;
   readonly threshold: number;
+  readonly noRecords?: readonly string[];
 }
 
 /** One machine's health row, from its facts, history, the two fits and its category's repair-time baseline. */
@@ -240,8 +246,10 @@ function healthRowOf(risk: BottleneckRisk, history: History, context: ScoreConte
     (context.fits.h.c[cat] ?? context.fits.h.r0) * (band >= 0 ? context.fits.h.a[band]! : 1);
   const expN = rateN * yrs;
   const expH = rateH * yrs;
-  const expectedRecent = (rateN * overlap(purchase, context.end - 89, context.end)) / 365;
-  const expectedBefore = (rateN * overlap(purchase, context.end - 179, context.end - 90)) / 365;
+  const expectedRecent =
+    (rateN * overlap(purchase, [context.end - 89, context.end], context.noRecords)) / 365;
+  const expectedBefore =
+    (rateN * overlap(purchase, [context.end - 179, context.end - 90], context.noRecords)) / 365;
   const parts: Array<readonly [number, number]> = [
     [0.3, healthMap((risk.count + 3) / (expN + 3))],
     [0.25, healthMap((risk.hours + 10) / (expH + 10))],
@@ -275,7 +283,12 @@ function healthRowOf(risk: BottleneckRisk, history: History, context: ScoreConte
 
 /** Every production machine's health row: one fit for counts, one for hours, and the category MTTR baseline. */
 export function healthRowsOf(
-  core: { from: string; to: string; fleet: readonly BottleneckRisk[] },
+  core: {
+    from: string;
+    to: string;
+    fleet: readonly BottleneckRisk[];
+    noRecords?: readonly string[];
+  },
   data: EngineData,
   threshold: number,
 ): HealthRow[] {
@@ -306,6 +319,6 @@ export function healthRowsOf(
     const total = totals.get(cat);
     const m0 = total !== undefined && total.n > 0 ? total.h / total.n : plantM0;
     const history = histories.get(risk.machine.id) ?? { list: [], n90: 0, p90n: 0 };
-    return healthRowOf(risk, history, { fits, m0, end, threshold });
+    return healthRowOf(risk, history, { fits, m0, end, threshold, noRecords: core.noRecords });
   });
 }
