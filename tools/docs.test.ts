@@ -6,6 +6,7 @@ import {
   STACK_FILES,
   TRACKER_PATH,
   drizzleErrors,
+  historyErrors,
   instructionPaths,
   processErrors,
   readDocs,
@@ -70,6 +71,7 @@ describe('docs check', () => {
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain('ticket 52');
       expect(errors[0]).toContain('todo');
+      expect(errors[0]).toContain('history has "feat(52c)');
     });
 
     it('fails a todo row whose ticket has a fix commit', () => {
@@ -130,8 +132,27 @@ describe('docs check', () => {
       expect(trackerErrors(tracker('blocked'), []).join()).toContain('ticket 52');
     });
 
+    it('says which statuses are allowed when one is unknown', () => {
+      expect(trackerErrors(tracker('blocked'), []).join()).toContain(
+        '(allowed: todo, in progress, done, parked, withdrawn)',
+      );
+    });
+
     it('passes with no commits', () => {
       expect(trackerErrors(tracker('todo'), [])).toEqual([]);
+    });
+  });
+
+  describe('unreadable commit history', () => {
+    it('fails in CI, where a silent skip would make the tracker check green', () => {
+      expect(historyErrors(null, true)).toEqual([
+        'could not read git history in CI, tracker not checked',
+      ]);
+    });
+
+    it('stays soft outside CI and when history was read', () => {
+      expect(historyErrors(null, false)).toEqual([]);
+      expect(historyErrors(['feat(52c): x'], true)).toEqual([]);
     });
   });
 });

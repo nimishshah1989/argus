@@ -9,7 +9,7 @@
 - The history plan gains what Bhavin's 2023 workbooks show: utility rows written once per machine, real rows the
   year rule would drop, the workbooks' own code legend, and a hole in early 2022.
 - Nothing a user sees changes in this change.
-- `pnpm docs:check` now fails when a merged `feat` or `fix` commit names a ticket whose tracker row still says `todo`, so the tracker cannot fall behind `main` again.
+- `pnpm docs:check` catches one kind of drift: a merged `feat` or `fix` commit whose ticket row still says `todo` (stale `in progress` or `done` rows are caught by the gate report). It also fails when it cannot find the tracker table.
 - A review of the plan corrected its numbers: the ticket totals add up (97 tickets are counted: 92 active and 5 parked; ticket 70 is withdrawn and excluded), the chart-size and parity figures are measured instead of recalled, ticket 97 refuses deploys outside 05:00–08:00 IST, and the Gujarati gap is stated exactly (1,209 of 1,848 strings blank).
 - The same review fixed the order: the PM calendar screen waits for the page templates, tickets 77 and 78 each split into an API part and a screen part, ticket 28 waits for 78, 97 and 98, and the two lanes' builder limits are written in.
 - Goals that could not be met as written now can: the history plan's February and March 2022 wording, the list of one-year places in the engine (9 verified, not 14), the figures that have no earlier period, and where a nightly red run blocks work.

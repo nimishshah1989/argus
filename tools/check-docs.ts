@@ -125,7 +125,8 @@ export function trackerErrors(tracker: string, subjects: readonly string[]): str
   const errors = rows
     .filter(([, status]) => !STATUSES.includes(status.toLowerCase()))
     .map(
-      ([ticket, status]) => `${TRACKER_PATH}: ticket ${ticket} has an unknown status "${status}"`,
+      ([ticket, status]) =>
+        `${TRACKER_PATH}: ticket ${ticket} has an unknown status "${status}" (allowed: ${STATUSES.join(', ')})`,
     );
   const todo = new Set(
     rows.filter(([, status]) => status.toLowerCase() === 'todo').map(([ticket]) => Number(ticket)),
@@ -140,7 +141,7 @@ export function trackerErrors(tracker: string, subjects: readonly string[]): str
     .sort(([x], [y]) => x - y)
     .map(
       ([ticket, subject]) =>
-        `${TRACKER_PATH}: ticket ${ticket} still says todo but main has "${subject}"`,
+        `${TRACKER_PATH}: ticket ${ticket} still says todo but history has "${subject}"`,
     );
   return [...errors, ...stale];
 }
@@ -162,6 +163,11 @@ export function commitSubjects(): string[] | null {
   }
 }
 
+/** In CI an unreadable history must fail, or the stale-tracker check goes silently green. */
+export function historyErrors(subjects: readonly string[] | null, ci: boolean): string[] {
+  return subjects === null && ci ? ['could not read git history in CI, tracker not checked'] : [];
+}
+
 function isShallow(): boolean {
   try {
     const out = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
@@ -179,7 +185,12 @@ function main(): void {
   const stack = readDocs([...STACK_FILES]);
   const subjects = commitSubjects();
   const tracker = trackerErrors(readDocs([TRACKER_PATH])[0]?.text ?? '', subjects ?? []);
-  const errors = [...processErrors(instructions), ...drizzleErrors(stack), ...tracker];
+  const errors = [
+    ...processErrors(instructions),
+    ...drizzleErrors(stack),
+    ...tracker,
+    ...historyErrors(subjects, Boolean(process.env.CI)),
+  ];
   const checked = subjects
     ? `${subjects.length} commits vs tracker${isShallow() ? ' (shallow history)' : ''}`
     : 'commits not checked (no git history)';
