@@ -39,10 +39,26 @@ interface Row {
   cells: readonly string[];
 }
 
+const RUPEES: Record<string, number> = { lakh: 1e5, cr: 1e7, crore: 1e7 };
+const MONEY = /^₹\s*(\d[\d,]*(?:\.\d+)?)\s*(lakh|crore|cr)?\b/i;
+
+/**
+ * The number a printed cell carries, for ordering only: a plain number or percentage, or money in the form the
+ * engine prints ("₹ 38.23 lakh", "₹ 1.2 cr", "₹ 71,784") read to rupees so lakh and crore rows sort by value.
+ */
+export function sortNumber(cell: string): number | null {
+  const plain = cellNumber(cell);
+  if (plain !== null) return plain;
+  const found = MONEY.exec(cell.trim());
+  if (found === null) return null;
+  const value = Number((found[1] ?? '').replaceAll(',', ''));
+  return Math.round(value * (RUPEES[(found[2] ?? '').toLowerCase()] ?? 1) * 100) / 100;
+}
+
 /** A column is numeric when every printed cell that is not a dash is a number: it aligns right and sorts as one. */
 function isNumeric(rows: readonly Row[], at: number): boolean {
   const cells = rows.map((row) => row.cells[at] ?? '').filter((cell) => !isMissing(cell));
-  return cells.length > 0 && cells.every((cell) => cellNumber(cell) !== null);
+  return cells.length > 0 && cells.every((cell) => sortNumber(cell) !== null);
 }
 
 /** The columns of an engine table: a header per cell, sorted by the number it carries (a dash sorts last). */
@@ -59,7 +75,7 @@ export function columnsOf(table: PageTable, rows: readonly Row[]): Column<Row>[]
         ? {
             sortValue: (row: Row): number | string => {
               if (isMissing(printed(row))) return Number.NaN;
-              return numeric ? (cellNumber(printed(row)) ?? Number.NaN) : printed(row);
+              return numeric ? (sortNumber(printed(row)) ?? Number.NaN) : printed(row);
             },
           }
         : {}),
