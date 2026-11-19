@@ -32,3 +32,23 @@
   and 684 on the two-year plant). It can also name the window of a figure that learns from all history, 1 January of the
   first record's year to the run date. Nothing is wired in yet, so every existing figure returns the same numbers and
   the 2026 answer key is untouched. No screen changes.
+
+## 76d — the engine runs on a named span
+
+- The analytics engine can now be run for one span of plant dates. Run on the two-year test plant at 31 January 2027,
+  2025 gives 69 breakdowns, 66.0 downtime hours, 36.0 PM hours and 1.5 no-downtime hours, 2026 gives 148, 288.0, 48.0
+  and 2.0, and both years give their sum (217, 354.0, 84.0, 3.5). The machine counts, the registers and the figures
+  that learn from all the history read the same in every span. A run that names no span is unchanged: it reads the
+  as-of year to date with no gap month, so the 2026 answer key and every existing test stay as they were. No screen
+  changes yet: most figures still need their own edit to read the span (the packets that follow).
+- Every figure now says what it reads: 24 the span, 18 the run date, 9 the whole history.
+- Rulings: a span cannot run past the run date (2026 asked for on 11 November is read to 11 November), and a span that
+  starts after it is refused. The month still running is never a gap, so on the 1st a span of that month has its first
+  day of hours and no "no records"; the month is a gap only if it is over (the run date is its last day) with no record.
+- A span that starts before the plant's first recorded month is moved up to that month: the empty years before the first
+  record are not available hours (2020 to 2025 on a plant whose log starts in 2025 reads exactly as 2025). The result's
+  period carries the moved `from` and, as `requestedFrom`, what was asked, so a screen can say so. A span wholly before
+  the first record has no hours and no rows. A span with a date the calendar does not have (30 February) is refused.
+- Known edge for later: `cellFrac` (`hours.ts`) is a day share inside the window and still counts a gap month's days
+  for a machine that moved cells mid-window. The two-year plant has no move, so no 76 hand value meets it; 76n or
+  the first packet that reads a moved machine over a gap fixes it.
