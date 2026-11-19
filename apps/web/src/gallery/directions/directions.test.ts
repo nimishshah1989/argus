@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { STATUS, type StatusGroup, type StatusId } from '../../ui/status/index.js';
+import { instrument } from './direction-instrument.js';
 import {
   formatIN,
   paletteProblems,
   ROLES,
   statusRole,
   TONE_ROLES,
+  type Direction,
   type Palette,
+  type Role,
 } from './variant.js';
 
 const everyStatus = (Object.keys(STATUS) as StatusGroup[]).flatMap((group) =>
@@ -150,5 +153,111 @@ describe('Indian grouping', () => {
     expect(formatIN(Number.NaN)).toBe('\u2014');
     expect(formatIN(Number.POSITIVE_INFINITY)).toBe('\u2014');
     expect(formatIN(Number.NEGATIVE_INFINITY)).toBe('\u2014');
+  });
+});
+
+const DIRECTIONS: Record<string, Direction> = { instrument };
+
+const channel = (hex: string, at: number) => {
+  const c = parseInt(hex.slice(at, at + 2), 16) / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+const luminance = (hex: string) =>
+  0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+const hue = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [
+    number,
+    number,
+    number,
+  ];
+  const span = Math.max(r, g, b) - Math.min(r, g, b);
+  if (span === 0) return 0;
+  const h =
+    r === Math.max(r, g, b)
+      ? (g - b) / span
+      : g === Math.max(r, g, b)
+        ? 2 + (b - r) / span
+        : 4 + (r - g) / span;
+  return (h * 60 + 360) % 360;
+};
+const RESERVED_HUES = [
+  [345, 50],
+  [90, 160],
+  [205, 235],
+] as const;
+
+describe.each(Object.entries(DIRECTIONS))('the %s direction', (_slug, d) => {
+  const themes = [
+    ['light', d.light],
+    ['dark', d.dark],
+  ] as const;
+  const tones = TONE_ROLES.map((t) => ({
+    ink: `${t}-ink` as Role,
+    tint: `${t}-tint` as Role,
+    fill: `${t}-fill` as Role,
+  }));
+  const grounds = ['page', 'surface', 'surface-2'] as const;
+
+  const below = (min: number, pairs: (p: Palette) => [string, string, string][]) =>
+    themes.flatMap(([name, p]) =>
+      pairs(p)
+        .filter(([, fg, bg]) => contrast(fg, bg) < min)
+        .map(
+          ([label, fg, bg]) => `${name} ${label} ${fg} on ${bg}: ${contrast(fg, bg).toFixed(2)}`,
+        ),
+    );
+
+  it('sets the same keys in light and dark and covers every role', () => {
+    expect(Object.keys(d.dark).sort()).toEqual(Object.keys(d.light).sort());
+    for (const [, p] of themes) expect(Object.keys(p)).toEqual(expect.arrayContaining([...ROLES]));
+  });
+
+  it('has no palette problem in either theme', () => {
+    for (const [, p] of themes) expect(paletteProblems(p)).toEqual([]);
+  });
+
+  it('keeps every text pair at 4.5 or more', () => {
+    expect(
+      below(4.5, (p) => [
+        ...grounds.flatMap((g): [string, string, string][] =>
+          (['ink', 'ink-2', 'accent'] as const).map((r) => [r, p[r], p[g]]),
+        ),
+        ['accent', p.accent, p['accent-tint']],
+        ['on-accent', p['on-accent'], p.accent],
+        ...tones.flatMap((t): [string, string, string][] => [
+          ...grounds.map((g): [string, string, string] => [t.ink, p[t.ink], p[g]]),
+          [t.ink, p[t.ink], p[t.tint]],
+        ]),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('keeps every fill, series and border at 3 or more against page, surface and surface-2', () => {
+    expect(
+      below(3, (p) =>
+        grounds.flatMap((g): [string, string, string][] => [
+          ['control', p.control, p[g]],
+          ...tones.map((t): [string, string, string] => [t.fill, p[t.fill], p[g]]),
+          ...p.series.map((c, i): [string, string, string] => [`series ${i + 1}`, c, p[g]]),
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it('keeps every series out of the red, green and info-blue bands', () => {
+    const inBand = themes.flatMap(([name, p]) =>
+      p.series
+        .filter((c) =>
+          RESERVED_HUES.some(([from, to]) =>
+            from <= to ? hue(c) >= from && hue(c) <= to : hue(c) >= from || hue(c) <= to,
+          ),
+        )
+        .map((c) => `${name} ${c} at ${Math.round(hue(c))} degrees`),
+    );
+    expect(inBand).toEqual([]);
   });
 });
