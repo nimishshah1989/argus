@@ -106,17 +106,107 @@ function monthIndex(key: string): number {
   return Number(key.slice(0, 4)) * 12 + Number(key.slice(5, 7)) - 1;
 }
 
-/**
- * The months, first record to `asOf`, in which the plant has no report, ticket or task: a gap in the log, not a month
- * without a failure. A ticket or task belongs to its plant day; a row after `asOf` is not read.
- */
-export function gapMonths(data: EngineData, asOf: string): string[] {
+/** The months holding a report, ticket or task up to `asOf`; a ticket or task belongs to its plant day. */
+function recordedMonths(data: EngineData, asOf: string): Set<string> {
   const seen = new Set<string>();
   for (const { date } of data.reports) if (date <= asOf) seen.add(date.slice(0, 7));
   for (const { reportedAt } of [...data.tickets, ...data.tasks]) {
     const day = plantDay(reportedAt, data.timeZone);
     if (day <= asOf) seen.add(day.slice(0, 7));
   }
+  return seen;
+}
+
+/** 1 January of the first record's year to `asOf`: the window a figure that learns from all history reads. */
+export function historyOf(data: EngineData, asOf: string): Period {
+  const first = [...recordedMonths(data, asOf)].sort()[0];
+  return first === undefined ? yearToDate(asOf) : { from: `${first.slice(0, 4)}-01-01`, to: asOf };
+}
+
+/** One calendar month of a period; `outside` is wholly before `from` or after `to`. `from` and `to` are its own days. */
+export interface PeriodMonth {
+  key: string;
+  year: number;
+  month: number;
+  from: string;
+  to: string;
+  state: 'recorded' | 'no-records' | 'outside';
+}
+
+/** Every month from January of the period's first year to December of its last, each keyed `YYYY-MM`. */
+export function calendarMonths(period: Period): PeriodMonth[] {
+  const months: PeriodMonth[] = [];
+  const lastYear = Number(period.to.slice(0, 4));
+  for (let year = Number(period.from.slice(0, 4)); year <= lastYear; year += 1) {
+    for (let month = 1; month <= 12; month += 1) {
+      const from = plantDate(year, month, 1);
+      const to = plantDate(year, month, daysInMonth(year, month));
+      const key = monthKey(year, month);
+      const state =
+        to < period.from || from > period.to
+          ? 'outside'
+          : period.noRecords?.includes(key)
+            ? 'no-records'
+            : 'recorded';
+      months.push({ key, year, month, from, to, state });
+    }
+  }
+  return months;
+}
+
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const inOneYear = (period: Period): boolean => period.from.slice(0, 4) === period.to.slice(0, 4);
+
+/** `Jan` inside one year, `Jan 25` across years: a month never loses its year. */
+export function monthLabel(month: PeriodMonth, period: Period): string {
+  const name = MONTH_NAMES[month.month - 1] as string;
+  return inOneYear(period) ? name : `${name} ${String(month.year % 100).padStart(2, '0')}`;
+}
+
+/** `2026` for one year, `2025–2026` across years. */
+export function yearLabel(period: Period): string {
+  const first = period.from.slice(0, 4);
+  return inOneYear(period) ? first : `${first}–${period.to.slice(0, 4)}`;
+}
+
+/** The days from `from` to `to` (from `purchasedOn` when later) less the days of every no-records month in them. */
+export function observedDays(
+  from: string,
+  to: string,
+  period: Period,
+  purchasedOn?: string | null,
+): number {
+  const start = purchasedOn != null && purchasedOn > from ? purchasedOn : from;
+  let days = daysInclusive(start, to);
+  for (const key of period.noRecords ?? []) {
+    const [year, month] = key.split('-').map(Number) as [number, number];
+    const monthStart = plantDate(year, month, 1);
+    const monthEnd = plantDate(year, month, daysInMonth(year, month));
+    days -= daysInclusive(start > monthStart ? start : monthStart, to < monthEnd ? to : monthEnd);
+  }
+  return days;
+}
+
+/**
+ * The months, first record to `asOf`, in which the plant has no report, ticket or task: a gap in the log, not a month
+ * without a failure. A ticket or task belongs to its plant day; a row after `asOf` is not read.
+ */
+export function gapMonths(data: EngineData, asOf: string): string[] {
+  const seen = recordedMonths(data, asOf);
   const first = [...seen].sort()[0];
   if (first === undefined) return [];
   const gaps: string[] = [];
