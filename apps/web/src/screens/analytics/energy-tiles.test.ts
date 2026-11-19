@@ -11,6 +11,7 @@ const tile = (key: string, machines: number, connected: number, running: number)
   connectedKva: connected,
   avgConnectedKva: machines === 0 ? 0 : connected / machines,
   runningKva: running,
+  avgRunningKva: 0,
   machineIds: [],
 });
 
