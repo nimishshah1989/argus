@@ -25,6 +25,7 @@ import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
 import { registers } from './registers.js';
+import { reliabilityFigure } from './reliability.js';
 import { shiftKpisCompareFigure } from './standard-kpis.js';
 import { teamFocusFigure } from './team-focus.js';
 import type { Computer, EngineData, MachineRow } from './types.js';
@@ -223,6 +224,11 @@ const shiftComputers: Readonly<Record<string, Computer>> = {
   'shift-kpis.compare': shiftKpisCompareFigure,
 };
 
+/** Owner 67's reliability fit and critical-spares list, one figure on the machine page (67a). */
+const reliabilityComputers: Readonly<Record<string, Computer>> = {
+  reliability: reliabilityFigure,
+};
+
 /** Owner 39's figures: the registers and their splits, the cell change log, footprint, age and machine page. */
 const registerComputers: Readonly<Record<string, Computer>> = {
   registers,
@@ -247,4 +253,5 @@ export const COMPUTERS: Readonly<Record<string, Computer>> = {
   ...actionCenterComputers,
   ...reportComputers,
   ...shiftComputers,
+  ...reliabilityComputers,
 };

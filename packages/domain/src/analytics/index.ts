@@ -18,6 +18,16 @@ export type { FrozenForecast, FrozenPrediction } from './forecast-freeze.js';
 export type { ForecastBand, ForecastConfidence } from './a9-forecast-sim.js';
 export { FIGURES, FIGURE_KEYS, type FigureDef } from './registry.js';
 export type {
+  CategoryFit,
+  FitBlock,
+  MachineReliability,
+  Quartiles,
+  ReliabilityValue,
+  SpareRow,
+  Trend,
+  TrendLabel,
+} from './reliability.js';
+export type {
   AmcLine,
   Computed,
   ComputeInput,
