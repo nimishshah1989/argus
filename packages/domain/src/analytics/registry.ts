@@ -26,7 +26,7 @@ export interface FigureDef {
    * kind, or its counts can be honestly zero with no row behind them. The data checklist is the first (machine
    * records have no ticket to drill to); `pm-compliance` is the second (a window with no planned work order still
    * has a true answer, and no ticket to open); `dashboard.breakdown-free` is the third (a plant where every machine
-   * broke down this month answers "0 of N" and has no breakdown-free machine to open).
+   * broke down in the last 30 days answers "0 of N" and has no breakdown-free machine to open).
    */
   mixed?: true;
 }

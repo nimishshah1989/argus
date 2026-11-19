@@ -10,7 +10,7 @@ import {
 
 /**
  * "Breakdown-free machines" when no machine is: the honest answer is "0 of N", and it must not take the rest of
- * the plant's figures down with it. A plant whose every CNC machine broke down this month is a real plant.
+ * the plant's figures down with it. A plant whose every CNC machine broke down in the last 30 days is a real plant.
  */
 
 const machine = (id: string): MachineRow => ({
@@ -83,7 +83,7 @@ const freeOf = (input: EngineData) =>
     (f) => f.key === 'dashboard.breakdown-free',
   );
 
-describe('breakdown-free machines on a plant where every machine broke down this month', () => {
+describe('breakdown-free machines on a plant where every machine broke down in the last 30 days', () => {
   it('answers "0 of 4" with nothing to open, and the rest of the plant still computes', () => {
     const result = run(data(ids, ids), '2026-12-31', DEFAULT_PROFILE);
     const free = result.figures.find((f) => f.key === 'dashboard.breakdown-free');
