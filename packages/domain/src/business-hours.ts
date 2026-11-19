@@ -105,7 +105,18 @@ interface LocalParts {
 
 type PartsFormatter = Intl.DateTimeFormat;
 
+const formatters = new Map<string, PartsFormatter>();
+
+/** One formatter per zone: building one is the slow step, and it holds no state. */
 function formatter(timeZone: string): PartsFormatter {
+  const kept = formatters.get(timeZone);
+  if (kept !== undefined) return kept;
+  const made = makeFormatter(timeZone);
+  formatters.set(timeZone, made);
+  return made;
+}
+
+function makeFormatter(timeZone: string): PartsFormatter {
   return new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -141,7 +152,26 @@ export function plantDayStart(plantDate: string, timeZone: string): Date {
   return new Date(localToUtc(localDay, 0, formatter(timeZone)));
 }
 
+/** The instants already worked out, per formatter (so per zone): a local day and minute always give the same instant. */
+const instants = new WeakMap<PartsFormatter, Map<number, number>>();
+const INSTANT_LIMIT = 50_000;
+
 function localToUtc(day: number, minute: number, format: PartsFormatter): number {
+  let known = instants.get(format);
+  if (known === undefined) {
+    known = new Map();
+    instants.set(format, known);
+  }
+  const key = day * 2000 + minute;
+  const kept = known.get(key);
+  if (kept !== undefined) return kept;
+  const instant = findInstant(day, minute, format);
+  if (known.size >= INSTANT_LIMIT) known.clear();
+  known.set(key, instant);
+  return instant;
+}
+
+function findInstant(day: number, minute: number, format: PartsFormatter): number {
   const localTime = day * DAY_MS + minute * MINUTE_MS;
   const offsets = new Set<number>();
   for (let delta = -2; delta <= 2; delta += 1) {
