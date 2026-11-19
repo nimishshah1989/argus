@@ -1,37 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { tableView } from './chart-table.js';
 import { useChart, type ChartSpec } from './use-chart.js';
-
-interface TableView {
-  categoryLabel: string;
-  categories: string[];
-  series: { name: string; values: (number | undefined)[] }[];
-}
-
-/** The one table every kind shares: categories down, series across. */
-function tableView(spec: ChartSpec): TableView {
-  if (spec.kind === 'scatter') {
-    return {
-      categoryLabel: spec.machineLabel,
-      categories: spec.points.map((point) => point.label),
-      series: [
-        { name: spec.xLabel, values: spec.points.map((point) => point.x) },
-        // A labelled lane axis (A9's map) is a category, not a number to read down the table.
-        ...(spec.yTickLabels === undefined
-          ? [{ name: spec.yLabel, values: spec.points.map((point) => point.y) }]
-          : []),
-        { name: spec.mttrLabel, values: spec.points.map((point) => point.mttr) },
-      ],
-    };
-  }
-  if (spec.kind === 'mixed') {
-    return {
-      categoryLabel: spec.categoryLabel,
-      categories: spec.categories,
-      series: [...spec.bars, ...(spec.line === undefined ? [] : [spec.line])],
-    };
-  }
-  return { categoryLabel: spec.categoryLabel, categories: spec.categories, series: spec.series };
-}
 
 /** A chart with its numbers in a table underneath; colour is never the only signal. */
 export function Chart({ spec }: { spec: ChartSpec }) {

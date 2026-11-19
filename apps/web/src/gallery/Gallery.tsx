@@ -41,6 +41,14 @@ const ShowcaseView = () => (
   </Suspense>
 );
 
+// The chart door's one chart per kind (ticket 84), for the e2e check of the numbers table and reduced motion.
+const ChartDoor = lazy(() => import('./chart-door-view.js'));
+const ChartDoorView = () => (
+  <Suspense fallback={null}>
+    <ChartDoor />
+  </Suspense>
+);
+
 // The navigation map preview of ticket 80v: also its own chunk, and not wired to the product's routing.
 const NavMap = lazy(() => import('./navmap/NavMap.js'));
 const NavMapView = () => (
@@ -55,6 +63,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   directions: DirectionsView,
   showcase: ShowcaseView,
   navmap: NavMapView,
+  charts: ChartDoorView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
