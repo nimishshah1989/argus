@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { availableHours, availabilityWindow } from './availability.js';
+import { hoursIn, yearToDate } from './availability.js';
 import type { BusinessCalendar, ShiftWindow } from '../business-hours.js';
 import type { DateWindow } from './hours.js';
 import { isProduction } from './machine-facts.js';
@@ -78,7 +78,11 @@ export function workingMinutesPerDay(shifts: readonly ShiftRow[]): {
   return { total, byShift };
 }
 
-/** One machine's working hours in a window: the annual hours spread month by month from its purchase date. */
+/**
+ * One machine's working hours in a window: the annual hours spread month by month from its purchase date. The window
+ * is a `Period`, so a month in its `noRecords` list contributes no hours (ticket 76m): the plant kept no records in
+ * it, and a figure cannot tell a closed month from a lost one. A window with no `noRecords` counts every month.
+ */
 export function workingHoursFor(
   machine: MachineRow,
   shifts: readonly ShiftRow[],
@@ -88,7 +92,7 @@ export function workingHoursFor(
   const { total } = workingMinutesPerDay(shifts);
   if (total <= 0) return 0;
   const annualHours = (total / 60) * workDaysPerYear;
-  return availableHours(machine, annualHours, window.from, window.to);
+  return hoursIn(machine, annualHours, window);
 }
 
 /** What the standard family needs from the plant: its window, its basis and its production fleet. */
@@ -102,8 +106,9 @@ export interface PlantWorkingHours {
 }
 
 /**
- * The production fleet's working hours in the days-so-far window: the same window and the same machines the legacy
- * column reads, with the plant's own shift windows as the denominator instead of `prodHrsPerDay`.
+ * The production fleet's working hours in the run's span: the same window and the same machines the legacy column
+ * reads, with the plant's own shift windows as the denominator instead of `prodHrsPerDay`. A run that names a span
+ * carries it on `data.period`, its gap months included; a run with none reads the as-of year so far, no gap month.
  */
 export function workingHoursPlant(
   data: EngineData,
@@ -111,15 +116,12 @@ export function workingHoursPlant(
   asOf: string,
 ): PlantWorkingHours {
   const { total } = workingMinutesPerDay(data.shifts ?? []);
-  const window = availabilityWindow(asOf, asOf);
+  const window = data.period ?? yearToDate(asOf);
   const machines = data.machines.filter(isProduction);
   const annualHours = (total / 60) * profile.workDaysPerYear;
   const hours =
     total === 0
       ? null
-      : machines.reduce(
-          (sum, machine) => sum + availableHours(machine, annualHours, window.from, window.to),
-          0,
-        );
+      : machines.reduce((sum, machine) => sum + hoursIn(machine, annualHours, window), 0);
   return { window, minutesPerDay: total, annualHours, hours, machines };
 }
