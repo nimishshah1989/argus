@@ -44,12 +44,15 @@ Artifact https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, dataset `datasets/ti
 half-hourly from merged commits and PRs; do not edit the page file.
 
 <<<<<<< HEAD
+
 ## Parked
+
 =======
 **Waiting on people (`docs/plan/NEEDS.md`):** N17 February–March 2022, any 2020–21 files, and the 2023 and 2024 workbooks
 placed with the others outside git; N18 the ranking method (54); N19 AI thresholds; N5 Gujarati sign-off; N10 the
 security reviewer; N15 usability sessions; N7 the production account; N20 (not blocking).
->>>>>>> origin/main
+
+> > > > > > > origin/main
 
 CI downloads fonts on every browser/gallery run (use the prebuilt Playwright image); 78b: reply schema uses
 `isoDateTimeSchema` for `createdAt`/`failedAt`; check in 69c whether `recordedMonths` counts plant events; converter
