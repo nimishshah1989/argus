@@ -82,7 +82,7 @@ export interface PlantPageSpec {
   key: Key;
   /** A page that is not one generated list (the lists hub, the company form). */
   screen?: ComponentType;
-  /** Listed only for an admin on a personal login (the API's own rule). */
+  /** Listed only for who may see failed jobs: the admin and the head on a personal login (the API's own rule). */
   adminOnly?: boolean;
   spec?: CrudSpec<never>;
 }

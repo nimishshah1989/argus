@@ -116,13 +116,17 @@ describe('failed jobs are seen (API)', () => {
     expect(alarm).toMatchObject({ level: 50, jobId: item.id, error: ERROR });
   });
 
-  it('shows the list to the admin only, and each plant only its own jobs', async () => {
-    expect((await t.call('GET', LIST, head)).statusCode).toBe(403);
+  it('shows the list to the admin and the head only, and each plant only its own jobs', async () => {
     expect((await t.call('GET', LIST)).statusCode).toBe(401);
+    expect(await listed(head)).toHaveLength(1);
     expect(await listed(outsider, t.callB)).toEqual([]);
     const id = (await listed())[0]!.id;
     expect((await t.callB('POST', `${LIST}/${id}/retry`, outsider, {})).statusCode).toBe(404);
-    expect((await t.call('POST', `${LIST}/${id}/retry`, head, {})).statusCode).toBe(403);
+    for (const role of ['operator', 'technician', 'supervisor', 'plant_head', 'board']) {
+      const token = await t.signIn(role);
+      expect((await t.call('GET', LIST, token)).statusCode, role).toBe(403);
+      expect((await t.call('POST', `${LIST}/${id}/retry`, token, {})).statusCode, role).toBe(403);
+    }
     expect(await listed()).toHaveLength(1);
   });
 
@@ -142,6 +146,23 @@ describe('failed jobs are seen (API)', () => {
       [A],
     );
     expect(trail.rows.map((row) => row.entity_id)).toEqual([id]);
+  });
+
+  it('lets the head retry too, and the audit trail names the head', async () => {
+    broken = true;
+    const id = (await boss.send(FAILING, { tenantId: A }))!;
+    await eventually(async () =>
+      (await listed(head)).some((job) => job.id === id) ? true : undefined,
+    );
+    broken = false;
+    const res = await t.call('POST', `${LIST}/${id}/retry`, head, {});
+    expect(res.statusCode, res.body).toBe(200);
+    expect(await listed(head)).toEqual([]);
+    const trail = await t.db.admin.query(
+      `SELECT l.username FROM audit_log a JOIN login l ON l.id = a.login_id WHERE a.action = 'job.retry' AND a.entity_id = $1`,
+      [id],
+    );
+    expect(trail.rows.map((row) => row.username)).toEqual(['head']);
   });
 
   it('shows no plant a failed job that names no plant, and refuses to retry it', async () => {

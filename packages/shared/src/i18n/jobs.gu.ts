@@ -22,7 +22,7 @@ export const jobsGu = gujarati(jobsEn, {
   'jobs.retried': '{{kind}} ફરી ચલાવાઈ. તે યાદીમાંથી નીકળી ગઈ.',
   'jobs.retryError': '{{kind}} ફરી ચલાવી શકાઈ નહીં. ફરી પ્રયાસ કરો.',
   'jobs.noError': 'આ નિષ્ફળતાનું કારણ સચવાયું નથી.',
-  'jobs.noAccess': 'બેકગ્રાઉન્ડ જોબ એડમિન માટે છે',
+  'jobs.noAccess': 'બેકગ્રાઉન્ડ જોબ એડમિન અને હેડ માટે છે',
   'jobs.kind.ai.suggest': 'એઆઈ સૂચન',
   'jobs.kind.ops.watch': 'સિસ્ટમ દેખરેખ',
   'jobs.kind.sla.timer': 'પ્રતિસાદ ટાઇમર',
@@ -33,5 +33,6 @@ export const jobsGu = gujarati(jobsEn, {
   'jobs.kind.pm.generate': 'આયોજિત જાળવણી ટિકિટ',
   'jobs.kind.engine.run': 'એનાલિટિક્સ રન',
   'jobs.kind.engine.freeze': 'એનાલિટિક્સ માસ બંધ',
-  'jobs.noAccess.body': 'નિષ્ફળ જોબ જોવા પ્લાન્ટ એડમિન તરીકે તમારા પોતાના લૉગિનથી સાઇન ઇન કરો.',
+  'jobs.noAccess.body':
+    'નિષ્ફળ જોબ જોવા પ્લાન્ટ એડમિન કે હેડ તરીકે તમારા પોતાના લૉગિનથી સાઇન ઇન કરો.',
 });
