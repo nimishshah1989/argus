@@ -1,0 +1,1 @@
+The design gallery has a clickable navigation map preview at `/gallery?view=navmap`: the analytics menu with six sections, tabs inside each, a period picker, a search palette (Ctrl or Cmd K), a role switcher and a theme toggle. A design preview only; the product screens are unchanged.
