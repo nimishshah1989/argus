@@ -38,6 +38,7 @@ import { registersSpec } from './registers-spec.js';
 import { RosterScreen } from './roster-spec.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
+import { FailedCount, JOBS_PAGE, canSeeJobs, useFailedCount } from './Jobs.js';
 
 export type PlantPage =
   | 'home'
@@ -51,6 +52,7 @@ export type PlantPage =
   | 'people'
   | 'logins'
   | 'audit'
+  | 'jobs'
   | 'lists'
   | 'glossary'
   | 'company'
@@ -67,6 +69,7 @@ type Key =
   | 'people.menu.people'
   | 'people.menu.logins'
   | 'audit.menu'
+  | 'jobs.menu'
   | 'lists.menu.lists'
   | 'lists.menu.glossary'
   | 'company.menu.company'
@@ -79,6 +82,8 @@ export interface PlantPageSpec {
   key: Key;
   /** A page that is not one generated list (the lists hub, the company form). */
   screen?: ComponentType;
+  /** Listed only for an admin on a personal login (the API's own rule). */
+  adminOnly?: boolean;
   spec?: CrudSpec<never>;
 }
 
@@ -101,6 +106,7 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder', spec: ladderSpec as never },
   ...(PEOPLE_PAGES as readonly PlantPageSpec[]),
   { ...AUDIT_PAGE, spec: null as never },
+  JOBS_PAGE,
   { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
   { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
   { page: 'company', icon: Building2, key: 'company.menu.company', screen: CompanyScreen },
@@ -118,13 +124,13 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   },
 ];
 
-function Home() {
+function Home({ pages, failed }: { pages: readonly PlantPageSpec[]; failed: number }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
       <h2 className="px-1 text-footnote font-semibold text-neutral-600">{t('plant.menu.plant')}</h2>
       <ul className="rounded-2xl bg-surface px-4 shadow-card">
-        {PLANT_PAGES.map(({ page, icon: Icon, key }) => (
+        {pages.map(({ page, icon: Icon, key }) => (
           <li key={page} className="border-t border-neutral-200 first:border-t-0">
             <Link to={`/settings/${page}`} className="flex min-h-16 items-center gap-3 py-2">
               <Icon aria-hidden size={22} />
@@ -132,6 +138,7 @@ function Home() {
                 <span className="block text-body font-semibold">{t(key)}</span>
                 <span className="block text-footnote text-neutral-600">{t(`${key}.sub`)}</span>
               </span>
+              {page === 'jobs' ? <FailedCount count={failed} /> : null}
               <ChevronRight aria-hidden size={20} />
             </Link>
           </li>
@@ -151,11 +158,19 @@ function NoAccess() {
   );
 }
 
-function Body({ page }: { page: PlantPage }) {
+function Body({
+  page,
+  pages,
+  failed,
+}: {
+  page: PlantPage;
+  pages: readonly PlantPageSpec[];
+  failed: number;
+}) {
   if (page === 'people' || page === 'logins') return <PeopleSettings page={page} />;
   if (page === 'audit') return <AuditSettings />;
   const found = PLANT_PAGES.find((p) => p.page === page);
-  if (!found) return <Home />;
+  if (!found) return <Home pages={pages} failed={failed} />;
   if (found.screen) {
     const Screen = found.screen;
     return <Screen />;
@@ -170,9 +185,17 @@ export function PlantSettings({ page }: { page: PlantPage }) {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   useSystemTheme();
   const role = me.data?.user.role;
+  const failed = useFailedCount(me.data?.user);
+  const pages = PLANT_PAGES.filter((p) => !p.adminOnly || canSeeJobs(me.data?.user));
   if (wide && page === 'home') return <Navigate to="/settings/machines" replace />;
   let content: ReactNode = <p className="text-neutral-600">{t('common.loading')}</p>;
-  if (role) content = role === 'admin' || role === 'head' ? <Body page={page} /> : <NoAccess />;
+  if (role)
+    content =
+      role === 'admin' || role === 'head' ? (
+        <Body page={page} pages={pages} failed={failed} />
+      ) : (
+        <NoAccess />
+      );
   const nav = [
     {
       title: t('nav.desk'),
@@ -183,9 +206,9 @@ export function PlantSettings({ page }: { page: PlantPage }) {
     },
     {
       title: t('plant.menu.plant'),
-      items: PLANT_PAGES.map(({ page: to, icon, key }) => ({
+      items: pages.map(({ page: to, icon, key }) => ({
         to: `/settings/${to}`,
-        label: t(key),
+        label: to === 'jobs' && failed > 0 ? t('jobs.menu.withCount', { count: failed }) : t(key),
         icon,
       })),
     },
