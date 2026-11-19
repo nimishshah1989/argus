@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { FAIL_ON_FINDINGS, guardFindings, guardSummary } from './ui-guard.js';
 
 /**
  * UI guard (ticket 10, D20). Files under faces/ are built from the kit only: no className or
@@ -62,7 +63,10 @@ function main(): void {
   const errors = uiErrors(files);
   console.log(`ui: ${files.length} files, ${errors.length} problem(s)`);
   for (const error of errors) console.error(`ui: ${error}`);
-  if (errors.length > 0) process.exitCode = 1;
+  const findings = guardFindings(files);
+  for (const line of guardSummary(findings)) console.log(line);
+  if (errors.length > 0 || (FAIL_ON_FINDINGS && findings.length > 0)) process.exitCode = 1;
+  else if (findings.length > 0) console.log('ui guard: warning only until ticket 87');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();
