@@ -9,6 +9,7 @@ import '@fullcalendar/react/themes/classic/palette.css';
 import type { EventDisplayInfo, EventDropInfo } from '@fullcalendar/react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
+import { CalendarCheck, CalendarClock, TriangleAlert } from '../../ui/icon.js';
 import { displayDay } from './machine-values.js';
 import { gridRange, type PmEvent } from './pm-calendar-view.js';
 import './pm-calendar.css';
@@ -57,6 +58,12 @@ function EventChip({ info }: { info: EventDisplayInfo }) {
       data-pm-status={props.status}
       data-pm-crowded={props.crowded ? 'true' : undefined}
     >
+      {props.status === 'open' ? (
+        <CalendarClock aria-hidden size={12} className="shrink-0" />
+      ) : (
+        <CalendarCheck aria-hidden size={12} className="shrink-0" />
+      )}
+      {props.crowded ? <TriangleAlert aria-hidden size={12} className="shrink-0" /> : null}
       <span className="pm-event-code">{info.event.title}</span>
       <span className="sr-only">
         {` — ${t('pm.calendar.eventAria', {
@@ -92,7 +99,7 @@ export default function PmCalendar({
     }
   };
   return (
-    <div className="pm-calendar overflow-x-auto rounded-2xl bg-surface p-2 shadow-card">
+    <div className="pm-calendar overflow-x-auto rounded-card bg-surface p-3 shadow-card">
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin, classicThemePlugin]}
         initialView="dayGridMonth"

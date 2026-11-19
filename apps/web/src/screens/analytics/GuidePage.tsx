@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Stack } from '../../ui/layout.js';
 import { FIGURE_LABELS } from './groups.js';
+import { Template } from './shell/patterns/template.js';
 import { GUIDE_ENTRIES, guideFigureLinks, type GuideEntry } from './guide-entries.js';
 
 /**
  * The Guide (ticket 45, packet 45f): the key's 36 headings as a contents list, then one entry per heading with
- * our plain-English rule and a link to every figure it explains. The entries and their links are data in
+ * our plain-English rule and a link to every figure it explains, on the entity template: one h2, the contents list, then one h3 section per entry. The entries and their links are data in
  * `guide-entries.ts`; this file only renders them. The five features this build does not have print the
  * not-built line instead of a rule.
  */
+
+/** The template: one thing, read top to bottom. */
+const KIND = 'entity' as const;
 
 /** The anchor id for one entry; the contents and the section share it. */
 const anchorOf = (id: string): string => `guide-${id}`;
@@ -42,12 +45,12 @@ function GuideSection({ entry }: { entry: GuideEntry }) {
     <section
       id={anchor}
       aria-labelledby={`${anchor}-title`}
-      className="rounded-2xl bg-surface p-4 shadow-card"
+      className="scroll-mt-24 rounded-card bg-surface p-4 shadow-card"
     >
-      <h2 id={`${anchor}-title`} className="text-title3 font-semibold">
+      <h3 id={`${anchor}-title`} className="text-body font-semibold">
         {t(entry.titleKey)}
-      </h2>
-      <div className="mt-2 flex flex-col gap-2 text-body text-neutral-900">
+      </h3>
+      <div className="mt-2 flex max-w-3xl flex-col gap-2 text-body text-neutral-900">
         {entry.bodyKeys.map((key) => (
           <p key={key}>{t(key)}</p>
         ))}
@@ -65,28 +68,32 @@ function GuideSection({ entry }: { entry: GuideEntry }) {
 export function GuidePage() {
   const { t } = useTranslation();
   return (
-    <Stack gap={6}>
-      <p className="max-w-3xl text-body text-neutral-600">{t('analytics.guide.intro')}</p>
-      <nav aria-label={t('analytics.guide.contents')}>
-        <h2 className="text-title3 font-semibold">{t('analytics.guide.contents')}</h2>
-        <ol className="mt-2 grid grid-cols-1 gap-1 text-body sm:grid-cols-2">
+    <Template
+      title={t('analytics.guide.heading')}
+      kind={KIND}
+      lede={t('analytics.guide.intro')}
+      main={
+        <>
+          <nav aria-label={t('analytics.guide.contents')} className="flex flex-col gap-2">
+            <h3 className="text-body font-semibold">{t('analytics.guide.contents')}</h3>
+            <ol className="grid grid-cols-1 gap-1 text-body lg:grid-cols-2">
+              {GUIDE_ENTRIES.map((entry) => (
+                <li key={entry.id}>
+                  <a
+                    href={`#${anchorOf(entry.id)}`}
+                    className="flex min-h-target-min items-center rounded-lg px-2 text-neutral-700 hover:bg-neutral-200"
+                  >
+                    {t(entry.titleKey)}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
           {GUIDE_ENTRIES.map((entry) => (
-            <li key={entry.id}>
-              <a
-                href={`#${anchorOf(entry.id)}`}
-                className="flex min-h-target-min items-center rounded-lg px-2 text-neutral-700 hover:bg-neutral-200"
-              >
-                {t(entry.titleKey)}
-              </a>
-            </li>
+            <GuideSection key={entry.id} entry={entry} />
           ))}
-        </ol>
-      </nav>
-      <div className="flex flex-col gap-4">
-        {GUIDE_ENTRIES.map((entry) => (
-          <GuideSection key={entry.id} entry={entry} />
-        ))}
-      </div>
-    </Stack>
+        </>
+      }
+    />
   );
 }

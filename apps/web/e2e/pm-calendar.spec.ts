@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { addDays } from '@uptimo/shared';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { apiFetch, apiLogin, signIn } from './fixtures.js';
@@ -300,6 +301,65 @@ test('a head drags a PM to a free day, reads the tiles and opens a machine’s T
   await test.step('next month opens and stays on the next month', () => nextMonth(page));
   await test.step('the machine page lists its open work request and PM job under Tasks', () =>
     openTasks(page, taskMachine));
+});
+
+/** The first Monday-Saturday after `day`: a day the server accepts. */
+function workingDayAfter(day: string): string {
+  let next = addDays(day, 1);
+  while (new Date(`${next}T00:00:00Z`).getUTCDay() === 0) next = addDays(next, 1);
+  return next;
+}
+
+/** Types a day into the focused native date field, in the order the browser's own locale lays its parts out. */
+async function typeDay(page: Page, day: string): Promise<void> {
+  const order = await page.evaluate(() =>
+    new Intl.DateTimeFormat(navigator.language)
+      .formatToParts(new Date(2000, 10, 22))
+      .map((part) => part.type)
+      .filter((type) => type === 'day' || type === 'month' || type === 'year'),
+  );
+  const [year, month, date] = day.split('-') as [string, string, string];
+  const parts: Record<string, string> = { year, month, day: date };
+  for (const type of order) await page.keyboard.type(parts[type] ?? '');
+}
+
+// The calendar's drag has no keyboard, so every movable job is also listed with "Move to date" (ticket 87).
+test('a head moves a PM job to a date with the keyboard alone', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'chromium')
+    await page.setViewportSize({ width: 1440, height: 900 });
+  const machine = pmCalendarMachine(testInfo.project.name);
+  const target = workingDayAfter(nextWorkingDay());
+  await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
+  await signIn(page, 'head');
+  await page.goto('/analytics/pm');
+  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
+  const open = page.getByRole('button', { name: `Move to date, ${machine.code}` });
+  await open.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  const field = dialog.getByLabel('New date');
+  for (let tab = 0; tab < 3; tab += 1) {
+    if (await field.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(field).toBeFocused();
+  await typeDay(page, target);
+  const saved = page.waitForResponse(
+    (reply) =>
+      reply.request().method() === 'POST' &&
+      new URL(reply.url()).pathname === '/api/v1/pm/reschedule' &&
+      reply.status() === 200,
+  );
+  await page.keyboard.press('Enter');
+  const request = (await saved).request().postDataJSON() as Record<string, unknown>;
+  expect(request).toMatchObject({ machineId: machine.id, scheduledOn: target });
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('status').filter({ hasText: `moved to ${shownDay(target)}` }),
+  ).toBeVisible();
+  await expect(open).toBeFocused();
+  await expect(cellOf(page, target).getByText(machine.code, { exact: true })).toBeVisible();
 });
 
 test('an operator is refused the PM calendar and the move', async ({ page }, testInfo) => {

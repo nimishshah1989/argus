@@ -33,6 +33,15 @@ export const pmEn = {
   'pm.calendar.spread.hint':
     '{{count}} days hold more than one PM. Move a job to its nearest free working day inside its tolerance.',
   'pm.calendar.moveTo': 'Move to {{date}}',
+  'pm.calendar.moveDate': 'Move to date',
+  'pm.calendar.moveDateFor': 'Move to date, {{machine}}',
+  'pm.calendar.moveSheet.title': 'Move {{machine}} to a date',
+  'pm.calendar.moveSheet.now': 'Now planned for {{date}}.',
+  'pm.calendar.moveSheet.label': 'New date',
+  'pm.calendar.moveSheet.confirm': 'Move job',
+  'pm.calendar.jobs.title': 'Jobs this month',
+  'pm.calendar.jobs.hint':
+    'Every PM job in this month can be moved here with the keyboard: choose Move to date, type the day and press Enter.',
   'pm.calendar.suggested': 'Nearest free day {{date}}',
   'pm.calendar.noFreeDay': 'No free day inside its tolerance.',
   'pm.calendar.moved': '{{machine}} moved to {{date}}.',
