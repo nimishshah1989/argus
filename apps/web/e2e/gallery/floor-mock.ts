@@ -155,6 +155,13 @@ const COMPLAINTS = [
     handback: HANDBACK,
   }),
 ];
+/** What the maintenance login reported itself: the endpoint answers each person only their own. */
+const OWN_TECH = ticket('t1', {
+  machineId: 'm5',
+  problem: 'Oil level low',
+  reportedByPersonId: 'p2',
+  raisedLoginId: 'u1',
+});
 const PM_JOBS = [
   ticket('c1', {
     machineId: 'm5',
@@ -237,14 +244,18 @@ export async function mockFloor(
       return json({ ticket: ticket('n1', { machineId: 'm1', problem: 'Spindle alarm' }) });
     if (path === '/tickets') {
       const pm = url.searchParams.get('channel') === 'pm';
-      return json({ items: pm ? PM_JOBS : COMPLAINTS, nextCursor: null });
+      const own = [...COMPLAINTS, OWN_TECH].filter(
+        (item) => item.reportedByPersonId === url.searchParams.get('raisedBy'),
+      );
+      return json({ items: pm ? PM_JOBS : own, nextCursor: null });
     }
     return json({});
   });
 }
 
 /**
- * Every control and heading that is on screen, top to bottom, as "tag: first 12 letters". Fields are named by
+ * Every control and heading that is on screen, top to bottom, as "tag: first 40 letters @third", where third is
+ * the third of a 740 px screen its top edge falls in (0, 1, 2; 3 and up are below the fold). Fields are named by
  * their label or placeholder, so a restyle that moves, drops or adds a control changes the list.
  */
 export function controlOrder(page: Page): Promise<string[]> {
@@ -256,7 +267,8 @@ export function controlOrder(page: Page): Promise<string[]> {
         const field = el as HTMLInputElement;
         const own = el.getAttribute('aria-label') ?? field.labels?.[0]?.textContent ?? '';
         const name = (own || el.textContent || field.placeholder || '').replace(/\s+/g, ' ');
-        return `${el.tagName.toLowerCase()}: ${name.trim().slice(0, 12)}`;
+        const third = Math.floor(((el.getBoundingClientRect().top + scrollY) / 740) * 3);
+        return `${el.tagName.toLowerCase()}: ${name.trim().slice(0, 40)} @${third}`;
       });
   });
 }

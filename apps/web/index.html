@@ -16,6 +16,14 @@
           '.webmanifest" />',
       );
     </script>
+    <!-- Set the phone's dark setting before first paint on the floor and desk, so a dark phone never flashes light. -->
+    <script>
+      if (
+        /^\/(floor|desk)/.test(location.pathname) &&
+        matchMedia('(prefers-color-scheme: dark)').matches
+      )
+        document.documentElement.dataset.theme = 'dark';
+    </script>
     <title>Uptimo</title>
   </head>
   <body>

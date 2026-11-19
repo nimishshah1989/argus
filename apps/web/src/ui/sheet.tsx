@@ -26,7 +26,7 @@ export function Sheet({
         <Dialog.Overlay className="fixed inset-0 z-20 bg-neutral-900/40 transition-opacity duration-(--motion-slow)" />
         <Dialog.Content
           aria-describedby={undefined}
-          className={`fixed inset-x-0 bottom-0 z-20 flex max-h-[85dvh] flex-col gap-4 overflow-y-auto rounded-t-sheet bg-surface p-4 shadow-sheet transition-transform duration-(--motion-slow) ${PANEL}`}
+          className={`fixed inset-x-0 bottom-0 z-20 flex max-h-[85dvh] flex-col gap-4 overflow-y-auto rounded-t-sheet bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-sheet transition-transform duration-(--motion-slow) ${PANEL}`}
         >
           <div className="flex items-center justify-between gap-4">
             <Dialog.Title className="text-title3 font-semibold">{title}</Dialog.Title>

@@ -46,6 +46,35 @@ function probe() {
   return { small, zoom, wide: document.documentElement.scrollWidth - innerWidth };
 }
 
+/** Fonts loaded and two frames painted: layout is final before anything is measured. */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
+}
+
+/** Every primary button on the floor is 52 px high; the quiet one beside it in a sheet is 44. */
+async function primaryHeights(page: Page): Promise<void> {
+  await mockFloor(page, {});
+  await page.goto('/floor/other');
+  await page.getByRole('heading', { name: 'Other work (not a machine)' }).waitFor();
+  const send = await page.getByRole('button', { name: 'Send work request' }).boundingBox();
+  expect(send?.height).toBe(52);
+  await mockFloor(page, {});
+  await page.goto('/floor?m=CNC-01');
+  await page.getByRole('button', { name: /^Machine has stopped/ }).click();
+  await page.getByRole('button', { name: 'Spindle alarm' }).click();
+  const sendStopped = page.getByRole('button', { name: 'Send: machine has stopped' });
+  expect((await sendStopped.boundingBox())?.height).toBe(52);
+  await page.goto('/floor/mine');
+  await page.getByRole('button', { name: 'Not fixed' }).click();
+  const sheet = page.getByRole('dialog');
+  const sendBack = await sheet.getByRole('button', { name: 'Send back to maintenance' });
+  expect((await sendBack.boundingBox())?.height).toBe(52);
+  expect((await sheet.getByRole('button', { name: 'Cancel' }).boundingBox())?.height).toBe(44);
+}
+
 const PHONE = { width: 360, height: 740 };
 
 for (const scheme of ['light', 'dark'] as const) {
@@ -58,8 +87,7 @@ for (const scheme of ['light', 'dark'] as const) {
         await page.goto(screen.path);
         await expect(page.getByRole('heading').first()).toBeVisible();
         await screen.steps?.(page);
-        await page.waitForTimeout(400);
-
+        await settle(page);
         const found = await page.evaluate(probe);
         expect(found.small, 'a tap target under 44 px').toEqual([]);
         expect(found.zoom, 'a field under 16 px zooms the page on iOS').toEqual([]);
@@ -70,14 +98,10 @@ for (const scheme of ['light', 'dark'] as const) {
       });
     }
 
-    test('the primary button is 52 px high and the page takes the phone setting', async ({
+    test('primary buttons (Send and the sheet) are 52 px high and the page takes the phone setting', async ({
       page,
     }) => {
-      await mockFloor(page, {});
-      await page.goto('/floor/other');
-      await page.getByRole('heading', { name: 'Other work (not a machine)' }).waitFor();
-      const send = await page.getByRole('button', { name: 'Send work request' }).boundingBox();
-      expect(send?.height).toBe(52);
+      await primaryHeights(page);
       const theme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'light');
       expect(theme).toBe(scheme);
       const bar = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);

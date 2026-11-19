@@ -78,7 +78,7 @@ export function FinishTime(p: FinishTimeProps) {
 /** A hint line over the screen's one primary button, pinned to the bottom. */
 export function ScreenFooter({ hint, children }: { hint: string; children: ReactNode }) {
   return (
-    <footer className="sticky bottom-0 flex flex-col gap-3 border-t border-neutral-200 bg-surface p-4">
+    <footer className="sticky bottom-0 flex flex-col gap-3 border-t border-neutral-200 bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <p className="text-center text-footnote text-neutral-600">{hint}</p>
       {children}
     </footer>
