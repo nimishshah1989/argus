@@ -172,40 +172,64 @@ async function drill(sourceUrl: string): Promise<DrillResult> {
   const source = new Pool({ connectionString: sourceUrl, max: 2 });
   const work = mkdtempSync(join(tmpdir(), 'restore-drill-'));
   const scratch = `restore_drill_${Date.now()}`;
-  let created = false;
+  const state = { created: false };
+  let result: DrillResult;
+  let leftBehind = false;
   try {
-    if (!(await mayBypassRowSecurity(source)))
-      return stop('this login is subject to row security; a dump from it would be incomplete');
-    const file = join(work, 'drill.dump');
-    const { largest, dump } = await snapshotDump(source, sourceUrl, file);
-    if (!dump.ok) return stop(`pg_dump failed: ${dump.stderr.trim().split('\n')[0]}`);
-    if ((largest[0]?.rows ?? 0) === 0) return stop('the source database holds no rows to compare');
-    await ensureRoles(source);
-    await source.query(`CREATE DATABASE ${scratch}`);
-    created = true;
-    const scratchUrl = withDatabase(sourceUrl, scratch);
-    const restore = tool(
-      'pg_restore --no-owner --no-privileges -d "$DRILL_URL" "$DRILL_FILE"',
-      scratchUrl,
-      file,
-    );
-    const errors = realRestoreErrors(restore.stderr);
-    if (errors.length > 0) return stop(`the restore had errors: ${errors[0]}`);
-    // pg_restore exits 1 for the harmless notes above; an exit with no error line at all is a kill or a crash.
-    if (!restore.ok && !restore.stderr.includes('pg_restore: error:'))
-      return stop('pg_restore did not finish');
-    const rows = compareCounts(largest, await restoredCounts(scratchUrl, largest));
-    return { ok: rows.every((r) => r.equal), dumpBytes: statSync(file).size, rows };
+    result = await restoreAndCount(source, { sourceUrl, work, scratch, state });
   } finally {
-    if (created)
-      await source
-        .query(`DROP DATABASE IF EXISTS ${scratch} WITH (FORCE)`)
-        .catch(() =>
-          console.error(`could not drop the scratch database ${scratch}; drop it by hand`),
-        );
+    if (state.created)
+      leftBehind = await source.query(`DROP DATABASE IF EXISTS ${scratch} WITH (FORCE)`).then(
+        () => false,
+        () => true,
+      );
     await source.end();
     rmSync(work, { recursive: true, force: true });
+    if (leftBehind)
+      console.error(`could not drop the scratch database ${scratch}; drop it by hand`);
   }
+  // A PASS must mean nothing is left behind.
+  if (!leftBehind) return result;
+  const left = `the scratch database ${scratch} could not be dropped; drop it by hand`;
+  return stop(
+    result.ok
+      ? `the restore passed but ${left}`
+      : `${result.stopped ?? 'the drill failed'}; ${left}`,
+  );
+}
+
+interface DrillPaths {
+  sourceUrl: string;
+  work: string;
+  scratch: string;
+  state: { created: boolean };
+}
+
+async function restoreAndCount(source: Pool, paths: DrillPaths): Promise<DrillResult> {
+  const { sourceUrl, work, scratch, state } = paths;
+  if (!(await mayBypassRowSecurity(source)))
+    return stop('this login is subject to row security; a dump from it would be incomplete');
+  const file = join(work, 'drill.dump');
+  const { largest, dump } = await snapshotDump(source, sourceUrl, file);
+  if (!dump.ok) return stop(`pg_dump failed: ${dump.stderr.trim().split('\n')[0]}`);
+  if ((largest[0]?.rows ?? 0) === 0) return stop('the source database holds no rows to compare');
+  await ensureRoles(source);
+  await source.query(`CREATE DATABASE ${scratch}`);
+  state.created = true;
+  const scratchUrl = withDatabase(sourceUrl, scratch);
+  const restore = tool(
+    'pg_restore --no-owner --no-privileges -d "$DRILL_URL" "$DRILL_FILE"',
+    scratchUrl,
+    file,
+  );
+  const errors = realRestoreErrors(restore.stderr);
+  if (errors.length > 0) return stop(`the restore had errors: ${errors[0]}`);
+  // pg_restore exits 1 after harmless notes and says "errors ignored on restore: N"; a non-zero exit without that
+  // summary is a kill or a crash, however many harmless lines came before it.
+  if (!restore.ok && !/errors ignored on restore: \d+/.test(restore.stderr))
+    return stop('pg_restore did not finish');
+  const rows = compareCounts(largest, await restoredCounts(scratchUrl, largest));
+  return { ok: rows.every((r) => r.equal), dumpBytes: statSync(file).size, rows };
 }
 
 function stop(reason: string): DrillResult {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   compareCounts,
@@ -144,4 +145,39 @@ describe('restore drill (Drill B)', () => {
     expect(report).toMatch(/^RESTORE DRILL STOP: .+Nothing was compared\.$/);
     expect(report).not.toMatch(/s3cret-pw|\n\s+at /);
   });
+
+  it('does not trust a non-zero pg_restore that shows one harmless note and no summary line', async () => {
+    const bin = mkdtempSync(join(tmpdir(), 'fake-pg-'));
+    writeFileSync(
+      join(bin, 'pg_restore'),
+      `#!/bin/sh\necho 'pg_restore: error: could not execute query: ERROR:  schema "public" already exists' >&2\nexit 1\n`,
+    );
+    chmodSync(join(bin, 'pg_restore'), 0o755);
+    vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+    const result = await runRestoreDrill(db.container.getConnectionUri());
+    expect(result.ok).toBe(false);
+    expect(result.stopped).toMatch(/pg_restore did not finish/);
+  }, 120_000);
+
+  it('is a STOP, not a PASS, when the scratch database cannot be dropped', async () => {
+    const original = Pool.prototype.query;
+    const spy = vi.spyOn(Pool.prototype, 'query').mockImplementation(function (
+      this: Pool,
+      ...args: unknown[]
+    ) {
+      if (String(args[0]).startsWith('DROP DATABASE'))
+        return Promise.reject(new Error('drop refused'));
+      return (original as (...a: unknown[]) => unknown).apply(this, args);
+    } as never);
+    const result = await runRestoreDrill(db.container.getConnectionUri());
+    spy.mockRestore();
+    expect(result.ok).toBe(false);
+    expect(result.stopped).toMatch(
+      /the restore passed but the scratch database restore_drill_\d+ could not be dropped; drop it by hand/,
+    );
+    expect(formatReport(result)).not.toMatch(/PASS/);
+    const left = (await databases()).filter((d) => d.startsWith('restore_drill_'));
+    expect(left).toHaveLength(1);
+    await db.admin.query(`DROP DATABASE ${left[0]} WITH (FORCE)`);
+  }, 120_000);
 });
