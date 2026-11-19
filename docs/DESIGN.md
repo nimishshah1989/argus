@@ -314,7 +314,7 @@ Anatomy, states and sizes per tier are written here as each element is built; wh
 10. **Data table.** Pages, sorts and filters; no list paints more than 50 rows first, and a list that can pass 200
     rows pages on the server.
 11. **Period picker.** The time range of every figure.
-12. **Grouped navigation.** The 8 analytics groups, collapsed except the current one, with Guide and the Data checklist.
+12. **Grouped navigation.** The 8 analytics groups (Guide is the eighth), collapsed except the current one, and the Data checklist at the foot.
 13. **Drill trail.** Where you are in a drill-down.
 
 ### The KPI tile in full
@@ -356,18 +356,24 @@ and mixed charts with at most two series, no legend and no animation (D27, which
 
 ### Icons
 
-Lucide, imported only through `ui/icon.ts` (D04; `tools/check-ui.ts` fails Lucide anywhere else). Sizes are 16, 20
-and 24 px and the stroke is 2. The kit also draws 18 and 22 px today (the filter chip and the floor tile); which size
-each moves to is not known yet. A status icon always sits beside its word.
+Lucide, imported only through `ui/icon.ts` (D04; `tools/check-ui.ts` fails Lucide anywhere else). The target is three
+sizes, 16, 20 and 24 px, with stroke 2.
+
+**Today** the kit draws 14 px (`patterns/queue-table.tsx`), 16, 18 (`patterns/form-sheet.tsx`, `ui/filter-chip.tsx`),
+20 and 22 px (`ui/tab-bar.tsx`, `ui/floor-pieces.tsx`), and the ticks in `ui/filter-chip.tsx` and `ui/tick-row.tsx`
+use stroke 3. Which of the three sizes each moves to, and whether a tick keeps stroke 3, is not known yet. A status
+icon always sits beside its word.
 
 ### Motion
 
 Motion is short and purposeful, under 300 ms, and respects reduced motion.
 
-- **Two durations.** `--motion-fast` 150 ms and `--motion-slow` 250 ms, both `ease-out`. Both are 0 under
-  `prefers-reduced-motion: reduce`.
-- **What moves.** The sheet (250 ms), a chip or a button's pressed colour and the tab indicator (150 ms), and the
-  skeleton, which pulses until content arrives.
+- **Two durations.** `--motion-fast` 150 ms and `--motion-slow` 250 ms. Both are 0 under
+  `prefers-reduced-motion: reduce`. The target easing is `ease-out`; there is no easing token, so today's
+  transitions use Tailwind's default curve.
+- **What moves, today.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a floor tile (150 ms,
+  `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives.
+- **What moves, target.** A chip, a button's pressed colour and the tab indicator at 150 ms. They do not animate yet.
 - **What never moves.** Figures never count up or slide, and floor rows never animate in or reorder.
 - **Reduced motion.** Changes are instant: colour changes without a fade, the skeleton holds still, and charts draw
   with no animation (ticket 84).
@@ -377,7 +383,7 @@ Motion is short and purposeful, under 300 ms, and respects reduced motion.
 ### Numbers
 
 - **Grouping.** `en-IN`: 1,00,000 and 10,00,000 (Nimish, 19 Nov). Figures print with `en-GB` today
-  (`figure-content.ts`); tickets 83 and 86 adopt the `en-IN` formatter.
+  (`figure-content.ts`). Which ticket moves them to `en-IN` is not known yet.
 - **Money.** The form it prints today, "₹ 38.23 lakh". Never on the TV.
 - **Percentage and unit.** A percentage always prints `%`. A figure with a unit prints it.
 - **Missing.** "—", never a blank or 0.
