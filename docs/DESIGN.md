@@ -97,9 +97,11 @@ The interface follows Apple's three principles, Nimish's stated preference (`doc
 
 **Two zones, by route.** The two zones differ in how much may change (D33 §3).
 
-- `/floor/*`, `/desk/*` (the list, the ticket, the board and the TV) and settings keep the incumbent app's (v3)
-  flow, screen order, button position and words (`docs/design/LOCK.md` rule 1). Only colour, type, depth and
+- `/floor/*` and `/desk/*` (the list, the ticket, the board and the TV) keep the incumbent app's (v3) flow,
+  screen order, button positions and words (`docs/design/LOCK.md` rule 1, D33 §3). Only colour, type, depth and
   motion change.
+- Settings has no v3 view to check against (ticket 88). Its existing screens keep their current flow and words in
+  the restyle.
 - `/analytics/*` (Today, the analyses and the machine page) is redesigned freely. Its figures stay exact.
 
 **Operate mode.** Use impeccable's Operate and Read modes (precision and restraint) and not its bolder modes,
@@ -128,7 +130,7 @@ status is colour, icon and word.
 
 ### Neutral and accent roles
 
-Ten roles, each with a light and a dark value (`tokens.css`).
+Ten roles, each with a light and a dark value in `tokens.css`.
 
 - **page**, **surface**, **surface-2**: the three grounds. Surface-2 is a second ground step for panels (light
   `#fafafa`, dark `#151517`, today's `neutral-50`); the pick may change it.
@@ -145,7 +147,9 @@ Five tones: **critical**, **attention**, **good**, **info** and **neutral**. Eac
   cell, a 3 px edge or a dot.
 - A chip is tint, ink, icon and word. **A fill never carries text.** At most one critical fill per card.
 - Today's tones map in: danger is critical, warning and hold are attention, ok is good, info and moved are
-  info, muted is neutral. Today the amber is two values (warning `#92400e`, hold `#9a3412`); which one the pick keeps is not known yet.
+  info, muted is neutral. Today's amber is two tones. Warning has fill `#b45309` (`--color-warning`) and ink `#92400e`; hold has fill
+  `#c2410c` (`--color-hold`) and ink `#9a3412`. The front matter uses the warning pair; which pair the pick keeps
+  is not known yet.
 
 ### The status map
 
