@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { instrument } from '../directions/direction-instrument.js';
 import { inkOn } from '../directions/parts-palette.js';
@@ -17,29 +17,58 @@ const stepOf = (hours: number): number =>
 
 const cellText = (hours: number): string => (hours <= 0 ? '' : fixed(hours, hours < 10 ? 1 : 0));
 
-/** One square: its hours printed on its step of the ramp, lit when its month is the one pointed at. */
+/** One square: its hours printed on its step of the ramp, lit when its month is the one pointed at; focus works like hover. */
 function Square({
   hours,
+  row,
   month,
   on,
+  tab,
   onPoint,
+  onClear,
 }: {
   hours: number;
+  row: number;
   month: number;
   on: boolean;
+  tab: boolean;
   onPoint: () => void;
+  onClear: () => void;
 }) {
   const step = stepOf(hours);
   const fill = step > 0 ? { background: RAMP[step - 1], color: inkOn(RAMP[step - 1]!) } : {};
   return (
     <td
       data-on={on ? '' : undefined}
+      data-r={row}
+      data-c={month}
+      tabIndex={tab ? 0 : -1}
       style={{ '--col': month, ...fill } as unknown as CSSProperties}
       onMouseEnter={onPoint}
+      onFocus={onPoint}
+      onBlur={onClear}
     >
       {hours > 0 ? cellText(hours) : <span className="sr-only">0</span>}
     </td>
   );
+}
+
+const STEP: Record<string, [number, number]> = {
+  ArrowRight: [0, 1],
+  ArrowLeft: [0, -1],
+  ArrowDown: [1, 0],
+  ArrowUp: [-1, 0],
+};
+
+/** Arrow keys move between squares (one tab stop for the whole grid). */
+function moveFocus(e: KeyboardEvent<HTMLTableElement>): void {
+  const td = (e.target as HTMLElement).closest('td');
+  const step = STEP[e.key];
+  if (!td || !step) return;
+  e.preventDefault();
+  const r = Number(td.dataset.r) + step[0];
+  const c = Number(td.dataset.c) + step[1];
+  e.currentTarget.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"]`)?.focus();
 }
 
 function HeadRow({ active }: { active: number | null }) {
@@ -108,39 +137,48 @@ export function HeatMap({
 }) {
   const { t } = useTranslation('showcase');
   const [cell, setCell] = useState<{ id: string; month: number } | null>(null);
-  const readout = cell
-    ? `${cell.id} · ${monthLong(cell.month)} · ${fixed(S.heat.find((r) => r.id === cell.id)!.hours[cell.month], 1)} h`
-    : t('heat.note');
+  const [cur, setCur] = useState('0-0');
+  const outside = machines.filter((m) => !S.heat.some((r) => r.id === m));
+  const point = (id: string, month: number) => {
+    setCell({ id, month });
+    onHover(pointed(month));
+  };
+  const clear = () => {
+    setCell(null);
+    onHover(pointed(null));
+  };
+  let readout = t('heat.note');
+  if (outside.length > 0) readout = t('heat.outside', { list: outside.join(', ') });
+  if (cell) {
+    const hours = S.heat.find((r) => r.id === cell.id)!.hours[cell.month];
+    readout = `${cell.id} \u00b7 ${monthLong(cell.month)} \u00b7 ${fixed(hours, 1)} h`;
+  }
   return (
     <section className="sc-card" aria-labelledby="sc-heat-title">
       <HeatHead />
-      <table
-        className="sc-heat"
-        data-testid="heat-map"
-        onMouseLeave={() => {
-          setCell(null);
-          onHover(pointed(null));
-        }}
-      >
+      <table className="sc-heat" data-testid="heat-map" onMouseLeave={clear} onKeyDown={moveFocus}>
         <caption className="sr-only">{t('heat.caption')}</caption>
         <colgroup>
           <col className="sc-heat-name" />
         </colgroup>
         <HeadRow active={hover.month} />
         <tbody>
-          {S.heat.map((row) => (
+          {S.heat.map((row, r) => (
             <tr key={row.id} data-link={machines.includes(row.id) ? '' : undefined}>
               <th scope="row">{row.id}</th>
               {row.hours.map((hours, i) => (
                 <Square
                   key={i}
                   hours={hours}
+                  row={r}
                   month={i}
                   on={hover.month === i}
+                  tab={cur === `${r}-${i}`}
                   onPoint={() => {
-                    setCell({ id: row.id, month: i });
-                    onHover(pointed(i));
+                    setCur(`${r}-${i}`);
+                    point(row.id, i);
                   }}
+                  onClear={clear}
                 />
               ))}
             </tr>

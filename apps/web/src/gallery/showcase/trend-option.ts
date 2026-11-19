@@ -4,7 +4,7 @@ import { tipHtml } from './trend-tip.js';
 import { tooltipBase, type Ink } from './use-echart.js';
 
 const axisText = (metric: Metric, v: number): string =>
-  `${fixed(v, metric.id === 'availability' ? 1 : 0)}${metric.unit === '%' ? ' %' : ''}`;
+  `${fixed(v, metric.id === 'availability' ? 1 : 0)}${metric.unit ? ` ${metric.unit}` : ''}`;
 
 function axes(ink: Ink, metric: Metric) {
   const rate = metric.id === 'availability';

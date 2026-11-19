@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { S, fixed } from './data.js';
-import { tooltipBase, useEchart, type Ink } from './use-echart.js';
+import { NARROW, tooltipBase, useEchart, type Ink } from './use-echart.js';
 
 const CAUSES = S.causes;
 /** Running share of all breakdown hours after each cause, as a percent. */
@@ -23,7 +23,7 @@ function tip(t: TFunction, i: number): string {
 }
 
 function axes(ink: Ink) {
-  const narrow = ink.width < 520;
+  const narrow = ink.width < NARROW;
   return {
     yAxis: {
       type: 'category',
@@ -116,8 +116,9 @@ export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void
     [i18n.language],
     (chart) => {
       chart.on('updateAxisPointer', (e: unknown) => {
-        const index = (e as { axesInfo?: { value: number | string }[] }).axesInfo?.[0]?.value;
-        const own = typeof index === 'number' ? CAUSES[index] : undefined;
+        const axes = (e as { axesInfo?: { axisDim: string; value: number | string }[] }).axesInfo;
+        const at = axes?.find((a) => a.axisDim === 'y')?.value;
+        const own = typeof at === 'number' ? CAUSES[at] : CAUSES.find((c) => c.name === at);
         onCause(own ? own.machines.map((m) => m.id) : []);
       });
       chart.on('globalout', () => onCause([]));
@@ -152,6 +153,27 @@ export function ParetoChart({ onCause }: { onCause: (machines: string[]) => void
         role="img"
         aria-label={t('pareto.title')}
       />
+      <div className="sr-only">
+        <table>
+          <caption>{t('pareto.table')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('pareto.cause')}</th>
+              <th scope="col">{t('pareto.hours')}</th>
+              <th scope="col">{t('pareto.cum')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CAUSES.map((c, i) => (
+              <tr key={c.name}>
+                <th scope="row">{c.name}</th>
+                <td>{fixed(c.hours, 1)}</td>
+                <td>{fixed(CUM[i], 1)} %</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

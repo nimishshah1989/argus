@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { LAST_FULL, S, against, fixed, monthLong } from './data.js';
+import { LAST_FULL, PARTIAL, S, against, fixed, monthLong } from './data.js';
 import { Spark } from './spark.js';
 import type { Hover } from './trend-chart.js';
 
@@ -47,7 +47,13 @@ export function CellPanel({ hover }: { hover: Hover }) {
                       ? t('cells.plant', { value: `${fixed(plant, 2)} %` })
                       : t(value < plant ? 'cells.lower' : 'cells.higher')}
               </span>
-              <Spark values={c.bdPct} reference={PLANT} active={hover.month} tone="ink" />
+              <Spark
+                values={c.bdPct}
+                reference={PLANT}
+                active={hover.month}
+                tone="ink"
+                partial={PARTIAL}
+              />
             </li>
           );
         })}

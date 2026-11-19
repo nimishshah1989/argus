@@ -9,11 +9,15 @@ const shown = (n: number, digits: number) =>
     maximumFractionDigits: digits,
   }).format(n);
 
+const plant = (figure('showcase') as { plant: { mtbfYear: number; mttrYear: number } }).plant;
+
 /** Each tile's value and unit exactly as the engine's snapshot gives them. */
 const TILES = [
   ['availability', shown(figure('dashboard.fleet-availability'), 2), '%'],
   ['downtime', shown(figure('dashboard.total-downtime-hours'), 1), 'h'],
   ['breakdowns', shown(figure('dashboard.total-breakdowns'), 0), ''],
+  ['mtbf', shown(plant.mtbfYear, 1), 'h'],
+  ['mttr', shown(plant.mttrYear, 2), 'h'],
   ['pm', shown(figure('dashboard.pm-hours'), 1), 'h'],
 ] as const;
 
@@ -62,6 +66,19 @@ for (const width of [360, 1440]) {
       expect(text).toContain('TMC-2');
     });
 
+    test('pointing at a Pareto bar lights its machines in the heat map', async ({ page }) => {
+      await open(page);
+      const chart = page.getByTestId('pareto-chart');
+      await chart.scrollIntoViewIfNeeded();
+      const box = (await chart.boundingBox())!;
+      for (let y = 0.08; y < 0.4; y += 0.04) {
+        await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * y);
+        if ((await page.locator('.sc-heat tr[data-link]').count()) > 0) break;
+      }
+      await expect(page.locator('.sc-heat tr[data-link]').first()).toBeAttached();
+      await expect(page.locator('.sc-tip').last()).toContainText('Mostly on');
+    });
+
     test('a tile opens the side sheet with the figure explained', async ({ page }) => {
       await open(page);
       await page.getByTestId('kpi-mtbf').click();
@@ -89,12 +106,13 @@ for (const width of [360, 1440]) {
 
     test('with reduced motion the numbers are at their final values at once', async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      await open(page);
-      // No count-up: the first paint after the screen is up already holds the final figure.
-      await expect(page.getByTestId('kpi-breakdowns-value')).toHaveText(
-        shown(figure('dashboard.total-breakdowns'), 0),
-        { timeout: 200 },
-      );
+      await page.goto('/gallery?view=showcase');
+      // No count-up: the first paint of the tile already holds the final figure, charts or not.
+      const value = page.getByTestId('kpi-breakdowns-value');
+      await expect(value).toBeVisible();
+      await expect(value).toHaveText(shown(figure('dashboard.total-breakdowns'), 0), {
+        timeout: 100,
+      });
     });
   });
 }

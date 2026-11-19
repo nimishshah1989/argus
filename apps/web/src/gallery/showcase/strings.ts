@@ -48,7 +48,7 @@ const en = {
   'def.pm':
     'The hours machines were stopped on purpose for planned maintenance. It prevents breakdowns, so it is not good or bad by itself.',
   'formula.availability':
-    '100 % minus (breakdown hours plus planned maintenance hours) divided by available hours.',
+    '100 minus the percentage of available hours lost: (breakdown hours plus planned maintenance hours) divided by available hours, times 100.',
   'formula.downtime': 'The sum of the hours recorded on every breakdown ticket in the period.',
   'formula.breakdowns': 'The number of breakdown tickets in the period.',
   'formula.mtbf': '(Available hours minus breakdown hours) divided by the number of breakdowns.',
@@ -82,6 +82,8 @@ const en = {
 
   'pareto.title': 'Where the downtime comes from',
   'pareto.sum': 'The top {{n}} causes make up {{pct}} % of breakdown hours.',
+  'pareto.cause': 'Cause',
+  'pareto.table': 'Causes with their hours and cumulative share of all breakdown hours',
   'pareto.hours': 'Hours',
   'pareto.cum': 'Cumulative share',
   'pareto.count': '{{n}} breakdowns',
@@ -92,6 +94,7 @@ const en = {
   'heat.caption': 'Breakdown hours by machine and month',
   'heat.machine': 'Machine',
   'heat.note': 'Each square prints its breakdown hours. Point at one to read it in full.',
+  'heat.outside': 'Also on {{list}}, which are not among the ten machines shown.',
   'heat.less': 'Fewer hours',
   'heat.more': 'More hours',
 

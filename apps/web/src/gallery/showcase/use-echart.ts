@@ -18,6 +18,9 @@ export interface Ink {
   width: number;
 }
 
+/** Below this width a chart builds its narrow layout; crossing it rebuilds the option. */
+export const NARROW = 520;
+
 let loader: ReturnType<typeof load> | null = null;
 
 /** The only place the showcase loads ECharts: one cached import of the modules its four charts use. */
@@ -87,6 +90,8 @@ export function useEchart(
   const [ready, setReady] = useState(false);
   const ready0 = useRef(onReady);
   ready0.current = onReady;
+  const make0 = useRef(make);
+  make0.current = make;
 
   useEffect(() => {
     let dead = false;
@@ -97,7 +102,14 @@ export function useEchart(
       if (dead || !el) return;
       const instance = core.init(el, undefined, { renderer: 'svg' });
       chart.current = instance;
-      watch = new ResizeObserver(() => instance.resize());
+      const narrow = () => el.clientWidth < NARROW;
+      let wasNarrow = narrow();
+      watch = new ResizeObserver(() => {
+        instance.resize();
+        if (narrow() === wasNarrow) return;
+        wasNarrow = narrow();
+        instance.setOption({ ...make0.current(readInk(el)), animation: false });
+      });
       watch.observe(el);
       ready0.current?.(instance);
       setReady(true);

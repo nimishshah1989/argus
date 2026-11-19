@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { FULL, LAST_FULL, fixed, type Metric } from './data.js';
+import { LAST_FULL, PARTIAL, fixed, type Metric } from './data.js';
 import { Delta } from './delta.js';
 import { useCountUp } from './motion.js';
 import { Spark } from './spark.js';
@@ -39,7 +39,7 @@ export function KpiTile({
       </span>
       <span className="sc-tile-span">{t('tile.span')}</span>
       <Delta metric={metric} i={LAST_FULL} />
-      <Spark values={metric.values.slice(0, FULL)} active={active} />
+      <Spark values={metric.values} active={active} partial={PARTIAL} />
     </button>
   );
 }
