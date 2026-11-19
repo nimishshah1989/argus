@@ -144,9 +144,13 @@ export function statusRole(ref: StatusRef): ToneRole {
   return ROLE_OF_TONE[statusMeaning(ref).tone];
 }
 
-const INDIAN = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 });
+const INDIAN = new Intl.NumberFormat('en-IN', {
+  maximumFractionDigits: 3,
+});
 
-/** Indian grouping (N3): 1000000 prints "10,00,000". Rounds half away from zero to at most 3 decimals; a figure that is not finite prints an em dash. */
+/** Indian grouping (N3): 1000000 prints "10,00,000". Rounds half away from zero to at most 3 decimals and never prints "-0"; a figure that is not finite prints an em dash. */
 export function formatIN(n: number): string {
-  return Number.isFinite(n) ? INDIAN.format(n) : '\u2014';
+  if (!Number.isFinite(n)) return '\u2014';
+  const out = INDIAN.format(n);
+  return out === '-0' ? '0' : out;
 }

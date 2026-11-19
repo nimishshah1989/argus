@@ -123,7 +123,13 @@ describe('a palette', () => {
   it('names a series colour that repeats an earlier one, whatever its letter case', () => {
     const twin = {
       ...full,
-      series: [...full.series.slice(0, 5), full.series[1]!.toUpperCase(), ...full.series.slice(6)],
+      series: [
+        full.series[0],
+        '#abcdef',
+        ...full.series.slice(2, 5),
+        '#ABCDEF',
+        ...full.series.slice(6),
+      ],
     };
     expect(problems(twin)).toEqual(['series 6 repeats series 2']);
   });
@@ -147,6 +153,12 @@ describe('Indian grouping', () => {
 
   it('rounds to at most 3 decimals', () => {
     expect(formatIN(1.23456)).toBe('1.235');
+  });
+
+  it('prints a zero without a minus sign, however small the negative figure', () => {
+    expect(formatIN(-0)).toBe('0');
+    expect(formatIN(-0.0001)).toBe('0');
+    expect(formatIN(-1_250_000)).toBe('-12,50,000');
   });
 
   it('prints an em dash for a figure that is not a number', () => {
@@ -175,7 +187,7 @@ const hue = (hex: string) => {
     number,
   ];
   const span = Math.max(r, g, b) - Math.min(r, g, b);
-  if (span === 0) return 0;
+  if (span === 0) return null;
   const h =
     r === Math.max(r, g, b)
       ? (g - b) / span
@@ -251,13 +263,19 @@ describe.each(Object.entries(DIRECTIONS))('the %s direction', (_slug, d) => {
   it('keeps every series out of the red, green and info-blue bands', () => {
     const inBand = themes.flatMap(([name, p]) =>
       p.series
-        .filter((c) =>
+        .map((c) => ({ c, h: hue(c) }))
+        .filter(({ h }) => h !== null)
+        .filter(({ h }) =>
           RESERVED_HUES.some(([from, to]) =>
-            from <= to ? hue(c) >= from && hue(c) <= to : hue(c) >= from || hue(c) <= to,
+            from <= to ? h! >= from && h! <= to : h! >= from || h! <= to,
           ),
         )
-        .map((c) => `${name} ${c} at ${Math.round(hue(c))} degrees`),
+        .map(({ c, h }) => `${name} ${c} at ${Math.round(h!)} degrees`),
     );
     expect(inBand).toEqual([]);
+  });
+
+  it('uses no grey series colour, because Running is the grey', () => {
+    expect(themes.flatMap(([, p]) => p.series.filter((c) => hue(c) === null))).toEqual([]);
   });
 });
