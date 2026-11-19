@@ -1,4 +1,4 @@
-import { hoursIn, periodFraction, type Period } from './availability.js';
+import { hoursIn, periodFraction, type Period, type PeriodMonth } from './availability.js';
 import { dayNumber } from './plant-date.js';
 import type { MachineRow, MoveRow } from './types.js';
 
@@ -41,6 +41,15 @@ export function monthlyWindow(asOf: string, month: number): DateWindow {
   const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const end = plantDate(year, month, last);
   return { from: plantDate(year, month, 1), to: end < asOf ? end : asOf };
+}
+
+/** One calendar month of a period as a window: its own days cut to the period, inverted when it lies outside. */
+export function periodMonthWindow(month: PeriodMonth, period: Period): DateWindow {
+  return {
+    from: month.from > period.from ? month.from : period.from,
+    to: month.to < period.to ? month.to : period.to,
+    noRecords: period.noRecords,
+  };
 }
 
 /** One machine's available hours in a window, counted from its purchase date when that is later. */
