@@ -26,8 +26,10 @@ const ACCENT_ROLES = ['accent', 'on-accent', 'accent-tint'];
 const SERIES = Array.from({ length: 8 }, (_, i) => `series-${i + 1}`);
 const RAMPS = ['seq', 'div'];
 const TEMPLATES = ['overview', 'analysis', 'register', 'entity', 'work queue'];
+// Known limit: a hedge about another clause ("Running is grey, and stopped is never grey") still rejects.
 const HEDGE =
-  /\b(?:not|never|no longer|unless|may|might|maybe|perhaps|could|if|until|yet|cannot|except)\b|n't\b/i;
+  /\b(?:not|never|no longer|unless|may|might|maybe|perhaps|could|if|until|yet|cannot|except|though|pending|provided|tbd|later|will)\b|n't\b/i;
+const ABBREVIATION = /\b(?:e\.g|i\.e|vs|etc)\./gi;
 
 /** Sentences of a markdown text: a blank line, a list item, a table row or a heading ends one. */
 function sentences(markdown: string): string[] {
@@ -36,6 +38,8 @@ function sentences(markdown: string): string[] {
     .flatMap((block) =>
       block
         .replace(/[*`]/g, '')
+        .replace(/’/g, "'")
+        .replace(ABBREVIATION, (abbreviation) => abbreviation.replace(/\./g, '·'))
         .replace(/\s+/g, ' ')
         .trim()
         .split(/(?<=[.!?])\s+/),
@@ -46,7 +50,10 @@ function sentences(markdown: string): string[] {
 /** A fact is stated when every sentence that holds it is positive, and at least one does. */
 function states(doc: string, pattern: RegExp): boolean {
   const holding = sentences(doc).filter((sentence) => pattern.test(sentence));
-  return holding.length > 0 && holding.every((sentence) => !HEDGE.test(sentence));
+  return (
+    holding.length > 0 &&
+    holding.every((sentence) => !HEDGE.test(sentence.replace(/\([^)]*\)/g, '')))
+  );
 }
 const has = (haystack: string, name: string): boolean =>
   new RegExp(`(?<![\\w-])${name.replace(/ /g, '\\s+')}(?![\\w-])`, 'i').test(haystack);
@@ -171,8 +178,28 @@ describe('a settled fact must be its own positive sentence', () => {
     'Running is grey and never green. Running is no longer grey.',
     'Running is grey, not yet confirmed.',
     'Running is grey. Later: it is not true that Running is grey.',
+    'Running is grey, e.g. if the pick may keep it.',
+    'Running is grey, vs. green, i.e. unless the pick changes it.',
+    'Running is grey, which isn’t final.',
+    'Running is grey, though that is still open.',
+    'Running is grey pending the pick.',
+    'Running is grey provided the pick agrees.',
+    'Running is grey, tbd.',
+    'Running is grey and will change.',
+    'Running is grey for now, later it moves.',
+    'It is not so that Running is grey (see D33).',
   ])('rejects a negated or qualified statement: %s', (sample) => {
     expect(states(sample, running)).toBe(false);
+  });
+
+  it('accepts an abbreviation and a parenthetical remark that hedge nothing', () => {
+    expect(states('Running is grey, e.g. in a list. Stopped is red.', running)).toBe(true);
+    expect(states('Running is grey (not green).', running)).toBe(true);
+    expect(states('Running is grey (it may be dark in the dark theme).', running)).toBe(true);
+  });
+
+  it('rejects the opposite statement', () => {
+    expect(states('Running is not grey.', running)).toBe(false);
   });
 
   it('rejects a fact that is missing', () => {
