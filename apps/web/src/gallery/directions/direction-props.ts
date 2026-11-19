@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { TONE_ROLES, type Direction, type ToneRole } from './variant.js';
 
 export type Theme = 'light' | 'dark';
@@ -7,6 +8,12 @@ export interface ScreenProps {
   direction: Direction;
   theme: Theme;
 }
+
+/** What a figure or a heading wears: the direction's display face and tracking, read from the properties below. */
+export const DISPLAY_STYLE: CSSProperties = {
+  fontFamily: 'var(--proto-display)',
+  letterSpacing: 'var(--proto-tracking)',
+};
 
 /** The kit tokens each tone role stands for (R7): a role sets the base, ink and tint of every token it names. */
 const TONE_TOKENS: Record<ToneRole, string[]> = {

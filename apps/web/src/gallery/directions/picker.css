@@ -8,6 +8,10 @@
   align-items: center;
   gap: 2px;
   padding: 4px;
+  /* Gujarati words can outgrow a phone: the pill stops at the screen and scrolls inside itself. */
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
+  scrollbar-width: none;
   border-radius: 999px;
   background: rgba(10, 10, 10, 0.82);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);

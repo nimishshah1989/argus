@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import type { ScreenProps } from './direction-props.js';
-import { seriesColour } from './parts-chart.js';
 import { addStrings } from './strings.js';
 
 addStrings({
@@ -10,8 +9,12 @@ addStrings({
   'palette.div': 'Diverging ramp',
 });
 
+/** The colour of series `i` (from 0): the kit's two chart colours, then the direction's own `--proto-series-*`. */
+const seriesColour = (i: number): string =>
+  i < 2 ? `var(--color-chart-${i + 1})` : `var(--proto-series-${i + 1})`;
+
 /** Black or white, whichever reads better on the cell (the plan checks both at 4.61 or more on every step). */
-function inkOn(hex: string): string {
+export function inkOn(hex: string): string {
   const [r, g, b] = [1, 3, 5].map((i) => {
     const c = parseInt(hex.slice(i, i + 2), 16) / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
