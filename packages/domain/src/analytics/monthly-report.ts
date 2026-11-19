@@ -19,13 +19,14 @@ import {
   productionMachines,
   reportEntries,
   reportStats,
+  windowOf,
   type MonthPeriod,
   type MonthWindow,
   type ReportGroup,
   type ReportStats,
 } from './report-period.js';
 import { effectiveHours, type SourcedReport } from './rows.js';
-import type { Computer, EngineData, FigureValue, MachineRow } from './types.js';
+import type { Computer, EngineData, FigureValue } from './types.js';
 
 /**
  * The monthly report (ticket 45, packet 45a): the complete month before `asOf`'s month, against the month before
@@ -182,13 +183,17 @@ function dailyChart(
   );
 }
 
-/** `ch-rp-12m`: the twelve months ending at the report month, leading empty months dropped. */
+/**
+ * `ch-rp-12m`: the twelve months ending at the report month, leading empty months dropped. A month the plant recorded
+ * nothing in (`data.gaps`) is `null`, never a bar of zero.
+ */
 function yearChart(
-  entries: readonly SourcedReport[],
-  machines: readonly MachineRow[],
+  data: EngineData,
   profile: Pick<AnalyticsProfile, 'prodHrsPerDay' | 'workDaysPerYear'>,
   period: MonthPeriod,
 ): Chart {
+  const entries = reportEntries(data);
+  const machines = productionMachines(data);
   const index = period.current.year * 12 + period.current.month - 1;
   const months: Array<{ window: MonthWindow; stats: ReportStats }> = [];
   for (let back = 11; back >= 0; back -= 1) {
@@ -196,7 +201,7 @@ function yearChart(
     const window = monthWindow(Math.floor(at / 12), (at % 12) + 1);
     months.push({
       window,
-      stats: reportStats(entries, machines, profile, { from: window.start, to: window.end }),
+      stats: reportStats(entries, machines, profile, windowOf(window.start, window.end, data.gaps)),
     });
   }
   while (months.length > 1 && months[0]!.stats.count === 0 && months[0]!.stats.pmCount === 0) {
@@ -206,10 +211,10 @@ function yearChart(
     'ch-rp-12m',
     months.map(({ window }) => `${MONTHS_SHORT[window.month - 1]} ${String(window.year).slice(2)}`),
     [
-      { label: 'Breakdowns', data: months.map(({ stats }) => stats.count) },
+      { label: 'Breakdowns', data: months.map(({ stats }) => (stats.gap ? null : stats.count)) },
       {
         label: 'Downtime hrs',
-        data: months.map(({ stats }) => Math.round(stats.hours * 10) / 10),
+        data: months.map(({ stats }) => (stats.gap ? null : Math.round(stats.hours * 10) / 10)),
       },
     ],
   );
@@ -297,7 +302,7 @@ function pageOf(
     ],
     charts: [
       dailyChart(period, current.breakdowns, previous.breakdowns),
-      yearChart(reportEntries(data), productionMachines(data), profile, period),
+      yearChart(data, profile, period),
     ],
   };
 }
