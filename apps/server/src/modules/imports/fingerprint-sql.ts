@@ -43,14 +43,14 @@ function readEntryType(payload: StoredRawPayload): EntryType {
     throw new Error('Imported row has no versioned raw envelope');
   }
   const entryType = (payload.raw as { entryType?: unknown } | null)?.entryType;
-  if (entryType !== 'ordinary' && entryType !== 'pastBreakdown') {
+  if (entryType !== 'ordinary' && entryType !== 'pastBreakdown' && entryType !== 'pastUtility') {
     throw new Error('Imported row has no valid entry type');
   }
   return entryType;
 }
 
-function entryTypeOfChannel(channel: unknown): EntryType {
-  if (channel === 'backfill') return 'pastBreakdown';
+function entryTypeOfChannel(channel: unknown, kind: unknown): EntryType {
+  if (channel === 'backfill') return kind === 'general' ? 'pastUtility' : 'pastBreakdown';
   if (channel === 'import') return 'ordinary';
   throw new Error('Imported ticket was not raised by an import');
 }
@@ -214,7 +214,7 @@ export async function loadBatchSnapshot(
     tickets: imported.map((row) => {
       const ticket = ticketRows.get(row.ticketId);
       if (!ticket) throw new Error(`Imported ticket is missing: ${row.ticketId}`);
-      const entryType = row.entryType ?? entryTypeOfChannel(ticket.raised_channel);
+      const entryType = row.entryType ?? entryTypeOfChannel(ticket.raised_channel, ticket.kind);
       return {
         ...row,
         entryType,

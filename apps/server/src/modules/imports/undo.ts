@@ -10,7 +10,7 @@ import { erasedRowCount, lockBatchRow } from './repo.js';
 import { loadBatchSnapshot } from './fingerprint-sql.js';
 import { REAL_SOURCE } from './bhavin-export.js';
 import { canonicalSha256, SYNTHETIC_SOURCE } from './json.js';
-import type { CompletionFingerprint } from './schema.js';
+import { channelOfEntry, type CompletionFingerprint } from './schema.js';
 
 interface LockedBatch {
   stats: unknown;
@@ -30,7 +30,9 @@ function validTicket(value: unknown): boolean {
     typeof value.ticketId === 'string' &&
     typeof value.legacyId === 'string' &&
     value.legacyId.length > 0 &&
-    (value.entryType === 'ordinary' || value.entryType === 'pastBreakdown') &&
+    (value.entryType === 'ordinary' ||
+      value.entryType === 'pastBreakdown' ||
+      value.entryType === 'pastUtility') &&
     validDigest(value.digest)
   );
 }
@@ -89,7 +91,7 @@ function assertProvenance(expected: CompletionFingerprint, actual: BatchSnapshot
     if (current.legacyId !== ticket.legacyId || current.entryType !== ticket.entryType) {
       throw new Error(`Undo refused: imported-row provenance mismatch for ${ticket.legacyId}`);
     }
-    const channel = ticket.entryType === 'pastBreakdown' ? 'backfill' : 'import';
+    const channel = channelOfEntry(ticket.entryType);
     if (current.ticket.raised_channel !== channel) {
       throw new Error(`Undo refused: raised channel mismatch for ${ticket.legacyId}`);
     }

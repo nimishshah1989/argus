@@ -105,7 +105,7 @@ function derivedOverrides(
   reduced: ReducedTicket,
   reports: ReconciledReport[],
 ): FigureOverrides {
-  if (ticket.entryType === 'ordinary') return { ...reduced.overrides };
+  if (ticket.entryType !== 'pastBreakdown') return { ...reduced.overrides };
   const report = reports[0];
   if (!report || report.responseMin === null || report.repairMin === null) {
     throw new Error('past_breakdown_report_overrides');

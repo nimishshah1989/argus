@@ -1,4 +1,5 @@
 import type { FigureOverrides, TicketEvent } from '@uptimo/domain';
+import { normalizeCode } from './json.js';
 import type { BhavinEvent } from './event-schema.js';
 import type { BhavinState, BhavinTicket } from './schema.js';
 import { applyImportedEvent, type MutableImportedState } from './state-events.js';
@@ -157,7 +158,35 @@ function validateSuppliedState(ticket: BhavinTicket, state: MutableImportedState
   }
 }
 
+/** A plant event: raise, one `utility_loss` line per machine, close; nobody works on it. */
+function validatePlantEvent(ticket: BhavinTicket): void {
+  const last = ticket.events.length - 1;
+  const lines = ticket.events.slice(1, last);
+  const valid = [
+    ticket.events[0]?.type === 'down',
+    ticket.events[last]?.type === 'close',
+    lines.length > 0,
+    lines.every((event) => event.type === 'utility_loss'),
+    // one line per machine: a repeated machine would count its minutes twice
+    new Set(
+      lines.map((event) =>
+        event.type === 'utility_loss' ? normalizeCode(event.payload.machineCode) : '',
+      ),
+    ).size === lines.length,
+    ticket.status === 'closed',
+    ticket.state.closeKind === 'done',
+    ticket.crew.length === 0,
+    ticket.segments.length === 0,
+    !ticket.state.selfStarted,
+  ];
+  if (valid.some((condition) => !condition)) throw new Error('past_utility_shape');
+}
+
 function validatePast(ticket: BhavinTicket): void {
+  if (ticket.entryType === 'pastUtility') return validatePlantEvent(ticket);
+  if (ticket.events.some((event) => event.type === 'utility_loss')) {
+    throw new Error('utility_loss_requires_plant_event');
+  }
   if (ticket.entryType !== 'pastBreakdown') return;
   const valid = [
     ticket.events.length === 2,
@@ -220,9 +249,13 @@ export function reduceTicketState(ticket: BhavinTicket, now: Date): ReducedTicke
     _crew: ticket.crew,
     _segments: ticket.segments,
     _reports: ticket.reports,
-    _past: ticket.entryType === 'pastBreakdown',
+    _past: ticket.entryType !== 'ordinary',
+    _plant: ticket.entryType === 'pastUtility',
   });
-  const domainEvents = ticket.events.map((event, seq) => applyImportedEvent(state, event, seq));
+  // A `utility_loss` line is history only: it changes no state and the figures never see it.
+  const domainEvents = ticket.events
+    .map((event, seq) => applyImportedEvent(state, event, seq))
+    .filter((_, seq) => ticket.events[seq]?.type !== 'utility_loss');
   validateSuppliedState(ticket, state);
   validateFinalTimes(ticket, state);
   validateReportShape(state, ticket);

@@ -11,7 +11,7 @@ import { insertReports } from './insert-reports.js';
 import { normalizeCode, normalizeKey } from './json.js';
 import { reconcileTicket, type ReconcileReferences } from './reconcile.js';
 import { loadTicketReferences } from './references.js';
-import type { AliasConfig, BhavinTicket, ImportIssue } from './schema.js';
+import { channelOfEntry, type AliasConfig, type BhavinTicket, type ImportIssue } from './schema.js';
 import type { ImportCtx } from './batch.js';
 
 const TICKET_COLUMNS = [
@@ -109,7 +109,7 @@ function baseValues(ticket: BhavinTicket, refs: ReconcileReferences): unknown[] 
     person(refs, ticket.reportedByPerson),
     null,
     null,
-    ticket.entryType === 'pastBreakdown' ? 'backfill' : 'import',
+    channelOfEntry(ticket.entryType),
   ];
 }
 
@@ -183,6 +183,16 @@ async function insertTicketRow(
   return insertImportedTicket(ctx.client, TICKET_COLUMNS, values);
 }
 
+function eventPayload(event: BhavinTicket['events'][number], refs: ReconcileReferences): unknown {
+  if (event.type === 'pause') {
+    return { ...event.payload, pausesSla: pauseSlaFlag(refs, event.payload.reason) };
+  }
+  if (event.type !== 'utility_loss') return event.payload;
+  const machineId = refs.lineMachines?.get(normalizeCode(event.payload.machineCode));
+  if (!machineId) throw new Error(`Unresolved line machine: ${event.payload.machineCode}`);
+  return { machineId, minutes: event.payload.minutes, code: event.payload.code };
+}
+
 async function insertEvents(
   ctx: ImportCtx,
   ticketId: string,
@@ -198,14 +208,7 @@ async function insertEvents(
       event.at,
       person(refs, event.by),
       event.text,
-      JSON.stringify(
-        event.type === 'pause'
-          ? {
-              ...event.payload,
-              pausesSla: pauseSlaFlag(refs, event.payload.reason),
-            }
-          : event.payload,
-      ),
+      JSON.stringify(eventPayload(event, refs)),
       null, // no login: an import is not entered by a person
     ]);
   }

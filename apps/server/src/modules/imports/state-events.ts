@@ -26,6 +26,7 @@ interface InternalState extends MutableImportedState {
   _segments: BhavinSegment[];
   _reports: BhavinReport[];
   _past: boolean;
+  _plant: boolean;
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -190,8 +191,9 @@ function hasReportAt(reports: BhavinReport[], at: Date): boolean {
 }
 
 function applyClose(state: InternalState, event: BhavinEvent, seq: number): void {
-  const person = actor(event, seq);
-  const pastClose = state._past && seq === 1 && state.status === 'open';
+  // A past row is closed straight from open; a plant event has no person to close it (its shape is checked).
+  const pastClose = state._past && state.status === 'open';
+  const person = state._plant && event.by === null ? null : actor(event, seq);
   if (state.status !== 'working' && !pastClose) {
     throw new Error(`close_requires_working at seq ${seq}`);
   }
