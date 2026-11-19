@@ -26,19 +26,19 @@ heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all
 
 ## Frontier
 
-- Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 84 (size goal unmeasured), 86a
-  frame, 86b desk link, 91 (2023 hours unreconciled, so still in progress); fixes #463, #468. 77b and 78b went in
-  ahead of the page templates as additions to existing Settings lists; restyle in wave 3.
-- No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked) with a before and after for his
-  approval (screens only from approved mockups, `docs/design/LOCK.md`). Also 75b (smaller replies via `?keys=`), 75c/d/f,
-  69d (staging load: needs his yes to real data on staging), 90, 92-96. Follow-ups: shared search palette (87),
-  nightly validate workflow (`docs/TESTING.md` 10), failed-jobs 5-minute alarm.
+- Merged 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 84 (size unmeasured), 86a, 86b,
+  91 (2023 hours unreconciled: in progress); fixes #463, #468. 77b/78b went in ahead of templates; restyle in wave 3.
+- No PR open. Next: **83 Elements, 85 Page templates**, then wave 1 (86) on Today (my suggestion, he has not picked)
+  with a before and after for his approval (screens only from approved mockups, `docs/design/LOCK.md`). Also 75b
+  (smaller replies via `?keys=`), 75c/d/f, 69d (staging load: needs his yes to real data on staging), 90, 92-96.
+  Follow-ups: shared search palette (87), nightly validate workflow (`docs/TESTING.md` 10), failed-jobs alarm.
 
 ## Open numbers (do not state as final)
 
-History vs Bhavin's sheets: 89% of 2,084 machine-months match; 229 unexplained until he answers (`docs/plan/evidence/
-69c-real-load.md`). Plant-event hours are a LOWER BOUND (named machines only); 2023 is 1,646.6 against the ticket's
-about 1,480; at most 44.4 h may double count with breakdowns; lost hours may include non-CNC machines. Staging: demo data.
+History vs Bhavin's sheets (`docs/plan/evidence/69c-real-load.md`): of 2,084 machine-months, 1,561 (75%) match raw and
+1,855 (89%) once his counting rules are applied; 229 unexplained until he answers. Plant-event hours are a LOWER BOUND
+(named machines only); 2023 is 1,646.6 against the ticket's about 1,480; at most 44.4 h may double count with
+breakdowns; lost hours may include non-CNC machines. Staging: demo data.
 
 ## Tracker and waiting on people
 
