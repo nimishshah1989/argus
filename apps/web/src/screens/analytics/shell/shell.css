@@ -1,0 +1,291 @@
+/*
+ * The analytics shell (ticket 86a): the approved navigation map's frame on the real routes. Tokens only, no raw
+ * colour; the page tint, the white header and menu, one accent. Phone (under 800px): the menu is a drawer.
+ */
+.as {
+  min-height: 100dvh;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+  font-family: var(--font-sans);
+}
+.as button,
+.as select {
+  font: inherit;
+  color: inherit;
+}
+.as :focus-visible,
+.as-pal :focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.as ul,
+.as-pal ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.as-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The header: plant, period, search. The same place on every page. */
+.as-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-step-2) var(--spacing-step-4);
+  padding: var(--spacing-step-3) var(--spacing-step-5);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+.as-plant {
+  margin: 0 auto 0 0;
+  font-size: var(--text-title3);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.as-period select,
+.as-search,
+.as-menu-btn {
+  min-height: var(--spacing-target-min);
+  padding: 0 var(--spacing-step-3);
+  border: 1px solid var(--color-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+.as-period select:disabled {
+  color: var(--color-neutral-600);
+  cursor: not-allowed;
+}
+.as-search,
+.as-menu-btn {
+  cursor: pointer;
+}
+.as-search {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-step-5);
+  min-width: 200px;
+  color: var(--color-neutral-600);
+}
+.as-search kbd {
+  font: inherit;
+  font-size: var(--text-caption);
+  padding: 2px 6px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  background: var(--color-neutral-50);
+}
+.as-menu-btn {
+  display: none;
+  font-weight: 600;
+}
+
+/* Body: the left menu and the page. */
+.as-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+}
+.as-side {
+  position: sticky;
+  top: 72px;
+  padding: var(--spacing-step-4) var(--spacing-step-3);
+}
+.as-side ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-1);
+}
+.as-side a,
+.as-tabs a {
+  display: flex;
+  align-items: center;
+  min-height: var(--spacing-target-min);
+  padding: 0 var(--spacing-step-3);
+  color: inherit;
+  text-decoration: none;
+}
+.as-side a {
+  border-radius: var(--radius-control);
+}
+.as-side li:last-child:not(:first-child) {
+  margin-top: var(--spacing-step-3);
+  padding-top: var(--spacing-step-3);
+  border-top: 1px solid var(--color-neutral-200);
+}
+.as-side a[aria-current='page'] {
+  background: var(--color-accent-tint);
+  color: var(--color-accent-text);
+  font-weight: 650;
+}
+@media (hover: hover) {
+  .as-side a:hover:not([aria-current]) {
+    background: var(--color-neutral-200);
+  }
+}
+
+.as-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-4);
+  max-width: 72rem;
+  min-width: 0;
+  padding: var(--spacing-step-4) var(--spacing-step-5) var(--spacing-step-6);
+}
+.as-title {
+  margin: 0;
+  font-size: var(--text-title2);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.as-tabs {
+  border-bottom: 1px solid var(--color-neutral-200);
+  overflow-x: auto;
+}
+.as-tabs ul {
+  display: flex;
+  gap: var(--spacing-step-1);
+}
+.as-tabs a {
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  color: var(--color-neutral-600);
+}
+.as-tabs a[aria-current='page'] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-neutral-900);
+  font-weight: 650;
+}
+.as-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-4);
+}
+
+/* The search palette */
+.as-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  background: color-mix(in srgb, var(--color-neutral-900) 40%, transparent);
+}
+.as-scrim-pal {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--spacing-step-4) 0;
+}
+.as-pal {
+  width: min(560px, 100%);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  color: var(--color-neutral-900);
+  box-shadow: var(--shadow-depth-2);
+}
+.as-pal-input {
+  min-height: var(--spacing-target);
+  padding: 0 var(--spacing-step-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+.as-pal-input:focus-visible {
+  outline-offset: -2px;
+}
+.as-pal-list {
+  padding: var(--spacing-step-2);
+  overflow-y: auto;
+}
+.as-pal-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-step-4);
+  min-height: var(--spacing-target-min);
+  align-items: center;
+  padding: 0 var(--spacing-step-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.as-pal-list li[data-active='true'] {
+  background: var(--color-accent-tint);
+  color: var(--color-accent-text);
+}
+.as-pal-hint {
+  font-size: var(--text-footnote);
+  color: var(--color-neutral-600);
+}
+.as-pal-none {
+  margin: 0;
+  padding: var(--spacing-step-4);
+  color: var(--color-neutral-600);
+}
+
+/* Phone: the menu is a drawer from the Menu button, because seven items do not fit a bottom bar. */
+@media (max-width: 799px) {
+  .as-header {
+    padding: var(--spacing-step-3) var(--spacing-step-4);
+  }
+  .as-menu-btn {
+    display: inline-block;
+  }
+  .as-plant {
+    flex: 1 1 auto;
+    margin: 0;
+  }
+  .as-search kbd {
+    display: none;
+  }
+  .as-search {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+  .as-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .as-side {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(300px, 85vw);
+    padding-top: var(--spacing-step-5);
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-neutral-200);
+    box-shadow: var(--shadow-depth-2);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--motion-slow) ease-out,
+      visibility 0s linear var(--motion-slow);
+  }
+  .as-side[data-open='true'] {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--motion-slow) ease-out;
+  }
+  .as-main {
+    padding: var(--spacing-step-4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .as-side {
+    transition: none;
+  }
+}
