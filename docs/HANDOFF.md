@@ -36,10 +36,9 @@ heads see failed jobs (78c); supervisors get a desk link to Analytics (86b); all
 
 ## Open numbers (do not state as final)
 
-History vs Bhavin's sheets: 89% of 2,084 machine-months match with his rules; 229 unexplained until he answers
-(`docs/plan/evidence/69c-real-load.md`). Plant events: hours are a LOWER BOUND (named machines only). Unreconciled:
-2023 plant-event hours 1,646.6 against the ticket's about 1,480; at most 44.4 h could double count with breakdowns
-(96 machine-days); lost hours may include non-CNC machines (older than 91). Staging has demo data only.
+History vs Bhavin's sheets: 89% of 2,084 machine-months match; 229 unexplained until he answers (`docs/plan/evidence/
+69c-real-load.md`). Plant-event hours are a LOWER BOUND (named machines only); 2023 is 1,646.6 against the ticket's
+about 1,480; at most 44.4 h may double count with breakdowns; lost hours may include non-CNC machines. Staging: demo data.
 
 ## Tracker and waiting on people
 
