@@ -174,7 +174,7 @@ not from the arrow. Ticket 82 holds the direction for each of the 51 figures; a 
 
 ### Chart colours
 
-- **Categorical:** 8 series, `--color-series-1` to `--color-series-8` in `tokens.css` (the same values in `ui/chart-palette.ts`; `tokens.test` keeps them in step), as a new palette built from the approved showcase's hue bands (not the showcase's own series, which differ). Never a status value, and never in the red (345 to 50 degrees), green
+- **Categorical:** 8 series, `series-1`, `series-2`, `series-3`, `series-4`, `series-5`, `series-6`, `series-7` and `series-8` (the tokens `--color-series-N` in `tokens.css`; the chart door draws slots 1 and 2 from `--color-chart-1` (the accent) and `--color-chart-2` (the neutral) first and slots 3 to 8 from `--color-series-3` to `--color-series-8`; the same values in `ui/chart-palette.ts`; `tokens.test` keeps them in step), as a new palette built from the approved showcase's hue bands (not the showcase's own series, which differ). Never a status value, and never in the red (345 to 50 degrees), green
   (90 to 160) or info-blue (205 to 235) hue bands, so a series is never mistaken for a status.
 - **Ramps:** one sequential (`seq`) and one diverging (`div`) ramp of 5 steps. A ramp cell carries a computed black or white label
   at 4.5:1.
