@@ -59,17 +59,36 @@ function legalWhen(days: number): string {
   return 'due in ' + days + ' day' + plural(days);
 }
 
-/** One line's end day, when it has both a start date and a positive tenure. */
+/** One line's end day: the register's stored day when it has one, else a start date and a positive tenure. */
 function amcLineEnd(line: AmcLine): number | null {
+  const stored = line.endsOn === undefined ? null : dayOf(line.endsOn);
+  if (stored !== null) return stored;
   const start = dayOf(line.start);
   return start === null || !(line.months > 0) ? null : amcEndDay(start, line.months);
 }
 
-/** One line's due day, when it has both a last test and a positive validity. */
+/** One line's due day: the register's stored day when it has one, else a last test and a positive validity. */
 function legalLineDue(line: LegalLine): number | null {
+  const stored = line.dueOn === undefined ? null : dayOf(line.dueOn);
+  if (stored !== null) return stored;
   const last = dayOf(line.last);
   return last === null || !(line.months > 0) ? null : legalDueDay(last, line.months);
 }
+
+/**
+ * Two lines of one AMC item: the register row when both carry its key (51c), else the old machine-and-type
+ * identity the fixture uses. A live register row therefore never clears a different row of the same type.
+ */
+const sameAmcItem = (left: AmcLine, right: AmcLine): boolean =>
+  left.itemKey !== undefined && right.itemKey !== undefined
+    ? left.itemKey === right.itemKey
+    : left.machineId === right.machineId && left.type === right.type;
+
+/** Two lines of one legal item: the register row when both carry its key, else machine and test type. */
+const sameLegalItem = (left: LegalLine, right: LegalLine): boolean =>
+  left.itemKey !== undefined && right.itemKey !== undefined
+    ? left.itemKey === right.itemKey
+    : left.machineId === right.machineId && left.tid === right.tid;
 
 /**
  * The AMC reminders: a line of an existing machine (any segment) whose end is inside the reminder window, not
@@ -87,13 +106,7 @@ export function amcNudges(ctx: ActionContext): ActionCenterRecord[] {
     if (days > remind) continue;
     const renewed = lines.some((other) => {
       const otherEnd = amcLineEnd(other);
-      return (
-        other !== line &&
-        other.machineId === line.machineId &&
-        other.type === line.type &&
-        otherEnd !== null &&
-        otherEnd > end
-      );
+      return other !== line && sameAmcItem(other, line) && otherEnd !== null && otherEnd > end;
     });
     if (renewed) continue;
     const type = line.type === null || line.type === '' ? 'AMC' : line.type;
@@ -129,8 +142,7 @@ export function legalNudges(ctx: ActionContext): ActionCenterRecord[] {
       const last = dayOf(line.last);
       return (
         other !== line &&
-        other.machineId === line.machineId &&
-        other.tid === line.tid &&
+        sameLegalItem(other, line) &&
         otherLast !== null &&
         last !== null &&
         otherLast > last
