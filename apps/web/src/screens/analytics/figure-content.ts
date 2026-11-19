@@ -139,6 +139,7 @@ const KIND: Record<string, ContentKind> = {
   'shift-kpis.compare': 'page',
   'shift-kpis.shift-split': 'page',
   'shift-kpis.backlog': 'page',
+  'shift-kpis.breakdown-map': 'page',
 };
 
 const oneDecimal = new Intl.NumberFormat('en-GB', {
@@ -185,6 +186,7 @@ const PAGE_KEYS = new Set([
   'shift-kpis.compare',
   'shift-kpis.shift-split',
   'shift-kpis.backlog',
+  'shift-kpis.breakdown-map',
 ]);
 
 /** The renderable content of an object figure, or null when there is nothing honest to draw. */
