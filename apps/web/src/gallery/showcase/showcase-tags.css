@@ -1,0 +1,157 @@
+/*
+ * Colour that carries meaning (ticket 80u). Two layers, never mixed up:
+ * - IDENTITY: one hue per metric family (availability green, downtime orange, repairs blue, planned teal), from the
+ *   `--color-family-*` tokens. It sits on the tile edge, the sparkline, the chart and the tooltip. It says what a
+ *   figure is, never whether it is good.
+ * - VERDICT: a tag in a soft tint with an icon and a word: good green, watch amber, bad red, neutral grey. Its
+ *   shape (check, triangle, cross, dash, clock) differs per tone, so it reads without colour.
+ * A card shows at most three hues: its family, one verdict hue family and grey. No gradients on text.
+ */
+[data-family='availability'] {
+  --sc-family: var(--color-family-availability);
+  --sc-family-ink: var(--color-family-availability-ink);
+  --sc-family-tint: var(--color-family-availability-tint);
+}
+[data-family='downtime'] {
+  --sc-family: var(--color-family-downtime);
+  --sc-family-ink: var(--color-family-downtime-ink);
+  --sc-family-tint: var(--color-family-downtime-tint);
+}
+[data-family='repairs'] {
+  --sc-family: var(--color-family-repairs);
+  --sc-family-ink: var(--color-family-repairs-ink);
+  --sc-family-tint: var(--color-family-repairs-tint);
+}
+[data-family='planned'] {
+  --sc-family: var(--color-family-planned);
+  --sc-family-ink: var(--color-family-planned-ink);
+  --sc-family-tint: var(--color-family-planned-tint);
+}
+
+/* Identity: a 3 px edge on tiles, cards, the tooltip and the sheet; the line and its key; the end dot */
+.sc-tile[data-family],
+.sc-card[data-family] {
+  box-shadow:
+    inset 0 3px 0 var(--sc-family),
+    var(--sc-shadow);
+}
+.sc-tip[data-family] {
+  border-top: 3px solid var(--sc-family);
+}
+.sc-tip[data-family] .sc-tip-value b {
+  color: var(--sc-family-ink);
+}
+.sc-sheet[data-family] {
+  border-top: 3px solid var(--sc-family);
+}
+.sc-spark .sc-spark-line {
+  stroke: var(--sc-family, var(--color-accent));
+}
+.sc-spark .sc-spark-dot {
+  background: var(--sc-family, var(--color-accent));
+}
+.sc-spark .sc-spark-dot[data-partial] {
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1.5px var(--sc-family, var(--color-accent)),
+    0 0 0 2px var(--color-surface);
+}
+.sc-card[data-family] .sc-key-line:not(.sc-key-grey),
+.sc-card[data-family] .sc-key-bar {
+  background: var(--sc-family);
+}
+.sc-card[data-family] .sc-key-band {
+  background: var(--sc-family-tint);
+  box-shadow: inset 0 0 0 1px var(--sc-family);
+}
+
+/* Verdict: the tag */
+.sc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.sc-tile .sc-tags {
+  margin-top: 8px;
+}
+.sc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px 2px 6px;
+  border-radius: 999px;
+  background: var(--tag-tint);
+  color: var(--tag-ink);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.sc-tag svg,
+.sc-glyph {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sc-tag[data-tone='good'],
+.sc-glyph[data-tone='good'] {
+  --tag-tint: var(--color-ok-tint);
+  --tag-ink: var(--color-ok-ink);
+}
+.sc-tag[data-tone='watch'],
+.sc-glyph[data-tone='watch'] {
+  --tag-tint: var(--color-warning-tint);
+  --tag-ink: var(--color-warning-ink);
+}
+.sc-tag[data-tone='bad'],
+.sc-glyph[data-tone='bad'] {
+  --tag-tint: var(--color-danger-tint);
+  --tag-ink: var(--color-danger-ink);
+}
+.sc-tag[data-tone='neutral'],
+.sc-glyph[data-tone='neutral'] {
+  --tag-tint: var(--color-muted-tint);
+  --tag-ink: var(--color-muted-ink);
+}
+.sc-glyph {
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: -2px;
+  color: var(--tag-ink);
+}
+.sc-tags-head {
+  gap: 8px;
+}
+.sc-tag-name {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+.sc-cell-vs .sc-tag {
+  font-size: 11.5px;
+}
+
+/* Heat map: the machines under each risk tag */
+.sc-risk ul {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sc-risk li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12.5px;
+}
+.sc-risk .sc-note {
+  margin-top: 8px;
+  font-size: 12px;
+}

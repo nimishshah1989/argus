@@ -14,7 +14,7 @@
   color: var(--color-neutral-600);
 }
 .sc-heat-name {
-  width: 64px;
+  width: 78px;
 }
 .sc-heat tbody th {
   padding-right: 4px;
@@ -84,7 +84,7 @@
     font-size: 10px;
   }
   .sc-heat-name {
-    width: 52px;
+    width: 62px;
   }
   .sc-heat tbody th {
     font-size: 11px;
