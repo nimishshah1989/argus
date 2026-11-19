@@ -87,6 +87,7 @@ describe('run with a span', () => {
         'dashboard.fleet-availability',
         'dashboard.no-downtime-hours',
         'dashboard.plant-bd-pct',
+        'dashboard.plant-events',
         'dashboard.pm-hours',
         'dashboard.total-breakdowns',
         'dashboard.total-downtime-hours',
