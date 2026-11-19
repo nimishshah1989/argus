@@ -393,8 +393,12 @@ all other motion runs once and is purposeful. Reduced motion switches all of it 
 - **Reduced motion.** Changes are instant: a figure shows its final value, squares and lines appear drawn, lists do not
   fade, the skeleton holds still, and charts draw with no animation, also if reduced motion is asked for while one is on screen. The browser test `elements.spec.ts` checks that
   the heat-grid pop and the drill-panel slide are off under reduced motion and on otherwise, and `chart-option.test.ts` checks that a chart's draw-in is off under reduced motion.
-- **Tone.** A KPI tile's edge and trend line take their tone from the figure's direction of good (down is good for
-  downtime), not from the sign of the change, and a tone is only drawn where an icon and a word say it too.
+- **Tone.** A KPI tile's chip and delta take their tone from the figure's direction of good (down is good for
+  downtime), not from the sign of the change, and a tone is only drawn where an icon and a word say it too. With a
+  `family` (availability, downtime, repairs, planned), the tile's edge and trend line wear the family's identity
+  colour instead (`--color-family-*`); a family says what a figure is, never whether it is good, so it never replaces
+  the tone's icon and word. A heat grid of one family shades in that family's five-step ramp
+  (`--color-family-<name>-ramp-1..5`, ink 4.5:1, checked by `tokens.test.ts`).
 
 ### Numbers
 

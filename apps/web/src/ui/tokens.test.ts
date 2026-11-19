@@ -284,3 +284,40 @@ describe('named tokens of ticket 81', () => {
     expect(dark['shadow-depth-1']).toBe('var(--shadow-card)');
   });
 });
+
+describe('family ramps (ticket 83c)', () => {
+  const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
+  const { light, dark } = readTokens(css);
+  const FAMILIES = ['availability', 'downtime', 'repairs', 'planned'];
+
+  for (const [name, tokens] of [
+    ['light', light],
+    ['dark', dark],
+  ] as const) {
+    it(`reads 4.5:1 or better for its ink on every step of every family, in ${name}`, () => {
+      const errors: string[] = [];
+      for (const family of FAMILIES)
+        for (const step of [1, 2, 3, 4, 5]) {
+          const r = ratio(
+            colour(tokens, `color-family-${family}-ramp-ink-${step}`),
+            colour(tokens, `color-family-${family}-ramp-${step}`),
+          );
+          if (r < 4.5) errors.push(`${family} ${step}: ${r.toFixed(2)}`);
+        }
+      expect(errors).toEqual([]);
+    });
+
+    it(`runs each family's ramp from the surface toward its fill, step by step, in ${name}`, () => {
+      for (const family of FAMILIES) {
+        const surface = colour(tokens, 'color-surface');
+        const fill = colour(tokens, `color-family-${family}-ramp-5`);
+        const steps = [1, 2, 3, 4, 5].map((n) =>
+          ratio(colour(tokens, `color-family-${family}-ramp-${n}`), surface),
+        );
+        expect(steps, family).toEqual([...steps].sort((a, b) => a - b));
+        expect(steps[0], family).toBeLessThan(steps[4]!);
+        expect(fill).toMatch(/^#[0-9a-f]{6}$/);
+      }
+    });
+  }
+});

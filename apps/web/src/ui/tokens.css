@@ -183,6 +183,53 @@
   --color-family-planned: var(--color-accent);
   --color-family-planned-ink: var(--color-accent-text);
   --color-family-planned-tint: var(--color-accent-tint);
+
+  /* Family ramps (ticket 83c): five steps from the card's surface toward the family's fill (the mix the showcase heat
+     map made from raw hex), each with the ink that reads on it. Ink is black or white, whichever reaches 4.5:1
+     (tokens.test checks every step, light and dark). A heat grid of one family picks a step by the square root of
+     its share, so 20 hours still shows beside 240. */
+  --color-ramp-ink-dark: #000000;
+  --color-ramp-ink-light: #ffffff;
+  --color-family-availability-ramp-1: #e8efde;
+  --color-family-availability-ramp-ink-1: var(--color-ramp-ink-dark);
+  --color-family-availability-ramp-2: #cadbb3;
+  --color-family-availability-ramp-ink-2: var(--color-ramp-ink-dark);
+  --color-family-availability-ramp-3: #a9c584;
+  --color-family-availability-ramp-ink-3: var(--color-ramp-ink-dark);
+  --color-family-availability-ramp-4: #88ae54;
+  --color-family-availability-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-availability-ramp-5: #679825;
+  --color-family-availability-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-1: #f6e7e1;
+  --color-family-downtime-ramp-ink-1: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-2: #ebc9bb;
+  --color-family-downtime-ramp-ink-2: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-3: #dfa791;
+  --color-family-downtime-ramp-ink-3: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-4: #d38566;
+  --color-family-downtime-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-5: #c7633c;
+  --color-family-downtime-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-1: #e0e9fc;
+  --color-family-repairs-ramp-ink-1: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-2: #b9cdf9;
+  --color-family-repairs-ramp-ink-2: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-3: #8eaef5;
+  --color-family-repairs-ramp-ink-3: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-4: #628ff1;
+  --color-family-repairs-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-5: #366fed;
+  --color-family-repairs-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-1: #ddeceb;
+  --color-family-planned-ramp-ink-1: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-2: #b2d3d1;
+  --color-family-planned-ramp-ink-2: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-3: #82b8b4;
+  --color-family-planned-ramp-ink-3: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-4: #529c97;
+  --color-family-planned-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-5: #22817a;
+  --color-family-planned-ramp-ink-5: var(--color-ramp-ink-light);
 }
 
 /* The page language is set on <html> (i18n/index.ts), so this follows the tenant without a component prop. */
@@ -247,6 +294,46 @@
   --color-family-downtime: #e8825a;
   --color-family-downtime-ink: #f4a583;
   --color-family-downtime-tint: #3a1d14;
+  --color-family-availability-ramp-1: #2c3522;
+  --color-family-availability-ramp-ink-1: var(--color-ramp-ink-light);
+  --color-family-availability-ramp-2: #405527;
+  --color-family-availability-ramp-ink-2: var(--color-ramp-ink-light);
+  --color-family-availability-ramp-3: #56792d;
+  --color-family-availability-ramp-ink-3: var(--color-ramp-ink-light);
+  --color-family-availability-ramp-4: #6d9d32;
+  --color-family-availability-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-availability-ramp-5: #83c138;
+  --color-family-availability-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-1: #392a26;
+  --color-family-downtime-ramp-ink-1: var(--color-ramp-ink-light);
+  --color-family-downtime-ramp-2: #5d3d31;
+  --color-family-downtime-ramp-ink-2: var(--color-ramp-ink-light);
+  --color-family-downtime-ramp-3: #86513d;
+  --color-family-downtime-ramp-ink-3: var(--color-ramp-ink-light);
+  --color-family-downtime-ramp-4: #af6549;
+  --color-family-downtime-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-downtime-ramp-5: #d87a55;
+  --color-family-downtime-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-1: #262f3d;
+  --color-family-repairs-ramp-ink-1: var(--color-ramp-ink-light);
+  --color-family-repairs-ramp-2: #324864;
+  --color-family-repairs-ramp-ink-2: var(--color-ramp-ink-light);
+  --color-family-repairs-ramp-3: #3f6390;
+  --color-family-repairs-ramp-ink-3: var(--color-ramp-ink-light);
+  --color-family-repairs-ramp-4: #4d7fbc;
+  --color-family-repairs-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-repairs-ramp-5: #5b9ae8;
+  --color-family-repairs-ramp-ink-5: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-1: #1b3231;
+  --color-family-planned-ramp-ink-1: var(--color-ramp-ink-light);
+  --color-family-planned-ramp-2: #194e4a;
+  --color-family-planned-ramp-ink-2: var(--color-ramp-ink-light);
+  --color-family-planned-ramp-3: #186d65;
+  --color-family-planned-ramp-ink-3: var(--color-ramp-ink-light);
+  --color-family-planned-ramp-4: #168c80;
+  --color-family-planned-ramp-ink-4: var(--color-ramp-ink-dark);
+  --color-family-planned-ramp-5: #15ac9b;
+  --color-family-planned-ramp-ink-5: var(--color-ramp-ink-dark);
   --color-muted-tint: #2c2c2e;
 
   --shadow-card: 0 0 0 1px #2c2c2e;
