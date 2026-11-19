@@ -27,7 +27,8 @@ export function sourcedReports(data: EngineData): SourcedReport[] {
 
 /**
  * The join above, kept per report list: fifty figures ask for it on the same data, and a list is never edited in
- * place once a run holds it, so the same lists give the same rows. Callers filter or copy it and never edit it.
+ * place once a run holds it, so the same lists give the same rows. Callers filter or copy it and never edit it
+ * (`engine-scale.test.ts` runs the engine on a deep-frozen copy of the data to keep that true).
  */
 const sourced = new WeakMap<
   readonly ReportRow[],
