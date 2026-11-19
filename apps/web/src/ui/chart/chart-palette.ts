@@ -21,10 +21,13 @@ const TONES = ['danger', 'warning', 'info', 'hold', 'moved', 'ok', 'muted'] as c
 export const FALLBACK_LIGHT = ['#7a7a00', '#9b59b6', '#3f2fa0', '#348da6', '#c2308f', '#2e2a5e'];
 export const FALLBACK_DARK = ['#c9c94a', '#a64bd0', '#6a5cf0', '#7fd3ec', '#e0509f', '#ecebff'];
 
-/** The 8 slots' tokens: the design token first, then (slots 1 and 2) the chart token. */
+/**
+ * The 8 slots' tokens. Slots 1 and 2 are the chart tokens first (the accent, which follows the tenant's accent, and
+ * the neutral), as every chart drew them before the palette existed; the series tokens are their fallback.
+ */
 const SLOTS: string[][] = [
-  ['--color-series-1', '--color-chart-1'],
-  ['--color-series-2', '--color-chart-2'],
+  ['--color-chart-1', '--color-series-1'],
+  ['--color-chart-2', '--color-series-2'],
   ...[3, 4, 5, 6, 7, 8].map((n) => [`--color-series-${n}`]),
 ];
 
