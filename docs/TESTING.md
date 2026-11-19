@@ -4,20 +4,21 @@ Tests are the executable memory of the rules. A test that cannot fail is not a t
 
 ## 1. Layers
 
-| Layer         | Tool                                  | What it proves                                                                                                                                   |
-| ------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit          | Vitest                                | `packages/domain` pure functions: state machine, figures, severity, SLA maths, permissions                                                       |
-| Property      | Vitest + fast-check (later)           | Cached figures equal recomputed; a command applied twice with the same idempotency key has one effect; state transitions never lose an invariant |
-| Integration   | Vitest + Testcontainers Postgres      | Migrations, RLS, constraints, indexes, the generic isolation suite                                                                               |
-| Contract      | Vitest + Zod                          | A handler agrees with its request/response schema; every command’s error envelope                                                                |
-| End-to-end    | Playwright                            | A real ticket through the floor and desk; offline replay; PDF download; a 409 draft                                                              |
-| Visual        | Playwright screenshots                | A component or screen changes only with a reviewed baseline                                                                                      |
-| Accessibility | axe in Playwright                     | WCAG AA; no serious/critical violation; keyboard path                                                                                            |
-| PDF           | `pdf-parse` + pixel snapshot          | Gujarati fields are present; glyphs render; page 1 matches                                                                                       |
-| Offline       | Playwright `context.setOffline(true)` | The four queued writes replay; a replay onto a closed ticket becomes a draft, never a silent drop                                                |
-| Performance   | Playwright + a timing budget          | `/state` under 300 ms for 500 machines; Open/Live under 2 s on a low-end profile                                                                 |
-| Security      | Vitest + a human checklist            | RLS isolation; cross-tenant = not_found; rate limits; webhook signature; no secrets in logs                                                      |
-| Migration     | `tools/check-migrations.ts`           | A destructive migration fails unless it carries an approved expand/contract plan and a backup step                                               |
+| Layer          | Tool                                  | What it proves                                                                                                                                   |
+| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit           | Vitest                                | `packages/domain` pure functions: state machine, figures, severity, SLA maths, permissions                                                       |
+| Property       | Vitest + fast-check (later)           | Cached figures equal recomputed; a command applied twice with the same idempotency key has one effect; state transitions never lose an invariant |
+| Integration    | Vitest + Testcontainers Postgres      | Migrations, RLS, constraints, indexes, the generic isolation suite                                                                               |
+| Contract       | Vitest + Zod                          | A handler agrees with its request/response schema; every command’s error envelope                                                                |
+| End-to-end     | Playwright                            | A real ticket through the floor and desk; offline replay; PDF download; a 409 draft                                                              |
+| Visual         | Playwright screenshots                | A component or screen changes only with a reviewed baseline                                                                                      |
+| Accessibility  | axe in Playwright                     | WCAG AA; no serious/critical violation; keyboard path                                                                                            |
+| PDF            | `pdf-parse` + pixel snapshot          | Gujarati fields are present; glyphs render; page 1 matches                                                                                       |
+| Offline        | Playwright `context.setOffline(true)` | The four queued writes replay; a replay onto a closed ticket becomes a draft, never a silent drop                                                |
+| Performance    | Playwright + a timing budget          | `/state` under 300 ms for 500 machines; Open/Live under 2 s on a low-end profile                                                                 |
+| Security       | Vitest + a human checklist            | RLS isolation; cross-tenant = not_found; rate limits; webhook signature; no secrets in logs                                                      |
+| Migration      | `tools/check-migrations.ts`           | A destructive migration fails unless it carries an approved expand/contract plan and a backup step                                               |
+| Whole database | `pnpm validate:full`                  | D34: every figure on every ticket 2022 to today: computes, drill sums to it, stable, years add up, 0 tickets unread; 0 unexplained differences   |
 
 ## 2. The domain is the priority
 
@@ -82,3 +83,19 @@ pnpm verify         # everything CI runs
 - UI: the four states (empty, loading, error, offline) and the role’s primary task; not every presentational branch.
 - Flake: >1% over a week is a ticket. Retries are for diagnosis, not for green.
 - A test that is slow because it is end-to-end stays end-to-end; speed is not a reason to test the implementation instead.
+
+## 10. The whole-database run (D34, ticket 79)
+
+`pnpm validate:full --tenant <slug>` (with `DATABASE_URL` set to the app role, a local host unless `--allow-remote`)
+loads the plant through the real loader and runs the engine over the whole span and each year. Per registry figure it
+checks that the figure computes (only `compare.spares-cost`, `team-focus.cost` and `action-center.spares-spend` may
+say "not computed yet"), that its drill rows are real and sum to it where it has a count or an hour total, that a second
+load and run gives the same hash, that the run a reader is served equals a fresh compute (the kept copy is rolled back),
+and that the years add up to the whole span. It then counts tickets read by some figure against the tickets in the
+database. It prints counts, figure keys and ticket refs only, and exits 1 while any difference is not listed with a
+cause in `docs/plan/validate-explained.md` (`- <id> - <cause>`, an id ending in `*` covers every id that starts with it).
+
+Nightly, on staging: run `pnpm validate:full --tenant <slug> --allow-remote` with the staging app-role URL; the workflow
+to add (not in the PR that built the command) is `.github/workflows/validate-full.yml`, a `schedule` job beside
+`backup.yml` that runs that one command and fails on a non-zero exit. Until it exists, run it by hand before a ticket
+under D34 rule 2 is marked `done` and link the output.

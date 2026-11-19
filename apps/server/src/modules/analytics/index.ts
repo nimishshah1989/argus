@@ -5,6 +5,7 @@ export { notStored, runForTenant, type FigureStore } from './service.js';
 export { loadEngineData } from './load.js';
 export { profileOfKey, snapshotStore, type FigureProfile } from './snapshot.js';
 export { readProfile } from './profile.js';
+export { servedRun } from './served.js';
 export {
   ENGINE_FREEZE_QUEUE,
   freezeTenant,
