@@ -68,6 +68,19 @@
   second surface, no shadows, 6/8/12 corners, figures set 0.02em tighter, and every colour role in light and dark
   exactly as the plan's table sets them, with 8 chart series and two 5-step ramps per theme.
 - The same test that checks Instrument now runs for it, and every value passed as written, so no colour moved.
-- The check that no chart series is grey now also catches a near-grey (channels within 8 of 255), not only an exact
-  grey, because Running is the grey.
+- The check that no chart series is grey now also catches a near-grey (channels that differ from each other by at
+  most 8, on the 0-255 scale), not only an exact grey, because Running is the grey.
+- No user-visible change.
+
+## 80k — the Ledger direction
+
+- The design preview gets its third direction, Ledger, in `apps/web/src/gallery/directions/direction-ledger.ts`:
+  warm paper with no card, each figure in a ruled cell, the change written as a sentence under the value, a roomy
+  one-tile-a-row phone layout, a 224 px chart between two rules with its key row below, figures and headings in a
+  named system serif, flat with 1 px rules, and every colour role in light and dark exactly as the plan's table sets
+  them, with 8 chart series and two 5-step ramps per theme.
+- The same test that checks Instrument and Control Room now runs for it, and every value passed as written, so no
+  colour moved.
+- Where the plan is silent: the ruled tile has square corners (radius 0, it is a cell between rules, not a card), the
+  other corners are 4 px as the plan says, and the serif figures keep normal letter spacing.
 - No user-visible change.

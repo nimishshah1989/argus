@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { STATUS, type StatusGroup, type StatusId } from '../../ui/status/index.js';
 import { controlRoom } from './direction-control-room.js';
 import { instrument } from './direction-instrument.js';
+import { ledger } from './direction-ledger.js';
 import {
   formatIN,
   paletteProblems,
@@ -169,7 +170,11 @@ describe('Indian grouping', () => {
   });
 });
 
-const DIRECTIONS: Record<string, Direction> = { instrument, 'control-room': controlRoom };
+const DIRECTIONS: Record<string, Direction> = {
+  instrument,
+  'control-room': controlRoom,
+  ledger,
+};
 
 const channel = (hex: string, at: number) => {
   const c = parseInt(hex.slice(at, at + 2), 16) / 255;
@@ -200,7 +205,7 @@ const hue = (hex: string) => {
   return (h * 60 + 360) % 360;
 };
 describe('the hue helper', () => {
-  it('calls a colour grey when its channels sit within 8 of 255, not only when they are equal', () => {
+  it('calls a colour grey when its channels are within 8 of each other (out of 255), not only when they are equal', () => {
     expect(hue('#808080')).toBeNull();
     expect(hue('#818081')).toBeNull();
     expect(hue('#888088')).toBeNull();
