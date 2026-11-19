@@ -174,18 +174,12 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
     <Stack gap={4}>
       <ActionCenterBanner />
       {team ? (
-        <Template
-          {...frame}
-          kind="overview"
+        <TeamFocusPage
+          figure={figureOf(SCREEN_TEAM)}
+          group={group}
+          title={title}
           lede={t('analytics.asOf', { date: loaded.asOf })}
-          main={
-            <>
-              {drillTable === null ? null : <div data-span="full">{drillTable}</div>}
-              <div data-span="full">
-                <TeamFocusPage figure={figureOf(SCREEN_TEAM)} group={group} />
-              </div>
-            </>
-          }
+          drill={drillTable}
         />
       ) : (
         <DashboardTemplate

@@ -1,4 +1,5 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
+import { figurePlaces, figureMeasure, splitFigure } from '../../ui/meaning/index.js';
 
 /**
  * Team Focus' action list (43e): the engine's own `extra` rows, grouped by the platform's six lanes in the
@@ -100,6 +101,24 @@ export function focusActions(value: unknown): FocusAction[] {
     const action = actionOf(raw);
     return action === null ? [] : [action];
   });
+}
+
+/** The hours at stake as the engine gave them (at most 2 places, one at least: "6.09", "10.0"), Indian grouping. */
+export function stakeText(stake: number): string {
+  const measure = figureMeasure('dashboard.total-downtime-hours');
+  const places = figurePlaces(measure, stake);
+  return splitFigure(measure, stake, places, places).text;
+}
+
+/**
+ * The number inside a figure the engine printed as text ("31", "0%", "1,343 hrs"), or null when there is none ("—").
+ * The tile prints the engine's own text; this number is only what its count-up eases to.
+ */
+export function printedNumber(text: string): number | null {
+  const match = /-?\d[\d,]*(?:\.\d+)?/.exec(text);
+  if (match === null) return null;
+  const parsed = Number(match[0].replaceAll(',', ''));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /** The actions grouped by lane, in the platform's lane order; a lane with no action prints no group. */
