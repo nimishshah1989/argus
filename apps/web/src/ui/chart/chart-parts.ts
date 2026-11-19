@@ -16,7 +16,13 @@ export function baseOption(
   return {
     animation: false,
     textStyle: { fontFamily: p.font, fontSize: 12, color: p.axis },
-    grid: { left: 8, top: legend ? 40 : 24, bottom: 8, right, containLabel: true },
+    grid: {
+      left: 8,
+      top: legend ? 40 : 24,
+      bottom: 8,
+      right,
+      containLabel: true,
+    },
     ...(legend ? { legend: { top: 0, left: 0, data: names, textStyle: { color: p.axis } } } : {}),
   };
 }
@@ -45,13 +51,27 @@ export function axisTooltip(kind: 'shadow' | 'line'): Option {
   return { trigger: 'axis', axisPointer: { type: kind }, confine: true };
 }
 
-export function categoryAxis(categories: string[], p: Palette) {
+/** The option with room under the plot for a category axis title. */
+export function withTitleRoom(option: Option): Option {
+  return { ...option, grid: { ...(option.grid as object), bottom: 36 } };
+}
+
+/** The category axis; `title` (the spec's `categoryLabel`, asked for by `axisTitles`) names it under the labels. */
+export function categoryAxis(categories: string[], p: Palette, title?: string) {
   return {
     type: 'category' as const,
     data: categories,
     axisTick: { show: false },
     axisLine: { lineStyle: { color: p.grid } },
     axisLabel: { color: p.axis },
+    ...(title === undefined
+      ? {}
+      : {
+          name: title,
+          nameLocation: 'middle' as const,
+          nameGap: 28,
+          nameTextStyle: { color: p.axis },
+        }),
   };
 }
 

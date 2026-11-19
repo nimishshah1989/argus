@@ -6,6 +6,7 @@ import {
   categoryAxis,
   titledValueAxis,
   valueAxis,
+  withTitleRoom,
   type Option,
 } from './chart-parts.js';
 import { paretoRows, type BarSpec, type MixedSpec, type ParetoSpec } from './chart-spec.js';
@@ -15,15 +16,18 @@ export function barOption(spec: BarSpec, p: Palette): Option {
   const horizontal = spec.horizontal === true;
   const stacked = spec.stacked === true;
   const legend = spec.legend ?? (stacked && spec.series.length >= 2);
-  const category = categoryAxis(spec.categories, p);
+  // Horizontal bars keep their long machine labels on the left: the title is for the vertical chart.
+  const title = spec.axisTitles && !horizontal ? spec.categoryLabel : undefined;
+  const category = categoryAxis(spec.categories, p, title);
   const value = titledValueAxis(spec.valueLabel, p);
+  const base = baseOption(
+    p,
+    16,
+    legend,
+    spec.series.map((s) => s.name),
+  );
   return {
-    ...baseOption(
-      p,
-      16,
-      legend,
-      spec.series.map((s) => s.name),
-    ),
+    ...(title === undefined ? base : withTitleRoom(base)),
     ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
     xAxis: horizontal ? value : category,

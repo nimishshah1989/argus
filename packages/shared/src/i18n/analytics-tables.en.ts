@@ -10,4 +10,5 @@ export const analyticsTablesEn = {
   'analytics.keytable.range': '{{from}} to {{to}} of {{total}}',
   'analytics.keytable.empty': 'No rows',
   'analytics.energy.axisLocation': 'Location',
+  'analytics.state.empty': 'Nothing to show here yet',
 };

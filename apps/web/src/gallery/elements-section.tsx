@@ -22,6 +22,7 @@ import {
   Timeline,
   useClientTable,
 } from '../ui/elements/index.js';
+import { ElementsGaps } from './elements-gaps.js';
 import { ServerLogTable } from './server-log-table.js';
 import { Grid, Stack } from '../ui/layout.js';
 import {
@@ -384,6 +385,7 @@ export function ElementsSection() {
         <Lists worst={worst} />
         <Tables worst={worst} />
         <Controls worst={worst} />
+        <ElementsGaps />
       </Stack>
     </section>
   );

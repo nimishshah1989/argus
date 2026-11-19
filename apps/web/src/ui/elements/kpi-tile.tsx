@@ -11,12 +11,8 @@ import { TrendDelta } from './trend-delta.js';
 /** What a figure with no value prints: a dash, never 0 (a missing month is not zero hours). */
 export const NO_VALUE = '—';
 
-interface KpiTileProps {
+interface KpiTileBase {
   label: string;
-  /** The figure; it eases to a new value (600 ms, none under reduced motion). `null` prints a dash. */
-  value: number | null;
-  /** Prints a value with its unit (`formatFigure`). */
-  format: (value: number) => string;
   tone?: Tone4;
   /** The word for the verdict chip ("On target"); absent shows no chip. */
   verdict?: string;
@@ -38,6 +34,14 @@ interface KpiTileProps {
   onOpen?: () => void;
 }
 
+/**
+ * The figure: a number (or `null`, a dash) eases to a new value (600 ms, none under reduced motion) and is printed by
+ * `format` (`formatFigure`); a string is a word the screen needs in its place ("Stable"), printed as given, with no
+ * count-up, no `format` and no unit.
+ */
+type KpiTileProps = KpiTileBase &
+  ({ value: number | null; format: (value: number) => string } | { value: string; format?: never });
+
 type Shown = KpiTileProps & { own: Tone4; frame: string; figure: string };
 
 /**
@@ -47,8 +51,8 @@ type Shown = KpiTileProps & { own: Tone4; frame: string; figure: string };
  * The 4 px edge and the line are the tone's, or the family's when there is a `family`.
  */
 export function KpiTile(props: KpiTileProps) {
-  const { value, format, tone = 'neutral', verdict, change, family } = props;
-  const shown = useCountUp(value ?? 0);
+  const { value, tone = 'neutral', verdict, change, family } = props;
+  const shown = useCountUp(typeof value === 'number' ? value : 0);
   // A colour is only used when a word or icon says it too: the rounded change's own, or the verdict chip.
   const own = change
     ? toneOfChange(change.measure.better, roundMove(change.delta))
@@ -61,9 +65,15 @@ export function KpiTile(props: KpiTileProps) {
     ...props,
     own,
     frame,
-    figure: value === null ? NO_VALUE : format(shown),
+    figure: figureText(props, shown),
   };
   return props.onOpen ? <KpiButton {...shownProps} /> : <KpiPlain {...shownProps} />;
+}
+
+/** What the figure prints: a dash for none, a word as given, a number through `format`. */
+function figureText(props: KpiTileProps, shown: number): string {
+  if (props.format === undefined) return props.value;
+  return props.value === null ? NO_VALUE : props.format(shown);
 }
 
 /** The value, with its word unit smaller beside it (under it on a phone, so a long unit never breaks). */
@@ -102,7 +112,11 @@ function KpiButton(p: Shown) {
         <span className={`text-footnote text-neutral-600 ${WRAP}`}>{p.label}</span>
         <ChevronRight aria-hidden size={16} className="mt-0.5 shrink-0 text-neutral-600" />
       </span>
-      <Headline figure={p.figure} unit={p.unit} as="span" />
+      <Headline
+        figure={p.figure}
+        unit={typeof p.value === 'string' ? undefined : p.unit}
+        as="span"
+      />
       {p.verdict ? (
         <span>
           <StatusChip tone={p.own}>{p.verdict}</StatusChip>
@@ -122,7 +136,7 @@ function KpiPlain(p: Shown) {
         <span className={WRAP}>{p.label}</span>
         {p.action}
       </dt>
-      <Headline figure={p.figure} unit={p.unit} as="dd" />
+      <Headline figure={p.figure} unit={typeof p.value === 'string' ? undefined : p.unit} as="dd" />
       {p.verdict ? (
         <dd>
           <StatusChip tone={p.own}>{p.verdict}</StatusChip>

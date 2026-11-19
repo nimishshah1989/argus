@@ -5,6 +5,7 @@ import {
   categoryAxis,
   drawOption,
   titledValueAxis,
+  withTitleRoom,
   type Option,
 } from './chart-parts.js';
 import type { LineSpec } from './chart-spec.js';
@@ -16,16 +17,17 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
     throw new Error(`secondAxis needs exactly 2 series, got ${spec.series.length}`);
   const secondAxis = spec.secondAxis === true;
   const axis = titledValueAxis(spec.valueLabel, p);
+  const base = baseOption(
+    p,
+    16 + 7 * longest,
+    spec.legend === true,
+    spec.series.map((s) => s.name),
+  );
   return {
-    ...baseOption(
-      p,
-      16 + 7 * longest,
-      spec.legend === true,
-      spec.series.map((s) => s.name),
-    ),
+    ...(spec.axisTitles ? withTitleRoom(base) : base),
     ...drawOption(spec.draw),
     tooltip: axisTooltip('line'),
-    xAxis: categoryAxis(spec.categories, p),
+    xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,
     series: spec.series.map((s, i) => ({
       type: 'line' as const,

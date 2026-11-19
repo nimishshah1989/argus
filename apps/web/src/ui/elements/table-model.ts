@@ -11,8 +11,15 @@ export interface Column<R> {
   cell: (row: R) => ReactNode;
   /** Present makes the column sortable; the value the rows are ordered by. */
   sortValue?: (row: R) => number | string;
+  /** Numbers print right-aligned with tabular digits. */
   numeric?: boolean;
+  /** Where the header and cells align; absent is right for a numeric column and left otherwise. */
+  align?: 'left' | 'right' | 'center';
 }
+
+/** The side a column aligns to: its own choice, else right for numbers, else left. */
+export const alignOf = (column: { numeric?: boolean; align?: 'left' | 'right' | 'center' }) =>
+  column.align ?? (column.numeric ? 'right' : 'left');
 
 export interface Sort {
   column: string;
