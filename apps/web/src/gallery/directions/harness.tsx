@@ -108,7 +108,7 @@ function Picker({ index, onPick }: { index: number; onPick: (to: number) => void
   return (
     <nav
       ref={nav}
-      className="proto-picker"
+      className="proto-picker whitespace-nowrap"
       aria-label={t('picker')}
       data-ready={ready ? '' : undefined}
     >
