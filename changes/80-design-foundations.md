@@ -25,6 +25,18 @@
 - The impeccable and learn-taste skills now say where `PRODUCT.md` and `docs/DESIGN.md` live.
 - No user-visible change.
 
+## 80c — DESIGN.md sections 1 to 4
+
+- Builders get the first four sections of `docs/DESIGN.md` in impeccable's shape: the overview with the two zones by
+  route and Nimish's 19 Nov answers, the colour roles and the five-tone grammar with the one rule that maps all 40
+  statuses, typography (UI sizes, TV sizes, Gujarati), and layout (breakpoints, the phone, laptop and TV tiers, the
+  five templates, and how tickets 88 and 89 measure that the floor and desk keep v3 positions).
+- It replaces the 22-line file and keeps what is still true: Apple's three principles, one accent, one primary
+  action, the system font. Facts nobody has given yet say "not known yet". Sections 5 to 8 follow in 80d.
+- A small test (`tools/design-doc.test.ts`) fails if a section goes missing or empties, or if a settled fact (Running
+  grey, Waiting amber, Transferred blue, Indian grouping, analytics follows the device theme, the TV always dark and
+  50 inch or larger) is dropped.
+
 ## 80h — the design preview's variant contract
 
 - The design preview gets its shared contract in `apps/web/src/gallery/directions/variant.ts`. It holds the six
@@ -38,15 +50,13 @@
   baselines do not move.
 - No user-visible change.
 
-## 80c — DESIGN.md sections 1 to 4
+## 80i — the Instrument direction
 
-- Builders get the first four sections of `docs/DESIGN.md` in impeccable's shape: the overview with the two zones by
-  route and Nimish's 19 Nov answers, the colour roles and the five-tone grammar with the one rule that maps all 40
-  statuses, typography (UI sizes, TV sizes, Gujarati), and layout (breakpoints, the phone, laptop and TV tiers, the
-  five templates, and how tickets 88 and 89 measure that the floor and desk keep v3 positions).
-- It replaces the 22-line file and keeps what is still true: Apple's three principles, one accent, one primary
-  action, the system font. Facts nobody has given yet say "not known yet". Sections 5 to 8 follow in 80d.
-- A small test (`tools/design-doc.test.ts`) fails if a section goes missing or empties, or if a settled fact (Running
-  grey, Waiting amber, Transferred blue, Indian grouping, analytics follows the device theme, the TV always dark and
-  50 inch or larger) is dropped.
+- The design preview gets its first direction, Instrument, in `apps/web/src/gallery/directions/direction-instrument.ts`:
+  raised cards, tint chips, a 192 px chart in a card, layered shadows, 10/14/20 corners, and every colour role in
+  light and dark exactly as the plan's table sets them, with 8 chart series and two 5-step ramps per theme.
+- A test checks it: light and dark set the same roles, every text pair is at least 4.5 to 1, every fill, chart series
+  and border is at least 3 to 1 on the page and both surfaces, and no series sits in the red, green or info-blue bands.
+- The palette check now also names a chart colour that is not a hex value or is used twice, and the Indian-grouping
+  formatter prints a dash for a figure that is not a number and rounds to at most 3 decimals.
 - No user-visible change.

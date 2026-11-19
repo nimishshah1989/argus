@@ -1,4 +1,4 @@
-import { availableHours, periodFraction } from './availability.js';
+import { hoursIn, periodFraction, type Period } from './availability.js';
 import { dayNumber } from './plant-date.js';
 import type { MachineRow, MoveRow } from './types.js';
 
@@ -8,11 +8,8 @@ import type { MachineRow, MoveRow } from './types.js';
  * its JavaScript and proven against the 11 November answer key; no figure re-implements one.
  */
 
-/** A span of plant dates, both ends included. */
-export interface DateWindow {
-  from: string;
-  to: string;
-}
+/** A span of plant dates, both ends included, with the months inside it the plant never recorded. */
+export type DateWindow = Period;
 
 /** A span plus the profile's annual hours per machine (`prodHrsPerDay × workDaysPerYear`). */
 export interface HoursWindow extends DateWindow {
@@ -48,7 +45,7 @@ export function monthlyWindow(asOf: string, month: number): DateWindow {
 
 /** One machine's available hours in a window, counted from its purchase date when that is later. */
 export function availableHoursFor(machine: MachineRow, window: HoursWindow): number {
-  return availableHours(machine, window.annualHours, window.from, window.to);
+  return hoursIn(machine, window.annualHours, window);
 }
 
 /** A machine's moves, oldest first: the order the cell log applies them in. */
@@ -124,7 +121,7 @@ export function availableByCell(
     const from = purchased !== null && purchased > window.from ? purchased : window.from;
     if (from > window.to) return total;
     const share = cellFrac(machine, moves, { from, to: window.to }, cell);
-    return total + window.annualHours * periodFraction(from, window.to) * share;
+    return total + window.annualHours * periodFraction(from, window.to, window.noRecords) * share;
   }, 0);
 }
 
