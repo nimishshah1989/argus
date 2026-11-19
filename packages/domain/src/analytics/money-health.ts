@@ -1,4 +1,5 @@
 import type { BottleneckCore } from './a9-bottleneck.js';
+import { observedDays } from './availability.js';
 import { dayNumber } from './plant-date.js';
 import { effectiveHours, isPm, sourcedReports } from './rows.js';
 import { isProduction } from './machine-facts.js';
@@ -79,6 +80,7 @@ const scoreLabel = (score: number): string =>
 function factsOf(data: EngineData, core: BottleneckCore): Fact[] {
   const from = dayNumber(core.from) ?? 0;
   const to = dayNumber(core.to) ?? 0;
+  const window = { from: core.from, to: core.to, noRecords: core.noRecords };
   const byMachine = new Map<string, ReportRow[]>();
   for (const row of sourcedReports(data)) {
     if (isPm(row)) continue;
@@ -91,7 +93,7 @@ function factsOf(data: EngineData, core: BottleneckCore): Fact[] {
     const bought =
       machine.purchasedOn === null ? null : dayNumber(machine.purchasedOn.slice(0, 10));
     const start = bought !== null && bought > from ? bought : from;
-    const days = start > to ? 0 : to - start + 1;
+    const days = observedDays(core.from, core.to, window, machine.purchasedOn?.slice(0, 10));
     const all = byMachine.get(machine.id) ?? [];
     const list = all.filter((report) => {
       const day = dayNumber(report.date);
