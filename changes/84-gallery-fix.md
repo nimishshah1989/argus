@@ -1,0 +1,1 @@
+- Charts keep drawing their first two series in the accent and the neutral grey, as before; the other six series use the new palette.
