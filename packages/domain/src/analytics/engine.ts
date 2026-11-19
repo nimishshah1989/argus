@@ -1,5 +1,6 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
 import { dataAsOf } from './as-of.js';
+import { gapMonths, type Period } from './availability.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
 import type {
@@ -12,6 +13,9 @@ import type {
 } from './types.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The span a caller names: plant dates, both ends included. */
+type Span = Pick<Period, 'from' | 'to'>;
 
 /** The ids of the rows of each drill type, so a figure can be checked against the rows it was given. */
 function knownIds(data: EngineData): Record<FigureDef['drill'], Set<string>> {
@@ -49,26 +53,77 @@ function drillOf(def: FigureDef, computed: Computed, known: Set<string>): string
   return ids;
 }
 
+const monthOf = (day: string): string => day.slice(0, 7);
+
+/** A month is over once the run date is its last day; only an over month with no record is a gap in the log. */
+const monthIsOver = (asOf: string): boolean =>
+  Number(asOf.slice(8)) ===
+  new Date(Date.UTC(Number(asOf.slice(0, 4)), Number(asOf.slice(5, 7)), 0)).getUTCDate();
+
+/** The months the plant recorded nothing in, first record to the run date: the month still running is not one. */
+function plantGaps(data: EngineData, asOf: string): string[] {
+  return gapMonths(data, asOf).filter((key) => key !== monthOf(asOf) || monthIsOver(asOf));
+}
+
+/** The span a run reads: never past the run date, with the gap months inside it. */
+function periodOf(span: Span, asOf: string, gaps: readonly string[]): Period {
+  if (!DAY.test(span.from) || !DAY.test(span.to) || span.from > span.to) {
+    throw new RangeError(
+      `span must run from one plant date to a later one, got ${span.from} to ${span.to}`,
+    );
+  }
+  if (span.from > asOf) throw new RangeError(`span starts after asOf ${asOf}: ${span.from}`);
+  const to = span.to < asOf ? span.to : asOf;
+  const noRecords = gaps.filter((key) => key >= monthOf(span.from) && key <= monthOf(to));
+  return { from: span.from, to, noRecords };
+}
+
+/** What a figure that reads the span sees: the plant cut to it. Tickets stay, so a breakdown closed after `to` counts. */
+function cutToPeriod(data: EngineData, period: Period): EngineData {
+  return {
+    ...data,
+    machines: data.machines.filter((m) => m.purchasedOn === null || m.purchasedOn <= period.to),
+    moves: data.moves.filter((move) => move.effectiveFrom <= period.to),
+    reports: data.reports.filter((r) => r.date >= period.from && r.date <= period.to),
+  };
+}
+
+/**
+ * The two views of one run. With no span a figure sees the as-of plant exactly as before, no period and no gap month.
+ * With one, every figure carries the period and the plant's gap list; those that read the span see it cut, as of its end.
+ */
+function viewsOf(data: EngineData, asOf: string, span?: Span) {
+  if (!span) return { whole: data, cut: data, cutAsOf: asOf, period: undefined };
+  const gaps = plantGaps(data, asOf);
+  const period = periodOf(span, asOf, gaps);
+  const whole = { ...data, period, gaps };
+  return { whole, cut: cutToPeriod(whole, period), cutAsOf: period.to, period };
+}
+
 /**
  * The engine with a given set of computations: the one test seam. Pure and deterministic: the same data, date
  * and profile always give the same figures, in registry order, and nothing reads the clock or the database.
  */
 export function runWith(
   computers: Readonly<Record<string, Computer>>,
-  input: { data: EngineData; asOf: string; profile: AnalyticsProfile },
+  input: { data: EngineData; asOf: string; profile: AnalyticsProfile; span?: Span },
 ): EngineResult {
   const { asOf, profile } = input;
   if (!DAY.test(asOf))
     throw new RangeError(`asOf must be a plant date like 2026-11-11, got ${asOf}`);
   const data = dataAsOf(input.data, asOf);
   const known = knownIds(data);
+  const views = viewsOf(data, asOf, input.span);
   const figures = FIGURES.map((def): FigureResult => {
     const base = { key: def.key, screen: def.screen, owner: def.owner };
     const compute = computers[def.key];
     if (!compute) {
       return { ...base, status: 'not_computed', value: null, drill: { type: def.drill, ids: [] } };
     }
-    const computed = compute({ data, asOf, profile });
+    const computed =
+      def.reads === undefined
+        ? compute({ data: views.cut, asOf: views.cutAsOf, profile })
+        : compute({ data: views.whole, asOf, profile });
     const ids = drillOf(def, computed, known[def.drill]);
     return { ...base, status: 'ready', value: computed.value, drill: { type: def.drill, ids } };
   });
@@ -80,10 +135,18 @@ export function runWith(
     reports: data.reports.length,
     people: data.people.length,
   };
-  return { asOf, profile, rows, figures };
+  return { asOf, profile, rows, figures, ...(views.period ? { period: views.period } : {}) };
 }
 
-/** `run(data, asOf, profile)`: the figures of the plant as of one plant date. */
-export function run(data: EngineData, asOf: string, profile: AnalyticsProfile): EngineResult {
-  return runWith(COMPUTERS, { data, asOf, profile });
+/**
+ * `run(data, asOf, profile, span?)`: the figures of the plant as of one plant date, for the span named or, with none,
+ * for the as-of year to date with no gap month.
+ */
+export function run(
+  data: EngineData,
+  asOf: string,
+  profile: AnalyticsProfile,
+  span?: Span,
+): EngineResult {
+  return runWith(COMPUTERS, { data, asOf, profile, span });
 }
