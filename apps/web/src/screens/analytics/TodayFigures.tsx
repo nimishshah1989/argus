@@ -7,6 +7,7 @@ import { Card } from '../../ui/card.js';
 import { Chart } from '../../ui/chart/chart.js';
 import {
   NO_VALUE,
+  type Family,
   KpiTile,
   RankedList,
   TrendDelta,
@@ -29,6 +30,23 @@ const FULL_ROW: ReadonlySet<string> = new Set([
   'dashboard.breakdown-free',
   'dashboard.expansion-timeline',
 ]);
+
+/**
+ * Which identity family a Today figure belongs to: how much runs (green), what is lost (orange), planned work (teal).
+ * The fleet counts, the hours with no downtime and the breakdown-free sentence name no family and keep none; nothing
+ * on Today is a repair time, so the repairs blue is not used here.
+ */
+const FAMILY_OF: Readonly<Record<string, Family>> = {
+  'dashboard.fleet-availability': 'availability',
+  'dashboard.total-breakdowns': 'downtime',
+  'dashboard.total-downtime-hours': 'downtime',
+  'dashboard.plant-bd-pct': 'downtime',
+  'dashboard.plant-events': 'downtime',
+  'dashboard.avg-complaints-per-day': 'downtime',
+  'dashboard.avg-bd-hours-per-day': 'downtime',
+  'dashboard.avg-bd-hours-per-machine': 'downtime',
+  'dashboard.pm-hours': 'planned',
+};
 
 /** The way to the rows behind a figure; it sits at the foot of its tile or card, in the same place on each. */
 function DrillLink({ figure, group }: { figure: Figure; group: AnalyticsGroup }) {
@@ -109,6 +127,7 @@ export function NumberFigure({
         format={(shown) => splitFigure(measure, shown, places, places).text}
         unit={value === null ? undefined : splitFigure(measure, value, places, places).unit}
         verdict={held ? t('analytics.notComputed') : undefined}
+        family={FAMILY_OF[figure.key]}
         change={change?.added ? undefined : change}
         note={addedNote(change, t)}
         action={

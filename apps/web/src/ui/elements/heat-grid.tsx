@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { familyStep, type Family } from './family.js';
 import { WRAP } from './tone.js';
 
 /**
@@ -14,7 +15,7 @@ const LEVELS = [
 
 /** Which of the three depths a value falls in, by thirds of the range; a flat grid is the lightest. */
 export function heatLevel(value: number, min: number, max: number): 0 | 1 | 2 {
-  if (max === min) return 0;
+  if (!Number.isFinite(value) || max === min) return 0;
   const share = (value - min) / (max - min);
   return share < 1 / 3 ? 0 : share < 2 / 3 ? 1 : 2;
 }
@@ -29,15 +30,18 @@ export function HeatGrid({
   columns,
   values,
   format,
+  family,
 }: {
   label: string;
   rows: string[];
   columns: string[];
   values: (number | undefined)[][];
   format: (value: number) => string;
+  /** Shade in this family's five-step ramp (by square root of the share of the largest) instead of the neutral ramp. */
+  family?: Family;
 }) {
   if (rows.length === 0 || columns.length === 0) return null;
-  const present = values.flat().filter((v): v is number => v !== undefined);
+  const present = values.flat().filter((v): v is number => v !== undefined && Number.isFinite(v));
   const min = Math.min(...present);
   const max = Math.max(...present);
   return (
@@ -64,6 +68,8 @@ export function HeatGrid({
               min={min}
               max={max}
               format={format}
+              family={family}
+              mostValue={max}
             />
           ))}
         </tbody>
@@ -79,6 +85,8 @@ function HeatRow({
   min,
   max,
   format,
+  family,
+  mostValue,
 }: {
   row: string;
   columns: string[];
@@ -86,6 +94,8 @@ function HeatRow({
   min: number;
   max: number;
   format: (value: number) => string;
+  family?: Family;
+  mostValue: number;
 }) {
   return (
     <tr>
@@ -94,21 +104,43 @@ function HeatRow({
       </th>
       {columns.map((column, c) => {
         const value = values[c];
-        const level = value === undefined ? null : LEVELS[heatLevel(value, min, max)];
+        const missing = value === undefined || !Number.isFinite(value);
+        const level = missing ? null : levelOf(value, { min, max, family, mostValue });
         return (
           <td
             key={column}
             style={
-              { '--col': c, ...(level ? { backgroundColor: level.ramp } : {}) } as CSSProperties
+              {
+                '--col': c,
+                ...(level ? { backgroundColor: level.ramp, color: level.color } : {}),
+              } as CSSProperties
             }
             className={`el-pop min-w-12 rounded-lg p-2 text-center tabular-nums ${
               level ? level.ink : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            {value === undefined ? '—' : format(value)}
+            {missing ? '—' : format(value)}
           </td>
         );
       })}
     </tr>
   );
+}
+
+/** The background and ink of a square: the family's ramp step when there is a family, else the neutral thirds. */
+function levelOf(
+  value: number,
+  scale: { min: number; max: number; family?: Family; mostValue: number },
+): { ramp: string; ink: string; color?: string } | null {
+  if (scale.family) {
+    const step = familyStep(value, scale.mostValue);
+    return step === 0
+      ? null
+      : {
+          ramp: `var(--color-family-${scale.family}-ramp-${step})`,
+          ink: '',
+          color: `var(--color-family-${scale.family}-ramp-ink-${step})`,
+        };
+  }
+  return LEVELS[heatLevel(value, scale.min, scale.max)];
 }
