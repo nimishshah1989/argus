@@ -42,7 +42,7 @@ function FigureLinks({ entry }: { entry: GuideEntry }) {
 function GuideSection({ entry }: { entry: GuideEntry }) {
   const { t } = useTranslation();
   return (
-    <div id={anchorOf(entry.id)} className="scroll-mt-16">
+    <div id={anchorOf(entry.id)} className="scroll-mt-32">
       <Card title={t(entry.titleKey)} named>
         <div className="flex max-w-3xl flex-col gap-2 text-body text-neutral-900">
           {entry.bodyKeys.map((key) => (

@@ -17,7 +17,8 @@ import {
   MoveNotes,
   SpreadPanel,
 } from './pm-calendar-parts.js';
-import { NotReady, useFiguresState } from './screen-state.js';
+import { StateNotice } from '../../patterns/frame.js';
+import { useFiguresState, type ScreenState } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
 import { eventsOf, loadOf, monthRange, readPmCompliance, shownMonth } from './pm-calendar-view.js';
 import { parseDrill, type AnalyticsGroup } from './groups.js';
@@ -40,9 +41,8 @@ export default function PmCalendarPage({ group }: { group: AnalyticsGroup }) {
   const state = useFiguresState(figures);
   if (state !== 'ready' || !figures.data)
     return (
-      <NotReady
-        title={t('pm.screen.calendar')}
-        state={state}
+      <StateNotice
+        state={state as Exclude<ScreenState, 'ready'>}
         empty={t('analytics.empty')}
         onRetry={() => void figures.refetch()}
       />

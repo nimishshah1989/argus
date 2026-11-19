@@ -5,6 +5,7 @@ import { Button } from '../../ui/button.js';
 import { Card } from '../../ui/card.js';
 import { CalendarCheck, CalendarClock, TriangleAlert } from '../../ui/icon.js';
 import { KpiTile, StatusChip } from '../../ui/elements/index.js';
+import { TONE_EDGE } from '../../ui/elements/tone.js';
 import PmCalendar, { type PmMove } from './PmCalendar.js';
 import { eventsOf, rateText, type PmComplianceView } from './pm-calendar-view.js';
 import { displayDay } from './machine-values.js';
@@ -104,6 +105,41 @@ export function Legend({ cap, count, days }: { cap: number; count: number; days:
   );
 }
 
+/** A crowded job's nearest free day: the Move button for a head, the day in words for everyone else (R5). */
+function Suggestion({
+  item,
+  canMove,
+  pending,
+  onMove,
+}: {
+  item: PmCalendarItem;
+  canMove: boolean;
+  pending: boolean;
+  onMove: (item: PmCalendarItem, target: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {item.suggestedOn === null ? (
+        <span className="text-footnote text-neutral-600">{t('pm.calendar.noFreeDay')}</span>
+      ) : canMove && item.movable ? (
+        <Button
+          // eslint-disable-next-line i18next/no-literal-string -- a variant value, not copy
+          variant="tonal"
+          disabled={pending}
+          onClick={() => onMove(item, item.suggestedOn!)}
+        >
+          {t('pm.calendar.moveTo', { date: displayDay(item.suggestedOn) })}
+        </Button>
+      ) : (
+        <span className="text-footnote text-neutral-600">
+          {t('pm.calendar.suggested', { date: displayDay(item.suggestedOn) })}
+        </span>
+      )}
+    </>
+  );
+}
+
 /** The crowded days and each one's nearest free day, with the Move button the server would accept (R5). */
 export function SpreadPanel({
   items,
@@ -130,7 +166,12 @@ export function SpreadPanel({
       </p>
       <ul className="flex flex-col gap-3">
         {crowded.map((item) => (
-          <li key={item.ticketId ?? item.planId ?? item.machineId} data-crowded={item.machineCode}>
+          <li
+            key={item.ticketId ?? item.planId ?? item.machineId}
+            data-crowded={item.machineCode}
+            data-tone="watch"
+            className={`rounded-card border-l-4 ${TONE_EDGE.watch}`}
+          >
             <Card>
               <span className="text-body font-semibold">
                 {item.machineCode} · {displayDay(item.scheduledOn)}
@@ -140,22 +181,7 @@ export function SpreadPanel({
                   {t('pm.calendar.legend.crowded')}
                 </StatusChip>
               </span>
-              {item.suggestedOn === null ? (
-                <span className="text-footnote text-neutral-600">{t('pm.calendar.noFreeDay')}</span>
-              ) : canMove && item.movable ? (
-                <Button
-                  // eslint-disable-next-line i18next/no-literal-string -- a variant value, not copy
-                  variant="tonal"
-                  disabled={pending}
-                  onClick={() => onMove(item, item.suggestedOn!)}
-                >
-                  {t('pm.calendar.moveTo', { date: displayDay(item.suggestedOn) })}
-                </Button>
-              ) : (
-                <span className="text-footnote text-neutral-600">
-                  {t('pm.calendar.suggested', { date: displayDay(item.suggestedOn) })}
-                </span>
-              )}
+              <Suggestion item={item} canMove={canMove} pending={pending} onMove={onMove} />
             </Card>
           </li>
         ))}

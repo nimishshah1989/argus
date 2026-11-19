@@ -87,7 +87,6 @@ const PENDING = [
 /** Latin words that stay Latin in Gujarati (docs/design/gujarati-glossary.md): codes, criticality letters, product names. */
 const LATIN_TOKENS = [
   'SLA',
-  'Enter',
   'S1',
   'S2',
   'S3',

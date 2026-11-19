@@ -147,6 +147,15 @@ export const jobsOf = (items: readonly PmCalendarItem[], month: string): PmCalen
   items.filter((item) => item.movable && item.scheduledOn.startsWith(month));
 
 /**
+ * What a landed move does with the sheet: its own sheet is open (close it, then say it), no sheet is open because the
+ * person pressed Escape while it was in flight (say it now), or another job's sheet is open (hold it for that close).
+ */
+export function landing(openId: string, key: string): 'close' | 'say' | 'hold' {
+  if (openId === key) return 'close';
+  return openId === '' ? 'say' : 'hold';
+}
+
+/**
  * What the shared sheet does not do: when the sheet has closed (Escape, cancel or a landed move) focus goes back to the
  * job's button, found by its machine so it survives a redraw (or to the list when the job left the month), and a
  * landed move is then said on the page, whose status line is hidden from a screen reader while the sheet is open.
@@ -155,8 +164,10 @@ function useRestoreFocus(chosen: PmCalendarItem | null, announce: () => void) {
   const opener = useRef('');
   const wasOpen = useRef(false);
   const landed = useRef(false);
+  const openId = useRef('');
   const say = useRef(announce);
   say.current = announce;
+  openId.current = chosen === null ? '' : jobKey(chosen);
   useEffect(() => {
     if (chosen !== null) {
       wasOpen.current = true;
@@ -172,7 +183,14 @@ function useRestoreFocus(chosen: PmCalendarItem | null, announce: () => void) {
     }, 50);
     return () => window.clearTimeout(timer);
   }, [chosen]);
-  return { opener, landed };
+  /** A move landed: close this job's sheet and say it afterwards, say it now if no sheet is open, else hold it. */
+  const land = (item: PmCalendarItem, close: () => void): void => {
+    const what = landing(openId.current, jobKey(item));
+    if (what === 'say') say.current();
+    else landed.current = true;
+    if (what === 'close') close();
+  };
+  return { opener, land };
 }
 
 /**
@@ -198,16 +216,17 @@ export function JobList({
   const { t } = useTranslation();
   const [chosen, setChosen] = useState<PmCalendarItem | null>(null);
   const [attempted, setAttempted] = useState(false);
-  const { opener, landed } = useRestoreFocus(chosen, announce);
+  const { opener, land } = useRestoreFocus(chosen, announce);
   const jobs = jobsOf(items, month);
   if (jobs.length === 0) return null;
   const confirm: MoveFn = (item, target) => {
     setAttempted(true);
     // Only this job's own sheet closes: a move still in flight after Escape must not close another job's sheet.
-    return confirmMove(move, item, target, () => {
-      landed.current = true;
-      setChosen((now) => (now !== null && jobKey(now) === jobKey(item) ? null : now));
-    });
+    return confirmMove(move, item, target, () =>
+      land(item, () =>
+        setChosen((now) => (now !== null && jobKey(now) === jobKey(item) ? null : now)),
+      ),
+    );
   };
   const open = (item: PmCalendarItem): void => {
     opener.current = jobKey(item);

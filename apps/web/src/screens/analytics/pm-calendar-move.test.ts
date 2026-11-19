@@ -3,12 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { PmCalendarItem } from '@uptimo/shared';
 import '../../i18n/index.js';
-import { confirmMove, JobList, jobKey, jobsOf, MoveForm } from './pm-calendar-move.js';
+import { confirmMove, JobList, jobKey, jobsOf, landing, MoveForm } from './pm-calendar-move.js';
 import { shownMonth } from './pm-calendar-view.js';
 
 const job = (code: string, over: Partial<PmCalendarItem> = {}): PmCalendarItem => ({
-  planId: `10000000-0000-4000-8000-00000000000${code.length}`,
-  machineId: `20000000-0000-4000-8000-0000000000${code.length}${code.length}`,
+  planId: `10000000-0000-4000-8000-${code.replace(/\D/g, '').padStart(12, '1')}`,
+  machineId: `20000000-0000-4000-8000-${code.replace(/\D/g, '').padStart(12, '0')}`,
   machineCode: code,
   title: `${code} preventive maintenance`,
   dueOn: '2026-11-20',
@@ -99,5 +99,19 @@ describe('moving a job from the sheet', () => {
     expect(form('PM jobs are scheduled Monday to Saturday')).toContain('role="alert"');
     expect(form('PM jobs are scheduled Monday to Saturday')).toContain('Monday to Saturday');
     expect(form(null)).not.toContain('role="alert"');
+  });
+});
+
+describe('what a landed move does with the sheet', () => {
+  it('closes its own sheet and says it afterwards', () => {
+    expect(landing('m1', 'm1')).toBe('close');
+  });
+
+  it('says it at once when Escape closed the sheet while the move was in flight', () => {
+    expect(landing('', 'm1')).toBe('say');
+  });
+
+  it('holds it for the close of another job’s sheet, which is open now', () => {
+    expect(landing('m2', 'm1')).toBe('hold');
   });
 });

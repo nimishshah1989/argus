@@ -10,7 +10,12 @@ export const pmGu = gujarati(pmEn, {
   'pm.calendar.moveSheet.confirm': 'કામ ખસેડો',
   'pm.calendar.jobs.title': 'આ મહિનાનાં કામો',
   'pm.calendar.jobs.hint':
-    'આ મહિનાનું જે PM કામ હજી ખસેડી શકાય તેમ છે તે અહીં છે: તારીખ પર ખસેડો પસંદ કરો, દિવસ લખો અને Enter દબાવો.',
+    'આ મહિનાનું જે PM કામ હજી ખસેડી શકાય તેમ છે તે અહીં છે: તારીખ પર ખસેડો પસંદ કરો, દિવસ લખો અને એન્ટર દબાવો.',
+  'pm.calendar.moveTo': '{{date}} પર ખસેડો',
+  'pm.calendar.suggested': 'સૌથી નજીકનો ખાલી દિવસ {{date}}',
+  'pm.calendar.noFreeDay': 'તેની મર્યાદામાં કોઈ ખાલી દિવસ નથી.',
+  'pm.calendar.moved': '{{machine}} ને {{date}} પર ખસેડ્યું.',
+  'pm.calendar.refused': 'ખસેડવાની વિનંતી નકારવામાં આવી.',
   'pm.tasks.title': 'કામો',
   'pm.tasks.asOf': '{{date}} સુધીનું લાઇવ',
   'pm.tasks.open': 'ખુલ્લાં કામો',
