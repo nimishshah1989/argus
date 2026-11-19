@@ -14,17 +14,20 @@ addStrings({
 });
 
 /** A no-break space keeps a unit or a percent sign on the line of its figure. */
-const NBSP = String.fromCharCode(160);
+export const NBSP = String.fromCharCode(160);
 
 /** How a tile reads: the figure, its unit, and the change on last month with the tone the change deserves. */
 export interface TileFigure {
   label: string;
   value: number;
   unit?: string;
-  change: { pct: number; up: boolean; tone: ToneRole };
+  /** What the figure means, for the edge of a tile; a tile with a change takes the change's tone. */
+  tone?: ToneRole;
+  /** Absent where the snapshot holds no earlier figure to compare with. */
+  change?: { pct: number; up: boolean; tone: ToneRole };
 }
 
-const TONE: Record<ToneRole, { ink: string; tint: string; edge: string }> = {
+export const TONE: Record<ToneRole, { ink: string; tint: string; edge: string }> = {
   critical: { ink: 'text-danger-ink', tint: 'bg-danger-tint', edge: 'border-l-danger' },
   attention: { ink: 'text-warning-ink', tint: 'bg-warning-tint', edge: 'border-l-warning' },
   good: { ink: 'text-ok-ink', tint: 'bg-ok-tint', edge: 'border-l-ok' },
@@ -54,7 +57,13 @@ export function TileGrid({ variant, children }: { variant: Variant; children: Re
   );
 }
 
-function Delta({ form, change }: { form: Variant['delta']; change: TileFigure['change'] }) {
+function Delta({
+  form,
+  change,
+}: {
+  form: Variant['delta'];
+  change: NonNullable<TileFigure['change']>;
+}) {
   const { t } = useTranslation('directions');
   const pct = `${formatIN(change.pct)}${NBSP}%`;
   const tone = TONE[change.tone];
@@ -91,7 +100,7 @@ export function Tile({ variant, figure }: { variant: Variant; figure: TileFigure
   return (
     <div
       data-tile={variant.tile}
-      className={`flex min-w-0 flex-col gap-1 ${shape.frame} ${variant.tile === 'edge' ? TONE[figure.change.tone].edge : ''}`}
+      className={`flex min-w-0 flex-col gap-1 ${shape.frame} ${variant.tile === 'edge' ? TONE[figure.tone ?? figure.change?.tone ?? 'neutral'].edge : ''}`}
       style={style}
     >
       <p className="text-footnote text-neutral-600">{figure.label}</p>
@@ -102,9 +111,13 @@ export function Tile({ variant, figure }: { variant: Variant; figure: TileFigure
             <span className="text-footnote font-semibold">{`${NBSP}${figure.unit}`}</span>
           ) : null}
         </p>
-        {variant.delta === 'inline' ? <Delta form="inline" change={figure.change} /> : null}
+        {variant.delta === 'inline' && figure.change ? (
+          <Delta form="inline" change={figure.change} />
+        ) : null}
       </div>
-      {variant.delta === 'inline' ? null : <Delta form={variant.delta} change={figure.change} />}
+      {variant.delta !== 'inline' && figure.change ? (
+        <Delta form={variant.delta} change={figure.change} />
+      ) : null}
     </div>
   );
 }

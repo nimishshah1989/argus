@@ -171,3 +171,112 @@ atBothWidths('the picker polish', () => {
     for (const h of headings()) expect(await style(h, 'letterSpacing')).not.toBe('normal');
   });
 });
+
+/** Every figure the screens print, in the words of the answer key (the plant's 11 November snapshot). */
+const PRINTS: Record<string, RegExp[]> = {
+  today: [/1,279/, /3,060\.1 h/, /99\.32 %/, /4\.11/, /759\.3 h/, /53 of 125/],
+  machine: [/27/, /151\.32 h/, /5\.6 h/, /216\.6 h/],
+  breakdowns: [/1,279/, /3,060\.1 h/, /0\.54 %/, /24\.29 h/],
+};
+
+/** The screen's text with no-break spaces made plain, so a figure and its unit read as one run. */
+async function printed(page: Page, screen: string, selector: string): Promise<string> {
+  const texts = await page.locator(`[data-screen="${screen}"] ${selector}`).allInnerTexts();
+  return texts.join(' | ').replaceAll(String.fromCharCode(160), ' ');
+}
+
+async function arrive(page: Page, screen: string, v: number, theme: string): Promise<void> {
+  await open(page, `&v=${v}&theme=${theme}&s=${screen}`);
+  await expect(page.locator(`[data-screen="${screen}"]`)).toBeVisible();
+  await expect(page.locator('[data-chart-state]:not([data-chart-state="ready"])')).toHaveCount(0);
+}
+
+/** What holds on every screen: nothing sideways, axe clean, icon and word on every status, at most 50 rows a list. */
+async function holdsEverywhere(page: Page, label: string): Promise<void> {
+  const room = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(room, `${label} scrolls sideways`).toBeLessThanOrEqual(0);
+  const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+  expect(violations, label).toEqual([]);
+  const bare = await page
+    .locator('[data-status]')
+    .evaluateAll(
+      (chips) => chips.filter((c) => !c.querySelector('svg') || !c.textContent?.trim()).length,
+    );
+  expect(bare, `${label}: a status without its icon or word`).toBe(0);
+  const longest = await page.evaluate(() =>
+    Math.max(
+      0,
+      ...[...document.querySelectorAll('tbody')].map((b) => b.rows.length),
+      ...[...document.querySelectorAll('ol, ul')].map((l) => l.children.length),
+    ),
+  );
+  expect(longest, `${label}: a list paints more than 50 rows`).toBeLessThanOrEqual(50);
+}
+
+/** The Running chip wears the direction's neutral ink and not its good one. */
+async function runningIsGrey(page: Page): Promise<void> {
+  const chip = page.locator('[data-status="ticket.running"]').first();
+  await expect(chip).toHaveAttribute('data-tone', 'neutral');
+  const colours = await chip.evaluate((el) => {
+    const read = (value: string) => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    };
+    return {
+      chip: getComputedStyle(el).color,
+      neutral: read('var(--color-muted-ink)'),
+      good: read('var(--color-ok-ink)'),
+    };
+  });
+  expect(colours.chip).toBe(colours.neutral);
+  expect(colours.chip).not.toBe(colours.good);
+}
+
+atBothWidths('the three screens', () => {
+  for (const screen of ['today', 'machine', 'breakdowns']) {
+    test(`${screen}: every direction and theme prints the snapshot, status and row rules hold`, async ({
+      page,
+    }) => {
+      for (const theme of ['light', 'dark']) {
+        for (const [i, id] of DIRECTIONS.entries()) {
+          await arrive(page, screen, i + 1, theme);
+          const label = `${screen} ${id} ${theme}`;
+          const tiles = await printed(page, screen, '[data-tile]');
+          for (const figure of PRINTS[screen]!) expect(tiles, label).toMatch(figure);
+          await holdsEverywhere(page, label);
+          if (screen !== 'breakdowns') await runningIsGrey(page);
+        }
+      }
+    });
+  }
+
+  test('today ranks the costliest problems and shows each tone with icon and word', async ({
+    page,
+  }) => {
+    await arrive(page, 'today', 1, 'light');
+    expect(await printed(page, 'today', '[data-problem]:first-child')).toMatch(
+      /Axis motor.*485 h.*15\.85 %/s,
+    );
+    await expect(page.locator('[data-problem]')).toHaveCount(3);
+    await expect(page.locator('[data-tone-strip] [data-status]')).toHaveCount(5);
+    await expect(page.getByText(/as of 11 Nov 2026/i).first()).toBeVisible();
+  });
+
+  test('machine lists ten breakdowns and breakdowns lists fifty with a Pareto and a heat grid', async ({
+    page,
+  }) => {
+    await arrive(page, 'machine', 2, 'dark');
+    await expect(page.locator('[data-machine-header]')).toContainText('VC-28');
+    await expect(page.locator('[data-screen="machine"] [data-log] tbody tr')).toHaveCount(10);
+    await arrive(page, 'breakdowns', 2, 'dark');
+    await expect(page.locator('[data-screen="breakdowns"] [data-log] tbody tr')).toHaveCount(50);
+    await expect(page.locator('[data-heat] tbody td')).toHaveCount(54);
+    await expect(page.getByTestId('chart')).toHaveCount(3);
+  });
+});

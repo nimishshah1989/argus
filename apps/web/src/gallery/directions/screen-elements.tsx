@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- only class names, snapshot keys and the sample figure remain; every word goes through t() */
 import { useTranslation } from 'react-i18next';
-import snapshot from './generated/figures.json' with { type: 'json' };
+import { cellNumber, figure, tablesOf } from './figures.js';
 import { DISPLAY_STYLE, type ScreenProps } from './direction-props.js';
 import { FramedChart } from './parts-chart.js';
 import { PaletteStrip } from './parts-palette.js';
@@ -23,21 +23,12 @@ addStrings({
   'elements.palette': 'Palette',
 });
 
-/** One figure of the plant's snapshot (the 11 November answer key). */
-function figure<T>(key: string): T {
-  return snapshot.figures.find((f) => f.key === key)?.value as T;
-}
-
-interface CellTable {
-  pages: { tables: { header: string[]; rows: string[][] }[] }[];
-}
-
 /** The first six rows of A1's by-cell table (breakdown and PM hours), its text cells read back as whole hours. */
 function byCell(): { cells: string[]; bd: number[]; pm: number[] } {
-  const table = figure<CellTable>('a1-bd-pm').pages[0]!.tables[0]!;
+  const table = tablesOf('a1-bd-pm')[0]!;
   const rows = table.rows.slice(0, 6);
   const column = (name: string) =>
-    rows.map((row) => Math.round(Number(row[table.header.indexOf(name)]!.replace(/,/g, ''))));
+    rows.map((row) => Math.round(cellNumber(row[table.header.indexOf(name)]!)));
   return { cells: rows.map((row) => row[0]!), bd: column('BD Hrs'), pm: column('PM Hrs') };
 }
 
