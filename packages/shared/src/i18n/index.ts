@@ -88,6 +88,8 @@ import { analyticsReportEn } from './analytics-report.en.js';
 import { analyticsReportGu } from './analytics-report.gu.js';
 import { analyticsShellEn } from './analytics-shell.en.js';
 import { analyticsShellGu } from './analytics-shell.gu.js';
+import { analyticsTablesEn } from './analytics-tables.en.js';
+import { analyticsTablesGu } from './analytics-tables.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -136,6 +138,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-guide': analyticsGuideEn,
   'analytics-report': analyticsReportEn,
   'analytics-shell': analyticsShellEn,
+  'analytics-tables': analyticsTablesEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -185,6 +188,7 @@ export const en = {
   ...analyticsGuideEn,
   ...analyticsReportEn,
   ...analyticsShellEn,
+  ...analyticsTablesEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -236,6 +240,7 @@ export const gu = {
   ...analyticsGuideGu,
   ...analyticsReportGu,
   ...analyticsShellGu,
+  ...analyticsTablesGu,
 };
 
 export * from './overrides.js';

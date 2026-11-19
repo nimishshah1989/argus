@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { displayDay } from './machine-values.js';
 import { NOT_AVAILABLE, number } from './machine-parts.js';
-import { DataTable, Section, StatCard } from './parts.js';
+import { InsightBanner, StatusChip } from '../../ui/elements/index.js';
+import type { Tone4 } from '../../ui/meaning/index.js';
+import { KeyKpi, KeyTable } from './key-body.js';
+import { Section } from './parts.js';
 import {
   TREND_WORDS,
   drillLinkOf,
@@ -19,6 +22,13 @@ import {
  */
 
 type Figure = FiguresReply['figures'][number];
+
+/** A failure trend in words and a tone: coming faster is bad, slower is good, no clear trend is neither. */
+const TREND_TONE: Record<keyof typeof TREND_WORDS, Tone4> = {
+  improving: 'good',
+  worsening: 'bad',
+  no_clear_trend: 'neutral',
+};
 
 /** A list's drill: the machine's own rows, or the house fallback once it names more than one ask may take. */
 function DrillFoot({
@@ -52,6 +62,28 @@ function DrillFoot({
   );
 }
 
+type Fitted = Extract<ReliabilityView['fit'], { status: 'fitted' }>;
+
+/** The three fitted numbers as tiles: shape, scale and mean time between failures, each as the engine gave it. */
+function FitTiles({ fit }: { fit: Fitted }) {
+  const { t } = useTranslation();
+  const hours = t('analytics.machine.fit.hours');
+  const tiles = [
+    { label: t('analytics.machine.fit.shape'), value: number(fit.shape, 2), sub: null },
+    { label: t('analytics.machine.fit.scale'), value: number(fit.scale, 1), sub: hours },
+    { label: t('analytics.machine.fit.mean'), value: number(fit.meanHours, 1), sub: hours },
+  ];
+  return (
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {tiles.map((kpi) => (
+        <li key={kpi.label}>
+          <KeyKpi kpi={kpi} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The three numbers, the basis, the sample, the quartiles and the trend word beside its slope. */
 function Fitted({ view, machineId }: { view: ReliabilityView; machineId: string }) {
   const { t } = useTranslation();
@@ -69,25 +101,7 @@ function Fitted({ view, machineId }: { view: ReliabilityView; machineId: string 
           ? t('analytics.machine.fit.categoryFit', { category: fit.category })
           : t('analytics.machine.fit.ownFailures')}
       </p>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <li>
-          <StatCard label={t('analytics.machine.fit.shape')} value={number(fit.shape, 2)} />
-        </li>
-        <li>
-          <StatCard
-            label={t('analytics.machine.fit.scale')}
-            value={number(fit.scale, 1)}
-            sub={t('analytics.machine.fit.hours')}
-          />
-        </li>
-        <li>
-          <StatCard
-            label={t('analytics.machine.fit.mean')}
-            value={number(fit.meanHours, 1)}
-            sub={t('analytics.machine.fit.hours')}
-          />
-        </li>
-      </ul>
+      <FitTiles fit={fit} />
       <p data-reliability="sample" className="text-footnote text-neutral-600">
         {fit.basis === 'category'
           ? t('analytics.machine.fit.categorySample', { ...sample, own: number(fit.ownEvents, 0) })
@@ -100,8 +114,11 @@ function Fitted({ view, machineId }: { view: ReliabilityView; machineId: string 
           q75: number(fit.quartiles.q75, 1),
         })}
       </p>
-      <p data-reliability="trend" className="text-footnote text-neutral-600">
-        <span className="font-semibold text-neutral-900">{t(TREND_WORDS[fit.trend.word])}</span>{' '}
+      <p
+        data-reliability="trend"
+        className="flex flex-wrap items-center gap-2 text-footnote text-neutral-600"
+      >
+        <StatusChip tone={TREND_TONE[fit.trend.word]}>{t(TREND_WORDS[fit.trend.word])}</StatusChip>
         <span>
           {t('analytics.machine.fit.trend', {
             beta: number(fit.trend.beta, 2),
@@ -122,9 +139,12 @@ function FitBody({ view, machineId }: { view: ReliabilityView; machineId: string
     return <p className="text-body text-neutral-600">{t('analytics.machine.fit.noBasis')}</p>;
   const fit = view.fit;
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card">
-      <p className="text-body font-semibold">{t('analytics.machine.fit.notEnough')}</p>
-      <p data-reliability="shortfall" className="text-footnote text-neutral-600">
+    <InsightBanner
+      tone="watch"
+      title={t('analytics.machine.fit.notEnough')}
+      action={<DrillFoot machineId={machineId} type="ticket" ids={view.drill.fit} />}
+    >
+      <p data-reliability="shortfall">
         {fit.category === null
           ? t('analytics.machine.fit.notEnoughNoCategory', {
               own: number(fit.ownEvents, 0),
@@ -137,8 +157,7 @@ function FitBody({ view, machineId }: { view: ReliabilityView; machineId: string
               minimum: number(fit.minimum, 0),
             })}
       </p>
-      <DrillFoot machineId={machineId} type="ticket" ids={view.drill.fit} />
-    </div>
+    </InsightBanner>
   );
 }
 
@@ -151,19 +170,24 @@ function SparesBody({ view, machineId }: { view: ReliabilityView; machineId: str
   return (
     <div className="flex flex-col gap-3">
       <p className="text-footnote text-neutral-600">{t('analytics.machine.spares.ranked')}</p>
-      <DataTable
-        header={[
-          t('analytics.machine.spares.part'),
-          t('analytics.machine.spares.uses'),
-          t('analytics.machine.spares.hours'),
-          t('analytics.machine.spares.lastUsed'),
-        ]}
-        rows={rows.map((row) => [
-          row.name,
-          number(row.uses, 0),
-          number(row.downtimeHours, 1),
-          row.lastOn === null ? t(NOT_AVAILABLE) : displayDay(row.lastOn),
-        ])}
+      <KeyTable
+        table={{
+          title: '',
+          header: [
+            t('analytics.machine.spares.part'),
+            t('analytics.machine.spares.uses'),
+            t('analytics.machine.spares.hours'),
+            t('analytics.machine.spares.lastUsed'),
+          ],
+          rows: rows.map((row) => [
+            row.name,
+            number(row.uses, 0),
+            number(row.downtimeHours, 1),
+            row.lastOn === null ? t(NOT_AVAILABLE) : displayDay(row.lastOn),
+          ]),
+          rowCount: rows.length,
+          truncated: false,
+        }}
       />
       {total !== null && total > rows.length ? (
         <p data-reliability="top" className="text-footnote text-neutral-600">
