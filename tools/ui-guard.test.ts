@@ -28,6 +28,21 @@ describe('ui guard (ticket 82)', () => {
     ]);
   });
 
+  it('does not take a rounded surface control for a card', () => {
+    expect(
+      where(
+        'screens/Board.tsx',
+        '<Link className="min-h-target rounded-xl border bg-surface px-4">',
+      ),
+    ).toEqual([]);
+    expect(where('components/I.tsx', "'mt-2 min-h-13 w-full rounded-xl bg-surface px-4'")).toEqual(
+      [],
+    );
+    expect(
+      where('components/K.tsx', '<section className="rounded-2xl bg-surface p-4 shadow-card">'),
+    ).toEqual(['1:hand-written card']);
+  });
+
   it('leaves tokens, entities, comments and tests alone', () => {
     expect(
       where('screens/B.tsx', '<p className="bg-good-tint text-neutral-700 rounded-lg">'),
@@ -41,7 +56,9 @@ describe('ui guard (ticket 82)', () => {
 
   it('summarises per file with totals, and only warns until ticket 87', () => {
     const lines = guardSummary(
-      guardFindings([file('screens/A.tsx', 'x = "#fff";\n<i className="rounded-xl bg-surface">')]),
+      guardFindings([
+        file('screens/A.tsx', 'x = "#fff";\n<i className="rounded-xl bg-surface p-4">'),
+      ]),
     );
     expect(lines).toEqual([
       '  screens/A.tsx: 1 raw colour(s), 1 card(s)',

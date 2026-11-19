@@ -74,9 +74,10 @@ export const FIGURE_MEANING: Readonly<Record<string, FigureMeaning>> = {
   reliability: nothing,
 };
 
-/** Where `neither` is a call for the product owner, not a fact of the domain (listed in the PR body). */
+/** Where `neither` is a call for the product owner, not a fact of the domain (listed in the PR body). `key#part` names one measure of a figure. */
 export const JUDGEMENT_KEYS: readonly string[] = [
   'dashboard.pm-hours',
+  'a1-bd-pm#pm',
   'dashboard.no-downtime-hours',
   'a4-manpower',
   'compare.spares-cost',

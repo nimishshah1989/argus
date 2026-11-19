@@ -27,8 +27,3 @@ export const DIRECTION_WORD = {
   down: 'Down is good',
   neither: 'Neither is better',
 } as const;
-
-export const NUDGE_WORD = {
-  severity: { high: 'High', med: 'Medium', low: 'Low', info: 'Info' },
-  status: { open: 'Open', ack: 'Seen', snoozed: 'Snoozed', resolved: 'Resolved' },
-} as const;

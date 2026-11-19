@@ -28,9 +28,15 @@ const NAMED_CLASS =
 const NAMED_VALUE =
   /\b(?:color|background(?:Color)?|fill|stroke|border(?:Color)?)\s*:\s*['"](?:white|black|red|green|blue|yellow|orange|purple|pink|gray|grey|teal|cyan|brown)['"]/;
 
-// How a card is hand-written today: a rounded-xl or rounded-2xl box on the surface colour (`bg-surface`, or `bg-white`). `ui/card.tsx` is the one card.
-const CARD =
-  /\brounded-(?:xl|2xl)\b.*\bbg-(?:surface|white)\b|\bbg-(?:surface|white)\b.*\brounded-(?:xl|2xl)\b/;
+// How a card is hand-written today: a rounded-xl or rounded-2xl box on the surface colour (`bg-surface`, or
+// `bg-white`) with padding on all sides (`p-4`). A control (a button, a link, an input) has `min-h-` or only `px-`
+// padding and is not a card. `ui/card.tsx` is the one card.
+const BOX = /\brounded-(?:xl|2xl)\b/;
+const SURFACE = /\bbg-(?:surface|white)\b/;
+const PADDED = /\bp-(?:\d|\[)/;
+const CONTROL = /\bmin-h-/;
+const isCard = (line: string): boolean =>
+  BOX.test(line) && SURFACE.test(line) && PADDED.test(line) && !CONTROL.test(line);
 
 const isComment = (line: string): boolean => /^\s*(?:\/\/|\/?\*)/.test(line);
 const hasColour = (line: string): boolean =>
@@ -43,7 +49,7 @@ export function guardFindings(files: UiFile[]): Finding[] {
     text.split('\n').forEach((line, i) => {
       if (isComment(line)) return;
       if (hasColour(line)) found.push({ path, line: i + 1, kind: 'raw colour' });
-      if (CARD.test(line)) found.push({ path, line: i + 1, kind: 'hand-written card' });
+      if (isCard(line)) found.push({ path, line: i + 1, kind: 'hand-written card' });
     });
   }
   return found;

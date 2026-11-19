@@ -26,7 +26,10 @@ export const TONE_ICON: Record<Tone4, IconComponent> = {
 export function figureMeasure(key: string, part?: string): Measure {
   const figure = FIGURE_MEANING[key];
   if (!figure) throw new Error(`meaning: no entry for figure "${key}"`);
-  return (part ? figure.parts?.[part] : undefined) ?? figure;
+  if (part === undefined) return figure;
+  const measure = figure.parts?.[part];
+  if (!measure) throw new Error(`meaning: figure "${key}" has no measure "${part}"`);
+  return measure;
 }
 
 /** A figure's value with its unit: `82.5%`, `₹1,20,000`, `12.5 hrs`, `7`. */

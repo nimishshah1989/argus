@@ -12,7 +12,6 @@ import {
 } from '../icon.js';
 import { STATUS, type StatusDef, type Tone } from '../status/index.js';
 import type { StatusRef } from '../meaning.js';
-import { NUDGE_WORD } from './strings.js';
 import type { Meaning, Tone4 } from './types.js';
 
 /**
@@ -42,24 +41,29 @@ export const WORK_STATUS: Record<TicketStatus, StatusRef> = {
 /** Every status and severity of `ui/status`, as the one meaning shape. */
 export function statusMeaningOf({ group, id }: StatusRef): Meaning {
   const def = (STATUS[group] as Record<string, StatusDef>)[id]!;
-  return { tone: TONE_OF[def.tone], icon: def.icon, key: def.label };
+  // Owner ruling: a running machine is grey, not green; nothing is wrong, nothing is won.
+  const tone = group === 'ticket' && id === 'running' ? 'neutral' : TONE_OF[def.tone];
+  return { tone, icon: def.icon, key: def.label };
 }
 
-export function workStatusMeaning(status: TicketStatus): Meaning {
+/** A handed-over open ticket is "Transferred", like `StatusBadge`. */
+export function workStatusMeaning(status: TicketStatus, handedOver = false): Meaning {
+  if (status === 'open' && handedOver)
+    return statusMeaningOf({ group: 'ticket', id: 'transferred' });
   return statusMeaningOf(WORK_STATUS[status]);
 }
 
-/** Action Center nudges carry their own severity (high to info) and status. */
+/** Action Center nudges carry (their words are the Action Center's own; `info` is its "Good news") their own severity (high to info) and status. */
 export const NUDGE_SEVERITY: Record<NudgeSeverity, Meaning> = {
-  high: { tone: 'bad', icon: ChevronsUp, word: NUDGE_WORD.severity.high },
-  med: { tone: 'watch', icon: ChevronUp, word: NUDGE_WORD.severity.med },
-  low: { tone: 'neutral', icon: ChevronDown, word: NUDGE_WORD.severity.low },
-  info: { tone: 'neutral', icon: Info, word: NUDGE_WORD.severity.info },
+  high: { tone: 'bad', icon: ChevronsUp, key: 'analytics.actionCenter.tile.high' },
+  med: { tone: 'watch', icon: ChevronUp, key: 'analytics.actionCenter.tile.med' },
+  low: { tone: 'neutral', icon: ChevronDown, key: 'analytics.actionCenter.tile.low' },
+  info: { tone: 'good', icon: Info, key: 'analytics.actionCenter.tile.info' },
 };
 
 export const NUDGE_STATUS: Record<NudgeStatus, Meaning> = {
-  open: { tone: 'watch', icon: Bell, word: NUDGE_WORD.status.open },
-  ack: { tone: 'neutral', icon: Eye, word: NUDGE_WORD.status.ack },
-  snoozed: { tone: 'neutral', icon: BellOff, word: NUDGE_WORD.status.snoozed },
-  resolved: { tone: 'good', icon: CheckCheck, word: NUDGE_WORD.status.resolved },
+  open: { tone: 'watch', icon: Bell, key: 'analytics.actionCenter.tab.open' },
+  ack: { tone: 'neutral', icon: Eye, key: 'analytics.actionCenter.status.ack' },
+  snoozed: { tone: 'neutral', icon: BellOff, key: 'analytics.actionCenter.status.snoozed' },
+  resolved: { tone: 'good', icon: CheckCheck, key: 'analytics.actionCenter.status.resolved' },
 };
