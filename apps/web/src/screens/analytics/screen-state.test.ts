@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import '../../i18n/index.js';
 import { ApiError } from '../../data/index.js';
-import { NotReady, useFiguresState } from './screen-state.js';
+import { NotReady, useFiguresState, type ScreenState } from './screen-state.js';
 
 const retry = () => {};
 
@@ -25,14 +25,17 @@ describe('the state of a key screen', () => {
     expect(state({ data: {} })).toBe('ready');
   });
 
-  it('draws the screen own words for an empty page, and the title above every state', () => {
-    const page = renderToStaticMarkup(
-      h(NotReady, { title: 'Money Matters', state: 'empty', onRetry: retry, empty: 'Nothing yet' }),
-    );
-    expect(page).toContain('Nothing yet');
-    expect(page).toContain('Money Matters');
-    expect(
-      renderToStaticMarkup(h(NotReady, { title: 'T', state: 'error', onRetry: retry })),
-    ).toContain('role="alert"');
+  it('draws the title above every state, the screen own words for an empty page and an alert for an error', () => {
+    const draw = (state: ScreenState) =>
+      renderToStaticMarkup(
+        h(NotReady, { title: 'Money Matters', state, onRetry: retry, empty: 'Nothing yet' }),
+      );
+    for (const state of ['loading', 'offline', 'empty', 'error'] as const)
+      expect(draw(state), state).toContain('<h2');
+    for (const state of ['loading', 'offline', 'empty', 'error'] as const)
+      expect(draw(state), state).toContain('>Money Matters</h2>');
+    expect(draw('empty')).toContain('Nothing yet');
+    expect(draw('error')).toContain('role="alert"');
+    expect(draw('loading')).not.toContain('role="alert"');
   });
 });
