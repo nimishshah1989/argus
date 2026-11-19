@@ -289,7 +289,6 @@ const page = (spec: Spec, key: SpanKey) => {
     rows: groups.map((g) => summary(g, label(g))),
     rowCount: groups.length,
   });
-  const both = [...cells, plant];
   const trend = (value: (m: Month) => number) =>
     plant.months.map((slot) => (slot === null || slot === 'gap' ? null : cents(value(slot))));
   const per = (groups: Group[], value: (g: Group) => number) => groups.map((g) => cents(value(g)));
