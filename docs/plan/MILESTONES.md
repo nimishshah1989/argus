@@ -17,47 +17,50 @@ current milestone's tickets. Binding inputs: `docs/BRIEF.md`, `docs/ARCHITECTURE
 WhatsApp (M3) and plant two (M5) stay parked. AI (M6) runs in shadow in v1 and goes live one feature at a time, when
 that feature clears its threshold. The rulings behind this section are D33 (visual language), D34 (validation on the
 whole database) and the ledger's 19 Nov entries. A ticket is `done` only when every one of its goals has met its
-number; nothing here is judged by eye.
+number. Nothing here is judged by eye: the proof is a command, a test, or a recorded `impeccable critique` score.
 
 ### v1 is done when these nine numbers hold
 
-| #   | Measure                 | Target                                                                                                                   | Today (19 Nov, `1d51ad2`)                                           | Proved by |
-| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | --------- |
-| 1   | Figures are right       | 2026: parity 119 rows, 0 problems. 2022–2025: 100 % of the workbooks' machine-months equal or named; 0 unexplained       | 2026 exact; no history loaded                                       | 69, 79    |
-| 2   | Figures are fast        | A figures request answers in ≤ 300 ms (p95) with the whole history and 30 readers; 0 engine runs inside a request        | 2.8 s per request at 1,350 rows; recomputed on every request        | 75, 98    |
-| 3   | The floor is fast       | Open and Live in under 2 s on a low-end Android profile; `/state` p95 under 300 ms at 500 machines                       | `/state` budget tested; phone timing never measured                 | 26, 98    |
-| 4   | Operators find the keys | 100 % of the controls on every floor and desk workflow sit in v3's order and v3's part of the screen                     | locked by `docs/design/LOCK.md` rule 1; not measured                | 89        |
-| 5   | One design language     | 0 screens choose their own colour or card (57 copies in 39 files today); 51 of 51 figures show unit, tone and trend      | 0 of 51; percentages print without `%`                              | 82, 86    |
-| 6   | Every screen holds up   | Every template scores ≥ 32 of 40 on `impeccable critique` with 0 P0; axe 0 violations; no list paints more than 50 rows  | never scored; the Breakdown Log paints 1,343 rows                   | 83–89     |
-| 7   | Nothing fails silently  | A planted failing job is on screen within 60 s and alarms within 5 min                                                   | no screen, no alarm                                                 | 78        |
-| 8   | The plant can come back | A restore drill at most 7 days old at cutover with equal row counts; one deploy and one rollback exercised on production | one drill (14 Nov, migration 10 of 15); no production stack         | 97, 28    |
-| 9   | People can use it       | 5 of 5 operators raise a breakdown unaided; 0 blank Gujarati strings on the floor and desk, signed by a Cosmos reviewer  | no session held; 1,209 of 1,848 strings blank (the floor is filled) | 24, 27    |
+| #   | Measure                 | Target                                                                                                                                                       | Today (19 Nov, `1d51ad2`)                                                                                           | Proved by                                                    |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 1   | Figures are right       | 2026: parity 0 problems and no done row regresses. 2022–2025: 100 % of the workbooks' machine-months equal or named; 0 unexplained                           | 2026 exact; no history loaded                                                                                       | 69, 79                                                       |
+| 2   | Figures are fast        | A figures request answers in ≤ 300 ms (p95) with the whole history and 30 readers; 0 engine runs inside a figures read                                       | 2.8 s per request at 1,350 rows; recomputed on every request                                                        | 75, 98                                                       |
+| 3   | The floor is fast       | Open and Live in under 2 s on a low-end Android profile; `/state` p95 under 300 ms at 500 machines                                                           | `/state` budget tested; phone timing never measured                                                                 | 26, 98                                                       |
+| 4   | Operators find the keys | 100 % of the controls on every floor and desk workflow sit in v3's order and v3's part of the screen                                                         | locked by `docs/design/LOCK.md` rule 1; not measured                                                                | 88, 89                                                       |
+| 5   | One design language     | 0 screens choose their own colour or card (57 copies in 39 files today); 51 of 51 figures show unit and tone, and each figure with a prior period its change | 0 of 51; percentages print without `%`                                                                              | 82, 87 (the guard fails from the end of 87); the figures: 86 |
+| 6   | Every screen holds up   | Every template scores ≥ 32 of 40 on `impeccable critique` with 0 P0; axe 0 violations; no list paints more than 50 rows                                      | never scored; the Breakdown Log paints 1,343 rows                                                                   | 83–89                                                        |
+| 7   | Nothing fails silently  | A planted failing job is on screen within 60 s and alarms within 5 min                                                                                       | no screen, no alarm                                                                                                 | 78                                                           |
+| 8   | The plant can come back | A restore drill at most 7 days old at cutover with equal row counts; one deploy and one rollback exercised on production                                     | one drill (14 Nov, migration 10 of 15); no production stack                                                         | 97, 28                                                       |
+| 9   | People can use it       | 5 of 5 operators raise a breakdown unaided; 0 blank Gujarati strings on the floor and desk, signed by a Cosmos reviewer                                      | no session held; Gujarati blank 1,209 of 1,848: floor and tickets 191, admin screens 389, analytics 629 (ticket 24) | 24, 27                                                       |
 
 ### The stages
 
 Sizes are estimates (± 40 %) in the repo's own unit: one reviewed change of about 150 lines. The backend lane works
-E then H then I; the frontend lane works F beside it; each stage stops at its gate for Nimish.
+E then H then I; the frontend lane works F beside it; each stage stops at its gate for Nimish. This table holds the
+gates of V0, E, H, F, I, P, M4b and M6; the milestones table below refers to it. Stage E's gate counts 77a and 78a; 77b and 78b wait for 85 and close with F. The sizes cover the work left:
+Changes sum to 189 and Lines to 26,600.
 
-| Stage | What it is                     | Tickets                    | Gate (Nimish checks)                                                     | Changes |      Lines |
-| ----- | ------------------------------ | -------------------------- | ------------------------------------------------------------------------ | ------: | ---------: |
-| V0    | Truth and pipes                | 73, 74                     | A green CI run on a PR, and staging showing main's commit                |       5 |        300 |
-| E     | Engine at history scale        | 75–79                      | The Breakdowns page opens in under 2 s on a 10,000-row plant             |      22 |      2,800 |
-| H     | History in                     | 69                         | The reconciliation sheet: each year's workbook against what was loaded   |      14 |      2,000 |
-| F     | Frontend rebuild               | 80–89                      | One direction picked (80); then each of the four waves, before and after |      60 |     10,500 |
-| M4b   | The loop, finished             | 50, 53, 54                 | The first monthly scorecard, from live data                              |      12 |      1,800 |
-| I     | Intelligence                   | 90–96                      | Seven insights on real data, each naming machines and hours              |      16 |      2,200 |
-| M6    | AI in shadow                   | 55–60, 72                  | Shadow scores per feature against T1–T6                                  |      30 |      4,000 |
-| P     | Production                     | 24, 26, 27, 28, 68, 97, 98 | Day-3 and day-7 go/no-go                                                 |      30 |      3,000 |
-|       | **Total to v1 (M6 in shadow)** |                            |                                                                          | **189** | **26,600** |
+| Stage | What it is                     | Tickets                    | Gate (Nimish checks)                                                                                 | Changes |      Lines |
+| ----- | ------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- | ------: | ---------: |
+| V0    | Truth and pipes                | 73, 74                     | A green CI run on a PR, and staging showing main's commit                                            |       5 |        300 |
+| E     | Engine at history scale        | 75–79                      | The Breakdowns page opens in under 2 s on a 10,000-row plant                                         |      22 |      2,800 |
+| H     | History in                     | 69                         | The reconciliation sheet: each year's workbook against what was loaded, year by year                 |      14 |      2,000 |
+| F     | Frontend rebuild               | 80–89                      | One direction picked (80); then each of the four waves approved, before and after                    |      60 |     10,500 |
+| M4b   | The loop, finished             | 50c, 53, 54                | The first monthly scorecard, from live data                                                          |      12 |      1,800 |
+| I     | Intelligence                   | 90–96                      | Seven insights on real data, each naming machines and hours                                          |      16 |      2,200 |
+| M6    | AI in shadow                   | 55–60, 72                  | Nimish agrees the capabilities and thresholds T1–T6, and sees shadow scores per feature against them |      30 |      4,000 |
+| P     | Production                     | 24, 26, 27, 28, 68, 97, 98 | Day-3 and day-7 go/no-go                                                                             |      30 |      3,000 |
+|       | **Total to v1 (M6 in shadow)** |                            |                                                                                                      | **189** | **26,600** |
 
 ### Rules added on 19 Nov
 
-1. **Every goal carries a number** and names the command, test or screen that proves it.
+1. **Every goal carries a number.** The proof is a command, a test, or a recorded `impeccable critique` score (the
+   tool's own number, kept in the ticket's PR).
 2. **Validation runs on the whole database (D34).** A pull request still runs the fast suite on the pseudonymised
    2026 data. A ticket that touches the engine, a figure, a report or an import is `done` only after `validate:full`
    (ticket 79) is green on staging against every ticket the plant holds, 2022 to today.
 3. **The floor and the desk keep Bhavin's positions.** Flow, order, button position and words are v3's
-   (`docs/design/LOCK.md` rule 1); colour, type, depth and motion are free under D33. Ticket 89 measures it.
+   (`docs/design/LOCK.md` rule 1); colour, type, depth and motion are free under D33. Tickets 88 (the desk) and 89 (the floor) measure it.
 4. **Analytics is free to change shape.** The dashboard, the analyses and the machine page are redesigned for a head
    reading on a laptop and a phone; their figures stay exact.
 5. **Design work uses two skill sets.** `impeccable` sets the system (`init`, `shape`, `extract`, `colorize`,
@@ -65,11 +68,13 @@ E then H then I; the frontend lane works F beside it; each stage stops at its ga
    craft: `prototype` for the three directions, `emil-design-eng` and `apple-design` for feel, `mobile-native` for the
    floor phone, `break-ui` for worst-case data, `animation-performance`, and `learn-taste` to write each of Nimish's
    corrections into `DESIGN.md`.
-6. **The tracker changes in the pull request that changes the code.** Ticket 73 adds the check that enforces it.
+6. **The tracker changes in the pull request that changes the code.** Ticket 73 adds the check that enforces it, and
+   every gate report states that the tracker rows were reconciled against the code (so a stale `in progress` row is
+   caught there).
 
 ## Progress tracker
 
-Updated by the orchestrator at every merge (status: `todo` → `in progress` → `done`; `parked` = not in the current build). GitHub Issues mirror this table for agents; this file wins if they differ. Rows 16–55 and 67 were reconciled against the code and its tests on 19 Nov at `1d51ad2` (the server and browser suites were not rerun in that session).
+Updated by the orchestrator at every merge (status: `todo` → `in progress` → `done`; `parked` = not in the current build; `withdrawn` = dropped, not counted). GitHub Issues mirror this table for agents; this file wins if they differ. Rows 16–55 and 67 were reconciled against the code and its tests on 19 Nov at `1d51ad2` (the server and browser suites were not rerun in that session).
 
 | #   | Ticket                                            | Milestone | Status      | PR                                                                                                                                   |
 | --- | ------------------------------------------------- | --------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -122,7 +127,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 47  | Coded closes                                      | M4b       | done        | #379, #384, #388                                                                                                                     |
 | 48  | Shift-calendar KPIs                               | M4b       | done        | #391, #398, #401                                                                                                                     |
 | 49  | PM plans on the phone                             | M4b       | done        | #380, #385, #393, #400                                                                                                               |
-| 50  | PM calendar and compliance                        | M4b       | in progress | data and move #397, compliance #403; the calendar screen (50c) todo                                                                  |
+| 50  | PM calendar and compliance                        | M4b       | in progress | data and move #397, compliance #403; the calendar screen (50c) todo, blocked by 85                                                   |
 | 51  | Registers                                         | M4b       | done        | #390, #392, #394                                                                                                                     |
 | 52  | Forecast freeze and inspections                   | M4b       | done        | #395, #402, #405; the Action Center accept button rides in 87                                                                        |
 | 53  | Monthly scorecard                                 | M4b       | todo        | —                                                                                                                                    |
@@ -142,10 +147,10 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 67  | Reliability and critical spares                   | M4b       | done        | #396, #399, #404                                                                                                                     |
 | 68  | Gujarati text understood                          | M1        | todo        | —                                                                                                                                    |
 | 69  | Legacy history 2022–2025                          | H         | in progress | plan #406 (2022, 2024, 2025); re-plan for 2023, utility events and real codes                                                        |
-| 70  | (withdrawn)                                       | —         | parked      | withdrawn in `CLAUDE-ADOPTION.md`                                                                                                    |
+| 70  | (withdrawn)                                       | —         | withdrawn   | withdrawn in `docs/plan/CLAUDE-ADOPTION.md`                                                                                          |
 | 71  | Real Claude provider                              | M6        | done        | merged with 55b/55c; production stays gated                                                                                          |
 | 72  | Diagnosis on the ticket                           | M6        | in progress | 72a, 72b and the queue merged (stored in shadow); route and card todo                                                                |
-| 73  | The plan tells the truth                          | V0        | in progress | this PR                                                                                                                              |
+| 73  | The plan tells the truth                          | V0        | in progress | #408, #409 (73b)                                                                                                                     |
 | 74  | Pipes proven                                      | V0        | todo        | —                                                                                                                                    |
 | 75  | Figures are served, not recomputed                | E         | todo        | —                                                                                                                                    |
 | 76  | The engine reads many years                       | E         | todo        | —                                                                                                                                    |
@@ -189,27 +194,29 @@ no other ticket adds a migration, and no ticket adds a table outside D17's list.
 
 ## Milestones
 
-| #   | Milestone                 | Goal                                                                                       | Gate (Nimish checks)                                                                                 |                                                                       Tickets |
-| --- | ------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------: |
-| M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos               | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                                                                            14 |
-| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only                     | Day-3 and day-7 go/no-go                                                                             |                                                                            15 |
-| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off, lockout                     | Sign-off turnaround visible on live tickets                                                          |                                                                             8 |
-| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                                        | Ten figures spot-checked against Bhavin's platform                                                   |                                                                            10 |
-| M4b | The loop                  | PM, registers, coded closes, reliability, forecasts, scorecard, ranking                    | First monthly scorecard from live data                                                               |                                                                            10 |
-| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                                    | Agrees capabilities and thresholds; sees shadow results                                              |                                                                             6 |
-| V0  | Truth and pipes           | The tracker matches main; CI and staging run again                                         | A green CI run on a PR; staging on main's commit                                                     |                                                                             2 |
-| E   | Engine at history scale   | Served figures, many years, excluded machines, visible failures, whole-database validation | Breakdowns opens in under 2 s on a 10,000-row plant                                                  |                                                                             5 |
-| H   | History in                | 2022–2025 loaded and reconciled                                                            | The reconciliation sheet, year by year                                                               |                                                                             1 |
-| F   | Frontend rebuild          | One design language, thirteen elements, five templates, four waves                         | Picks one direction; approves each wave                                                              |                                                                            10 |
-| I   | Intelligence              | Seven figures only five years of data can give                                             | Seven insights, each naming machines and hours                                                       |                                                                             7 |
-| P   | Production                | A real stack, a load proof, and M1's open tail                                             | Day-3 and day-7 go/no-go                                                                             |                                                                             2 |
-| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                                         | An operator raises a ticket by voice                                                                 |                                                                             5 |
-|     | **Total**                 |                                                                                            |                                                                                                      | **97** (92 active, 5 parked; 70 is withdrawn; 69–72 were added before 19 Nov) |
+| #   | Milestone                 | Goal                                                                                       | Gate (Nimish checks)                                                                                 |                                                                                                                                                 Tickets |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| M0  | Foundation                | Modules and contracts in CI, history protected, one kit, staging with Cosmos               | Opens staging on his phone, sees Cosmos's real tickets, approves the `/gallery` and picks the accent |                                                                                                                                                      14 |
+| M1  | Cutover                   | Cosmos raises and works every ticket on Uptimo; Bhavin's app read-only                     | Day-3 and day-7 go/no-go                                                                             |                                                                                                                                                      15 |
+| M2  | Accountability            | Two clocks, escalation ladder and roster, production sign-off, lockout                     | Sign-off turnaround visible on live tickets                                                          |                                                                                                                                                       8 |
+| M4a | Analytics parity          | Every platform figure Cosmos uses, exact, drillable                                        | Ten figures spot-checked against Bhavin's platform                                                   |                                                                                                                                                      10 |
+| M4b | The loop                  | PM, registers, coded closes, reliability, forecasts, scorecard, ranking                    | As in the stages table above                                                                         |                                                                                                                                                      10 |
+| M6  | AI (India only)           | Suggestions a person confirms, each above its threshold                                    | As in the stages table above                                                                         |                                                                                                                                                       8 |
+| V0  | Truth and pipes           | The tracker matches main; CI and staging run again                                         | As in the stages table above                                                                         |                                                                                                                                                       2 |
+| E   | Engine at history scale   | Served figures, many years, excluded machines, visible failures, whole-database validation | As in the stages table above                                                                         |                                                                                                                                                       5 |
+| H   | History in                | 2022–2025 loaded and reconciled                                                            | As in the stages table above                                                                         |                                                                                                                                                       1 |
+| F   | Frontend rebuild          | One design language, thirteen elements, five templates, four waves                         | As in the stages table above                                                                         |                                                                                                                                                      10 |
+| I   | Intelligence              | Seven figures only five years of data can give                                             | As in the stages table above                                                                         |                                                                                                                                                       7 |
+| P   | Production                | A real stack, a load proof, and M1's open tail                                             | As in the stages table above                                                                         |                                                                                                                                                       2 |
+| M3  | WhatsApp and voice (last) | Report and be chased on WhatsApp, by text or voice                                         | An operator raises a ticket by voice                                                                 |                                                                                                                                                       5 |
+|     | **Total**                 |                                                                                            |                                                                                                      | **97** (92 active, 5 parked: 61–65; ticket 70 is withdrawn and not counted, so 98 numbers hold 97 tickets; 69–72 were added before 19 Nov, 73–98 on it) |
 
-Order is the BRIEF's: M0 → M1 → M2 → M4a → M4b → M6 → M3. From 19 Nov the road to v1 (above) runs V0, then E → H → I on the backend lane beside F on the frontend lane, with M4b's tail, M6 in shadow and P; M1's open tickets (24, 26, 27, 28, 68) finish inside P. Every ticket of a later milestone waits for every
-ticket of the milestone before it and for that milestone's gate: the first tickets of each milestone (15 and 16
-for M1; 29, 36, 46, 55, 61) name the gate in "Blocked by", and every other ticket descends from them. Nothing
-before M3 depends on M3.
+From 19 Nov the order is the road to v1's stages (above): V0, then E → H → I on the backend lane beside F on the
+frontend lane, with M4b's tail (50c after 85, then 53 and 54), M6 in shadow and P; M1's open tickets (24, 26, 27, 28, 68) finish inside P. The earlier BRIEF order (M0 → M1 → M2 → M4a → M4b → M6 → M3) and its rule that every ticket of a
+milestone waits for the previous milestone's gate applied only to M0, M1, M2, M4a and M4b, and it was not always kept:
+M2's tickets ran ahead of M1's open tail. Those milestones' first tickets (15 and 16 for M1; 29, 36, 46) name the gate
+in "Blocked by", and every other ticket descends from them. 55 and 61 still name the gate before them (the M4b gate,
+and the M6 gate), so M6 waits for the M4b gate: 53, 54 and 50c. Nothing before M3 depends on M3.
 
 ## M0 — Foundation
 
@@ -368,7 +375,7 @@ Split from draft ticket 16 (six draft tickets): machine moves and the group flag
 **24 Gujarati** · Blocked by: 15, 23 · External: Gujarati strings (N5)
 
 1. [Browser] The admin sees untranslated keys and enters Gujarati on a translation screen; overrides are stored as a `setting` (D17).
-2. [Browser] The floor's untranslated list is empty, Cosmos's wording is Uptimo's default Gujarati, and the floor journey of 15 passes in Gujarati.
+2. [Browser] 0 blank floor and desk strings in English-key coverage, signed by a Cosmos reviewer (N5); Cosmos's wording is Uptimo's default Gujarati and the floor journey of 15 passes in Gujarati. Counted on 19 Nov from `packages/shared/src/i18n` (the `.gu.ts` files): 1,209 of 1,848 keys are blank. Filled, 0 blank: `common`, `desk`, `desk-lists`, `floor`, `report-floor`, `ticket`, `detail`, `sla`, `actions`, `report`, `board`, `settings`, `signin`, `admin` and the status namespaces. Blank on the floor, sign-off and tickets (191): `pm` 53, `signoff` 49, `tasks` 23, `lockout` 22, `account` 35, `live-board` 3, `app-update` 3, `desk-wide` 2, `closes` 1. Blank on the admin and settings screens (389): `plant` 162, `people` 76, `lists` 66, `audit` 43, `company` 33, `crud` 9. Blank on analytics (629): the eight `analytics*` namespaces. Assumption for Nimish to confirm: "floor and desk" covers the first two blank groups (580 blank); the analytics screens stay English in v1.
 
 **25 Live board and alerts** · Blocked by: 12, 16
 
@@ -382,12 +389,12 @@ Split from draft ticket 16 (six draft tickets): machine moves and the group flag
 
 **27 Usability round** · Blocked by: 14, 15, 16, 17, 18 · External: sessions (N15)
 
-1. [Browser] 3–5 operators and 3 technicians run the floor and desk journeys on staging; times and errors are recorded against each journey spec.
+1. [Browser] 5 operators and 3 technicians run the floor and desk journeys on staging; times and errors are recorded against each journey spec; 5 of 5 operators raise a breakdown unaided.
 2. [Browser] Each stumble fixed here first becomes a failing journey, then passes; at most five are fixed, the rest are filed as issues.
 
-**28 Cutover** · Blocked by: 14, 15–27, 68 · External: N7
+**28 Cutover** · Blocked by: 14, 15–27, 68, 78, 97, 98 · External: N7
 
-1. [API] Production runs and a deploy outside 05:00–08:00 IST is refused by the pipeline; a restore drill on production is executed and logged.
+1. [API] Production runs and a deploy outside 05:00–08:00 IST is refused by the pipeline; a production restore drill at most 7 days old, with equal row counts, is executed and logged.
 2. [API] The cutover-morning import and its undo are rehearsed on staging with zero unexplained mismatches, then run; Bhavin's app goes read-only; the rehearsed revert restores the pre-cutover state on staging.
 
 **68 Gujarati text understood** · Blocked by: 15, 23 · External: India-only translation provider — candidates AI4Bharat IndicTrans2 (self-hosted in AWS Mumbai; verify the model licence) and Sarvam (India-hosted API), suggested by Nimish; a short trial on the real Cosmos problem texts picks one, recorded as a decision
@@ -529,7 +536,7 @@ Split from draft ticket 34: coding at close and the standard KPI family are sepa
 1. [API] PM plans and checklists come from the workbook (PM Plan 431 rows, PM Reports) into `pm_plan`; counts match.
 2. [Browser] `pm.generate` raises PM jobs as tickets by time and by meter reading; a technician ticks the checklist on the phone and closes the job.
 
-**50 PM calendar and compliance** · Blocked by: 49
+**50 PM calendar and compliance** · Blocked by: 49; the calendar screen (50c) also by 85, the page templates (Ruling, 19 Nov: 50c is built on a template, and 87 only restyles it; so the M4b gate, 53, 54 and 50c, waits for 85 but not for waves 86–89, and M6 waits for the M4b gate)
 
 1. [Browser] The PM calendar (FullCalendar under an ADR) spreads load and moving a job reschedules it; the machine page lists its open and PM tasks.
 2. [Engine] PM compliance and schedule compliance are defined once here and match hand-computed fixtures.
@@ -602,55 +609,73 @@ Split from draft ticket 39: the schema and adapter must land before any feature 
 2. [Browser] A PM plan draft cites its manual pages and waits for a person (`pm.createDraftPlan`).
 3. [API] Drafts go live per tenant only above T6 (as named in 55); below, they run in shadow.
 
+**71 Real Claude provider** · `done` · Blocked by: 55 · merged with 55b and 55c (slice `docs/slices/55.md`, tests 16–49)
+
+1. [API] Done: the server calls Claude through `AiProvider` on staging (a fake answers when no key is set); the redactor strips names, usernames, phone numbers and the plant's name before any text is sent; a monthly spend cap stops the calls; a failed call retries, and one answer is stored per subject (`changes/84-ai-foundation-schema-redaction.md`, `85-ai-provider-claude.md`, `86-ai-suggest-job.md`, `87-ai-key-only.md`).
+2. [API] Done: logs never hold a prompt or an answer; a real call in production stays refused until the residency record, Cosmos's consent (N14) and signed terms are in place (55 goal 2).
+
+**72 Diagnosis on the ticket** · Blocked by: 55 (its `ai_suggestion` table, provider and `ai.suggest` job, all merged; 55's purge, erasure and `document` tables are not needed here) and, for going live, 56 · External: a diagnosis threshold, a number Nimish adds to N19 · plan `docs/slices/72.md`
+
+1. [API] Done (72a, 72b and the queue): a stopped report queues exactly 1 diagnosis job; a support ticket, an upgrade and a replayed report queue 0 more; in production nothing is queued without a key, a residency record, consent and a cap (`apps/server/test/ai-diagnosis-queue.test.ts`).
+2. [API] Done: the stored shadow answer holds a safety flag and at most 3 likely causes, each citing past tickets of this machine or its same-model machines that the tenant can still see, or marked a guess; at most 25 past tickets reach the model, redacted (`ai-diagnosis.test.ts`, `ai-diagnosis-rules.test.ts`).
+3. [API] Todo (72c): `GET /api/v1/tickets/:id/diagnosis` answers 200 to a supervisor, head and admin and 403 to a technician, operator, plant head and board; 404 for an unknown or other-tenant ticket; in production a `shadow` row reads as none (slice tests 27–31, 33).
+4. [Browser] Todo (72c): on staging a supervisor, head or admin opening the ticket sees the lockout line first, then the causes, then the evidence, first check and expected fix; a technician sees no card and sends 0 requests to `/diagnosis` (slice tests 34–35).
+5. [API] Live per tenant only above the diagnosis threshold, measured in shadow by 56's harness; below it the card shows on staging only. The threshold is not yet set (N19).
+
 ## V0 — Truth and pipes
 
 **73 The plan tells the truth** · Blocked by: none
 Delivers: one tracker that matches `main`, and a check that keeps it so.
 
 1. [Process] This file, `docs/HANDOFF.md` and the ledger agree with `main`: 0 tracker rows contradict a merged commit (18 rows were wrong on 19 Nov).
-2. [Process] `pnpm docs:check` fails when `main` holds a `feat(NN…)` commit and ticket NN's row still says `todo`; proven by one planted row.
+2. [Process] `pnpm docs:check` fails when `main` holds a `feat(NN…)` commit and ticket NN's row still says `todo`; proven by one planted row. Honest limit: this catches `todo` rows only. A stale `in progress` row is caught by the milestone gate report, which states the rows were reconciled against the code (rule 6), not by this check.
 
 **74 Pipes proven** · Blocked by: 73
 Delivers: every merge is tested again, and staging runs what `main` holds.
 
 1. [Process] Ruling R10 is withdrawn: 0 merges without a green CI run on the pull request; the full suite is green on `main` (2,803 tests was the last local count).
 2. [API] Staging's health answer names `main`'s commit and migration 15 of 15; the weekly dump runs, and one dump is restored into an empty database with equal row counts on the ten largest tables (drill B, never yet run).
-3. [Process] The repository goes private again before ticket 28; nothing waits on it until then (Nimish, 19 Nov).
 
 ## E — Engine at history scale
 
 **75 Figures are served, not recomputed** · Blocked by: 74
 Delivers: a head opening analytics no longer stalls the floor.
+Ruling, 19 Nov: 75 and 76 both rewrite `packages/domain/src/analytics`, so they run 76 then 75, and together only if the file lists in their two plans are disjoint.
 
-1. [API] `GET /analytics/figures` answers in ≤ 300 ms (p95) on a 10,000-row plant with 30 concurrent readers, and a test counts 0 engine runs inside any request (today: one full run per request, 2.8 s at 1,350 rows).
+1. [API] `GET /analytics/figures` answers in ≤ 300 ms (p95) on a 10,000-row plant with 30 concurrent readers, and a test counts 0 engine runs inside a figures read: `POST /analytics/run` and the nightly job are the only callers of the engine (today: one full run per request, 2.8 s at 1,350 rows).
 2. [Engine] One full run of the 51 figures takes ≤ 20 s on 10,000 rows (30.5 s at 13,500 rows today; the forecast simulation is about 60 % of it).
 3. [API] A ticket closed now is in the served figures within 5 minutes; the workbook, both report PDFs and every drill read the same stored run.
 
 **76 The engine reads many years** · Blocked by: 74
 Delivers: five years of history give five years of figures, not one year's figures inflated.
+Ruling, 19 Nov: runs before 75 unless the two plans' file lists are disjoint (see 75).
 
 1. [Engine] Every figure takes an explicit period. On a hand-computed two-year fixture (at least 200 rows, one month with no records) 100 % of the period figures equal the hand values.
-2. [Engine] 0 figures bucket by month number alone or divide many years' downtime by one year's hours (14 such sites were found on 19 Nov; the ledger names them). A month with no records prints "no records", never 0.
-3. [Engine] The 2026 answer key stays whole: parity 119 rows, 0 problems, no test edited.
+2. [Engine] 0 figures bucket by month number alone or divide many years' downtime by one year's hours (9 such sites; re-read on 19 Nov and listed in the ledger's correction of that day. 3 more places are one year by design, the annual report, PM compliance and the breakdown map, and take their period under goal 1). A month with no records prints "no records", never 0.
+3. [Engine] The 2026 answer key stays whole: parity 0 problems and no done row regresses, no test edited.
 
-**77 Machines out of production data** · Blocked by: 74
+**77 Machines out of production data** · Blocked by: 74 (77a); 85 (77b)
 Delivers: Bhavin's setting — a spare-capacity machine is recorded but does not move the plant's figures.
+Ruling, 19 Nov: two parts. 77a is the API and engine part (backend lane); 77b is the screen part (frontend lane, after 85). Stage E's gate counts 77a; 77b closes with F.
 
-1. [Browser] An admin marks any machine "not counted in production data" on the machine settings screen; the change is in the audit log; the dashboard prints how many are excluded.
-2. [Engine] With five machines excluded, their breakdowns count in 0 of BD %, MTTR, MTBF and availability, and in 2 of 2 of manpower hours and the energy list; hand-computed fixture.
+1. [Browser] (77b) An admin marks any machine "not counted in production data" on the machine settings screen; the dashboard prints how many are excluded.
+2. [Engine] (77a) With five machines excluded, their breakdowns count in 0 of BD %, MTTR, MTBF and availability, and in 2 of 2 of manpower hours and the energy list; hand-computed fixture.
+3. [API] (77a) Changing the setting writes 1 audit row, and the figures read reports how many machines are excluded.
 
-**78 Failed jobs are seen** · Blocked by: 74
+**78 Failed jobs are seen** · Blocked by: 74 (78a); 85 (78b)
 Delivers: ticket 35's first goal, carried twice and never built.
+Ruling, 19 Nov: two parts. 78a is the API part (backend lane); 78b is the screen part (frontend lane, after 85). Stage E's gate counts 78a; 78b closes with F.
 
-1. [Browser] A planted failing job appears on the failed-jobs screen within 60 s with its error, and Retry runs it once.
-2. [API] The same failure raises the alarm within 5 minutes; a timer more than 2 minutes late raises it too; 0 job handlers fail without a log line (a check counts them).
+1. [API] (78a) A planted failing job is in the failed-jobs list within 60 s with its error, and the retry command runs it once.
+2. [API] (78a) The same failure raises the alarm within 5 minutes; a timer more than 2 minutes late raises it too; 0 job handlers fail without a log line (a check counts them).
+3. [Browser] (78b) The planted failure appears on the failed-jobs screen within 60 s with its error, and Retry runs it once.
 
 **79 Validation on the whole database** · Blocked by: 75, 76
 Delivers: D34 — one command that tests every figure on every ticket the plant holds.
 
 1. [API] `pnpm validate:full` on staging runs the 51 figures for every year and month with records and reports: tickets read (100 % of the database), figures run, mismatches against each reference, and the time each took.
 2. [API] Its references are the 2026 answer key (exact), the legacy workbooks' own summary sheets (ticket 69) and the ten figures Nimish spot-checks against Bhavin's platform; it prints counts and machine codes only, never a name.
-3. [Process] It runs nightly; a red night blocks merges through `pnpm main:check`; a ticket under rule 2 links its green run.
+3. [Process] It runs nightly, from a scheduled workflow in `.github/workflows/` (a new `validate-full.yml`, beside `backup.yml`); a red nightly run is a required status check on every pull request until the nightly run is green again, carried by `.github/workflows/ci.yml` (`pnpm main:check` runs after a merge, Q15, so it cannot be the gate; this is a plan, nothing is built); a ticket under rule 2 links its green run. `docs/TESTING.md` gains D34's nightly whole-database gate in its layers table.
 
 ## H — History in
 
@@ -659,10 +684,10 @@ Delivers: every workbook year Bhavin holds, as closed history. `docs/slices/69-l
 
 1. [API] The 19 workbooks (2022: 4, 2023: 5, 2024: 5, 2025: 5) convert with 0 rows unaccounted: dated source rows = loaded + excluded, every exclusion counted under a named reason.
 2. [API] A row dated in another year loads under its own date unless that year's workbook already holds it (about 75 late-2022 rows live only in the 2023 workbooks); each is listed for Bhavin.
-3. [API] A power or air failure is one plant event with its machines and hours, not one breakdown per machine: 2023's roughly 1,820 utility rows become roughly 150 event-days and add 0 to any breakdown count.
+3. [API] A power or air failure is one plant event with its machines and hours, not one breakdown per machine: 2023's roughly 1,820 utility rows become roughly 150 event-days and add 0 to any breakdown count. Ruling, 19 Nov: 69's re-plan names the home of a plant event from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why no existing table fits (CLAUDE.md), and it would exceed D17's budget (this plan already adds its 12), so it also needs a D17 amendment. Ticket 91 reads the same home. Tickets 69 and 91 are not built before the home is named; if no existing table fits (`docs/DATA-MAP.md` defines a ticket as single-machine and `ticket_event` as ticket history), the first packet of 69's re-plan records the D17 amendment.
 4. [API] 0 codes with a meaning in the workbooks' own legend are folded into MIS: TR, T, FS, MS, NI, PP, CP, PAR, PC and HM load as switched-off codes that still show on old reports (ticket 47's rule).
 5. [API] For 100 % of the machine-months on the workbooks' MTTR and MTBF sheets, the recomputed count and hours equal the sheet, or the pair is printed on the named-difference list; 0 unexplained.
-6. [API] 0 personal names in any stored text (sentinel test); a second run of the same files adds 0 rows; February and March 2022 show as "no records" until N17 answers.
+6. [API] 0 personal names in any stored text (sentinel test); a second run of the same files adds 0 rows; March 2022 shows no records, and February 2022 is flagged partial (8 rows) until N17 answers.
 
 ## F — Frontend rebuild
 
@@ -672,7 +697,7 @@ Every ticket here holds three constants: all browser journeys stay green (317 pa
 Delivers: the design file everything else is built from. No application code.
 
 1. [Process] `PRODUCT.md` (via `impeccable init`) names each user, device and setting; a new `docs/DESIGN.md` replaces the 22-line one and defines 100 % of the roles later tickets use: colour, four status tones, type, space, depth, motion, icons, charts, density for phone, laptop and TV, light and dark.
-2. [Process] D04, D27 and `docs/design/LOCK.md` are amended under D33; approval moves from one mockup per screen to one per template; Emil Kowalski's skills are installed with their licence in `THIRD_PARTY.md`.
+2. [Process] D04, D27 and `docs/design/LOCK.md` are amended under D33; approval moves from one mockup per screen to one per template, so `CLAUDE.md` (its line "Screens are built only from mockups Nimish approved") and `docs/design/LOCK.md` are amended to "one approved mockup per template" (D33 §4; this ticket's PR makes the `CLAUDE.md` edit with Nimish's go); Emil Kowalski's skills are installed with their licence in `THIRD_PARTY.md`.
 3. [Browser] Three directions of the same three screens (Today, a machine page, Breakdowns) at 360 and 1440 px sit behind the `prototype` picker; Nimish picks 1.
 
 **81 Tokens** · Blocked by: 80 (Nimish's pick)
@@ -694,7 +719,7 @@ Delivers: the design file everything else is built from. No application code.
 **84 Charts** · Blocked by: 81
 
 1. [Browser] The one chart door draws stacked and horizontal bars, lines, scatter, heatmap and Pareto with a legend and a tooltip, in the 8-colour palette; `use-chart.ts` is split so no file passes 400 lines (394 today).
-2. [Browser] 100 % of charts keep "Show the numbers"; the lazy chart chunk stays at or under 220 KB gzipped (174 KB today); reduced motion draws with no animation.
+2. [Browser] 100 % of charts keep "Show the numbers"; the sum of the chunks `use-chart.ts` loads (the 8 lazy chunks behind its four `echarts/*` imports), each gzipped at level 6 (`gzip -6`), does not grow by more than 15 % from the baseline measured in ticket 81's PR; reduced motion draws with no animation. Baseline measured on 19 Nov with `pnpm build:web` at `58161f2`, in `gzip -6` bytes: the sum is 364,192 B and the largest single chunk is 83,894 B. Vite's own report (368.04 kB in all, 84.7 kB the largest) is a different unit and is not the baseline. The earlier "220 KB, 174 KB today" figure is withdrawn.
 
 **85 Page templates** · Blocked by: 83, 84
 
@@ -703,16 +728,19 @@ Delivers: the design file everything else is built from. No application code.
 
 **86 Wave 1: every analytics figure** · Blocked by: 85
 
-1. [Browser] 51 of 51 figures show unit, tone and the change against the previous period; the 8 analytics groups use the grouped navigation; Nimish approves the before and after.
+1. [Browser] 51 of 51 figures show unit and tone, and every figure that has a prior period shows its change against it (30 of the 51; the 21 exceptions are below); the 8 analytics groups use the grouped navigation; Nimish approves the before and after.
 
-**87 Wave 2: the twelve analytical screens** · Blocked by: 86
+Exceptions, proposed on 19 Nov by reading `packages/domain/src/analytics/registry.ts` (51 keys), because they are a list, a state of now or a forecast with no earlier period: the six fleet counts (`dashboard.total-machines`, `utilities`, `dg-sets`, `cnc-machines`, `conventional-machines`, `process-machines`), `data-checklist`, `registers`, `cell-change-log`, `a7-footprint`, `a8-age`, `machine-page`, `breakdown-log`, `dashboard.bubble-chart`, `dashboard.expansion-timeline`, `action-center`, `action-center.spares-spend`, `fix-finder`, `forecast-lab`, `a9-bottleneck-forecast` and `reliability`. The ticket's plan confirms each one.
 
-1. [Browser] Today, Action Center (with the accept button from 52), Team Focus, the machine page, the registers, Breakdowns, the forecast, Money, Reports, Energy, the PM calendar and the Guide are rebuilt on templates; each scores ≥ 32 of 40 with 0 P0; Nimish approves each.
+**87 Wave 2: the twelve analytical screens** · Blocked by: 86 (the PM calendar's screen is built earlier, in 50c after 85; 87 only restyles it)
+
+1. [Browser] Today, Action Center (with the accept button from 52), Team Focus, the machine page, the registers, Breakdowns, the forecast, Money, Reports, Energy, the PM calendar and the Guide are rebuilt on templates (the PM calendar already stands on one from 50c); each scores ≥ 32 of 40 with 0 P0; Nimish approves each.
 2. [Process] `ui:check` now fails on a raw colour or a hand-written card anywhere in `screens/`.
 
 **88 Wave 3: desk, ticket, board, settings** · Blocked by: 82
 
 1. [Browser] The new tokens reach the desk lists, the ticket detail, the live board and TV, and every settings screen with 0 changes to flow, order, button position or words; the 70 gallery baselines and every desk journey pass.
+2. [Browser] Measure 4 covers the desk as well as the floor: a check renders Bhavin's desk views (`docs/discovery/bhavin-v3/maint.html`: the Open, Mine, Team and needs-report lists, the ticket detail with its action bar, and the live board) and ours at 360 × 740 and 1440 × 900 px, and finds 100 % of controls in the same order and the same third of the screen. Settings screens have no v3 view and are not checked.
 
 **89 Wave 4: the floor phone** · Blocked by: 83
 
@@ -729,7 +757,7 @@ Each figure here reconciles to its rows (the drill's sum equals the figure, 100 
 
 **91 Utility loss** · Blocked by: 69
 
-1. [Engine] Machine-hours and rupees lost to power and air failures by month, from the plant events of 69; 2023's total equals the workbooks' own UTI-hours sum (about 1,480 h, to be confirmed by the load).
+1. [Engine] Machine-hours and rupees lost to power and air failures by month, from the plant events of 69 (the home 69's re-plan names); 2023's total equals the workbooks' own UTI-hours sum (about 1,480 h, to be confirmed by the load).
 
 **92 Reliability on five years** · Blocked by: 67, 69
 
@@ -758,7 +786,8 @@ Tickets 24, 26, 27, 28 and 68 (M1) finish here; 28 now also waits for 78, 97 and
 **97 Production stack** · Blocked by: 74 · External: N7
 
 1. [API] Production is its own stack: its own secrets, deletion protection on, the history-owner role of D24 §3 in place, and 0 secrets a Terraform apply can erase (planted apply on staging).
-2. [API] The site sends CSP, HSTS and frame headers; base images are pinned; a deploy between 05:00 and 08:00 IST is refused; one deploy and one rollback are run and logged.
+2. [API] The site sends CSP, HSTS and frame headers; base images are pinned; a deploy outside 05:00–08:00 IST is refused (the only allowed window: SPEC, ARCHITECTURE, INFRASTRUCTURE and ticket 28); one deploy and one rollback are run and logged.
+3. [Process] The repository returns to private before cutover (ticket 28 waits for this ticket) only once GitHub Actions billing is fixed: private-repository Actions was refused runners on 13 Nov (a $0 budget) and stopped or stalled on 14 and 18 Nov for causes the ledger does not confirm, which is why R10 existed. Until then it stays public and nothing waits on it (Nimish, 19 Nov). Proved by a green CI run on a pull request after the switch. Moved here from 74, which blocks the E stage and cannot wait for cutover.
 
 **98 Load proof on the whole database** · Blocked by: 69, 75
 
@@ -797,19 +826,19 @@ Split from draft ticket 44 (five draft tickets): the schema and the signed webho
 
 ## What can run at the same time
 
-| Window  | Parallel tickets                                                                                    |
-| ------- | --------------------------------------------------------------------------------------------------- |
-| Start   | 02, 08, 10, 13 (after 01)                                                                           |
-| M0      | 04, 05, 06 after 03; 11 after 04 and 10; 07 then 09; 14 last                                        |
-| M1      | 15 and 16; then 17 → 18 → 19 with 20; then 21, 22, 23, 25 together; 24, 26, 27                      |
-| M2      | 30 and 32 after 29; then 31, 34 and 66; 33; 35                                                      |
-| M4a     | 38, 39, 40, 41 after 37; then 42 and 43; then 44 and 45                                             |
-| M4b     | 47, 49, 51, 52 after 46; then 48 and 50; then 53, 54 and 67                                         |
-| M6 / M3 | 57–60 after 56; 62 after 61, then 63 → 64 → 65                                                      |
-| V0      | 73, then 74                                                                                         |
-| E / H   | 75, 76, 77, 78 together after 74; 79 after 75 and 76; 69's converter beside them, its load after 79 |
-| F       | 80 after 73; 81; then 82 and 84; 83; 85; waves 86 → 87, with 88 and 89 beside them                  |
-| I / P   | 90–96 after 69 (two at a time); 97 after 74; 98 after 69 and 75; then 27, 28                        |
+| Window  | Parallel tickets                                                                                                                                                                                                                                                                                                           |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start   | 02, 08, 10, 13 (after 01)                                                                                                                                                                                                                                                                                                  |
+| M0      | 04, 05, 06 after 03; 11 after 04 and 10; 07 then 09; 14 last                                                                                                                                                                                                                                                               |
+| M1      | 15 and 16; then 17 → 18 → 19 with 20; then 21, 22, 23, 25 together; 24, 26, 27                                                                                                                                                                                                                                             |
+| M2      | 30 and 32 after 29; then 31, 34 and 66; 33; 35                                                                                                                                                                                                                                                                             |
+| M4a     | 38, 39, 40, 41 after 37; then 42 and 43; then 44 and 45                                                                                                                                                                                                                                                                    |
+| M4b     | 47, 49, 51, 52 after 46; then 48 and 50 (but 50c, the calendar screen, after 85); then 53, 54 and 67; the M4b gate (53, 54, 50c) waits for 85 and not for waves 86–89, and M6 waits for that gate                                                                                                                          |
+| M6 / M3 | 57–60 after 56; 62 after 61, then 63 → 64 → 65                                                                                                                                                                                                                                                                             |
+| V0      | 73, then 74                                                                                                                                                                                                                                                                                                                |
+| E / H   | At most two backend builders at once (CLAUDE.md): two of 76, 75, 77a and 78a, or one of them with 69's converter. 76 comes before 75 (both rewrite `packages/domain/src/analytics`; together only if their plans' file lists are disjoint). 79 after 75 and 76; 69's load after 79. 77b and 78b are frontend work after 85 |
+| F       | 80 after 73; 81; then 82 and 84; 83; 85; then 50c, 77b and 78b; waves 86 → 87, with 88 and 89 beside them                                                                                                                                                                                                                  |
+| I / P   | 90–96 after 69 (two at a time); 97 after 74; 98 after 69 and 75; then 27; 28 last, after 78, 97 and 98                                                                                                                                                                                                                     |
 
 One milestone migration at a time; one browser-test stack; Nimish previews every user-visible slice.
 
