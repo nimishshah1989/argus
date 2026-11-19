@@ -110,3 +110,110 @@ export const pmGeneratePayloadSchema = z
   .object({ v: z.literal(1), horizonDays: z.number().int().min(0).max(3650).default(0) })
   .strict();
 export type PmGeneratePayload = z.infer<typeof pmGeneratePayloadSchema>;
+
+const DAY = 86_400_000;
+
+/**
+ * The part of a plan the next-due rule needs. `createdAt` is an ISO instant; the plan's clock anchor is its
+ * plant-local day, never its UTC day (R2). 49a's settings screen, the calendar and the tests share this rule.
+ */
+export interface PmDueFields {
+  createdAt: string;
+  lastDoneOn: string | null;
+  intervalDays: number | null;
+}
+
+/** The day of an instant in `timeZone`; `en-CA` prints the ISO calendar day, which sorts as text. */
+export function plantDayOf(instant: string, timeZone?: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone ?? 'UTC' }).format(
+    new Date(instant),
+  );
+}
+
+/** The next due day: `last_done_on` else the plant-local anchor, plus the interval; null without one (R2). */
+export function pmNextDue(plan: PmDueFields, timeZone?: string): string | null {
+  if (!plan.intervalDays || plan.intervalDays <= 0) return null;
+  const anchor = plan.lastDoneOn ?? plantDayOf(plan.createdAt, timeZone);
+  return addDays(anchor, plan.intervalDays);
+}
+
+/**
+ * The platform's move window (R4): 15 days when the interval is missing or long enough, otherwise
+ * `max(1, min(15, round(15 × interval ÷ 182)))` — a 30-day plan is judged at ±2, a 182-day one at ±15.
+ */
+export function pmToleranceDays(intervalDays: number | null): number {
+  if (intervalDays === null || intervalDays >= 150) return 15;
+  return Math.max(1, Math.min(15, Math.round((15 * intervalDays) / 182)));
+}
+
+/** A calendar day plus `n` days: calendar arithmetic on the day string, no zone. */
+export function addDays(day: string, n: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + n * DAY).toISOString().slice(0, 10);
+}
+
+/** A day inside the plan's tolerance window, both ends inclusive (R4). */
+export function pmWithinWindow(day: string, dueOn: string, toleranceDays: number): boolean {
+  return day >= addDays(dueOn, -toleranceDays) && day <= addDays(dueOn, toleranceDays);
+}
+
+/** `GET /api/v1/pm/calendar?from&to`: the grid's range, both ends inclusive plant days. */
+export const pmCalendarQuerySchema = z
+  .object({ from: calendarDay, to: calendarDay })
+  .strict()
+  .refine((range) => range.from <= range.to, {
+    message: 'from must be on or before to',
+    path: ['from'],
+  });
+export type PmCalendarQuery = z.infer<typeof pmCalendarQuerySchema>;
+
+/** One machine's PM: its effective plan's next due, or the open PM ticket that replaces it (R2). */
+export const pmCalendarItemSchema = z
+  .object({
+    planId: z.string().uuid().nullable(),
+    machineId: z.string().uuid(),
+    machineCode: z.string().min(1).max(40),
+    title: z.string().min(1).max(2000),
+    dueOn: calendarDay,
+    scheduledOn: calendarDay,
+    toleranceDays: z.number().int().min(1).max(3650),
+    ticketId: z.string().uuid().nullable(),
+    status: z.enum(['planned', 'open']),
+    movable: z.boolean(),
+    crowded: z.boolean(),
+    suggestedOn: calendarDay.nullable(),
+  })
+  .strict();
+export type PmCalendarItem = z.infer<typeof pmCalendarItemSchema>;
+
+export const pmCalendarReplySchema = z
+  .object({
+    from: calendarDay,
+    to: calendarDay,
+    today: calendarDay,
+    cap: z.number().int().positive(),
+    items: z.array(pmCalendarItemSchema),
+  })
+  .strict();
+export type PmCalendarReply = z.infer<typeof pmCalendarReplySchema>;
+
+/** A drag or a "Move to" button: the occurrence (plan and/or open ticket) and the target plant day (R3). */
+export const pmRescheduleSchema = z
+  .object({
+    machineId: z.string().uuid(),
+    planId: z.string().uuid().nullable().optional(),
+    ticketId: z.string().uuid().nullable().optional(),
+    scheduledOn: calendarDay,
+  })
+  .strict();
+export type PmRescheduleBody = z.infer<typeof pmRescheduleSchema>;
+
+export const pmRescheduleReplySchema = z
+  .object({
+    ticketId: z.string().uuid(),
+    ref: z.string().min(1).max(40),
+    scheduledOn: calendarDay,
+    /** True when the move materialised a new job, false when it moved an open ticket. */
+    created: z.boolean(),
+  })
+  .strict();
+export type PmRescheduleReply = z.infer<typeof pmRescheduleReplySchema>;

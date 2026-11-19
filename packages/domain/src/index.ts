@@ -35,5 +35,6 @@ export {
 } from './escalation.js';
 export { passwordProblem, type PasswordProblem } from './password-rules.js';
 export * from './analytics/index.js';
+export * from './pm-schedule.js';
 export * from './exports/types.js';
 export { workbookSheets } from './exports/workbook.js';

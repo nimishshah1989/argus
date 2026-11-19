@@ -1247,10 +1247,15 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/input.json
       - fixtures/answer-key/workbook-export.json
+      - 'apps/server/test/asset-register-engine.test.ts :: maps every R12 field: the note text back, months 0, the stored dates and the row id'
+      - 'apps/server/test/asset-register-engine.test.ts :: raises the register’s AMC, warranty and legal reminders with their own words'
+      - 'apps/server/test/asset-register-engine.test.ts :: prints the AMC type, start, stored end and the not-renewing cell'
+      - "packages/domain/test/analytics-workbook.test.ts :: gives every sheet the key's header row and data-row count"
+      - 'apps/server/test/asset-registers.test.ts :: the asset register settings resource'
     source: docs/plan/m4a-triage.md
     screen: amc-warranty
     ticket: '51'
@@ -1260,10 +1265,15 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: done
     evidence:
       - fixtures/answer-key/input.json
       - fixtures/answer-key/workbook-export.json
+      - 'apps/server/test/asset-register-engine.test.ts :: maps every R12 field: the note text back, months 0, the stored dates and the row id'
+      - 'apps/server/test/asset-register-engine.test.ts :: never nudges a not-renewing row, and both legal rows of one machine nudge'
+      - 'apps/server/test/asset-register-engine.test.ts :: prints the legal test, form, last date, stored due and the certificate'
+      - 'packages/domain/test/analytics-action-center.test.ts :: reproduces the 36 nudges, the 16 type labels and the 26 thresholds exactly'
+      - 'apps/server/test/asset-registers.test.ts :: the asset register settings resource'
     source: docs/plan/m4a-triage.md
     screen: legal-compliance
     ticket: '51'
@@ -1273,10 +1283,11 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: in-progress
     evidence:
-      - fixtures/answer-key/pm-plan.json
-      - fixtures/answer-key/input.json
+      - apps/server/src/seed/pm-plans.test.ts
+      - apps/web/src/screens/settings/pm-plans-spec.test.ts
+      - apps/web/e2e/pm-plans.spec.ts
     source: docs/plan/m4a-triage.md
     screen: pm-plan
     ticket: '49'
@@ -1286,10 +1297,11 @@ rows:
     milestone: M4b
     milestones:
       - M4b
-    status: todo
+    status: done
     evidence:
-      - fixtures/answer-key/input.json
-      - fixtures/answer-key/workbook-export.json
+      - apps/server/test/pm-close.test.ts
+      - apps/web/e2e/pm-plans.spec.ts
+      - apps/server/src/seed/pm-plans.test.ts
     source: docs/plan/m4a-triage.md
     screen: pm-reports
     ticket: '49'

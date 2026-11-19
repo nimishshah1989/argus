@@ -5,12 +5,14 @@ import * as domain from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
 import { withTicketParts, type TicketActor } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
+import { pmPlanForMachine } from '../plant/index.js';
 import { toldByEscalationStep } from '../notifications/index.js';
 import * as tm from './mapper.js';
 import * as sql from './repo/ticket.js';
 import * as report from './repo/report.js';
 import { lockoutsOf, lockoutOf } from './lockout.js';
 import { taskParts } from './tasks.js';
+import { pmPlanForJob } from './pm-close.js';
 import {
   needReportRows,
   openTicketRows,
@@ -143,6 +145,7 @@ export async function listTickets(
   const filters: ListFilters = {
     statuses: csv(q.status),
     kinds: csv(q.kind),
+    channels: csv(q.channel),
     machineId: q.machineId,
     personId: q.personId,
     raisedBy: q.raisedBy,
@@ -224,6 +227,28 @@ function escalationStep(
   return { ...step, toldPersonIds: people ?? ((step.toldCount ?? 0) > 0 ? null : []) };
 }
 
+/** The plan a PM job's screen renders: the machine's effective plan, or null when there is none (R3, R8). */
+async function pmPlanForTicket(
+  client: PoolClient,
+  tenantId: string,
+  row: Record<string, unknown>,
+): Promise<ReturnType<typeof pmPlanForJob> | null> {
+  const machineId = row.machine_id as string | null;
+  if (row.raised_channel !== 'pm' || !machineId) return null;
+  const plan = await pmPlanForMachine(client, tenantId, machineId);
+  return plan ? pmPlanForJob(plan) : null;
+}
+
+/** The crew's work intervals as the detail reply names them. */
+function intervalRows(segments: domain.WorkSegment[]): object[] {
+  return segments.map((segment) => ({
+    personId: segment.personId,
+    role: segment.role,
+    startedAt: segment.startedAt,
+    endedAt: segment.endedAt ?? null,
+  }));
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -272,13 +297,9 @@ export async function detail(
         leftReason: member.leftReason ?? null,
       })),
       ...(await taskParts(client, ctx.tenantId, row)),
-      intervals: segments.map((segment: domain.WorkSegment) => ({
-        personId: segment.personId,
-        role: segment.role,
-        startedAt: segment.startedAt,
-        endedAt: segment.endedAt ?? null,
-      })),
+      intervals: intervalRows(segments),
       report: await report.loadReport(client, ticketId),
+      pmPlan: await pmPlanForTicket(client, ctx.tenantId, row as Record<string, unknown>),
     };
   });
   if (!payload) reply.code(404).send(apiError('not_found', 'Unknown ticket'));

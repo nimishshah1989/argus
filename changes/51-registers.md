@@ -136,3 +136,95 @@ and 49a's PM plans already took it to 143, so 51a takes **143 → 146** (the equ
 (`register line N has no machine`); the unknown-code conflict is the seed's, as the plan's field map describes. An
 unknown or another plant's machine is a **422** on `machineId` (R6 and 51a's Given/When/Then 6), unlike PM plans'
 `Problem.missing` 404; another plant's **row id** is a 404.
+
+## 51b — the `register.due` notice (this PR)
+
+**What changed for a user:** an owner now gets one push per register item on the first day of its lead window, and no
+second one that day. The watch day is `due_on`, else `ends_on` — never `starts_on`; the window opens inclusive at
+`watchOn − lead_days` and has no upper bound, so an item that was missed while the server was down still gets its one
+message. Moving a date is a new window and sends a new message; switching the item off stops it; an owner who is no
+longer active is skipped; an item with no owner notifies nobody.
+
+**The rule is plant's, the job is notifications' (R8–R11).**
+`apps/server/src/modules/plant/repo/asset-registers.ts` gains `dueRegisterItems(tx, tenantId, today)`: the tenant's
+rows with an owner, a watch date and `COALESCE(due_on, ends_on) - lead_days <= today`, returning
+`{ id, ownerPersonId, watchOn, leadDays }` ordered by watch day, exported through `plant/index.ts`.
+`apps/server/src/modules/notifications/register-jobs.ts` runs it: `runRegisterDue` checks the clock, loops
+`jobTenantIds()` (or the one named tenant) under `withTenant`, computes `plantToday`, skips an owner `activePerson`
+does not return, and calls `notify` in the same transaction with `kind: 'register.due'` and the key
+`register:<row id>:<watchOn>`; `notify` appends the person and channel, so the stored key is
+`register:<id>:<date>:<person>:push`. `startRegisterJobs` creates the queue for every role and, off the `api` role, the
+worker and the daily UTC schedule `15 0 * * *`; there is no boot enqueue, and a re-run writes nothing because of the
+unique key. `notifications/kinds.ts` adds the push body (“Register item due”), and `index.ts` starts the job after the
+notify jobs. The 24-hour database clock guard moved from `retention.ts` to `kernel/jobs.ts`
+(`assertClockNearDatabase`, exported by `kernel/index.ts`); the message and the rule are unchanged and retention now
+imports it.
+
+**Evidence.** `apps/server/test/register-due.test.ts`, on the fake clock at 11:30 IST: the day before the window
+(silent), the inclusive boundary (one), a second run that day (still one), `due_on` winning over `ends_on` with lead 0,
+an overdue row (one on the next run, not a stream), a moved date (a new key, the old one never repeated), a new owner
+(a second message for the same date, the old owner not repeated), a removed row (nothing new, the earlier row stays),
+no owner / an inactive owner / a start-only row (none), one tenant's run leaving the other tenant's due row alone, the
+clock guard refusing before writing, the row holding ids only, and the registration (queue for `api`, worker and
+`15 0 * * *` UTC off it). The existing `notify.test.ts`, `retention-jobs.test.ts` (the moved guard still refuses) and
+`sla-timers.test.ts` stay green.
+
+**Rails.** No new table, column, migration or dependency (D17; 0015 untouched). `notifications → plant/identity` is
+already in `CALLS`, so `pnpm boundaries` needs no edit; `pnpm size` stays inside 400 lines; every new function is under 60. **Deviation recorded for review:** the frozen plan names the test file `apps/server/test/asset-register-notice.test.ts`
+and this packet names it `apps/server/test/register-due.test.ts` to match the `register.due` job; the cases are the
+plan's, none dropped.
+
+## 51c — the register as the live source (this PR)
+
+**What changed for a user:** the Action Center's AMC/warranty and legal reminders and the workbook's AMC & Warranty
+and Legal Compliance sheets now print the register. A row added, edited or removed on `/settings/registers` appears,
+moves or disappears on both the next board and the next workbook download, with the plant's own type/test wording, the
+stored end or due date, the certificate and the Not renewing flag. The 11 November fixture path is unchanged: the key's
+36 nudges and 17 sheets print exactly as before.
+
+**The load maps every field the engine has (R12).** `plant` publishes `assetRegistersForEngine(tx, tenantId)` beside the
+51b due-date read: the tenant's rows with `kind`, `machine_id`, `vendor`, `reference`, `starts_on`/`ends_on`/`due_on`
+as text and `notes`. `loadEngineData` splits them by kind — `amc`/`warranty` become `EngineData.amc`, `legal`/
+`calibration` become `EngineData.legal` — and fills every field the two types hold: `months: 0` (the register stores
+dates, not tenure), the stored `endsOn`/`dueOn`, `itemKey = row id`, and the AMC `type`/`noRenew` and the legal
+`tid`/`name`/`form` read back from R4's note (`<type>`, `<type> · not renewing`, `<name> · <form>`). The note passes
+through the load's existing redactor before it is parsed, so a person's name in a note becomes `[Pn]` like every other
+free text. An empty note falls back to the kind's own label (`AMC`/`Warranty`, and `Legal compliance` on the board); a
+null machine is `''`, which the reminder rules already filter out.
+
+**The rule reads the stored date and the row's identity.** `amcLineEnd`/`legalLineDue` prefer `endsOn`/`dueOn` and
+only fall back to start-plus-tenure when the stored day is absent, so a register row's reminder lands on the date the
+plant entered. A later line clears an older one only when both carry the same `itemKey`; without a key the old
+`machineId + type` / `machineId + tid` identity stays, so the fixture's renewal test is unchanged and two register rows
+of one type both nudge (the row, not the type, is the item). The nudge key keeps ticket 44's `amc|<id>|<end>` /
+`legal|<id>|<due>` shape, so an ack or snooze on a register nudge is the same stored key and a renewal that edits
+`due_on` moves the key instead of leaving a stale one. A ` · not renewing` row raises no AMC nudge.
+
+**The two sheets print the register.** `amcSheet` prints `line.type`, `line.start`, the stored end as `dmy`
+(`DD-MM-YYYY`), the vendor and `yes` in Not renewing; `legalSheet` prints `line.name`, `line.form`, the last date, the
+stored due (ISO) and the certificate. The tenure and Valid-for cells are blank when `months` is 0, so a register row
+with no end or due date prints blank rather than an invented date. A row derived the old way (`months > 0`, no stored
+day) prints exactly as the 45 key pinned it.
+
+**Evidence.** `apps/server/test/asset-register-engine.test.ts` (11 cases): the full `AmcLine`/`LegalLine` mapping
+(`type`/`noRenew`/`tid`/`name`/`form`, `months: 0`, `endsOn`/`dueOn`, `itemKey`), the redactor on a note, the empty-note
+fallbacks, a blank end/due (not invented), another plant's row invisible, the board's titles (`AMC (Comprehensive) ends
+in 10 days`, `Mitsubishi EWC`, `AMC ends in 9 days`, `Test Of Pressure Vessel (Form Form No 11) due in 10 days`, the
+blank legal note as `Legal compliance`), the not-renewing suppression, both legal rows of one machine nudging, the
+same-type row not cleared because the row id is the identity, an ack on the key closing it, both sheets' exact rows
+(start ISO, end `DD-MM-YYYY`, blank tenure, the not-renewing cell, the certificate, blank end/due) and a removed row
+leaving the load, the board and both sheets. The 45 workbook test (`analytics-workbook.test.ts`, the fixture path's
+17 sheets and row counts) and the Action Center's 36 key nudges (`analytics-action-center.test.ts`) stay exact. The
+whole `apps/server/test` + `packages/domain/test` run passes every touched suite; one timing check,
+`state-scale.test.ts`'s p95 budget on the tickets `/state` route, failed under this host's concurrent test load and is
+unrelated to this packet (that route reads no analytics load and no file here touches it).
+
+**Parity and the data map (R14).** `m4a.amc-warranty` and `m4a.legal-compliance` are `done`, with the engine test, the
+45 workbook test and the 51a register test as evidence; `docs/DATA-MAP.md:110` says the register is loaded, edited and
+the live source for the Action Center and the workbook.
+
+**Rails.** No new table, column, migration or dependency (D17; 0015 untouched); `pnpm boundaries` needs no `CALLS` edit
+(analytics → plant already allowed, SQL stays in plant's repo); `pnpm size` stays under 400 lines per file and every
+function under 60. **Deviation recorded for review:** the frozen plan names the read `assetRegistersForEngine(tx)`; this
+packet names it `assetRegistersForEngine(tx, tenantId)` so the read is explicitly tenant-scoped like `shiftsForEngine`,
+not RLS-only. The plan also lists `docs/DATA-MAP.md:110` and the `export-data.ts` comment, both done here.

@@ -20,6 +20,7 @@ export const AUDIT_AREAS = [
   'roster_entry',
   'escalation_rule',
   'analytics_profile',
+  'forecast',
   'setting',
   'tenant',
   'ticket',

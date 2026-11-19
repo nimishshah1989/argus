@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BREAKDOWN_CHANNELS } from './channel.js';
+import { BREAKDOWN_CHANNELS, PLANNED_CHANNELS } from './channel.js';
 import { taskDownMinSchema, taskInputSchema } from './tasks.js';
 
 // ISO timestamps are coerced to Date so the parsed body matches the domain Command types.
@@ -137,7 +137,8 @@ export type MachineStoppedBody = z.infer<typeof machineStoppedSchema>;
 /**
  * The data of a PM job's report (D17: the ticked checklist and readings are the ticket's report data, not a
  * table). `total` is what the plan asked for, `undone` the points the technician could not tick, `readings`
- * the meter values taken on the job.
+ * the meter values taken on the job. `planId` is the plan the close moved; it is optional so a client built
+ * before 49c (and 46b's close test) still parses, and the server derives `total`/`doneBy` before storing.
  */
 export const pmReportSchema = z
   .object({
@@ -146,6 +147,7 @@ export const pmReportSchema = z
     readings: z.record(z.string().min(1).max(120), z.number()).default({}),
     comments: z.string().max(4000).nullable().default(null),
     doneBy: z.string().uuid().nullable().default(null),
+    planId: z.string().uuid().optional(),
   })
   .strict();
 export type PmReport = z.infer<typeof pmReportSchema>;
@@ -287,6 +289,13 @@ export type UpgradeKindBody = z.infer<typeof upgradeKindSchema>;
 
 const TICKET_STATUSES: readonly string[] = ['open', 'working', 'waiting', 'closed', 'cancelled'];
 const TICKET_KINDS: readonly string[] = ['stopped', 'support', 'general'];
+/** Every channel a ticket can be raised through, one home (`channel.ts`) plus the two history channels. */
+const TICKET_CHANNELS: readonly string[] = [
+  ...BREAKDOWN_CHANNELS,
+  ...PLANNED_CHANNELS,
+  'import',
+  'backfill',
+];
 
 function csvOk(raw: string | undefined, allowed: readonly string[]): boolean {
   if (raw === undefined) return true;
@@ -298,6 +307,8 @@ export const listTicketsQuerySchema = z
   .object({
     status: z.string().optional(),
     kind: z.string().optional(),
+    /** The channel the ticket was raised through (`pm` is the technician's PM job list, 49c). */
+    channel: z.string().optional(),
     machineId: z.string().uuid().optional(),
     personId: z.string().uuid().optional(),
     raisedBy: z.string().uuid().optional(),
@@ -312,6 +323,9 @@ export const listTicketsQuerySchema = z
     }
     if (!csvOk(value.kind, TICKET_KINDS)) {
       ctx.addIssue({ code: 'custom', message: 'Unknown kind', path: ['kind'] });
+    }
+    if (!csvOk(value.channel, TICKET_CHANNELS)) {
+      ctx.addIssue({ code: 'custom', message: 'Unknown channel', path: ['channel'] });
     }
   });
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

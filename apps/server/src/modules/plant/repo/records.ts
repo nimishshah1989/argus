@@ -147,12 +147,19 @@ export async function insertPmPlan(
   return pmPlanRow(row as Record<string, unknown>);
 }
 
-export async function pmPlanById(tx: Db, tenantId: string, id: string): Promise<PmPlan | null> {
+export async function pmPlanById(
+  tx: Db,
+  tenantId: string,
+  id: string,
+  lock?: 'update',
+): Promise<PmPlan | null> {
   const row = (
-    await tx.query(`SELECT ${PM_PLAN_COLUMNS} FROM pm_plan WHERE tenant_id = $1 AND id = $2`, [
-      tenantId,
-      id,
-    ])
+    await tx.query(
+      `SELECT ${PM_PLAN_COLUMNS} FROM pm_plan WHERE tenant_id = $1 AND id = $2${
+        lock === 'update' ? ' FOR UPDATE' : ''
+      }`,
+      [tenantId, id],
+    )
   ).rows[0];
   return row ? pmPlanRow(row as Record<string, unknown>) : null;
 }
@@ -214,6 +221,7 @@ export async function pmPlanForMachine(
   tx: Db,
   tenantId: string,
   machineId: string,
+  lock?: 'update',
 ): Promise<PmPlan | null> {
   const row = (
     await tx.query(
@@ -223,11 +231,33 @@ export async function pmPlanForMachine(
             OR (p.machine_id IS NULL
               AND p.category = (SELECT category FROM machine WHERE tenant_id = $1 AND id = $2)))
         ORDER BY (p.machine_id IS NOT NULL) DESC, p.updated_at DESC
-        LIMIT 1`,
+        LIMIT 1${lock === 'update' ? ' FOR UPDATE' : ''}`,
       [tenantId, machineId],
     )
   ).rows[0];
   return row ? pmPlanRow(row as Record<string, unknown>) : null;
+}
+
+/**
+ * Moves the plan's clock after a PM job closes (49c, R8): `last_done_on` is the later done day and
+ * `last_meter_reading` the later reading, so a late close never walks the plan backwards. Inside the ticket's own
+ * transaction; an **active** plan only — a plan switched off after the job opened keeps its dates (R8). The close
+ * event is the authority for who and when; the plan carries no history of its own (D17).
+ */
+export async function recordPmCompletion(
+  tx: Db,
+  tenantId: string,
+  input: { planId: string; doneOn: string; meter: number | null },
+): Promise<void> {
+  await tx.query(
+    `UPDATE pm_plan
+        SET last_done_on = GREATEST(last_done_on, $3::date),
+            last_meter_reading = CASE WHEN $4::float8 IS NULL THEN last_meter_reading
+                                      ELSE GREATEST(COALESCE(last_meter_reading, $4::float8), $4::float8) END,
+            updated_at = now()
+      WHERE tenant_id = $1 AND id = $2 AND active`,
+    [tenantId, input.planId, input.doneOn, input.meter],
+  );
 }
 
 /**

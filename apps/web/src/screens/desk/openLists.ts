@@ -1,3 +1,4 @@
+import { isPlannedChannel } from '@uptimo/shared/channel';
 import type { Machine, Person, Ticket } from '../../api.js';
 import type { Tone } from '../../ui/status/index.js';
 
@@ -69,10 +70,16 @@ export function pendingTasks(open: Ticket[]): Ticket[] {
     );
 }
 
-/** Work requests not on a machine: urgent first, then oldest. */
+/** Work requests not on a machine: urgent first, then oldest. A planned PM job has its own floor list (R10). */
 export function workRequests(open: Ticket[]): Ticket[] {
   return open
-    .filter((t) => t.status === 'open' && t.kind === 'general' && !t.parentId)
+    .filter(
+      (t) =>
+        t.status === 'open' &&
+        t.kind === 'general' &&
+        !t.parentId &&
+        !isPlannedChannel(t.raisedChannel),
+    )
     .sort((a, b) => Number(b.urgent) - Number(a.urgent) || byReported(a, b));
 }
 

@@ -101,6 +101,20 @@ function ticketValues(ticket: Ticket): unknown[] {
   ];
 }
 
+/** Writes a planned job's scheduled date inside the raise's own transaction (50 R12); no other field moves. */
+export async function setTaskExpectedOn(
+  client: PoolClient,
+  tenantId: string,
+  ticketId: string,
+  day: string,
+): Promise<void> {
+  await client.query('UPDATE ticket SET task_expected_on = $3 WHERE tenant_id = $1 AND id = $2', [
+    tenantId,
+    ticketId,
+    day,
+  ]);
+}
+
 export async function loadTicketRow(
   client: PoolClient,
   ticketId: string,

@@ -4,6 +4,7 @@ import type { BreakdownReport, Config, Ticket } from '../api.js';
 import { FactList, SectionTitle, type FactRow } from '../ui/detail-kit.js';
 import { Stack } from '../ui/layout.js';
 import { formatDateTime, formatMinutes } from './format.js';
+import { PmReportCard } from './PmReport.js';
 
 const CLOSE_LABEL_KEYS = {
   report: 'close.report',
@@ -160,6 +161,8 @@ export function ReportCard({
   names: Record<string, string>;
 }) {
   const { t } = useTranslation();
+  // A PM job's report is its checklist, not a breakdown's codes and minutes (ticket 49c).
+  if (report.pmReport) return <PmReportCard report={report.pmReport} names={names} />;
   const rows = [
     ...fact(t('report.problem'), report.problem),
     ...fact(t('report.observedBy'), report.observedBy),

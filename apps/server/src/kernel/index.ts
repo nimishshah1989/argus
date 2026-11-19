@@ -42,5 +42,5 @@ export { registerReplyCheck, replyProblem } from './reply-check.js';
 export { registerHealth } from './health.js';
 export { bindLog, loggerOptions } from './logging.js';
 export { createPool } from './db.js';
-export { jobDb, type JobRole, type JobsHandle } from './jobs.js';
+export { assertClockNearDatabase, jobDb, type JobRole, type JobsHandle } from './jobs.js';
 export { rateLimitFromEnv } from './rate-limit-env.js';

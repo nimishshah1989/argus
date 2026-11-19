@@ -1,4 +1,7 @@
-/** PM plans (ticket 49a): the settings menu, the plan list and its form words. */
+/**
+ * PM plans and the PM job (tickets 49a/49c): the settings menu, the plan list and its form, the technician's job
+ * list, the checklist close and the closed report's card. Tick points carry no stored text: "Point N" is copy (R5).
+ */
 export const pmEn = {
   'pm.menu.plans': 'PM plans',
   'pm.menu.plans.sub': 'Intervals, checklists and the next due',
@@ -22,4 +25,29 @@ export const pmEn = {
   'pm.plans.intervalDays': 'every {{days}} days',
   'pm.plans.nextDueOn': 'next {{date}}',
   'pm.plans.items': '{{count}} checklist items',
+  'pm.jobs.title': 'PM jobs',
+  'pm.jobs.tab': 'PM jobs',
+  'pm.jobs.empty': 'No PM jobs right now.',
+  'pm.jobs.sub': 'Tick the plan, record the readings and finish',
+  'pm.point': 'Point {{n}}',
+  'pm.close.title': 'Finish PM',
+  'pm.close.action': 'Finish PM',
+  'pm.close.checklist': 'Checklist',
+  'pm.close.readings': 'Readings',
+  'pm.close.meter': 'Meter reading',
+  'pm.close.comment': 'Comments',
+  'pm.close.commentPlaceholder': 'Anything the next technician should know',
+  'pm.close.noChecklist':
+    'This plan has no checklist. Record the meter and a comment, then finish.',
+  'pm.close.noPlan': 'This job has no PM plan any more.',
+  'pm.close.noPlanHint': 'It still closes with your comment, and no plan is moved.',
+  'pm.close.submit': 'Finish PM',
+  'pm.close.hint': 'Every point starts ticked; untick what you could not do.',
+  'pm.report.title': 'PM report',
+  'pm.report.points': '{{done}} of {{total}} points ticked',
+  'pm.report.undone': 'Not done',
+  'pm.report.readings': 'Readings',
+  'pm.report.meter': 'Meter reading',
+  'pm.report.comment': 'Comments',
+  'pm.report.doneBy': 'Done by',
 };

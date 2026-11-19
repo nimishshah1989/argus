@@ -107,3 +107,57 @@ rows in one run.
 `pnpm precheck` (format, lint, typecheck, the fast suite and the docs checks) and `pnpm parity` (119 rows, 0
 problems). No product code means no red/green packet command is claimed here; each packet's commands are in the
 plan and are claimed by its PR.
+
+## 50a — the calendar's data and its move (built)
+
+**What changed for a user:** nothing on a screen yet (50c draws it), but the two APIs the calendar stands on are
+live. `GET /api/v1/pm/calendar?from&to` answers one occurrence per machine — the effective plan's next due, or the
+open PM ticket that replaces it — with the day's load, a crowded flag and the nearest free working day. A head or
+admin can `POST /api/v1/pm/reschedule` to create the PM job at a new date or move an open one; the plan row never
+changes. The PM group still shows 50b's interim page.
+
+**Dependency (ADR 0009 R1):** `@fullcalendar/react` **7.1.5** and `temporal-polyfill` **1.0.8**, exact pins in
+`apps/web/package.json`; the transitive `@fullcalendar/core` 7.1.5 and `@full-ui/headless-calendar` 7.1.5 (MIT)
+are recorded in `THIRD_PARTY.md` with the peer. Nothing imports the library yet; 50c adds the one door.
+
+**The pure core.** `packages/shared/src/pm.ts` gains the one `pmNextDue` (the settings screen now aliases it),
+`pmToleranceDays` (15 / `max(1, min(15, round(15 × interval ÷ 182)))`), `pmWithinWindow`, and the calendar query,
+calendar reply and reschedule body/reply schemas. `packages/domain/src/pm-schedule.ts` adds `pmCalendar` (one
+occurrence per machine, the open ticket suppression, load, crowded, `suggestedOn`), `pmSuggestDate` (forward then
+backward, Monday–Saturday, inside the tolerance, never before today) and `effectivePmPlan` (50b's pure twin of
+`pmPlansForScheduling`). It is exported through the domain index, so the D2 pin names the new API.
+
+**The routes.** `GET` is `canAnalytics`; `POST` is `canSettingsLists` and requires `Idempotency-Key` (`runOutcome`
+plus `computeBinding`, a replay returns the stored reply, a reused key is 422). Both run under `withTenant`. A move
+materialises through 46c's `raisePlannedTicket` with the new optional `scheduledOn` (the ticket's
+`task_expected_on`; the raise event carries it), or runs `setPmScheduledOn` (the date, `updated_at`, one `update`
+event with `changes: [{ field: 'scheduledOn', from, to }]` and the plan id). `reported_at`, `started_at` and every
+`pm_plan` column stay as they were. Refusals: 404 for another plant's plan/machine/ticket, 409 for a started job
+(working/waiting or `started_at`) and for a day that already holds a PM, 422 for a bad body, a past day, a Sunday
+or a date outside the plan's tolerance. The plan row is read `FOR UPDATE` and a plant-scoped advisory lock
+serialises reschedules, so two planners cannot both claim the same free day; a no-op move answers 200 and writes
+no event. `pm.generate` now passes the plan's due
+as `scheduledOn`, so a late nightly run keeps the right window.
+
+**Guard (ADR 0009 R1/R3).** `apps/web/src/screens/analytics/pm-calendar-guard.test.ts` mirrors the ECharts guard:
+only `PmCalendar.tsx` may name `@fullcalendar`/`@full-ui`, the page must be reached through `import()`, our source,
+CSS and E2E never use `.fc-*` selectors, and a production build keeps the theme's `fc-classic-` marker out of the
+start-up files (the door and its chunk land in 50c; the guard is in place first, with a planted violation proving
+each check). The pins and the expanded `THIRD_PARTY.md` row are asserted too.
+
+**Tests.** `packages/shared/test/pm.test.ts` (zone-aware next due, the tolerance scale, the window, the contracts),
+`packages/domain/test/pm-schedule.test.ts` (projection, suppression, no-interval and plan-less tickets, the
+category/one-per-machine rules, crowded days, the Sunday/past refusals, `effectivePmPlan`),
+`apps/server/test/pm-calendar.test.ts` (17 DB/API cases: the read, the category expansion, the tenancy and role
+gates, the materialise and move writes, the replay, the 409/422 refusals, the plan and timestamps untouched),
+`apps/server/test/reply-contract.test.ts` (146 → 148 with the route-table equality kept) and one
+`apps/server/test/pm-generate.test.ts` case (a late run records the due). `pnpm exec vitest run apps/server/test
+packages/domain/test`, the shared and web-guard suites, `pnpm precheck`, `pnpm boundaries`, `pnpm deps`,
+`pnpm licences` and `pnpm exec tsc --noEmit` are the checks.
+
+**Deviations.** The plan's file list puts the FullCalendar guard in 50c; it is here, ahead of the door, by the
+packet order requested for this build, and passes vacuously until 50c's `PmCalendar.tsx` exists. `pm-reschedule.ts`
+is 259 lines against the plan's ≤200 because the repo's 60-line/complexity rule forces the validation, window and
+write steps into separate functions; no behaviour is split across modules. The ticket audit uses the history
+contract's existing `changes` array, not the plan's shorthand object, because `ticketEventSchema` has always
+defined `changes` as `{ field, from, to }[]`.

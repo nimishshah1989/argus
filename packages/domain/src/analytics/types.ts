@@ -171,6 +171,13 @@ export interface AmcLine {
   months: number;
   vendor: string | null;
   noRenew: boolean;
+  /**
+   * The last day the register stored, when a live row carries one (51c). The reminder and the sheet prefer it
+   * over the start-and-tenure arithmetic, which the register does not store.
+   */
+  endsOn?: string;
+  /** The register row this line came from (51c): two rows for one item are two identities. */
+  itemKey?: string;
 }
 
 /** One legal test or calibration line: what is tested, when it was last done and how long it stays valid. */
@@ -184,6 +191,10 @@ export interface LegalLine {
   last: string | null;
   months: number;
   cert: string | null;
+  /** The next due day the register stored, when a live row carries one (51c); preferred over the tenure. */
+  dueOn?: string;
+  /** The register row this line came from (51c); the row, not its type, is the item's identity. */
+  itemKey?: string;
 }
 
 /**

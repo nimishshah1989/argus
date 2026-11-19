@@ -39,7 +39,12 @@ import {
   settingsPage,
   shiftReplySchema,
 } from './plant-settings.js';
-import { pmPlanReplySchema } from './pm.js';
+import {
+  pmCalendarReplySchema,
+  pmPlanForJobSchema,
+  pmPlanReplySchema,
+  pmRescheduleReplySchema,
+} from './pm.js';
 import { pushKeyReplySchema, pushSentReplySchema } from './push.js';
 import { lockoutSchema } from './lockout.js';
 import { handbackSchema, slaPolicySchema, slaProjectionSchema } from './sla.js';
@@ -123,6 +128,8 @@ export const ticketDetailSchema = z
     parent: taskParentSchema.nullable(),
     intervals: z.array(ticketIntervalSchema),
     report: storedReportSchema.nullable(),
+    /** A PM job's effective plan and checklist (49c); null on every other ticket. */
+    pmPlan: pmPlanForJobSchema.nullable(),
   })
   .strict();
 /** `/config`: plant's fields, then accountability's `slaPolicies` part, then the fingerprint. */
@@ -194,6 +201,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   ),
   ...settingsResource('settings/glossary', glossaryReplySchema),
   ...settingsResource('settings/pm-plans', pmPlanReplySchema),
+  [`GET ${P}/pm/calendar`]: pmCalendarReplySchema,
+  [`POST ${P}/pm/reschedule`]: pmRescheduleReplySchema,
   ...settingsResource('settings/registers', assetRegisterReplySchema),
   ...settingsResource('roster', rosterReplySchema),
   [`POST ${P}/roster/copy`]: rosterCopyReplySchema,

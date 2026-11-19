@@ -120,7 +120,7 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
       'analytics.guide.mttr-mtbf.body4',
     ],
     {
-      figures: ['a3-mttr-mtbf', 'shift-kpis.shift-split', 'shift-kpis.backlog'],
+      figures: ['a3-mttr-mtbf', 'shift-kpis.shift-split', 'shift-kpis.backlog', 'reliability'],
       formula: 'analytics.guide.mttr-mtbf.formula',
     },
   ),

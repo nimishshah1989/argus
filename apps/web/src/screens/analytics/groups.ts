@@ -174,6 +174,7 @@ export const FIGURE_LABELS: Record<string, MessageKey> = {
   'shift-kpis.compare': 'analytics.figure.shift-kpis.compare',
   'shift-kpis.shift-split': 'analytics.figure.shift-kpis.shift-split',
   'shift-kpis.backlog': 'analytics.figure.shift-kpis.backlog',
+  reliability: 'analytics.figure.reliability',
 };
 
 /**

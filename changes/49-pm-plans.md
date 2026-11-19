@@ -159,3 +159,61 @@ notifications jobs and D18's one-process rule. (2) `pmPlansForScheduling` does n
 not name `tenant` (the table is identity's), so the job reads the tenant zone through `tenantInfo` and passes the local
 day into the pure `pmDue`. (3) The queue adds `retryDelay: 60`, the same as the retention queues, which the slice did
 not name. No new table, dependency or migration; no test weakened.
+
+## 49c — the phone checklist and the PM close (this PR)
+
+**What changed for a user:** a technician now has a **PM jobs** tab on the floor (`/floor/pm`, maintenance only)
+that lists the open PM jobs with the machine, the reference and the plan's title. Opening a job and tapping
+**Finish PM** opens the plan's numbered checklist — every point ticked at first, untick what could not be done —
+its reading boxes, the machine's meter and one comment. Finishing closes the ticket `kind: 'report'` with the
+plan's `pm_report` and moves the plan's last-done date and meter reading; the ticket page then shows the report
+("2 of 3 points ticked", the points left undone, the readings with their names and the comment) and the closed job
+leaves the list. A PM job no longer makes its machine look "already reported" on the floor, and it is not a work
+request on the desk.
+
+**The stored report is built before the store (R8).** 46b writes the close's `pmReport` verbatim, so
+`apps/server/src/modules/tickets/pm-close.ts`'s `preparePmClose` runs in `executeCommand` **before**
+`storeReportForTransition`: it resolves the job's effective plan (or the one the body names), validates every
+`undone` id and reading key against the plan's checklist, derives `total` from the tick items and `doneBy` from the
+acting person, and sets `tx.body.report.pmReport`. The shared `pmReportSchema` gains an **optional** `planId`, so
+46b's close test and older clients still parse. A switched-off plan closes from its own checklist and is **not**
+moved; a category plan is accepted only when it is the machine's effective plan; a `planId` from another plant is
+404, another machine's plan is 422, and a plan row that is gone closes with `total: 0` and no entries rather than a
+dead end. A non-PM report keeps `pm_report` NULL even when a body smuggles one. A PM job whose machine has no plan at all
+(direct SQL only; every real job comes from a plan) keeps what the caller recorded — 46b's contract, which the
+existing close test pins — while its `doneBy` still comes from the session, so no body can claim who closed it.
+
+**The plan moves in the same transaction.** `afterClose` calls plant's `recordPmCompletion` (active plans only,
+`GREATEST` on both dates), so a re-run of `pm.generate` owes no second job for the period. An API mark-done close
+(no report) moves the plan too; a cancelled job moves nothing.
+
+**The phone and the lists.** `apps/web/src/faces/floor/pm-jobs.tsx` is the `/floor/pm` list (a `QueuePage` over
+`GET /tickets?channel=pm&status=open,working`, so the list filter is the new `channel` query); `PmClose.tsx` is the
+close screen and `CloseFlow.tsx` renders it for a `pm` ticket instead of the breakdown report; `actionSpecs.ts`
+labels its close **Finish PM** (preset `report`), not "Mark done". The floor's `openOnMachines` counts only
+`isBreakdownChannel` tickets (and the 409 "already open" path picks the breakdown, not a PM job), and the desk's
+`workRequests` excludes `isPlannedChannel` ones (R10). The detail reply
+always carries `pmPlan` — the machine's effective plan and checklist, `null` on any other ticket. All copy is in the
+existing `pm` namespace (English; Gujarati stays blank like the other M4b area namespaces).
+
+**Evidence.** `apps/server/test/pm-close.test.ts`: the stored object with the derived `total`/`doneBy`/`planId` and
+the plan moved to the close's plant day, the placeholders ignored, a non-PM report NULL, another plant's plan (404),
+another machine's plan (422), an unknown reading key and a meter plan with no meter reading (422) writing nothing,
+a switched-off plan closing unmoved, a category plan accepted and moved, a deleted plan row closing empty, a
+mark-done close moving the plan, and the list's `channel` filter. `apps/web/src/components/pmDraft.test.ts` (the
+draft, the numbers, readiness, the close body), `apps/web/src/faces/floor/use-floor.test.ts` (R10),
+`apps/web/src/screens/desk/openLists.test.ts` and `apps/web/src/components/actionSpecs.test.ts` (added cases, no
+existing assertion changed). `apps/web/e2e/pm-plans.spec.ts` runs the phone journey (open `/floor/pm`, start,
+untick point 2, `0.01` for Backlash X, meter `1200`, comment, finish, reload, see the report and the moved plan) and
+the settings journey, on chromium and the phone project. Parity: `m4a.pm-reports` → **done**,
+`m4a.pm-plan` → **in-progress** (the calendar is 50).
+
+**Deviations recorded for review:** (1) the slice names `apps/web/src/components/PmClose.test.tsx`, but this repo
+has no DOM test harness (no jsdom/@testing-library; adding one is a dependency) and every web unit test is a pure
+`.ts` file — the screen's decisions live in `pmDraft.ts` and are tested there, and the screen itself is covered by
+the Playwright journey. (2) `pm-close.ts` handles the late `report` action as well as `close` (the same build, no
+plan move), so a PM ticket closed without a report cannot later store a client-written one. (3) The journey's
+settings leg checks the page, the edit sheet and that the interval persists; the audit-screen leg of the slice's
+GWT 6 is 49a's screen and is covered by `apps/server/test/pm-plans.test.ts`'s audit assertions, not here. (4) 49a
+did not add `recordPmCompletion` (it had no caller); 49c adds it with the close that uses it, as the slice's
+deviation note allowed.

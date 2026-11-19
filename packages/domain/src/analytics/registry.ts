@@ -121,6 +121,15 @@ export const FIGURES: readonly FigureDef[] = [
   tile(48, 'shift-kpis', 'compare', 'Platform basis beside the working-hour basis'),
   tile(48, 'shift-kpis', 'shift-split', 'Breakdowns, hours and MTTR by shift'),
   tile(48, 'shift-kpis', 'backlog', 'Open breakdowns by working-hour age'),
+  // Ticket 67's reliability fit and critical spares: a second key on the machine page, never a screen of its own
+  // (R11). Its value is per machine and per category, so the figure's own drill is the production fleet.
+  {
+    key: 'reliability',
+    screen: 'machine-page',
+    owner: 67,
+    label: 'Reliability and critical spares',
+    drill: 'machine',
+  },
 ];
 
 export const FIGURE_KEYS: readonly string[] = FIGURES.map((figure) => figure.key);

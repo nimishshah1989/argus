@@ -39,6 +39,11 @@ export {
   shiftsForEngine,
 } from './repo/analytics.js';
 export { settingRowStore } from './repo/setting-row.js';
+export {
+  assetRegistersForEngine,
+  dueRegisterItems,
+  type DueRegisterItem,
+} from './repo/asset-registers.js';
 export { actorOf, forbidden } from './actor.js';
 export { mayViewBoard } from './board-access.js';
 export { registerResource } from './settings-routes.js';
@@ -53,6 +58,7 @@ export {
   pmPlanById,
   pmPlanForMachine,
   pmPlansForScheduling,
+  recordPmCompletion,
   type AssetKind,
   type AssetRegisterInput,
   type AssetRegisterRow,
