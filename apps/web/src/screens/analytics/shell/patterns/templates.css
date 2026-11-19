@@ -1,0 +1,119 @@
+/*
+ * The five analytics templates (ticket 85). Tokens only. A template answers to its own width (a container
+ * query), because the shell's left menu takes 240px from a laptop window: under 720px it is one column in the
+ * phone's order; from 720px the content and its side region share a row, and the figures run 4 to 6 a row.
+ */
+.at {
+  container: at / inline-size;
+  min-width: 0;
+}
+.at-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-step-4);
+  align-items: start;
+}
+.at-grid > * {
+  min-width: 0;
+}
+
+.at-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-step-2) var(--spacing-step-4);
+}
+.at-head-text {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.at-head h2 {
+  margin: 0;
+  font-size: var(--text-title3);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.at-head p {
+  margin: var(--spacing-step-1) 0 0;
+  font-size: var(--text-footnote);
+  color: var(--color-neutral-600);
+}
+.at-actions,
+.at-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-step-2);
+}
+
+.at-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-step-3);
+}
+.at-main,
+.at-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-4);
+}
+
+/* The drill area is the one raised panel; what sits in it is flat (the No-Nesting Rule). */
+.at-drill {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-step-3);
+  padding: var(--spacing-step-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-depth-1);
+}
+.at-drill h3 {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 650;
+}
+.at-notice {
+  padding: var(--spacing-step-4) 0;
+}
+
+@container at (min-width: 720px) {
+  .at-grid[data-side] {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+  .at[data-template='register'] .at-grid[data-side] {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  .at[data-template='queue'] .at-grid[data-side] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  /* Full width: the header rows, the figures, a lone content region and a drill that is not beside it. */
+  .at-trail,
+  .at-head,
+  .at-filters,
+  .at-figures,
+  .at-notice,
+  .at-grid:not([data-side]) > .at-main,
+  .at-grid:not([data-side='drill']) > .at-drill {
+    grid-column: 1 / -1;
+  }
+  .at-grid[data-side] > .at-main {
+    grid-column: 1;
+  }
+  .at-grid[data-side] > .at-aside,
+  .at-grid[data-side='drill'] > .at-drill {
+    grid-column: 2;
+  }
+  .at-grid[data-side='drill'] > .at-drill {
+    position: sticky;
+    top: calc(var(--spacing-step-4) + 72px);
+  }
+  .at-figures {
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  }
+  .at[data-template='overview'] .at-main {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

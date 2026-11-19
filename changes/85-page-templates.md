@@ -1,0 +1,1 @@
+- The design gallery has a new page, `/gallery?view=templates`, showing the five analytics page templates (overview, analysis, register, entity, work queue) and a template with no data (loading, empty, error, offline), on a phone and a laptop, light and dark. No real screen uses them yet.
