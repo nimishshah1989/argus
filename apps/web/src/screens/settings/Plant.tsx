@@ -178,6 +178,12 @@ function Body({
   return <CrudPage key={page} spec={found.spec as CrudSpec<CrudRow>} />;
 }
 
+/** The entries this person may open, and how many background jobs failed (0 for anyone who cannot see them). */
+function useVisiblePages(user: Parameters<typeof canSeeJobs>[0]) {
+  const failed = useFailedCount(user);
+  return { failed, pages: PLANT_PAGES.filter((p) => !p.adminOnly || canSeeJobs(user)) };
+}
+
 /** Plant settings for an admin or head: the desktop left menu, or on a phone a list and back to it. */
 export function PlantSettings({ page }: { page: PlantPage }) {
   const { t } = useTranslation();
@@ -185,8 +191,7 @@ export function PlantSettings({ page }: { page: PlantPage }) {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   useSystemTheme();
   const role = me.data?.user.role;
-  const failed = useFailedCount(me.data?.user);
-  const pages = PLANT_PAGES.filter((p) => !p.adminOnly || canSeeJobs(me.data?.user));
+  const { pages, failed } = useVisiblePages(me.data?.user);
   if (wide && page === 'home') return <Navigate to="/settings/machines" replace />;
   let content: ReactNode = <p className="text-neutral-600">{t('common.loading')}</p>;
   if (role)
