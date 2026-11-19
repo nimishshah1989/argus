@@ -67,3 +67,18 @@
   instead of continuing from 82). The test pins that behaviour so a later fix is deliberate. The right fix is to number
   the log from the whole uncut history and then cut; it is a separate packet and will change only the 2026 numbers in
   this test (2025 and both years keep theirs, as they already start at the first record).
+
+## 76m — the shift-calendar figures read the span
+
+- The two shift-calendar figures, the comparison and the shift split, now divide by the working hours of the span they
+  are run for, with a month the plant kept no records in left out. On the two-year test plant at 31 January 2027, 2025
+  has 17,325 working hours (three machines, eleven recorded months at 525 each) where it printed 18,900, and both years
+  together have 42,525 where it printed 25,200 (one year's hours under two years' breakdowns, MTBF 109.0 instead of the
+  right 185.0 on the platform basis and 194.3 on the working-hour basis). The platform column and the shift rows follow
+  the same hours. A run that names no span is unchanged, so the 2026 answer key and every existing test stay as they were.
+- For the next packet: `workingHoursFor` in `working-hours.ts` now counts a month listed in its window's `noRecords` as
+  no hours (TC-1 over both years is 23 months, 12,075; VC-2 is its 12 months, 6,300). A window with no `noRecords`
+  counts every month, as before, so 76n's reliability can pass the span's own period and read the gap without a new function.
+- The exact fix for a last-bit rounding in the hours (2025 sums to 17,325.000000000004): add the day shares first and
+  divide by 12 once per year in `periodFraction`. That is a later packet, because `periodFraction` also feeds the 2026
+  answer key. The 76m test compares at six decimals and says why.
