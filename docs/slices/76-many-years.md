@@ -278,18 +278,20 @@ order, and carries `No parity: engine period seam, no platform screen changes`.
 76n needs 76m's gap-aware `workingHoursFor`, 76q needs 76p1's `reportStats`, and 76s–76u need 76r's gap-aware
 `a9RiskCore`. Elsewhere it is only queue order.
 
-**Against 75 and 77.** 75 is blocked only by 74 and may merge first; its span call (`run(…, span)`) lands
-after 76d, which adds the parameter. 76 never edits `a9-forecast-sim.ts` or `forecast-lab-sim.ts`, so 75's forecast speed work may
-run beside 76 there; anything 75 needs in `a9-bottleneck.ts`, `a9-forecast.ts` or `forecast-lab.ts` waits for 76r
-and 76s. 77's exclusion of machines from BD %, MTTR, MTBF and availability goes after 76f, 76j–76k and 76m, unless it
+**Against 75 and 77.** 75 follows 76 (HANDOFF, MILESTONES): both rewrite the engine. Its span call
+(`run(…, span)`) lands after 76d, which adds the parameter; 75's storage and serving work that does not touch the
+engine's figures may start beside 76. 75's forecast speed work changes the engine, so it follows 76 too; 76 never
+edits `a9-forecast-sim.ts` or `forecast-lab-sim.ts`, so that work will not collide with 76's files, and anything it
+needs in `a9-bottleneck.ts`, `a9-forecast.ts` or `forecast-lab.ts` builds on 76r and 76s. 77's exclusion of machines from BD %, MTTR, MTBF and availability goes after 76f, 76j–76k and 76m, unless it
 stays inside `machine-facts.ts` (`isProduction`) and the loader, which 76 does not touch.
 
 **Line budgets to watch.** `a9-bottleneck.ts` 398, `a1-bd-pm.ts` 395 (76g first), `compare-score.ts` 395,
 `annual-report.ts` 384, `team-focus.ts` 374, `a10-problems.ts` 370 — 76r and 76v delete their local window functions
 before adding (net negative); 76o and 76u must stay at or under 399 or move a helper out in the same packet.
 
-**Size.** 76 alone is 23 changes and about 2,700 lines with tests. Stage E (tickets 75–79) was budgeted at 22
-changes and 2,800 lines in all, so 76 uses nearly the whole stage: the estimate was too low, because 16 figures need
+**Size.** 76 alone is 23 changes and about 2,830 lines with tests (the ~Lines column above, 110 of them moved in
+76g). Stage E (tickets 75–79) was budgeted at 22 changes and 2,800 lines in all, so 76 alone exceeds the whole
+stage's budget: the estimate was too low, because 16 figures need
 their own edit. **76 is not closed until 76v is done**: without 76r–76v, goal 2 (a month with no records never counts
 as zero) is unmet for A9, the Forecast Lab, Money Matters, Team Focus and compare. If the timebox bites, 76r–76v move
 to one tracked follow-up, **76x, the history-gap tail**, with its own row and number goal in MILESTONES (the
