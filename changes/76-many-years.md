@@ -40,7 +40,8 @@
   and 2.0, and both years give their sum (217, 354.0, 84.0, 3.5). The machine counts, the registers and the figures
   that learn from all the history read the same in every span. A run that names no span is unchanged: it reads the
   as-of year to date with no gap month, so the 2026 answer key and every existing test stay as they were. No screen
-  changes yet: most figures still need their own edit to read the span (the packets that follow).
+  changes yet: the 24 span figures already receive the span-cut plant, and the packets that follow add each figure's
+  period-aware formula and gap-month handling.
 - Every figure now says what it reads: 24 the span, 18 the run date, 9 the whole history.
 - Rulings: a span cannot run past the run date (2026 asked for on 11 November is read to 11 November), and a span that
   starts after it is refused. The month still running is never a gap, so on the 1st a span of that month has its first
@@ -52,3 +53,17 @@
 - Known edge for later: `cellFrac` (`hours.ts`) is a day share inside the window and still counts a gap month's days
   for a machine that moved cells mid-window. The two-year plant has no move, so no 76 hand value meets it; 76n or
   the first packet that reads a moved machine over a gap fixes it.
+
+## 76e — the span cut is pinned
+
+- Six figures need nothing but the span cut to be right on a run over many years: the costliest problems, the bubble
+  chart, the Breakdown Log, the category and cell analysis (A2), the Why-Why list (A6) and the age analysis (A8). On the
+  two-year test plant each now has its page worked out by hand for 2025, 2026 and both years (for example 2025 lists
+  33 axis and 33 panel breakdowns of 1 hour, 2026 lists 96 and 48 of 2 hours), and a test holds every one whole. They
+  already came out right, so no figure changes and no screen changes; the test makes sure a later edit to the cut
+  cannot quietly undo it.
+- Known defect, pinned as it is today: the Breakdown Log numbers its rows by position in the span when a row has no
+  stored number, and the loader never stores one, so a row's number changes with the span (the 2026 log starts at 1
+  instead of continuing from 82). The test pins that behaviour so a later fix is deliberate. The right fix is to number
+  the log from the whole uncut history and then cut; it is a separate packet and will change only the 2026 numbers in
+  this test (2025 and both years keep theirs, as they already start at the first record).
