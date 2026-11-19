@@ -108,6 +108,23 @@ describe('a palette', () => {
     ]);
   });
 
+  it('names a series or ramp entry that is not a hex colour', () => {
+    const broken = {
+      ...full,
+      series: ['red', ...full.series.slice(1)],
+      div: ['#12', ...full.div.slice(1)],
+    };
+    expect(problems(broken)).toEqual(['series 1 is not a hex colour', 'div 1 is not a hex colour']);
+  });
+
+  it('names a series colour that repeats an earlier one, whatever its letter case', () => {
+    const twin = {
+      ...full,
+      series: [...full.series.slice(0, 5), full.series[1]!.toUpperCase(), ...full.series.slice(6)],
+    };
+    expect(problems(twin)).toEqual(['series 6 repeats series 2']);
+  });
+
   it('names a series that equals a status colour, whatever its letter case', () => {
     const clash = {
       ...full,
@@ -123,5 +140,15 @@ describe('Indian grouping', () => {
     expect(formatIN(1279)).toBe('1,279');
     expect(formatIN(3060.1)).toBe('3,060.1');
     expect(formatIN(99.32)).toBe('99.32');
+  });
+
+  it('rounds to at most 3 decimals', () => {
+    expect(formatIN(1.23456)).toBe('1.235');
+  });
+
+  it('prints an em dash for a figure that is not a number', () => {
+    expect(formatIN(Number.NaN)).toBe('\u2014');
+    expect(formatIN(Number.POSITIVE_INFINITY)).toBe('\u2014');
+    expect(formatIN(Number.NEGATIVE_INFINITY)).toBe('\u2014');
   });
 });
