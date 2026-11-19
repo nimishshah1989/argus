@@ -4,8 +4,10 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button.js';
 import { FilterChip } from '../ui/filter-chip.js';
+import { Check } from '../ui/icon.js';
 import { Input } from '../ui/input.js';
 import { Stack } from '../ui/layout.js';
+import { TONE_FILL } from '../ui/meaning.js';
 import { QueueTable, type QueueColumn } from './queue-table.js';
 import type { CrudCtx, CrudRow, CrudSpec } from './crud-spec.js';
 import { useWide } from './wide.js';
@@ -84,30 +86,34 @@ function EditRow<Row extends CrudRow>(p: ListProps<Row> & { row: Row }) {
   const { t } = useTranslation();
   const look = p.spec.look!(p.row, p.ctx);
   return (
-    <div className="flex items-center gap-3 border-t border-neutral-200 first:border-t-0">
-      {p.selectable ? (
-        <SelectBox
-          label={t('kit.crud.selectRow', { name: look.title })}
-          checked={Boolean(p.selected?.has(p.row.id))}
-          onChange={(on) => p.onSelect?.(p.row.id, on)}
-        />
-      ) : null}
-      <button
-        type="button"
-        aria-label={t('kit.crud.editRow', { name: look.title })}
-        onClick={() => p.onEdit(p.row)}
-        className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2 text-left"
-      >
-        {look.lead}
-        <span className="min-w-0">
-          <span className="block truncate text-title3 font-bold">{look.title}</span>
-          {look.sub ? (
-            <span className="block text-footnote text-neutral-600">{look.sub}</span>
-          ) : null}
-        </span>
-      </button>
-      {look.chip}
-      <Toggle {...p} name={look.title} />
+    <div className="border-t border-neutral-200 first:border-t-0">
+      <div className="flex items-center gap-3">
+        {p.selectable ? (
+          <SelectBox
+            label={t('kit.crud.selectRow', { name: look.title })}
+            checked={Boolean(p.selected?.has(p.row.id))}
+            onChange={(on) => p.onSelect?.(p.row.id, on)}
+          />
+        ) : null}
+        <button
+          type="button"
+          aria-label={t('kit.crud.editRow', { name: look.title })}
+          onClick={() => p.onEdit(p.row)}
+          className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2 text-left"
+        >
+          {look.lead}
+          <span className="min-w-0">
+            <span className="block truncate text-title3 font-bold">{look.title}</span>
+            {look.sub ? (
+              <span className="block text-footnote text-neutral-600">{look.sub}</span>
+            ) : null}
+            {look.tag}
+          </span>
+        </button>
+        {look.chip}
+        <Toggle {...p} name={look.title} />
+      </div>
+      {look.extra}
     </div>
   );
 }
@@ -185,6 +191,32 @@ function Filters<Row extends CrudRow>(p: {
   );
 }
 
+/** The spec's one flag chip ("2 machines not counted"): shown while any row carries it, tap to list only those. */
+function FlagChip<Row extends CrudRow>(p: {
+  spec: CrudSpec<Row>;
+  rows: Row[];
+  pressed: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const { flag } = p.spec;
+  const count = flag ? p.rows.filter(flag.test).length : 0;
+  if (!flag || (count === 0 && !p.pressed)) return null;
+  const Icon = flag.icon;
+  return (
+    <button
+      type="button"
+      aria-pressed={p.pressed}
+      onClick={p.onPress}
+      className={`inline-flex min-h-target-min items-center gap-1.5 self-start whitespace-nowrap rounded-full px-3 text-footnote font-semibold ${p.pressed ? 'bg-accent-tint text-accent-text ring-2 ring-accent-strong' : `${TONE_FILL.muted}`}`}
+    >
+      <Icon aria-hidden size={18} />
+      {t(flag.labelKey, { count })}
+      {p.pressed ? <Check aria-hidden size={16} strokeWidth={3} /> : null}
+    </button>
+  );
+}
+
 function tableColumns<Row extends CrudRow>(p: ListProps<Row>, t: TFunction) {
   const first: QueueColumn<Row> = {
     label: t(p.spec.titleKey),
@@ -204,6 +236,7 @@ function tableColumns<Row extends CrudRow>(p: ListProps<Row>, t: TFunction) {
           <span>
             <span className="block font-semibold">{look.title}</span>
             {look.sub ? <span className="block text-neutral-600">{look.sub}</span> : null}
+            {look.tag}
           </span>
         </button>
       );
@@ -246,10 +279,12 @@ export function CrudList<Row extends CrudRow>(p: ListProps<Row>) {
   const wide = useWide();
   const [query, setQuery] = useState('');
   const [chosen, setChosen] = useState<string | null>(null);
-  const { filter, search } = p.spec;
+  const [flagged, setFlagged] = useState(false);
+  const { filter, flag, search } = p.spec;
   const shown = p.rows.filter(
     (row) =>
       (chosen === null || filter?.of(row, p.ctx) === chosen) &&
+      (!flagged || !flag || flag.test(row)) &&
       (!search || search.text(row, p.ctx).toLowerCase().includes(query.trim().toLowerCase())),
   );
   const view = { ...p, rows: shown };
@@ -265,6 +300,12 @@ export function CrudList<Row extends CrudRow>(p: ListProps<Row>) {
         />
       ) : null}
       <Filters {...p} chosen={chosen} onChoose={setChosen} />
+      <FlagChip
+        spec={p.spec}
+        rows={p.rows}
+        pressed={flagged}
+        onPress={() => setFlagged(!flagged)}
+      />
       {wide ? (
         <QueueTable
           title={t(p.spec.titleKey)}
