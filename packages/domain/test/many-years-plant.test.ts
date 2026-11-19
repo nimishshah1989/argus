@@ -165,4 +165,14 @@ describe('a span includes both its first and its last day', () => {
       ],
     });
   });
+
+  it('reads only the as-of year when no span is named: 1 January counts, the last day of the year before does not', () => {
+    const [bdPct] = runWith(
+      { 'dashboard.plant-bd-pct': COMPUTERS['dashboard.plant-bd-pct']! },
+      { data: edgePlant(), asOf: '2026-01-31', profile: DEFAULT_PROFILE },
+    ).figures.filter((figure) => figure.status === 'ready');
+    // January 2026 alone: 2 machines x 500 h = 1,000 h. The 180-minute row of 1 January is 3 h: 3 / 1,000 = 0.30 %.
+    // The 120-minute row of 31 December 2025 is not this year's, or it would be 5 / 1,000 = 0.50 %.
+    expect([bdPct?.value, bdPct?.drill.ids]).toEqual([0.3, ['T-M-1-2026-01-01']]);
+  });
 });
