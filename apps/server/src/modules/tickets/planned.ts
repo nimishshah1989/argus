@@ -20,6 +20,11 @@ export interface PlannedTicketInput {
   at?: Date;
   /** The planned job's scheduled plant day (50 R12); the ticket's `task_expected_on`, never the plan's. */
   scheduledOn?: string;
+  /**
+   * What caused the raise: the nudge key (52 packet 3) or the frozen forecast row id (52 packet 2). It is written on
+   * the raise event's payload as `{source:{<kind>: id}}`, the only link the schema has (R16).
+   */
+  source?: { nudge?: string; forecast?: string };
 }
 
 export interface PlannedTicketResult {
@@ -53,7 +58,10 @@ async function persistRaise(
     loginId: input.raisedLoginId ?? null,
     actingPersonId: input.reportedByPersonId ?? null,
     textFor: () => input.problem,
-    payloadFor: () => (input.scheduledOn ? { scheduledOn: input.scheduledOn } : {}),
+    payloadFor: (event) => ({
+      ...(input.scheduledOn ? { scheduledOn: input.scheduledOn } : {}),
+      ...(event.type === 'down' && input.source ? { source: input.source } : {}),
+    }),
   });
 }
 

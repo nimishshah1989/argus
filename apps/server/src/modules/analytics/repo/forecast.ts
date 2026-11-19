@@ -1,5 +1,10 @@
 import type { PoolClient } from 'pg';
-import { FORECAST_MODEL, type FrozenForecast } from '@uptimo/domain';
+import {
+  FORECAST_MODEL,
+  type ForecastOutcome,
+  type FrozenForecast,
+  type FrozenPrediction,
+} from '@uptimo/domain';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -49,6 +54,98 @@ export async function insertForecasts(
       input.frozenAt,
       JSON.stringify(records),
     ],
+  );
+  return result.rowCount ?? 0;
+}
+
+/** A frozen row as the run reads it back: its id, machine and the frozen numbers it scores against. */
+export interface StoredForecastRow {
+  id: string;
+  machineId: string;
+  predicted: FrozenPrediction;
+}
+
+const rowOf = (row: Record<string, unknown>): StoredForecastRow => ({
+  id: row.id as string,
+  machineId: row.machine_id as string,
+  predicted: row.predicted as FrozenPrediction,
+});
+
+/**
+ * The months `engine.run` still scores (R8): a month closed on the plant's clock (`month < this month`), and either
+ * never scored or inside its first seven days (`today <= month + 1 month + 6 days`). From the 8th a scored month is
+ * final and drops out; an unscored month stays pending until it is written.
+ */
+export async function pendingMonths(tx: Db, tenantId: string, today: string): Promise<string[]> {
+  const rows = (
+    await tx.query(
+      `SELECT DISTINCT month::text AS month
+         FROM forecast
+        WHERE tenant_id = $1
+          AND month < date_trunc('month', $2::date)
+          AND (scored_at IS NULL OR $2::date <= (month + interval '1 month 6 days')::date)
+        ORDER BY month`,
+      [tenantId, today],
+    )
+  ).rows;
+  return rows.map((row) => row.month as string);
+}
+
+/** Every row of one frozen month, for the score. */
+export async function rowsForMonth(
+  tx: Db,
+  tenantId: string,
+  month: string,
+): Promise<StoredForecastRow[]> {
+  const rows = (
+    await tx.query(
+      'SELECT id, machine_id, predicted FROM forecast WHERE tenant_id = $1 AND month = $2::date ORDER BY machine_id',
+      [tenantId, month],
+    )
+  ).rows;
+  return rows.map(rowOf);
+}
+
+/** The rows the inspection run may raise for: the current month's frozen Hot band, read from the row (R9). */
+export async function hotRows(
+  tx: Db,
+  tenantId: string,
+  month: string,
+): Promise<StoredForecastRow[]> {
+  const rows = (
+    await tx.query(
+      `SELECT id, machine_id, predicted FROM forecast
+        WHERE tenant_id = $1 AND month = $2::date AND predicted->>'band' = 'Hot'
+        ORDER BY machine_id`,
+      [tenantId, month],
+    )
+  ).rows;
+  return rows.map(rowOf);
+}
+
+/** One row's score, as the month's one statement takes it. */
+export interface ScoredForecast {
+  id: string;
+  outcome: ForecastOutcome;
+}
+
+/**
+ * The score's one statement: only `outcome` and `scored_at` are written (the 0015 grant allows no other column and
+ * `predicted` is never touched). `scored_at` is the run's instant, so a fake clock pins the last write (R8).
+ */
+export async function saveOutcomes(
+  tx: Db,
+  tenantId: string,
+  input: { scoredAt: Date; rows: readonly ScoredForecast[] },
+): Promise<number> {
+  if (input.rows.length === 0) return 0;
+  const records = input.rows.map((row) => ({ id: row.id, outcome: row.outcome }));
+  const result = await tx.query(
+    `UPDATE forecast AS f
+        SET outcome = v.outcome, scored_at = $3::timestamptz
+       FROM jsonb_to_recordset($2::jsonb) AS v(id uuid, outcome jsonb)
+      WHERE f.tenant_id = $1 AND f.id = v.id`,
+    [tenantId, JSON.stringify(records), input.scoredAt],
   );
   return result.rowCount ?? 0;
 }
