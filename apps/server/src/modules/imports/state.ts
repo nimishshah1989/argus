@@ -1,4 +1,5 @@
 import type { FigureOverrides, TicketEvent } from '@uptimo/domain';
+import { normalizeCode } from './json.js';
 import type { BhavinEvent } from './event-schema.js';
 import type { BhavinState, BhavinTicket } from './schema.js';
 import { applyImportedEvent, type MutableImportedState } from './state-events.js';
@@ -166,6 +167,12 @@ function validatePlantEvent(ticket: BhavinTicket): void {
     ticket.events[last]?.type === 'close',
     lines.length > 0,
     lines.every((event) => event.type === 'utility_loss'),
+    // one line per machine: a repeated machine would count its minutes twice
+    new Set(
+      lines.map((event) =>
+        event.type === 'utility_loss' ? normalizeCode(event.payload.machineCode) : '',
+      ),
+    ).size === lines.length,
     ticket.status === 'closed',
     ticket.state.closeKind === 'done',
     ticket.crew.length === 0,

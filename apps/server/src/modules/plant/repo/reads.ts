@@ -151,7 +151,7 @@ export async function activeMachineByCode(
 export async function machineByCode(tx: Db, tenantId: string, code: string): Promise<MachineRow[]> {
   return (
     await tx.query(
-      'SELECT id, code, category, cell, criticality FROM machine WHERE tenant_id = $1 AND code = $2',
+      'SELECT id, code, category, cell, criticality, status FROM machine WHERE tenant_id = $1 AND code = $2',
       [tenantId, code],
     )
   ).rows;

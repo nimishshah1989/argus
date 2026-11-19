@@ -194,6 +194,13 @@ const eventUnion = z
       'edit',
     ]);
     const reasons = new Set(['leave', 'restore', 'transfer', 'update', 'cancel', 'edit']);
+    if (event.type === 'utility_loss' && event.by !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['by'],
+        message: 'A utility line has no actor',
+      });
+    }
     if (actors.has(event.type) && event.by === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ['by'], message: 'Actor is required' });
     }

@@ -182,6 +182,9 @@ async function loadLineMachines(
   for (const event of ticket.events) {
     if (event.type !== 'utility_loss') continue;
     const machine = await findMachine(ctx, event.payload.machineCode, byAlias, true);
+    if ([...ids.values()].includes(machine.id)) {
+      throw new Error(`A plant event names machine ${machine.code} twice`);
+    }
     ids.set(normalizeCode(event.payload.machineCode), machine.id);
   }
   return ids;
@@ -224,6 +227,8 @@ async function loadPeople(ctx: ImportCtx, ticket: BhavinTicket, aliases: AliasCo
       continue;
     }
     if (aliasBySource.has(source)) throw new Error(`Unknown or inactive person alias: ${target}`);
+    // A `P-` code names one existing person: unmatched (or an inactive person) it never makes a new one.
+    if (PERSON_CODE.test(target)) throw new Error(`Unknown or inactive person code: ${target}`);
     const name = displayName(sourceName);
     const personId = await ensurePendingPerson(ctx.client, ctx.tenantId, name);
     people.set(source, personId);

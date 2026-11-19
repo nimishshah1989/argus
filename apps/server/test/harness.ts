@@ -67,7 +67,25 @@ interface Provisioned {
   drop: () => Promise<void>;
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/** Setup resets role passwords on the server it uses, so `TEST_PG_URL` may only name this machine. */
+export function assertLocalServer(serverUrl: string): void {
+  let host: string;
+  try {
+    host = new URL(serverUrl).hostname;
+  } catch {
+    throw new Error('TEST_PG_URL is not a valid URL');
+  }
+  if (!LOCAL_HOSTS.has(host)) {
+    throw new Error(
+      `TEST_PG_URL must name a server on this machine (localhost, 127.0.0.1 or ::1), not "${host}": the test setup resets role passwords`,
+    );
+  }
+}
+
 async function freshLocalDatabase(serverUrl: string): Promise<Provisioned> {
+  assertLocalServer(serverUrl);
   const name = `argus_test_${randomBytes(6).toString('hex')}`;
   const server = new Pool({ connectionString: serverUrl, max: 1 });
   await server.query(`CREATE DATABASE ${name}`);
@@ -122,21 +140,27 @@ export async function startTestDb(options: { through?: string } = {}): Promise<T
   const { endpoint: container, setup, drop } = await provision();
   const admin = new Pool({ connectionString: container.getConnectionUri(), max: 5 });
   const beginAdmin = tolerateShutdown(admin);
-  await setup(async () => {
-    for (const file of migrationFiles(options.through)) {
-      await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
-    }
-    await installJobSchema(admin);
-    await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
-    // Roles belong to the server, not the database: a shared local server already has this one.
-    await admin.query(`DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'uptimo_router') THEN
-        CREATE ROLE uptimo_router LOGIN;
-      END IF;
-    END $$`);
-    await admin.query(`ALTER ROLE uptimo_router LOGIN PASSWORD '${ROUTER_PASSWORD}'`);
-    await admin.query('GRANT app_router, app_user TO uptimo_router');
-  });
+  try {
+    await setup(async () => {
+      for (const file of migrationFiles(options.through)) {
+        await admin.query(readFileSync(new URL(file, MIGRATIONS), 'utf8'));
+      }
+      await installJobSchema(admin);
+      await admin.query(`ALTER ROLE app_api LOGIN PASSWORD '${APP_API_PASSWORD}'`);
+      // Roles belong to the server, not the database: a shared local server already has this one.
+      await admin.query(`DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'uptimo_router') THEN
+          CREATE ROLE uptimo_router LOGIN;
+        END IF;
+      END $$`);
+      await admin.query(`ALTER ROLE uptimo_router LOGIN PASSWORD '${ROUTER_PASSWORD}'`);
+      await admin.query('GRANT app_router, app_user TO uptimo_router');
+    });
+  } catch (error) {
+    await admin.end().catch(() => undefined);
+    await drop().catch(() => undefined);
+    throw error;
+  }
   const target = `${container.getHost()}:${container.getPort()}/${container.getDatabase()}`;
   const app = new Pool({
     connectionString: `postgresql://app_api:${APP_API_PASSWORD}@${target}`,

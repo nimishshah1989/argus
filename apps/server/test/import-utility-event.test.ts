@@ -259,7 +259,7 @@ describe('plant event shape (schema)', () => {
     expect(() => parseTicket(plantEvent([['M-2', 1]], { reports: [{}] }))).toThrow(/reports/);
   });
 
-  it('refuses a utility line on an ordinary or past-breakdown ticket', async () => {
+  it('refuses a utility line on a past-breakdown ticket', async () => {
     const line = {
       type: 'utility_loss',
       at: `${DAY}T08:00:00Z`,
@@ -281,6 +281,31 @@ describe('plant event shape (schema)', () => {
     const result = await run([{ ...event, events: [events[0], events[2], events[1]] }]);
     expect(result.stats).toMatchObject({ imported: 0, errored: 1 });
     expect(result.stats.issues[0]?.message).toContain('past_utility_shape');
+  });
+});
+
+describe('plant event lines, one per machine and none with an actor', () => {
+  it('refuses a plant event that names one machine twice, even through an alias', async () => {
+    const twice = plantEvent([
+      ['SYNTH-MACHINE', 30],
+      ['M-1', 20],
+    ]);
+    const result = await run([twice]);
+    expect(result.stats).toMatchObject({ imported: 0, errored: 1, status: 'failed' });
+    expect(result.stats.issues[0]?.message).toContain('twice');
+    const same = plantEvent([
+      ['M-2', 30],
+      ['m-2', 20],
+    ]);
+    expect((await run([same])).stats).toMatchObject({ imported: 0, errored: 1 });
+  });
+
+  it('refuses a utility line that carries a person', () => {
+    const event = plantEvent([['M-2', 5]]);
+    const events = (event.events as Array<Record<string, unknown>>).map((line) =>
+      line.type === 'utility_loss' ? { ...line, by: 'Asha' } : line,
+    );
+    expect(() => parseTicket({ ...event, events })).toThrow(/no actor/);
   });
 });
 
@@ -339,5 +364,20 @@ describe('old codes, retired machines and person codes (69a, R9, R14prime)', () 
     const aliases = { ...makeSyntheticExport().aliases, people: { 'SYNTH-LEAD': 'P-ffffffff' } };
     const result = await run([pastBreakdown()], aliases);
     expect(result.stats).toMatchObject({ imported: 0, errored: 1 });
+  });
+
+  it('refuses a bare P- code that matches no active person, and creates nobody', async () => {
+    const before = await count('SELECT count(*)::int AS n FROM person WHERE tenant_id = $1');
+    const result = await run([pastBreakdown({}, { doneBy: ['P-ffffffff'], supportedBy: [] })]);
+    expect(result.stats).toMatchObject({ imported: 0, errored: 1, pendingPeople: 0 });
+    expect(result.stats.issues[0]?.message).toContain('p-ffffffff');
+    expect(await count('SELECT count(*)::int AS n FROM person WHERE tenant_id = $1')).toBe(before);
+  });
+
+  it('refuses a P- code that belongs to an inactive person', async () => {
+    await db.admin.query('UPDATE person SET active = false WHERE id = $1', [CHANDRA]);
+    const result = await run([pastBreakdown({}, { doneBy: ['P-a1b2c3d4'], supportedBy: [] })]);
+    expect(result.stats).toMatchObject({ imported: 0, errored: 1 });
+    expect(result.stats.issues[0]?.message).toContain('p-a1b2c3d4');
   });
 });
