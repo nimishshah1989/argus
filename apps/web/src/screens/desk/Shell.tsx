@@ -83,7 +83,7 @@ interface DeskTab {
   badge?: number;
 }
 
-/** The desktop menu adds the analytics face for the roles the lock names; the phone keeps its five tabs. */
+/** The desktop menu adds the analytics face for the roles `readsAnalytics` names (the server's `canAnalytics`); the phone keeps its five tabs. */
 function menuTabs(role: string | undefined, tabs: DeskTab[], t: TFunction): DeskTab[] {
   if (!role || !readsAnalytics(role)) return tabs;
   return [...tabs, { to: '/analytics', label: t('analytics.entry'), icon: FlaskConical }];

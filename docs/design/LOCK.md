@@ -148,7 +148,7 @@ every frame, its states and the choices taken.
   a repeat under 15 minutes and a rule with no stop count; push only for now.
 - **Lockout settings (head, admin):** a "Needs lockout" flag on work types and breakdown categories, and one editable list
   of steps (at least one).
-- **Analytics face (heads, plant head, admin; desktop and phone):** left menu in groups, collapsed except the current one,
+- **Analytics face (heads, plant head, admin; desktop and phone; supervisors also get the desk Analytics link, Nimish, 19 Nov: supervisors get an Analytics link in the desk menu):** left menu in groups, collapsed except the current one,
   with Guide and Data checklist; Dashboard in the platform's order; head and plant head open on Today; every figure shows
   its drill target; Money Matters is heads and admin only. Every Dashboard figure and chart is the backend answer key
   (`fixtures/answer-key/dashboard.json`, as of 11 Nov 2026); the Live machine status card is dropped (m4a-triage).
