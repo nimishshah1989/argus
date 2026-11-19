@@ -1,360 +1,319 @@
 # M4b-69 — legacy history 2022–2025
 
-## Amendment, 19 Nov 2026 — read this first
+## Re-plan, 19 Nov 2026 (replaces the plan of #406 and its amendment)
 
-Bhavin sent the 2023 workbooks on 19 Nov, and Nimish ruled on three points this plan had settled the other way. The
-goals are now ticket 69's six in `docs/plan/MILESTONES.md`; **this plan must be revised before 69a is built**, and
-the rulings below that it contradicts (R1, R6, R14) are superseded and R16's file list grows. The 2023 and 2025 figures here come from a
-throwaway parser run on 19 Nov; on the sets this plan measured it agrees within 1 % (2022: 1,337 rows with an SR.NO
-against 1,335; 2025: 1,329 dated rows against 1,328), so treat them as close, not exact, until the converter counts.
+The goals are ticket 69's six in `docs/plan/MILESTONES.md`. Nimish's rulings of 19 Nov are fixed here and not
+reopened: **one plant event per utility failure** (not a ticket per machine), **a row loads under its own date
+unless that year's workbook already holds it**, **codes are kept as the workbook legends define them**, and
+**February and March 2022 show as a gap ("no records") until Bhavin answers N17**. Every open answer from Bhavin is
+a switch with a stated default (§Switches), so no packet waits on him. Product goal (Nimish, 19 Nov): the whole
+history loaded before the pilot, so tickets 90–96 are built and checked on real data.
 
-| Fact (machine sheets only)                     | 2022   | 2023        | 2025     |
-| ---------------------------------------------- | ------ | ----------- | -------- |
-| workbooks / machine sheets                     | 4 / 52 | 5 / 68      | 5 / 87   |
-| rows with a usable date                        | 1,098  | 3,078       | 1,329    |
-| of those, dated in the workbook's own year     | 1,091  | 2,994       | 1,322    |
-| utility rows (`UTI`, `UTY`)                    | 85     | 1,821       | 130      |
-| days on which a utility row appears            | 38     | 151         | 34       |
-| hours in the UTI column                        | —      | about 1,480 | about 56 |
-| breakdowns with downtime (not PM, not utility) | 935    | 912         | 995      |
-| their downtime hours                           | 2,434  | 1,696       | 2,013    |
+The workbooks stay outside git: the converter takes their folder at run time and refuses an output path inside the
+repo. Locally they sit in this container's scratchpad (`bd22/`, `bd23/`, `bd24/`, `bd25/`); on staging they come
+from the private backup bucket (69d). No row, name or file name with a name goes into the repo, a test, a log or a PR.
 
-1. **2023 exists** (`GRD`, `HMC`, `TC & TMC`, `VMC`, `VTL`), so the source set is 19 workbooks and 2023 also passes
-   the 2,000-ticket file limit. A sixth 2023 file, `Jul-23.xlsx`, is a per-unit daily downtime grid for one month; it
-   is a cross-check, not a source.
-2. **A power cut is written once per machine.** In 2023, 1,388 rows read "power fail from GEB side", 43 to 51 rows
-   on a single day. Loaded as tickets they triple 2023's event count. Ruling: one plant event per failure, with its
-   machines and its UTI hours (goal 3). R6's "load as tickets with 0 minutes" is superseded for utility rows. The home of a plant event is named in the
-   re-plan from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why none fits.
-3. **R1 drops real rows.** 80 rows in the 2023 workbooks are dated 2022; 5 are also in the 2022 workbooks; 67 fall
-   in October to December, mostly on sheets first seen in 2023 (`VC-27`, `VC-28`, `VC-29`, `VC-22`, `TC-19`). Ruling:
-   a row loads under its own date unless that year's workbook already holds it (goal 2).
-4. **R14 is superseded.** Every workbook has a `Code Abrivation` sheet with the real meanings (N12 in
-   `docs/plan/NEEDS.md`); the codes are kept (goal 4).
-5. **2022 has a hole:** 139 breakdowns in January, 8 in February, 0 in March, 76 in April. It is missing records,
-   not a quiet plant (goal 6, N17): March 2022 shows no records, and February 2022 is flagged partial (8 rows) until N17
-   answers.
-6. **Nothing is lost by dropping the optional columns.** `SPARES REPLACED`, `ROOT CAUSE`, `CRITICAL SPARES`,
-   `B/D REPORT TIME` and `HANDOVER TIME` exist on a few sheets and are filled on at most 3 dated rows in any year.
-7. **Shift spellings widen:** 2025 writes `1` and `2` (1,024 rows) beside `1ST`/`2ND`, with strays `4` to `7`.
-8. **The big files are bigger than the plan saw:** one sheet in `TC & TMC -Star-2023.xlsx` is 134 MB of XML and two
-   in `VTL-2023.xlsx` are 99 MB each, nearly all empty styled cells. The reader must be proven on these files.
-9. **The engine must read many years first** (ticket 76): §Verification point 4 says a multi-year window "includes"
-   the old years, but 9 places in the engine assume one year (the verified list is in the ledger's 19 Nov correction;
-   3 more are one year by design).
+### What the 19 workbooks hold (measured 19 Nov, counts only)
 
-Ticket 69 (M4b; the row and detail section are already in `docs/plan/MILESTONES.md` — this plan does not edit it).
-Nimish confirmed the historic data is the whole legacy warehouse, not only the 2026 log. The files are in this
-workspace at `.agents/data/legacy/` (extracted, real names, never committed): `y2022/` (HMC, TC & TMC, VMC, VTL),
-`y2024/` and `y2025/` (the same five families plus GRD). **Only 2022, 2024 and 2025 exist here; no 2020, 2021 or
-2023 file was found.** The 2026 log is ticket 37c (`docs/slices/37c-breakdown-load.md`) and is the precedent this
-plan follows everywhere: the generator, the `argus.synthetic-bhavin/v1` contract, the one importer, the shift
-placement, the alias config and the reconcile rule.
+A throwaway reader (Python `openpyxl`, read-only) on all four years; the converter's own counts are the truth and
+its real-file smoke asserts the `rows with a date` line against this table (a second, independent reader).
 
-Nothing here changes the schema, the synthetic contract or any screen. The ticket is one converter that turns the
-14 workbooks into redacted synthetic exports, and one verified load of those exports through the existing
-`pnpm import:bhavin` path.
+| Fact (machine sheets only)                                                | 2022     | 2023      | 2024       | 2025      |
+| ------------------------------------------------------------------------- | -------- | --------- | ---------- | --------- |
+| workbooks / machine sheets                                                | 4/50     | 5/68      | 5/73       | 5/86      |
+| rows with a date                                                          | 1,098    | 3,078     | 2,327      | 1,329     |
+| of those, dated in the workbook's own year                                | 1,091    | 2,994     | 2,322      | 1,322     |
+| dated in another workbook year (2022–2025)                                | 2        | 83        | 5          | 5         |
+| of those, already in that year's workbook                                 | 0        | 5         | 5          | 5         |
+| dated in a year with no workbook (2002, 2020–21, 2026)                    | 5        | 1         | 0          | 2         |
+| utility rows (code `UTI`/`UTY`)                                           | 85       | 1,821     | 980        | 130       |
+| utility rows with hours only in the UTI column                            | 0        | 93        | 277        | 19        |
+| days with a utility row (event-days)                                      | 38       | 183       | 139        | 40        |
+| most utility rows on one day                                              | 13       | 51        | 48         | 19        |
+| utility machine-hours (UTI column; 2022 has none)                         | 41¹      | 1,573     | 746        | 110       |
+| breakdowns with downtime (not PM, not utility)                            | 941      | 942       | 861        | 996       |
+| their downtime hours                                                      | 2,443    | 1,743     | 1,516      | 2,011     |
+| PM rows / blank code / blank minutes                                      | 53/35/19 | 65/345/38 | 27/452/379 | 156/27/15 |
+| exact repeat rows inside one year (same sheet, day, shift, minutes, text) | 5        | 10        | 15         | 7         |
 
-## What the sheets actually hold (measured, not assumed)
+¹ 2022 has no UTI column; its 85 utility rows carry minutes in the downtime column (41 h).
 
-I read every sheet with the workspace python (`openpyxl`, read-only). Worst workbook: `VTL-2025.xlsx` reports a
-dimension of 1,039,909 rows; the repo's own reader (`tools/answer-key/xlsx.ts`) reads only real `<row>` elements, so
-the converter is unaffected.
-
-| Fact                                              | 2022    | 2024      | 2025      | Total     |
-| ------------------------------------------------- | ------- | --------- | --------- | --------- |
-| workbooks                                         | 4       | 5         | 5         | 14        |
-| machine sheets with rows                          | 50      | 72        | 86        | 208       |
-| distinct plant machines                           | 44      | 66        | 80        | —         |
-| rows with an SR.NO                                | 1,335   | 3,131     | 2,130     | 6,596     |
-| rows with a usable DATE                           | 1,090   | 2,327     | 1,328     | 4,745     |
-| **rows loaded as tickets**                        | **974** | **2,296** | **1,296** | **4,566** |
-| PM rows inside the load                           | 46      | 183       | 171       | 400       |
-| UTI / accident rows inside the load               | 61      | 1,261     | 149       | 1,471     |
-| breakdown rows inside the load                    | 867     | 852       | 976       | 2,695     |
-| rows dropped: no usable DATE (template rows)      | 245     | 804       | 802       | 1,851     |
-| rows dropped: out of the workbook's year          | 8       | 5         | 7         | 20        |
-| rows dropped: machine code not in the plant       | 108     | 26        | 25        | 159       |
-| blank problem text (loaded with the 37c fallback) | 7       | 49        | 28        | 84        |
-| blank TOTAL DOWN TIME (loaded as 0 minutes)       | 17      | 378       | 14        | 409       |
-
-The load arithmetic, per year: `rows with a date − out-of-year − unknown machine = loaded`.
-2022: 1,090 − 8 − 108 = **974**. 2024: 2,327 − 5 − 26 = **2,296**. 2025: 1,328 − 7 − 25 = **1,296**.
-Total: 4,566 = 2,695 breakdown + 400 PM + 1,471 UTI. Per family:
-
-| Year | HMC | TC & TMC | VMC   | VTL | GRD | Total |
-| ---- | --- | -------- | ----- | --- | --- | ----- |
-| 2022 | 40  | 345      | 491   | 98  | —   | 974   |
-| 2024 | 59  | 803      | 1,187 | 207 | 40  | 2,296 |
-| 2025 | 45  | 424      | 710   | 85  | 32  | 1,296 |
-
-**What is unreconciled, named.** 159 rows name a machine the plant no longer holds: retired `TC-2` (5), `VC-2`
-(31), `VC-3` (7), `VC-5` (60) and the `Star` sheet (5) in 2022; `Star-01` (23 + 11) and `Star-02` (3 + 14) in
-2024/2025. The 20 out-of-year rows are 10 stale copies of the 2022 `TC-2` sheet sitting inside the 2024 and 2025
-workbooks, plus 10 strays dated 2002 (1), 2020 (2), 2021 (2), 2023 (2), 2026 (2) — none of those years exists as a
-workbook. Two date cells are unreadable (a literal `DATE` and `3012.2022` in `VC-5` 2022) and are counted as no
-date. `TC-24`/`TC-25` (2022) and the VMC `1` sheets are empty; `VC-15` and `VTL-04` (2025) are sparsely
-filled but real (their header rows carry newlines, `SR.\nNO.` — the reader must flatten before matching).
+- **Shift spellings:** 2022 `1ST`, `2ND`, `3RD`, `3ND`, `2D`, `1STG`, `A`, blank; 2023 `1ST`, `2ND`, `3RD`; 2024
+  `1ST`, `2ND`, `1`, `2`, `1TS`, `3RD`, `4TH`–`8TH`; 2025 `1`, `2`, `1ST`, `2ND`, `3`, `3RD`, `1 & 2`, `4`–`7`.
+- **2022's hole:** dated rows by month run 151, 14, 8, 88 for January to April (all kinds; breakdowns 139, 8, 0, 76).
+- **Codes outside the plant's 19, by legend** (N12): `TR`, `T`, `FS`, `MS`, `NI`, `PP`, `CP`, `PAR`, `PC`, `HM`,
+  `UTI`/`UTY`, plus slash composites (`E/M`, `M/E`, `M/M`, `M/S`, `P/M`) and singletons (`MPG`, `MAG`, `TL`, `FNC`,
+  `MIX`, `NIS`, `S`, `A`, `B`).
+- **Huge styled sheets:** 1,049,113 row elements in the 2022 set, 2,094,792 in 2023 and 4,178,046 in 2024, almost
+  all empty styled cells; one 2023 sheet is 134 MB of XML. `VTL-2024.xlsx` is 38 MB zipped.
+- **Every year fits one import file.** With utility rows folded into events, each year is about 1,050–1,200
+  tickets plus 38–183 events, under the importer's 2,000-ticket file cap (`IMPORT_LIMITS.tickets`). So: **one file,
+  one import batch and one undo per workbook year**; #406's four-file split (old R16) is gone.
 
 ## Rulings (frozen; each with its cost if wrong)
 
-### Source set and rows
+Kept from #406: R2, R3, R4, R5, R7–R13, R15, R17–R19, some amended (marked). Superseded: R1 by R1′, R6 by R6′,
+R14 by R14′, R16 by R16′.
 
-**R1 — the source set is the 14 workbooks, and a row's year is the workbook's year, not the sheet title and not the
-row's date.** `TC-2`'s title says “2022” in all three workbooks and its five rows are 2022 rows in all three; the
-2024 and 2025 copies are stale. A row whose date year differs from its workbook's year is `out_of_year` and is not
-loaded. Cost if wrong: the two 2023-dated rows would be missed; adding the 2023 workbook later loads them with no
-duplicate risk (R11's identity is per source row).
+**R1′ — a row's date decides its year; the workbook decides only its batch.** A row dated in another workbook year
+(2022–2025) loads under its own date unless that year's workbook holds the same row (same folded machine, date,
+shift, minutes and flattened problem text): then it is `duplicate` and not loaded. A row dated in a year with no
+workbook (2002, 2020, 2021; and 2026, whose history is 37c's log) is `stray_year`, not loaded, and listed for
+Bhavin. The ticket rides in its workbook's file and batch, so a year's batch never depends on another year's file.
+Cost if wrong: about 75 late-2022 rows sit in the 2023 batch; undoing 2023 removes them too (stated in the report).
 
-**R2 — machine sheets are discovered by their header, not by their name.** A machine sheet is a sheet whose rows
-1–10 contain a header row with `SR.NO` and `PROBLEM` after flattening every non-alphanumeric character (the raw
-header cells are `SR.\nNO.`, `OBSERVED \nBY`, `TOTAL \nDOWN TIME\n`, `TOTAL DOWN TIME ( In Min. )`). Summary sheets
-are excluded by name (`MTTR`, `MTBF`, `Analysis`, `Abrivation`, `Sheet1..3`); the machine code is the trimmed sheet
-name after R3. Cost if wrong: a sheet whose header sits below row 10 or is worded differently silently contributes
-nothing — the converter's report prints every sheet it read with its row count, so the gap is visible.
+**R2 — machine sheets are found by their header, not their name.** Rows 1–10 hold a header with `SR.NO` and
+`PROBLEM` after flattening every non-alphanumeric character (`SR.\nNO.`, `TOTAL \nDOWN TIME\n`); summary sheets are
+excluded by name (`MTTR`, `MTBF`, `Analysis`, `Abrivation`, `Sheet1..3`). The report prints every sheet read with
+its row count. Cost if wrong: a sheet with a lower header contributes nothing, visibly.
 
-**R3 — machine codes are the sheet names, folded by one spelling table, and validated against the plant's active
-machines.** Fold: leading zeros (`GRD-01`→`GRD-1`, `VTL-01`→`VTL-1`), `VL-4`→`VTL-4`, `CAM`→`CAM-01`,
-`TMC-4_CY52`→`TMC-4`, `TMC-5_H-TURN`→`TMC-5`. Validation uses the same list the importer resolves
-(`plant.machinesForEngine`, status `active`); an unknown code is **excluded and counted per code**, never remapped
-by guess. `Star`/`Star-01`/`Star-02` are not mapped to `S-1`/`S-2`: that is a plant question, not a spelling.
-Cost if wrong: the 159 rows above stay out until the retired machines exist (as active rows the importer can
-resolve) or Nimish confirms the Star mapping; a re-run then loads them and adds nothing twice.
+**R3 — machine codes are sheet names, folded by one spelling table, validated against the plant.** Fold: leading
+zeros (`GRD-01`→`GRD-1`), `VL-4`→`VTL-4`, `CAM`→`CAM-01`, `TMC-4_CY52`→`TMC-4`, `TMC-5_H-TURN`→`TMC-5`. An unknown
+code is excluded and counted per code, never remapped by guess (switches S1 and S2 decide the Star sheets and the
+retired machines). Cost if wrong: excluded rows load on a later run, with nothing added twice (R18).
 
-**R4 — the columns mapped, by flattened header text.** `DATE` (located as the `SR.NO` column + 1, because several
-2022 sheets have a stray date instead of the word `DATE` in that header cell), `SHIFT`, `PROBLEM DESCRIPTION`,
-`OBSERVED BY`, `CORRECTIVE ACTION`, `DONE BY`, `TOTAL DOWN TIME (In Min.)`, `MAINT CODE`, `ELECT/MECH`, PM hours,
-UTI hours. **Not the source of anything:** the `Month` column (it holds dates and wrong months — `2025-01-22` is
-labelled `Jun`), the `TOTAL DOWN TIME (In Hr.)` column (derived), the 2022-only `Time consumed (In Min.)` (a
-different measure, blank in most rows), and the spare/RCA/report-time columns the synthetic contract has no field
-for. Cost if wrong: using `Month` misplaces rows; using `Time consumed` or the hours column changes figures.
+**R4 — columns by flattened header text.** `DATE` is the `SR.NO` column + 1 (some 2022 headers hold a stray date);
+`SHIFT`, `PROBLEM DESCRIPTION`, `OBSERVED BY`, `CORRECTIVE ACTION`, `DONE BY`, `TOTAL DOWN TIME (In Min.)`, `MAINT
+CODE`, `ELECT/MECH`, PM hours, `UTI` hours. Never a source: `Month`, `TOTAL DOWN TIME (In Hr.)`, 2022's `Time
+consumed`, and the spare/RCA/report-time columns (filled on at most 3 dated rows a year). Cost if wrong: misplaced
+rows or changed figures.
 
-**R5 — dates are parsed three ways and classified once.** Excel stores dates as serial numbers and the repo reader
-returns numbers (it ignores styles), so `44562` must become `2022-01-01` (epoch 1899-12-30); text is accepted as
-`DD.MM.YYYY` / `DD-MM-YYYY` / `DD/MM/YYYY`; a blank DATE is a template row (1,851). An unreadable cell is `bad_date`
-(2). Cost if wrong: serial numbers read as 1970 break the year check and every placement.
+**R5 — dates three ways.** An Excel serial (`44562` → `2022-01-01`, epoch 1899-12-30; the repo reader returns
+numbers), text `DD.MM.YYYY` / `DD-MM-YYYY` / `DD/MM/YYYY`, or blank (a template row, not counted as read). Anything
+else is `bad_date` and counted. Cost if wrong: serials read as 1970 break every placement.
 
-**R6 — PM, UTI and blank minutes are loaded, not skipped.** PM rows (maint code `PM`, or a numeric PM-hours cell)
-load as past-breakdown tickets with `maintCode: 'PM'`, exactly as 37c loaded the 2026 log's 64 PM rows; UTI/accident
-rows (`UTI`, `UTY`, `ACCIDENT` columns) load with their code. A blank `TOTAL DOWN TIME (In Min.)` is **0**, not a
-skip: 378 of the 2024 rows, 14 of the 2025 rows and 17 of the 2022 rows record a utility event with hours only in the UTI/PM column, and
-the plant's own summary counts them as zero-downtime events. A blank problem loads with the 37c fallback text
-(`Breakdown recorded without a problem description`), 84 rows. Cost if wrong: excluding PM removes 400 rows from
-the Breakdown Log (and the plant's PM hours with them); treating blank minutes as skips loses 409 recorded events (and 84 blank problem texts).
+**R6′ — what a row becomes.** A **utility row** is one whose code (or `ELECT/MECH`) is `UTI`/`UTY`, or whose UTI
+column holds hours while its downtime minutes are blank or 0. Utility rows of one plant date become **one plant
+event** (R20) and add 0 to every breakdown figure. A row with breakdown minutes and also UTI hours is a breakdown,
+counted as `uti_hours_on_breakdown`. **PM rows** (code `PM`, or a PM-hours cell) load as past breakdowns with
+`maintCode: 'PM'`, as 37c did. A blank minute cell is 0; a blank problem gets 37c's fallback text. Exact repeat rows
+inside a year load (they are separate workbook rows) and are listed as `possible_repeat`. Cost if wrong: a
+utility-hours row with a blank code counted as an event instead of a breakdown moves at most 277 rows (2024).
 
-**R7 — the summary sheets count a breakdown only when it has downtime.** Verified on seven machine-months across
-three families: the MTTR/MTBF summary's “Total No Break-Downs” is the count of non-PM rows with **minutes > 0**, and
-“Total Down Time” is their minutes. This is the rule the verification in 69b uses; it is not the load filter (R6).
-Cost if wrong: the reconciliation check would demand a different count and report false mismatches.
+**R7 — the summary sheets count a breakdown only when it has downtime** (non-PM rows with minutes > 0; "Total Down
+Time" is their minutes; 500 h a month available). This is 69c's reconciliation rule, not a load filter.
 
-### Identity — no real name ever leaves memory
+**R8 — every person is a code before the export exists.** The converter reads the tenant's active people
+(`identity.activePeople`) and replaces a name with that person's `personCode` on an exact normalised match, else a
+stable `LG-` + 8 hex of `sha256(normalised name)` (the same in every year); role spellings drop, team spellings fold
+to `Maint. Team`, a typo mints its own code and is listed as `possible_duplicate_person`. Cost if wrong: a
+placeholder person to merge later; nothing leaks.
 
-**R8 — every person is a token before the export exists.** The converter runs server-side, reads the tenant's
-active people (`identity.activePeople`, case/space/punctuation-normalised name), and replaces each name with: the
-person's `personCode` (`P-` + the first 8 hex of the person id, `identity.personCode`) when the name matches one
-active person exactly, else a stable `LG-` + 8 hex of `sha256(normalised name)` so the same unknown person carries
-the same code in 2022, 2024 and 2025. The 37 distinct DONE BY tokens are 14 role/team spellings (`operator`,
-`maint. team`, `maint.team`, `main team`, …) and 23 individual names, eight of them variant spellings of a name
-(dropped, transposed or repeated letters, a nickname); a role is dropped (as the importer's own `personName` does), a team spelling folds to `Maint. Team`,
-and a typo mints its own code rather than a guess — the report lists it as a `possible_duplicate_person`. Raw names
-exist only in the converter's memory. Cost if wrong: an unmatched name becomes a placeholder person and can be
-renamed or merged later; a typo mints a second placeholder (23 people instead of 16); nothing leaks.
+**R9 — an alias target may be a person code** (`^P-[0-9a-f]{8}$` resolves against `personCode` in
+`imports/references.ts`). Cost if wrong: matched history loses its person link.
 
-**R9 — the importer learns one thing: an alias target may be a person code.** `imports/references.ts`
-`loadPeople` resolves a target matching `^P-[0-9a-f]{8}$` against the active people's `personCode`, and keeps its
-existing “Unknown or inactive person alias” error when no one matches. Without this, a matched person would become
-a placeholder named `P-…`. Cost if wrong: about ten lines and one test; matched history loses its person link.
+**R10 — the redaction proof is the converter's.** Names in problem and corrective-action text become `[person]`,
+phone-shaped runs `[phone]`; the converter refuses to write when the canonical JSON still holds a workbook name
+token or a tenant `identity.redactionTerms` entry. `pii:scan` cannot see a pre-2026 name, so it is not the proof.
+Cost if wrong: a name in a column never parsed could reach a file through a later change (limit stated).
 
-**R10 — the redaction proof is the converter's, and `pii:scan` cannot be it.** The converter replaces every name
-occurrence in `problem` and `corrective action` with `[person]` (longest name first, word boundaries, the same
-`[person]` convention D21 fixes) and every phone-shaped run with `[phone]`, then refuses to write when the canonical
-JSON still contains any workbook name token or any of the tenant's `identity.redactionTerms`. The proof is a unit
-test on a synthetic grid whose names are sentinels. **The `pii:scan` consequence, recorded:** its deny list is built
-at run time from the 2026 discovery pack (`tools/pii-sources.ts`), so it cannot see a 2020–2025 name and will stay
-green whether or not the legacy export is clean; the legacy workbooks stay out of git (`.agents/data/` ignored), and
-the import stores codes only, so `import_row.payload` carries no name. Cost if wrong: a name in a workbook column we
-never parse (e.g. `SPARES REPLACED`) could reach a file through a future change — the converter's check only covers
-the columns it reads, and this limit is stated rather than hidden.
+**R11 (amended) — refs in a band per workbook year, serials over every dated row.** `BD-<d><nnnn>` with `d` the
+workbook year's last digit (2022 `BD-2…`, 2023 `BD-3…`, 2024 `BD-4…`, 2025 `BD-5…`) and `nnnn` the row's serial in
+(sheet order, Excel row) over **all** dated rows, excluded ones included, so flipping a switch never renumbers a
+loaded row. All bands sit below the BD counter that 37c raised to `BD-91287`, so the BD counter does not move.
+Plant events take `WR-<d>0001…` in event-date order; **the live WR counter rises to about `WR-50040`** (the
+importer raises counters with `GREATEST`), the same consequence 37c accepted for BD. Cost if wrong: new work
+requests number from about 50040 instead of continuing low; nothing breaks.
 
-### References, placement, figures
+**R12 — `legacyId`** is `lg-<year>-<family>-<machine>-<excelRow>` for a ticket and `lg-<year>-uti-<date>` for a
+plant event; it is the import's `source_ref`. Cost if wrong: an identity clash loads nothing, loudly.
 
-**R11 — refs sit below the live counter, in a distinct band per year.** `BD-<d><nnnn>` with `d` the year's last
-digit and `nnnn` a 4-digit serial in (sheet order, then Excel row): 2022 `BD-20001…BD-20974`, 2024
-`BD-40001…BD-42296`, 2025 `BD-50001…BD-51296`. Five digits, disjoint from the live `BD-0001…BD-0151` and the 2026
-`BD-90001…BD-91357`; every band is below the counter's current `BD-91287`, and `raiseRefCounter` is `GREATEST`, so
-**the live counter does not move** (unlike 37c's jump to `BD-91287`). Cost if wrong: a mis-set band either collides
-with a live ref (import refuses by ref) or jumps the live counter by ~150k; the first is loud, the second is the
-37c consequence again.
+**R13 — placement is 37c's.** Close = the row's date at its shift's start + 120 min (plant zone), `reportedAt =
+close − downMin`, closed by report, figures as `computeTicketFigures` would store them. Shifts: `1`, `1ST`, `1STG`,
+`1TS` → 1; `2`, `2ND`, `2D` → 2; `3`, `3RD`, `3ND` → 2 (37c's fold); anything else (blank, `A`, `4`–`8`, `4TH`–`8TH`,
+`1 & 2`) → 1 and counted as `stray_shift`. Cost if wrong: only per-shift splits move.
 
-**R12 — `legacyId` is `lg-<year>-<family>-<machine>-<excelRow>`** (e.g. `lg-2022-vmc-vc-13-37`); it is the
-converter's stable identity, the export's `legacyId` and the import's `source_ref`. Serial and `legacyId` are
-assigned over a whole year before any file split, so splitting 2024 in two does not renumber. Cost if wrong: a
-duplicate `legacyId` makes the importer report `in_file_identity_conflict` and load nothing; a changed id makes a
-re-run `changed_payload` instead of a skip.
+**R14′ — codes are kept as the legends define them.** Every code loads verbatim (blank stays `null`); codes outside
+the plant's active 19 resolve against **switched-off** `maint_code` entries (ticket 47's rule: off for new tickets,
+still shown on old reports). 69c's runner adds a missing legend code as a switched-off entry (audited, idempotent)
+before a load. Nothing is folded into `MIS`. Cost if wrong: a later fold (switch S5) is one undo and one reload of
+the affected years.
 
-**R13 — ticket placement is 37c's, unchanged.** `close = the row's date at the shift's start + 120 min` in the
-plant zone (`+05:30`), `reportedAt = close − downMin`, `state.closedAt = close`, `closeKind: 'report'`,
-`report.date = the row's date`, `report.shiftCode = the mapped shift`, `submittedAt = close`; events `down` then
-`close` with payload `{kind:'report'}`; `storedFigures` = the figures `computeTicketFigures` would produce
-(`downtimeMin = downMin`, `responseMin 0`, `repairMin = downMin`), so reconcile raises no override. Long downtimes
-start outside a window and end inside it — the only placement `validateLocal` accepts. Cost if wrong: the import
-rejects every row (`report_date_mismatch` / out-of-window) or the figures drift.
+**R15 — `breakdownCategory`** is `E` or `M` when `ELECT/MECH` is exactly one of those, else `null`.
 
-**R14 — the maintenance code is mapped by one synthetic table, labelled as such.** Codes already in the plant's 19
-stay verbatim (`E`, `M`, `ATC`, `SP`, `RT`, `PM`, `AX`, `LB`, `CON`, `MIS`, …); `UTI`/`UTY` → **`NO DT`** (the plant's
-own no-downtime code — the only mapping that is exact rather than invented); the slash composites (`E/M`, `M/E`,
-`M/M`, `M/S`, `P/M`) and the legacy-only codes (`NI` 210, `FS` 63, `PP` 8, `MS` 86, `TR` 112, `T` 23, `TL`, `CP`,
-`FNC`, `MIX`, `PAR`, `NIS`, `MPG`, `S`) → **`MIS`**; a blank stays `null`. This is the same synthetic-map stance
-37c took for N12/Q9, and the report prints the count per source code. Cost if wrong: the code grouping on A2/A3
-changes for the 1,859 history rows whose code is not in the plant's list; correcting it needs an `import:undo` of the affected batch and a reload,
-because a re-import of changed rows is refused by design (`changed_payload`).
+**R16′ — one file per workbook year**, each ≤ 2,000 tickets (asserted by the converter before writing).
 
-**R15 — `breakdownCategory` is `E` or `M` when the `ELECT/MECH` cell is one of those (case-insensitive), else
-`null`** — the composites (`E/M`, `M/E`, `PM`, `ATC`, …) are not guessed. 3,757 rows carry a single letter.
-Cost if wrong: one column on A4/A5 for the legacy rows.
+**R17 (amended) — the converter is read-only and the load is the existing synthetic path.** `pnpm import:legacy`
+reads people, machines and codes and writes JSON; `pnpm import:bhavin <file> --tenant <slug>` loads it (one
+`import_batch`, one `import_row` per ticket or event). No second loader and no second undo (D21).
 
-### The load
+**R18 — idempotency is the importer's.** The same file again is `imported 0, skipped N`; a changed row is refused
+as `changed_payload`. A switch that adds rows produces a file whose old rows are byte-identical (R11), so the
+re-import adds only the new rows, in a new batch.
 
-**R16 — four files, because the contract caps a file at 2,000 tickets.** `IMPORT_LIMITS.tickets = 2_000`
-(`modules/imports/schema.ts:348`), and 2024 is 2,296 rows. The converter writes `legacy-2022.json` (974),
-`legacy-2024-vmc.json` (1,187), `legacy-2024-other.json` (1,109: TC & TMC 803 + VTL 207 + HMC 59 + GRD 40) and
-`legacy-2025.json` (1,296); refs and `legacyId`s are the year's, so a re-split never renumbers. One year as one
-file would be refused at parse time. Cost if wrong: four batches and four undos instead of one; the arithmetic is
-printed by the converter so a wrong split is caught before the load.
+**R19 — tenant, backup, rollback.** One tenant per run; a full dump (`tools/backup-dump`) before any staging or
+production load; rollback is `pnpm import:undo <batchId>` per year (tickets, reports, events, import rows together)
+or the dump. Production is a separate step under `--production-confirm` and Nimish's go.
 
-**R17 — the loading mechanism is the existing synthetic path, unchanged.** `pnpm import:bhavin <file> --tenant
-<slug>`, which parses `argus.synthetic-bhavin/v1`, loads through the past-breakdown path, records one `import_batch`
-and one `import_row` per ticket with `source_ref = legacyId`, and raises the ref counter with `GREATEST`. The
-converter is a separate, **read-only** CLI (`pnpm import:legacy`) that opens the tenant with `withTenant`, reads
-people and machines, and writes JSON; it never writes to the database. Cost if wrong: a second loader would need a
-second undo path and a second contract (D21 rejected exactly that).
+**R20 — the plant event's home: a closed general ticket with one history line per machine (no new table).** One
+plant event per plant date with a utility row: `kind: 'general'`, no machine, `workType: 'Utility failure'`,
+`location: 'Plant'`, channel `backfill`, closed `done`, the most common redacted problem text of its rows; its
+reported and closed times span the day's longest line. Each utility row is one `ticket_event` of type
+`utility_loss`, payload `{ machineId, minutes, code }` (minutes = UTI hours × 60, else the row's downtime minutes).
+Why this fits: D17 names "a `ticket_event` type" as an allowed home; `ticket_event.type` has no CHECK
+(`0001_schema_v1.sql`), `ticket.kind` already allows `general` with no machine, and `backfill` is an allowed channel,
+so **no migration and no D17 amendment**. A general ticket has no breakdown report and the engine counts breakdowns
+from reports (`reportsForEngine`) and kind `stopped`, so the event adds 0 to every breakdown figure. The import
+undo already removes a batch's tickets with their history. Ticket 91 sums `utility_loss` minutes by month. Rejected:
+a new `plant_event` table (a 41st table, a migration, a second undo path); one ticket per machine (Nimish's ruling);
+`setting` rows (not undoable with the batch). Cost if wrong: a later table would be one migration plus a copy of
+about 400 events.
 
-**R18 — idempotency is the importer's, and it is exact for the same file.** A second run of the same JSON is
-`imported 0, skipped N` with unchanged ticket and report counts, because identity is `legacyId` + the hash of the
-row and its alias config (`imports/identity.ts` `existingIdentity`). The alias config is part of that hash, so a
-**regenerated** file after a people change is refused as `changed_payload` rather than silently re-created; the
-emitted file is the batch's evidence and is reused for a re-run. Cost if wrong: an operator who regenerates after
-adding a person sees a loud failure and must undo the batch — no duplicate tickets, no data loss.
+## Switches (each open answer from Bhavin; the default loads now)
 
-**R19 — tenant, backup, rollback, and where this ticket stops.** One tenant: the slug passed to both commands
-(staging: the Cosmos tenant). No schema change and no irreversible step in this ticket. Before any production load:
-a full database dump (`tools/backup-dump`) recorded in the deploy log; rollback is `pnpm import:undo <batchId>` per
-batch (tickets, reports, events, import rows and provenance go together) or the dump. Staging is loaded and checked
-first; production is a separate operator step under the existing `--production-confirm` guard and Nimish's go.
-Cost if wrong: an undo removes exactly the batch's rows; the dump covers anything else.
+Every switch is a converter flag printed at the top of its report. Turning one later is a re-run of the converter
+and an import of the same year's file: unchanged rows skip, new rows load (R11, R18).
 
-## Verification (69b's acceptance)
+| #   | Question (owner)                                            | Default                                                                                         | If Bhavin answers otherwise                                                                                            |
+| --- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| S1  | N16: are `Star`, `Star-01`, `Star-02` today's `S-1`, `S-2`? | `--star off`: their rows excluded, counted per sheet                                            | `--star Star-01=S-1,Star-02=S-2` (and `Star` if he names it): re-run, re-import; their rows load in a new batch        |
+| S2  | N16: keep retired `TC-2`, `VC-2`, `VC-3`, `VC-5`?           | `--retired drop`: excluded, counted per code                                                    | `--retired keep`: the admin adds the four as `retired` machines; a past breakdown may name any status (69a); re-import |
+| S3  | N16: which machines are "not counted in production data"?   | Nothing in the load: all history loads                                                          | Ticket 77a's setting, applied at figure time; no reload                                                                |
+| S4  | N17: are Feb–Mar 2022 missing records?                      | `--gap 2022-02,2022-03`: those rows held out as `gap_month` (22); both months show "no records" | `--gap none` if the plant was quiet: the 22 rows load in a new 2022 batch; missing files, if sent, are a new workbook  |
+| S5  | N12: `MEC` → `M`; `ELE`/`HYD`/`ROT` off?                    | `--fold none`: every code kept as written (R14′)                                                | `--fold MEC=M`: undo and re-import the affected years (refused otherwise as `changed_payload`); minutes                |
 
-1. **Counts.** Each batch reports `imported` equal to the table above and `status: 'done'`; the four files sum to
-   4,566 closed `backfill` tickets, 2022 974, 2024 2,296 (split 1,187 + 1,109), 2025 1,296; every ticket has one
-   report and one `import_row.source_ref`.
-2. **The summary sheets, recomputed from the loaded rows.** For each machine-month on a monthly summary sheet,
-   count non-PM tickets with `downMin > 0` and sum their minutes, then compare with the sheet's own
-   “Total No Break-Downs”, “Total Down Time”, “MTTR”, “MTBF” and “Machine Availability” (available time is the
-   sheet's own 500 h/month). Seven machine-months agree exactly and are asserted: HMC-2 Jan 2025 (2 / 0.58 h),
-   HMC-2 Feb 2025 (1 / 0.5 h), VTL-1 Jan 2025 (3 / 2.67 h → MTTR 0.89 h, MTBF 166.67 h, availability 0.99466),
-   VTL-3 Jan 2025 (2 / 5.5 h), VTL-4 Feb 2025 (1 / 7 h), VTL-5 Feb 2025 (1 / 2.5 h), GRD-05 Feb 2025 (2 / 3.67 h).
-   Every machine-month that disagrees is printed with both numbers (HMC-2 Jan 2022 is one: the sheet says 4
-   breakdowns and 12.6 h, the detail holds 3 rows and 755 min = 12.58 h — the workbook's own gap, not ours).
-3. **The desk and the machine page.** `GET /api/v1/tickets?from=<legacy day>&to=<legacy day>` returns the imported
-   tickets closed, channel `backfill`; the machine page's history drill for a 2022 machine returns its rows; the
-   Breakdown Log window for 2022 lists them.
-4. **Analytics.** The answer-key tests are untouched: the 2026 keys are computed from
-   `fixtures/answer-key/input.json`, not from the database, so every existing whole-key assertion stays green. On
-   staging, the plant's own figures gain the older years: after the load and the next `POST /api/v1/analytics/run`
-   (or the nightly run), any window that spans 2022/2024/2025 includes them — the Dashboard's recent window does
-   not, the Breakdown Log and register drills do, and the 2026 log's own figures do not change because its tickets and
-   refs are untouched. `kpi_snapshot` is not rewritten by the load; the run is a deliberate step.
-5. **Redaction.** On the generated files: no workbook name token, no tenant redaction term, no phone shape. In the
-   database: no ticket, report or `import_row.payload` free text contains a sentinel name from the test fixture.
-6. **Tests.** Converter unit tests on synthetic sheet grids (no xlsx) with sentinel names; one real-sheet smoke
-   behind `LEGACY_DATA_DIR` that CI skips; the load test against the seeded Postgres harness; the imports and
-   erasure suites stay green.
+## Frozen interface (69a and 69b build against it in parallel)
 
-## Packet 69a — the converter (one PR, one writer; two ordered commits)
+The export stays `argus.synthetic-bhavin/v1` (additive). A plant event is a ticket with `entryType:
+'pastUtility'`, `kind: 'general'`, a `WR-` ref, `status: 'closed'`, `machineCode: null`, `location: 'Plant'`,
+`workType: 'Utility failure'`, `reports: []`, `crew: []`, `segments: []`, and events `[raise, utility_loss × n,
+close {kind:'done'}]`; `utility_loss` is `{ type, at, by: null, payload: { machineCode, minutes, code } }` with
+`minutes` an integer ≥ 0 and `code` nullable. The importer resolves `machineCode` through the export's machine
+aliases and stores `machineId`. A past breakdown's `maintCode` may resolve to a switched-off entry; its machine may
+have any status; an alias target may be a `P-xxxxxxxx` person code (R9).
 
-**Files.** `apps/server/src/seed/legacy-sheets.ts` (grid → `LegacyRow[]`: header detection, column map, serial and
-text dates, shift map, machine fold, class per row; ~220 lines), `apps/server/src/seed/legacy-export.ts` (rows +
-people + machines → `{ export, report }`: refs, `legacyId`, ticket/report/figures, maint-code map, tokenisation,
-free-text redaction, deterministic order, the per-class/report counts; ~280 lines),
-`apps/server/src/seed/legacy-sheets.test.ts`, `apps/server/src/seed/legacy-export.test.ts`,
-`apps/server/src/modules/imports/references.ts` (R9, ~10 lines) + one case in `apps/server/test/import-identity.test.ts`,
-`tools/import-legacy.ts` (CLI: `--tenant`, `--data`, `--out`, `--year`; reads with `tools/answer-key/xlsx.ts`,
-refuses an `--out` inside the repo, prints the report; ~150 lines), `tools/import-legacy.test.ts` (the env-gated real
-smoke), `package.json` (`import:legacy`), `.gitignore` (`.agents/data/`), `changes/69-legacy-history.md`.
+## Packets (four PRs)
 
-**Acceptance (Given/When/Then).**
+| Packet | What                                                                          | Lane / blocked by                          | Size (changed lines)               |
+| ------ | ----------------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------- |
+| 69a    | Importer accepts plant events and old codes; harness runs on a local Postgres | backend; none                              | ~150 src + ~250 test               |
+| 69b    | The converter and its report                                                  | backend; none (parallel with 69a)          | ~650 src + ~450 test (`Large PR:`) |
+| 69c    | Local load of all four years, engine over every year, summary-sheet check     | backend; 69a, 69b                          | ~300 src + ~300 test               |
+| 69d    | Staging load job (described below, built later)                               | frontend lane (infra); 79, Nimish's upload | ~120                               |
 
-- Given the 14 workbooks, when the converter runs, then it writes exactly four files of 974 / 1,187 / 1,109 / 1,296
-  tickets, each ≤ 2,000 and each parsing against `parseSyntheticExport`.
-- Given a workbook name, when the export is written, then no name from the DONE BY / OBSERVED BY / problem /
-  corrective-action columns appears in it (sentinels in the test; the real smoke checks the file in memory).
-- Given the same workbooks twice, when the converter runs twice, then the canonical JSON is byte-identical.
-- Given a machine the plant does not hold, when its sheet is read, then its rows are counted under its code and
-  absent from the export.
-- Given the 2024 year, when the split is written, then the two files' refs are drawn from the same `BD-4` series
-  with no gap and no duplicate.
-- Given a workbook with `SR.\nNO.` / `TOTAL \nDOWN TIME\n` headers and a stray date in the DATE header cell, when
-  it is read, then its rows are read (the 2025 VTL-04/VC-15 case).
+**Order.** 69a ∥ 69b now (disjoint files; they take both backend slots, so 75 and 77a wait for one to merge). 69c
+after both; its local database is the first evidence run for ticket 79 and its summary-sheet check is 79's
+"legacy workbooks" reference (79 imports it, no second copy). 77a needs nothing from 69 (S3) and runs in the next
+free slot. 79 after 75 and 76. 69d after 79 and after Nimish puts the files in the bucket. 90–96 start on 69c's
+local database and are checked again on staging after 69d.
 
-**Red / green.** Red: `pnpm exec vitest run apps/server/src/seed/legacy-sheets.test.ts
-apps/server/src/seed/legacy-export.test.ts` (modules absent). Green: the same plus
-`pnpm run typecheck && pnpm run lint`, and the real smoke
-`LEGACY_DATA_DIR="/Users/nimishshah/All AI/argus/.agents/data/legacy" pnpm exec vitest run tools/import-legacy.test.ts`.
-**Budget note:** the converter is one coherent contract (sheet reading + export shape + identity); it exceeds the
-150-line packet rule like 37c's generator, filed under D31's work-unit rationale and recorded in the PR.
+### 69a — importer accepts plant events and old codes
 
-## Packet 69b — the load and the verification (one PR, one writer)
+**Files.** `apps/server/src/modules/imports/schema.ts` (split first: it is at 387 lines; move the ticket schema to
+`ticket-schema.ts`), `event-schema.ts` (`utility_loss`), `state-events.ts` (the line changes no state),
+`insert.ts` (`pastUtility` → channel `backfill`; machine code → id in the payload), `references.ts` (R9; switched-off
+codes and any-status machines for past rows), `apps/server/src/modules/plant/index.ts` (publish a by-code lookup
+that includes inactive machines and codes), `apps/server/test/harness.ts` (`TEST_PG_URL`: when set, a fresh
+database per `startTestDb` on that server instead of a Testcontainer, dropped on `stop`),
+`apps/server/test/import-utility-event.test.ts` (new), `docs/DATA-MAP.md` (Tickets: one line for R20),
+`changes/69a-plant-events.md`.
 
-**Kind:** verification plus the load proof. After 69a the path exists, so the red is a deliberate mutation — wiring
-`source_ref` to the ticket ref instead of the `legacyId`, or resolving every alias to a placeholder instead of the
-`personCode` — that turns the new load test red; the mutation is the packet's red evidence, restored before commit.
+**Acceptance.**
 
-**Files.** `apps/server/test/legacy-load.test.ts` (new): seeds the Cosmos harness, adds the fixture's legacy people,
-builds a small legacy grid through the converter (2 machines, ~10 rows covering PM, UTI, blank minutes, blank
-problem, a bad shift, an unknown machine, a bad date, a sentinel name), imports it, and asserts the counts, the
-`source_ref` set, the one report per ticket, the desk day, the machine drill, the person link and the no-name rule;
-re-imports the same file and asserts `imported 0, skipped N` with unchanged counts. `changes/69-legacy-history.md`
-(the same fragment, appended). The real smoke's count assertions live in 69a's tool test; 69b adds the seven
-summary-machine-month reconciliations to it (the numbers above are already measured).
+- Given an invented export with one plant event naming 3 machines (90, 45, 0 minutes), when imported, then 1
+  closed general ticket with channel `backfill`, no machine and 3 `utility_loss` lines summing 135 minutes exist,
+  and the plant's breakdown count, downtime and MTTR equal the same import without the event.
+- Given the same file again, then `imported 0, skipped 2`; given `pnpm import:undo` on the batch, then the event
+  ticket and its 3 lines are gone.
+- Given a past breakdown coded `TR` where `TR` is a switched-off entry, then it loads with `TR`; given a code with
+  no entry at all, then the import reports it and loads nothing (unchanged rule).
+- Given a past breakdown on a `retired` machine, then it loads; given an ordinary (live) ticket on it, then it is
+  refused as today. Given an alias target `P-` + a seeded person's 8 hex, then the report links that person.
 
-**Acceptance (Given/When/Then).**
+**Red → green.** Red: `TEST_PG_URL=… pnpm exec vitest run apps/server/test/import-utility-event.test.ts` (unknown
+`entryType`). Green: the same, plus `apps/server/test/import-*.test.ts` and `history-load.test.ts`,
+`pnpm run typecheck && pnpm run lint`. Local Postgres here: `/usr/lib/postgresql/16/bin/initdb -D <scratch>/pg`,
+`pg_ctl -D <scratch>/pg -o '-p 5433' start`; CI keeps Testcontainers.
 
-- Given the four generated files, when each is imported once into the Cosmos tenant, then the counts are
-  974 / 1,187 / 1,109 / 1,296, `status: 'done'`, and every ticket is a closed `pastBreakdown` with `backfill` and
-  one `import_row.source_ref = legacyId`.
-- Given a loaded file, when it is imported again, then nothing is added and the ticket, report and import-row
-  counts do not change.
-- Given a 2022 day, when the desk asks `from`/`to`, then the imported tickets are listed; given a 2022 machine,
-  when the machine history is read, then its rows are there.
-- Given a sentinel name in the fixture, when the load commits, then no ticket, report or import-row text contains
-  it, and the person's history link resolves to the seeded person (a `personCode` alias).
-- Given the seven machine-months, when their MTTR/MTBF is recomputed from the loaded rows, then it equals the
-  summary's cell (VTL-1 Jan 2025: 0.89 / 166.67 / 0.99466).
-- Given the 2026 answer-key tests, when they run after this packet, then they are unchanged and green.
+### 69b — the converter
 
-**Red / green.** Red: the mutation above fails `legacy-load.test.ts` on the `source_ref`/person assertion. Green:
-`pnpm exec vitest run apps/server/test/legacy-load.test.ts apps/server/test/import-*.test.ts` plus the covering
-suite (`pnpm exec vitest run apps/server/test`), `pnpm precheck`, and the env-gated real smoke.
+**Files.** `apps/server/src/seed/legacy-sheets.ts` (grid → rows: header, columns, dates, shifts, machine fold, row
+class; ~230), `legacy-classify.ts` (R1′ cross-year duplicates, utility rows, gap months, switches; ~150),
+`legacy-export.ts` (rows → tickets, plant events, refs, `legacyId`, people codes, redaction, report; ~280), their
+three tests (invented grids, hand-worked numbers), `tools/import-legacy.ts` (CLI: `--tenant`, `--data`, `--out`,
+the five switches; reads all years together; refuses `--out` inside the repo; prints the report; ~140),
+`tools/import-legacy.test.ts` (real smoke behind `LEGACY_DATA_DIR`, skipped in CI), `tools/answer-key/xlsx.ts` (only
+if the smoke shows it: inflate one sheet at a time instead of every entry up front), `package.json`
+(`import:legacy`), `changes/69b-legacy-converter.md`.
+
+**The report, per workbook year** (counts and machine codes only): rows read · moved to own year (in) and (out) ·
+duplicate · stray year · bad date · unknown machine (per code) · gap month · utility rows → events · tickets
+loaded · stray shift · blank code · blank minutes · possible repeat · codes by count. Each row gets one class, in
+the order bad date, stray year, duplicate, gap month, unknown machine, utility, ticket; a moved row is a loaded
+ticket of its workbook's batch, counted again as `moved`. The identity it prints and asserts (goal 1):
+`read = loaded tickets + utility rows + duplicate + stray year + unknown machine + gap month` (bad dates apart).
+
+**Invented fixture traps** (one small grid per trap, names are sentinels like `ZZ-Alpha`): a power cut written on 4
+machines on one day plus a second day with 2 (→ 2 events, 6 lines, 0 tickets); a 2-day repair (2,880 minutes, placed
+to end inside its shift); a text date `03.11.2022` beside serials; a 2023 sheet holding one row already in the 2022
+grid and one that is not (→ 1 duplicate, 1 moved); a `2020` row (stray); a blank code and a blank minute; shifts
+`1`, `2`, `1ST`, `2ND`, `3ND`, `7TH`, blank; two rows dated February 2022 (S4 on); a header at row 4 with
+`SR.\nNO.`; a sheet of 5 real rows followed by 50,000 empty styled rows; a 3-row `Star-01` sheet with S1 off and on
+(the second run keeps every earlier ref).
+
+**Acceptance.**
+
+- Given the fixture, when converted, then the report's numbers equal the hand-worked ones (read 31, loaded tickets
+  18 of which 1 moved, utility rows 6 → 2 events, duplicate 1, stray year 1, unknown machine 3, gap month 2) and the
+  identity holds; the file parses with `parseSyntheticExport`.
+- Given the same input twice, then the canonical JSON is byte-identical; given S1 turned on, then every ref and
+  `legacyId` of the first run is unchanged and only the `Star-01` rows are added.
+- Given sentinel names in DONE BY, OBSERVED BY, problem and corrective action, then none is in the output, and a
+  file that would hold one is refused.
+- Given the real workbooks (`LEGACY_DATA_DIR`), then rows read per year equal 1,098 / 3,078 / 2,327 / 1,329, every
+  file has ≤ 2,000 tickets and the identity holds for every year.
+
+**Red → green.** Red: `pnpm exec vitest run apps/server/src/seed/legacy-*.test.ts` (modules absent). Green: the
+same + `pnpm run typecheck && pnpm run lint` + `LEGACY_DATA_DIR=<scratch> pnpm exec vitest run
+tools/import-legacy.test.ts`. One coherent contract over 400 lines: `Large PR:` under D31's work-unit rationale.
+
+### 69c — local load, every year through the engine, the summary sheets
+
+**Files.** `tools/load-legacy.ts` (for each year in order: add missing legend codes as switched-off entries through
+the plant module's published function, convert, `import:bhavin`, print the batch id and the report; ~120),
+`tools/legacy-check.ts` (reads each workbook's MTTR/MTBF sheets, recomputes count, hours, MTTR, MTBF and
+availability per machine-month from the loaded database, prints equal or the named pair; counts and codes only;
+~150), `tools/legacy-check.test.ts` (pure, invented sheet), `apps/server/test/legacy-load.test.ts` (the 69b
+fixture through the converter and the importer into the harness), `docs/plan/ledger.md` (the evidence line),
+`changes/69c-legacy-load.md`.
+
+**Acceptance.**
+
+- Given the fixture loaded, then tickets, events and `source_ref`s equal 69b's report; a second load adds 0; the
+  desk lists a fixture day; the machine history drill lists its rows; no stored text holds a sentinel (goal 6).
+- Given the engine run with an explicit period for each of 2022, 2023, 2024 and 2025 on the fixture, then the
+  breakdown counts equal the hand values and 0 change when the events are removed; February and March 2022 print
+  "no records".
+- Local evidence (pasted counts in the PR, not CI): a Postgres 16 in the scratchpad, `pnpm migrate`, `pnpm
+seed:cosmos`, `pnpm exec tsx tools/load-legacy.ts --data <scratch> --tenant cosmos`: four batches `done`, each
+  report's identity holds; the engine runs once per year; `legacy-check` prints 100 % of summary machine-months as
+  equal or named (goal 5) — the seven #406 measured (VTL-1 Jan 2025: 3 / 0.89 h / 166.67 h / 0.99466) among the
+  equal ones.
+
+**Red → green.** Red: the named mutation (wire `source_ref` to the ticket ref, or drop the `utility_loss` lines)
+turns `legacy-load.test.ts` red; restored before commit. Green: `TEST_PG_URL=… pnpm exec vitest run
+apps/server/test/legacy-load.test.ts apps/server/test/import-*.test.ts tools/legacy-check.test.ts`.
+
+### 69d — the staging load job (described; built after 79)
+
+A `workflow_dispatch` workflow `.github/workflows/legacy-load.yml` beside `backup.yml`, environment `staging` with a
+required reviewer, inputs `tenant` and `years`. Like `backup.yml` it assumes the AWS role by OIDC in `ap-south-1`
+and runs everything **on the staging host through SSM**, so the workbooks go bucket → host and never through the
+GitHub runner (which runs outside India). On the host: a fresh dump (`tools/backup-dump`), then `aws s3 cp` of
+`legacy/<year>/` from the private backup bucket into a temp folder, `tools/load-legacy.ts` with the switch values
+recorded in the job's log, `legacy-check` and `validate:full` (79), and `rm -rf` of the temp folder whatever the
+outcome. The log carries batch ids, counts and machine codes only; no artefact is uploaded. Nimish uploads the 19
+files to `legacy/2022/` … `legacy/2025/` once. Undo is `pnpm import:undo <batchId>` per year over the same SSM path.
 
 ## Rails
 
-Red first, or the named mutation for 69b; never delete, skip or weaken a test; one writer per packet; files ≤ 400
-lines (the size guard counts the trailing newline, so ≤ 399 `wc -l`); functions ≤ 60 lines; **no new dependency**
-(the xlsx reader and the schemas already exist); no customer data in git, tests, fixtures or logs — the only fixture
-is a small synthetic grid with sentinel names, and the real workbooks stay under the ignored `.agents/data/`; the
-converter refuses an output path inside the repo. R2 (server data) → a fresh reviewer runs the covering suite. Commit
-locally, no push; report red, green, deviations, and the two recorded source-quality findings (the summary sheets'
-gaps, the workbook dimension lie).
+Red first (or the named mutation for 69c); never delete, skip or weaken a test; one writer per packet; source files
+≤ 400 lines, functions ≤ 60; no new dependency (the xlsx reader, schemas and importer exist); no real name, row or
+workbook in git, tests, fixtures, logs or PRs; no line in code that joins two utility names with `|`
+(`tools/no-utility-guess.test.ts`). Imports touch data but alter none: `ponytail-review` per PR, plus a fresh
+reviewer running the covering suite for 69a and 69c.
 
-**Dependencies and edges.** 69a blocks 69b; neither blocks another ticket. No schema ticket, no milestone gate.
-`docs/plan/MILESTONES.md` is not edited by this plan.
+## What only Bhavin or Nimish can still give
 
-## What Nimish must still provide
-
-1. **2020, 2021 and 2023 workbooks, if they exist** — none is in this workspace, and the only 2020/2021/2023 dates
-   are 6 stray rows inside the 2022/2025 workbooks (excluded by R1).
-2. **The `Star`/`Star-01`/`Star-02` mapping** — are they `S-1`/`S-2`, or machines the plant no longer holds?
-3. **The retired machines `TC-2`, `VC-2`, `VC-3`, `VC-5`** — add them to the plant (as rows the importer can
-   resolve) so their 103 rows load, or confirm they stay out.
-4. Nothing else: the identity match, the four files, the bands and the code map are settled by this plan.
+Nothing blocks a packet. Bhavin's answers flip switches S1, S2, S4, S5 (N16, N17, N12) and S3 is ticket 77's
+setting. Nimish: the 19 files in the backup bucket before 69d.
