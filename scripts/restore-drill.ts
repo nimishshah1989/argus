@@ -123,6 +123,9 @@ async function ensureRoles(pool: Pool): Promise<void> {
 
 async function restoredCounts(url: string, wanted: TableCount[]): Promise<Map<string, number>> {
   const pool = new Pool({ connectionString: url, max: 1 });
+  // DROP DATABASE ... WITH (FORCE) ends any backend still closing on the scratch database; an idle client's
+  // 'error' event with no listener would crash the process, and the counts are already read by then.
+  pool.on('error', () => {});
   const found = new Map<string, number>();
   try {
     const have = new Set((await largestTables(pool, Number.MAX_SAFE_INTEGER)).map((t) => t.table));
@@ -170,6 +173,7 @@ async function snapshotDump(
 
 async function drill(sourceUrl: string): Promise<DrillResult> {
   const source = new Pool({ connectionString: sourceUrl, max: 2 });
+  source.on('error', () => {}); // an idle client lost mid-drill must not crash the run; queries still throw
   const work = mkdtempSync(join(tmpdir(), 'restore-drill-'));
   const scratch = `restore_drill_${Date.now()}`;
   const state = { created: false };

@@ -146,7 +146,7 @@ Updated by the orchestrator at every merge (status: `todo` → `in progress` →
 | 66  | Lockout before electrical work                    | M2        | done        | server #248; ticket #264; settings (flag on categories, step list) #284                                                                 |
 | 67  | Reliability and critical spares                   | M4b       | done        | #396, #399, #404                                                                                                                        |
 | 68  | Gujarati text understood                          | M1        | todo        | —                                                                                                                                       |
-| 69  | Legacy history 2022–2025                          | H         | in progress | plan #406 (2022, 2024, 2025); re-plan for 2023, utility events and real codes                                                           |
+| 69  | Legacy history 2022–2025                          | H         | in progress | re-planned 19 Nov: 69a–69c build now, 69d (staging) after 79                                                                            |
 | 70  | (withdrawn)                                       | —         | withdrawn   | withdrawn in `docs/plan/CLAUDE-ADOPTION.md`                                                                                             |
 | 71  | Real Claude provider                              | M6        | done        | merged with 55b/55c; production stays gated                                                                                             |
 | 72  | Diagnosis on the ticket                           | M6        | in progress | 72a, 72b and the queue merged (stored in shadow); route and card todo                                                                   |
@@ -680,7 +680,7 @@ Delivers: D34 — one command that tests every figure on every ticket the plant 
 
 ## H — History in
 
-**69 Legacy history 2022–2025** · Blocked by: 76 and 79 for the load (the converter is not blocked) · External: N16, N17
+**69 Legacy history 2022–2025** · Blocked by: 76; 79 for the staging load (69d) only · External: N16, N17 (switches with defaults, nothing waits)
 Delivers: every workbook year Bhavin holds, as closed history. `docs/slices/69-legacy-history.md` is re-planned first; its 19 Nov amendment holds the measured facts.
 
 1. [API] The 19 workbooks (2022: 4, 2023: 5, 2024: 5, 2025: 5) convert with 0 rows unaccounted: dated source rows = loaded + excluded, every exclusion counted under a named reason.
@@ -688,7 +688,7 @@ Delivers: every workbook year Bhavin holds, as closed history. `docs/slices/69-l
 3. [API] A power or air failure is one plant event with its machines and hours, not one breakdown per machine: 2023's roughly 1,820 utility rows become roughly 150 event-days and add 0 to any breakdown count. Ruling, 19 Nov: 69's re-plan names the home of a plant event from `docs/DATA-MAP.md` and D17, preferring an existing table; a new table needs the PR to say why no existing table fits (CLAUDE.md), and it would exceed D17's budget (this plan already adds its 12), so it also needs a D17 amendment. Ticket 91 reads the same home. Tickets 69 and 91 are not built before the home is named; if no existing table fits (`docs/DATA-MAP.md` defines a ticket as single-machine and `ticket_event` as ticket history), the first packet of 69's re-plan records the D17 amendment.
 4. [API] 0 codes with a meaning in the workbooks' own legend are folded into MIS: TR, T, FS, MS, NI, PP, CP, PAR, PC and HM load as switched-off codes that still show on old reports (ticket 47's rule).
 5. [API] For 100 % of the machine-months on the workbooks' MTTR and MTBF sheets, the recomputed count and hours equal the sheet, or the pair is printed on the named-difference list; 0 unexplained.
-6. [API] 0 personal names in any stored text (sentinel test); a second run of the same files adds 0 rows; March 2022 shows no records, and February 2022 is flagged partial (8 rows) until N17 answers.
+6. [API] 0 personal names in any stored text (sentinel test); a second run of the same files adds 0 rows; February and March 2022 show no records (held out as a gap, 22 rows) until N17 answers.
 
 ## F — Frontend rebuild
 
