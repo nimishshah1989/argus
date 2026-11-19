@@ -10,8 +10,10 @@ import {
 } from '@uptimo/shared/plant-settings';
 import { putMachineCriticality } from '../../api.js';
 import type { CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
+import { Ban } from '../../ui/icon.js';
 import { MachineIcon } from '../../ui/machine-icon.js';
 import { TONE_FILL, segmentIcon } from '../../ui/meaning.js';
+import { ProductionSwitch, ProductionTag } from './machine-production.js';
 
 /** The plant settings screens, each one a config for `CrudPage` (D5): what the rows say and which fields a form asks. */
 
@@ -73,9 +75,17 @@ export const machinesSpec: CrudSpec<MachineReply> = {
   emptyKey: 'plant.machines.empty',
   addKey: 'plant.machines.add',
   footnoteKey: 'plant.audit',
+  introKey: 'plant.machines.production.intro',
   lookups: { segments },
   toggle: false,
+  flag: {
+    labelKey: 'plant.machines.production.count',
+    icon: Ban,
+    test: (row) => row.excludedFromProduction,
+  },
   hidden: {
+    excludedFromProduction:
+      'Its own switch on the list, saved by PUT /machines/:id/production-data; this sheet never sends it.',
     area: 'Master data kept for the ticket; the approved sheet edits the cell, not the area.',
     location: 'Master data kept for the ticket; the approved sheet does not edit it.',
     groupId:
@@ -127,6 +137,8 @@ export const machinesSpec: CrudSpec<MachineReply> = {
     sub: [row.category, cellOf(row, c)].filter(Boolean).join(' · '),
     lead: <MachineIcon segment={segmentOf(c, row.segmentId)?.code ?? ''} status="running" />,
     chip: criticalityChip(row, c),
+    tag: <ProductionTag row={row} />,
+    extra: <ProductionSwitch row={row} />,
   }),
   columns: [
     {
@@ -138,6 +150,11 @@ export const machinesSpec: CrudSpec<MachineReply> = {
       labelKey: 'plant.machines.criticality',
       cell: (row, c) => criticalityChip(row, c),
       sortKey: (row) => row.criticality ?? 'Z',
+    },
+    {
+      labelKey: 'plant.machines.production.column',
+      cell: (row) => <ProductionSwitch row={row} boxed />,
+      sortKey: (row) => Number(row.excludedFromProduction),
     },
   ],
   search: {

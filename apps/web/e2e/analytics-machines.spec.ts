@@ -21,6 +21,7 @@ const AS_OF = '2026-11-17';
 const FIGURES: FiguresReply = {
   asOf: AS_OF,
   profile: {} as FiguresReply['profile'],
+  excludedMachines: 0,
   rows: { machines: 2, moves: 1, tickets: 0, tasks: 0, reports: 0, people: 0 },
   figures: [
     {

@@ -458,6 +458,7 @@ async function stubFigures(
   const reply: FiguresReply = {
     asOf: AS_OF,
     profile: {} as FiguresReply['profile'],
+    excludedMachines: 0,
     rows: { machines: 125, moves: 0, tickets: 2, tasks: 0, reports: 5, people: 4 },
     figures: [logFigure(), a1, a2, a3],
   };

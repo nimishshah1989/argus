@@ -150,7 +150,12 @@ export function Dashboard({ group }: { group: AnalyticsGroup }) {
     <Stack gap={6}>
       <ActionCenterBanner />
       <TodayNav current={screen} />
-      <p className="text-footnote text-neutral-600">{t('analytics.asOf', { date: loaded.asOf })}</p>
+      <p className="text-footnote text-neutral-600">
+        {t('analytics.asOf', { date: loaded.asOf })}
+        {loaded.excludedMachines > 0
+          ? ` · ${t('analytics.excludedMachines', { count: loaded.excludedMachines })}`
+          : ''}
+      </p>
       {screen === SCREEN_TEAM ? null : <NeedsNow />}
       {drill === null ? null : <DrillTable group={group} drill={drill} />}
       {screen === SCREEN_TEAM ? (

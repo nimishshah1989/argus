@@ -1,0 +1,1 @@
+- A head or admin can switch a machine out of production data from Settings, Machines: the row shows a "Not in production data" tag, a "N machines not counted" filter lists them, and the Today dashboard prints how many are left out. Its breakdowns still count in manpower hours and the energy list.
