@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- only prop names and switch values (lang/accent ids) remain; every visible string goes through t() */
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { setLanguage } from '../i18n/index.js';
@@ -24,6 +24,14 @@ import { TokensSection } from './tokens-section.js';
 import { WizardSection } from './wizard-section.js';
 
 registerGalleryStrings();
+
+// The design preview of ticket 80 (three directions): its own chunk, so the 15 sections do not carry it.
+const Directions = lazy(() => import('./directions/harness.js'));
+const DirectionsView = () => (
+  <Suspense fallback={null}>
+    <Directions />
+  </Suspense>
+);
 
 function Switcher({
   label,
@@ -116,6 +124,7 @@ export default function Gallery() {
 
   useDocumentAttributes(lang, accent, theme);
   if (params.get('view') === 'desktop') return <DesktopView />;
+  if (params.get('view') === 'directions') return <DirectionsView />;
 
   return (
     <div data-testid="gallery-root">
