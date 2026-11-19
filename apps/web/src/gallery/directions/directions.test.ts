@@ -180,6 +180,8 @@ const contrast = (a: string, b: string) => {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi! + 0.05) / (lo! + 0.05);
 };
+/** A colour whose channels differ by at most this much (of 255) reads as grey, so it has no hue. */
+const GREY_SPAN = 8;
 const hue = (hex: string) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [
     number,
@@ -187,7 +189,7 @@ const hue = (hex: string) => {
     number,
   ];
   const span = Math.max(r, g, b) - Math.min(r, g, b);
-  if (span === 0) return null;
+  if (Math.round(span * 255) <= GREY_SPAN) return null;
   const h =
     r === Math.max(r, g, b)
       ? (g - b) / span
@@ -196,6 +198,16 @@ const hue = (hex: string) => {
         : 4 + (r - g) / span;
   return (h * 60 + 360) % 360;
 };
+describe('the hue helper', () => {
+  it('calls a colour grey when its channels sit within 8 of 255, not only when they are equal', () => {
+    expect(hue('#808080')).toBeNull();
+    expect(hue('#818081')).toBeNull();
+    expect(hue('#888088')).toBeNull();
+    expect(hue('#898081')).not.toBeNull();
+    expect(hue('#a11a7d')).not.toBeNull();
+  });
+});
+
 const RESERVED_HUES = [
   [345, 50],
   [90, 160],
