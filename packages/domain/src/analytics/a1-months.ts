@@ -1,3 +1,4 @@
+import { NO_RECORDS, type Period, type PeriodMonth } from './availability.js';
 import { formatInr } from './format.js';
 import {
   availableByCell,
@@ -67,6 +68,8 @@ export interface MonthsContext {
   data: EngineData;
   asOf: string;
   annual: number;
+  period: Period;
+  months: PeriodMonth[];
   machines: MachineRow[];
   cells: string[];
   bdRows: MonthRow[];
@@ -92,7 +95,11 @@ export function monthlyRows(
 
 function monthlyAvailability(ctx: MonthsContext, cell: string | null): number[] {
   return MONTHS.map((_, index) => {
-    const window: HoursWindow = { ...monthlyWindow(ctx.asOf, index + 1), annualHours: ctx.annual };
+    const window: HoursWindow = {
+      ...monthlyWindow(ctx.asOf, index + 1),
+      noRecords: ctx.period.noRecords,
+      annualHours: ctx.annual,
+    };
     return cell === null
       ? ctx.machines.reduce((sum, machine) => sum + availableHoursFor(machine, window), 0)
       : availableByCell(ctx.machines, ctx.data.moves, window, cell);
@@ -105,13 +112,19 @@ function monthlyPoints(hours: readonly number[], available: readonly number[]): 
   );
 }
 
-function percentCells(points: readonly (number | null)[], year: string): string[] {
-  const months = points.map((value) => (value === null ? DASH : pointsText(value)));
+function percentCells(
+  points: readonly (number | null)[],
+  months: readonly PeriodMonth[],
+  year: string,
+): string[] {
+  const cells = points.map((value, index) =>
+    months[index]!.state === 'no-records' ? NO_RECORDS : value === null ? DASH : pointsText(value),
+  );
   const quarters = [0, 1, 2, 3].map((quarter) => {
     const average = quarterAverage(points.slice(quarter * 3, quarter * 3 + 3));
     return average === null ? DASH : pointsText(average);
   });
-  return [...months, ...quarters, year];
+  return [...cells, ...quarters, year];
 }
 
 function percentRows(ctx: MonthsContext, cell: string | null): { bd: string[]; pm: string[] } {
@@ -128,13 +141,21 @@ function percentRows(ctx: MonthsContext, cell: string | null): { bd: string[]; p
       ? ctx.pmPercent * 100
       : safeFraction(ctx.stats[index]!.pmHours, ctx.stats[index]!.available) * 100;
   return {
-    bd: percentCells(monthlyPoints(bdHours, available), pointsText(bdYear)),
-    pm: percentCells(monthlyPoints(pmHours, available), pointsText(pmYear)),
+    bd: percentCells(monthlyPoints(bdHours, available), ctx.months, pointsText(bdYear)),
+    pm: percentCells(monthlyPoints(pmHours, available), ctx.months, pointsText(pmYear)),
   };
 }
 
 export function monthlySeries(rows: readonly MonthRow[]): number[] {
   return MONTHS.map((_, index) => rows.reduce((sum, row) => sum + row.hours[index]!, 0));
+}
+
+/** A chart series with a null where the plant recorded nothing: a month with no records is not a zero. */
+export function withGaps(
+  series: readonly number[],
+  months: readonly PeriodMonth[],
+): (number | null)[] {
+  return series.map((value, index) => (months[index]!.state === 'no-records' ? null : value));
 }
 
 export function percentTable(ctx: MonthsContext) {
@@ -176,7 +197,9 @@ export function bdHoursTable(ctx: MonthsContext) {
     header: ['Cell', ...MONTHS, 'Total'],
     rows: ctx.bdRows.map((row) => [
       cellName(row.cell),
-      ...row.hours.map((hours) => bdHoursCell(hours, yearTotal)),
+      ...row.hours.map((hours, index) =>
+        ctx.months[index]!.state === 'no-records' ? NO_RECORDS : bdHoursCell(hours, yearTotal),
+      ),
       inr(row.total, 1),
     ]),
     rowCount: ctx.bdRows.length,
@@ -189,7 +212,9 @@ export function pmHoursTable(ctx: MonthsContext) {
     header: ['Cell', ...MONTHS, 'Total'],
     rows: ctx.pmRows.map((row) => [
       cellName(row.cell),
-      ...row.hours.map((hours) => (hours ? inr(hours, 1) : DASH)),
+      ...row.hours.map((hours, index) =>
+        ctx.months[index]!.state === 'no-records' ? NO_RECORDS : hours ? inr(hours, 1) : DASH,
+      ),
       inr(row.total, 1),
     ]),
     rowCount: ctx.pmRows.length,

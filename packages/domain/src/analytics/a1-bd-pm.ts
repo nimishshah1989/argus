@@ -1,4 +1,4 @@
-import { availabilityWindow } from './availability.js';
+import { calendarMonths, yearToDate } from './availability.js';
 import { formatInr } from './format.js';
 import {
   availableByCell,
@@ -21,6 +21,7 @@ import {
   type A1Entry,
   type CellStats,
   type MonthsContext,
+  withGaps,
 } from './a1-months.js';
 import { isProduction } from './machine-facts.js';
 import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
@@ -104,7 +105,8 @@ function buildContext(data: EngineData, asOf: string, annual: number): A1Context
   const ids = new Set(machines.map((machine) => machine.id));
   const entries = analysisEntries(data, machines);
   const cells = plantCells(machines, data.moves, ids);
-  const window: HoursWindow = { ...availabilityWindow(asOf, asOf), annualHours: annual };
+  const period = data.period ?? yearToDate(asOf);
+  const window: HoursWindow = { ...period, annualHours: annual };
   const bdRows = monthlyRows(cells, entries, (row) => !isPm(row));
   const pmRows = monthlyRows(cells, entries, (row) => isPm(row));
   const stats = cellStats({ cells, machines, moves: data.moves, window, entries });
@@ -122,6 +124,8 @@ function buildContext(data: EngineData, asOf: string, annual: number): A1Context
     data,
     asOf,
     annual,
+    period,
+    months: calendarMonths(period),
     machines,
     cells,
     entries,
@@ -205,8 +209,8 @@ function charts(ctx: A1Context): Array<Record<string, unknown>> {
       tickLabels: { x: [], y: [] },
       labels: MONTHS,
       datasets: [
-        { label: 'BD Hrs', data: monthlySeries(ctx.bdRows) },
-        { label: 'PM Hrs', data: monthlySeries(ctx.pmRows) },
+        { label: 'BD Hrs', data: withGaps(monthlySeries(ctx.bdRows), ctx.months) },
+        { label: 'PM Hrs', data: withGaps(monthlySeries(ctx.pmRows), ctx.months) },
       ],
     },
   ];
