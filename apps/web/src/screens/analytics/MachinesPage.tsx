@@ -6,13 +6,11 @@ import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { DrillTable } from './DrillTable.js';
-import { EnergyPage } from './EnergyPage.js';
 import { GroupPage } from './GroupPage.js';
 import { KeyScreen } from './key-screen.js';
 import { ScreenMenu } from './screen-menu.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
-const ENERGY = 'a5-energy';
 const COMPARE = 'compare';
 
 /** The Machines group's own pages (the machine page itself is a route per machine, reached from a row). */
@@ -22,7 +20,7 @@ function screensOf(group: AnalyticsGroup): string[] {
 
 function screenOf(raw: string | null, group: AnalyticsGroup): string {
   const screens = screensOf(group);
-  return raw !== null && screens.includes(raw) ? raw : (screens[0] ?? ENERGY);
+  return raw !== null && screens.includes(raw) ? raw : (screens[0] ?? COMPARE);
 }
 
 function ScreenNav({ group, current }: { group: AnalyticsGroup; current: string }) {
@@ -42,7 +40,7 @@ function ScreenNav({ group, current }: { group: AnalyticsGroup; current: string 
 
 /**
  * The Machines group's screens that are still v1's (the registers, the cell change log, age and footprint are v2 and
- * live in `screens/v2/live.tsx`): Compare, Energy and the generic screen sections. The machine page has its own route below.
+ * live in `screens/v2/live.tsx`): Compare and the generic screen sections. The machine page has its own route below.
  */
 export function MachinesPage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
@@ -85,11 +83,7 @@ export function MachinesPage({ group }: { group: AnalyticsGroup }) {
     <Stack gap={6}>
       {menu}
       <p className="text-footnote text-neutral-600">{t('analytics.asOf', { date: asOf })}</p>
-      {screen === ENERGY ? (
-        <EnergyPage figure={figureOf(ENERGY)} group={group} />
-      ) : (
-        <GroupPage group={group} only={screen} />
-      )}
+      <GroupPage group={group} only={screen} />
     </Stack>
   );
 }
