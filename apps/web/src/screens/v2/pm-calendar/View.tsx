@@ -84,11 +84,14 @@ function JudgedPanel({ model }: { model: PmCalendarModel }) {
 function CalendarPanel({
   model,
   loading,
+  busy,
   onRange,
   onDrop,
 }: {
   model: PmCalendarModel;
   loading: boolean;
+  /** A move is on its way: no second drag starts until it has landed, so two never carry one job's old ids. */
+  busy: boolean;
   onRange: (range: CalendarRange) => void;
   onDrop: (id: string, day: string) => Promise<void>;
 }) {
@@ -100,7 +103,7 @@ function CalendarPanel({
         <Suspense fallback={<Skeleton blocks={2} />}>
           <MonthCalendar
             events={model.events}
-            editable={model.canMove}
+            editable={model.canMove && !busy}
             initialDate={model.today}
             words={{ label: w.title, today: w.today }}
             onMove={onDrop}
@@ -184,11 +187,13 @@ export function PmCalendarView({
       </Row>
       {model.drill ? <DrillAction drill={model.drill} /> : null}
       <Notes note={ownRefusal(note, chosen) ? null : note} />
-      <CalendarPanel model={model} loading={loading} onRange={onRange} onDrop={drop} />
+      <CalendarPanel model={model} loading={loading} busy={busy} onRange={onRange} onDrop={drop} />
       <JudgedPanel model={model} />
       <SpreadTable model={model} busy={busy} onMove={(job, day) => void run(job, day)} />
       {chosen && model.canMove ? (
         <MovePanel
+          // One form per job: its date field starts at that job's own day and takes the focus, never the last job's.
+          key={chosen.id}
           job={chosen}
           words={model.words.move}
           busy={busy}

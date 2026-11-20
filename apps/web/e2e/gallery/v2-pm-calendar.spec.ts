@@ -174,6 +174,26 @@ test('PM calendar: on a phone the page does not scroll sideways, so the window h
   expect(widths[0]).toBeLessThanOrEqual(widths[1]!);
 });
 
+test('PM calendar: a second Move to date form opens on its own job, with that job’s day and the focus', async ({
+  page,
+}) => {
+  await open(page);
+  const field = page.getByLabel('New date');
+  await jobs(page).getByRole('searchbox').fill('VC-21');
+  await jobs(page).getByRole('button', { name: 'Move to date VC-21' }).click();
+  await expect(page.getByText('Move VC-21 to a date')).toBeVisible();
+  const first = await field.inputValue();
+  // The first form is still open when the second job's button is pressed.
+  await jobs(page).getByRole('searchbox').fill('VC-13');
+  await jobs(page).getByRole('button', { name: 'Move to date VC-13' }).click();
+  await expect(page.getByText('Move VC-13 to a date')).toBeVisible();
+  await expect(page.getByText('Move VC-21 to a date')).toHaveCount(0);
+  await expect(field).toHaveValue('2026-11-13');
+  expect(first).not.toBe('2026-11-13');
+  await expect(page.getByText('Now planned for 13-Nov-2026.')).toBeVisible();
+  await expect(field).toBeFocused();
+});
+
 for (const theme of ['light', 'dark']) {
   test(`PM calendar: axe finds nothing in ${theme}, with the machine drawer open`, async ({
     page,

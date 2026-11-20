@@ -18,7 +18,7 @@ export async function settleMove(
 
 /**
  * The form that is open after job `landed`'s move came back: its own form closes, but another job's form, opened while
- * this move was in flight, stays open with its focus and what was typed in it.
+ * this move was in flight, stays open (it is a form of its own, keyed by its job, so it holds that job's day).
  */
 export const leave = (open: PmJob | null, landed: PmJob): PmJob | null =>
   open !== null && open.id === landed.id ? null : open;
