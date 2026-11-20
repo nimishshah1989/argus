@@ -1,23 +1,23 @@
 # Where things stand — handoff for the next session (human or model)
 
 **The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
-origin/main` and the PR list beat this text. As of 14:50 UTC, 20 Nov 2026. **Orchestrator session handed over (Nimish).** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
+origin/main` and the PR list beat this text. As of 15:10 UTC, 20 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
-## In flight at hand-over (14:50 UTC): check each against GitHub first
+## In flight (orchestrator session 2, 15:25 UTC, 20 Nov): check each against GitHub first
 
-- PR #517 `claude/v2-go-live`: live data source, real-data drawers, Cell change log live with its v1 page deleted. CI had one gallery failure
-  (the v1 order spec still listed the deleted screen); a fix was being pushed. Merge when green. First screen live.
-- PRs #515, #518, #519 are MERGED (Nimish, 14:45 UTC). Still open: #517 only.
-- #517 CI (head 3d7eced): `browser (3/5)` failed on `apps/web/e2e/who-is-acting.spec.ts:217` ("a wrong current password keeps the phone signed in"; 3 retries, `page.goto` ERR_ABORTED at /floor). Not an analytics test; maybe a known flaky journey, maybe caused by the PR's move of the figures hook out of `api.ts`. Re-run that job once when the run completes; if it fails again it is this PR's: root-cause it (builder branch `claude/v2-go-live`) before merging.
-- PR #519: docs, one plan (this file, MILESTONES ticket 91). Merge when green.
-- PR #523 `claude/v2-drill-live-main` (replaces #522, closed; same two commits replayed on main after #517 merged): wires rows-behind into the shell and cards and takes Machines register, Age,
-  Footprint, Fix Finder and Problem Analysis LIVE with their v1 pages deleted. Draft. Blocked on a person deleting two gallery specs for the deleted preview pages
-  (`apps/web/e2e/gallery/v2-fix-finder.spec.ts`, `v2-problem-analysis.spec.ts`; the harness blocks agents deleting tests; their assertions were ported to the real-server e2e). Then mark ready, CI, merge.
-- #517 (first live screen, Cell change log) is MERGED. If staging shows a sign-in problem (one browser sign-in journey failed in its CI), that is the cause to look at.
-- Builder `claude/v2-batch1-live` (rebuild Dashboard, Action Center, Machine page on real data, live, v1 deleted) was still running and NOT pushed at hand-over; re-dispatch from MILESTONES ticket 91 if no PR exists.
-- Next after those: batch 4 (merged, not wired), PM Calendar and Breakdown Log going live; rebuild Data Checklist, Compare, Team Focus; then batches 5 to 7.
-- Cost rules from Nimish: tests minimal (one smoke on the real server, one completeness test, ported v1 assertions); Sonnet for builders; he asked CI auto-merge
-  to be enabled (repo setting "Allow auto-merge" is off; only he can tick it).
+- MERGED by Nimish: #515, #518 (into a dead stacked branch, see #521), #519, #517 (live source, Cell change log live), #523 (rows-behind in the shell; Machines register, Age,
+  Footprint, Fix Finder, Problem Analysis live, v1 pages deleted), #520. #517 went in WITHOUT the fixes an independent review asked for (below).
+- Review of #517 (Opus, FAIL) found, now live on staging: a machine drawer's "Open full page" goes to a page with no data; an unlisted machine shows its database id; the saved copy is
+  not tied to a person (a head's money figures can show to the next login on that tab or while offline); "not computed" reads "nothing to show"; two v1 e2e entries were dropped. A fixer
+  (Sonnet) is replaying the fixes on a new branch `claude/v2-live-review-fixes` against current main. It has not been independently re-reviewed or reviewed for #523 yet.
+- #521 `claude/fix-breakdown-log-row-ticket`: re-lands the Breakdown Log wrong-ticket fix (reviewed, PASS; CI running on db33c08d). #524: this docs PR.
+- Builder running: `claude/v2-dashboard-live` (Dashboard rebuilt on real data, live, v1 deleted). The drill builder was stopped: #523 already did it.
+- Next (max 3 at a time): independent coverage review of the five screens #523 made live; Action Center and Machine page rebuilds; batch 5 (Energy, Bottleneck, Shift-calendar KPIs, Forecast
+  Lab, Reliability scorecard); batch 4 and PM Calendar and Breakdown Log wiring; Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7.
+- Rulings (Nimish, 20 Nov, session 2): do not spend time on CI noise that does not touch the diff (the `who-is-acting` /floor e2e is red on several PRs and is not caused by them); only act on what blocks a merge or changes a result.
+- Cost rules from Nimish: tests minimal, Sonnet builders, Opus reviewers. The repo setting "Allow auto-merge" is off; only he can tick it.
+- Lessons: never merge a stacked PR into its parent's branch once the parent has merged to main. Nimish merges PRs himself while an orchestrator works: fetch main before every dispatch.
+  Gallery specs run locally with the preinstalled Chromium (a throwaway Playwright config that sets `launchOptions.executablePath: '/opt/pw-browsers/chromium'`).
 
 ## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 
