@@ -24,7 +24,8 @@ async function read<T>(
 ): Promise<T> {
   if (!client) throw new Error('no query client');
   const key = [...query.queryKey];
-  if (client.getQueryState(key) && !isOwnCopy(client, key))
+  // Only a copy that holds an answer can belong to someone else; a read still in flight is another screen's, and shared.
+  if (client.getQueryData(key) !== undefined && !isOwnCopy(client, key))
     client.removeQueries({ queryKey: key, exact: true });
   try {
     return await client.fetchQuery({ queryKey: key, queryFn: query.queryFn, staleTime: 30_000 });

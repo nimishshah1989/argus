@@ -108,6 +108,20 @@ describe('a saved copy belongs to the person it was fetched for', () => {
   });
 });
 
+describe('two screens reading at once', () => {
+  it('share one read in flight: the second never cancels the first, and the server is asked once', async () => {
+    const client = fresh();
+    let answer: (reply: typeof REPLY) => void = () => {};
+    server.figures.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const first = liveReply(client);
+    const second = liveReply(client);
+    answer(REPLY);
+    expect(await first).toBe(REPLY);
+    expect(await second).toBe(REPLY);
+    expect(server.figures).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('what counts as a lost connection', () => {
   it('serves the saved copy for a dropped connection only; a malformed reply is an error', async () => {
     const client = fresh();
