@@ -26,7 +26,7 @@ export interface PageTable {
   rows: string[][];
   rowCount: number;
   truncated: boolean;
-  /** A6 only: the ticket behind each row, in row order, so an action on a row reaches that row's own ticket. */
+  /** The Breakdown Log and A6: the ticket behind each row, in row order, so an action on a row reaches that row's own ticket. */
   rowTicketIds?: string[];
   /** The face may sort this table client-side (41e-1: A4's Manpower table and its two month matrices). */
   sortable?: boolean;

@@ -24,6 +24,8 @@ export const EMPTY_QUERY: LogQuery = {
 /** One entry of the log, as the engine printed it. */
 export type LogRow = {
   id: string;
+  /** The row's own ticket, as the engine printed it beside the row; null when the figure named none. */
+  ticketId: string | null;
   srNo: string;
   /** The ticket number; a number the platform never gave a ticket is not printed. */
   ticket: string;
@@ -38,6 +40,8 @@ export type LogRow = {
 };
 
 export type LogWords = {
+  /** The aria label of a row's ticket link, with `{srNo}`. */
+  openTicket: string;
   why: string;
   /** `{count}` entries, newest `{date}`. */
   headline: string;
