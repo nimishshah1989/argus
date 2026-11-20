@@ -41,7 +41,9 @@ function loadChart(
   names: Names,
   t: TFunction,
 ) {
-  const { title, axis } = text;
+  const { axis } = text;
+  /** The map's own title heads its section, so the chart under it has a title of its own. */
+  const title = fill(t('v2e.chart'), { axis: axis.toLocaleLowerCase() });
   const unit = t('analytics.energy.unit');
   const shown = grid.tiles.filter((tile) => tile.machines > 0);
   const spec: ChartSpec = {

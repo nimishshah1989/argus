@@ -23,6 +23,7 @@ export const analyticsV2ForecastEn = {
   'v2e.fig.perMachine': 'a machine',
   'v2e.heat.low': 'Lighter load',
   'v2e.heat.high': 'Heavier load',
+  'v2e.chart': 'Connected and running load by {axis}',
   'v2e.tile.open': 'Show the machines behind {name}',
   // Bottleneck.
   'v2b.title': 'Bottleneck Analysis',

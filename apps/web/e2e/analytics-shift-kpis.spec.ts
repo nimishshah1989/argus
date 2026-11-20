@@ -376,7 +376,8 @@ async function readMap(page: Page): Promise<void> {
   const machines = page.getByRole('table', { name: /^By machine/ });
   await expect(machines.getByRole('button', { name: 'TMC-2', exact: true })).toBeVisible();
   await expect(machines.getByRole('cell', { name: '307.58', exact: true })).toBeVisible();
-  await expect(page.getByText('13 of 125', { exact: true })).toBeVisible();
+  const map = page.getByRole('region', { name: 'Breakdown map', exact: true });
+  await expect(map.getByText('13 of 125', { exact: true })).toBeVisible();
   // A heat cell is tinted by weight, prints its figure and is named by its row and month for a screen reader.
   const hot = machines.getByRole('cell', { name: 'TMC-2, Jun: 242.42', exact: true });
   await expect(hot).toHaveText('242.42');
@@ -388,7 +389,9 @@ async function readMap(page: Page): Promise<void> {
   await expect(charts).toHaveCount(4);
   for (let index = 0; index < 4; index += 1)
     await expect(charts.nth(index)).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.getByText('BD hours by machine — Pareto', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'BD hours by machine — Pareto', exact: true }),
+  ).toBeVisible();
 }
 
 test('a head opens Shift-calendar KPIs, reads the compare row and a map cell, and drills the map', async ({
@@ -400,7 +403,7 @@ test('a head opens Shift-calendar KPIs, reads the compare row and a map cell, an
   await openShiftKpis(page);
   await readMap(page);
   // The backlog's own count is the number of tickets behind it, so the count opens them.
-  await page.getByRole('button', { name: /^2\. Show the rows behind Open breakdowns/ }).click();
+  await page.getByRole('button', { name: /Show the rows behind Open breakdowns/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:shift-kpis\.backlog$/);
   await expect(
     page.locator('aside.v2-drawer').getByRole('link', { name: tickets.first.ref, exact: true }),

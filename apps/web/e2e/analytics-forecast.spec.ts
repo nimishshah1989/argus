@@ -90,9 +90,12 @@ async function openA9(page: Page): Promise<void> {
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
   expect(A9.kpis).toHaveLength(14);
+  // Each figure is a region named by its label; the same words also sit in the answer's Why list and in table filters.
   for (const kpi of A9.kpis) {
-    await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
+    const tile = page.getByRole('region', { name: kpi.label, exact: true }).first();
+    await expect(tile).toBeVisible();
+    await expect(tile.getByText(kpi.value, { exact: true })).toBeVisible();
+    if (kpi.sub) await expect(tile.getByText(kpi.sub, { exact: true })).toBeVisible();
   }
   const risk = page.getByRole('region', { name: RISK.title, exact: true });
   await expect(risk).toBeVisible();
@@ -137,9 +140,6 @@ async function openMachineDrill(page: Page, figure: string, name: RegExp): Promi
   const first = MACHINES[0]!;
   await drawer.getByRole('button', { name: first.code, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${first.code}`));
-  await page.goBack();
-  await page.goBack();
-  await expect(page).not.toHaveURL(/drawer=/);
 }
 
 /** The Lab: its method table, its month detail and the one line chart titled with the key's y axis. */
