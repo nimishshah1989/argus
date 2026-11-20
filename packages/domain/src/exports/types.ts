@@ -42,7 +42,9 @@ export interface ExportSettings {
 
 /** One planned preventive-maintenance visit (the platform's `pmPlan`). */
 export interface ExportPmPlan {
+  /** The plan's own id: the Record ID column, the one id the sheet prints. */
   readonly id: string;
+  /** The machine's printed code, as the server writes it: the sheet prints it as it is. */
   readonly machineId: string;
   readonly date: string;
   readonly source: string;
@@ -54,10 +56,13 @@ export interface ExportPmPlan {
 
 /** One completed PM report (the platform's `pmReports`). */
 export interface ExportPmReport {
+  /** The closed job's own id: the Record ID column, the one id the sheet prints. */
   readonly id: string;
+  /** The machine's printed code, as the server writes it: the sheet prints it as it is. */
   readonly machineId: string;
   readonly date: string;
   readonly planDate?: string | null;
+  /** The person as the app prints them (their coded name), never their id. */
   readonly doneBy?: string | null;
   readonly total?: number | null;
   /**

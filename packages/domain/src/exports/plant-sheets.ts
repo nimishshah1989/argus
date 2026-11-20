@@ -11,6 +11,7 @@ import {
   PM_REPORT_HEADER,
   WHY_HEADER,
 } from './headers.js';
+import { labelsOf, type Labels } from './labels.js';
 import type {
   ExportCell,
   ExportData,
@@ -62,6 +63,7 @@ function spareNames(report: ReportRow): string[] {
 }
 
 interface BreakdownContext {
+  labels: Labels;
   names: ReadonlyMap<string, string>;
   segments: ReadonlyMap<string, string | null>;
   sources: ReadonlyMap<string, string>;
@@ -75,7 +77,7 @@ function breakdownRow(report: ReportRow, index: number, ctx: BreakdownContext): 
   const total = costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0);
   return [
     report.srNo ?? index + 1,
-    report.machineId,
+    ctx.labels.machine(report.machineId),
     dmy(report.date),
     reportMonth(report.date),
     report.shift,
@@ -100,8 +102,8 @@ function breakdownRow(report: ReportRow, index: number, ctx: BreakdownContext): 
     cell(report.responseMin),
     cell(report.repairMin),
     text(ctx.segments.get(report.machineId)),
-    text(report.ticketId),
-    text(report.ticketId),
+    ctx.labels.ticket(report.ticketId),
+    ctx.labels.ticket(report.ticketId),
     text(ctx.sources.get(report.ticketId ?? '') ?? ''),
     '',
   ];
@@ -109,6 +111,7 @@ function breakdownRow(report: ReportRow, index: number, ctx: BreakdownContext): 
 
 function breakdownRows(data: ExportData): ExportRow[] {
   const ctx: BreakdownContext = {
+    labels: labelsOf(data.data),
     names: new Map(data.data.people.map((person) => [person.code, person.displayName])),
     segments: new Map(data.data.machines.map((machine) => [machine.id, machine.segment])),
     sources: new Map(data.data.tickets.map((ticket) => [ticket.id, ticket.source])),
@@ -125,6 +128,7 @@ function breakdownSheet(data: ExportData): ExportSheet {
 }
 
 function cellLogSheet(data: ExportData): ExportSheet {
+  const labels = labelsOf(data.data);
   const keys = moveKeys(data.data);
   const moves = settleAll(data.data.moves, (move) => [move.effectiveFrom, ...keys(move)]);
   return {
@@ -133,7 +137,7 @@ function cellLogSheet(data: ExportData): ExportSheet {
       CELL_LOG_HEADER,
       ...moves.map((move) => [
         dmy(move.effectiveFrom),
-        move.machineId,
+        labels.machine(move.machineId),
         text(move.fromCell),
         text(move.toCell),
         text(move.fromLocation),
@@ -145,6 +149,7 @@ function cellLogSheet(data: ExportData): ExportSheet {
 }
 
 function whyWhySheet(data: ExportData): ExportSheet {
+  const labels = labelsOf(data.data);
   const names = new Map(data.data.people.map((person) => [person.code, person.displayName]));
   const tickets = new Map(data.data.tickets.map((ticket) => [ticket.id, ticket]));
   const reports = new Map(
@@ -156,7 +161,7 @@ function whyWhySheet(data: ExportData): ExportSheet {
     const ticket = tickets.get(why.ticketId);
     const report = reports.get(why.ticketId);
     return [
-      text(ticket?.machineId),
+      labels.machine(ticket?.machineId),
       report ? dmy(report.date) : '',
       report ? effectiveHours(report) : '',
       text(report?.problem),
@@ -180,7 +185,8 @@ function teamRows(data: ExportData): ExportRow[] {
 
 /** The platform's Settings sheet: its section order, its team table where the key finds its header. */
 function settingsSheet(data: ExportData): ExportSheet {
-  const excluded = data.data.settings?.excludedMachineIds ?? [];
+  const labels = labelsOf(data.data);
+  const excluded = (data.data.settings?.excludedMachineIds ?? []).map(labels.machine);
   const codes = data.data.lists.maint_code ?? [];
   const list = (title: string, values: readonly string[]): ExportRow[] => [
     [''],
@@ -238,6 +244,7 @@ function pmPlanSheet(data: ExportData): ExportSheet {
 }
 
 function amcSheet(data: ExportData): ExportSheet {
+  const labels = labelsOf(data.data);
   const rows = (data.data.amc ?? []).map((line, index) => {
     const months = Number(line.months);
     // The register stores the end, not a tenure (51c): the stored day wins and a tenure row derives as before.
@@ -245,7 +252,7 @@ function amcSheet(data: ExportData): ExportSheet {
     const end = line.endsOn ?? derived;
     return [
       index + 1,
-      line.machineId,
+      labels.machine(line.machineId),
       text(line.type),
       text(line.start),
       months > 0 ? line.months : '',
@@ -261,6 +268,7 @@ function amcSheet(data: ExportData): ExportSheet {
 }
 
 function legalSheet(data: ExportData): ExportSheet {
+  const labels = labelsOf(data.data);
   const rows = (data.data.legal ?? []).map((line, index) => {
     const months = Number(line.months);
     // The register stores the next due day (51c): the stored day wins and a last-plus-validity row derives as before.
@@ -268,7 +276,7 @@ function legalSheet(data: ExportData): ExportSheet {
     const due = line.dueOn ?? derived;
     return [
       index + 1,
-      line.machineId,
+      labels.machine(line.machineId),
       line.name,
       text(line.form),
       text(line.last),

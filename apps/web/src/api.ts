@@ -160,8 +160,8 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 export {
   analyticsFiguresQuery,
+  analyticsFiguresAtQuery,
   useAnalyticsFigures,
-  useAnalyticsFiguresAt,
 } from './analytics-figures.js';
 
 /**
@@ -193,7 +193,11 @@ export const schedulePm = async (body: PmRescheduleBody, key: string): Promise<P
   );
 
 /** `GET /analytics/action-center`: the Action Center board, as of the plant's today by default. */
-export const useActionCenterBoard = () => actionCenter.useOne();
+export const actionCenterBoardQuery = {
+  queryKey: ['analytics-action-center', 'one', null],
+  queryFn: () => actionCenter.one(),
+} as const;
+export const useActionCenterBoard = () => useQuery(actionCenterBoardQuery);
 
 /** `PUT /analytics/action-center/nudges/:key`: acknowledge, snooze or resolve; the fresh board answers. */
 export const writeNudge = async (
