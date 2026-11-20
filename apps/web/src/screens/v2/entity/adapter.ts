@@ -7,7 +7,7 @@ import type { MachineData, MachineState } from '../../../ui/v2/domain/plant.js';
 import type { PersonDetailData } from '../../../ui/v2/domain/person-detail.js';
 import type { EntityRef } from '../../../ui/v2/entity-chip.js';
 import { machineRecord, type MachineRecord } from '../../analytics/machine-record.js';
-import { catOf, dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
+import { catOf, machineChip, sourceLine, type Translate } from '../figures/read.js';
 import type { EntityModel } from './model.js';
 
 /** What the plant knows: its lists, the tickets open now, and the engine's reply for the machine pages. */
@@ -40,11 +40,23 @@ function recordOf(facts: EntityFacts, machine: Machine): MachineRecord | null {
 const stateOf = (facts: EntityFacts, machine: Machine): MachineState =>
   stoppedOn(facts.open, machine.id).length > 0 ? 'down' : 'run';
 
+/** The hours and breakdowns the engine's machine page holds; a machine the plant does not track has none, and says so. */
+function figuresOf(record: MachineRecord | null, t: Translate) {
+  const hours = record?.breakdowns?.hours ?? 0;
+  return {
+    hours: { shown: fill(t('v2m.entity.hoursUnit'), { n: hoursText(hours) }), value: hours },
+    stops: record?.breakdowns?.count ?? 0,
+    ...(record?.breakdowns ? {} : { untracked: true as const }),
+  };
+}
+
 function machineData(facts: EntityFacts, machine: Machine, t: Translate): MachineData {
   const record = recordOf(facts, machine);
   const make = [record?.machine.make, record?.machine.model].filter(Boolean).join(' ');
-  const hours = record?.breakdowns?.hours;
   const category = machine.category ?? t('v2m.none');
+  const ticketLine = (ticket: Ticket) => [
+    { text: fill(t('v2m.entity.ticket'), { ref: ticket.ref, problem: ticket.problem }) },
+  ];
   return {
     code: machine.code,
     name: make || category,
@@ -52,18 +64,9 @@ function machineData(facts: EntityFacts, machine: Machine, t: Translate): Machin
     cat: catOf(category) as MachineData['cat'],
     cell: machine.cell ?? t('v2m.none'),
     state: stateOf(facts, machine),
-    hours: {
-      shown: fill(t('v2m.entity.hoursUnit'), { n: hoursText(hours ?? 0) }),
-      value: hours ?? 0,
-    },
-    stops: record?.breakdowns?.count ?? 0,
-    ...(record?.breakdowns ? {} : { untracked: true as const }),
+    ...figuresOf(record, t),
     trend: [],
-    why: stoppedOn(facts.open, machine.id)
-      .slice(0, 3)
-      .map((ticket) => [
-        { text: fill(t('v2m.entity.ticket'), { ref: ticket.ref, problem: ticket.problem }) },
-      ]),
+    why: stoppedOn(facts.open, machine.id).slice(0, 3).map(ticketLine),
   };
 }
 
@@ -93,7 +96,7 @@ function cellData(facts: EntityFacts, name: string, t: Translate): CellDetailDat
   };
 }
 
-function personData(facts: EntityFacts, person: Person, t: Translate): PersonDetailData {
+function personData(facts: EntityFacts, person: Person): PersonDetailData {
   const byId = new Map(facts.machines.map((machine) => [machine.id, machine]));
   const mine = facts.open.filter(
     (ticket) =>
@@ -169,7 +172,7 @@ export function entityModel(ref: EntityRef, facts: EntityFacts, t: Translate): E
       ...common,
       kind: 'person',
       label: person.name,
-      person: personData(facts, person, t),
+      person: personData(facts, person),
       words: words.person,
     };
   }

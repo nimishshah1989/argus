@@ -194,8 +194,8 @@ async function correctFirstMove(page: Page): Promise<void> {
   await form.getByRole('button', { name: 'Save', exact: true }).click();
   expect((await correcting).request().postDataJSON()).toEqual({ effectiveFrom: '2026-08-04' });
   await expect(page.getByText('Move date corrected.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '04-08-2026', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '03-08-2026', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('cell', { name: '04-Aug-2026', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toHaveCount(0);
 }
 
 test('a head opens a register page, the cell change log and a machine page that is honest about gaps', async ({
@@ -231,8 +231,8 @@ test('a head opens a register page, the cell change log and a machine page that 
     .getByRole('link', { name: 'Cell change log', exact: true })
     .click();
   await expect(page).toHaveURL(/screen=cell-change-log/);
-  await expect(page.getByRole('cell', { name: '03-08-2026', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '4 → 2', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Cell 4 → Cell 2', exact: true })).toBeVisible();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
   const file = await download;
@@ -281,9 +281,47 @@ test('an operator is refused the machines face', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Registers', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Cell change log', exact: true })).toHaveCount(0);
 
+  // The cell change log is the v2 page at the same URL: the server's refusal shows as the refused state, with no table.
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await expect(page.getByText('Your login cannot open this page', { exact: false })).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(0);
+
   // Even with the log in hand, an operator gets no correction action: the role gate, not only the refusal.
   await stubFigures(page);
   await page.goto('/analytics/machines?screen=cell-change-log');
-  await expect(page.getByRole('cell', { name: '03-08-2026', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Correct date', exact: true })).toHaveCount(0);
+});
+
+test('the cell change log is live on the real server: a head sees the page at its old address, in the new shell, with no error', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await expect(page.getByRole('heading', { level: 1, name: 'Cell change log' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Machines', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('[data-state="loading"]')).toHaveCount(0);
+});
+
+test('a machine chip in the cell change log opens the plant’s own machine, and Back closes it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await page.getByRole('button', { name: FULL.code, exact: true }).first().click();
+  await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${FULL.code}`));
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer).not.toHaveAttribute('inert', '');
+  await expect(drawer.getByRole('heading', { level: 2, name: 'Cosmos CVM-800' })).toBeVisible();
+  await expect(drawer.getByText('We could not find this one', { exact: false })).toHaveCount(0);
+  await page.goBack();
+  await expect(drawer).toHaveAttribute('inert', '');
+  await expect(page).not.toHaveURL(/drawer=/);
 });
