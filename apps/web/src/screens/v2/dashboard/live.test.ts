@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { keepOwners, rememberWho } from '../../../data/index.js';
 
 const server = vi.hoisted(() => ({
   figures: vi.fn(),
@@ -24,11 +25,18 @@ vi.mock('../../../api.js', () => ({
 }));
 
 const { dashboardFacts } = await import('./live.js');
-const { REFRESH_MS, refreshEvery } = await import('./refresh.js');
+const { REFRESH_MS, refreshEvery, rereadThen } = await import('./refresh.js');
 
-const fresh = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const fresh = () => keepOwners(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
 
 beforeEach(() => {
+  const store = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  });
+  rememberWho({ id: 'head-login', actingPersonId: 'head-person', name: 'head' });
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-11-11T09:00:00Z'));
   server.figures.mockResolvedValue({ asOf: '2026-11-11', figures: [], excludedMachines: 0 });
@@ -39,6 +47,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   for (const fn of Object.values(server)) fn.mockReset();
 });
 
@@ -68,5 +77,20 @@ describe('what the Dashboard reads, and how often', () => {
     stop();
     vi.advanceTimersByTime(120_000);
     expect(again).toHaveBeenCalledTimes(3);
+  });
+
+  it('asks the server again at 30 seconds, not 60: a tick is not served the copy that is just under 30 seconds old', async () => {
+    const client = fresh();
+    await dashboardFacts(client);
+    const stop = refreshEvery(() => rereadThen(client, () => void dashboardFacts(client)));
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(server.state).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(server.state).toHaveBeenCalledTimes(2);
+    expect(server.board).toHaveBeenCalledTimes(2);
+    expect(server.figures).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(server.state).toHaveBeenCalledTimes(3);
+    stop();
   });
 });
