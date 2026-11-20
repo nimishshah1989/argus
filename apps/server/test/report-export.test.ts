@@ -179,7 +179,7 @@ describe('the workbook download', () => {
         'VC-02',
         '2026-10-30',
         '2026-10-30',
-        doneBy,
+        `P-${doneBy.slice(0, 8)}`,
         2,
         'p2',
         'meter 1250',
