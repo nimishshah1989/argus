@@ -19,14 +19,6 @@ export function readTokens(css: string): { light: Tokens; dark: Tokens } {
   return { light, dark: { ...light, ...dark } };
 }
 
-export function colour(tokens: Tokens, name: string): string {
-  let value = tokens[name];
-  for (let hops = 0; value?.startsWith('var(') && hops < 4; hops++)
-    value = tokens[value.slice(6, -1)];
-  if (!value || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`${name} is not a hex colour`);
-  return value;
-}
-
 function luminance(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((i) => {
     const c = parseInt(hex.slice(i, i + 2), 16) / 255;

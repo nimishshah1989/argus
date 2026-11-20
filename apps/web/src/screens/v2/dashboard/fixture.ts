@@ -1,5 +1,5 @@
 import type { Point, Tone } from '../../../ui/v2/points.js';
-import type { CellData, MachineState } from '../../../ui/v2/domain/plant-map.js';
+import type { CellData, MachineState } from '../../../ui/v2/domain/plant.js';
 import type { DashboardModel } from './model.js';
 
 /**

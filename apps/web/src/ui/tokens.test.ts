@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CHART_PALETTE, CHART_VARS } from './chart-palette.js';
-import { colour, ratio, readTokens, type Tokens } from './contrast.js';
+import { ratio, readTokens, type Tokens } from './contrast.js';
 
 /**
  * Contrast guard for the tokens (design lock, 14 Nov 2026). Every status ink must reach 4.5:1 on its own
@@ -11,6 +11,14 @@ import { colour, ratio, readTokens, type Tokens } from './contrast.js';
 
 const TONES = ['danger', 'info', 'warning', 'hold', 'moved', 'ok', 'muted'];
 const MIN = 4.5;
+
+function colour(tokens: Tokens, name: string): string {
+  let value = tokens[name];
+  for (let hops = 0; value?.startsWith('var(') && hops < 4; hops++)
+    value = tokens[value.slice(6, -1)];
+  if (!value || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`${name} is not a hex colour`);
+  return value;
+}
 
 /** Every text pair the lock promises, as `[text, background]` token names. */
 const PAIRS: [string, string][] = [

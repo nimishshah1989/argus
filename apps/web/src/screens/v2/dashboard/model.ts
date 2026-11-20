@@ -1,7 +1,7 @@
 import type { BulletData } from '../../../ui/v2/bullet-bar.js';
 import type { DecisionData } from '../../../ui/v2/domain/decision-row.js';
 import type { ParetoData } from '../../../ui/v2/pareto.js';
-import type { CellData, PlantWords } from '../../../ui/v2/domain/plant-map.js';
+import type { CellData, PlantWords } from '../../../ui/v2/domain/plant.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /**

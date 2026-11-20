@@ -1,42 +1,19 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { fill } from '../../../i18n/fill.js';
 import { Pause, TriangleAlert, Wrench, X } from '../../icon.js';
 import { Panel } from '../panel.js';
-import { Points, type Point } from '../points.js';
+import { Points } from '../points.js';
 import { Segmented } from '../segmented.js';
-import { nextTile } from './plant-keys.js';
-
-/** Domain kit: every machine of the plant by cell, in its state now. */
-export type MachineState = 'run' | 'risk' | 'down' | 'pm' | 'idle';
-/** `code` is unique across the plant: it names the square and keys the picked machine. */
-export type MachineData = { code: string; state: MachineState; why: Point[] };
-export type CellData = { name: string; machines: MachineData[] };
-export type PlantFilter = 'all' | 'down' | 'risk' | 'pm';
-
-export type PlantWords = {
-  title: string;
-  /** How the map of squares reads aloud as one group. */
-  mapLabel: string;
-  filterLabel: string;
-  filters: Record<PlantFilter, string>;
-  states: Record<MachineState, string>;
-  hint: string;
-  /** A cell's note, one part per state but running (`{n}` is the count), or `cellRunning` when every machine runs. */
-  cellCounts: Record<Exclude<MachineState, 'run'>, string>;
-  cellRunning: string;
-};
+import {
+  cellNote,
+  nextTile,
+  type CellData,
+  type MachineData,
+  type MachineState,
+  type PlantFilter,
+  type PlantWords,
+} from './plant.js';
 
 const STATES: MachineState[] = ['run', 'risk', 'down', 'pm', 'idle'];
-const NOTED = ['down', 'risk', 'pm', 'idle'] as const;
-
-/** "1 down · 2 at risk", worst first, each part kept on one line; "all running" only when every machine runs. */
-function cellNote(cell: CellData, words: PlantWords): string {
-  const parts = NOTED.flatMap((s) => {
-    const n = cell.machines.filter((m) => m.state === s).length;
-    return n ? [fill(words.cellCounts[s], { n }).replace(/ /g, '\u00a0')] : [];
-  });
-  return parts.length ? parts.join(' · ') : words.cellRunning;
-}
 const FILTERS: PlantFilter[] = ['all', 'down', 'risk', 'pm'];
 /** A glyph on every state but running, so colour is never the only sign. */
 const GLYPH = { run: null, risk: TriangleAlert, down: X, pm: Wrench, idle: Pause };

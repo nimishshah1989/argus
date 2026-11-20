@@ -5,10 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Dashboard } from '../../screens/v2/dashboard/Dashboard.js';
 import { dashboardFixture as model } from '../../screens/v2/dashboard/fixture.js';
-import { colour, ratio, readTokens } from '../contrast.js';
+import { ratio, readTokens } from '../contrast.js';
 import { BulletBar, place } from './bullet-bar.js';
 import { DecisionRow } from './domain/decision-row.js';
-import { nextTile } from './domain/plant-keys.js';
+import { nextTile } from './domain/plant.js';
 import { PlantMap } from './domain/plant-map.js';
 import { Pareto, paretoMismatch } from './pareto.js';
 import { Points } from './points.js';
@@ -243,7 +243,7 @@ describe('v2 tokens', () => {
     min: number,
   ) =>
     list
-      .map(([fg, bg]) => [fg, bg, ratio(colour(tokens, v2(fg)), colour(tokens, v2(bg)))] as const)
+      .map(([fg, bg]) => [fg, bg, ratio(tokens[v2(fg)]!, tokens[v2(bg)]!)] as const)
       .filter(([, , r]) => r < min)
       .map(([fg, bg, r]) => `${fg} on ${bg}: ${r.toFixed(2)}`);
 
