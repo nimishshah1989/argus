@@ -1,20 +1,20 @@
 # Where things stand — handoff for the next session (human or model)
 
 **The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
-origin/main` and the PR list beat this text. As of 14:50 UTC, 20 Nov 2026. **Orchestrator session handed over (Nimish).** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
+origin/main` and the PR list beat this text. As of 15:10 UTC, 20 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
-## In flight at hand-over (14:50 UTC): check each against GitHub first
+## In flight (orchestrator session 2, 15:10 UTC, 20 Nov): check each against GitHub first
 
-- PR #517 `claude/v2-go-live`: live data source, real-data drawers, Cell change log live with its v1 page deleted. CI had one gallery failure
-  (the v1 order spec still listed the deleted screen); a fix was being pushed. Merge when green. First screen live.
-- PR #518 (stacked on #515, Nimish's draft Why-Why fix): Breakdown Log row ticket ids, fixes a live v1 wrong-ticket bug. Merge #515 then #518.
-- PR #519: docs, one plan (this file, MILESTONES ticket 91). Merge when green.
-- Builders running in the old session, NOT pushed (may be lost; re-dispatch from MILESTONES ticket 91 if no PR exists): `claude/v2-drill-live`
-  (wire the rows-behind drill into the shell and cards, then take Machines register, Age, Footprint, Fix Finder, Problem Analysis live and delete their v1
-  pages) and `claude/v2-batch1-live` (rebuild Dashboard, Action Center, Machine page on real data, live, v1 deleted).
-- Next after those: batch 4 (merged, not wired), PM Calendar and Breakdown Log going live; rebuild Data Checklist, Compare, Team Focus; then batches 5 to 7.
-- Cost rules from Nimish: tests minimal (one smoke on the real server, one completeness test, ported v1 assertions); Sonnet for builders; he asked CI auto-merge
-  to be enabled (repo setting "Allow auto-merge" is off; only he can tick it).
+- PR #517 `claude/v2-go-live` (live source, real drawers, Cell change log live, v1 page deleted): an independent review said FAIL (the "Open full page"
+  link from a machine drawer goes to a page with no data; an unlisted machine shows its database id; the saved copy is not tied to a person, so a head's
+  money figures could show to the next login on that tab; "not computed" became "nothing to show"; two v1 e2e entries dropped). A fixer is pushing to the
+  same branch. One CI job (`who-is-acting` /floor, `ERR_ABORTED` three times) was red before the fix: undiagnosed, the PR does not touch it. Merge when green and re-reviewed.
+- PR #521 `claude/fix-breakdown-log-row-ticket`: re-lands the Breakdown Log wrong-ticket fix. #518 had merged into its stacked parent AFTER #515 merged to main, so it never reached main.
+- Builders (Sonnet, own worktrees): `claude/v2-drill-live` (rows-behind mechanism in the shell, live loader), `claude/v2-dashboard-live` (Dashboard rebuilt on real data, live, v1 deleted).
+- Next, one slot frees at a time (max 3): go-live of Machines register, Age, Footprint, Fix Finder, Problem Analysis (blocked by the drill PR); batch 5 (Energy,
+  Bottleneck, Shift-calendar KPIs, Forecast Lab, Reliability scorecard); Action Center and Machine page rebuilds; batch 4 and PM Calendar wiring; Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7.
+- Cost rules from Nimish: tests minimal, Sonnet builders, Opus reviewers. He asked for CI auto-merge; the repo setting "Allow auto-merge" is off and only he can tick it.
+- Lesson: never merge a stacked PR into its parent's branch once the parent has merged to main; check the PR's base is main before the merge click.
 
 ## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 
