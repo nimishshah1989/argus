@@ -3,151 +3,170 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import i18n from 'i18next';
+import type { Ticket } from '@uptimo/shared/replies';
+import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/fixture.js';
 import '../../../i18n/index.js';
-import { cellNote } from '../../../ui/v2/domain/plant.js';
-import { nextTile } from '../../../ui/v2/domain/plant.js';
-import { dashboardFixture as model } from './fixture.js';
+import { UUID, printed, realBoard, realReply } from '../figures/real-reply.js';
+import { dashboardModel, type DashFacts } from './adapter.js';
+import { priorDate } from './change.js';
 import { DashboardView } from './View.js';
 
-const text = (markup: string) =>
-  markup
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-const all = (markup: string, re: RegExp) => [...markup.matchAll(re)].map((m) => text(m[1]!));
-const plain = (s: string) => s.replace(/\u00a0/g, ' ');
-const num = (s: string) => parseFloat(s.replace(/[^\d.]/g, ''));
-const machines = model.cells.flatMap((c) => c.machines);
+/**
+ * The completeness test: every item v1's Dashboard showed is printed by the v2 page, from the engine's real reply over
+ * the frozen 11 November plant (and the same engine run 30 days earlier, for the changes), not from rows written for the
+ * test. The strip is built from tickets in the desk's own shape.
+ */
+const t = (key: string, values?: Record<string, string | number>) =>
+  i18n.t(key, { ...values }) as string;
+const reply = realReply();
+const before = realReply(priorDate(reply.asOf));
+const NOW = '2026-11-11T12:00:00.000Z';
+const ticket = (over: Partial<Ticket>) =>
+  ({
+    id: 't1',
+    ref: 'BD-1',
+    kind: 'stopped',
+    status: 'open',
+    machineId: 'HMC-2',
+    problem: 'Spindle alarm',
+    reportedAt: '2026-11-11T08:00:00Z',
+    machineRunningAt: null,
+    machineStoppedAt: '2026-11-11T08:00:00Z',
+    waitSince: null,
+    handedOver: false,
+    parentId: null,
+    taskExpectedOn: null,
+    location: null,
+    sla: { ack: { breached: true } },
+    ...over,
+  }) as unknown as Ticket;
+const machines = ENGINE_DATA.machines.map((m) => ({
+  id: m.id,
+  code: m.code,
+  category: m.category ?? null,
+}));
+const facts: DashFacts = {
+  machines,
+  state: { open: [ticket({})], now: NOW },
+  board: realBoard(),
+  before,
+};
+const model = dashboardModel(reply, facts, t)!;
 const nav = [{ id: 'today', label: 'Today', icon: 'today' as const, href: '/a', current: true }];
+const markup = renderToStaticMarkup(
+  createElement(
+    MemoryRouter,
+    { initialEntries: ['/analytics/today'] },
+    createElement(DashboardView, { model, nav, title: 'Dashboard' }),
+  ),
+);
+const figures = reply.figures.filter((f) => f.screen === 'dashboard');
+const strings = printed(model);
 
-/** The Dashboard at a URL: the drawer lives in the query, so the page needs a router around it. */
-const render = (url = '/gallery') =>
-  renderToStaticMarkup(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [url] },
-      createElement(DashboardView, { model, nav, title: 'Dashboard' }),
-    ),
-  );
-
-describe('the v2 Dashboard on its fixture', () => {
-  const out = render();
-
-  it('answers first: the verdict, then four key figures, then the decisions', () => {
-    expect(text(out)).toContain('November is 9.2% worse than October.');
-    expect(out.match(/class="v2-card v2-kpi"/g)).toHaveLength(4);
-    expect(all(out, /<h2[^>]*>(.*?)<\/h2>/g)).toEqual([
-      'Decide today',
-      'Breakdown and PM hours',
-      'Against target',
-      'Where the hours go',
-      'The plant right now',
-      'Machines',
+describe('the v2 Dashboard prints everything v1 showed', () => {
+  it('all twenty engine figures, each in its own period and printed as the engine gave it', () => {
+    expect(figures).toHaveLength(20);
+    const kpi = (id: string) => model.kpis.find((k) => k.id === id)!;
+    expect(kpi('dashboard.total-machines').value).toBe('159');
+    expect(kpi('dashboard.total-breakdowns').value).toBe('1,279');
+    expect(kpi('dashboard.total-downtime-hours').value).toBe('3,060.1 hrs');
+    expect(kpi('dashboard.fleet-availability').value).toBe('99.32%');
+    expect(kpi('dashboard.avg-bd-hours-per-machine').value).toBe('24.29 hrs/machine');
+    expect(kpi('dashboard.breakdown-free').value).toBe('53 of 125 machines');
+    expect(model.kpis.map((k) => k.id)).toHaveLength(17);
+    expect(model.charts.map((c) => c.id)).toEqual([
+      'dashboard.bubble-chart',
+      'dashboard.expansion-timeline',
     ]);
+    expect(model.costliest!.table.rows).toHaveLength(3);
+    expect(model.costliest!.pareto.total).toBe(3060.1);
   });
 
-  it('lists the decisions in the model order, biggest first by hours, each opening from its title', () => {
-    expect(
-      all(out, /<h3[^>]*>(.*?)<\/h3>/g).filter((t) => model.decisions.some((d) => d.title === t)),
-    ).toEqual(model.decisions.map((d) => d.title));
-    const hours = model.decisions.map((d) => num(d.hours));
-    expect(hours).toEqual([...hours].sort((a, b) => b - a));
-    expect(out).toMatch(/<button type="button" class="v2-title-btn" aria-expanded="false">/);
+  it('the costliest problems with their hours, share and number of breakdowns', () => {
+    const [first] = model.costliest!.table.rows;
+    expect(first!.map((cell) => cell.text)).toEqual([
+      'Axis motor / drive / encoder / servo',
+      '485 hrs',
+      '15.85%',
+      '104',
+    ]);
+    const bars = model.costliest!.pareto.bars;
+    expect(bars.reduce((sum, bar) => sum + bar.hours, 0)).toBeCloseTo(3060.1, 5);
   });
 
-  it('starts with the drawer closed, and shows ten machines of all of them', () => {
-    expect(out).toMatch(/<aside[^>]*inert=""/);
-    expect(text(out)).toContain(`1–10 of ${machines.length}`);
+  it('the change against 30 days earlier: a verdict for a rate, a quiet amount for a running total', () => {
+    const kpi = (id: string) => model.kpis.find((k) => k.id === id)!;
+    expect(kpi('dashboard.total-machines').delta.text).toBe('');
+    expect(kpi('dashboard.total-breakdowns').delta.flat).toBe(true);
+    expect(kpi('dashboard.total-breakdowns').delta.text).toMatch(/ in 30 days$/);
+    expect(model.verdict.context).toContain('Changes are against 12-Oct-2026, 30 days earlier');
+    expect(kpi('dashboard.total-breakdowns').period).toBe('vs 12-Oct-2026');
   });
 
-  it('opens a decision in the drawer from a pasted link, with its Decide button and a link to its page', () => {
-    const open = render('/gallery?view=v2-dashboard&drawer=decision:axis');
-    expect(open).toMatch(/<aside[^>]*aria-label="Stop axis motor and encoder failures"/);
-    expect(open).not.toMatch(/<aside[^>]*inert/);
-    expect(open).toMatch(/aria-expanded="true"/);
-    expect(open).toMatch(
-      /<footer[^>]*><a[^>]*href="\/analytics\/today\/action-center\?drawer=decision:axis"[^>]*>Open full page/,
+  it('every figure v1 drilled opens its rows', () => {
+    for (const figure of figures.filter((f) => f.drill.ids.length > 0)) {
+      const drill = [...model.kpis, ...model.charts, ...(model.costliest?.pareto.bars ?? [])].find(
+        (item) => ('drill' in item ? item.drill?.figure === figure.key : false),
+      );
+      expect(drill, figure.key).toBeDefined();
+    }
+  });
+
+  it('the strip of what needs a person now, with its count line and the way to each ticket', () => {
+    expect(model.needs!.counts).toBe('1 open · 1 clocks breached');
+    expect(model.needs!.items[0]).toMatchObject({
+      ref: 'BD-1',
+      breach: 'Acknowledge clock breached',
+      href: '/desk/t1',
+      where: { text: 'HMC-2' },
+    });
+    const calm = dashboardModel(reply, { ...facts, state: { open: [], now: NOW } }, t)!;
+    expect(calm.needs!.empty).toBe('Nothing needs you now.');
+    expect(dashboardModel(reply, { ...facts, state: null }, t)!.needs).toBeNull();
+  });
+
+  it('the Action Center banner with the open high and medium counts, and the way to it', () => {
+    const { high, med } = facts.board!.bySeverity;
+    expect(model.banner).toEqual({
+      text: `${high} high-priority and ${med} medium nudges need attention`,
+      href: '/analytics/today/action-center',
+    });
+    expect(dashboardModel(reply, { ...facts, board: null }, t)!.banner).toBeNull();
+  });
+
+  it('a figure the engine has not computed says so and claims no value', () => {
+    const held = {
+      ...reply,
+      figures: reply.figures.map((f) =>
+        f.key === 'dashboard.plant-bd-pct'
+          ? { ...f, status: 'not_computed' as const, value: null }
+          : f,
+      ),
+    };
+    const card = dashboardModel(held, facts, t)!.kpis.find(
+      (k) => k.id === 'dashboard.plant-bd-pct',
+    )!;
+    expect([card.value, card.meaning, card.drill]).toEqual(['—', 'Not computed yet', undefined]);
+  });
+
+  it('the as-of date, the machines left out, and the answer first', () => {
+    const left = dashboardModel({ ...reply, excludedMachines: 2 }, facts, t)!;
+    expect(left.verdict.context).toContain('Records to 11-Nov-2026');
+    expect(left.verdict.context).toContain('2 machines not counted in production data');
+    const headline = model.verdict.headline.map((part) => part.text).join('');
+    expect(headline).toBe(
+      'Fleet availability is 99.32%. 1,279 breakdowns have cost 3,060.1 hrs, and Axis motor / drive / encoder / servo costs the most.',
     );
+    expect(markup).toContain('Fleet availability is');
   });
 
-  it('ignores a drawer value it does not understand', () => {
-    for (const bad of ['drawer=widget:1', 'drawer=machine', 'drawer=machine:', 'drawer=:TC-4'])
-      expect(render(`/gallery?${bad}`)).toMatch(/<aside[^>]*inert=""/);
+  it('prints no machine id and no money', () => {
+    expect(strings.some((s) => UUID.test(s))).toBe(false);
+    expect(JSON.stringify(model)).not.toMatch(/₹/);
   });
 
-  it('prints every machine, cell and person it names as a chip that opens it', () => {
-    const chips = [...out.matchAll(/<button type="button" class="v2-entity[^"]*"[^>]*>/g)];
-    expect(chips.length).toBeGreaterThan(30);
-    expect(out).toMatch(/data-kind="machine" data-cat="1"><svg/);
-    expect(out).toMatch(/data-kind="person"/);
-    expect(out).toMatch(/data-kind="cell"/);
-  });
-});
-
-describe('the fixture figures agree with each other', () => {
-  const kpi = (id: string) => model.kpis.find((k) => k.id === id)!;
-
-  it('shares the month’s breakdown hours out across every machine and across the Pareto bars', () => {
-    const month = num(kpi('hours').value);
-    const byMachine = machines.reduce((s, m) => s + m.hours.value, 0);
-    expect(byMachine).toBeCloseTo(month, 5);
-    expect(model.pareto.total).toBe(month);
-  });
-
-  it('wins back exactly what the decisions add up to, in hours and in money', () => {
-    const why = plain(model.verdict.why.map((p) => p.map((s) => s.text).join('')).join(' '));
-    const hours = model.decisions.reduce((s, d) => s + num(d.hours), 0);
-    const lakh = model.decisions.reduce(
-      (s, d) => s + (num(/([\d.]+)\slakh/.exec(d.money)?.[1] ?? '0') || 0),
-      0,
-    );
-    expect(why).toContain(`${hours.toFixed(1)} h a month`);
-    expect(why).toContain(`₹ ${lakh.toFixed(2)} lakh a year`);
-    expect(why).toContain(`₹ ${(lakh / 12).toFixed(2)} lakh a month`);
-  });
-
-  it('keeps the rest of the Pareto smaller than the top three, as its Why says', () => {
-    const top = model.pareto.bars.slice(0, model.pareto.top).reduce((s, b) => s + b.hours, 0);
-    const rest = model.pareto.total - top;
-    expect(rest).toBeLessThan(top);
-    expect(plain(model.pareto.why.map((p) => p.map((s) => s.text).join('')).join(' '))).toContain(
-      `${rest.toFixed(1)} h, less than these 3`,
-    );
-  });
-
-  it('names only machines the plant has, and gives running machines no breakdown hours', () => {
-    const codes = new Set(machines.map((m) => m.code));
-    const named = model.decisions.find((d) => d.id === 'axis')!.codes;
-    expect(named.filter((c) => !codes.has(c.id))).toEqual([]);
-    expect(machines.filter((m) => m.state === 'run' && m.hours.value > 0)).toEqual([]);
-  });
-
-  it('ends the trend on this month and last month, as the KPI says', () => {
-    const breakdown = model.trend.series[0]!.values;
-    expect(breakdown.at(-1)).toBe(num(kpi('hours').value));
-    expect((breakdown.at(-1)! - breakdown.at(-2)!).toFixed(1)).toBe(
-      plain(kpi('hours').delta.text).replace(/[^\d.]/g, ''),
-    );
-  });
-});
-
-describe('the plant map', () => {
-  const words = model.words.plant;
-  const cell = (states: ('run' | 'down' | 'risk')[]) => ({
-    name: 'Cell 1',
-    machines: states.map((state, i) => ({ ...machines[0]!, code: `TC-${i + 1}`, state })),
-  });
-  it('says "all running" only when every machine runs, otherwise the rest, worst first', () => {
-    expect(cellNote(cell(['run', 'run']), words)).toBe('all running');
-    expect(plain(cellNote(cell(['run', 'risk', 'down', 'risk']), words))).toBe(
-      '1 down · 2 at risk',
-    );
-  });
-  it('moves with the arrow keys: along the map, between cells, and to either end', () => {
-    const rows = [['A1', 'A2', 'A3'], [], ['B1', 'B2']];
-    expect(nextTile(rows, 'A3', 'ArrowRight')).toBe('B1');
-    expect(nextTile(rows, 'A3', 'ArrowDown')).toBe('B2');
-    expect(nextTile(rows, 'B2', 'Home')).toBe('A1');
-    expect(nextTile(rows, 'A1', 'Enter')).toBeUndefined();
+  it('is empty only when the reply holds no Dashboard figure', () => {
+    expect(dashboardModel({ ...reply, figures: [] }, facts, t)).toBeNull();
   });
 });

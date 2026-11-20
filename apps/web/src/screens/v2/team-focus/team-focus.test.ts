@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import '../../../i18n/index.js';
-import { dashboardFixture } from '../dashboard/fixture.js';
+import { dashboardFixture } from '../fixtures/plant-fixture.js';
 import { teamFocusFixture as model } from './fixture.js';
 import { RAW } from './fixture-actions.js';
 import { TeamFocusView } from './View.js';

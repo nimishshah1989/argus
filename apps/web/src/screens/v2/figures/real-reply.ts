@@ -1,6 +1,7 @@
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { run } from '@uptimo/domain';
+import { actionCenterBoard, run } from '@uptimo/domain';
+import type { ActionCenterBoardReply } from '@uptimo/shared';
 import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/fixture.js';
 
 /**
@@ -10,10 +11,10 @@ import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/f
  */
 export const AS_OF = '2026-11-11';
 
-export function realReply(): FiguresReply {
-  const result = run(ENGINE_DATA, AS_OF, DEFAULT_PROFILE);
+export function realReply(asOf: string = AS_OF): FiguresReply {
+  const result = run(ENGINE_DATA, asOf, DEFAULT_PROFILE);
   return {
-    asOf: AS_OF,
+    asOf,
     profile: {} as FiguresReply['profile'],
     excludedMachines: 0,
     rows: { machines: 0, moves: 0, tickets: 0, tasks: 0, reports: 0, people: 0 },
@@ -34,3 +35,31 @@ export function printed(model: unknown): string[] {
 }
 
 export const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+
+/** One stored acknowledgement as the server keeps it under `nudge:<key>`. */
+export type StoredAck = {
+  status: 'ack' | 'snooze' | 'done';
+  owner: string;
+  due: string;
+  note: string;
+  at: string;
+  until?: string;
+};
+
+/**
+ * The Action Center's board as the server answers it for the same frozen plant: the real engine's `actionCenterBoard`
+ * over the answer-key data, with the workbook's own acknowledgements and, as after a write, `acks` replacing or adding
+ * the stored ones (the server's `boardAfter` does exactly this).
+ */
+export function realBoard(acks: Record<string, StoredAck> = {}): ActionCenterBoardReply {
+  const settings = ENGINE_DATA.settings ?? { excludedMachineIds: [], problemFixes: {} };
+  const data = {
+    ...ENGINE_DATA,
+    settings: { ...settings, nudgeAcks: { ...(settings.nudgeAcks ?? {}), ...acks } },
+  };
+  return actionCenterBoard({
+    data,
+    asOf: AS_OF,
+    profile: DEFAULT_PROFILE,
+  }) as unknown as ActionCenterBoardReply;
+}

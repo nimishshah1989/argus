@@ -22,14 +22,7 @@ describe('the gallery views of the v2 screens', () => {
     );
     const keys = files.map((f) => f.replace(/-view\.tsx$/, ''));
     expect(Object.keys(V2_VIEWS).sort()).toEqual(keys.sort());
-    for (const key of [
-      'v2-dashboard',
-      'v2-team-focus',
-      'v2-compare',
-      'v2-machine',
-      'v2-action-center',
-      'v2-data-checklist',
-    ])
+    for (const key of ['v2-plant', 'v2-team-focus', 'v2-compare', 'v2-data-checklist'])
       expect(V2_VIEWS).toHaveProperty(key);
   });
 });

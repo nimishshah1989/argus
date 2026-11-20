@@ -1,55 +1,65 @@
-import type { BulletData, BulletLegendWords } from '../../../ui/v2/bullet-bar.js';
-import type { DecisionDetailWords } from '../../../ui/v2/domain/decision-detail.js';
-import type { DecisionListWords } from '../../../ui/v2/domain/decision-list.js';
-import type { DecisionData } from '../../../ui/v2/domain/decision-row.js';
-import type { MachineDetailWords } from '../../../ui/v2/domain/machine-detail.js';
-import type { MachineTableWords } from '../../../ui/v2/domain/machine-table.js';
-import type { CellData, PlantWords } from '../../../ui/v2/domain/plant.js';
+import type { ChartSpec } from '../../../ui/chart/use-chart.js';
+import type { Drill } from '../../../ui/v2/drill.js';
+import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { ParetoData } from '../../../ui/v2/pareto.js';
-import type { TrendData } from '../../../ui/v2/trend-chart.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
+import type { TableModel } from '../figures/table.js';
 
-/**
- * Everything the Dashboard prints, and the contract the API fills. Every figure and every word arrives ready to print
- * (the engine's numbers, the reader's language); the screen only arranges them. Numbers beside a printed figure
- * (`hours.value`, `value`, a trend) only place a mark or sort a column.
- */
-export type DashboardModel = {
-  verdict: VerdictData;
-  /** Two to four key figures. */
-  kpis: KpiData[];
-  /** Biggest first. */
-  decisions: DecisionData[];
-  /** Every machine, by cell: the plant map, the machines table and the machine drawer all read these. */
-  cells: CellData[];
-  bullets: BulletData[];
-  trend: TrendData;
-  pareto: ParetoData;
-  /** Where the figures came from and how fresh they are (DD-MMM-YYYY, IST). */
-  source: string;
-  words: DashboardWords;
+/** One ticket that needs a person now: where, what, how long, which clock ran out, and the way to open it. */
+export type NeedItem = {
+  id: string;
+  ref: string;
+  /** The machine (a chip that opens it) or, when the ticket names none, where it is. */
+  where: { text: string; chip?: EntityChipProps };
+  problem: string;
+  /** What kind of ticket it is and how long it has waited, one line. */
+  line: string;
+  breach: string | null;
+  href: string;
+};
+
+export type NeedsNowModel = {
+  title: string;
+  /** "3 open · 1 clocks breached". */
+  counts: string;
+  empty: string;
+  open: string;
+  items: NeedItem[];
+};
+
+/** A picture the engine drew: its spec, the line under its title, what it says aloud and the rows behind it. */
+export type DashboardChart = {
+  id: string;
+  spec: ChartSpec;
+  sub: string;
+  aria: string;
+  drill?: Drill;
 };
 
 export type DashboardWords = {
   why: string;
   whyThese: string;
-  decisions: DecisionListWords;
-  plant: PlantWords;
-  targetTitle: string;
-  legend: BulletLegendWords;
-  paretoTitle: string;
-  addFocus: string;
-  seeFixes: string;
-  decisionDetail: DecisionDetailWords;
-  machineDetail: MachineDetailWords;
-  machines: MachineTableWords;
+  /** The Action Center banner's link. */
+  openActionCenter: string;
 };
 
-/** What the reader asks for; nothing goes to the network in the gallery. A decision's state comes back in the model. */
-export type DashboardActions = {
-  onDecide?: (decisionId: string) => void;
-  onUndo?: (decisionId: string) => void;
-  onAddFocus?: () => void;
-  onSeeFixes?: () => void;
+/**
+ * Everything the Dashboard prints, from the engine's own figures: its twenty `dashboard.*` figures each in its own
+ * period, the change against 30 days earlier, the strip of what needs a person now and the Action Center's counts.
+ * Every figure arrives ready to print; the screen only arranges it.
+ */
+export type DashboardModel = {
+  verdict: VerdictData;
+  /** The open high and medium nudges and the way to them; null when none is open. */
+  banner: { text: string; href: string } | null;
+  /** Null when the desk's open tickets could not be read: the strip is then left out, never shown as an all-clear. */
+  needs: NeedsNowModel | null;
+  /** The number figures and the breakdown-free sentence, in the engine's order. */
+  kpis: KpiData[];
+  /** The costliest problems: the bars and the engine's own rows. Null when the engine has none. */
+  costliest: { title: string; pareto: ParetoData; table: TableModel } | null;
+  charts: DashboardChart[];
+  source: string;
+  words: DashboardWords;
 };

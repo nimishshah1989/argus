@@ -1,6 +1,6 @@
 import type { CompareFigure } from '../../../ui/v2/domain/compare-box.js';
 import type { MachineData } from '../../../ui/v2/domain/plant.js';
-import { glue } from '../dashboard/fixture-text.js';
+import { glue } from '../fixtures/text.js';
 import { RATE, WEEKS_SO_FAR, type Year } from './fixture-rows.js';
 
 /** One machine's year, added up from its breakdowns. */

@@ -1,8 +1,8 @@
 import type { DecisionData } from '../../../ui/v2/domain/decision-row.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
-import { chip as machineChip, glue, pt, pts } from '../dashboard/fixture-text.js';
-import { dashboardFixture } from '../dashboard/fixture.js';
+import { chip as machineChip, glue, pt, pts } from '../fixtures/text.js';
+import { dashboardFixture } from '../fixtures/plant-fixture.js';
 import { LANES, LAST_MONTH, STATUS, type Raw } from './fixture-actions.js';
 import {
   chipOf,

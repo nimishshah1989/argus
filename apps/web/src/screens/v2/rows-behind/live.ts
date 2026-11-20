@@ -1,6 +1,7 @@
 import { MAX_DRILL_IDS, type DrillReply, type DrillType } from '@uptimo/shared/analytics';
 import type { ProviderContext } from '../data.js';
 import { catalogue, liveCodes, liveDrill, liveReply } from '../figures/live.js';
+import { machineDrill } from './machine.js';
 import { rowsModel } from './model.js';
 
 /** Every row a figure counted: the server answers at most `MAX_DRILL_IDS` ids a read, so a long list is read in parts. */
@@ -17,13 +18,21 @@ async function rowsOf(
 }
 
 /**
- * The rows behind the figure the URL names, from the engine's reply (`GET /analytics/figures`, for the figure's value
+ * The rows behind the figure (or the block of one machine's page) the URL names, from the engine's reply (`GET /analytics/figures`, for the figure's value
  * and the ids it counted) and the drill read (`GET /analytics/drill`, the same read v1's drill table makes). A figure
  * the plant does not have, one not computed yet, or one that counted nothing is `null`: the drawer says so.
  */
 export async function liveRows(figure: string, { client }: ProviderContext) {
   const reply = await liveReply(client);
-  const found = reply.figures.find((candidate) => candidate.key === figure);
+  const own = machineDrill(figure, reply);
+  const listed = reply.figures.find((candidate) => candidate.key === figure);
+  const found =
+    own === null
+      ? listed
+      : ({ status: 'ready', drill: own, value: null } satisfies Pick<
+          NonNullable<typeof listed>,
+          'status' | 'drill' | 'value'
+        >);
   if (found?.status !== 'ready' || found.drill.ids.length === 0) return null;
   const [drill, code] = await Promise.all([
     rowsOf(found.drill.type, found.drill.ids, (type, ids) => liveDrill(client, type, ids)),

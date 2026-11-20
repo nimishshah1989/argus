@@ -3,7 +3,8 @@ import { signIn } from './fixtures.js';
 
 /**
  * Ticket 86a: the approved navigation map on the real analytics screens. The shell is a frame: the screens
- * inside keep their own journeys (the other analytics specs), so this one checks the frame alone.
+ * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It opens the Data
+ * checklist, a Today screen that is still v1's: the Dashboard and the Action Center now run in the v2 shell.
  */
 const SECTIONS = [
   'Today',
@@ -21,7 +22,7 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
   const wide = testInfo.project.name === 'chromium';
   if (wide) await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today');
+  await page.goto('/analytics/today/checklist');
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
@@ -52,7 +53,7 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
 test('Ctrl K opens a search over the real routes and Enter goes there', async ({ page }, info) => {
   if (info.project.name === 'chromium') await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today');
+  await page.goto('/analytics/today/checklist');
 
   // Wait for the shell to mount so the key listener exists. A phone has no keyboard, so it clicks Search.
   const search = page.getByRole('button', { name: /^Search/ });
@@ -79,7 +80,7 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
 test('on a phone the menu is a drawer that closes on a choice and on Escape', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today');
+  await page.goto('/analytics/today/checklist');
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   await expect(menu).toBeHidden();

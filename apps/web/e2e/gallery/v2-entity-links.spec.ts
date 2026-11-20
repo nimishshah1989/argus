@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-const PAGE = '/gallery?view=v2-dashboard';
+const PAGE = '/gallery?view=v2-plant';
 const AXIS = 'Stop axis motor and encoder failures';
 const drawer = (page: Page) => page.locator('aside.v2-drawer');
 const decision = (page: Page) => page.locator('article.v2-decision').first();
@@ -30,7 +30,7 @@ test('a machine chip opens that machine; Back closes it and the page is as befor
   await chip(decision(page), 'VC-67').click();
   await expect(drawer(page)).toHaveAttribute('aria-label', 'Vertical machining centre 67');
   await expect(page).toHaveURL(/[?&]drawer=machine:VC-67$/);
-  expect(params(page).get('view')).toBe('v2-dashboard');
+  expect(params(page).get('view')).toBe('v2-plant');
   await expect(drawer(page).getByText('Breakdown hours', { exact: true })).toBeVisible();
   await page.goBack();
   await closed(page);
@@ -62,7 +62,7 @@ test('a pasted link opens the drawer, and ✕ removes it without leaving the pag
   await expect(drawer(page)).toHaveAttribute('aria-label', 'Turning centre 4');
   await drawer(page).getByRole('button', { name: 'Close' }).click();
   await closed(page);
-  expect(params(page).get('view')).toBe('v2-dashboard');
+  expect(params(page).get('view')).toBe('v2-plant');
   await page.goBack();
   expect(page.url()).toBe('about:blank');
 });

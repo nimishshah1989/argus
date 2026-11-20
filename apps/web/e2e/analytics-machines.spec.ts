@@ -263,7 +263,9 @@ test('a head opens a register page, the cell change log and a machine page that 
   await expect(page.getByText('CVM-800', { exact: true })).toBeVisible();
   await expect(page.getByText('10.00 m²', { exact: true })).toBeVisible();
   await expect(page.getByText('4.20 KVA', { exact: true })).toBeVisible();
-  await expect(page.getByText('27', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Breakdowns', exact: true }).getByText('27', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Tool declamp problem', { exact: true })).toBeVisible();
   await expect(page.getByText('10 of 10 fields', { exact: true })).toBeVisible();
 

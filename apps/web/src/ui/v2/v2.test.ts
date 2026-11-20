@@ -2,7 +2,7 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { dashboardFixture as model } from '../../screens/v2/dashboard/fixture.js';
+import { dashboardFixture as model } from '../../screens/v2/fixtures/plant-fixture.js';
 import { BulletBar, place } from './bullet-bar.js';
 import { DataTable } from './data-table.js';
 import { Drawer } from './drawer.js';

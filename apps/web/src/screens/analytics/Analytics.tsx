@@ -1,19 +1,17 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { groupFor } from './groups.js';
-import { ActionCenterPage } from './ActionCenterPage.js';
-import { Dashboard } from './Dashboard.js';
+import { TeamFocusFace } from './TeamFocusFace.js';
 import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
 import { ForecastPage } from './ForecastPage.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
-import { MachinePage } from './MachinePage.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
 import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
-import { liveScreen } from '../v2/live.js';
+import { ActionCenterLive, MachinePageLive, liveScreen } from '../v2/live.js';
 
 // The PM calendar is the one lazy page (ADR 0009 R1): FullCalendar and its theme load only when a head opens
 // `/analytics/pm`, never in the start-up files.
@@ -30,26 +28,14 @@ export function DataChecklistPage() {
   );
 }
 
-/** The Action Center's own route, inside the Today group's shell (packet 44d). */
+/** The Action Center's own route (`/analytics/today/action-center`): the v2 screen, in the v2 shell. */
 export function ActionCenterRoute() {
-  const today = groupFor('today');
-  if (!today) return <Navigate to="/analytics/today" replace />;
-  return (
-    <AnalyticsShell>
-      <ActionCenterPage />
-    </AnalyticsShell>
-  );
+  return <ActionCenterLive />;
 }
 
-/** One machine's page: inside the Machines group's shell, with that group's menu entry marked. */
+/** One machine's page (`/analytics/machines/:id`): the v2 screen, in the v2 shell. */
 export function MachinePageRoute() {
-  const machines = groupFor('machines');
-  if (!machines) return <Navigate to="/analytics/today" replace />;
-  return (
-    <AnalyticsShell>
-      <MachinePage group={machines} />
-    </AnalyticsShell>
-  );
+  return <MachinePageLive />;
 }
 
 /** The face itself: `/analytics` opens on Today; an unknown group falls back to it (no 404 screen). */
@@ -65,7 +51,7 @@ export function AnalyticsFace() {
       {found.id === 'guide' ? (
         <GuidePage />
       ) : found.id === 'today' ? (
-        <Dashboard group={found} />
+        <TeamFocusFace group={found} />
       ) : found.id === 'machines' ? (
         <MachinesPage group={found} />
       ) : found.id === 'breakdowns' ? (

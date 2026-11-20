@@ -1,84 +1,193 @@
-import { useState } from 'react';
-import { EntityChip } from '../../../ui/v2/entity-chip.js';
+/* eslint-disable i18next/no-literal-string -- typed keys only; every visible word comes from the model */
+import { Link } from 'react-router-dom';
+import { Button } from '../../../ui/v2/button.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
-import { cellChip, machineChip, STATE_ICON, STATE_TONE } from '../../../ui/v2/domain/plant.js';
+import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
+import { FactList } from '../../../ui/v2/domain/fact-list.js';
+import { DrillOpenContext, type Drill } from '../../../ui/v2/drill.js';
+import { EntityChip } from '../../../ui/v2/entity-chip.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
+import { Panel } from '../../../ui/v2/panel.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
-import { TrendChart } from '../../../ui/v2/trend-chart.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import { NextCard, PmCard, SparesCard } from './Cards.js';
-import { History } from './History.js';
-import type { MachinePageModel } from './model.js';
+import { useContext } from 'react';
+import type { FitModel, MachinePageModel, TaskRow } from './model.js';
 
-const ignore = () => {};
+/** The way to the rows behind a block, in the block's head. */
+function SeeRows({ drill, label }: { drill?: Drill; label: string }) {
+  const open = useContext(DrillOpenContext);
+  return drill ? <Button onClick={() => open(drill)}>{label}</Button> : null;
+}
 
-/** Who the machine is and where it stands, in one line: its state, its code, its name, its type and its cell. */
+/** Who the machine is, in one line: its code, its type and its cell. */
 function Identity({ model }: { model: MachinePageModel }) {
-  const m = model.machine;
+  const { machine } = model;
   return (
     <div className="v2-row v2-gap-8">
-      <KeyPill
-        text={model.words.states[m.state]}
-        tone={STATE_TONE[m.state]}
-        icon={STATE_ICON[m.state]}
-      />
-      <EntityChip {...machineChip(m)} />
-      <span className="v2-sub">
-        {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
-      </span>
+      <EntityChip {...machine.chip} />
+      <span className="v2-sub">{machine.type}</span>
+      {machine.cell ? <EntityChip {...machine.cell} /> : null}
+    </div>
+  );
+}
+
+function Fit({ fit }: { fit: FitModel }) {
+  return (
+    <div className="v2-stack v2-gap-8">
+      {fit.heading ? <h3 className="v2-h3">{fit.heading}</h3> : null}
+      {fit.figures.length > 0 ? <FactList facts={fit.figures} /> : null}
+      {fit.lines.map((line) => (
+        <p key={line} className="v2-sub">
+          {line}
+        </p>
+      ))}
+      {fit.trend ? (
+        <p className="v2-sub">
+          <strong>{fit.trend.word}</strong> <span>{fit.trend.slope}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function Task({ row }: { row: TaskRow }) {
+  return (
+    <li className="v2-item">
+      <div className="v2-row v2-gap-8">
+        <Link to={row.href} className="v2-link">
+          {row.ref}
+        </Link>
+        <KeyPill text={row.status} tone="neutral" />
+        {row.overdue ? <KeyPill text={row.overdue} tone="loss" icon="alert" /> : null}
+      </div>
+      <p>{row.problem}</p>
+      {row.scheduled ? <p className="v2-sub">{row.scheduled}</p> : null}
+    </li>
+  );
+}
+
+function TaskList({ title, empty, rows }: { title: string; empty: string; rows: TaskRow[] }) {
+  return (
+    <div className="v2-stack">
+      <h3 className="v2-h3">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="v2-sub">{empty}</p>
+      ) : (
+        <ul className="v2-list">
+          {rows.map((row) => (
+            <Task key={row.id} row={row} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 /**
- * One machine's own page, decision-first: its state and why, four key figures, what to do next, the 12-week trend
- * beside its PM and spares, and every breakdown of the year as a table whose row opens its story. Any chip on the
- * page (the machine, its cell, a person) opens that thing in the drawer, which lives in the URL.
+ * One machine's page on the engine's own figures: its state of health in one sentence, the eight headline figures
+ * (each opening its rows), what has gone wrong, how it is likely to, the parts it uses, what is open on it, where it has
+ * been, what it is and how complete its record is. A chip opens that thing in the drawer, which lives in the URL.
  */
 export function MachineView({
   model,
   nav,
   title,
-  onAct = ignore,
-  onUndo = ignore,
 }: {
   model: MachinePageModel;
   nav: NavItem[];
   title: string;
-  onAct?: () => void;
-  onUndo?: () => void;
 }) {
   const { words } = model;
-  const [done, setDone] = useState(false);
-  const [open, setOpen] = useState<string>();
   return (
     <EntityShell nav={nav} title={title}>
       <Identity model={model} />
       <Verdict verdict={model.verdict} whyLabel={words.why} />
       <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
+        {model.kpis.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} />
         ))}
       </Row>
-      <NextCard
-        next={model.next}
-        words={words}
-        done={done}
-        onAct={() => (setDone(true), onAct())}
-        onUndo={() => (setDone(false), onUndo())}
-      />
-      <Row wide>
-        <TrendChart data={model.trend} />
-        <div className="v2-stack">
-          <PmCard pm={model.pm} title={words.pmTitle} />
-          <SparesCard spares={model.spares} title={words.sparesTitle} />
-        </div>
-      </Row>
-      <History rows={model.history} words={words.history} open={open} onOpen={setOpen} />
+      <Health model={model} />
+      <Record model={model} />
       <SourceLine text={model.source} />
     </EntityShell>
+  );
+}
+
+/** What has gone wrong, how it is likely to, the parts it uses and what is open on it. */
+function Health({ model }: { model: MachinePageModel }) {
+  const rows = (drill?: Drill) => <SeeRows drill={drill} label={model.words.seeRows} />;
+  return (
+    <>
+      <Panel title={model.breakdowns.title} aside={rows(model.breakdowns.drill)}>
+        <FactList facts={model.breakdowns.facts} />
+      </Panel>
+      <Row>
+        <Panel title={model.reliability.title} aside={rows(model.reliability.drill)}>
+          {model.reliability.fit ? (
+            <Fit fit={model.reliability.fit} />
+          ) : (
+            <p className="v2-sub">{model.reliability.note}</p>
+          )}
+        </Panel>
+        <Panel title={model.spares.title} aside={rows(model.spares.drill)}>
+          {model.spares.table ? (
+            <>
+              <p className="v2-sub">{model.spares.ranked}</p>
+              <EngineTable table={model.spares.table} />
+              {model.spares.topLine ? <p className="v2-sub">{model.spares.topLine}</p> : null}
+            </>
+          ) : (
+            <p className="v2-sub">{model.spares.note}</p>
+          )}
+        </Panel>
+      </Row>
+      <Panel title={model.tasks.title} sub={model.tasks.asOf}>
+        {model.tasks.unavailable ? (
+          <p className="v2-sub">{model.tasks.unavailable}</p>
+        ) : (
+          <Row>
+            <TaskList {...model.tasks.open} />
+            <TaskList {...model.tasks.pm} />
+          </Row>
+        )}
+      </Panel>
+    </>
+  );
+}
+
+/** Where the machine has been, what it is, its PM and how complete its record is. */
+function Record({ model }: { model: MachinePageModel }) {
+  const rows = (drill?: Drill) => <SeeRows drill={drill} label={model.words.seeRows} />;
+  return (
+    <>
+      <Panel title={model.moves.title} aside={rows(model.moves.drill)}>
+        {model.moves.table ? (
+          <EngineTable table={model.moves.table} />
+        ) : (
+          <p className="v2-sub">{model.moves.none}</p>
+        )}
+      </Panel>
+      <Row>
+        <Panel title={model.nameplate.title} aside={rows(model.nameplate.drill)}>
+          {model.nameplate.facts.length > 0 ? (
+            <FactList facts={model.nameplate.facts} />
+          ) : (
+            <p className="v2-sub">{model.nameplate.none}</p>
+          )}
+        </Panel>
+        <div className="v2-stack">
+          <Panel title={model.pm.title} aside={rows(model.pm.drill)}>
+            <FactList facts={model.pm.facts} />
+          </Panel>
+          <Panel title={model.completeness.title}>
+            <FactList facts={[model.completeness.fact]} />
+          </Panel>
+        </div>
+      </Row>
+    </>
   );
 }

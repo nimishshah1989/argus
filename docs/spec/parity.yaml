@@ -1157,6 +1157,7 @@ rows:
       - fixtures/answer-key/dashboard.json
       - 'apps/web/e2e/analytics.spec.ts :: a head lands on Today with the live figures, a drill
         and the data checklist'
+      - 'apps/web/src/screens/v2/dashboard/dashboard.test.ts :: all twenty engine figures, each in its own period and printed as the engine gave it'
     source: docs/plan/m4a-triage.md
     screen: dashboard
     ticket: '38'
@@ -1242,6 +1243,8 @@ rows:
     status: todo
     evidence:
       - fixtures/answer-key/machine-page.json
+      - 'apps/web/src/screens/v2/machine/machine.test.ts :: the eight headline figures, each work figure opening its rows'
+      - 'apps/web/e2e/analytics-machine-reliability.spec.ts :: a head reads one machine’s fit, its parts, and drills from each'
     source: docs/plan/m4a-triage.md
     screen: machine-pages
     ticket: '39'
@@ -1531,7 +1534,8 @@ rows:
     status: done
     evidence:
       - fixtures/answer-key/action-center.json
-      - 'apps/web/src/screens/analytics/action-center.test.ts :: maps the key whole: four tiles, four tabs, all 36 cards, the 16 type options, the eight risk rows and no money'
+      - 'apps/web/src/screens/v2/action-center/adapter.test.ts :: prints every one of the 36 cards with the key title, and the first card whole'
+      - 'apps/web/src/screens/v2/action-center/action-center.test.ts :: one card for every nudge on the board, with its title, type, entries and evidence'
       - 'apps/web/e2e/analytics-action-center.spec.ts :: the Today banner reads the board; a head opens the screen, filters by type, acknowledges with owner/due/note, snoozes, reloads and reopens'
     source: docs/plan/m4a-triage.md
     screen: action-center

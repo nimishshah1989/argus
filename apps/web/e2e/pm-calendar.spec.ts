@@ -246,6 +246,26 @@ async function nextMonth(page: Page): Promise<void> {
   await expect(cellOf(page, midMonth(0))).toHaveCount(0);
 }
 
+/** A plant day as the v2 screens print it: `2026-11-18` is `18-Nov-2026`. */
+function plantDayText(day: string): string {
+  const [year, month, date] = day.split('-') as [string, string, string];
+  const names = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return `${date}-${names[Number(month) - 1]}-${year}`;
+}
+
 /** The machine page's live Tasks block, and the analytics blocks above it still drawn. */
 async function openTasks(page: Page, machine: { id: string; code: string }): Promise<void> {
   await page.goto(`/analytics/machines/${machine.id}`);
@@ -257,7 +277,7 @@ async function openTasks(page: Page, machine: { id: string; code: string }): Pro
   await expect(page.getByRole('link', { name: 'WR-PMC3', exact: true })).toBeVisible();
   await expect(page.getByText('Overdue', { exact: true })).toBeVisible();
   await expect(
-    page.getByText(`Scheduled ${shownDay(calendarDay(-2))}`, { exact: true }),
+    page.getByText(`Scheduled ${plantDayText(calendarDay(-2))}`, { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'PM visits and hours', exact: true }),

@@ -10,8 +10,8 @@ import { expect, test } from './test.js';
 import { MACHINES, signIn } from './fixtures.js';
 
 /**
- * 44d: the Action Center screen. A head opens the screen, sees the four tiles, the four tabs, the risk table and
- * one card per nudge, filters by type, acknowledges a nudge with owner, due and note, reloads and sees the ack
+ * 44d, on the v2 screen: the Action Center. A head opens the screen, sees the four tiles, the four tabs, the risk table
+ * and one card per nudge, filters by type, acknowledges a nudge with owner, due and note, reloads and sees the ack
  * hold, snoozes another and sees the snooze hold after a reload, then reopens it. The board and its write routes
  * are stubbed with an in-test store (the face's established seam; the e2e seed has no breakdowns), so the journey
  * proves the screen and the 44c contract it calls. The real persistence is 44c's server test.
@@ -183,28 +183,23 @@ async function assertBoard(page: Page): Promise<void> {
     ['low', '1'],
     ['info', '1'],
   ] as const)
-    await expect(page.locator(`[data-tile="${severity}"]`)).toContainText(count);
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
-  await expect(tabs.getByRole('tab')).toHaveCount(4);
-  await expect(tabs.getByRole('tab', { name: /^Open/ })).toHaveAttribute('aria-selected', 'true');
-  const risk = page.getByRole('table', { name: 'Machines needing attention' });
+    await expect(page.locator(`[data-kpi="${severity}"]`)).toContainText(count);
+  const tabs = page.getByRole('group', { name: 'Action Center status' });
+  await expect(tabs.getByRole('button')).toHaveCount(4);
+  await expect(tabs.getByRole('button', { name: /^Open/ })).toHaveAttribute('aria-pressed', 'true');
+  const risk = page.getByRole('region', { name: 'Machines needing attention' });
   await expect(risk.getByRole('row')).toHaveCount(2);
-  await expect(risk.getByRole('link', { name: 'VC-1 VMC' })).toHaveAttribute(
-    'href',
-    `/analytics/machines/${MACHINES[0]!.id}`,
-  );
+  await expect(risk.getByRole('button', { name: 'VC-1', exact: true })).toBeVisible();
+  for (const text of ['VMC', '7', 'Frequent breakdowns']) await expect(risk).toContainText(text);
   const freq = page.locator('[data-nudge="freq|VC-1"]');
   for (const text of [
     'Frequent breakdowns',
     'VC-1 has broken down 12 times in 30 days',
     '12 entries',
-    'Latest entry 10-11-2026',
+    'Latest entry 10-Nov-2026',
   ])
     await expect(freq).toContainText(text);
-  await expect(freq.getByRole('link', { name: 'VC-1' })).toHaveAttribute(
-    'href',
-    `/analytics/machines/${MACHINES[0]!.id}`,
-  );
+  await expect(freq.getByRole('button', { name: 'VC-1', exact: true })).toBeVisible();
   await expect(page.locator('[data-nudge]')).toHaveCount(5);
   await expect(page.locator('[data-nudge="good|hrs"]').getByRole('button')).toHaveCount(0);
   const type = page.getByLabel('Type', { exact: true });
@@ -216,7 +211,7 @@ async function assertBoard(page: Page): Promise<void> {
 }
 
 async function ackAndReload(page: Page): Promise<void> {
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
+  const tabs = page.getByRole('group', { name: 'Action Center status' });
   const freq = page.locator('[data-nudge="freq|VC-1"]');
   // One form at a time, even across two priorities: opening the medium card's form closes the high card's.
   await freq.getByRole('button', { name: 'Acknowledge', exact: true }).click();
@@ -231,32 +226,32 @@ async function ackAndReload(page: Page): Promise<void> {
   await form.getByLabel('Note', { exact: true }).fill('Check the bearing');
   await form.getByRole('button', { name: 'Save acknowledgement', exact: true }).click();
   // The acked card leaves the Open tab; its own tab shows the stored status line.
-  await tabs.getByRole('tab', { name: /^Acknowledged/ }).click();
-  for (const text of ['Acknowledged', 'Owner: Asha', 'Due 20-11-2026', 'Note: Check the bearing'])
+  await tabs.getByRole('button', { name: /^Acknowledged/ }).click();
+  for (const text of ['Acknowledged', 'Owner: Asha', 'Due 20-Nov-2026', 'Note: Check the bearing'])
     await expect(freq.getByText(text, { exact: true })).toBeVisible();
   await expect(freq.getByRole('button', { name: 'Reopen', exact: true })).toBeVisible();
   await page.reload();
-  await tabs.getByRole('tab', { name: /^Acknowledged/ }).click();
+  await tabs.getByRole('button', { name: /^Acknowledged/ }).click();
   const acked = page.locator('[data-nudge="freq|VC-1"]');
   await expect(acked.getByText('Owner: Asha', { exact: true })).toBeVisible();
   await expect(acked.getByText('Note: Check the bearing', { exact: true })).toBeVisible();
 }
 
 async function snoozeAndReopen(page: Page): Promise<void> {
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
-  await tabs.getByRole('tab', { name: /^Open/ }).click();
+  const tabs = page.getByRole('group', { name: 'Action Center status' });
+  await tabs.getByRole('button', { name: /^Open/ }).click();
   const mttr = page.locator('[data-nudge="mttr|VC-3"]');
   await mttr.getByRole('button', { name: 'Snooze 7 days', exact: true }).click();
   // A snoozed card leaves the Open tab; its own tab shows the snooze day.
-  await tabs.getByRole('tab', { name: /^Snoozed/ }).click();
-  await expect(mttr.getByText('Snoozed until 18-11-2026', { exact: true })).toBeVisible();
+  await tabs.getByRole('button', { name: /^Snoozed/ }).click();
+  await expect(mttr.getByText('Snoozed until 18-Nov-2026', { exact: true })).toBeVisible();
   await page.reload();
-  await tabs.getByRole('tab', { name: /^Snoozed/ }).click();
+  await tabs.getByRole('button', { name: /^Snoozed/ }).click();
   const snoozed = page.locator('[data-nudge="mttr|VC-3"]');
-  await expect(snoozed.getByText('Snoozed until 18-11-2026', { exact: true })).toBeVisible();
+  await expect(snoozed.getByText('Snoozed until 18-Nov-2026', { exact: true })).toBeVisible();
   await snoozed.getByRole('button', { name: 'Reopen', exact: true }).click();
   await expect(page.locator('[data-nudge="mttr|VC-3"]')).toHaveCount(0);
-  await tabs.getByRole('tab', { name: /^Open/ }).click();
+  await tabs.getByRole('button', { name: /^Open/ }).click();
   await expect(
     page.locator('[data-nudge="mttr|VC-3"]').getByRole('button', {
       name: 'Acknowledge',

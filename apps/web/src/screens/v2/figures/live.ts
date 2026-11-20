@@ -1,8 +1,18 @@
 import i18n from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
+import type { ActionCenterBoardReply } from '@uptimo/shared';
 import type { DrillReply, DrillType, FiguresReply } from '@uptimo/shared/analytics';
 import type { Config } from '@uptimo/shared/replies';
-import { analyticsFiguresQuery, getConfig, getDrill, getMe, getState } from '../../../api.js';
+import {
+  actionCenterBoardQuery,
+  analyticsFiguresAtQuery,
+  analyticsFiguresQuery,
+  getConfig,
+  getDrill,
+  getMe,
+  getState,
+  listTickets,
+} from '../../../api.js';
 import { ApiError } from '../../../data/index.js';
 import { LiveOffline } from './live-error.js';
 import type { Translate } from './read.js';
@@ -46,9 +56,12 @@ export const liveRole = async (client: Client): Promise<string | undefined> =>
 export const liveConfig = (client: Client): Promise<Config> =>
   read(client, { queryKey: ['config'], queryFn: getConfig });
 
+/** The desk's state right now: the open tickets and the server's clock. */
+export const liveState = (client: Client) =>
+  read(client, { queryKey: ['state'], queryFn: getState });
+
 /** The open tickets right now (which machines are stopped). */
-export const liveOpen = async (client: Client) =>
-  (await read(client, { queryKey: ['state'], queryFn: getState })).open;
+export const liveOpen = async (client: Client) => (await liveState(client)).open;
 
 /** A machine's code from its id, by the plant's own list. */
 export async function liveCodes(client: Client): Promise<(machineId: string) => string | null> {
@@ -63,3 +76,28 @@ export const liveDrill = (
   ids: readonly string[],
 ): Promise<DrillReply> =>
   read(client, { queryKey: ['analytics-drill', type, ids], queryFn: () => getDrill(type, ids) });
+
+/** The Action Center's board: every nudge with its status, the counts and the risk rows (the v1 screen's own query). */
+export const liveBoard = (client: Client): Promise<ActionCenterBoardReply> =>
+  read(
+    client,
+    actionCenterBoardQuery as unknown as Parameters<typeof read<ActionCenterBoardReply>>[1],
+  );
+
+/** The figures as they stood on an earlier plant day; null when the engine has none for it (a change is then left out, as v1 does). */
+export async function liveReplyAt(client: Client, asOf: string): Promise<FiguresReply | null> {
+  try {
+    return await read(client, analyticsFiguresAtQuery(asOf));
+  } catch {
+    return null;
+  }
+}
+
+/** One machine's open tickets (open, working, waiting), the first page of 200 as v1's Tasks block reads them. */
+export const liveMachineTickets = async (client: Client, machineId: string) =>
+  (
+    await read(client, {
+      queryKey: ['v2-machine-tickets', machineId],
+      queryFn: () => listTickets({ machineId, status: ['open', 'working', 'waiting'], limit: 200 }),
+    })
+  ).items;
