@@ -89,8 +89,11 @@ interface HeatGridProps {
 export function HeatGrid(props: HeatGridProps) {
   const { label, rows, columns, values, format, link } = props;
   const compact = props.compact ?? false;
-  const [cur, setCur] = useState('0-0');
+  const [held, setCur] = useState('0-0');
   if (rows.length === 0 || columns.length === 0) return null;
+  // The tab stop stays on a square that exists when rows or columns shrink.
+  const [hr, hc] = held.split('-').map(Number);
+  const cur = hr! < rows.length && hc! < columns.length ? held : '0-0';
   const present = values.flat().filter((v): v is number => v !== undefined && Number.isFinite(v));
   const max = Math.max(...present);
   const scale: Scale = { min: Math.min(...present), max, family: props.family, mostValue: max };

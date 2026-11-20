@@ -23,6 +23,7 @@ import { ShellSection } from './shell-section.js';
 import { registerGalleryStrings } from './strings.js';
 import { TokensSection } from './tokens-section.js';
 import { WizardSection } from './wizard-section.js';
+import { rootTheme, useSystemTheme } from './showcase/theme.js';
 
 registerGalleryStrings();
 
@@ -167,7 +168,7 @@ export default function Gallery() {
   const [params] = useSearchParams();
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
   const accent = params.get('accent') === 'blue' ? 'blue' : 'teal';
-  const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
+  const theme = rootTheme(params.get('view'), params.get('theme'), useSystemTheme());
   useDocumentAttributes(lang, accent, theme);
   const View = viewFor(params.get('view'));
   if (View) return <View />;

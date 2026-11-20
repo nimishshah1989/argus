@@ -27,9 +27,13 @@ interface KpiTileBase {
     active?: number | null;
     /** Fill the tile's width instead of a small line beside the change. */
     wide?: boolean;
+    /** Keep the line out of a screen reader's reading (the figure and its change already say it); on a tile that is a button it stays out of the button's name. */
+    quiet?: boolean;
   };
   /** The word unit, printed smaller beside the value (`format` then returns the number alone). */
   unit?: string;
+  /** Keep a short unit (`%`, `h`) on the figure's line on a phone, where a word unit drops under it. */
+  unitBeside?: boolean;
   /** A quiet line in no tone, for what is not a verdict (an amount added since the last period). */
   note?: string;
   /** A small mark at the label's end on a plain tile that something else (a link over it) makes tappable. A tile with `onOpen` draws its own chevron and ignores this, so a tile never shows two. */
@@ -99,11 +103,13 @@ function Headline({
   unit,
   as: Tag,
   testId,
+  beside,
 }: {
   figure: string;
   unit?: string;
   as: 'span' | 'dd';
   testId?: string;
+  beside?: boolean;
 }) {
   return (
     <Tag className={`text-title2 font-bold tabular-nums ${WRAP}`}>
@@ -111,7 +117,9 @@ function Headline({
       {unit && figure !== NO_VALUE ? (
         <>
           {' '}
-          <span className="block whitespace-nowrap text-footnote font-semibold text-neutral-600 sm:inline">
+          <span
+            className={`whitespace-nowrap text-footnote font-semibold text-neutral-600 ${beside ? '' : 'block sm:inline'}`}
+          >
             {unit}
           </span>
         </>
@@ -145,6 +153,7 @@ function KpiButton(p: Shown) {
         unit={typeof p.value === 'string' ? undefined : p.unit}
         as="span"
         testId={p.valueTestId}
+        beside={p.unitBeside}
       />
       {p.verdict ? (
         <span>
@@ -172,6 +181,7 @@ function KpiPlain(p: Shown) {
         unit={typeof p.value === 'string' ? undefined : p.unit}
         as="dd"
         testId={p.valueTestId}
+        beside={p.unitBeside}
       />
       {p.verdict ? (
         <dd>
@@ -205,6 +215,7 @@ function Moves({ change, trend, own, family, as: Tag }: Shown & { as: 'span' | '
           partial={trend.partial}
           active={trend.active}
           wide={trend.wide}
+          quiet={trend.quiet}
         />
       ) : null}
     </Tag>

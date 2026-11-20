@@ -26,6 +26,7 @@ export function KpiTile({
       value={metric.headline}
       format={(n) => fixed(n, metric.digits)}
       unit={metric.unit || undefined}
+      unitBeside
       family={FAMILY[metric.id]}
       note={t('tile.span')}
       tags={monthTags(t, metric, LAST_FULL)}
@@ -36,6 +37,7 @@ export function KpiTile({
         partial: PARTIAL,
         active,
         wide: true,
+        quiet: true,
       }}
       testId={`kpi-${metric.id}`}
       valueTestId={`kpi-${metric.id}-value`}

@@ -2,6 +2,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { rootTheme } from '../../gallery/showcase/theme.js';
 import { HeatGrid } from './heat-grid.js';
 import { KpiTile } from './kpi-tile.js';
 
@@ -35,14 +36,34 @@ describe('a heat grid that answers the pointer', () => {
   });
   it('lights the rows and the column it is told to', () => {
     const out = grid({ link: { onPoint: () => {}, column: 1, rows: ['TC-5'] } });
-    expect(out.match(/<tr data-link/g)).toHaveLength(1);
-    expect(out.match(/data-on/g)?.length).toBeGreaterThanOrEqual(3);
+    // Only the pointed-at machine's row is lit, and it is the TC-5 row.
+    expect(out.match(/<tr data-link=""/g)).toHaveLength(1);
+    expect(out).toMatch(/<tr data-link=""[^>]*><th[^>]*>TC-5/);
+    // Only the February header and the February squares carry `data-on`.
+    expect(out.match(/<th[^>]*data-on=""/g)).toHaveLength(1);
+    expect(out).toMatch(/<th[^>]*data-on=""[^>]*><span aria-hidden="true">Feb</);
+    const squares = out.match(/<td[^>]*data-on=""[^>]*>/g) ?? [];
+    expect(squares).toHaveLength(2);
+    for (const square of squares) expect(square).toContain('data-c="1"');
   });
   it('gives the squares one tab stop when it answers the pointer, none when it does not', () => {
-    expect(grid()).not.toContain('tabindex="0" class="el-pop');
+    expect(grid()).not.toMatch(/<td[^>]*tabindex=/);
     const linked = grid({ link: { onPoint: () => {} } });
     expect(linked.match(/<td[^>]*tabindex="0"/g)).toHaveLength(1);
     expect(linked.match(/<td[^>]*tabindex="-1"/g)).toHaveLength(3);
+  });
+});
+
+describe('who owns the page theme in the gallery', () => {
+  it('lets the showcase follow the system when no theme is asked for', () => {
+    expect(rootTheme('showcase', null, 'dark')).toBe('dark');
+    expect(rootTheme('showcase', 'light', 'dark')).toBe('light');
+    expect(rootTheme('showcase', 'dark', 'light')).toBe('dark');
+  });
+  it('keeps every other view light unless dark is asked for, whatever the system says', () => {
+    expect(rootTheme(null, null, 'dark')).toBe('light');
+    expect(rootTheme('elements', null, 'dark')).toBe('light');
+    expect(rootTheme('elements', 'dark', 'light')).toBe('dark');
   });
 });
 
@@ -55,7 +76,15 @@ describe('a figure tile with its own tags and detail', () => {
       note: 'Year to date',
       tags: [{ tone: 'bad', word: 'Worsening' }],
       detail: createElement('span', null, '21 more than in Sep'),
-      trend: { values: [1, null, 3], label: 'Breakdowns by month', partial: true, wide: true },
+      trend: {
+        values: [1, null, 3],
+        label: 'Breakdowns by month',
+        partial: true,
+        wide: true,
+        quiet: true,
+      },
+      unit: 'h',
+      unitBeside: true,
       testId: 'kpi-x',
       valueTestId: 'kpi-x-value',
       onOpen: () => {},
@@ -67,7 +96,9 @@ describe('a figure tile with its own tags and detail', () => {
     expect(tile.indexOf('Year to date')).toBeLessThan(tile.indexOf('Worsening'));
     expect(tile.indexOf('Worsening')).toBeLessThan(tile.indexOf('21 more than in Sep'));
   });
-  it('draws the line with its words', () => {
-    expect(tile).toContain('aria-label="Breakdowns by month"');
+  it('keeps a quiet line out of the button name, and a short unit beside the figure', () => {
+    expect(tile).not.toContain('Breakdowns by month');
+    expect(tile).not.toContain('role="img"');
+    expect(tile).not.toContain('block');
   });
 });

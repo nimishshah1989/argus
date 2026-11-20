@@ -57,6 +57,12 @@ function shape(
   };
 }
 
+const IMAGE = 'img';
+
+/** A line is an image with words; a quiet one is decoration, hidden from a screen reader. */
+const reading = (label: string, quiet?: boolean) =>
+  quiet ? { 'aria-hidden': true as const } : { role: IMAGE, 'aria-label': label };
+
 /** A round dot of fixed size, however the box is stretched: a zero-length line with round caps. */
 function Dot({ at, hollow = false, ink }: { at: Point; hollow?: boolean; ink: string }) {
   const d = `M${at[0]} ${at[1]}h0`;
@@ -90,6 +96,7 @@ export function Sparkline({
   family,
   label,
   wide = false,
+  quiet,
 }: {
   values: Series;
   reference?: Series;
@@ -100,6 +107,8 @@ export function Sparkline({
   family?: Family;
   label: string;
   wide?: boolean;
+  /** Decoration: hidden from a screen reader (the figure beside it says it). */
+  quiet?: boolean;
 }) {
   const g = shape(values, reference, active, partial);
   if (!g) return null;
@@ -107,8 +116,7 @@ export function Sparkline({
   const line = { vectorEffect: 'non-scaling-stroke' as const, strokeWidth: 2 };
   return (
     <svg
-      role="img"
-      aria-label={label}
+      {...reading(label, quiet)}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="none"
       className={`el-draw h-7 shrink-0 overflow-visible ${wide ? 'w-full' : 'w-24'}`}

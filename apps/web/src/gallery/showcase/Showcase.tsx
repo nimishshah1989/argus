@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { directionProps } from '../directions/direction-props.js';
 import { instrument } from '../directions/direction-instrument.js';
@@ -10,7 +10,7 @@ import { KpiTile } from './kpi-tile.js';
 import { ParetoChart } from './pareto-chart.js';
 import { TrendChart, type Hover } from './trend-chart.js';
 import { figure } from '../directions/figures.js';
-import { useRootTokens, useTheme } from './theme.js';
+import { useTheme } from './theme.js';
 import './strings.js';
 import './showcase.css';
 import './showcase-grids.css';
@@ -26,7 +26,16 @@ export default function Showcase() {
   const { t } = useTranslation('showcase');
   const theme = useTheme();
   const props = useMemo(() => directionProps(instrument, theme), [theme]);
-  useRootTokens(props, theme);
+  // On <html>, not on the root, so the sheet (a portal) and the chart tooltips inherit the same tokens.
+  useLayoutEffect(() => {
+    const style = document.documentElement.style;
+    for (const [name, value] of Object.entries(props)) style.setProperty(name, value);
+    style.colorScheme = theme;
+    return () => {
+      Object.keys(props).forEach((name) => style.removeProperty(name));
+      style.removeProperty('color-scheme');
+    };
+  }, [props, theme]);
   const [hover, setHover] = useState<Hover>({ month: null, from: 'other' });
   const [machines, setMachines] = useState<string[]>([]);
   const [sheet, setSheet] = useState<{ metric: Metric | null; open: boolean }>({
