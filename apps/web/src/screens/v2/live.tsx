@@ -4,7 +4,7 @@ import { useRef, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getMe } from '../../api.js';
+import { correctMove, getBrand, getMe } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
@@ -18,7 +18,7 @@ import { RegistersView } from './machines-register/View.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
-import { ChromeContext, EntityShell } from './entity/EntityShell.js';
+import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
 import { useNav } from './nav.js';
 import type { NavItem } from '../../ui/v2/shell.js';
 import type { SectionId } from '../analytics/shell/shell-data.js';
@@ -61,11 +61,15 @@ function LiveFrame({
   children: (nav: ReturnType<typeof useNav>) => ReactNode;
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const { t } = useTranslation();
+  const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
   const nav = useNav(entry.section, role);
   return (
-    <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
-      {children(nav)}
-    </ChromeContext.Provider>
+    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
+      <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
+        {children(nav)}
+      </ChromeContext.Provider>
+    </WhoContext.Provider>
   );
 }
 
