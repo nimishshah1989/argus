@@ -4,10 +4,12 @@
   flex-direction: column;
   gap: var(--space-v2-inner);
 }
-.v2-ack-form label {
+.v2-ack-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+.v2-ack-form label {
   color: var(--color-v2-ink-2);
   font-size: var(--text-v2-secondary);
 }

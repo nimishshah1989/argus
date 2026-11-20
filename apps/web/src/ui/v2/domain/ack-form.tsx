@@ -43,8 +43,8 @@ export function AckForm({
   };
   return (
     <form className="v2-ack-form" aria-label={words.title} onSubmit={submit}>
-      <label htmlFor={`${id}-owner`}>
-        {words.ownerLabel}
+      <div className="v2-ack-field">
+        <label htmlFor={`${id}-owner`}>{words.ownerLabel}</label>
         <select id={`${id}-owner`} name="owner" defaultValue="">
           <option value="">{words.ownerNone}</option>
           {people.map((person) => (
@@ -53,15 +53,15 @@ export function AckForm({
             </option>
           ))}
         </select>
-      </label>
-      <label htmlFor={`${id}-due`}>
-        {words.dueLabel}
+      </div>
+      <div className="v2-ack-field">
+        <label htmlFor={`${id}-due`}>{words.dueLabel}</label>
         <input id={`${id}-due`} name="due" type="date" />
-      </label>
-      <label htmlFor={`${id}-note`}>
-        {words.noteLabel}
+      </div>
+      <div className="v2-ack-field">
+        <label htmlFor={`${id}-note`}>{words.noteLabel}</label>
         <input id={`${id}-note`} name="note" type="text" maxLength={500} />
-      </label>
+      </div>
       <div className="v2-row v2-gap-8">
         <button type="submit" className="v2-btn v2-btn-primary" aria-busy={saving}>
           {words.save}
