@@ -468,53 +468,62 @@ async function stubFigures(
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
 
-/** The log opens inside the group's screen menu: platform columns, the eye, the dash and the rowCount. */
+/** The log table, as the v2 screen names its region. */
+const logRegion = (page: Page) => page.getByRole('region', { name: 'Breakdown log', exact: true });
+
+/** The log opens inside the group's screen row: platform columns, the dash, the engine's count and its newest rows. */
 async function openLog(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
-  await expect(page.getByRole('heading', { name: 'Breakdown Log', exact: true })).toBeVisible();
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await expect(nav.getByRole('link', { name: 'Breakdown log', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Breakdown log', exact: true }),
+  ).toBeVisible();
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
+  await expect(tabs.getByRole('button', { name: 'Breakdown log', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
+  const log = logRegion(page);
   for (const column of [
     'Sr No',
-    'Ticket No.',
+    'Ticket',
     'Date',
     'Shift',
     'Machine',
     'Problem',
-    'Done By',
-    'Downtime (Hrs)',
+    'Done by',
+    'Downtime (hrs)',
     'Code',
   ])
-    await expect(page.getByRole('columnheader', { name: column, exact: true })).toBeVisible();
+    await expect(log.getByRole('columnheader', { name: column, exact: true })).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'ATC trouble Machine Stop', exact: true }),
+    log.getByRole('cell', { name: 'ATC trouble Machine Stop', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('cell', { name: '—', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '1.83', exact: true })).toBeVisible();
-  await expect(page.getByText('1,343 rows', { exact: true })).toBeVisible();
+  await expect(log.getByRole('cell', { name: '—', exact: true })).toBeVisible();
+  await expect(log.getByRole('cell', { name: '1.83', exact: true })).toBeVisible();
+  await expect(
+    page.getByText('1,343 entries in the breakdown log, newest 07-Nov-2026.', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('showing the newest 5 of 1,343', { exact: true })).toBeVisible();
 }
 
-/** The four filters narrow the printed rows; the rowCount stays in sight. */
+/** The four filters narrow the printed rows; the engine's count stays in sight. */
 async function filterLog(page: Page): Promise<void> {
-  await page.getByLabel('Date', { exact: true }).selectOption('07-11-2026');
-  await page.getByLabel('Shift', { exact: true }).selectOption('2');
-  await page.getByLabel('Machine', { exact: true }).selectOption('VC-15');
-  await page.getByLabel('Code', { exact: true }).selectOption('ATC');
-  await expect(page.getByText('1 match these filters', { exact: true })).toBeVisible();
+  const log = logRegion(page);
+  await log.getByLabel('Date', { exact: true }).selectOption('07-11-2026');
+  await log.getByLabel('Shift', { exact: true }).selectOption('2');
+  await log.getByLabel('Machine', { exact: true }).selectOption('VC-15');
+  await log.getByLabel('Code', { exact: true }).selectOption('ATC');
+  await expect(log.getByText('1–1 of 1', { exact: true })).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'ATC trouble Machine Stop', exact: true }),
+    log.getByRole('cell', { name: 'ATC trouble Machine Stop', exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'Power interrupt / phase failure', exact: true }),
+    log.getByRole('cell', { name: 'Power interrupt / phase failure', exact: true }),
   ).toHaveCount(0);
-  await expect(page.getByText('1,343 rows', { exact: true })).toBeVisible();
+  await expect(page.getByText(/The log holds 1,343 entries/)).toBeVisible();
 }
 
-/** The client-export pattern: the filtered table, one CSV line per row, no new dependency. */
+/** The client-export pattern: the whole narrowed log, one CSV line per row, no new dependency. */
 async function exportLog(page: Page): Promise<void> {
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
@@ -647,12 +656,33 @@ test('a head filters the Breakdown Log, keeps its count, exports it and opens a 
   await openLog(page);
   await filterLog(page);
   await exportLog(page);
-  await page.getByRole('link', { name: 'Open the ticket for Sr No 1357', exact: true }).click();
+  // The ticket number opens the row's own ticket (the eye of v1): its name starts with the number it shows.
+  await page.getByRole('link', { name: /Open the ticket for Sr No 1357$/ }).click();
   await expect(page).toHaveURL(new RegExp(`/desk/${tickets.first.id}$`));
   await expect(
     page.getByRole('heading', { name: tickets.first.ref, exact: true }).first(),
   ).toBeVisible();
   await openA1(page);
+});
+
+test('an old log link with ?drill= opens the log with the rows panel open, never a v1 copy, and an unknown ?screen= is the log', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  const ids = ['fake-5', 'fake-4', 'fake-3', tickets.second.id, tickets.first.id];
+  await page.goto(`/analytics/breakdowns?screen=breakdown-log&drill=ticket:${ids.join(',')}`);
+  await expect(page).toHaveURL(/drawer=figure:breakdown-log/);
+  await expect(page).not.toHaveURL(/drill=/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Breakdown log', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('aside.v2-drawer')).not.toHaveAttribute('inert', '');
+  await page.goto('/analytics/breakdowns?screen=no-such-screen');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Breakdown log', exact: true }),
+  ).toBeVisible();
 });
 
 test('A1 over the drill cap offers the log instead of a refused drill', async ({ page }) => {
@@ -675,7 +705,9 @@ test('A1 over the drill cap offers the log instead of a refused drill', async ({
   await expect(logLink).toHaveAttribute('href', '/analytics/breakdowns?screen=breakdown-log');
   await logLink.click();
   await expect(page).toHaveURL(/screen=breakdown-log/);
-  await expect(page.getByRole('heading', { name: 'Breakdown Log', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Breakdown log', exact: true }),
+  ).toBeVisible();
   expect(drillRequests).toEqual([]);
 });
 
@@ -685,12 +717,9 @@ test('an operator is refused the breakdowns face', async ({ page }) => {
 
   await page.goto('/analytics/breakdowns');
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Breakdown Log', exact: true })).toHaveCount(0);
   await expect(page.getByRole('table')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Export to CSV', exact: true })).toHaveCount(0);
-  await expect(
-    page.getByRole('navigation', { name: 'Breakdowns screens', exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Breakdowns screens', exact: true })).toHaveCount(0);
   for (const screen of ['a2-category-cell', 'a3-mttr-mtbf']) {
     await page.goto(`/analytics/breakdowns?screen=${screen}`);
     await expect(page.getByRole('alert')).toBeVisible();

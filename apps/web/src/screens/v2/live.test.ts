@@ -15,6 +15,8 @@ describe('which v2 screens are live at their v1 address', () => {
       ['breakdowns', 'shift-kpis'],
       ['forecast-scorecard', 'a9-bottleneck-forecast'],
       ['forecast-scorecard', 'forecast-lab'],
+      ['breakdowns', 'breakdown-log'],
+      ['pm', 'pm-calendar'],
     ] as const)
       expect(liveScreen(group, screen), `${group} ${screen}`).not.toBeNull();
     expect(liveScreen('machines', null)).not.toBeNull();
@@ -47,14 +49,34 @@ describe('which v2 screens are live at their v1 address', () => {
       key('machines', 'cell-change-log'),
       key('breakdowns', 'fix-finder'),
       key('breakdowns', 'a10-problems'),
+      key('breakdowns', 'breakdown-log'),
+      key('pm', 'pm-calendar'),
     ];
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('leaves every other screen to the v1 page', () => {
+  it('opens the Breakdowns group on its log, for no ?screen= and for a name it does not know, as v1’s page did', () => {
+    for (const screen of [null, 'breakdown-log', 'no-such-screen', 'cell-change-log', ''])
+      expect(liveScreen('breakdowns', screen)?.key, String(screen)).toBe(
+        'breakdowns:breakdown-log',
+      );
+  });
+
+  it('opens the PM group on its calendar, whatever ?screen= says', () => {
+    for (const screen of [null, 'pm-calendar', 'bogus'])
+      expect(liveScreen('pm', screen)?.key, String(screen)).toBe('pm:pm-calendar');
+  });
+
+  it('leaves the screens still on a v1 page to it', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
-    expect(liveScreen('breakdowns', null)).toBeNull();
-    expect(liveScreen('breakdowns', 'cell-change-log')).toBeNull();
+    for (const screen of [
+      'a1-bd-pm',
+      'a2-category-cell',
+      'a3-mttr-mtbf',
+      'a4-manpower',
+      'a6-why-why',
+    ])
+      expect(liveScreen('breakdowns', screen), screen).toBeNull();
   });
 
   it('sends an unknown Machines screen to the register, never to a v1 copy of it', () => {

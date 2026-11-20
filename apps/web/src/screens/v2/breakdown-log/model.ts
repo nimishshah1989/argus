@@ -70,6 +70,8 @@ export type LogModel = {
   count: number;
   /** The same, in Indian grouping, ready to print. */
   countShown: string;
+  /** "showing the newest X of N" when the engine printed fewer entries than it counted; null otherwise. */
+  truncated: string | null;
   options: Record<LogFilterId, string[]>;
   source: string;
   words: LogWords;

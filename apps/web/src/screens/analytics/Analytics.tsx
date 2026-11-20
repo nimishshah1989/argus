@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ACTION_CENTER_PATH, groupFor } from './groups.js';
 import { ActionCenterPage } from '../v2/action-center/Page.js';
@@ -13,10 +12,6 @@ import { TodayRest } from './TodayRest.js';
 import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
-
-// The PM calendar is the one lazy page (ADR 0009 R1): FullCalendar and its theme load only when a head opens
-// `/analytics/pm`, never in the start-up files.
-const PmCalendarPage = lazy(() => import('./PmCalendarPage.js'));
 
 /** The data checklist's own route, inside the Today group's shell. */
 export function DataChecklistPage() {
@@ -76,10 +71,6 @@ export function AnalyticsFace() {
         <MoneyPage group={found} />
       ) : found.id === 'reports' ? (
         <ReportsPage group={found} />
-      ) : found.id === 'pm' ? (
-        <Suspense fallback={null}>
-          <PmCalendarPage group={found} />
-        </Suspense>
       ) : (
         <GroupPage group={found} />
       )}

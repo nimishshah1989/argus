@@ -17,10 +17,7 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const WEB = join(SRC, '..');
 const E2E = join(WEB, 'e2e');
 /** Each door to the library and the specifier of the module that must reach it only through `import()`. */
-const DOORS = [
-  { door: 'screens/analytics/PmCalendar.tsx', page: 'PmCalendarPage' },
-  { door: 'ui/v2/domain/month-calendar.tsx', page: 'domain/month-calendar.js' },
-];
+const DOORS = [{ door: 'ui/v2/domain/month-calendar.tsx', page: 'domain/month-calendar.js' }];
 const DOOR = DOORS[0]!.door;
 
 function readTree(root: string, dir = root, accept = /\.(tsx?|css)$/): SrcFile[] {
@@ -128,8 +125,8 @@ describe('the FullCalendar door (ADR 0009)', () => {
       },
       { path: 'gallery/y.ts', text: "const m = await import('@full-ui/headless-calendar');" },
       {
-        path: 'screens/analytics/Analytics.tsx',
-        text: "import { x } from './PmCalendarPage.js';",
+        path: 'screens/v2/pm-calendar/View.tsx',
+        text: "import { x } from '../../../ui/v2/domain/month-calendar.js';",
       },
     ];
     expect(fullCalendarErrors(files)).toEqual([
@@ -137,7 +134,7 @@ describe('the FullCalendar door (ADR 0009)', () => {
       'gallery/y.ts:1: @fullcalendar outside a door',
     ]);
     expect(lazyPageErrors(files)).toContain(
-      'screens/analytics/Analytics.tsx:1: PmCalendarPage must be a lazy import()',
+      'screens/v2/pm-calendar/View.tsx:1: domain/month-calendar.js must be a lazy import()',
     );
   });
 
@@ -174,7 +171,7 @@ describe('the FullCalendar door (ADR 0009)', () => {
       const doorExists = readSrc().some((file) => file.path === DOOR);
       if (doorExists) {
         expect(withMarker.length).toBeGreaterThan(0);
-        expect(withMarker.every((file) => /PmCalendar/.test(file))).toBe(true);
+        expect(withMarker.every((file) => /month-calendar/.test(file))).toBe(true);
       } else {
         // 50a installs the dependency before 50c adds the door: nothing may load it yet.
         expect(withMarker).toEqual([]);

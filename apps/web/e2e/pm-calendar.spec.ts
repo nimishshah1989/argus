@@ -12,11 +12,11 @@ import {
 } from './fixtures-pm-calendar.js';
 
 /**
- * 50c: the PM calendar screen. A head opens `/analytics/pm`, reads the two compliance tiles, sees the month's two
- * crowded plans, drags one to a free working day and finds it there after a reload, then opens the machine page
- * whose Tasks block lists that machine's open work request and PM job. An operator is refused the screen and the
- * write. The figures reply is stubbed (the established seam); the calendar, the reschedule and the ticket list are
- * the real APIs, so the drag proves the write and the reload proves it survived.
+ * 50c and 91: the PM calendar screen, in the v2 look at v1's address. A head opens `/analytics/pm`, reads the two
+ * compliance tiles, sees the month's two crowded plans, drags one to a free working day and finds it there after a
+ * reload, then opens the machine page whose Tasks block lists that machine's open work request and PM job. An
+ * operator is refused the screen and the write. The figures reply is stubbed (the established seam); the calendar,
+ * the reschedule and the ticket list are the real APIs, so the drag proves the write and the reload proves it survived.
  */
 
 type Figure = FiguresReply['figures'][number];
@@ -91,8 +91,16 @@ async function stubFigures(page: Page, reply: FiguresReply): Promise<void> {
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
 
-/** The plant's day as the page prints it (DD-MM-YYYY). */
-const shownDay = (day: string): string => day.split('-').reverse().join('-');
+/** The plant's day as the page prints it (DD-MMM-YYYY). */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const shownDay = (day: string): string => {
+  const [year, month, date] = day.split('-') as [string, string, string];
+  return `${date}-${MONTHS[Number(month) - 1]}-${year}`;
+};
+
+const PM_HEADING = { level: 1, name: 'PM calendar', exact: true } as const;
+const spreadOf = (page: Page) => page.getByRole('region', { name: 'Spread the load', exact: true });
+const jobsOf = (page: Page) => page.getByRole('region', { name: 'Jobs this month', exact: true });
 
 /** FullCalendar's own cell for a day; the library's class names are hashed, `[data-date]` is the stable hook. */
 const cellOf = (page: Page, day: string) => page.locator(`[data-date="${day}"]`).first();
@@ -127,10 +135,15 @@ async function hoverDay(page: Page, day: string): Promise<void> {
   throw new Error(`the pointer never settled on ${day}`);
 }
 
-async function dragEvent(page: Page, code: string, day: string): Promise<void> {
+async function dragEvent(
+  page: Page,
+  code: string,
+  day: string,
+  fromDay: string = PLANT_TODAY,
+): Promise<void> {
   // Both fetches of the month have landed, so no row grows under the pointer.
   await page.waitForLoadState('networkidle');
-  const event = page.getByText(code, { exact: true }).first();
+  const event = cellOf(page, fromDay).getByText(code, { exact: true });
   const cell = cellOf(page, day);
   // The tiles sit above the grid: on a laptop the month's last rows start below the fold.
   await event.scrollIntoViewIfNeeded();
@@ -164,16 +177,22 @@ async function visibleSunday(page: Page): Promise<string> {
 /** The month's two plans, both crowded, with the two compliance tiles above them. */
 async function readMonth(page: Page, machine: { code: string }): Promise<void> {
   await page.goto('/analytics/pm');
-  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
-  await expect(page.getByText('25.0 %', { exact: true })).toBeVisible();
-  await expect(page.getByText('27.3 %', { exact: true })).toBeVisible();
-  await expect(page.getByText('2 of 8 PM jobs on time', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Spread the load', exact: true })).toBeVisible();
-  await expect(page.locator(`[data-crowded="${machine.code}"]`)).toBeVisible();
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
+  const pm = page.getByRole('region', { name: 'PM compliance', exact: true });
+  await expect(pm.getByText('25.0 %', { exact: true })).toBeVisible();
+  await expect(pm.getByText('2 of 8 PM jobs on time', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: 'Schedule compliance', exact: true })
+      .getByText('27.3 %', { exact: true }),
+  ).toBeVisible();
+  await expect(spreadOf(page)).toBeVisible();
   // Each of the fixture's two crowded plans offers its nearest free working day; no other day is ours to move.
   for (const code of ['PMC-1', 'PMC-2']) {
     await expect(
-      page.locator(`[data-crowded="${code}"]`).getByRole('button', { name: /^Move to / }),
+      spreadOf(page)
+        .locator('tbody tr', { hasText: code })
+        .getByRole('button', { name: /^Move to \d/ }),
     ).toBeVisible();
   }
   await expect(cellOf(page, PLANT_TODAY).getByText(machine.code, { exact: true })).toBeVisible();
@@ -204,7 +223,7 @@ async function dragTo(
 /** The move is the server's record: a reload still finds it on the target day, not the old one. */
 async function reloadKeeps(page: Page, machine: { code: string }, target: string): Promise<void> {
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
   await expect(cellOf(page, target).getByText(machine.code, { exact: true })).toBeVisible();
   await expect(cellOf(page, PLANT_TODAY).getByText(machine.code, { exact: true })).toHaveCount(0);
 }
@@ -212,7 +231,7 @@ async function reloadKeeps(page: Page, machine: { code: string }, target: string
 /** A Sunday refusal (422) is announced with the server's words and the event snaps back. */
 async function refuseSunday(page: Page, machine: { code: string }, target: string): Promise<void> {
   const sunday = await visibleSunday(page);
-  await dragEvent(page, machine.code, sunday);
+  await dragEvent(page, machine.code, sunday, target);
   const alert = page.getByRole('alert');
   await expect(alert).toBeVisible();
   await expect(alert).toContainText(
@@ -237,11 +256,11 @@ async function nextMonth(page: Page): Promise<void> {
       reply.status() === 200
     );
   });
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: 'Next Month', exact: true }).click();
   await expect(cellOf(page, midMonth(1))).toBeVisible();
   await expect(cellOf(page, midMonth(0))).toHaveCount(0);
   await loaded;
-  await expect(page.getByText('Loading the calendar…')).toHaveCount(0);
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   await expect(cellOf(page, midMonth(1))).toBeVisible();
   await expect(cellOf(page, midMonth(0))).toHaveCount(0);
 }
@@ -274,10 +293,12 @@ test('a plant head reads the calendar and is offered no move', async ({ page }, 
   await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
   await signIn(page, 'ph');
   await page.goto('/analytics/pm');
-  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
   await expect(cellOf(page, PLANT_TODAY).getByText(machine.code, { exact: true })).toBeVisible();
   // The crowded plan still names its nearest free day, in words; only the Move button is the head's.
-  await expect(page.locator(`[data-crowded="${machine.code}"]`)).toContainText('Nearest free day');
+  await expect(spreadOf(page).locator('tbody tr', { hasText: machine.code })).toContainText(
+    'Nearest free day',
+  );
   await expect(page.getByRole('button', { name: /^Move to / })).toHaveCount(0);
 });
 
@@ -310,19 +331,6 @@ function workingDayAfter(day: string): string {
   return next;
 }
 
-/** Types a day into the focused native date field, in the order the browser's own locale lays its parts out. */
-async function typeDay(page: Page, day: string): Promise<void> {
-  const order = await page.evaluate(() =>
-    new Intl.DateTimeFormat(navigator.language)
-      .formatToParts(new Date(2000, 10, 22))
-      .map((part) => part.type)
-      .filter((type) => type === 'day' || type === 'month' || type === 'year'),
-  );
-  const [year, month, date] = day.split('-') as [string, string, string];
-  const parts: Record<string, string> = { year, month, day: date };
-  for (const type of order) await page.keyboard.type(parts[type] ?? '');
-}
-
 /**
  * The calendar's drag has no keyboard, so every movable job is also listed with "Move to date" (ticket 87). The write
  * is answered by the test (`page.route`), never by the server: a real keyboard move would create a PM ticket for a
@@ -351,27 +359,24 @@ test('a head moves a PM job to a date with the keyboard alone', async ({ page },
   await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
   await signIn(page, 'head');
   await page.goto('/analytics/pm');
-  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toBeVisible();
-  const open = page.getByRole('button', { name: `Move to date, ${machine.code}` });
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
+  const jobs = jobsOf(page);
+  await jobs.getByRole('searchbox').fill(machine.code);
+  const open = jobs.getByRole('button', { name: `Move to date ${machine.code}` });
   // The job sits on today or, when the drag test ran first, on the next working day: that may be next month.
-  await expect(page.getByRole('heading', { name: 'Jobs this month' })).toBeVisible();
   if (!(await open.isVisible())) {
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByRole('button', { name: 'Next Month', exact: true }).click();
+    await jobs.getByRole('searchbox').fill(machine.code);
     await expect(open).toBeVisible();
   }
   await open.focus();
   await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  const field = dialog.getByLabel('New date');
-  for (let tab = 0; tab < 3; tab += 1) {
-    if (await field.evaluate((el) => el === document.activeElement)) break;
-    await page.keyboard.press('Tab');
-  }
+  // The v2 screen's form is inline, not a dialog: the field takes focus, Enter moves, Escape cancels.
+  const field = page.getByLabel('New date');
   await expect(field).toBeFocused();
-  await typeDay(page, target);
+  await field.fill(target);
   await page.keyboard.press('Enter');
-  await expect(dialog).toHaveCount(0);
+  await expect(field).toHaveCount(0);
   expect(sent).toHaveLength(1);
   expect(sent[0]).toMatchObject({ machineId: machine.id, scheduledOn: target });
   await expect(
@@ -387,8 +392,8 @@ test('an operator is refused the PM calendar and the move', async ({ page }, tes
   await signIn(page, 'op');
   await page.goto('/analytics/pm');
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'PM calendar', exact: true })).toHaveCount(0);
   await expect(page.locator('[data-date]')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: /screens in/i })).toHaveCount(0);
 
   const token = await apiLogin('op');
   const refused = await apiFetch('/api/v1/pm/reschedule', {
@@ -401,4 +406,21 @@ test('an operator is refused the PM calendar and the move', async ({ page }, tes
     body: JSON.stringify({ machineId: machine.id, scheduledOn: nextWorkingDay() }),
   });
   expect(refused.status).toBe(403);
+});
+
+test('an old PM address lands on the v2 calendar: an unknown ?screen= and a ?drill= link open it, never a v1 copy', async ({
+  page,
+}, testInfo) => {
+  if (testInfo.project.name === 'chromium')
+    await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page, figuresFor(pmCalendarTaskMachine(testInfo.project.name)));
+  await signIn(page, 'head');
+  await page.goto('/analytics/pm?screen=no-such-screen');
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
+  await expect(page.locator('[data-date]').first()).toBeVisible();
+  // The rows an old link opened now open in the rows panel: the address says so and the old parameter is gone.
+  await page.goto('/analytics/pm?drill=ticket:30000000-0000-4000-8000-000000000001');
+  await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
+  await expect(page).toHaveURL(/drawer=figure:/);
+  await expect(page).not.toHaveURL(/drill=/);
 });

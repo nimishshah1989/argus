@@ -136,8 +136,15 @@ function LogTable({
       onOpen={(r) => open({ kind: 'machine', id: r.machine.id })}
       extra={<ExportBar model={model} onExport={onExport} />}
       foot={
-        model.matching === model.count ? null : (
-          <p className="v2-sub v2-pad">{fill(model.words.whole, { count: model.countShown })}</p>
+        model.matching === model.count && model.truncated === null ? null : (
+          <>
+            {model.matching === model.count ? null : (
+              <p className="v2-sub v2-pad">
+                {fill(model.words.whole, { count: model.countShown })}
+              </p>
+            )}
+            {model.truncated === null ? null : <p className="v2-sub v2-pad">{model.truncated}</p>}
+          </>
         )
       }
     />

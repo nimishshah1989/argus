@@ -28,7 +28,8 @@ const A10_KEY: unknown = JSON.parse(
     'utf8',
   ),
 );
-import { EMPTY_FILTERS, LOG_FILTERS, filterOptions, filterRows } from './log-values.js';
+import { EMPTY_QUERY } from '../v2/breakdown-log/model.js';
+import { cutPage, type PrintedLog } from '../v2/breakdown-log/serve.js';
 
 /**
  * The two key-shaped pages (ticket 40, packet 40e-1): the Breakdown Log and A1 are one engine page each,
@@ -923,48 +924,54 @@ describe('pages the mapper cannot draw', () => {
 });
 
 describe('the log filters', () => {
+  const log = (rows: string[][]): PrintedLog => ({
+    header: LOG_HEADER,
+    rows,
+    ticketIds: rows.map((_, at) => `ticket-${at}`),
+    rowCount: rows.length,
+  });
+  const filtered = (rows: string[][], filters: Partial<typeof EMPTY_QUERY.filters>) =>
+    cutPage(log(rows), { ...EMPTY_QUERY, filters: { ...EMPTY_QUERY.filters, ...filters } });
+
   it('offers the values the table holds, dates newest first and the rest alphabetically', () => {
-    expect(filterOptions(LOG_ROWS, 3)).toEqual(['07-11-2026']);
-    expect(filterOptions(LOG_ROWS, 5)).toEqual(['HMC-2', 'VC-15', 'VC-41']);
-    expect(
-      filterOptions(
-        [
-          ['', '', '', '07-11-2026', '', '', '', '', '', 'ATC'],
-          ['', '', '', '06-11-2026', '', '', '', '', '', 'E'],
-          ['', '', '', '', '', '', '', '', '', 'E'],
-        ],
-        3,
-      ),
-    ).toEqual(['07-11-2026', '06-11-2026']);
-    expect(
-      filterOptions(
-        [
-          ['', '', '', '', '', '', '', '', '', 'E'],
-          ['', '', '', '', '', '', '', '', '', 'ATC'],
-        ],
-        9,
-      ),
-    ).toEqual(['ATC', 'E']);
+    const { options } = cutPage(log(LOG_ROWS), EMPTY_QUERY);
+    expect(options.date).toEqual(['07-11-2026']);
+    expect(options.machine).toEqual(['HMC-2', 'VC-15', 'VC-41']);
+    const mixed = cutPage(
+      log([
+        ['', '', '', '07-11-2026', '', '', '', '', '', 'ATC'],
+        ['', '', '', '06-11-2026', '', '', '', '', '', 'E'],
+        ['', '', '', '', '', '', '', '', '', 'E'],
+      ]),
+      EMPTY_QUERY,
+    ).options;
+    expect(mixed.date).toEqual(['07-11-2026', '06-11-2026']);
+    expect(mixed.code).toEqual(['ATC', 'E']);
   });
 
-  it('keeps the original row index so a filtered row still opens its own ticket', () => {
-    const shown = filterRows(LOG_ROWS, { ...EMPTY_FILTERS, date: '07-11-2026', shift: '2' });
-    expect(shown.map((entry) => entry.index)).toEqual([0, 1]);
-    expect(shown.map((entry) => entry.row[1])).toEqual(['1357', '1356']);
-    expect(
-      filterRows(LOG_ROWS, { ...EMPTY_FILTERS, machine: 'HMC-2' }).map((e) => e.index),
-    ).toEqual([2]);
-    expect(filterRows(LOG_ROWS, { ...EMPTY_FILTERS, code: 'E' }).map((e) => e.index)).toEqual([
-      1, 2,
+  it('keeps each row’s own ticket so a filtered row still opens its own ticket', () => {
+    const shown = filtered(LOG_ROWS, { date: '07-11-2026', shift: '2' });
+    expect(shown.rows.map((entry) => entry.ticketId)).toEqual(['ticket-0', 'ticket-1']);
+    expect(shown.rows.map((entry) => entry.cells[1])).toEqual(['1357', '1356']);
+    expect(filtered(LOG_ROWS, { machine: 'HMC-2' }).rows.map((e) => e.ticketId)).toEqual([
+      'ticket-2',
     ]);
-    expect(filterRows(LOG_ROWS, EMPTY_FILTERS)).toHaveLength(3);
+    expect(filtered(LOG_ROWS, { code: 'E' }).rows.map((e) => e.ticketId)).toEqual([
+      'ticket-1',
+      'ticket-2',
+    ]);
+    expect(filtered(LOG_ROWS, {})).toMatchObject({ matching: 3, count: 3 });
   });
 
-  it('names each filter column and its catalogue label', () => {
-    expect(LOG_FILTERS.map((filter) => filter.column)).toEqual([3, 4, 5, 9]);
-    for (const filter of LOG_FILTERS) {
-      expect(en[filter.labelKey], filter.id).toBeTruthy();
-      expect(Object.hasOwn(gu, filter.labelKey), filter.id).toBe(true);
+  it('names each filter in both catalogues', () => {
+    for (const key of [
+      'analytics.log.filter.date',
+      'analytics.log.filter.shift',
+      'analytics.log.filter.machine',
+      'analytics.log.filter.code',
+    ] as const) {
+      expect(en[key], key).toBeTruthy();
+      expect(Object.hasOwn(gu, key), key).toBe(true);
     }
   });
 });

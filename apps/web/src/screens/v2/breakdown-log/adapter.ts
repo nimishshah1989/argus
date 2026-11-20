@@ -43,7 +43,7 @@ function rowOf({ cells: printed, ticketId }: LogEntry): LogRow {
 
 /** The log's newest entry says how fresh it is; the count says how big. Both are the engine's. */
 function verdictOf(reply: LogReply, words: LogWords, source: string): LogModel['verdict'] {
-  const newest = reply.rows[0]?.cells[3];
+  const newest = reply.newest;
   return {
     headline: [
       {
@@ -79,6 +79,13 @@ export function logModel(
     matching: reply.matching,
     count: reply.count,
     countShown: whole.format(reply.count),
+    truncated:
+      reply.held < reply.count
+        ? t('analytics.log.truncated', {
+            shown: whole.format(reply.held),
+            total: whole.format(reply.count),
+          })
+        : null,
     options: reply.options,
     source,
     words,

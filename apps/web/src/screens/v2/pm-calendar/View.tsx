@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- entity kinds, role names and typed unions only; every visible word comes from the model */
 import { lazy, Suspense, useContext, useState } from 'react';
 import type { CalendarRange } from '../../../ui/v2/domain/calendar-events.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
@@ -174,6 +175,7 @@ export function PmCalendarView({
           <FigureTile key={figure.id} figure={figure} />
         ))}
       </Row>
+      {model.drill ? <DrillAction drill={model.drill} /> : null}
       <Notes note={chosen && note?.kind === 'refused' ? null : note} />
       <CalendarPanel model={model} loading={loading} onRange={onRange} onDrop={drop} />
       <JudgedPanel model={model} />

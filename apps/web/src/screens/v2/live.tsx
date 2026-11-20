@@ -12,11 +12,13 @@ import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
+import { BreakdownLogPage } from './breakdown-log/Page.js';
 import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
 import { RegistersView } from './machines-register/View.js';
+import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
@@ -109,6 +111,13 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 
 const LIVE: readonly Live[] = [
   { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardPage /> },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'breakdown-log',
+    page: () => <BreakdownLogPage />,
+  },
+  { group: 'pm', section: 'reports', screen: 'pm-calendar', page: () => <PmCalendarPage /> },
   {
     group: 'machines',
     section: 'machines',
@@ -252,7 +261,28 @@ export function liveScreen(group: string | undefined, screen: string | null): Re
     LIVE.find((entry) => entry.group === group && entry.screen === named) ??
     (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
   if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
-  return unknownMachinesScreen(group, named);
+  return unknownBreakdownsScreen(group, named) ?? unknownMachinesScreen(group, named);
+}
+
+/**
+ * The Breakdowns group opens on its log: a screen it does not have (a bookmark, a typo, no `?screen=`) is the log, as in
+ * v1, whose page opened on the log for any name it did not know. The screens still on v1's page keep their address.
+ */
+const BREAKDOWNS_ON_V1: ReadonlySet<string> = new Set([
+  'a1-bd-pm',
+  'a2-category-cell',
+  'a3-mttr-mtbf',
+  'a4-manpower',
+  'a6-why-why',
+]);
+
+function unknownBreakdownsScreen(
+  group: string | undefined,
+  named: string | null,
+): ReactElement | null {
+  if (group !== 'breakdowns' || (named !== null && BREAKDOWNS_ON_V1.has(named))) return null;
+  const found = LIVE.find((entry) => entry.group === group && entry.screen === 'breakdown-log');
+  return found ? <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment> : null;
 }
 
 /** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
@@ -266,9 +296,14 @@ function unknownMachinesScreen(
 }
 
 /** The screen a group's address opens with no `?screen=`. */
-const FIRST: Record<string, string> = { machines: 'registers', today: 'dashboard' };
+const FIRST: Record<string, string> = {
+  machines: 'registers',
+  today: 'dashboard',
+  breakdowns: 'breakdown-log',
+  pm: 'pm-calendar',
+};
 /** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
-const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today']);
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm']);
 
 function knownMachinesScreen(id: string): boolean {
   return (groupFor('machines')?.screens ?? []).some(

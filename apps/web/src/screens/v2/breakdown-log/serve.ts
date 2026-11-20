@@ -6,7 +6,13 @@ import type { LogFilterId, LogQuery, LogSortKey } from './model.js';
  * code), and `ticketIds`, the ticket behind each row in row order. The engine sorts a figure's drill ids, so those do not
  * line up with these rows and carry no meaning here; a row's ticket is the one the table printed beside it.
  */
-export type PrintedLog = { header: string[]; rows: string[][]; ticketIds: string[] };
+export type PrintedLog = {
+  header: string[];
+  rows: string[][];
+  ticketIds: string[];
+  /** The entries the engine counted in the log; more than `rows` when it printed only the newest. */
+  rowCount: number;
+};
 
 /** One printed entry with the id of its own ticket (null when the figure named none). */
 export type LogEntry = { cells: string[]; ticketId: string | null };
@@ -20,8 +26,12 @@ export type LogReply = {
   rows: LogEntry[];
   /** Rows that match the query. */
   matching: number;
-  /** The whole log. */
+  /** The whole log, as the engine counted it. */
   count: number;
+  /** The entries the engine printed: fewer than `count` when it printed only the newest. */
+  held: number;
+  /** The date of the log's newest entry (its first printed row), whatever the page is sorted or filtered by. */
+  newest: string | null;
   options: Record<LogFilterId, string[]>;
 };
 
@@ -100,7 +110,9 @@ export function cutPage(log: PrintedLog, query: LogQuery): LogReply {
   return {
     rows: page,
     matching: ordered.length,
-    count: log.rows.length,
+    count: Math.max(log.rowCount, log.rows.length),
+    held: log.rows.length,
+    newest: log.rows[0]?.[3] ?? null,
     options: {
       date: optionsOf(log.rows, 'date'),
       shift: optionsOf(log.rows, 'shift'),
