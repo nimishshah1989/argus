@@ -5,11 +5,11 @@ origin/main` and the PR list beat this text. As of 17:20 UTC, 20 Nov 2026. **Sec
 
 ## In flight (orchestrator session 2, 17:20 UTC, 20 Nov): check each against GitHub first
 
-- LIVE on staging (11 of about 34 screens): Cell change log; Machines register, Age, Footprint, Fix Finder, Problem Analysis; Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab (#529); the Dashboard (#526).
+- LIVE on staging (12 of about 34 screens): Cell change log; Machines register, Age, Footprint, Fix Finder, Problem Analysis; Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab (#529); the Dashboard (#526); the Action Center (#532).
   Also merged today: the shell with Desk link, Ctrl+K palette and router rail links (#531), the live reader's saved-copy fix (#525), fixes to #523's screens (#528), the engine printing no database ids with a guard test (#533),
   the Excel exports printing codes (#534), the Breakdown Log row-ticket fix (#521). Every screen PR got an independent Opus review and each needed a fix round (ids on screen, a drill not equal to its card, a screen-switch crash, lost behaviour).
-- Open: #532 Action Center (reviewed PASS; 4th CI round on one phone e2e: the Escape key does not close a machine drawer on a phone; the builder is fixing it and merging main).
-  Builder running: `claude/engine-determinism` (same-day ties and float sums must not depend on UUID order; reviewer probes in the scratchpad).
+- Open: #536 engine determinism (same-day ordering independent of UUID order; first review FAIL: the PDF reports, the Action Center board and the Excel analytics sheets call domain functions directly and skip the canonical order step; the builder is moving it to where no caller can skip it and extending the guard). #535 docs.
+  A full total order across days is NOT done: it changes last digits in the frozen answer key (for example 52.70 to 52.69); the server always sends days oldest first, so the production defect is closed; needs Nimish's yes before the key moves.
 - Nimish's answers (20 Nov, written in session): the disabled period box on Today is DROPPED; the Desk link is hidden from logins that cannot open the desk; General Work is not built now.
   Open product questions for him (none blocks): a heading per priority group in the Action Center (the builder restored v1's per-priority counts on the chips instead); "Open full page" of a nudge goes to the same page; add "raise an inspection ticket from a nudge" later?
 - Next: batch 4 (BD% and PM split, Category and Cell, MTTR and MTBF, Manpower, Why-Why) and PM Calendar and Breakdown Log wiring live; Machine page, Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7. "Reliability scorecard" is not a v1 screen (ticket 53 is the monthly scorecard).
