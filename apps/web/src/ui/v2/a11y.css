@@ -1,0 +1,9 @@
+/* Said to a screen reader and never drawn: the part of a name a sighted reader gets from the row it sits in. */
+.v2-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
