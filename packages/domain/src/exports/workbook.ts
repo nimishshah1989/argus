@@ -39,7 +39,7 @@ function machineRow(
   if (kind === 'dg') {
     return [
       index + 1,
-      machine.id,
+      machine.code,
       text(machine.make),
       text(machine.model),
       text(machine.serial),
@@ -55,7 +55,7 @@ function machineRow(
   }
   const base = [
     index + 1,
-    machine.id,
+    machine.code,
     text(machine.category),
     text(machine.make),
     text(machine.model),
@@ -71,7 +71,7 @@ function machineRow(
   }
   return [
     index + 1,
-    machine.id,
+    machine.code,
     text(machine.segment),
     ...base.slice(2),
     text(machine.controller),

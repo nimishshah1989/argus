@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { TFunction } from 'i18next';
+import i18next, { type TFunction } from 'i18next';
 import { en } from '@uptimo/shared/i18n';
 import { keyReply } from './key-reply.js';
 import { tidyGlued } from './page-model.js';
@@ -7,6 +7,15 @@ import type { FiguresPart } from './printed.js';
 
 /** The catalogue's English as a `t`, so a test reads the words a reader would. */
 export const testT = ((key: string) => (en as Record<string, string>)[key] ?? key) as TFunction;
+
+/** The catalogue's English through i18next, so a `{{count}}` key is filled as a reader would see it. */
+const english = i18next.createInstance();
+void english.init({
+  lng: 'en',
+  resources: { en: { translation: { ...en } } },
+  interpolation: { escapeValue: false },
+});
+export const realT = english.t.bind(english) as unknown as TFunction;
 
 /** The engine's frozen answer for one key (the 11 November plant), as the part of the figures reply an adapter reads. */
 export function answerKey(file: string, key: string, owner: number): FiguresPart {

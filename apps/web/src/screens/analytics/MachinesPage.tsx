@@ -4,14 +4,11 @@ import { useAnalyticsFigures } from '../../api.js';
 import { useOnline } from '../../data/index.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
-import { Stack } from '../../ui/layout.js';
 import { DrillTable } from './DrillTable.js';
-import { EnergyPage } from './EnergyPage.js';
 import { KeyScreen } from './key-screen.js';
 import { ScreenMenu } from './screen-menu.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
-const ENERGY = 'a5-energy';
 const COMPARE = 'compare';
 
 /** The Machines group's own pages (the machine page itself is a route per machine, reached from a row). */
@@ -36,7 +33,7 @@ function ScreenNav({ group, current }: { group: AnalyticsGroup; current: string 
 
 /**
  * The Machines group's screens that are still v1's (the registers, the cell change log, age and footprint are v2 and
- * live in `screens/v2/live.tsx`, which also sends an unknown `?screen=` to the first of them): Compare and Energy. The
+ * live in `screens/v2/live.tsx`, which also sends an unknown `?screen=` to the first of them, as Energy is): Compare. The
  * machine page has its own route.
  */
 export function MachinesPage({ group }: { group: AnalyticsGroup }) {
@@ -58,29 +55,19 @@ export function MachinesPage({ group }: { group: AnalyticsGroup }) {
         onRetry={() => void figures.refetch()}
       />
     );
-  const screen = params.get('screen') === COMPARE ? COMPARE : ENERGY;
   const figureOf = (key: string) => figures.data?.figures.find((figure) => figure.screen === key);
-  const menu = <ScreenNav group={group} current={screen} />;
+  const menu = <ScreenNav group={group} current={COMPARE} />;
   const asOf = figures.data.asOf;
-  if (screen === COMPARE) {
-    const drill = parseDrill(params.get('drill'));
-    const found = figureOf(COMPARE);
-    return (
-      <KeyScreen
-        screen={COMPARE}
-        figures={found ? [found] : []}
-        group={group}
-        menu={menu}
-        asOf={asOf}
-        drill={drill ? <DrillTable group={group} drill={drill} headingLevel={3} /> : null}
-      />
-    );
-  }
+  const drill = parseDrill(params.get('drill'));
+  const found = figureOf(COMPARE);
   return (
-    <Stack gap={6}>
-      {menu}
-      <p className="text-footnote text-neutral-600">{t('analytics.asOf', { date: asOf })}</p>
-      <EnergyPage figure={figureOf(ENERGY)} group={group} />
-    </Stack>
+    <KeyScreen
+      screen={COMPARE}
+      figures={found ? [found] : []}
+      group={group}
+      menu={menu}
+      asOf={asOf}
+      drill={drill ? <DrillTable group={group} drill={drill} headingLevel={3} /> : null}
+    />
   );
 }

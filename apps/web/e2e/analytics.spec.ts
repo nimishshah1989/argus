@@ -85,8 +85,33 @@ const valueText = (figure: Figure): string | null => {
   return null;
 };
 
-/** One dashboard figure's tile, found by the registry key the screen stamps on it. */
-const tile = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`);
+/** What each Dashboard figure is called on its card (the screen's own labels); a card is a named region. */
+const LABEL: Record<string, string> = {
+  'dashboard.total-machines': 'Total machines',
+  'dashboard.utilities': 'Utilities',
+  'dashboard.dg-sets': 'DG sets',
+  'dashboard.cnc-machines': 'CNC machines',
+  'dashboard.conventional-machines': 'Conventional machines',
+  'dashboard.process-machines': 'Process machines',
+  'dashboard.total-breakdowns': 'Total breakdowns',
+  'dashboard.total-downtime-hours': 'Total downtime',
+  'dashboard.pm-hours': 'PM hours',
+  'dashboard.no-downtime-hours': 'Breakdown hours with no downtime',
+  'dashboard.breakdown-free': 'Breakdown-free machines',
+  'dashboard.costliest-problems': 'Problems costing the most downtime',
+  'dashboard.bubble-chart': 'Breakdowns against downtime',
+  'dashboard.expansion-timeline': 'Machine expansion timeline',
+  'dashboard.plant-events': 'Plant events (power and air failures)',
+  'dashboard.fleet-availability': 'Fleet availability',
+  'dashboard.plant-bd-pct': 'Plant breakdown percent',
+  'dashboard.avg-complaints-per-day': 'Average complaints per day',
+  'dashboard.avg-bd-hours-per-day': 'Average breakdown hours per day',
+  'dashboard.avg-bd-hours-per-machine': 'Average breakdown hours per machine',
+};
+
+/** One Dashboard figure's card, found by its label. */
+const tile = (page: Page, key: string) =>
+  page.getByRole('region', { name: LABEL[key], exact: true });
 
 /**
  * The three chart/table payloads are pinned here: the e2e seed holds no history rows, so the live engine answers
@@ -150,10 +175,7 @@ async function expectReadyFigure(page: Page, figure: Figure): Promise<void> {
   switch (figure.key) {
     case 'dashboard.bubble-chart':
     case 'dashboard.expansion-timeline':
-      await expect(found.locator('[data-testid="chart"]')).toHaveAttribute(
-        'data-chart-state',
-        'ready',
-      );
+      await expect(found.locator('[data-chart-state="ready"]')).toBeVisible();
       return;
     case 'dashboard.breakdown-free': {
       const counts = value as { runningClean: number; inService: number };
@@ -165,10 +187,8 @@ async function expectReadyFigure(page: Page, figure: Figure): Promise<void> {
       if (rows[0] !== undefined) await expect(found).toContainText(rows[0].problem);
       return;
     }
-    case 'data-checklist':
-      return;
     default:
-      await expect(found).toContainText('Only numbers so far');
+      return;
   }
 }
 
@@ -180,12 +200,21 @@ const firstHeld = (reply: FiguresReply) =>
   reply.figures.find((figure) => figure.screen === 'dashboard' && figure.status !== 'ready');
 
 /**
- * The shell's menu (86a): six sections and the Guide. On a phone it is a drawer behind the Menu button; the data
- * checklist is a tab of Today, not a menu entry.
+ * The v2 shell's rail: the six sections and the Guide are links, Today is the page you are on, and the data checklist
+ * is a tab of Today, not a rail entry. On a phone the rail is behind the Menu button.
  */
 async function expectShellMenu(page: Page, wide: boolean) {
+  // The page swaps its loading frame for the loaded one when the figures arrive, which closes a menu opened before then:
+  // open the menu only once the Dashboard has loaded.
+  await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
+  // The tabs are on the page, which a phone's open menu makes inert: read them first.
+  await expect(
+    page
+      .getByRole('group', { name: 'Screens in Today', exact: true })
+      .getByRole('button', { name: 'Data checklist', exact: true }),
+  ).toBeVisible();
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
-  const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
+  const rail = page.locator('nav.v2-rail');
   for (const name of [
     'Today',
     'Machines',
@@ -195,20 +224,14 @@ async function expectShellMenu(page: Page, wide: boolean) {
     'Reports',
     'Guide',
   ])
-    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Screens in Today', exact: true })
-      .getByRole('link', { name: 'Data checklist', exact: true }),
-  ).toBeVisible();
-  return menu;
+    await expect(rail.getByRole('link', { name, exact: true })).toBeVisible();
+  await expect(rail.getByRole('link', { name: 'Today', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  return rail;
 }
 
-/**
- * Ticket 37b: the analytics face, its Guide entry and the profile screen. The computable Dashboard
- * figures are ready and the held ones stay honestly "Not computed yet". The drill test stubs both analytics
- * replies, so it never waits for the live engine.
- */
 test('a head opens the analytics face, its Guide, and edits the plant profile', async ({
   page,
 }, testInfo) => {
@@ -218,7 +241,9 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
 
   // Packet 38.3: the head's home is Today, and the desk still offers the face on its own menu.
   await expect(page).toHaveURL(/\/analytics\/today$/);
-  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
+  ).toBeVisible();
   await page.goto('/desk');
   if (wide) await expect(page.getByRole('link', { name: 'Analytics', exact: true })).toBeVisible();
 
@@ -229,12 +254,15 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   await expect(page).toHaveURL(/\/analytics\/today$/);
   const reply = (await (await response).json()) as FiguresReply;
 
-  const menu = await expectShellMenu(page, wide);
-
   // The honest state: a held figure claims no value it does not have.
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
+  ).toBeVisible();
+
+  // The rail comes last: on a phone its open menu makes the page inert.
+  const menu = await expectShellMenu(page, wide);
 
   // The Guide lists the screens and figures with their labels.
   await menu.getByRole('link', { name: 'Guide', exact: true }).click();
@@ -268,8 +296,8 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
 });
 
 /**
- * Packet 38.3's journey: a head signs in on Today, sees the values the live API returns, opens one
- * drill's rows, sees a held figure stay honest, and opens the data checklist.
+ * Packet 38.3's journey, on the v2 Dashboard: a head signs in on Today, sees the values the live API returns, opens one
+ * figure's rows, sees a held figure stay honest, and opens the data checklist.
  */
 test('a head lands on Today with the live figures, a drill and the data checklist', async ({
   page,
@@ -281,35 +309,41 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   );
   await signIn(page, 'head');
   await expect(page).toHaveURL(/\/analytics\/today$/);
-  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
+  ).toBeVisible();
   const reply = (await (await response).json()) as FiguresReply;
 
-  // Every Dashboard figure the live API returns has a tile. A scalar prints the exact value the API returned; a
-  // ready null prints "—"; an object draws its mapped content (the two charts, the breakdown-free sentence, the
-  // costliest table) and never claims the word "Ready".
+  // Every Dashboard figure the live API returns has a card. A scalar prints the exact value the API returned; a ready
+  // null prints "—"; an object draws its mapped content (the two charts, the breakdown-free sentence, the costliest
+  // table) and never claims the word "Ready".
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
   for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
   for (const figure of ready) await expectReadyFigure(page, figure);
-  await expect(page.locator('[data-figure]').filter({ hasText: 'Ready' })).toHaveCount(0);
+  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
 
-  // The strip above the tiles is built from the existing /state, with no new endpoint.
+  // The table above the cards is built from the existing /state, with no new endpoint.
   await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
 
-  // One drill opens the rows behind its figure, in the table the face already has.
-  const drilled = ready.find((figure) => figure.drill.ids.length > 0);
+  // One figure opens the rows behind it, in the drawer: the URL names it and Back closes it.
+  const drilled = ready.find(
+    (figure) => figure.drill.ids.length > 0 && figure.key !== 'dashboard.costliest-problems',
+  );
   expect(drilled).toBeTruthy();
   await tile(page, drilled!.key)
-    .getByRole('link', { name: /^See the rows/ })
+    .getByRole('button', { name: /Show the rows behind/ })
     .click();
-  await expect(page).toHaveURL(/\/analytics\/today\?drill=/);
-  const drill = page
-    .locator('section')
-    .filter({ has: page.getByRole('heading', { name: 'The rows behind this figure' }) });
-  const table = drill.getByRole('table');
-  await expect(table).toBeVisible();
-  await expect(table.getByRole('row')).toHaveCount(drilled!.drill.ids.length + 1);
+  await expect(page).toHaveURL(/[?&]drawer=figure:/);
+  const rows = page.locator('aside.v2-drawer');
+  // Exactly the rows the figure counted: the drawer's own count line names how many, by the kind of row.
+  const kind = { machine: 'machines', ticket: 'tickets', move: 'cell moves' }[drilled!.drill.type];
+  await expect(
+    rows.getByText(`${drilled!.drill.ids.length} ${kind} counted`, { exact: true }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
 
   // A held figure never invents a number.
   const held = firstHeld(reply);
@@ -317,11 +351,11 @@ test('a head lands on Today with the live figures, a drill and the data checklis
 
   // The data checklist has its own route, a tab of Today. Its tile lists the open items it computes,
   // grouped and counted, and never claims a "Ready" it does not have.
-  const tabs = page.getByRole('navigation', { name: 'Screens in Today', exact: true });
-  await tabs.getByRole('link', { name: 'Data checklist', exact: true }).click();
+  const tabs = page.getByRole('group', { name: 'Screens in Today', exact: true });
+  await tabs.getByRole('button', { name: 'Data checklist', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
   await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
-  const checklistTile = tile(page, 'data-checklist');
+  const checklistTile = page.locator('[data-figure="data-checklist"]');
   await expect(checklistTile).not.toContainText('Ready');
   await expect(checklistTile).not.toContainText('Not computed yet');
   const checklist = reply.figures.find((figure) => figure.key === 'data-checklist');
@@ -334,10 +368,11 @@ test('a head lands on Today with the live figures, a drill and the data checklis
 });
 
 /**
- * The honesty gate on the strip: a head lands straight on Today, so a slow `/state` must not read as an
- * all-clear. The reply is held for a moment to catch the strip before its data lands.
+ * The honesty gate on the table: a head lands straight on Today, so a slow `/state` must not read as an all-clear.
+ * The reply is held for a moment to catch the page before its data lands. The page waits for it whole, so it is the
+ * loading state, never a quiet "Nothing needs you now".
  */
-test('the needs-now strip says it is loading until /state arrives, never a false all-clear', async ({
+test('the needs-now table says it is loading until /state arrives, never a false all-clear', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -347,17 +382,20 @@ test('the needs-now strip says it is loading until /state arrives, never a false
   });
   await signIn(page, 'head');
 
-  const strip = page.getByRole('region', { name: 'What needs you now' });
-  await expect(strip.getByText('Loading…', { exact: true })).toBeVisible();
-  await expect(strip.getByText('Nothing needs you now.', { exact: true })).toHaveCount(0);
-  // The count line would also claim nothing before the reply lands.
-  await expect(strip.getByText(/clocks breached/)).toHaveCount(0);
+  await expect(page.getByText('Loading…', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Nothing needs you now.', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/clocks breached/)).toHaveCount(0);
 
-  // Once /state lands, the strip says what it knows.
-  await expect(strip.getByText(/clocks breached/)).toBeVisible({ timeout: 15_000 });
+  // Once /state lands, the page says what it knows: the count line, or the plain all-clear.
+  await expect(
+    page
+      .getByText(/clocks breached/)
+      .or(page.getByText('Nothing needs you now.', { exact: true }))
+      .first(),
+  ).toBeVisible({ timeout: 15_000 });
 });
 
-test('a ready figure opens the table of rows behind it', async ({ page }, testInfo) => {
+test('a ready figure opens the rows behind it', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
@@ -376,16 +414,15 @@ test('a ready figure opens the table of rows behind it', async ({ page }, testIn
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');
   await expect(tile(page, 'dashboard.total-machines')).toContainText('12');
   await tile(page, 'dashboard.total-machines')
-    .getByRole('link', { name: /^See the rows/ })
+    .getByRole('button', { name: /Show the rows behind Total machines/ })
     .click();
 
-  // The drill table is the plain list of what identifies each row.
-  await expect(page).toHaveURL(/\/analytics\/today\?drill=machine%3A/);
-  await expect(page.getByRole('heading', { name: 'The rows behind this figure' })).toBeVisible();
-  const table = page.getByRole('table');
-  await expect(table).toBeVisible();
-  await expect(table.getByRole('cell', { name: 'M-1', exact: true })).toBeVisible();
-  await expect(table.getByRole('cell', { name: 'Cell 4', exact: true })).toBeVisible();
+  // The rows open in the drawer: the machine the figure counted, by its code.
+  await expect(page).toHaveURL(/[?&]drawer=figure:dashboard\.total-machines/);
+  const rows = page.locator('aside.v2-drawer');
+  await expect(rows.getByRole('button', { name: 'M-1', exact: true })).toBeVisible();
+  await expect(rows.getByText('1 machines counted', { exact: true })).toBeVisible();
+  await expect(rows.getByText(/Cell 4/).first()).toBeVisible();
 });
 
 test('an operator lands on My complaints and has no analytics entry', async ({

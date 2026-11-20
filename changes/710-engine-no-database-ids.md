@@ -1,0 +1,3 @@
+- On a real plant no analytics figure prints a database id any more: the A2 and A3 machine tables, the Breakdown Log machine column, the repeat-fault table, the Data Checklist lines, the Compare headings and chart legends, the Action Center nudge titles and risk table, the Team Focus action titles all show the machine code, and the dashboard timeline groups machines by their code letters.
+- The order of the problem list (Problem Analysis, Money Matters) and the dots on the Bottleneck risk map no longer depend on the id a machine happens to have, so they come out in the plant's order on a real plant.
+- A chart point and a Team Focus action carry the machine code beside the id the screen looks it up by, and the older Today, Guide and Team Focus pages print the code.

@@ -63,7 +63,7 @@ function machineTable(ctx: A3Context) {
     })
     .sort((left, right) => right.hours - left.hours)
     .map(({ machine, count, hours, available }) => [
-      machine.id,
+      machine.code,
       normalizeLabel(machine.category?.trim() ?? ''),
       cellKey(machine.cell),
       String(count),

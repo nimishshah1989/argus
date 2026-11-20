@@ -1,111 +1,124 @@
-import { useContext } from 'react';
-import { BulletBar, BulletLegend } from '../../../ui/v2/bullet-bar.js';
-import { Button } from '../../../ui/v2/button.js';
-import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
-import { MachineTable } from '../../../ui/v2/domain/machine-table.js';
-import { PlantMap } from '../../../ui/v2/domain/plant-map.js';
+import { ChartCard } from '../../../ui/v2/chart-card.js';
+import { LinkButton } from '../../../ui/v2/button.js';
+import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
+import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { DrillButton } from '../../../ui/v2/drill-button.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
-import { Pareto } from '../../../ui/v2/pareto.js';
+import { Segs } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
-import { EntityOpenContext, type EntityKind } from '../../../ui/v2/entity-chip.js';
+import { SectionHead } from '../../../ui/v2/section-head.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
-import { TrendChart } from '../../../ui/v2/trend-chart.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
+import { WhyToggle } from '../../../ui/v2/why-toggle.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import { useEntityParam } from '../entity/url.js';
-import { localDecision, type Acts } from './local.js';
-import type { DashboardActions, DashboardModel } from './model.js';
+import type { CostliestModel, DashboardModel, NeedsModel, WarningModel } from './model.js';
 
-const ignore = () => {};
-
-/** Where the hours go, ending in its two next steps. */
-function ParetoCard({ model, act }: { model: DashboardModel; act: Acts }) {
-  const { words } = model;
+/** What needs a person now: the table of tickets, or the plain line that nothing does, or that it could not be read. */
+function Needs({ needs }: { needs: NeedsModel }) {
+  if (needs.state === 'unavailable')
+    return (
+      <Panel title={needs.title}>
+        <p role="status">{needs.text}</p>
+      </Panel>
+    );
+  if (needs.table) return <EngineTable table={needs.table} />;
   return (
-    <Panel title={words.paretoTitle}>
-      <Pareto
-        data={model.pareto}
-        whyLabel={words.whyThese}
-        actions={
-          <>
-            <Button primary onClick={act.onAddFocus}>
-              {words.addFocus}
-            </Button>
-            <Button onClick={act.onSeeFixes}>{words.seeFixes}</Button>
-          </>
-        }
-      />
+    <Panel title={needs.title} sub={needs.counts}>
+      <p>{needs.empty}</p>
     </Panel>
   );
 }
 
-/** The page under the header, top to bottom; a decision, a square or a row opens its item in the drawer. */
-function Body({ model, act }: { model: DashboardModel; act: Acts }) {
-  const { words } = model;
-  const open = useContext(EntityOpenContext);
-  const { current } = useEntityParam();
-  const opener = (kind: EntityKind) => ({
-    selected: current?.kind === kind ? current.id : undefined,
-    onOpen: (id: string) => open({ kind, id }),
-  });
-  const decision = opener('decision');
-  const machine = opener('machine');
+function Costliest({ costliest }: { costliest: CostliestModel }) {
+  const aside = costliest.drill ? <DrillButton drill={costliest.drill} /> : undefined;
+  if (costliest.table) return <EngineTable table={costliest.table} aside={aside} />;
+  return (
+    <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
+      <p>{costliest.empty}</p>
+    </Panel>
+  );
+}
+
+function Warning({ warning }: { warning: WarningModel }) {
+  return (
+    <Panel title={warning.title} sub={warning.sub}>
+      <p className="v2-lede">
+        <Segs point={warning.headline} />
+      </p>
+      <WhyToggle label={warning.whyLabel} points={warning.why} />
+    </Panel>
+  );
+}
+
+/** The Action Center's counts and the way in; nothing when no nudge is open. */
+export function ActionCenter({ note }: { note: DashboardModel['actionCenter'] }) {
+  if (!note) return null;
+  return (
+    <Panel title={note.title} aside={<LinkButton href={note.href}>{note.open}</LinkButton>}>
+      <p>{note.text}</p>
+    </Panel>
+  );
+}
+
+/** The page under the header, top to bottom: the answer, what needs you, the figures, the problems, the pictures. */
+function Body({ model }: { model: DashboardModel }) {
   return (
     <>
-      <Verdict verdict={model.verdict} whyLabel={words.why} />
-      <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
-      <DecisionList
-        decisions={model.decisions}
-        words={words.decisions}
-        {...decision}
-        onDecide={act.onDecide}
-        onUndo={act.onUndo}
-      />
-      <Row wide>
-        <TrendChart data={model.trend} />
-        <Panel title={words.targetTitle}>
-          {model.bullets.map((b) => (
-            <BulletBar key={b.id} b={b} />
-          ))}
-          <BulletLegend words={words.legend} />
-        </Panel>
-      </Row>
-      <Row wide>
-        <ParetoCard model={model} act={act} />
-        <PlantMap cells={model.cells} words={words.plant} {...machine} />
-      </Row>
-      <MachineTable
-        machines={model.cells.flatMap((c) => c.machines)}
-        words={words.machines}
-        {...machine}
-      />
+      <Verdict verdict={model.verdict} whyLabel={model.words.why} />
+      <Needs needs={model.needs} />
+      <ActionCenter note={model.actionCenter} />
+      {model.sections.map((section) => (
+        <section key={section.id} className="v2-stack v2-gap-12" aria-label={section.title}>
+          <SectionHead title={section.title} sub={section.sub} />
+          <Row cols={section.id === 'fleet' ? 3 : 4}>
+            {section.kpis.map((kpi) => (
+              <KpiCard key={kpi.id} kpi={kpi} />
+            ))}
+          </Row>
+        </section>
+      ))}
+      {model.costliest ? <Costliest costliest={model.costliest} /> : null}
+      {model.warning ? <Warning warning={model.warning} /> : null}
+      {model.charts.map((chart) =>
+        'spec' in chart ? (
+          <ChartCard
+            key={chart.id}
+            spec={chart.spec}
+            sub={chart.sub}
+            aria={chart.aria}
+            drill={chart.drill}
+          />
+        ) : (
+          <Panel key={chart.id} title={chart.title}>
+            <p role="status">{chart.note}</p>
+          </Panel>
+        ),
+      )}
+      {model.machines ? <EngineTable table={model.machines} /> : null}
+      <SourceLine text={model.source} />
     </>
   );
 }
 
 /**
- * The decision-first Dashboard: the verdict, four key figures, the decisions, the trend beside the targets, where the
- * hours go beside the plant, and every machine. A decision, a square, a row or any chip opens its detail in the
- * drawer, which lives in the URL: Back, ✕, Esc or the same item again closes it.
+ * The Dashboard: the answer first, what needs a person now with the ticket behind each item, every figure v1 printed
+ * with what it covers, its change against 30 days earlier and the rows behind it, the problems that cost the most, the
+ * machines the engine says are failing faster, and the two pictures with the machines they are drawn from. A machine,
+ * a cell or a person opens in the drawer, which lives in the URL.
  */
 export function DashboardView({
   model,
   nav,
   title,
-  onDecide = ignore,
-  onUndo = ignore,
-  onAddFocus = ignore,
-  onSeeFixes = ignore,
-}: { model: DashboardModel; nav: NavItem[]; title: string } & DashboardActions) {
-  const act: Acts = { onDecide, onUndo, onAddFocus, onSeeFixes };
+}: {
+  model: DashboardModel;
+  nav: NavItem[];
+  title: string;
+}) {
   return (
-    <EntityShell nav={nav} title={title} local={(ref) => localDecision(model, ref, act)}>
-      <Body model={model} act={act} />
+    <EntityShell nav={nav} title={title}>
+      <Body model={model} />
     </EntityShell>
   );
 }

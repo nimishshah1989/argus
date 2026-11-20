@@ -21,3 +21,6 @@ f0a1d96fffdb21bbd9f4a1dc8e9bb74619202cd9:apps/server/test/acting-person.test.ts:
 539ca38c757fafa39536ef0cda5dc5020fc6f8ae:packages/domain/test/many-years-risk.test.ts:generic-api-key:36
 # false positive found in #483: a test fixture string (the figure key 'a9-bottleneck-forecast' in ForecastPage.test.ts), not a secret; held in a constant afterwards
 d72937ca2ec422939fec9e55d19314d80c246e9a:apps/web/src/screens/analytics/ForecastPage.test.ts:generic-api-key:24
+# false positive in PR #529's first commit: the public engine figure key 'a9-bottleneck-forecast' held in a constant and compared in a test, not a credential; renamed afterwards
+847a4a8d56152fb2105c92160b7951bf6f6c1da5:apps/web/src/screens/v2/bottleneck/bottleneck.test.ts:generic-api-key:71
+847a4a8d56152fb2105c92160b7951bf6f6c1da5:apps/web/src/screens/v2/bottleneck/adapter.ts:generic-api-key:24

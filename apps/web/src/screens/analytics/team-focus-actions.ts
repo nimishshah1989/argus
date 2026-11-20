@@ -17,7 +17,7 @@ export type FocusLane = (typeof FOCUS_LANES)[number];
 export interface FocusAction {
   key: string;
   lane: FocusLane;
-  /** The machine the action names; null for the spares and record lanes, which name none. */
+  /** The code of the machine the action names (what the card prints); null for the spares and record lanes. */
   machine: string | null;
   title: string;
   /** Hours a month at stake, exactly as the engine rounded them. */
@@ -85,7 +85,12 @@ function actionOf(raw: unknown): FocusAction | null {
   return {
     key: raw.key,
     lane,
-    machine: typeof raw.machine === 'string' ? raw.machine : null,
+    machine:
+      typeof raw.machineCode === 'string'
+        ? raw.machineCode
+        : typeof raw.machine === 'string'
+          ? raw.machine
+          : null,
     title: raw.title,
     stake,
     status: typeof raw.status === 'string' ? raw.status : 'open',

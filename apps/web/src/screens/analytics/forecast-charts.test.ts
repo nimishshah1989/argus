@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
+import { pointName } from '../../ui/chart/chart-spec.js';
 import { contentKind, contentOf } from './figure-content.js';
 
 /**
@@ -223,6 +224,41 @@ describe('the A9 page', () => {
     if (forecast?.kind !== 'bar') throw new Error('expected the planning forecast');
     expect(forecast.series[0]?.tones?.filter((tone) => tone === 'danger')).toHaveLength(1);
     expect(forecast.series[0]?.tones?.filter((tone) => tone === 'hold')).toHaveLength(14);
+  });
+
+  it('prints the risk map by machine code while each point keeps the database id it is looked up by', () => {
+    const uuid = (at: number) => `00000000-0000-4000-8000-${String(at).padStart(12, '0')}`;
+    let at = 0;
+    const keyed = {
+      ...(A9_KEY as object),
+      pages: [
+        {
+          ...A9,
+          charts: A9.charts.map((chart) =>
+            chart.id === 'ch-a9-map'
+              ? {
+                  ...chart,
+                  datasets: chart.datasets.map((dataset) => ({
+                    ...dataset,
+                    data: (dataset.data as MapPoint[]).map((point) => ({
+                      ...point,
+                      id: uuid((at += 1)),
+                      code: point.id,
+                    })),
+                  })),
+                }
+              : chart,
+          ),
+        },
+      ],
+    };
+    const content = contentOf(figure(SCREEN_A9, keyed), translator());
+    if (content?.kind !== 'page') throw new Error('expected the A9 page');
+    const map = content.charts[0];
+    if (map?.kind !== 'scatter') throw new Error('expected the risk map');
+    const expected = expectedMap();
+    expect(map.points.map(pointName)).toEqual(expected.points.map((point) => point.label));
+    expect(map.points.every((point) => /^0{8}-/.test(point.label))).toBe(true);
   });
 
   it('names the A9 chart chrome in both catalogues', () => {

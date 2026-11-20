@@ -127,11 +127,14 @@ const normaliseProblem = (problem: string): string =>
     .replace(/[^a-z0-9]+/g, '')
     .slice(0, KEY_CHARS);
 
-/** One sourced row as an event: its ticket, its machine, the effective hours and the group the classifier chose. */
-function eventOf(row: SourcedReport, group: string): ProblemEvent {
+/**
+ * One sourced row as an event: its ticket, its machine, the effective hours and the group the classifier chose. The
+ * key leads with the machine's code (the platform's "machine ID"), so the sort is the plant's order, never an id's.
+ */
+function eventOf(row: SourcedReport, group: string, code: string): ProblemEvent {
   const { report, ticket } = row;
   return {
-    key: `${report.machineId}|${normaliseProblem(report.problem)}`,
+    key: `${code}|${normaliseProblem(report.problem)}`,
     reportId: report.id,
     ticketId: ticket.id,
     machineId: report.machineId,
@@ -152,13 +155,16 @@ function compareEvents(left: ProblemEvent, right: ProblemEvent): number {
 
 /** Every production, non-PM breakdown as one event, in the platform's key-then-date order. */
 function problemEvents(data: EngineData): ProblemEvent[] {
-  const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
+  const production = new Map(
+    data.machines.filter(isProduction).map((machine) => [machine.id, machine.code]),
+  );
   const fixes = data.settings?.problemFixes ?? {};
   const groups = groupListOf(data);
   const events: ProblemEvent[] = [];
   for (const row of sourcedReports(data)) {
-    if (!production.has(row.report.machineId) || isPm(row)) continue;
-    events.push(eventOf(row, problemGroupOf(row.report, fixes, groups)));
+    const code = production.get(row.report.machineId);
+    if (code === undefined || isPm(row)) continue;
+    events.push(eventOf(row, problemGroupOf(row.report, fixes, groups), code));
   }
   return events.sort(compareEvents);
 }

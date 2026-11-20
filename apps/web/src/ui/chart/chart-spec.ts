@@ -9,11 +9,17 @@ export interface ChartSeries {
   /** One tone per category (a bar coloured by band); absent keeps the series colour. */
   tones?: (ChartTone | undefined)[];
 }
+/** What a point prints: the machine's code where the engine sent one, else its label. */
+export const pointName = (point: Pick<ScatterPoint, 'label' | 'code'>): string =>
+  point.code ?? point.label;
+
 export interface ScatterPoint {
   x: number;
   y: number;
   r: number; // bubble radius
-  label: string; // the machine, data not copy
+  label: string; // the machine, data not copy: the id a screen looks it up by when the engine sends a `code`
+  /** The machine's code, when the engine wrote one beside the id: what a point prints. */
+  code?: string;
   mttr?: number;
   /** The point's rating tone (A9's map); absent keeps the series colour. */
   tone?: ChartTone;
