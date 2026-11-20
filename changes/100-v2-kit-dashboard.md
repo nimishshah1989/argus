@@ -1,0 +1,1 @@
+v2 front end, step 0: a small component kit (`apps/web/src/ui/v2/`) and the decision-first Dashboard built from it, fed by a typed fixture, at `/gallery?view=v2-dashboard`. The `DashboardModel` type is the contract the API adapter will fill.
