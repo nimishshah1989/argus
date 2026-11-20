@@ -1,5 +1,6 @@
+import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { load } from './data.js';
+import { PROVIDERS, load, providersOf } from './data.js';
 import { dashboardFixture } from './dashboard/fixture.js';
 
 describe('the v2 screen data seam', () => {
@@ -18,5 +19,48 @@ describe('the v2 screen data seam', () => {
     expect(await load<'dashboard'>(() => Promise.reject(new Error('down')), {})).toEqual({
       state: 'error',
     });
+  });
+});
+
+describe('the v2 screen registry', () => {
+  const folders = readdirSync(new URL('.', import.meta.url), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  it('serves a screen from its own folder, with no shared file to edit', async () => {
+    const found = providersOf({
+      './demo/register.ts': { screen: { key: 'demo', provider: () => Promise.resolve('model') } },
+    });
+    expect(Object.keys(found)).toEqual(['demo']);
+    expect(await (found.demo as () => Promise<string>)()).toBe('model');
+  });
+
+  it('refuses two screens that claim one key', () => {
+    const screen = { key: 'demo', provider: () => Promise.resolve(null) };
+    expect(() =>
+      providersOf({ './a/register.ts': { screen }, './b/register.ts': { screen } }),
+    ).toThrow(/demo is taken/);
+  });
+
+  it('finds every screen folder that has a register.ts, under the folder name', () => {
+    const registered = folders.filter((name) =>
+      existsSync(new URL(`./${name}/register.ts`, import.meta.url)),
+    );
+    expect(registered.length).toBeGreaterThanOrEqual(7);
+    expect(Object.keys(PROVIDERS).sort()).toEqual([...registered].sort());
+  });
+
+  it('has no screen folder with a fixture and no register.ts', () => {
+    const unregistered = folders.filter(
+      (name) =>
+        existsSync(new URL(`./${name}/fixture.ts`, import.meta.url)) &&
+        !existsSync(new URL(`./${name}/register.ts`, import.meta.url)),
+    );
+    expect(unregistered).toEqual([]);
+  });
+
+  it('serves the fixture of a registered screen', async () => {
+    const provider = PROVIDERS.dashboard as () => Promise<unknown>;
+    expect(await provider()).toBe(dashboardFixture);
   });
 });

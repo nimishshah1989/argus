@@ -1,0 +1,1 @@
+- Nothing changes for plant users. The v2 screen checks that run on every pull request no longer wait on a slow font download (it took from one to five minutes on some runs), so the slowest check finishes sooner and the screenshots they compare are unchanged.

@@ -1,30 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
-import type { CompareModel, CompareParams } from './compare/model.js';
-import type { ActionCenterModel } from './action-center/model.js';
-import type { DashboardModel } from './dashboard/model.js';
-import type { DataChecklistModel } from './data-checklist/model.js';
-import type { EntityModel } from './entity/model.js';
-import type { TeamFocusModel } from './team-focus/model.js';
-import type { MachinePageModel } from './machine/model.js';
 
 /**
  * The one seam between v2 screens and their data. Every screen is a key here, with the params it is asked for and
- * the model its View draws. Today each provider returns the screen's fixture; the API adapter replaces a key's
- * provider and no View changes.
+ * the model its View draws. A screen adds its key from its own folder, `screens/v2/<name>/register.ts` (declaration
+ * merging plus one `screen` entry), so a new screen edits no shared file. Today each provider returns the screen's
+ * fixture; the API adapter replaces a key's provider and no View changes.
  */
-export type Screens = {
-  dashboard: { params: Record<string, never>; model: DashboardModel };
-  /** One machine, cell, person or decision, for the drawer on any screen; nothing when it is not found. */
-  entity: { params: EntityRef; model: EntityModel };
-  compare: { params: CompareParams; model: CompareModel };
-  'team-focus': { params: Record<string, never>; model: TeamFocusModel };
-  /** One machine's own page; nothing when the code is not a machine of the plant. */
-  machine: { params: { id: string }; model: MachinePageModel };
-  'action-center': { params: Record<string, never>; model: ActionCenterModel };
-  'data-checklist': { params: Record<string, never>; model: DataChecklistModel };
-};
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- filled by each screen's register.ts
+export interface Screens {}
 export type ScreenKey = keyof Screens;
 export type ScreenParams<K extends ScreenKey> = Screens[K]['params'];
 export type ScreenModel<K extends ScreenKey> = Screens[K]['model'];
@@ -34,15 +18,28 @@ export type Provider<K extends ScreenKey> = (
   params: ScreenParams<K>,
 ) => Promise<ScreenModel<K> | null>;
 
-const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
-  dashboard: () => import('./dashboard/fixture.js').then((m) => m.dashboardFixture),
-  entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
-  compare: (pair) => import('./compare/fixture.js').then((m) => m.compareFixture(pair)),
-  'team-focus': () => import('./team-focus/fixture.js').then((m) => m.teamFocusFixture),
-  machine: ({ id }) => import('./machine/fixture.js').then((m) => m.machineFixture(id)),
-  'action-center': () => import('./action-center/fixture.js').then((m) => m.actionCenterFixture),
-  'data-checklist': () => import('./data-checklist/fixture.js').then((m) => m.dataChecklistFixture),
-};
+/** What a screen's `register.ts` exports as `screen`: its key and the provider the registry serves for it. */
+export interface ScreenEntry<K extends ScreenKey> {
+  key: K;
+  provider: Provider<K>;
+}
+
+type Registered = Record<string, { screen: { key: string; provider: unknown } }>;
+
+/** The providers by key, from the register modules found; two screens claiming one key is a mistake worth a crash. */
+export function providersOf(modules: Registered): Record<string, unknown> {
+  const found: Record<string, unknown> = {};
+  for (const [path, { screen }] of Object.entries(modules)) {
+    if (Object.hasOwn(found, screen.key))
+      throw new Error(`${path}: screen key ${screen.key} is taken`);
+    found[screen.key] = screen.provider;
+  }
+  return found;
+}
+
+export const PROVIDERS = providersOf(
+  import.meta.glob<Registered[string]>('./*/register.ts', { eager: true }),
+);
 
 /** One load, as the state a screen shows: ready with its model, empty, or error. */
 export async function load<K extends ScreenKey>(

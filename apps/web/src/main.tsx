@@ -7,6 +7,7 @@ import { worthRetrying } from './data/index.js';
 import { applyConfigLanguage } from './i18n/index.js';
 import { replayOutbox } from './offline/replay.js';
 import './style.css';
+import './ui/v2/sheets.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {

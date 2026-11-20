@@ -64,7 +64,7 @@ const CLEAN = `diff --git a/apps/x.test.ts b/apps/x.test.ts
  });
 `;
 
-const IDS = Array.from({ length: 15 }, (_, i) => `Q${i + 1}`);
+const IDS = Array.from({ length: 16 }, (_, i) => `Q${i + 1}`);
 const qTable = (omit: string[] = []): string =>
   IDS.filter((id) => !omit.includes(id))
     .map((id) => `${id} pass`)
@@ -125,13 +125,29 @@ describe('merge test selection', () => {
 });
 
 describe('quality evidence', () => {
-  it('Q12 accepts all 15 ids and the three sections', () => {
+  it('Q12 accepts all 16 ids and the three sections', () => {
     expect(missingAttributes(body())).toEqual([]);
     expect(missingSections(body())).toEqual([]);
   });
 
   it('Q15 reports a body that omits the merge-keeps-main-green line', () => {
     expect(missingAttributes(body(['Q15']))).toEqual(['Q15']);
+  });
+
+  it('Q16 reports a body that omits the scope-kept line', () => {
+    expect(missingAttributes(body(['Q16']))).toEqual(['Q16']);
+  });
+
+  it('Q16 keeps the contract page and the PR template on the same ids as the gate', () => {
+    const doc = readFileSync(new URL('../docs/QUALITY-ATTRIBUTES.md', import.meta.url), 'utf8');
+    const template = readFileSync(
+      new URL('../.github/pull_request_template.md', import.meta.url),
+      'utf8',
+    );
+    const rows = [...doc.matchAll(/^\|\s*(Q\d+)\s*\|/gm)].map((m) => m[1]);
+    const lines = [...template.matchAll(/^(Q\d+) .+: <verdict>$/gm)].map((m) => m[1]);
+    expect(rows).toEqual(IDS);
+    expect(lines).toEqual(IDS);
   });
 
   it('Q12 rejects a Q line with no verdict', () => {
@@ -147,7 +163,7 @@ describe('quality evidence', () => {
       new URL('../.github/pull_request_template.md', import.meta.url),
       'utf8',
     );
-    expect(missingAttributes(template)).toHaveLength(15);
+    expect(missingAttributes(template)).toHaveLength(16);
   });
 
   it('Q12 reports exactly the missing id and section', () => {

@@ -100,6 +100,7 @@ export function TableBar({
   chips,
   chip,
   onChip,
+  hideSearch = false,
 }: {
   title: string;
   search: string;
@@ -108,20 +109,24 @@ export function TableBar({
   chips: { key: string; label: string }[];
   chip: string;
   onChip: (key: string) => void;
+  /** A list the server cannot search yet has no search box, rather than one that does nothing. */
+  hideSearch?: boolean;
 }) {
   return (
     <div className="v2-table-bar">
       <h2 className="v2-h2">{title}</h2>
-      <label className="v2-table-search">
-        <Icon name="search" />
-        <input
-          type="search"
-          aria-label={search}
-          placeholder={search}
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-        />
-      </label>
+      {hideSearch ? null : (
+        <label className="v2-table-search">
+          <Icon name="search" />
+          <input
+            type="search"
+            aria-label={search}
+            placeholder={search}
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+          />
+        </label>
+      )}
       <div className="v2-chips">
         {chips.map((f) => (
           <button

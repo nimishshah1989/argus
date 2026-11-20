@@ -1,0 +1,1 @@
+- A pull request that changes a v2 screen can no longer merge unless it shows what the plant had on that screen: a coverage table in the description and in `docs/design/v2/scope/`, with nothing marked MISSING or DROPPED unless Nimish said yes in writing. Pull requests that touch no v2 screen are unaffected.
