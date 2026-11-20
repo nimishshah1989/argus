@@ -178,7 +178,9 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
-    timeout-minutes: 8
+    # 15, not 8: the gallery runs every v2 screen's specs in one job (about 7 minutes at 223 tests, and each screen
+    # adds more), and a run cancelled at the limit hides real failures.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
