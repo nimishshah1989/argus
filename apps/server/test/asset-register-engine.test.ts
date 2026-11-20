@@ -336,14 +336,18 @@ describe('the Action Center’s AMC and legal nudges', () => {
   });
 });
 
+// The sheets print the machine's code, never its id (the fixture's two machines are VC-01 and VC-02).
+const CODE_FREE = 'VC-01';
+const CODE_USED = 'VC-02';
+
 describe('the workbook’s two register sheets', () => {
   it('prints the AMC type, start, stored end and the not-renewing cell', async () => {
     const comprehensive = amcRows().find(
-      (row) => row[1] === M_USED && row[2] === 'AMC (Comprehensive)',
+      (row) => row[1] === CODE_USED && row[2] === 'AMC (Comprehensive)',
     );
     expect(comprehensive).toBeDefined();
     expect(comprehensive!.slice(1)).toEqual([
-      M_USED,
+      CODE_USED,
       'AMC (Comprehensive)',
       '2026-01-01',
       '',
@@ -353,7 +357,7 @@ describe('the workbook’s two register sheets', () => {
     ]);
     const notRenewing = amcRows().find((row) => row[2] === 'AMC' && row[7] === 'yes');
     expect(notRenewing).toBeDefined();
-    expect(notRenewing!.slice(1, 8)).toEqual([M_FREE, 'AMC', '', '', '16-11-2026', '', 'yes']);
+    expect(notRenewing!.slice(1, 8)).toEqual([CODE_FREE, 'AMC', '', '', '16-11-2026', '', 'yes']);
     const warranty = amcRows().find((row) => row[2] === 'Mitsubishi EWC');
     expect(warranty!.slice(3, 7)).toEqual(['', '', '16-11-2026', '']);
   });
@@ -362,7 +366,7 @@ describe('the workbook’s two register sheets', () => {
     const legal = legalRows().find((row) => row[2] === 'Test Of Pressure Vessel');
     expect(legal).toBeDefined();
     expect(legal!.slice(1)).toEqual([
-      M_USED,
+      CODE_USED,
       'Test Of Pressure Vessel',
       'Form No 11',
       '2026-01-01',
@@ -370,17 +374,17 @@ describe('the workbook’s two register sheets', () => {
       '2026-11-21',
       'CERT-9',
     ]);
-    const blank = legalRows().find((row) => row[1] === M_USED && row[6] === DUE_BLANK_LEGAL);
-    expect(blank!.slice(1)).toEqual([M_USED, '', '', '', '', DUE_BLANK_LEGAL, '']);
+    const blank = legalRows().find((row) => row[1] === CODE_USED && row[6] === DUE_BLANK_LEGAL);
+    expect(blank!.slice(1)).toEqual([CODE_USED, '', '', '', '', DUE_BLANK_LEGAL, '']);
   });
 
   it('leaves the end/due cells blank when the register has no date', async () => {
-    const noEnd = amcRows().find((row) => row[1] === M_USED && row[2] === 'Warranty');
+    const noEnd = amcRows().find((row) => row[1] === CODE_USED && row[2] === 'Warranty');
     expect(noEnd).toBeDefined();
-    expect(noEnd!.slice(1)).toEqual([M_USED, 'Warranty', '', '', '', '', '']);
+    expect(noEnd!.slice(1)).toEqual([CODE_USED, 'Warranty', '', '', '', '', '']);
     const noDue = legalRows().find((row) => row[2] === 'Pressure gauge calibration');
     expect(noDue).toBeDefined();
-    expect(noDue!.slice(1)).toEqual([M_FREE, 'Pressure gauge calibration', '', '', '', '', '']);
+    expect(noDue!.slice(1)).toEqual([CODE_FREE, 'Pressure gauge calibration', '', '', '', '', '']);
   });
 
   it('a removed register row leaves the load, the board and both sheets', async () => {

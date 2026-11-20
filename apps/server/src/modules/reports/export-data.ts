@@ -7,6 +7,7 @@ import {
   type ExportPmPlan,
   type ExportPmReport,
   type ExportSettings,
+  UNLISTED,
 } from '@uptimo/domain';
 import type { PmExportReportRow } from '../tickets/index.js';
 
@@ -112,10 +113,16 @@ function pmPlanRowsOf(data: EngineData): ExportPmPlan[] {
   return rows;
 }
 
+/** What a sheet prints for a machine or a person: the code and the coded name, never the id the rows carry. */
+interface PrintedNames {
+  machines: ReadonlyMap<string, string>;
+  people: ReadonlyMap<string, string>;
+}
+
 /** One closed PM job as the PM Reports sheet prints it: the stored report's own numbers, its close and plan dates. */
 function pmReportRowOf(
   row: PmExportReportRow,
-  codes: ReadonlyMap<string, string>,
+  names: PrintedNames,
   timeZone: string,
 ): ExportPmReport | null {
   const parsed = pmReportSchema.safeParse(row.report);
@@ -123,7 +130,7 @@ function pmReportRowOf(
   const { total, undone, readings, comments, doneBy } = parsed.data;
   return {
     id: row.ticketId,
-    machineId: codes.get(row.machineId) ?? row.machineId,
+    machineId: names.machines.get(row.machineId) ?? UNLISTED,
     date: plantDay(row.closedAt, timeZone),
     planDate: row.scheduledOn,
     total,
@@ -132,16 +139,19 @@ function pmReportRowOf(
       Object.entries(readings).map(([key, value]) => [key, String(value)]),
     ),
     comments: comments === null ? [] : [comments],
-    doneBy,
+    doneBy: doneBy === null ? null : (names.people.get(doneBy) ?? UNLISTED),
     data: parsed.data,
   };
 }
 
 /** The live PM Reports sheet's rows (50b, R15): one per closed PM job, printed from its own stored report. */
 function pmReportRowsOf(rows: readonly PmExportReportRow[], data: EngineData): ExportPmReport[] {
-  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
+  const names: PrintedNames = {
+    machines: new Map(data.machines.map((machine) => [machine.id, machine.code])),
+    people: new Map(data.people.map((person) => [person.id, person.displayName])),
+  };
   return rows.flatMap((row) => {
-    const report = pmReportRowOf(row, codes, data.timeZone);
+    const report = pmReportRowOf(row, names, data.timeZone);
     return report === null ? [] : [report];
   });
 }

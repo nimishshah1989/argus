@@ -1,0 +1,1 @@
+The Excel workbook now shows each machine by its code (for example VC-02) in every Machine ID column, not the internal id, and the Breakdown Log's ticket columns show the ticket reference (BD-0035). The PM Reports sheet shows who did the job by their coded name. A machine or person the plant no longer lists prints a dash. The Record ID columns still print the row's own id.
