@@ -51,9 +51,9 @@ export function machineYear(machine: MachineRow): number | null {
  * `S-1` -> `S`). A name that is all letters (`BOXY`) falls back to its category, as the platform does.
  */
 export function machinePrefix(machine: MachineRow): string {
-  const match = /^[A-Za-z]+/.exec(machine.id);
-  if (match !== null && match[0].length < machine.id.length) return match[0];
-  return machine.category ?? machine.id;
+  const match = /^[A-Za-z]+/.exec(machine.code);
+  if (match !== null && match[0].length < machine.code.length) return match[0];
+  return machine.category ?? machine.code;
 }
 
 /** A plant date's year, month and day, or null when the text is not a date. */

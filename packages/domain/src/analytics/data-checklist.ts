@@ -56,15 +56,15 @@ const missingEmType = (row: SourcedReport): boolean =>
  */
 function breakdownItems(
   rows: readonly SourcedReport[],
-  machineIds: ReadonlySet<string>,
+  codes: ReadonlyMap<string, string>,
 ): ChecklistItem[] {
   const items: ChecklistItem[] = [];
   for (const row of rows) {
     const report = row.report;
-    const plain = `${dateText(report.date)} · ${report.machineId === '' ? '?' : report.machineId}`;
+    const plain = `${dateText(report.date)} · ${codes.get(report.machineId) ?? (report.machineId === '' ? '?' : report.machineId)}`;
     const checks: ReadonlyArray<readonly [string, string, boolean]> = [
       ['bd_date', 'date missing or invalid', dayNumber(report.date) === null],
-      ['bd_mach', `machine ID "${report.machineId}" not found`, !machineIds.has(report.machineId)],
+      ['bd_mach', `machine ID "${report.machineId}" not found`, !codes.has(report.machineId)],
       ['bd_hrs', 'downtime hours missing', missingHours(row)],
       ['bd_code', 'maintenance code missing', (report.maintCode ?? '').trim() === ''],
       ['bd_done', 'Done By missing', report.doneBy.length === 0],
@@ -121,14 +121,18 @@ function gapItems(rows: readonly SourcedReport[], asOf: string): ChecklistItem[]
 }
 
 /** Breakdowns over the Why-Why threshold that have no root-cause analysis, newest first. */
-function whyWhyItems(rows: readonly SourcedReport[], threshold: number): ChecklistItem[] {
+function whyWhyItems(
+  rows: readonly SourcedReport[],
+  threshold: number,
+  codes: ReadonlyMap<string, string>,
+): ChecklistItem[] {
   return rows
     .filter((row) => !isPm(row) && effectiveHours(row.report) > threshold)
     .sort((a, b) => (dayNumber(b.report.date) ?? 0) - (dayNumber(a.report.date) ?? 0))
     .map((row) => ({
       group: 'ww',
       key: `ww|${row.report.id}`,
-      plain: `${dmy(row.report.date)} · ${row.report.machineId} — ${effectiveHours(
+      plain: `${dmy(row.report.date)} · ${codes.get(row.report.machineId) ?? row.report.machineId} — ${effectiveHours(
         row.report,
       ).toFixed(1)} hrs, Why-Why not done`,
     }));
@@ -192,7 +196,7 @@ function machineItems(machines: readonly MachineRow[], asOf: string): ChecklistI
         items.push({
           group,
           key: `${group}|${sheet.key}|${machine.id}`,
-          plain: `${machine.id} — ${what}`,
+          plain: `${machine.code} — ${what}`,
         });
       }
     }
@@ -207,11 +211,11 @@ function machineItems(machines: readonly MachineRow[], asOf: string): ChecklistI
  */
 export const dataChecklist: Computer = ({ data, asOf, profile }) => {
   const history = sourcedReports(data).filter(isHistory);
-  const machineIds = new Set(data.machines.map((machine) => machine.id));
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const items = [
-    ...breakdownItems(history, machineIds),
+    ...breakdownItems(history, codes),
     ...gapItems(history, asOf),
-    ...whyWhyItems(history, profile.whyWhyThresholdHours),
+    ...whyWhyItems(history, profile.whyWhyThresholdHours, codes),
     ...machineItems(data.machines, asOf),
   ];
   const order = new Map<string, number>(GROUPS.map((group, index) => [group, index]));
