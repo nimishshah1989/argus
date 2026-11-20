@@ -5,6 +5,8 @@ import type { PageTable } from '../../analytics/page-content.js';
 import type { FiguresPart, Page } from '../printed-page/printed.js';
 import { figureOf, pageOf, shortDate } from '../printed-page/printed.js';
 import { printedTable, type PrintedChip } from '../printed-page/table.js';
+import type { Translate } from '../figures/read.js';
+import { drillFor } from '../rows-behind/drill.js';
 import type { ProblemAnalysisModel, ProblemAnalysisWords, ProblemChart } from './model.js';
 import { problemAnalysisWords } from './words.js';
 
@@ -98,7 +100,13 @@ export function problemAnalysisModel(
   const unplaced = find('Date', (x) => x.header[4] === 'Group');
   const unrecognised = find('Word');
   const editor = find('Order');
-  const figures = page.kpis.map((kpi, at) => ({ id: `kpi-${at}`, ...kpi, sub: kpi.sub ?? '' }));
+  const say: Translate = (key, values) => t(key, { ...values }) as string;
+  const figures = page.kpis.map((kpi, at) => ({
+    id: `kpi-${at}`,
+    ...kpi,
+    sub: kpi.sub ?? '',
+    ...(at === 0 ? { drill: drillFor(reply, KEY, say) } : {}),
+  }));
   return {
     verdict: verdictOf(page, words, source),
     studied: figures.slice(0, PAGE_FIGURES),

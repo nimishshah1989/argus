@@ -10,6 +10,8 @@ import {
   personChips,
   shortDate,
 } from '../printed-page/printed.js';
+import type { Translate } from '../figures/read.js';
+import { drillFor } from '../rows-behind/drill.js';
 import type { FixCase, FixFinderModel, FixFinderWords } from './model.js';
 import { fixFinderWords } from './words.js';
 
@@ -62,11 +64,17 @@ export function fixFinderModel(reply: FiguresPart, t: TFunction): FixFinderModel
   const page = pageOf(figureOf(reply, KEY), t);
   const table = page?.tables[0];
   if (page === null || table === undefined || table.rows.length === 0) return null;
+  const say: Translate = (key, values) => t(key, { ...values }) as string;
   const words = fixFinderWords(t, table.rows.length);
   const source = fill(words.source, { date: shortDate(reply.asOf) });
   return {
     verdict: verdictOf(page, words, source),
-    figures: page.kpis.map((kpi, at) => ({ id: `kpi-${at}`, ...kpi, sub: kpi.sub ?? '' })),
+    figures: page.kpis.map((kpi, at) => ({
+      id: `kpi-${at}`,
+      ...kpi,
+      sub: kpi.sub ?? '',
+      ...(at === 0 ? { drill: drillFor(reply, KEY, say) } : {}),
+    })),
     cases: table.rows.filter((row) => row.length >= COLUMNS).map(caseOf),
     source,
     words: table.title === '' ? words : { ...words, cases: { ...words.cases, title: table.title } },

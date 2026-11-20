@@ -2,6 +2,7 @@ import type { Point } from '../../../ui/v2/points.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { IconName } from '../../../ui/v2/icons.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { RegisterKpi } from './read.js';
 
 /** A sentence with `{name}` gaps as segments: the gaps are the engine's printed figures, in strong type. */
@@ -39,3 +40,7 @@ export function kpiCard(id: string, icon: IconName, kpi: RegisterKpi, more: stri
     more,
   };
 }
+
+/** The card with the control that opens the rows behind it, when the figure has any. */
+export const withDrill = (card: KpiData, drill: Drill | undefined): KpiData =>
+  drill ? { ...card, drill } : card;

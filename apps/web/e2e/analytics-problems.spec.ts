@@ -72,7 +72,7 @@ async function stubFigures(page: Page): Promise<void> {
 
 /** The groups table's first data row, read as the screen prints it. */
 async function firstGroup(page: Page): Promise<string> {
-  const table = page.getByRole('table', { name: GROUPS.title, exact: true });
+  const table = page.getByRole('region', { name: GROUPS.title, exact: true });
   return (await table.getByRole('row').nth(1).getByRole('cell').first().innerText()).trim();
 }
 
@@ -89,11 +89,11 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await signIn(page, 'head');
   await page.goto('/analytics/breakdowns?screen=a10-problems');
 
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
   await expect(
-    nav.getByRole('link', { name: 'A10 problem analysis', exact: true }),
-  ).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: PAGE.title, exact: true })).toBeVisible();
+    tabs.getByRole('button', { name: 'A10 problem analysis', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { level: 1, name: 'Problem Analysis' })).toBeVisible();
 
   // The 4 page KPIs and the 4 what-if KPIs, every label and value from the key.
   for (const kpi of PAGE.kpis) {
@@ -102,7 +102,7 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   }
 
   // Both charts, drawn by the one chart kit, with the platform's card titles.
-  const charts = page.getByTestId('chart');
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(2);
   for (const chart of await charts.all())
     await expect(chart).toHaveAttribute('data-chart-state', 'ready');
@@ -110,41 +110,41 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await expect(page.getByText('Often, or long?', { exact: true })).toBeVisible();
 
   // The groups table, whole, with its key header.
-  const groups = page.getByRole('table', { name: GROUPS.title, exact: true });
+  const groups = page.getByRole('region', { name: GROUPS.title, exact: true });
   await expect(groups).toBeVisible();
-  await expect(groups.getByRole('row')).toHaveCount(GROUPS.rows.length + 1);
+  await expect(groups.getByText(new RegExp(`^1–\\d+ of ${GROUPS.rows.length}$`))).toBeVisible();
   for (const heading of GROUPS.header)
     await expect(groups.getByRole('columnheader', { name: heading, exact: true })).toBeVisible();
 
-  // A numeric sort click re-orders the table, and the second click restores the key's hours-first order.
+  // A numeric sort click orders the table by it (largest first), and the second click reverses it.
   const hours = [...GROUPS.rows].sort(
     (left, right) => cellNumber(left[4]!) - cellNumber(right[4]!),
   );
   const header = groups.getByRole('columnheader', { name: 'Hours', exact: true });
-  await expect(header).toHaveAttribute('aria-sort', 'none');
+  await expect(header).not.toHaveAttribute('aria-sort', /ascending|descending/);
   await header.getByRole('button').click();
-  await expect(header).toHaveAttribute('aria-sort', 'ascending');
-  expect(await firstGroup(page)).toBe(hours[0]![0]);
-  await header.getByRole('button').press('Enter');
   await expect(header).toHaveAttribute('aria-sort', 'descending');
   expect(await firstGroup(page)).toBe(GROUPS.rows[0]![0]);
+  await header.getByRole('button').press('Enter');
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  expect(await firstGroup(page)).toBe(hours[0]![0]);
 
   // The unplaced card follows the key's own group and Accept cells, and is not a suggestion control.
-  const unplaced = page.getByRole('table', { name: UNPLACED.title, exact: true });
+  const unplaced = page.getByRole('region', { name: UNPLACED.title, exact: true });
   await expect(unplaced).toBeVisible();
   const firstUnplaced = unplaced.getByRole('row').nth(1);
-  await expect(firstUnplaced.getByRole('cell').nth(4)).toHaveText(UNPLACED.rows[0]![4]!);
+  // The platform printed the drop-down's every option into the cell; the screen keeps the chosen suggestion only.
+  const suggestion =
+    /^Suggested: .+? \(\d+%\)/.exec(UNPLACED.rows[0]![4]!)?.[0] ?? UNPLACED.rows[0]![4]!;
+  await expect(firstUnplaced.getByRole('cell').nth(4)).toHaveText(suggestion);
   await expect(firstUnplaced.getByRole('cell').nth(5)).toHaveText(UNPLACED.rows[0]![5]!);
 
-  // The figure's drill opens the real ticket rows through the existing seam.
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=ticket%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  const drillSection = page.locator('section').filter({ hasText: 'The rows behind this figure' });
-  const drill = drillSection.getByRole('table');
-  await expect(drill.getByRole('row')).toHaveCount(3);
-  await expect(drill.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
-  await expect(drill.getByRole('cell', { name: tickets.second.ref, exact: true })).toBeVisible();
+  // The figure's drill opens the real ticket rows in the drawer.
+  await page.getByRole('button', { name: /Show the rows behind A10 problem analysis/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:a10-problems$/);
+  const drill = page.locator('aside.v2-drawer');
+  await expect(drill.getByRole('link', { name: tickets.first.ref, exact: true })).toBeVisible();
+  await expect(drill.getByRole('link', { name: tickets.second.ref, exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
 });

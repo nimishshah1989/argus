@@ -10,7 +10,6 @@ import { BreakdownLog } from './BreakdownLog.js';
 import { ScreenMenu } from './screen-menu.js';
 import { KeyScreen } from './key-screen.js';
 import { manpowerTable } from './ManpowerPage.js';
-import { problemTable } from './ProblemsPage.js';
 import { WhyWhyPage } from './WhyWhyPage.js';
 import { DrillTable } from './DrillTable.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
@@ -105,7 +104,7 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         menu={<ScreenNav current={screen} />}
         asOf={figures.data.asOf}
         drill={drillTable}
-        renderTable={screen === A4 ? manpowerTable : screen === A10 ? problemTable : undefined}
+        renderTable={screen === A4 ? manpowerTable : undefined}
       />
     );
   return (

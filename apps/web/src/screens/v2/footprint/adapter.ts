@@ -2,7 +2,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { fill } from '../../../i18n/fill.js';
 import type { IconName } from '../../../ui/v2/icons.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
-import { kpiCard, sentence, verdictOf } from '../figures/point.js';
+import { kpiCard, withDrill, sentence, verdictOf } from '../figures/point.js';
 import {
   machineChip,
   numberIn,
@@ -11,6 +11,7 @@ import {
   type RegisterTable,
   type Translate,
 } from '../figures/read.js';
+import { drillFor } from '../rows-behind/drill.js';
 import { engineTable, type Cell, type TableModel } from '../figures/table.js';
 import { commonWords, tableWords, type CommonWords } from '../figures/words.js';
 import type { FootprintModel } from './model.js';
@@ -75,7 +76,12 @@ export function footprintModel(reply: FiguresReply, t: Translate): FootprintMode
       : sentence(t('v2m.fp.headlineFew'), { mapped: mapped?.value ?? c.none });
   return {
     verdict: verdictOf(headline, floor?.sub ?? mapped?.sub ?? '', guide),
-    kpis: page.kpis.map((kpi, i) => kpiCard(`fp-${i}`, ICONS[i] ?? 'list', kpi, source)),
+    kpis: page.kpis.map((kpi, i) =>
+      withDrill(
+        kpiCard(`fp-${i}`, ICONS[i] ?? 'list', kpi, source),
+        i === 0 ? drillFor(reply, 'a7-footprint', t) : undefined,
+      ),
+    ),
     growth: growthChart(
       page.tables.find((table) => table.header[0] === 'Year'),
       t,

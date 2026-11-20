@@ -60,3 +60,58 @@ export function useEntityParam(): {
     },
   };
 }
+
+const FIGURE_PREFIX = 'figure:';
+
+/** The figure a URL's query asks the drawer to show the rows behind: `?drawer=figure:a8-age`; anything else asks for none. */
+export function figureFrom(search: string): string | null {
+  const value = new URLSearchParams(search).get(PARAM) ?? '';
+  return value.startsWith(FIGURE_PREFIX) && value.length > FIGURE_PREFIX.length
+    ? value.slice(FIGURE_PREFIX.length)
+    : null;
+}
+
+/** The query with the drawer set to the rows behind `figure` (or removed); every other parameter stays as it was written. */
+export function searchWithFigure(search: string, figure: string | null): string {
+  const kept = search
+    .replace(/^\?/, '')
+    .split('&')
+    .filter((part) => part !== '' && part.split('=')[0] !== PARAM);
+  const drawer = figure === null ? [] : [`${PARAM}=${FIGURE_PREFIX}${encodeURIComponent(figure)}`];
+  const query = [...kept, ...drawer].join('&');
+  return query ? `?${query}` : '';
+}
+
+/**
+ * The rows-behind drawer's state in the URL, with the entity drawer's rules: opening from closed adds one history
+ * entry, opening while another drawer is open replaces it, and closing goes Back when the open was ours, so the
+ * browser's Back closes it and never leaves a dead entry. A machine opened from its rows goes on top, so Back returns
+ * to the rows.
+ */
+export function useFigureParam(): {
+  current: string | null;
+  open: (figure: string) => void;
+  close: () => void;
+} {
+  const { search, state } = useLocation();
+  const navigate = useNavigate();
+  const sent = useRef(false);
+  useEffect(() => {
+    sent.current = false;
+  }, [search]);
+  const anyOpen = new URLSearchParams(search).has(PARAM);
+  return {
+    current: figureFrom(search),
+    open: (figure) =>
+      anyOpen
+        ? navigate({ search: searchWithFigure(search, figure) }, { replace: true, state })
+        : navigate({ search: searchWithFigure(search, figure) }, { state: OURS }),
+    close: () => {
+      if (!isOurs(state))
+        return navigate({ search: searchWithFigure(search, null) }, { replace: true, state });
+      if (sent.current) return;
+      sent.current = true;
+      navigate(-1);
+    },
+  };
+}
