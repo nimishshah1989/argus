@@ -10,11 +10,14 @@ declare module '../data.js' {
 export const screen: ScreenEntry<'fix-finder'> = {
   key: 'fix-finder',
   provider: async (_, { client }) => {
-    const [{ liveReply }, { fixFinderFromReply }] = await Promise.all([
+    const [{ liveReply }, { fixFinderFromReply }, { requireComputed }] = await Promise.all([
       import('../figures/live.js'),
       import('./live.js'),
+      import('../figures/computed.js'),
     ]);
-    return fixFinderFromReply(await liveReply(client));
+    const reply = await liveReply(client);
+    requireComputed(reply, 'fix-finder');
+    return fixFinderFromReply(reply);
   },
   frozen: () => import('./source.js').then((m) => m.fixFinderFromKey()),
 };
