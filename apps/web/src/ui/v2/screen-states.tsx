@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from './icons.js';
 import { Button } from './button.js';
 
-/** Where a screen's model stands: still coming, here, failed, or here with nothing in it. */
-export type LoadState = 'loading' | 'ready' | 'error' | 'empty';
+/**
+ * Where a screen's model stands: still coming, here, failed, here with nothing in it, not reachable because the
+ * connection is lost (`offline`), or refused to this login (`refused`).
+ */
+export type LoadState = 'loading' | 'ready' | 'error' | 'empty' | 'offline' | 'refused';
 export type Loaded<M> = { state: LoadState; model?: M; retry: () => void };
 
 /** Grey blocks in the rough shape of a screen while its figures load; said once as "Loading…". */
@@ -37,6 +40,33 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+/** The connection is lost and nothing saved stands in: say so, and offer to try again. */
+export function OfflineState({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="v2-states v2-state-box" data-state="offline" role="status">
+      <span className="v2-sub">
+        <Icon name="pause" size={24} />
+      </span>
+      <p>{t('kit.pattern.offline')}</p>
+      <Button onClick={onRetry}>{t('kit.pattern.retry')}</Button>
+    </div>
+  );
+}
+
+/** The server refused this login the page: there is nothing to retry, so say whose it is. */
+export function RefusedState() {
+  const { t } = useTranslation();
+  return (
+    <div className="v2-states v2-state-box" data-state="refused" role="alert">
+      <span className="v2-seg-risk">
+        <Icon name="alert" size={24} />
+      </span>
+      <p>{t('v2m.refused')}</p>
+    </div>
+  );
+}
+
 /** Loaded, but nothing to show; `text` says what is missing when "nothing to show" is too vague (a thing not found). */
 export function EmptyState({ text }: { text?: string }) {
   const { t } = useTranslation();
@@ -64,6 +94,10 @@ export function ScreenStates<M>({
   const body =
     loaded.state === 'error' ? (
       <ErrorState onRetry={loaded.retry} />
+    ) : loaded.state === 'offline' ? (
+      <OfflineState onRetry={loaded.retry} />
+    ) : loaded.state === 'refused' ? (
+      <RefusedState />
     ) : loaded.state === 'empty' ? (
       <EmptyState text={emptyText} />
     ) : (

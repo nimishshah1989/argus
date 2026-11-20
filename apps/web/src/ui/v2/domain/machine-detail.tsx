@@ -22,7 +22,7 @@ export type MachineDetailWords = {
   why: string;
 };
 
-/** A machine in full, in the drawer: its state and why, this month's hours, its breakdowns, its 12-week trend. */
+/** A machine in full, in the drawer: its state and why, its hours, its breakdowns, its 12-week trend (a part with nothing in it is left out). */
 export function MachineDetail({
   m,
   words,
@@ -46,18 +46,24 @@ export function MachineDetail({
       <p className="v2-sub">
         {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
       </p>
-      <DetailSection label={words.why}>
-        <Points points={m.why} />
-      </DetailSection>
-      <DetailSection label={words.figures}>
-        <div className="v2-figures">
-          <DetailFigure label={words.hours} value={m.hours.shown} />
-          <DetailFigure label={words.stops} value={String(m.stops)} />
-        </div>
-      </DetailSection>
-      <DetailSection label={words.trend}>
-        <Sparkline values={m.trend} tone={trendTone(m.trend)} width={360} height={56} draw />
-      </DetailSection>
+      {m.why.length > 0 ? (
+        <DetailSection label={words.why}>
+          <Points points={m.why} />
+        </DetailSection>
+      ) : null}
+      {m.untracked ? null : (
+        <DetailSection label={words.figures}>
+          <div className="v2-figures">
+            <DetailFigure label={words.hours} value={m.hours.shown} />
+            <DetailFigure label={words.stops} value={String(m.stops)} />
+          </div>
+        </DetailSection>
+      )}
+      {m.trend.length > 0 ? (
+        <DetailSection label={words.trend}>
+          <Sparkline values={m.trend} tone={trendTone(m.trend)} width={360} height={56} draw />
+        </DetailSection>
+      ) : null}
       <SourceLine text={source} />
     </div>
   );

@@ -192,34 +192,31 @@ async function openMoney(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: ticket.ref, exact: true })).toBeVisible();
 }
 
-/** Fix Finder: its four KPIs, the 15 rows sorted both ways, then the ticket drill. */
+/** Fix Finder (the v2 screen at its v1 address): its four figures, the rows sorted both ways, then the ticket drill. */
 async function openFixFinder(page: Page): Promise<void> {
   await page.goto(`/analytics/breakdowns?screen=${SCREEN_FIX}`);
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await expect(nav.getByRole('link', { name: 'Fix Finder', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
+  await expect(tabs.getByRole('button', { name: 'Fix Finder', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
-  await expect(page.getByRole('heading', { name: FF.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Fix Finder' })).toBeVisible();
   for (const kpi of FF.kpis) {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
   }
-  const table = page.getByRole('table', { name: FF.tables[0]!.title, exact: true });
-  await expect(table.getByRole('row')).toHaveCount(FF.tables[0]!.rows.length + 1);
-  const down = table.getByRole('columnheader', { name: 'Down (hrs)', exact: true });
+  const table = page.getByRole('region', { name: FF.tables[0]!.title, exact: true });
+  await expect(table.getByText(`1–10 of ${FF.tables[0]!.rows.length}`)).toBeVisible();
+  const down = table.getByRole('columnheader', { name: /Down \(hrs\)/ });
+  await down.getByRole('button').click();
+  await expect(down).toHaveAttribute('aria-sort', 'descending');
+  await expect(table.getByRole('row').nth(1).getByRole('button').first()).toHaveText('TC-13');
   await down.getByRole('button').click();
   await expect(down).toHaveAttribute('aria-sort', 'ascending');
-  await expect(table.getByRole('row').nth(1).getByRole('cell').nth(2)).toHaveText('TMC-6');
-  await down.getByRole('button').press('Enter');
-  await expect(down).toHaveAttribute('aria-sort', 'descending');
-  await expect(table.getByRole('row').nth(1).getByRole('cell').nth(2)).toHaveText('TC-13');
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=ticket%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole('cell', { name: ticket.ref, exact: true })).toBeVisible();
+  await expect(table.getByRole('row').nth(1).getByRole('button').first()).toHaveText('TMC-6');
+  await page.getByRole('button', { name: /Show the rows behind Fix Finder/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:fix-finder$/);
+  await expect(page.getByRole('link', { name: ticket.ref, exact: true })).toBeVisible();
 }
 
 test('a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one', async ({

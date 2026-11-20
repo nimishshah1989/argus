@@ -9,11 +9,11 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'footprint'> = {
   key: 'footprint',
-  provider: async () => {
+  provider: async (_, { client }) => {
     const [{ liveReply, catalogue }, { footprintModel }] = await Promise.all([
       import('../figures/live.js'),
       import('./adapter.js'),
     ]);
-    return footprintModel(await liveReply(), catalogue);
+    return footprintModel(await liveReply(client), catalogue);
   },
 };

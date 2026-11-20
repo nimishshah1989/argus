@@ -3,18 +3,21 @@
 **The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
 origin/main` and the PR list beat this text. As of 15:10 UTC, 20 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
-## In flight (orchestrator session 2, 15:10 UTC, 20 Nov): check each against GitHub first
+## In flight (orchestrator session 2, 15:25 UTC, 20 Nov): check each against GitHub first
 
-- PR #517 `claude/v2-go-live` (live source, real drawers, Cell change log live, v1 page deleted): an independent review said FAIL (the "Open full page"
-  link from a machine drawer goes to a page with no data; an unlisted machine shows its database id; the saved copy is not tied to a person, so a head's
-  money figures could show to the next login on that tab; "not computed" became "nothing to show"; two v1 e2e entries dropped). A fixer is pushing to the
-  same branch. One CI job (`who-is-acting` /floor, `ERR_ABORTED` three times) was red before the fix: undiagnosed, the PR does not touch it. Merge when green and re-reviewed.
-- PR #521 `claude/fix-breakdown-log-row-ticket`: re-lands the Breakdown Log wrong-ticket fix. #518 had merged into its stacked parent AFTER #515 merged to main, so it never reached main.
-- Builders (Sonnet, own worktrees): `claude/v2-drill-live` (rows-behind mechanism in the shell, live loader), `claude/v2-dashboard-live` (Dashboard rebuilt on real data, live, v1 deleted).
-- Next, one slot frees at a time (max 3): go-live of Machines register, Age, Footprint, Fix Finder, Problem Analysis (blocked by the drill PR); batch 5 (Energy,
-  Bottleneck, Shift-calendar KPIs, Forecast Lab, Reliability scorecard); Action Center and Machine page rebuilds; batch 4 and PM Calendar wiring; Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7.
-- Cost rules from Nimish: tests minimal, Sonnet builders, Opus reviewers. He asked for CI auto-merge; the repo setting "Allow auto-merge" is off and only he can tick it.
-- Lesson: never merge a stacked PR into its parent's branch once the parent has merged to main; check the PR's base is main before the merge click.
+- MERGED by Nimish: #515, #518 (into a dead stacked branch, see #521), #519, #517 (live source, Cell change log live), #523 (rows-behind in the shell; Machines register, Age,
+  Footprint, Fix Finder, Problem Analysis live, v1 pages deleted), #520. #517 went in WITHOUT the fixes an independent review asked for (below).
+- Review of #517 (Opus, FAIL) found, now live on staging: a machine drawer's "Open full page" goes to a page with no data; an unlisted machine shows its database id; the saved copy is
+  not tied to a person (a head's money figures can show to the next login on that tab or while offline); "not computed" reads "nothing to show"; two v1 e2e entries were dropped. A fixer
+  (Sonnet) is replaying the fixes on a new branch `claude/v2-live-review-fixes` against current main. It has not been independently re-reviewed or reviewed for #523 yet.
+- #521 `claude/fix-breakdown-log-row-ticket`: re-lands the Breakdown Log wrong-ticket fix (reviewed, PASS; CI running on db33c08d). #524: this docs PR.
+- Builder running: `claude/v2-dashboard-live` (Dashboard rebuilt on real data, live, v1 deleted). The drill builder was stopped: #523 already did it.
+- Next (max 3 at a time): independent coverage review of the five screens #523 made live; Action Center and Machine page rebuilds; batch 5 (Energy, Bottleneck, Shift-calendar KPIs, Forecast
+  Lab, Reliability scorecard); batch 4 and PM Calendar and Breakdown Log wiring; Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7.
+- Rulings (Nimish, 20 Nov, session 2): do not spend time on CI noise that does not touch the diff (the `who-is-acting` /floor e2e is red on several PRs and is not caused by them); only act on what blocks a merge or changes a result.
+- Cost rules from Nimish: tests minimal, Sonnet builders, Opus reviewers. The repo setting "Allow auto-merge" is off; only he can tick it.
+- Lessons: never merge a stacked PR into its parent's branch once the parent has merged to main. Nimish merges PRs himself while an orchestrator works: fetch main before every dispatch.
+  Gallery specs run locally with the preinstalled Chromium (a throwaway Playwright config that sets `launchOptions.executablePath: '/opt/pw-browsers/chromium'`).
 
 ## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 

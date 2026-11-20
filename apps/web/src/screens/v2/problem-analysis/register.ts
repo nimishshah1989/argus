@@ -9,5 +9,12 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'problem-analysis'> = {
   key: 'problem-analysis',
-  provider: () => import('./source.js').then((m) => m.problemAnalysisFromKey()),
+  provider: async (_, { client }) => {
+    const [{ liveReply }, { problemAnalysisFromReply }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return problemAnalysisFromReply(await liveReply(client));
+  },
+  frozen: () => import('./source.js').then((m) => m.problemAnalysisFromKey()),
 };

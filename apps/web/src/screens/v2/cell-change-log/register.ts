@@ -9,12 +9,16 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'cell-change-log'> = {
   key: 'cell-change-log',
-  provider: async () => {
+  provider: async (_, { client }) => {
     const [{ liveReply, liveRole, liveCodes, catalogue }, { cellLogModel }] = await Promise.all([
       import('../figures/live.js'),
       import('./adapter.js'),
     ]);
-    const [reply, role, codeOf] = await Promise.all([liveReply(), liveRole(), liveCodes()]);
+    const [reply, role, codeOf] = await Promise.all([
+      liveReply(client),
+      liveRole(client),
+      liveCodes(client),
+    ]);
     return cellLogModel(reply, catalogue, { codeOf, role, today: reply.asOf });
   },
 };
