@@ -15,66 +15,76 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const isUuid = (value: string): boolean => UUID.test(value);
 
 /** A stable UUID per (kind, old id): two rows of different kinds that shared an id in the fixture stay apart. */
-export function uuidFor(kind: string, id: string): string {
-  const hex = createHash('sha1').update(`${kind}:${id}`).digest('hex');
+export function uuidFor(kind: string, id: string, salt = ''): string {
+  const hex = createHash('sha1').update(`${salt}${kind}:${id}`).digest('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 export type Kind = 'machine' | 'ticket' | 'report' | 'move' | 'person' | 'line' | 'plan';
 
-/** The Action Center's ack key (`freq|<machine id>`, `long|<report id>`, `amc|<line id>|<end>`): ids re-keyed. */
-function ackKey(key: string): string {
-  const [type, first, ...rest] = key.split('|');
-  const kind: Kind | undefined = {
-    recur: 'machine',
-    freq: 'machine',
-    rise: 'machine',
-    mttr: 'machine',
-    newm: 'machine',
-    spares: 'machine',
-    long: 'report',
-    amc: 'line',
-    legal: 'line',
-  }[type ?? ''] as Kind | undefined;
-  if (kind === undefined || first === undefined) return key;
-  return [type, uuidFor(kind, first), ...rest].join('|');
-}
+/**
+ * The ids `rekeyToUuids` writes. A `salt` makes a second, different assignment over the same plant, so a test can
+ * tell a figure that depends on which UUID a row got from one that does not.
+ */
+function idsOf(salt: string) {
+  const uuid = (kind: Kind, id: string): string => uuidFor(kind, id, salt);
+  const machine = (id: string): string => uuid('machine', id);
+  const ticket = (id: string): string => uuid('ticket', id);
+  const optional = (id: string | null, to: (id: string) => string): string | null =>
+    id === null ? null : to(id);
 
-const machine = (id: string): string => uuidFor('machine', id);
-const ticket = (id: string): string => uuidFor('ticket', id);
-const optional = (id: string | null, to: (id: string) => string): string | null =>
-  id === null ? null : to(id);
+  /** The Action Center's ack key (`freq|<machine id>`, `long|<report id>`, `amc|<line id>|<end>`): ids re-keyed. */
+  const ackKey = (key: string): string => {
+    const [type, first, ...rest] = key.split('|');
+    const kind: Kind | undefined = {
+      recur: 'machine',
+      freq: 'machine',
+      rise: 'machine',
+      mttr: 'machine',
+      newm: 'machine',
+      spares: 'machine',
+      long: 'report',
+      amc: 'line',
+      legal: 'line',
+    }[type ?? ''] as Kind | undefined;
+    if (kind === undefined || first === undefined) return key;
+    return [type, uuid(kind, first), ...rest].join('|');
+  };
 
-/** An AMC or legal line: its own id, its register item and its machine. */
-const rekeyLine = <T extends { id: string; machineId: string; itemKey?: string }>(line: T): T => ({
-  ...line,
-  id: uuidFor('line', line.id),
-  machineId: machine(line.machineId),
-  ...(line.itemKey === undefined ? {} : { itemKey: uuidFor('line', line.itemKey) }),
-});
+  /** An AMC or legal line: its own id, its register item and its machine. */
+  const rekeyLine = <T extends { id: string; machineId: string; itemKey?: string }>(
+    line: T,
+  ): T => ({
+    ...line,
+    id: uuid('line', line.id),
+    machineId: machine(line.machineId),
+    ...(line.itemKey === undefined ? {} : { itemKey: uuid('line', line.itemKey) }),
+  });
 
-const keyed = <T>(
-  record: Readonly<Record<string, T>> | undefined,
-  to: (key: string) => string,
-): Record<string, T> | undefined =>
-  record && Object.fromEntries(Object.entries(record).map(([key, value]) => [to(key), value]));
+  const keyed = <T>(
+    record: Readonly<Record<string, T>> | undefined,
+    to: (key: string) => string,
+  ): Record<string, T> | undefined =>
+    record && Object.fromEntries(Object.entries(record).map(([key, value]) => [to(key), value]));
 
-function rekeySettings(settings: EngineSettings): EngineSettings {
-  return {
+  const rekeySettings = (settings: EngineSettings): EngineSettings => ({
     ...settings,
     excludedMachineIds: settings.excludedMachineIds.map(machine),
-    problemFixes: keyed(settings.problemFixes, (id) => uuidFor('report', id)) ?? {},
+    problemFixes: keyed(settings.problemFixes, (id) => uuid('report', id)) ?? {},
     nudgeAcks: keyed<NudgeAck>(settings.nudgeAcks, ackKey),
-  };
+  });
+
+  return { uuid, machine, ticket, optional, rekeyLine, rekeySettings };
 }
 
-export function rekeyToUuids(data: EngineData): EngineData {
+export function rekeyToUuids(data: EngineData, salt = ''): EngineData {
+  const { uuid, machine, ticket, optional, rekeyLine, rekeySettings } = idsOf(salt);
   return {
     ...data,
     machines: data.machines.map((row) => ({ ...row, id: machine(row.id) })),
     moves: data.moves.map((row) => ({
       ...row,
-      id: uuidFor('move', row.id),
+      id: uuid('move', row.id),
       machineId: machine(row.machineId),
     })),
     tickets: data.tickets.map((row) => ({
@@ -90,11 +100,11 @@ export function rekeyToUuids(data: EngineData): EngineData {
     })),
     reports: data.reports.map((row) => ({
       ...row,
-      id: uuidFor('report', row.id),
+      id: uuid('report', row.id),
       ticketId: optional(row.ticketId, ticket),
       machineId: machine(row.machineId),
     })),
-    people: data.people.map((row) => ({ ...row, id: uuidFor('person', row.id) })),
+    people: data.people.map((row) => ({ ...row, id: uuid('person', row.id) })),
     whyWhy: data.whyWhy?.map((row) => ({ ...row, ticketId: ticket(row.ticketId) })),
     plantEvents: data.plantEvents?.map((event) => ({
       ticketId: ticket(event.ticketId),
@@ -104,7 +114,7 @@ export function rekeyToUuids(data: EngineData): EngineData {
     legal: data.legal?.map(rekeyLine),
     pmPlans: data.pmPlans?.map((plan) => ({
       ...plan,
-      id: uuidFor('plan', plan.id),
+      id: uuid('plan', plan.id),
       machineId: optional(plan.machineId, machine),
     })),
     ...(data.settings ? { settings: rekeySettings(data.settings) } : {}),
@@ -112,10 +122,10 @@ export function rekeyToUuids(data: EngineData): EngineData {
 }
 
 /** Every UUID `rekeyToUuids` makes, with the id it stands for, so a run's output can be read back in the fixture's ids. */
-export function originalIds(data: EngineData): Map<string, string> {
+export function originalIds(data: EngineData, salt = ''): Map<string, string> {
   const back = new Map<string, string>();
   const add = (kind: Kind, ids: readonly (string | undefined)[]): void => {
-    for (const id of ids) if (id !== undefined) back.set(uuidFor(kind, id), id);
+    for (const id of ids) if (id !== undefined) back.set(uuidFor(kind, id, salt), id);
   };
   add(
     'machine',

@@ -6,6 +6,7 @@ import { ENGINE_DATA } from './answer-key/fixture.js';
 import { MANY_YEARS } from './many-years/fixture.js';
 import { AS_OF_ENGINE, HAND } from './many-years/hand.js';
 import { isUuid, originalIds, rekeyToUuids } from './answer-key/rekey.js';
+import { REFERENCES, type Reference } from './answer-key/references.js';
 
 /**
  * On a real plant every machine, ticket, report, move and person id is a UUID, and the fixture's ids equal their
@@ -17,100 +18,6 @@ import { isUuid, originalIds, rekeyToUuids } from './answer-key/rekey.js';
  */
 
 const UUID_IN_TEXT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
-
-/**
- * The documented reference fields. `path` is matched against a value's path, array positions written `[]` and an id
- * used as an object key `{id}`. `unordered` marks a list of ids whose order is a tie-break, not a meaning.
- */
-interface Reference {
-  /** The figure the entry is for; absent means any figure. */
-  figure?: string;
-  path: RegExp;
-  /** The sibling field that carries the printable code; it must be there and must not be a UUID. */
-  codeBeside?: string;
-  why: string;
-  unordered?: true;
-}
-
-const REFERENCES: readonly Reference[] = [
-  {
-    path: /^pages\[\]\.tables\[\]\.rowTicketIds\[\]$/,
-    why: 'the ticket behind each table row, row for row: the eye on the row opens it',
-  },
-  {
-    path: /^extra\.(byCell|byLocation)\[\]\.machineIds\[\]$/,
-    why: 'the machines behind an energy tile: the panel fetches their rows by id and prints their codes',
-  },
-  {
-    figure: 'dashboard.bubble-chart',
-    path: /^datasets\[\]\.data\[\]\.id$/,
-    codeBeside: 'code',
-    why: 'a bubble names its machine by id so the screen can open it; its `code` beside it is what is printed',
-  },
-  {
-    figure: 'a9-bottleneck-forecast',
-    path: /^pages\[\]\.charts\[\]\.datasets\[\]\.data\[\]\.id$/,
-    codeBeside: 'code',
-    why: 'a risk-map dot names its machine by id so the screen can open it; its `code` beside it is what is printed',
-  },
-  {
-    figure: 'action-center',
-    path: /^extra\.nudges\[\]\.machines\[\]$/,
-    why: 'the machines a nudge names: the card looks each up by id for its chip and link',
-  },
-  {
-    figure: 'action-center',
-    path: /^extra\.acks\.|^extra\.nudges\[\]\.key$/,
-    why: 'the saved acks and each nudge are keyed by `freq|<machine id>` and the like; a save is keyed by it, never shown',
-  },
-  {
-    figure: 'data-checklist',
-    path: /^items\[\]\.key$/,
-    why: 'a checklist item is identified by `<group>|<sheet>|<machine id>` or `<group>|<report id>`; never shown, its `plain` is',
-  },
-  {
-    figure: 'team-focus',
-    path: /^extra\[\]\.key$/,
-    why: 'an action is identified by `fc|<machine id>|<month>` and the like, never shown, its `title` is',
-  },
-  {
-    figure: 'team-focus',
-    path: /^extra\[\]\.machine$/,
-    codeBeside: 'machineCode',
-    why: 'the machine an action opens by id; `machineCode` beside it is what the card prints',
-  },
-  {
-    path: /^moves\[\]\.(id|machineId)$/,
-    why: 'the move and the machine it moved: the adapter looks the machine up and prints its code',
-  },
-  {
-    path: /^byMachine\.{id}$/,
-    why: 'the machine page of every machine, keyed by the machine id the screen asks for',
-  },
-  {
-    path: /^byMachine\.{id}\.moves\[\]\.(id|machineId)$/,
-    why: 'the moves of a machine by id; the adapter looks the machine up and prints its code',
-  },
-  {
-    path: /^byMachine\.{id}\.machine\.id$/,
-    codeBeside: 'code',
-    why: 'the machine by id; its record carries `code` beside it',
-  },
-  {
-    path: /^byMachine\.{id}\.drill\.(breakdowns|pm|moves)\[\]$/,
-    why: 'the rows the machine page opens through the drill endpoint',
-    unordered: true,
-  },
-  {
-    path: /^machines\.{id}$/,
-    why: 'one reliability record per machine, keyed by the machine id the screen asks for',
-  },
-  {
-    path: /^machines\.{id}\.drill\.(fit|spares)\[\]$/,
-    why: 'the rows behind a reliability fit or a spare: same-day ties order by id, and no order is meant',
-    unordered: true,
-  },
-];
 
 interface Offender {
   figure: string;
@@ -176,27 +83,6 @@ function missingCodes(checks: CodeChecks, value: FigureValue, path: string): voi
   }
 }
 
-/**
- * The value with every list the references call unordered sorted, so a tie-break by id is not a difference. `isId`
- * says which object keys are ids: UUIDs in the re-keyed run, the fixture's own ids in the plain one.
- */
-function settled(value: FigureValue, isId: (key: string) => boolean, path = ''): FigureValue {
-  if (Array.isArray(value)) {
-    const items = (value as readonly FigureValue[]).map((item) => settled(item, isId, `${path}[]`));
-    const unordered = REFERENCES.some(
-      (ref) => ref.unordered === true && ref.path.test(`${path}[]`),
-    );
-    return unordered ? [...items].sort() : items;
-  }
-  if (value === null || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.entries(value as { readonly [key: string]: FigureValue }).map(([key, item]) => [
-      key,
-      settled(item, isId, path === '' ? key : `${path}.${isId(key) ? '{id}' : key}`),
-    ]),
-  );
-}
-
 interface Plant {
   name: string;
   data: EngineData;
@@ -257,7 +143,6 @@ describe.each(PLANTS)('the engine prints no database id: $name', ({ data, asOf, 
 
   it('gives the same figures whatever the ids are: no text, order or position comes from an id', () => {
     const back = originalIds(data);
-    const fixtureIds = new Set(back.values());
     const read = <T>(value: T): T =>
       JSON.parse(
         JSON.stringify(value).replace(
@@ -266,15 +151,12 @@ describe.each(PLANTS)('the engine prints no database id: $name', ({ data, asOf, 
         ),
       ) as T;
     const plain = run(data, asOf, DEFAULT_PROFILE, span);
-    const isFixtureId = (key: string): boolean => fixtureIds.has(key);
     const differ = plain.figures
       .filter((figure, index) => {
         const other = read(result.figures[index]!);
         return (
-          !isDeepStrictEqual(
-            settled(other.value, isFixtureId),
-            settled(figure.value, isFixtureId),
-          ) || !isDeepStrictEqual([...other.drill.ids].sort(), [...figure.drill.ids].sort())
+          !isDeepStrictEqual(other.value, figure.value) ||
+          !isDeepStrictEqual([...other.drill.ids].sort(), [...figure.drill.ids].sort())
         );
       })
       .map((figure) => figure.key);
