@@ -265,26 +265,30 @@ describe('the register as EngineData.amc/legal', () => {
   });
 });
 
+/** A nudge names its machine by id and prints its code: the fixture's two machines are VC-01 and VC-02. */
+const CODE_FREE = 'VC-01';
+const CODE_USED = 'VC-02';
+
 describe('the Action Center’s AMC and legal nudges', () => {
   it('raises the register’s AMC, warranty and legal reminders with their own words', async () => {
     const { data } = await load();
     expect(nudgeOf(data, amcKey(ids.comprehensive, ENDS_COMPREHENSIVE))).toMatchObject({
       rule: 'amc',
-      title: `${M_USED}: AMC (Comprehensive) ends in 10 days`,
+      title: `${CODE_USED}: AMC (Comprehensive) ends in 10 days`,
       machines: [M_USED],
     });
     expect(nudgeOf(data, amcKey(ids.warranty, ENDS_WARRANTY))).toMatchObject({
       rule: 'amc',
       sev: 'high',
-      title: `${M_FREE}: Mitsubishi EWC ends in 5 days`,
+      title: `${CODE_FREE}: Mitsubishi EWC ends in 5 days`,
     });
     expect(nudgeOf(data, legalKey(ids.legal, DUE_LEGAL))).toMatchObject({
       rule: 'legal',
-      title: `${M_USED}: Test Of Pressure Vessel (Form Form No 11) due in 10 days`,
+      title: `${CODE_USED}: Test Of Pressure Vessel (Form Form No 11) due in 10 days`,
     });
     expect(nudgeOf(data, legalKey(ids.blankLegal, DUE_BLANK_LEGAL))).toMatchObject({
       rule: 'legal',
-      title: `${M_USED}: Legal compliance due in 7 days`,
+      title: `${CODE_USED}: Legal compliance due in 7 days`,
     });
   });
 
@@ -306,7 +310,7 @@ describe('the Action Center’s AMC and legal nudges', () => {
   it('makes the row id the item identity: a later same-type row cannot clear an earlier one', async () => {
     const { data } = await load();
     expect(nudgeOf(data, amcKey(ids.sameTypeLater, plusDays(AS_OF, 9)))).toMatchObject({
-      title: `${M_USED}: AMC ends in 9 days`,
+      title: `${CODE_USED}: AMC ends in 9 days`,
     });
   });
 

@@ -4,6 +4,7 @@ import { chartOption } from './chart-option.js';
 import { refresh } from './use-chart.js';
 import { frameOption, settle } from './chart-parts.js';
 import { paretoRows, type ChartSpec } from './chart-spec.js';
+import { tableView } from './chart-table.js';
 import { contrast, mix, parseHex } from './chart-color.js';
 import type { Palette } from './chart-palette.js';
 
@@ -192,6 +193,31 @@ describe('pareto', () => {
       series: [{ name: 'Hours', values: [0, 0, 0] }] as [{ name: string; values: number[] }],
     };
     expect(paretoRows(zero).map((r) => r.share)).toEqual([0, 0, 0]);
+  });
+});
+
+describe('a scatter point that carries a machine code', () => {
+  const id = '3f1c2a9e-5b7d-4c68-9a10-2e4d6f8a0b12';
+  const spec: ChartSpec = {
+    kind: 'scatter',
+    title: 't',
+    machineLabel: 'm',
+    xLabel: 'x',
+    yLabel: 'y',
+    mttrLabel: 'r',
+    points: [{ x: 1, y: 1, r: 5, label: id, code: 'TC-3', mttr: 2, showLabel: true }],
+  };
+
+  it('prints the code, in the dot, its label and its tooltip, never the id it is looked up by', () => {
+    const option = chartOption(spec, palette) as unknown as {
+      series: { data: { name: string; label: { formatter: string } }[] }[];
+      tooltip: { formatter: (p: unknown) => string };
+    };
+    const dot = option.series[0]!.data[0]!;
+    expect(dot.name).toBe('TC-3');
+    expect(dot.label.formatter).toBe('TC-3');
+    expect(option.tooltip.formatter({ name: 'TC-3' })).toContain('r: 2');
+    expect(tableView(spec).categories).toEqual(['TC-3']);
   });
 });
 

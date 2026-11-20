@@ -59,6 +59,7 @@ function hoursText(row: SourcedReport): string {
 function rowTexts(
   entry: { srNo: number; row: SourcedReport },
   names: ReadonlyMap<string, string>,
+  machines: ReadonlyMap<string, string>,
 ): string[] {
   const { report, ticket } = entry.row;
   const code =
@@ -69,7 +70,7 @@ function rowTexts(
     ticket.ref,
     dmy(report.date),
     report.shift,
-    report.machineId,
+    machines.get(report.machineId) ?? report.machineId,
     report.problem,
     doneByText(entry.row, names),
     hoursText(entry.row),
@@ -81,7 +82,8 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
   const entries = logEntries(data);
   if (entries.length === 0) return { value: null, drillIds: [] };
   const names = new Map(data.people.map((person) => [person.code, person.displayName]));
-  const rows = entries.map((entry) => rowTexts(entry, names));
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
+  const rows = entries.map((entry) => rowTexts(entry, names, codes));
   const value = {
     screen: 'breakdown-log',
     asOf,

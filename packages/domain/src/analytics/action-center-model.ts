@@ -185,6 +185,10 @@ export interface ActionContext {
   latest(entries: readonly ActionEntry[]): ActionEntry | null;
 }
 
+/** The machine's code, the one name a person reads; an id the plant does not list prints as it came. */
+export const codeOf = (ctx: ActionContext, machineId: string): string =>
+  ctx.machines.get(machineId)?.code ?? machineId;
+
 /** The window predicate every rule shares: `offset <= asOf - day < days + offset`. */
 function inWindow(entry: ActionEntry, asOfDay: number, days: number, offset: number): boolean {
   const age = asOfDay - entry.day;

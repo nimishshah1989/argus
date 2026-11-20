@@ -18,6 +18,7 @@ import {
   kpiByLabel,
   type DashboardKpi,
 } from './answer-key/fixture.js';
+import { withoutCodeFields } from './answer-key/rekey.js';
 
 /**
  * Every Dashboard figure the engine computes, against the 11 November platform (answer key), from `input.json`
@@ -397,7 +398,7 @@ describe('the two Dashboard charts on the 11 November workbook', () => {
     expect(plotted.status).toBe('ready');
     expect(plotted.drill.type).toBe('machine');
     const value = plotted.value as unknown as ChartValue;
-    expect(value.datasets).toEqual(chartById('ch-dash-bubble').datasets);
+    expect(withoutCodeFields(value.datasets)).toEqual(chartById('ch-dash-bubble').datasets);
     const points = value.datasets[0]!.data as BubblePoint[];
     expect([...plotted.drill.ids].sort()).toEqual(points.map((point) => point.id).sort());
     for (const id of plotted.drill.ids) expect(machineIds.has(id), id).toBe(true);

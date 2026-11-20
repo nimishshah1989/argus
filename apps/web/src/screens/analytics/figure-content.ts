@@ -228,6 +228,7 @@ function bubble(value: ObjectValue, t: TFunction): FigureContent | null {
           y: Number(point.y),
           r: Number(point.r),
           label: String(point.id),
+          ...(typeof point.code === 'string' ? { code: point.code } : {}),
           mttr: point.mttr === undefined ? undefined : Number(point.mttr),
         },
       ];
