@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
+import type { ActionCenterModel } from './action-center/model.js';
 import type { DashboardModel } from './dashboard/model.js';
+import type { DataChecklistModel } from './data-checklist/model.js';
 import type { EntityModel } from './entity/model.js';
 
 /**
@@ -13,6 +15,8 @@ export type Screens = {
   dashboard: { params: Record<string, never>; model: DashboardModel };
   /** One machine, cell, person or decision, for the drawer on any screen; nothing when it is not found. */
   entity: { params: EntityRef; model: EntityModel };
+  'action-center': { params: Record<string, never>; model: ActionCenterModel };
+  'data-checklist': { params: Record<string, never>; model: DataChecklistModel };
 };
 export type ScreenKey = keyof Screens;
 export type ScreenParams<K extends ScreenKey> = Screens[K]['params'];
@@ -26,6 +30,8 @@ export type Provider<K extends ScreenKey> = (
 const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
   dashboard: () => import('./dashboard/fixture.js').then((m) => m.dashboardFixture),
   entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
+  'action-center': () => import('./action-center/fixture.js').then((m) => m.actionCenterFixture),
+  'data-checklist': () => import('./data-checklist/fixture.js').then((m) => m.dataChecklistFixture),
 };
 
 /** One load, as the state a screen shows: ready with its model, empty, or error. */
