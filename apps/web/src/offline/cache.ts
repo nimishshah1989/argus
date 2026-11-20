@@ -85,3 +85,15 @@ export function saveConfig(config: Config): void {
 export function readConfig(): Config | null {
   return read<Config>(CONFIG_KEY);
 }
+
+/** The two saved reads depend on the login's role (phone numbers only for some), so they go when the session changes. */
+export function forgetCachedReads(): void {
+  const target = storage();
+  if (!target) return;
+  try {
+    target.removeItem(STATE_KEY);
+    target.removeItem(CONFIG_KEY);
+  } catch {
+    // Storage blocked: nothing was saved either.
+  }
+}

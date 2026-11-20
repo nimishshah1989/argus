@@ -1,8 +1,8 @@
 import { QueryClient } from '@tanstack/react-query';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../../../data/index.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError, keepOwners, rememberWho } from '../../../data/index.js';
 import { load, stateOfError, type Provider } from '../data.js';
-import { LiveOffline } from './live-error.js';
+import { LiveOffline, NotComputed } from './live-error.js';
 
 const server = vi.hoisted(() => ({ figures: vi.fn(), me: vi.fn() }));
 vi.mock('../../../api.js', () => ({
@@ -12,14 +12,25 @@ vi.mock('../../../api.js', () => ({
   getState: vi.fn(),
 }));
 
-const { liveReply, liveRole } = await import('./live.js');
+const { liveReply, liveRole, savedFigures } = await import('./live.js');
 const REPLY = { asOf: '2026-11-11', figures: [] };
-const fresh = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const fresh = () => keepOwners(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+
+const actingAs = (loginId: string) =>
+  rememberWho({ id: loginId, actingPersonId: `${loginId}-person`, name: loginId });
 
 beforeEach(() => {
+  const store = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  });
+  actingAs('head-login');
   server.figures.mockReset();
   server.me.mockReset();
 });
+afterEach(() => vi.unstubAllGlobals());
 
 describe('the live source of the v2 screens', () => {
   it('reads the engine reply once for every screen that asks, and keeps it where v1 keeps it', async () => {
@@ -57,16 +68,83 @@ describe('the live source of the v2 screens', () => {
   });
 });
 
+describe('a saved copy belongs to the person it was fetched for', () => {
+  const HEAD_REPLY = { asOf: '2026-11-11', figures: [{ key: 'money', status: 'ready' }] };
+  const OPERATOR_REPLY = { asOf: '2026-11-11', figures: [] };
+
+  it('does not hand one login’s reply or role to the next login on the same tab', async () => {
+    const client = fresh();
+    server.figures.mockResolvedValue(HEAD_REPLY);
+    server.me.mockResolvedValue({ user: { role: 'head' } });
+    expect(await liveReply(client)).toBe(HEAD_REPLY);
+    expect(await liveRole(client)).toBe('head');
+
+    actingAs('operator-login');
+    server.figures.mockResolvedValue(OPERATOR_REPLY);
+    server.me.mockResolvedValue({ user: { role: 'operator' } });
+    expect(await liveReply(client)).toBe(OPERATOR_REPLY);
+    expect(await liveRole(client)).toBe('operator');
+    expect(server.figures).toHaveBeenCalledTimes(2);
+  });
+
+  it('never serves the earlier login’s copy when the connection is lost', async () => {
+    const client = fresh();
+    server.figures.mockResolvedValue(HEAD_REPLY);
+    await liveReply(client);
+    actingAs('operator-login');
+    server.figures.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(liveReply(client)).rejects.toBeInstanceOf(LiveOffline);
+  });
+
+  it('serves a copy again for the person it was fetched for, and says it is a saved copy', async () => {
+    const client = fresh();
+    server.figures.mockResolvedValue(HEAD_REPLY);
+    await liveReply(client);
+    expect(savedFigures(client)).toBe(false);
+    client.invalidateQueries({ queryKey: ['analytics-figures'] });
+    server.figures.mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(await liveReply(client)).toBe(HEAD_REPLY);
+    expect(savedFigures(client)).toBe(true);
+  });
+});
+
+describe('two screens reading at once', () => {
+  it('share one read in flight: the second never cancels the first, and the server is asked once', async () => {
+    const client = fresh();
+    let answer: (reply: typeof REPLY) => void = () => {};
+    server.figures.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const first = liveReply(client);
+    const second = liveReply(client);
+    answer(REPLY);
+    expect(await first).toBe(REPLY);
+    expect(await second).toBe(REPLY);
+    expect(server.figures).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('what counts as a lost connection', () => {
+  it('serves the saved copy for a dropped connection only; a malformed reply is an error', async () => {
+    const client = fresh();
+    server.figures.mockResolvedValue(REPLY);
+    await liveReply(client);
+    client.invalidateQueries({ queryKey: ['analytics-figures'] });
+    server.figures.mockRejectedValue(new SyntaxError('Unexpected token < in JSON'));
+    await expect(liveReply(client)).rejects.toBeInstanceOf(SyntaxError);
+    expect(stateOfError(await liveReply(client).catch((error: unknown) => error))).toBe('error');
+  });
+});
+
 describe('the state a failed load shows', () => {
   const failing =
     (error: unknown): Provider<'dashboard'> =>
     () =>
       Promise.reject(error);
 
-  it('maps a 403 to refused, a lost connection to offline, a missing thing to empty, the rest to error', async () => {
+  it('maps a 403 to refused, a lost connection to offline, a missing thing to empty, a figure not yet computed to notComputed, the rest to error', async () => {
     const cases: [unknown, string][] = [
       [new ApiError('forbidden', 'no', undefined, 403), 'refused'],
       [new LiveOffline(), 'offline'],
+      [new NotComputed(), 'notComputed'],
       [new ApiError('not_found', 'gone', undefined, 404), 'empty'],
       [new ApiError('internal', 'boom', undefined, 500), 'error'],
       [new Error('adapter bug'), 'error'],

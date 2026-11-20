@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- screen ids and routes only; every visible word goes through t() */
 import type { MessageKey } from '@uptimo/shared/i18n';
-import { useRef, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import i18n from 'i18next';
@@ -23,6 +23,7 @@ import { RegistersView } from './machines-register/View.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
+import { savedFigures } from './figures/live.js';
 import { ChromeContext, EntityShell } from './entity/EntityShell.js';
 import { useNav } from './nav.js';
 import type { NavItem } from '../../ui/v2/shell.js';
@@ -111,8 +112,19 @@ function useCorrect(afterwards: () => void) {
 
 function CellChangeLogPage() {
   const { t } = useTranslation();
+  const client = useQueryClient();
   const loaded = useScreenModel('cell-change-log', {});
-  const correct = useCorrect(() => loaded.retry());
+  const [corrected, setCorrected] = useState(false);
+  const correct = useCorrect(() => {
+    setCorrected(true);
+    loaded.retry();
+  });
+  // The list is the saved copy when the refresh failed; after a correction it says so, so the old date is not read as the new.
+  const saved = loaded.state === 'ready' && savedFigures(client);
+  const stale = saved ? (corrected ? 'afterCorrection' : 'saved') : undefined;
+  useEffect(() => {
+    if (loaded.state === 'ready' && !saved) setCorrected(false);
+  }, [loaded.state, saved]);
   const last = useRef<CellLogModel>(undefined);
   if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
   const model = loaded.model ?? (loaded.state === 'loading' ? last.current : undefined);
@@ -121,7 +133,7 @@ function CellChangeLogPage() {
     <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'cell-change-log' }}>
       {(nav) =>
         model ? (
-          <CellLogView model={model} nav={nav} title={title} onCorrect={correct} />
+          <CellLogView model={model} nav={nav} title={title} onCorrect={correct} stale={stale} />
         ) : (
           <EntityShell nav={nav} title={title}>
             <ScreenStates loaded={loaded}>{() => null}</ScreenStates>

@@ -7,6 +7,7 @@ import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Row } from '../../../ui/v2/row.js';
+import { SavedCopyNotice } from '../../../ui/v2/screen-states.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { fill } from '../../../i18n/fill.js';
@@ -17,6 +18,8 @@ import type { CellLogModel } from './model.js';
 /** What the screen asks of whoever holds the server: send one corrected day; a rejection says why in words. */
 export type CellLogActions = {
   onCorrect?: (move: { id: string; machineId: string }, day: string) => Promise<void>;
+  /** The list is the copy saved earlier (the connection is lost); `afterCorrection` when a head's change was taken since. */
+  stale?: 'saved' | 'afterCorrection';
 };
 
 type Note = { kind: 'saved' | 'exported' | 'exportError'; at: number } | null;
@@ -82,6 +85,23 @@ function Correcting({
   );
 }
 
+/** What the last action said: the export's failure as an alert, the export or the correction as a status line. */
+function Notes({ words, note }: { words: CellLogModel['words']; note: Note }) {
+  if (note?.kind === 'exportError')
+    return (
+      <p role="alert" className="v2-sub v2-seg-loss">
+        {words.exportError}
+      </p>
+    );
+  const said =
+    note?.kind === 'saved' ? words.saved : note?.kind === 'exported' ? words.exported : null;
+  return said ? (
+    <p role="status" className="v2-sub v2-seg-gain">
+      {said}
+    </p>
+  ) : null;
+}
+
 /**
  * The cell change log: every recorded move, newest first, with the machine, the cell and the location it went to.
  * A head or an admin corrects a move's date from its row; the controlled document exports as a CSV with its number.
@@ -91,31 +111,24 @@ export function CellLogView({
   nav,
   title,
   onCorrect,
+  stale,
 }: { model: CellLogModel; nav: NavItem[]; title: string } & CellLogActions) {
   const [correcting, setCorrecting] = useState<string | null>(null);
   const [note, setNote] = useState<Note>(null);
   const { words } = model;
-  const noted =
-    note?.kind === 'saved' ? words.saved : note?.kind === 'exported' ? words.exported : null;
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
+      {stale ? (
+        <SavedCopyNotice text={stale === 'saved' ? words.savedCopy : words.savedAfterCorrection} />
+      ) : null}
       <Row cols={2}>
         {model.kpis.map((kpi) => (
           <KpiCard key={kpi.id} kpi={kpi} />
         ))}
       </Row>
       {model.moves.length > 0 ? <ExportPanel model={model} onNote={setNote} /> : null}
-      {note?.kind === 'exportError' ? (
-        <p role="alert" className="v2-sub v2-seg-loss">
-          {words.exportError}
-        </p>
-      ) : null}
-      {noted ? (
-        <p role="status" className="v2-sub v2-seg-gain">
-          {noted}
-        </p>
-      ) : null}
+      <Notes words={words} note={note} />
       {correcting && onCorrect ? (
         <Correcting
           model={model}
