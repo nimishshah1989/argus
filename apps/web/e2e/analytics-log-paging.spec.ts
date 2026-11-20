@@ -106,7 +106,7 @@ test('the Breakdown Log opens on 10 of its 1,343 rows and pages on from the newe
 
   const rows = log(page).locator('tbody tr');
   await expect(rows).toHaveCount(PAGE);
-  await expect(page.getByText(/^1,343 entries in the breakdown log/)).toBeVisible();
+  await expect(page.getByText(/^1,343 rows · Records to 11-Nov-2026$/)).toBeVisible();
   await expect(log(page).getByText('1–10 of 1,343', { exact: true })).toBeVisible();
   await expect(rows.first().getByRole('cell').first()).toHaveText('1343');
   await expect(rows.last().getByRole('cell').first()).toHaveText('1334');
@@ -119,7 +119,7 @@ test('the Breakdown Log opens on 10 of its 1,343 rows and pages on from the newe
 
   // A filter narrows the pages, and the count of the whole log stays in sight.
   await log(page).getByLabel('Machine', { exact: true }).selectOption('VC-2');
-  await expect(page.getByText(/^1,343 entries in the breakdown log/)).toBeVisible();
+  await expect(page.getByText(/^1,343 rows · Records to 11-Nov-2026$/)).toBeVisible();
   await expect(page.getByText(/The log holds 1,343 entries/)).toBeVisible();
   await expect(log(page).getByText('1–10 of 34', { exact: true })).toBeVisible();
   await expect(rows).toHaveCount(PAGE);
@@ -141,9 +141,10 @@ test('a sorted log keeps each ticket link right, puts dashes last and keeps its 
   const downtime = log(page).getByRole('columnheader', { name: 'Downtime (hrs)' });
   const sortButton = downtime.getByRole('button');
   await sortButton.click();
-  await expect(downtime).toHaveAttribute('aria-sort', 'ascending');
-  await sortButton.click();
+  // The v2 kit's tables sort the biggest first, then the smallest (v1 went smallest first); the dash is last either way.
   await expect(downtime).toHaveAttribute('aria-sort', 'descending');
+  await sortButton.click();
+  await expect(downtime).toHaveAttribute('aria-sort', 'ascending');
   // The dash means no downtime recorded: it sorts last whichever way, so none is on the first page.
   await expect(rows).toHaveCount(PAGE);
   await expect(rows.locator('td:nth-child(8)', { hasText: '—' })).toHaveCount(0);
@@ -163,7 +164,7 @@ test('a sorted log keeps each ticket link right, puts dashes last and keeps its 
 
   // A filter keeps the sort, and the dashes of the narrowed log are on its last page.
   await log(page).getByLabel('Machine', { exact: true }).selectOption('VC-2');
-  await expect(downtime).toHaveAttribute('aria-sort', 'descending');
+  await expect(downtime).toHaveAttribute('aria-sort', 'ascending');
   await expect(log(page).getByText('1–10 of 34', { exact: true })).toBeVisible();
   await expect(rows.first().locator('td:nth-child(8)')).not.toHaveText('—');
   for (let next = 0; next < 3; next += 1)

@@ -1,5 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- sort keys, entity kinds and typed unions only; every visible word comes from the model */
 import { useContext, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fill } from '../../../i18n/fill.js';
 import { Button } from '../../../ui/v2/button.js';
 import type { Column } from '../../../ui/v2/data-table.js';
@@ -8,6 +9,7 @@ import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { PagedTable, type SelectFilter } from '../../../ui/v2/paged-table.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
+import { shortDate } from '../printed-page/printed.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
 import {
@@ -24,15 +26,15 @@ const FILTERS: LogFilterId[] = ['date', 'shift', 'machine', 'code'];
 function TicketLink({ row, label }: { row: LogRow; label: string }) {
   if (row.ticketId === null) return <span className="v2-num">{row.ticket}</span>;
   return (
-    <a
+    <Link
       className="v2-ref v2-num"
-      href={`/desk/${encodeURIComponent(row.ticketId)}`}
+      to={`/desk/${encodeURIComponent(row.ticketId)}`}
       // The name must contain the visible text (WCAG 2.5.3): the ticket number first, then what the link does.
       aria-label={`${row.ticket}: ${fill(label, { srNo: row.srNo })}`}
       onClick={(e) => e.stopPropagation()}
     >
       {row.ticket}
-    </a>
+    </Link>
   );
 }
 
@@ -72,6 +74,8 @@ function selectsOf(model: LogModel, change: (q: Partial<LogQuery>) => void): Sel
     all: model.words.all,
     value: model.query.filters[id],
     options: model.options[id],
+    // A date is filtered by the day the engine printed and read the way the column prints it.
+    ...(id === 'date' ? { labelOf: shortDate } : {}),
     onChange: (value: string) => change({ filters: { ...model.query.filters, [id]: value } }),
   }));
 }

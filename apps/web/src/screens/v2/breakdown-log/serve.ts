@@ -30,8 +30,6 @@ export type LogReply = {
   count: number;
   /** The entries the engine printed: fewer than `count` when it printed only the newest. */
   held: number;
-  /** The date of the log's newest entry (its first printed row), whatever the page is sorted or filtered by. */
-  newest: string | null;
   options: Record<LogFilterId, string[]>;
 };
 
@@ -112,7 +110,6 @@ export function cutPage(log: PrintedLog, query: LogQuery): LogReply {
     matching: ordered.length,
     count: Math.max(log.rowCount, log.rows.length),
     held: log.rows.length,
-    newest: log.rows[0]?.[3] ?? null,
     options: {
       date: optionsOf(log.rows, 'date'),
       shift: optionsOf(log.rows, 'shift'),

@@ -71,17 +71,11 @@ describe('the live Breakdown Log opens on one page of rows', () => {
     expect(model.rows[9]?.srNo).toBe('1334');
   });
 
-  it('says the date of the log’s newest entry however the page is sorted', () => {
+  it('says the same count and records date however the page is sorted, in v1’s words', () => {
     const oldest = { ...EMPTY_QUERY, sort: { key: 'srNo' as const, dir: 'asc' as const } };
     const model = liveLog(logOf(30), oldest, realT)!;
     expect(model.rows[0]?.srNo).toBe('1');
-    expect(model.verdict.headline[0]?.text).toContain('newest 07-Nov-2026');
-    const older = logOf(30);
-    const value = older.figures[0]!.value as { pages: { tables: { rows: string[][] }[] }[] };
-    value.pages[0]!.tables[0]!.rows[29]![3] = '01-10-2026';
-    expect(liveLog(older, oldest, realT)!.verdict.headline[0]?.text).toContain(
-      'newest 07-Nov-2026',
-    );
+    expect(model.verdict.headline[0]?.text).toBe('30 rows · Records to 11-Nov-2026');
   });
 
   it('opens each row’s own ticket, not the one the sorted drill ids happen to put at its position', () => {

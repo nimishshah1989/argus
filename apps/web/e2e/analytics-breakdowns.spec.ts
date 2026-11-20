@@ -501,7 +501,7 @@ async function openLog(page: Page): Promise<void> {
   await expect(log.getByRole('cell', { name: '—', exact: true })).toBeVisible();
   await expect(log.getByRole('cell', { name: '1.83', exact: true })).toBeVisible();
   await expect(
-    page.getByText('1,343 entries in the breakdown log, newest 07-Nov-2026.', { exact: true }),
+    page.getByText('1,343 rows · Records to 11-Nov-2026', { exact: true }),
   ).toBeVisible();
   await expect(page.getByText('showing the newest 5 of 1,343', { exact: true })).toBeVisible();
 }
@@ -542,9 +542,10 @@ async function exportLog(page: Page): Promise<void> {
 /** A1: the six KPIs, the four tables, the two charts and one drill into the rows. */
 async function openA1(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
+  // The log is the v2 page, whose screens are a row of buttons; A1 is still v1's page, with its own menu.
   await page
-    .getByRole('navigation', { name: 'Breakdowns screens', exact: true })
-    .getByRole('link', { name: 'A1 breakdown percent and PM split', exact: true })
+    .getByRole('group', { name: 'Breakdowns screens', exact: true })
+    .getByRole('button', { name: 'A1 breakdown percent and PM split', exact: true })
     .click();
   await expect(page).toHaveURL(/screen=a1-bd-pm/);
   await expect(page.getByRole('heading', { name: 'BD % & PM Split', exact: true })).toBeVisible();
@@ -577,8 +578,11 @@ async function openA1(page: Page): Promise<void> {
 /** A2 inside the menu: its title, 16 tables, 8 charts and its drill. */
 async function openA2(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
+  await page
+    .getByRole('group', { name: 'Breakdowns screens', exact: true })
+    .getByRole('button', { name: 'A2 category and cell', exact: true })
+    .click();
   const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await nav.getByRole('link', { name: 'A2 category and cell', exact: true }).click();
   await expect(page).toHaveURL(/screen=a2-category-cell/);
   await expect(
     nav.getByRole('link', { name: 'A2 category and cell', exact: true }),
@@ -605,8 +609,11 @@ async function openA2(page: Page): Promise<void> {
 /** A3 inside the menu: its title, 6 tables with the key's dash, 7 charts and its drill. */
 async function openA3(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
+  await page
+    .getByRole('group', { name: 'Breakdowns screens', exact: true })
+    .getByRole('button', { name: 'A3 MTTR and MTBF', exact: true })
+    .click();
   const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await nav.getByRole('link', { name: 'A3 MTTR and MTBF', exact: true }).click();
   await expect(page).toHaveURL(/screen=a3-mttr-mtbf/);
   await expect(nav.getByRole('link', { name: 'A3 MTTR and MTBF', exact: true })).toHaveAttribute(
     'aria-current',

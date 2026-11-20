@@ -12,9 +12,7 @@ async function open(page: Page, theme = 'light') {
   await page.goto('about:blank');
   await page.goto(`/gallery?view=v2-breakdown-log&theme=${theme}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Breakdown log' })).toBeVisible();
-  await expect(
-    page.getByText('1,343 entries in the breakdown log, newest 07-Nov-2026.'),
-  ).toBeVisible();
+  await expect(page.getByText('1,343 rows · Records to 11-Nov-2026')).toBeVisible();
 }
 
 test('Breakdown Log: ten of 1,343 entries are on the page, the next ten follow, and a chip opens the drawer', async ({
