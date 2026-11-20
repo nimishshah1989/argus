@@ -1,0 +1,35 @@
+# Keeps the two pinned font files (tools/install-fonts.sh) in the Actions cache. A pull request can restore a cache
+# saved from main but not one saved by another pull request, and CI does not run on main, so this saves it from main.
+# Same container image as the gallery job, so the cache archive is made and read the same way. A miss costs only
+# the old download time; the script still falls back to apt.
+name: warm-fonts-cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/install-fonts.sh
+      - .github/workflows/warm-fonts-cache.yml
+  workflow_dispatch:
+  schedule:
+    # An unused cache is evicted after 7 days; a daily hit keeps it alive and refills it if it was lost.
+    - cron: '23 4 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  warm:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/fonts-debs
+          key: fonts-debs-${{ hashFiles('tools/install-fonts.sh') }}
+      - run: bash tools/install-fonts.sh --download-only
+        env:
+          FONTS_DEB_DIR: /tmp/fonts-debs
