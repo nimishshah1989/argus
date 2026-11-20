@@ -174,12 +174,18 @@ jobs:
   gallery:
     needs: changes
     if: ${{ !github.event.pull_request.draft && needs.changes.outputs.gallery == 'true' }}
+    name: gallery (${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
+    # Two halves of the gallery specs in parallel (Playwright splits by test; the config runs fully parallel).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
-    # 15, not 8: the gallery runs every v2 screen's specs in one job (about 7 minutes at 223 tests, and each screen
-    # adds more), and a run cancelled at the limit hides real failures.
+    # 15 per shard: one job took 7 to 12 minutes for every v2 screen's specs; a run cancelled at the limit hides
+    # real failures. Baselines are the same files for both shards.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -198,12 +204,12 @@ jobs:
         if: steps.paths.outputs.run == 'true'
       - run: npm i -g pnpm@10.30.3 && pnpm install --frozen-lockfile
         if: steps.paths.outputs.run == 'true'
-      - run: pnpm gallery:test
+      - run: pnpm gallery:test --shard=${{ matrix.shard }}/2
         if: steps.paths.outputs.run == 'true'
       - uses: actions/upload-artifact@v4
         if: failure() && steps.paths.outputs.run == 'true'
         with:
-          name: gallery-diffs
+          name: gallery-diffs-${{ matrix.shard }}
           path: test-results/gallery
 
   secrets:
