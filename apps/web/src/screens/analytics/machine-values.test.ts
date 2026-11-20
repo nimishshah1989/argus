@@ -11,7 +11,13 @@ import {
   toCsv,
   type CellLogLabels,
 } from './machine-values.js';
-import { MACHINE_FIELD_LABELS, ageOf, areaFrom, machineRecord } from './machine-record.js';
+import {
+  MACHINE_FIELD_LABELS,
+  ageOf,
+  areaFrom,
+  machineIdOf,
+  machineRecord,
+} from './machine-record.js';
 
 /**
  * The 39b page config and value readers (D05 style): the five register pages, the move list, one machine's
@@ -257,6 +263,13 @@ describe('one machine page', () => {
     expect(
       withBreakdowns({ count: 27, topProblem: { count: 3 } })?.breakdowns?.topProblem,
     ).toBeNull();
+  });
+
+  it('finds the machine from its code as well as its id, so a chip link opens the record', () => {
+    expect(machineIdOf(ready, ID)).toBe(ID);
+    expect(machineIdOf(ready, 'VC-1')).toBe(ID);
+    expect(machineIdOf(ready, 'NOT-A-MACHINE')).toBe('NOT-A-MACHINE');
+    expect(machineRecord(ready, machineIdOf(ready, 'VC-1'))?.machine.code).toBe('VC-1');
   });
 
   it('returns null for an id the value does not hold', () => {

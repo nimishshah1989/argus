@@ -18,7 +18,6 @@ export const analyticsMachinesGu = gujarati(analyticsMachinesEn, {
   'analytics.cellLog.title': 'સેલ / સ્થાન બદલાવ લૉગ',
   'analytics.cellLog.intro':
     'નોંધાયેલા દરેક ફેરફાર, સૌથી નવો પહેલાં. ફેરફાર પહેલાંનું બ્રેકડાઉન જૂના સેલ સાથે રહે છે; ફેરફારની તારીખથી તે નવા સેલનું ગણાય છે.',
-  'analytics.cellLog.lede': '{{asOf}}। {{intro}}',
   'analytics.cellLog.export': 'CSV માં એક્સપોર્ટ કરો',
   'analytics.cellLog.exportError': 'સેલ બદલાવ લૉગ એક્સપોર્ટ થઈ શક્યો નહીં.',
   'analytics.cellLog.empty': 'હજી કોઈ સેલ કે સ્થાનનો ફેરફાર નોંધાયો નથી.',

@@ -24,6 +24,9 @@ export type CellLogWords = {
   /** `{machine}` and `{change}`: what is being corrected. */
   correctSub: string;
   saved: string;
+  /** The figures are the saved copy (the connection is lost), and the same after a correction the server took. */
+  savedCopy: string;
+  savedAfterCorrection: string;
   refused: string;
   correct: CorrectDateWords;
 };

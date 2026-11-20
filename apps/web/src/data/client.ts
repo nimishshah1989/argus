@@ -8,15 +8,27 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+let sessionChanged: (() => void) | null = null;
+
+/**
+ * Who hears that the session changed (a sign-in, a sign-out, a refused session): the app empties its saved answers then,
+ * so the next person never sees the last one's. One listener; passing null removes it.
+ */
+export function whenSessionChanges(listener: (() => void) | null): void {
+  sessionChanged = listener;
+}
+
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
   forgetPushBinding();
+  sessionChanged?.();
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   forgetWho();
   forgetPushBinding();
+  sessionChanged?.();
 }
 
 /** The ticket a refused dispute names, and the two cells a refused phone names. */

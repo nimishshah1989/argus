@@ -8,6 +8,7 @@ import { DataTable } from './data-table.js';
 import { Drawer } from './drawer.js';
 import { KpiCard } from './kpi-card.js';
 import { Pareto, paretoMismatch } from './pareto.js';
+import { SavedCopyNotice, ScreenStates } from './screen-states.js';
 import { Points } from './points.js';
 import { Shell } from './shell.js';
 import { tablePage } from './table-model.js';
@@ -194,5 +195,25 @@ describe('v2 shell and drawer', () => {
     expect(open).toMatch(/<aside[^>]*aria-label="VC-8"/);
     expect(open).not.toMatch(/inert/);
     expect(open).toMatch(/<button[^>]*aria-label="[^"]+"/);
+  });
+});
+
+describe('v2 screen states', () => {
+  const states = (state: Parameters<typeof ScreenStates>[0]['loaded']['state']) =>
+    html(
+      createElement(ScreenStates<string>, {
+        loaded: { state, retry: () => {} },
+        children: () => null,
+      }),
+    );
+  it('says "not computed" in its own state, apart from an empty one', () => {
+    expect(states('notComputed')).toMatch(/data-state="not-computed"/);
+    expect(states('empty')).toMatch(/data-state="empty"/);
+    expect(states('notComputed')).not.toBe(states('empty'));
+  });
+  it('shows a saved copy as one line the reader can hear', () => {
+    const out = html(createElement(SavedCopyNotice, { text: 'You are offline.' }));
+    expect(out).toMatch(/role="status"/);
+    expect(text(out)).toBe('You are offline.');
   });
 });
