@@ -248,3 +248,28 @@
   max-width: 88px;
   min-width: 40px;
 }
+
+/* "Show the numbers" under a chart (chart-numbers.tsx): a quiet disclosure; its table sits flat inside the card. */
+.v2-numbers {
+  margin-top: var(--space-v2-inner);
+}
+.v2-numbers > summary {
+  min-height: 32px;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.v2-table.v2-chart-numbers th {
+  position: static;
+}
+.v2-table.v2-chart-numbers tbody tr {
+  cursor: default;
+}
+.v2-table.v2-chart-numbers tbody th {
+  background: none;
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-secondary);
+  font-weight: 400;
+  white-space: normal;
+}
