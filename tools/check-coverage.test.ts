@@ -16,8 +16,7 @@ function problems(body: string, scopeText: string | null, changed = [...SCREEN_F
   return coverageProblems({
     body,
     changed,
-    read: (path) =>
-      path === SCOPE ? scopeText : path.endsWith('/team-focus/View.tsx') ? '' : null,
+    read: (path) => (path === SCOPE ? scopeText : path.endsWith('/View.tsx') ? '' : null),
   });
 }
 
