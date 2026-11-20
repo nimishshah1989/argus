@@ -1,5 +1,6 @@
 import type { CellData, MachineData, MachineState } from '../../../ui/v2/domain/plant.js';
 import type { Point } from '../../../ui/v2/points.js';
+import { TYPES } from './fixture-types.js';
 import { glue, pts } from './fixture-text.js';
 
 /** Invented machines for the gallery: 9 cells, 126 machines, their breakdown hours adding up to the month's 312.4 h. */
@@ -11,7 +12,11 @@ const WHY: Record<MachineState, Point[]> = {
     '~~3 breakdowns~~ in 30 days, up from **1**',
     'Repairs taking ~~2× longer~~ than its type',
   ),
-  down: pts('Down for !!2 h 40 min!!', 'Problem: **spindle alarm**', 'Assigned to ++Neel S++'),
+  down: pts(
+    'Down for !!2 h 40 min!!',
+    'Problem: **spindle alarm**',
+    'Assigned to {{person:neel-s|Neel S}}',
+  ),
   pm: pts('Quarterly PM, **started 9:30**', 'Back by ++14:00++ (plan)'),
   idle: pts('No job loaded since **yesterday**'),
 };
@@ -39,12 +44,6 @@ const ODD: Record<string, MachineState> = {
 };
 const SIZES = [14, 14, 15, 13, 15, 14, 14, 15, 12];
 const KINDS = ['TC', 'VC', 'VC', 'TC', 'VC', 'VTL', 'VC', 'TC', 'GRD'] as const;
-const TYPES = {
-  TC: { label: 'Turning centre', cat: 1 },
-  VC: { label: 'Vertical machining centre', cat: 2 },
-  VTL: { label: 'Vertical turret lathe', cat: 3 },
-  GRD: { label: 'Grinder', cat: 4 },
-} as const;
 /** How heavy each state's month is, in tenths of an hour before the month's total shares them out. */
 const WEIGHT: Record<MachineState, number> = { down: 220, risk: 110, pm: 30, idle: 0, run: 0 };
 

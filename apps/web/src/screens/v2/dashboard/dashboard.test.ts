@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import '../../../i18n/index.js';
 import { cellNote } from '../../../ui/v2/domain/plant.js';
 import { nextTile } from '../../../ui/v2/domain/plant.js';
 import { dashboardFixture as model } from './fixture.js';
@@ -18,10 +20,18 @@ const num = (s: string) => parseFloat(s.replace(/[^\d.]/g, ''));
 const machines = model.cells.flatMap((c) => c.machines);
 const nav = [{ id: 'today', label: 'Today', icon: 'today' as const, href: '/a', current: true }];
 
-describe('the v2 Dashboard on its fixture', () => {
-  const out = renderToStaticMarkup(
-    createElement(DashboardView, { model, nav, title: 'Dashboard' }),
+/** The Dashboard at a URL: the drawer lives in the query, so the page needs a router around it. */
+const render = (url = '/gallery') =>
+  renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [url] },
+      createElement(DashboardView, { model, nav, title: 'Dashboard' }),
+    ),
   );
+
+describe('the v2 Dashboard on its fixture', () => {
+  const out = render();
 
   it('answers first: the verdict, then four key figures, then the decisions', () => {
     expect(text(out)).toContain('November is 9.2% worse than October.');
@@ -48,6 +58,29 @@ describe('the v2 Dashboard on its fixture', () => {
   it('starts with the drawer closed, and shows ten machines of all of them', () => {
     expect(out).toMatch(/<aside[^>]*inert=""/);
     expect(text(out)).toContain(`1–10 of ${machines.length}`);
+  });
+
+  it('opens a decision in the drawer from a pasted link, with its Decide button and a link to its page', () => {
+    const open = render('/gallery?view=v2-dashboard&drawer=decision:axis');
+    expect(open).toMatch(/<aside[^>]*aria-label="Stop axis motor and encoder failures"/);
+    expect(open).not.toMatch(/<aside[^>]*inert/);
+    expect(open).toMatch(/aria-expanded="true"/);
+    expect(open).toMatch(
+      /<footer[^>]*><a[^>]*href="\/analytics\/today\/action-center\?drawer=decision:axis"[^>]*>Open full page/,
+    );
+  });
+
+  it('ignores a drawer value it does not understand', () => {
+    for (const bad of ['drawer=widget:1', 'drawer=machine', 'drawer=machine:', 'drawer=:TC-4'])
+      expect(render(`/gallery?${bad}`)).toMatch(/<aside[^>]*inert=""/);
+  });
+
+  it('prints every machine, cell and person it names as a chip that opens it', () => {
+    const chips = [...out.matchAll(/<button type="button" class="v2-entity[^"]*"[^>]*>/g)];
+    expect(chips.length).toBeGreaterThan(30);
+    expect(out).toMatch(/data-kind="machine" data-cat="1"><svg/);
+    expect(out).toMatch(/data-kind="person"/);
+    expect(out).toMatch(/data-kind="cell"/);
   });
 });
 
@@ -85,7 +118,7 @@ describe('the fixture figures agree with each other', () => {
   it('names only machines the plant has, and gives running machines no breakdown hours', () => {
     const codes = new Set(machines.map((m) => m.code));
     const named = model.decisions.find((d) => d.id === 'axis')!.codes;
-    expect(named.filter((c) => !codes.has(c))).toEqual([]);
+    expect(named.filter((c) => !codes.has(c.id))).toEqual([]);
     expect(machines.filter((m) => m.state === 'run' && m.hours.value > 0)).toEqual([]);
   });
 

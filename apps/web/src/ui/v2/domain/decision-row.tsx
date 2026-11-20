@@ -1,9 +1,10 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import type { MouseEvent } from 'react';
+import { EntityChip, type EntityChipProps } from '../entity-chip.js';
 import { Icon } from '../icons.js';
 import { EventStrip } from '../event-strip.js';
 import { KeyPill, type PillTone } from '../key-pill.js';
-import type { Point } from '../points.js';
+import { Segs, type Point } from '../points.js';
 import { useWhy, WhyButton, WhyPanel } from '../why-toggle.js';
 
 /** Domain kit: one maintenance decision. Generic pieces live one folder up. */
@@ -21,7 +22,8 @@ export type DecisionData = {
   kind: DecisionKind;
   /** The word on the kind pill, in the reader's language. */
   kindLabel: string;
-  codes: string[];
+  /** The machines it is about, each a chip that opens that machine. */
+  codes: EntityChipProps[];
   title: string;
   keys: { text: string; tone: PillTone }[];
   why: Point[];
@@ -32,7 +34,8 @@ export type DecisionData = {
   stripLabel: string;
   action: string;
   doneText: string;
-  owner: string;
+  /** Who owns it, or what holds it: a sentence, so a person in it is a chip. */
+  owner: Point;
   /** The full story, for the drawer; `why` is the short version that opens in place. */
   detail: Point[];
   /** Whether the owner has taken the action; the model says so, the row only shows it. */
@@ -91,9 +94,7 @@ export function DecisionRow({
           <div className="v2-row v2-gap-8">
             <KeyPill text={d.kindLabel} tone={KIND_TONE[d.kind]} />
             {d.codes.map((c) => (
-              <span key={c} className="v2-code">
-                {c}
-              </span>
+              <EntityChip key={c.id} {...c} />
             ))}
           </div>
           <h3 className="v2-h3">
@@ -124,7 +125,9 @@ export function DecisionRow({
         </div>
         <div className="v2-stack v2-gap-6 v2-act">
           <DecisionAction d={d} {...act} />
-          <span className="v2-sub v2-center">{d.owner}</span>
+          <span className="v2-sub v2-center">
+            <Segs point={d.owner} />
+          </span>
         </div>
       </div>
       <WhyPanel why={why} points={d.why} well />

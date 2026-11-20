@@ -1,8 +1,17 @@
+import { EntityChip } from '../entity-chip.js';
 import { KeyPill } from '../key-pill.js';
 import { Points } from '../points.js';
 import { Sparkline } from '../sparkline.js';
 import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
-import { trendTone, STATE_ICON, STATE_TONE, type MachineData, type MachineState } from './plant.js';
+import {
+  cellChip,
+  machineChip,
+  trendTone,
+  STATE_ICON,
+  STATE_TONE,
+  type MachineData,
+  type MachineState,
+} from './plant.js';
 
 export type MachineDetailWords = {
   states: Record<MachineState, string>;
@@ -31,13 +40,11 @@ export function MachineDetail({
           tone={STATE_TONE[m.state]}
           icon={STATE_ICON[m.state]}
         />
-        <span className="v2-code" data-cat={m.cat}>
-          {m.code}
-        </span>
+        <EntityChip {...machineChip(m)} />
       </div>
       <h2 className="v2-drawer-title">{m.name}</h2>
       <p className="v2-sub">
-        {m.typeLabel} · {m.cell}
+        {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
       </p>
       <DetailSection label={words.why}>
         <Points points={m.why} />
