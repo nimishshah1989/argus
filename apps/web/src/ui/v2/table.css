@@ -156,6 +156,8 @@ td.v2-row-action .v2-icon-btn:focus-visible {
 @media (max-width: 760px) {
   .v2-table-scroll {
     overflow-x: auto;
+    /* A screen-reader-only span (position: absolute) in a far-right cell is clipped with the table only when this is its containing block; otherwise it widens the page and a phone shrinks the window to fit it. */
+    position: relative;
   }
   .v2-table-scroll th {
     top: 0;

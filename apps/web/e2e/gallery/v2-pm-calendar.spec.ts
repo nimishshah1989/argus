@@ -159,6 +159,21 @@ test('PM calendar: crowded days list their nearest free day and one press moves 
   ).toBeVisible();
 });
 
+test('PM calendar: on a phone the page does not scroll sideways, so the window holds the whole month', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 393, height: 727 });
+  await page.goto('about:blank');
+  await page.goto('/gallery?view=v2-pm-calendar&theme=light');
+  await expect(page.getByRole('heading', { level: 1, name: 'PM calendar' })).toBeVisible();
+  // A table wider than the screen scrolls inside its card; a part of it that is only for a screen reader must not widen the page.
+  const widths = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(widths[0]).toBeLessThanOrEqual(widths[1]!);
+});
+
 for (const theme of ['light', 'dark']) {
   test(`PM calendar: axe finds nothing in ${theme}, with the machine drawer open`, async ({
     page,
