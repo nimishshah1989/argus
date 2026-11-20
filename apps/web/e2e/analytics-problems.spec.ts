@@ -143,6 +143,7 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await page.getByRole('button', { name: /Show the rows behind A10 problem analysis/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a10-problems$/);
   const drill = page.locator('aside.v2-drawer');
+  await expect(drill.locator('tbody tr')).toHaveCount(2);
   await expect(drill.getByRole('link', { name: tickets.first.ref, exact: true })).toBeVisible();
   await expect(drill.getByRole('link', { name: tickets.second.ref, exact: true })).toBeVisible();
   await page.goBack();
