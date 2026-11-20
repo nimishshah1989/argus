@@ -1,11 +1,12 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
+import { DrillOpenContext, type Drill } from './drill.js';
 import { MOTION } from './motion.js';
 import { Segs, type Point } from './points.js';
 import { WhyToggle } from './why-toggle.js';
 
 export type ParetoData = {
   /** Biggest first, the rest in a last bar; `shown` is the engine's figure, `hours` places the bar. */
-  bars: { label: string; hours: number; shown: string }[];
+  bars: { label: string; hours: number; shown: string; drill?: Drill }[];
   /** How many of the first bars are the ones to fix; a line marks the split. */
   top: number;
   /** All the hours the bars share out: the bars must add up to it (`paretoMismatch`). */
@@ -34,6 +35,25 @@ const X0 = 8;
 const AXIS = W - 44;
 const TICKS = [0, 25, 50, 75, 100];
 const yOf = (share: number) => BASE - share * (BASE - TOP);
+
+/** A bar that has rows behind it is also a button over its whole column; the chart under it stays one picture. */
+function BarDrills({ bars }: { bars: ParetoData['bars'] }) {
+  const open = useContext(DrillOpenContext);
+  return bars.map((b, i) => {
+    const drill = b.drill;
+    return drill ? (
+      <button
+        key={b.label}
+        type="button"
+        className="v2-bar-drill"
+        style={{ left: X0 + i * (BAR + GAP) - GAP / 2, width: BAR + GAP, height: H }}
+        aria-label={drill.label}
+        title={drill.label}
+        onClick={() => open(drill)}
+      />
+    ) : null;
+  });
+}
 
 function Chart({ data }: { data: ParetoData }) {
   const max = Math.max(...data.bars.map((b) => b.hours), 0.1);
@@ -110,7 +130,10 @@ export function Pareto({
   return (
     <div className="v2-pareto">
       <div className="v2-scroll" tabIndex={0}>
-        <Chart data={data} />
+        <div className="v2-plot" style={{ width: W, height: H }}>
+          <Chart data={data} />
+          <BarDrills bars={data.bars} />
+        </div>
       </div>
       <div className="v2-stack v2-gap-12">
         <p className="v2-lede">

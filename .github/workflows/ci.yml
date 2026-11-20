@@ -201,9 +201,17 @@ jobs:
             if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Eq '^(apps/web/|playwright\.gallery\.config\.ts$|tools/check-ui\.ts$|tools/gallery-baselines\.sh$|tools/install-fonts\.sh$|package\.json$|package-lock\.json$|pnpm-lock\.yaml$|tsconfig[^/]*\.json$|[^/]+\.config\.ts$)'; then run=true; fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
-      # The pinned fonts-noto-core 20201225-2 from two checksummed files, not `apt-get update` (234 s of 705).
+      # The pinned fonts-noto-core 20201225-2 from two checksummed files, not `apt-get update` (234 s of 705). The
+      # files come from the Actions cache that warm-fonts-cache.yml fills from main (the mirrors took 61 to 338 s).
+      - uses: actions/cache@v4
+        if: steps.paths.outputs.run == 'true'
+        with:
+          path: /tmp/fonts-debs
+          key: fonts-debs-${{ hashFiles('tools/install-fonts.sh') }}
       - run: bash tools/install-fonts.sh
         if: steps.paths.outputs.run == 'true'
+        env:
+          FONTS_DEB_DIR: /tmp/fonts-debs
       - run: npm i -g pnpm@10.30.3 && pnpm install --frozen-lockfile
         if: steps.paths.outputs.run == 'true'
       - run: pnpm gallery:test --shard=${{ matrix.shard }}/4

@@ -269,7 +269,8 @@ button.v2-tile:hover:not(:disabled) {
 .v2-scroll {
   overflow-x: auto;
 }
-.v2-scroll > svg {
+.v2-scroll > svg,
+.v2-plot > svg {
   display: block;
 }
 .v2-gridline {
@@ -358,7 +359,9 @@ button.v2-tile:hover:not(:disabled) {
 }
 @media (prefers-reduced-motion: reduce) {
   .v2-tile,
-  .v2-decision {
+  .v2-decision,
+  .v2-drill-value,
+  .v2-bar-drill {
     transition: none;
   }
   .v2-tile[data-state='down']:not(:disabled) {
@@ -367,4 +370,61 @@ button.v2-tile:hover:not(:disabled) {
   button.v2-tile:hover:not(:disabled) {
     transform: none;
   }
+}
+
+/* A figure's rows behind it: the value of a KPI card, a bar of the Pareto and a bullet bar are the controls that open them. */
+.v2-drill-value {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: color var(--motion-v2-fast) var(--ease-v2);
+}
+/* 36 px to the eye, 44 px to the finger, as the chips and the Why pill. */
+.v2-drill-value::after {
+  content: '';
+  position: absolute;
+  inset: -4px -6px;
+}
+.v2-drill-value > .v2-icon {
+  color: var(--color-v2-ink-3);
+}
+.v2-drill-value:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.v2-drill-value:active {
+  transform: scale(0.97);
+}
+.v2-bullet[data-drill] {
+  position: relative;
+}
+.v2-bullet[data-drill] > .v2-rowbtn {
+  padding-right: 60px;
+}
+.v2-drill-btn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+}
+.v2-plot {
+  position: relative;
+}
+.v2-bar-drill {
+  position: absolute;
+  top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--motion-v2-fast) var(--ease-v2);
+}
+.v2-bar-drill:hover {
+  background: var(--color-v2-hover);
 }
