@@ -164,10 +164,10 @@ function caseOf(
   row: SourcedReport,
   groups: readonly ProblemGroup[],
   fixes: Readonly<Record<string, string>>,
-  names: ReadonlyMap<string, string>,
-  codes: ReadonlyMap<string, string>,
+  lookup: { names: ReadonlyMap<string, string>; codes: ReadonlyMap<string, string> },
 ): FixCase {
   const { report, ticket } = row;
+  const { names, codes } = lookup;
   return {
     ticketId: ticket.id,
     machineId: report.machineId,
@@ -194,7 +194,7 @@ function buildIndex(data: EngineData): FixIndex {
   const frequency = new Map<string, number>();
   for (const row of sourcedReports(data)) {
     if (!production.has(row.report.machineId) || isPm(row)) continue;
-    const entry = caseOf(row, groups, fixes, names, codes);
+    const entry = caseOf(row, groups, fixes, { names, codes });
     cases.push(entry);
     for (const stem of new Set([...entry.problemTokens, ...entry.actionTokens])) {
       frequency.set(stem, (frequency.get(stem) ?? 0) + 1);
