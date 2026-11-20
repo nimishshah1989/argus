@@ -74,6 +74,14 @@ const V2DashboardView = () => (
   </Suspense>
 );
 
+// The v2 Team Focus and Compare on their fixtures (batch 1): each its own chunk.
+const V2TeamFocus = lazy(() => import('./v2-team-focus-view.js'));
+const V2TeamFocusView = () => (
+  <Suspense fallback={null}>
+    <V2TeamFocus />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -83,6 +91,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   charts: ChartDoorView,
   templates: TemplatesView,
   'v2-dashboard': V2DashboardView,
+  'v2-team-focus': V2TeamFocusView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
