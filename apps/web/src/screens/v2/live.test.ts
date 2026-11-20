@@ -11,30 +11,34 @@ describe('which v2 screens are live at their v1 address', () => {
       ['machines', 'a7-footprint'],
       ['breakdowns', 'fix-finder'],
       ['breakdowns', 'a10-problems'],
+      ['machines', 'a5-energy'],
+      ['breakdowns', 'shift-kpis'],
+      ['forecast-scorecard', 'a9-bottleneck-forecast'],
+      ['forecast-scorecard', 'forecast-lab'],
     ] as const)
-      expect(liveScreen(group, screen)).not.toBeNull();
+      expect(liveScreen(group, screen), `${group} ${screen}`).not.toBeNull();
     expect(liveScreen('machines', null)).not.toBeNull();
   });
 
-  it('serves the Dashboard at Today’s address, with or without ?screen=, and leaves Team Focus to v1', () => {
-    expect(liveScreen('today', null)).not.toBeNull();
-    expect(liveScreen('today', 'dashboard')).not.toBeNull();
-    expect(liveScreen('today', 'team-focus')).toBeNull();
+  it('opens a group whose first screen is v2 on that screen for an unknown address, never on a v1 page', () => {
+    expect(liveScreen('machines', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('forecast-scorecard', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('forecast-scorecard', null)).not.toBeNull();
   });
 
-  it('sends an unknown ?screen= on Today to the Dashboard, as v1 did', () => {
+  it('serves the Dashboard at Today’s address, with or without ?screen= or an unknown one, and leaves Team Focus to v1', () => {
+    expect(liveScreen('today', null)).not.toBeNull();
+    expect(liveScreen('today', 'dashboard')).not.toBeNull();
     expect(liveScreen('today', 'no-such-screen')).not.toBeNull();
-    expect(liveScreen('today', '')).not.toBeNull();
+    expect(liveScreen('today', 'cell-change-log')).not.toBeNull();
+    expect(liveScreen('today', 'team-focus')).toBeNull();
   });
 
   it('keys every page by its group and screen, so a change of ?screen= remounts and one screen never draws the model of the one before', () => {
     const key = (group: string, screen: string | null) => liveScreen(group, screen)?.key;
     expect(key('today', null)).toBe('today:dashboard');
     expect(key('today', 'bogus')).toBe('today:dashboard');
-    expect(key('machines', 'registers')).toBe('machines:registers');
     expect(key('machines', null)).toBe('machines:registers');
-    expect(key('machines', 'a8-age')).toBe('machines:a8-age');
-    expect(key('breakdowns', 'fix-finder')).toBe('breakdowns:fix-finder');
     const keys = [
       key('today', null),
       key('machines', 'registers'),

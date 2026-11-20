@@ -5,26 +5,29 @@ import { Fragment, useEffect, useRef, useState, type ReactElement, type ReactNod
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getMe, useActionCenterBoard } from '../../api.js';
+import { correctMove, getBrand, getMe, useActionCenterBoard } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { Segmented } from '../../ui/v2/segmented.js';
-import { ScreenStates } from '../../ui/v2/screen-states.js';
+import { ScreenStates, type Loaded } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { actionCenterOf } from './dashboard/adapter.js';
-import type { DashboardModel } from './dashboard/model.js';
 import { useRefresh } from './dashboard/refresh.js';
 import { ActionCenter, DashboardView } from './dashboard/View.js';
+import { BottleneckView } from './bottleneck/View.js';
+import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
+import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
+import { ShiftKpisView } from './shift-kpis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
-import { ChromeContext, EntityShell } from './entity/EntityShell.js';
+import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
 import { liveReply } from './figures/live.js';
 import {
   NO_SUCH_FIGURE,
@@ -32,6 +35,7 @@ import {
   searchForLegacyDrill,
 } from './rows-behind/legacy.js';
 import { useNav } from './nav.js';
+import { modelToShow, useRefreshOnFigures } from './refresh.js';
 import type { NavItem } from '../../ui/v2/shell.js';
 import { sectionsFor, type SectionId } from '../analytics/shell/shell-data.js';
 
@@ -46,14 +50,22 @@ const NAV_LABEL: Partial<Record<GroupId, MessageKey>> = {
   breakdowns: 'analytics.breakdowns.nav',
 };
 
+/** The Reliability and forecast section names its screens as the shell's own tab row did: "Screens in {section}". */
+const FORECAST: GroupId = 'forecast-scorecard';
+
 /** The other screens of the group, as one row above the page, so the section stays reachable from a v2 screen. */
 function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const screens = (groupFor(group)?.screens ?? []).filter((screen) => screen !== 'machine-page');
+  const named = NAV_LABEL[group];
+  const label =
+    group === FORECAST
+      ? t('ashell.tabs', { section: t('ashell.section.reliability') })
+      : t(named ?? 'analytics.menu');
   return (
     <Segmented
-      label={t(NAV_LABEL[group] ?? 'analytics.menu')}
+      label={label}
       options={screens.map((screen) => ({
         key: screen,
         label: t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown'),
@@ -114,15 +126,25 @@ function LiveFrame({
   children: (nav: ReturnType<typeof useNav>) => ReactNode;
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const { t } = useTranslation();
+  const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
   const nav = useNav(entry.section, role);
   useLegacyDrill(entry.screen);
-  const tabs =
-    entry.group === 'today' ? (
-      <TodayTabs />
-    ) : (
-      <ScreenTabs group={entry.group} current={entry.screen} />
-    );
-  return <ChromeContext.Provider value={tabs}>{children(nav)}</ChromeContext.Provider>;
+  return (
+    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
+      <ChromeContext.Provider
+        value={
+          entry.group === 'today' ? (
+            <TodayTabs />
+          ) : (
+            <ScreenTabs group={entry.group} current={entry.screen} />
+          )
+        }
+      >
+        {children(nav)}
+      </ChromeContext.Provider>
+    </WhoContext.Provider>
+  );
 }
 
 /** One head's or admin's correction of a move's date: the server's words on a refusal; never offline. */
@@ -176,31 +198,56 @@ function CellChangeLogPage() {
   );
 }
 
-/** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
-function ModelPage<
-  K extends 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
->({
-  entry,
-  screen,
-  title,
-  draw,
-}: {
+type ModelKey =
+  | 'dashboard'
+  | 'machines-register'
+  | 'age'
+  | 'footprint'
+  | 'fix-finder'
+  | 'problem-analysis'
+  | 'energy'
+  | 'bottleneck'
+  | 'forecast-lab'
+  | 'shift-kpis';
+
+type PageConfig<K extends ModelKey> = {
   entry: Pick<Live, 'group' | 'section' | 'screen'>;
   screen: K;
   title: MessageKey;
+  /** What the screen says when the model is null: a figure the engine has not computed says so, not "nothing to show". */
+  empty?: MessageKey;
+  /** Above the states while the page has no model (the Dashboard's Action Center count, as in v1). */
+  before?: ReactNode;
   draw: (model: ScreenModel<K>, shell: { nav: NavItem[]; title: string }) => ReactElement;
-}) {
+};
+
+/**
+ * What a model page shows for where its load stands: the model when there is one to draw, else the states in the shell,
+ * under the screen's own title in every state.
+ */
+export function ModelFrame<K extends ModelKey>({
+  entry,
+  title,
+  empty,
+  before,
+  draw,
+  loaded,
+  lastGood,
+}: Omit<PageConfig<K>, 'screen'> & { loaded: Loaded<ScreenModel<K>>; lastGood?: ScreenModel<K> }) {
   const { t } = useTranslation();
-  const loaded = useScreenModel(screen, {} as ScreenParams<K>);
+  const model = modelToShow(loaded, lastGood);
   const heading = t(title);
   return (
     <LiveFrame entry={entry}>
       {(nav) =>
-        loaded.state === 'ready' && loaded.model ? (
-          draw(loaded.model, { nav, title: heading })
+        model ? (
+          draw(model, { nav, title: heading })
         ) : (
           <EntityShell nav={nav} title={heading}>
-            <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
+            {before}
+            <ScreenStates loaded={loaded} emptyText={empty ? t(empty) : undefined}>
+              {() => null}
+            </ScreenStates>
           </EntityShell>
         )
       }
@@ -208,35 +255,37 @@ function ModelPage<
   );
 }
 
+/** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
+function ModelPage<K extends ModelKey>(config: PageConfig<K>) {
+  const loaded = useScreenModel(config.screen, {} as ScreenParams<K>);
+  useRefreshOnFigures(loaded.retry);
+  /** The screen stays as it was while a refresh loads or fails: the figures refresh every 30 seconds, as they did in v1. */
+  const last = useRef<ScreenModel<K>>(undefined);
+  if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
+  return <ModelFrame {...config} loaded={loaded} lastGood={last.current} />;
+}
+
 /**
- * The Dashboard keeps what it shows while it reads again: what needs you now and the Action Center count are read every
- * 30 seconds, as v1's were, and a refresh that fails leaves the last answer in place. The last answer is this page's own
- * (the page is keyed by its screen, so another screen never inherits it), and a first load that fails shows the error.
+ * The Dashboard reads again every 30 seconds, as v1's Today did: what needs you now and the Action Center count must not
+ * go stale. It keeps the last good model while a refresh loads or fails (`modelToShow`), and shows the Action Center
+ * count even while the figures load or fail, as v1 did.
  */
 function DashboardPage() {
-  const { t } = useTranslation();
   const loaded = useScreenModel('dashboard', {});
   useRefresh(loaded.retry);
-  const last = useRef<DashboardModel>(undefined);
+  const last = useRef<ScreenModel<'dashboard'>>(undefined);
   if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
-  const model = loaded.model ?? last.current;
-  const title = t('analytics.screen.dashboard');
-  // As in v1, the Action Center's count shows while the figures load or when they fail.
   const board = useActionCenterBoard().data;
   const note = actionCenterOf(board ?? null, (key, values) => i18n.t(key, { ...values }) as string);
   return (
-    <LiveFrame entry={{ group: 'today', section: 'today', screen: 'dashboard' }}>
-      {(nav) =>
-        model ? (
-          <DashboardView model={model} nav={nav} title={title} />
-        ) : (
-          <EntityShell nav={nav} title={title}>
-            <ActionCenter note={note} />
-            <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
-          </EntityShell>
-        )
-      }
-    </LiveFrame>
+    <ModelFrame<'dashboard'>
+      entry={screenOf('today', 'today', 'dashboard')}
+      title="analytics.screen.dashboard"
+      before={<ActionCenter note={note} />}
+      draw={(model, shell) => <DashboardView model={model} {...shell} />}
+      loaded={loaded}
+      lastGood={last.current}
+    />
   );
 }
 
@@ -319,29 +368,98 @@ const LIVE: readonly Live[] = [
       />
     ),
   },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'a5-energy',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'a5-energy')}
+        screen="energy"
+        empty="analytics.notComputed"
+        title="v2e.title"
+        draw={(model, shell) => <EnergyView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'shift-kpis',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'shift-kpis')}
+        screen="shift-kpis"
+        empty="analytics.notComputed"
+        title="analytics.screen.shift-kpis"
+        draw={(model, shell) => <ShiftKpisView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: FORECAST,
+    section: 'reliability',
+    screen: 'a9-bottleneck-forecast',
+    page: () => (
+      <ModelPage
+        entry={screenOf(FORECAST, 'reliability', 'a9-bottleneck-forecast')}
+        screen="bottleneck"
+        empty="analytics.notComputed"
+        title="v2b.title"
+        draw={(model, shell) => <BottleneckView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: FORECAST,
+    section: 'reliability',
+    screen: 'forecast-lab',
+    page: () => (
+      <ModelPage
+        entry={screenOf(FORECAST, 'reliability', 'forecast-lab')}
+        screen="forecast-lab"
+        empty="analytics.notComputed"
+        title="analytics.screen.forecast-lab"
+        draw={(model, shell) => <ForecastLabView model={model} {...shell} />}
+      />
+    ),
+  },
 ];
 
 /**
  * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
  * Machines screen the group does not have (a bookmark, a typo, the machine page's id) goes to the register, the
- * group's first v2 screen: there is no v1 copy of it to fall back to.
+ * group's first v2 screen: there is no v1 copy of it to fall back to. The Reliability and forecast group is v2 whole,
+ * so an unknown `?screen=` there opens its first screen, Bottleneck.
  */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  if (group === 'today') {
-    // v1: Team Focus keeps its v1 page; anything else on Today (no ?screen=, an unknown one, a legacy ?drill=) is the Dashboard.
-    if (screen === 'team-focus') return null;
-    return keyed('today', 'dashboard', LIVE[0]!.page());
-  }
-  const named = screen ?? (group === 'machines' ? 'registers' : null);
-  const found = LIVE.find((entry) => entry.group === group && entry.screen === named);
-  if (found) return keyed(found.group, found.screen, found.page());
-  const known = groupFor('machines')?.screens.filter((id) => id !== 'machine-page') ?? [];
-  return group === 'machines' && named !== null && !known.includes(named) ? (
+  // Today: Team Focus keeps its v1 page; anything else (no ?screen=, an unknown one) is the Dashboard, as in v1.
+  if (group === 'today' && screen === 'team-focus') return null;
+  const named = screen ?? FIRST[group ?? ''] ?? null;
+  const found =
+    LIVE.find((entry) => entry.group === group && entry.screen === named) ??
+    (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
+  if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
+  return unknownMachinesScreen(group, named);
+}
+
+/** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
+function unknownMachinesScreen(
+  group: string | undefined,
+  named: string | null,
+): ReactElement | null {
+  return group === 'machines' && named !== null && !knownMachinesScreen(named) ? (
     <Navigate to="/analytics/machines?screen=registers" replace />
   ) : null;
 }
 
-/** One page per screen: a change of `?screen=` remounts, so a screen never draws the the one before's model. */
-const keyed = (group: string, screen: string, page: ReactElement) => (
-  <Fragment key={`${group}:${screen}`}>{page}</Fragment>
-);
+/** The screen a group's address opens with no `?screen=`. */
+const FIRST: Record<string, string> = { machines: 'registers', today: 'dashboard' };
+/** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today']);
+
+function knownMachinesScreen(id: string): boolean {
+  return (groupFor('machines')?.screens ?? []).some(
+    (known) => known === id && known !== 'machine-page',
+  );
+}

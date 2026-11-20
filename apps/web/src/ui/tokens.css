@@ -259,6 +259,7 @@
   --color-v2-focus: #2563eb;
   --color-v2-quiet: #8a857c;
   --color-v2-glass: rgb(255 255 255 / 0.78);
+  --color-v2-scrim: rgb(16 24 40 / 0.4);
   --color-v2-loss: #b91c1c;
   --color-v2-loss-fill: #dc2626;
   --color-v2-loss-tint: #fceeec;
@@ -464,6 +465,7 @@
   --color-v2-focus: #60a5fa;
   --color-v2-quiet: #6e6e73;
   --color-v2-glass: rgb(23 24 27 / 0.8);
+  --color-v2-scrim: rgb(0 0 0 / 0.55);
   --color-v2-loss: #f87171;
   --color-v2-loss-fill: #ef4444;
   --color-v2-loss-tint: #3a1d1f;

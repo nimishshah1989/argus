@@ -348,21 +348,16 @@ test.beforeAll(async () => {
   tickets = { first, second };
 });
 
-/** Opens the group, walks the menu to the shift screen and checks the comparison row. */
+/** Opens the screen, checks it is the pressed tab of its group and reads the comparison row. */
 async function openShiftKpis(page: Page): Promise<void> {
-  await page.goto('/analytics/breakdowns');
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await nav.getByRole('link', { name: 'Shift-calendar KPIs', exact: true }).click();
-  await expect(page).toHaveURL(/screen=shift-kpis/);
-  await expect(nav.getByRole('link', { name: 'Shift-calendar KPIs', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
+  await page.goto('/analytics/breakdowns?screen=shift-kpis');
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
   await expect(
-    page.getByRole('heading', { name: 'Shift-calendar KPIs', exact: true }),
-  ).toBeVisible();
+    tabs.getByRole('button', { name: 'Shift-calendar KPIs', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { level: 1, name: 'Shift-calendar KPIs' })).toBeVisible();
   // The compare row: the platform's frozen cell beside the working-hour basis.
-  const compare = page.getByRole('table', {
+  const compare = page.getByRole('region', {
     name: 'The platform basis beside the working-hour basis',
     exact: true,
   });
@@ -370,25 +365,33 @@ async function openShiftKpis(page: Page): Promise<void> {
   await expect(compare.getByRole('cell', { name: '439.9', exact: true })).toBeVisible();
   await expect(compare.getByRole('cell', { name: '462.0', exact: true })).toBeVisible();
   await expect(page.getByText('21.0', { exact: true })).toBeVisible();
+  // The answer first, in the engine's own figures.
+  await expect(page.getByText(/462\.0 hrs between breakdowns/)).toBeVisible();
 }
 
 /** The map: four heat grids, a named worst machine, its hours and its half-the-hours point. */
 async function readMap(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Breakdown map', exact: true })).toBeVisible();
   await expect(page.locator('[data-heat="matrix"]')).toHaveCount(4);
-  await expect(page.getByRole('cell', { name: 'TMC-2', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '307.58', exact: true })).toBeVisible();
-  await expect(page.getByText('13 of 125', { exact: true })).toBeVisible();
-  // A heat cell carries the plant's green scale, not a plain table cell.
-  await expect(page.getByRole('cell', { name: '242.42', exact: true })).toHaveCSS(
-    'background-color',
-    /^rgb\(/,
-  );
-  const charts = page.getByTestId('chart');
+  const machines = page.getByRole('table', { name: /^By machine/ });
+  await expect(machines.getByRole('button', { name: 'TMC-2', exact: true })).toBeVisible();
+  await expect(machines.getByRole('cell', { name: '307.58', exact: true })).toBeVisible();
+  const map = page.getByRole('region', { name: 'Breakdown map', exact: true });
+  await expect(map.getByText('13 of 125', { exact: true })).toBeVisible();
+  // A heat cell is tinted by weight, prints its figure and is named by its row and month for a screen reader.
+  const hot = machines.getByRole('cell', { name: 'TMC-2, Jun: 242.42', exact: true });
+  await expect(hot).toHaveText('242.42');
+  await expect(hot).toHaveAttribute('data-level', '5');
+  await expect(
+    machines.getByRole('cell', { name: 'TMC-2, Mar: no hours', exact: true }),
+  ).not.toHaveAttribute('data-level', /.+/);
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(4);
   for (let index = 0; index < 4; index += 1)
     await expect(charts.nth(index)).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.getByText('BD hours by machine — Pareto', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'BD hours by machine — Pareto', exact: true }),
+  ).toBeVisible();
 }
 
 test('a head opens Shift-calendar KPIs, reads the compare row and a map cell, and drills the map', async ({
@@ -399,18 +402,33 @@ test('a head opens Shift-calendar KPIs, reads the compare row and a map cell, an
   await signIn(page, 'head');
   await openShiftKpis(page);
   await readMap(page);
-  // The map is the last figure, so its drill is the last "See the rows" link.
-  await page.getByRole('link', { name: 'See the rows', exact: true }).last().click();
-  await expect(page).toHaveURL(/drill=ticket%3A/);
+  // The backlog's own count is the number of tickets behind it, so the count opens them.
+  await page.getByRole('button', { name: /Show the rows behind Open breakdowns/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:shift-kpis\.backlog$/);
   await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+    page.locator('aside.v2-drawer').getByRole('link', { name: tickets.first.ref, exact: true }),
   ).toBeVisible();
-  // The backlog table above also lists this ticket, so look inside the drill's own section: a bare cell
-  // lookup matched the backlog row before the drill rows arrived and two cells once they had.
-  const drill = page.locator('section', {
-    has: page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  });
-  await expect(drill.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
+  await page.goBack();
+  // The map's rows open from its section's own action, in the drawer; Back closes them.
+  await page.getByRole('button', { name: /Show the rows behind Pareto and heat grids/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:shift-kpis\.breakdown-map$/);
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer.getByRole('link', { name: tickets.first.ref, exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
+});
+
+test('an old v1 link to the shift screen opens the screen with the rows of its figure, not a v1 page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page, [tickets.first, tickets.second]);
+  await signIn(page, 'head');
+  const link = encodeURIComponent(`ticket:${tickets.first.id},${tickets.second.id}`);
+  await page.goto(`/analytics/breakdowns?screen=shift-kpis&drill=${link}`);
+  await expect(page).toHaveURL(/screen=shift-kpis/);
+  await expect(page).not.toHaveURL(/drill=/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Shift-calendar KPIs' })).toBeVisible();
 });
 
 test('an operator is refused the shift-calendar screen', async ({ page }) => {
@@ -418,8 +436,5 @@ test('an operator is refused the shift-calendar screen', async ({ page }) => {
   await signIn(page, 'op');
   await page.goto('/analytics/breakdowns?screen=shift-kpis');
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Shift-calendar KPIs', exact: true })).toHaveCount(
-    0,
-  );
   await expect(page.locator('[data-heat="matrix"]')).toHaveCount(0);
 });
