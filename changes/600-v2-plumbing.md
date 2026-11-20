@@ -1,0 +1,1 @@
+Building a new v2 screen no longer edits shared files: the screen's folder and its gallery view register themselves, so parallel screen PRs stop conflicting. The gallery checks run in four parts at once, so a pull request waits minutes less for them, and `pnpm pr:body` writes a pull request description the checks accept. Nothing a user sees changes.

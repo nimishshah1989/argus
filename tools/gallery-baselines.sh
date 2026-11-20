@@ -4,11 +4,10 @@
 # node_modules is never touched.
 set -euo pipefail
 
-apt-get update
-apt-get install -y fonts-noto-core
 mkdir /work
 tar -C /src --exclude=node_modules --exclude=.git -cf - . | tar -C /work -xf -
 cd /work
+bash tools/install-fonts.sh
 npm i -g pnpm@10.30.3
 pnpm install --frozen-lockfile
 pnpm gallery:update
