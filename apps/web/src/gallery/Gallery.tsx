@@ -89,6 +89,20 @@ const V2CompareView = () => (
   </Suspense>
 );
 
+// The v2 Action Center and Data Checklist on their fixtures: one chunk each.
+const V2ActionCenter = lazy(() => import('./v2-action-center-view.js'));
+const V2ActionCenterView = () => (
+  <Suspense fallback={null}>
+    <V2ActionCenter />
+  </Suspense>
+);
+const V2DataChecklist = lazy(() => import('./v2-data-checklist-view.js'));
+const V2DataChecklistView = () => (
+  <Suspense fallback={null}>
+    <V2DataChecklist />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -100,6 +114,8 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   'v2-dashboard': V2DashboardView,
   'v2-team-focus': V2TeamFocusView,
   'v2-compare': V2CompareView,
+  'v2-action-center': V2ActionCenterView,
+  'v2-data-checklist': V2DataChecklistView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */

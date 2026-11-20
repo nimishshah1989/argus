@@ -6,7 +6,7 @@ import { useScreenModel } from '../screens/v2/data.js';
 import { useNav } from '../screens/v2/nav.js';
 import { TeamFocusView } from '../screens/v2/team-focus/View.js';
 import { ScreenStates } from '../ui/v2/screen-states.js';
-import { previewProvider } from './v2-preview.js';
+import { previewProvider, toggled } from './v2-preview.js';
 
 /**
  * The v2 Team Focus as a screen will run it: the model through the shared seam, the load states from the kit inside
@@ -22,13 +22,6 @@ export default function V2TeamFocusView() {
   const title = t('analytics.screen.team-focus');
   const [assigned, setAssigned] = useState<ReadonlySet<string>>(new Set());
   const [moved, setMoved] = useState(false);
-  const set = (id: string, on: boolean) =>
-    setAssigned((was) => {
-      const next = new Set(was);
-      if (on) next.add(id);
-      else next.delete(id);
-      return next;
-    });
   if (loaded.state !== 'ready' || !loaded.model)
     return (
       <EntityShell nav={nav} title={title}>
@@ -45,8 +38,8 @@ export default function V2TeamFocusView() {
       }}
       nav={nav}
       title={title}
-      onAssign={(id) => set(id, true)}
-      onUnassign={(id) => set(id, false)}
+      onAssign={(id) => setAssigned((was) => toggled(was, id, true))}
+      onUnassign={(id) => setAssigned((was) => toggled(was, id, false))}
       onRebalance={() => setMoved(true)}
     />
   );

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
 import type { CompareModel, CompareParams } from './compare/model.js';
+import type { ActionCenterModel } from './action-center/model.js';
 import type { DashboardModel } from './dashboard/model.js';
+import type { DataChecklistModel } from './data-checklist/model.js';
 import type { EntityModel } from './entity/model.js';
 import type { TeamFocusModel } from './team-focus/model.js';
 
@@ -17,6 +19,8 @@ export type Screens = {
   entity: { params: EntityRef; model: EntityModel };
   compare: { params: CompareParams; model: CompareModel };
   'team-focus': { params: Record<string, never>; model: TeamFocusModel };
+  'action-center': { params: Record<string, never>; model: ActionCenterModel };
+  'data-checklist': { params: Record<string, never>; model: DataChecklistModel };
 };
 export type ScreenKey = keyof Screens;
 export type ScreenParams<K extends ScreenKey> = Screens[K]['params'];
@@ -32,6 +36,8 @@ const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
   entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
   compare: (pair) => import('./compare/fixture.js').then((m) => m.compareFixture(pair)),
   'team-focus': () => import('./team-focus/fixture.js').then((m) => m.teamFocusFixture),
+  'action-center': () => import('./action-center/fixture.js').then((m) => m.actionCenterFixture),
+  'data-checklist': () => import('./data-checklist/fixture.js').then((m) => m.dataChecklistFixture),
 };
 
 /** One load, as the state a screen shows: ready with its model, empty, or error. */
