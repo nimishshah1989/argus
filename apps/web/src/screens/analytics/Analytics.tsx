@@ -5,7 +5,6 @@ import { ActionCenterPage } from '../v2/action-center/Page.js';
 import { Dashboard } from './Dashboard.js';
 import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
-import { ForecastPage } from './ForecastPage.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 import { MachinePage } from './MachinePage.js';
@@ -73,8 +72,6 @@ export function AnalyticsFace() {
         <MachinesPage group={found} />
       ) : found.id === 'breakdowns' ? (
         <BreakdownsPage group={found} />
-      ) : found.id === 'forecast-scorecard' ? (
-        <ForecastPage group={found} />
       ) : found.id === 'cost' ? (
         <MoneyPage group={found} />
       ) : found.id === 'reports' ? (

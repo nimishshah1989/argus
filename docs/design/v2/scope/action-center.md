@@ -55,7 +55,7 @@ decides who may.
 | Raise an inspection ticket from a nudge                                                           | server `nudges/:key/ticket`, PARITY 132     | same   | Not on v1's screen either; see the "More intelligent" table                                                                                                                                                                                                                                                                  |
 | e2e journey: board, ack with owner, due and note, snooze, reopen, across reloads                  | `analytics-action-center.spec.ts`           | same   | Same spec, ported to the new screen (real app, board routes stubbed as before); gallery spec adds axe light and dark                                                                                                                                                                                                         |
 
-No row is MISSING or DROPPED. Four are `moved`; no heading is drawn per priority group, but each priority chip carries the live count v1's heading had.
+No row is MISSING or DROPPED. Some rows are `moved`; no heading is drawn per priority group, but each priority chip carries the live count v1's heading had.
 
 ## More intelligent
 
