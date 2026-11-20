@@ -15,6 +15,7 @@ const SHEETS = [
   'shell.css',
   'table.css',
   'domain.css',
+  'compare-box.css',
   'entity-chip.css',
   'motion.css',
 ];
