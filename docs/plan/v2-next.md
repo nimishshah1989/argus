@@ -4,7 +4,7 @@ Written 20 Nov 2026 when Nimish paused the cloud session to continue locally on 
 
 ## 1. Queue (in this order)
 
-1. **Clear batch-1 coverage debt** (`docs/design/v2/coverage/batch1.md`): put back every MISSING item and add the cheap
+1. **Clear batch-1 coverage debt** (`docs/design/v2/scope/batch1.md`): put back every MISSING item and add the cheap
    intelligence wins the audit lists. Start with Compare (health score, longest breakdowns, by shift, cells and periods).
 2. **Plumbing** (brief A below): screens and gallery views register themselves, gallery CI in two shards, a PR-body
    generator. Do this BEFORE more screens, or every parallel PR conflicts again.
@@ -57,7 +57,7 @@ its own files is discovered.
 **B. Coverage gate.** Add attribute Q16 "Scope kept" to `docs/QUALITY-ATTRIBUTES.md`, the PR template and every hard-coded 15
 (`tools/check-quality.ts` IDS, tests, docs counts). In `pnpm quality:pr`: when the diff changes `apps/web/src/screens/v2/**` (non-test
 `.tsx`), the body needs a `## Coverage` table with at least one data row, every row whose v2 column says MISSING or DROPPED must end
-with `Nimish said yes: <date>`, and the diff must include `docs/design/v2/coverage/<screen>.md` for each changed screen folder, with the
+with `Nimish said yes: <date>`, and the diff must include `docs/design/v2/scope/<screen>.md` for each changed screen folder, with the
 same rule. Unit tests with a failing and a passing example per rule. The check proves the table exists and is clean, not that it is
 true: a human still compares it with the v1 code.
 

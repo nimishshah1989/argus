@@ -1,6 +1,6 @@
 # Coverage: nothing the plant had is lost (Nimish, 20 Nov 2026)
 
-Every v2 screen PR carries this table in its body and in `docs/design/v2/coverage/<screen>.md`. It is built
+Every v2 screen PR carries this table in its body and in `docs/design/v2/scope/<screen>.md`. It is built
 from the v1 screen, its e2e spec and its section of `docs/spec/SPEC.md`, before any design, and re-checked at the end.
 
 | Item (figure, column, filter, chip, sort, drill, export, explanation, state, link, role-dependent view) | Source (v1 file or spec line) | v2  | Where in v2 |

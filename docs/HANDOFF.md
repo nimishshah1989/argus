@@ -24,8 +24,12 @@ fixture.ts, tests}`, `EntityShell` (never `Shell`), kit parts only, data through
 
 ## Coverage debt (the batch-1 gate is CLOSED until cleared)
 
-- The audit of v1 against the merged v2 screens is `docs/design/v2/coverage/batch1.md` (if the file is missing the audit did
-  not finish: redo it). Known loss: Compare has no health score, no longest-breakdowns or by-shift tables, machines only.
+- Audit: `docs/design/v2/scope/batch1.md`. Of 187 v1 items checked across the six merged v2 screens: 28 same, 62 changed,
+  **97 MISSING** (Dashboard 26 of 38, Compare 20 of 33, Data Checklist 17 of 30, Machine page 16 of 34, Action Center 14 of 36,
+  Team Focus 4 of 16). Worst: no figure opens the tickets behind it (parity rule), Compare lost the health score and tables,
+  Machine page lost the reliability fit and nameplate, Dashboard lost the "needs you now" strip, Data Checklist runs 5 of v1's
+  16 checks, rupees show to every role (parity says head, plant head, admin only). Some v2 fixtures show data we do not collect.
+- Not yet verified by a second reader: whether renamed figures keep v1's formulas. Spot-checked only the Action Center filters.
 - Clear the debt, then the gate report `docs/plan/gates/M-v2-1.md` (under 30 lines), then Nimish's go.
 
 ## Waiting on Nimish (plain words, product only)
