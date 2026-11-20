@@ -120,7 +120,7 @@ export type ActionCenterActions = {
   onSnooze?: (writeKey: string) => void;
   onResolve?: (writeKey: string) => void;
   onReopen?: (writeKey: string) => void;
-  /** True while a write is on its way, and the words to show when one failed. */
+  /** True while a write is on its way, and the engine key of the nudge whose last write failed (shown on that nudge only). */
   saving?: boolean;
-  failed?: boolean;
+  failedKey?: string | null;
 };

@@ -199,18 +199,21 @@ async function assertBoard(page: Page): Promise<void> {
     'aria-pressed',
     'true',
   );
+  // Each priority chip says how many rows it opens under the tab, the type and the search.
+  for (const chip of ['All priorities 5', 'High priority 2', 'Medium 1', 'Low 1', 'Good news 1'])
+    await expect(list(page).getByRole('button', { name: chip, exact: true })).toBeVisible();
   const risk = page.getByRole('region', { name: 'Machines needing attention' });
   await expect(risk.getByRole('row')).toHaveCount(2);
   await expect(risk).toContainText('Frequent breakdowns');
   await expect(risk).toContainText('VMC');
-  await risk.getByRole('button', { name: 'VC-1' }).click();
+  await risk.getByRole('button', { name: 'VC-1', exact: true }).click();
   await expect(page).toHaveURL(/drawer=machine:VC-1/);
   await page.keyboard.press('Escape');
   const freq = rowOf(page, FREQ);
   for (const text of ['Frequent breakdowns', FREQ, '12', '10-Nov-2026'])
     await expect(freq).toContainText(text);
   // The row's machine is a chip that opens the machine, never a link to a database id.
-  await expect(freq.getByRole('button', { name: 'VC-1' })).toBeVisible();
+  await expect(freq.getByRole('button', { name: 'VC-1', exact: true })).toBeVisible();
   await expect(list(page).getByRole('row')).toHaveCount(6);
   await opener(page, GOOD).click();
   await expect(drawer(page)).toHaveAttribute('aria-label', GOOD);

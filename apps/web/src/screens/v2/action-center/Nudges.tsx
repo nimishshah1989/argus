@@ -1,12 +1,14 @@
 /* eslint-disable i18next/no-literal-string -- typed keys and icon names only; every visible word comes from the model */
 import { useMemo, useState } from 'react';
-import { NUDGE_SEVERITIES, type NudgeStatus } from '@uptimo/shared';
-import { DataTable, type Column, type FilterChip } from '../../../ui/v2/data-table.js';
+import { NUDGE_SEVERITIES, type NudgeSeverity, type NudgeStatus } from '@uptimo/shared';
+import type { Column, FilterChip } from '../../../ui/v2/data-table.js';
+import { PagedTable } from '../../../ui/v2/paged-table.js';
 import { KeyPill, type PillTone } from '../../../ui/v2/key-pill.js';
 import { Segs } from '../../../ui/v2/points.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
 import { SelectField } from '../../../ui/v2/select-field.js';
 import type { ActionCenterModel, NudgeRow } from './model.js';
+import { nudgeView, type NudgeAsk, type NudgeView } from './scope.js';
 
 const PILL = { high: 'loss', med: 'risk', low: 'neutral', info: 'gain' } as const;
 const STATUS_PILL: Record<NudgeStatus, { tone: PillTone; icon: 'bell' | 'check' | 'pause' }> = {
@@ -94,18 +96,26 @@ function columns(model: ActionCenterModel): Column<NudgeRow>[] {
   ];
 }
 
-const priorityChips = (words: ActionCenterModel['words']): FilterChip<NudgeRow>[] => [
-  { key: 'all', label: words.priorityAll },
-  ...NUDGE_SEVERITIES.map((severity) => ({
-    key: severity,
-    label: words.priorities[severity],
-    test: (r: NudgeRow) => r.severity === severity,
-  })),
-];
+const START: NudgeAsk = { status: 'open', type: '', query: '', priority: '', page: 1 };
+
+/** The priority chips, each with the count of the rows it will show under the tab, the type and the search. */
+function chipsOf(
+  words: ActionCenterModel['words'],
+  counts: NudgeView['counts'],
+): FilterChip<NudgeRow>[] {
+  return [
+    { key: 'all', label: `${words.priorityAll} ${counts.all}` },
+    ...NUDGE_SEVERITIES.map((severity) => ({
+      key: severity,
+      label: `${words.priorities[severity]} ${counts[severity]}`,
+    })),
+  ];
+}
 
 /**
- * The nudges: the four status tabs with their counts, the type, then the table's own priority chips and search. The
- * engine's order stands until a column is sorted. A row opens the nudge in the drawer, where it is acted on.
+ * The nudges: the four status tabs with their counts, the type, the search, and priority chips that each say how many
+ * rows they will show. The engine's order stands until a column is sorted. A row opens the nudge in the drawer, where
+ * it is acted on.
  */
 export function NudgeTable({
   model,
@@ -117,43 +127,47 @@ export function NudgeTable({
   onOpen: (row: NudgeRow) => void;
 }) {
   const { words } = model;
-  const [status, setStatus] = useState<NudgeStatus>('open');
-  const [type, setType] = useState('');
-  const rows = useMemo(
-    () => model.nudges.filter((n) => n.status === status && (type === '' || n.rule === type)),
-    [model.nudges, status, type],
-  );
-  const chips = priorityChips(words);
+  const [ask, setAsk] = useState<NudgeAsk>(START);
+  const change = (next: Partial<NudgeAsk>) => setAsk((was) => ({ ...was, page: 1, ...next }));
+  const view = useMemo(() => nudgeView(model.nudges, ask), [model.nudges, ask]);
   return (
     <>
       <div className="v2-row v2-gap-12">
         <Segmented
           label={words.tabsLabel}
-          value={status}
-          onChange={setStatus}
-          options={model.tabs.map((tab) => ({
-            key: tab.key,
-            label: `${tab.label} ${tab.count}`,
-          }))}
+          value={ask.status}
+          onChange={(status) => change({ status })}
+          options={model.tabs.map((tab) => ({ key: tab.key, label: `${tab.label} ${tab.count}` }))}
         />
         <SelectField
           label={words.typeLabel}
           all={words.typeAll}
-          value={type}
+          value={ask.type}
           options={model.types}
-          onChange={setType}
+          onChange={(type) => change({ type: type as NudgeAsk['type'] })}
         />
       </div>
-      <DataTable
-        rows={rows}
+      <PagedTable
+        rows={view.rows}
         rowKey={(r) => r.id}
         rowLabel={(r) => r.titleText}
         columns={columns(model)}
-        filters={chips}
-        text={(r) => r.text}
+        filters={chipsOf(words, view.counts)}
+        chip={ask.priority === '' ? 'all' : ask.priority}
+        onChip={(chip) => change({ priority: chip === 'all' ? '' : (chip as NudgeSeverity) })}
+        query={ask.query}
+        onQuery={(query) => change({ query })}
+        sort={ask.sort}
+        onSort={(sort) => change({ sort })}
+        page={view.page}
+        total={view.total}
+        onPage={(page) => setAsk((was) => ({ ...was, page }))}
+        loading={false}
         words={{
           ...words.table,
-          noResults: status === 'open' ? words.emptyOpen : words.emptyOther,
+          page: '',
+          loading: '',
+          noResults: ask.status === 'open' ? words.emptyOpen : words.emptyOther,
         }}
         selected={selected}
         onOpen={onOpen}

@@ -134,7 +134,7 @@ export function NudgeDetail({
           ) : null}
         </DetailSection>
       ) : null}
-      {acts.failed ? (
+      {acts.failedKey === row.writeKey ? (
         <p role="alert" className="v2-sub v2-seg-loss">
           {words.saveFailed}
         </p>

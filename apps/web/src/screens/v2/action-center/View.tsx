@@ -38,7 +38,7 @@ function Body({ model, acts }: { model: ActionCenterModel; acts: ActionCenterAct
           <KpiCard key={k.id} kpi={k} />
         ))}
       </Row>
-      {acts.failed && current?.kind !== 'decision' ? (
+      {acts.failedKey && current?.kind !== 'decision' ? (
         <p role="alert" className="v2-sub v2-seg-loss">
           {words.saveFailed}
         </p>

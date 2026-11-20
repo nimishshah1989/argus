@@ -93,16 +93,41 @@ test('the form of an open nudge is in the drawer; a stored one offers Reopen', a
   await expect(drawer(page).getByRole('button', { name: 'Snooze 7 days' })).toHaveCount(0);
 });
 
-test('a machine in the risk table opens its drawer; a pasted unknown nudge says not found', async ({
-  page,
-}) => {
+test('a machine in the risk table opens its drawer', async ({ page }) => {
   await open(page, 1440);
   const risk = page.getByRole('region', { name: 'Machines needing attention' });
   await expect(risk.getByRole('row')).toHaveCount(9);
-  await risk.getByRole('button', { name: 'HMC-2' }).first().click();
+  const chip = risk.getByRole('button', { name: 'HMC-2', exact: true }).first();
+  await chip.scrollIntoViewIfNeeded();
+  await chip.click({ timeout: 15_000 });
   await expect(page).toHaveURL(/drawer=machine:HMC-2/);
+});
+
+test('a pasted link to a nudge the board does not hold says not found', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/gallery?view=v2-action-center&drawer=decision:freq~NOPE');
-  await expect(page.locator('[data-state="empty"]')).toBeVisible();
+  await expect(page.locator('[data-state="empty"]')).toBeVisible({ timeout: 15_000 });
+});
+
+test('the priority chips count the rows they open, under the tab and the type', async ({
+  page,
+}) => {
+  await open(page, 1440);
+  for (const chip of ['All priorities 33', 'High priority 5', 'Medium 26', 'Low 2', 'Good news 0'])
+    await expect(nudges(page).getByRole('button', { name: chip, exact: true })).toBeVisible();
+  await nudges(page).getByRole('button', { name: 'Medium 26', exact: true }).click();
+  await expect(nudges(page).getByText('1–10 of 26')).toBeVisible();
+  await nudges(page).getByRole('button', { name: 'Next' }).click();
+  await nudges(page).getByRole('button', { name: 'Next' }).click();
+  await expect(nudges(page).getByText('21–26 of 26')).toBeVisible();
+  await page.getByLabel('Type', { exact: true }).selectOption('freq');
+  await expect(nudges(page).getByRole('button', { name: /^Medium \d+$/ })).toBeVisible();
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
+    .click();
+  await expect(
+    nudges(page).getByRole('button', { name: 'All priorities 1', exact: true }),
+  ).toBeVisible();
 });
 
 for (const theme of ['light', 'dark']) {

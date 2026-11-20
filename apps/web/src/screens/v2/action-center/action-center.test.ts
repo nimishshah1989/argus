@@ -4,11 +4,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import i18n from 'i18next';
 import { describe, expect, it } from 'vitest';
-import { NUDGE_RULES, type ActionCenterBoardReply } from '@uptimo/shared';
+import { NUDGE_RULES, NUDGE_SEVERITIES, type ActionCenterBoardReply } from '@uptimo/shared';
 import '../../../i18n/index.js';
 import { UUID } from '../figures/real-reply.js';
 import { actionCenterModel, type BoardFacts } from './adapter.js';
-import type { ActionCenterModel } from './model.js';
+import type { ActionCenterActions, ActionCenterModel } from './model.js';
+import { nudgeView, type NudgeAsk } from './scope.js';
 import { PEOPLE, recordedBoard, rekeyed } from './test-board.js';
 import { ActionCenterView } from './View.js';
 
@@ -34,12 +35,16 @@ const text = (markup: string) =>
     .replace(/&amp;/g, '&')
     .replace(/\s+/g, ' ')
     .trim();
-const render = (m: ActionCenterModel, url = '/analytics/today/action-center') =>
+const render = (
+  m: ActionCenterModel,
+  url = '/analytics/today/action-center',
+  acts: ActionCenterActions = {},
+) =>
   renderToStaticMarkup(
     createElement(
       MemoryRouter,
       { initialEntries: [url] },
-      createElement(ActionCenterView, { model: m, nav, title: 'Action Center' }),
+      createElement(ActionCenterView, { model: m, nav, title: 'Action Center', ...acts }),
     ),
   );
 
@@ -260,5 +265,124 @@ describe('the page', () => {
     expect(open).not.toContain('Snooze 7 days');
     expect(open).toContain('Due 20-Nov-2026');
     expect(open).toContain('Note: Check the bearing');
+  });
+});
+
+const ASK: NudgeAsk = { status: 'open', type: '', query: '', priority: '', page: 1 };
+const rowsOf = (ask: Partial<NudgeAsk>) => {
+  const all: string[] = [];
+  const first = nudgeView(model.nudges, { ...ASK, ...ask });
+  for (let page = 1; page <= first.page + Math.ceil(first.total / 10); page += 1)
+    all.push(...nudgeView(model.nudges, { ...ASK, ...ask, page }).rows.map((r) => r.id));
+  return [...new Set(all)];
+};
+
+describe('the priority chips count the rows the list shows', () => {
+  const asks: Partial<NudgeAsk>[] = [
+    {},
+    { type: 'freq' },
+    { type: 'mttr' },
+    { query: 'hmc-2' },
+    { status: 'ack' },
+    { status: 'snoozed' },
+    { status: 'resolved' },
+    { type: 'recur', query: 'ATC' },
+  ];
+
+  it('each chip says how many rows it opens, under any tab, type and search', () => {
+    for (const ask of asks) {
+      const view = nudgeView(model.nudges, { ...ASK, ...ask });
+      let sum = 0;
+      for (const priority of NUDGE_SEVERITIES) {
+        const shown = nudgeView(model.nudges, { ...ASK, ...ask, priority });
+        expect(shown.total, JSON.stringify([ask, priority])).toBe(view.counts[priority]);
+        sum += shown.total;
+      }
+      expect(sum).toBe(view.counts.all);
+      expect(nudgeView(model.nudges, { ...ASK, ...ask }).total).toBe(view.counts.all);
+    }
+  });
+
+  it('on the real board: the open tab is 5, 26, 2, 0; Acknowledged has one high; a type or a search narrows every chip', () => {
+    const open = nudgeView(model.nudges, ASK).counts;
+    expect([open.high, open.med, open.low, open.info, open.all]).toEqual([5, 26, 2, 0, 33]);
+    expect(nudgeView(model.nudges, { ...ASK, status: 'ack' }).counts).toMatchObject({
+      all: 1,
+      high: 1,
+      med: 0,
+    });
+    const freq = nudgeView(model.nudges, { ...ASK, type: 'freq' }).counts;
+    expect(freq.all).toBe(
+      model.nudges.filter((n) => n.status === 'open' && n.rule === 'freq').length,
+    );
+    expect(freq.all).toBeLessThan(open.all);
+    const found = nudgeView(model.nudges, { ...ASK, query: 'hmc-2' });
+    expect(found.counts.all).toBe(
+      model.nudges.filter((n) => n.status === 'open' && n.text.toLowerCase().includes('hmc-2'))
+        .length,
+    );
+  });
+
+  it('keeps the engine’s order under a priority chip, beyond the first page', () => {
+    const med = model.nudges
+      .filter((n) => n.status === 'open' && n.severity === 'med')
+      .map((n) => n.id);
+    expect(med).toHaveLength(26);
+    const pages = [1, 2, 3].map((page) =>
+      nudgeView(model.nudges, { ...ASK, priority: 'med', page }).rows.map((r) => r.id),
+    );
+    expect(pages.map((p) => p.length)).toEqual([10, 10, 6]);
+    expect(pages.flat()).toEqual(med);
+    expect(rowsOf({ priority: 'med' })).toEqual(med);
+  });
+
+  it('sorts only when a column is asked for, and a sort reorders the whole list, not the page', () => {
+    const engine = nudgeView(model.nudges, ASK).rows.map((r) => r.id);
+    expect(engine).toEqual(
+      model.nudges
+        .filter((n) => n.status === 'open')
+        .slice(0, 10)
+        .map((n) => n.id),
+    );
+    const byEntries = nudgeView(model.nudges, {
+      ...ASK,
+      sort: { key: 'entries', dir: 'desc' },
+    }).rows;
+    expect(byEntries[0]!.count).toBe(
+      Math.max(...model.nudges.filter((n) => n.status === 'open').map((n) => n.count)),
+    );
+  });
+
+  it('prints the count on each chip in the page', () => {
+    const page = text(render(model));
+    for (const label of [
+      'All priorities 33',
+      'High priority 5',
+      'Medium 26',
+      'Low 2',
+      'Good news 0',
+    ])
+      expect(page).toContain(label);
+  });
+});
+
+describe('a write that failed is shown on its own nudge only', () => {
+  const [a, b] = model.nudges;
+  const open = (id: string, acts: ActionCenterActions) =>
+    text(render(model, `/x?drawer=decision:${id}`, acts));
+
+  it('shows the alert in the drawer of the nudge whose write failed', () => {
+    expect(open(a!.id, { failedKey: a!.writeKey })).toContain('The nudge could not be saved');
+  });
+
+  it('does not show it in another nudge’s drawer, nor after the failure is cleared', () => {
+    expect(open(b!.id, { failedKey: a!.writeKey })).not.toContain('could not be saved');
+    expect(open(a!.id, { failedKey: null })).not.toContain('could not be saved');
+  });
+
+  it('shows it on the page when no nudge is open', () => {
+    expect(text(render(model, '/x', { failedKey: a!.writeKey }))).toContain(
+      'The nudge could not be saved',
+    );
   });
 });
