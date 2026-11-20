@@ -15,7 +15,7 @@ export function SelectField({
   return (
     <label className="v2-select-field">
       {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
+      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{all}</option>
         {options.map((o) => (
           <option key={o.key} value={o.key}>

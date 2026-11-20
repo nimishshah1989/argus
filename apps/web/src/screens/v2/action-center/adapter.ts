@@ -32,7 +32,6 @@ export type BoardFacts = {
 };
 
 const WEIGHT: Record<NudgeSeverity, number> = { high: 3, med: 2, low: 1, info: 0 };
-const PILL_TONE = { high: 'loss', med: 'risk', low: 'neutral', info: 'gain' } as const;
 const KPI_ICON = { high: 'alert', med: 'clock', low: 'list', info: 'check' } as const;
 const DAY_MS = 86_400_000;
 
@@ -197,6 +196,16 @@ function tableWords(title: string, search: string, empty: string, t: Translate) 
   return { title, search, showing: t('v2m.showing'), noResults: empty, open: t('v2m.open') };
 }
 
+const formWords = (t: Translate): ActionCenterWords['form'] => ({
+  title: t('analytics.actionCenter.form'),
+  ownerLabel: t('analytics.actionCenter.ownerLabel'),
+  ownerNone: t('analytics.actionCenter.ownerNone'),
+  dueLabel: t('analytics.actionCenter.dueLabel'),
+  noteLabel: t('analytics.actionCenter.noteLabel'),
+  save: t('analytics.actionCenter.save'),
+  cancel: t('analytics.actionCenter.cancel'),
+});
+
 function wordsOf(t: Translate, snoozeDays: number): ActionCenterWords {
   const sev = (s: NudgeSeverity) => t(`analytics.actionCenter.tile.${s}`);
   const search = t('analytics.actionCenter.search');
@@ -247,17 +256,8 @@ function wordsOf(t: Translate, snoozeDays: number): ActionCenterWords {
       resolve: t('analytics.actionCenter.resolve'),
       reopen: t('analytics.actionCenter.reopen'),
     },
-    form: {
-      title: t('analytics.actionCenter.form'),
-      ownerLabel: t('analytics.actionCenter.ownerLabel'),
-      ownerNone: t('analytics.actionCenter.ownerNone'),
-      dueLabel: t('analytics.actionCenter.dueLabel'),
-      noteLabel: t('analytics.actionCenter.noteLabel'),
-      save: t('analytics.actionCenter.save'),
-      cancel: t('analytics.actionCenter.cancel'),
-    },
+    form: formWords(t),
     saveFailed: t('analytics.actionCenter.saveFailed'),
-    saving: t('v2a.saving'),
   };
 }
 
@@ -276,7 +276,7 @@ export function actionCenterModel(facts: BoardFacts, t: Translate): ActionCenter
     types: NUDGE_RULES.map((key) => ({ key, label: t(`analytics.actionCenter.rule.${key}`) })),
     nudges: board.nudges.map((nudge) => rowOf(nudge, facts, names, t)),
     risk: riskOf(board, names),
-    people: facts.people.filter((p) => p.active).map(({ id, name }) => ({ id, name })),
+    people: facts.people.filter((p) => p.active).map((p) => p.name),
     snoozeDays: board.snoozeDays,
     source: sourceLine(t('v2m.source'), board.asOf),
     words: wordsOf(t, board.snoozeDays),

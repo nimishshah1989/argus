@@ -94,7 +94,6 @@ export type ActionCenterWords = {
   actions: { acknowledge: string; snooze: string; resolve: string; reopen: string };
   form: AckFormWords;
   saveFailed: string;
-  saving: string;
 };
 
 /** Everything the Action Center prints, and what the API fills: words and figures arrive ready to print. */
@@ -109,7 +108,7 @@ export type ActionCenterModel = {
   nudges: NudgeRow[];
   risk: RiskRow[];
   /** The people an owner can be chosen from (active only), as the plant lists them. */
-  people: { id: string; name: string }[];
+  people: string[];
   snoozeDays: number;
   source: string;
   words: ActionCenterWords;

@@ -1,644 +1,573 @@
 {
- "asOf": "2026-11-11",
- "snoozeDays": 7,
- "types": {
-  "recur": "Recurring fault",
-  "freq": "Frequent breakdowns",
-  "rise": "Worsening machine",
-  "cell": "Same cause in a cell",
-  "long": "Long breakdown",
-  "spike": "Plant trend",
-  "good": "Good news",
-  "mttr": "Slow repairs",
-  "hum": "Human mistakes",
-  "shift": "Shift pattern",
-  "team": "Team workload",
-  "newm": "New machine",
-  "spares": "Spares spend",
-  "age": "Ageing machines",
-  "amc": "AMC / warranty ending",
-  "legal": "Legal compliance due"
- },
- "nudges": [
-  {
-   "key": "freq|HMC-2",
-   "rule": "freq",
-   "sev": "high",
-   "title": "HMC-2 has broken down 12 times in 30 days",
-   "machines": [
-    "HMC-2"
-   ],
-   "entries": 12,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": null
+  "asOf": "2026-11-11",
+  "snoozeDays": 7,
+  "types": {
+    "recur": "Recurring fault",
+    "freq": "Frequent breakdowns",
+    "rise": "Worsening machine",
+    "cell": "Same cause in a cell",
+    "long": "Long breakdown",
+    "spike": "Plant trend",
+    "good": "Good news",
+    "mttr": "Slow repairs",
+    "hum": "Human mistakes",
+    "shift": "Shift pattern",
+    "team": "Team workload",
+    "newm": "New machine",
+    "spares": "Spares spend",
+    "age": "Ageing machines",
+    "amc": "AMC / warranty ending",
+    "legal": "Legal compliance due"
   },
-  {
-   "key": "recur|HMC-2|ATC",
-   "rule": "recur",
-   "sev": "high",
-   "title": "HMC-2: ATC (Automatic Tool Changer) came back on 2 different days in the last 7 days",
-   "machines": [
-    "HMC-2"
-   ],
-   "entries": 2,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-06",
-   "excluded": false,
-   "ack": null
+  "nudges": [
+    {
+      "key": "freq|HMC-2",
+      "rule": "freq",
+      "sev": "high",
+      "title": "HMC-2 has broken down 12 times in 30 days",
+      "machines": ["HMC-2"],
+      "entries": 12,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "recur|HMC-2|ATC",
+      "rule": "recur",
+      "sev": "high",
+      "title": "HMC-2: ATC (Automatic Tool Changer) came back on 2 different days in the last 7 days",
+      "machines": ["HMC-2"],
+      "entries": 2,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-06",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|TC-3",
+      "rule": "freq",
+      "sev": "high",
+      "title": "TC-3 has broken down 7 times in 30 days",
+      "machines": ["TC-3"],
+      "entries": 7,
+      "status": "ack",
+      "reopened": false,
+      "ev": "2026-11-06",
+      "excluded": false,
+      "ack": {
+        "status": "ack",
+        "owner": "Asha",
+        "due": "2026-11-20",
+        "note": "Check the bearing",
+        "at": "2026-11-10T08:00:00.000Z"
+      }
+    },
+    {
+      "key": "freq|VC-14",
+      "rule": "freq",
+      "sev": "high",
+      "title": "VC-14 has broken down 6 times in 30 days",
+      "machines": ["VC-14"],
+      "entries": 6,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-06",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-16",
+      "rule": "freq",
+      "sev": "high",
+      "title": "VC-16 has broken down 10 times in 30 days",
+      "machines": ["VC-16"],
+      "entries": 10,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-05",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|TMC-6",
+      "rule": "freq",
+      "sev": "high",
+      "title": "TMC-6 has broken down 7 times in 30 days",
+      "machines": ["TMC-6"],
+      "entries": 7,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-04",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|HMC-3",
+      "rule": "freq",
+      "sev": "med",
+      "title": "HMC-3 has broken down 5 times in 30 days",
+      "machines": ["HMC-3"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-28",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-28 has broken down 4 times in 30 days",
+      "machines": ["VC-28"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|VC-41",
+      "rule": "rise",
+      "sev": "med",
+      "title": "VC-41 is getting worse: 3 breakdowns against 1 before",
+      "machines": ["VC-41"],
+      "entries": 3,
+      "status": "snoozed",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": {
+        "status": "snooze",
+        "owner": "",
+        "due": "",
+        "note": "",
+        "at": "2026-11-10T08:00:00.000Z",
+        "until": "2026-11-18T08:00:00.000Z"
+      }
+    },
+    {
+      "key": "freq|S-1",
+      "rule": "freq",
+      "sev": "med",
+      "title": "S-1 has broken down 4 times in 30 days",
+      "machines": ["S-1"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-06",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|TC-30",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "TC-30: repairs take 4.24 hrs on average, 2.3x the fleet average",
+      "machines": ["TC-30"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-06",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-31",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-31 has broken down 5 times in 30 days",
+      "machines": ["VC-31"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-05",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-38",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-38 has broken down 4 times in 30 days",
+      "machines": ["VC-38"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-05",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-7",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-7 has broken down 5 times in 30 days",
+      "machines": ["VC-7"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-04",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-19",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-19 has broken down 5 times in 30 days",
+      "machines": ["VC-19"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-03",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "long|bd_live_mw1khy4tk55o2",
+      "rule": "long",
+      "sev": "med",
+      "title": "WJ-01: 12.0 hrs breakdown on 03-11-2026 has no root-cause analysis",
+      "machines": ["WJ-01"],
+      "entries": 1,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-03",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|WJ-01",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "WJ-01: repairs take 4.07 hrs on average, 2.2x the fleet average",
+      "machines": ["WJ-01"],
+      "entries": 13,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-03",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|VC-46",
+      "rule": "rise",
+      "sev": "med",
+      "title": "VC-46 is getting worse: 3 breakdowns against 1 before",
+      "machines": ["VC-46"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-01",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|TC-13",
+      "rule": "rise",
+      "sev": "med",
+      "title": "TC-13 is getting worse: 3 breakdowns against 0 before",
+      "machines": ["TC-13"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-31",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "newm|VC-54",
+      "rule": "newm",
+      "sev": "med",
+      "title": "New machine VC-54 (bought 14-09-2026) already has 3 breakdowns",
+      "machines": ["VC-54"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-31",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|GRD-4",
+      "rule": "rise",
+      "sev": "med",
+      "title": "GRD-4 is getting worse: 3 breakdowns against 0 before",
+      "machines": ["GRD-4"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-29",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|GRD-2",
+      "rule": "freq",
+      "sev": "med",
+      "title": "GRD-2 has broken down 4 times in 30 days",
+      "machines": ["GRD-2"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-29",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|TC-10",
+      "rule": "rise",
+      "sev": "med",
+      "title": "TC-10 is getting worse: 3 breakdowns against 0 before",
+      "machines": ["TC-10"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-29",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|TC-10",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "TC-10: repairs take 13.36 hrs on average, 7.3x the fleet average",
+      "machines": ["TC-10"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-29",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "rise|VC-56",
+      "rule": "rise",
+      "sev": "med",
+      "title": "VC-56 is getting worse: 3 breakdowns against 0 before",
+      "machines": ["VC-56"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-28",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "newm|VC-56",
+      "rule": "newm",
+      "sev": "med",
+      "title": "New machine VC-56 (bought 11-10-2026) already has 3 breakdowns",
+      "machines": ["VC-56"],
+      "entries": 3,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-28",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "freq|VC-8",
+      "rule": "freq",
+      "sev": "med",
+      "title": "VC-8 has broken down 5 times in 30 days",
+      "machines": ["VC-8"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-24",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "long|bd_mvos8t00prq7y",
+      "rule": "long",
+      "sev": "med",
+      "title": "VC-22: 16.0 hrs breakdown on 24-10-2026 has no root-cause analysis",
+      "machines": ["VC-22"],
+      "entries": 1,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-24",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|VC-22",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "VC-22: repairs take 4.51 hrs on average, 2.5x the fleet average",
+      "machines": ["VC-22"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-24",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|TC-31",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "TC-31: repairs take 4.23 hrs on average, 2.3x the fleet average",
+      "machines": ["TC-31"],
+      "entries": 5,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-19",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|TMC-5",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "TMC-5: repairs take 4.32 hrs on average, 2.3x the fleet average",
+      "machines": ["TMC-5"],
+      "entries": 4,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-19",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "newm|TC-37",
+      "rule": "newm",
+      "sev": "med",
+      "title": "New machine TC-37 (bought 10-09-2026) already has 2 breakdowns",
+      "machines": ["TC-37"],
+      "entries": 2,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-10-16",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "mttr|S-2",
+      "rule": "mttr",
+      "sev": "med",
+      "title": "S-2: repairs take 8.88 hrs on average, 4.8x the fleet average",
+      "machines": ["S-2"],
+      "entries": 7,
+      "status": "resolved",
+      "reopened": false,
+      "ev": "2026-10-13",
+      "excluded": false,
+      "ack": {
+        "status": "done",
+        "owner": "Ravi",
+        "due": "",
+        "note": "Sealed",
+        "at": "2026-11-10T08:00:00.000Z"
+      }
+    },
+    {
+      "key": "newm|VTL-11",
+      "rule": "newm",
+      "sev": "med",
+      "title": "New machine VTL-11 (bought 19-08-2026) already has 2 breakdowns",
+      "machines": ["VTL-11"],
+      "entries": 2,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-09-25",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "shift|1",
+      "rule": "shift",
+      "sev": "low",
+      "title": "Shift 1 had 61% of breakdowns in the last 30 days",
+      "machines": [],
+      "entries": 111,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": null
+    },
+    {
+      "key": "age|all",
+      "rule": "age",
+      "sev": "low",
+      "title": "2 machines aged 15+ years lost at least twice the fleet average hours in the last 90 days",
+      "machines": ["HMC-2", "TC-3"],
+      "entries": 40,
+      "status": "open",
+      "reopened": false,
+      "ev": "2026-11-07",
+      "excluded": false,
+      "ack": null
+    }
+  ],
+  "counts": {
+    "open": 33,
+    "ack": 1,
+    "snoozed": 1,
+    "resolved": 1
   },
-  {
-   "key": "freq|TC-3",
-   "rule": "freq",
-   "sev": "high",
-   "title": "TC-3 has broken down 7 times in 30 days",
-   "machines": [
-    "TC-3"
-   ],
-   "entries": 7,
-   "status": "ack",
-   "reopened": false,
-   "ev": "2026-11-06",
-   "excluded": false,
-   "ack": {
-    "status": "ack",
-    "owner": "Asha",
-    "due": "2026-11-20",
-    "note": "Check the bearing",
-    "at": "2026-11-10T08:00:00.000Z"
-   }
+  "bySeverity": {
+    "high": 5,
+    "med": 26,
+    "low": 2,
+    "info": 0
   },
-  {
-   "key": "freq|VC-14",
-   "rule": "freq",
-   "sev": "high",
-   "title": "VC-14 has broken down 6 times in 30 days",
-   "machines": [
-    "VC-14"
-   ],
-   "entries": 6,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-06",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-16",
-   "rule": "freq",
-   "sev": "high",
-   "title": "VC-16 has broken down 10 times in 30 days",
-   "machines": [
-    "VC-16"
-   ],
-   "entries": 10,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-05",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|TMC-6",
-   "rule": "freq",
-   "sev": "high",
-   "title": "TMC-6 has broken down 7 times in 30 days",
-   "machines": [
-    "TMC-6"
-   ],
-   "entries": 7,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-04",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|HMC-3",
-   "rule": "freq",
-   "sev": "med",
-   "title": "HMC-3 has broken down 5 times in 30 days",
-   "machines": [
-    "HMC-3"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-28",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-28 has broken down 4 times in 30 days",
-   "machines": [
-    "VC-28"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|VC-41",
-   "rule": "rise",
-   "sev": "med",
-   "title": "VC-41 is getting worse: 3 breakdowns against 1 before",
-   "machines": [
-    "VC-41"
-   ],
-   "entries": 3,
-   "status": "snoozed",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": {
-    "status": "snooze",
-    "owner": "",
-    "due": "",
-    "note": "",
-    "at": "2026-11-10T08:00:00.000Z",
-    "until": "2026-11-18T08:00:00.000Z"
-   }
-  },
-  {
-   "key": "freq|S-1",
-   "rule": "freq",
-   "sev": "med",
-   "title": "S-1 has broken down 4 times in 30 days",
-   "machines": [
-    "S-1"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-06",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|TC-30",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "TC-30: repairs take 4.24 hrs on average, 2.3x the fleet average",
-   "machines": [
-    "TC-30"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-06",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-31",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-31 has broken down 5 times in 30 days",
-   "machines": [
-    "VC-31"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-05",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-38",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-38 has broken down 4 times in 30 days",
-   "machines": [
-    "VC-38"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-05",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-7",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-7 has broken down 5 times in 30 days",
-   "machines": [
-    "VC-7"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-04",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-19",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-19 has broken down 5 times in 30 days",
-   "machines": [
-    "VC-19"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-03",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "long|bd_live_mw1khy4tk55o2",
-   "rule": "long",
-   "sev": "med",
-   "title": "WJ-01: 12.0 hrs breakdown on 03-11-2026 has no root-cause analysis",
-   "machines": [
-    "WJ-01"
-   ],
-   "entries": 1,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-03",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|WJ-01",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "WJ-01: repairs take 4.07 hrs on average, 2.2x the fleet average",
-   "machines": [
-    "WJ-01"
-   ],
-   "entries": 13,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-03",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|VC-46",
-   "rule": "rise",
-   "sev": "med",
-   "title": "VC-46 is getting worse: 3 breakdowns against 1 before",
-   "machines": [
-    "VC-46"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-01",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|TC-13",
-   "rule": "rise",
-   "sev": "med",
-   "title": "TC-13 is getting worse: 3 breakdowns against 0 before",
-   "machines": [
-    "TC-13"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-31",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "newm|VC-54",
-   "rule": "newm",
-   "sev": "med",
-   "title": "New machine VC-54 (bought 14-09-2026) already has 3 breakdowns",
-   "machines": [
-    "VC-54"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-31",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|GRD-4",
-   "rule": "rise",
-   "sev": "med",
-   "title": "GRD-4 is getting worse: 3 breakdowns against 0 before",
-   "machines": [
-    "GRD-4"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-29",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|GRD-2",
-   "rule": "freq",
-   "sev": "med",
-   "title": "GRD-2 has broken down 4 times in 30 days",
-   "machines": [
-    "GRD-2"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-29",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|TC-10",
-   "rule": "rise",
-   "sev": "med",
-   "title": "TC-10 is getting worse: 3 breakdowns against 0 before",
-   "machines": [
-    "TC-10"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-29",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|TC-10",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "TC-10: repairs take 13.36 hrs on average, 7.3x the fleet average",
-   "machines": [
-    "TC-10"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-29",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "rise|VC-56",
-   "rule": "rise",
-   "sev": "med",
-   "title": "VC-56 is getting worse: 3 breakdowns against 0 before",
-   "machines": [
-    "VC-56"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-28",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "newm|VC-56",
-   "rule": "newm",
-   "sev": "med",
-   "title": "New machine VC-56 (bought 11-10-2026) already has 3 breakdowns",
-   "machines": [
-    "VC-56"
-   ],
-   "entries": 3,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-28",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "freq|VC-8",
-   "rule": "freq",
-   "sev": "med",
-   "title": "VC-8 has broken down 5 times in 30 days",
-   "machines": [
-    "VC-8"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-24",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "long|bd_mvos8t00prq7y",
-   "rule": "long",
-   "sev": "med",
-   "title": "VC-22: 16.0 hrs breakdown on 24-10-2026 has no root-cause analysis",
-   "machines": [
-    "VC-22"
-   ],
-   "entries": 1,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-24",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|VC-22",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "VC-22: repairs take 4.51 hrs on average, 2.5x the fleet average",
-   "machines": [
-    "VC-22"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-24",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|TC-31",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "TC-31: repairs take 4.23 hrs on average, 2.3x the fleet average",
-   "machines": [
-    "TC-31"
-   ],
-   "entries": 5,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-19",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|TMC-5",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "TMC-5: repairs take 4.32 hrs on average, 2.3x the fleet average",
-   "machines": [
-    "TMC-5"
-   ],
-   "entries": 4,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-19",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "newm|TC-37",
-   "rule": "newm",
-   "sev": "med",
-   "title": "New machine TC-37 (bought 10-09-2026) already has 2 breakdowns",
-   "machines": [
-    "TC-37"
-   ],
-   "entries": 2,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-10-16",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "mttr|S-2",
-   "rule": "mttr",
-   "sev": "med",
-   "title": "S-2: repairs take 8.88 hrs on average, 4.8x the fleet average",
-   "machines": [
-    "S-2"
-   ],
-   "entries": 7,
-   "status": "resolved",
-   "reopened": false,
-   "ev": "2026-10-13",
-   "excluded": false,
-   "ack": {
-    "status": "done",
-    "owner": "Ravi",
-    "due": "",
-    "note": "Sealed",
-    "at": "2026-11-10T08:00:00.000Z"
-   }
-  },
-  {
-   "key": "newm|VTL-11",
-   "rule": "newm",
-   "sev": "med",
-   "title": "New machine VTL-11 (bought 19-08-2026) already has 2 breakdowns",
-   "machines": [
-    "VTL-11"
-   ],
-   "entries": 2,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-09-25",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "shift|1",
-   "rule": "shift",
-   "sev": "low",
-   "title": "Shift 1 had 61% of breakdowns in the last 30 days",
-   "machines": [],
-   "entries": 111,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": null
-  },
-  {
-   "key": "age|all",
-   "rule": "age",
-   "sev": "low",
-   "title": "2 machines aged 15+ years lost at least twice the fleet average hours in the last 90 days",
-   "machines": [
-    "HMC-2",
-    "TC-3"
-   ],
-   "entries": 40,
-   "status": "open",
-   "reopened": false,
-   "ev": "2026-11-07",
-   "excluded": false,
-   "ack": null
-  }
- ],
- "counts": {
-  "open": 33,
-  "ack": 1,
-  "snoozed": 1,
-  "resolved": 1
- },
- "bySeverity": {
-  "high": 5,
-  "med": 26,
-  "low": 2,
-  "info": 0
- },
- "risk": [
-  {
-   "machine": "HMC-2",
-   "model": "FMH 500",
-   "score": 7,
-   "why": "Frequent breakdowns Recurring fault Ageing machines"
-  },
-  {
-   "machine": "WJ-01",
-   "model": "Aqua Imple HJ-2040",
-   "score": 4,
-   "why": "Long breakdown Slow repairs"
-  },
-  {
-   "machine": "TC-10",
-   "model": "FTC-20L",
-   "score": 4,
-   "why": "Worsening machine Slow repairs"
-  },
-  {
-   "machine": "VC-56",
-   "model": "CVM 1680",
-   "score": 4,
-   "why": "Worsening machine New machine"
-  },
-  {
-   "machine": "VC-22",
-   "model": "MILL TAP MT 700",
-   "score": 4,
-   "why": "Long breakdown Slow repairs"
-  },
-  {
-   "machine": "VC-14",
-   "model": "CVM 1060",
-   "score": 3,
-   "why": "Frequent breakdowns"
-  },
-  {
-   "machine": "VC-16",
-   "model": "CVM1160",
-   "score": 3,
-   "why": "Frequent breakdowns"
-  },
-  {
-   "machine": "TMC-6",
-   "model": "H-TURN CK5075",
-   "score": 3,
-   "why": "Frequent breakdowns"
-  }
- ]
+  "risk": [
+    {
+      "machine": "HMC-2",
+      "model": "FMH 500",
+      "score": 7,
+      "why": "Frequent breakdowns Recurring fault Ageing machines"
+    },
+    {
+      "machine": "WJ-01",
+      "model": "Aqua Imple HJ-2040",
+      "score": 4,
+      "why": "Long breakdown Slow repairs"
+    },
+    {
+      "machine": "TC-10",
+      "model": "FTC-20L",
+      "score": 4,
+      "why": "Worsening machine Slow repairs"
+    },
+    {
+      "machine": "VC-56",
+      "model": "CVM 1680",
+      "score": 4,
+      "why": "Worsening machine New machine"
+    },
+    {
+      "machine": "VC-22",
+      "model": "MILL TAP MT 700",
+      "score": 4,
+      "why": "Long breakdown Slow repairs"
+    },
+    {
+      "machine": "VC-14",
+      "model": "CVM 1060",
+      "score": 3,
+      "why": "Frequent breakdowns"
+    },
+    {
+      "machine": "VC-16",
+      "model": "CVM1160",
+      "score": 3,
+      "why": "Frequent breakdowns"
+    },
+    {
+      "machine": "TMC-6",
+      "model": "H-TURN CK5075",
+      "score": 3,
+      "why": "Frequent breakdowns"
+    }
+  ]
 }

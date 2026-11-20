@@ -94,6 +94,15 @@ function columns(model: ActionCenterModel): Column<NudgeRow>[] {
   ];
 }
 
+const priorityChips = (words: ActionCenterModel['words']): FilterChip<NudgeRow>[] => [
+  { key: 'all', label: words.priorityAll },
+  ...NUDGE_SEVERITIES.map((severity) => ({
+    key: severity,
+    label: words.priorities[severity],
+    test: (r: NudgeRow) => r.severity === severity,
+  })),
+];
+
 /**
  * The nudges: the four status tabs with their counts, the type, then the table's own priority chips and search. The
  * engine's order stands until a column is sorted. A row opens the nudge in the drawer, where it is acted on.
@@ -114,14 +123,7 @@ export function NudgeTable({
     () => model.nudges.filter((n) => n.status === status && (type === '' || n.rule === type)),
     [model.nudges, status, type],
   );
-  const chips: FilterChip<NudgeRow>[] = [
-    { key: 'all', label: words.priorityAll },
-    ...NUDGE_SEVERITIES.map((severity) => ({
-      key: severity,
-      label: words.priorities[severity],
-      test: (r: NudgeRow) => r.severity === severity,
-    })),
-  ];
+  const chips = priorityChips(words);
   return (
     <>
       <div className="v2-row v2-gap-12">

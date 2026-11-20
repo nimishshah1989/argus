@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { groupFor } from './groups.js';
-import { ActionCenterPage } from './ActionCenterPage.js';
+import { ACTION_CENTER_PATH, groupFor } from './groups.js';
+import { ActionCenterPage } from '../v2/action-center/Page.js';
 import { Dashboard } from './Dashboard.js';
 import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
@@ -30,15 +30,9 @@ export function DataChecklistPage() {
   );
 }
 
-/** The Action Center's own route, inside the Today group's shell (packet 44d). */
+/** The Action Center's own route: the v2 screen, with its own frame. */
 export function ActionCenterRoute() {
-  const today = groupFor('today');
-  if (!today) return <Navigate to="/analytics/today" replace />;
-  return (
-    <AnalyticsShell>
-      <ActionCenterPage />
-    </AnalyticsShell>
-  );
+  return <ActionCenterPage />;
 }
 
 /** One machine's page: inside the Machines group's shell, with that group's menu entry marked. */
@@ -52,12 +46,21 @@ export function MachinePageRoute() {
   );
 }
 
+/** The Action Center has its own route; a link that names it as a screen of Today goes there. */
+function ownRoute(group: string | undefined, screen: string | null) {
+  return group === 'today' && screen === 'action-center' ? (
+    <Navigate to={ACTION_CENTER_PATH} replace />
+  ) : null;
+}
+
 /** The face itself: `/analytics` opens on Today; an unknown group falls back to it (no 404 screen). */
 export function AnalyticsFace() {
   const { group } = useParams();
   const [params] = useSearchParams();
   const found = groupFor(group);
   if (!found) return <Navigate to="/analytics/today" replace />;
+  const own = ownRoute(group, params.get('screen'));
+  if (own) return own;
   const live = liveScreen(group, params.get('screen'));
   if (live) return live;
   return (

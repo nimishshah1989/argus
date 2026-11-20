@@ -160,6 +160,16 @@ async function stubBoard(page: Page): Promise<void> {
   });
 }
 
+const tabs = (page: Page) => page.getByRole('group', { name: 'Action Center status' });
+const list = (page: Page) => page.getByRole('region', { name: 'Nudges', exact: true });
+const drawer = (page: Page) => page.locator('aside.v2-drawer');
+const rowOf = (page: Page, title: string) => list(page).getByRole('row').filter({ hasText: title });
+const opener = (page: Page, title: string) =>
+  list(page).getByRole('button', { name: `Open ${title}` });
+const FREQ = 'VC-1 has broken down 12 times in 30 days';
+const MTTR = 'VC-3: repairs take 4.24 hrs on average, 2.3x the fleet average';
+const GOOD = 'Downtime this week is 52% below the recent weekly average';
+
 async function openScreen(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubBoard(page);
@@ -170,105 +180,112 @@ async function openScreen(page: Page): Promise<void> {
   ).toBeVisible();
   await page.getByRole('link', { name: /Open Action Center/ }).click();
   await expect(page).toHaveURL(/\/analytics\/today\/action-center$/);
-  await expect(page.getByRole('heading', { name: 'Action Center', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
   await expect(
     page.getByText('Nudges worked out from the breakdown log', { exact: false }),
   ).toBeVisible();
 }
 
 async function assertBoard(page: Page): Promise<void> {
-  for (const [severity, count] of [
-    ['high', '2'],
-    ['med', '1'],
-    ['low', '1'],
-    ['info', '1'],
+  for (const [name, count] of [
+    ['High priority', '2'],
+    ['Medium', '1'],
+    ['Low', '1'],
+    ['Good news', '1'],
   ] as const)
-    await expect(page.locator(`[data-tile="${severity}"]`)).toContainText(count);
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
-  await expect(tabs.getByRole('tab')).toHaveCount(4);
-  await expect(tabs.getByRole('tab', { name: /^Open/ })).toHaveAttribute('aria-selected', 'true');
-  const risk = page.getByRole('table', { name: 'Machines needing attention' });
+    await expect(page.getByRole('region', { name, exact: true })).toContainText(count);
+  await expect(tabs(page).getByRole('button')).toHaveCount(4);
+  await expect(tabs(page).getByRole('button', { name: /^Open/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  const risk = page.getByRole('region', { name: 'Machines needing attention' });
   await expect(risk.getByRole('row')).toHaveCount(2);
-  await expect(risk.getByRole('link', { name: 'VC-1 VMC' })).toHaveAttribute(
-    'href',
-    `/analytics/machines/${MACHINES[0]!.id}`,
-  );
-  const freq = page.locator('[data-nudge="freq|VC-1"]');
-  for (const text of [
-    'Frequent breakdowns',
-    'VC-1 has broken down 12 times in 30 days',
-    '12 entries',
-    'Latest entry 10-11-2026',
-  ])
+  await expect(risk).toContainText('Frequent breakdowns');
+  await expect(risk).toContainText('VMC');
+  await risk.getByRole('button', { name: 'VC-1' }).click();
+  await expect(page).toHaveURL(/drawer=machine:VC-1/);
+  await page.keyboard.press('Escape');
+  const freq = rowOf(page, FREQ);
+  for (const text of ['Frequent breakdowns', FREQ, '12', '10-Nov-2026'])
     await expect(freq).toContainText(text);
-  await expect(freq.getByRole('link', { name: 'VC-1' })).toHaveAttribute(
-    'href',
-    `/analytics/machines/${MACHINES[0]!.id}`,
-  );
-  await expect(page.locator('[data-nudge]')).toHaveCount(5);
-  await expect(page.locator('[data-nudge="good|hrs"]').getByRole('button')).toHaveCount(0);
+  // The row's machine is a chip that opens the machine, never a link to a database id.
+  await expect(freq.getByRole('button', { name: 'VC-1' })).toBeVisible();
+  await expect(list(page).getByRole('row')).toHaveCount(6);
+  await opener(page, GOOD).click();
+  await expect(drawer(page)).toHaveAttribute('aria-label', GOOD);
+  await expect(
+    drawer(page).getByRole('button', { name: /Acknowledge|Snooze|Resolved/ }),
+  ).toHaveCount(0);
+  await page.keyboard.press('Escape');
   const type = page.getByLabel('Type', { exact: true });
   await type.selectOption('recur');
-  await expect(page.locator('[data-nudge]')).toHaveCount(1);
-  await expect(page.locator('[data-nudge="recur|VC-2|ATC"]')).toBeVisible();
+  await expect(list(page).getByRole('row')).toHaveCount(2);
+  await expect(list(page)).toContainText('ATC (Automatic Tool Changer)');
   await type.selectOption('');
-  await expect(page.locator('[data-nudge]')).toHaveCount(5);
+  await expect(list(page).getByRole('row')).toHaveCount(6);
 }
 
 async function ackAndReload(page: Page): Promise<void> {
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
-  const freq = page.locator('[data-nudge="freq|VC-1"]');
-  // One form at a time, even across two priorities: opening the medium card's form closes the high card's.
-  await freq.getByRole('button', { name: 'Acknowledge', exact: true }).click();
-  const mttr = page.locator('[data-nudge="mttr|VC-3"]');
-  await mttr.getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  // One form at a time: a nudge opens alone in the drawer, so another nudge's form never stands beside it.
+  await opener(page, FREQ).click();
+  await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  await opener(page, MTTR).click();
+  await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
   await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(1);
-  await expect(mttr.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toBeVisible();
-  await freq.getByRole('button', { name: 'Acknowledge', exact: true }).click();
-  const form = freq.getByRole('form', { name: 'Acknowledge nudge', exact: true });
+  await opener(page, FREQ).click();
+  await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  const form = drawer(page).getByRole('form', { name: 'Acknowledge nudge', exact: true });
   await form.getByLabel('Owner', { exact: true }).selectOption('Asha');
   await form.getByLabel('Due date', { exact: true }).fill('2026-11-20');
   await form.getByLabel('Note', { exact: true }).fill('Check the bearing');
   await form.getByRole('button', { name: 'Save acknowledgement', exact: true }).click();
-  // The acked card leaves the Open tab; its own tab shows the stored status line.
-  await tabs.getByRole('tab', { name: /^Acknowledged/ }).click();
-  for (const text of ['Acknowledged', 'Owner: Asha', 'Due 20-11-2026', 'Note: Check the bearing'])
-    await expect(freq.getByText(text, { exact: true })).toBeVisible();
-  await expect(freq.getByRole('button', { name: 'Reopen', exact: true })).toBeVisible();
+  // The acked nudge leaves the Open tab; its own tab shows the stored status line.
+  await page.keyboard.press('Escape');
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
+    .click();
+  const freq = rowOf(page, FREQ);
+  for (const text of ['Acknowledged', 'Asha', 'Due 20-Nov-2026', 'Note: Check the bearing'])
+    await expect(freq).toContainText(text);
+  await opener(page, FREQ).click();
+  await expect(drawer(page).getByRole('button', { name: 'Reopen', exact: true })).toBeVisible();
   await page.reload();
-  await tabs.getByRole('tab', { name: /^Acknowledged/ }).click();
-  const acked = page.locator('[data-nudge="freq|VC-1"]');
-  await expect(acked.getByText('Owner: Asha', { exact: true })).toBeVisible();
-  await expect(acked.getByText('Note: Check the bearing', { exact: true })).toBeVisible();
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
+    .click();
+  await expect(rowOf(page, FREQ)).toContainText('Asha');
+  await expect(rowOf(page, FREQ)).toContainText('Note: Check the bearing');
 }
 
 async function snoozeAndReopen(page: Page): Promise<void> {
-  const tabs = page.getByRole('tablist', { name: 'Action Center status' });
-  await tabs.getByRole('tab', { name: /^Open/ }).click();
-  const mttr = page.locator('[data-nudge="mttr|VC-3"]');
-  await mttr.getByRole('button', { name: 'Snooze 7 days', exact: true }).click();
-  // A snoozed card leaves the Open tab; its own tab shows the snooze day.
-  await tabs.getByRole('tab', { name: /^Snoozed/ }).click();
-  await expect(mttr.getByText('Snoozed until 18-11-2026', { exact: true })).toBeVisible();
+  await tabs(page).getByRole('button', { name: /^Open/ }).click();
+  await opener(page, MTTR).click();
+  await drawer(page).getByRole('button', { name: 'Snooze 7 days', exact: true }).click();
+  // A snoozed nudge leaves the Open tab; its own tab shows the snooze day.
+  await page.keyboard.press('Escape');
+  await tabs(page)
+    .getByRole('button', { name: /^Snoozed/ })
+    .click();
+  await expect(rowOf(page, MTTR)).toContainText('Snoozed until 18-Nov-2026');
   await page.reload();
-  await tabs.getByRole('tab', { name: /^Snoozed/ }).click();
-  const snoozed = page.locator('[data-nudge="mttr|VC-3"]');
-  await expect(snoozed.getByText('Snoozed until 18-11-2026', { exact: true })).toBeVisible();
-  await snoozed.getByRole('button', { name: 'Reopen', exact: true }).click();
-  await expect(page.locator('[data-nudge="mttr|VC-3"]')).toHaveCount(0);
-  await tabs.getByRole('tab', { name: /^Open/ }).click();
+  await tabs(page)
+    .getByRole('button', { name: /^Snoozed/ })
+    .click();
+  await expect(rowOf(page, MTTR)).toContainText('Snoozed until 18-Nov-2026');
+  await opener(page, MTTR).click();
+  await drawer(page).getByRole('button', { name: 'Reopen', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await expect(rowOf(page, MTTR)).toHaveCount(0);
+  await tabs(page).getByRole('button', { name: /^Open/ }).click();
+  await opener(page, MTTR).click();
   await expect(
-    page.locator('[data-nudge="mttr|VC-3"]').getByRole('button', {
-      name: 'Acknowledge',
-      exact: true,
-    }),
+    drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }),
   ).toBeVisible();
   await page.reload();
+  await opener(page, MTTR).click();
   await expect(
-    page.locator('[data-nudge="mttr|VC-3"]').getByRole('button', {
-      name: 'Acknowledge',
-      exact: true,
-    }),
+    drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }),
   ).toBeVisible();
 }
 

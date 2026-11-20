@@ -25,7 +25,7 @@ export function AckForm({
   onCancel,
 }: {
   words: AckFormWords;
-  people: readonly { id: string; name: string }[];
+  people: readonly string[];
   saving: boolean;
   onSave: (body: AckBody) => void;
   onCancel: () => void;
@@ -48,8 +48,8 @@ export function AckForm({
         <select id={`${id}-owner`} name="owner" defaultValue="">
           <option value="">{words.ownerNone}</option>
           {people.map((person) => (
-            <option key={person.id} value={person.name}>
-              {person.name}
+            <option key={person} value={person}>
+              {person}
             </option>
           ))}
         </select>

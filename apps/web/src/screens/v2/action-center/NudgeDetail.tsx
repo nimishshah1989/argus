@@ -69,6 +69,19 @@ function Buttons({
   );
 }
 
+/** The priority, the kind, the status and the two marks a nudge can carry. */
+function Pills({ row, words }: { row: NudgeRow; words: ActionCenterModel['words'] }) {
+  return (
+    <div className="v2-row v2-gap-8">
+      <KeyPill text={row.severityLabel} tone={PILL[row.severity]} />
+      <KeyPill text={row.ruleLabel} tone="neutral" />
+      <KeyPill text={row.statusLabel} tone="neutral" />
+      {row.reopened ? <KeyPill text={words.reopened} tone="risk" icon="alert" /> : null}
+      {row.excluded ? <KeyPill text={words.excluded} tone="neutral" icon="pause" /> : null}
+    </div>
+  );
+}
+
 /**
  * One nudge in the drawer: what it says, how many entries stand behind it and the latest, the machines it names,
  * what was stored on it, and what a person can do. One acknowledgement form at a time, because one nudge is open.
@@ -86,13 +99,7 @@ export function NudgeDetail({
   const [form, setForm] = useState(false);
   return (
     <div className="v2-detail">
-      <div className="v2-row v2-gap-8">
-        <KeyPill text={row.severityLabel} tone={PILL[row.severity]} />
-        <KeyPill text={row.ruleLabel} tone="neutral" />
-        <KeyPill text={row.statusLabel} tone="neutral" />
-        {row.reopened ? <KeyPill text={words.reopened} tone="risk" icon="alert" /> : null}
-        {row.excluded ? <KeyPill text={words.excluded} tone="neutral" icon="pause" /> : null}
-      </div>
+      <Pills row={row} words={words} />
       <h2 className="v2-drawer-title">{row.titleText}</h2>
       <DetailSection label={words.detail.about}>
         <div className="v2-figures">
