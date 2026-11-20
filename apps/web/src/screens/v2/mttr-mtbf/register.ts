@@ -9,5 +9,12 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'mttr-mtbf'> = {
   key: 'mttr-mtbf',
-  provider: () => import('./source.js').then((m) => m.mttrMtbfModelFromKey()),
+  provider: async (_, { client }) => {
+    const [{ liveReply }, { mttrMtbfFromReply }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return mttrMtbfFromReply(await liveReply(client));
+  },
+  frozen: () => import('./source.js').then((m) => m.mttrMtbfModelFromKey()),
 };

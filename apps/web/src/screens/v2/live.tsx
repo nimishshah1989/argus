@@ -9,6 +9,9 @@ import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { groupFor, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
+import { BdPmView } from './bd-pm/View.js';
+import { CategoryCellView } from './category-cell/View.js';
+import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
@@ -17,10 +20,12 @@ import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
+import { ManpowerView } from './manpower/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
+import { WhyWhyLive } from './why-why/Live.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
@@ -218,6 +223,76 @@ const LIVE: readonly Live[] = [
     ),
   },
   {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a4-manpower',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a4-manpower')}
+        screen="manpower"
+        empty="analytics.notComputed"
+        title="v2r.mp.title"
+        draw={(model, shell) => <ManpowerView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a6-why-why',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a6-why-why')}
+        screen="why-why"
+        empty="analytics.notComputed"
+        title="v2r.ww.title"
+        draw={(model, shell) => <WhyWhyLive model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a1-bd-pm',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a1-bd-pm')}
+        screen="bd-pm"
+        empty="analytics.notComputed"
+        title="v2r.bd.title"
+        draw={(model, shell) => <BdPmView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a2-category-cell',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a2-category-cell')}
+        screen="category-cell"
+        empty="analytics.notComputed"
+        title="v2r.cc.title"
+        draw={(model, shell) => <CategoryCellView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a3-mttr-mtbf',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a3-mttr-mtbf')}
+        screen="mttr-mtbf"
+        empty="analytics.notComputed"
+        title="v2r.mm.title"
+        draw={(model, shell) => <MttrMtbfView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
     group: FORECAST,
     section: 'reliability',
     screen: 'a9-bottleneck-forecast',
@@ -261,28 +336,7 @@ export function liveScreen(group: string | undefined, screen: string | null): Re
     LIVE.find((entry) => entry.group === group && entry.screen === named) ??
     (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
   if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
-  return unknownBreakdownsScreen(group, named) ?? unknownMachinesScreen(group, named);
-}
-
-/**
- * The Breakdowns group opens on its log: a screen it does not have (a bookmark, a typo, no `?screen=`) is the log, as in
- * v1, whose page opened on the log for any name it did not know. The screens still on v1's page keep their address.
- */
-const BREAKDOWNS_ON_V1: ReadonlySet<string> = new Set([
-  'a1-bd-pm',
-  'a2-category-cell',
-  'a3-mttr-mtbf',
-  'a4-manpower',
-  'a6-why-why',
-]);
-
-function unknownBreakdownsScreen(
-  group: string | undefined,
-  named: string | null,
-): ReactElement | null {
-  if (group !== 'breakdowns' || (named !== null && BREAKDOWNS_ON_V1.has(named))) return null;
-  const found = LIVE.find((entry) => entry.group === group && entry.screen === 'breakdown-log');
-  return found ? <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment> : null;
+  return unknownMachinesScreen(group, named);
 }
 
 /** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
@@ -303,7 +357,7 @@ const FIRST: Record<string, string> = {
   pm: 'pm-calendar',
 };
 /** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
-const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm']);
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns']);
 
 function knownMachinesScreen(id: string): boolean {
   return (groupFor('machines')?.screens ?? []).some(

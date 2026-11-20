@@ -2,8 +2,8 @@ import type { Page, Route } from '@playwright/test';
 import { mockPlant } from './plant-mock.js';
 
 /**
- * The analytics figures answered from the browser (ticket 87, rest): an invented plant's A1 to A4,
- * Shift KPIs and Compare, in the engine's own page shape. Invented names and numbers only. The
+ * The analytics figures answered from the browser (ticket 87, rest): an invented plant's A4 and
+ * Compare, in the engine's own page shape. Invented names and numbers only. The
  * blank cell, the dash and the "pts" below are on purpose: the restyle must print them as they are.
  */
 interface PageSpec {
@@ -36,101 +36,7 @@ const figure = (key: string, screen: string, spec: PageSpec, ids: string[] = [])
   },
 });
 
-const CELLS = ['Cell 2', 'Cell 3', 'Cell 6'];
-const CATEGORIES = {
-  labels: ['Spindle', 'Coolant'],
-  datasets: [{ label: 'Hours', data: [9.5, 4] }],
-};
-const BARS = { labels: CELLS, datasets: [{ label: 'Hours', data: [12.5, 8, 21] }] };
-const MONTHS = {
-  labels: ['Jan', 'Feb', 'Mar'],
-  datasets: [{ label: 'BD hours', data: [4, 9, 6] }],
-};
-
 const FIGURES = [
-  figure(
-    'a1-bd-pm',
-    'a1-bd-pm',
-    {
-      page: 'a1',
-      title: 'Breakdown against PM',
-      kpis: [
-        ['Breakdown hours', '41.5', '3 pts up'],
-        ['PM hours', '—'],
-      ],
-      tables: [
-        {
-          title: 'By cell',
-          header: ['Cell', 'BD hours', 'PM hours'],
-          rows: [['Cell 2', '12.5', '']],
-        },
-        {
-          title: 'By month',
-          header: ['Month', 'BD hours'],
-          rows: [
-            ['Jan', '4.0'],
-            ['Feb', '—'],
-          ],
-        },
-      ],
-      charts: [
-        { id: 'ch-a1-cell', ...BARS },
-        { id: 'ch-a1-trend', ...MONTHS },
-      ],
-    },
-    ['t1', 't2'],
-  ),
-  figure('a2-category-cell', 'a2-category-cell', {
-    page: 'a2',
-    title: 'Category and cell',
-    kpis: [['Top category', 'Spindle', '12 breakdowns']],
-    tables: [{ title: 'By category', header: ['Category', 'Hours'], rows: [['Spindle', '9.5']] }],
-    charts: [{ id: 'ch-a2-cathrs', ...CATEGORIES }],
-  }),
-  figure('a3-mttr-mtbf', 'a3-mttr-mtbf', {
-    page: 'a3',
-    title: 'MTTR and MTBF',
-    kpis: [
-      ['MTTR', '2.5', 'hours'],
-      ['MTBF', '110.0', 'hours'],
-    ],
-    tables: [
-      {
-        title: 'By category',
-        header: ['Category', 'MTTR', 'MTBF'],
-        rows: [['Spindle', '2.5', '—']],
-      },
-    ],
-    charts: [
-      {
-        id: 'ch-a3-catmttr',
-        labels: CATEGORIES.labels,
-        datasets: [{ label: 'MTTR', data: [2.5, 1.5] }],
-      },
-    ],
-  }),
-  figure('a4-manpower', 'a4-manpower', {
-    page: 'a4',
-    title: 'Manpower',
-    kpis: [
-      ['People', '2'],
-      ['Hours handled', '30.5', ''],
-    ],
-    tables: [
-      {
-        title: 'Manpower Table',
-        header: ['Person', 'Hours'],
-        rows: [
-          ['Asha', '12.0'],
-          ['Ravi', '18.5'],
-        ],
-      },
-      { title: 'Specialization', header: ['Person', 'Spindle'], rows: [['Asha', '3']] },
-    ],
-    charts: [
-      { id: 'ch-a4-count', labels: ['Asha', 'Ravi'], datasets: [{ label: 'Jobs', data: [3, 5] }] },
-    ],
-  }),
   figure('compare', 'compare', {
     page: 'cmp',
     title: 'Compare machines',

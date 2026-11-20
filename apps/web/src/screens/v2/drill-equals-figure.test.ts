@@ -9,6 +9,8 @@ import { fixFinderModel } from './fix-finder/adapter.js';
 import type { Translate } from './figures/read.js';
 import { realReply } from './figures/real-reply.js';
 import { footprintModel } from './footprint/adapter.js';
+import { manpowerModel } from './manpower/adapter.js';
+import { whyWhyModel } from './why-why/adapter.js';
 import { registersModel } from './machines-register/adapter.js';
 import { problemAnalysisModel } from './problem-analysis/adapter.js';
 import type { TFunction } from 'i18next';
@@ -55,5 +57,15 @@ describe('a card that opens the rows behind it, over the real engine', () => {
     expect(withDrill(model.kpis)).toEqual([]);
     expect(model.drill).toMatchObject({ figure: 'a8-age' });
     expect(rowsOf('a8-age')).toBeGreaterThan(0);
+  });
+
+  it('Manpower and Why-Why: no card opens rows; one page control opens the figure the engine counted', () => {
+    const manpower = manpowerModel(reply, tf)!;
+    const whyWhy = whyWhyModel(reply, tf)!;
+    expect(withDrill(manpower.figures)).toEqual([]);
+    expect(manpower.drill).toMatchObject({ figure: 'a4-manpower' });
+    expect(rowsOf('a4-manpower')).toBeGreaterThan(0);
+    expect(whyWhy.drill).toMatchObject({ figure: 'a6-why-why' });
+    expect(rowsOf('a6-why-why')).toBeGreaterThan(0);
   });
 });

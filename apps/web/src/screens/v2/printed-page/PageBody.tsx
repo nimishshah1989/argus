@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactElement, type ReactNode } from 'react';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
-import { PrintedDataTable } from '../../../ui/v2/domain/printed-table.js';
+import { PrintedDataTable, type PrintedTable } from '../../../ui/v2/domain/printed-table.js';
 import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Row } from '../../../ui/v2/row.js';
@@ -24,11 +24,14 @@ export function PageBody({
   nav,
   title,
   after,
+  around,
 }: {
   model: PrintedPageModel;
   nav: NavItem[];
   title: string;
   after?: ReactNode;
+  /** A screen's own frame for one table (Manpower's Specialization toggle); it is handed the table as drawn. */
+  around?: (table: PrintedTable, drawn: ReactElement) => ReactElement;
 }) {
   const { current } = useEntityParam();
   const selected = current?.kind === 'machine' ? current.id : undefined;
@@ -50,18 +53,18 @@ export function PageBody({
       {model.charts.length > 0 ? (
         <Row cols={2}>
           {model.charts.map((chart) => (
-            <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} />
+            <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} numbers />
           ))}
         </Row>
       ) : null}
-      {model.tables.map((table, at) => (
-        <PrintedDataTable
-          key={`${table.title}-${at}`}
-          table={table}
-          words={model.words.table}
-          selected={selected}
-        />
-      ))}
+      {model.tables.map((table, at) => {
+        const drawn = (
+          <PrintedDataTable table={table} words={model.words.table} selected={selected} />
+        );
+        return (
+          <Fragment key={`${table.title}-${at}`}>{around ? around(table, drawn) : drawn}</Fragment>
+        );
+      })}
       {after}
       <SourceLine text={model.source} />
     </EntityShell>

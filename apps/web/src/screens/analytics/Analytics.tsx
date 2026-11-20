@@ -1,7 +1,6 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ACTION_CENTER_PATH, groupFor } from './groups.js';
 import { ActionCenterPage } from '../v2/action-center/Page.js';
-import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
@@ -65,8 +64,6 @@ export function AnalyticsFace() {
         <TodayRest group={found} />
       ) : found.id === 'machines' ? (
         <MachinesPage group={found} />
-      ) : found.id === 'breakdowns' ? (
-        <BreakdownsPage group={found} />
       ) : found.id === 'cost' ? (
         <MoneyPage group={found} />
       ) : found.id === 'reports' ? (

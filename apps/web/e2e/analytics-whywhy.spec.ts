@@ -147,14 +147,19 @@ test('a head starts a Why-Why on the first candidate, saves it, sees Completed a
   await signIn(page, 'head');
   await page.goto('/analytics/breakdowns?screen=a6-why-why');
 
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await expect(nav.getByRole('link', { name: 'A6 Why-Why', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
+  await expect(tabs.getByRole('button', { name: 'A6 Why-Why', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
-  await expect(page.getByRole('heading', { name: 'Why-Why Analysis', exact: true })).toBeVisible();
-  const table = page.getByRole('table', { name: 'Why-Why (Root Cause) Analysis', exact: true });
+  await expect(page.getByRole('heading', { level: 1, name: 'Why-Why', exact: true })).toBeVisible();
+  const table = page.getByRole('region', {
+    name: 'Breakdowns that ran past the Why-Why limit',
+    exact: true,
+  });
   await expect(table).toBeVisible();
+  // The row's machine is a chip and no ticket id is printed anywhere on the page.
+  await expect(page.getByText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/)).toHaveCount(0);
   const row = table.getByRole('row').nth(1);
   await expect(row.getByText('Not Started', { exact: true })).toBeVisible();
   await row.getByRole('button', { name: 'Start Why-Why', exact: true }).click();
@@ -186,6 +191,9 @@ test('a head starts a Why-Why on the first candidate, saves it, sees Completed a
   await expect(
     table.getByRole('row').nth(2).getByText('Not Started', { exact: true }),
   ).toBeVisible();
+  // A completed row says View or edit, and opens its own saved record.
+  await row.getByRole('button', { name: 'View or edit', exact: true }).click();
+  await expect(form.getByLabel('Conclusion (required)', { exact: true })).toHaveValue(CONCLUSION);
 
   const download = page.waitForEvent('download');
   await form.getByRole('button', { name: 'Download PDF', exact: true }).click();
@@ -195,4 +203,31 @@ test('a head starts a Why-Why on the first candidate, saves it, sees Completed a
   expect(path).toBeTruthy();
   const bytes = await readFile(path as string);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+});
+
+test('the page action opens the tickets the figure counted, and an old v1 address opens them on the v2 page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  await page.goto('/analytics/breakdowns?screen=a6-why-why');
+  await page.getByRole('button', { name: /Show the rows behind A6 Why-Why/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:a6-why-why$/);
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer.getByRole('link', { name: worst.ref, exact: true })).toBeVisible();
+  await expect(drawer.getByRole('link', { name: other.ref, exact: true })).toBeVisible();
+  const link = encodeURIComponent(`ticket:${[worst.id, other.id].sort().join(',')}`);
+  await page.goto(`/analytics/breakdowns?screen=a6-why-why&drill=${link}`);
+  await expect(page).toHaveURL(/[?&]drawer=figure:a6-why-why$/);
+  await expect(page).not.toHaveURL(/drill=/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Why-Why', exact: true })).toBeVisible();
+});
+
+test('an operator is refused the Why-Why screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, 'op');
+  await page.goto('/analytics/breakdowns?screen=a6-why-why');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start Why-Why' })).toHaveCount(0);
 });

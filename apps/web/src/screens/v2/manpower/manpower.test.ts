@@ -6,7 +6,7 @@ import {
   shownCells,
   testT,
 } from '../printed-page/test-support.js';
-import { manpowerModel } from './adapter.js';
+import { FIGURE, manpowerModel } from './adapter.js';
 
 const reply = answerKey('a4-manpower', 'a4-manpower', 41);
 const model = manpowerModel(reply, testT)!;
@@ -50,5 +50,26 @@ describe('Manpower from the engine reply', () => {
 
   it('keeps the category columns the engine cut short, as printed (the full names need the server)', () => {
     expect(model.tables[3]!.header.map((h) => h.label)).toContain('Turning Cen…');
+  });
+
+  it('opens the rows behind the whole page from one page control, as v1 linked them, never from a count', () => {
+    const counted = {
+      ...reply,
+      figures: [{ ...reply.figures[0]!, drill: { type: 'ticket' as const, ids: ['a', 'b'] } }],
+    };
+    expect(manpowerModel(counted, testT)!.drill).toMatchObject({ figure: FIGURE });
+    expect(model.drill).toBeUndefined();
+    expect(model.figures.every((figure) => !('drill' in figure))).toBe(true);
+  });
+
+  it('keeps v1’s Specialization toggle: the engine’s category matrix, and a code form that says it is not computed', () => {
+    expect(model.specialization).toEqual({
+      table: 'Specialization',
+      toggle: 'Specialization view',
+      category: 'By Category',
+      code: 'By Fault Code',
+      notComputed: 'Not computed yet',
+    });
+    expect(model.tables.map((table) => table.title)).toContain(model.specialization.table);
   });
 });

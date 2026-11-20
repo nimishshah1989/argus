@@ -13,6 +13,11 @@ describe('which v2 screens are live at their v1 address', () => {
       ['breakdowns', 'a10-problems'],
       ['machines', 'a5-energy'],
       ['breakdowns', 'shift-kpis'],
+      ['breakdowns', 'a4-manpower'],
+      ['breakdowns', 'a6-why-why'],
+      ['breakdowns', 'a1-bd-pm'],
+      ['breakdowns', 'a2-category-cell'],
+      ['breakdowns', 'a3-mttr-mtbf'],
       ['forecast-scorecard', 'a9-bottleneck-forecast'],
       ['forecast-scorecard', 'forecast-lab'],
       ['breakdowns', 'breakdown-log'],
@@ -51,6 +56,11 @@ describe('which v2 screens are live at their v1 address', () => {
       key('breakdowns', 'a10-problems'),
       key('breakdowns', 'breakdown-log'),
       key('pm', 'pm-calendar'),
+      key('breakdowns', 'a4-manpower'),
+      key('breakdowns', 'a6-why-why'),
+      key('breakdowns', 'a1-bd-pm'),
+      key('breakdowns', 'a2-category-cell'),
+      key('breakdowns', 'a3-mttr-mtbf'),
     ];
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -67,16 +77,19 @@ describe('which v2 screens are live at their v1 address', () => {
       expect(liveScreen('pm', screen)?.key, String(screen)).toBe('pm:pm-calendar');
   });
 
-  it('leaves the screens still on a v1 page to it', () => {
+  it('leaves only the screens that are still a v1 page to it: Compare, and Team Focus on Today', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
+    expect(liveScreen('today', 'team-focus')).toBeNull();
+    // The Breakdowns group is v2 whole: each of its screens is live.
     for (const screen of [
+      'breakdown-log',
       'a1-bd-pm',
       'a2-category-cell',
       'a3-mttr-mtbf',
       'a4-manpower',
       'a6-why-why',
     ])
-      expect(liveScreen('breakdowns', screen), screen).toBeNull();
+      expect(liveScreen('breakdowns', screen), screen).not.toBeNull();
   });
 
   it('sends an unknown Machines screen to the register, never to a v1 copy of it', () => {
